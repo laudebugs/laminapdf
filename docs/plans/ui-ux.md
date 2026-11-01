@@ -130,7 +130,7 @@ Annotation colours never change (they carry meaning). The gutter around pages ha
 
 ### 5.6 Perceived performance (R6, R7)
 
-The pipeline for every page view ([C3b](../todos/ongoing/C3b-viewer-virtualiser-and-zoom.md)):
+The pipeline for every page view ([C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md)):
 
 1. Placeholders at the page's true aspect ratio, so the layout never shifts.
 2. A cached low-resolution bitmap stretched to the current zoom.
@@ -220,7 +220,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | --- | --- |
 | [C1b](../todos/done/C1b-pdfium-wasm-spike.md) | Choose a growable-heap PDFium WASM build; one PDFium instance per worker; record upstream licence notices |
 | [C2a](../todos/done/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
-| [C3b](../todos/ongoing/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
+| [C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
 | [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
 | [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
 | [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |

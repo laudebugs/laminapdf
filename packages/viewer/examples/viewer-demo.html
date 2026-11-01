@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Viewer demo</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { display: flex; flex-direction: column; font: 15px/1.4 system-ui, sans-serif; background: #e9e6df; color: #1f1d1a; }
+      header { display: flex; gap: 8px; align-items: center; padding: 8px 16px; background: #f7f5f0; border-bottom: 1px solid #d8d3c8; flex-wrap: wrap; }
+      #viewer { flex: 1; min-height: 0; }
+      #status { color: #5c574f; margin-left: auto; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <input id="file" type="file" accept="application/pdf" />
+      <button type="button" data-zoom="fit-width">Fit width</button>
+      <button type="button" data-zoom="fit-page">Fit page</button>
+      <button type="button" data-zoom="actual-size">100 %</button>
+      <button type="button" id="rotate">Rotate</button>
+      <span id="status">Starting the worker…</span>
+    </header>
+    <div id="viewer"></div>
+    <script type="module" src="./viewer-demo.ts"></script>
+  </body>
+</html>

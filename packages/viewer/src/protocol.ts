@@ -84,6 +84,18 @@ export const PRIORITY: { readonly [P in Priority | "document"]: number } = Objec
   background: 1,
 });
 
+/** The fields of a render key that say which pixels it holds (see {@link renderKey}). */
+export interface RenderKeyFields {
+  readonly scale: number;
+  readonly rotation: number;
+}
+
+/** Reads back the scale and rotation from a {@link renderKey}. */
+export function renderKeyFields(key: string): RenderKeyFields {
+  const fields = JSON.parse(key) as unknown[];
+  return { scale: fields[2] as number, rotation: fields[4] as number };
+}
+
 /**
  * The coalescing key of a render on document `id`: the document and the whole normalised
  * RenderRequest (page, scale, clip, rotation, flags and background), so two requests share a run

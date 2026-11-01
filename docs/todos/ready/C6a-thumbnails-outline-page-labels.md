@@ -26,7 +26,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 - [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation) — outlines (§12.3.3), destinations (§12.3.2), page labels (§12.4.2) as a number tree in `/PageLabels`.
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — thumbnails at low DPI in a separate lower-priority queue.
 - [web-app.md §4 functional 6](../../plans/web-app.md#functional).
-- [C3a](../done/C3a-viewer-worker-rpc.md) priorities (`thumbnail`), [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) virtualiser patterns and `goToPage`.
+- [C3a](../done/C3a-viewer-worker-rpc.md) priorities (`thumbnail`), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) virtualiser patterns and `goToPage`.
 - `fixtures/corpus/expected.json` — outline facts from pypdf (ADR 0018 tier 4); B2 adds outline titles.
 
 ## Scope

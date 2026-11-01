@@ -27,7 +27,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 - [Research: web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — layering: raster canvas, transparent DOM text layer, struct-tree layer via `aria-owns` (pdf.js pattern), core must expose `StructTreeRoot`/`MarkInfo`.
 - [rendering notes §3](../../research/architecture/notes/rendering.md) and [web-frontend notes §3, §7](../../research/architecture/notes/web-frontend.md) — text-layer technique, accessibility through DOM layers, untagged documents.
 - [web-app.md §4 functional 4](../../plans/web-app.md#functional) and [§7 risks](../../plans/web-app.md#7-risks) (two parsers disagree on geometry; untagged PDFs).
-- [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) — `PageLayerHost` slots (`lamina-layer-text`).
+- [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) — `PageLayerHost` slots (`lamina-layer-text`).
 
 ## Scope
 
