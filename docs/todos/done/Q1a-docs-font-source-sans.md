@@ -53,7 +53,7 @@ The owner asked (2026-10-31) for one sans-serif font across the docs site. Headi
 
 - [x] No `Newsreader` under `apps/docs/` and no Newsreader request in the built site.
 - [x] Headings stand out from body text by weight and size in both themes (screenshots of four pages, two themes and two widths checked locally and sent to the owner; the GitHub CLI can't attach images to a PR).
-- [ ] The CSP `font-src 'self'` is unchanged; the docs build in `cargo xtask check ts` passes.
+- [x] The CSP `font-src 'self'` is unchanged; the docs build in `cargo xtask check ts` passes.
 
 ## Post-merge checks
 
@@ -76,6 +76,6 @@ Pure CSS and assets. If headings look too close to body text, raise the weight b
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
