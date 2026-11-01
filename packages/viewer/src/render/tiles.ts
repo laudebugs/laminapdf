@@ -1,4 +1,4 @@
-// Progressive rendering's geometry (C3b, UI/UX plan §5.6): a low-resolution pass of the whole
+// Progressive rendering's geometry (UI/UX plan §5.6): a low-resolution pass of the whole
 // page first, then sharp tiles at full device pixel ratio over the part of the page in view. All
 // pure: the view turns these into render requests and canvas draws.
 import type { PixelRect } from "@laminapdf/render";

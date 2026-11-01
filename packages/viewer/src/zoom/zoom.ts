@@ -1,4 +1,4 @@
-// Zoom (C3b): modes to a scale, the zoom range, and anchoring — the document point under the
+// Zoom: modes to a scale, the zoom range, and anchoring — the document point under the
 // cursor (or the viewport centre) stays where it is on screen when the scale changes.
 import { CSS_PX_PER_PT, type PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 

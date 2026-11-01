@@ -1,7 +1,7 @@
-// The viewer (C3b): a scroll container whose spacer is the whole document's height, and page
+// The viewer: a scroll container whose spacer is the whole document's height, and page
 // shells for only the pages in view plus a margin. Each mounted page borrows a canvas from a
 // fixed pool and paints in two passes, a low-resolution whole page and then sharp tiles over the
-// part in view, through the document worker (C3a) at `visible` or `prefetch` priority. A page
+// part in view, through the document worker at `visible` or `prefetch` priority. A page
 // that leaves the margin aborts its renders, and a result that arrives for it anyway is dropped,
 // never drawn. Zoom keeps the document point under the cursor (or the viewport centre) where it
 // is; during a gesture the canvases are stretched by CSS and the sharp re-render waits until the
@@ -40,7 +40,7 @@ export interface ViewState {
   readonly visibleRange: { readonly first: number; readonly last: number };
 }
 
-/** Counters for tests and the perf harness (C3c). */
+/** Counters for tests and the perf harness. */
 export interface RenderStats {
   readonly mounted: number;
   readonly peakMounted: number;
@@ -78,7 +78,7 @@ export interface PageLayer {
   onZoom?(page: number, element: HTMLElement, size: { readonly width: number; readonly height: number }): void;
 }
 
-/** `createViewer`'s options: the client, and the tuning C3c measures. */
+/** `createViewer`'s options: the client, and the tuning the perf harness measures. */
 export interface CreateViewerOptions {
   readonly client: ViewerClient;
   /** Pages mounted past each edge of the viewport (default 2; at least one viewport's worth). */
@@ -709,31 +709,50 @@ export class Viewer {
     return canvas;
   }
 
-  #listen(): void {
+  /** Adds `listener` to the root for `type`, removed by destroy(). Safari's gesture events take any name. */
+  #on<K extends keyof HTMLElementEventMap>(
+    type: K | string,
+    f: (e: HTMLElementEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void {
     const root = this.#root;
-    const on = <K extends keyof HTMLElementEventMap>(
-      type: K,
-      f: (e: HTMLElementEventMap[K]) => void,
-      options?: AddEventListenerOptions,
-    ) => {
-      root.addEventListener(type, f as EventListener, options);
-      this.#cleanup.push(() => root.removeEventListener(type, f as EventListener, options));
-    };
-    on("scroll", () => this.#schedule(), { passive: true });
-    // Ctrl/cmd+wheel and trackpad pinch (which browsers send as ctrl+wheel): zoom at the cursor.
-    on(
+    root.addEventListener(type, f as EventListener, options);
+    this.#cleanup.push(() => root.removeEventListener(type, f as EventListener, options));
+  }
+
+  /** `clientX`/`clientY` as a viewport position. */
+  #anchorAt(clientX: number, clientY: number): Point {
+    const rect = this.#root.getBoundingClientRect();
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
+
+  #listen(): void {
+    this.#on("scroll", () => this.#schedule(), { passive: true });
+    this.#listenWheel();
+    this.#listenKeys();
+    this.#listenTouchPinch();
+    this.#listenGestures();
+    this.#listenResize();
+  }
+
+  /** Ctrl/cmd+wheel and trackpad pinch (which browsers send as ctrl+wheel): zoom at the cursor. */
+  #listenWheel(): void {
+    this.#on<"wheel">(
       "wheel",
       (e) => {
         if (!e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
-        const rect = root.getBoundingClientRect();
         this.setZoom(this.#state.percent * Math.exp(-e.deltaY * 0.01), {
-          anchor: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+          anchor: this.#anchorAt(e.clientX, e.clientY),
         });
       },
       { passive: false },
     );
-    on("keydown", (e) => {
+  }
+
+  /** `+` and `-` zoom by a quarter, `0` goes to actual size. */
+  #listenKeys(): void {
+    this.#on<"keydown">("keydown", (e) => {
       if (e.altKey) return;
       const p = this.#state.percent;
       if (e.key === "+" || e.key === "=") this.setZoom(p * 1.25);
@@ -742,8 +761,11 @@ export class Viewer {
       else return;
       e.preventDefault();
     });
-    // Touch pinch: two pointers; the zoom follows their distance, anchored at their midpoint.
-    const pointers = new Map<number, { x: number; y: number }>();
+  }
+
+  /** Touch pinch: two pointers; the zoom follows their distance, anchored at their midpoint. */
+  #listenTouchPinch(): void {
+    const pointers = new Map<number, Point>();
     let pinch: { distance: number; percent: number } | undefined;
     const spread = () => {
       const [a, b] = [...pointers.values()];
@@ -751,61 +773,54 @@ export class Viewer {
         ? undefined
         : { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     };
-    on("pointerdown", (e) => {
+    this.#on<"pointerdown">("pointerdown", (e) => {
       if (e.pointerType !== "touch") return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const s = spread();
       if (s !== undefined) pinch = { distance: s.d, percent: this.#state.percent };
     });
-    on("pointermove", (e) => {
+    this.#on<"pointermove">("pointermove", (e) => {
       if (!pointers.has(e.pointerId)) return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const s = spread();
       if (s === undefined || pinch === undefined || pinch.distance === 0) return;
-      const rect = root.getBoundingClientRect();
-      this.setZoom(pinch.percent * (s.d / pinch.distance), { anchor: { x: s.x - rect.left, y: s.y - rect.top } });
+      this.setZoom(pinch.percent * (s.d / pinch.distance), { anchor: this.#anchorAt(s.x, s.y) });
     });
     const up = (e: PointerEvent) => {
       pointers.delete(e.pointerId);
       if (pointers.size < 2) pinch = undefined;
     };
-    on("pointerup", up);
-    on("pointercancel", up);
-    // Safari's trackpad pinch: gesture events with a scale.
+    this.#on<"pointerup">("pointerup", up);
+    this.#on<"pointercancel">("pointercancel", up);
+  }
+
+  /** Safari's trackpad pinch: gesture events with a scale. */
+  #listenGestures(): void {
     let gesture: number | undefined;
-    const g = root as unknown as {
-      addEventListener(t: string, f: (e: Event) => void): void;
-      removeEventListener(t: string, f: (e: Event) => void): void;
-    };
-    const start = (e: Event) => {
+    type GestureEvent = Event & { scale: number; clientX: number; clientY: number };
+    this.#on("gesturestart", (e: Event) => {
       e.preventDefault();
       gesture = this.#state.percent;
-    };
-    const change = (e: Event) => {
+    });
+    this.#on("gesturechange", (e: Event) => {
       if (gesture === undefined) return;
       e.preventDefault();
-      const ge = e as Event & { scale: number; clientX: number; clientY: number };
-      const rect = root.getBoundingClientRect();
-      this.setZoom(gesture * ge.scale, { anchor: { x: ge.clientX - rect.left, y: ge.clientY - rect.top } });
-    };
-    const end = () => {
-      gesture = undefined;
-    };
-    g.addEventListener("gesturestart", start);
-    g.addEventListener("gesturechange", change);
-    g.addEventListener("gestureend", end);
-    this.#cleanup.push(() => {
-      g.removeEventListener("gesturestart", start);
-      g.removeEventListener("gesturechange", change);
-      g.removeEventListener("gestureend", end);
+      const ge = e as GestureEvent;
+      this.setZoom(gesture * ge.scale, { anchor: this.#anchorAt(ge.clientX, ge.clientY) });
     });
-    // A resized viewport re-fits a fit mode (keeping the centre) and re-lays out.
+    this.#on("gestureend", () => {
+      gesture = undefined;
+    });
+  }
+
+  /** A resized viewport re-fits a fit mode (keeping the centre) and re-lays out. */
+  #listenResize(): void {
     const resize = new ResizeObserver(() => {
       if (this.#layout === undefined) return;
       if (typeof this.#zoom === "string") this.#rezoom(undefined);
       else this.#schedule();
     });
-    resize.observe(root);
+    resize.observe(this.#root);
     this.#cleanup.push(() => resize.disconnect());
   }
 }

@@ -1,7 +1,8 @@
-// The viewer's page layout (C3b): one continuous column of pages, each sized from its displayed
+// The viewer's page layout: one continuous column of pages, each sized from its displayed
 // size in points (ADR 0027: `/Rotate` applied) times the zoom, turned by the view rotation, with a
 // gap between pages. Offsets are prefix sums, so finding the page at a scroll position is a binary
 // search and a zoom or rotation change costs one O(n) pass. No DOM: the view reads it.
+import type { ViewRotation } from "@laminapdf/render";
 
 /** A page's displayed size in points. */
 export interface PageSize {
@@ -9,8 +10,8 @@ export interface PageSize {
   readonly height: number;
 }
 
-/** View rotation, clockwise, on top of the page's own `/Rotate`. */
-export type Rotation = 0 | 90 | 180 | 270;
+/** View rotation, clockwise, on top of the page's own `/Rotate`: the render backends' own type. */
+export type Rotation = ViewRotation;
 
 /** CSS pixels per point at 100 % ("actual size"): 96 CSS px per inch, 72 pt per inch. */
 export const CSS_PX_PER_PT = 96 / 72;

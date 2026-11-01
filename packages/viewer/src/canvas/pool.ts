@@ -1,4 +1,4 @@
-// The canvas pool (C3b): a fixed number of canvases, reused as pages mount and unmount, with a
+// The canvas pool: a fixed number of canvases, reused as pages mount and unmount, with a
 // cap on the device pixels they hold together (browsers, Safari above all, fail or crash past an
 // undocumented total canvas area). A canvas comes back reset: 1×1, so it holds no pixels.
 
@@ -22,7 +22,7 @@ export class CanvasPool {
   readonly #create: () => HTMLCanvasElement;
   readonly #free: HTMLCanvasElement[] = [];
   readonly #used = new Set<HTMLCanvasElement>();
-  /** The most canvases ever acquired at once (the virtualisation tests read it). */
+  /** The most canvases ever acquired at once (reported in the viewer's render stats). */
   peak = 0;
 
   constructor(options: CanvasPoolOptions = {}) {

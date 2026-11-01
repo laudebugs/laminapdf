@@ -1,4 +1,4 @@
-// The bitmap cache (C3b): rendered ImageBitmaps by page, scale and tile, within a byte budget
+// The bitmap cache: rendered ImageBitmaps by page, scale and tile, within a byte budget
 // (width × height × 4 each). Past the budget it evicts the bitmaps farthest from the viewport
 // first, and closes every bitmap it evicts or replaces, so GPU memory is given back at once.
 
@@ -17,8 +17,6 @@ export class BitmapCache {
   readonly budget: number;
   readonly #entries = new Map<string, CachedBitmap>();
   #bytes = 0;
-  /** Bitmaps closed by eviction or replacement (tests read it). */
-  closed = 0;
 
   constructor(budget = DEFAULT_CACHE_BYTES) {
     this.budget = budget;
@@ -66,7 +64,6 @@ export class BitmapCache {
     this.#entries.delete(key);
     this.#bytes -= entry.bytes;
     entry.bitmap.close();
-    this.closed++;
   }
 
   /** Closes every bitmap of `page` whose key `keep` doesn't accept (an old zoom's tiles). */
