@@ -70,7 +70,7 @@ describe("lamina_base", () => {
   });
 
   it("builds vector and image pages", () => {
-    const b = new base.WasmBuilder({ id: hex("laminapdf-wasm-base"), creationDate: "D:20261030120000Z" });
+    const b = new base.WasmBuilder({ id: hex("lamina-wasm-base"), creationDate: "D:20261030120000Z" });
     const page = b.page(A4[0], A4[1]);
     page.fillColor(new Float64Array([0.1, 0.4, 0.8]));
     page.fillPath(new Float64Array([5, 56, 56, 200, 120]), "nonZero");

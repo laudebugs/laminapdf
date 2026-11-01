@@ -13,7 +13,7 @@ const latin1 = new TextDecoder("latin1");
 /** The tagged report of crates/laminapdf-build/tests/common/tagged.rs, call for call. */
 function taggedReport(): Uint8Array {
   const b = new Builder({
-    id: new TextEncoder().encode("laminapdf-build-B8a"),
+    id: new TextEncoder().encode("lamina-build-B8a"),
     producer: "lamina-build golden",
     creationDate: "D:20261030120000Z",
     compress: false,
