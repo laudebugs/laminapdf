@@ -43,12 +43,12 @@ An example is code a reader will paste into their own app, so it must be code we
 
 ## How it's checked
 
-Todo Q1c in the [quality plan](../plans/quality.md#6-todos) adds three checks:
+Three checks enforce these rules:
 
 | Check | Runs in | Rules |
 | --- | --- | --- |
 | `cargo xtask check docs-snippets` | `cargo xtask check docs` (every PR, docs-only ones included) | `examples/` only; every example shown; matching pairs; header comment; Rust public imports; no test scaffolding; file length |
-| A Biome override on `packages/sdk/examples/**` | `cargo xtask check ts` | TypeScript public imports; no non-null assertions or `any`; function length and complexity |
-| `cargo xtask clippy-examples`: clippy on `crates/lamina/examples/` with an examples-only `clippy.toml` (function length 40) and `let_underscore_must_use` denied | `cargo xtask check rust` | Rust function length; no discarded results |
+| A Biome override on `packages/sdk/examples/**`, and `cargo xtask biome-examples` for the changed ones | `cargo xtask check ts` | TypeScript public imports; no non-null assertions or `any`; function length and complexity |
+| `cargo xtask clippy-examples`: clippy on `crates/lamina/examples/` with an examples-only `clippy.toml` (function length 40) and `let_underscore_must_use` | `cargo xtask check rust` | Rust function length; no discarded results |
 
-Each check is strict on every example a PR adds or changes, so a new example is checked as it is written. It only warns on untouched examples until the rewrites have cleared them. The reviewer checklist covers what the tools can't judge.
+Each check is strict on every example a PR adds or changes, so a new example is checked as it is written. It only warns on untouched examples until the rewrites have cleared them; `--all-strict` makes every report an error. Biome can't ratchet by itself, so its override warns everywhere and `check ts` lints the changed examples again with warnings as errors. The TypeScript and Rust pairs are listed in `tools/xtask/docs-snippets.toml`. The reviewer checklist covers what the tools can't judge.

@@ -1,0 +1,20 @@
+# Test code may unwrap/expect/panic/index: a panic there is a test failure. See docs/guidelines/rust.md.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-dbg-in-tests = true
+
+# Output must be byte-deterministic (ADR 0001): RandomState iteration order must never reach output.
+# Use BTreeMap/BTreeSet, IndexMap/IndexSet or a fixed-seed hasher.
+disallowed-types = [
+  { path = "std::collections::HashMap", reason = "random iteration order; use BTreeMap, IndexMap or a fixed hasher" },
+  { path = "std::collections::HashSet", reason = "random iteration order; use BTreeSet, IndexSet or a fixed hasher" },
+]
+
+# Spec and crate names that doc_markdown would otherwise want in backticks ("..": keep the defaults).
+doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto", "ToUnicode", "CMap", "CMaps", "CIDFont", "CIDFonts", "TrueType", "OpenType", "PostScript", "XObject", "XObjects", "ExtGState", "DeviceGray", "DeviceRGB", "DeviceCMYK", "DeviceN", "ICCBased", "HarfBuzz", "HarfRust", "ICU4X", "ICU4C", "PDFium"]
+
+# The examples only (docs/guidelines/examples.md): functions of at most 40 lines. This file is the root
+# clippy.toml plus this line, because clippy reads one configuration (a test checks they agree).
+too-many-lines-threshold = 40
