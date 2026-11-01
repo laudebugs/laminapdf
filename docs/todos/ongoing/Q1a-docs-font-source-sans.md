@@ -23,7 +23,7 @@ The owner asked (2026-10-31) for one sans-serif font across the docs site. Headi
 - [Quality plan §5](../../plans/quality.md#5-the-font): why Source Sans 3 (already self-hosted, OFL-1.1, variable, the app's UI face).
 - `apps/docs/src/styles/paper.css`: the Newsreader `@font-face` blocks, `--paper-font-serif` and the heading rules; `apps/docs/src/fonts/` and its README; the "Look" section of `apps/docs/README.md`.
 - [Design language §3](../../design/paper/design-language.md#3-typography) ("Site display") and §7.39 (the site wordmark), which name Newsreader for docs-site pages.
-- [U6g](../done/U6g-docs-site-paper.md), the interim Paper theme this changes; [U6b](./U6b-self-hosted-fonts.md), the fonts package that later replaces the copies.
+- [U6g](../done/U6g-docs-site-paper.md), the interim Paper theme this changes; [U6b](../ready/U6b-self-hosted-fonts.md), the fonts package that later replaces the copies.
 
 ## Scope
 
@@ -37,8 +37,8 @@ The owner asked (2026-10-31) for one sans-serif font across the docs site. Headi
 
 **Out of scope** (and which todo covers it)
 
-- The app's fonts ([U6b](./U6b-self-hosted-fonts.md)).
-- Copy changes ([Q1h](./Q1h-docs-story.md) and later).
+- The app's fonts ([U6b](../ready/U6b-self-hosted-fonts.md)).
+- Copy changes ([Q1h](../ready/Q1h-docs-story.md) and later).
 
 ## Tasks
 
