@@ -11,7 +11,7 @@ Start here. This page is the checklist. The linked guides have the rules and the
 ## The workflow in brief
 
 1. **Create a new git worktree off up-to-date `main`** with a branch named `<type>/<short-description>`: `git worktree add -b feat/xref-repair feat-xref-repair main`. See [git-workflow.md](git-workflow.md).
-2. Make one focused change, following [code-organization.md](code-organization.md) and the language guide ([rust.md](rust.md), [typescript.md](typescript.md)).
+2. Make one focused change, following [code-organization.md](code-organization.md), [maintainability.md](maintainability.md) and the language guide ([rust.md](rust.md), [typescript.md](typescript.md)). Docs and examples readers see also follow [docs-writing.md](docs-writing.md) and [examples.md](examples.md).
 3. Commit with [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): summary`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `chore`, `spike`.
 4. Push and open a pull request against `main`, with a summary, sources and a test plan. Don't push directly to `main`.
 5. Get a review, address every comment, and merge once checks pass.
