@@ -70,11 +70,9 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 ## Outcome
 
-The viewer shipped as planned, with six differences.
+The viewer shipped as planned, with five differences.
 
-- **Where the tests live:**
-  - The pure unit tests are in `test/layout.test.ts`, not `src/**/*.test.ts`, as in the rest of the package.
-  - The Playwright specs run as Vitest browser-mode tests (`test/browser/viewer.browser.test.ts`), not as a separate `e2e/` suite. They run in the same three engines through the same Playwright provider, so one runner covers both C3a's and C3b's tests.
+- **Browser tests:** the Playwright specs run as Vitest browser-mode tests (`test/browser/viewer.browser.test.ts`), not as a separate `e2e/` suite. They run in the same three engines through the same Playwright provider, so one runner covers both C3a's and C3b's tests. The scroll test drives the viewer API in a test page rather than the demo, which C3c measures.
 - **Anchoring across:** the point under the cursor holds vertically at every zoom. Horizontally it holds while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep the point; the test checks x only while the pages are wider than the viewport. The acceptance check uses the layout maths and real ctrl+wheel events, not screenshots.
 - **Tall documents:** a document taller than 16 million CSS px at the chosen zoom gets its zoom capped. A scaled scroll space, which maps the scroll position, waits until a real document needs it. 1,000 letter pages at 400 % come to about 4.2 million CSS px.
 - **Pixel cap on iOS:** the pool's 64-million-pixel cap is an option (`pool: { maxPixels }`), but there is no detection that lowers it on iOS. [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes the mobile caps.

@@ -61,6 +61,13 @@ async function opened(options: Partial<Parameters<typeof createViewer>[0]> = {})
   return v;
 }
 
+/** The shortest page's height in CSS px at the viewer's zoom (fit width: 768 px wide pages). */
+function minPageHeight(v: Viewer): number {
+  // The landscape pages (792 × 612 pt) are the shortest once every page is fitted to the width.
+  const width = v.element.clientWidth - 32;
+  return (612 / 792) * width;
+}
+
 /** Waits (frame by frame, up to `limit` frames) until `done()`. */
 async function until(done: () => boolean, limit = 600): Promise<void> {
   for (let i = 0; i < limit && !done(); i++) await frame();
@@ -68,24 +75,31 @@ async function until(done: () => boolean, limit = 600): Promise<void> {
 }
 
 describe("virtualisation", () => {
-  it("never mounts more than visible + 2 × margin shells, nor more canvases than the pool, from page 1 to 1,000", async () => {
+  it("never mounts more than visible + 2 × margin shells, nor more canvases than the pool, scrolling page 1 to 1,000", async () => {
     const v = await opened();
+    const root = v.element;
+    // The margin is 2 pages or one viewport each side, whichever is larger; the shortest page here
+    // is a landscape one, so one viewport spans at most this many pages.
     let worst = 0;
     let canvases = 0;
     v.on("renderstats", (s) => {
-      worst = Math.max(worst, s.mounted - v.mountBudget);
+      const { first, last } = v.getState().visibleRange;
+      const pagesPerViewport = Math.ceil(root.clientHeight / minPageHeight(v)) + 1;
+      const margin = Math.max(2, pagesPerViewport);
+      worst = Math.max(worst, s.mounted - (last - first + 1 + 2 * margin));
       canvases = Math.max(canvases, s.canvases - s.maxCanvases);
     });
-    for (let page = 0; page < 1000; page += 25) {
-      v.goToPage(page);
-      await frames(2);
+    // One viewport per frame, the whole way down.
+    while (root.scrollTop + root.clientHeight < root.scrollHeight - 1) {
+      root.scrollTop += root.clientHeight;
+      await frame();
     }
-    v.goToPage(999);
-    await frames(3);
+    await frames(2);
     expect(v.getState().visibleRange.last).toBe(999);
     expect(worst).toBeLessThanOrEqual(0);
     expect(canvases).toBeLessThanOrEqual(0);
     expect(v.stats().peakCanvases).toBeLessThanOrEqual(v.stats().maxCanvases);
+    expect(v.stats().drawsOnUnmounted).toBe(0);
     v.destroy();
   });
 
@@ -96,7 +110,20 @@ describe("virtualisation", () => {
       await frame();
     }
     await until(() => Object.values(v.stats().pages).some((s) => s === "sharp"));
+    // Renders were cancelled as their pages left (the case the guarantee is about), and none drew.
+    expect(v.stats().aborted).toBeGreaterThan(0);
     expect(v.stats().drawsOnUnmounted).toBe(0);
+    v.destroy();
+  });
+
+  it("sharpens the part of a tall zoomed page scrolled into view later", async () => {
+    const v = await opened({ zoom: 400 });
+    v.goToPage(3);
+    await until(() => v.stats().pages[3] === "sharp");
+    v.element.scrollTop += v.element.clientHeight * 1.5;
+    await frames(2);
+    expect(v.getState().visibleRange.first).toBe(3);
+    await until(() => v.stats().pages[3] === "sharp");
     v.destroy();
   });
 
@@ -155,6 +182,7 @@ describe("zoom", () => {
     expect(Math.round(v.getState().percent)).toBe(100);
     v.rotate(90);
     expect(v.getState().rotation).toBe(90);
+    expect(() => v.rotate(45)).toThrow(RangeError);
     v.destroy();
   });
 });

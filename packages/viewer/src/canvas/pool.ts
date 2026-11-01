@@ -2,6 +2,7 @@
 // cap on the device pixels they hold together (browsers, Safari above all, fail or crash past an
 // undocumented total canvas area). A canvas comes back reset: 1×1, so it holds no pixels.
 
+/** The pool's limits, and how it makes canvases. */
 export interface CanvasPoolOptions {
   /** Most canvases at once (default 12). */
   readonly max?: number;
@@ -11,8 +12,10 @@ export interface CanvasPoolOptions {
   readonly create?: () => HTMLCanvasElement;
 }
 
+/** The default limits: 12 canvases, 64 million device pixels in all. */
 export const DEFAULT_POOL = Object.freeze({ max: 12, maxPixels: 64 * 1024 * 1024 });
 
+/** A fixed set of canvases lent to mounted pages, within a total pixel cap. */
 export class CanvasPool {
   readonly max: number;
   readonly maxPixels: number;
@@ -28,6 +31,7 @@ export class CanvasPool {
     this.#create = options.create ?? (() => document.createElement("canvas"));
   }
 
+  /** Canvases lent out now. */
   get inUse(): number {
     return this.#used.size;
   }

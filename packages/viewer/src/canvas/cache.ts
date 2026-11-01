@@ -2,6 +2,7 @@
 // (width × height × 4 each). Past the budget it evicts the bitmaps farthest from the viewport
 // first, and closes every bitmap it evicts or replaces, so GPU memory is given back at once.
 
+/** One cached bitmap: the page it belongs to and its decoded size in bytes. */
 export interface CachedBitmap {
   readonly page: number;
   readonly bitmap: ImageBitmap;
@@ -11,6 +12,7 @@ export interface CachedBitmap {
 /** Default budget: 256 MB of decoded pixels. */
 export const DEFAULT_CACHE_BYTES = 256 * 1024 * 1024;
 
+/** Rendered bitmaps by key, within a byte budget, evicting the farthest from the current page. */
 export class BitmapCache {
   readonly budget: number;
   readonly #entries = new Map<string, CachedBitmap>();
@@ -30,6 +32,7 @@ export class BitmapCache {
     return this.#entries.size;
   }
 
+  /** The bitmap under `key`, if cached (it becomes the most recently used). */
   get(key: string): ImageBitmap | undefined {
     const entry = this.#entries.get(key);
     if (entry === undefined) return undefined;
@@ -41,22 +44,22 @@ export class BitmapCache {
 
   /**
    * Stores `bitmap` for `page` under `key` (replacing and closing an older one), then evicts by
-   * distance from `focus` (the current page) until the cache fits its budget again. A bitmap
-   * larger than the whole budget is not kept.
+   * distance from `focus` (the current page) until the cache fits its budget again.
+   *
+   * @returns whether the cache kept it. A bitmap larger than the whole budget isn't kept, nor
+   *   closed: it stays the caller's, to draw and close.
    */
-  set(key: string, page: number, bitmap: ImageBitmap, focus: number): void {
+  set(key: string, page: number, bitmap: ImageBitmap, focus: number): boolean {
     this.delete(key);
     const bytes = bitmap.width * bitmap.height * 4;
-    if (bytes > this.budget) {
-      bitmap.close();
-      this.closed++;
-      return;
-    }
+    if (bytes > this.budget) return false;
     this.#entries.set(key, { page, bitmap, bytes });
     this.#bytes += bytes;
     this.#evict(focus, key);
+    return true;
   }
 
+  /** Closes and forgets the bitmap under `key`, if any. */
   delete(key: string): void {
     const entry = this.#entries.get(key);
     if (entry === undefined) return;

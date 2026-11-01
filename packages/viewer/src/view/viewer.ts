@@ -9,10 +9,19 @@
 import { BitmapCache, DEFAULT_CACHE_BYTES } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
-import { PageLayout, type PageSize, type Rotation } from "../layout/page-layout.js";
-import type { OpenedDocument, RenderedBitmap } from "../protocol.js";
+import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
+import { type OpenedDocument, type Priority, renderKey } from "../protocol.js";
 import { lowScale, tilesFor } from "../render/tiles.js";
-import { type DocumentPoint, percentOfScale, pointAt, scaleFor, scrollToPoint, type Zoom } from "../zoom/zoom.js";
+import {
+  contentPosition,
+  type DocumentPoint,
+  type Point,
+  percentOfScale,
+  pointAt,
+  scaleFor,
+  scrollToPoint,
+  type Zoom,
+} from "../zoom/zoom.js";
 
 /** Where a mounted page's pixels are. */
 export type PageRenderState = "placeholder" | "low" | "sharp" | "error";
@@ -38,15 +47,21 @@ export interface RenderStats {
   readonly canvases: number;
   readonly peakCanvases: number;
   readonly maxCanvases: number;
-  /** Draws onto a page that wasn't mounted when its result arrived: always 0 (the guarantee). */
+  /**
+   * Draws onto a page whose shell was out of the DOM at the moment of drawing, counted at the
+   * draw itself: always 0 (the guarantee that a cancelled render never paints).
+   */
   readonly drawsOnUnmounted: number;
   /** Results that arrived for a page no longer mounted, or a zoom since replaced, and were dropped. */
   readonly dropped: number;
+  /** Renders cancelled because their page left the margin or the zoom changed (the client rejected them). */
+  readonly aborted: number;
   readonly cacheBytes: number;
   /** Each mounted page's state. */
   readonly pages: Readonly<Record<number, PageRenderState>>;
 }
 
+/** The viewer's events and what each carries. */
 export interface ViewerEventMap {
   pagechange: { readonly page: number };
   zoomchange: { readonly zoom: Zoom; readonly percent: number };
@@ -63,6 +78,7 @@ export interface PageLayer {
   onZoom?(page: number, element: HTMLElement, size: { readonly width: number; readonly height: number }): void;
 }
 
+/** `createViewer`'s options: the client, and the tuning C3c measures. */
 export interface CreateViewerOptions {
   readonly client: ViewerClient;
   /** Pages mounted past each edge of the viewport (default 2; at least one viewport's worth). */
@@ -86,6 +102,17 @@ const SLOTS = ["text", "annot", "highlight"] as const;
 /** The tallest scroll space browsers handle (Firefox stops near 17.9 M CSS px). */
 const MAX_HEIGHT = 16_000_000;
 
+/** How a page paints: in view (`visible`), or in the margin around it (`prefetch`). */
+type PaintPriority = Exclude<Priority, "background">;
+
+/** One frame's geometry: the layout and the viewport, read once. */
+interface Frame {
+  readonly layout: PageLayout;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 interface PageView {
   readonly index: number;
   readonly shell: HTMLDivElement;
@@ -93,9 +120,13 @@ interface PageView {
   canvas: HTMLCanvasElement | undefined;
   controller: AbortController;
   state: PageRenderState;
-  /** The layout scale the canvas was last painted for. */
+  /** The layout scale the canvas was last painted for (0: never). */
   paintedScale: number;
-  /** Bumped on every new render pass: an older pass's results are dropped. */
+  /** The sharp tiles drawn at `paintedScale`, by `renderKey`. */
+  readonly tiles: Set<string>;
+  /** A pass is in flight: the next frame waits for it rather than send duplicates. */
+  busy: boolean;
+  /** Bumped by an abort: an older pass's results are dropped. */
   pass: number;
 }
 
@@ -103,6 +134,15 @@ function isAbort(e: unknown): boolean {
   return e instanceof DOMException && e.name === "AbortError";
 }
 
+/** A closed ImageBitmap has no size: one the cache evicted while a pass held it. */
+function isClosed(bitmap: ImageBitmap): boolean {
+  return bitmap.width === 0 || bitmap.height === 0;
+}
+
+/**
+ * The viewer: a scroll container over one document's pages. Make one with {@link createViewer},
+ * `mount` it, then `open` a document from the client.
+ */
 export class Viewer {
   readonly #client: ViewerClient;
   readonly #margin: number;
@@ -129,6 +169,7 @@ export class Viewer {
   #peakMounted = 0;
   #drawsOnUnmounted = 0;
   #dropped = 0;
+  #aborted = 0;
   #destroyed = false;
 
   constructor(options: CreateViewerOptions) {
@@ -180,10 +221,11 @@ export class Viewer {
     this.#layout = undefined;
     this.#root.scrollTop = 0;
     this.#root.scrollLeft = 0;
-    this.#relayout();
+    this.#relayout(this.#viewport());
     this.#schedule();
   }
 
+  /** The current view state (a new object after each change). */
   getState(): ViewState {
     return this.#state;
   }
@@ -194,6 +236,7 @@ export class Viewer {
     return () => this.#listeners.delete(listener);
   }
 
+  /** Listens for `event`; returns a function that stops listening. */
   on<E extends keyof ViewerEventMap>(event: E, listener: (data: ViewerEventMap[E]) => void): () => void {
     let set = this.#events.get(event);
     if (set === undefined) {
@@ -205,10 +248,10 @@ export class Viewer {
     return () => set.delete(l);
   }
 
-  /** Adds a layer to every page, mounted now and later. */
+  /** Adds a layer to every page, mounted now and later; returns a function that removes it. */
   addLayer(layer: PageLayer): () => void {
     this.#layers.push(layer);
-    for (const view of this.#pages.values()) this.#mountLayer(view, layer);
+    for (const view of this.#pages.values()) layer.onMount?.(view.index, this.#slot(view, layer.name));
     return () => {
       const i = this.#layers.indexOf(layer);
       if (i >= 0) this.#layers.splice(i, 1);
@@ -233,14 +276,20 @@ export class Viewer {
    * Sets the zoom (a mode, or a percentage clamped to 10–800 %), keeping the document point at
    * `anchor` (viewport CSS px; default its centre) where it is.
    */
-  setZoom(zoom: Zoom, options: { readonly anchor?: { readonly x: number; readonly y: number } } = {}): void {
-    this.#zoom = typeof zoom === "number" ? zoom : zoom;
+  setZoom(zoom: Zoom, options: { readonly anchor?: Point } = {}): void {
+    this.#zoom = zoom;
     this.#rezoom(options.anchor);
   }
 
-  /** Rotates the view by `delta` degrees (a multiple of 90), keeping the viewport's centre. */
+  /**
+   * Rotates the view by `delta` degrees, keeping the viewport's centre.
+   *
+   * @throws RangeError when `delta` isn't a multiple of 90.
+   */
   rotate(delta: number): void {
-    this.#rotation = ((((this.#rotation + delta) % 360) + 360) % 360) as Rotation;
+    const next = (((this.#rotation + delta) % 360) + 360) % 360;
+    if (!isRotation(next)) throw new RangeError(`rotate() takes a multiple of 90, got ${delta}`);
+    this.#rotation = next;
     this.#rezoom(undefined);
   }
 
@@ -252,17 +301,12 @@ export class Viewer {
   }
 
   /** Where `point` is now, in viewport CSS px. */
-  positionOf(point: DocumentPoint): { x: number; y: number } | undefined {
+  positionOf(point: DocumentPoint): Point | undefined {
     const layout = this.#layout;
     if (layout === undefined) return undefined;
+    const at = contentPosition(layout, this.#root.clientWidth, point);
     const scroll = this.#scroll();
-    return {
-      x:
-        layout.leftOf(point.page, this.#root.clientWidth) +
-        point.x * (layout.widths[point.page] as number) -
-        scroll.left,
-      y: layout.offsetOf(point.page) + point.y * (layout.heights[point.page] as number) - scroll.top,
-    };
+    return { x: at.x - scroll.left, y: at.y - scroll.top };
   }
 
   /** The counters (see RenderStats). */
@@ -277,22 +321,13 @@ export class Viewer {
       maxCanvases: this.#pool.max,
       drawsOnUnmounted: this.#drawsOnUnmounted,
       dropped: this.#dropped,
+      aborted: this.#aborted,
       cacheBytes: this.#cache.bytes,
       pages,
     };
   }
 
-  /** How many pages are mounted at most for the current viewport: visible + 2 × margin. */
-  get mountBudget(): number {
-    const layout = this.#layout;
-    if (layout === undefined) return 0;
-    const top = this.#root.scrollTop;
-    const h = this.#root.clientHeight;
-    const visible = layout.rangeIn(top, top + h);
-    const [first, last] = this.#mountRange(layout, top, h);
-    return Math.max(visible.last - visible.first + 1 + 2 * this.#margin, last - first + 1);
-  }
-
+  /** Takes the viewer down: renders aborted, canvases and bitmaps freed, listeners removed. */
   destroy(): void {
     this.#destroyed = true;
     if (this.#frame !== undefined) cancelAnimationFrame(this.#frame);
@@ -307,6 +342,10 @@ export class Viewer {
 
   #scroll() {
     return { left: this.#root.scrollLeft, top: this.#root.scrollTop };
+  }
+
+  #viewport() {
+    return { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
   }
 
   #emit<E extends keyof ViewerEventMap>(event: E, data: ViewerEventMap[E]): void {
@@ -327,9 +366,11 @@ export class Viewer {
     return this.#sizes[this.#state.currentPage] ?? this.#sizes[0] ?? { width: 612, height: 792 };
   }
 
-  /** Builds the layout for the current zoom, rotation and viewport (clamped below the height cap). */
-  #relayout(): PageLayout {
-    const viewport = { width: this.#root.clientWidth || 800, height: this.#root.clientHeight || 600 };
+  /**
+   * Builds the layout for the current zoom and rotation in `viewport` (read by the caller, before
+   * any write), capped below the height browsers can scroll, and writes the spacer's size.
+   */
+  #relayout(viewport: { readonly width: number; readonly height: number }): PageLayout {
     let scale = scaleFor(this.#zoom, this.#reference(), this.#rotation, viewport, this.#gap);
     let layout = new PageLayout(this.#sizes, { scale, rotation: this.#rotation, gap: this.#gap });
     if (layout.height > MAX_HEIGHT) {
@@ -350,24 +391,25 @@ export class Viewer {
     return layout;
   }
 
-  #rezoom(anchor: { readonly x: number; readonly y: number } | undefined): void {
+  #rezoom(anchor: Point | undefined): void {
+    // Every read before the first write.
+    const viewport = this.#viewport();
     const before = this.#layout;
     if (before === undefined || before.pageCount === 0) {
-      this.#relayout();
+      this.#relayout(viewport);
       return;
     }
-    const at = anchor ?? { x: this.#root.clientWidth / 2, y: this.#root.clientHeight / 2 };
-    const point = pointAt(before, this.#root.clientWidth, this.#scroll(), at);
-    const after = this.#relayout();
-    const scroll = scrollToPoint(after, this.#root.clientWidth, point, at);
+    const at = anchor ?? { x: viewport.width / 2, y: viewport.height / 2 };
+    const point = pointAt(before, viewport.width, this.#scroll(), at);
+    const after = this.#relayout(viewport);
+    const scroll = scrollToPoint(after, viewport.width, point, at);
     this.#root.scrollTop = scroll.top;
     this.#root.scrollLeft = scroll.left;
-    // Renders for the old geometry are stale: abort them; the canvases stretch until the gesture
-    // settles and the new pass paints.
+    // Renders for the old geometry are stale: abort them (a page that failed gets another try);
+    // the canvases stretch until the gesture settles and the new pass paints.
     for (const view of this.#pages.values()) {
-      view.controller.abort();
-      view.controller = new AbortController();
-      view.pass++;
+      this.#abort(view);
+      if (view.state === "error") view.state = "placeholder";
     }
     clearTimeout(this.#settling);
     this.#settling = setTimeout(() => {
@@ -386,7 +428,8 @@ export class Viewer {
   }
 
   /** The mounted range: visible ± margin pages, and at least a viewport above and below. */
-  #mountRange(layout: PageLayout, top: number, height: number): [number, number] {
+  #mountRange(frame: Frame): [number, number] {
+    const { layout, top, height } = frame;
     const visible = layout.rangeIn(top, top + height);
     const first = Math.max(0, Math.min(visible.first - this.#margin, layout.pageAt(top - height)));
     const last = Math.min(layout.pageCount - 1, Math.max(visible.last + this.#margin, layout.pageAt(top + 2 * height)));
@@ -398,11 +441,15 @@ export class Viewer {
     const layout = this.#layout;
     if (layout === undefined || layout.pageCount === 0 || this.#destroyed) return;
     // Reads.
-    const top = this.#root.scrollTop;
-    const height = this.#root.clientHeight;
-    const width = this.#root.clientWidth;
+    const frame: Frame = {
+      layout,
+      top: this.#root.scrollTop,
+      width: this.#root.clientWidth,
+      height: this.#root.clientHeight,
+    };
+    const { top, height, width } = frame;
     const visible = layout.rangeIn(top, top + height);
-    const [first, last] = this.#mountRange(layout, top, height);
+    const [first, last] = this.#mountRange(frame);
     const current = layout.pageAt(top + height / 2);
     // Writes: unmount what left, mount what came, position all.
     for (const [i, view] of this.#pages) if (i < first || i > last) this.#unmount(view);
@@ -416,16 +463,16 @@ export class Viewer {
       s.left = `${layout.leftOf(i, width)}px`;
       s.width = `${w}px`;
       s.height = `${h}px`;
-      if (before !== s.width)
+      if (before !== s.width) {
         for (const layer of this.#layers) layer.onZoom?.(i, this.#slot(view, layer.name), { width: w, height: h });
+      }
     }
     if (this.#pages.size > this.#peakMounted) this.#peakMounted = this.#pages.size;
     this.#setState({ currentPage: current, scrollTop: top, visibleRange: visible });
     // Renders: visible pages first, then the margin; nothing while a zoom gesture is under way.
     if (this.#settling === undefined) {
-      for (let i = visible.first; i <= visible.last; i++) this.#paint(i, "visible", layout, top, height);
-      for (let i = first; i <= last; i++)
-        if (i < visible.first || i > visible.last) this.#paint(i, "prefetch", layout, top, height);
+      for (let i = visible.first; i <= visible.last; i++) this.#paint(i, "visible", frame);
+      for (let i = first; i <= last; i++) if (i < visible.first || i > visible.last) this.#paint(i, "prefetch", frame);
     }
     this.#emit("renderstats", this.stats());
   }
@@ -435,30 +482,26 @@ export class Viewer {
     shell.className = "lamina-page";
     shell.dataset.pageIndex = String(index);
     Object.assign(shell.style, { position: "absolute", contain: "strict", background: "#fff" });
-    const slots = new Map<string, HTMLDivElement>();
-    for (const name of SLOTS) {
-      const slot = document.createElement("div");
-      slot.className = `lamina-layer-${name}`;
-      Object.assign(slot.style, { position: "absolute", inset: "0" });
-      slots.set(name, slot);
-      shell.append(slot);
-    }
     this.#spacer.append(shell);
     const view: PageView = {
       index,
       shell,
-      slots,
+      slots: new Map(),
       canvas: undefined,
       controller: new AbortController(),
       state: "placeholder",
       paintedScale: 0,
+      tiles: new Set(),
+      busy: false,
       pass: 0,
     };
+    for (const name of SLOTS) this.#slot(view, name);
     this.#pages.set(index, view);
-    for (const layer of this.#layers) this.#mountLayer(view, layer);
+    for (const layer of this.#layers) layer.onMount?.(index, this.#slot(view, layer.name));
     return view;
   }
 
+  /** The page's slot `name`, made (above the others) the first time it is asked for. */
   #slot(view: PageView, name: string): HTMLDivElement {
     let slot = view.slots.get(name);
     if (slot === undefined) {
@@ -471,16 +514,18 @@ export class Viewer {
     return slot;
   }
 
-  #mountLayer(view: PageView, layer: PageLayer): void {
-    layer.onMount?.(view.index, this.#slot(view, layer.name));
+  /** Stops the page's renders: their results will be dropped. */
+  #abort(view: PageView): void {
+    view.controller.abort();
+    view.controller = new AbortController();
+    view.pass++;
+    view.busy = false;
   }
 
   #unmount(view: PageView): void {
-    view.controller.abort();
-    view.pass++;
+    this.#abort(view);
     for (const layer of this.#layers) layer.onUnmount?.(view.index, this.#slot(view, layer.name));
-    if (view.canvas !== undefined) this.#pool.release(view.canvas);
-    view.canvas = undefined;
+    this.#releaseCanvas(view);
     view.shell.remove();
     this.#pages.delete(view.index);
   }
@@ -489,135 +534,179 @@ export class Viewer {
     for (const view of [...this.#pages.values()]) this.#unmount(view);
   }
 
-  /** Starts page `index`'s render pass if its canvas isn't sharp at this scale yet. */
-  #paint(index: number, priority: "visible" | "prefetch", layout: PageLayout, top: number, height: number): void {
-    const view = this.#pages.get(index);
-    const document = this.#document;
-    if (view === undefined || document === undefined) return;
-    const done =
-      view.paintedScale === layout.scale &&
-      (view.state === "sharp" || (priority === "prefetch" && view.state === "low"));
-    if (done || view.state === "error") return;
-    // One pass at a time per page: a newer pass bumps `pass`, and the older one stops drawing.
-    if (view.controller.signal.aborted) view.controller = new AbortController();
-    const pass = ++view.pass;
-    void this.#pass(view, pass, priority, layout, top, height).catch((e) => {
-      if (isAbort(e) || pass !== view.pass) return;
-      view.state = "error";
-      this.#emit("renderstats", this.stats());
+  #releaseCanvas(view: PageView): void {
+    if (view.canvas !== undefined) this.#pool.release(view.canvas);
+    view.canvas = undefined;
+    view.paintedScale = 0;
+    view.tiles.clear();
+    if (view.state !== "error") view.state = "placeholder";
+  }
+
+  /** The sharp tiles of page `index` in view in `frame`, with their render requests and keys. */
+  #tilesInView(index: number, frame: Frame, ratio: number) {
+    const { layout, top, height } = frame;
+    const documentId = this.#document?.id ?? 0;
+    const cssW = layout.widths[index] as number;
+    const cssH = layout.heights[index] as number;
+    const pageTop = layout.offsetOf(index);
+    const y0 = Math.max(0, top - pageTop);
+    const y1 = Math.min(cssH, top + height - pageTop);
+    const inView = { x: 0, y: y0, width: cssW, height: Math.max(0, y1 - y0) };
+    return tilesFor(inView, { width: cssW, height: cssH }, ratio).map((clip) => {
+      const request = { page: index, scale: layout.scale * ratio, rotation: layout.rotation, clip };
+      return { clip, request, key: renderKey(request, documentId) };
     });
   }
 
-  async #pass(
-    view: PageView,
-    pass: number,
-    priority: "visible" | "prefetch",
-    layout: PageLayout,
-    top: number,
-    height: number,
-  ): Promise<void> {
+  /** Starts page `index`'s pass if it isn't busy and its canvas isn't done for `frame` yet. */
+  #paint(index: number, priority: PaintPriority, frame: Frame): void {
+    const view = this.#pages.get(index);
+    if (view === undefined || this.#document === undefined || view.busy || view.state === "error") return;
+    const { layout } = frame;
+    if (view.paintedScale === layout.scale) {
+      if (priority === "prefetch") return;
+      const canvas = view.canvas;
+      const ratio = canvas === undefined ? 0 : canvas.width / (layout.widths[index] as number);
+      // Sharp means every tile now in view is drawn: scrolling down a tall page sharpens the rest.
+      if (ratio > 0 && this.#tilesInView(index, frame, ratio).every((t) => view.tiles.has(t.key))) {
+        if (view.state !== "sharp") {
+          view.state = "sharp";
+          this.#emit("renderstats", this.stats());
+        }
+        return;
+      }
+      // Tiles in view are missing (the page scrolled): it is no longer sharp until they are drawn.
+      if (view.state === "sharp") view.state = "low";
+    }
+    view.busy = true;
+    const pass = view.pass;
+    void this.#pass(view, pass, priority, frame)
+      .catch((e) => {
+        if (isAbort(e)) {
+          this.#aborted++;
+          return;
+        }
+        if (pass !== view.pass) return;
+        view.state = "error";
+        this.#emit("renderstats", this.stats());
+      })
+      .finally(() => {
+        if (pass !== view.pass) return;
+        view.busy = false;
+        // The view may have moved while the pass ran: check again on the next frame.
+        this.#schedule();
+      });
+  }
+
+  async #pass(view: PageView, pass: number, priority: PaintPriority, frame: Frame): Promise<void> {
     const { index } = view;
+    const { layout } = frame;
     const signal = view.controller.signal;
-    const live = () =>
-      pass === view.pass && this.#pages.get(index) === view && !signal.aborted && this.#layout === layout;
+    const live = () => pass === view.pass && this.#pages.get(index) === view && this.#layout === layout;
     const cssW = layout.widths[index] as number;
     const cssH = layout.heights[index] as number;
     const dpr = this.#dpr();
-    const size = this.#sizes[index] as PageSize;
-    const turned = layout.rotation === 90 || layout.rotation === 270;
-    const widthPt = turned ? size.height : size.width;
-    // Low-resolution pass (skipped when the canvas already shows this scale).
+    const documentId = this.#document?.id ?? 0;
+    // The blurry pass, when the canvas doesn't show this scale yet.
     if (view.paintedScale !== layout.scale) {
-      const scale = lowScale(layout.scale * dpr, widthPt);
-      const low = await this.#bitmap(index, { page: index, scale, rotation: layout.rotation }, priority, signal);
-      if (!this.#commit(view, live, () => this.#drawLow(view, low, cssW, cssH, dpr))) {
-        // No canvas free: try again on a later frame (one frees as pages leave).
-        if (live()) setTimeout(() => this.#schedule(), 50);
-        return;
-      }
+      const shown = rotated(this.#sizes[index] as PageSize, layout.rotation);
+      const request = { page: index, scale: lowScale(layout.scale * dpr, shown.width), rotation: layout.rotation };
+      const low = await this.#bitmap(request, renderKey(request, documentId), priority, signal);
+      if (!live()) return this.#drop(low);
+      const canvas = view.canvas ?? this.#attachCanvas(view, priority);
+      if (canvas === undefined) return this.#drop(low, false);
+      const { width, height } = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
+      // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
+      canvas.width = width;
+      canvas.height = height;
+      this.#draw(view, low.bitmap, 0, 0, width, height);
+      this.#release(low);
       view.paintedScale = layout.scale;
+      view.tiles.clear();
       view.state = "low";
+      // The old scale's bitmaps are useless now: free them at once rather than at the budget.
+      // A render key's third field is the request's scale (renderKey).
+      const keep = new Set([request.scale, layout.scale * (width / cssW)]);
+      this.#cache.prune(index, (key) => keep.has((JSON.parse(key) as unknown[])[2] as number));
       this.#emit("renderstats", this.stats());
     }
     if (priority === "prefetch") return;
     // Sharp tiles over the part in view, at the canvas's own pixel ratio (the pool may cap it).
     const canvas = view.canvas;
     if (canvas === undefined) return;
-    const ratio = canvas.width / cssW;
-    const pageTop = layout.offsetOf(index);
-    const inView = {
-      x: 0,
-      y: Math.max(0, top - pageTop),
-      width: cssW,
-      height: Math.max(0, Math.min(cssH, top + height - pageTop) - Math.max(0, top - pageTop)),
-    };
-    for (const clip of tilesFor(inView, { width: cssW, height: cssH }, ratio)) {
-      const tile = await this.#bitmap(
-        index,
-        { page: index, scale: layout.scale * ratio, rotation: layout.rotation, clip },
-        priority,
-        signal,
-      );
-      if (!this.#commit(view, live, (ctx) => ctx.drawImage(tile, clip.x, clip.y))) return;
+    for (const tile of this.#tilesInView(index, frame, canvas.width / cssW)) {
+      if (view.tiles.has(tile.key)) continue;
+      const got = await this.#bitmap(tile.request, tile.key, priority, signal);
+      if (!live()) return this.#drop(got);
+      this.#draw(view, got.bitmap, tile.clip.x, tile.clip.y);
+      this.#release(got);
+      view.tiles.add(tile.key);
     }
-    view.state = "sharp";
-    this.#emit("renderstats", this.stats());
   }
 
-  /** A bitmap for `request`, from the cache or the worker. */
+  /**
+   * A bitmap for `request`, from the cache or the worker. `owned` is true when the cache didn't
+   * keep it, so the caller closes it after drawing. A cached bitmap another page's pass evicted
+   * (closed) meanwhile is rendered again.
+   */
   async #bitmap(
-    page: number,
     request: Parameters<ViewerClient["render"]>[0],
-    priority: "visible" | "prefetch",
+    key: string,
+    priority: PaintPriority,
     signal: AbortSignal,
-  ): Promise<ImageBitmap> {
-    const { scale, rotation = 0, clip } = request;
-    const key = `${page}|${rotation}|${scale}|${clip === undefined ? "page" : `${clip.x},${clip.y},${clip.width},${clip.height}`}`;
+  ): Promise<{ bitmap: ImageBitmap; owned: boolean }> {
     const cached = this.#cache.get(key);
-    if (cached !== undefined) return cached;
-    const rendered: RenderedBitmap = await this.#client.render(request, { priority, signal });
-    this.#cache.set(key, page, rendered.bitmap, this.#state.currentPage);
-    return rendered.bitmap;
+    if (cached !== undefined && !isClosed(cached)) return { bitmap: cached, owned: false };
+    const { bitmap } = await this.#client.render(request, { priority, signal });
+    const kept = this.#cache.set(key, request.page, bitmap, this.#state.currentPage);
+    return { bitmap, owned: !kept };
   }
 
-  /** Draws on `view`'s canvas if the pass is still live; counts a dropped result otherwise. */
-  #commit(view: PageView, live: () => boolean, draw: (ctx: CanvasRenderingContext2D) => void): boolean {
-    if (!live()) {
-      this.#dropped++;
-      return false;
-    }
-    if (this.#pages.get(view.index) !== view) {
-      // Unreachable while `live()` holds: the guarantee the tests read.
-      this.#drawsOnUnmounted++;
-      return false;
-    }
-    const canvas = view.canvas ?? this.#attachCanvas(view);
-    // No canvas free in the pool: the page keeps its placeholder until one is released.
-    const ctx = canvas?.getContext("2d");
-    if (ctx === undefined || ctx === null) return false;
-    draw(ctx);
-    return true;
+  /** A result that arrived too late: counted, and closed if nobody else holds it. */
+  #drop(got: { bitmap: ImageBitmap; owned: boolean }, late = true): void {
+    if (late) this.#dropped++;
+    this.#release(got);
   }
 
-  #attachCanvas(view: PageView): HTMLCanvasElement | undefined {
-    const canvas = this.#pool.acquire();
+  #release(got: { bitmap: ImageBitmap; owned: boolean }): void {
+    if (got.owned) got.bitmap.close();
+  }
+
+  /** The one place pixels reach a canvas: it counts a draw onto a shell out of the DOM. */
+  #draw(view: PageView, bitmap: ImageBitmap, x: number, y: number, width?: number, height?: number): void {
+    const ctx = view.canvas?.getContext("2d");
+    if (ctx === undefined || ctx === null || isClosed(bitmap)) return;
+    if (!view.shell.isConnected) this.#drawsOnUnmounted++;
+    if (width === undefined || height === undefined) ctx.drawImage(bitmap, x, y);
+    else ctx.drawImage(bitmap, x, y, width, height);
+  }
+
+  /**
+   * A canvas for `view` from the pool. When the pool is empty, a visible page takes the canvas of
+   * the margin page farthest from the current one, so visible pages never wait on prefetched ones.
+   */
+  #attachCanvas(view: PageView, priority: PaintPriority): HTMLCanvasElement | undefined {
+    let canvas = this.#pool.acquire();
+    if (canvas === undefined && priority === "visible") {
+      const { first, last } = this.#state.visibleRange;
+      const current = this.#state.currentPage;
+      let victim: PageView | undefined;
+      for (const other of this.#pages.values()) {
+        if (other.canvas === undefined || (other.index >= first && other.index <= last)) continue;
+        if (victim === undefined || Math.abs(other.index - current) > Math.abs(victim.index - current)) victim = other;
+      }
+      if (victim !== undefined) {
+        this.#abort(victim);
+        this.#releaseCanvas(victim);
+        canvas = this.#pool.acquire();
+      }
+    }
     if (canvas === undefined) return undefined;
     canvas.className = "lamina-page-canvas";
     Object.assign(canvas.style, { position: "absolute", inset: "0", width: "100%", height: "100%" });
     view.shell.prepend(canvas);
     view.canvas = canvas;
     return canvas;
-  }
-
-  /** (Re)sizes the page's canvas for its CSS size × DPR (within the pool's cap) and stretches `low` over it. */
-  #drawLow(view: PageView, low: ImageBitmap, cssW: number, cssH: number, dpr: number): void {
-    const canvas = view.canvas;
-    if (canvas === undefined) return;
-    const { width, height } = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
-    // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
-    canvas.width = width;
-    canvas.height = height;
-    canvas.getContext("2d")?.drawImage(low, 0, 0, width, height);
   }
 
   #listen(): void {

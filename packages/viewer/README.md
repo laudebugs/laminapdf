@@ -120,9 +120,9 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 The browser suites run in Chromium, Firefox and WebKit over the built package: run `cargo xtask pdf-runtimes chromium|firefox|webkit`, or `pnpm exec vitest run -c vitest.browser.config.ts` after `cargo xtask wasm`.
 
 - `test/browser/viewer.browser.test.ts` scrolls a 1,000-page document that the test builds with `@laminapdf/sdk`'s builder. It covers:
-  - mounting at most visible + 2 × margin shells, and no more canvases than the pool holds;
+  - scrolling one viewport per frame from page 1 to 1,000 with at most visible + 2 × margin shells, and no more canvases than the pool holds;
   - a fast scroll past 200 pages that paints no cancelled render;
-  - every visible page reaching sharp tiles once scrolling stops;
+  - every visible page reaching sharp tiles once scrolling stops, including the part of a tall zoomed page scrolled into later;
   - ctrl+wheel zoom 100 % → 200 % → 50 % holding the point under the cursor within 1 CSS px;
   - keyboard zoom, rotation and layers.
 - `test/browser/rpc.browser.test.ts` covers the document worker:
@@ -134,5 +134,5 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - slow, stuck and stopped renders;
   - crashes, including an encrypted file;
   - the password count.
-- `test/layout.test.ts` and `test/types.test.ts` run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps, a check that `src/` imports no UI framework, and the RPC types.
+- Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
 - Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons, and C3c's harness uses it; `examples/rpc-demo.html` draws page 1 through the RPC alone.

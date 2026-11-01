@@ -21,11 +21,10 @@ export function tilesFor(
   visible: { readonly x: number; readonly y: number; readonly width: number; readonly height: number },
   pageCss: { readonly width: number; readonly height: number },
   dpr: number,
-  tileCss: number = TILE_CSS,
 ): PixelRect[] {
   const pageW = Math.max(1, Math.floor(pageCss.width * dpr));
   const pageH = Math.max(1, Math.floor(pageCss.height * dpr));
-  const side = Math.max(1, Math.round(tileCss * dpr));
+  const side = Math.max(1, Math.round(TILE_CSS * dpr));
   const x0 = Math.max(0, Math.floor((visible.x * dpr) / side) * side);
   const y0 = Math.max(0, Math.floor((visible.y * dpr) / side) * side);
   const x1 = Math.min(pageW, Math.ceil(((visible.x + visible.width) * dpr) / side) * side);

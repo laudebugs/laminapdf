@@ -1,13 +1,15 @@
 // Zoom (C3b): modes to a scale, the zoom range, and anchoring — the document point under the
 // cursor (or the viewport centre) stays where it is on screen when the scale changes.
-import { CSS_PX_PER_PT, type PageLayout, type PageSize, type Rotation } from "../layout/page-layout.js";
+import { CSS_PX_PER_PT, type PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 
-/** Fit modes, or a percentage (100 = actual size). */
+/** The fit modes. */
 export type ZoomMode = "fit-width" | "fit-page" | "actual-size";
+/** A zoom: a fit mode, or a percentage (100 is actual size). */
 export type Zoom = ZoomMode | number;
 
-/** The zoom range, in percent (10 %–800 %). */
+/** The smallest zoom, in percent. */
 export const MIN_ZOOM = 10;
+/** The largest zoom, in percent. */
 export const MAX_ZOOM = 800;
 
 /** `percent` as CSS px per point, clamped to the range. */
@@ -21,6 +23,7 @@ export function percentOfScale(scale: number): number {
   return (scale / CSS_PX_PER_PT) * 100;
 }
 
+/** A viewport's size in CSS px. */
 export interface Viewport {
   readonly width: number;
   readonly height: number;
@@ -33,9 +36,7 @@ export interface Viewport {
 export function scaleFor(zoom: Zoom, page: PageSize, rotation: Rotation, viewport: Viewport, gap: number): number {
   if (typeof zoom === "number") return scaleOfPercent(zoom);
   if (zoom === "actual-size") return CSS_PX_PER_PT;
-  const turned = rotation === 90 || rotation === 270;
-  const w = turned ? page.height : page.width;
-  const h = turned ? page.width : page.height;
+  const { width: w, height: h } = rotated(page, rotation);
   const byWidth = Math.max(1, viewport.width - 2 * gap) / w;
   const scale = zoom === "fit-width" ? byWidth : Math.min(byWidth, Math.max(1, viewport.height - 2 * gap) / h);
   return Math.min(scaleOfPercent(MAX_ZOOM), Math.max(scaleOfPercent(MIN_ZOOM), scale));
@@ -48,18 +49,28 @@ export interface DocumentPoint {
   readonly y: number;
 }
 
+/** A position in viewport CSS px (from its top-left), such as the cursor. */
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** A scroll position in CSS px. */
 export interface Scroll {
   readonly left: number;
   readonly top: number;
 }
 
+/** Where `point` lies in the scroll content (CSS px from its top-left). */
+export function contentPosition(layout: PageLayout, viewportWidth: number, point: DocumentPoint): Point {
+  return {
+    x: layout.leftOf(point.page, viewportWidth) + point.x * (layout.widths[point.page] as number),
+    y: layout.offsetOf(point.page) + point.y * (layout.heights[point.page] as number),
+  };
+}
+
 /** The document point at viewport position `anchor` (CSS px from the viewport's top-left). */
-export function pointAt(
-  layout: PageLayout,
-  viewportWidth: number,
-  scroll: Scroll,
-  anchor: { x: number; y: number },
-): DocumentPoint {
+export function pointAt(layout: PageLayout, viewportWidth: number, scroll: Scroll, anchor: Point): DocumentPoint {
   const contentY = scroll.top + anchor.y;
   const contentX = scroll.left + anchor.x;
   const page = layout.pageAt(contentY);
@@ -73,13 +84,7 @@ export function pointAt(
 }
 
 /** The scroll position that puts `point` at viewport position `anchor` in `layout`. */
-export function scrollToPoint(
-  layout: PageLayout,
-  viewportWidth: number,
-  point: DocumentPoint,
-  anchor: { x: number; y: number },
-): Scroll {
-  const top = layout.offsetOf(point.page) + point.y * (layout.heights[point.page] as number) - anchor.y;
-  const left = layout.leftOf(point.page, viewportWidth) + point.x * (layout.widths[point.page] as number) - anchor.x;
-  return { top: Math.max(0, top), left: Math.max(0, left) };
+export function scrollToPoint(layout: PageLayout, viewportWidth: number, point: DocumentPoint, anchor: Point): Scroll {
+  const at = contentPosition(layout, viewportWidth, point);
+  return { top: Math.max(0, at.y - anchor.y), left: Math.max(0, at.x - anchor.x) };
 }

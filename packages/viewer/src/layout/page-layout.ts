@@ -15,6 +15,17 @@ export type Rotation = 0 | 90 | 180 | 270;
 /** CSS pixels per point at 100 % ("actual size"): 96 CSS px per inch, 72 pt per inch. */
 export const CSS_PX_PER_PT = 96 / 72;
 
+/** `size` as displayed after a view rotation: width and height swap at 90° and 270°. */
+export function rotated(size: PageSize, rotation: Rotation): PageSize {
+  return rotation === 90 || rotation === 270 ? { width: size.height, height: size.width } : size;
+}
+
+/** Whether `value` is a view rotation (0, 90, 180 or 270). */
+export function isRotation(value: number): value is Rotation {
+  return value === 0 || value === 90 || value === 180 || value === 270;
+}
+
+/** How to lay pages out: the zoom as CSS px per point, the view rotation and the gap. */
 export interface LayoutOptions {
   /** CSS pixels per point (100 % is {@link CSS_PX_PER_PT}). */
   readonly scale: number;
@@ -47,13 +58,12 @@ export class PageLayout {
     this.widths = new Float64Array(n);
     this.heights = new Float64Array(n);
     this.tops = new Float64Array(n + 1);
-    const turned = rotation === 90 || rotation === 270;
     let y = gap;
     let max = 0;
     for (let i = 0; i < n; i++) {
-      const size = sizes[i] as PageSize;
-      const w = (turned ? size.height : size.width) * scale;
-      const h = (turned ? size.width : size.height) * scale;
+      const shown = rotated(sizes[i] as PageSize, rotation);
+      const w = shown.width * scale;
+      const h = shown.height * scale;
       this.widths[i] = w;
       this.heights[i] = h;
       this.tops[i] = y;
@@ -111,8 +121,7 @@ export class PageLayout {
 
   /** Page `index`'s left edge in CSS px when pages are centred in a viewport `viewportWidth` wide. */
   leftOf(index: number, viewportWidth: number): number {
-    const content = Math.max(viewportWidth, this.maxWidth + 2 * this.gap);
-    return (content - (this.widths[index] as number)) / 2;
+    return (this.contentWidth(viewportWidth) - (this.widths[index] as number)) / 2;
   }
 
   /** The content width in CSS px for a viewport `viewportWidth` wide. */
