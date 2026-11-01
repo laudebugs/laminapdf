@@ -24,6 +24,7 @@ missing_docs = "deny"
 future_incompatible = { level = "warn", priority = -1 }
 nonstandard_style = { level = "deny", priority = -1 }
 unused_qualifications = "warn"
+unreachable_pub = "warn"        # `pub` in a private module is `pub(crate)`: the public surface is only what lib.rs exports
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
@@ -40,6 +41,7 @@ todo = "deny"                   # unfinished code never merges; keep todo!/unimp
 unimplemented = "deny"
 allow_attributes = "deny"       # outer #[allow] is rejected: use #[expect] (inner #![allow] is not covered)
 allow_attributes_without_reason = "deny"   # every #[allow]/#[expect] states why
+cognitive_complexity = "warn"   # a nursery lint (not in `all` or `pedantic`), so it is named here; threshold: the default 25
 ```
 
 `clippy.toml`:
@@ -56,11 +58,15 @@ disallowed-types = [
   { path = "std::collections::HashMap", reason = "random iteration order; use BTreeMap, IndexMap or a fixed hasher" },
   { path = "std::collections::HashSet", reason = "random iteration order; use BTreeSet, IndexSet or a fixed hasher" },
 ]
+
+# Keep this paragraph last: tools/xtask/clippy-examples/clippy.toml copies everything above it.
+too-many-lines-threshold = 100
 ```
 
 - **MUST:** Clippy passes with `-D warnings`, so `pedantic` is enforced, not advisory. A pedantic lint that is noise for the whole workspace goes on the allow-list in `[workspace.lints.clippy]` with a comment (lint-specific entries at the default priority 0 override the `priority = -1` group). Two runs, because cfg-gated code is only linted when it is compiled:
   - native: `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`
   - wasm32: `cargo clippy --target wasm32-unknown-unknown --locked -p lamina-core -p lamina-syntax -p lamina-wasm --lib -- -D warnings` (the core and WASM crates only, with default features; the Tauri crate, xtask and native-only features don't build for wasm32).
+- **MUST:** code stays within the size limits of the [maintainability guideline](maintainability.md#size). A function is at most 100 lines (`clippy::too_many_lines`, threshold set in `clippy.toml`) and within `clippy::cognitive_complexity`'s default of 25. A module under a crate's, tool's or Tauri app's `src/` holds at most 800 lines of non-test code. `cargo xtask check maintainability` counts those lines and fails on a module that grows past its baseline or a new module over 800 lines. It also fails on a new size lint named by an `#[expect]`, `#[allow]` or `cfg_attr` (`too_many_lines`, `cognitive_complexity`, `too_many_arguments`, `excessive_nesting`); the [maintainability guideline](maintainability.md#how-its-checked) has the method. Split the code rather than silence the lint.
 - **MUST:** `cargo fmt --check` passes. `rustfmt.toml` keeps `max_width = 120` and only stable options (`group_imports`/`imports_granularity` need nightly, so we don't require them).
 - **MUST:** silence a lint locally with `#[expect(lint, reason = "…")]`, not `#[allow]` (`allow_attributes` rejects outer `#[allow]`; `allow_attributes_without_reason` requires the `reason` on both). `expect` warns once the lint stops firing, so stale exceptions get cleaned up. Workspace-wide `allow`s need a comment and a PR discussion.
 - **Integration test crates:** Clippy's `allow-*-in-tests` only covers `#[test]` functions and `#[cfg(test)]` modules, not shared helpers in `tests/common`. Put a file-level `#![expect(clippy::unwrap_used, clippy::panic, reason = "test helpers: a panic is a test failure")]` at the top of each test file (use an inner `#![allow(…, reason = "…")]` only when `expect` would be unfulfilled in some test crates, as the spike found; `allow_attributes` doesn't cover inner attributes, so review these by hand).

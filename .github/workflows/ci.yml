@@ -71,7 +71,7 @@ jobs:
         run: cargo xtask changes --base "$BASE"
 
   rust:
-    name: Rust (docs links and todo board, fmt, portability, clippy, tests, docs, cargo-deny)
+    name: Rust (docs links and todo board, fmt, maintainability, portability, clippy, tests, docs, cargo-deny)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -80,6 +80,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The merge base with main: `check maintainability` compares its record files with
+          # main's, and the docs ratchets are strict on changed files.
+          fetch-depth: 0
       - uses: ./.github/actions/isolate-rust-home
         with:
           target-dir: ci-rust

@@ -164,7 +164,11 @@ cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on t
 cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on lamina's examples with
                              #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
                              #   strict on changed examples, warnings elsewhere
-cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), clippy-examples, tests, rustdoc, cargo-deny
+cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32 (-D warnings), clippy-examples,
+                             #   tests, rustdoc, cargo-deny
+cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust rules, no build: ≤ 800 non-test lines per module
+                             #   and no new size-lint #[expect] (tools/xtask/maintainability-baseline.toml), no pub type name in
+                             #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink
 cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences

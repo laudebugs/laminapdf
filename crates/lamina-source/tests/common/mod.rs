@@ -1,5 +1,5 @@
 //! Shared by the integration tests: inputs and what a reader can tell about a document.
-#![allow(dead_code, reason = "each test file uses part of this module")]
+#![allow(dead_code, unreachable_pub, reason = "each test file uses part of this module")]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
