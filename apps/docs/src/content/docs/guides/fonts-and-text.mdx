@@ -1,25 +1,27 @@
 ---
-title: Fonts and text
-description: Embedded and subset fonts, the standard 14, shaping, bidi, line breaking and fsType.
-sidebar:
-  order: 1
+title: Text and fonts
+description: Draw text in any script with your own fonts or the standard 14, one line at a time or as a paragraph that wraps in a box.
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
+You'll draw text on a page: single lines, and paragraphs that wrap to fit a box, in any script and direction. You need this whenever a PDF holds words, from a one-line label to a report in five languages.
+
 Text needs the text module: `init({ text: true })` or `loadText()` in TypeScript, and the default `text` feature in Rust.
 
-## Two kinds of font
+## Pick a font
 
-- **The standard 14** (`Font.standard("Helvetica")`, `Standard14::Helvetica` in Rust) need no bytes and aren't embedded. They cover Latin text only, without shaping. Text they can't encode fails with `missing-glyph`. More than 37 distinct letters outside WinAnsi fails with `encoding-full`.
-- **Your own fonts** (`Font.fromBytes(bytes)`: TrueType, OpenType or a collection) are shaped with HarfRust and **subset** to the glyphs you draw. They're embedded as Type 0 fonts with `/W` widths and a ToUnicode CMap, so the text can be extracted again. Equal fonts are embedded once per document, however many `Font` objects name them.
+lamina draws with two kinds of font:
 
-**`fsType`:** a font whose licence bits forbid embedding (restricted, or bitmap only) fails with `font-not-embeddable`. In Rust, `EmbedPolicy::Override` embeds it anyway, if you hold the rights. A font marked "no subsetting" is embedded whole.
+- **The [standard 14 fonts](/reference/glossary/#standard-14-fonts)** (`Font.standard("Helvetica")`, `Standard14::Helvetica` in Rust) need no font file and aren't embedded, because every PDF reader has them. They cover Latin text only, without shaping.
+- **Your own fonts** (`Font.fromBytes(bytes)`: TrueType, OpenType or a font collection) handle any script. lamina shapes their text, so letters join and ligatures form, and embeds only the glyphs you draw.
 
-## Scripts, direction and line breaking
+A font is embedded once per document, however many `Font` objects name it.
 
-`surface.text(str, { font, size, at })` draws one shaped line, with `at[1]` its baseline. `surface.textBox(str, { font, size, box, direction, align })` breaks a paragraph at UAX #14 opportunities to fit its box, lays out each line in visual order (UAX #9 bidi), and reports `overflow`.
+## Draw a line or a paragraph
+
+`surface.text(str, { font, size, at })` draws one line, with `at[1]` its baseline. `surface.textBox(str, { font, size, box, direction, align })` wraps a paragraph to fit its box and lays out each line's words in display order, so right-to-left text reads correctly. When the text doesn't fit, it reports `overflow`.
 
 This example draws five scripts (Latin with ligatures, Arabic, Devanagari, Hebrew and Chinese), each in its own embedded font:
 
@@ -32,4 +34,16 @@ This example draws five scripts (Latin with ligatures, Arabic, Devanagari, Hebre
   </TabItem>
 </Tabs>
 
-[See the output](/examples/#multilingual). Text extracted from it (with pdf.js, pypdf or pdftotext) equals the input strings, ligatures included.
+[See the output](/examples/#multilingual). Text extracted from it, with pdf.js, pypdf or pdftotext, equals the input strings, ligatures included.
+
+## When a font can't draw the text
+
+- **A missing character:** text a font can't encode fails with `missing-glyph`, never with a blank box.
+- **Too many letters for a standard 14 font:** a standard 14 font holds at most 37 distinct letters beyond its Western European set (WinAnsi); one more fails with `encoding-full`. Use your own font instead.
+- **A font that may not be embedded:** a font whose licence bits forbid embedding (restricted, or bitmap only) fails with `font-not-embeddable`. In Rust, `EmbedPolicy::Override` embeds it anyway, if you hold the rights. A font marked "no subsetting" is embedded whole.
+
+:::note[Details]
+lamina shapes your own fonts' text with HarfRust, a Rust port of the HarfBuzz shaper, and subsets each font to the glyphs you draw. It embeds them as [Type 0](/reference/glossary/#type-0) fonts with `/W` widths and a [ToUnicode](/reference/glossary/#tounicode) [CMap](/reference/glossary/#cmap), which is what lets the text be extracted again. Line breaking follows [UAX #14](https://www.unicode.org/reports/tr14/), and the order of mixed-direction text follows [UAX #9](https://www.unicode.org/reports/tr9/) (bidi). The licence bits are the font's `fsType`.
+:::
+
+Next: [shapes, colour and images](/guides/images-and-vectors/).

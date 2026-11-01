@@ -45,7 +45,7 @@ pub(crate) fn color(components: &[f64]) -> JsResult<Color> {
 #[cfg(feature = "text")]
 #[derive(Debug, Clone, Deserialize, Tsify)]
 #[serde(untagged)]
-pub enum ColorInit {
+pub(crate) enum ColorInit {
     /// 1 (gray), 3 (RGB) or 4 (CMYK) components, 0 to 1.
     Components(Vec<f64>),
     /// `#rrggbb` or `#rgb`.
@@ -285,7 +285,7 @@ pub(crate) fn matrix(m: [f64; 6]) -> Matrix {
 /// How a destination shows its page (§12.3.2.2).
 #[derive(Debug, Clone, Deserialize, Tsify)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
-pub enum FitInit {
+pub(crate) enum FitInit {
     /// The whole page.
     Page,
     /// The page's width, at `top`.
@@ -349,7 +349,7 @@ impl FitInit {
 /// Where a link or outline item goes.
 #[derive(Debug, Clone, Deserialize, Tsify)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
-pub enum LinkTargetInit {
+pub(crate) enum LinkTargetInit {
     /// A URI.
     Uri {
         /// The URI.
@@ -385,7 +385,7 @@ impl LinkTargetInit {
 
 /// The PDF version of a new document.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
-pub enum PdfVersionInit {
+pub(crate) enum PdfVersionInit {
     /// PDF 1.4.
     #[serde(rename = "1.4")]
     V1_4,
@@ -407,7 +407,7 @@ pub enum PdfVersionInit {
 /// so the same calls give the same bytes.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BuildOptionsInit {
+pub(crate) struct BuildOptionsInit {
     /// The header version (default 1.7).
     #[tsify(optional)]
     pub version: Option<PdfVersionInit>,
@@ -435,7 +435,7 @@ pub struct BuildOptionsInit {
 
 /// A conformance profile.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
-pub enum ProfileInit {
+pub(crate) enum ProfileInit {
     /// PDF/UA-1 (ISO 14289-1).
     #[serde(rename = "PDF/UA-1")]
     PdfUa1,
@@ -464,7 +464,7 @@ impl ProfileInit {
 /// How an attached file relates to the document (`/AFRelationship`).
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum AfRelationshipInit {
+pub(crate) enum AfRelationshipInit {
     /// The original the document was made from.
     Source,
     /// Data the content was derived from.
@@ -480,7 +480,7 @@ pub enum AfRelationshipInit {
 /// An attached file's options.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AttachmentInit {
+pub(crate) struct AttachmentInit {
     /// How the file relates to the document (default `unspecified`).
     #[tsify(optional)]
     pub relationship: Option<AfRelationshipInit>,
@@ -577,7 +577,7 @@ fn parse_date(text: &str, argument: &'static str) -> JsResult<lamina::PdfDate> {
 /// The document metadata (Info and XMP from the same values).
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct MetadataInit {
+pub(crate) struct MetadataInit {
     /// Title.
     #[tsify(optional)]
     pub title: Option<String>,
@@ -638,7 +638,7 @@ impl MetadataInit {
 /// One outline item and its children.
 #[derive(Debug, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct OutlineEntryInit {
+pub(crate) struct OutlineEntryInit {
     /// The title shown.
     pub title: String,
     /// Where it goes (none: a heading).
@@ -688,7 +688,7 @@ impl OutlineEntryInit {
 /// A page-label numbering style.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum LabelStyleInit {
+pub(crate) enum LabelStyleInit {
     /// 1, 2, 3.
     Decimal,
     /// I, II, III.
@@ -704,7 +704,7 @@ pub enum LabelStyleInit {
 /// One page-label range, from page `start` (0-based) on.
 #[derive(Debug, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PageLabelInit {
+pub(crate) struct PageLabelInit {
     /// The first page of the range.
     pub start: u32,
     /// The numbering style (none: prefix only).
@@ -741,7 +741,7 @@ impl PageLabelInit {
 /// The panel a viewer opens with.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum PageModeInit {
+pub(crate) enum PageModeInit {
     /// No panel.
     None,
     /// The outline.
@@ -759,7 +759,7 @@ pub enum PageModeInit {
 /// How a viewer lays pages out.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum PageLayoutInit {
+pub(crate) enum PageLayoutInit {
     /// One page at a time.
     SinglePage,
     /// One continuous column.
@@ -777,7 +777,7 @@ pub enum PageLayoutInit {
 /// How viewers present the document when it opens.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ViewerPreferencesInit {
+pub(crate) struct ViewerPreferencesInit {
     /// Show the title, not the file name.
     #[tsify(optional)]
     pub display_doc_title: Option<bool>,
