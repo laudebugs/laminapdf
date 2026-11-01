@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 221 ready · 64 done** (287 total).
+**1 ongoing · 221 ready · 65 done** (287 total).
 
 ## Can start now
 
@@ -28,6 +28,7 @@ Ready todos whose dependencies are all done:
 - [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
+- [Q1h](ready/Q1h-docs-story.md): The docs as a story: start pages, concepts, glossary and an explicit sidebar
 - [Q2a](ready/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
 - [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
 - [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
@@ -41,7 +42,6 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
-- [Q1e](ongoing/Q1e-quick-start-apps.md): Runnable quick-start apps for every runtime
 - [Q2k](ongoing/Q2k-boundary-errors-ts.md): One error wire shape in TypeScript (fixes lost render ranges)
 
 ## Architecture — Round A
@@ -338,10 +338,10 @@ Ready todos whose dependencies are all done:
 | Q1b | [The `docs-prose` check for reader-facing text](done/Q1b-docs-prose-check.md) | done | — |
 | Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](done/Q1c-examples-checks.md) | done | — |
 | Q1d | [API fixes the examples need](ready/Q1d-example-api-cleanups.md) | ready | — |
-| Q1e | [Runnable quick-start apps for every runtime](ongoing/Q1e-quick-start-apps.md) | ongoing | [Q1c](done/Q1c-examples-checks.md) |
+| Q1e | [Runnable quick-start apps for every runtime](done/Q1e-quick-start-apps.md) | done | [Q1c](done/Q1c-examples-checks.md) |
 | Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](done/Q1c-examples-checks.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
 | Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](done/Q1c-examples-checks.md) |
-| Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](ongoing/Q1e-quick-start-apps.md) |
+| Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](done/Q1e-quick-start-apps.md) |
 | Q1i | [Plain-English guides: creating PDFs](ready/Q1i-guides-create.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](ready/Q1h-docs-story.md) |
 | Q1k | [Internal IDs out of error pages and READMEs](done/Q1k-internal-ids-out-of-reader-text.md) | done | [Q1b](done/Q1b-docs-prose-check.md) |

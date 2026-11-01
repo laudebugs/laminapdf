@@ -11,17 +11,10 @@ interface Props {
   readonly title?: string;
 }
 
-// The files a page may show: the TS examples (and the Worker's), the runtime runners the quick
-// starts use, and the Rust examples. Each is run by a test or CI job (see the quick starts).
+// The files a page may show: the TS examples (the quick-start apps and the Worker's included) and
+// the Rust examples. Tests run each of them.
 const FILES: Record<string, string> = import.meta.glob(
-  [
-    "../../../../packages/sdk/examples/**/*.{ts,toml}",
-    "../../../../packages/sdk/test/{deno,bun}/examples.test.ts",
-    "../../../../packages/sdk/test/vite-app/main.ts",
-    "../../../../packages/sdk/test/examples.test.ts",
-    "../../../../packages/sdk/test/suite/examples.ts",
-    "../../../../crates/lamina/examples/*.rs",
-  ],
+  ["../../../../packages/sdk/examples/**/*.{ts,toml}", "../../../../crates/lamina/examples/*.rs"],
   { query: "?raw", import: "default", eager: true },
 );
 const PREFIX = "../../../../";

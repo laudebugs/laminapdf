@@ -143,25 +143,27 @@ fn snippet_globs(source: &str) -> Vec<Glob> {
     let Some(start) = source.find("import.meta.glob(") else {
         return Vec::new();
     };
-    let first_line = source.get(..start).map_or(1, |before| before.matches('\n').count() + 1);
     let Some(rest) = source.get(start..) else {
         return Vec::new();
     };
-    let end = rest.find(']').unwrap_or(rest.len());
-    rest.get(..end)
-        .unwrap_or_default()
-        .lines()
-        .enumerate()
-        .filter_map(|(offset, line)| {
-            let quoted = line.trim().trim_end_matches(',');
-            let pattern = quoted.strip_prefix('"')?.strip_suffix('"')?;
-            let pattern = pattern.trim_start_matches("../");
-            Some(Glob {
-                pattern: pattern.to_owned(),
-                line: first_line + offset,
-            })
-        })
-        .collect()
+    let list = rest.get(..rest.find(']').unwrap_or(rest.len())).unwrap_or_default();
+    let first_line = source.get(..start).map_or(1, |before| before.matches('\n').count() + 1);
+    // Every double-quoted string in the list, however the formatter wrapped it, outside comments.
+    // (The list ends at its first `]`, so a `]` in a comment there would end it early.)
+    let mut globs = Vec::new();
+    for (offset, line) in list.lines().enumerate() {
+        let code = line.split_once("//").map_or(line, |(code, _)| code);
+        let mut quotes = code.match_indices('"').map(|(index, _)| index);
+        while let (Some(open), Some(close)) = (quotes.next(), quotes.next()) {
+            if let Some(pattern) = code.get(open + 1..close) {
+                globs.push(Glob {
+                    pattern: pattern.trim_start_matches("../").to_owned(),
+                    line: first_line + offset,
+                });
+            }
+        }
+    }
+    globs
 }
 
 /// `{a,b}` → both patterns, every group in turn (no nesting, as Vite's globs here use it).
@@ -560,6 +562,20 @@ mod tests {
             ]
         );
         assert_eq!(glob_findings(&globs).len(), 1);
+    }
+
+    #[test]
+    fn a_glob_on_one_line_should_be_read() {
+        let source = "x\nconst F = import.meta.glob(\n  [\"../../a/*.ts\", \"../../b/*.rs\"],\n  {},\n);\n";
+        let patterns: Vec<(String, usize)> = snippet_globs(source).into_iter().map(|g| (g.pattern, g.line)).collect();
+        assert_eq!(patterns, vec![("a/*.ts".to_owned(), 3), ("b/*.rs".to_owned(), 3)]);
+    }
+
+    #[test]
+    fn quotes_in_glob_comments_should_be_ignored() {
+        let source = "const F = import.meta.glob(\n  [\n    // see \"x\"\n    \"../../a/*.ts\",\n  ],\n);\n";
+        let patterns: Vec<String> = snippet_globs(source).into_iter().map(|glob| glob.pattern).collect();
+        assert_eq!(patterns, vec!["a/*.ts"]);
     }
 
     #[test]

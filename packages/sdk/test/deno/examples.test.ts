@@ -4,8 +4,11 @@
 // suite imports `.ts` files by their `.js` paths, as tsc wants; tsc checks the types, with
 // deno.d.ts standing in for Deno's). The measurement registers first, so it runs cold in this
 // file's fresh module instance.
-import { runSuite } from "../suite/examples.js";
+import { hello } from "../../examples/quick-start/deno.js";
+import { registerQuickStart, runSuite } from "../suite/examples.js";
 
 const root = new URL("../../../../", import.meta.url);
 
-runSuite("deno", (path) => Deno.readFile(new URL(path, root)), Deno.test);
+const read = (path: string) => Deno.readFile(new URL(path, root));
+runSuite("deno", read, Deno.test);
+registerQuickStart("deno", read, Deno.test, hello);

@@ -7,15 +7,20 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-In Node (22 or newer), `@laminapdf/sdk` reads each `.wasm` file from `@laminapdf/wasm` as bytes. Call `await init({ text: true })` once. After that, every call is synchronous.
+In Node, `@laminapdf/sdk` reads its `.wasm` files from the `@laminapdf/wasm` package as bytes. Call `await init({ text: true })` once; after that, every call is synchronous.
 
-The smallest document is one page with a line of text in a standard 14 font. Its bytes are the same as those of the Rust `hello` example:
+This app builds one A4 page that says "Hello, world!" and writes it to `hello.pdf`:
 
-<Snippet file="packages/sdk/examples/hello.ts" />
+<Snippet file="packages/sdk/examples/quick-start/node.ts" />
 
-This is how the package's tests run it, with every other example, in Node 22, 24 and 26: `init` once, then each example's bytes checked against the Rust version's.
+Save it as `hello.ts` in a project with `@laminapdf/sdk` [installed](/install/), and run it with Node 24, which runs TypeScript files as they are:
 
-<Snippet file="packages/sdk/test/examples.test.ts" />
+```sh
+node hello.ts
+```
 
-- **Coordinates** are page space: points from the top-left corner of the displayed page, with y going down. A text run's `at[1]` is its baseline.
-- **Free documents** you're done with (`doc.free()`, or `using doc = …`), so a long-running server doesn't wait for the garbage collector to release WebAssembly memory.
+Node 22 can't parse the `using` that frees the builder and the document, so compile the app with `tsc` first there. lamina's tests run this app in Node 22 (compiled), 24 and 26 and check that it builds the reference PDF byte for byte.
+
+A long-running server should free documents the same way (or call `doc.free()`), so it doesn't wait for the garbage collector to release WebAssembly memory.
+
+Next: draw text with [fonts](/guides/fonts-and-text/), or [open and edit](/guides/open-edit-and-save/) a file.
