@@ -80,6 +80,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - `stop()` takes the same path with `reason: "cancelled"`.
 - **Secrets:** the password crosses to the Web Worker once, when the document opens, and is kept only there. The page keeps the source and the other options.
   - After a crash of an encrypted document, `password-required` fires and the caller opens again.
+  - lamina's tests count every message that carries the password, so it can't start crossing more often unnoticed.
 - **Sources:**
   - A `Blob`/`File` is sent by reference, and the Web Worker reads it in 4 MiB `slice()`s.
   - Bytes are copied, and kept on the page for a reopen.

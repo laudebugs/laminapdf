@@ -147,7 +147,7 @@ const bytes = await doc.ensure(() => doc.save({ mode: "fullRewrite" })); // fetc
 - **`callbackSource(size, read)`:** any other random-access input (a `Blob`'s `slice`, a file handle, an IPC call).
 - **Options:** `signal` (for the open; aborting rejects and cancels its requests in flight; `ensure(f, { signal })` takes its own), `blockSize`, `readahead`, `budget` (the most bytes the document may hold; more is `source-budget-exceeded`) and `maxRounds`.
 - **Off the main thread:** each `ensure` call can take several round trips. `client.openUrl` in a Web Worker hides the loop behind its async API (see below).
-- **Large local files in Rust:** `lamina-source`'s `FileSource` (positioned reads) or, for files nothing changes, `MmapSource`.
+- **Large local files in Rust:** the `lamina-source` crate's `FileSource` (positioned reads) or, for files nothing changes, `MmapSource`; its rustdoc describes both.
 
 ## Off the main thread: `@laminapdf/sdk/worker`
 
@@ -184,7 +184,7 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
 - **Version handshake:** on connect, the Web Worker and the client compare their protocol and package versions. A Web Worker from another build rejects `connect()` with `worker-version-mismatch`.
 - **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config. In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@laminapdf/sdk"] }`), as for the main entry.
 - **CSP or your own hosting:** pass `connect({ worker: () => new Worker(url, { type: "module" }) })`. A factory, so that `restart()` can make a new one.
-- **Runtimes:** browsers (Chromium, Firefox, WebKit), and Deno and Bun web Workers (smoke-tested). Node's `worker_threads` isn't a web `Worker` and isn't supported.
+- **Runtimes:** browsers (Chromium, Firefox, WebKit), and Deno and Bun Web Workers (smoke-tested). Node's `worker_threads` isn't a web `Worker` and isn't supported.
 - **Extending the Web Worker:** `@laminapdf/sdk/worker/server`'s `serve({ methods })` serves the same protocol with more methods in the same Web Worker. `@laminapdf/viewer` adds its render methods this way.
   - The page calls them with `client.request(method, params, { priority, key, signal })`.
   - The Web Worker runs the highest `priority` first, and runs calls with the same `key` once. Each caller still gets its own answer: an extension method's `reply(result)` builds one per caller, so each can be given its own transferables.
@@ -199,12 +199,8 @@ Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (
 
 The [examples](https://docs.laminapdf.com/examples/) are `hello`, `invoice`, `multilingual`, `images-and-vectors`, `links-and-outlines` and `generate-then-edit`, plus `report`, 100 pages with two embedded fonts. Each produces the same bytes as its Rust twin.
 
-`examples/worker/` is a Cloudflare Worker that generates a PDF per request (`/?name=Ada`: a letter in Helvetica, or a 400 with the error as JSON for a name it can't draw; `/report`: the report). From this folder:
-
-```sh
-pnpm exec wrangler dev -c examples/worker/wrangler.toml   # then open http://localhost:8787/?name=Ada
-```
+A Cloudflare Worker example generates a PDF per request: `/?name=Ada` returns a letter in Helvetica, or a 400 with the error as JSON for a name it can't draw, and `/report` returns the report. The [Cloudflare Workers quick start](https://docs.laminapdf.com/quick-start/workers/) shows it and how to run it.
 
 ## Working on this package
 
-How the package is built and tested in every runtime is in [CONTRIBUTING.md](CONTRIBUTING.md).
+How the package is built and tested in every runtime is in `CONTRIBUTING.md`, next to this README in the repository.

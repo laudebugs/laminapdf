@@ -33,4 +33,4 @@ The `location` is `object` (the page for page content, the Form XObject for a fo
 
 The decisions and todos behind this code:
 
-- [ADR 0023](../decisions/0023-content-stream-reading.md) the inline-image search
+- [ADR 0023](../decisions/0023-content-stream-reading.md): the inline-image search

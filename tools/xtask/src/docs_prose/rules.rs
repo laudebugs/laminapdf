@@ -96,13 +96,15 @@ pub(crate) fn check(page: &Page, scope: Scope, config: &Config) -> Vec<Finding> 
     findings
 }
 
-/// The blocks a reader sees: an error page's last section, "For contributors", is left out of
-/// the docs site (`apps/docs/plugins/error-pages.mjs`), so its decision and todo links are fine.
+/// The blocks the reader rules check: everything before a page's last section, "For contributors".
+/// That section holds decision and todo links on purpose, on every page: the docs site leaves it
+/// out of error pages (`apps/docs/plugins/error-pages.mjs`), and on a README it is marked as
+/// contributors' notes. `end` is at most the length, so the fallback never applies.
 fn reader_blocks(page: &Page) -> &[Block] {
     let end = page
         .blocks
         .iter()
-        .position(|block| block.kind == Kind::Heading(2) && block.text() == "For contributors")
+        .rposition(|block| block.kind == Kind::Heading(2) && block.text() == "For contributors")
         .unwrap_or(page.blocks.len());
     page.blocks.get(..end).unwrap_or(&page.blocks)
 }

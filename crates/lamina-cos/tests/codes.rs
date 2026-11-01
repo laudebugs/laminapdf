@@ -39,6 +39,21 @@ const PAGE_HEADINGS: [&str; 5] = [
 /// site leaves out.
 const CONTRIBUTOR_HEADING: &str = "## For contributors";
 
+/// A page's `## ` headings, leaving out lines inside code fences (an example may show Markdown).
+fn page_headings(text: &str) -> Vec<&str> {
+    let mut in_fence = false;
+    text.lines()
+        .map(str::trim_end)
+        .filter(|line| {
+            if line.starts_with("```") || line.starts_with("~~~") {
+                in_fence = !in_fence;
+                return false;
+            }
+            !in_fence && line.starts_with("## ")
+        })
+        .collect()
+}
+
 /// The codes listed in group `key`, in order.
 fn listed(key: &str) -> Vec<String> {
     codes_json()[key]
@@ -115,11 +130,7 @@ fn problems(group: &str, entry: &Value) -> Vec<String> {
     match std::fs::read_to_string(&page) {
         Err(_) => out.push(format!("{group}/{code}: no page docs/errors/{code}.md")),
         Ok(text) => {
-            let headings: Vec<&str> = text
-                .lines()
-                .filter(|l| l.starts_with("## "))
-                .map(str::trim_end)
-                .collect();
+            let headings = page_headings(&text);
             let reader_headings = headings.strip_suffix(&[CONTRIBUTOR_HEADING]).unwrap_or(&headings);
             if reader_headings != PAGE_HEADINGS {
                 out.push(format!(

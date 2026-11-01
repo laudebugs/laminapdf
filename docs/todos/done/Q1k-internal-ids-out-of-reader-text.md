@@ -12,7 +12,7 @@
 | Branch | `docs/q1k-internal-ids-out-of-reader-text` |
 | PR title | `docs: keep ADR and todo IDs out of reader-facing text` |
 | Size | M |
-| PR | — |
+| PR | [#149](https://github.com/laudebugs/lamina/pull/149) |
 
 ## Goal
 

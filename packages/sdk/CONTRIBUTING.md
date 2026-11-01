@@ -49,6 +49,10 @@ pnpm exec vitest run -c vitest.workers.config.ts
 
 In CI, the fast lane runs Node 22 and 26 and Chromium on every PR; Node 24 (`.nvmrc`) is the `wasm` job's own run. The full lane runs Firefox, WebKit, Deno, Bun and workerd, and the nightly lane runs all of them with the figures recorded.
 
+## The worker client
+
+`tsc` fails if a new sync method of `Document` or `PageRef` is neither served by the worker client nor listed as not served, in `src/worker/support.ts`.
+
 ## Decisions behind the API
 
 - Loading per runtime, the two modules and their budgets: [ADR 0016](../../docs/decisions/0016-package-design.md) §3, §4, §6.

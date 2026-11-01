@@ -5,7 +5,7 @@
 
 ## What happened
 
-A render backend (`lamina-render`) refused a request because the tile it asks for is larger than the document's `RenderLimits`. The tile has more than `max_render_pixels` pixels, more than `max_render_side` pixels on a side, or (for hayro, which reads the whole file) an input longer than `max_input_bytes`.
+A render backend (`lamina-render`) refused a request because it exceeds the document's `RenderLimits`. Either the tile has more than `max_render_pixels` pixels or more than `max_render_side` pixels on a side, or the input is longer than `max_input_bytes` (a limit only hayro has, because it reads the whole file).
 
 ## Why
 
