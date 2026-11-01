@@ -12,7 +12,7 @@
 | Branch | `feat/b8b-conformance-profiles` |
 | PR title | `feat(build): PDF/UA-1 and PDF/A-2b/2u/3b profiles with build-time errors; veraPDF nightly` |
 | Size | L (≈ 900–1,400 lines incl. ICC data handling, examples and workflow) |
-| PR | — |
+| PR | [#143](https://github.com/laudebugs/lamina/pull/143) |
 
 ## Goal
 
