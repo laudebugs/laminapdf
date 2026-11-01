@@ -6,6 +6,7 @@
 // ported), so both web adapters refuse the same requests; Rust re-checks them.
 
 import {
+  type ByteRange,
   flagsOf,
   isRenderError,
   isRenderErrorCode,
@@ -58,7 +59,7 @@ let broken = false;
 interface ModuleError {
   readonly code: RenderErrorCode;
   readonly message: string;
-  readonly data?: { readonly ranges?: [number, number][] };
+  readonly data?: { readonly ranges?: ByteRange[] };
 }
 
 /** Whether `e` is one of the module's own errors: an object with a known render code. */

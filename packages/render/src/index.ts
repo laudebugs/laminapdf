@@ -173,7 +173,13 @@ export type RenderErrorCode =
   | "cancelled"
   | "disposed";
 
-const KINDS: Record<RenderErrorCode, string> = {
+/** What kind of failure a render code is (the ADR 0026 kinds its codes use). */
+export type RenderErrorKind = "limit" | "input" | "io" | "usage" | "security" | "state" | "cancelled";
+
+/** A byte range of the input: its first byte and its length. */
+export type ByteRange = readonly [offset: number, length: number];
+
+const KINDS: Record<RenderErrorCode, RenderErrorKind> = {
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
@@ -191,11 +197,11 @@ const KINDS: Record<RenderErrorCode, string> = {
 export class RenderError extends Error {
   override readonly name = "RenderError";
   readonly code: RenderErrorCode;
-  readonly kind: string;
-  /** For `data-pending`: the `[offset, length]` ranges to fetch before calling again. */
-  readonly ranges: readonly (readonly [number, number])[] | undefined;
+  readonly kind: RenderErrorKind;
+  /** For `data-pending`: the ranges to fetch before calling again. */
+  readonly ranges: readonly ByteRange[] | undefined;
 
-  constructor(code: RenderErrorCode, message: string, ranges?: readonly (readonly [number, number])[]) {
+  constructor(code: RenderErrorCode, message: string, ranges?: readonly ByteRange[]) {
     super(message);
     this.code = code;
     this.kind = KINDS[code];
@@ -221,16 +227,17 @@ export class RenderError extends Error {
 
 /**
  * Where each code's page is (ADR 0026 §6), as `fixtures/codes.json`'s `docsUrl` says;
- * test/codes.test.ts checks that `toDiagnostic()`'s URLs agree.
+ * test/codes.test.ts checks that `toDiagnostic()`'s URLs agree. Hand-copied, like KINDS, until
+ * todo Q2l generates this package's code tables.
  */
 const DOCS_URL = { base: "https://github.com/laudebugs/lamina/blob/main/docs/errors/", suffix: ".md" } as const;
 
 /** A RenderError as the ADR 0026 §1 object (see {@link RenderError.toDiagnostic}). */
 export interface RenderDiagnostic {
   readonly code: RenderErrorCode;
-  readonly kind: string;
+  readonly kind: RenderErrorKind;
   readonly message: string;
-  readonly data?: { readonly ranges: readonly (readonly [number, number])[] };
+  readonly data?: { readonly ranges: readonly ByteRange[] };
   readonly docsUrl: string;
 }
 

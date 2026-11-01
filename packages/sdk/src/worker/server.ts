@@ -117,13 +117,13 @@ export function emit(name: string, data?: unknown, transfer: Transferable[] = []
 function diagnostic(e: unknown): Diagnostic<ErrorCode> {
   if (e instanceof LaminaError) return e.toJSON();
   if (isDiagnostic(e)) return e;
-  const described = selfDescribed(e);
+  const described = fromToDiagnostic(e);
   if (described !== undefined) return described;
   return packageError("worker-failed", e instanceof Error ? e.message : String(e)).toJSON();
 }
 
 /** What `e.toDiagnostic()` returns, when `e` has that method and it returns a §1 object. */
-function selfDescribed(e: unknown): Diagnostic<ErrorCode> | undefined {
+function fromToDiagnostic(e: unknown): Diagnostic<ErrorCode> | undefined {
   const toDiagnostic = (e as { toDiagnostic?: unknown } | null | undefined)?.toDiagnostic;
   if (typeof toDiagnostic !== "function") return undefined;
   const value: unknown = toDiagnostic.call(e);

@@ -36,8 +36,9 @@ export async function initBackend(init: BackendInit): Promise<{ name: string; ve
 }
 
 function currentBackend(): RenderBackend {
-  if (backend === undefined)
-    throw new RenderError("render-backend-unavailable", "no backend is loaded: call initBackend first");
+  // Only a viewer bug gets here (the client loads the backend before anything else), so it stays
+  // an Error: the worker reports it as worker-failed, kind internal.
+  if (backend === undefined) throw new Error("initBackend was not called");
   return backend;
 }
 
