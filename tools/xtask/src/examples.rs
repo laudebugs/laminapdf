@@ -12,8 +12,9 @@ use anyhow::{Context, Result, bail};
 use crate::step;
 use crate::workspace::Workspace;
 
-/// The façade's examples: every `crates/lamina/examples/<name>.rs`, each writing `<name>.pdf`,
-/// in name order. Discovered, not listed, so a new example is a golden without an xtask edit
+/// The façade's examples: every `crates/lamina/examples/<name>.rs`, each writing `<name>.pdf`
+/// or, for an example with variants (`pdf_a_archive`: PDF/A-2b and PDF/A-2u), one
+/// `<name>-<variant>.pdf` per variant ([`outputs_of`]), in name order. Discovered, not listed, so a new example is a golden without an xtask edit
 /// (`crates/lamina/tests/examples.rs` checks its own list against the same folder).
 pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
     let dir = root.join("crates/lamina/examples");
@@ -56,12 +57,35 @@ pub(crate) fn run_all(ws: &Workspace, out: &Path) -> Result<Vec<PathBuf>> {
             "--",
             &out_arg,
         ])?;
-        let file = out.join(format!("{name}.pdf"));
-        if !file.is_file() {
-            bail!("example {name} wrote no {}", file.display());
+        let written = outputs_of(out, name)?;
+        if written.is_empty() {
+            bail!(
+                "example {name} wrote no {name}.pdf or {name}-<variant>.pdf in {}",
+                out.display()
+            );
         }
-        files.push(file);
+        files.extend(written);
     }
+    Ok(files)
+}
+
+/// The files example `name` writes into `out`: `<name>.pdf` and every `<name>-<variant>.pdf`,
+/// sorted.
+pub(crate) fn outputs_of(out: &Path, name: &str) -> Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for entry in fs::read_dir(out).with_context(|| format!("reading {}", out.display()))? {
+        let path = entry?.path();
+        let Some(file) = path.file_name().and_then(|f| f.to_str()) else {
+            continue;
+        };
+        let Some(stem) = file.strip_suffix(".pdf") else {
+            continue;
+        };
+        if stem == name || stem.strip_prefix(name).is_some_and(|rest| rest.starts_with('-')) {
+            files.push(path);
+        }
+    }
+    files.sort();
     Ok(files)
 }
 
@@ -119,5 +143,21 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let names = names(&root).unwrap();
         assert!(names.iter().any(|n| n == "invoice"), "{names:?}");
+    }
+
+    #[test]
+    fn an_example_with_variants_has_one_output_per_variant() {
+        let dir = std::env::temp_dir().join(format!("lamina-xtask-outputs-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        for f in ["a-2b.pdf", "a-2u.pdf", "ab.pdf", "a.txt", "b.pdf"] {
+            fs::write(dir.join(f), b"").unwrap();
+        }
+        let found: Vec<String> = outputs_of(&dir, "a")
+            .unwrap()
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+            .collect();
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(found, ["a-2b.pdf", "a-2u.pdf"]);
     }
 }

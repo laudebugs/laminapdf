@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E15](../../plans/full-editor.md#e15-accessibility) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md), [E14a](./E14a-compare-revisions-batch-feature-plan.md) |
+| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E14a](./E14a-compare-revisions-batch-feature-plan.md) |
 | Blocks | [E15b](./E15b-structure-tree-editing.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
 | Dependency notes | [E14a](E14a-compare-revisions-batch-feature-plan.md), `B8` ([pdf-library §B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa): tagged PDF, PDF/UA, PDF/A) |
 | ADRs | Follows ADR 0005, 0006, 0007 |

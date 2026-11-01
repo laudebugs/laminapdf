@@ -39,7 +39,9 @@ export type RemoteMember<T> = T extends (...args: infer A) => infer R
 
 /** A document in the worker. Close it (or `await using`) to free it there. */
 export type RemoteDocument = { readonly [K in RemotableDocumentMember]: RemoteMember<Document[K]> } & {
+  /** Frees the document in the worker; a second call, or one after the worker stopped, does nothing. */
   close(): Promise<void>;
+  /** `close()`, for `await using`. */
   [Symbol.asyncDispose](): Promise<void>;
 };
 

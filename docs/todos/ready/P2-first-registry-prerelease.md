@@ -28,7 +28,7 @@ Publish lamina for the first time: a `0.x` pre-release of every public crate on 
 
 **In scope**
 
-- Version PR for the chosen pre-release (likely the current `0.2.0-alpha.N` if [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md) is merged, else `0.1.0-alpha.N`); publish via the release workflow.
+- Version PR for the chosen pre-release (likely the current `0.2.0-alpha.N` if [B8b](../done/B8b-conformance-profiles-and-verapdf.md) is merged, else `0.1.0-alpha.N`); publish via the release workflow.
 - Registry install verification: extend `cargo xtask verify-install --from-registry` (npm + crates.io) for Node, Deno, Bun, a Vite browser app, workerd and a Rust binary; run in the release lane after publish.
 - Publish `docs/stability-policy.md` on the docs site; link the changelog; README badges.
 - `cargo-semver-checks` job in the fast lane against the latest published version for public crates (pinned in `doctor.rs`); for TS, `attw` + an API report (`api-extractor` or similar) diffed against the published package.

@@ -92,6 +92,7 @@ export class HayroBackend implements RenderBackend {
     return memory?.buffer.byteLength ?? 0;
   }
 
+  /** Opens `source` (see {@link RenderBackend.open}). */
   open(source: RenderSource, options: RenderOpenOptions = {}): RenderDocument {
     healthy();
     const limits = limitsOf(options.limits);

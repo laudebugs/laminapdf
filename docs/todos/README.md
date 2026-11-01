@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 226 ready · 58 done** (287 total).
+**1 ongoing · 225 ready · 61 done** (287 total).
 
 ## Can start now
 
@@ -35,15 +35,14 @@ Ready todos whose dependencies are all done:
 - [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated
 - [Q2m](ready/Q2m-ts-test-utils.md): `@laminapdf/test-utils` for shared TypeScript test helpers
 - [Q2o](ready/Q2o-ts-hygiene.md): TypeScript hygiene: no test hooks in shipped code
+- [Q2p](ready/Q2p-ts-complexity-splits.md): Split the TypeScript functions over the complexity limit
 - [Q2v](ready/Q2v-did-you-mean.md): One did-you-mean rule, pinned in both languages
 - [Q2y](ready/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md): Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`
-- [Q1b](ongoing/Q1b-docs-prose-check.md): The `docs-prose` check for reader-facing text
-- [Q2b](ongoing/Q2b-ts-lint-rules.md): TypeScript lint rules: complexity, function length, throws and TSDoc
+- [Q1k](ongoing/Q1k-internal-ids-out-of-reader-text.md): Internal IDs out of error pages and READMEs
 
 ## Architecture — Round A
 
@@ -81,7 +80,7 @@ Ready todos whose dependencies are all done:
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](done/B7b-versioning-and-0-1-0-alpha.md) | done | [B6c](done/B6c-runtime-matrix.md), [B7a](done/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
 | B7c | [The docs site at `docs.laminapdf.com`, and the domain filled in everywhere](done/B7c-docs-custom-domain.md) | done | [B7a](done/B7a-docs-site.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](done/B8a-structure-tree.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](done/B6b-lamina-pdf-package.md) |
-| B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ongoing/B8b-conformance-profiles-and-verapdf.md) | ongoing | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
+| B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](done/B8b-conformance-profiles-and-verapdf.md) | done | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
 | B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](done/B9b-text-extraction-core.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](done/B9c-text-extraction-bindings-and-differential.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md), [B9d](done/B9d-text-runs-quads-and-page-text.md) |
@@ -201,15 +200,15 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B5c](done/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](done/X2-capability-matrix.md) |
-| E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
-| E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](done/X3a-nightly-lane.md) |
+| E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
+| E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](done/X3a-nightly-lane.md) |
 | E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
 | E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1c](ready/E1c-metadata-ops.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
 | E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](done/X2-capability-matrix.md) |
 | E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [E1f](ready/E1f-metadata-ui-capability-page.md) |
-| E2b | [Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse](ready/E2b-page-structure-ops.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
+| E2b | [Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse](ready/E2b-page-structure-ops.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
 | E2c | [Insert pages from other PDFs, replace pages, extract and export ranges](ready/E2c-cross-document-pages.md) | ready | [E2b](ready/E2b-page-structure-ops.md) |
-| E2d | [Merge documents and split by count, ranges and bookmarks](ready/E2d-merge-and-split.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E2c](ready/E2c-cross-document-pages.md) |
+| E2d | [Merge documents and split by count, ranges and bookmarks](ready/E2d-merge-and-split.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E2c](ready/E2c-cross-document-pages.md) |
 | E2e | [`lamina-content` append API](ready/E2e-content-append-api.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
 | E2f | [Crop, resize, page boxes and orientation](ready/E2f-page-geometry.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E2e](ready/E2e-content-append-api.md) |
 | E2g | [Page labels editor](ready/E2g-page-labels.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E2c](ready/E2c-cross-document-pages.md), [E2d](ready/E2d-merge-and-split.md) |
@@ -219,8 +218,8 @@ Ready todos whose dependencies are all done:
 | E3b | [Bookmark editor, named destinations, TOC generator](ready/E3b-bookmarks-and-destinations.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3c](ready/E3c-links.md) |
 | E3c | [Internal links, external hyperlinks and links on text](ready/E3c-links.md) | ready | [C5b](ready/C5b-find-in-document.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E3d | [Initial view, page display mode and article threads (read)](ready/E3d-initial-view-and-threads.md) | ready | [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
-| E3e | [General XMP editor (custom and extension schemas)](ready/E3e-xmp-editor.md) | ready | [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
-| E3f | [Attachments panel, associated files (`/AF`) and portfolios (read)](ready/E3f-attachments-and-associated-files.md) | ready | [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](ready/E3b-bookmarks-and-destinations.md), [X3a](done/X3a-nightly-lane.md) |
+| E3e | [General XMP editor (custom and extension schemas)](ready/E3e-xmp-editor.md) | ready | [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
+| E3f | [Attachments panel, associated files (`/AF`) and portfolios (read)](ready/E3f-attachments-and-associated-files.md) | ready | [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](ready/E3b-bookmarks-and-destinations.md), [X3a](done/X3a-nightly-lane.md) |
 | E3g | [Version, conformance, fonts, colour profiles and object inspector](ready/E3g-inspectors.md) | ready | [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E3h | [Images → PDF and page export to PNG/JPEG/TIFF](ready/E3h-images-to-pdf-and-page-export.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E3i | [Extract text, images, links and bookmarks](ready/E3i-extraction.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -238,8 +237,8 @@ Ready todos whose dependencies are all done:
 | E5e | [Flatten annotations into content and comment summary](ready/E5e-flatten-and-summary.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5b](ready/E5b-comment-threads-and-review.md) |
 | E6a | [Adding content to pages: feature plan](ready/E6a-adding-content-feature-plan.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5a](ready/E5a-review-stamps-interchange-feature-plan.md) |
 | E6b | [Place images, shapes, logos and stamps as page content](ready/E6b-place-images-and-shapes.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [E2e](ready/E2e-content-append-api.md), [E6a](ready/E6a-adding-content-feature-plan.md) |
-| E6c | [Add text and special characters as page content](ready/E6c-add-text.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B8a](done/B8a-structure-tree.md), [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E6b](ready/E6b-place-images-and-shapes.md), [X3a](done/X3a-nightly-lane.md) |
-| E6d | [Watermarks, backgrounds, headers/footers, page numbers and Bates numbering](ready/E6d-watermarks-headers-footers.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E6c](ready/E6c-add-text.md) |
+| E6c | [Add text and special characters as page content](ready/E6c-add-text.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B8a](done/B8a-structure-tree.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E6b](ready/E6b-place-images-and-shapes.md), [X3a](done/X3a-nightly-lane.md) |
+| E6d | [Watermarks, backgrounds, headers/footers, page numbers and Bates numbering](ready/E6d-watermarks-headers-footers.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E6c](ready/E6c-add-text.md) |
 | E6e | [Content insert tools and object handles](ready/E6e-content-tools-ui.md) | ready | [E6b](ready/E6b-place-images-and-shapes.md), [E6c](ready/E6c-add-text.md) |
 | E6f | [Touched-page reload time: measure and budget](ready/E6f-reload-budget.md) | ready | [E6b](ready/E6b-place-images-and-shapes.md) |
 | E7a | [ADR 0022: content-stream editing model for existing content](ready/E7a-adr-0022-content-editing.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E6a](ready/E6a-adding-content-feature-plan.md) |
@@ -250,7 +249,7 @@ Ready todos whose dependencies are all done:
 | E7f | [Font handling: re-subset, substitution, font/size/colour/style, alignment and spacing](ready/E7f-font-handling-and-styling.md) | ready | [E6c](ready/E6c-add-text.md), [E7e](ready/E7e-text-runs-and-inline-edit.md) |
 | E7g | [Search and replace across the document](ready/E7g-search-and-replace.md) | ready | [C5b](ready/C5b-find-in-document.md), [E7f](ready/E7f-font-handling-and-styling.md) |
 | E7h | [Vector path editing, fills, strokes, clipping paths and masks](ready/E7h-vector-clipping-masks.md) | ready | [E7d](ready/E7d-select-transform-existing.md) |
-| E7i | [Struct-tree and MCID maintenance; PDF/A and PDF/UA re-checks on save](ready/E7i-structure-and-conformance-maintenance.md) | ready | [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E7e](ready/E7e-text-runs-and-inline-edit.md) |
+| E7i | [Struct-tree and MCID maintenance; PDF/A and PDF/UA re-checks on save](ready/E7i-structure-and-conformance-maintenance.md) | ready | [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E7e](ready/E7e-text-runs-and-inline-edit.md) |
 | E7j | [Edit-corpus tests and E7 round close](ready/E7j-edit-corpus.md) | ready | [E7g](ready/E7g-search-and-replace.md), [E7h](ready/E7h-vector-clipping-masks.md), [E7i](ready/E7i-structure-and-conformance-maintenance.md) |
 | E8a | [ADR 0021: PDF JavaScript policy](ready/E8a-adr-0021-javascript-policy.md) | ready | [E7b](ready/E7b-editing-existing-content-feature-plan.md) |
 | E8b | [Form filling and data: feature plan](ready/E8b-form-filling-feature-plan.md) | ready | [E5a](ready/E5a-review-stamps-interchange-feature-plan.md), [E8a](ready/E8a-adr-0021-javascript-policy.md) |
@@ -296,8 +295,8 @@ Ready todos whose dependencies are all done:
 | E14c | [Visual and structural compare](ready/E14c-compare.md) | ready | [C5b](ready/C5b-find-in-document.md), [E14b](ready/E14b-revision-browser.md) |
 | E14d | [Batch runner over saved op sequences (local)](ready/E14d-batch-runner.md) | ready | [E6d](ready/E6d-watermarks-headers-footers.md), [E14a](ready/E14a-compare-revisions-batch-feature-plan.md) |
 | E14e | [Optional server batch via Workflows](ready/E14e-server-batch.md) | ready | [E13e](ready/E13e-server-jobs-infrastructure.md), [E14d](ready/E14d-batch-runner.md) |
-| E15a | [Accessibility: feature plan](ready/E15a-accessibility-feature-plan.md) | ready | [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E14a](ready/E14a-compare-revisions-batch-feature-plan.md) |
-| E15b | [Structure-tree editing model, tag tree panel and reading-order overlay](ready/E15b-structure-tree-editing.md) | ready | [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md), [E7i](ready/E7i-structure-and-conformance-maintenance.md), [E15a](ready/E15a-accessibility-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
+| E15a | [Accessibility: feature plan](ready/E15a-accessibility-feature-plan.md) | ready | [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E14a](ready/E14a-compare-revisions-batch-feature-plan.md) |
+| E15b | [Structure-tree editing model, tag tree panel and reading-order overlay](ready/E15b-structure-tree-editing.md) | ready | [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E7i](ready/E7i-structure-and-conformance-maintenance.md), [E15a](ready/E15a-accessibility-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
 | E15c | [Tagging tools: headings, lists, tables, artifacts, alt text, language, form and link labels](ready/E15c-tagging-tools.md) | ready | [E15b](ready/E15b-structure-tree-editing.md) |
 | E15d | [Matterhorn machine checks, missing fonts/Unicode checks and fix-ups](ready/E15d-accessibility-checks.md) | ready | [E15b](ready/E15b-structure-tree-editing.md) |
 | E15e | [PDF/UA output and veraPDF agreement in CI; round close](ready/E15e-pdfua-output.md) | ready | [E15c](ready/E15c-tagging-tools.md), [E15d](ready/E15d-accessibility-checks.md) |
@@ -336,20 +335,20 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | Q1a | [One sans-serif font on the docs site (Source Sans 3)](done/Q1a-docs-font-source-sans.md) | done | — |
-| Q1b | [The `docs-prose` check for reader-facing text](ongoing/Q1b-docs-prose-check.md) | ongoing | — |
+| Q1b | [The `docs-prose` check for reader-facing text](done/Q1b-docs-prose-check.md) | done | — |
 | Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](ready/Q1c-examples-checks.md) | ready | — |
 | Q1d | [API fixes the examples need](ready/Q1d-example-api-cleanups.md) | ready | — |
 | Q1e | [Runnable quick-start apps for every runtime](ready/Q1e-quick-start-apps.md) | ready | [Q1c](ready/Q1c-examples-checks.md) |
 | Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](ready/Q1c-examples-checks.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
 | Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](ready/Q1c-examples-checks.md) |
-| Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](ongoing/Q1b-docs-prose-check.md), [Q1e](ready/Q1e-quick-start-apps.md) |
+| Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](ready/Q1e-quick-start-apps.md) |
 | Q1i | [Plain-English guides: creating PDFs](ready/Q1i-guides-create.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](ready/Q1h-docs-story.md) |
-| Q1k | [Internal IDs out of error pages and READMEs](ready/Q1k-internal-ids-out-of-reader-text.md) | ready | [Q1b](ongoing/Q1b-docs-prose-check.md) |
-| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](ready/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
+| Q1k | [Internal IDs out of error pages and READMEs](ongoing/Q1k-internal-ids-out-of-reader-text.md) | ongoing | [Q1b](done/Q1b-docs-prose-check.md) |
+| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](ongoing/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
 | Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q2a | [`check maintainability` for Rust: module budget and new lints](ready/Q2a-maintainability-checks-rust.md) | ready | — |
-| Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](ongoing/Q2b-ts-lint-rules.md) | ongoing | — |
+| Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](done/Q2b-ts-lint-rules.md) | done | — |
 | Q2c | [`lamina-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
 | Q2d | [One PDF serialiser: the test `Writer` built on lamina-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](ready/Q2e-error-policy-consolidation.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
@@ -363,7 +362,7 @@ Ready todos whose dependencies are all done:
 | Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](ready/Q2m-ts-test-utils.md) | ready | — |
 | Q2n | [Shared code for the render adapters](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](ready/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](ready/Q2o-ts-hygiene.md) | ready | [Q2u](done/Q2u-ts-dependency-tools.md) |
-| Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](ongoing/Q2b-ts-lint-rules.md) |
+| Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2e](ready/Q2e-error-policy-consolidation.md) |
 | Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |

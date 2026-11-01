@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2b](../ongoing/Q2b-ts-lint-rules.md) |
+| Depends on | [Q2b](../done/Q2b-ts-lint-rules.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2p-ts-complexity-splits` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39. This todo splits each into named steps and empties [Q2b](../ongoing/Q2b-ts-lint-rules.md)'s override, so the limit holds everywhere.
+Eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39. This todo splits each into named steps and empties [Q2b](../done/Q2b-ts-lint-rules.md)'s override, so the limit holds everywhere.
 
 ## Context
 

@@ -196,7 +196,7 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 - [x] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; benchmarks; 10-minute fuzzing; scaling tests ([X3a](../todos/done/X3a-nightly-lane.md), `.github/workflows/nightly.yml`)
 - [x] Nightly external link check of the docs ([X3c](../todos/done/X3c-nightly-link-check.md))
 - [x] Nightly lane: hayro-vs-PDFium render diffs ([X3b](../todos/done/X3b-render-diff-nightly.md), `cargo xtask render-diff`)
-- [ ] Nightly lane: veraPDF ([B8b](../todos/ongoing/B8b-conformance-profiles-and-verapdf.md))
+- [ ] Nightly lane: veraPDF ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md))
 - [x] Docs link checker in `cargo xtask`, run in CI, so links to todos survive their moves between folders ([X1](../todos/done/X1-docs-link-checker.md))
 - [ ] Decide product questions (§8; Q2 and Q5 answered 2026-10-28)
 

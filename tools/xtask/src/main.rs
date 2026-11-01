@@ -8,10 +8,12 @@ mod changes;
 mod codegen;
 mod corpus;
 mod docs_links;
+mod docs_prose;
 mod doctor;
 mod examples;
 mod harness;
 mod licenses;
+mod lines;
 mod live;
 mod nightly;
 mod pdf_runtimes;
@@ -26,6 +28,7 @@ mod todos;
 mod tracked;
 mod ts_structure;
 mod util;
+mod verapdf;
 mod verify_install;
 mod version;
 mod wasm;
@@ -46,9 +49,15 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links, todos --check, portable paths, the capability
+                    docs: docs-links, docs-prose, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
                     gen codes --check and version sync --check
+  check docs-prose [--all-strict] [--warnings] [--json]
+                    reader-facing text (docs site, docs/errors, package READMEs) against
+                    docs/guidelines/docs-writing.md: errors on files changed since the merge
+                    base with main (drafts included), counted warnings elsewhere;
+                    --all-strict fails on every report, --warnings lists them
+                    (--json lists every report, so it takes no --warnings)
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm
                           workspace, the docs site's build (apps/docs), npm licences
@@ -128,6 +137,12 @@ tasks:
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDFIUM_DIR
                     (cache: $LAMINA_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
+  verapdf [--dir <dir>]
+                    run the lamina examples into target/examples-out/ (or take the PDFs in <dir>)
+                    and validate each with veraPDF for the profiles its XMP claims (PDF/A-2b, 2u,
+                    3b, PDF/UA-1); any violation fails; summary in target/xtask/verapdf/summary.md.
+                    veraPDF's pinned CLI (doctor.rs) is installed into $RUNNER_TOOL_CACHE/lamina-verapdf
+                    or target/verapdf; Java: $LAMINA_JAVA, Homebrew's openjdk@21, or java on PATH
   quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
                     fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
                     pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)
@@ -231,6 +246,7 @@ fn main() -> Result<()> {
             check_ts(&ws)
         }
         ("check", [scope]) if scope == "docs" => check_docs(&ws),
+        ("check", [scope, flags @ ..]) if scope == "docs-prose" => docs_prose::run(&ws.root, prose_options(flags)?),
         ("check", [scope]) if scope == "rust" => check_rust(&ws),
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
@@ -271,6 +287,8 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
+        ("verapdf", []) => verapdf::run(&ws, None),
+        ("verapdf", [flag, dir]) if flag == "--dir" => verapdf::run(&ws, Some(dir)),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
@@ -311,6 +329,8 @@ fn repo_root() -> Result<PathBuf> {
 fn check_docs(ws: &Workspace) -> Result<()> {
     step("docs-links: relative links and anchors in tracked Markdown");
     docs_links::run(&ws.root, false)?;
+    step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on changed files)");
+    docs_prose::run(&ws.root, docs_prose::Options::default())?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
@@ -321,6 +341,20 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())
+}
+
+/// `check docs-prose`'s flags.
+fn prose_options(flags: &[String]) -> Result<docs_prose::Options> {
+    let mut options = docs_prose::Options::default();
+    for flag in flags {
+        match flag.as_str() {
+            "--all-strict" => options.all_strict = true,
+            "--warnings" => options.warnings = true,
+            "--json" => options.json = true,
+            _ => bail!("usage: cargo xtask check docs-prose [--all-strict] [--warnings] [--json]"),
+        }
+    }
+    Ok(options)
 }
 
 fn check_rust(ws: &Workspace) -> Result<()> {
@@ -334,10 +368,18 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     Ok(())
 }
 
+/// Every export of every package entry has a doc comment (`TypeDoc`'s `notDocumented`, warnings
+/// as errors; maintainability guideline, "API"): `apps/docs/scripts/check-api-docs.mjs`.
+fn api_docs(ws: &Workspace) -> Result<()> {
+    step("every package export is documented (TypeDoc)");
+    ws.pnpm(&["--filter", "@laminapdf/docs", "run", "check:api-docs"])
+}
+
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
+    api_docs(ws)?;
     ts_structure::check(ws)?;
     docs_site(ws)?;
     licenses::check_npm(ws)?;

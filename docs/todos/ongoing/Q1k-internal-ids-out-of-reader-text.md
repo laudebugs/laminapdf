@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1k` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1b](../ongoing/Q1b-docs-prose-check.md) |
-| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
+| Depends on | [Q1b](../done/Q1b-docs-prose-check.md) |
+| Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1k-internal-ids-out-of-reader-text` |
 | PR title | `docs: keep ADR and todo IDs out of reader-facing text` |
@@ -33,11 +33,11 @@
 
 **Out of scope** (and which todo covers it)
 
-- Guide rewrites ([Q1i](./Q1i-guides-create.md), [Q1m](./Q1m-guides-read-and-edit.md)).
+- Guide rewrites ([Q1i](../ready/Q1i-guides-create.md), [Q1m](../ready/Q1m-guides-read-and-edit.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Run `docs-prose` for its internal-ID reports; fix each.
 - [ ] Teach `error-pages.mjs` to drop the contributor section; check a rendered error page.
 - [ ] Rewrite the two READMEs and the Rust reference page.
@@ -66,7 +66,7 @@ Contributors use those IDs: keep them reachable in the contributor section, just
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))

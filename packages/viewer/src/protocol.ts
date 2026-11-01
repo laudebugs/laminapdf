@@ -63,8 +63,11 @@ export interface Methods {
   __crash: { params: []; result: never };
 }
 
+/** A viewer method's name. */
 export type MethodName = keyof Methods;
+/** Method `M`'s parameters. */
 export type Params<M extends MethodName> = Methods[M]["params"];
+/** Method `M`'s result. */
 export type Result<M extends MethodName> = Methods[M]["result"];
 
 /**
@@ -81,11 +84,6 @@ export const PRIORITY: { readonly [P in Priority | "document"]: number } = Objec
   background: 1,
 });
 
-/**
- * The coalescing key of a render on document `id`: the document and the whole normalised
- * RenderRequest (page, scale, clip, rotation, flags and background), so two requests share a run
- * only when their pixels are the same (ADR 0009 §3.3).
- */
 /** The fields of a render key that say which pixels it holds (see {@link renderKey}). */
 export interface RenderKeyFields {
   readonly scale: number;
@@ -98,6 +96,11 @@ export function renderKeyFields(key: string): RenderKeyFields {
   return { scale: fields[2] as number, rotation: fields[4] as number };
 }
 
+/**
+ * The coalescing key of a render on document `id`: the document and the whole normalised
+ * RenderRequest (page, scale, clip, rotation, flags and background), so two requests share a run
+ * only when their pixels are the same (ADR 0009 §3.3).
+ */
 export function renderKey(request: RenderRequest, id: number): string {
   const { page, scale, clip, rotation = 0, flags, background } = request;
   return JSON.stringify([

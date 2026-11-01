@@ -321,10 +321,8 @@ fn options() -> Options {
 
 /// The links and anchors of one Markdown document.
 fn scan(text: &str) -> Scan {
-    let line_starts: Vec<usize> = std::iter::once(0)
-        .chain(text.match_indices('\n').map(|(i, _)| i + 1))
-        .collect();
-    let line_of = |offset: usize| line_starts.partition_point(|&start| start <= offset);
+    let line_starts = crate::lines::starts(text);
+    let line_of = |offset: usize| crate::lines::line_of(&line_starts, offset);
 
     let mut scan = Scan::default();
     let mut slugger = Slugger::default();

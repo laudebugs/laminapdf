@@ -81,6 +81,18 @@ required-features = ["text"]
 name = "generate_then_edit"
 required-features = ["text"]
 
+[[example]]
+name = "pdf_ua_report"
+required-features = ["text"]
+
+[[example]]
+name = "pdf_a_archive"
+required-features = ["text"]
+
+[[example]]
+name = "pdf_a3_invoice_with_xml"
+required-features = ["text"]
+
 # Not a golden example: lamina's page text for the nightly lane's live text differential
 # (`cargo xtask differential --live --text`, todo B9f). Its own folder keeps it out of the
 # examples that `cargo xtask examples` and tests/examples.rs discover.

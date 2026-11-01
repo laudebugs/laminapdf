@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1f](./Q1f-examples-readable.md), [Q1i](./Q1i-guides-create.md), [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1k](./Q1k-internal-ids-out-of-reader-text.md), [Q1m](./Q1m-guides-read-and-edit.md) |
+| Depends on | [Q1f](./Q1f-examples-readable.md), [Q1i](./Q1i-guides-create.md), [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1k](../ongoing/Q1k-internal-ids-out-of-reader-text.md), [Q1m](./Q1m-guides-read-and-edit.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `ci/q1l-docs-checks-strict` |
@@ -20,7 +20,7 @@ Once the rewrites have cleared every report, this todo makes the docs checks str
 
 ## Context
 
-- [Quality plan §4](../../plans/quality.md#4-standards); [Q1b](../ongoing/Q1b-docs-prose-check.md), [Q1c](./Q1c-examples-checks.md).
+- [Quality plan §4](../../plans/quality.md#4-standards); [Q1b](../done/Q1b-docs-prose-check.md), [Q1c](./Q1c-examples-checks.md).
 
 ## Scope
 

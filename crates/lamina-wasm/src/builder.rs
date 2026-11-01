@@ -19,9 +19,9 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use crate::build_dto::{
-    BLEND_MODES, BuildOptionsInit, FILL_RULES, FitInit, LINE_CAPS, LINE_JOINS, LinkTargetInit, MetadataInit,
-    OutlineEntryInit, PageLabelInit, Path, ViewerPreferencesInit, artifact_kind, color, matrix, pick, rect,
-    stroke_style, tag,
+    AttachmentInit, BLEND_MODES, BuildOptionsInit, FILL_RULES, FitInit, LINE_CAPS, LINE_JOINS, LinkTargetInit,
+    MetadataInit, OutlineEntryInit, PageLabelInit, Path, ViewerPreferencesInit, artifact_kind, color, matrix, pick,
+    rect, stroke_style, tag,
 };
 use crate::convert::{from_js, from_js_or_default, to_js};
 use crate::document::WasmDocument;
@@ -149,6 +149,25 @@ impl WasmBuilder {
     pub fn lang(&self, lang: &str) -> JsResult<()> {
         self.with(|b| {
             b.lang(lang);
+            Ok(())
+        })
+    }
+
+    /// Attaches a file (`/EmbeddedFiles`, the catalog's `/AF`): `name`, its bytes and its MIME
+    /// type. The same name again replaces the file.
+    ///
+    /// # Errors
+    /// `builder-finished`; `invalid-argument` (a date that isn't a PDF date); `unknown-option`.
+    pub fn attach(
+        &self,
+        name: &str,
+        bytes: Vec<u8>,
+        mime: &str,
+        #[wasm_bindgen(unchecked_param_type = "AttachmentInit | undefined")] options: &JsValue,
+    ) -> JsResult<()> {
+        let file = from_js_or_default::<AttachmentInit>(options, "options")?.to_attachment(name, bytes, mime)?;
+        self.with(|b| {
+            b.attach(file);
             Ok(())
         })
     }

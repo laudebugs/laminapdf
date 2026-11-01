@@ -146,17 +146,17 @@ pub use builder::Builder;
 /// A font registered with a [`Builder`], to draw text with ([`Surface::text`]).
 #[cfg(feature = "text")]
 pub use lamina_build::Font as FontHandle;
+#[cfg(feature = "build")]
+pub use lamina_build::{
+    AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, FillRule, Fit,
+    IccProfile, Image, ImageFormat, LabelStyle, LineCap, LineJoin, LinkTarget, Matrix, Metadata, OutlineEntry,
+    OutlineItemId, PageBuilder, PageLabel, PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath,
+    PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
+};
 #[cfg(feature = "text")]
 pub use lamina_build::{
     Alignment, Direction, EmbedPolicy, Feature, LineBox, Overflow, Standard14, TextBoxOptions, TextLayout,
     TextRenderMode, TextRun,
-};
-#[cfg(feature = "build")]
-pub use lamina_build::{
-    ArtifactKind, BlendMode, BuildOptions, Color, ContentKind, Dash, FillRule, Fit, IccProfile, Image, ImageFormat,
-    LabelStyle, LineCap, LineJoin, LinkTarget, Matrix, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel,
-    PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions, StrokeStyle, Surface, TableScope,
-    Tag, TagDiagnostic, TagKind, ViewerPreferences,
 };
 /// A font loaded from its bytes (TrueType, OpenType/CFF, collections, variable instances).
 #[cfg(feature = "text")]

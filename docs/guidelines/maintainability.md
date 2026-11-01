@@ -19,7 +19,7 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 
 - **MUST:** a Rust function is at most 100 lines; `clippy::too_many_lines` already enforces this. A Rust module is at most 800 lines of non-test code. Comments, blank lines and `#[cfg(test)]` blocks don't count.
 - **MUST:** a Rust function stays within clippy's `cognitive_complexity` threshold (the default, 25).
-- **MUST:** a TypeScript function has a cognitive complexity of at most 15 and is at most 60 lines.
+- **MUST:** a TypeScript function has a cognitive complexity of at most 15 and is at most 60 lines. Biome enforces both; test files are exempt from the length limit only, because a `describe` callback holds a whole suite ([typescript.md](typescript.md#lint-format-test)).
 - **MUST:** the baseline of code over a budget only shrinks. New code must not join it, and the count of `#[expect]` on size lints must not grow. Generated files (`generated/`) are exempt.
 
 ## Public surface and tests
