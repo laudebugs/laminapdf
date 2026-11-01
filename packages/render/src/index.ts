@@ -228,7 +228,7 @@ export class RenderError extends Error {
 /**
  * Where each code's page is (ADR 0026 §6), as `fixtures/codes.json`'s `docsUrl` says;
  * test/codes.test.ts checks that `toDiagnostic()`'s URLs agree. Hand-copied, like KINDS, until
- * todo Q2l generates this package's code tables.
+ * this package's code tables are generated.
  */
 const DOCS_URL = { base: "https://github.com/laudebugs/lamina/blob/main/docs/errors/", suffix: ".md" } as const;
 
