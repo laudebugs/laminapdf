@@ -50,14 +50,21 @@ This todo adds three dev tools to `cargo xtask check ts`, after a licence check:
 
 ## Outcome
 
-All three tools run in `cargo xtask check ts` and pass on `main`. Five things are worth knowing.
+All three tools run in `cargo xtask check ts` and pass on `main`. Five details add to the plan.
 
 - **What they found:**
-  - dependency-cruiser found the eight render-adapter test imports the Context lists and no cycles. The eight are its known violations, for Q2m.
+  - dependency-cruiser found the eight render-adapter test imports the Context lists, and no cycles. The eight are its known violations, for Q2m. It cruises `apps/` as well as `packages/`, and `check ts` fails while the list names a violation that no longer occurs, so the list only shrinks.
   - jscpd found one repeated block: the SDK's three entry files (`index.ts`, `entry/node.ts`, `entry/workerd.ts`) bind the same loader functions to their own runtime. That repetition is deliberate. Folding it into a factory would lose the per-runtime doc comments the TypeDoc check requires, so the two per-condition entries are excluded and the maintainability guideline says why.
-  - knip found five exports used only inside their own file: the viewer worker's `currentBackend`, the SDK's `ExtractGlue`, and the protocol's `Welcome`, `Response` and `Event`. This PR makes them module-private, so knip's list is empty, not baselined.
+  - knip found twelve exports used only inside their own file. Five are in `src/`: the viewer worker's `currentBackend`, the SDK's `ExtractGlue`, and the protocol's `Welcome`, `Response` and `Event`. Seven are test helpers: `ssim` in the render contract, and `input`, `buildReport`, `REPORT_PAGES`, `FIXTURE_PATHS`, `MEASUREMENT_PREFIX` and `median` in the SDK's example suite. This PR makes all twelve module-private, so knip has no baseline.
+  - For Q2o, knip finds nothing: the viewer's test hooks are reached from tests, which count as uses, and knip doesn't report a package entry's own exports. [Q2o](../ready/Q2o-ts-hygiene.md) now says its review, not knip, checks the viewer's exports.
 - **TypeScript 7:** dependency-cruiser parses TypeScript through the compiler API, which TypeScript 7 no longer has. Without it, it saw 9 modules instead of 151. `pnpm-workspace.yaml`'s `packageExtensions` gives it TypeScript 6.0.3, the docs site's TypeDoc pin.
-- **knip's entries:** `knip.config.ts` computes each package's entries from its `exports`, mapping each `dist/**.js` back to its `src/**.ts`. It adds the worker files, tests, Vitest configs, examples and benches that no `exports` can name. The generated `@laminapdf/wasm` is left out, and the root workspace has no code of its own.
+- **knip's entries:** `knip.config.ts` computes each package's entries from its `exports`. The mapping of each `dist/**.js` back to its `src/**.ts` lives in `tools/ts/package-entries.mjs`, shared with the undocumented-export check. It adds what no `exports` can name:
+  - the worker files;
+  - the test files (`*.test.ts`), but not the helpers they import;
+  - the files a test runner loads (Vite's app, workerd's Worker);
+  - Vitest configs, examples and benches.
+
+  The generated `@laminapdf/wasm` is left out, and the root workspace has no code of its own. jscpd likewise finds every package's `src/` itself.
 - **Versions:** each tool is pinned to a release at least two weeks old when added: dependency-cruiser 18.6.0, jscpd 5.4.1 and knip 6.41.0.
 - **How xtask runs them:** they are root `package.json` scripts (`check:deps`, `check:duplicates` and `check:unused`), so knip sees the tools in use and a developer can run one alone.
 

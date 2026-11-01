@@ -24,6 +24,7 @@ mod roundtrip;
 mod runner;
 mod todos;
 mod tracked;
+mod ts_structure;
 mod util;
 mod verify_install;
 mod version;
@@ -333,23 +334,11 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     Ok(())
 }
 
-/// The maintainability guideline's structure checks for TypeScript (Q2u): no import cycles and no
-/// relative import into another package (dependency-cruiser, with today's known violations in
-/// `.dependency-cruiser-known-violations.json`), no duplicated blocks in `packages/*/src` (jscpd),
-/// and no unused files, exports or dependencies (knip, entries from each package's `exports`).
-fn ts_structure(ws: &Workspace) -> Result<()> {
-    step("TypeScript structure: import cycles, duplicates, unused code");
-    for script in ["check:deps", "check:duplicates", "check:unused"] {
-        ws.pnpm(&["run", script])?;
-    }
-    Ok(())
-}
-
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
-    ts_structure(ws)?;
+    ts_structure::check(ws)?;
     docs_site(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");
@@ -537,7 +526,7 @@ fn docs_site(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["--filter", "@laminapdf/docs", "run", "build"])
 }
 
-fn step(message: &str) {
+pub(crate) fn step(message: &str) {
     println!("\n==> {message}");
 }
 

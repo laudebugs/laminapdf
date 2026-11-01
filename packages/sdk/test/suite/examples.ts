@@ -10,7 +10,7 @@ import { imagesAndVectors } from "../../examples/images-and-vectors.js";
 import { invoice } from "../../examples/invoice.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { multilingual } from "../../examples/multilingual.js";
-import { REPORT_PAGES, report } from "../../examples/report.js";
+import { report } from "../../examples/report.js";
 
 /** The fixture files an example reads, by path from the repository root. */
 export type Inputs = Readonly<Record<string, Uint8Array>>;
@@ -35,7 +35,7 @@ const SCRIPT_FONTS = [
 const PHOTO = "fixtures/images/photo-rgb.jpg";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
-export function input(inputs: Inputs, path: string): Uint8Array {
+function input(inputs: Inputs, path: string): Uint8Array {
   const bytes = inputs[path];
   if (bytes === undefined) throw new Error(`the runner did not supply ${path}`);
   return bytes;
@@ -74,11 +74,9 @@ export const REPORT_INPUTS = [NOTO, "fixtures/fonts/NotoSansSC-Regular.otf"] as 
 export const REPORT_SHA256 = "fcf0579526a631fe375d3966c805d5b8e6b262e178f506a0958b8bc00f611601";
 
 /** The 100-page report. Needs `init({ text: true })`. */
-export function buildReport(inputs: Inputs): Uint8Array {
+function buildReport(inputs: Inputs): Uint8Array {
   return report(input(inputs, REPORT_INPUTS[0]), input(inputs, REPORT_INPUTS[1]));
 }
-
-export { REPORT_PAGES };
 
 /** An example's golden, by path from the repository root. */
 export function goldenPath(example: Example): string {
@@ -91,7 +89,7 @@ export const INPUT_PATHS: readonly string[] = [
 ].sort();
 
 /** Every fixture the suite reads: the inputs and the goldens, sorted. */
-export const FIXTURE_PATHS: readonly string[] = [...INPUT_PATHS, ...EXAMPLES.map(goldenPath)].sort();
+const FIXTURE_PATHS: readonly string[] = [...INPUT_PATHS, ...EXAMPLES.map(goldenPath)].sort();
 
 /** The paths of `paths` that `inputs` lacks (a runner that bundles its inputs checks this is empty). */
 export function missingInputs(inputs: Inputs, paths: readonly string[] = INPUT_PATHS): string[] {
@@ -164,7 +162,7 @@ export interface Measurement {
 }
 
 /** The line prefix `cargo xtask pdf-runtimes` reads measurements from (stdout, any runner). */
-export const MEASUREMENT_PREFIX = "LAMINA_MEASUREMENT ";
+const MEASUREMENT_PREFIX = "LAMINA_MEASUREMENT ";
 
 /** Prints `m` on its own line for `cargo xtask pdf-runtimes`. */
 export function printMeasurement(m: Measurement): void {
@@ -172,7 +170,7 @@ export function printMeasurement(m: Measurement): void {
 }
 
 /** The median; for an even count, the mean of the two middle values. */
-export function median(values: readonly number[]): number {
+function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const upper = sorted[mid] ?? Number.NaN;

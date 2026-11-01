@@ -41,14 +41,14 @@ The viewer's worker keeps `renderLog`, which grows on every render and is never 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Add test worker entries in sdk and viewer that register the `__` methods; remove them from `src/`; remove `renderLog`.
 - [ ] Extract the shared helpers; replace each copy.
-- [ ] Switch the viewer to `RangeSource`; trim and document its exports; remove knip's baseline entries for it.
+- [ ] Switch the viewer to `RangeSource`; trim and document its exports. (knip has no baseline: [Q2u](../done/Q2u-ts-dependency-tools.md) found nothing to list, because knip counts an export as used when a test uses it and never reports a package entry's own exports.)
 - [ ] Fix the docs app and the base config; write the entry-diff test.
 - [ ] Run every suite.
 
 ## Acceptance criteria
 
 - [ ] No `__`-prefixed method in any package's `src/`.
-- [ ] knip reports no unused viewer export.
+- [ ] Every viewer export is part of its documented API (a review check: knip can't see test-only exports or an entry's own exports, so it passes either way).
 
 ## Post-merge checks
 

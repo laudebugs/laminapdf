@@ -57,7 +57,7 @@ function differing(a: Uint8ClampedArray, b: Uint8ClampedArray): number {
 }
 
 /** Mean SSIM of luma over 8 × 8 windows, stride 4 (the Rust golden test's metric). */
-export function ssim(a: Decoded, b: Decoded): number {
+function ssim(a: Decoded, b: Decoded): number {
   const luma = (d: Decoded) => {
     const out = new Float64Array(d.width * d.height);
     for (let i = 0; i < out.length; i++) {
