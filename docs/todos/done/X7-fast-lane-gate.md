@@ -29,7 +29,7 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 **In scope**
 
 - A `fast-gate` job in `ci.yml` that needs every other fast-lane job and passes only when each one passed or was skipped as not needed, on the same pattern as `gate` (a skipped `changes` job, or a result other than `success`/`skipped`, fails it).
-- Make `fast-gate` a required check beside `gate`. This is an owner step: the repository settings, or `gh api -X PATCH repos/laudebugs/lamina/branches/main/protection/required_status_checks -f 'contexts[]=gate' -f 'contexts[]=fast-gate'`.
+- Make `fast-gate` a required check beside `gate`. This is an owner step: the repository settings, or the PATCH in PR #165's description. It sets `checks` with GitHub Actions' `app_id` 15368, as the live protection already does for `gate`, rather than this todo's first draft, `-f 'contexts[]=gate' -f 'contexts[]=fast-gate'`.
 - A comment at the top of `ci.yml`, like `full.yml`'s, saying that a new job joins `fast-gate`'s `needs`.
 - A unit test in `tools/xtask` (beside the release-lane test that reads `nightly.yml`) that fails when a `ci.yml` job is missing from `fast-gate`'s `needs`. The same check for `full.yml`'s `gate` if it's cheap.
 
@@ -40,10 +40,10 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 
 ## Tasks
 
-- [x] Claim: this work PR (its first commit moved the todo to `ongoing/`).
+- [x] Claim: this work PR's first commit moved the todo to `ongoing/`. The owner replaced claim PRs on `main` with this on 2026-11-01, after the todo was written.
 - [x] Add `fast-gate` and the header comment.
 - [x] Add the `needs` test.
-- [x] Run one code PR and one docs-only PR through it: `fast-gate` is green on both, and it goes red when one fast-lane job is made to fail. This PR is the code PR. Instead of a throwaway red commit, which costs a full CI run, the gate's script was run locally against `needs` results for each case: all green, docs-only skips, a failed, cancelled or skipped job on a code PR, and a failed `changes` job.
+- [x] Run one code PR through it (this PR's CI). The docs-only run and a real red run moved to the post-merge checks. Instead of a throwaway red commit, which costs a full CI run, the gate's script was run locally against `needs` results for each case: all green, docs-only skips, a failed, cancelled or skipped job on a code PR, and a failed `changes` job.
 - [x] Ask the owner to add `fast-gate` to the required checks (the command is under Scope).
 
 ## Acceptance criteria
@@ -54,10 +54,12 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 ## Post-merge checks
 
 - [ ] The owner has made `fast-gate` required, and the next code PR shows it among the required checks.
+- [ ] The next docs-only PR shows `fast-gate` green with every fast-lane job skipped.
+- [ ] The first PR with a red fast-lane job shows `fast-gate` red: this checks GitHub's own `needs` results, which the local run only imitated.
 
 ## Tests
 
-The `needs` test in `tools/xtask`; the throwaway red commit above.
+The `needs` test in `tools/xtask/src/workflows.rs`; the gate's script run locally against each case (see Tasks); the post-merge checks.
 
 ## Docs to update
 

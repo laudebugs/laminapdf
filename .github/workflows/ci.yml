@@ -1,7 +1,9 @@
 # CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6, ADR 0018 §2): every PR
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
-# The full lane (full.yml) runs alongside it. Two checks are required: full.yml's `gate` and
-# `fast-gate` at the end of this file, which a new job here must join (its `needs`).
+# The full lane (full.yml) runs alongside it. Branch protection requires full.yml's `gate` and
+# `fast-gate` at the end of this file (todo X7). A new job here uses exactly
+#     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+# (so it is skipped on docs-only PRs, which `fast-gate` expects) and joins `fast-gate`'s `needs`.
 # Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
 # GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
 # serves full.yml's check-linux.) The runners share one machine, so jobs that install Rust
@@ -354,7 +356,9 @@ jobs:
 
   # The fast lane's required check (todo X7), beside full.yml's `gate`: it passes when every job
   # above passed, or was skipped because the PR is docs-only. Every new job joins its `needs`
-  # (tools/xtask's workflows test fails otherwise).
+  # (tools/xtask/src/workflows.rs fails otherwise) and uses the `if:` in this file's header: a job
+  # that runs on a docs-only PR fails this check. The shell is gate's without the Linux skip;
+  # change both together.
   fast-gate:
     name: fast-gate
     if: always()

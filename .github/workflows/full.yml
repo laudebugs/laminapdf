@@ -1,9 +1,9 @@
 # CI full lane (ADR 0018 §2, todo X4): every PR and every push to main, next to the fast lane
 # (ci.yml). It always runs, so its required check never waits as "Expected": `changes` decides
 # whether the change touches code (the docs allowlist is defined in tools/xtask/src/changes.rs),
-# the suites run only if it does (pushes to main always count as code), and `gate` — one of the
-# two checks branch protection requires, with ci.yml's `fast-gate` — passes when every suite passed or was not needed. Never add
-# a workflow-level `paths` filter here.
+# the suites run only if it does (pushes to main always count as code), and `gate` passes when
+# every suite passed or was not needed. Branch protection requires `gate` and ci.yml's
+# `fast-gate` (todo X7). Never add a workflow-level `paths` filter here.
 #
 # Adding a suite (B4b/B5b extraction; B5c added `examples`, B6c `pdf-build` and
 # `pdf-runtimes`): give the job `needs: changes` (or a job that has it), `runs-on: [self-hosted,
@@ -442,8 +442,8 @@ jobs:
           path: target/xtask/pdf-runtimes/
           if-no-files-found: ignore
 
-  # A required check (with ci.yml's `fast-gate`). Fails unless `changes` succeeded with `code` exactly "true" or "false";
-  # then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
+  # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with `code`
+  # exactly "true" or "false"; then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
   # cancellation, or skip of a suite that should have run fails it. The one allowed skip on a
   # code change is `check-linux` while `changes`' `linux` output is 'false'.
   gate:
