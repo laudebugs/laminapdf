@@ -44,13 +44,24 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 
 ## How it's checked
 
-- **Rust:** todo Q2a adds `cargo xtask check maintainability` to `cargo xtask check`, starting with the module budget and its baseline, the `#[expect]` count, duplicate public type names (an allow-list with reasons) and colliding façade re-exports. Later todos add their own bans to it:
+- **Rust:** `cargo xtask check maintainability` runs inside `cargo xtask check rust`, so on every code PR. It needs no build and takes about a second. It has four checks:
+  - `module-budget`: each `.rs` file under `crates/*/src/`, `tools/*/src/` and `apps/*/src-tauri/src/` holds at most 800 lines of non-test code. Tests, benches and examples have no module budget, and generated files (`generated/`, `*_generated.rs`) are exempt.
+  - `size-expect`: the `#[expect]` and `#[allow]` attributes that name `too_many_lines`, `cognitive_complexity`, `too_many_arguments` or `excessive_nesting`. The check counts them in every Rust file under `crates/`, `tools/` and `apps/`, tests included, generated files not.
+  - `duplicate-type`: a `pub struct` or `pub enum` name defined in the `src/` of two crates, outside test code.
+  - `facade-collision`: one name exported by two `pub use` items of the `lamina` façade's public modules (`lib.rs` and the `pub mod` files it declares).
+
+  Two files record what exists today. `tools/xtask/maintainability-baseline.toml` lists the modules over the budget with their counts, and the number of size expects. `tools/xtask/maintainability-duplicates.toml` lists the duplicate names and façade collisions, each with a reason. Both only shrink. The check fails when the code goes past a record: a listed module grows by one line, a new module passes 800 lines, or a new expect or duplicate appears. It also fails when the code improves and the record doesn't, so lower or remove the entry in the same PR.
+
+  A line of non-test code holds something other than whitespace and comments, outside `#[cfg(test)]` items. The check reads each file with a small lexer rather than line by line:
+  - Line comments, doc comments (`///`, `//!`) and block comments, nested ones included, are comments. A line with code and a comment counts.
+  - The inside of a string, byte string, C string, raw string or character literal is code, so a non-blank line of a multi-line string counts. Braces, quotes and `//` inside a literal don't change the count, and a lifetime (`'a`) isn't read as a character literal.
+  - A `#[cfg(test)]` or `#[cfg(all(test, …))]` attribute marks every line from the attribute to the end of its item: the `}` that closes the item's body, or its `;`. On a field, a variant or a match arm, the item ends at its `,`. A `#![cfg(test)]` before a file's first item makes the whole file test code, and a module declared by `#[cfg(test)] mod name;` is a test file.
+
+  The workspace also turns on `clippy::cognitive_complexity` and `unreachable_pub` ([rust.md](rust.md#lints)). Later todos add their own bans to the check, each as one more entry in its list of checks (`tools/xtask/src/maintainability.rs`):
   - Q2c: cross-crate `#[path]` and shared helpers outside the fixtures crate;
   - Q2e: error-policy matches outside `lamina_cos::error`;
   - Q2i: lexers outside `lamina-syntax`;
   - Q2t: todo IDs in `src/`.
-
-  Q2a also switches on `clippy::cognitive_complexity` and `unreachable_pub` for the workspace.
 - **TypeScript:** todo Q2b adds Biome's complexity, function-length and `useThrowOnlyError` rules and TypeDoc's check for undocumented exports to `cargo xtask check ts`. Todo Q2u adds three more, run by `cargo xtask check ts` through the root scripts `check:deps`, `check:duplicates` and `check:unused`:
   - dependency-cruiser (`.dependency-cruiser.json`) fails on an import cycle, or a relative import from one package or app into another, across `packages/` and `apps/`. Today's eight render-adapter test imports, which Q2m moves into a shared package, are in `.dependency-cruiser-known-violations.json`. That list only shrinks: `check ts` fails while it lists a violation that no longer occurs.
   - jscpd (`.jscpd.json`) fails on any block of 10 lines or more repeated in any package's top-level `src/`, a new package's included (an example's own `src/`, such as the SDK's Worker example, is out of scope). It checks `src/` only for now. The SDK's two per-condition entries (`src/entry/node.ts` and `src/entry/workerd.ts`) are excluded: each binds the same three loader functions to its own runtime's loader, with that runtime in its doc comments.

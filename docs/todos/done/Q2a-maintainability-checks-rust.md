@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -42,19 +42,19 @@ This todo adds `cargo xtask check maintainability` to `cargo xtask check`, the h
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the non-test line counter (skip comments, blank lines and `#[cfg(test)]` blocks) with unit tests.
-- [ ] Generate the baseline from today's code and commit it.
-- [ ] Write the `#[expect]` counter, the duplicate-name check (with the allow-list file listing today's duplicates and why) and the façade collision check.
-- [ ] Add the registry so a check is a function plus a name.
-- [ ] Add the two lints and the `clippy.toml` threshold; fix every `unreachable_pub` hit.
-- [ ] Wire the step into `cargo xtask check` and CI's fast lane.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Write the non-test line counter (skip comments, blank lines and `#[cfg(test)]` blocks) with unit tests.
+- [x] Generate the baseline from today's code and commit it.
+- [x] Write the `#[expect]` counter, the duplicate-name check (with the allow-list file listing today's duplicates and why) and the façade collision check.
+- [x] Add the registry so a check is a function plus a name.
+- [x] Add the two lints and the `clippy.toml` threshold; fix every `unreachable_pub` hit.
+- [x] Wire the step into `cargo xtask check` and CI's fast lane.
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask check maintainability` passes on `main`.
-- [ ] One more line in a baselined file, a new 801-line module, or a new duplicate name fails it (unit tests).
-- [ ] The two lints are on and clean.
+- [x] `cargo xtask check maintainability` passes on `main`.
+- [x] One more line in a baselined file, a new 801-line module, or a new duplicate name fails it (unit tests).
+- [x] The two lints are on and clean.
 
 ## Post-merge checks
 
@@ -74,9 +74,9 @@ The non-test line count must be stable and documented: describe the method in th
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../ongoing/Q2a-maintainability-checks-rust.md) |
+| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
 | Blocks | [Q2d](./Q2d-one-serialiser.md), [Q2x](./Q2x-test-fixtures-migration.md) |
 | ADRs | None |
 | Branch | `refactor/q2c-test-fixtures-crate` |

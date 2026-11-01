@@ -144,7 +144,7 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 
 - `lamina-cos/src/reader/mod.rs` is 1,533 lines (1,080 of them code).
 - `lamina-content`'s `execute` is 318 lines behind an `#[expect]`.
-- Four other files are over the 800-line budget in total lines: `lamina-text/src/extract/font.rs` (1,321), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). Q2a's baseline records their non-test counts.
+- Four other files are over the 800-line budget in total lines: `lamina-text/src/extract/font.rs` (1,321), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). In non-test lines, all four are within the budget (`lamina-text`'s `font.rs` is the closest, at 786). Q2a's baseline (`tools/xtask/maintainability-baseline.toml`) lists the four modules that are over it: the COS reader (1,080), `lamina-content`'s `interp.rs` (824) and two xtask modules (`live.rs`, 1,115; `render_diff.rs`, 923).
 - In TypeScript, eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39.
 
 **Façade names that collide.** Readers of the docs meet:
@@ -256,7 +256,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [Q2a](../todos/ongoing/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
+| [Q2a](../todos/done/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
 | [Q2b](../todos/done/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
 | [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures` for the core crates' test helpers | M | Q2a |
 | [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on lamina-save's helpers | M | Q2c |
@@ -303,7 +303,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [ ] Q1h, Q1i, Q1m, Q1j: the story, plain-English guides, recipes and troubleshooting
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
-- [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript (the TypeScript checks are done: [Q2b](../todos/done/Q2b-ts-lint-rules.md) adds the lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
+- [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, is done)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, is done)
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
