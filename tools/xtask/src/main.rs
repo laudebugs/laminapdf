@@ -190,10 +190,11 @@ tasks:
   scaling           nightly: release-mode #[ignore]d tests (scaling ratios); one retry, reported as flaky
   bench [--quick] [--history <dir> [--runner <label>] [--record]]
                     nightly: criterion benches; with --history, flag >10% regressions (never fails)
-  pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--history <dir> --runner <label> --record]
+  pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--label <name>] [--history <dir> --runner <label> --record]
                     @laminapdf/sdk's example suite in each runtime (default: all; needs `wasm` first;
                     installs the Playwright browsers it runs): byte-identical to the goldens, with
-                    the timings and WebAssembly memory against pdf-library §4 in the job summary
+                    the timings and WebAssembly memory against pdf-library §4 in the job summary;
+                    --label writes target/xtask/pdf-runtimes/measurements-<name>.json
                     and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, render-diff, external links)

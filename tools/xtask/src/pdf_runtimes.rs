@@ -3,7 +3,8 @@
 //! Chromium, Firefox and `WebKit` (Vitest browser mode with Playwright), Deno, Bun and workerd.
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
 //! smoke's figures (`LAMINA_MEASUREMENT {json}` lines), which this task collects into
-//! `target/xtask/pdf-runtimes/measurements.json` (`measurements-<label>.json` with `--label`) and a job-summary table against the §4 targets.
+//! `target/xtask/pdf-runtimes/measurements.json` (`measurements-<label>.json` with `--label`)
+//! and a job-summary table against the §4 targets.
 //! The targets are reported, never asserted. `--history <dir> --runner <label> --record` appends
 //! the figures to the nightly benchmark history (`<dir>/history.jsonl`, the record format of
 //! `cargo xtask bench`).
@@ -71,7 +72,11 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             "--runner" => parsed.runner = Some(rest.next().context(USAGE)?.clone()),
             "--label" => {
                 let label = rest.next().context(USAGE)?;
-                if label.is_empty() || !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+                // Not starting with '-', so `--label --record` can't take the flag as the label.
+                if label.is_empty()
+                    || label.starts_with('-')
+                    || !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                {
                     bail!("--label takes letters, digits and '-' only, not {label:?}; {USAGE}");
                 }
                 parsed.label = Some(label.clone());
@@ -229,8 +234,8 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
     Ok(captured)
 }
 
-/// `cargo xtask pdf-runtimes [runtime…] [--history <dir> --runner <label> --record]`: runs each
-/// runtime's suite in turn (all of them by default); every runtime runs even when an earlier
+/// `cargo xtask pdf-runtimes [runtime…] [--label <name>] [--history <dir> --runner <label> --record]`:
+/// runs each runtime's suite in turn (all of them by default); every runtime runs even when an earlier
 /// one failed, and the failures are listed at the end. Needs `cargo xtask wasm` first (it
 /// builds `packages/wasm/dist/` and `packages/sdk/dist/`); installs the Playwright browsers it
 /// needs (`playwright install`, a no-op when they are present).
@@ -480,6 +485,11 @@ mod tests {
     #[test]
     fn parse_args_should_reject_a_label_with_a_path_in_it() {
         assert!(parse_args(&args(&["--label", "../x"])).is_err());
+    }
+
+    #[test]
+    fn parse_args_should_not_take_a_flag_as_the_label() {
+        assert!(parse_args(&args(&["--label", "--record"])).is_err());
     }
 
     #[test]
