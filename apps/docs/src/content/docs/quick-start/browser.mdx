@@ -15,7 +15,7 @@ This app builds one A4 page that says "Hello, world!" and offers it to your user
 
 Import `hello` from your page's script and call it when your user asks for the file, for example from a button: `button.addEventListener("click", () => hello())`. Then start the page with your bundler, such as `npx vite`.
 
-lamina's tests bundle this app with Vite, run it in Chromium, Firefox and WebKit, and check that it builds the reference PDF byte for byte.
+Lamina PDF's tests bundle this app with Vite, run it in Chromium, Firefox and WebKit, and check that it builds the reference PDF byte for byte.
 
 - **Modules on demand:** a page that never draws text never downloads the text module; see [three modules in JavaScript](/concepts/how-lamina-thinks/#three-modules-in-javascript).
 - **Vite:** exclude the package from dependency pre-bundling (`optimizeDeps.exclude: ["@laminapdf/sdk"]` in `vite.config.ts`), so the `.wasm` files stay next to the JavaScript that loads them.

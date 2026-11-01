@@ -41,7 +41,7 @@ use laminapdf_cos::Object;
 use laminapdf_model::{Document, OpenOptions};
 use serde_json::Value;
 
-/// Counts lamina's operators under pdf.js's names.
+/// Counts Lamina PDF's operators under pdf.js's names.
 #[derive(Default)]
 struct PdfJsNames(BTreeMap<String, u64>);
 

@@ -25,7 +25,7 @@ The CropBox has three numbers, so it reads as absent and the page uses its Media
 
 ## Data fields
 
-`key` (which box, from lamina's fixed list).
+`key` (which box, from Lamina PDF's fixed list).
 
 ## For contributors
 

@@ -1,4 +1,4 @@
-//! Generating PDFs ([ADR 0005] §6): a builder that writes lamina `Object`s straight into a
+//! Generating PDFs ([ADR 0005] §6): a builder that writes Lamina PDF `Object`s straight into a
 //! document's overlay, reusing `pdf-writer`'s `Content` for content streams. A new document is
 //! a [`laminapdf_ops::Document`] over an empty base; adding pages to an open document
 //! ([`Builder::on`]) is the same code and saves incrementally.
@@ -61,10 +61,10 @@
 //!   the PDF/A output intent with an embedded sRGB profile; [`Builder::attach`]
 //!   ([`Attachment`], [`AfRelationship`]) adds associated files for PDF/A-3b.
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
-//! [B8a]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8a-structure-tree.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+//! [B5b]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
+//! [B8a]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B8a-structure-tree.md
 #![forbid(unsafe_code)]
 
 mod annot;

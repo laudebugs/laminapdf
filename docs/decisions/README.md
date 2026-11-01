@@ -31,7 +31,7 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0002](0002-binding-strategy.md) | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Accepted |
 | [0003](0003-reader-tolerance-and-limits.md) | Reader tolerance policy, warning codes and `Limits` defaults | Accepted |
 | [0004](0004-render-backend.md) | Render backend: `RenderBackend` trait (tiles in straight RGBA, `CancelToken`, `RenderLimits`), PDFium by default per surface (pinned and hashed), hayro as CI oracle with switch criteria, MuPDF prohibited, the two-parsers rule | Accepted |
-| [0005](0005-document-model.md) | Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaId`s | Accepted (generation strategy: own builder over the overlay, per the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)) |
+| [0005](0005-document-model.md) | Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaPdfId`s | Accepted (generation strategy: own builder over the overlay, per the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)) |
 | [0006](0006-op-log-and-undo.md) | Op log, transactions, undo/redo and barrier ops | Accepted |
 | [0007](0007-save-planner.md) | Save planner, `SaveMode` and `SaveConstraint` | Accepted |
 | [0009](0009-web-client-architecture.md) | Web client: React 19 chrome in `@laminapdf/ui`, framework-free `@laminapdf/viewer`, one document worker per document, typed RPC on `@laminapdf/sdk/worker`, transferred `ImageBitmap`s, single-threaded v0.1 without COOP/COEP | Accepted |
@@ -43,7 +43,7 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0018](0018-test-strategy.md) | Test strategy: tiers, CI lanes, corpora, fuzzing, flaky tests | Accepted |
 | [0019](0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence check, Dependabot, SBOM, fixture provenance) | Accepted |
 | [0023](0023-content-stream-reading.md) | Content-stream reading: the `laminapdf-content` crate (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Accepted |
-| [0026](0026-error-and-diagnostic-contract.md) | Error and diagnostic contract: one JSON shape, `kind`s, `hint`/`docsUrl`, no document text in messages, `explain` pages, `LaminaError` | Accepted |
+| [0026](0026-error-and-diagnostic-contract.md) | Error and diagnostic contract: one JSON shape, `kind`s, `hint`/`docsUrl`, no document text in messages, `explain` pages, `LaminaPdfError` | Accepted |
 | [0027](0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing: top-left points of the displayed CropBox, raw user space named as such, `Pt`, 0-based `index` + 1-based `number` | Accepted |
 | [0028](0028-facade-rules-jobs-and-cancellation.md) | Façade rules, jobs, cancellation and progress: UniFFI-compatible rules, lock in the binding edge, `Job::step(Budget)` in work units, `CancelToken` | Accepted |
 | [0029](0029-mobile-bindings-and-packaging.md) | Mobile bindings and packaging: UniFFI `=0.32.2`, `crates/laminapdf-ffi` edge crate, idiomatic Swift/Kotlin layers, SwiftPM and Maven Central AARs, 16 KB pages, `mobile-release` profile | Accepted |

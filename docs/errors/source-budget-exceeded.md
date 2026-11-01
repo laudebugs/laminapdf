@@ -25,7 +25,7 @@ source.supply(0, new Uint8Array(2_000_000)); // throws { code: "source-budget-ex
 ## Data fields
 
 - `argument`: `bytes`.
-- `detail`: how many bytes the source would hold and its budget (lamina's own numbers).
+- `detail`: how many bytes the source would hold and its budget (Lamina PDF's own numbers).
 
 ## For contributors
 

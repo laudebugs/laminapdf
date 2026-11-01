@@ -1,11 +1,11 @@
 # `unsupported-filter`
 
 - Type: error
-- Kind: `unsupported` (valid input that lamina doesn't implement)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
-A stream uses a filter lamina doesn't implement; only decoding that stream fails.
+A stream uses a filter Lamina PDF doesn't implement; only decoding that stream fails.
 
 ## Why
 

@@ -1,4 +1,4 @@
-//! PDF/UA-1: each machine-checkable rule lamina's builder could break fails
+//! PDF/UA-1: each machine-checkable rule Lamina PDF's builder could break fails
 //! `Builder::finish` with its coded error, one test per rule (the Matterhorn Protocol 1.1
 //! failure condition is in each test's comment), and a conforming document carries what the
 //! standard asks for: the XMP identification, `dc:title`, `/DisplayDocTitle`, `/MarkInfo`, the

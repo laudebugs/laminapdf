@@ -1,5 +1,5 @@
 //! Typed, tolerant views over a PDF's COS graph ([ADR 0005] §4) and the stable
-//! [`LaminaId`]s that ops, undo and sync address (§5).
+//! [`LaminaPdfId`]s that ops, undo and sync address (§5).
 //!
 //! ```
 //! use laminapdf_model::{Document, OpenOptions, Rotation};
@@ -30,7 +30,7 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! This crate is part of lamina's pure core: bytes in, bytes out, no file system, network,
+//! This crate is part of Lamina PDF's pure core: bytes in, bytes out, no file system, network,
 //! clocks or threads.
 //!
 //! * [`Document`]: a [`laminapdf_cos::Document`] (it dereferences to one) plus the
@@ -44,7 +44,7 @@
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
 //! * [`StructTree`] / [`StructElem`]: a minimal read-only view of the logical structure
 //!   (types, attributes, MCIDs and `OBJR`s per element, the `RoleMap`).
-//! * [`LaminaId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
+//! * [`LaminaPdfId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
 //! * Units and coordinates ([ADR 0027]): [`Pt`], [`PointPt`], [`RectPt`] (page space) and
 //!   [`UserSpacePoint`], [`UserSpaceRect`] (raw user space).
 //!
@@ -58,9 +58,9 @@
 //! Only strict-mode refusals and unavailable input ([`Error::DataPending`],
 //! [`Error::Source`]) end a view's call; every other unreadable value counts as absent.
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-//! [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+//! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
 
 mod date;
@@ -77,7 +77,7 @@ mod tree;
 pub use date::{InvalidDate, PdfDate};
 pub use document::Document;
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
-pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaId, OutlineItemId, PageId, ParseIdError};
+pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};

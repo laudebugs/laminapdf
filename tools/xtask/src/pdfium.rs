@@ -1,9 +1,9 @@
 //! `cargo xtask fetch-pdfium` (ADR 0004 §3, todo C2b): downloads the pinned native PDFium build
 //! (`bblanchon/pdfium-binaries`, `chromium/7881`) for this host, checks its SHA-256 and unpacks
 //! the library and its licence notices. `laminapdf-render-pdfium` binds it at runtime from the
-//! folder this prints (`LAMINA_PDFIUM_DIR`).
+//! folder this prints (`LAMINA_PDF_PDFIUM_DIR`).
 //!
-//! The cache is `$LAMINA_PDFIUM_CACHE`, else the CI runner's tool cache
+//! The cache is `$LAMINA_PDF_PDFIUM_CACHE`, else the CI runner's tool cache
 //! (`$RUNNER_TOOL_CACHE/lamina-pdfium`, kept between jobs), else `target/pdfium/`. A cached
 //! archive is re-hashed on every run; a mismatch is discarded and downloaded again. Nothing
 //! from the archive is executed.
@@ -64,7 +64,7 @@ const ASSETS: [(&str, &str, &str, &str, &str); 5] = [
 
 /// The cache folder.
 fn cache(ws: &Workspace) -> PathBuf {
-    if let Some(dir) = env::var_os("LAMINA_PDFIUM_CACHE") {
+    if let Some(dir) = env::var_os("LAMINA_PDF_PDFIUM_CACHE") {
         return PathBuf::from(dir);
     }
     if let Some(dir) = env::var_os("RUNNER_TOOL_CACHE") {
@@ -92,7 +92,7 @@ pub(crate) fn fetch(ws: &Workspace) -> Result<PathBuf> {
     let stamp = dir.join("SHA256");
     let unpacked = dir.join(lib);
     if unpacked.is_dir() && fs::read_to_string(&stamp).is_ok_and(|s| s.trim() == sha) && verify(&archive, sha)? {
-        println!("LAMINA_PDFIUM_DIR={}", unpacked.display());
+        println!("LAMINA_PDF_PDFIUM_DIR={}", unpacked.display());
         return Ok(unpacked);
     }
     fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
@@ -122,7 +122,7 @@ pub(crate) fn fetch(ws: &Workspace) -> Result<PathBuf> {
     crate::run(&dir, "tar", &["-xzf", asset, lib, "licenses", "LICENSE", "VERSION"])?;
     fs::write(&stamp, sha).with_context(|| format!("writing {}", stamp.display()))?;
     step(&format!("PDFium {TAG} ({asset}) unpacked"));
-    println!("LAMINA_PDFIUM_DIR={}", unpacked.display());
+    println!("LAMINA_PDF_PDFIUM_DIR={}", unpacked.display());
     Ok(unpacked)
 }
 

@@ -34,7 +34,7 @@ describe("Vite", () => {
     try {
       await server.listen();
       const main = await server.transformRequest("/main.ts");
-      const glue = fileURLToPath(fromRoot("packages/wasm/dist/lamina_base.wasm"));
+      const glue = fileURLToPath(fromRoot("packages/wasm/dist/lamina_pdf_base.wasm"));
       const url = server.resolvedUrls?.local[0] ?? "";
       const wasm = await fetch(new URL(`/@fs${glue}`, url));
       expect([
@@ -42,7 +42,7 @@ describe("Vite", () => {
         main?.code.includes("/packages/sdk/dist/index.js"),
         wasm.headers.get("content-type"),
         new Uint8Array(await wasm.arrayBuffer()).length,
-      ]).toEqual([false, true, "application/wasm", read("packages/wasm/dist/lamina_base.wasm").length]);
+      ]).toEqual([false, true, "application/wasm", read("packages/wasm/dist/lamina_pdf_base.wasm").length]);
     } finally {
       await server.close();
     }
@@ -76,7 +76,7 @@ describe("Vite", () => {
       const hello = read("fixtures/golden/examples/hello.pdf");
       const result = await run(hello);
       expect([assets.map((a) => a.replace(/-[\w-]+\.wasm$/, "")).sort(), result]).toEqual([
-        ["lamina_base", "lamina_extract", "lamina_text"],
+        ["lamina_pdf_base", "lamina_pdf_extract", "lamina_pdf_text"],
         [1, 1],
       ]);
       // The browser quick start, bundled: the same bytes as the Rust hello example.

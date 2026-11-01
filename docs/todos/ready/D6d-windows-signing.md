@@ -31,7 +31,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 **In scope**
 
 - `tauri.conf.json` `bundle.windows`:
-  - `signCommand` invoking a repo script `apps/desktop/scripts/sign-windows.{ps1,sh}` with `%1`, which dispatches on an env var `LAMINA_WIN_SIGN_PATH=artifact-signing|ov-cloud-hsm`:
+  - `signCommand` invoking a repo script `apps/desktop/scripts/sign-windows.{ps1,sh}` with `%1`, which dispatches on an env var `LAMINA_PDF_WIN_SIGN_PATH=artifact-signing|ov-cloud-hsm`:
     - **Artifact Signing**: `signtool sign /v /fd SHA256 /tr http://timestamp.acs.microsoft.com /td SHA256 /dlib <path>\Azure.CodeSigning.Dlib.dll /dmdf metadata.json %1` (metadata: endpoint, account, certificate profile) after `azure/login` via OIDC (no client secret); or `trusted-signing-cli` if preferred (licence check).
     - **OV in cloud HSM**: the CA's headless tool or `jsign` (`--storetype` per HSM: `AZUREKEYVAULT`, `DIGICERTONE`, `ESIGNER`, …) with RFC 3161 timestamping (`--tsaurl`), SHA-256.
   - `digestAlgorithm: "sha256"`, `timestampUrl` only if using local thumbprint signing (not used).
@@ -91,7 +91,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 ## Risks and open questions
 
 - **Cloud HSM rate limits/latency**: Tauri signs many files; batch or cache sessions where the tool allows; retries.
-- **Artifact Signing region/eligibility changes**: if eligibility lapses, switch to the OV path via `LAMINA_WIN_SIGN_PATH` (both paths kept working in the script).
+- **Artifact Signing region/eligibility changes**: if eligibility lapses, switch to the OV path via `LAMINA_PDF_WIN_SIGN_PATH` (both paths kept working in the script).
 - **Decision: MSI installs disable the in-app updater** (owner to confirm in the PR). The update endpoint gets one URL per `{target}-{arch}` and can't tell an MSI install from an NSIS one, and the manifest ships the NSIS updater artefact (`Lamina_X.Y.Z_x64-setup.exe`) — an MSI install updating itself would gain a second, per-user NSIS copy next to the per-machine one. So MSI is for managed deployments, which update by deploying the next MSI; the app detects the MSI install (registry value above) and shows "Updates are managed by your organisation", like the deb/rpm case in D5b. Alternative not taken: the app sends its install flavour as a header and the manifest gets per-flavour URLs (more Worker/manifest surface, MSI elevation prompts during auto-update). Recorded in ADR 0014.
 - **SmartScreen reputation** with OV takes weeks/thousands of downloads; early beta users will see warnings — acceptable per plan.
 - **arm64 signing** with the same tools: verify `signtool`/`jsign` handle ARM64 PE files (they do for Authenticode; confirm).

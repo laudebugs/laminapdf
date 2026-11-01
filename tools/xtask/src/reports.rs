@@ -250,9 +250,19 @@ fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeS
     }
 }
 
-/// Names the repository renamed everywhere at once (new, old): the crates' `laminapdf` (todo P0b,
-/// which removes this exemption once no open branch predates the rename).
-const RENAMED: [(&str, &str); 1] = [("laminapdf", "lamina")];
+/// Names the repository renamed everywhere at once (new, old), applied in order to text without
+/// whitespace: the product's "Lamina PDF" (whose old word was "lamina" or "Lamina"), the
+/// `LaminaPdf` types, the `LAMINA_PDF_` variables, the `lamina_pdf_` modules and the `lamina-pdf-`
+/// Cloudflare names (todo P0c), then `laminapdf` (the crates, P0b; also `laminapdf.error/1`).
+/// P0b's post-merge check removes this exemption once no open branch predates the renames.
+const RENAMED: [(&str, &str); 6] = [
+    ("LaminaPDF", "lamina"),
+    ("LaminaPdf", "Lamina"),
+    ("LAMINA_PDF_", "LAMINA_"),
+    ("lamina_pdf_", "lamina_"),
+    ("lamina-pdf-", "lamina-"),
+    ("laminapdf", "lamina"),
+];
 
 /// Whether `path`'s only change since `merge_base` is one of the [`RENAMED`] names and the
 /// line breaks that came with it (its old path, if it moved, is `old_path`). Such a file isn't
@@ -262,19 +272,22 @@ fn renamed_only(root: &Path, merge_base: &str, path: &str, old_path: Option<&str
     let Ok(now) = std::fs::read_to_string(root.join(path)) else {
         return false;
     };
-    if !RENAMED.iter().any(|(new, _)| now.contains(new)) {
+    let squeezed: String = now.split_whitespace().collect();
+    if !RENAMED.iter().any(|(new, _)| squeezed.contains(new)) {
         return false;
     }
     crate::changes::at_revision(root, merge_base, old_path.unwrap_or(path))
         .is_ok_and(|before| without_renames(&before) == without_renames(&now))
 }
 
-/// `text` with each [`RENAMED`] name in its old form and no whitespace.
+/// `text` without whitespace and with each [`RENAMED`] name in its old form. The product word is
+/// the one case-insensitive part: "Lamina PDF" replaced both "lamina" and "Lamina".
 fn without_renames(text: &str) -> String {
-    let text = RENAMED
+    let squeezed: String = text.split_whitespace().collect();
+    RENAMED
         .iter()
-        .fold(text.to_owned(), |text, (new, old)| text.replace(new, old));
-    text.split_whitespace().collect()
+        .fold(squeezed, |text, (new, old)| text.replace(new, old))
+        .replace("Lamina", "lamina")
 }
 
 /// Untracked files that git doesn't ignore.
@@ -297,6 +310,21 @@ mod tests {
         let after = "use laminapdf::Document;\nfn main() {\n    laminapdf_cos::open();\n}\n";
         assert_eq!(without_renames(before), without_renames(after));
         assert_ne!(without_renames(before), without_renames("use laminapdf::Builder;\n"));
+    }
+
+    #[test]
+    fn without_renames_should_match_the_lamina_pdf_names() {
+        let before = "// lamina's errors are LaminaError (lamina.error/1), in lamina_base.wasm; LAMINA_PYTHON;\n\
+                      // Lamina reads LaminaId on lamina-docs\n";
+        let after = "// Lamina PDF's errors are LaminaPdfError (laminapdf.error/1), in lamina_pdf_base.wasm;\n\
+                     LAMINA_PDF_PYTHON;\n// Lamina\nPDF reads LaminaPdfId on lamina-pdf-docs\n";
+        assert_eq!(without_renames(before), without_renames(after));
+    }
+
+    #[test]
+    fn without_renames_should_still_see_a_change_of_case() {
+        assert_ne!(without_renames("let x = Foo;"), without_renames("let x = foo;"));
+        assert_ne!(without_renames("PdfError"), without_renames("pdferror"));
     }
 
     fn flags(list: &[&str]) -> Vec<String> {

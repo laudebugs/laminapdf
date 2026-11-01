@@ -447,7 +447,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "stream-length-recovered": "nothing to do; a full rewrite writes the correct length",
   "stale-generation": "nothing to do; the reference is treated as missing",
   "page-tree-node-skipped": "check the page count: pages under the skipped node are missing",
-  "page-count-mismatch": "nothing to do; lamina uses the walked page count",
+  "page-count-mismatch": "nothing to do; Lamina PDF uses the walked page count",
   "flate-truncated": "check the affected content: the end of the stream may be missing",
   "objstm-index-mismatch": "nothing to do; a full rewrite writes a correct index",
   "object-number-out-of-range": "raise max_object_number in Limits only if you trust the input",
@@ -484,7 +484,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "source": "retry the call, or check the source; the document stays usable",
   "type": "use another copy of the file, or repair it with another tool",
   "invalid-structure": "use another copy of the file, or repair it with another tool",
-  "unset-object": "this is a lamina bug: report it with the steps that led to it",
+  "unset-object": "this is a bug in Lamina PDF: report it with the steps that led to it",
   "repaired-base": "save with a full rewrite instead of an incremental update",
   "encrypted-base": "saving encrypted documents is not supported yet; use another tool to decrypt or re-encrypt",
   "password-required": "pass the document's password in OpenOptions",
@@ -498,7 +498,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "no-transaction": "call begin first, or use transact",
   "unknown-page": "use a PageId from this document's pages()",
   "direct-page": "rewrite the file so that every page is an indirect object, or wait for page-structure ops",
-  "unsupported-version": "upgrade lamina to a version that reads this op log version",
+  "unsupported-version": "upgrade Lamina PDF to a version that reads this op log version",
   "invalid-op-log": "validate the op log against the op schema; the samples in fixtures/ops show the format",
   "saved-not-rebased": "call rebase with the saved bytes before applying ops or saving again",
   "no-pending-save": "call rebase only after a save that returned SavedNotRebased",
@@ -518,7 +518,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "invalid-axis-value": "pass finite axis values; values outside the axis range are clamped",
   "wrong-document": "use one FontRegistry per document and finish it with that document",
   "invalid-feature": "write it as liga=0, -liga, smcp or aalt=2 (HarfBuzz syntax without ranges)",
-  "invalid-text-range": "take ranges from lamina's results (line_breaks, itemize, break_lines) and pass the same text",
+  "invalid-text-range": "take ranges from Lamina PDF's results (line_breaks, itemize, break_lines) and pass the same text",
   "unsupported-layout-option": "leave the option at its default; justification comes with a later release",
   "font-mismatch": "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
   "encoding-full": "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",
@@ -537,7 +537,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "page-index-out-of-range": "use a 0-based index below the document's page count",
   "unknown-destination": "define it with Builder::destination before the build finishes, or link to a page",
   "invalid-page-labels": "give ranges sorted by first page, the first at page 0, numbered from 1",
-  "profile-version-conflict": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which lamina doesn't write yet",
+  "profile-version-conflict": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which Lamina PDF doesn't write yet",
   "missing-title": "set a title with Builder::metadata (Metadata::with_title)",
   "missing-lang": "set the language with Builder::lang, such as \"en-GB\"",
   "missing-alt-text": "give the figure or formula a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
@@ -554,7 +554,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
-  "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDFIUM_DIR to the folder holding the PDFium library",
+  "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
@@ -571,11 +571,11 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "worker-version-mismatch": "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy",
   "worker-crashed": "call client.restart() and open the document again; report the file if it keeps happening",
-  "worker-failed": "this is a lamina bug: report it with the call and the message; the worker keeps running",
+  "worker-failed": "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running",
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */
-export const DOCS_URL = { base: "https://github.com/laudebugs/lamina/blob/main/docs/errors/", suffix: ".md" } as const;
+export const DOCS_URL = { base: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/", suffix: ".md" } as const;
 
 /** The explain page of `code` (`docsUrl`, ADR 0026 §6). */
 export function docsUrl(code: ErrorCode | WarningCode): string {
@@ -622,5 +622,5 @@ export const RAISED_BY_PACKAGE = {
   "disposed": { kind: "state", hint: "free a handle only after its last use; to keep working, open the document again or create a new builder" },
   "worker-version-mismatch": { kind: "usage", hint: "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy" },
   "worker-crashed": { kind: "internal", hint: "call client.restart() and open the document again; report the file if it keeps happening" },
-  "worker-failed": { kind: "internal", hint: "this is a lamina bug: report it with the call and the message; the worker keeps running" },
+  "worker-failed": { kind: "internal", hint: "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running" },
 } as const;

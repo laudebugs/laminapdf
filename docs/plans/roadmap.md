@@ -47,7 +47,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `laminapdf-syntax` + `laminapdf-cos`, ADRs 0001/0002/0015/0019 |
-| M1 Library alpha | B1–B7 | `lamina` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
+| M1 Library alpha | B1–B7 | `laminapdf` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
@@ -79,7 +79,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | B9 | [library](pdf-library.md#b9-text-extraction) | `laminapdf-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
 | L1–L2 | [shareable libraries](shareable-libraries.md#l1-contracts) | Error, coordinate and façade contracts; worker client, disposal, range loading | 0026, 0027, 0028 |
 | L3 | [shareable libraries](shareable-libraries.md#l3-ai-ready-extraction) | `laminapdf-extract`: reading order, tables, Markdown/JSON with bounding boxes | 0030 |
-| L4 | [shareable libraries](shareable-libraries.md#l4-cli-and-mcp) | `lamina` CLI, MCP mode, distribution | 0031 |
+| L4 | [shareable libraries](shareable-libraries.md#l4-cli-and-mcp) | `laminapdf` CLI, MCP mode, distribution | 0031 |
 | L5 | [shareable libraries](shareable-libraries.md#l5-docs-for-agents) | `llms.txt`, docs in packages, agent eval | — |
 | L6 | [shareable libraries](shareable-libraries.md#l6-mobile) | `lamina-ffi` spike, mobile SDK plan | 0029 |
 | C1 | [web](web-app.md#c1-rendering-spikes) | Rendering spikes | `pdfium-wasm`, `hayro-parity` |

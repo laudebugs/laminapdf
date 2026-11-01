@@ -1,11 +1,11 @@
-// The one document a viewer worker holds (ADR 0009 §2: one worker per document): lamina's
+// The one document a viewer worker holds (ADR 0009 §2: one worker per document): Lamina PDF's
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
 
 import { bytesSource, type RenderBackend, type RenderDocument, RenderError } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
-import { Document, isLaminaError } from "@laminapdf/sdk";
+import { Document, isLaminaPdfError } from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { blobSource, readAll } from "../source.js";
@@ -72,7 +72,7 @@ export async function openDocument(
   try {
     model = Document.open(bytes, withLimits);
   } catch (e) {
-    if (password === undefined || password === "" || !isLaminaError(e, "password-required")) throw e;
+    if (password === undefined || password === "" || !isLaminaPdfError(e, "password-required")) throw e;
     model = Document.open(bytes, { ...withLimits, password });
     needsPassword = true;
   }

@@ -7,7 +7,7 @@ import { PAGES } from "./generated/explain.js";
 export type { ErrorCode, ErrorKind, WarningCode } from "./generated/codes.js";
 export { DOCS_URL, docsUrl, ERROR_CODES, HINTS, KINDS, WARNING_CODES } from "./generated/codes.js";
 
-/** Whether `code` is one of lamina's error or warning codes. */
+/** Whether `code` is one of Lamina PDF's error or warning codes. */
 export function isCode(code: string): code is ErrorCode | WarningCode {
   return Object.hasOwn(HINTS, code);
 }
@@ -17,7 +17,7 @@ export function isCode(code: string): code is ErrorCode | WarningCode {
  * an example and the `data` fields), or `undefined` for a string that is not a code. The same
  * text as `docsUrl` and `laminapdf::explain` in Rust.
  *
- * @param code - an error or warning code, such as `LaminaError.code`.
+ * @param code - an error or warning code, such as `LaminaPdfError.code`.
  * @example
  * ```ts
  * import { explain } from "@laminapdf/sdk/explain";

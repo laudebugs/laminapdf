@@ -116,7 +116,7 @@
         },
         "docsUrl": {
           "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
-          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/lamina\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/laminapdf\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
           "type": "string"
         },
         "hint": {
@@ -168,7 +168,7 @@
       "description": "Where the problem is (ADR 0026 §1.1); every value is lamina-made.",
       "properties": {
         "id": {
-          "description": "A LaminaId (p12.0).",
+          "description": "A LaminaPdfId (p12.0).",
           "type": "string"
         },
         "object": {
@@ -244,7 +244,7 @@
         "didYouMean": false,
         "docsUrl": {
           "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
-          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/lamina\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/laminapdf\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
           "type": "string"
         },
         "hint": {
@@ -273,7 +273,7 @@
       "type": "object"
     }
   },
-  "$id": "https://github.com/laudebugs/lamina/blob/main/packages/sdk/schemas/error.schema.json",
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "An error or warning of every lamina surface (ADR 0026 §1): camelCase keys, optional keys omitted (never null). Generated from fixtures/codes.json by `cargo xtask gen codes`; do not edit. New optional keys may appear within version 1; consumers ignore unknown keys.",
   "oneOf": [
@@ -284,5 +284,5 @@
       "$ref": "#/$defs/warning"
     }
   ],
-  "title": "lamina.error/1"
+  "title": "laminapdf.error/1"
 }

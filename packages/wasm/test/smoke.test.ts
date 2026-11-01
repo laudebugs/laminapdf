@@ -1,22 +1,22 @@
 // Smoke test of the built modules in Node (todo B6a): both load, the base module opens, reads,
 // edits, saves and builds vector and image pages, and the text module builds the `hello`
 // example byte for byte like the Rust golden. Every error the modules throw is the ADR 0026
-// object and validates against lamina.error/1. Run by `cargo xtask wasm` after it fills dist/.
+// object and validates against laminapdf.error/1. Run by `cargo xtask wasm` after it fills dist/.
 import { readFileSync } from "node:fs";
 import { fromRoot } from "@laminapdf/test-utils/root";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
-import * as base from "../dist/lamina_base.js";
-import * as extract from "../dist/lamina_extract.js";
-import * as hayro from "../dist/lamina_render_hayro.js";
-import * as text from "../dist/lamina_text.js";
+import * as base from "../dist/lamina_pdf_base.js";
+import * as extract from "../dist/lamina_pdf_extract.js";
+import * as hayro from "../dist/lamina_pdf_render_hayro.js";
+import * as text from "../dist/lamina_pdf_text.js";
 
 const read = (path: string): Uint8Array => new Uint8Array(readFileSync(fromRoot(path)));
 
-base.initSync({ module: read("packages/wasm/dist/lamina_base.wasm") });
-text.initSync({ module: read("packages/wasm/dist/lamina_text.wasm") });
-extract.initSync({ module: read("packages/wasm/dist/lamina_extract.wasm") });
-hayro.initSync({ module: read("packages/wasm/dist/lamina_render_hayro.wasm") });
+base.initSync({ module: read("packages/wasm/dist/lamina_pdf_base.wasm") });
+text.initSync({ module: read("packages/wasm/dist/lamina_pdf_text.wasm") });
+extract.initSync({ module: read("packages/wasm/dist/lamina_pdf_extract.wasm") });
+hayro.initSync({ module: read("packages/wasm/dist/lamina_pdf_render_hayro.wasm") });
 
 /** What a failed call threw: the ADR 0026 §1 object. */
 function thrown(f: () => unknown): Record<string, unknown> {
@@ -34,7 +34,7 @@ const hex = (s: string): string =>
 // ISO 216 A4 as laminapdf-model's `Pt::from_mm` computes it (mm * 72 / 25.4).
 const A4 = [(210 * 72) / 25.4, (297 * 72) / 25.4] as const;
 
-describe("lamina_base", () => {
+describe("lamina_pdf_base", () => {
   it("is the module without text", () => {
     expect(base.hasText()).toBe(false);
   });
@@ -89,7 +89,7 @@ describe("lamina_base", () => {
     expect([e.code, e.kind, e.docsUrl]).toEqual([
       "not-pdf",
       "input",
-      "https://github.com/laudebugs/lamina/blob/main/docs/errors/not-pdf.md",
+      "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md",
     ]);
   });
 
@@ -100,7 +100,7 @@ describe("lamina_base", () => {
   });
 });
 
-describe("lamina_text", () => {
+describe("lamina_pdf_text", () => {
   it("is the module with text", () => {
     expect(text.hasText()).toBe(true);
   });
@@ -120,7 +120,7 @@ describe("lamina_text", () => {
   });
 });
 
-describe("lamina_extract", () => {
+describe("lamina_pdf_extract", () => {
   it("reads and extracts text, without fonts or shaping", () => {
     expect(extract.hasText()).toBe(false);
     const doc = extract.WasmDocument.openBytes(read("fixtures/golden/examples/hello.pdf"), undefined);
@@ -136,7 +136,7 @@ function input(bytes: Uint8Array): hayro.InputBuffer {
   return buffer;
 }
 
-describe("lamina_render_hayro", () => {
+describe("lamina_pdf_render_hayro", () => {
   it("opens a page and renders a white tile", () => {
     const doc = hayro.HayroDocument.open(
       input(read("fixtures/corpus/hello.pdf")),
@@ -171,25 +171,25 @@ describe("errors thrown by both modules", () => {
     hayro.HayroDocument.open(input(bytes), undefined, maxPixels, 16_384, 2 ** 30);
   // [module, code, a call that throws it]
   const cases: [string, string, () => unknown][] = [
-    ["lamina_base", "not-pdf", () => base.WasmDocument.openBytes(new TextEncoder().encode("not a pdf"), undefined)],
+    ["lamina_pdf_base", "not-pdf", () => base.WasmDocument.openBytes(new TextEncoder().encode("not a pdf"), undefined)],
     [
-      "lamina_base",
+      "lamina_pdf_base",
       "unknown-option",
       () => base.WasmDocument.openBytes(hello(), { pasword: "x" } as unknown as base.OpenOptionsInit),
     ],
     [
-      "lamina_base",
+      "lamina_pdf_base",
       "invalid-argument",
       () => base.WasmDocument.openBytes(hello(), { strict: "yes" } as unknown as base.OpenOptionsInit),
     ],
-    ["lamina_render_hayro", "render-failed", () => open(new TextEncoder().encode("not a pdf"))],
-    ["lamina_render_hayro", "invalid-argument", () => new hayro.InputBuffer(4).write(2, new Uint8Array(4))],
-    ["lamina_render_hayro", "page-index-out-of-range", () => open(hello()).page(5)],
-    ["lamina_render_hayro", "render-too-large", () => open(hello(), 0).plan(0, 1, 0, 0, 0, 0, 0, 0, undefined)],
+    ["lamina_pdf_render_hayro", "render-failed", () => open(new TextEncoder().encode("not a pdf"))],
+    ["lamina_pdf_render_hayro", "invalid-argument", () => new hayro.InputBuffer(4).write(2, new Uint8Array(4))],
+    ["lamina_pdf_render_hayro", "page-index-out-of-range", () => open(hello()).page(5)],
+    ["lamina_pdf_render_hayro", "render-too-large", () => open(hello(), 0).plan(0, 1, 0, 0, 0, 0, 0, 0, undefined)],
   ];
 
   for (const [module, code, call] of cases) {
-    it(`${module} throws ${code} as an object that matches lamina.error/1`, () => {
+    it(`${module} throws ${code} as an object that matches laminapdf.error/1`, () => {
       const e = thrown(call);
       expect(e.code).toBe(code);
       expect(validate(e), JSON.stringify(validate.errors)).toBe(true);

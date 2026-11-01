@@ -28,7 +28,7 @@ export type WasmSource =
 
 /** Options for {@link init}. */
 export interface InitOptions {
-  /** The base module (default: the `lamina_base.wasm` next to the package, per export condition). */
+  /** The base module (default: the `lamina_pdf_base.wasm` next to the package, per export condition). */
   readonly module?: WasmSource;
   /**
    * Also load the text module (fonts and text): `true` for the default file, or where it comes
@@ -147,7 +147,7 @@ export async function initWith(locate: Locate, input?: WasmSource | InitOptions)
   await Promise.all(loads);
 }
 
-/** The base module's glue. @throws {@link LaminaError} `not-initialized` before `init()`. */
+/** The base module's glue. @throws {@link LaminaPdfError} `not-initialized` before `init()`. */
 export function baseModule(): BaseGlue {
   if (base.loaded === undefined) {
     throw packageError("not-initialized", "init() has not finished loading the WebAssembly module");
@@ -158,7 +158,7 @@ export function baseModule(): BaseGlue {
 /**
  * The module documents are opened in: the text module when loaded, else the extract module, else
  * the base one (each a superset of the base module's reading API; the first two extract text).
- * @throws {@link LaminaError} `not-initialized` before `init()`.
+ * @throws {@link LaminaPdfError} `not-initialized` before `init()`.
  */
 export function readingModule(): BaseGlue {
   const base = baseModule();

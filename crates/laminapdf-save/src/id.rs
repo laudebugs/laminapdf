@@ -6,7 +6,7 @@
 //! the same way (equal to `/ID[1]`) only when the document has none. No clock or random
 //! number is involved, so the output is byte-deterministic (ADR 0001).
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use laminapdf_cos::{Dict, Document, Object, PdfString};
 use sha2::{Digest, Sha256};

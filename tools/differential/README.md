@@ -22,7 +22,7 @@ xtask runs lamina and the tools at once, each over chunks of 200 inputs, one pro
 cargo xtask corpus fetch                                  # the external corpus (fixtures/corpus-manifest.toml)
 pnpm --dir tools/differential install --frozen-lockfile   # pdf.js: its own pnpm project, outside the root workspace
 python3 -m venv .venv && .venv/bin/pip install -r tools/differential/requirements.txt
-LAMINA_PYTHON=.venv/bin/python cargo xtask differential --live [--sample 300] [--tools pdfjs,qpdf] [--corpus external|mutants|all] [--source pdfjs]
+LAMINA_PDF_PYTHON=.venv/bin/python cargo xtask differential --live [--sample 300] [--tools pdfjs,qpdf] [--corpus external|mutants|all] [--source pdfjs]
 cargo xtask differential --live --text [--sample 50] [--source pdfjs]   # page text: pdf.js and pdftotext (no Python)
 ```
 

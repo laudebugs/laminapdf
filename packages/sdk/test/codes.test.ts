@@ -1,8 +1,8 @@
 // ADR 0003 §4 and ADR 0026, TS half: the generated tables are fixtures/codes.json's, every code
-// has its explain page, LaminaError.toJSON() validates against lamina.error/1, and the shared
+// has its explain page, LaminaPdfError.toJSON() validates against laminapdf.error/1, and the shared
 // cases of fixtures/errors/contract.json (ADR 0018 §5) throw exactly the object the Rust façade
 // serialises (crates/laminapdf/tests/error_contract.rs checks the same file).
-import { Document, init, LaminaError, type OpenOptions } from "@laminapdf/sdk";
+import { Document, init, LaminaPdfError, type OpenOptions } from "@laminapdf/sdk";
 import { DOCS_URL, docsUrl, ERROR_CODES, explain, HINTS, isCode, KINDS, WARNING_CODES } from "@laminapdf/sdk/explain";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -77,7 +77,7 @@ describe("@laminapdf/sdk/explain", () => {
   });
 });
 
-describe("lamina.error/1", () => {
+describe("laminapdf.error/1", () => {
   interface Case {
     readonly name: string;
     readonly file?: string;
@@ -96,7 +96,7 @@ describe("lamina.error/1", () => {
         if (c.call === "pageCount") return doc.pageCount;
         return doc;
       });
-      const json = e instanceof LaminaError ? JSON.parse(JSON.stringify(e)) : e;
+      const json = e instanceof LaminaPdfError ? JSON.parse(JSON.stringify(e)) : e;
       expect([json, validate(json), errorsOf()]).toEqual([c.expected, true, "null"]);
     });
   }
@@ -109,12 +109,12 @@ describe("lamina.error/1", () => {
 
   it("accepts a binding error with didYouMean", () => {
     const e = thrown(() => Document.open(new Uint8Array(), { pasword: "x" } as OpenOptions));
-    const json = (e as LaminaError).toJSON();
+    const json = (e as LaminaPdfError).toJSON();
     expect([json.code, validate(json), errorsOf()]).toEqual(["unknown-option", true, "null"]);
   });
 
   it("leaves an empty didYouMean out of the error and its object", () => {
-    const e = new LaminaError({
+    const e = new LaminaPdfError({
       code: "unknown-option",
       kind: "usage",
       message: "an options record has a key lamina does not know",

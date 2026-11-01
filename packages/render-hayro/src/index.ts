@@ -1,5 +1,5 @@
 // ADR 0004's second web renderer and CI oracle (todo C2c): laminapdf-render's hayro adapter, built by
-// `cargo xtask wasm` as lamina_render_hayro (crates/laminapdf-render-wasm) into @laminapdf/wasm, behind
+// `cargo xtask wasm` as lamina_pdf_render_hayro (crates/laminapdf-render-wasm) into @laminapdf/wasm, behind
 // @laminapdf/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
 // buffer from the source in one pass, chunk by chunk (every missing range in one `data-pending`),
 // and the module borrows it. Requests are validated by @laminapdf/render's planner (the Rust one,
@@ -38,7 +38,7 @@ let memory: WebAssembly.Memory | undefined;
 
 /**
  * Loads the module: a URL, `Response`, bytes or compiled module; omitted, the glue fetches
- * `lamina_render_hayro.wasm` next to itself. Call it inside the document worker (ADR 0009 §2).
+ * `lamina_pdf_render_hayro.wasm` next to itself. Call it inside the document worker (ADR 0009 §2).
  *
  * @throws RenderError `render-backend-unavailable` when the module can't be loaded.
  */

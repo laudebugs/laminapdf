@@ -23,7 +23,7 @@ catalog:
   "@changesets/cli": 3.0.3
   "@types/node": 26.6.5
   "@vitest/browser-playwright": 5.0.5
-  # JSON Schema 2020-12 validation of LaminaError.toJSON() against lamina.error/1 (tests only).
+  # JSON Schema 2020-12 validation of LaminaPdfError.toJSON() against laminapdf.error/1 (tests only).
   # MIT (fast-deep-equal, json-schema-traverse, require-from-string: MIT; fast-uri: BSD-3-Clause)
   ajv: 8.20.0
   bun: 1.4.4

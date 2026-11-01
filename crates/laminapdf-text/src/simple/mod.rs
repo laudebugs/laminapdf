@@ -6,7 +6,7 @@
 //! set it lacks (`Lslash`, `Scedilla`, `minus`, `fi`, …) get the codes `WinAnsiEncoding`
 //! leaves undefined, in order of first use, through a `/Differences` array (§9.6.5.1): so
 //! "Łódź" works in Helvetica. Symbol and `ZapfDingbats` use their built-in encodings, which
-//! reach every glyph lamina maps text to.
+//! reach every glyph Lamina PDF maps text to.
 
 mod tounicode;
 

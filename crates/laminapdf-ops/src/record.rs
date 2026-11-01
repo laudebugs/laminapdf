@@ -72,7 +72,7 @@ pub struct Property<'r> {
 /// Undo reads every property as it is *now* and restores only those that still hold the
 /// value this transaction set (§4); see [`Document::undo`](crate::Document::undo).
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct UndoRecord {
     changes: Vec<Change>,
@@ -234,7 +234,7 @@ impl Change {
 
 /// Why undo or redo left a property alone ([ADR 0006] §4).
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SkipReason {

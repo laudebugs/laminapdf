@@ -40,8 +40,8 @@ const HELLO_RS: &str = "crates/laminapdf/examples/hello.rs";
 /// The package whose dev dependencies provide deno, bun, vite, Playwright and wrangler.
 const TOOLS_PACKAGE: &str = "packages/sdk";
 /// The line a JavaScript check prints (`report.ts`).
-const PREFIX: &str = "LAMINA_VERIFY ";
-const VERSION_PREFIX: &str = "LAMINA_VERIFY_VERSION ";
+const PREFIX: &str = "LAMINA_PDF_VERIFY ";
+const VERSION_PREFIX: &str = "LAMINA_PDF_VERIFY_VERSION ";
 
 const REPORT_TS: &str = include_str!("verify_install/report.ts");
 const MAIN_TS: &str = include_str!("verify_install/main.ts");
@@ -274,12 +274,12 @@ fn js_line(dir: &Path, program: &str, args: &[&str], envs: &[(&str, &str)]) -> R
     Ok(stdout)
 }
 
-/// Checks the `LAMINA_VERIFY {json}` line in `output` against the golden's SHA-256 (one page).
+/// Checks the `LAMINA_PDF_VERIFY {json}` line in `output` against the golden's SHA-256 (one page).
 fn check_line(output: &str, golden: &str) -> Result<String> {
     let json = output
         .lines()
         .find_map(|line| line.trim().strip_prefix(PREFIX))
-        .context("no LAMINA_VERIFY line in the output")?;
+        .context("no LAMINA_PDF_VERIFY line in the output")?;
     let value: Value = serde_json::from_str(json).with_context(|| format!("unreadable check line {json:?}"))?;
     let sha = value.get("sha256").and_then(Value::as_str).unwrap_or_default();
     let pages = value.get("pages").and_then(Value::as_u64);
@@ -293,7 +293,7 @@ fn check_line(output: &str, golden: &str) -> Result<String> {
     Ok(format!("{length} bytes, identical to {GOLDEN}; reopened, 1 page"))
 }
 
-/// The version a `LAMINA_VERIFY_VERSION <runtime> <version>` line names, if any.
+/// The version a `LAMINA_PDF_VERIFY_VERSION <runtime> <version>` line names, if any.
 fn reported_version(output: &str) -> Option<String> {
     output
         .lines()
@@ -304,7 +304,7 @@ fn reported_version(output: &str) -> Option<String> {
 /// Packs both packages into `<work>/tarballs` and installs them with npm into `<work>/js`, with
 /// the quick start and the checks: `js/` (Node, Deno, Bun), `js/vite/` and `js/worker/`.
 fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
-    for dist in ["packages/wasm/dist/lamina_text.wasm", "packages/sdk/dist/index.js"] {
+    for dist in ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/index.js"] {
         if !ws.root.join(dist).is_file() {
             bail!("{dist} is missing: run `cargo xtask wasm` first");
         }
@@ -435,7 +435,7 @@ fn chromium(ws: &Workspace, work: &Path, golden: &str) -> Outcome {
             &work.join("js/vite"),
             "node",
             &["chromium.mjs"],
-            &[("LAMINA_TOOLS_FROM", &from)],
+            &[("LAMINA_PDF_TOOLS_FROM", &from)],
         )?;
         Ok((reported_version(&output), check_line(&output, golden)?))
     })();
@@ -450,7 +450,7 @@ fn workerd(ws: &Workspace, work: &Path, golden: &str) -> Outcome {
         &work.join("js/worker"),
         "node",
         &["workerd.mjs"],
-        &[("LAMINA_WRANGLER", &wrangler)],
+        &[("LAMINA_PDF_WRANGLER", &wrangler)],
     )
     .and_then(|out| check_line(&out, golden));
     Outcome {
@@ -656,7 +656,7 @@ mod tests {
 
     #[test]
     fn check_line_should_accept_the_golden_and_reject_other_bytes() {
-        let line = |sha: &str| format!("noise\nLAMINA_VERIFY {{\"sha256\":\"{sha}\",\"length\":10,\"pages\":1}}\n");
+        let line = |sha: &str| format!("noise\nLAMINA_PDF_VERIFY {{\"sha256\":\"{sha}\",\"length\":10,\"pages\":1}}\n");
         assert_eq!(
             [
                 check_line(&line("ab"), "ab").is_ok(),

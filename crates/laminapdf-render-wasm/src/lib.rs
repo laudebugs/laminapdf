@@ -18,7 +18,7 @@
 //! `data.ranges`), built by `RenderError::diagnostic`, the serialiser every binding shares. A
 //! render is synchronous: the wrapper checks its `AbortSignal` before and after.
 //!
-//! [ADR 0004]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0004-render-backend.md
+//! [ADR 0004]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0004-render-backend.md
 
 use std::sync::Arc;
 

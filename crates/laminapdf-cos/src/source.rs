@@ -1,6 +1,6 @@
 //! The input a [`Document`](crate::Document) owns: [`ByteSource`] ([ADR 0005] §2).
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;

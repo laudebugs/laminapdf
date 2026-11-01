@@ -1,7 +1,7 @@
 //! Jobs, budgets and cancellation ([ADR 0028] §3–§6): long work as a state machine the
 //! caller steps, a document revision every step checks, and a shared cancel flag.
 //!
-//! [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+//! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 
 use std::sync::{Arc, Weak};
 
@@ -27,7 +27,7 @@ pub(crate) fn check(token: &CancelToken) -> Result<()> {
 /// time between steps and adapt the next budget (the crate README records units per
 /// millisecond).
 ///
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Budget {
     units: u32,
@@ -72,7 +72,7 @@ pub enum Step<T> {
 
 /// What a job is doing ([ADR 0028] §3).
 ///
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Phase {
@@ -187,7 +187,7 @@ enum Stage {
 /// # Ok::<(), laminapdf::Error>(())
 /// ```
 ///
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug)]
 pub struct SaveJob {
     core: JobCore,

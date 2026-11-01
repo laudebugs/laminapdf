@@ -1,6 +1,6 @@
 # Code organization
 
-How lamina's code is laid out and how its parts may depend on each other. These conventions are meant to hold whatever the architecture ADRs decide. They assume a Rust core (native and WASM), TypeScript packages, a web app and a desktop app in one repository, but they don't fix which crates or packages exist. Every crate and package name below is an **example**, not a decision.
+How Lamina PDF's code is laid out and how its parts may depend on each other. These conventions are meant to hold whatever the architecture ADRs decide. They assume a Rust core (native and WASM), TypeScript packages, a web app and a desktop app in one repository, but they don't fix which crates or packages exist. Every crate and package name below is an **example**, not a decision.
 
 Language-specific rules live in [`rust.md`](rust.md) and [`typescript.md`](typescript.md).
 
@@ -128,7 +128,7 @@ Everything public will be used by someone, so keep the surface small and deliber
 
 | Layer | Rust | TypeScript |
 | --- | --- | --- |
-| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class LaminaError extends Error` in `@laminapdf/sdk`) with a string-literal `code` union, the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`kind`, `hint`, `location`, `data`, `docsUrl`) and an `isLaminaError` guard. Throw only `Error` subclasses |
+| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class LaminaPdfError extends Error` in `@laminapdf/sdk`) with a string-literal `code` union, the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`kind`, `hint`, `location`, `data`, `docsUrl`) and an `isLaminaPdfError` guard. Throw only `Error` subclasses |
 | Binding | Map core errors 1:1 to the target's idiom (a JS `Error` with a `code`, a Swift `Error`) and never drop the code or any other ADR 0026 field | Re-throw binding errors as the package's own error class |
 | App / CLI / xtask | `anyhow` with `.context(…)` is fine | Catch at the boundary, log, and show a user-facing message |
 
@@ -246,4 +246,4 @@ Don't split:
 - [Biome: configuring big projects](https://biomejs.dev/guides/big-projects/)
 - [TSDoc](https://tsdoc.org/)
 - Reference repositories, layouts checked on 2026-10-28: [Biome](https://github.com/biomejs/biome) (`crates/`, `packages/@biomejs/*`, `xtask/`), [Oxc](https://github.com/oxc-project/oxc) (`crates/`, `apps/`, `napi/`, `packages/`, `tasks/`), [Tauri](https://github.com/tauri-apps/tauri) (`crates/tauri-*`, `packages/`, `examples/`), [Typst](https://github.com/typst/typst) (`crates/typst-*`, `tests/`, `tools/`, `docs/`), [Deno](https://github.com/denoland/deno) (`cli/`, `ext/`, `libs/`, `runtime/`, `tests/`, `tools/`), [pdf.js](https://github.com/mozilla/pdf.js) (`src/`, `web/`, `test/`, `external/`)
-- lamina: [`spikes/pdf-basics/`](../../spikes/pdf-basics/SPEC.md), [research ch. 05 §8](../research/pdf/05-creating-pdfs-from-code.md#8-implications-for-lamina), [research ch. 07](../research/pdf/07-spike-rust-and-typescript.md)
+- Lamina PDF: [`spikes/pdf-basics/`](../../spikes/pdf-basics/SPEC.md), [research ch. 05 §8](../research/pdf/05-creating-pdfs-from-code.md#8-implications-for-lamina), [research ch. 07](../research/pdf/07-spike-rust-and-typescript.md)

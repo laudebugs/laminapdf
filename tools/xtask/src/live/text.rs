@@ -920,7 +920,7 @@ mod tests {
     }
 
     const RULE: &str = "rule = \"ADR 0003 §1: Unsupported filter\"\nreason = \"r\"\n";
-    const ISSUE: &str = "issue = \"https://github.com/laudebugs/lamina/issues/1\"\nreason = \"r\"\n";
+    const ISSUE: &str = "issue = \"https://github.com/laudebugs/laminapdf/issues/1\"\nreason = \"r\"\n";
 
     /// A text `[[known]]` for `s/a.pdf`'s `pages`, optionally for some tools only.
     fn known(pages: &str, tools: &str) -> String {
@@ -1078,7 +1078,7 @@ mod tests {
         let c = compare(&lamina, &tools, &entries(&known("0", "")));
         assert_eq!(
             c.stale,
-            ["s/a.pdf pages 0 (known: https://github.com/laudebugs/lamina/issues/1)"]
+            ["s/a.pdf pages 0 (known: https://github.com/laudebugs/laminapdf/issues/1)"]
         );
     }
 

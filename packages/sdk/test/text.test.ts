@@ -1,6 +1,6 @@
 // page.text() (B9c): the extract module, the shared snapshot with the Rust output, encrypted
 // copies, and the error for a document opened in the base module.
-import { Builder, Document, init, isExtractLoaded, isLaminaError, loadExtract, type PageText } from "@laminapdf/sdk";
+import { Builder, Document, init, isExtractLoaded, isLaminaPdfError, loadExtract, type PageText } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, readText, thrown } from "./helpers.js";
 
@@ -53,7 +53,7 @@ describe("page.text() before the extract module", () => {
     const doc = Document.open(read("fixtures/golden/examples/hello.pdf"));
     expect(doc.canExtractText).toBe(false);
     const e = thrown(() => doc.page(0).text());
-    expect(isLaminaError(e, "extract-module-not-loaded")).toBe(true);
+    expect(isLaminaPdfError(e, "extract-module-not-loaded")).toBe(true);
   });
 });
 

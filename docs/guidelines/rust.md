@@ -132,4 +132,4 @@ too-many-lines-threshold = 100
 - [rustdoc lints](https://doc.rust-lang.org/rustdoc/lints.html), [Rust style guide](https://doc.rust-lang.org/style-guide/)
 - Apollo GraphQL, [Rust Best Practices](https://github.com/apollographql/rust-best-practices). This is the source of the `rust-best-practices` skill: ch. 2 linting, ch. 4 errors, ch. 5 testing, ch. 8 documentation.
 - Workspace lint tables in practice: [Biome `Cargo.toml`](https://github.com/biomejs/biome/blob/main/Cargo.toml), [Typst `Cargo.toml`](https://github.com/typst/typst/blob/main/Cargo.toml)
-- lamina spike: [`spikes/pdf-basics/rust/`](../../spikes/pdf-basics/rust/README.md) (`Cargo.toml`, `clippy.toml`, `scripts/check-targets.sh`)
+- Lamina PDF spike: [`spikes/pdf-basics/rust/`](../../spikes/pdf-basics/rust/README.md) (`Cargo.toml`, `clippy.toml`, `scripts/check-targets.sh`)

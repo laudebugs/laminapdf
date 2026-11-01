@@ -130,7 +130,7 @@ Conventions on every board in this area:
 | Notice (`warning-tint`, wrench) | “**This file is damaged.** lamina repaired it in memory so you can read it. The file on your device hasn’t changed, and other readers may show it differently.” |
 | What lamina did | One row per warning kind, a plain sentence over the code in `muted` 12: “Rebuilt the table that locates each object in the file” `xref-repaired`; “Measured 3 page streams whose stated length was wrong” `stream-length-recovered · pages 3, 4, 9`; “Left out 1 outline entry that pointed to no page” `outline-item-skipped` |
 | Not run | Unsupported features found in the file, e.g. “This file contains JavaScript. lamina never runs it.” |
-| Actions | **Copy details** (secondary, `file.copy-repair-details`; copies codes, counts and the lamina version as text) · “About repairs” (link) |
+| Actions | **Copy details** (secondary, `file.copy-repair-details`; copies codes, counts and the laminapdf version as text) · “About repairs” (link) |
 
 Codes come from `fixtures/codes.json`; each code has one plain sentence in the UI string table. More than five kinds collapse to the first five and “Show all 9”.
 

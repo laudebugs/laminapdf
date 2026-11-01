@@ -356,7 +356,7 @@ fn curl(url: &str, method: Method) -> Probe {
         // HTTP/2 makes some servers drop the stream (curl exit 92) where HTTP/1.1 works.
         "--http1.1",
         "--user-agent",
-        "lamina-link-check/1 (+https://github.com/laudebugs/lamina)",
+        "lamina-link-check/1 (+https://github.com/laudebugs/laminapdf)",
         // Without an HTML Accept header some sites (crates.io) answer 404 to every page.
         "--header",
         "Accept: text/html,application/xhtml+xml,*/*;q=0.8",
@@ -773,13 +773,13 @@ mod tests {
     #[test]
     fn allowed_should_ignore_case_and_a_trailing_slash() {
         let list = [Allow {
-            prefix: "https://github.com/laudebugs/lamina/".into(),
+            prefix: "https://github.com/laudebugs/laminapdf/".into(),
             reason: "private".into(),
         }];
         assert_eq!(
             [
-                allowed(&list, "https://GitHub.com/laudebugs/lamina/pull/1").is_some(),
-                allowed(&list, "https://github.com/laudebugs/lamina").is_some(),
+                allowed(&list, "https://GitHub.com/laudebugs/laminapdf/pull/1").is_some(),
+                allowed(&list, "https://github.com/laudebugs/laminapdf").is_some(),
                 allowed(&list, "https://github.com/laudebugs/laminax").is_some()
             ],
             [true, true, false]

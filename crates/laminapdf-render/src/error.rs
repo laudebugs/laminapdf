@@ -129,7 +129,7 @@ impl RenderError {
 
     /// The kind of this error ([ADR 0026] §2), from the generated [`ErrorCode`] table.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         self.error_code().kind()
@@ -138,7 +138,7 @@ impl RenderError {
     /// The [ADR 0026] §1 object: what a binding hands to another language. `data` holds the
     /// fields each code's `docs/errors` page lists; nothing in it is read from the document.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::error(self.error_code(), self.to_string())
@@ -244,7 +244,7 @@ mod tests {
         ]
     }
 
-    /// Every variant's §1 object validates against the generated `lamina.error/1` schema.
+    /// Every variant's §1 object validates against the generated `laminapdf.error/1` schema.
     #[test]
     fn every_diagnostic_matches_the_error_schema() {
         let schema: serde_json::Value =
@@ -257,13 +257,13 @@ mod tests {
         for e in samples() {
             let value = e.diagnostic().to_json();
             if let Err(report) = schemas.validate(&value, index) {
-                panic!("{value} does not match lamina.error/1:\n{report}");
+                panic!("{value} does not match laminapdf.error/1:\n{report}");
             }
         }
     }
 
     /// A `data-pending` lists its ranges as `[offset, length]` pairs under `data.ranges`, the
-    /// shape `@laminapdf/sdk`'s `LaminaError.ranges` takes.
+    /// shape `@laminapdf/sdk`'s `LaminaPdfError.ranges` takes.
     #[test]
     fn data_pending_lists_its_ranges_as_pairs() {
         let e = RenderError::DataPending {

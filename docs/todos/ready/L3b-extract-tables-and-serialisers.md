@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the L3 deliverable. Detect tables from vector ruling lines (with a conservative stream fallback), serialise an `Extraction` to Markdown, `lamina.extract/1` JSON and retrieval-sized chunks with provenance, and expose it on every surface: `laminapdf::Document::extract` in Rust, the extract module in `laminapdf-wasm`, and `doc.extract({ format })` in `@laminapdf/sdk`. Measure reading-order and table scores on a licence-clean public benchmark subset and record them, so users know what rules achieve before models (L3c).
+Finish the L3 deliverable. Detect tables from vector ruling lines (with a conservative stream fallback), serialise an `Extraction` to Markdown, `laminapdf.extract/1` JSON and retrieval-sized chunks with provenance, and expose it on every surface: `laminapdf::Document::extract` in Rust, the extract module in `laminapdf-wasm`, and `doc.extract({ format })` in `@laminapdf/sdk`. Measure reading-order and table scores on a licence-clean public benchmark subset and record them, so users know what rules achieve before models (L3c).
 
 ## Context
 
@@ -35,10 +35,10 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - **Stream fallback** (`TableMode::LatticeAndStream`, off by default): whitespace column inference inside a region only when at least 3 rows and 2 columns align within tolerance; `detector: "stream"` and lower `confidence`. Conservative by design: no tables beat wrong tables.
 - **Serialisers** (`laminapdf-extract::output`):
   - *Markdown*: `#`–`######` headings, paragraphs, nested lists, GFM pipe tables (escape `|`; tables with spans fall back to an HTML `<table>`), optional `<!-- page N -->` markers; hidden and dropped text never appears.
-  - *JSON* `lamina.extract/1`: every key from ADR 0030; `textRange` offsets into the Markdown (or plain-text) output; deterministic key order and number formatting (fixed decimals for coordinates).
+  - *JSON* `laminapdf.extract/1`: every key from ADR 0030; `textRange` offsets into the Markdown (or plain-text) output; deterministic key order and number formatting (fixed decimals for coordinates).
   - *Chunks*: `ChunkOptions { max_tokens, overlap, split_on: Headings | Blocks | Pages }`; token count approximated by a documented rule (no tokenizer dependency); each chunk carries `id`, `text`, `blockIds`, `headingPath`, `pages`, `regions` (page + bbox), `textRange`, `tokensApprox`; JSONL for streaming.
   - *Plain text*: reading-order text with blank lines between blocks.
-- **JSON Schema** 2020-12 for `lamina.extract/1` generated from the Rust types (schemars, licence-checked, behind a build-time feature or xtask, not a runtime dependency of core), committed under the schema location ADR 0030 chose; a check fails if the committed schema is stale.
+- **JSON Schema** 2020-12 for `laminapdf.extract/1` generated from the Rust types (schemars, licence-checked, behind a build-time feature or xtask, not a runtime dependency of core), committed under the schema location ADR 0030 chose; a check fails if the committed schema is stale.
 - **Façade** (`laminapdf` crate): `Document::extract(ExtractOptions) -> ExtractJob` and `Extraction::{to_markdown, to_json, to_text, chunks}`, behind a feature `extract` so structure-only builds stay small.
 - **WASM** (`laminapdf-wasm`): extract bindings in the separate extract module per ADR 0016; JSON output crosses as a string (one copy) and chunk iteration is lazy; size measured against the module budget.
 - **TypeScript** (`@laminapdf/sdk`): `doc.extract({ format: "markdown" | "json" | "text" | "chunks", pages?, readingOrder?, drop?, tables?, chunk? })` with discriminated return types (`string` for Markdown and text, typed `Extraction` for JSON, `Chunk[]` or an iterator for chunks); tsify types generated from Rust; unknown option keys rejected with a "did you mean" hint (ADR 0026); the subpath (e.g. `@laminapdf/sdk/extract`) follows B6a's module split.
@@ -47,7 +47,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 **Out of scope** (and which todo covers it)
 
 - Layout models, borderless-table models, OCR: [L3c](./L3c-model-plugins.md).
-- `lamina extract` CLI commands and `lamina schema extract/1`: [L4b](./L4b-cli-batch-render-schema.md).
+- `laminapdf extract` CLI commands and `laminapdf schema extract/1`: [L4b](./L4b-cli-batch-render-schema.md).
 - `@laminapdf/sdk/worker` wrapping of `extract`: [L2a](../done/L2a-worker-client.md) (it wraps whatever the sync API exposes).
 - Agent-facing docs for extraction: [L5a](./L5a-agent-docs.md).
 - Editor UI for extraction (export dialog): full-editor [E3i](./E3i-extraction.md).
@@ -75,7 +75,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - [ ] Every chunk's `textRange` slices the Markdown to exactly the chunk's text; every chunk has non-empty `pages` and `regions`
 - [ ] `doc.extract({ format: "json" })` in TS equals the Rust JSON byte for byte on the fixtures (shared snapshot); TS types reject an unknown `format` at compile time and an unknown option key at runtime
 - [ ] Extract `.wasm` size is within ADR 0016's extract budget (or a reviewed budget change)
-- [ ] `cargo xtask extract-bench` runs on the pinned subset; reading-order and table scores are recorded in the crate README with dataset, licence, subset size, lamina version and date
+- [ ] `cargo xtask extract-bench` runs on the pinned subset; reading-order and table scores are recorded in the crate README with dataset, licence, subset size, laminapdf version and date
 
 ## Post-merge checks
 

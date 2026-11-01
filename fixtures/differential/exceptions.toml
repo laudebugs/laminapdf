@@ -229,31 +229,31 @@ reason = "in mutants of outline.pdf with a damaged item, pdf.js drops the whole 
 [[known]]
 file = "enc-m95.pdf"
 facts = ["outcome"]
-issue = "https://github.com/laudebugs/lamina/issues/37"
+issue = "https://github.com/laudebugs/laminapdf/issues/37"
 reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
 
 [[known]]
 file = "enc-m163.pdf"
 facts = ["outcome"]
-issue = "https://github.com/laudebugs/lamina/issues/37"
+issue = "https://github.com/laudebugs/laminapdf/issues/37"
 reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
 
 [[known]]
 file = "pdfjs/test/pdfs/issue14267.pdf"
 facts = ["outline_titles"]
-issue = "https://github.com/laudebugs/lamina/issues/37"
+issue = "https://github.com/laudebugs/laminapdf/issues/37"
 reason = "an undefined PDFDocEncoding byte (0x11) becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0011, PDFium a space"
 
 [[known]]
 file = "pdfjs/test/pdfs/xfa_filled_imm1344e.pdf"
 facts = ["outline_titles"]
-issue = "https://github.com/laudebugs/lamina/issues/37"
+issue = "https://github.com/laudebugs/laminapdf/issues/37"
 reason = "an undefined PDFDocEncoding byte (0x00) at the end of each title becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0000, PDFium a space"
 
 [[known]]
 file = "pdfjs/test/pdfs/issue22011.pdf"
 facts = ["page_count"]
-issue = "https://github.com/laudebugs/lamina/issues/37"
+issue = "https://github.com/laudebugs/laminapdf/issues/37"
 reason = "lamina walks 56 pages, PDFium, qpdf and pypdf 57 (a skipped kid, excused by the lamina-skips class) and pdf.js 40"
 
 # ---- Nightly lane: page text (`differential --live --text`, todo B9f) ----
@@ -263,7 +263,7 @@ facts = ["text"]
 lamina = ""
 lamina_facts = { page_error = "unsupported-filter" }
 rule = "ADR 0003 §1: Unsupported filter (the document opens; only decoding that stream fails)"
-reason = "a content stream of the page uses a filter lamina doesn't decode (ASCIIHexDecode, ASCII85Decode, BrotliDecode, an image filter in /Contents), so the page's extraction fails and it has no text; the tool decodes it. The missing standard filters are https://github.com/laudebugs/lamina/issues/108"
+reason = "a content stream of the page uses a filter lamina doesn't decode (ASCIIHexDecode, ASCII85Decode, BrotliDecode, an image filter in /Contents), so the page's extraction fails and it has no text; the tool decodes it. The missing standard filters are https://github.com/laudebugs/laminapdf/issues/108"
 
 [[class]]
 facts = ["text"]
@@ -300,7 +300,7 @@ reason = "the texts differ only where lamina writes U+FFFD for a glyph that has 
 
 [[known]]
 facts = ["text"]
-issue = "https://github.com/laudebugs/lamina/issues/106"
+issue = "https://github.com/laudebugs/laminapdf/issues/106"
 reason = "lamina writes U+FFFD for glyphs pdf.js or pdftotext map to Unicode (built-in encodings of embedded fonts, predefined CJK CMaps without ToUnicode, symbolic fonts)"
 
 [known.pages]
@@ -435,7 +435,7 @@ reason = "lamina writes U+FFFD for glyphs pdf.js or pdftotext map to Unicode (bu
 
 [[known]]
 facts = ["text"]
-issue = "https://github.com/laudebugs/lamina/issues/107"
+issue = "https://github.com/laudebugs/laminapdf/issues/107"
 reason = "lamina keeps ligature code points (U+FB00–U+FB06), soft hyphens and zero-width spaces that pdf.js and pdftotext decompose or drop"
 
 [known.pages]
@@ -462,7 +462,7 @@ reason = "lamina keeps ligature code points (U+FB00–U+FB06), soft hyphens and 
 
 [[known]]
 facts = ["text"]
-issue = "https://github.com/laudebugs/lamina/issues/109"
+issue = "https://github.com/laudebugs/laminapdf/issues/109"
 reason = "lamina fails with password-required where pdf.js and pdftotext open the file without a password (only embedded files encrypted, or crypt filters)"
 
 [known.pages]
@@ -474,7 +474,7 @@ reason = "lamina fails with password-required where pdf.js and pdftotext open th
 
 [[known]]
 facts = ["text"]
-issue = "https://github.com/laudebugs/lamina/issues/110"
+issue = "https://github.com/laudebugs/laminapdf/issues/110"
 reason = "page text differs from both tools for reasons still to triage (order of RTL, bidi or vertical text; text outside the crop box or invisible; text in Form XObjects or widgets; other encodings)"
 
 [known.pages]

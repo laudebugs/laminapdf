@@ -1,7 +1,7 @@
 //! [`Surface`]: what is drawn on a page, in page space ([ADR 0027]), written as a content
 //! stream with `pdf_writer::Content` when the page is finished.
 //!
-//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+//! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 pub(crate) mod color;
 pub(crate) mod image;
@@ -146,8 +146,8 @@ fn transformed_bounds(m: &Matrix, r: &RectPt) -> RectPt {
 /// # Ok::<(), laminapdf_build::Error>(())
 /// ```
 ///
-/// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-/// [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
+/// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+/// [B5b]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
 #[derive(Debug, Default)]
 pub struct Surface {
     commands: Vec<Command>,
@@ -468,7 +468,7 @@ impl Surface {
     /// isn't finite; [`Error::Text`] when the font has no glyph for a character
     /// (`missing-glyph`) or can't be read.
     ///
-    /// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+    /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
     #[cfg(feature = "text")]
     pub fn text(&mut self, text: &str, font: &Font, size: Pt, at: PointPt) -> Result<TextRun<'_>> {
         check_size(size)?;

@@ -1,10 +1,10 @@
-//! lamina's page text for every file in a list, as JSON: lamina's side of the nightly lane's
+//! Lamina PDF's page text for every file in a list, as JSON: Lamina PDF's side of the nightly lane's
 //! live text differential (`cargo xtask differential --live --text`, todo B9f), extracted as
 //! the PR lane's `tests/text_differential.rs` does (`page_texts`, lines joined by newlines).
 //!
 //! The list has one `<name>\t<path>` line per file; the output maps each name to
 //! `{outcome, error?, pages, page_errors?, warnings}`: `outcome` is `opened`, `repaired` or
-//! `failed` (with lamina's `error` code), `pages` holds each page's text as extracted, or
+//! `failed` (with Lamina PDF's `error` code), `pages` holds each page's text as extracted, or
 //! `null` for a page whose extraction failed (its code is in `page_errors`, by page index),
 //! and `warnings` lists the distinct warning codes raised. xtask removes whitespace before
 //! comparing. A panic is recorded as the outcome `panic` (a bug to report), not a crash of
@@ -31,7 +31,7 @@ use serde_json::{Map, Value, json};
 /// The warning that says the stored xref was rebuilt (ADR 0003 §1: Repair).
 const REPAIRED: &str = "xref-repaired";
 
-/// lamina's text facts about one file.
+/// Lamina PDF's text facts about one file.
 fn facts(bytes: Vec<u8>) -> Value {
     let doc = match Document::open_bytes(bytes, OpenOptions::default()) {
         Ok(doc) => doc,

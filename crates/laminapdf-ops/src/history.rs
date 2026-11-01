@@ -1,7 +1,7 @@
 //! Undo and redo ([ADR 0006] §4): per document, local transactions only, inverses computed
 //! at undo time from the current state.
 //!
-//! [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+//! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 
 use std::collections::{BTreeSet, VecDeque};
 
@@ -12,7 +12,7 @@ use crate::record::{Skipped, UndoRecord};
 
 /// The result of an undo or redo ([ADR 0006] §4).
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum UndoOutcome {
@@ -59,7 +59,7 @@ pub(crate) struct Entry {
 /// A document's undo and redo stacks ([ADR 0006] §4). Only local transactions are pushed;
 /// the oldest entries are dropped beyond [`History::depth`] (500 by default).
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone)]
 pub struct History {
     pub(crate) undo: VecDeque<Entry>,

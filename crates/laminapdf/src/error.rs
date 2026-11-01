@@ -23,12 +23,12 @@ use crate::data;
 /// let err = laminapdf::Document::open_bytes(b"not a pdf".to_vec(), laminapdf::OpenOptions::default()).unwrap_err();
 /// assert_eq!((err.code(), err.kind().as_str()), ("not-pdf", "input"));
 /// let json = serde_json::to_value(&err)?;
-/// assert_eq!(json["docsUrl"], "https://github.com/laudebugs/lamina/blob/main/docs/errors/not-pdf.md");
+/// assert_eq!(json["docsUrl"], "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md");
 /// # Ok::<(), serde_json::Error>(())
 /// ```
 ///
-/// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -79,7 +79,7 @@ impl Error {
 
     /// The stable kebab-case code ([ADR 0026] §3).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn code(&self) -> &'static str {
         self.error_code().as_str()
@@ -109,7 +109,7 @@ impl Error {
     /// The kind ([ADR 0026] §2): what the caller can do about it, from the generated
     /// [`ErrorCode`] table.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         self.error_code().kind()
@@ -117,7 +117,7 @@ impl Error {
 
     /// Where the error was found ([ADR 0026] §1.1); empty when nothing is known.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -137,7 +137,7 @@ impl Error {
     /// The code's one-sentence hint from `fixtures/codes.json` ([ADR 0026] §5), with
     /// `{limit}` filled in for `limit-exceeded`. Fixed text: never document text.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn hint(&self) -> Option<String> {
         codes::fill_hint(self.error_code().hint(), self.limit_name())
@@ -145,18 +145,18 @@ impl Error {
 
     /// The code's explain page (`docsUrl`, [ADR 0026] §6).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn docs_url(&self) -> String {
         self.error_code().docs_url()
     }
 
     /// The [ADR 0026] §1 object as a plain record of strings and numbers: what
-    /// `Serialize` writes, and what an edge maps to its own `LaminaError` (ADR 0028 F9).
+    /// `Serialize` writes, and what an edge maps to its own `LaminaPdfError` (ADR 0028 F9).
     /// Document-derived strings (a filter name, a font name, the text of an op log) appear
     /// only in [`Diagnostic::data`].
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::error(self.error_code(), self.to_string())

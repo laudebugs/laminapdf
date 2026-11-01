@@ -157,7 +157,7 @@ PDFium is a third-party binary under [ADR 0019](0019-supply-chain-and-licence-hy
 
 lamina parses for the model, and PDFium parses for pixels. They are kept consistent by rule, not by sharing state:
 
-1. **Overlays come from lamina's model and are never re-rendered by the backend until saved:** annotations being edited, form values, selections and highlights, and the page order (reorder, rotate, delete and insert are a view mapping from `LaminaId` pages to source pages).
+1. **Overlays come from lamina's model and are never re-rendered by the backend until saved:** annotations being edited, form values, selections and highlights, and the page order (reorder, rotate, delete and insert are a view mapping from `LaminaPdfId` pages to source pages).
 2. **Content edits and applied redactions change bytes.** lamina saves incrementally, and the backend reopens the result: the original `File` plus the appended revision, read by ranges.
    - **PDFium's side:** C1b measured it in milliseconds even at 500 MB, under 3 ms in Chromium and Firefox, so no partial-reload API is needed.
    - **lamina's side:** the save is the cost. An incremental save reads the whole base to hash `/ID` (about 4 s and the whole file for 500 MB opened by ranges), and Chromium runs a first large whole-output save about 10× slower until V8 tiers up. Shells run big saves as stepped save jobs (ADR 0028), and the `/ID` follow-up in C1b's README is a prerequisite for making large files editable in the web reader.

@@ -18,7 +18,7 @@ Pass the source on the first call only; later calls (from other parts of the app
 ## Example
 
 ```js
-await init(new URL("/wasm/lamina_base.wasm", location.href));
+await init(new URL("/wasm/lamina_pdf_base.wasm", location.href));
 await init(); // fine: the module is loaded
 await init(otherBytes); // throws { code: "already-initialized", … }
 ```

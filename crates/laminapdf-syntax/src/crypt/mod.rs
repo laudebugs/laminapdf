@@ -2,7 +2,7 @@
 //! password authentication for revisions 2–6 and string/stream decryption with RC4,
 //! AES-128-CBC and AES-256-CBC.
 //!
-//! **Read only.** RC4 and MD5 are broken primitives that lamina only ever *reads*: nothing here
+//! **Read only.** RC4 and MD5 are broken primitives that Lamina PDF only ever *reads*: nothing here
 //! encrypts. Writing encrypted files is full-editor E11 (AES-256 / R6 only).
 //!
 //! The file structure layer (`laminapdf-cos`) parses `/Encrypt`, fills a [`StandardSecurity`],

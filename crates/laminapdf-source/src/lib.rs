@@ -1,4 +1,4 @@
-//! Edge byte sources for lamina (ADR 0005 §2): inputs that are not one in-memory buffer.
+//! Edge byte sources for Lamina PDF (ADR 0005 §2): inputs that are not one in-memory buffer.
 //!
 //! - [`SparseSource`]: a source of known length filled range by range (HTTP `Range`, a JS
 //!   callback, a host file read on demand). Reads of bytes not supplied yet answer

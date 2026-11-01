@@ -1,7 +1,7 @@
 //! [`SaveOptions`] and [`SaveReport`] ([ADR 0007] §1, §3, §5): the mode, the explicit
 //! overrides (invalidating signatures, removing encryption) and the writers' settings.
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use std::collections::BTreeMap;
 
@@ -19,7 +19,7 @@ pub enum SaveMode {
     FullRewrite,
     /// Let the planner choose ([ADR 0007] §3): incremental unless only a full rewrite is safe.
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     #[default]
     Auto,
 }
@@ -40,7 +40,7 @@ pub enum IncrementalOutput {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum Renumber {
-    /// Keep every object's number and generation, so `LaminaId`s stay valid (ADR 0005 §5).
+    /// Keep every object's number and generation, so `LaminaPdfId`s stay valid (ADR 0005 §5).
     #[default]
     Keep,
     /// Number the written objects `1..=n` in their old order, generation 0; the report
@@ -109,7 +109,7 @@ impl SaveOptions {
 
     /// The mode to save in ([ADR 0007] §3; default [`SaveMode::Auto`]).
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     #[must_use]
     pub const fn with_mode(mut self, mode: SaveMode) -> Self {
         self.mode = mode;
@@ -122,7 +122,7 @@ impl SaveOptions {
     /// unsigned, and [`SaveReport::invalidated`] lists them. Ask the user first, naming
     /// [`SavePlan::would_invalidate`](crate::SavePlan::would_invalidate).
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     #[must_use]
     pub const fn with_invalidate_signatures(mut self, invalidate: bool) -> Self {
         self.invalidate_signatures = invalidate;

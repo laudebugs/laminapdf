@@ -50,7 +50,7 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 ### 2. One document worker per open document
 
 - **Each open document gets its own module worker**, which runs:
-  - `@laminapdf/sdk` (lamina's WebAssembly: the base module, plus `lamina_extract` when C5's text layer needs it, loaded lazily);
+  - `@laminapdf/sdk` (lamina's WebAssembly: the base module, plus `lamina_pdf_extract` when C5's text layer needs it, loaded lazily);
   - the ADR 0004 render adapter: `@laminapdf/render-pdfium` by default, `@laminapdf/render-hayro` from the debug menu.
 - **Isolation:** a hostile file can crash its own worker, never the page or another document.
 - **Single-threaded, one call at a time:** within a worker, every WebAssembly call is synchronous, so render and lamina calls are serialised by the scheduler (§3).

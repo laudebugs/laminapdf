@@ -60,7 +60,7 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - [ ] `laminapdf-extract/src/plugins/{mod,layout,ocr,raster}.rs`: traits, types, `ModelError` (`thiserror`), `ModelInfo`
 - [ ] Extend `ExtractOptions` with `layout: Option<Arc<dyn LayoutModel>>`, `ocr: Option<Arc<dyn OcrEngine>>` (façade-friendly; no generics at the boundary per ADR 0028) and the request/provide steps in `ExtractJob`
 - [ ] Integrate regions into block building, ordering, furniture and table passes; integrate OCR words as synthetic runs
-- [ ] `crates/laminapdf-layout-onnx`: crate with `[package.metadata.lamina] layer = "edge"`; Heron pre/post-processing; tests behind `#[ignore]` that need fetched weights
+- [ ] `crates/laminapdf-layout-onnx`: crate with `[package.metadata.laminapdf] layer = "edge"`; Heron pre/post-processing; tests behind `#[ignore]` that need fetched weights
 - [ ] `tools/xtask`: `models fetch`, `models check`; add `models check` to `cargo xtask check` (fast, offline); `deny.toml` updates for `ort` and its dependencies
 - [ ] Façade: re-export the traits behind the `extract` feature; `laminapdf-wasm` exposes the request/provide steps (no model runtime in wasm)
 - [ ] README and ADR 0030 updates (request/provide decision, allow-list)

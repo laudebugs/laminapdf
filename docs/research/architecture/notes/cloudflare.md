@@ -35,7 +35,7 @@ Use **Workers with static assets**, not Pages. The Pages docs now carry a banner
 - Secondary sources say that when the beta ends, Cloudflare will ship a final Wrangler major that points users to `cf`, and will maintain Wrangler for 18 months after that. They also say `cf` sends anonymous telemetry by default. — [Flavio Copes tutorial](https://flaviocopes.com/cloudflare-cf/); [omidsaffari.com guide](https://omidsaffari.com/it/blog/cloudflare-wrangler-cf-cli) (not verified against an official Cloudflare source)
 
 ### Inferences
-- **Recommended setup:** one Worker named `lamina-web`. Its `assets.directory` is the Vite `dist/`, with SPA not-found handling. `run_worker_first: ["/api/*"]` turns on the optional server features. Previews per PR come from Workers Builds. The custom domain must be a zone on Cloudflare.
+- **Recommended setup:** one Worker named `lamina-pdf-web`. Its `assets.directory` is the Vite `dist/`, with SPA not-found handling. `run_worker_first: ["/api/*"]` turns on the optional server features. Previews per PR come from Workers Builds. The custom domain must be a zone on Cloudflare.
 - Keep `wrangler.jsonc` for now. Try `cf migrate` in a branch, then switch after `cf` reaches GA. The 18-month Wrangler support window leaves plenty of runway.
 - **PDF.js / WASM:** large WASM blobs or worker bundles served as *static assets* must each be ≤25 MiB.
 

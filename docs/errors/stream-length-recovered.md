@@ -24,7 +24,7 @@ BT /F1 12 Tf 72 720 Td (Hello) Tj ET
 endstream
 ```
 
-`/Length` says 10 bytes but the data is longer. lamina finds `endstream`, uses the real length and raises the warning with the stream's `object`.
+`/Length` says 10 bytes but the data is longer. Lamina PDF finds `endstream`, uses the real length and raises the warning with the stream's `object`.
 
 ## Data fields
 

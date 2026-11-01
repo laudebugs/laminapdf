@@ -1,5 +1,5 @@
 //! `Surface::text` (todo B5b): runs with embedded and standard 14 fonts, read back through
-//! lamina's reader and `laminapdf-content`: the baseline is `y` (ADR 0027 §5), the text reads
+//! Lamina PDF's reader and `laminapdf-content`: the baseline is `y` (ADR 0027 §5), the text reads
 //! as its input, render modes, versions and refusals.
 #![allow(
     clippy::unwrap_used,

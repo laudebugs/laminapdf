@@ -1,11 +1,11 @@
 ---
 title: Error and warning codes
-description: Every code lamina raises, generated from fixtures/codes.json when the site is built.
+description: Every code Lamina PDF raises, generated from fixtures/codes.json when the site is built.
 tableOfContents: false
 ---
 
 import CodeTable from "../../../components/CodeTable.astro";
 
-Every error and warning lamina raises, in Rust, in WebAssembly and in `@laminapdf/sdk`, has one of these codes. The tables below are read from `fixtures/codes.json` when this site is built: the same file `cargo xtask gen codes` generates the Rust enums and the TypeScript unions from. Each code links to its page on this site, which explains when it happens, why, how to fix it and what its `data` holds. See [Errors and warnings](/concepts/errors-and-warnings/) for how to handle them.
+Every error and warning Lamina PDF raises, in Rust, in WebAssembly and in `@laminapdf/sdk`, has one of these codes. The tables below are read from `fixtures/codes.json` when this site is built: the same file `cargo xtask gen codes` generates the Rust enums and the TypeScript unions from. Each code links to its page on this site, which explains when it happens, why, how to fix it and what its `data` holds. See [Errors and warnings](/concepts/errors-and-warnings/) for how to handle them.
 
 <CodeTable />

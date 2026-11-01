@@ -1,4 +1,4 @@
-//! ADR 0018 tier 6 (pypdf only, B2c): lamina against pypdf over `fixtures/corpus` and its
+//! ADR 0018 tier 6 (pypdf only, B2c): Lamina PDF against pypdf over `fixtures/corpus` and its
 //! fixed-seed mutants (`common::mutants`), comparing the open/repair/fail outcome, the page
 //! count and the outline titles with the expectations pypdf produced, precomputed by
 //! `cargo xtask differential [--full] --update`. No Python is needed here.
@@ -8,8 +8,8 @@
 //! `differential/full.json`, `full-exceptions.toml`), checked by the ignored test at the end,
 //! which `cargo xtask differential --full` runs (X4).
 //!
-//! A disagreement is either a lamina bug (fix it) or a deliberate difference, listed in the
-//! set's exceptions file with the ADR 0003 rule behind lamina's answer.
+//! A disagreement is either a bug in Lamina PDF (fix it) or a deliberate difference, listed in the
+//! set's exceptions file with the ADR 0003 rule behind Lamina PDF's answer.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -100,13 +100,13 @@ fn parse_exceptions(text: &str) -> Result<BTreeSet<(String, String)>, String> {
 struct Report {
     /// Inputs without facts, and facts for files that aren't inputs.
     coverage: Vec<String>,
-    /// Facts on which lamina and pypdf disagree and no exception excuses.
+    /// Facts on which Lamina PDF and pypdf disagree and no exception excuses.
     failures: Vec<String>,
-    /// Exceptions lamina no longer needs, or for files that aren't inputs.
+    /// Exceptions Lamina PDF no longer needs, or for files that aren't inputs.
     stale: Vec<String>,
 }
 
-/// Compares lamina with `fixtures/<expected>` over `inputs`, excusing what
+/// Compares Lamina PDF with `fixtures/<expected>` over `inputs`, excusing what
 /// `fixtures/<exceptions>` lists. One pass: each input is opened once.
 fn compare(expected: &str, exceptions: &str, inputs: &[(String, Vec<u8>)]) -> Report {
     let facts = json(expected);

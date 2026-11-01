@@ -13,7 +13,7 @@ The PDF/UA-1 standard for accessible PDF (ISO 14289-1) and the PDF/A-2 and PDF/A
 
 ## How to fix
 
-Leave the version at its default, 1.7 (or choose a lower one: the builder raises it to what the content needs). PDF 2.0 has its own profiles, PDF/A-4 and PDF/UA-2, which lamina doesn't write yet.
+Leave the version at its default, 1.7 (or choose a lower one: the builder raises it to what the content needs). PDF 2.0 has its own profiles, PDF/A-4 and PDF/UA-2, which Lamina PDF doesn't write yet.
 
 ## Example
 

@@ -115,12 +115,12 @@ export class Image {
     return new Image({ kind: "rgba", width, height, bytes: pixels.slice() });
   }
 
-  /** Width in pixels (decodes the image if no module has yet). @throws {@link LaminaError} as `in`. */
+  /** Width in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`. */
   get width(): number {
     return this.#any().width;
   }
 
-  /** Height in pixels (decodes the image if no module has yet). @throws {@link LaminaError} as `in`. */
+  /** Height in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`. */
   get height(): number {
     return this.#any().height;
   }
@@ -138,7 +138,7 @@ export class Image {
 
   /**
    * @internal The image in `glue`'s instance, decoded there at first use.
-   * @throws {@link LaminaError} `invalid-image`, `unsupported-image`, `image-too-large`, `image-data-length`.
+   * @throws {@link LaminaPdfError} `invalid-image`, `unsupported-image`, `image-too-large`, `image-data-length`.
    */
   in(glue: BaseGlue | TextGlue): WasmImage {
     let image = this.#decoded.get(glue);

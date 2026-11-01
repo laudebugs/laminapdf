@@ -5,7 +5,7 @@
 
 ## What happened
 
-The document was saved to a sink lamina can't read back, and it waits for `rebase`: ops, undo, redo and saves are refused until then.
+The document was saved to a sink Lamina PDF can't read back, and it waits for `rebase`: ops, undo, redo and saves are refused until then.
 
 ## Why
 

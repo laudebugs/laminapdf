@@ -282,7 +282,7 @@ jobs:
       - name: Round trip (lamina, qpdf, pdf.js, PDFium)
         if: ${{ !cancelled() }}
         env:
-          LAMINA_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
         run: cargo xtask roundtrip
       - name: Examples (goldens, qpdf)
         if: ${{ !cancelled() }}
@@ -290,7 +290,7 @@ jobs:
       - name: Render goldens (PDFium and hayro)
         if: ${{ !cancelled() }}
         env:
-          LAMINA_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
         run: cargo xtask render-golden
       - name: Upload the round-trip outputs
         if: failure()

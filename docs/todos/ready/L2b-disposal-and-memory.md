@@ -41,13 +41,13 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
   - `free()`/`close()` stay as aliases. Disposing twice is a no-op.
   - Children (a `Page` of a disposed `Document`) become disposed too.
   - Lookup is `Symbol.dispose ?? Symbol.for("Symbol.dispose")`, so runtimes without the symbol still work; the library does not assign to globals (`sideEffects: false`).
-- **`disposed` code.** Any method on a disposed handle throws `LaminaError` with code `disposed`. [L1b](../done/L1b-error-contract-codegen.md) adds the code and the `LaminaError` class; this todo uses them.
+- **`disposed` code.** Any method on a disposed handle throws `LaminaPdfError` with code `disposed`. [L1b](../done/L1b-error-contract-codegen.md) adds the code and the `LaminaPdfError` class; this todo uses them.
 - **FinalizationRegistry backstop.** Keep wasm-bindgen's registry. Register TS wrapper handles too, so a forgotten handle is freed eventually. An opt-in debug hook (`onLeak`) reports handles collected without dispose.
 - **Capped wasm memory.** Add `-C link-arg=--max-memory=<bytes>` for `laminapdf-wasm` in the `cargo xtask wasm` build (value set in ADR 0016 or this PR; recommendation: 2 GiB, the safe cross-browser wasm32 ceiling, to verify). Document it in ADR 0016 if it has merged. Growth past the cap traps. The wrapper below turns the trap into a coded error (`out-of-memory`).
 - **`reset()`.** A module-level `reset()` drops the instance and re-runs `init()` from the cached `WebAssembly.Module`. Every live handle becomes disposed. Memory returns to the fresh-instance size.
 - **Abort-and-reinstantiate wrapper.** Every call into the glue goes through one guard. On a `WebAssembly.RuntimeError` it:
   1. marks the instance poisoned;
-  2. rethrows as `LaminaError` (`wasm-trap` or `out-of-memory`);
+  2. rethrows as `LaminaPdfError` (`wasm-trap` or `out-of-memory`);
   3. lets the next call reinstantiate.
 
   Handles from the poisoned instance throw `instance-reset` (or `disposed`; decide in the PR). Optional recovery: `Document.open(bytes, { recoverable: true })` keeps the input so `doc.reopen()` can rebuild it.
@@ -79,11 +79,11 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
 ## Acceptance criteria
 
 - [ ] Every exported wasm-backed class has `[Symbol.dispose]` (a test iterates the inventory); `using doc = Document.open(bytes)` compiles and frees at scope end
-- [ ] Each method of a disposed `Document`, and of a `Page` from it, throws `LaminaError` with code `disposed` (no `null pointer passed to rust` or other glue errors)
+- [ ] Each method of a disposed `Document`, and of a `Page` from it, throws `LaminaPdfError` with code `disposed` (no `null pointer passed to rust` or other glue errors)
 - [ ] Memory baseline:
   - Open, read every page and dispose a corpus file 1,000 times in a loop. After the first iteration, `WebAssembly.Memory.buffer.byteLength` stays within the post-warm-up size plus one 64 KiB page.
   - With every handle disposed, the leak hook reports none.
-- [ ] `__grow` past the cap throws `LaminaError` with code `out-of-memory`. The next `Document.open` succeeds on a fresh instance. Handles from before the trap throw the decided code
+- [ ] `__grow` past the cap throws `LaminaPdfError` with code `out-of-memory`. The next `Document.open` succeeds on a fresh instance. Handles from before the trap throw the decided code
 - [ ] `__trap()` gives the same recovery with code `wasm-trap`
 - [ ] `reset()` returns `byteLength` to the fresh-instance size after a large open; old handles throw
 - [ ] The release `.wasm` exports no test hooks; JS glue + API size stays within ADR 0016's budget

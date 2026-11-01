@@ -2,7 +2,7 @@
 //! refers to it and writes the subsets at [`FontRegistry::finish_fonts`] ([ADR 0005] §6:
 //! reserve, then fill).
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 
 pub(crate) mod subset;
 

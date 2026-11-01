@@ -64,10 +64,10 @@ pub fn skipped(backend: &str) -> BTreeMap<String, String> {
         .unwrap_or_default()
 }
 
-/// PDFium, bound from `LAMINA_PDFIUM_DIR` (`cargo xtask fetch-pdfium`).
+/// PDFium, bound from `LAMINA_PDF_PDFIUM_DIR` (`cargo xtask fetch-pdfium`).
 pub fn pdfium() -> PdfiumBackend {
     PdfiumBackend::from_env().unwrap_or_else(|e| {
-        panic!("{e}: run `cargo xtask fetch-pdfium` and set LAMINA_PDFIUM_DIR (or use cargo xtask render-golden)")
+        panic!("{e}: run `cargo xtask fetch-pdfium` and set LAMINA_PDF_PDFIUM_DIR (or use cargo xtask render-golden)")
     })
 }
 

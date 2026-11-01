@@ -1,6 +1,6 @@
 # fuzz
 
-cargo-fuzz targets for lamina's parsers and readers ([ADR 0018](../docs/decisions/0018-test-strategy.md) tier 9), in the layout OSS-Fuzz expects for Rust (`fuzz/Cargo.toml`, `fuzz/fuzz_targets/<name>.rs`). This folder is its own Cargo workspace, excluded from the root one (`exclude = ["spikes", "fuzz"]`; `cargo xtask portability` checks it), because libFuzzer needs nightly Rust. The root `rust-toolchain.toml` pin does not apply: every command here runs as `cargo +nightly …`.
+cargo-fuzz targets for Lamina PDF's parsers and readers ([ADR 0018](../docs/decisions/0018-test-strategy.md) tier 9), in the layout OSS-Fuzz expects for Rust (`fuzz/Cargo.toml`, `fuzz/fuzz_targets/<name>.rs`). This folder is its own Cargo workspace, excluded from the root one (`exclude = ["spikes", "fuzz"]`; `cargo xtask portability` checks it), because libFuzzer needs nightly Rust. The root `rust-toolchain.toml` pin does not apply: every command here runs as `cargo +nightly …`.
 
 | Target | Drives | Seeds |
 | --- | --- | --- |

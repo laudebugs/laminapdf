@@ -2,7 +2,7 @@
 // error as JSON for a name the standard font can't draw), `/report` the 100-page report with two
 // embedded fonts (examples/report.ts). The fonts are this repository's fixtures; in your own
 // Worker, bundle your font files the same way (wrangler.toml `rules`).
-import { Builder, Font, init, isLaminaError, type LaminaError } from "@laminapdf/sdk";
+import { Builder, Font, init, isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import notoSans from "../../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansSC from "../../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import { report } from "../../report.js";
@@ -42,8 +42,8 @@ const pdf = (bytes: Uint8Array): Response =>
   new Response(bytes as Uint8Array<ArrayBuffer>, { headers: { "content-type": "application/pdf" } });
 
 /** Whether `e` is an error the name caused (see the `/` route). */
-function isNameError(e: unknown): e is LaminaError {
-  return isLaminaError(e) && (e.kind === "input" || e.kind === "limit");
+function isNameError(e: unknown): e is LaminaPdfError {
+  return isLaminaPdfError(e) && (e.kind === "input" || e.kind === "limit");
 }
 
 /** A 400 with the error's ADR 0026 object as JSON. */

@@ -164,7 +164,7 @@ jobs:
             process.stdout.write(upload?.preview_alias_url ?? upload?.preview_url ?? "");
           ' "$WRANGLER_OUTPUT_FILE_PATH")
           if [ -z "$url" ]; then
-            echo "::error::wrangler printed no preview URL (is preview_urls on for the lamina-docs Worker?)"
+            echo "::error::wrangler printed no preview URL (is preview_urls on for the lamina-pdf-docs Worker?)"
             exit 1
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
@@ -178,7 +178,7 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha }}
           URL: ${{ steps.preview.outputs.url }}
         run: |
-          marker="<!-- lamina-docs-preview -->"
+          marker="<!-- lamina-pdf-docs-preview -->"
           body=$(printf '%s\n**Docs preview:** %s\n\nBuilt from %s. Updated on every push to this PR.' "$marker" "$URL" "$SHA")
           id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
             --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)

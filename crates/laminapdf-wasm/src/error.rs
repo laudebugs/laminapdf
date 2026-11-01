@@ -1,5 +1,5 @@
 //! Errors across the boundary: always the [ADR 0026] §1 object (a plain JS object, never a
-//! string), which `@laminapdf/sdk` turns into its `LaminaError` (ADR 0026 §7).
+//! string), which `@laminapdf/sdk` turns into its `LaminaPdfError` (ADR 0026 §7).
 //!
 //! Core errors are [`laminapdf::Error::diagnostic`] as it is. The binding adds the codes only it
 //! can raise (listed under `bindingErrors` in `fixtures/codes.json`): `invalid-argument` (a
@@ -9,7 +9,7 @@
 //! budget). Their kind, hint and `docsUrl` come from the façade's generated
 //! [`laminapdf::ErrorCode`] table, like every other code's.
 //!
-//! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+//! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
 use serde_json::{Map, Value, json};
 use wasm_bindgen::JsValue;
@@ -28,7 +28,7 @@ pub(crate) fn lamina_error(e: &laminapdf::Error) -> JsValue {
 
 /// `data` of a binding error.
 struct BindingData {
-    /// The parameter that was wrong (lamina's own vocabulary).
+    /// The parameter that was wrong (Lamina PDF's own vocabulary).
     argument: &'static str,
     /// The key given (**untrusted**: caller text), for `unknown-option`.
     option: Option<String>,
@@ -91,7 +91,7 @@ pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_m
 }
 
 /// `source-budget-exceeded`: a sparse source would hold more than its budget (`detail` says how
-/// much; lamina's own numbers).
+/// much; Lamina PDF's own numbers).
 pub(crate) fn source_budget_exceeded(detail: String) -> JsValue {
     binding(
         ErrorCode::SourceBudgetExceeded,

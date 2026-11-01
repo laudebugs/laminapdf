@@ -1,7 +1,7 @@
 //! Glyph names to Unicode: the Adobe Glyph List (AGL 2.0) and the ITC Zapf Dingbats Glyph
 //! List, with the AGL specification's algorithm for the names they don't list (`uni20AC`,
 //! `u1F600`, `f_f_i`, `a.sc`). Text extraction uses it for simple fonts without a ToUnicode
-//! CMap (ISO 32000-2 §9.10.2); lamina's simple-font writer uses the same lists in reverse.
+//! CMap (ISO 32000-2 §9.10.2); Lamina PDF's simple-font writer uses the same lists in reverse.
 //!
 //! ```
 //! use laminapdf_text::agl;

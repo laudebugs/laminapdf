@@ -21,7 +21,7 @@ Nothing to do.
 8 0 obj << /Subtype /Form /Resources << /XObject << /Me 8 0 R >> >> >> stream /Me Do endstream
 ```
 
-The form draws itself: the inner `/Me Do` is skipped once lamina sees form 8 a second time.
+The form draws itself: the inner `/Me Do` is skipped once Lamina PDF sees form 8 a second time.
 
 ## Data fields
 

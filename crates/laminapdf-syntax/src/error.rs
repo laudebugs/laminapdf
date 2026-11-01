@@ -93,7 +93,7 @@ impl Error {
     /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
     /// [`Error::code`] (a test checks every variant).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {

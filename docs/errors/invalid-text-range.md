@@ -13,7 +13,7 @@ Ranges are byte offsets into UTF-8 text; a range that cuts a character in two (o
 
 ## How to fix
 
-Take ranges from lamina's own results (`line_breaks`, `itemize`, `break_lines`, `ShapedRun::text_range`), or check them with `str::get` first, and pass the same text the range was computed on.
+Take ranges from Lamina PDF's own results (`line_breaks`, `itemize`, `break_lines`, `ShapedRun::text_range`), or check them with `str::get` first, and pass the same text the range was computed on.
 
 ## Example
 

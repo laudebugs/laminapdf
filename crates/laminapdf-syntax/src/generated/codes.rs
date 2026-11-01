@@ -12,7 +12,7 @@
 use crate::ErrorKind;
 
 /// The base of every `docsUrl` (ADR 0026 §6): `DOCS_URL_BASE` + code + `DOCS_URL_SUFFIX`.
-pub const DOCS_URL_BASE: &str = "https://github.com/laudebugs/lamina/blob/main/docs/errors/";
+pub const DOCS_URL_BASE: &str = "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/";
 
 /// The suffix of every `docsUrl` (ADR 0026 §6).
 pub const DOCS_URL_SUFFIX: &str = ".md";
@@ -50,13 +50,13 @@ pub enum ErrorCode {
     PasswordRequired,
     /// `wrong-password`: the given password is neither the user nor the owner password.
     WrongPassword,
-    /// `unsupported-security-handler`: the document uses a security handler lamina cannot decrypt.
+    /// `unsupported-security-handler`: the document uses a security handler Lamina PDF cannot decrypt.
     UnsupportedSecurityHandler,
     /// `unexpected-eof`: the input ended before a complete token or object was read.
     UnexpectedEof,
     /// `syntax`: a token or structure did not match the PDF grammar.
     Syntax,
-    /// `unsupported-filter`: a stream uses a filter lamina does not implement.
+    /// `unsupported-filter`: a stream uses a filter Lamina PDF does not implement.
     UnsupportedFilter,
     /// `decompress`: compressed stream data was corrupt.
     Decompress,
@@ -72,7 +72,7 @@ pub enum ErrorCode {
     UnsupportedVersion,
     /// `invalid-op-log`: an op log does not parse: an unknown op or field, a bad value, or not JSON.
     InvalidOpLog,
-    /// `saved-not-rebased`: the document was saved to a sink lamina cannot read back and waits for rebase.
+    /// `saved-not-rebased`: the document was saved to a sink Lamina PDF cannot read back and waits for rebase.
     SavedNotRebased,
     /// `no-pending-save`: rebase was called without a save waiting for it.
     NoPendingSave,
@@ -120,7 +120,7 @@ pub enum ErrorCode {
     FontNotShapable,
     /// `invalid-image`: image bytes are not a readable image of the format they were given as.
     InvalidImage,
-    /// `unsupported-image`: the image uses a feature that PDF or lamina does not support.
+    /// `unsupported-image`: the image uses a feature that PDF or Lamina PDF does not support.
     UnsupportedImage,
     /// `image-too-large`: the image needs more memory than the builder allows (a decoded PNG over 256 MiB, or raw dimensions whose size overflows).
     ImageTooLarge,
@@ -190,7 +190,7 @@ pub enum ErrorCode {
     InvalidArgument,
     /// `source-budget-exceeded`: a sparse source was given more bytes than its byte budget allows.
     SourceBudgetExceeded,
-    /// `unknown-option`: an options record passed to a binding has a key lamina does not know.
+    /// `unknown-option`: an options record passed to a binding has a key Lamina PDF does not know.
     UnknownOption,
 }
 
@@ -579,10 +579,10 @@ impl ErrorCode {
             Self::EncryptedBase => "a save of an encrypted document was requested",
             Self::PasswordRequired => "the document is encrypted with a user password and none was given",
             Self::WrongPassword => "the given password is neither the user nor the owner password",
-            Self::UnsupportedSecurityHandler => "the document uses a security handler lamina cannot decrypt",
+            Self::UnsupportedSecurityHandler => "the document uses a security handler Lamina PDF cannot decrypt",
             Self::UnexpectedEof => "the input ended before a complete token or object was read",
             Self::Syntax => "a token or structure did not match the PDF grammar",
-            Self::UnsupportedFilter => "a stream uses a filter lamina does not implement",
+            Self::UnsupportedFilter => "a stream uses a filter Lamina PDF does not implement",
             Self::Decompress => "compressed stream data was corrupt",
             Self::NestedTransaction => "a transaction was started, or undo or redo called, while one is open",
             Self::NoTransaction => "apply, commit or rollback was called without an open transaction",
@@ -590,7 +590,7 @@ impl ErrorCode {
             Self::DirectPage => "the page is a direct dictionary, which ops cannot edit yet",
             Self::UnsupportedVersion => "an op log has a schema version this reader does not know",
             Self::InvalidOpLog => "an op log does not parse: an unknown op or field, a bad value, or not JSON",
-            Self::SavedNotRebased => "the document was saved to a sink lamina cannot read back and waits for rebase",
+            Self::SavedNotRebased => "the document was saved to a sink Lamina PDF cannot read back and waits for rebase",
             Self::NoPendingSave => "rebase was called without a save waiting for it",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
@@ -614,7 +614,7 @@ impl ErrorCode {
             Self::EncodingFull => "a standard 14 font has no free one-byte code left for another glyph",
             Self::FontNotShapable => "a standard 14 font was given to shaping or layout, which need a font program",
             Self::InvalidImage => "image bytes are not a readable image of the format they were given as",
-            Self::UnsupportedImage => "the image uses a feature that PDF or lamina does not support",
+            Self::UnsupportedImage => "the image uses a feature that PDF or Lamina PDF does not support",
             Self::ImageTooLarge => "the image needs more memory than the builder allows (a decoded PNG over 256 MiB, or raw dimensions whose size overflows)",
             Self::ImageDataLength => "raw image samples are not width x height x channels bytes long",
             Self::InvalidIccProfile => "the bytes are not a usable ICC profile",
@@ -649,7 +649,7 @@ impl ErrorCode {
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
             Self::SourceBudgetExceeded => "a sparse source was given more bytes than its byte budget allows",
-            Self::UnknownOption => "an options record passed to a binding has a key lamina does not know",
+            Self::UnknownOption => "an options record passed to a binding has a key Lamina PDF does not know",
         }
     }
 
@@ -666,7 +666,7 @@ impl ErrorCode {
             Self::Source => "retry the call, or check the source; the document stays usable",
             Self::Type => "use another copy of the file, or repair it with another tool",
             Self::InvalidStructure => "use another copy of the file, or repair it with another tool",
-            Self::UnsetObject => "this is a lamina bug: report it with the steps that led to it",
+            Self::UnsetObject => "this is a bug in Lamina PDF: report it with the steps that led to it",
             Self::RepairedBase => "save with a full rewrite instead of an incremental update",
             Self::EncryptedBase => "saving encrypted documents is not supported yet; use another tool to decrypt or re-encrypt",
             Self::PasswordRequired => "pass the document's password in OpenOptions",
@@ -680,7 +680,7 @@ impl ErrorCode {
             Self::NoTransaction => "call begin first, or use transact",
             Self::UnknownPage => "use a PageId from this document's pages()",
             Self::DirectPage => "rewrite the file so that every page is an indirect object, or wait for page-structure ops",
-            Self::UnsupportedVersion => "upgrade lamina to a version that reads this op log version",
+            Self::UnsupportedVersion => "upgrade Lamina PDF to a version that reads this op log version",
             Self::InvalidOpLog => "validate the op log against the op schema; the samples in fixtures/ops show the format",
             Self::SavedNotRebased => "call rebase with the saved bytes before applying ops or saving again",
             Self::NoPendingSave => "call rebase only after a save that returned SavedNotRebased",
@@ -700,7 +700,7 @@ impl ErrorCode {
             Self::InvalidAxisValue => "pass finite axis values; values outside the axis range are clamped",
             Self::WrongDocument => "use one FontRegistry per document and finish it with that document",
             Self::InvalidFeature => "write it as liga=0, -liga, smcp or aalt=2 (HarfBuzz syntax without ranges)",
-            Self::InvalidTextRange => "take ranges from lamina's results (line_breaks, itemize, break_lines) and pass the same text",
+            Self::InvalidTextRange => "take ranges from Lamina PDF's results (line_breaks, itemize, break_lines) and pass the same text",
             Self::UnsupportedLayoutOption => "leave the option at its default; justification comes with a later release",
             Self::FontMismatch => "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
             Self::EncodingFull => "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",
@@ -717,7 +717,7 @@ impl ErrorCode {
             Self::PageIndexOutOfRange => "use a 0-based index below the document's page count",
             Self::UnknownDestination => "define it with Builder::destination before the build finishes, or link to a page",
             Self::InvalidPageLabels => "give ranges sorted by first page, the first at page 0, numbered from 1",
-            Self::ProfileVersionConflict => "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which lamina doesn't write yet",
+            Self::ProfileVersionConflict => "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which Lamina PDF doesn't write yet",
             Self::MissingTitle => "set a title with Builder::metadata (Metadata::with_title)",
             Self::MissingLang => "set the language with Builder::lang, such as \"en-GB\"",
             Self::MissingAltText => "give the figure or formula a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
@@ -734,7 +734,7 @@ impl ErrorCode {
             Self::EmbeddedFileWithoutMimeType => "pass the file's MIME type, such as text/xml or application/octet-stream",
             Self::RenderTooLarge => "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
             Self::RenderFailed => "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
-            Self::RenderBackendUnavailable => "run cargo xtask fetch-pdfium or set LAMINA_PDFIUM_DIR to the folder holding the PDFium library",
+            Self::RenderBackendUnavailable => "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
             Self::Cancelled => "nothing to do: this is the outcome the caller asked for; start a new job to try again",
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
@@ -820,7 +820,7 @@ pub enum WarningCode {
     ContentPathUnpainted,
     /// `font-invalid`: a font dictionary has a missing or malformed entry, so its text was decoded with defaults.
     FontInvalid,
-    /// `cmap-invalid`: a font's CMap or ToUnicode CMap is malformed or names a predefined CMap lamina has no table for.
+    /// `cmap-invalid`: a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for.
     CmapInvalid,
     /// `unmapped-glyph`: a font shows glyphs that nothing maps to text.
     UnmappedGlyph,
@@ -1037,7 +1037,7 @@ impl WarningCode {
             Self::XobjectCycle => "a Form XObject draws itself, directly or through other forms",
             Self::ContentPathUnpainted => "a content stream ended with a path no painting operator ended",
             Self::FontInvalid => "a font dictionary has a missing or malformed entry, so its text was decoded with defaults",
-            Self::CmapInvalid => "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap lamina has no table for",
+            Self::CmapInvalid => "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for",
             Self::UnmappedGlyph => "a font shows glyphs that nothing maps to text",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
@@ -1054,7 +1054,7 @@ impl WarningCode {
             Self::StreamLengthRecovered => "nothing to do; a full rewrite writes the correct length",
             Self::StaleGeneration => "nothing to do; the reference is treated as missing",
             Self::PageTreeNodeSkipped => "check the page count: pages under the skipped node are missing",
-            Self::PageCountMismatch => "nothing to do; lamina uses the walked page count",
+            Self::PageCountMismatch => "nothing to do; Lamina PDF uses the walked page count",
             Self::FlateTruncated => "check the affected content: the end of the stream may be missing",
             Self::ObjstmIndexMismatch => "nothing to do; a full rewrite writes a correct index",
             Self::ObjectNumberOutOfRange => "raise max_object_number in Limits only if you trust the input",

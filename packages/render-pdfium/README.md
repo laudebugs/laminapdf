@@ -1,6 +1,6 @@
 # @laminapdf/render-pdfium
 
-lamina's default web renderer: PDFium as WebAssembly behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. It runs only inside the viewer's document Web Worker. It is private, and `@laminapdf/sdk` never depends on it.
+Lamina PDF's default web renderer: PDFium as WebAssembly behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. It runs only inside the viewer's document Web Worker. It is private, and `@laminapdf/sdk` never depends on it.
 
 ```ts
 import wasmUrl from "@embedpdf/pdfium/pdfium.wasm?url";

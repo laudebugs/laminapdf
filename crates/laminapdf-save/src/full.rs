@@ -1,7 +1,7 @@
 //! The full-rewrite writer ([ADR 0007] §5): a new file holding only what the trailer
 //! reaches.
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

@@ -1,6 +1,6 @@
 //! [`SaveConstraint`] ([ADR 0007] §2): every condition that restricts a save, not one of them.
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use laminapdf_cos::ObjRef;
 use laminapdf_model::FieldId;
@@ -195,7 +195,7 @@ impl Violation {
 
 /// What [`SaveConstraint::kind`] says, for the UI's banner ([ADR 0007] §2).
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ConstraintKind {
@@ -212,7 +212,7 @@ pub enum ConstraintKind {
 /// Everything that restricts a save ([ADR 0007] §2): the conditions overlap, so all of them
 /// are reported. [`SavePlanner`](crate::SavePlanner) fills it from the base and the overlay.
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct SaveConstraint {

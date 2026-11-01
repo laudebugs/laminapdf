@@ -24,7 +24,7 @@ pub enum ImageFormat {
 /// string) is in the variant's fields, never in its `Display`. Kinds and pages:
 /// `docs/errors/<code>.md`.
 ///
-/// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+/// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -36,7 +36,7 @@ pub enum Error {
         /// What is wrong (fixed text).
         reason: &'static str,
     },
-    /// A valid image using a feature PDF or lamina does not support (an arithmetic-coded or
+    /// A valid image using a feature PDF or Lamina PDF does not support (an arithmetic-coded or
     /// lossless JPEG, a 12-bit JPEG, an unusual number of components).
     #[error("{format:?} image uses an unsupported feature: {feature}")]
     UnsupportedImage {
@@ -221,7 +221,7 @@ pub enum Error {
         page: u32,
     },
     /// An attached file under PDF/A-2, which only allows embedded files that are themselves
-    /// PDF/A (lamina can't check that): use PDF/A-3b.
+    /// PDF/A (Lamina PDF can't check that): use PDF/A-3b.
     #[error("{} doesn't allow attached files; PDF/A-3b does", .profile.as_str())]
     EmbeddedFileForbidden {
         /// The profile.
@@ -319,7 +319,7 @@ impl Error {
     /// [`Error::code`] (a test checks every variant). COS errors report
     /// [`laminapdf_cos::Error::kind`].
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {

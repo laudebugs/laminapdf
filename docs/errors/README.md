@@ -1,13 +1,13 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `lamina explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `laminapdf explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
 
 A PR that adds a code adds:
 
 - its entry in `codes.json` (`code`, `kind`, `summary`, `hint`, `since`; the file's schema is [`fixtures/codes.schema.json`](../../fixtures/codes.schema.json)): the summary is one lowercase sentence saying what happened, the hint one sentence saying what to do, neither with document text nor a trailing period (ADR 0026 §4, §5);
 - the arm in its type's `code()` and `kind()` (the core crates' `kind()` is an exhaustive match, checked against `codes.json` by that crate's tests);
 - its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`; *Data fields* lists the `data` keys, marking the ones that can carry document or caller text *untrusted*. The page is written for readers of the docs site: ADR numbers, todo IDs and CI go in an optional last section, *For contributors*, which the site leaves out (`apps/docs/plugins/error-pages.mjs`) and `cargo xtask check docs-prose` skips;
-- the output of `cargo xtask gen codes`, which regenerates the façade's `ErrorCode`/`WarningCode`, `@laminapdf/sdk`'s unions, tables and explain text, the `lamina.error/1` schema and the tables below. `cargo xtask check docs` fails, naming the file, when any of them is stale.
+- the output of `cargo xtask gen codes`, which regenerates the façade's `ErrorCode`/`WarningCode`, `@laminapdf/sdk`'s unions, tables and explain text, the `laminapdf.error/1` schema and the tables below. `cargo xtask check docs` fails, naming the file, when any of them is stale.
 
 `crates/laminapdf-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code.
 
@@ -49,7 +49,7 @@ A PR that adds a code adds:
 | [`xobject-cycle`](xobject-cycle.md) | `input` | a Form XObject draws itself, directly or through other forms |
 | [`content-path-unpainted`](content-path-unpainted.md) | `input` | a content stream ended with a path no painting operator ended |
 | [`font-invalid`](font-invalid.md) | `input` | a font dictionary has a missing or malformed entry, so its text was decoded with defaults |
-| [`cmap-invalid`](cmap-invalid.md) | `input` | a font's CMap or ToUnicode CMap is malformed or names a predefined CMap lamina has no table for |
+| [`cmap-invalid`](cmap-invalid.md) | `input` | a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for |
 | [`unmapped-glyph`](unmapped-glyph.md) | `input` | a font shows glyphs that nothing maps to text |
 
 ## Errors
@@ -70,10 +70,10 @@ A PR that adds a code adds:
 | [`encrypted-base`](encrypted-base.md) | `unsupported` | a save of an encrypted document was requested |
 | [`password-required`](password-required.md) | `security` | the document is encrypted with a user password and none was given |
 | [`wrong-password`](wrong-password.md) | `security` | the given password is neither the user nor the owner password |
-| [`unsupported-security-handler`](unsupported-security-handler.md) | `unsupported` | the document uses a security handler lamina cannot decrypt |
+| [`unsupported-security-handler`](unsupported-security-handler.md) | `unsupported` | the document uses a security handler Lamina PDF cannot decrypt |
 | [`unexpected-eof`](unexpected-eof.md) | `input` | the input ended before a complete token or object was read |
 | [`syntax`](syntax.md) | `input` | a token or structure did not match the PDF grammar |
-| [`unsupported-filter`](unsupported-filter.md) | `unsupported` | a stream uses a filter lamina does not implement |
+| [`unsupported-filter`](unsupported-filter.md) | `unsupported` | a stream uses a filter Lamina PDF does not implement |
 | [`decompress`](decompress.md) | `input` | compressed stream data was corrupt |
 
 ## Op errors
@@ -86,7 +86,7 @@ A PR that adds a code adds:
 | [`direct-page`](direct-page.md) | `unsupported` | the page is a direct dictionary, which ops cannot edit yet |
 | [`unsupported-version`](unsupported-version.md) | `unsupported` | an op log has a schema version this reader does not know |
 | [`invalid-op-log`](invalid-op-log.md) | `input` | an op log does not parse: an unknown op or field, a bad value, or not JSON |
-| [`saved-not-rebased`](saved-not-rebased.md) | `state` | the document was saved to a sink lamina cannot read back and waits for rebase |
+| [`saved-not-rebased`](saved-not-rebased.md) | `state` | the document was saved to a sink Lamina PDF cannot read back and waits for rebase |
 | [`no-pending-save`](no-pending-save.md) | `state` | rebase was called without a save waiting for it |
 
 ## Save errors
@@ -132,7 +132,7 @@ A PR that adds a code adds:
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`invalid-image`](invalid-image.md) | `input` | image bytes are not a readable image of the format they were given as |
-| [`unsupported-image`](unsupported-image.md) | `unsupported` | the image uses a feature that PDF or lamina does not support |
+| [`unsupported-image`](unsupported-image.md) | `unsupported` | the image uses a feature that PDF or Lamina PDF does not support |
 | [`image-too-large`](image-too-large.md) | `limit` | the image needs more memory than the builder allows (a decoded PNG over 256 MiB, or raw dimensions whose size overflows) |
 | [`image-data-length`](image-data-length.md) | `usage` | raw image samples are not width x height x channels bytes long |
 | [`invalid-icc-profile`](invalid-icc-profile.md) | `input` | the bytes are not a usable ICC profile |
@@ -182,7 +182,7 @@ A PR that adds a code adds:
 | [`builder-finished`](builder-finished.md) | `state` | a builder or one of its pages was used after it finished |
 | [`invalid-argument`](invalid-argument.md) | `usage` | a value passed to a binding does not have the shape its type declares |
 | [`source-budget-exceeded`](source-budget-exceeded.md) | `limit` | a sparse source was given more bytes than its byte budget allows |
-| [`unknown-option`](unknown-option.md) | `usage` | an options record passed to a binding has a key lamina does not know |
+| [`unknown-option`](unknown-option.md) | `usage` | an options record passed to a binding has a key Lamina PDF does not know |
 
 ## Package errors (`@laminapdf/sdk`)
 
@@ -196,5 +196,5 @@ A PR that adds a code adds:
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` | a font or text call was made on a builder of the base module, which has no fonts or text |
 | [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`worker-version-mismatch`](worker-version-mismatch.md) | `usage` | the worker answered with a different protocol or package version than the client |
-| [`worker-crashed`](worker-crashed.md) | `internal` | the worker running lamina stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |
-| [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't lamina's (a bug in @laminapdf/sdk/worker, or a result it couldn't send) |
+| [`worker-crashed`](worker-crashed.md) | `internal` | the worker running Lamina PDF stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |
+| [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't Lamina PDF's (a bug in @laminapdf/sdk/worker, or a result it couldn't send) |

@@ -1,4 +1,4 @@
-//! Writes the lamina half of the round-trip suite (`tests/common/roundtrip.rs`) to
+//! Writes the Lamina PDF half of the round-trip suite (`tests/common/roundtrip.rs`) to
 //! `<out-dir>`: every saved output and `manifest.json`, which `cargo xtask roundtrip` then
 //! checks with qpdf, pdf.js and `PDFium`. Fails when a case's outcome or reopened facts were
 //! wrong.

@@ -1,5 +1,5 @@
 // Builder, Page and Surface in the base module: drawing, errors, and freeing in a loop.
-import { Builder, Document, Image, init, isLaminaError, Matrix, wasmMemory } from "@laminapdf/sdk";
+import { Builder, Document, Image, init, isLaminaPdfError, Matrix, wasmMemory } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { thrown } from "./helpers.js";
 
@@ -48,30 +48,30 @@ describe("Builder", () => {
       .path((p) => p.rect([0, 0, Number.NaN, 1]))
       .fill();
     expect(
-      isLaminaError(
+      isLaminaPdfError(
         thrown(() => page.finish()),
         "invalid-geometry",
       ),
     ).toBe(true);
   });
 
-  it("reports a bad user unit as a LaminaError", () => {
+  it("reports a bad user unit as a LaminaPdfError", () => {
     const page = new Builder().page("A6");
     const e = thrown(() => page.userUnit(Number.NaN).finish());
-    expect(isLaminaError(e)).toBe(true);
+    expect(isLaminaPdfError(e)).toBe(true);
   });
 
   it("refuses an unknown blend mode with suggestions", () => {
     const surface = new Builder().page("A6").surface();
     const e = thrown(() => surface.blendMode("multiplly" as never));
-    expect(isLaminaError(e, "invalid-argument") && e.didYouMean).toEqual(["multiply"]);
+    expect(isLaminaPdfError(e, "invalid-argument") && e.didYouMean).toEqual(["multiply"]);
   });
 
   it("refuses drawing on a finished page (builder-finished)", () => {
     const page = new Builder().page("A6");
     page.finish();
     expect(
-      isLaminaError(
+      isLaminaPdfError(
         thrown(() => page.surface().save()),
         "builder-finished",
       ),
@@ -81,7 +81,7 @@ describe("Builder", () => {
   it("reports an RGBA image of the wrong length when it is first decoded", () => {
     const image = Image.rgba(2, 2, new Uint8Array(3));
     expect(
-      isLaminaError(
+      isLaminaPdfError(
         thrown(() => image.width),
         "image-data-length",
       ),
@@ -97,7 +97,7 @@ describe("Builder", () => {
 
   it("refuses an unknown page size name with suggestions", () => {
     const e = thrown(() => new Builder().page("A44" as never));
-    expect(isLaminaError(e, "invalid-argument") && e.didYouMean?.[0]).toBe("A4");
+    expect(isLaminaPdfError(e, "invalid-argument") && e.didYouMean?.[0]).toBe("A4");
   });
 
   it("frees unfinished pages with the builder (builder-finished afterwards)", () => {
@@ -105,7 +105,7 @@ describe("Builder", () => {
     const page = b.page("A6");
     b.free();
     expect(
-      isLaminaError(
+      isLaminaPdfError(
         thrown(() => page.finish()),
         "builder-finished",
       ),

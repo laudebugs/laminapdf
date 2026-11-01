@@ -49,7 +49,7 @@ The short feature-plan PR that opens round E7 ([full-editor §E7](../../plans/fu
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e7-editing-existing-content.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`A.02`, `A.03`, `A.04`, `A.05`, `A.06`, `A.07`, `A.08`, `B.01`, `B.02`, `B.07`, `B.08`, `B.11`, `B.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [ ] Create `docs/plans/editor/e7-editing-existing-content.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`A.02`, `A.03`, `A.04`, `A.05`, `A.06`, `A.07`, `A.08`, `B.01`, `B.02`, `B.07`, `B.08`, `B.11`, `B.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
 - [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)

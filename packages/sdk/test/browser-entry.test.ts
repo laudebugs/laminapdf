@@ -24,12 +24,12 @@ afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
 describe("browser entry", () => {
   it("compiles the base module streaming from a URL", async () => {
-    await init(new URL("/lamina_base.wasm", origin));
+    await init(new URL("/lamina_pdf_base.wasm", origin));
     expect(Document.open(read("fixtures/golden/examples/hello.pdf")).pageCount).toBe(1);
   });
 
   it("loads the text module from a Response without the wasm content type", async () => {
-    await loadText(fetch(`${origin}/plain/lamina_text.wasm`));
+    await loadText(fetch(`${origin}/plain/lamina_pdf_text.wasm`));
     const b = new Builder();
     const page = b.page("A6");
     page.surface().text("Hi", { font: Font.standard("Helvetica"), size: 9, at: [9, 20] });

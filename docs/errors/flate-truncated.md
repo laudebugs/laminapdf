@@ -21,7 +21,7 @@ Nothing, if the content looks right; part of the stream may be missing.
 5 0 obj << /Filter /FlateDecode /Length 900 >> stream …(the zlib data stops early)… endstream
 ```
 
-lamina keeps what inflated before the data ended or the Adler-32 checksum failed; the content may be cut short. The warning carries the stream's `object`.
+Lamina PDF keeps what inflated before the data ended or the Adler-32 checksum failed; the content may be cut short. The warning carries the stream's `object`.
 
 ## Data fields
 

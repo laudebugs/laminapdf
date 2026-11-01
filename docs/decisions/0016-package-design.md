@@ -29,12 +29,12 @@ Constraints:
 
 | Condition | How the `.wasm` is obtained |
 | --- | --- |
-| `browser` | `WebAssembly.compileStreaming(fetch(new URL("…/lamina_base.wasm", import.meta.url)))`, so bundlers emit the asset |
-| `workerd` | a static `import wasm from "…/lamina_base.wasm"` (a `WebAssembly.Module`, as Workers require) |
+| `browser` | `WebAssembly.compileStreaming(fetch(new URL("…/lamina_pdf_base.wasm", import.meta.url)))`, so bundlers emit the asset |
+| `workerd` | a static `import wasm from "…/lamina_pdf_base.wasm"` (a `WebAssembly.Module`, as Workers require) |
 | `node`, `deno` | the file next to the module, read as bytes |
 | `default` | as `browser` (Bun, other runtimes with `fetch` of `file:` URLs) |
 
-`@laminapdf/wasm` itself has no conditions: it exports the raw glue per module (`@laminapdf/wasm/base`, `@laminapdf/wasm/text`) and the `.wasm` files as assets (`@laminapdf/wasm/lamina_base.wasm`, …). It stays private; whether it is published or bundled into `@laminapdf/sdk` is decided with the first release (P1/P2). Until then `@laminapdf/sdk` depends on it with `workspace:*`.
+`@laminapdf/wasm` itself has no conditions: it exports the raw glue per module (`@laminapdf/wasm/base`, `@laminapdf/wasm/text`) and the `.wasm` files as assets (`@laminapdf/wasm/lamina_pdf_base.wasm`, …). It stays private; whether it is published or bundled into `@laminapdf/sdk` is decided with the first release (P1/P2). Until then `@laminapdf/sdk` depends on it with `workspace:*`.
 
 ### 3. `init()` input forms; synchronous after it
 
@@ -44,15 +44,15 @@ Constraints:
 
 | Module | Built as | Contains |
 | --- | --- | --- |
-| `lamina_base.wasm` | `laminapdf-wasm` without features (`lamina` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
-| `lamina_text.wasm` | `laminapdf-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`) |
-| `lamina_extract.wasm` | `laminapdf-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: laminapdf-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
+| `lamina_pdf_base.wasm` | `laminapdf-wasm` without features (`laminapdf` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
+| `lamina_pdf_text.wasm` | `laminapdf-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`) |
+| `lamina_pdf_extract.wasm` | `laminapdf-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: laminapdf-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
 
 The text module is a **superset**, not an add-on: a document that needs text is built entirely in the text module. A document moves between the two as PDF bytes (save, then open), which is the narrow ABI between them. `@laminapdf/sdk` loads the base module by default and the text module on its first text call or with `init({ text: true })` (B6b); a page that loaded only base never downloads text.
 
 To make the base module exclude text, `laminapdf-build` gained a `text` feature (default on): without it, the builder has no fonts, no text runs or boxes, and doesn't link `laminapdf-text`. The façade's `text` feature now implies a new `build` feature (the builder alone).
 
-**Text extraction (B9c, owner decision 2026-10-30): a third module.** [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) measured three placements (gzip): base with extraction 523 KB (+143 KB: ICU4X's bidi data and the font parsing join base), the text module with extraction 1,008 KB (+56 KB, since it already has both), and a third `extract` module, base plus extraction, about 525 KB. The owner chose the third: a reader's text layer and search load about half the text module, and nobody who doesn't extract pays for it. The text module has extraction too (it stays a superset). `@laminapdf/sdk` opens documents in the richest module loaded (text, then extract, then base), and `page.text()` on a document opened in base is `extract-module-not-loaded`. The façade gained an `extract` feature (laminapdf-text's extractor without the builder's text), which `text` implies. Two consequences: documents opened while the text module is loaded now live in its memory, not base's (so `wasmMemory()` and the nightly memory history move to `text` for runs that load it), and loading the extract module while the text module is loaded or loading does nothing. In workerd, where each module is a static import that every Worker bundles, the loader leaves the extract module out (about 526 KB): a Worker that extracts text imports `@laminapdf/wasm/lamina_extract.wasm` and passes it to `loadExtract`.
+**Text extraction (B9c, owner decision 2026-10-30): a third module.** [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) measured three placements (gzip): base with extraction 523 KB (+143 KB: ICU4X's bidi data and the font parsing join base), the text module with extraction 1,008 KB (+56 KB, since it already has both), and a third `extract` module, base plus extraction, about 525 KB. The owner chose the third: a reader's text layer and search load about half the text module, and nobody who doesn't extract pays for it. The text module has extraction too (it stays a superset). `@laminapdf/sdk` opens documents in the richest module loaded (text, then extract, then base), and `page.text()` on a document opened in base is `extract-module-not-loaded`. The façade gained an `extract` feature (laminapdf-text's extractor without the builder's text), which `text` implies. Two consequences: documents opened while the text module is loaded now live in its memory, not base's (so `wasmMemory()` and the nightly memory history move to `text` for runs that load it), and loading the extract module while the text module is loaded or loading does nothing. In workerd, where each module is a static import that every Worker bundles, the loader leaves the extract module out (about 526 KB): a Worker that extracts text imports `@laminapdf/wasm/lamina_pdf_extract.wasm` and passes it to `loadExtract`.
 
 ### 5. Measurements and the shrinking pass
 
@@ -99,11 +99,11 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **410,000** (amended 2026-10-31; was 390,000) | 6.8 % |
-| text (`lamina_text.wasm`) | 1,008,844 (brotli 770,741; with extraction, B9c) | **1,070,000** (amended 2026-10-31; was 1,020,000) | 5.7 % |
+| base (`lamina_pdf_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **410,000** (amended 2026-10-31; was 390,000) | 6.8 % |
+| text (`lamina_pdf_text.wasm`) | 1,008,844 (brotli 770,741; with extraction, B9c) | **1,070,000** (amended 2026-10-31; was 1,020,000) | 5.7 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
-| extract (`lamina_extract.wasm`, B9c) | 526,184 (brotli 414,641) | **560,000** (amended 2026-10-31; was 535,000) | 6.0 % |
+| extract (`lamina_pdf_extract.wasm`, B9c) | 526,184 (brotli 414,641) | **560,000** (amended 2026-10-31; was 535,000) | 6.0 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
@@ -121,7 +121,7 @@ The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip,
 - **Bytes** are `Uint8Array` in and out (F7); paths are `Float64Array`s in a flat encoding (verb, numbers…), colours arrays of 1, 3 or 4 components: no record conversion on the drawing path.
 - **Records** (options, results) are plain JS objects with `.d.ts` types from tsify (F5, F6): every option optional, unknown keys refused with `unknown-option` and `didYouMean`. They cross as JSON (`JSON.stringify` → `serde_json` and back), because the core already links `serde_json`; serde-wasm-bindgen's generic (de)serialiser cost more (§5). This is a measured exception to ADR 0002 §1's "tsify `js` mode": tsify still writes the types.
 - **String unions** are camelCase, as the op JSON (`"setInfo"`, `"fullRewrite"`, `"evenOdd"`). Standard 14 fonts are named by their PostScript names (`Helvetica`, `Times-Roman`).
-- **Errors** are thrown as the [ADR 0026](0026-error-and-diagnostic-contract.md) §1 object (a plain object), which `@laminapdf/sdk` turns into its `LaminaError` (ADR 0026 §7). The binding's own codes are `bindingErrors` in `fixtures/codes.json`: `invalid-argument`, `unknown-option`, `builder-finished`.
+- **Errors** are thrown as the [ADR 0026](0026-error-and-diagnostic-contract.md) §1 object (a plain object), which `@laminapdf/sdk` turns into its `LaminaPdfError` (ADR 0026 §7). The binding's own codes are `bindingErrors` in `fixtures/codes.json`: `invalid-argument`, `unknown-option`, `builder-finished`.
 - **The builder's binding form** (left to B6a by B5c): `WasmBuilder.page(width, height)` returns an owned `WasmPageBuilder` that draws on its own `Surface` and is written into the builder by `finish()`, with the same bytes as the Rust API. No method consumes its handle: a finished page or builder answers every later call with `builder-finished` (the §1 object), never with wasm-bindgen's null-pointer error. A call that fails draws nothing (a text run's options are all checked before it is drawn).
 - **Unknown keys:** the record's own field list (serde's, read once per type) decides which key is unknown and what `didYouMean` suggests; serde's message, which quotes the caller's key, is never parsed (ADR 0026 §4). A key unknown to a nested record gives `unknown-option` without suggestions.
 - **Passwords:** without the `saslprep` feature, the WASM modules apply SASLprep's mapping step to an R5/R6 password (RFC 4013 §2.1: non-ASCII spaces become U+0020, the "commonly mapped to nothing" characters of RFC 3454 B.1 are removed; a few code points, in every build) but not its NFKC normalisation or its prohibited-character and bidi checks. `@laminapdf/sdk` passes the password as given and, when that fails with `wrong-password` and its NFKC form (`String.prototype.normalize`) differs, tries the NFKC form (B6b review): R2–R4 passwords reach the core unchanged, and every password SASLprep accepts is prepared the same way for R5/R6; one it would reject is tried mapped instead of refused.

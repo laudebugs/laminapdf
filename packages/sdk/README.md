@@ -1,6 +1,6 @@
 # `@laminapdf/sdk`
 
-Create, read, edit and save PDFs from TypeScript. lamina's Rust core runs as WebAssembly, so after one `await init()` the API is synchronous and the same in browsers, Node, Deno, Bun and Cloudflare Workers.
+Create, read, edit and save PDFs from TypeScript. Lamina PDF's Rust core runs as WebAssembly, so after one `await init()` the API is synchronous and the same in browsers, Node, Deno, Bun and Cloudflare Workers.
 
 ```ts
 import { Document, init } from "@laminapdf/sdk";
@@ -51,8 +51,8 @@ A page that never draws text never downloads the text module. A `Builder` is bui
 
 | Condition | Entry | How the `.wasm` is loaded |
 | --- | --- | --- |
-| `workerd` | `dist/entry/workerd.js` | `import wasm from "@laminapdf/wasm/lamina_base.wasm"`: a `WebAssembly.Module` bundled with the Worker (both modules) |
-| `deno`, `browser`, `default` | `dist/index.js` | `new URL("lamina_base.wasm", import.meta.url)` in the package's loader, fetched and compiled streaming; bundlers emit it as an asset |
+| `workerd` | `dist/entry/workerd.js` | `import wasm from "@laminapdf/wasm/lamina_pdf_base.wasm"`: a `WebAssembly.Module` bundled with the Worker (both modules) |
+| `deno`, `browser`, `default` | `dist/index.js` | `new URL("lamina_pdf_base.wasm", import.meta.url)` in the package's loader, fetched and compiled streaming; bundlers emit it as an asset |
 | `node` (Node, Bun) | `dist/entry/node.js` | the file of `@laminapdf/wasm`, read as bytes |
 
 The escape hatch is the input of `init`: a URL or string, a `Response` (or a promise of one), bytes (`ArrayBuffer`, `Uint8Array`) or a compiled `WebAssembly.Module`, for the base module (`init(source)` or `init({ module })`) and the text module (`init({ text: source })` or `loadText(source)`). `init` is idempotent and a failed load can be retried; naming a different source after a module is loaded (or loading) throws `already-initialized`.
@@ -90,26 +90,26 @@ s.text("Pay online", { font, size: 11, at: [56, 320], link: { target, contents: 
 
 ## Errors and warnings
 
-Every error is a `LaminaError`. Its fields are `code` (one of the `ErrorCode` union), `kind`, `message`, `hint`, `didYouMean`, `location`, `data` (the only place document text appears) and `docsUrl`, a link to the code's page in the [error reference](https://docs.laminapdf.com/reference/codes/). `toJSON()` gives the plain object back.
+Every error is a `LaminaPdfError`. Its fields are `code` (one of the `ErrorCode` union), `kind`, `message`, `hint`, `didYouMean`, `location`, `data` (the only place document text appears) and `docsUrl`, a link to the code's page in the [error reference](https://docs.laminapdf.com/reference/codes/). `toJSON()` gives the plain object back.
 
 ```ts
 try {
   Document.open(bytes, { password });
 } catch (e) {
-  if (isLaminaError(e, "wrong-password")) askAgain();
+  if (isLaminaPdfError(e, "wrong-password")) askAgain();
   else throw e;
 }
 ```
 
-`isLaminaError(e, code)` narrows: inside the `if`, `e.code` has the type `"wrong-password"`. `LaminaError<C>` is generic over the `ErrorCode` union, so a `switch (e.code)` with a `never` default is checked for exhaustiveness, and stops compiling when a new code arrives until you handle it. `toJSON()` validates against the `lamina.error/1` JSON Schema, shipped as `@laminapdf/sdk/schemas/error.schema.json`.
+`isLaminaPdfError(e, code)` narrows: inside the `if`, `e.code` has the type `"wrong-password"`. `LaminaPdfError<C>` is generic over the `ErrorCode` union, so a `switch (e.code)` with a `never` default is checked for exhaustiveness, and stops compiling when a new code arrives until you handle it. `toJSON()` validates against the `laminapdf.error/1` JSON Schema, shipped as `@laminapdf/sdk/schemas/error.schema.json`.
 
-`doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape (without `didYouMean`), typed by `WarningCode`.
+`doc.warnings` lists what the reader repaired, as `LaminaPdfWarning` objects of the same shape (without `didYouMean`), typed by `WarningCode`.
 
 `@laminapdf/sdk/explain` is a separate entry, kept out of the main bundle: `explain(code)` returns the code's page as Markdown (what happened, why, how to fix, an example, the `data` fields), with `KINDS`, `HINTS` and `docsUrl(code)` for every code.
 
 ```ts
 import { explain } from "@laminapdf/sdk/explain";
-if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
+if (isLaminaPdfError(e)) console.error(e.message, e.hint, explain(e.code));
 ```
 
 ## Extracting text
@@ -123,7 +123,7 @@ if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
 
 Documents open in the richest module loaded: text, then extract, then base. Load the extract or text module before you open or build a document whose text you need; otherwise `page.text()` throws `extract-module-not-loaded`. `doc.canExtractText` tells which module a document is in.
 
-The text module also extracts text. Once it is loaded, lamina doesn't load the extract module, and documents live in the text module's memory. In a Cloudflare Worker, pass the module yourself: then only a Cloudflare Worker that extracts text bundles it: `import extract from "@laminapdf/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
+The text module also extracts text. Once it is loaded, Lamina PDF doesn't load the extract module, and documents live in the text module's memory. In a Cloudflare Worker, pass the module yourself: then only a Cloudflare Worker that extracts text bundles it: `import extract from "@laminapdf/wasm/lamina_pdf_extract.wasm"; await loadExtract(extract);`.
 
 ```ts
 await init({ extract: true });
@@ -173,13 +173,13 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
   - `Builder`: its callbacks (`path`, `tag`) can't cross either. Build on the main thread or in your own Web Worker.
 
 - **Remote files:** `client.openUrl(url, options)` opens a file by range requests in the Web Worker; every call fetches what it needs first. Its options are `httpRangeSource`'s, without a custom `fetch` (a function can't be sent to the Web Worker), and `openRange`'s (`budget`, `readahead`, `maxRounds`). Aborting the call's `signal` also cancels the fetches in flight.
-- **Cancellation:** pass `signal` to any call. An aborted call rejects at once with `LaminaError` `cancelled`, whose `cause` is the signal's reason, and a late answer is dropped.
+- **Cancellation:** pass `signal` to any call. An aborted call rejects at once with `LaminaPdfError` `cancelled`, whose `cause` is the signal's reason, and a late answer is dropped.
   - **Not started yet:** the call never runs.
   - **`save` / `saveWithReport`:** they run as stepped jobs and stop at the next step. The document stays usable.
   - **Every other call:** one synchronous call in the Web Worker, so it can't be stopped midway (`open` included). `client.terminate()` is the hard stop.
 - **Transfers:** `save()` bytes and page text arrays come back transferred. Inputs are copied unless you pass `transfer: true`, which detaches your buffer.
-- **Errors:** errors are `LaminaError` on the main thread, with every field. If the Web Worker crashes (an uncaught error, a WebAssembly trap, out of memory), pending calls reject with `worker-crashed` and `client.on("crashed", …)` fires. `client.restart()` starts a new Web Worker. Calls made while it starts wait for it, and the old Web Worker's handles reject with `disposed` (their `close()` does nothing). `terminate()` doesn't fire `crashed`. There's no heartbeat, so a long call is not a crash.
-- **Unsendable parameters:** a parameter the Web Worker can't receive (a function) rejects with `invalid-argument`, as do unknown methods. With `transfer: true`, only a buffer the input covers whole moves; a subarray or a `SharedArrayBuffer` view is copied. An error inside the Web Worker that isn't lamina's is `worker-failed` (internal: a bug to report).
+- **Errors:** errors are `LaminaPdfError` on the main thread, with every field. If the Web Worker crashes (an uncaught error, a WebAssembly trap, out of memory), pending calls reject with `worker-crashed` and `client.on("crashed", …)` fires. `client.restart()` starts a new Web Worker. Calls made while it starts wait for it, and the old Web Worker's handles reject with `disposed` (their `close()` does nothing). `terminate()` doesn't fire `crashed`. There's no heartbeat, so a long call is not a crash.
+- **Unsendable parameters:** a parameter the Web Worker can't receive (a function) rejects with `invalid-argument`, as do unknown methods. With `transfer: true`, only a buffer the input covers whole moves; a subarray or a `SharedArrayBuffer` view is copied. An error inside the Web Worker that isn't Lamina PDF's is `worker-failed` (internal: a bug to report).
 - **`init`:** `connect({ init })` takes what can be sent to a Web Worker: a URL (string or `URL`, resolved against the page), bytes or a `WebAssembly.Module`, alone or as `{ module, text, extract }`. A `Response` can't cross.
 - **Version handshake:** on connect, the Web Worker and the client compare their protocol and package versions. A Web Worker from another build rejects `connect()` with `worker-version-mismatch`.
 - **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config. In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@laminapdf/sdk"] }`), as for the main entry.

@@ -1,5 +1,5 @@
-// Document: open, read, errors as LaminaError, edits (transactions, undo), saves.
-import { Document, init, isLaminaError, LaminaError } from "@laminapdf/sdk";
+// Document: open, read, errors as LaminaPdfError, edits (transactions, undo), saves.
+import { Document, init, isLaminaPdfError, LaminaPdfError } from "@laminapdf/sdk";
 import * as wasm from "@laminapdf/wasm/base";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
@@ -19,10 +19,10 @@ describe("Document.open", () => {
     expect(Document.open(bytes.slice().buffer).pageCount).toBe(1);
   });
 
-  it("throws a LaminaError with every ADR 0026 field for a file that isn't a PDF", () => {
+  it("throws a LaminaPdfError with every ADR 0026 field for a file that isn't a PDF", () => {
     const e = thrown(() => Document.open(new TextEncoder().encode("not a pdf")));
-    expect(e instanceof LaminaError && [e.name, e.code, e.kind, e.docsUrl.endsWith("/not-pdf.md")]).toEqual([
-      "LaminaError",
+    expect(e instanceof LaminaPdfError && [e.name, e.code, e.kind, e.docsUrl.endsWith("/not-pdf.md")]).toEqual([
+      "LaminaPdfError",
       "not-pdf",
       "input",
       true,
@@ -31,12 +31,12 @@ describe("Document.open", () => {
 
   it("surfaces a wrong password as wrong-password", () => {
     const e = thrown(() => Document.open(read("fixtures/encrypted/r6-aes-256-user.pdf"), { password: "nope" }));
-    expect(isLaminaError(e, "wrong-password")).toBe(true);
+    expect(isLaminaPdfError(e, "wrong-password")).toBe(true);
   });
 
   it("surfaces a missing password as password-required", () => {
     const e = thrown(() => Document.open(read("fixtures/encrypted/r6-aes-256-user.pdf")));
-    expect(isLaminaError(e, "password-required")).toBe(true);
+    expect(isLaminaPdfError(e, "password-required")).toBe(true);
   });
 
   it("normalises the password to NFKC (a decomposed ä opens an R6 file)", () => {
@@ -62,12 +62,12 @@ describe("Document.open", () => {
   it("refuses an unknown option and suggests the known one", () => {
     const options = { pasword: "x" } as never;
     const e = thrown(() => Document.open(read("fixtures/golden/examples/hello.pdf"), options));
-    expect(isLaminaError(e) && [e.code, e.kind, e.didYouMean]).toEqual(["unknown-option", "usage", ["password"]]);
+    expect(isLaminaPdfError(e) && [e.code, e.kind, e.didYouMean]).toEqual(["unknown-option", "usage", ["password"]]);
   });
 
   it("serialises the error to the ADR 0026 object", () => {
     const e = thrown(() => Document.open(new Uint8Array(0)));
-    const json = isLaminaError(e) ? e.toJSON() : undefined;
+    const json = isLaminaPdfError(e) ? e.toJSON() : undefined;
     expect(Object.keys(json ?? {}).filter((k) => !["hint", "location", "data"].includes(k))).toEqual([
       "code",
       "kind",
@@ -104,7 +104,7 @@ describe("Document edits", () => {
   it("refuses a nested transaction", () => {
     const doc = hello();
     const e = thrown(() => doc.transact(() => doc.transact(() => undefined)));
-    expect(isLaminaError(e, "nested-transaction")).toBe(true);
+    expect(isLaminaPdfError(e, "nested-transaction")).toBe(true);
   });
 
   it("refuses an async callback and applies nothing (invalid-argument)", () => {
@@ -114,14 +114,14 @@ describe("Document edits", () => {
         tx.setInfo({ title: "async" });
       }),
     );
-    expect([isLaminaError(e, "invalid-argument"), doc.hasUnsavedChanges]).toEqual([true, false]);
+    expect([isLaminaPdfError(e, "invalid-argument"), doc.hasUnsavedChanges]).toEqual([true, false]);
   });
 
   it("refuses undo, apply and save inside a transaction of the same document", () => {
     const doc = hello();
     const codes = [() => doc.undo(), () => doc.apply([]), () => doc.save()].map((call) => {
       const e = thrown(() => doc.transact(() => call()));
-      return isLaminaError(e) ? e.code : e;
+      return isLaminaPdfError(e) ? e.code : e;
     });
     expect(codes).toEqual(["nested-transaction", "nested-transaction", "nested-transaction"]);
   });
@@ -142,7 +142,7 @@ describe("Document edits", () => {
       kept = tx;
     });
     expect(
-      isLaminaError(
+      isLaminaPdfError(
         thrown(() => kept?.setInfo({})),
         "no-transaction",
       ),

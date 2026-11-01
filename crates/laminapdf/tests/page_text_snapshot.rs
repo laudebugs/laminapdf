@@ -6,7 +6,7 @@
 //! Numbers are rounded the same way on both sides: quads go through `f32` (the WASM's
 //! `Float32Array`) and then to 0.01 pt; bounds to 0.01 pt; sizes to 0.001.
 //! `cargo xtask golden --update` rewrites the file through `write_snapshot` (ignored; it writes to
-//! `$LAMINA_SNAPSHOT_OUT`, never into `fixtures/`).
+//! `$LAMINA_PDF_SNAPSHOT_OUT`, never into `fixtures/`).
 #![cfg(feature = "extract")]
 #![allow(
     clippy::unwrap_used,
@@ -156,12 +156,12 @@ fn page_text_matches_the_shared_snapshot() {
     );
 }
 
-/// Writes the snapshot to `$LAMINA_SNAPSHOT_OUT` (run by `cargo xtask golden`). Without the
+/// Writes the snapshot to `$LAMINA_PDF_SNAPSHOT_OUT` (run by `cargo xtask golden`). Without the
 /// variable it does nothing: the nightly scaling job runs every ignored test.
 #[test]
 #[ignore = "run by cargo xtask golden"]
 fn write_snapshot() {
-    let Some(out) = std::env::var_os("LAMINA_SNAPSHOT_OUT") else {
+    let Some(out) = std::env::var_os("LAMINA_PDF_SNAPSHOT_OUT") else {
         return;
     };
     std::fs::write(out, text(&snapshot())).unwrap();

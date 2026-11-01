@@ -23,7 +23,7 @@ use common::codes::{NOT_CODE_GROUPS, codes_json};
 use laminapdf_cos::{Error, ErrorKind, Limit, Warning};
 use serde_json::Value;
 
-/// The only `{parameter}`s a hint may use (ADR 0026 §5): lamina's own vocabulary.
+/// The only `{parameter}`s a hint may use (ADR 0026 §5): Lamina PDF's own vocabulary.
 const HINT_PARAMETERS: [&str; 2] = ["{limit}", "{option}"];
 
 /// The headings every `docs/errors/<code>.md` page has, in order (ADR 0026 §6).

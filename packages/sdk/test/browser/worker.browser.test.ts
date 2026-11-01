@@ -1,7 +1,7 @@
 // `@laminapdf/sdk/worker` in a browser (Chromium, Firefox, WebKit; L2a): the remote API matches
 // the sync one on the corpus, the handshake refuses another build, cancellation before and
-// during a stepped save, transfers, rebuilt LaminaErrors, crash and restart, async disposal.
-import { Document, init, isLaminaError, LaminaError, loadText } from "@laminapdf/sdk";
+// during a stepped save, transfers, rebuilt LaminaPdfErrors, crash and restart, async disposal.
+import { Document, init, isLaminaPdfError, LaminaPdfError, loadText } from "@laminapdf/sdk";
 import { connect, type RemoteDocument, WorkerClient } from "@laminapdf/sdk/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { report } from "../../examples/report.js";
@@ -62,7 +62,7 @@ describe("the worker client", () => {
       } catch (e) {
         // A file the sync API refuses must be refused the same way through the worker.
         const remote = await rejection(client.open(bytes));
-        expect(isLaminaError(remote) && remote.code, file).toBe((e as LaminaError).code);
+        expect(isLaminaPdfError(remote) && remote.code, file).toBe((e as LaminaPdfError).code);
         continue;
       }
       await using doc = await client.open(bytes);
@@ -99,10 +99,10 @@ describe("the worker client", () => {
     sync.free();
   });
 
-  it("rebuilds worker errors as LaminaError with every ADR 0026 field", async () => {
+  it("rebuilds worker errors as LaminaPdfError with every ADR 0026 field", async () => {
     const e = await rejection(client.open(new TextEncoder().encode("not a pdf")));
-    expect(e).toBeInstanceOf(LaminaError);
-    const error = e as LaminaError;
+    expect(e).toBeInstanceOf(LaminaPdfError);
+    const error = e as LaminaPdfError;
     expect([typeof error.code, typeof error.kind, typeof error.docsUrl]).toEqual(["string", "string", "string"]);
   });
 
@@ -124,7 +124,7 @@ describe("the worker client", () => {
     const controller = new AbortController();
     controller.abort();
     const e = await rejection(client.open(await read("fixtures/corpus/hello.pdf"), { signal: controller.signal }));
-    expect(isLaminaError(e, "cancelled")).toBe(true);
+    expect(isLaminaPdfError(e, "cancelled")).toBe(true);
     expect((await stats()).started).toBe(before.started + 1);
   });
 
@@ -143,7 +143,7 @@ describe("the worker client", () => {
       { signal: controller.signal, onProgress: () => controller.abort() },
     );
     const e = await rejection(saving);
-    expect(isLaminaError(e, "cancelled")).toBe(true);
+    expect(isLaminaPdfError(e, "cancelled")).toBe(true);
     expect((await doc.save({ mode: "fullRewrite" })).byteLength).toBeGreaterThan(0);
   });
 
@@ -161,9 +161,9 @@ describe("the worker client", () => {
     const source = `self.onmessage = (e) => { if (e.data.kind === "hello") self.postMessage({ kind: "welcome", worker: { protocol: 999, version: "0.0.0-other" } }); else self.postMessage({ kind: "unexpected" }); };`;
     const worker = new Worker(URL.createObjectURL(new Blob([source], { type: "text/javascript" })));
     const e = await rejection(connect({ worker }));
-    expect(isLaminaError(e, "worker-version-mismatch")).toBe(true);
+    expect(isLaminaPdfError(e, "worker-version-mismatch")).toBe(true);
     // docs/errors/worker-version-mismatch.md's data fields.
-    expect(Object.keys((e as LaminaError).data ?? {}).sort()).toEqual(["actual", "expected"]);
+    expect(Object.keys((e as LaminaPdfError).data ?? {}).sort()).toEqual(["actual", "expected"]);
   });
 
   it("rejects pending calls with worker-crashed on a crash, and restart() serves again", async () => {
@@ -171,8 +171,8 @@ describe("the worker client", () => {
     client.on("crashed", (reason) => crashes.push(reason));
     const pending = internal("__crash");
     const e = await rejection(pending);
-    expect(isLaminaError(e, "worker-crashed")).toBe(true);
-    expect(Object.keys((e as LaminaError).data ?? {})).toEqual(["reason"]);
+    expect(isLaminaPdfError(e, "worker-crashed")).toBe(true);
+    expect(Object.keys((e as LaminaPdfError).data ?? {})).toEqual(["reason"]);
     expect(crashes.length).toBe(1);
     await client.restart();
     await using doc: RemoteDocument = await client.open(await read("fixtures/corpus/hello.pdf"));
@@ -186,7 +186,7 @@ describe("the worker client's lifecycle", () => {
     await client.restart();
     await using fresh = await client.open(await read("fixtures/corpus/hello.pdf"));
     const e = await rejection(old.pageCount());
-    expect(isLaminaError(e, "disposed")).toBe(true);
+    expect(isLaminaPdfError(e, "disposed")).toBe(true);
     await old.close();
     expect(await fresh.pageCount()).toBe(1);
   });
@@ -202,8 +202,8 @@ describe("the worker client's lifecycle", () => {
   it("rejects calls after a failed restart instead of hanging", async () => {
     const controller = new AbortController();
     controller.abort();
-    expect(isLaminaError(await rejection(client.restart(controller.signal)), "cancelled")).toBe(true);
-    expect(isLaminaError(await rejection(client.loadText()), "worker-crashed")).toBe(true);
+    expect(isLaminaPdfError(await rejection(client.restart(controller.signal)), "cancelled")).toBe(true);
+    expect(isLaminaPdfError(await rejection(client.loadText()), "worker-crashed")).toBe(true);
     await client.restart();
   });
 
@@ -218,7 +218,7 @@ describe("the worker client's lifecycle", () => {
 
   it("rejects a parameter that can't be sent with invalid-argument, and keeps serving", async () => {
     const e = await rejection(client.openUrl("https://example.invalid/a.pdf", { headers: { x: (() => {}) as never } }));
-    expect(isLaminaError(e, "invalid-argument")).toBe(true);
+    expect(isLaminaPdfError(e, "invalid-argument")).toBe(true);
     await using doc = await client.open(await read("fixtures/corpus/hello.pdf"));
     expect(await doc.pageCount()).toBe(1);
   });
@@ -236,7 +236,7 @@ describe("the worker client's lifecycle", () => {
     const controller = new AbortController();
     const opening = client.openUrl(url, { signal: controller.signal });
     setTimeout(() => controller.abort(), 0);
-    expect(isLaminaError(await rejection(opening), "cancelled")).toBe(true);
+    expect(isLaminaPdfError(await rejection(opening), "cancelled")).toBe(true);
     // Calls run one at a time, so this answers after the aborted open has finished.
     expect((await stats()).handles).toBe(before);
   });
@@ -247,7 +247,7 @@ describe("the worker client, second review", () => {
     const path = "fixtures/corpus/text-example.pdf";
     const url = new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
     const e = await rejection(client.openUrl(url, { budget: 1024, blockSize: 1024 }));
-    expect(isLaminaError(e, "source-budget-exceeded")).toBe(true);
+    expect(isLaminaPdfError(e, "source-budget-exceeded")).toBe(true);
   });
 
   it("reuses one handle per page", async () => {
@@ -269,7 +269,7 @@ describe("the worker client, second review", () => {
 
   it("rejects an init the worker can't receive with invalid-argument", async () => {
     const e = await rejection(connect({ init: { module: new Response("x") as never } }));
-    expect(isLaminaError(e, "invalid-argument")).toBe(true);
+    expect(isLaminaPdfError(e, "invalid-argument")).toBe(true);
   });
 
   it("ends a worker stuck in its handshake on terminate(), and an aborted call waiting for it", async () => {
@@ -281,9 +281,9 @@ describe("the worker client, second review", () => {
     const controller = new AbortController();
     const waiting = stuck.loadText({ signal: controller.signal });
     controller.abort();
-    expect(isLaminaError(await rejection(waiting), "cancelled")).toBe(true);
+    expect(isLaminaPdfError(await rejection(waiting), "cancelled")).toBe(true);
     stuck.terminate();
-    expect(isLaminaError(await rejection(starting), "worker-crashed")).toBe(true);
+    expect(isLaminaPdfError(await rejection(starting), "worker-crashed")).toBe(true);
   });
 });
 

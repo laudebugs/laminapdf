@@ -5,9 +5,9 @@
 import {
   type ErrorCode,
   type ErrorKind,
-  isLaminaError,
-  LaminaError,
-  type LaminaWarning,
+  isLaminaPdfError,
+  LaminaPdfError,
+  type LaminaPdfWarning,
   type WarningCode,
 } from "@laminapdf/sdk";
 import { ERROR_CODES, KINDS } from "@laminapdf/sdk/explain";
@@ -140,36 +140,36 @@ function partial(code: ErrorCode): string {
   }
 }
 
-describe("LaminaError types", () => {
+describe("LaminaPdfError types", () => {
   it("switches exhaustively over ErrorCode", () => {
     expect([kindOf("wrong-password"), partial("wrong-password")]).toEqual(["security", "ask again"]);
     // The hand-written grouping agrees with the generated kinds.
     expect(ERROR_CODES.filter((c) => kindOf(c) !== KINDS[c])).toEqual([]);
   });
 
-  it("narrows code with isLaminaError(e, code)", () => {
-    const e: unknown = new LaminaError({
+  it("narrows code with isLaminaPdfError(e, code)", () => {
+    const e: unknown = new LaminaPdfError({
       code: "wrong-password",
       kind: "security",
       message: "wrong password",
       docsUrl: "https://example.org/wrong-password.md",
     });
-    if (isLaminaError(e, "wrong-password")) {
+    if (isLaminaPdfError(e, "wrong-password")) {
       expectTypeOf(e.code).toEqualTypeOf<"wrong-password">();
       expectTypeOf(e.toJSON().code).toEqualTypeOf<"wrong-password">();
     }
-    if (isLaminaError(e)) expectTypeOf(e.code).toEqualTypeOf<ErrorCode>();
-    expect(isLaminaError(e, "wrong-password")).toBe(true);
+    if (isLaminaPdfError(e)) expectTypeOf(e.code).toEqualTypeOf<ErrorCode>();
+    expect(isLaminaPdfError(e, "wrong-password")).toBe(true);
   });
 
   it("refuses a code that is not listed", () => {
     // @ts-expect-error: "no-such-code" is not an ErrorCode.
-    expect(isLaminaError(new Error("x"), "no-such-code")).toBe(false);
+    expect(isLaminaPdfError(new Error("x"), "no-such-code")).toBe(false);
   });
 
   it("types warnings by WarningCode", () => {
-    expectTypeOf<LaminaWarning["code"]>().toEqualTypeOf<WarningCode>();
-    expectTypeOf<LaminaError["code"]>().toEqualTypeOf<ErrorCode>();
+    expectTypeOf<LaminaPdfWarning["code"]>().toEqualTypeOf<WarningCode>();
+    expectTypeOf<LaminaPdfError["code"]>().toEqualTypeOf<ErrorCode>();
     // @ts-expect-error: a warning code is not an error code.
     const notAnError: ErrorCode = "xref-repaired";
     expect(notAnError).toBe("xref-repaired");

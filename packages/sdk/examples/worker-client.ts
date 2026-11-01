@@ -1,7 +1,7 @@
 // `@laminapdf/sdk/worker`: the sync API's async twin in a Web Worker, so a large file never blocks
 // the page. Open, count the pages, save with progress, and abort a save the user cancels. Runs
 // in browsers (test/browser/worker.browser.test.ts).
-import { isLaminaError } from "@laminapdf/sdk";
+import { isLaminaPdfError } from "@laminapdf/sdk";
 import { connect } from "@laminapdf/sdk/worker";
 
 /** What the example saw: the page count, the saved size, and whether the abort was reported. */
@@ -34,7 +34,7 @@ export async function workerClient(bytes: Uint8Array): Promise<WorkerClientResul
     try {
       await saving;
     } catch (e) {
-      abortedAsCancelled = isLaminaError(e, "cancelled");
+      abortedAsCancelled = isLaminaPdfError(e, "cancelled");
     }
 
     return { pages, savedBytes: saved.byteLength, progressEvents, abortedAsCancelled };

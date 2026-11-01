@@ -29,7 +29,7 @@ use crate::sink::SinkError;
 ///
 /// Messages hold no document text (field names, strings): only counts and fixed words.
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SaveError {
@@ -39,7 +39,7 @@ pub enum SaveError {
     /// with [`SaveOptions::with_invalidate_signatures`](crate::SaveOptions::with_invalidate_signatures)
     /// only after asking the user.
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     #[error(
         "the save would invalidate {} signature(s) ({} rewrite reason(s), {} violation(s))",
         signatures.len(),
@@ -64,7 +64,7 @@ pub enum SaveError {
         /// Why.
         reasons: Vec<RewriteReason>,
     },
-    /// The document is encrypted, and lamina can't encrypt on write yet (full-editor E11):
+    /// The document is encrypted, and Lamina PDF can't encrypt on write yet (full-editor E11):
     /// it can only be saved as a plaintext full rewrite, with
     /// [`SaveOptions::with_remove_encryption`](crate::SaveOptions::with_remove_encryption).
     /// Every mode refuses without it, so encryption is never dropped silently.
@@ -122,7 +122,7 @@ impl SaveError {
     /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
     /// [`SaveError::code`] (a test checks every variant). Wrapped errors report their own.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {

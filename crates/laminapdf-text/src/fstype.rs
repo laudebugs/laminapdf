@@ -39,7 +39,7 @@ impl FsType {
         self.0 & Self::RESTRICTED != 0 && self.0 & (Self::PREVIEW_PRINT | Self::EDITABLE) == 0
     }
 
-    /// Only bitmaps may be embedded; lamina embeds outlines, so this forbids embedding too.
+    /// Only bitmaps may be embedded; Lamina PDF embeds outlines, so this forbids embedding too.
     #[must_use]
     pub const fn is_bitmap_only(self) -> bool {
         self.0 & Self::BITMAP_ONLY != 0

@@ -25,7 +25,7 @@ xref
 0000000015 00000 n
 ```
 
-Object 9,999,999 is above `Limits::max_object_number`; its entry is dropped so a hostile xref can't make lamina allocate for it. References to it resolve to `null`.
+Object 9,999,999 is above `Limits::max_object_number`; its entry is dropped so a hostile xref can't make Lamina PDF allocate for it. References to it resolve to `null`.
 
 ## Data fields
 

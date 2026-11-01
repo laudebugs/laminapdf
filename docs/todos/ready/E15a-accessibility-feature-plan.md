@@ -52,7 +52,7 @@ The short feature-plan PR that opens round E15 ([full-editor §E15](../../plans/
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e15-accessibility.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`L.01`, `L.02`, `L.03`, `L.04`, `L.05`, `L.06`, `L.07`, `L.08`, `L.09`, `L.10`, `L.11`, `I.07`, `H.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [ ] Create `docs/plans/editor/e15-accessibility.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`L.01`, `L.02`, `L.03`, `L.04`, `L.05`, `L.06`, `L.07`, `L.08`, `L.09`, `L.10`, `L.11`, `I.07`, `H.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
 - [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)

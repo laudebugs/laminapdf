@@ -1,5 +1,5 @@
 /*
- * The docs site in lamina's Paper design language (docs/design/paper/design-language.md):
+ * The docs site in Lamina PDF's Paper design language (docs/design/paper/design-language.md):
  * warm paper grounds, ink text, hairline rules, one deep teal accent, and Source Sans 3 for all
  * text, titles included (quality plan §5). Starlight is themed through its CSS custom properties
  * (`--sl-*`); the `--paper-*` names are the design language's token names (§2) and their

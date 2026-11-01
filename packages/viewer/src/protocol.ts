@@ -23,7 +23,7 @@ export type SourceInit = Blob | ArrayBuffer | Uint8Array;
 /** `open`'s options. The password crosses to the worker once and is kept only there. */
 export interface ViewerOpenOptions {
   readonly password?: string;
-  /** lamina's reading limits (ADR 0003). */
+  /** Lamina PDF's reading limits (ADR 0003). */
   readonly limits?: Partial<Limits>;
   /** The backend's render limits (ADR 0004). */
   readonly renderLimits?: Partial<RenderLimits>;

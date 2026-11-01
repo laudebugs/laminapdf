@@ -27,7 +27,7 @@ export class Transaction {
   /**
    * Adds `op` to the transaction.
    *
-   * @throws {@link LaminaError} `no-transaction` after `transact` returned.
+   * @throws {@link LaminaPdfError} `no-transaction` after `transact` returned.
    */
   apply(op: Op): this {
     if (!this.#open) {

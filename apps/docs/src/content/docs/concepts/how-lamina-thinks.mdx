@@ -1,23 +1,23 @@
 ---
-title: How lamina thinks about a PDF
+title: How Lamina PDF thinks about a PDF
 description: Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-The rest of the docs build on six ideas. The first two follow from one choice: lamina treats a PDF as bytes, which you give it and it gives back.
+The rest of the docs build on six ideas. The first two follow from one choice: Lamina PDF treats a PDF as bytes, which you give it and it gives back.
 
 ## Bytes in, bytes out
 
-lamina's core never touches the file system or the network, and it never reads the clock. Your app reads the file, hands lamina the bytes and stores whatever comes back. The only fetches are the ones you ask for, such as opening a remote file by range requests. That's why the same code runs in a browser, on a server and inside a Cloudflare Worker.
+Lamina PDF's core never touches the file system or the network, and it never reads the clock. Your app reads the file, hands Lamina PDF the bytes and stores whatever comes back. The only fetches are the ones you ask for, such as opening a remote file by range requests. That's why the same code runs in a browser, on a server and inside a Cloudflare Worker.
 
 ## Same input, same bytes
 
-Because lamina reads no clock, you pass in dates and file IDs yourself. It then writes the same bytes for the same input, on every run and every platform, so you can test, cache and compare its output byte for byte.
+Because Lamina PDF reads no clock, you pass in dates and file IDs yourself. It then writes the same bytes for the same input, on every run and every platform, so you can test, cache and compare its output byte for byte.
 
 ## The file you opened never changes
 
-When you open a document, lamina keeps its bytes exactly as they were. Every edit goes into an [overlay](/reference/glossary/#overlay) on top of them. Reading the document reads the overlay first, so you see your edits; undo and redo move through them.
+When you open a document, Lamina PDF keeps its bytes exactly as they were. Every edit goes into an [overlay](/reference/glossary/#overlay) on top of them. Reading the document reads the overlay first, so you see your edits; undo and redo move through them.
 
 ## Two ways to save
 
@@ -38,7 +38,7 @@ In JavaScript, documents and builders live in WebAssembly memory. The garbage co
 
 ## Three modules in JavaScript
 
-In JavaScript, lamina is WebAssembly, split into three modules so a page downloads only what it uses:
+In JavaScript, Lamina PDF is WebAssembly, split into three modules so a page downloads only what it uses:
 
 - **Base:** open, read, edit and save; vector and image pages.
 - **Extract:** everything in base, plus text extraction.

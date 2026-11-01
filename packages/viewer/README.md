@@ -71,7 +71,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 - **Cancellation:** `signal` rejects the call at once with a `DOMException` named `AbortError`.
   - A queued render is dropped.
   - A running one finishes, because synchronous WebAssembly can't be interrupted. Its late answer's bitmap is closed unpainted (`onDiscard`).
-  - (`@laminapdf/sdk/worker` itself rejects with a `cancelled` LaminaError; the viewer maps it to `AbortError`.)
+  - (`@laminapdf/sdk/worker` itself rejects with a `cancelled` LaminaPdfError; the viewer maps it to `AbortError`.)
 - **Timeouts:** the page keeps the timers, because a Web Worker inside a render can't post anything.
   - Defaults are `soft` 10 s (`render-slow`) and `hard` 120 s.
   - At the hard cap the client calls `stop("hard-timeout")`. For a document that needed a password, it emits `render-stuck` instead and waits for the user's `stop()`.
@@ -81,7 +81,7 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
   - `stop()` takes the same path with `reason: "cancelled"`.
 - **Secrets:** the password crosses to the Web Worker once, when the document opens, and is kept only there. The page keeps the source and the other options.
   - After a crash of an encrypted document, `password-required` fires and the caller opens again.
-  - lamina's tests count every message that carries the password, so a change that sends it more often fails them.
+  - Lamina PDF's tests count every message that carries the password, so a change that sends it more often fails them.
 - **Sources:**
   - A `Blob`/`File` is sent by reference, and the Web Worker reads it in 4 MiB `slice()`s.
   - Bytes are copied, and kept on the page for a reopen.
@@ -99,10 +99,10 @@ The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-
 │  call(method, params, opts) │  call / cancel │  handshake · priority queue · coalescing  │
 │  render timers (slow/stuck) │                │  cancellation · ADR 0026 errors · traps   │
 │  restart + reopen on crash  │ ◀───────────── │   ├─ viewer methods (src/worker/)         │
-│  AbortError on abort        │ result / event │   │   openDocument → lamina Document +    │
+│  AbortError on abort        │ result / event │   │   openDocument → SDK Document +       │
 │ @laminapdf/sdk/worker client   │  (transferred  │   │                  RenderDocument       │
 │  request() · onDiscard      │   ImageBitmap) │   │   render → backend → ImageBitmap      │
-└────────────────────────────┘                 │   └─ lamina's own methods (open, …)       │
+└────────────────────────────┘                 │   └─ the SDK's own methods (open, …)      │
                                                └──────────────────────────────────────────┘
 ```
 

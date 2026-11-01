@@ -3,26 +3,26 @@
 //!
 //! One crate, built three times ([ADR 0016] §4):
 //!
-//! * **base** (`lamina_base.wasm`, no features): [`WasmDocument`] (open, read, edit with ops,
+//! * **base** (`lamina_pdf_base.wasm`, no features): [`WasmDocument`] (open, read, edit with ops,
 //!   undo, save, save jobs, warnings), [`WasmPage`], and [`WasmBuilder`] /
 //!   [`WasmPageBuilder`] / [`WasmImage`] for vector and image pages and the document's
 //!   navigation and metadata.
-//! * **text** (`lamina_text.wasm`, feature `text`): all of the base plus fonts (`WasmFont`),
+//! * **text** (`lamina_pdf_text.wasm`, feature `text`): all of the base plus fonts (`WasmFont`),
 //!   shaped text runs and text boxes, and text extraction (`WasmPage.text`).
-//! * **extract** (`lamina_extract.wasm`, feature `extract`; B9c): all of the base plus text
+//! * **extract** (`lamina_pdf_extract.wasm`, feature `extract`; B9c): all of the base plus text
 //!   extraction (`WasmPage.text`), without fonts for building or shaping.
 //!
 //! The rules the bindings follow ([ADR 0016] §7): classes are the façade's types with a
 //! `Wasm` prefix; methods are the façade's, camelCase (F12); bytes are `Uint8Array` in and
 //! out (F7); options and results are plain JSON records with `.d.ts` types from tsify (F5,
 //! F6: optional fields, unknown keys refused with `unknown-option`); every error is the
-//! [ADR 0026] §1 object (thrown as a plain object; `@laminapdf/sdk` wraps it in `LaminaError`);
+//! [ADR 0026] §1 object (thrown as a plain object; `@laminapdf/sdk` wraps it in `LaminaPdfError`);
 //! the API is synchronous once the module is instantiated.
 //!
 //! This is an edge crate: `unsafe` exists only in wasm-bindgen's generated glue.
 //!
-//! [ADR 0016]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0016-package-design.md
-//! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+//! [ADR 0016]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0016-package-design.md
+//! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
 #[cfg(feature = "build")]
 mod build_dto;

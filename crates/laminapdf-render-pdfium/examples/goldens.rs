@@ -2,7 +2,7 @@
 //! every `fixtures/corpus/` file, by each backend at 96 DPI on white, to
 //! `fixtures/golden/render/<backend>/<stem>-p<N>.png`, except the files `skip.json` lists.
 //! Old PNGs of each backend are removed first, so a page that went away doesn't linger.
-//! Needs `LAMINA_PDFIUM_DIR` (`cargo xtask fetch-pdfium`).
+//! Needs `LAMINA_PDF_PDFIUM_DIR` (`cargo xtask fetch-pdfium`).
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a tool: a panic is a failed run")]
 
 #[path = "../tests/common/mod.rs"]

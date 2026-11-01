@@ -59,7 +59,7 @@ impl Encoding {
     ///
     /// # Errors
     /// [`UnsupportedEncoding::MacExpert`] for `MacExpertEncoding`, a predefined encoding
-    /// (§9.6.5.1, Table 112) lamina has no table for, so a reader can warn rather than guess;
+    /// (§9.6.5.1, Table 112) Lamina PDF has no table for, so a reader can warn rather than guess;
     /// [`UnsupportedEncoding::Unknown`] for any other name.
     pub fn from_pdf_name(name: &[u8]) -> Result<Self, UnsupportedEncoding> {
         match name {
@@ -148,7 +148,7 @@ impl Encoding {
     }
 }
 
-/// A predefined encoding name lamina has no table for ([`Encoding::from_pdf_name`]).
+/// A predefined encoding name Lamina PDF has no table for ([`Encoding::from_pdf_name`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum UnsupportedEncoding {

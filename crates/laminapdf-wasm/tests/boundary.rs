@@ -109,7 +109,7 @@ fn a_core_error_is_the_adr_0026_object() {
         (
             Some("not-pdf"),
             Some("input"),
-            Some("https://github.com/laudebugs/lamina/blob/main/docs/errors/not-pdf.md")
+            Some("https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md")
         )
     );
 }

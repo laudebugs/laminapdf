@@ -21,7 +21,7 @@ Nothing to do; text operators were handled tolerantly.
 BT /F1 12 Tf (one) Tj BT (two) Tj ET
 ```
 
-The second `BT` opens a text object inside one; lamina treats it as a new text object and carries on.
+The second `BT` opens a text object inside one; Lamina PDF treats it as a new text object and carries on.
 
 ## Data fields
 

@@ -1,6 +1,6 @@
 # Code that stays easy to change
 
-These rules keep lamina's code easy to read, change and reuse as it grows. They apply to `crates/*`, `packages/*`, `apps/*` and `tools/*`, and they extend [code-organization.md](code-organization.md), [rust.md](rust.md) and [typescript.md](typescript.md). The [quality plan](../plans/quality.md) records the review behind them and the todos that bring today's code in line; where a rule's tooling doesn't exist yet, the rule names the todo that builds it.
+These rules keep Lamina PDF's code easy to read, change and reuse as it grows. They apply to `crates/*`, `packages/*`, `apps/*` and `tools/*`, and they extend [code-organization.md](code-organization.md), [rust.md](rust.md) and [typescript.md](typescript.md). The [quality plan](../plans/quality.md) records the review behind them and the todos that bring today's code in line; where a rule's tooling doesn't exist yet, the rule names the todo that builds it.
 
 **MUST**/**SHOULD** are rules.
 

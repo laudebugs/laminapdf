@@ -2,7 +2,7 @@
 //! the committed example goldens (`fixtures/golden/examples/*.pdf`, which `cargo xtask
 //! examples` and `crates/laminapdf/tests/examples.rs` keep equal to the examples' output) with
 //! PDFium (`tools/render/pdfium.py`, pypdfium2 pinned in `tools/render/requirements.txt`;
-//! `$LAMINA_PYTHON` or `python3`) at 72 and 150 dpi, then runs `tools/render` (`render-golden`,
+//! `$LAMINA_PDF_PYTHON` or `python3`) at 72 and 150 dpi, then runs `tools/render` (`render-golden`,
 //! with hayro; its own workspace and lockfile, built here in release mode after its fmt,
 //! clippy and tests): each page's 72 dpi renders against
 //! `fixtures/render-golden/<example>/<page>-<engine>.png`, and hayro against PDFium at 150
@@ -125,4 +125,4 @@ fn corpus(ws: &Workspace, update: bool) -> Result<()> {
 }
 
 /// The variable `laminapdf-render-pdfium` reads the library folder from.
-pub(crate) const PDFIUM_DIR_ENV: &str = "LAMINA_PDFIUM_DIR";
+pub(crate) const PDFIUM_DIR_ENV: &str = "LAMINA_PDF_PDFIUM_DIR";

@@ -27,7 +27,7 @@
 //! overlay and the journal (they are dirty-tracked and can be rolled back); `laminapdf-ops`
 //! keeps its document private so its callers can only write through transactions.
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 
 use std::cell::{Cell, OnceCell};
 use std::collections::BTreeMap;
@@ -131,7 +131,7 @@ struct Record {
 /// immutable base ([ADR 0005] §3). Read it through [`Document::overlay`]; change it only
 /// through [`CosMut`].
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #[derive(Debug, Default)]
 pub struct Overlay {
     objects: BTreeMap<u32, OverlayEntry>,
@@ -337,7 +337,7 @@ impl Document {
     /// # Errors
     /// As [`Document::open`]; on error the document is unchanged.
     ///
-    /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+    /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
     pub fn rebase(&mut self, source: impl Into<Source>, reserved: Reserved) -> Result<()> {
         let options = OpenOptions::default()
             .with_limits(*self.limits())
@@ -430,7 +430,7 @@ pub(crate) enum InOverlay<'a> {
 /// Values are compared with the base on every write: setting an object (or the trailer)
 /// back to its base value drops the overlay entry.
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #[derive(Debug)]
 pub struct CosMut<'d> {
     doc: &'d mut Document,

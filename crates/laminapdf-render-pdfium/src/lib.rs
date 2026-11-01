@@ -2,7 +2,7 @@
 //! `pdfium-render`, bound **at runtime** to the pinned `bblanchon/pdfium-binaries`
 //! `chromium/7881` build, so building and linting never need the library.
 //!
-//! - **Input:** PDFium reads lamina's [`ByteSource`] through its custom file access
+//! - **Input:** PDFium reads Lamina PDF's [`ByteSource`] through its custom file access
 //!   (`FPDF_LoadCustomDocument`), never a second copy. A read the source answers `Pending` for
 //!   is remembered, and the call fails with `data-pending` and those ranges (a render that hit
 //!   one is discarded: PDFium can't report a failed read mid-page).
@@ -14,7 +14,7 @@
 //! - **Cancellation:** checked before and after the engine call. `pdfium-render` doesn't expose
 //!   PDFium's progressive rendering, so a running render finishes (ADR 0004 §1 allows this).
 //!
-//! [ADR 0004]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0004-render-backend.md
+//! [ADR 0004]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0004-render-backend.md
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -37,7 +37,7 @@ const NAME: &str = "pdfium";
 pub const PDFIUM_BUILD: &str = "chromium/7881";
 
 /// The environment variable naming the folder that holds the PDFium library.
-pub const PDFIUM_DIR_ENV: &str = "LAMINA_PDFIUM_DIR";
+pub const PDFIUM_DIR_ENV: &str = "LAMINA_PDF_PDFIUM_DIR";
 
 /// The bindings, created once per process: every document borrows them for `'static`.
 static PDFIUM: OnceLock<Pdfium> = OnceLock::new();
@@ -91,7 +91,7 @@ impl PdfiumBackend {
         Ok(Self { pdfium })
     }
 
-    /// Binds the library in the folder named by `LAMINA_PDFIUM_DIR` (what
+    /// Binds the library in the folder named by `LAMINA_PDF_PDFIUM_DIR` (what
     /// `cargo xtask fetch-pdfium` prints).
     ///
     /// # Errors
@@ -363,7 +363,7 @@ fn take_pending(pending: &Mutex<Vec<Refusal>>) -> Option<RenderError> {
     })
 }
 
-/// lamina's [`ByteSource`] as the `Read + Seek` PDFium's custom file access reads through.
+/// Lamina PDF's [`ByteSource`] as the `Read + Seek` PDFium's custom file access reads through.
 struct SourceReader {
     source: Arc<dyn ByteSource>,
     position: u64,

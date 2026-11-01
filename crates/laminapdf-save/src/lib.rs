@@ -52,11 +52,11 @@
 //! base, before writing anything. Output is byte-deterministic (ADR 0001): no clocks, no hash
 //! maps, `/ID` from a hash.
 //!
-//! This crate is part of lamina's pure core: bytes in, bytes out, no file system, network,
+//! This crate is part of Lamina PDF's pure core: bytes in, bytes out, no file system, network,
 //! clocks or threads.
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #![forbid(unsafe_code)]
 
 mod constraint;

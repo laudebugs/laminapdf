@@ -43,8 +43,8 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - Menu: "Check for Updates…" (macOS app menu, Help menu elsewhere) enabled and wired.
 - Staging e2e workflow `.github/workflows/desktop-update-e2e.yml`, using the non-release test key, in two modes:
   - **`local` mode** — path-filtered `pull_request` (forks included; **no secrets at all**): the Worker runs on the runner with `wrangler dev` and local R2 simulation, seeded with `wrangler r2 object put --local`; the `e2e` build points the updater at `http://127.0.0.1:<port>` (`dangerousInsecureTransportProtocol` only under the `e2e` feature, which D2a's guard keeps out of release builds).
-  - **`staging` mode** — `push` to `main` (path-filtered), nightly schedule and `workflow_dispatch`, never `pull_request`: runs in a GitHub `staging` environment (deployment branches: `main` only) holding `CLOUDFLARE_STAGING_R2_TOKEN`, scoped to the separate **`lamina-staging`** bucket only (D5a), against the deployed Worker's `staging` channel. No job here ever gets a token for `lamina-releases`.
-  Both modes build `0.0.1` and `0.0.2` (plain `X.Y.Z`: WiX/MSI only accepts a numeric pre-release ≤ 65535, so `-test` suffixes would fail the Windows bundle; versions below `0.1.0` are reserved for this staging test and never published to a user channel) for the three OSes with updater artefacts signed by a **test** updater key (separate from production; stored as a non-release secret), uploads 0.0.2 to the staging bucket (local or `lamina-staging`) and seeds the `staging` channel manifest, installs 0.0.1 on the runner, launches it with a test-only flag (feature `e2e`) that forces the `staging` channel and an immediate check, waits for install + relaunch, and asserts the running version is `0.0.2`. A second run serves a tampered bundle (one byte flipped, original `.sig`) and asserts the updater rejects it and the app stays on `0.0.1`.
+  - **`staging` mode** — `push` to `main` (path-filtered), nightly schedule and `workflow_dispatch`, never `pull_request`: runs in a GitHub `staging` environment (deployment branches: `main` only) holding `CLOUDFLARE_STAGING_R2_TOKEN`, scoped to the separate **`lamina-pdf-staging`** bucket only (D5a), against the deployed Worker's `staging` channel. No job here ever gets a token for `lamina-pdf-releases`.
+  Both modes build `0.0.1` and `0.0.2` (plain `X.Y.Z`: WiX/MSI only accepts a numeric pre-release ≤ 65535, so `-test` suffixes would fail the Windows bundle; versions below `0.1.0` are reserved for this staging test and never published to a user channel) for the three OSes with updater artefacts signed by a **test** updater key (separate from production; stored as a non-release secret), uploads 0.0.2 to the staging bucket (local or `lamina-pdf-staging`) and seeds the `staging` channel manifest, installs 0.0.1 on the runner, launches it with a test-only flag (feature `e2e`) that forces the `staging` channel and an immediate check, waits for install + relaunch, and asserts the running version is `0.0.2`. A second run serves a tampered bundle (one byte flipped, original `.sig`) and asserts the updater rejects it and the app stays on `0.0.1`.
 
 **Out of scope** (and which todo covers it)
 
@@ -76,8 +76,8 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Post-merge checks
 
-- [ ] Owner has created the `staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-staging` only.
-- [ ] The first `staging`-mode run of `desktop-update-e2e.yml` on `main` (push after merge, or the next scheduled run) is green on all three OSes against `lamina-staging` (the PR only proves `local` mode, since a new workflow can't be dispatched or scheduled until it is on `main` and PRs get no secrets).
+- [ ] Owner has created the `staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-pdf-staging` only.
+- [ ] The first `staging`-mode run of `desktop-update-e2e.yml` on `main` (push after merge, or the next scheduled run) is green on all three OSes against `lamina-pdf-staging` (the PR only proves `local` mode, since a new workflow can't be dispatched or scheduled until it is on `main` and PRs get no secrets).
 
 ## Tests
 

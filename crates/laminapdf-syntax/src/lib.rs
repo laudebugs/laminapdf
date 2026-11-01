@@ -10,7 +10,7 @@
 //! # Ok::<(), laminapdf_syntax::Error>(())
 //! ```
 //!
-//! This crate is part of lamina's pure core: it takes bytes and returns values, and never
+//! This crate is part of Lamina PDF's pure core: it takes bytes and returns values, and never
 //! touches the file system, network, clocks or threads, so it builds for native, WebAssembly
 //! and mobile targets alike. Every parse path returns [`Result`]; no input panics. Recursion
 //! only happens in the object parser, which is depth-limited ([`Limits::max_nesting_depth`]).

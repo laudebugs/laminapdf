@@ -22,7 +22,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
 
 ### 1. Topology
 
-- **One Worker per environment (`lamina-web`, and `lamina-web-staging` below),** with static assets from `apps/web`'s Vite `dist/`:
+- **One Worker per environment (`lamina-pdf-web`, and `lamina-pdf-web-staging` below),** with static assets from `apps/web`'s Vite `dist/`:
   - `assets.directory`;
   - `not_found_handling: "single-page-application"`;
   - **no `main` script and no `/api` routes in v0.1.**
@@ -32,9 +32,9 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
 - **`compatibility_date` is pinned** in `apps/web/wrangler.jsonc`, ≥ 2025-04-01, so browser navigations go straight to assets.
 - **Tooling:** Wrangler is pinned exactly in CI, at the workspace catalog's version (4.149.0 today). The `cf` CLI is tried in a branch once it reaches GA, with its telemetry turned off; adopting it is a deliberate PR.
 - **Environments are two Workers,** so a staging deploy can never replace production. Both come from one `wrangler.jsonc` with a Wrangler environment `staging`.
-  - **`lamina-web-staging`:** custom domain `staging.laminapdf.com`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
-  - **`lamina-web`:** custom domain `laminapdf.com`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
-- **`noindex`:** the build takes the environment as an input (`LAMINA_ENV=staging|production`) and writes `_headers` from one template. Staging and preview builds add `X-Robots-Tag: noindex`; production doesn't. Everything else in §4 is identical, and C4d compares the two files.
+  - **`lamina-pdf-web-staging`:** custom domain `staging.laminapdf.com`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
+  - **`lamina-pdf-web`:** custom domain `laminapdf.com`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
+- **`noindex`:** the build takes the environment as an input (`LAMINA_PDF_ENV=staging|production`) and writes `_headers` from one template. Staging and preview builds add `X-Robots-Tag: noindex`; production doesn't. Everything else in §4 is identical, and C4d compares the two files.
 - **Assets:**
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
@@ -88,7 +88,7 @@ Cross-Origin-Resource-Policy: same-origin
 - **`connect-src https:`** is what lets the worker fetch a remote document from any host (§2); everything else is `'self'`.
 - **`frame-src 'self'` with `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`** allow the same-origin print iframe (C6c) and refuse framing by every other site. Styles are set through the CSSOM, never through `style` attributes in markup.
 - **No COOP or COEP in v0.1** (ADR 0009 §5). The threaded variant would add them on its own route.
-- **`preload` is added to HSTS** once `lamina-web` serves `laminapdf.com` and every subdomain is HTTPS (C4d): the preload list checks the apex's header.
+- **`preload` is added to HSTS** once `lamina-pdf-web` serves `laminapdf.com` and every subdomain is HTTPS (C4d): the preload list checks the apex's header.
 - **Changes are amendments:** a change that loosens any directive is an amendment to this ADR, and C4d's header test pins the exact values.
 
 ### 5. Observability without content

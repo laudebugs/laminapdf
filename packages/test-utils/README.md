@@ -1,13 +1,13 @@
 # @laminapdf/test-utils
 
-The test helpers lamina's TypeScript packages share, so no package reaches into another's `test/` folder. It is private and lives only in the workspace: never published, and left out of the version every other package shares.
+The test helpers Lamina PDF's TypeScript packages share, so no package reaches into another's `test/` folder. It is private and lives only in the workspace: never published, and left out of the version every other package shares.
 
 Its modules are TypeScript source. Vitest compiles them for the tests, and Node strips their types when a Vitest config imports one, so there is nothing to build first. Its modules import each other through the package name (`@laminapdf/test-utils/firefox`), not a relative path, which Node wouldn't map to the `.ts` file.
 
 ## Modules
 
 - **`@laminapdf/test-utils/render-contract`:** `renderContract(options)`, the suite every `RenderBackend` runs, in Node and in Chromium, Firefox and WebKit. You pass a backend factory and a file reader, and in browsers a PNG decoder for the reference renders. It checks:
-  - every corpus file's page count and size, against lamina's facts;
+  - every corpus file's page count and size, against Lamina PDF's facts;
   - a blank tile is white;
   - four tiles stitch back into the whole page;
   - a 90° view equals the upright render rotated, with and without widgets;

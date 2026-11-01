@@ -8,7 +8,7 @@
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [B6b](../done/B6b-lamina-pdf-package.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
 | Blocks | [C6b](./C6b-links-and-history.md), [C7a](./C7a-accessibility-and-theming.md) |
-| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (app opens every file type); library B2 (`Outline` and `NameTree` views, `LaminaId`s; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) exposed through **B6**; [C3c](./C3c-viewer-perf-harness.md) (thumbnails keep the harness's long-task budget) |
+| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (app opens every file type); library B2 (`Outline` and `NameTree` views, `LaminaPdfId`s; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) exposed through **B6**; [C3c](./C3c-viewer-perf-harness.md) (thumbnails keep the harness's long-task budget) |
 | ADRs | Follows 0004 (thumbnails rendered through `RenderBackend` at low priority), 0009, [0005](../../decisions/0005-document-model.md) §4–5 (typed views, stable IDs) |
 | Branch | `feat/c6a-thumbnails-outline` |
 | PR title | `feat(ui): add thumbnails and outline sidebars with page labels and go-to-page` |
@@ -33,7 +33,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 
 **In scope**
 
-- RPC: `outline() → OutlineItem[]` (title, resolved destination `{ page, x?, y?, zoom?, fit }`, children, open/closed state from `/Count`, colour/style flags, stable `LaminaId`), `pageLabels() → string[]` (or a compact range form), `resolveDestination(dest | name)`.
+- RPC: `outline() → OutlineItem[]` (title, resolved destination `{ page, x?, y?, zoom?, fit }`, children, open/closed state from `/Count`, colour/style flags, stable `LaminaPdfId`), `pageLabels() → string[]` (or a compact range form), `resolveDestination(dest | name)`.
 - If B2's views don't expose page labels or destination resolution, add read-only accessors in `laminapdf-model`/`laminapdf-wasm`/`@laminapdf/sdk` in this PR (small; coordinate with the library owner) — page-label number tree walking with `/S` styles D, R, r, A, a, `/P` prefix, `/St` start.
 - `@laminapdf/viewer`: `ThumbnailStrip` (framework-free virtualised list using the C3b layout code at thumbnail scale, own small canvas pool, `thumbnail` priority, cancels when scrolled away, current page highlighted), destination navigation (`goToDestination(dest)` with fit modes XYZ/Fit/FitH/FitV/FitR/FitB mapped to zoom + scroll).
 - `@laminapdf/ui`: `Sidebar` with tabs (Thumbnails, Outline), resizable and collapsible, remembered per session; `OutlineTree` (WAI-ARIA tree pattern: arrow keys, Home/End, expand/collapse, type-ahead), current-section tracking (deepest item whose destination is at or before the top of the viewport); page indicator shows labels (`iv (4 / 120)`) and go-to-page accepts labels or numbers (ambiguity: label wins, show both in a hint).

@@ -1,6 +1,6 @@
 # @laminapdf/render-hayro
 
-lamina's second web renderer is hayro, a pure-Rust engine compiled to its own WebAssembly module behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. PDFium's output is checked against it, and it is offered in the viewer's debug menu. It is private, and `@laminapdf/sdk` never depends on it.
+Lamina PDF's second web renderer is hayro, a pure-Rust engine compiled to its own WebAssembly module behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. PDFium's output is checked against it, and it is offered in the viewer's debug menu. It is private, and `@laminapdf/sdk` never depends on it.
 
 ```ts
 import { initHayro } from "@laminapdf/render-hayro";
@@ -20,7 +20,7 @@ const hayro = await initHayro(); // or a URL, Response, bytes or WebAssembly.Mod
 
 It is the second renderer of [ADR 0004](../../docs/decisions/0004-render-backend.md), the oracle in CI; its known differences are ADR 0004 §6, measured by [C1a](../../docs/todos/done/C1a-hayro-parity-spike.md), and the nightly oracle diff ([X3b](../../docs/todos/done/X3b-render-diff-nightly.md)) uses the default flags.
 
-`crates/laminapdf-render-wasm` (an edge crate, with a flat wasm-bindgen surface) is built by `cargo xtask wasm` as `lamina_render_hayro.{js,d.ts,wasm}` into `packages/wasm/dist/`, next to lamina's own modules. It goes through the same `wasm-bindgen` and `wasm-opt` pipeline, with its own size budget (`render_hayro` in `packages/wasm/size-budgets.json`).
+`crates/laminapdf-render-wasm` (an edge crate, with a flat wasm-bindgen surface) is built by `cargo xtask wasm` as `lamina_pdf_render_hayro.{js,d.ts,wasm}` into `packages/wasm/dist/`, next to Lamina PDF's own modules. It goes through the same `wasm-bindgen` and `wasm-opt` pipeline, with its own size budget (`render_hayro` in `packages/wasm/size-budgets.json`).
 
 ### Tests
 

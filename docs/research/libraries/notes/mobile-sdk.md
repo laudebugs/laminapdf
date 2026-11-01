@@ -242,15 +242,15 @@ Complaints about first-party stacks: memory spikes/crashes on large docs, undocu
 // SwiftUI
 import Lamina
 struct ReaderScreen: View {
-    @State private var doc = try! LaminaDocument(url: fileURL)   // async open: try await LaminaDocument.open(url:)
-    @State private var viewer = LaminaViewerState()               // @Observable: page, zoom, selection, tool
+    @State private var doc = try! LaminaPdfDocument(url: fileURL)   // async open: try await LaminaPdfDocument.open(url:)
+    @State private var viewer = LaminaPdfViewerState()               // @Observable: page, zoom, selection, tool
     var body: some View {
-        LaminaView(document: doc, state: viewer)
+        LaminaPdfView(document: doc, state: viewer)
             .laminaDisplayMode(.continuous)
             .laminaTool($viewer.tool)                                // .none / .ink(.pen) / .highlight / .form
             .laminaSearch(text: $query)                              // AsyncStream<SearchHit> under the hood
             .onLaminaSave { data in try data.write(to: fileURL) }   // incremental save (ADR 0007)
-            .toolbar { LaminaAnnotationToolbar(state: viewer) }
+            .toolbar { LaminaPdfAnnotationToolbar(state: viewer) }
     }
 }
 // headless
@@ -262,11 +262,11 @@ let png = try await doc.page(0).render(scale: 2)  // cancellable via Task
 ```kotlin
 // Compose
 @Composable fun ReaderScreen(uri: Uri) {
-    val doc by rememberLaminaDocument(uri)                  // State<LoadState<LaminaDocument>>
+    val doc by rememberLaminaDocument(uri)                  // State<LoadState<LaminaPdfDocument>>
     val state = rememberLaminaViewerState()                  // page, zoom, selection, tool; saveable
-    LaminaViewer(
+    LaminaPdfViewer(
         state = state, document = doc,
-        tool = LaminaTool.Ink(Brush.Pen),                    // uses androidx.ink + motion prediction
+        tool = LaminaPdfTool.Ink(Brush.Pen),                    // uses androidx.ink + motion prediction
         formFillingEnabled = true,
         contentPadding = PaddingValues(16.dp),
     )

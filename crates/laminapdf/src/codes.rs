@@ -73,7 +73,7 @@ const _: () = assert!(
 
 /// The [`ErrorCode`] of a wrapped crate's error code. Every such code is in the table (the
 /// assertions above), so the fallback is never taken; it is `unset-object`, kind `internal`,
-/// whose hint says to report a lamina bug.
+/// whose hint says to report a bug in Lamina PDF.
 pub(crate) const fn error_code(code: &str) -> ErrorCode {
     match ErrorCode::from_code(code) {
         Some(c) => c,
@@ -90,7 +90,7 @@ pub(crate) const fn warning_code(code: &str) -> WarningCode {
     }
 }
 
-/// `template` with `{limit}` filled in (ADR 0026 §5: the only parameters are lamina's own
+/// `template` with `{limit}` filled in (ADR 0026 §5: the only parameters are Lamina PDF's own
 /// vocabulary). A parameter with no value leaves the hint out rather than show a brace.
 pub(crate) fn fill_hint(template: &str, limit: Option<&'static str>) -> Option<String> {
     let filled = match limit {

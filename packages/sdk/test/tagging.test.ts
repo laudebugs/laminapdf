@@ -2,7 +2,7 @@
 // The TS twin of laminapdf-build's tagged report is byte-identical to its Rust golden
 // (fixtures/golden/tagged-report.pdf, whose structure crates/laminapdf-build/tests/tagging.rs
 // checks with laminapdf-model, pdf.js and PDFium).
-import { Builder, Document, Font, Image, init, isLaminaError, type Surface } from "@laminapdf/sdk";
+import { Builder, Document, Font, Image, init, isLaminaPdfError, type Surface } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 
@@ -164,7 +164,7 @@ describe("tagging", () => {
         .surface()
         .tag("H7" as never, () => {}),
     );
-    expect(isLaminaError(e, "invalid-argument") && e.didYouMean).toContain("H1");
+    expect(isLaminaPdfError(e, "invalid-argument") && e.didYouMean).toContain("H1");
   });
 
   it("rejects an unknown artifact kind", () => {
@@ -175,6 +175,6 @@ describe("tagging", () => {
         .surface()
         .artifact("Layout" as never, () => {}),
     );
-    expect(isLaminaError(e, "invalid-argument") && e.didYouMean).toContain("layout");
+    expect(isLaminaPdfError(e, "invalid-argument") && e.didYouMean).toContain("layout");
   });
 });

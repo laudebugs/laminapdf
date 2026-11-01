@@ -295,14 +295,16 @@ pub(crate) fn hb_shape() -> Tool {
 }
 
 /// Java for veraPDF (optional: only `cargo xtask verapdf` needs it). `cargo xtask verapdf`
-/// probes `$LAMINA_JAVA`, Homebrew's `openjdk@21` and `java` on `PATH` with this pin; doctor
+/// probes `$LAMINA_PDF_JAVA`, Homebrew's `openjdk@21` and `java` on `PATH` with this pin; doctor
 /// probes `PATH`.
 pub(crate) fn java() -> Tool {
     Tool {
         name: "java",
         version_command: &["java", "--version"],
         pin: Pin::MinMajor(MIN_JAVA_MAJOR),
-        fix: format!("brew install openjdk@21  # or any Java {MIN_JAVA_MAJOR}+; set LAMINA_JAVA to its java binary"),
+        fix: format!(
+            "brew install openjdk@21  # or any Java {MIN_JAVA_MAJOR}+; set LAMINA_PDF_JAVA to its java binary"
+        ),
         optional_for: Some("cargo xtask verapdf (veraPDF, the nightly lane)"),
     }
 }

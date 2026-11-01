@@ -1,5 +1,5 @@
 // What the document worker reads a Blob through: `@laminapdf/sdk`'s RangeSource, so the viewer and
-// lamina share one interface for a document's bytes (the HTTP range source is one too).
+// Lamina PDF share one interface for a document's bytes (the HTTP range source is one too).
 import { callbackSource, type RangeSource } from "@laminapdf/sdk";
 
 /** A Blob (or File) as a RangeSource: each read is a `slice()`, so the file is never read whole for one range. */

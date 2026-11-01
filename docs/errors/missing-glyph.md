@@ -5,7 +5,7 @@
 
 ## What happened
 
-Text contained a character the font has no glyph for. lamina never draws `.notdef` (an empty box) silently.
+Text contained a character the font has no glyph for. Lamina PDF never draws `.notdef` (an empty box) silently.
 
 ## Why
 

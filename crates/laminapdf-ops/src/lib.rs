@@ -31,7 +31,7 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! This crate is part of lamina's pure core: bytes in, bytes out, no file system, network,
+//! This crate is part of Lamina PDF's pure core: bytes in, bytes out, no file system, network,
 //! clocks or threads.
 //!
 //! * [`Op`]: [`SetInfo`] (with [`InfoPatch`]) and [`RotatePage`], each with a
@@ -65,8 +65,8 @@
 //! * `tsify`: derives `tsify::Tsify` on the op types, so `laminapdf-wasm` can emit their
 //!   TypeScript declarations (ADR 0002). Off by default.
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-//! [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #![forbid(unsafe_code)]
 
 mod blob;

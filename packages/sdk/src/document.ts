@@ -1,8 +1,8 @@
 // Document: open, read, edit with ops (transactions, undo), save. A thin layer over
-// WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaError.
+// WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaPdfError.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { PageTextJs } from "@laminapdf/wasm/extract";
-import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
+import { guard, isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { extractsText, readingModule } from "./init.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
@@ -51,7 +51,7 @@ function passwordAttempts<O extends OpenOptions>(options: O): O[] {
 
 /** Whether a failed attempt should be followed by the next one. */
 function tryNext(e: unknown, attempt: number, attempts: number): boolean {
-  return attempt + 1 < attempts && isLaminaError(e, "wrong-password");
+  return attempt + 1 < attempts && isLaminaPdfError(e, "wrong-password");
 }
 
 /** A page of a {@link Document}, held by its ID: moving pages doesn't retarget it (ADR 0028 F2). */
@@ -68,12 +68,12 @@ export class PageRef {
     return this.#page.id;
   }
 
-  /** The page's current 0-based index. @throws {@link LaminaError} `unknown-page` when it is gone. */
+  /** The page's current 0-based index. @throws {@link LaminaPdfError} `unknown-page` when it is gone. */
   get index(): number {
     return guard(() => this.#page.index());
   }
 
-  /** The page's facts now. @throws {@link LaminaError} `unknown-page` when it is gone. */
+  /** The page's facts now. @throws {@link LaminaPdfError} `unknown-page` when it is gone. */
   get info(): PageInfo {
     return guard(() => this.#page.info());
   }
@@ -89,7 +89,7 @@ export class PageRef {
    * const text = doc.page(0).text().text();
    * ```
    * @param options - `skipInvisible` leaves out invisible text (OCR layers).
-   * @throws {@link LaminaError} `extract-module-not-loaded` for a document opened in the base
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
    *   module; `unknown-page`; reading errors (`data-pending` for a range document: use `ensure`).
    */
   text(options?: TextOptions): PageText {
@@ -118,7 +118,7 @@ export class SaveJob {
    * Runs at most `budget` work units.
    *
    * @returns `{ state: "progress", … }`, or `{ state: "done", bytes, report }` at the end.
-   * @throws {@link LaminaError} `cancelled`, `document-changed`, `job-finished`, or the save's errors.
+   * @throws {@link LaminaPdfError} `cancelled`, `document-changed`, `job-finished`, or the save's errors.
    */
   step(
     budget: number,
@@ -174,7 +174,7 @@ export class Document {
    * @param source - the file (or a promise of it, as `httpRangeSource` returns).
    * @param options - open options (password, strict, limits) and fetch options.
    * @returns the document, once open has everything it needs.
-   * @throws {@link LaminaError} as {@link Document.open}; `data-pending` when fetching made no
+   * @throws {@link LaminaPdfError} as {@link Document.open}; `data-pending` when fetching made no
    *   progress or `maxRounds` ran out; `source-budget-exceeded`; the source's own errors
    *   (`fetch-failed`, `source-changed`); the signal's reason when aborted.
    */
@@ -254,7 +254,7 @@ export class Document {
    * @param bytes - the PDF file.
    * @param options - password, strict mode, limits.
    * @returns the document.
-   * @throws {@link LaminaError} `not-pdf`, `password-required`, `wrong-password`, `limit-exceeded`,
+   * @throws {@link LaminaPdfError} `not-pdf`, `password-required`, `wrong-password`, `limit-exceeded`,
    *   `strict`, …; `unknown-option` / `invalid-argument` for bad options; `not-initialized`.
    */
   static open(bytes: Uint8Array | ArrayBuffer, options?: OpenOptions): Document {
@@ -279,12 +279,12 @@ export class Document {
     return extractsText(this.#doc);
   }
 
-  /** The number of pages. @throws {@link LaminaError} reading errors. */
+  /** The number of pages. @throws {@link LaminaPdfError} reading errors. */
   get pageCount(): number {
     return guard(() => this.#doc.pageCount());
   }
 
-  /** Every page's facts, in order (one page-tree walk). @throws {@link LaminaError} reading errors. */
+  /** Every page's facts, in order (one page-tree walk). @throws {@link LaminaPdfError} reading errors. */
   get pages(): readonly PageInfo[] {
     return guard(() => this.#doc.pageInfos());
   }
@@ -292,7 +292,7 @@ export class Document {
   /**
    * Page `index`'s facts.
    *
-   * @throws {@link LaminaError} `page-index-out-of-range`.
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`.
    */
   pageInfo(index: number): PageInfo {
     return guard(() => this.#doc.pageInfo(index));
@@ -301,7 +301,7 @@ export class Document {
   /**
    * A handle on page `index` that follows the page by its ID.
    *
-   * @throws {@link LaminaError} `page-index-out-of-range`.
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`.
    */
   page(index: number): PageRef {
     return new PageRef(guard(() => this.#doc.page(index)));
@@ -310,24 +310,24 @@ export class Document {
   /**
    * A handle on the page with `id` (`p12.0`).
    *
-   * @throws {@link LaminaError} `invalid-argument`, `unknown-page`.
+   * @throws {@link LaminaPdfError} `invalid-argument`, `unknown-page`.
    */
   pageById(id: string): PageRef {
     return new PageRef(guard(() => this.#doc.pageById(id)));
   }
 
-  /** The Info dictionary's text entries (document text). @throws {@link LaminaError} reading errors. */
+  /** The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors. */
   get info(): DocumentInfo {
     return guard(() => this.#doc.info());
   }
 
   /** Every warning so far (build warnings first), each the ADR 0026 §1 object. */
-  get warnings(): readonly LaminaWarning[] {
+  get warnings(): readonly LaminaPdfWarning[] {
     const cursor = this.#doc.warnings();
     try {
-      const out: LaminaWarning[] = [];
+      const out: LaminaPdfWarning[] = [];
       for (;;) {
-        const batch = cursor.nextBatch(WARNING_BATCH) as LaminaWarning[];
+        const batch = cursor.nextBatch(WARNING_BATCH) as LaminaPdfWarning[];
         if (batch.length === 0) return out;
         out.push(...batch);
       }
@@ -345,7 +345,7 @@ export class Document {
    * Applies `ops` in order as one transaction: all of them, or none.
    *
    * @returns the pages the edit touched.
-   * @throws {@link LaminaError} `unknown-option` / `invalid-argument` for a value that isn't an op;
+   * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for a value that isn't an op;
    *   the first failing op's error (`unknown-page`, …), with nothing applied.
    */
   apply(ops: readonly Op[]): Edited {
@@ -356,7 +356,7 @@ export class Document {
   /**
    * Applies an op log (`{ v: 1, ops }`, as JSON text or an object) as one transaction.
    *
-   * @throws {@link LaminaError} `invalid-op-log`, `unsupported-version`; as {@link Document.apply}.
+   * @throws {@link LaminaPdfError} `invalid-op-log`, `unsupported-version`; as {@link Document.apply}.
    */
   applyLog(log: string | OpLog): Edited {
     this.#notInTransaction("applyLog");
@@ -372,7 +372,7 @@ export class Document {
    * @param edit - collects ops on `tx`; synchronous only (a callback returning a promise is
    *   refused with `invalid-argument` and nothing is applied).
    * @returns what `edit` returned.
-   * @throws {@link LaminaError} `nested-transaction` when called (or when `apply`, `undo`, `redo`,
+   * @throws {@link LaminaPdfError} `nested-transaction` when called (or when `apply`, `undo`, `redo`,
    *   `save`… are called) inside a `transact` of the same document; `invalid-argument` for an
    *   async callback; as {@link Document.apply}.
    * @example
@@ -415,7 +415,7 @@ export class Document {
    * Undoes the newest transaction.
    *
    * @returns how it went, or `undefined` when there is nothing to undo.
-   * @throws {@link LaminaError} `saved-not-rebased`; reading errors.
+   * @throws {@link LaminaPdfError} `saved-not-rebased`; reading errors.
    */
   undo(): UndoOutcome | undefined {
     this.#notInTransaction("undo");
@@ -426,7 +426,7 @@ export class Document {
    * Redoes the newest undone transaction.
    *
    * @returns how it went, or `undefined` when there is nothing to redo.
-   * @throws {@link LaminaError} as {@link Document.undo}.
+   * @throws {@link LaminaPdfError} as {@link Document.undo}.
    */
   redo(): UndoOutcome | undefined {
     this.#notInTransaction("redo");
@@ -438,7 +438,7 @@ export class Document {
    *
    * @param options - `mode` (`auto`, `incremental`, `fullRewrite`), overrides, output form.
    * @returns the file's bytes.
-   * @throws {@link LaminaError} `would-invalidate-signatures`, `requires-rewrite`, `encrypted-base`, …
+   * @throws {@link LaminaPdfError} `would-invalidate-signatures`, `requires-rewrite`, `encrypted-base`, …
    */
   save(options?: SaveOptions): Uint8Array {
     return this.saveWithReport(options).bytes;
@@ -447,7 +447,7 @@ export class Document {
   /**
    * As {@link Document.save}, with the save's report (mode used, bytes written, renumbering, …).
    *
-   * @throws {@link LaminaError} as {@link Document.save}.
+   * @throws {@link LaminaPdfError} as {@link Document.save}.
    */
   saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array; readonly report: SaveReport } {
     this.#notInTransaction("save");
@@ -457,7 +457,7 @@ export class Document {
   /**
    * A save as a job stepped by the caller (to keep a UI responsive).
    *
-   * @throws {@link LaminaError} `unknown-option` / `invalid-argument` for bad options.
+   * @throws {@link LaminaPdfError} `unknown-option` / `invalid-argument` for bad options.
    */
   saveJob(options?: SaveOptions): SaveJob {
     this.#notInTransaction("saveJob");
@@ -467,7 +467,7 @@ export class Document {
   /**
    * Rebases onto `bytes`, the output of a save whose rebase failed (`not-rebased`).
    *
-   * @throws {@link LaminaError} `no-pending-save`; reading errors in `bytes`.
+   * @throws {@link LaminaPdfError} `no-pending-save`; reading errors in `bytes`.
    */
   rebase(bytes: Uint8Array): void {
     this.#notInTransaction("rebase");

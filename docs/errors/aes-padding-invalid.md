@@ -21,7 +21,7 @@ Treat the affected strings and streams as suspect: they may have been altered or
 (an AESV2 string whose last block does not end in valid PKCS#5 padding)
 ```
 
-lamina keeps the data as stored (or unstripped) instead of failing, and raises the warning with the string's or stream's `object`.
+Lamina PDF keeps the data as stored (or unstripped) instead of failing, and raises the warning with the string's or stream's `object`.
 
 ## Data fields
 

@@ -29,7 +29,7 @@
 //! # Ok::<(), laminapdf_cos::Error>(())
 //! ```
 //!
-//! This crate is part of lamina's pure core: bytes in, bytes out. A [`Document`] owns its
+//! This crate is part of Lamina PDF's pure core: bytes in, bytes out. A [`Document`] owns its
 //! input as a shared [`ByteSource`] (ADR 0005), parses objects lazily and never touches the
 //! file system, network, clocks or threads.
 //!

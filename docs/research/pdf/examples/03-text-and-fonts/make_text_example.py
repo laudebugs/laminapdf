@@ -144,7 +144,7 @@ objs = {
 xmp = """<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
-<dc:title><rdf:Alt><rdf:li xml:lang="x-default">lamina text example</rdf:li></rdf:Alt></dc:title>
+<dc:title><rdf:Alt><rdf:li xml:lang="x-default">laminapdf text example</rdf:li></rdf:Alt></dc:title>
 </rdf:Description></rdf:RDF></x:xmpmeta>
 <?xpacket end="w"?>""".encode("utf-8")
 objs[13] = (f"<< /Type /Metadata /Subtype /XML /Length {len(xmp)} >>\nstream\n").encode() + xmp + b"\nendstream"
@@ -160,7 +160,7 @@ size = max(objs) + 1
 out += f"xref\n0 {size}\n0000000000 65535 f \n".encode()
 for n in range(1, size):
     out += f"{offsets[n]:010d} 00000 n \n".encode()
-out += (f"trailer\n<< /Size {size} /Root 1 0 R /Info << /Title (lamina text example) >> >>\n"
+out += (f"trailer\n<< /Size {size} /Root 1 0 R /Info << /Title (laminapdf text example) >> >>\n"
         f"startxref\n{xref}\n%%EOF\n").encode()
 open(OUT, "wb").write(out)
 print(f"wrote {OUT}: {len(out)} bytes; embedded subset {len(font_bytes)} bytes, "

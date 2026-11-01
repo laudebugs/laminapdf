@@ -25,7 +25,7 @@ use crate::tree::{NameTree, NumberTree};
 ///
 /// Like the COS document it is `Send` but `!Sync`.
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 pub struct Document {
     cos: laminapdf_cos::Document,
 }

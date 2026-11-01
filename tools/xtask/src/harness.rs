@@ -2,7 +2,7 @@
 //! differential (tier 6) and the fuzz targets (tier 9).
 //!
 //! Python is needed only to regenerate facts (`corpus facts`, `differential --update`): it is
-//! `$LAMINA_PYTHON` or `python3`, with `tools/corpus-facts/requirements.txt` installed. The
+//! `$LAMINA_PDF_PYTHON` or `python3`, with `tools/corpus-facts/requirements.txt` installed. The
 //! fast lane only reads the precomputed files.
 
 use std::ffi::OsStr;
@@ -35,7 +35,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 9] = [
 const DEFAULT_FUZZ_SECONDS: u64 = 60;
 
 pub(crate) fn python() -> String {
-    std::env::var("LAMINA_PYTHON").unwrap_or_else(|_| "python3".to_owned())
+    std::env::var("LAMINA_PDF_PYTHON").unwrap_or_else(|_| "python3".to_owned())
 }
 
 /// A clean scratch directory under `target/xtask/`.
@@ -82,7 +82,7 @@ fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
             "--exact",
             "write_snapshot",
         ],
-        &[("LAMINA_SNAPSHOT_OUT", out_arg.as_str())],
+        &[("LAMINA_PDF_SNAPSHOT_OUT", out_arg.as_str())],
     )?;
     let target = ws.root.join("fixtures/text/page-text.json");
     let bytes = fs::read(&out)?;

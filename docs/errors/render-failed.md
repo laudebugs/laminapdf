@@ -9,7 +9,7 @@ The render engine (PDFium or hayro, `laminapdf-render`) could not open the docum
 
 ## Why
 
-The engines have their own parsers. A file that lamina repairs may still be too damaged for an engine, or use a feature it can't draw. An engine failure (for example a panic inside hayro) is reported this way too, never as a crash.
+The engines have their own parsers. A file that Lamina PDF repairs may still be too damaged for an engine, or use a feature it can't draw. An engine failure (for example a panic inside hayro) is reported this way too, never as a crash.
 
 ## How to fix
 

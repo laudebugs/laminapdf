@@ -15,13 +15,13 @@ The full lane's `check-linux` job (`.github/workflows/full.yml`) runs `cargo xta
 
 You need:
 - Docker Desktop, running and set to start at login.
-- `gh` logged in as an admin of `laudebugs/lamina`.
+- `gh` logged in as an admin of `laudebugs/laminapdf`.
 - A checkout of `main` that already contains this directory. The agent builds its image from `main` on GitHub, not from your checkout.
 
 ```sh
 tools/ci-runner/linux/up.sh
 tail -f ~/Library/Logs/lamina-ci-runner-linux.log    # the first start builds the image: a few minutes
-gh api repos/laudebugs/lamina/actions/runners -q '.runners[] | [.name, .status, ([.labels[].name] | join(","))] | @tsv'
+gh api repos/laudebugs/laminapdf/actions/runners -q '.runners[] | [.name, .status, ([.labels[].name] | join(","))] | @tsv'
 gh variable set LINUX_RUNNER --body true             # once: the switch that lets full.yml schedule check-linux
 ```
 
@@ -67,7 +67,7 @@ Ephemeral runners need a new registration for every job, so something has to hol
 | **JIT config minted on the host (chosen)** | The owner's `gh` login, which stays in the Mac's keychain. Each container gets only a single-use config for one runner | Yes |
 
 How the JIT config travels:
-1. `loop.sh` calls `POST /repos/laudebugs/lamina/actions/runners/generate-jitconfig` with the runner's name, the three labels and the default runner group.
+1. `loop.sh` calls `POST /repos/laudebugs/laminapdf/actions/runners/generate-jitconfig` with the runner's name, the three labels and the default runner group.
 2. It passes the result to Docker as `ACTIONS_RUNNER_INPUT_JITCONFIG`, through the environment. The config is never on a command line, in a file on the Mac or in the log.
 3. The runner reads that variable as its `--jitconfig` argument, masks it in its logs and removes it from the environment that job steps inherit.
 

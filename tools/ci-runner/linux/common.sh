@@ -1,12 +1,12 @@
 # Shared settings and helpers for up.sh, down.sh and loop.sh (todo X5, README.md). Sourced, not
-# run. The names can be overridden through the environment (LAMINA_RUNNER_*); up.sh writes the
+# run. The names can be overridden through the environment (LAMINA_PDF_RUNNER_*); up.sh writes the
 # values it used into the launchd agent, so loop.sh sees the same ones (run down.sh with them too).
 # shellcheck shell=bash disable=SC2034  # the variables are used by the scripts that source this
 
-REPO=${LAMINA_RUNNER_REPO:-laudebugs/lamina}
-NAME=${LAMINA_RUNNER_NAME:-lamina-self-hosted-linux-1}
-IMAGE=${LAMINA_RUNNER_IMAGE:-lamina-ci-runner-linux:local}
-LABEL=${LAMINA_RUNNER_AGENT:-dev.lamina.ci-runner-linux}
+REPO=${LAMINA_PDF_RUNNER_REPO:-laudebugs/laminapdf}
+NAME=${LAMINA_PDF_RUNNER_NAME:-lamina-self-hosted-linux-1}
+IMAGE=${LAMINA_PDF_RUNNER_IMAGE:-lamina-ci-runner-linux:local}
+LABEL=${LAMINA_PDF_RUNNER_AGENT:-dev.lamina.ci-runner-linux}
 # The repository variable loop.sh refreshes while the runner container is up; full.yml skips
 # check-linux when it is older than 15 minutes.
 HEARTBEAT_VAR=LINUX_RUNNER_HEARTBEAT

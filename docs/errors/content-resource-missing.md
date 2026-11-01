@@ -26,7 +26,7 @@ Check the page's `/Resources`.
 ## Data fields
 
 - `offset`: the operator's byte offset in the decoded content.
-- `category`: the resource category, e.g. `Font` (lamina's own vocabulary).
+- `category`: the resource category, e.g. `Font` (Lamina PDF's own vocabulary).
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
 

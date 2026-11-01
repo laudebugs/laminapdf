@@ -55,8 +55,8 @@ doc.warnings.forEach(w => console.warn(w.code, w.message));
 
 ```console
 # CLI
-$ lamina fill form.pdf --data '{"name":"Jane","agreed":true}' -o filled.pdf --json
-{"schema":"lamina.fill/1","output":"filled.pdf","save":"incremental","warnings":[]}
+$ laminapdf fill form.pdf --data '{"name":"Jane","agreed":true}' -o filled.pdf --json
+{"schema":"laminapdf.fill/1","output":"filled.pdf","save":"incremental","warnings":[]}
 ```
 
 ## A UniFFI-shaped façade keeps one core honest across WASM and native
@@ -79,7 +79,7 @@ pub struct PageInfo { pub index: u32, pub width_pt: f32, pub height_pt: f32, pub
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Error))]
-pub enum LaminaError {                     // codes from fixtures/codes.json; string payloads only
+pub enum LaminaPdfError {                     // codes from fixtures/codes.json; string payloads only
     #[error("{message}")] Coded { code: String, message: String, hint: Option<String>, offset: Option<u64> },
     #[error("cancelled")] Cancelled,
 }
@@ -97,8 +97,8 @@ impl WasmDocument {
 // crates/laminapdf-ffi (edge)
 #[derive(uniffi::Object)] pub struct FfiDocument(laminapdf::Document);
 #[uniffi::export] impl FfiDocument {
-    #[uniffi::constructor] pub fn open(bytes: Vec<u8>, opts: OpenOptions) -> Result<Arc<Self>, LaminaError> { … }
-    pub fn page_info(&self, i: u32) -> Result<PageInfo, LaminaError> { … }
+    #[uniffi::constructor] pub fn open(bytes: Vec<u8>, opts: OpenOptions) -> Result<Arc<Self>, LaminaPdfError> { … }
+    pub fn page_info(&self, i: u32) -> Result<PageInfo, LaminaPdfError> { … }
 }
 ```
 
@@ -122,7 +122,7 @@ Neither boundary gives cancellation for free. **UniFFI says "there's no builtin 
 // Rust
 let job = doc.render_job(page, RenderOptions { scale: 2.0, ..Default::default() })?;
 loop { match job.step(Budget::ops(50_000))? { Step::Progress(p) => report(p), Step::Done(bmp) => break bmp } }
-// any thread: job.cancel();   → next step() returns Err(LaminaError::Cancelled)
+// any thread: job.cancel();   → next step() returns Err(LaminaPdfError::Cancelled)
 ```
 
 ```ts
@@ -133,7 +133,7 @@ const bmp = await doc.page(0).render({ scale: 2, signal: ac.signal, onProgress: 
 
 ```console
 # CLI: the same job loop with a timeout and progress on stderr (only when stderr is a TTY)
-$ lamina render big.pdf --pages 1 --scale 2 --timeout 10s -o p1.png
+$ laminapdf render big.pdf --pages 1 --scale 2 --timeout 10s -o p1.png
 ```
 
 ### Rendering: hayro is the small-footprint candidate; PDFium wins on fidelity at about 2 MB
@@ -159,8 +159,8 @@ const signed = pending.finish({ signature: raw, format: "p1363", chain });   // 
 ```
 
 ```console
-$ lamina sign in.pdf --field Sig1 --p12 me.p12 --password-file pw.txt -o signed.pdf
-$ lamina sign in.pdf --field Sig1 --external 'pkcs11-tool …' -o signed.pdf   # digest piped to an external signer
+$ laminapdf sign in.pdf --field Sig1 --p12 me.p12 --password-file pw.txt -o signed.pdf
+$ laminapdf sign in.pdf --field Sig1 --external 'pkcs11-tool …' -o signed.pdf   # digest piped to an external signer
 ```
 
 ### Panic safety: no panics in core, a disposable instance on the web, unwinding at native edges
@@ -205,7 +205,7 @@ JavaScript tree-shaking drops unused glue, not unused wasm functions. jSquash's 
 
 ### Disposal: `using` first, FinalizationRegistry as a backstop, memory bounded three ways
 
-Explicit resource management shipped in Chromium 134, Firefox 141 and Node 24 ([V8 blog](https://v8.dev/features/explicit-resource-management)). **Safari's status conflicts across sources.** One says desktop Safari 26.4 has `Symbol.dispose` and iOS does not ([OpenReplay](https://blog.openreplay.com/javascript-cleanup/)). Another says it exists only in Technology Preview ([ByteIota](https://byteiota.com/javascripts-using-keyword-is-now-cross-browser-act-now/)). Treat Safari as unsupported until the MDN compatibility table says otherwise, and polyfill `Symbol.dispose ??= Symbol.for("Symbol.dispose")`. wasm-bindgen's FinalizationRegistry cleans up eventually ([weak references guide](https://raw.githubusercontent.com/wasm-bindgen/wasm-bindgen/main/guide/src/reference/weak-references.md)). But wasm linear memory never shrinks **[unverified]**, so a single 500 MB render leaves the instance large. Bound memory three ways: enforce `Limits` in Rust, set a wasm maximum memory at link time so growth fails as a coded error, and offer `reset()` or a terminable worker to reclaim it. A call on a disposed handle should throw `LaminaError` with code `DISPOSED`, not a null-pointer panic from the glue.
+Explicit resource management shipped in Chromium 134, Firefox 141 and Node 24 ([V8 blog](https://v8.dev/features/explicit-resource-management)). **Safari's status conflicts across sources.** One says desktop Safari 26.4 has `Symbol.dispose` and iOS does not ([OpenReplay](https://blog.openreplay.com/javascript-cleanup/)). Another says it exists only in Technology Preview ([ByteIota](https://byteiota.com/javascripts-using-keyword-is-now-cross-browser-act-now/)). Treat Safari as unsupported until the MDN compatibility table says otherwise, and polyfill `Symbol.dispose ??= Symbol.for("Symbol.dispose")`. wasm-bindgen's FinalizationRegistry cleans up eventually ([weak references guide](https://raw.githubusercontent.com/wasm-bindgen/wasm-bindgen/main/guide/src/reference/weak-references.md)). But wasm linear memory never shrinks **[unverified]**, so a single 500 MB render leaves the instance large. Bound memory three ways: enforce `Limits` in Rust, set a wasm maximum memory at link time so growth fails as a coded error, and offer `reset()` or a terminable worker to reclaim it. A call on a disposed handle should throw `LaminaPdfError` with code `DISPOSED`, not a null-pointer panic from the glue.
 
 ### Strict types: branded units, discriminated options, codes generated from one file
 
@@ -217,11 +217,11 @@ Neither pdf-lib nor LibPDF documents error types or codes ([pdf-lib README](http
 export type Pt = number & { readonly [unit]: "pt" };
 export const mm = (n: number) => (n * 72 / 25.4) as Pt;
 export type ErrorCode = (typeof codes)[number]["code"];          // generated from fixtures/codes.json
-export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
+export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   readonly code: C; readonly hint?: string; readonly offset?: number; readonly docsUrl: string;
 }
 export type SaveOptions = { mode: "auto" } | { mode: "incremental" } | { mode: "full"; objectStreams?: boolean };
-if (isLaminaError(e, "WRONG_PASSWORD")) askAgain();
+if (isLaminaPdfError(e, "WRONG_PASSWORD")) askAgain();
 ```
 
 ```rust
@@ -267,13 +267,13 @@ UniFFI maps Rust `async fn` to Swift `async` and Kotlin `suspend` ([futures.md](
 // SwiftUI
 import Lamina
 struct ReaderScreen: View {
-    let doc: LaminaDocument                         // try await LaminaDocument.open(url:)
-    @State private var viewer = LaminaViewerState() // @Observable: page, zoom, selection, tool
+    let doc: LaminaPdfDocument                         // try await LaminaPdfDocument.open(url:)
+    @State private var viewer = LaminaPdfViewerState() // @Observable: page, zoom, selection, tool
     var body: some View {
-        LaminaView(document: doc, state: viewer)
+        LaminaPdfView(document: doc, state: viewer)
             .laminaTool($viewer.tool)               // .none / .ink(.pen) / .highlight / .form
             .onLaminaSave { data in try data.write(to: url) }   // incremental when required
-            .toolbar { LaminaAnnotationToolbar(state: viewer) }
+            .toolbar { LaminaPdfAnnotationToolbar(state: viewer) }
     }
 }
 let png = try await doc.page(0).render(scale: 2)    // Task cancellation → job.cancel()
@@ -283,9 +283,9 @@ for try await hit in doc.search("invoice") { … }    // AsyncThrowingStream<Sea
 ```kotlin
 // Compose
 @Composable fun ReaderScreen(uri: Uri) {
-    val doc by rememberLaminaDocument(uri)          // State<LoadState<LaminaDocument>>
+    val doc by rememberLaminaDocument(uri)          // State<LoadState<LaminaPdfDocument>>
     val state = rememberLaminaViewerState()
-    LaminaViewer(document = doc, state = state, tool = LaminaTool.Ink(Brush.Pen), formFillingEnabled = true)
+    LaminaPdfViewer(document = doc, state = state, tool = LaminaPdfTool.Ink(Brush.Pen), formFillingEnabled = true)
 }
 scope.launch {
     doc.search("invoice").collect { hit -> … }      // Flow<SearchHit>
@@ -295,14 +295,14 @@ scope.launch {
 
 ```rust
 // Rust primitive both wrappers sit on
-pub fn render_tile(&self, page: u32, scale: f32, rect: RectPt, out: &mut [u8], cancel: &CancelToken) -> Result<TileInfo, LaminaError>;
+pub fn render_tile(&self, page: u32, scale: f32, rect: RectPt, out: &mut [u8], cancel: &CancelToken) -> Result<TileInfo, LaminaPdfError>;
 pub fn page_sizes(&self) -> Vec<PageSize>;          // available at open, no rendering
 pub fn trim(&self, level: TrimLevel);               // drop decoded images, font and content caches
 ```
 
 ```console
 # CLI parity check used in mobile CI: the same tile, byte-compared against the device render
-$ lamina render a.pdf --pages 1 --scale 2 --rect 0,0,256,256 -o tile.rgba --format rgba
+$ laminapdf render a.pdf --pages 1 --scale 2 --rect 0,0,256,256 -o tile.rgba --format rgba
 ```
 
 Accessibility remains an open area the notes did not research. The inferred requirement: publish per-page accessibility elements from the structure tree, or from reading order when the file is untagged (§5), and offer a reflow view, because Dynamic Type cannot reflow a fixed layout.
@@ -323,7 +323,7 @@ The bottom-left origin is pdf-lib's best-known footgun: users write `y: height -
 
 ### Errors and schemas as a single contract
 
-rustc's diagnostics are the model: a stable code, a span, labels, and machine-applicable help in `--error-format=json` ([rustc JSON](https://doc.rust-lang.org/rustc/json.html)). lamina's errors should serialise as `{code, kind, message, hint, didYouMean, location:{offset, object}, docsUrl}` from every surface. Every options and output type should emit JSON Schema 2020-12 from the Rust types (schemars), versioned as `lamina.extract/1` and shipped both in the package and at a stable URL.
+rustc's diagnostics are the model: a stable code, a span, labels, and machine-applicable help in `--error-format=json` ([rustc JSON](https://doc.rust-lang.org/rustc/json.html)). lamina's errors should serialise as `{code, kind, message, hint, didYouMean, location:{offset, object}, docsUrl}` from every surface. Every options and output type should emit JSON Schema 2020-12 from the Rust types (schemars), versioned as `laminapdf.extract/1` and shipped both in the package and at a stable URL.
 
 ### Rule-based extraction in core, models as licence-clean plug-ins
 
@@ -372,10 +372,10 @@ for (const c of res.chunks({ maxTokens: 512, splitOn: "headings" }))
 ```
 
 ```console
-$ lamina extract report.pdf --format md --drop invisible,running-headers > report.md
-$ lamina extract json report.pdf --schema extract/1 > out.json
-$ lamina extract chunks report.pdf --max-tokens 512 --jsonl | my-embedder
-$ lamina explain W_TOUNICODE_GUESSED
+$ laminapdf extract report.pdf --format md --drop invisible,running-headers > report.md
+$ laminapdf extract json report.pdf --schema extract/1 > out.json
+$ laminapdf extract chunks report.pdf --max-tokens 512 --jsonl | my-embedder
+$ laminapdf explain W_TOUNICODE_GUESSED
 ```
 
 ```json
@@ -402,32 +402,32 @@ qpdf is the model for machine contracts. **Its exit codes are 0 (clean), 2 (erro
 
 clig.dev states the conventions the CLI should follow. Data goes to stdout and everything else to stderr. `-` means stdin or stdout. Colour and animation turn off when the output is not a TTY or `NO_COLOR` is set. The CLI never prompts without a TTY. It supports `--json`, `--force`, `--dry-run` and `--no-input` ([clig.dev source](https://raw.githubusercontent.com/cli-guidelines/cli-guidelines/main/content/_index.md)). ripgrep's `--json` is the pattern for batch output: per-file `begin`/`end` messages and a final `summary`, one JSON object per line ([ripgrep defs.rs](https://raw.githubusercontent.com/BurntSushi/ripgrep/master/crates/core/flags/defs.rs)).
 
-**Recommendation: exit codes.** `0` ok; `1` generic failure; `2` usage error; `3` completed with warnings (qpdf-compatible; `--warnings-ok` turns it into 0); `4` refused a destructive operation without `--force` or confirmation; `5` password required or wrong. This deliberately differs from gh, where `2` means cancelled and `4` means authentication required ([gh help_topic.go](https://raw.githubusercontent.com/cli/cli/trunk/pkg/cmd/root/help_topic.go)). `lamina help exit-codes` documents the list, and the JSON error carries `exit_code` so wrappers never have to guess.
+**Recommendation: exit codes.** `0` ok; `1` generic failure; `2` usage error; `3` completed with warnings (qpdf-compatible; `--warnings-ok` turns it into 0); `4` refused a destructive operation without `--force` or confirmation; `5` password required or wrong. This deliberately differs from gh, where `2` means cancelled and `4` means authentication required ([gh help_topic.go](https://raw.githubusercontent.com/cli/cli/trunk/pkg/cmd/root/help_topic.go)). `laminapdf help exit-codes` documents the list, and the JSON error carries `exit_code` so wrappers never have to guess.
 
 **Recommendation: grammar, pipes and batch (CLI)**
 
 ```console
-$ lamina info report.pdf
+$ laminapdf info report.pdf
 report.pdf  PDF 1.7 · 42 pages · 1.8 MB · not encrypted · tagged
 warning[W0102]: xref offset off by 3 bytes (repaired)
 $ echo $?                                                    # 3: success with warnings
-$ lamina pages select report.pdf 1-5,z,r3 -o summary.pdf    # qpdf ranges; `end`/`N` accepted as aliases
-$ lamina pages shuffle A=fronts.pdf B=backs.pdf A Bz-1 -o duplex.pdf
-$ lamina pages split big.pdf --every 10 -o 'parts/{stem}-{n:03}.pdf'
-$ curl -sL https://example.org/a.pdf | lamina extract - --pages 1-3 | rg -i invoice
-$ lamina fill form.pdf --data - -o filled.pdf < answers.json
-$ lamina check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and .status!="ok")'
-{"type":"result","schema":"lamina.check/1","index":1,"input":"b.pdf","status":"error","error":{"code":"E0201","kind":"password_required"}}
+$ laminapdf pages select report.pdf 1-5,z,r3 -o summary.pdf    # qpdf ranges; `end`/`N` accepted as aliases
+$ laminapdf pages shuffle A=fronts.pdf B=backs.pdf A Bz-1 -o duplex.pdf
+$ laminapdf pages split big.pdf --every 10 -o 'parts/{stem}-{n:03}.pdf'
+$ curl -sL https://example.org/a.pdf | laminapdf extract - --pages 1-3 | rg -i invoice
+$ laminapdf fill form.pdf --data - -o filled.pdf < answers.json
+$ laminapdf check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and .status!="ok")'
+{"type":"result","schema":"laminapdf.check/1","index":1,"input":"b.pdf","status":"error","error":{"code":"E0201","kind":"password_required"}}
 {"type":"summary","ok":41,"warnings":0,"failed":1,"elapsed_ms":412}
-$ lamina info report.pdf --json --fields pages,encrypted,warnings   # gh-style field selection keeps tokens down
-$ lamina schema extract.json                                         # JSON Schema 2020-12 for input and output
+$ laminapdf info report.pdf --json --fields pages,encrypted,warnings   # gh-style field selection keeps tokens down
+$ laminapdf schema extract.json                                         # JSON Schema 2020-12 for input and output
 ```
 
 Batch mode emits results in argument order even when they finish out of order. It supports `--fail-fast` and `--files-from FILE|-` with `-0` for xargs parity, refuses to overwrite without `--force`, and writes `--in-place` atomically through a temporary file and rename. Passwords come from `--password-file` or an environment variable, never from argv by default.
 
 ### MCP 2026-07-28 is stateless, and agents increasingly prefer CLIs
 
-**MCP's current revision, 2026-07-28, removes the `initialize` handshake and protocol sessions, adds a mandatory `server/discover`, moves tasks to an extension, and deprecates Roots, Sampling and Logging.** Servers are told to take directories through tool parameters or configuration instead, and to log to stderr on stdio. `tools/list` SHOULD be deterministic ([2026-07-28 changelog](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/docs/specification/2026-07-28/changelog.mdx)). Since 2025-11-25, input validation failures are tool errors (`isError: true`) that the model can correct, rather than protocol errors. Tools can declare an `outputSchema`, and servers "MUST provide structured results that conform" to it ([tools.mdx](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/docs/specification/2025-11-25/server/tools.mdx)). Tool annotations default to `destructiveHint: true`, and clients must treat annotations as untrusted ([schema.ts](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/schema/2025-11-25/schema.ts)). Meanwhile Playwright tells users that coding agents "increasingly favor CLI–based workflows exposed as SKILLs over MCP because CLI invocations are more token-efficient" ([playwright-mcp README](https://raw.githubusercontent.com/microsoft/playwright-mcp/main/README.md)). The conclusion: make the CLI the primary agent surface, and make `lamina mcp` a stdio adapter over the same command functions, using the same schemas as `inputSchema` and `outputSchema`. The filesystem MCP server's CVE-2025-53109/53110 came from symlinks and naive path-prefix checks ([OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/2025/MCP05-2025%E2%80%93Command-Injection%26Execution)). `lamina mcp` must therefore require `--root`, canonicalise paths, reject symlink escapes, and refuse in-place writes unless started with `--allow-in-place`. github-mcp-server's `--read-only` flag, which "takes priority" over tool selection, is a good precedent ([README](https://raw.githubusercontent.com/github/github-mcp-server/main/README.md)).
+**MCP's current revision, 2026-07-28, removes the `initialize` handshake and protocol sessions, adds a mandatory `server/discover`, moves tasks to an extension, and deprecates Roots, Sampling and Logging.** Servers are told to take directories through tool parameters or configuration instead, and to log to stderr on stdio. `tools/list` SHOULD be deterministic ([2026-07-28 changelog](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/docs/specification/2026-07-28/changelog.mdx)). Since 2025-11-25, input validation failures are tool errors (`isError: true`) that the model can correct, rather than protocol errors. Tools can declare an `outputSchema`, and servers "MUST provide structured results that conform" to it ([tools.mdx](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/docs/specification/2025-11-25/server/tools.mdx)). Tool annotations default to `destructiveHint: true`, and clients must treat annotations as untrusted ([schema.ts](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/schema/2025-11-25/schema.ts)). Meanwhile Playwright tells users that coding agents "increasingly favor CLI–based workflows exposed as SKILLs over MCP because CLI invocations are more token-efficient" ([playwright-mcp README](https://raw.githubusercontent.com/microsoft/playwright-mcp/main/README.md)). The conclusion: make the CLI the primary agent surface, and make `laminapdf mcp` a stdio adapter over the same command functions, using the same schemas as `inputSchema` and `outputSchema`. The filesystem MCP server's CVE-2025-53109/53110 came from symlinks and naive path-prefix checks ([OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/2025/MCP05-2025%E2%80%93Command-Injection%26Execution)). `laminapdf mcp` must therefore require `--root`, canonicalise paths, reject symlink escapes, and refuse in-place writes unless started with `--allow-in-place`. github-mcp-server's `--read-only` flag, which "takes priority" over tool selection, is a good precedent ([README](https://raw.githubusercontent.com/github/github-mcp-server/main/README.md)).
 
 **Recommendation: one command layer under clap and rmcp (Rust), consumed from TS**
 
@@ -439,20 +439,20 @@ pub mod commands {
     pub fn info(a: InfoArgs) -> Result<InfoReport, CliError> { … }    // the only implementation
 }
 #[tool(description = "Read page count, encryption, metadata and warnings", annotations(read_only_hint = true))]
-async fn lamina_info(&self, Parameters(a): Parameters<commands::InfoArgs>) -> Result<Json<commands::InfoReport>, McpError> {
+async fn laminapdf_info(&self, Parameters(a): Parameters<commands::InfoArgs>) -> Result<Json<commands::InfoReport>, McpError> {
     self.roots.check(&a.input)?; Ok(Json(commands::info(a)?))
 }
 ```
 
 ```ts
-// A Node script consuming the CLI's NDJSON with types generated from `lamina schema check.json`
+// A Node script consuming the CLI's NDJSON with types generated from `laminapdf schema check.json`
 import type { CheckResult, Summary } from "@laminapdf/cli/schema";
 for await (const line of readline.createInterface({ input: child.stdout }))
   { const m = JSON.parse(line) as CheckResult | Summary; if (m.type === "result" && m.status !== "ok") fail(m); }
 ```
 
 ```console
-$ lamina mcp --root ./docs --read-only     # stdio; tools in deterministic order: lamina_info, lamina_extract, lamina_render …
+$ laminapdf mcp --root ./docs --read-only     # stdio; tools in deterministic order: laminapdf_info, laminapdf_extract, laminapdf_render …
 ```
 
 The current crates are clap 4.6.7, clap_complete, clap_mangen, annotate-snippets 0.12.17 (rustc's renderer, preferred to miette 7.6.0, last released April 2025, for pointing at byte offsets), anstream 1.0, schemars 1.2.3, rmcp 3.8.0 (which implements 2026-07-28) and cargo-dist 0.32.0 ([crates.io](https://crates.io/api/v1/crates/clap), [rmcp README](https://raw.githubusercontent.com/modelcontextprotocol/rust-sdk/main/README.md)). Because the core is bytes-in/bytes-out, a `wasm32-wasip2` build of the CLI could run sandboxed under wasmtime with preopened directories. That idea is a recommendation the notes did not verify.
@@ -466,22 +466,22 @@ Each item names what it is, why it is needed, and which existing round or todo i
 | # | What | Why | Depends on |
 |---|---|---|---|
 | L1 | **Façade binding rules** in B5c: `Send + Sync` `Arc` handles, `&self` only, owned `PageRef`, no generics, string-payload error enum, `CancelToken`, resumable `Job::step` | UniFFI forbids `&mut self` and needs `Send + Sync`; fixing the façade later breaks the TS API | B5c (amend its acceptance criteria) |
-| L2 | **Error and diagnostic contract**: `{code, kind, message, hint, location, docsUrl}` generated from `fixtures/codes.json` into Rust, TS and JSON Schema; `lamina explain <code>` text | One error shape for TS, Swift, Kotlin, CLI and MCP; models self-correct from hints | B2a codes (done), B6a |
+| L2 | **Error and diagnostic contract**: `{code, kind, message, hint, location, docsUrl}` generated from `fixtures/codes.json` into Rust, TS and JSON Schema; `laminapdf explain <code>` text | One error shape for TS, Swift, Kotlin, CLI and MCP; models self-correct from hints | B2a codes (done), B6a |
 | L3 | **Split wasm modules**: base / text / extract / render / sign as separate `.wasm` with per-module budgets and twiggy diffs in CI | Rendering and signing cannot fit 350 KB; tree-shaking cannot remove wasm code | B6a (extends its split), C2c |
 | L4 | **Per-condition loaders and `init({ module })` escape hatch** (workerd static import, Node `readFile`, browser `compileStreaming`, opt-in `/inline`) | No single loader works across runtimes in 2026 | B6b, B6c |
 | L5 | **`@laminapdf/sdk/worker`**: the C3a typed RPC moved into the library package, with a version handshake, `AbortSignal`, transfer lists and a Promisified mapped type; `@laminapdf/viewer` consumes it | Avoids two worker protocols; PDF.js version-mismatch lesson | B6b; replaces part of C3a |
 | L6 | **Disposal and memory hardening**: `Symbol.dispose` on all handles, `DISPOSED` code, wasm max-memory link flag, `reset()`, abort-and-reinstantiate wrapper | Linear memory never shrinks; Safari `using` support unclear | B6b |
 | L7 | **Range `ByteSource` with `NeedData`** at the edges (HTTP range, JS callback, mmap) | Large and remote files without an async core | B2d |
 | L8 | **Two-phase signing API** (`prepare_signature` / `finish`, P1363-to-DER conversion) as the E10d `Signer` shape | WebCrypto, the Secure Enclave and HSMs are async or remote; the core stays sync | E10d, E10i |
-| L9 | **`laminapdf-extract` crate**: reading order (structure tree, then XY-Cut++), headings, lists, lattice tables, header/footer removal, de-hyphenation, visibility flags, Markdown/JSON/chunk serialisers, `lamina.extract/1` schema | Rules reach ~0.90 reading order at 15 ms/page; no permissive Rust equivalent; RAG and agent demand | B9b, B9c, B8a (struct tree reading) |
+| L9 | **`laminapdf-extract` crate**: reading order (structure tree, then XY-Cut++), headings, lists, lattice tables, header/footer removal, de-hyphenation, visibility flags, Markdown/JSON/chunk serialisers, `laminapdf.extract/1` schema | Rules reach ~0.90 reading order at 15 ms/page; no permissive Rust equivalent; RAG and agent demand | B9b, B9c, B8a (struct tree reading) |
 | L10 | **Model plug-in traits** (`LayoutModel`, `OcrEngine`) with an optional Heron ONNX edge crate | Borderless tables and scans need models; keep weights out of core | L9; E13d (local OCR) |
 | L11 | **`laminapdf-cli`** (layer `app`): command layer, clap front end, qpdf ranges plus pdftk handles, exit codes 0–5, `--json`/NDJSON, `--jobs`, `schema`, `explain`, completions, man pages | First permissive CLI covering structure, text and render | B5c, B9c; grows with B3, C2b, E10d |
-| L12 | **`lamina mcp`** behind a feature: rmcp stdio adapter over L11 commands, `--root`, `--read-only`, honest annotations, deterministic tool order | Agents in MCP loops; same schemas as the CLI | L11 |
+| L12 | **`laminapdf mcp`** behind a feature: rmcp stdio adapter over L11 commands, `--root`, `--read-only`, honest annotations, deterministic tool order | Agents in MCP loops; same schemas as the CLI | L11 |
 | L13 | **CLI distribution**: cargo-dist releases, Homebrew, npm meta package with per-platform `optionalDependencies` | `npx` and `brew` reach for backend and agent users | L11; P1 (publishing) |
 | L14 | **Agent docs**: `llms.txt` plus `.md` twins, docs shipped inside the npm package and the crate, AGENTS.md snippet in examples, machine-readable renames changelog | New APIs are low-frequency for every model | B7a, B7b |
 | L15 | **Coordinates and units types**: `Pt`/`Mm` branded types in TS, `RectPt` with an origin in Rust, top-left in high-level APIs, raw `UserSpace` for low level | Removes the `height - y` footgun; aligns extraction with vendors | B5a, B5b, B9b |
 | L16 | **`lamina-ffi` spike**: UniFFI binding of the B5c façade, Swift package via cargo-swift, AAR via cargo-ndk, size report per ABI | Validates L1 early and measures native size before committing to mobile | B5c; UniFFI pin decision |
-| L17 | **Mobile SDK plan**: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose) with tiles, `trim()`, stylus-to-`/Ink`, accessibility from the struct tree, SPM and Maven Central | Compete with free platform viewers on parity, fidelity and editing | L16, C2b (render), C3b (tiling ideas), E4d (ink appearances), E8 (forms) |
+| L17 | **Mobile SDK plan**: `LaminaPdfView` (SwiftUI) and `LaminaPdfViewer` (Compose) with tiles, `trim()`, stylus-to-`/Ink`, accessibility from the struct tree, SPM and Maven Central | Compete with free platform viewers on parity, fidelity and editing | L16, C2b (render), C3b (tiling ideas), E4d (ink appearances), E8 (forms) |
 | L18 | **hayro wasm size measurement** added to C1a | Needed to decide the render module per surface | C1a (ongoing) |
 
 ### Proposed ADRs
@@ -494,7 +494,7 @@ Numbers 0020–0023 are already reserved in todos (signatures, JavaScript policy
 | 0027 Coordinates, units and page indexing in public APIs | Top-left points for high-level and extraction; raw user space for low level; 0-based index plus 1-based number | New; constrains the B5 builder and B9 extraction |
 | 0028 Jobs, cancellation and progress across bindings | `CancelToken`, `Job::step(budget)`, progress throttling, no threads in core | Complements ADR 0002; informs proposed ADR 0009 |
 | 0029 Mobile bindings and packaging | UniFFI version pin (0.31 for ubrn, or 0.32 for zero-copy), façade rules, idiomatic Swift/Kotlin layer, SPM-only, AAR layout, native panic profile | Fills in ADR 0002 §5; does not change its decision |
-| 0030 Extraction output and model plug-ins | `lamina.extract/1` schema, rule-based core, plug-in traits, licence rules for weights | Follows ADR 0001 and proposed ADR 0023 |
+| 0030 Extraction output and model plug-ins | `laminapdf.extract/1` schema, rule-based core, plug-in traits, licence rules for weights | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 CLI and MCP contract | Grammar, exit codes, JSON/NDJSON versioning, schema command, MCP security defaults | New; reuses ADR 0026 errors |
 
 ### Open questions where research presses on accepted decisions

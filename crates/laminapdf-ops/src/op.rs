@@ -9,7 +9,7 @@ use crate::info::SetInfo;
 use crate::rotate::RotatePage;
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
-/// [`LaminaId`](laminapdf_model::LaminaId), never by object reference), serialisable, and free
+/// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
 /// of ambient inputs (a modification date is in the payload), so the same op on the same
 /// document gives the same result on every platform.
 ///
@@ -26,7 +26,7 @@ use crate::rotate::RotatePage;
 /// # Ok::<(), serde_json::Error>(())
 /// ```
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "op", content = "args", rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
@@ -92,7 +92,7 @@ impl From<RotatePage> for Op {
 /// # Ok::<(), laminapdf_ops::Error>(())
 /// ```
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]

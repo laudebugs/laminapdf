@@ -1,6 +1,6 @@
 // The RenderBackend contract (todo C2c): one suite both web adapters run, in Node and in
 // Chromium, Firefox and WebKit. It checks what ADR 0004 promises every backend: the page sizes
-// lamina reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
+// Lamina PDF reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
 // AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), C2b's
 // render goldens of the same backend.
 

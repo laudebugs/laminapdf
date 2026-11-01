@@ -1,4 +1,4 @@
-# `lamina`
+# `laminapdf`
 
 The façade crate: one dependency for Rust users, and the API every binding wraps one-to-one (`laminapdf-wasm`, `laminapdf-ffi`, Tauri commands; [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §3, [ADR 0028](../../docs/decisions/0028-facade-rules-jobs-and-cancellation.md)). It re-exports and wraps the core crates (`laminapdf-cos`, `laminapdf-model`, `laminapdf-ops`, `laminapdf-save`, and with the `build` and `text` features `laminapdf-build` and `laminapdf-text`). The crate docs (`cargo doc -p laminapdf --open`) open with an invoice built, saved, reopened, edited and saved incrementally.
 

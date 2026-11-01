@@ -20,7 +20,7 @@ Free a handle only after its last use. To keep working with the document, open i
 ```ts
 const doc = Document.open(bytes);
 doc.free();
-doc.save(); // throws LaminaError { code: "disposed", … }
+doc.save(); // throws LaminaPdfError { code: "disposed", … }
 ```
 
 ## Data fields

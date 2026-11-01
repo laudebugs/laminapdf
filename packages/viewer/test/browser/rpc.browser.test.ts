@@ -1,5 +1,5 @@
 // The document worker and its RPC in Chromium, Firefox and WebKit (C3a's acceptance criteria).
-import { isLaminaError, type LaminaError } from "@laminapdf/sdk";
+import { isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { connect } from "@laminapdf/sdk/worker";
 import { afterEach, describe, expect, it } from "vitest";
 import { CORPUS, ENCRYPTED, expected, hook, next, PASSWORD, read, rejection, testViewer, viewer } from "./helpers.js";
@@ -50,7 +50,7 @@ describe("open", () => {
   it("fails a file over the limits with limit-exceeded, not a hang", async () => {
     const client = await track(viewer());
     const e = await rejection(client.open(await read("fixtures/corpus/hello.pdf"), { limits: { maxNestingDepth: 1 } }));
-    expect(isLaminaError(e, "limit-exceeded")).toBe(true);
+    expect(isLaminaPdfError(e, "limit-exceeded")).toBe(true);
   });
 });
 
@@ -62,8 +62,8 @@ describe("errors", () => {
       }),
     );
     const e = await rejection(client.request("pending", []));
-    expect(isLaminaError(e, "data-pending")).toBe(true);
-    expect((e as LaminaError).ranges).toEqual([
+    expect(isLaminaPdfError(e, "data-pending")).toBe(true);
+    expect((e as LaminaPdfError).ranges).toEqual([
       { offset: 0, length: 1024 },
       { offset: 4096, length: 512 },
     ]);
@@ -224,8 +224,8 @@ describe("long renders", () => {
     const blocked = rejection(hook(client, "__busy", [5_000]));
     const queued = rejection(client.render({ page: 0, scale: 0.77 }));
     await client.stop();
-    expect(isLaminaError(await blocked, "worker-crashed")).toBe(true);
-    expect(isLaminaError(await queued, "worker-crashed")).toBe(true);
+    expect(isLaminaPdfError(await blocked, "worker-crashed")).toBe(true);
+    expect(isLaminaPdfError(await queued, "worker-crashed")).toBe(true);
     expect(await restarted).toEqual({ reason: "cancelled", reopened: true });
     expect(await hook(client, "__renderLog", [])).toEqual([]);
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
@@ -264,7 +264,7 @@ describe("documents", () => {
     const stale = rejection(client.render({ page: 0, scale: 0.5 }, { priority: "background" }));
     await client.open(await read("fixtures/corpus/fpdf2.pdf"));
     await busy;
-    expect(isLaminaError(await stale, "disposed")).toBe(true);
+    expect(isLaminaPdfError(await stale, "disposed")).toBe(true);
   });
 
   it("keeps the open document when an open is aborted while it runs", async () => {
@@ -307,7 +307,7 @@ describe("crashes", () => {
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const restarted = next(client, "restarted");
     const crash = hook(client, "__crash", []);
-    expect(isLaminaError(await rejection(crash), "worker-crashed")).toBe(true);
+    expect(isLaminaPdfError(await rejection(crash), "worker-crashed")).toBe(true);
     expect(await restarted).toEqual({ reason: "error", reopened: true });
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });

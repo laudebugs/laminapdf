@@ -14,7 +14,7 @@
 //!   the codes the TS layer raises itself;
 //! - `packages/sdk/src/generated/explain.ts`: every page's text, for the `@laminapdf/sdk/explain`
 //!   subpath only;
-//! - the JSON Schema `lamina.error/1` of the ADR 0026 §1 object, in `packages/sdk/schemas/` and
+//! - the JSON Schema `laminapdf.error/1` of the ADR 0026 §1 object, in `packages/sdk/schemas/` and
 //!   `crates/laminapdf/schemas/`;
 //! - the code tables of `docs/errors/README.md` (below its marker line), which `--md` prints.
 //!
@@ -625,7 +625,7 @@ fn render_ts_explain(pages: &[(String, String)]) -> String {
     out
 }
 
-/// The JSON Schema `lamina.error/1` of the ADR 0026 §1 object.
+/// The JSON Schema `laminapdf.error/1` of the ADR 0026 §1 object.
 fn render_error_schema(codes: &Codes) -> Result<String> {
     let codes_of = |warning: bool| -> Vec<&str> {
         codes
@@ -683,8 +683,8 @@ fn render_error_schema(codes: &Codes) -> Result<String> {
     };
     let schema = json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://github.com/laudebugs/lamina/blob/main/packages/sdk/schemas/error.schema.json",
-        "title": "lamina.error/1",
+        "$id": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json",
+        "title": "laminapdf.error/1",
         "description": "An error or warning of every lamina surface (ADR 0026 §1): camelCase keys, optional keys omitted (never null). Generated from fixtures/codes.json by `cargo xtask gen codes`; do not edit. New optional keys may appear within version 1; consumers ignore unknown keys.",
         "oneOf": [{ "$ref": "#/$defs/error" }, { "$ref": "#/$defs/warning" }],
         "$defs": {
@@ -703,7 +703,7 @@ fn render_error_schema(codes: &Codes) -> Result<String> {
                     "object": { "description": "Object number of the indirect object the problem is in or at.", "type": "integer", "minimum": 0 },
                     "streamOffset": { "description": "Byte offset in the decoded data of `object`.", "type": "integer", "minimum": 0 },
                     "pageIndex": { "description": "0-based page index (ADR 0027 §6).", "type": "integer", "minimum": 0 },
-                    "id": { "description": "A LaminaId (p12.0).", "type": "string" }
+                    "id": { "description": "A LaminaPdfId (p12.0).", "type": "string" }
                 },
                 "dependentRequired": { "streamOffset": ["object"] }
             }

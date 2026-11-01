@@ -1,11 +1,11 @@
 # `unsupported-security-handler`
 
 - Type: error
-- Kind: `unsupported` (valid input that lamina doesn't implement)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
-The document uses a security handler lamina can't decrypt.
+The document uses a security handler Lamina PDF can't decrypt.
 
 ## Why
 
@@ -21,7 +21,7 @@ Use a tool that supports the handler.
 trailer << /Encrypt << /Filter /Adobe.PubSec /SubFilter /adbe.pkcs7.s5 … >> >>
 ```
 
-A public-key (certificate) handler: lamina implements only `/Standard`, so `open` fails. `data.filter` holds the handler's name as read from the file.
+A public-key (certificate) handler: Lamina PDF implements only `/Standard`, so `open` fails. `data.filter` holds the handler's name as read from the file.
 
 ## Data fields
 

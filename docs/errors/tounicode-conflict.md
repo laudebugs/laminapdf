@@ -13,7 +13,7 @@ A ToUnicode CMap maps each code to one string (ISO 32000-2 §9.10.3), for exampl
 
 ## How to fix
 
-Mark the second occurrence with `/ActualText` (§14.9.4) so extraction gets its text; lamina's builder does this for you.
+Mark the second occurrence with `/ActualText` (§14.9.4) so extraction gets its text; Lamina PDF's builder does this for you.
 
 ## Example
 

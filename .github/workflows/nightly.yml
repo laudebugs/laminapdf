@@ -129,12 +129,12 @@ jobs:
       # round-trip of 177 MB.
       - name: Point xtask at the corpus folder and the venv
         run: |
-          echo "LAMINA_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
-          echo "LAMINA_PYTHON=$RUNNER_TEMP/differential-venv/bin/python" >> "$GITHUB_ENV"
+          echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+          echo "LAMINA_PDF_PYTHON=$RUNNER_TEMP/differential-venv/bin/python" >> "$GITHUB_ENV"
       - name: Install pypdf and pypdfium2 in a venv (tools/differential/requirements.txt)
         run: |
           python3 -m venv "$RUNNER_TEMP/differential-venv"
-          "$LAMINA_PYTHON" -m pip install --disable-pip-version-check -q -r tools/differential/requirements.txt
+          "$LAMINA_PDF_PYTHON" -m pip install --disable-pip-version-check -q -r tools/differential/requirements.txt
       - name: Install pdf.js (tools/differential)
         uses: ./.github/actions/node-pnpm
         with:
@@ -442,7 +442,7 @@ jobs:
         with:
           cache: false
       - name: Point xtask at the corpus folder
-        run: echo "LAMINA_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+        run: echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
       - run: cargo xtask corpus fetch
       - run: cargo xtask fetch-pdfium
       # As in the bench job: the token only reaches the bench-history steps.

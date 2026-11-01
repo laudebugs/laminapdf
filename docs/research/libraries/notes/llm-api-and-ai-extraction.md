@@ -38,7 +38,7 @@ LLMs hallucinate most on infrequent APIs, which a new library's whole API will b
   1. `llms.txt` plus `llms-full.txt`, with `.md` twins of every docs page (Stripe pattern).
   2. Docs inside the npm/crate package, version-matched (AI SDK pattern).
   3. An AGENTS.md section in generated project templates.
-  4. A Context7 listing and, optionally, a small MCP docs server or a `lamina docs <symbol>` CLI that prints the docs for the installed version.
+  4. A Context7 listing and, optionally, a small MCP docs server or a `laminapdf docs <symbol>` CLI that prints the docs for the installed version.
 - **Make the API guessable, because retrieval can make high-frequency patterns worse.** Use the names models already expect from pdf-lib, PDF.js and PyMuPDF where semantics match, such as `addPage`, `drawText` and `getPage`, but fix the footguns:
   - Use one coordinate convention in the public API. Recommendation (opinion): top-left origin, y down, in points, for the extraction and high-level drawing APIs. That matches every extraction vendor and the browser.
   - Keep a raw `UserSpace` type for low-level content-stream work.
@@ -47,7 +47,7 @@ LLMs hallucinate most on infrequent APIs, which a new library's whole API will b
 - Avoid hidden global state (a registered default font, a global page cursor). Make output deterministic (no timestamps or random IDs unless asked; `/ID` derived from content). Agents then can verify by byte-diffing and golden tests stay stable. This aligns with lamina's golden fixtures.
 - Errors should be serialisable as `{code, message, hint, didYouMean, span:{objId, offset}, docsUrl}`. The rustc JSON shape is a good model, and the same JSON should come out of the CLI's `--json` mode.
 - Never reuse a name with different semantics. When renaming, keep a deprecated alias whose error or warning names the replacement; GitChameleon shows models write old-version code. Publish a machine-readable changelog of renames.
-- Self-describing schemas: generate JSON Schema for every options type and output type from the Rust types. schemars or tsify both fit ADR 0002's tsify choice (this is an opinion; not verified against the ADR text). Version output schemas (`"schema": "lamina.extract/1"`) and ship them in the package and at a stable URL. Agents and validators can then check outputs, and the CLI can print `lamina schema extract`.
+- Self-describing schemas: generate JSON Schema for every options type and output type from the Rust types. schemars or tsify both fit ADR 0002's tsify choice (this is an opinion; not verified against the ADR text). Version output schemas (`"schema": "laminapdf.extract/1"`) and ship them in the package and at a stable URL. Agents and validators can then check outputs, and the CLI can print `laminapdf schema extract`.
 
 ### Gaps
 - I could not fetch Svelte, Cloudflare or Prisma llms.txt pages, or Vercel's llms-full.txt, to confirm them this session.
@@ -154,7 +154,7 @@ Avoid MinerU (custom conditions), marker/Surya weights (restricted OpenRAIL-M), 
 - Emit points, top-left origin, page index 0-based in the API, and `pageNumber` 1-based for humans. Provide `bboxNorm` in [0,1] relative to the CropBox for renderer-independent citation highlighting.
 - Always record the page box used (CropBox), the `/Rotate` value applied, and the `/UserUnit`.
 
-**Ideal chunk/provenance JSON (proposed `lamina.extract/1`)**
+**Ideal chunk/provenance JSON (proposed `laminapdf.extract/1`)**
 
 ```json
 {
@@ -240,16 +240,16 @@ const res = doc.extract({ readingOrder: "tagged-then-xycut", coords: { origin: "
 for (const c of res.chunks({ maxTokens: 512, splitOn: "headings" })) {
   await store.add({ text: c.text, meta: { pages: c.pages, regions: c.regions, path: c.headingPath } });
 }
-// errors: LaminaError { code: "E_LIMIT_EXCEEDED", hint, didYouMean?, docsUrl }
+// errors: LaminaPdfError { code: "E_LIMIT_EXCEEDED", hint, didYouMean?, docsUrl }
 ```
 
 CLI:
 ```sh
-lamina extract report.pdf --format json --schema extract/1 --reading-order tagged-then-xycut > out.json
-lamina extract report.pdf --format markdown --drop invisible,running-headers
-lamina extract report.pdf --chunks --max-tokens 512 --jsonl | your-embedder
-lamina schema extract/1          # print the JSON Schema
-lamina explain W_TOUNICODE_GUESSED  # rustc --explain style
+laminapdf extract report.pdf --format json --schema extract/1 --reading-order tagged-then-xycut > out.json
+laminapdf extract report.pdf --format markdown --drop invisible,running-headers
+laminapdf extract report.pdf --chunks --max-tokens 512 --jsonl | your-embedder
+laminapdf schema extract/1          # print the JSON Schema
+laminapdf explain W_TOUNICODE_GUESSED  # rustc --explain style
 ```
 
 ### Gaps

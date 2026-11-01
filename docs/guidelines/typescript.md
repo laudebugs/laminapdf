@@ -89,12 +89,12 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 
 ## Errors
 
-- **MUST:** each package defines one error class, extending `Error`, with `name` set, a `readonly code` typed as a string-literal union, and structured fields. It also exports an `isXError(e: unknown): e is XError` guard. In `@laminapdf/sdk` this is **`LaminaError<C extends ErrorCode>`** with `isLaminaError(e, code?)` and `toJSON()`, carrying the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`code`, `kind`, `hint`, `didYouMean`, `location`, `data`, `docsUrl`). Codes shared with the Rust core **MUST** match `fixtures/codes.json`: the unions and tables are generated into `src/generated/` by `cargo xtask gen codes`, never written by hand, and generated files are excluded from Biome.
+- **MUST:** each package defines one error class, extending `Error`, with `name` set, a `readonly code` typed as a string-literal union, and structured fields. It also exports an `isXError(e: unknown): e is XError` guard. In `@laminapdf/sdk` this is **`LaminaPdfError<C extends ErrorCode>`** with `isLaminaPdfError(e, code?)` and `toJSON()`, carrying the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`code`, `kind`, `hint`, `didYouMean`, `location`, `data`, `docsUrl`). Codes shared with the Rust core **MUST** match `fixtures/codes.json`: the unions and tables are generated into `src/generated/` by `cargo xtask gen codes`, never written by hand, and generated files are excluded from Biome.
 - **MUST NOT:** put document text in `message` or `hint`; it goes only in `data` (ADR 0026 §4).
 - **MUST:** throw only instances of that class (or other `Error` subclasses). Never throw strings or plain objects. When wrapping, pass `{ cause }`.
-- **MUST:** structured clone keeps neither a custom error class nor its own properties, so an error crosses a worker only as a plain object. An error class that can cross a worker therefore has a `toDiagnostic()` method returning the ADR 0026 §1 object; `LaminaError`'s `toJSON()` does the same job. `@laminapdf/sdk`'s worker posts that object, and the page rebuilds a `LaminaError` from it, so byte ranges travel as `[offset, length]` pairs in `data.ranges`.
+- **MUST:** structured clone keeps neither a custom error class nor its own properties, so an error crosses a worker only as a plain object. An error class that can cross a worker therefore has a `toDiagnostic()` method returning the ADR 0026 §1 object; `LaminaPdfError`'s `toJSON()` does the same job. `@laminapdf/sdk`'s worker posts that object, and the page rebuilds a `LaminaPdfError` from it, so byte ranges travel as `[offset, length]` pairs in `data.ranges`.
 - **MUST NOT:** swallow errors silently. Recoverable irregularities in input are returned as `warnings` on the result, as in Rust.
-- **SHOULD:** document thrown errors with `@throws {@link LaminaError}` and the codes they can carry.
+- **SHOULD:** document thrown errors with `@throws {@link LaminaPdfError}` and the codes they can carry.
 
 ## API design (types first)
 
@@ -113,4 +113,4 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 - pnpm: [Workspaces](https://pnpm.io/workspaces), [Catalogs](https://pnpm.io/catalogs)
 - [TSDoc](https://tsdoc.org/)
 - [Vite: avoid barrel files](https://vite.dev/guide/performance#avoid-barrel-files)
-- lamina spike: [`spikes/pdf-basics/ts/`](../../spikes/pdf-basics/ts/README.md) (`tsconfig.json`, `biome.json`, `src/errors.ts`, `test/portability.test.ts`)
+- Lamina PDF spike: [`spikes/pdf-basics/ts/`](../../spikes/pdf-basics/ts/README.md) (`tsconfig.json`, `biome.json`, `src/errors.ts`, `test/portability.test.ts`)

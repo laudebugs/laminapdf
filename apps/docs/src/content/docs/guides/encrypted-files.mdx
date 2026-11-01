@@ -7,7 +7,7 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-lamina reads files encrypted with the standard security handler: RC4 (R2–R4), AES-128 (R4) and AES-256 (R5, R6), including crypt filters and cleartext metadata. Strings and streams are decrypted as the file loads.
+Lamina PDF reads files encrypted with the standard security handler: RC4 (R2–R4), AES-128 (R4) and AES-256 (R5, R6), including crypt filters and cleartext metadata. Strings and streams are decrypted as the file loads.
 
 - **Pass the password** with `Document.open(bytes, { password })`. It's tried as the user password, then as the owner password.
 - **Unicode passwords:** the password is tried as you give it, then in NFKC form after `wrong-password`. So R2–R4 passwords reach the core unchanged, and R5/R6 passwords match SASLprep's normalisation.
@@ -18,4 +18,4 @@ This example opens an upload with a password and returns the outcome as a value.
 
 <Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
-The password goes only to the WebAssembly module. lamina never stores or logs it, and never puts it in an error.
+The password goes only to the WebAssembly module. Lamina PDF never stores or logs it, and never puts it in an error.

@@ -3,7 +3,7 @@
 //! Every crate under `crates/` declares its layer in its manifest:
 //!
 //! ```toml
-//! [package.metadata.lamina]
+//! [package.metadata.laminapdf]
 //! layer = "core"   # "core" | "edge" | "app"
 //! wasm = true      # optional, edge crates only: also lint/build for wasm32 (core crates always are)
 //! ```
@@ -93,7 +93,7 @@ pub(crate) struct Workspace {
 
 impl Workspace {
     /// Reads `cargo metadata` and the
-    /// `[package.metadata.lamina]` table of every crate in `crates/`.
+    /// `[package.metadata.laminapdf]` table of every crate in `crates/`.
     pub(crate) fn load(root: PathBuf) -> Result<Self> {
         let output = Command::new("cargo")
             .args(["metadata", "--format-version", "1", "--locked"])
@@ -209,19 +209,21 @@ impl Workspace {
 impl Crate {
     fn from_metadata(package: &Value, dir: &Path) -> Result<Self> {
         let name = str_field(package, "/name").to_owned();
-        let layer = match package.pointer("/metadata/lamina/layer").and_then(Value::as_str) {
+        let layer = match package.pointer("/metadata/laminapdf/layer").and_then(Value::as_str) {
             Some("core") => Layer::Core,
             Some("edge") => Layer::Edge,
             Some("app") => Layer::App,
             other => {
-                bail!("{name}: [package.metadata.lamina] layer must be \"core\", \"edge\" or \"app\" (found {other:?})")
+                bail!(
+                    "{name}: [package.metadata.laminapdf] layer must be \"core\", \"edge\" or \"app\" (found {other:?})"
+                )
             }
         };
         Ok(Self {
             name,
             dir: dir.to_path_buf(),
             wasm: layer == Layer::Edge
-                && package.pointer("/metadata/lamina/wasm").and_then(Value::as_bool) == Some(true),
+                && package.pointer("/metadata/laminapdf/wasm").and_then(Value::as_bool) == Some(true),
             layer,
         })
     }

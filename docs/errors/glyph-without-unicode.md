@@ -9,7 +9,7 @@ Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own
 
 ## Why
 
-Software can search, copy or read text aloud only when every glyph maps to a usable Unicode value. The PDF/A-2u archival standard (ISO 19005-2 §6.2.11.7.2) and the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.7) both need that mapping. These are conditions 31-027 to 31-029 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. lamina maps a glyph that stands for no text to an empty value, which these profiles reject.
+Software can search, copy or read text aloud only when every glyph maps to a usable Unicode value. The PDF/A-2u archival standard (ISO 19005-2 §6.2.11.7.2) and the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.7) both need that mapping. These are conditions 31-027 to 31-029 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. Lamina PDF maps a glyph that stands for no text to an empty value, which these profiles reject.
 
 ## How to fix
 

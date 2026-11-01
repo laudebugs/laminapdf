@@ -29,7 +29,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [Report: a new library is a rare API to every model](../../research/libraries/shareable-libraries.md#a-new-library-is-a-rare-api-to-every-model): CloudAPIBench and GitChameleon results, llms.txt with `.md` twins (Stripe), docs in the npm tarball (Vercel AI SDK), Context7, AGENTS.md. No controlled study shows llms.txt itself helps; it is cheap.
 - [LLM note (A)](../../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do): the llms.txt format (H1, blockquote, H2 link lists to `.md` pages; `llms-ctx.txt` variant), the four channels to ship, deprecated aliases and a machine-readable rename changelog.
 - [B7a](../done/B7a-docs-site.md): the Starlight site in `apps/docs`, TypeDoc, snippets imported from tested examples, per-PR previews.
-- [L1b](../done/L1b-error-contract-codegen.md): `explain` pages and the `lamina.error/1` schema, both shipped here.
+- [L1b](../done/L1b-error-contract-codegen.md): `explain` pages and the `laminapdf.error/1` schema, both shipped here.
 - [B7b](../done/B7b-versioning-and-0-1-0-alpha.md): lockstep versions and `pnpm pack` install checks; the docs in the tarball must carry the same version.
 - [Code organisation §1](../../guidelines/code-organization.md#1-top-level-layout): where `tools/` scripts and `apps/docs` live.
 
@@ -54,17 +54,17 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
   - the `llms.txt` URL.
 
   The same block goes in `packages/sdk/examples/AGENTS.md`.
-- **Rename log**: `renames.json` with schema `lamina.renames/1`: `[{ from, to, surface: "rust" | "ts" | "cli", kind, since, note }]`.
+- **Rename log**: `renames.json` with schema `laminapdf.renames/1`: `[{ from, to, surface: "rust" | "ts" | "cli", kind, since, note }]`.
   - A check fails when a `#[deprecated]` Rust item or `@deprecated` TSDoc tag has no entry naming its replacement, and when an entry points at a symbol that no longer exists.
   - Shipped in the packages and on the site.
 - **Agent-eval baseline** (recorded, not gating):
   - `tools/agent-eval/tasks/*.md`: 10–20 fixed tasks, each with a checker script that validates the result with lamina itself and `qpdf --check`. Example tasks: build a two-page invoice; open an encrypted file and handle `wrong-password` by code; rotate page 3 and save incrementally; read page sizes in points; extract text if [B9c](../done/B9c-text-extraction-bindings-and-differential.md) has merged.
   - A runner that starts a pinned coding agent in a scratch project, once with no docs and once with the shipped docs, and writes pass/fail per task.
-  - The first run's results go in `docs/research/libraries/agent-eval-baseline.md`, with the agent, model, date and lamina version.
+  - The first run's results go in `docs/research/libraries/agent-eval-baseline.md`, with the agent, model, date and laminapdf version.
 
 **Out of scope** (and which todo covers it)
 
-- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](./P2-first-registry-prerelease.md)); a `lamina docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
+- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](./P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
 - Running the eval in CI or gating on it: not planned (it needs a paid API key and is non-deterministic).
 - Writing the guides themselves: [B7a](../done/B7a-docs-site.md).
 
@@ -90,8 +90,8 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [ ] The `pnpm pack` tarball of `@laminapdf/sdk` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
 - [ ] `cargo package --list -p laminapdf` lists the crate's `docs/` with the same version
 - [ ] Adding `@deprecated` to a TS export (or `#[deprecated]` to a Rust item) without a `renames.json` entry fails `cargo xtask check docs`
-- [ ] `renames.json` validates against `lamina.renames/1`
-- [ ] `docs/research/libraries/agent-eval-baseline.md` records a run of every task with and without docs: agent, model, date, lamina version and per-task result
+- [ ] `renames.json` validates against `laminapdf.renames/1`
+- [ ] `docs/research/libraries/agent-eval-baseline.md` records a run of every task with and without docs: agent, model, date, laminapdf version and per-task result
 
 ## Post-merge checks
 
