@@ -28,7 +28,7 @@ use laminapdf_syntax::crypt::{PasswordKind, Permissions};
 use laminapdf_syntax::filters;
 use laminapdf_syntax::{DecodeBudget, Dict, Limit, Limits, ObjRef, Object, Parser, Stream, find};
 
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, absent_if_malformed, tolerant};
 use crate::overlay::{InOverlay, Overlay, OverlayEntry};
 use crate::source::{ByteSource, Fetch, Pending, Source, WINDOW};
 use window::{Reach, parse_at, read_indirect, within_read_window};
@@ -270,39 +270,6 @@ impl Drop for Call<'_> {
     }
 }
 
-/// Errors no tolerant path may swallow ([`Error::must_propagate`]).
-const fn must_propagate(e: &Error) -> bool {
-    e.must_propagate()
-}
-
-/// Encryption errors that no repair can get around: the password is wrong or missing, or the
-/// handler is one Lamina PDF can't decrypt.
-const fn is_security_refusal(e: &Error) -> bool {
-    matches!(
-        e,
-        Error::PasswordRequired | Error::WrongPassword | Error::UnsupportedSecurityHandler { .. }
-    )
-}
-
-/// Errors that end the page-tree walk instead of skipping a node: cycles (ADR 0003 §1) and
-/// [`must_propagate`] ones. Hard limits are not among them: the walk is one of ADR 0003's
-/// tolerant paths, so it skips the node with `page-tree-node-skipped` (§3).
-const fn ends_page_walk(e: &Error) -> bool {
-    matches!(e, Error::ReferenceCycle(_)) || must_propagate(e)
-}
-
-/// For reads that are not one of ADR 0003's tolerant paths but fall back to "absent" (an
-/// inherited page attribute, `/Count`): `Ok(None)` for an object that is merely malformed,
-/// the error for anything else. Cycles, hard limits ([`Error::LimitExceeded`]) and
-/// [`must_propagate`] errors fail the call, as ADR 0003 §3 requires outside tolerant paths.
-fn absent_if_malformed<T>(result: Result<T>) -> Result<Option<T>> {
-    match result {
-        Ok(value) => Ok(Some(value)),
-        Err(e) if ends_page_walk(&e) || matches!(e, Error::LimitExceeded { .. }) => Err(e),
-        Err(_) => Ok(None),
-    }
-}
-
 fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
     let start = header_pos + b"%PDF-".len();
     let rest = data.get(start..)?;
@@ -401,16 +368,6 @@ fn entries_are_valid(source: &Source, table: &XrefTable, limits: &Limits) -> Res
     }
     pending.finish()?;
     Ok(true)
-}
-
-/// `Some` result of a step whose failure means "repair", `None` for that failure; errors that
-/// must not be repaired around ([`must_propagate`]) are returned.
-fn or_repair<T>(result: Result<T>) -> Result<Option<T>> {
-    match result {
-        Ok(value) => Ok(Some(value)),
-        Err(e) if must_propagate(&e) => Err(e),
-        Err(_) => Ok(None),
-    }
 }
 
 /// `obj` as a rectangle; `None` when it is absent, malformed or not four numbers.
@@ -559,9 +516,9 @@ impl Document {
         };
 
         let mut budget = DecodeBudget::new(&limits);
-        let startxref = or_repair(xref::find_startxref(&source, &limits))?;
+        let startxref = tolerant(xref::find_startxref(&source, &limits))?;
         let loaded = match startxref {
-            Some(start) => or_repair(xref::load(&source, start, &limits, &mut budget))?,
+            Some(start) => tolerant(xref::load(&source, start, &limits, &mut budget))?,
             None => None,
         };
         let loaded = match loaded {
@@ -591,7 +548,7 @@ impl Document {
                 Ok(_) => return Ok(doc),
                 // A cycle is a broken catalog like any other: repair may still find one.
                 // Strict refusals, missing data and source failures are never repaired around.
-                Err(e) if must_propagate(&e) || is_security_refusal(&e) => return Err(e),
+                Err(e) if e.must_propagate() || e.is_security_refusal() => return Err(e),
                 Err(_) => {}
             }
         }
@@ -1040,7 +997,7 @@ impl Document {
             let mut resolve_length = |r: ObjRef| match self.load(r.num, Some(r.gen_nr), in_flight) {
                 Ok(obj) => obj.as_int(),
                 Err(e) => {
-                    if must_propagate(&e) {
+                    if e.must_propagate() {
                         fatal.get_or_insert(e);
                     }
                     None
@@ -1079,7 +1036,7 @@ impl Document {
                 Object::Ref(r) => match self.load(r.num, Some(r.gen_nr), in_flight) {
                     Ok(obj) => Some((*obj).clone()),
                     Err(e) => {
-                        if must_propagate(&e) {
+                        if e.must_propagate() {
                             fatal.get_or_insert(e);
                         }
                         None
@@ -1276,7 +1233,7 @@ impl Document {
             }
             let resolved = match self.deref(&node_obj) {
                 Ok(obj) => obj,
-                Err(e) if ends_page_walk(&e) => return Err(e),
+                Err(e) if e.ends_page_walk() => return Err(e),
                 Err(_) => {
                     skip()?;
                     continue;
@@ -1299,7 +1256,7 @@ impl Document {
                 let kids_obj = node.get("Kids").unwrap_or(&Object::Null);
                 let kids = match self.deref(kids_obj) {
                     Ok(obj) => obj,
-                    Err(e) if ends_page_walk(&e) => return Err(e),
+                    Err(e) if e.ends_page_walk() => return Err(e),
                     Err(_) => {
                         skip()?;
                         continue;
@@ -1526,7 +1483,7 @@ impl Document {
         let _call = self.call();
         match self.load(num, None, &mut Vec::new()) {
             Ok(base) => Ok(base),
-            Err(e) if must_propagate(&e) => Err(e),
+            Err(e) if e.must_propagate() => Err(e),
             Err(_) => Ok(Arc::new(Object::Null)),
         }
     }

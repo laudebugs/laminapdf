@@ -114,7 +114,7 @@ mod test_files;
 #[path = "../tests/common/codes.rs"]
 mod test_codes;
 
-pub use error::{Error, Result, tolerant};
+pub use error::{Error, Result, absent_if_malformed, tolerant};
 pub use laminapdf_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use laminapdf_syntax::{
     Dict, ErrorKind, Limit, Limits, Location, Name, ObjRef, Object, PdfString, Position, Stream, StringFormat,

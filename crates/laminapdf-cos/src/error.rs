@@ -247,6 +247,38 @@ impl Error {
         matches!(self, Self::Strict { .. } | Self::DataPending { .. } | Self::Source(_))
     }
 
+    /// Whether this error ends the page-tree walk instead of skipping one node: a cycle
+    /// (ADR 0003 §1) or an error that [must propagate](Self::must_propagate). Hard limits are
+    /// not among them: the walk is one of ADR 0003's tolerant paths, so it skips the node and
+    /// raises `page-tree-node-skipped` (§3).
+    #[must_use]
+    pub const fn ends_page_walk(&self) -> bool {
+        matches!(self, Self::ReferenceCycle(_)) || self.must_propagate()
+    }
+
+    /// Whether this is an encryption error no repair can get around: the password is wrong or
+    /// missing, or the security handler is one Lamina PDF can't decrypt. Opening a file
+    /// returns these instead of repairing its cross-reference table.
+    #[must_use]
+    pub const fn is_security_refusal(&self) -> bool {
+        matches!(
+            self,
+            Self::PasswordRequired | Self::WrongPassword | Self::UnsupportedSecurityHandler { .. }
+        )
+    }
+
+    /// Whether this is [`Limits::max_read_window`](crate::Limits::max_read_window) being
+    /// hit, which tolerant paths treat like an item that does not parse.
+    pub(crate) const fn is_read_window_limit(&self) -> bool {
+        matches!(
+            self,
+            Self::LimitExceeded {
+                limit: Limit::ReadWindow,
+                ..
+            }
+        )
+    }
+
     /// An [`Error::LimitExceeded`] for `limit` at object `num`.
     pub(crate) const fn limit_at_object(limit: Limit, num: u32) -> Self {
         Self::LimitExceeded {
@@ -259,8 +291,14 @@ impl Error {
 /// Shorthand for `Result<T, laminapdf_cos::Error>`.
 pub type Result<T> = core::result::Result<T, Error>;
 
-/// `result` read tolerantly (ADR 0003): `Ok(Some(v))`, `Ok(None)` when the item is
-/// unreadable, or the error when it [must propagate](Error::must_propagate).
+// The policies below decide which errors a read swallows. Each one is defined here and only
+// here: `check maintainability`'s `error-policy` check rejects a `matches!` or an error
+// or-pattern on `LimitExceeded` or `DataPending` anywhere else.
+
+/// `result` read on one of ADR 0003's tolerant paths: `Ok(Some(v))`, `Ok(None)` when the item
+/// is unreadable for any reason, hard limits included, or the error when it
+/// [must propagate](Error::must_propagate). The tolerant paths are the page-tree walk's nodes,
+/// the xref loader falling back to repair, and an op reading an entry it can do without.
 ///
 /// # Errors
 /// The errors of `result` for which [`Error::must_propagate`] is true.
@@ -268,6 +306,23 @@ pub fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
     match result {
         Ok(v) => Ok(Some(v)),
         Err(e) if e.must_propagate() => Err(e),
+        Err(_) => Ok(None),
+    }
+}
+
+/// `result` read outside ADR 0003's tolerant paths by a reader that falls back to "absent":
+/// `Ok(Some(v))`, or `Ok(None)` for an object that is malformed. Reference cycles, hard limits
+/// ([`Error::LimitExceeded`]) and errors that [must propagate](Error::must_propagate) are
+/// returned, as ADR 0003 §3 requires outside tolerant paths. Such readers include an inherited
+/// page attribute, `/Count`, and a font's entries during text extraction.
+///
+/// # Errors
+/// [`Error::ReferenceCycle`], [`Error::LimitExceeded`] and the errors of `result` for which
+/// [`Error::must_propagate`] is true.
+pub fn absent_if_malformed<T>(result: Result<T>) -> Result<Option<T>> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(e) if e.must_propagate() || matches!(e, Error::ReferenceCycle(_) | Error::LimitExceeded { .. }) => Err(e),
         Err(_) => Ok(None),
     }
 }

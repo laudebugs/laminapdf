@@ -172,7 +172,8 @@ cargo xtask check rust       # fmt --check, maintainability, portability, clippy
                              #   tests, rustdoc, cargo-deny
 cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust rules, no build: ≤ 800 non-test lines per module
                              #   and no new size-lint #[expect] (tools/xtask/maintainability-baseline.toml), no pub type name in
-                             #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink
+                             #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink;
+                             #   no `matches!` or `Err(…)` or-pattern on LimitExceeded or DataPending outside laminapdf_cos::error
 cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences
