@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `P1` |
-| Status | `ready` — **blocked on the owner's decision to publish** (2026-10-28: crates and npm packages stay local until then) |
+| Status | `ongoing` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | [B7b](../done/B7b-versioning-and-0-1-0-alpha.md), [P0](../done/P0-npm-scope-laminapdf.md), [P0b](../done/P0b-crate-names-laminapdf.md), [P0c](../done/P0c-lamina-pdf-names.md) |
-| Blocks | [L4d](./L4d-cli-distribution.md), [P2](./P2-first-registry-prerelease.md) |
+| Blocks | [L4d](../ready/L4d-cli-distribution.md), [P2](../ready/P2-first-registry-prerelease.md) |
 | ADRs | Completes **0017** (publishing part: OIDC trusted publishing, provenance, attestations); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM), [0002](../../decisions/0002-binding-strategy.md) (`@laminapdf/wasm` packaging) |
 | Branch | `build/p1-trusted-publishing` |
 | PR title | `build: reserve names and set up OIDC trusted publishing with provenance and attestations` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Prepare publishing so the first release is safe and needs no long-lived tokens: reserve `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), record the publishing policy in ADR 0017, and add a release workflow (Changesets version PR → publish job) that publishes with OIDC trusted publishing, npm provenance and GitHub artifact attestations for the `.wasm` files — without actually publishing a release yet (that is [P2](./P2-first-registry-prerelease.md)).
+Prepare publishing so the first release is safe and needs no long-lived tokens: reserve `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), record the publishing policy in ADR 0017, and add a release workflow (Changesets version PR → publish job) that publishes with OIDC trusted publishing, npm provenance and GitHub artifact attestations for the `.wasm` files — without actually publishing a release yet (that is [P2](../ready/P2-first-registry-prerelease.md)).
 
 ## Context
 
@@ -37,7 +37,7 @@ Prepare publishing so the first release is safe and needs no long-lived tokens: 
 
 **Out of scope** (and which todo covers it)
 
-- Publishing the first pre-release, public stability policy, cargo-semver-checks: [P2](./P2-first-registry-prerelease.md).
+- Publishing the first pre-release, public stability policy, cargo-semver-checks: [P2](../ready/P2-first-registry-prerelease.md).
 - Desktop app signing and release: desktop D6.
 
 ## Tasks

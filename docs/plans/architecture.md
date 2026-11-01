@@ -134,12 +134,12 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
 - [x] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build, TS typecheck/lint/test, cargo-deny (the wasm size budget moves to Round B, with the first `.wasm` artefact from `laminapdf-wasm`)
 - [x] Port the spike reader/writer into `crates/laminapdf-syntax` + `crates/laminapdf-cos`, with its fixtures moved to `fixtures/`
-- [ ] ~~Reserve package names~~ ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)) deferred: crates and npm packages stay local for now (decided 2026-10-28); see [Publishing (later)](#publishing-later)
+- [ ] ~~Reserve package names~~ ([P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md)) deferred: crates and npm packages stay local for now (decided 2026-10-28); see [Publishing (later)](#publishing-later)
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
 
 ### Round B — Core model and the first package
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
-- [x] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md): [versioning part](../decisions/0017-versioning-and-release.md); the publishing part is [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
+- [x] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md): [versioning part](../decisions/0017-versioning-and-release.md); the publishing part is [P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [x] `laminapdf-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [x] `laminapdf-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/done/B3a-overlay-and-ops.md))
@@ -183,13 +183,13 @@ Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
 
 Decided 2026-10-28 by the project owner: crates and npm packages stay local (workspace and path dependencies, `pnpm pack` tarballs, git tags) until the owner decides to publish. When that happens:
 
-Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](../todos/ready/P2-first-registry-prerelease.md), both blocked on the owner's decision to publish.
+Todos: [P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md) and [P2](../todos/ready/P2-first-registry-prerelease.md), both blocked on the owner's decision to publish.
 
 - [x] Choose the npm scope: `@laminapdf` (2026-10-31; [P0](../todos/done/P0-npm-scope-laminapdf.md))
 - [x] Rename the crates `laminapdf-*` and the façade `laminapdf`, whose names are free on crates.io (2026-11-01; [P0b](../todos/done/P0b-crate-names-laminapdf.md))
-- [ ] Reserve names: `laminapdf` and `laminapdf-*` on crates.io, the `@laminapdf` scope on npm ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
-- [ ] Write ADR 0017's publishing part ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)): OIDC trusted publishing on npm and crates.io (first crates.io publish is manual), provenance, GitHub artifact attestations for `.wasm`
-- [ ] Add the release workflow (Changesets version PR → publish job) and switch every crate to trusted-publishing-only ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
+- [ ] Reserve names: `laminapdf` and `laminapdf-*` on crates.io, the `@laminapdf` scope on npm ([P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md))
+- [ ] Write ADR 0017's publishing part ([P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md)): OIDC trusted publishing on npm and crates.io (first crates.io publish is manual), provenance, GitHub artifact attestations for `.wasm`
+- [ ] Add the release workflow (Changesets version PR → publish job) and switch every crate to trusted-publishing-only ([P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md))
 - [ ] Publish the first pre-release; verify install and quick start from the registries in each runtime ([P2](../todos/ready/P2-first-registry-prerelease.md))
 - [ ] Publish the stability policy and changelog; enable cargo-semver-checks against the published version ([P2](../todos/ready/P2-first-registry-prerelease.md))
 
