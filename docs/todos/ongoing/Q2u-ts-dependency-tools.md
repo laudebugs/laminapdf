@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2u` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2o](./Q2o-ts-hygiene.md) |
+| Blocks | [Q2o](../ready/Q2o-ts-hygiene.md) |
 | ADRs | None |
 | Branch | `ci/q2u-ts-dependency-tools` |
 | PR title | `ci(ts): dependency-cruiser, jscpd and knip in check ts` |
@@ -21,7 +21,7 @@ This todo adds three dev tools to `cargo xtask check ts`, after a licence check:
 ## Context
 
 - The [maintainability guideline](../../guidelines/maintainability.md) ("Public surface and tests", "How it's checked"); ADR 0019 and `cargo xtask npm-licenses` (dependency-cruiser MIT, jscpd MIT, knip ISC).
-- Today's cross-package imports: `packages/render-{hayro,pdfium}/test/*` and `vitest.browser.config.ts` import `../render/test/…` (fixed by [Q2m](./Q2m-ts-test-utils.md)).
+- Today's cross-package imports: `packages/render-{hayro,pdfium}/test/*` and `vitest.browser.config.ts` import `../render/test/…` (fixed by [Q2m](../ready/Q2m-ts-test-utils.md)).
 
 ## Scope
 
