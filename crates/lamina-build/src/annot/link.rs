@@ -22,6 +22,8 @@ pub(crate) struct PendingLink {
     pub(crate) object: ObjRef,
     pub(crate) dict: Dict,
     pub(crate) target: LinkTarget,
+    /// The index of the page it is on.
+    pub(crate) page: u32,
 }
 
 /// The annotation dictionary without its target: `/Rect` in user space, no border, printed

@@ -20,6 +20,15 @@ mod links_and_outlines;
 #[path = "../examples/multilingual.rs"]
 mod multilingual;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/pdf_a3_invoice_with_xml.rs"]
+mod pdf_a3_invoice_with_xml;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/pdf_a_archive.rs"]
+mod pdf_a_archive;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/pdf_ua_report.rs"]
+mod pdf_ua_report;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/vectors.rs"]
 mod vectors;
 
@@ -27,14 +36,19 @@ use std::path::Path;
 
 type Build = fn() -> Result<Vec<u8>, Box<dyn std::error::Error>>;
 
-/// Every example, by the name of its golden.
-const EXAMPLES: [(&str, Build); 6] = [
+/// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
+/// several).
+const EXAMPLES: [(&str, Build); 10] = [
     ("hello", hello::build),
     ("invoice", invoice::build),
     ("multilingual", multilingual::build),
     ("vectors", vectors::build),
     ("links_and_outlines", links_and_outlines::build),
     ("generate_then_edit", generate_then_edit::build),
+    ("pdf_ua_report", pdf_ua_report::build),
+    ("pdf_a_archive-2b", || pdf_a_archive::build(pdf_a_archive::Level::A2b)),
+    ("pdf_a_archive-2u", || pdf_a_archive::build(pdf_a_archive::Level::A2u)),
+    ("pdf_a3_invoice_with_xml", pdf_a3_invoice_with_xml::build),
 ];
 
 fn golden(name: &str) -> Vec<u8> {
@@ -81,6 +95,11 @@ fn the_tagged_invoice_leaves_nothing_untagged() {
 }
 
 #[test]
+fn the_pdf_ua_report_leaves_nothing_untagged() {
+    assert_eq!(pdf_ua_report::builder().unwrap().tagging_diagnostics(), []);
+}
+
+#[test]
 fn every_golden_has_an_example() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/golden/examples");
     let orphans: Vec<String> = std::fs::read_dir(dir)
@@ -113,7 +132,12 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
         .filter_map(|block| block.split('"').nth(1).map(str::to_owned))
         .collect();
     in_manifest.sort();
-    let mut here: Vec<String> = EXAMPLES.iter().map(|(name, _)| (*name).to_owned()).collect();
+    // A golden `<example>-<variant>` comes from `<example>.rs`.
+    let mut here: Vec<String> = EXAMPLES
+        .iter()
+        .map(|(name, _)| name.split_once('-').map_or(*name, |(stem, _)| stem).to_owned())
+        .collect();
     here.sort();
+    here.dedup();
     assert_eq!((&here, &in_manifest), (&files, &files));
 }

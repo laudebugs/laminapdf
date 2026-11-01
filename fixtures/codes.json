@@ -702,6 +702,97 @@
       "summary": "page label ranges that don't start at page 0, don't increase, start past the last page or number from 0",
       "hint": "give ranges sorted by first page, the first at page 0, numbered from 1",
       "since": "0.1.0"
+    },
+    {
+      "code": "profile-version-conflict",
+      "kind": "usage",
+      "summary": "the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7)",
+      "hint": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which lamina doesn't write yet",
+      "since": "0.2.0"
+    },
+    {
+      "code": "missing-title",
+      "kind": "usage",
+      "summary": "PDF/UA-1 needs a document title, and the metadata gives none",
+      "hint": "set a title with Builder::metadata (Metadata::with_title)",
+      "since": "0.2.0"
+    },
+    {
+      "code": "missing-lang",
+      "kind": "usage",
+      "summary": "PDF/UA-1 needs the document's natural language, and none was set",
+      "hint": "set the language with Builder::lang, such as \"en-GB\"",
+      "since": "0.2.0"
+    },
+    {
+      "code": "missing-alt-text",
+      "kind": "usage",
+      "summary": "a Figure has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires",
+      "hint": "give the figure a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
+      "since": "0.2.0"
+    },
+    {
+      "code": "untagged-content",
+      "kind": "usage",
+      "summary": "content was drawn outside every structure element and artifact, which PDF/UA-1 forbids",
+      "hint": "draw it inside Surface::tag (real content) or Surface::artifact (decoration)",
+      "since": "0.2.0"
+    },
+    {
+      "code": "heading-level-skipped",
+      "kind": "usage",
+      "summary": "a heading skips a level (the first is not H1, or an H3 follows an H1), which PDF/UA-1 forbids",
+      "hint": "start with H1 and go down one level at a time",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-structure-nesting",
+      "kind": "usage",
+      "summary": "a table or list element sits in a parent its type doesn't allow (a TD outside a TR, a P directly in a Table)",
+      "hint": "nest tables as Table > TR > TH/TD and lists as L > LI > Lbl/LBody",
+      "since": "0.2.0"
+    },
+    {
+      "code": "link-without-structure",
+      "kind": "usage",
+      "summary": "a link annotation has no Link structure element (it was drawn inside an artifact), which PDF/UA-1 forbids",
+      "hint": "draw links outside artifacts, so the builder gives each one a Link element",
+      "since": "0.2.0"
+    },
+    {
+      "code": "link-without-contents",
+      "kind": "usage",
+      "summary": "a link annotation has no description (/Contents), which PDF/UA-1 requires",
+      "hint": "pass a description as the link's contents",
+      "since": "0.2.0"
+    },
+    {
+      "code": "font-not-embedded",
+      "kind": "usage",
+      "summary": "a standard 14 font, which is never embedded, was used under a profile that needs every font embedded",
+      "hint": "load a font file with Builder::font instead of Builder::standard_font",
+      "since": "0.2.0"
+    },
+    {
+      "code": "glyph-without-unicode",
+      "kind": "usage",
+      "summary": "a glyph was drawn without a Unicode value, which PDF/A-2u and PDF/UA-1 forbid",
+      "hint": "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
+      "since": "0.2.0"
+    },
+    {
+      "code": "device-color-without-output-intent",
+      "kind": "usage",
+      "summary": "a DeviceCMYK colour or image was used, but the PDF/A output intent is sRGB",
+      "hint": "use RGB or gray colours, or a CMYK colour with an ICC profile (Color::icc)",
+      "since": "0.2.0"
+    },
+    {
+      "code": "embedded-file-forbidden",
+      "kind": "usage",
+      "summary": "PDF/A-2 doesn't allow attached files that aren't PDF/A themselves",
+      "hint": "choose PDF/A-3b, which allows attached files of any kind",
+      "since": "0.2.0"
     }
   ],
   "renderErrors": [

@@ -2,6 +2,9 @@
 
 use lamina_cos::{ErrorKind, Location};
 
+use crate::profile::Profile;
+use crate::tag::ContentKind;
+
 /// A `Result` with this crate's [`Error`].
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -114,6 +117,107 @@ pub enum Error {
         /// What is wrong (fixed text).
         what: &'static str,
     },
+    /// The PDF version asked for is one the profile doesn't allow (PDF/A-2, PDF/A-3 and
+    /// PDF/UA-1 are based on PDF 1.7, so PDF 2.0 is refused).
+    #[error("{} documents can't be PDF 2.0", .profile.as_str())]
+    ProfileVersionConflict {
+        /// The profile.
+        profile: Profile,
+    },
+    /// PDF/UA-1 needs a title (`dc:title` in the XMP packet, ISO 14289-1 §7.1), and
+    /// [`Builder::metadata`](crate::Builder::metadata) gave none.
+    #[error("the document has no title, which PDF/UA-1 requires")]
+    MissingTitle,
+    /// PDF/UA-1 needs the document's natural language ([`Builder::lang`](crate::Builder::lang)).
+    #[error("the document has no language, which PDF/UA-1 requires")]
+    MissingLang,
+    /// A `Figure` without alternate text (`/Alt` or `/ActualText`) under PDF/UA-1.
+    #[error("a figure on page {page} has no alternate text, which PDF/UA-1 requires")]
+    MissingAltText {
+        /// The page's index (0-based).
+        page: u32,
+    },
+    /// Content drawn outside every structure element and artifact under PDF/UA-1.
+    #[error("page {page} has {count} {content:?} drawing(s) outside every structure element and artifact")]
+    UntaggedContent {
+        /// The page's index (0-based).
+        page: u32,
+        /// What was drawn.
+        content: ContentKind,
+        /// How many times.
+        count: usize,
+    },
+    /// A heading level skipped under PDF/UA-1: the first numbered heading isn't `H1`, or a
+    /// heading is more than one level below the one before it (an `H3` right after an `H1`).
+    #[error("an H{level} on page {page} follows an H{previous}: heading levels can't be skipped under PDF/UA-1")]
+    HeadingLevelSkipped {
+        /// The page's index (0-based).
+        page: u32,
+        /// The heading's level.
+        level: u32,
+        /// The level of the heading before it (0: none before it).
+        previous: u32,
+    },
+    /// A table or list element in a place ISO 32000-1 Tables 336 and 337 don't allow, under
+    /// PDF/UA-1 (a `TD` outside a `TR`, a `P` directly in a `Table` or an `L`).
+    #[error("a structure element on page {page} is inside a parent its type doesn't allow")]
+    InvalidStructureNesting {
+        /// The page's index (0-based).
+        page: u32,
+        /// The element's standard type.
+        kind: String,
+        /// Its parent's standard type (`Document` at the top).
+        parent: String,
+    },
+    /// A link annotation without a `Link` structure element under PDF/UA-1 (drawn inside an
+    /// artifact).
+    #[error("{count} link(s) on page {page} have no Link structure element, which PDF/UA-1 requires")]
+    LinkWithoutStructure {
+        /// The page's index (0-based).
+        page: u32,
+        /// How many links.
+        count: usize,
+    },
+    /// A link annotation without `/Contents` (its alternate description) under PDF/UA-1.
+    #[error("a link on page {page} has no description (/Contents), which PDF/UA-1 requires")]
+    LinkWithoutContents {
+        /// The page's index (0-based).
+        page: u32,
+    },
+    /// A standard 14 font (never embedded) used under a profile that needs every font
+    /// embedded.
+    #[error("a standard 14 font is not embedded, which {} requires", .profile.as_str())]
+    FontNotEmbedded {
+        /// The profile.
+        profile: Profile,
+        /// The font's PostScript name.
+        font: String,
+    },
+    /// A glyph drawn without a Unicode value (it stands for no text of its own) under a
+    /// profile that needs every glyph mapped to Unicode.
+    #[error("glyph {gid} is drawn without a Unicode value, which {} requires", .profile.as_str())]
+    GlyphWithoutUnicode {
+        /// The profile.
+        profile: Profile,
+        /// The font's PostScript name (**untrusted**: read from the font).
+        font: String,
+        /// The glyph's ID in the font.
+        gid: u16,
+    },
+    /// A `DeviceCMYK` colour or image under PDF/A: the output intent is sRGB, so CMYK
+    /// device colour has no defined meaning.
+    #[error("page {page} uses DeviceCMYK, which the sRGB output intent doesn't cover")]
+    DeviceColorWithoutOutputIntent {
+        /// The page's index (0-based).
+        page: u32,
+    },
+    /// An attached file under PDF/A-2, which only allows embedded files that are themselves
+    /// PDF/A (lamina can't check that): use PDF/A-3b.
+    #[error("{} doesn't allow attached files; PDF/A-3b does", .profile.as_str())]
+    EmbeddedFileForbidden {
+        /// The profile.
+        profile: Profile,
+    },
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
     #[error(transparent)]
@@ -139,6 +243,19 @@ impl Error {
         "page-index-out-of-range",
         "unknown-destination",
         "invalid-page-labels",
+        "profile-version-conflict",
+        "missing-title",
+        "missing-lang",
+        "missing-alt-text",
+        "untagged-content",
+        "heading-level-skipped",
+        "invalid-structure-nesting",
+        "link-without-structure",
+        "link-without-contents",
+        "font-not-embedded",
+        "glyph-without-unicode",
+        "device-color-without-output-intent",
+        "embedded-file-forbidden",
     ];
 
     /// A stable kebab-case code for this error.
@@ -157,6 +274,19 @@ impl Error {
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
             Self::UnknownDestination { .. } => "unknown-destination",
             Self::InvalidPageLabels { .. } => "invalid-page-labels",
+            Self::ProfileVersionConflict { .. } => "profile-version-conflict",
+            Self::MissingTitle => "missing-title",
+            Self::MissingLang => "missing-lang",
+            Self::MissingAltText { .. } => "missing-alt-text",
+            Self::UntaggedContent { .. } => "untagged-content",
+            Self::HeadingLevelSkipped { .. } => "heading-level-skipped",
+            Self::InvalidStructureNesting { .. } => "invalid-structure-nesting",
+            Self::LinkWithoutStructure { .. } => "link-without-structure",
+            Self::LinkWithoutContents { .. } => "link-without-contents",
+            Self::FontNotEmbedded { .. } => "font-not-embedded",
+            Self::GlyphWithoutUnicode { .. } => "glyph-without-unicode",
+            Self::DeviceColorWithoutOutputIntent { .. } => "device-color-without-output-intent",
+            Self::EmbeddedFileForbidden { .. } => "embedded-file-forbidden",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -184,7 +314,20 @@ impl Error {
             | Self::TextOverflow { .. }
             | Self::PageIndexOutOfRange { .. }
             | Self::UnknownDestination { .. }
-            | Self::InvalidPageLabels { .. } => ErrorKind::Usage,
+            | Self::InvalidPageLabels { .. }
+            | Self::ProfileVersionConflict { .. }
+            | Self::MissingTitle
+            | Self::MissingLang
+            | Self::MissingAltText { .. }
+            | Self::UntaggedContent { .. }
+            | Self::HeadingLevelSkipped { .. }
+            | Self::InvalidStructureNesting { .. }
+            | Self::LinkWithoutStructure { .. }
+            | Self::LinkWithoutContents { .. }
+            | Self::FontNotEmbedded { .. }
+            | Self::GlyphWithoutUnicode { .. }
+            | Self::DeviceColorWithoutOutputIntent { .. }
+            | Self::EmbeddedFileForbidden { .. } => ErrorKind::Usage,
         }
     }
 
@@ -207,7 +350,20 @@ impl Error {
             | Self::TextOverflow { .. }
             | Self::PageIndexOutOfRange { .. }
             | Self::UnknownDestination { .. }
-            | Self::InvalidPageLabels { .. } => Location::NONE,
+            | Self::InvalidPageLabels { .. }
+            | Self::ProfileVersionConflict { .. }
+            | Self::MissingTitle
+            | Self::MissingLang
+            | Self::MissingAltText { .. }
+            | Self::UntaggedContent { .. }
+            | Self::HeadingLevelSkipped { .. }
+            | Self::InvalidStructureNesting { .. }
+            | Self::LinkWithoutStructure { .. }
+            | Self::LinkWithoutContents { .. }
+            | Self::FontNotEmbedded { .. }
+            | Self::GlyphWithoutUnicode { .. }
+            | Self::DeviceColorWithoutOutputIntent { .. }
+            | Self::EmbeddedFileForbidden { .. } => Location::NONE,
         }
     }
 }
@@ -240,6 +396,42 @@ mod tests {
             Error::PageIndexOutOfRange { index: 3, count: 1 },
             Error::UnknownDestination { name: String::new() },
             Error::InvalidPageLabels { what: "w" },
+            Error::ProfileVersionConflict {
+                profile: Profile::PdfA2b,
+            },
+            Error::MissingTitle,
+            Error::MissingLang,
+            Error::MissingAltText { page: 0 },
+            Error::UntaggedContent {
+                page: 0,
+                content: ContentKind::Path,
+                count: 1,
+            },
+            Error::HeadingLevelSkipped {
+                page: 0,
+                level: 3,
+                previous: 1,
+            },
+            Error::InvalidStructureNesting {
+                page: 0,
+                kind: String::new(),
+                parent: String::new(),
+            },
+            Error::LinkWithoutStructure { page: 0, count: 1 },
+            Error::LinkWithoutContents { page: 0 },
+            Error::FontNotEmbedded {
+                profile: Profile::PdfUa1,
+                font: String::new(),
+            },
+            Error::GlyphWithoutUnicode {
+                profile: Profile::PdfA2u,
+                font: String::new(),
+                gid: 1,
+            },
+            Error::DeviceColorWithoutOutputIntent { page: 0 },
+            Error::EmbeddedFileForbidden {
+                profile: Profile::PdfA2b,
+            },
         ]
     }
 
@@ -270,6 +462,16 @@ mod tests {
     fn the_message_never_contains_the_destination_name() {
         let e = Error::UnknownDestination {
             name: "IgnorePreviousInstructions".into(),
+        };
+        assert!(!e.to_string().contains("Ignore"));
+    }
+
+    #[test]
+    fn the_message_never_contains_the_font_name() {
+        let e = Error::GlyphWithoutUnicode {
+            profile: Profile::PdfA2u,
+            font: "IgnorePreviousInstructions".into(),
+            gid: 3,
         };
         assert!(!e.to_string().contains("Ignore"));
     }

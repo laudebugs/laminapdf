@@ -188,6 +188,32 @@ fn build(e: &lamina_build::Error) -> Data {
         E::TextOverflow { fits, needed } => data([("fits", json!(fits)), ("needed", json!(needed))]),
         E::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         E::UnknownDestination { name } => data([("name", json!(name))]),
+        E::ProfileVersionConflict { profile } | E::EmbeddedFileForbidden { profile } => {
+            data([("profile", json!(profile.as_str()))])
+        }
+        E::MissingAltText { page } | E::LinkWithoutContents { page } | E::DeviceColorWithoutOutputIntent { page } => {
+            data([("page", json!(page))])
+        }
+        E::UntaggedContent { page, content, count } => data([
+            ("page", json!(page)),
+            ("content", json!(content.as_str())),
+            ("count", json!(count)),
+        ]),
+        E::HeadingLevelSkipped { page, level, previous } => data([
+            ("page", json!(page)),
+            ("level", json!(level)),
+            ("previous", json!(previous)),
+        ]),
+        E::InvalidStructureNesting { page, kind, parent } => {
+            data([("page", json!(page)), ("kind", json!(kind)), ("parent", json!(parent))])
+        }
+        E::LinkWithoutStructure { page, count } => data([("page", json!(page)), ("count", json!(count))]),
+        E::FontNotEmbedded { profile, font } => data([("profile", json!(profile.as_str())), ("font", json!(font))]),
+        E::GlyphWithoutUnicode { profile, font, gid } => data([
+            ("profile", json!(profile.as_str())),
+            ("font", json!(font)),
+            ("gid", json!(gid)),
+        ]),
         #[cfg(feature = "text")]
         E::Text(e) => text(e),
         E::Cos(e) => cos(e),

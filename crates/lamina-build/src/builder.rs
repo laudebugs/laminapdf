@@ -8,11 +8,13 @@ use lamina_model::{IdAllocator, Kind, OutlineItemId, PageFrame, PageId, PdfDate}
 use lamina_text::{EmbedPolicy, FontRegistry, Standard14};
 
 use crate::annot::link::PendingLink;
+use crate::attach::Attachment;
 use crate::error::Result;
 use crate::finish;
 use crate::meta::{Metadata, ViewerPreferences};
 use crate::nav::{Fit, OutlineEntry, PageLabel};
 use crate::page::{PageBuilder, PageSize};
+use crate::profile::{Conformance, Profile};
 use crate::resources::DocResources;
 #[cfg(feature = "text")]
 use crate::surface::text::Font;
@@ -74,6 +76,7 @@ pub struct BuildOptions {
     creation_date: Option<PdfDate>,
     uncompressed: bool,
     tagged: bool,
+    conformance: Conformance,
     open: OpenOptions,
 }
 
@@ -129,10 +132,33 @@ impl BuildOptions {
         self
     }
 
-    /// Whether the document is asked to be tagged.
+    /// Whether the document is asked to be tagged (PDF/UA-1 asks for it too).
     #[must_use]
     pub const fn tagged(&self) -> bool {
-        self.tagged
+        self.tagged || self.conformance.ua
+    }
+
+    /// Adds a conformance profile ([`Profile`]): PDF/UA-1, or one of PDF/A-2b, PDF/A-2u and
+    /// PDF/A-3b (a second PDF/A profile replaces the first; [`Profile::None`] clears them).
+    /// [`Builder::finish`] then fails with a coded error for each machine-checkable rule the
+    /// document breaks, and writes what the profiles need: the identification in the XMP
+    /// packet (always written), `/DisplayDocTitle` for PDF/UA-1, and for PDF/A the output
+    /// intent with an embedded sRGB profile. PDF/UA-1 makes the document tagged.
+    ///
+    /// Only new documents ([`Builder::new`]) take a profile; [`Builder::on`] ignores it.
+    #[must_use]
+    pub const fn with_profile(mut self, profile: Profile) -> Self {
+        self.conformance = self.conformance.with(profile);
+        self
+    }
+
+    /// The profiles chosen, PDF/UA-1 first.
+    pub fn profiles(&self) -> impl Iterator<Item = Profile> {
+        self.conformance.profiles()
+    }
+
+    pub(crate) const fn conformance(&self) -> Conformance {
+        self.conformance
     }
 
     /// The limits and strict mode the new document carries (default
@@ -191,6 +217,11 @@ pub(crate) struct BuildState {
     /// What embedding the fonts raised (ToUnicode conflicts, whole fonts kept).
     #[cfg(feature = "text")]
     pub(crate) font_warnings: Vec<lamina_text::Warning>,
+    /// Every font registered, in order (the profiles check their usage).
+    #[cfg(feature = "text")]
+    pub(crate) font_keys: Vec<lamina_text::FontKey>,
+    /// The first page that draws with `DeviceCMYK` (PDF/A refuses it under the sRGB intent).
+    pub(crate) device_cmyk: Option<u32>,
     /// Whether pages may build structure (not for an appender).
     pub(crate) tagging: bool,
     /// The structure elements, `ParentTree` and diagnostics so far.
@@ -212,6 +243,9 @@ impl BuildState {
             required: (1, 0),
             #[cfg(feature = "text")]
             font_warnings: Vec::new(),
+            #[cfg(feature = "text")]
+            font_keys: Vec::new(),
+            device_cmyk: None,
             tagging: tagged.is_some(),
             tag: TagState::new(tagged.unwrap_or(false)),
         }
@@ -225,6 +259,7 @@ impl BuildState {
     #[cfg(feature = "text")]
     fn add_font(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
         let key = self.fonts.add(font.clone(), policy)?;
+        self.font_keys.push(key);
         Ok(Font { key, font })
     }
 }
@@ -246,6 +281,7 @@ pub(crate) struct DocFeatures {
     pub(crate) metadata: Option<Metadata>,
     pub(crate) lang: Option<String>,
     pub(crate) prefs: Option<ViewerPreferences>,
+    pub(crate) attachments: BTreeMap<String, Attachment>,
 }
 
 /// What a page writes into: the document and the build's shared state.
@@ -291,7 +327,7 @@ impl Builder {
         let catalog = doc.reserve_number().unwrap_or(ObjRef::new(1, 0));
         let pages_root = doc.reserve_number().unwrap_or(ObjRef::new(2, 0));
         let compress = !options.uncompressed;
-        let tagged = options.tagged;
+        let tagged = options.tagged();
         Self {
             doc,
             options,
@@ -406,6 +442,15 @@ impl Builder {
         self
     }
 
+    /// Attaches `file` to the document (`/EmbeddedFiles` and the catalog's `/AF`, with its
+    /// `/AFRelationship`): PDF/A-3b's associated files, such as an e-invoice's XML. Attaching a
+    /// file with the same name again replaces it; files are written sorted by name. PDF/A-2b
+    /// and PDF/A-2u refuse attachments at [`Builder::finish`] (`embedded-file-forbidden`).
+    pub fn attach(&mut self, file: Attachment) -> &mut Self {
+        self.features.attachments.insert(file.name().to_owned(), file);
+        self
+    }
+
     /// What the tagged document lacks so far ([B8a]): for each finished page, the content
     /// drawn outside every structure element and artifact, and the figures without alternate
     /// text, in page order. Empty while the document isn't tagged (see
@@ -451,7 +496,14 @@ impl Builder {
     /// defined; [`Error::InvalidPageLabels`](crate::Error::InvalidPageLabels);
     /// [`Error::InvalidGeometry`](crate::Error::InvalidGeometry) for a destination coordinate
     /// that isn't finite; [`Error::Text`](crate::Error::Text) when subsetting a font fails;
-    /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
+    /// [`Error::Cos`](crate::Error::Cos) when object numbers run out. Under a [`Profile`], the
+    /// first rule the document breaks, checked before anything is written: PDF/UA-1's
+    /// `missing-title`, `missing-lang`, `untagged-content`, `missing-alt-text`,
+    /// `heading-level-skipped`, `invalid-structure-nesting`, `link-without-structure`,
+    /// `link-without-contents`, `glyph-without-unicode`; PDF/A's
+    /// `device-color-without-output-intent`, `embedded-file-forbidden` (PDF/A-2),
+    /// `glyph-without-unicode` (PDF/A-2u); both's `font-not-embedded` (a standard 14 font) and
+    /// `profile-version-conflict` (PDF 2.0).
     pub fn finish(self) -> Result<lamina_ops::Document> {
         self.finish_inner().map(|(doc, _)| doc)
     }

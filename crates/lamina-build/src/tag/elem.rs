@@ -13,7 +13,7 @@ use lamina_syntax::text::encode_text_string;
 
 use super::mcid::{PageKid, PageMarks};
 use super::parent_tree::ParentTree;
-use super::rolemap::role_map;
+use super::rolemap::{is_standard, role_map};
 use super::{ContentKind, Tag, TagDiagnostic};
 use crate::error::Result;
 
@@ -33,11 +33,24 @@ pub(crate) struct PageKeys {
     refs: Vec<ObjRef>,
 }
 
+/// One element's standard type and its parent's, in structure order (depth-first: elements
+/// are opened parent first, siblings in order, pages in order), for the profiles' structure
+/// checks.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ElemInfo {
+    pub(crate) page: u32,
+    /// The standard type: the name when it is one, else the role it maps to.
+    pub(crate) kind: String,
+    /// The parent's standard type; `None` under the `Document` element.
+    pub(crate) parent: Option<String>,
+}
+
 /// Where a page started, to forget it if writing it fails.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TagMark {
     tagged: bool,
     elems: usize,
+    infos: usize,
     roots: usize,
     diagnostics: usize,
     roles: usize,
@@ -60,6 +73,7 @@ pub(crate) struct TagState {
     roles: Vec<Tag>,
     tree: ParentTree,
     diagnostics: Vec<TagDiagnostic>,
+    infos: Vec<ElemInfo>,
 }
 
 /// A text string.
@@ -79,6 +93,7 @@ impl TagState {
         TagMark {
             tagged: self.tagged,
             elems: self.elems.len(),
+            infos: self.infos.len(),
             roots: self.roots.len(),
             diagnostics: self.diagnostics.len(),
             roles: self.roles.len(),
@@ -90,6 +105,7 @@ impl TagState {
     pub(crate) fn rollback(&mut self, mark: TagMark) {
         self.tagged = mark.tagged;
         self.elems.truncate(mark.elems);
+        self.infos.truncate(mark.infos);
         self.roots.truncate(mark.roots);
         self.diagnostics.truncate(mark.diagnostics);
         self.roles.truncate(mark.roles);
@@ -99,6 +115,11 @@ impl TagState {
     /// What the tagged document lacks so far; nothing for an untagged one.
     pub(crate) fn diagnostics(&self) -> &[TagDiagnostic] {
         if self.tagged { &self.diagnostics } else { &[] }
+    }
+
+    /// Every element so far, in structure order.
+    pub(crate) fn infos(&self) -> &[ElemInfo] {
+        &self.infos
     }
 
     fn roots_ref(&mut self, doc: &lamina_cos::Document) -> Result<Roots> {
@@ -155,6 +176,22 @@ impl TagState {
         }
         let Some(roots) = self.roots_ref else { return };
         let elem = |i: usize| keys.refs.get(i).map_or(Object::Null, |r| Object::Ref(*r));
+        let standard = |t: &Tag| {
+            let name = t.name();
+            if is_standard(name) {
+                name.to_owned()
+            } else {
+                t.kind().as_str().to_owned()
+            }
+        };
+        for pe in &marks.elems {
+            let parent = pe.parent.and_then(|p| marks.elems.get(p)).map(|p| standard(&p.tag));
+            self.infos.push(ElemInfo {
+                page: index,
+                kind: standard(&pe.tag),
+                parent,
+            });
+        }
         for &r in &marks.roots {
             self.roots.push(elem(r));
         }

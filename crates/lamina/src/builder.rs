@@ -1,6 +1,6 @@
 //! [`Builder`]: `lamina-build`'s builder, finishing into a façade [`Document`].
 
-use lamina_build::ViewerPreferences;
+use lamina_build::{Attachment, ViewerPreferences};
 use lamina_build::{
     BuildOptions, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize, TagDiagnostic,
 };
@@ -105,6 +105,13 @@ impl Builder {
         self
     }
 
+    /// Attaches a file (`/EmbeddedFiles` and the catalog's `/AF`): PDF/A-3b's associated
+    /// files, such as an e-invoice's XML. The same name again replaces the file.
+    pub fn attach(&mut self, file: Attachment) -> &mut Self {
+        self.0.attach(file);
+        self
+    }
+
     /// How viewers present the document when it opens.
     pub fn viewer_preferences(&mut self, prefs: ViewerPreferences) -> &mut Self {
         self.0.viewer_preferences(prefs);
@@ -131,7 +138,8 @@ impl Builder {
     ///
     /// # Errors
     /// `page-index-out-of-range`, `unknown-destination`, `invalid-page-labels`,
-    /// `invalid-geometry`, `subset-failed`.
+    /// `invalid-geometry`, `subset-failed`; under a [`Profile`](crate::Profile), the first rule
+    /// the document breaks (see `lamina_build::Builder::finish`).
     pub fn finish(self) -> Result<Document> {
         // Only font embedding raises build warnings.
         #[cfg(feature = "text")]

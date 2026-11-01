@@ -336,6 +336,17 @@ pub enum ContentKind {
 impl ContentKind {
     /// In declaration order (`kind as usize` indexes it).
     pub(crate) const ALL: [Self; 4] = [Self::Path, Self::Image, Self::Text, Self::Link];
+
+    /// `"path"`, `"image"`, `"text"` or `"link"`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Path => "path",
+            Self::Image => "image",
+            Self::Text => "text",
+            Self::Link => "link",
+        }
+    }
 }
 
 /// What a tagged document lacks, found while its pages were drawn

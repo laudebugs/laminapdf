@@ -920,6 +920,9 @@ impl Writer {
             return;
         }
         *current = Some(color.clone());
+        if matches!(color, Color::Cmyk(..)) {
+            resources.uses_cmyk();
+        }
         let c = &mut self.content;
         match (color, fill) {
             (Color::Gray(g), true) => c.set_fill_gray(n(*g)),

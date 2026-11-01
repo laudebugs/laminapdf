@@ -107,7 +107,7 @@ fn listed_codes() -> Vec<String> {
 
 /// One value of every error and warning that has data.
 fn sample_values() -> (Vec<Error>, Vec<Warning>) {
-    use lamina_build::{Error as B, ImageFormat};
+    use lamina_build::{ContentKind, Error as B, ImageFormat, Profile};
     use lamina_text::{Error as T, FsType, Tag, Warning as TW};
     let s = String::new;
     let errors: Vec<Error> = vec![
@@ -205,6 +205,42 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(B::PageIndexOutOfRange { index: 1, count: 1 }),
         Error::from(B::UnknownDestination { name: s() }),
         Error::from(B::InvalidPageLabels { what: "w" }),
+        Error::from(B::ProfileVersionConflict {
+            profile: Profile::PdfA2b,
+        }),
+        Error::from(B::MissingTitle),
+        Error::from(B::MissingLang),
+        Error::from(B::MissingAltText { page: 0 }),
+        Error::from(B::UntaggedContent {
+            page: 0,
+            content: ContentKind::Path,
+            count: 1,
+        }),
+        Error::from(B::HeadingLevelSkipped {
+            page: 0,
+            level: 3,
+            previous: 1,
+        }),
+        Error::from(B::InvalidStructureNesting {
+            page: 0,
+            kind: s(),
+            parent: s(),
+        }),
+        Error::from(B::LinkWithoutStructure { page: 0, count: 1 }),
+        Error::from(B::LinkWithoutContents { page: 0 }),
+        Error::from(B::FontNotEmbedded {
+            profile: Profile::PdfUa1,
+            font: s(),
+        }),
+        Error::from(B::GlyphWithoutUnicode {
+            profile: Profile::PdfA2u,
+            font: s(),
+            gid: 1,
+        }),
+        Error::from(B::DeviceColorWithoutOutputIntent { page: 0 }),
+        Error::from(B::EmbeddedFileForbidden {
+            profile: Profile::PdfA2b,
+        }),
     ];
     let warnings: Vec<Warning> = vec![
         W::XrefStmIgnored { offset: 1 }.into(),
