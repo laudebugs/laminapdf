@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3a](../done/C3a-viewer-worker-rpc.md) |
-| Blocks | [C3c](./C3c-viewer-perf-harness.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [D2d](./D2d-tile-transport-and-first-document.md) |
+| Blocks | [C3c](../ready/C3c-viewer-perf-harness.md), [C4a](../ready/C4a-ui-chrome-and-platform.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md), [D2d](../ready/D2d-tile-transport-and-first-document.md) |
 | ADRs | Implements 0009 (framework-free viewer core, `ImageBitmap` transfer, pooled canvases) |
 | Branch | `feat/c3b-viewer-virtualiser` |
 | PR title | `feat(viewer): add the page virtualiser, canvas pool, progressive tiles and anchored zoom` |
@@ -21,7 +21,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 ## Context
 
 - **Design (Paper):** [R02 Loading states](../../design/paper/reader-a.md#r02-loading-states). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the four-step pipeline (true-aspect placeholders → stretched low-res bitmap → 256–512 px sharp tiles, cancelled on scroll/zoom → CSS transform only during pinch) and the mobile caps (tile ≤ 5 MP, total bitmap budget) that [U3a](./U3a-responsive-mobile-and-touch.md) tunes.
+- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the four-step pipeline (true-aspect placeholders → stretched low-res bitmap → 256–512 px sharp tiles, cancelled on scroll/zoom → CSS transform only during pinch) and the mobile caps (tile ≤ 5 MP, total bitmap budget) that [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes.
 - [web-frontend notes §2](../../research/architecture/notes/web-frontend.md) — prefix-sum virtualiser, zoom anchoring needs custom logic, pooled canvases, low-res then tiles, cap canvas area (Safari/iOS canvas memory limits).
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — visible ± N pages, placeholder sizes from page boxes, LRU bitmap cache, thumbnails on a lower-priority queue.
 - [web-app.md §4 functional 2–3](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (no main-thread task > 50 ms; sharp within 300 ms of stopping; ≤ 600 MB).
@@ -40,10 +40,10 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 **Out of scope** (and which todo covers it)
 
-- Perf harness and CI budgets → [C3c](./C3c-viewer-perf-harness.md), [C7c](./C7c-performance-gates-and-launch.md).
-- Toolbar/UI → [C4a](./C4a-ui-chrome-and-platform.md).
-- Text, link and highlight layers → [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6b](./C6b-links-and-history.md) (this PR provides the per-page layer slots they mount into).
-- Thumbnails → [C6a](./C6a-thumbnails-outline-page-labels.md).
+- Perf harness and CI budgets → [C3c](../ready/C3c-viewer-perf-harness.md), [C7c](../ready/C7c-performance-gates-and-launch.md).
+- Toolbar/UI → [C4a](../ready/C4a-ui-chrome-and-platform.md).
+- Text, link and highlight layers → [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6b](../ready/C6b-links-and-history.md) (this PR provides the per-page layer slots they mount into).
+- Thumbnails → [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
 
 ## Tasks
 
@@ -65,7 +65,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 - [ ] **Cancelled renders never paint**: a test scrolls fast past 200 pages; no `drawImage` occurs for a page that is unmounted at the time the result arrives (instrumented counter = 0).
 - [ ] Zoom anchoring: after ctrl+wheel zoom 100 % → 200 % → 50 % at a fixed cursor position, the document point under the cursor moves by ≤ 1 CSS px (asserted from layout maths and screenshots).
 - [ ] Fit width / fit page / actual size produce the expected scale for portrait, landscape and rotated pages (unit tests).
-- [ ] After scrolling stops, every visible page reaches sharp tiles (state `sharp` in `renderstats`) — the timing budget itself is enforced by [C3c](./C3c-viewer-perf-harness.md).
+- [ ] After scrolling stops, every visible page reaches sharp tiles (state `sharp` in `renderstats`) — the timing budget itself is enforced by [C3c](../ready/C3c-viewer-perf-harness.md).
 - [ ] No React or other framework import in `packages/viewer` (lint rule / test scanning imports).
 
 ## Post-merge checks

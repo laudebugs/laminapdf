@@ -1,0 +1,73 @@
+# Q2f — One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
+
+| Field | Value |
+| --- | --- |
+| ID | `Q2f` |
+| Status | `ready` |
+| Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
+| Round / milestone | Round Q (docs and code quality) |
+| Depends on | None |
+| Blocks | None |
+| ADRs | None |
+| Branch | `fix/q2f-page-attributes-one-owner` |
+| PR title | `fix(model,ops,render): one reader of page attributes and one rotation type` |
+| Size | M |
+| PR | — |
+
+## Goal
+
+`/Rotate` and `/MediaBox` are parsed both in lamina-cos (`Page.rotate: i64`, integers only) and in lamina-model (integral reals too), and lamina-ops reads the cos copy, so ops treats `/Rotate 90.0` as unrotated while the model says 90°. lamina-render also has `ViewRotation`, a copy of `lamina_model::Rotation`, and degree parsing is written again in lamina-render-wasm and both adapters. This todo makes lamina-model the only reader of page attributes and keeps one rotation type.
+
+## Context
+
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-cos/src/reader/mod.rs:63-82,1359-1393`, `lamina-model/src/page.rs:17,242-360`, `lamina-ops/src/rotate.rs:137`, `lamina-render/src/request.rs:76`, `lamina-render-wasm/src/lib.rs:216`, `lamina-render/src/hayro.rs:207`, `lamina-render-pdfium/src/lib.rs:217`.
+
+## Scope
+
+**In scope**
+
+- `cos::Page` keeps the raw inherited values only; lamina-model adds a rotation reader that raises no warning, for ops; ops switches to it.
+- One `Rotation` with `from_degrees`, in the lowest crate lamina-render already depends on; `ViewRotation` removed or aliased; the hand-written degree parsers deleted.
+- A changeset for the API change.
+
+**Out of scope** (and which todo covers it)
+
+- Graphics types ([Q2g](./Q2g-one-matrix.md)).
+
+## Tasks
+
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [ ] Write a test for `/Rotate 90.0` in ops and watch it fail.
+- [ ] Add the model reader; switch ops; remove the parsed fields from `cos::Page` and fix callers.
+- [ ] Move or alias `Rotation`, add `from_degrees`, delete the parsers in render-wasm and both adapters.
+- [ ] Run all tests and the render reference images; add the changeset.
+
+## Acceptance criteria
+
+- [ ] Ops rotates a `/Rotate 90.0` page correctly (the new test).
+- [ ] One rotation type; no hand-written degree parser left.
+
+## Post-merge checks
+
+None.
+
+## Tests
+
+New tests in lamina-ops and lamina-render; existing reference images.
+
+## Docs to update
+
+Crate READMEs (lamina-model owns page attributes), CLAUDE.md if the render API changes, plan §9.
+
+## Risks and open questions
+
+An API break in lamina-cos and lamina-render while alpha: the changeset says so.
+
+## Definition of done
+
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

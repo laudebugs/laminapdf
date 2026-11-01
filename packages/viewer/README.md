@@ -1,6 +1,6 @@
 # @laminapdf/viewer
 
-The web reader's viewer core ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md)): framework-free, with React chrome around it later. Part 1 ([C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md)) is the **document worker** and its **typed RPC**. The virtualiser, tiles and zoom are [C3b](../../docs/todos/ready/C3b-viewer-virtualiser-and-zoom.md). Private, ESM-only.
+The web reader's viewer core ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md)): framework-free, with React chrome around it later. Part 1 ([C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md)) is the **document worker** and its **typed RPC**. The virtualiser, tiles and zoom are [C3b](../../docs/todos/ongoing/C3b-viewer-virtualiser-and-zoom.md). Private, ESM-only.
 
 ```ts
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
