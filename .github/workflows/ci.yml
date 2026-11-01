@@ -1,7 +1,7 @@
 # CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6, ADR 0018 §2): every PR
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
-# The full lane (full.yml) runs alongside it. Branch protection requires full.yml's `gate` and
-# `fast-gate` at the end of this file (todo X7). A new job here uses exactly
+# The full lane (full.yml) runs alongside it. Branch protection requires `fast-gate` (the last
+# job in this file) and full.yml's `gate` (todo X7). A new job here uses exactly
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 # (so it is skipped on docs-only PRs: a job that runs there fails `fast-gate`) and joins
 # `fast-gate`'s `needs`.

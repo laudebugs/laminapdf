@@ -29,7 +29,7 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 **In scope**
 
 - A `fast-gate` job in `ci.yml` that needs every other fast-lane job and passes only when each one passed or was skipped as not needed, on the same pattern as `gate`: a `changes` job that didn't succeed, a `code` output other than `true` or `false`, or any result other than `success` (code PR) or `skipped` (docs-only PR) fails it.
-- Make `fast-gate` a required check beside `gate`. This is an owner step: the repository settings, or the PATCH in PR #165's description. It sets `checks` with GitHub Actions' `app_id` 15368, as the live protection already does for `gate`, rather than this todo's first draft, `-f 'contexts[]=gate' -f 'contexts[]=fast-gate'`.
+- Make `fast-gate` a required check beside `gate`. This is an owner step: the repository settings, or the PATCH in PR #165's description. The PATCH sets `checks` with GitHub Actions' `app_id` 15368, as the live protection does for `gate`.
 - A comment at the top of `ci.yml`, like `full.yml`'s, saying that a new job joins `fast-gate`'s `needs`.
 - A unit test in `tools/xtask` (beside the release-lane test that reads `nightly.yml`) that fails when a `ci.yml` job is missing from `fast-gate`'s `needs`. The same check for `full.yml`'s `gate` if it's cheap.
 
@@ -44,7 +44,7 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 - [x] Add `fast-gate` and the header comment.
 - [x] Add the `needs` test.
 - [x] Run one code PR through it (this PR's CI). The docs-only run and a real red run moved to the post-merge checks. Instead of a throwaway red commit, which costs a full CI run, the gate's script was run locally against `needs` results for each case: all green, docs-only skips, a failed, cancelled or skipped job on a code PR, and a failed `changes` job.
-- [x] Ask the owner to add `fast-gate` to the required checks (the command is under Scope).
+- [x] Ask the owner to add `fast-gate` to the required checks (the command is in PR #165's description).
 
 ## Acceptance criteria
 
@@ -53,7 +53,7 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 
 ## Post-merge checks
 
-- [ ] The owner has made `fast-gate` required, and the next code PR shows it among the required checks. Then drop "(X7; the owner adds `fast-gate` after X7 merges)" from CLAUDE.md and "once the owner adds it" from git-workflow §5.
+- [ ] The owner has made `fast-gate` required, and the next code PR shows it among the required checks. Then drop "(X7; the owner adds `fast-gate` after X7 merges)" from CLAUDE.md and "once the owner adds it" from git-workflow §5. The workflow comments in `ci.yml` and `full.yml` are written as true after this step.
 - [ ] The next docs-only PR shows `fast-gate` green with every fast-lane job skipped.
 - [ ] The first PR with a red fast-lane job shows `fast-gate` red: this checks GitHub's own `needs` results, which the local run only imitated.
 
