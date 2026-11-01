@@ -3,6 +3,7 @@
 // viewerMethods.
 import type { RenderRequest } from "@laminapdf/render";
 import { serve } from "@laminapdf/sdk/worker/server";
+import { crashMethod } from "@laminapdf/test-utils/worker-hooks";
 import { viewerMethods } from "../../src/worker/methods.js";
 
 /** Every render's scale, in the order the renders started (the priority tests read it). */
@@ -31,14 +32,6 @@ serve({
       },
     },
     __renderLog: { run: () => [...renderLog] },
-    // An uncaught error: the page sees the worker's `error` event, a crash.
-    __crash: {
-      run: () => {
-        setTimeout(() => {
-          throw new Error("crash requested by a test");
-        });
-        return new Promise(() => {});
-      },
-    },
+    __crash: crashMethod,
   },
 });
