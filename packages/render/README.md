@@ -28,13 +28,4 @@ The contract is [ADR 0004](../../docs/decisions/0004-render-backend.md); the ren
 ### Tests
 
 - **Unit tests:** `pnpm --filter @laminapdf/render test`, for the planner and the error, in Node.
-- **The contract suite:** `test/contract.ts` isn't run here. Both adapters run it, in Node and in Chromium, Firefox and WebKit. It checks:
-  - every corpus file's page count and size, against lamina's facts;
-  - a blank tile is white;
-  - four tiles stitch back into the whole page;
-  - a 90° view equals the upright render rotated, with and without widgets;
-  - typed errors (`render-failed`, `password-required`, `wrong-password`, `page-index-out-of-range`, `render-too-large`, `data-pending` with ranges);
-  - `AbortError` and `disposed`;
-  - 50 renders don't grow WebAssembly memory beyond 4 MiB;
-  - in browsers, page 1 against the render goldens of [C2b](../../docs/todos/done/C2b-lamina-render-crate.md) (SSIM).
-- **Browser helpers:** `test/browser-harness.ts` fetches fixtures as Vite assets and decodes the PNGs with the browser's own decoder.
+- **The contract suite** that both adapters run, in Node and in Chromium, Firefox and WebKit, lives in [`@laminapdf/test-utils`](../test-utils/README.md), with the browser harness and config it uses.

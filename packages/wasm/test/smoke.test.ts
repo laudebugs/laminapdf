@@ -3,6 +3,7 @@
 // example byte for byte like the Rust golden. Every error the modules throw is the ADR 0026
 // object and validates against lamina.error/1. Run by `cargo xtask wasm` after it fills dist/.
 import { readFileSync } from "node:fs";
+import { fromRoot } from "@laminapdf/test-utils/root";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 import * as base from "../dist/lamina_base.js";
@@ -10,8 +11,7 @@ import * as extract from "../dist/lamina_extract.js";
 import * as hayro from "../dist/lamina_render_hayro.js";
 import * as text from "../dist/lamina_text.js";
 
-const root = new URL("../../../", import.meta.url);
-const read = (path: string): Uint8Array => new Uint8Array(readFileSync(new URL(path, root)));
+const read = (path: string): Uint8Array => new Uint8Array(readFileSync(fromRoot(path)));
 
 base.initSync({ module: read("packages/wasm/dist/lamina_base.wasm") });
 text.initSync({ module: read("packages/wasm/dist/lamina_text.wasm") });
@@ -164,7 +164,7 @@ describe("lamina_render_hayro", () => {
 });
 
 describe("errors thrown by both modules", () => {
-  const schema = JSON.parse(readFileSync(new URL("crates/lamina/schemas/error.schema.json", root), "utf8")) as object;
+  const schema = JSON.parse(readFileSync(fromRoot("crates/lamina/schemas/error.schema.json"), "utf8")) as object;
   const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
   const hello = (): Uint8Array => read("fixtures/corpus/hello.pdf");
   const open = (bytes: Uint8Array, maxPixels = 16_777_216): hayro.HayroDocument =>

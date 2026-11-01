@@ -29,6 +29,7 @@
     "@laminapdf/wasm": "workspace:*"
   },
   "devDependencies": {
+    "@laminapdf/test-utils": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "playwright": "catalog:",

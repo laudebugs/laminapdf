@@ -1,16 +1,12 @@
-import { mkdirSync } from "node:fs";
-import { env } from "node:process";
-import { fileURLToPath } from "node:url";
+import { firefoxProvider } from "@laminapdf/test-utils/firefox";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 // The viewer's worker and RPC in Chromium, Firefox and WebKit (C3a). The tests import the built
 // package (`cargo xtask wasm` builds it), so the worker file is the one an app gets. Firefox gets
-// its own data folder, as in packages/render/test/browser-config.ts. A default export because
-// Vitest reads one.
-const data = fileURLToPath(new URL("node_modules/.cache/lamina-firefox/", import.meta.url));
-mkdirSync(data, { recursive: true });
-const firefox = playwright({ launchOptions: { env: { ...env, MOZ_APP_DATA: data, MOZ_LOCAL_APP_DATA: data } } });
+// its own data folder (firefoxProvider in @laminapdf/test-utils). A default export because Vitest
+// reads one.
+const firefox = firefoxProvider(new URL("./", import.meta.url));
 
 export default defineConfig({
   optimizeDeps: { exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer"] },

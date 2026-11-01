@@ -28,7 +28,7 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 - **MUST:** shipped code contains no test code. Test-only APIs never appear in a public surface, and `src/` contains no test hooks (`__`-prefixed methods, logs kept for tests).
 - **MUST:** shared test helpers have one home:
   - Rust helpers used by two crates live in `lamina-test-fixtures` (created by todo Q2c).
-  - TypeScript helpers live in `@laminapdf/test-utils` (todo Q2m).
+  - TypeScript helpers live in `@laminapdf/test-utils` (`packages/test-utils`): the render contract suite, the browser harness and config, the Firefox workaround (`firefoxProvider`) and the repository root (`fromRoot`).
 
   No `#[path]` and no relative import reaches into another crate or package.
 
@@ -65,7 +65,7 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
   - Q2i: lexers outside `lamina-syntax`;
   - Q2t: todo IDs in `src/`.
 - **TypeScript:** todo Q2b adds Biome's complexity, function-length and `useThrowOnlyError` rules and TypeDoc's check for undocumented exports to `cargo xtask check ts`. Todo Q2u adds three more, run by `cargo xtask check ts` through the root scripts `check:deps`, `check:duplicates` and `check:unused`:
-  - dependency-cruiser (`.dependency-cruiser.json`) fails on an import cycle, or a relative import from one package or app into another, across `packages/` and `apps/`. Today's eight render-adapter test imports, which Q2m moves into a shared package, are in `.dependency-cruiser-known-violations.json`. That list only shrinks: `check ts` fails while it lists a violation that no longer occurs.
+  - dependency-cruiser (`.dependency-cruiser.json`) fails on an import cycle, or a relative import from one package or app into another, across `packages/` and `apps/`. Its known-violations list (`.dependency-cruiser-known-violations.json`) is empty, and it only shrinks: `check ts` fails while it lists a violation that no longer occurs.
   - jscpd (`.jscpd.json`) fails on any block of 10 lines or more repeated in any package's top-level `src/`, a new package's included (an example's own `src/`, such as the SDK's Worker example, is out of scope). It checks `src/` only for now. The SDK's two per-condition entries (`src/entry/node.ts` and `src/entry/workerd.ts`) are excluded: each binds the same three loader functions to its own runtime's loader, with that runtime in its doc comments.
   - knip (`knip.config.ts`) fails on an unused file, export or dependency. It reads each package's entries from its `exports` (`tools/ts/package-entries.mjs`), plus what runs without being exported: worker files, test files, the files a test runner loads, configs and examples. Test helpers aren't entries, so an export only its own helper file uses is reported. knip counts an export a test uses as used, and doesn't report a package entry's own exports.
 - **Review:** the "one home per concept" rules are a reviewer's judgement; the `/code-review` standards axis reads this file.
