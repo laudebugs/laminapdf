@@ -43,6 +43,24 @@ export function viewer(backend: BackendName = "pdfium", options: Partial<ViewerO
   });
 }
 
+/** The RPC tests' worker: the viewer's methods plus test hooks (test-worker.ts). */
+function testWorker(): Worker {
+  return new Worker(new URL("./test-worker.ts", import.meta.url), { type: "module", name: "lamina-viewer-test" });
+}
+
+/** A client on the test worker, for tests that drive the queue with its hooks (see {@link hook}). */
+export function testViewer(
+  backend: BackendName = "pdfium",
+  options: Partial<ViewerOptions> = {},
+): Promise<ViewerClient> {
+  return viewer(backend, { worker: testWorker, ...options });
+}
+
+/** Calls one of the test worker's hooks: `__busy` (ms), `__renderLog` or `__crash`. */
+export function hook(client: ViewerClient, method: "__busy" | "__renderLog" | "__crash", params: unknown[] = []) {
+  return (client.call as (m: string, p: unknown[]) => Promise<unknown>).call(client, method, params);
+}
+
 export async function rejection(p: Promise<unknown>): Promise<unknown> {
   try {
     await p;

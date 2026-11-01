@@ -270,7 +270,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
 | [Q2m](../todos/ongoing/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
 | [Q2n](../todos/ready/Q2n-render-adapter-shared.md) | Shared code for the render adapters | M | Q2m |
-| [Q2o](../todos/ongoing/Q2o-ts-hygiene.md) | TypeScript hygiene: no test hooks in shipped code | M | Q2u |
+| [Q2o](../todos/done/Q2o-ts-hygiene.md) | TypeScript hygiene: no test hooks in shipped code | M | Q2u |
 | [Q2p](../todos/ready/Q2p-ts-complexity-splits.md) | Split the TypeScript functions over the complexity limit | M | Q2b |
 | [Q2q](../todos/ready/Q2q-split-cos-reader.md) | Split the COS reader module | M | Q2a, Q2e |
 | [Q2r](../todos/ready/Q2r-split-surface-modules.md) | Split the large builder, extraction and WASM modules | M | Q2a, Q2h, Q2i |
@@ -304,7 +304,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
 - [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript (the TypeScript checks are done: [Q2b](../todos/done/Q2b-ts-lint-rules.md) adds the lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
-- [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, is done)
+- [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code, are done)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, is done)
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history

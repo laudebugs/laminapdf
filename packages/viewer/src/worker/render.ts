@@ -7,13 +7,9 @@ import { emit } from "@laminapdf/sdk/worker/server";
 import { type RenderedBitmap, renderKey } from "../protocol.js";
 import { current } from "./document.js";
 
-/** Test hook: every render's scale, in start order (the priority tests read it). */
-export const renderLog: number[] = [];
-
 /** Renders `request` on document `id` (a render queued for a document since replaced is `disposed`). */
 export function render(request: RenderRequest, id: number, signal: AbortSignal): RenderedTile {
   const doc = current(id);
-  renderLog.push(request.scale);
   // The client starts its timers now (not while the render waits), and the perf harness (C3c)
   // sees what the worker is busy with.
   emit("render-start", { page: request.page, scale: request.scale, key: renderKey(request, id) });

@@ -55,12 +55,6 @@ export interface Methods {
   closeDocument: { params: []; result: undefined };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
-  /** Test-only: blocks the worker synchronously for `ms`. */
-  __busy: { params: [ms: number]; result: undefined };
-  /** Test-only: every render's `scale` in the order they started. */
-  __renderLog: { params: []; result: number[] };
-  /** Test-only: an uncaught error in the worker (a crash). */
-  __crash: { params: []; result: never };
 }
 
 /** A viewer method's name. */

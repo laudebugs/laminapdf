@@ -40,6 +40,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 | `on("pagechange" \| "zoomchange" \| "renderstats", …)`, `stats()` | Events and counters. `renderstats` counts renders, for measuring performance. |
 | `addLayer({ name, onMount, onUnmount, onZoom })` | Mounts a layer into each page. |
 | `pointAt(x, y)`, `positionOf(point)` | Converts between viewport positions and document points. |
+| `MIN_ZOOM`, `MAX_ZOOM` | The bounds of a percentage zoom, 10 and 800, for a zoom control's range. |
 
 **Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The coming text layer, find highlights and links will mount there through `addLayer`. A layer with another name gets its own slot on top.
 
@@ -84,11 +85,11 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 - **Sources:**
   - A `Blob`/`File` is sent by reference, and the Web Worker reads it in 4 MiB `slice()`s.
   - Bytes are copied, and kept on the page for a reopen.
-  - `ByteSource` (`size`, `read(offset, length, signal)`) is the interface for other sources; an HTTP range source is coming.
+  - The Web Worker reads a `Blob` through `@laminapdf/sdk`'s `RangeSource`, the interface its HTTP range source implements too.
 
 ## For contributors
 
-The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/ready/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/ready/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/ready/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c builds the HTTP range source on `ByteSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
+The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md); it was built in [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) (the document worker and its typed RPC) and [C3b](../../docs/todos/done/C3b-viewer-virtualiser-and-zoom.md) (the viewer). [C3c](../../docs/todos/ready/C3c-viewer-perf-harness.md) measures the tuning values with `renderstats`. The layers are for [C5a](../../docs/todos/ready/C5a-text-layer-and-selection.md) (text), [C5b](../../docs/todos/ready/C5b-find-in-document.md) (find) and [C6b](../../docs/todos/ready/C6b-links-and-history.md) (links); C4c reads documents by range through `RangeSource`. Cancellation follows ADR 0009 §3.5, and warnings are [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md)'s.
 
 ### Architecture
 
@@ -117,7 +118,6 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
-| `__busy`, `__renderLog`, `__crash` | test-only | | |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 

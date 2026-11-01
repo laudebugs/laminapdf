@@ -2,5 +2,6 @@
 export type { ConnectOptions, RemoteHttpOptions, WorkerInitOptions, WorkerWasmSource } from "./client.js";
 export { connect, WorkerClient } from "./client.js";
 export { PROTOCOL_VERSION } from "./protocol.js";
+export { Emitter } from "./shared.js";
 export type { ExcludedDocumentMembers, ExcludedPageMembers } from "./support.js";
 export type { CallOptions, RemoteDocument, RemoteMember, RemotePage, RemoteResult, RequestOptions } from "./types.js";

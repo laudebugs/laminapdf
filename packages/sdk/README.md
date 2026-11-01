@@ -190,6 +190,9 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
   - The Web Worker runs the highest `priority` first, and runs calls with the same `key` once. Each caller still gets its own answer: an extension method's `reply(result)` builds one per caller, so each can be given its own transferables.
   - `emit(name, data)` in the Web Worker reaches `client.on("event", …)`.
   - `connect({ onDiscard })` sees the answers of calls already rejected. By default it closes the `ImageBitmap`s in them.
+  - `serve({ methods, saveBudget })` sets how many work units each step of a save takes (20,000 by default). A smaller budget answers a cancel sooner and reports progress more often, at some cost in speed.
+  - `workerStats()` in the Web Worker reports the calls started, the handles the page holds and the calls queued, for checking that handles are freed.
+  - `Emitter`, from `@laminapdf/sdk/worker`, is the typed event emitter the client uses, for a package that wraps it: `on(event, listener)` returns a function that stops listening, and a listener that throws doesn't stop the others.
 
 ## Memory
 

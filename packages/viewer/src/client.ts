@@ -17,7 +17,13 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import { isLaminaError } from "@laminapdf/sdk";
-import { connect, type WorkerClient, type WorkerInitOptions, type WorkerWasmSource } from "@laminapdf/sdk/worker";
+import {
+  connect,
+  Emitter,
+  type WorkerClient,
+  type WorkerInitOptions,
+  type WorkerWasmSource,
+} from "@laminapdf/sdk/worker";
 import {
   type BackendInit,
   type MethodName,
@@ -33,7 +39,7 @@ import {
 } from "./protocol.js";
 
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
-export const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
+const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 
 /** `ViewerClient.create`'s options: the backend, lamina's WebAssembly, the timeouts, the worker and a signal to stop starting. */
 export interface ViewerOptions {
@@ -95,13 +101,12 @@ export class ViewerClient {
   readonly #pdf: WorkerClient;
   readonly #backend: BackendInit;
   readonly #timeouts: { readonly soft: number; readonly hard: number };
-  readonly #listeners = new Map<ViewerEvent, Set<(data: never) => void>>();
+  readonly #events = new Emitter<ViewerEvents>();
   /** What to reopen after a restart: the source and the options without the password. */
   #reopen: { readonly source: SourceInit; readonly options: Omit<ViewerOpenOptions, "password"> } | undefined;
   #document: OpenedDocument | undefined;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
-  #discarded = 0;
   /** Renders waiting to start, by coalescing key: their timers start on `render-start`. */
   readonly #waiting = new Map<string, Set<() => void>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
@@ -134,21 +139,17 @@ export class ViewerClient {
    * the user picks a file.
    */
   static async create(options: ViewerOptions): Promise<ViewerClient> {
-    let client: ViewerClient | undefined;
     const pdf = await connect({
       worker: options.worker ?? workerFactory,
       // A late answer to an aborted render: its bitmap is closed, never painted.
       onDiscard: (value) => {
         const bitmap = (value as { bitmap?: unknown } | undefined)?.bitmap;
-        if (bitmap instanceof ImageBitmap) {
-          bitmap.close();
-          if (client !== undefined) client.#discarded++;
-        }
+        if (bitmap instanceof ImageBitmap) bitmap.close();
       },
       ...(options.signal === undefined ? {} : { signal: options.signal }),
       ...(options.lamina === undefined ? {} : { init: options.lamina }),
     });
-    client = new ViewerClient(pdf, options);
+    const client = new ViewerClient(pdf, options);
     try {
       await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
     } catch (e) {
@@ -161,27 +162,11 @@ export class ViewerClient {
 
   /** Listens for `event`; returns a function that stops listening. */
   on<E extends ViewerEvent>(event: E, listener: (data: ViewerEvents[E]) => void): () => void {
-    let set = this.#listeners.get(event);
-    if (set === undefined) {
-      set = new Set();
-      this.#listeners.set(event, set);
-    }
-    const l = listener as (data: never) => void;
-    set.add(l);
-    return () => set.delete(l);
+    return this.#events.on(event, listener);
   }
 
   #emit<E extends ViewerEvent>(event: E, data: ViewerEvents[E]): void {
-    for (const listener of this.#listeners.get(event) ?? []) {
-      // One listener that throws is reported and doesn't stop the others.
-      try {
-        (listener as (d: ViewerEvents[E]) => void)(data);
-      } catch (e) {
-        queueMicrotask(() => {
-          throw e;
-        });
-      }
-    }
+    this.#events.emit(event, data);
   }
 
   /** A typed call: `method` and `params` are checked against `Methods`. */
@@ -224,16 +209,6 @@ export class ViewerClient {
   /** The open document, if any. */
   get document(): OpenedDocument | undefined {
     return this.#document;
-  }
-
-  /** @internal Bitmaps of late answers closed unpainted (the cancellation tests read it). */
-  get discardedBitmaps(): number {
-    return this.#discarded;
-  }
-
-  /** @internal What a restart reopens with (the tests check it holds no password). */
-  get reopenState(): unknown {
-    return this.#reopen;
   }
 
   /** Closes the document in the worker (the worker stays, ready for another `open`). */

@@ -8,7 +8,7 @@ import { initPdfium } from "@laminapdf/render-pdfium";
 import { Document, isLaminaError } from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions } from "../protocol.js";
-import { readAll, sourceOf } from "../source.js";
+import { blobSource, readAll } from "../source.js";
 
 let backend: RenderBackend | undefined;
 /** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
@@ -59,7 +59,7 @@ export async function openDocument(
   // Bytes are used as they are; a Blob is read in slices.
   const bytes =
     init instanceof Blob
-      ? await readAll(sourceOf(init), signal)
+      ? await readAll(blobSource(init), signal)
       : init instanceof Uint8Array
         ? init
         : new Uint8Array(init);

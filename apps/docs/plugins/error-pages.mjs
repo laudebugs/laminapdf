@@ -6,21 +6,27 @@
 // LAMINA_DOCS_GITHUB=1 (astro.config.mjs: the repository is private for now). A page's last
 // section, "For contributors" (decision records and todos), is left out.
 
+import { REPOSITORY } from "./repository.mjs";
+
 /**
  * A page's Markdown without its "For contributors" section, which is always last: everything
  * from the last such heading outside a code fence. Trailing spaces and CRLF line ends are fine.
+ *
+ * @param {string} markdown
+ * @returns {string}
  */
 function readerMarkdown(markdown) {
   const lines = markdown.split("\n");
+  /** @type {string | undefined} */
   let fence;
   let cut = -1;
   lines.forEach((line, index) => {
     const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
     if (marker) {
+      const [, run = "", after = ""] = marker;
       // A fence closes on the same character, at least as long, with nothing after it.
-      if (fence === undefined) fence = marker[1];
-      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && marker[2].trim() === "")
-        fence = undefined;
+      if (fence === undefined) fence = run;
+      else if (run[0] === fence[0] && run.length >= fence.length && after.trim() === "") fence = undefined;
       return;
     }
     if (fence === undefined && /^## For contributors[ \t]*\r?$/.test(line)) cut = index;
@@ -28,23 +34,41 @@ function readerMarkdown(markdown) {
   return cut < 0 ? markdown : lines.slice(0, cut).join("\n");
 }
 
-/** A link to `href` from an error page, rewritten for the site, or `undefined` to drop the link. */
+/**
+ * A link to `href` from an error page, rewritten for the site, or `undefined` to drop the link.
+ *
+ * @param {string} href
+ * @returns {string | undefined}
+ */
 function siteHref(href) {
-  if (href.startsWith("https://github.com/laudebugs/lamina") && process.env.LAMINA_DOCS_GITHUB !== "1")
-    return undefined;
+  if (href.startsWith(REPOSITORY) && process.env.LAMINA_DOCS_GITHUB !== "1") return undefined;
   if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#") || href.startsWith("/")) return href;
   const code = /^([a-z0-9-]+)\.md(#.*)?$/.exec(href);
   return code ? `/reference/codes/${code[1]}/${code[2] ?? ""}` : undefined;
 }
 
-/** The page's HTML for the site. */
+/**
+ * The page's HTML for the site.
+ *
+ * @param {string} html
+ * @returns {string}
+ */
 export function errorPageHtml(html) {
-  return html
-    .replace(/<h1[^>]*>[\s\S]*?<\/h1>\s*/, "")
-    .replace(/<a href="([^"]*)"([^>]*)>([\s\S]*?)<\/a>/g, (_, href, rest, text) => {
-      const target = siteHref(href);
-      return target === undefined ? text : `<a href="${target}"${rest}>${text}</a>`;
-    });
+  return html.replace(/<h1[^>]*>[\s\S]*?<\/h1>\s*/, "").replace(/<a href="([^"]*)"([^>]*)>([\s\S]*?)<\/a>/g, link);
+}
+
+/**
+ * One `<a>` of an error page, its target rewritten for the site, or its text alone.
+ *
+ * @param {string} _ the whole match
+ * @param {string} href
+ * @param {string} rest the tag's other attributes
+ * @param {string} text
+ * @returns {string}
+ */
+function link(_, href, rest, text) {
+  const target = siteHref(href);
+  return target === undefined ? text : `<a href="${target}"${rest}>${text}</a>`;
 }
 
 /**
@@ -52,6 +76,9 @@ export function errorPageHtml(html) {
  * rendered with the site's Markdown pipeline. It renders without a file URL, so the links
  * validator (which reads only Starlight's pages) leaves these repository pages alone; their
  * links are rewritten by {@link errorPageHtml} and checked after the build (`checkedLinks`).
+ *
+ * @param {URL} dir
+ * @returns {import("astro/loaders").Loader}
  */
 export function errorPagesLoader(dir) {
   return {
