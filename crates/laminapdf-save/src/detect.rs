@@ -16,7 +16,7 @@
 //! not an array or dictionary where one belongs) makes the signature state unknown, and a
 //! certification whose `DocMDP` permission can't be read is taken as the strictest (`/P 1`).
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -143,7 +143,7 @@ impl Signatures {
     /// # Errors
     /// Errors loading an object to edit.
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     pub(crate) fn patches(&self, doc: &Document, invalidated: &[SignatureInfo]) -> Result<Patches> {
         let mut edit = Editor::new(doc);
         let targets: Vec<&Found> = self.found.iter().filter(|f| invalidated.contains(&f.info)).collect();

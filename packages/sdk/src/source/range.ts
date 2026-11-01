@@ -2,7 +2,7 @@
 // synchronously from a sparse source; when bytes are missing it throws `data-pending` with the
 // ranges it needs, and the loop here fetches them, supplies them and calls again.
 import type { WasmSparseSource } from "@laminapdf/wasm/base";
-import { guard, isLaminaError, type LaminaError, packageError } from "../errors.js";
+import { guard, isLaminaPdfError, type LaminaPdfError, packageError } from "../errors.js";
 
 /** A byte range of the input. */
 export interface ByteRange {
@@ -57,7 +57,7 @@ export function callbackSource(
 }
 
 /** The ranges of a `data-pending` error. */
-function rangesOf(e: LaminaError): readonly ByteRange[] {
+function rangesOf(e: LaminaPdfError): readonly ByteRange[] {
   return e.ranges ?? [];
 }
 
@@ -93,11 +93,11 @@ export async function settle<T>(state: RangeState, call: () => T | Promise<T>, s
   const { sparse, blockSize, readahead, maxRounds } = state;
   let previous: string | undefined;
   for (let round = 0; ; round++) {
-    let error: LaminaError;
+    let error: LaminaPdfError;
     try {
       return await call();
     } catch (e) {
-      if (!isLaminaError(e, "data-pending")) throw e;
+      if (!isLaminaPdfError(e, "data-pending")) throw e;
       error = e;
     }
     const asked = rangesOf(error);

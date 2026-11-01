@@ -232,7 +232,7 @@ pub enum Warning {
         object: Option<u32>,
     },
     /// `cmap-invalid`: a font's CMap or ToUnicode CMap had malformed entries (skipped), names
-    /// a predefined CMap lamina has no table for (read as Identity), or a `/UseCMap` chain
+    /// a predefined CMap Lamina PDF has no table for (read as Identity), or a `/UseCMap` chain
     /// too deep (cut) (`laminapdf-text`, todo B9b).
     CMapInvalid {
         /// The font dictionary's object (`None` for a direct one).
@@ -371,7 +371,7 @@ impl Warning {
     /// The kind of this warning ([ADR 0026] §2), as `fixtures/codes.json` lists it for
     /// [`Warning::code`] (a test checks every variant).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {

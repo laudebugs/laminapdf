@@ -1,6 +1,6 @@
 // ADR 0018 §5, TS half: the frozen op samples (fixtures/ops/v1) apply through doc.apply and
 // round-trip through the TS types; unknown ops and fields are refused.
-import { Document, init, isLaminaError, type Op, type OpLog } from "@laminapdf/sdk";
+import { Document, init, isLaminaPdfError, type Op, type OpLog } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, readText, thrown } from "./helpers.js";
 
@@ -46,13 +46,13 @@ describe("fixtures/ops/v1", () => {
 
   it("refuses an unknown op", () => {
     const e = thrown(() => doc().doc.apply([{ op: "deletePage", args: {} } as never]));
-    expect(isLaminaError(e, "invalid-argument")).toBe(true);
+    expect(isLaminaPdfError(e, "invalid-argument")).toBe(true);
   });
 
   it("refuses an unknown field", () => {
     const op = { op: "setInfo", args: { patch: { title: "x" }, when: "now" } } as never;
     const e = thrown(() => doc().doc.apply([op]));
-    expect(isLaminaError(e) && ["invalid-argument", "unknown-option"].includes(e.code)).toBe(true);
+    expect(isLaminaPdfError(e) && ["invalid-argument", "unknown-option"].includes(e.code)).toBe(true);
   });
 
   it("applies nothing when one op of a batch fails", () => {

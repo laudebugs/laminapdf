@@ -1,7 +1,7 @@
 //! The rules a profile checks when the build finishes, before anything is written: the first
 //! one broken is the error.
 //!
-//! Each rule is one of the machine-checkable conditions lamina's builder could break; the
+//! Each rule is one of the machine-checkable conditions Lamina PDF's builder could break; the
 //! others it can't produce (encryption, JavaScript or launch actions, transparency without an
 //! output intent, unassociated embedded files) need no check here. The references are the
 //! Matterhorn Protocol 1.1 failure conditions for PDF/UA-1 and the ISO 19005-2 clauses (as

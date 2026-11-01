@@ -21,7 +21,7 @@ Nothing; the classic table is used.
 trailer << /Size 40 /Root 1 0 R /XRefStm 99999 >>
 ```
 
-A hybrid-reference file (ISO 32000-2 §7.5.8.4) points `/XRefStm` at an offset with no stream. lamina ignores it and reads the classic table; objects only the stream listed may be missing.
+A hybrid-reference file (ISO 32000-2 §7.5.8.4) points `/XRefStm` at an offset with no stream. Lamina PDF ignores it and reads the classic table; objects only the stream listed may be missing.
 
 ## Data fields
 

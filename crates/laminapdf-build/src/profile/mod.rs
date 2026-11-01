@@ -1,6 +1,6 @@
 //! Conformance profiles: PDF/UA-1 (ISO 14289-1) and PDF/A-2b, PDF/A-2u, PDF/A-3b (ISO 19005-2
 //! and -3). A profile chosen in [`BuildOptions::with_profile`](crate::BuildOptions::with_profile)
-//! makes [`Builder::finish`](crate::Builder::finish) check the machine-checkable rules lamina's
+//! makes [`Builder::finish`](crate::Builder::finish) check the machine-checkable rules Lamina PDF's
 //! output could break, and write what the standards ask for: the identification in the XMP
 //! packet, `/DisplayDocTitle`, and for PDF/A the output intent with an embedded sRGB profile.
 //!

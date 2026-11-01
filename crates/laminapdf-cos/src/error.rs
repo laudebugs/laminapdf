@@ -105,7 +105,7 @@ pub enum Error {
     /// The given password is neither the document's user nor its owner password.
     #[error("wrong password")]
     WrongPassword,
-    /// The document is encrypted with a security handler lamina can't decrypt: not
+    /// The document is encrypted with a security handler Lamina PDF can't decrypt: not
     /// `/Standard` (e.g. the public-key handler `/Adobe.PubSec`), an unknown `/V`/`/R`
     /// combination, or an unknown crypt filter method (e.g. ISO/TS 32003 AES-GCM). `filter`
     /// is read from the file, so it is not formatted (ADR 0026 §4).
@@ -194,7 +194,7 @@ impl Error {
     /// [`Error::code`] (a test checks every variant). Syntax-layer errors report
     /// [`laminapdf_syntax::Error::kind`].
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {

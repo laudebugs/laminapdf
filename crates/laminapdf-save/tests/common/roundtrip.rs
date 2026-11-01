@@ -1,8 +1,8 @@
-//! The lamina half of the round-trip suite (ADR 0018 tier 7; todo B3c), shared by the
+//! The Lamina PDF half of the round-trip suite (ADR 0018 tier 7; todo B3c), shared by the
 //! `roundtrip` example (which writes the outputs for `cargo xtask roundtrip`) and
 //! `tests/roundtrip_suite.rs` (the fast lane's lamina-only run): for each fixture × proving op
-//! × mode × overrides, saves with lamina, checks the planner's decision against the expected
-//! one, reopens every output in lamina and compares its facts, and lists what pdf.js, `PDFium`
+//! × mode × overrides, saves with Lamina PDF, checks the planner's decision against the expected
+//! one, reopens every output in Lamina PDF and compares its facts, and lists what pdf.js, `PDFium`
 //! and qpdf must see in each.
 //!
 //! Expectations come from the fixture's category, not from the planner: plain corpus files
@@ -183,7 +183,7 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
     }
 }
 
-/// The facts lamina compares after reopening: page count, rotations (degrees) and the
+/// The facts Lamina PDF compares after reopening: page count, rotations (degrees) and the
 /// [`INFO`] keys' values, in that order (the other tools compare the same ones).
 fn facts(doc: &laminapdf_model::Document) -> (usize, Vec<u16>, Vec<Option<String>>) {
     let pages = doc.pages().unwrap();

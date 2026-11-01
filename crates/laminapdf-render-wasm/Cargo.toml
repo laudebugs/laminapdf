@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-render-wasm"
-description = "wasm-bindgen bindings of laminapdf-render's hayro adapter (ADR 0004 §5): one module, lamina_render_hayro, built by `cargo xtask wasm` into @laminapdf/wasm and wrapped by @laminapdf/render-hayro."
+description = "wasm-bindgen bindings of laminapdf-render's hayro adapter (ADR 0004 §5): one module, lamina_pdf_render_hayro, built by `cargo xtask wasm` into @laminapdf/wasm and wrapped by @laminapdf/render-hayro."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,7 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 # Edge: JS bindings.
-[package.metadata.lamina]
+[package.metadata.laminapdf]
 layer = "edge"
 
 [lib]

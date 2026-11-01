@@ -11,7 +11,7 @@
 //! ([`VERAPDF_VERSION`]) is downloaded once, its SHA-256
 //! checked, and installed with its own installer's unattended mode into
 //! `$RUNNER_TOOL_CACHE/lamina-verapdf` (CI) or `target/verapdf/` (locally). Java is
-//! `$LAMINA_JAVA`, else Homebrew's `openjdk@21`, else `java` on `PATH`; veraPDF's
+//! `$LAMINA_PDF_JAVA`, else Homebrew's `openjdk@21`, else `java` on `PATH`; veraPDF's
 //! configuration goes in the cache folder, never the user's home.
 
 use std::env;
@@ -30,7 +30,7 @@ use crate::workspace::Workspace;
 /// Where the report goes.
 const REPORT_DIR: &str = "target/xtask/verapdf";
 
-/// Homebrew's `openjdk@21` (keg-only, so not on `PATH`), tried after `$LAMINA_JAVA`.
+/// Homebrew's `openjdk@21` (keg-only, so not on `PATH`), tried after `$LAMINA_PDF_JAVA`.
 const HOMEBREW_JAVA: &str = "/opt/homebrew/opt/openjdk@21/bin/java";
 
 /// The veraPDF flavours of a PDF's XMP identification: `2b`, `2u`, `3b`, `ua1`.
@@ -129,12 +129,12 @@ fn cache(ws: &Workspace) -> PathBuf {
     }
 }
 
-/// The Java to run veraPDF with: `$LAMINA_JAVA`, Homebrew's `openjdk@21`, or `java` on `PATH`,
+/// The Java to run veraPDF with: `$LAMINA_PDF_JAVA`, Homebrew's `openjdk@21`, or `java` on `PATH`,
 /// the first that runs at the version doctor pins.
 fn java(ws: &Workspace) -> Result<String> {
     let tool = crate::doctor::java();
     let mut candidates = Vec::new();
-    if let Some(java) = env::var_os("LAMINA_JAVA") {
+    if let Some(java) = env::var_os("LAMINA_PDF_JAVA") {
         candidates.push(java.to_string_lossy().into_owned());
     }
     candidates.push(HOMEBREW_JAVA.to_owned());

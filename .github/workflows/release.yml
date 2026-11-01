@@ -273,7 +273,7 @@ jobs:
           "$RUNNER_TEMP/roundtrip-venv/bin/pip" install -r tools/roundtrip/requirements.txt
       - run: cargo xtask roundtrip
         env:
-          LAMINA_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
 
   examples:
     name: Examples (goldens, qpdf, PDFium and hayro render goldens)
@@ -299,7 +299,7 @@ jobs:
       - run: cargo xtask examples
       - run: cargo xtask render-golden
         env:
-          LAMINA_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
 
   capabilities:
     name: Capability matrix

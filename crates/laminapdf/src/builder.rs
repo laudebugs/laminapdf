@@ -21,8 +21,8 @@ use crate::{Font, FontHandle};
 /// The binding form (owned page handles, path records) is defined by the edge crates
 /// (B6a), which wrap this one.
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-/// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 #[derive(Debug)]
 pub struct Builder(laminapdf_build::Builder);
 

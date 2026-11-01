@@ -3,12 +3,12 @@
 // handshake, and returns a WorkerClient whose documents and pages are remote handles: proxies
 // whose methods post typed calls. Calls get monotonically increasing IDs; an aborted call is
 // rejected at once (`cancelled`, with the signal's reason as `cause`) and a `cancel` is posted;
-// a late answer is dropped. Errors come back as ADR 0026 objects and are rebuilt as LaminaError.
+// a late answer is dropped. Errors come back as ADR 0026 objects and are rebuilt as LaminaPdfError.
 // A worker `error` or `messageerror`, or a trap the worker reports, rejects every pending call
 // with `worker-crashed` and emits `crashed`; `restart()` starts a new worker. No heartbeat.
 
 import { defined } from "../defined.js";
-import { type Diagnostic, LaminaError, packageError } from "../errors.js";
+import { type Diagnostic, LaminaPdfError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import type { HttpRangeOptions } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
@@ -121,11 +121,11 @@ function defaultWorker(): Worker {
   return new Worker(new URL("./entry.js", import.meta.url), { type: "module", name: "lamina" });
 }
 
-function rebuild(error: Diagnostic<ErrorCode>): LaminaError {
-  return new LaminaError(error);
+function rebuild(error: Diagnostic<ErrorCode>): LaminaPdfError {
+  return new LaminaPdfError(error);
 }
 
-function crashed(message: string, reason: string): LaminaError {
+function crashed(message: string, reason: string): LaminaPdfError {
   return packageError("worker-crashed", message, { data: { reason } });
 }
 
@@ -136,7 +136,7 @@ export async function connect(options: ConnectOptions = {}): Promise<WorkerClien
   return client;
 }
 
-/** A connection to one lamina worker. */
+/** A connection to one Lamina PDF worker. */
 export class WorkerClient {
   readonly #factory: () => Worker;
   readonly #init: WorkerWasmSource | WorkerInitOptions | undefined;

@@ -1,4 +1,4 @@
-# L4c — `lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults
+# L4c — `laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults
 
 | Field | Value |
 | --- | --- |
@@ -10,13 +10,13 @@
 | Blocks | None |
 | ADRs | Implements 0031's MCP security defaults (from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
 | Branch | `feat/l4c-mcp-mode` |
-| PR title | `feat(cli): lamina mcp stdio server with root allow-list, read-only default and honest annotations` |
+| PR title | `feat(cli): laminapdf mcp stdio server with root allow-list, read-only default and honest annotations` |
 | Size | M (≈ 300–500 lines plus tests) |
 | PR | — |
 
 ## Goal
 
-Let MCP clients use laminapdf without a second implementation. `lamina mcp` is a stdio MCP server, built behind a cargo feature, that exposes the L4a commands as tools with the same input and output schemas and calls the same `commands::*` functions. It is safe by default: it only touches files under the `--root` directories, resolves symlinks before checking, is read-only unless told otherwise, and keeps document text out of everything but data fields. The research found agents increasingly prefer CLIs, so this stays a thin adapter; it exists for clients that only speak MCP.
+Let MCP clients use laminapdf without a second implementation. `laminapdf mcp` is a stdio MCP server, built behind a cargo feature, that exposes the L4a commands as tools with the same input and output schemas and calls the same `commands::*` functions. It is safe by default: it only touches files under the `--root` directories, resolves symlinks before checking, is read-only unless told otherwise, and keeps document text out of everything but data fields. The research found agents increasingly prefer CLIs, so this stays a thin adapter; it exists for clients that only speak MCP.
 
 ## Context
 
@@ -31,18 +31,18 @@ Let MCP clients use laminapdf without a second implementation. `lamina mcp` is a
 **In scope**
 
 - Cargo feature `mcp` on `laminapdf-cli` (off by default for library users of the crate, on in release binaries via L4d). `tokio` and `rmcp` are optional dependencies behind it; the rest of the CLI stays synchronous.
-- `lamina mcp --root DIR [--root DIR…] [--allow-write [--allow-in-place]] [--max-output-bytes N] [--timeout SECS]` over stdio, targeting MCP **2026-07-28** (stateless requests, `server/discover`) through a pinned rmcp 3.x, with 2025-11-25 compatibility as rmcp provides it. Logs go to stderr only.
-- Tools mapped 1:1 to commands: `lamina_info`, `lamina_check`, `lamina_extract` (`format: "text"` until L4b adds the others), `lamina_explain` (read-only), and `lamina_pages_rotate` (write). `inputSchema` and `outputSchema` are the `schemars` schemas of the command's args and report (the same ones `lamina schema` prints after L4b). Results carry `structuredContent` conforming to `outputSchema` and the same JSON as a text block.
+- `laminapdf mcp --root DIR [--root DIR…] [--allow-write [--allow-in-place]] [--max-output-bytes N] [--timeout SECS]` over stdio, targeting MCP **2026-07-28** (stateless requests, `server/discover`) through a pinned rmcp 3.x, with 2025-11-25 compatibility as rmcp provides it. Logs go to stderr only.
+- Tools mapped 1:1 to commands: `laminapdf_info`, `laminapdf_check`, `lamina_pdf_extract` (`format: "text"` until L4b adds the others), `laminapdf_explain` (read-only), and `lamina_pages_rotate` (write). `inputSchema` and `outputSchema` are the `schemars` schemas of the command's args and report (the same ones `laminapdf schema` prints after L4b). Results carry `structuredContent` conforming to `outputSchema` and the same JSON as a text block.
 - `tools/list` is deterministic: a fixed order (alphabetical by tool name), and it does not vary per connection. Read-only is the default (there is no `--read-only` flag): write tools are not listed at all unless `--allow-write` is given.
 - Honest annotations: read tools `readOnlyHint: true`, `openWorldHint: false`; `lamina_pages_rotate` `readOnlyHint: false`, `destructiveHint: false` when writing a new file. In-place writes are only possible with `--allow-in-place`, and then the tool's description and `destructiveHint: true` say so. Tool descriptions are static strings; they never include file names or document content.
 - Path policy: every path argument is resolved against the roots, canonicalised (`std::fs::canonicalize`, which resolves symlinks), and refused unless the result is inside a canonicalised root. Output paths: the parent directory is canonicalised and checked, the file must not exist (or `--allow-in-place` and it is the input), and the write is atomic. `..`, absolute paths outside the roots and symlinks pointing out are all refused. `--root` is required; starting without it is exit 2.
 - Prompt-injection hygiene: document text appears only in data fields (`text`, `title`, …) of `structuredContent`; error `message` and `hint` never contain it (ADR 0026). Responses over `--max-output-bytes` are truncated with `"truncated": true`.
-- Errors: argument validation failures, path refusals and lamina errors are tool results with `isError: true` and the `lamina.error/1` document (so the model can correct itself); only malformed JSON-RPC is a protocol error.
+- Errors: argument validation failures, path refusals and lamina errors are tool results with `isError: true` and the `laminapdf.error/1` document (so the model can correct itself); only malformed JSON-RPC is a protocol error.
 - Every call runs with default `Limits` and a timeout; a timed-out call is a tool error. The timeout **trips the job's `CancelToken`** (ADR 0028) so the work stops at its next `Job::step`; dropping the future alone would leave a blocking thread decoding. A small concurrency cap (e.g. the CPU count) bounds in-flight calls.
 
 **Out of scope** (and which todo covers it)
 
-- The `lamina_render` tool and the Markdown/JSON formats of `lamina_extract`: added when [L4b](./L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
+- The `laminapdf_render` tool and the Markdown/JSON formats of `lamina_pdf_extract`: added when [L4b](./L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
 - HTTP transports, auth, resources and prompts: not planned; stdio only.
 - MCP tasks extension for long jobs: later, if render or extract calls need it.
 
@@ -53,15 +53,15 @@ Let MCP clients use laminapdf without a second implementation. `lamina mcp` is a
 - [ ] Add `src/mcp/mod.rs`: a server struct holding the roots and flags; `#[tool_router]` with one `#[tool]` per command that runs `commands::*` as a stepped job inside `spawn_blocking`, holding its `CancelToken`; on timeout, cancel the token and wait for the step loop to return `cancelled` before replying. A semaphore caps concurrent calls.
 - [ ] Add `src/mcp/roots.rs`: root canonicalisation at start-up, input and output path checks, unit-tested on a temporary tree with symlinks (Unix) and junctions where possible (Windows).
 - [ ] Map `CliError` to tool errors with `isError: true` and the error document.
-- [ ] Wire `lamina mcp` into the clap front end under `#[cfg(feature = "mcp")]`; without the feature, `lamina mcp` says it was built without MCP and exits 2.
+- [ ] Wire `laminapdf mcp` into the clap front end under `#[cfg(feature = "mcp")]`; without the feature, `laminapdf mcp` says it was built without MCP and exits 2.
 - [ ] Document client configuration (Claude Code, Claude Desktop, other clients) in the crate README with a JSON snippet.
 - [ ] Run the MCP inspector in CLI mode against the server and record the result in the PR.
 
 ### Example
 
 ```console
-$ lamina mcp --root ./docs            # read-only: lamina_check, lamina_explain, lamina_extract, lamina_info
-$ lamina mcp --root ./docs --allow-write   # adds lamina_pages_rotate (new files only)
+$ laminapdf mcp --root ./docs            # read-only: laminapdf_check, laminapdf_explain, lamina_pdf_extract, laminapdf_info
+$ laminapdf mcp --root ./docs --allow-write   # adds lamina_pages_rotate (new files only)
 ```
 
 ```json
@@ -70,10 +70,10 @@ $ lamina mcp --root ./docs --allow-write   # adds lamina_pages_rotate (new files
 
 ## Acceptance criteria
 
-- [ ] An integration test spawns `lamina mcp` and, over stdio, calls `server/discover`, `tools/list` and each tool; outputs validate against each tool's `outputSchema`.
+- [ ] An integration test spawns `laminapdf mcp` and, over stdio, calls `server/discover`, `tools/list` and each tool; outputs validate against each tool's `outputSchema`.
 - [ ] `tools/list` is byte-identical across two runs and lists no write tool without `--allow-write`.
 - [ ] Paths outside `--root`, `..` escapes and a symlink inside the root pointing outside are refused as tool errors (`isError: true`), and nothing outside the root is read or written (test checks the file system).
-- [ ] An invalid argument (bad page range) is a tool error with the `lamina.error/1` document, not a protocol error.
+- [ ] An invalid argument (bad page range) is a tool error with the `laminapdf.error/1` document, not a protocol error.
 - [ ] A fixture with an injection string in its title and text: the string appears only in data fields, never in `message`, `hint` or tool descriptions.
 - [ ] The MCP inspector's checks pass (recorded in the PR; automate in CI if the inspector's CLI mode supports 2026-07-28 without network access).
 - [ ] `cargo build -p laminapdf-cli` without `mcp` pulls in no tokio or rmcp (`cargo tree` check in a test or xtask).
@@ -91,7 +91,7 @@ None.
 
 ## Docs to update
 
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "`lamina mcp` (rmcp, stdio), `--root`, `--read-only`, honest tool annotations"
+- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "`laminapdf mcp` (rmcp, stdio), `--root`, `--read-only`, honest tool annotations"
 - [ ] `crates/laminapdf-cli/README.md` (MCP section, client config, security model); ADR 0031 if any default changed during the work
 - [ ] `CLAUDE.md` (the `mcp` feature)
 

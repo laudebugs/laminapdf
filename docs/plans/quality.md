@@ -107,7 +107,7 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 
 **Parallel implementations that already disagree.** These are bugs, not just tidiness:
 
-- **Render ranges lost in the worker.** The worker turns a render error's `ranges` into `{offset, length}` objects (`packages/sdk/src/worker/server.ts`). `LaminaError` only accepts `[offset, length]` tuples, so a render `data-pending` that crosses the worker arrives with no ranges.
+- **Render ranges lost in the worker.** The worker turns a render error's `ranges` into `{offset, length}` objects (`packages/sdk/src/worker/server.ts`). `LaminaPdfError` only accepts `[offset, length]` tuples, so a render `data-pending` that crosses the worker arrives with no ranges.
 - **I/O errors swallowed by text extraction.** Extraction has its own error-propagation rule (`laminapdf-text/src/extract/font.rs` `fatal`) that leaves out `Error::Source`. An I/O failure from a `FileSource` reads as "no font", against ADR 0003.
 - **Surrogate pairs split.** There are two ToUnicode CMap writers in laminapdf-text, and the simple-font one can split a surrogate pair that the Type 0 one never splits.
 - **"Did you mean" that depends on the layer.** It is written in both Rust (`laminapdf-wasm`) and TypeScript (`@laminapdf/sdk`), and they break ties differently, so a typo's suggestion depends on which layer raised it.

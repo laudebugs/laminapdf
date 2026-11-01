@@ -9,5 +9,5 @@ try {
   await init({ text: true });
   out.laminaVerify = await report(hello());
 } catch (error) {
-  out.laminaVerify = `LAMINA_VERIFY_ERROR ${String(error)}`;
+  out.laminaVerify = `LAMINA_PDF_VERIFY_ERROR ${String(error)}`;
 }

@@ -7,14 +7,14 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-lamina reports problems in two ways:
+Lamina PDF reports problems in two ways:
 
-- **An error** stops the call. In TypeScript it's a `LaminaError`. In Rust it's `laminapdf::Error`.
+- **An error** stops the call. In TypeScript it's a `LaminaPdfError`. In Rust it's `laminapdf::Error`.
 - **A warning** means the call went ahead, but something in the file was repaired, dropped or approximated: `doc.warnings` in TypeScript, `doc.warnings()` in Rust.
 
 Both have the same fields on every surface: `code`, `kind` (`input`, `limit`, `usage`, `state`, `io`, …), `message`, `hint`, `location`, `data` and `docsUrl`. `toJSON()` gives the same object in TypeScript as `serde` does in Rust.
 
-- **Branch on `code`**, never on `message`. `isLaminaError(e, "wrong-password")` narrows the type.
+- **Branch on `code`**, never on `message`. `isLaminaPdfError(e, "wrong-password")` narrows the type.
 - **`kind` sorts errors by who can fix them.** For example, a server returns a 4xx for `input` and `limit` and a 5xx for the rest. The [Cloudflare Workers quick start](/quick-start/workers/) does exactly that.
 - **Text from the document is untrusted.** It's never in `message` or `hint`. It goes only in `data`.
 

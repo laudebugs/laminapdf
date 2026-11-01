@@ -13,7 +13,7 @@ use crate::page::{number, rect_object};
 /// points from the page's displayed top-left; `None` leaves that coordinate as the viewer
 /// has it (`null`).
 ///
-/// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+/// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum Fit {

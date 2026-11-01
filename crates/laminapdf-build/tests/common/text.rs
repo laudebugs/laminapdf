@@ -1,4 +1,4 @@
-//! Text read back through lamina's reader and `laminapdf-content` (todo B5b): every shown string
+//! Text read back through Lamina PDF's reader and `laminapdf-content` (todo B5b): every shown string
 //! decoded with its font's ToUnicode CMap (two-byte codes for Type 0 fonts, one byte for
 //! simple ones), `/ActualText` spans replacing the glyphs they cover, grouped into lines by
 //! baseline. A stand-in for B9b's extraction, enough to check that what the builder drew

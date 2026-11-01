@@ -21,8 +21,8 @@ Use another copy of the file.
 2 0 obj << /Type /Pages /Kids 5 >>
 ```
 
-`/Kids` must be an array; reading the page tree fails with `type`, and `data` names what was expected and where (`expected`, `context`, from lamina's own vocabulary).
+`/Kids` must be an array; reading the page tree fails with `type`, and `data` names what was expected and where (`expected`, `context`, from Lamina PDF's own vocabulary).
 
 ## Data fields
 
-`expected`, `context` (from lamina's fixed list).
+`expected`, `context` (from Lamina PDF's fixed list).

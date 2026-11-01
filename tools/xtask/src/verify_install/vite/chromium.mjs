@@ -1,14 +1,14 @@
 // `cargo xtask verify-install chromium`: builds the Vite app in this folder for production, serves
 // it with `vite preview` and opens it in Playwright's Chromium, then prints the page's check line.
 // Vite and Playwright are the repository's (pinned dev dependencies of @laminapdf/sdk), resolved
-// from LAMINA_TOOLS_FROM; the app's own dependencies are only the installed tarballs.
+// from LAMINA_PDF_TOOLS_FROM; the app's own dependencies are only the installed tarballs.
 
 import { createRequire } from "node:module";
 import { cwd, env } from "node:process";
 import { pathToFileURL } from "node:url";
 import { freePort } from "./free-port.mjs";
 
-const from = createRequire(env.LAMINA_TOOLS_FROM ?? "");
+const from = createRequire(env.LAMINA_PDF_TOOLS_FROM ?? "");
 const { build, preview } = await import(pathToFileURL(from.resolve("vite")).href);
 // playwright's entry is CommonJS: its exports arrive as the module's default.
 const playwright = await import(pathToFileURL(from.resolve("playwright")).href);
@@ -25,7 +25,7 @@ const server = await preview({
 });
 const browser = await chromium.launch();
 try {
-  console.log(`LAMINA_VERIFY_VERSION chromium ${browser.version()}`);
+  console.log(`LAMINA_PDF_VERIFY_VERSION chromium ${browser.version()}`);
   const page = await browser.newPage();
   page.on("console", (message) => console.error(`[chromium] ${message.text()}`));
   page.on("pageerror", (error) => console.error(`[chromium] ${error}`));

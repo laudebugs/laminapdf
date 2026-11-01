@@ -5,7 +5,7 @@
 //! `kind()` is an exhaustive match over its own variants, checked against that file by the
 //! crate's tests (L1b generates them).
 //!
-//! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+//! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
 use core::fmt;
 
@@ -20,7 +20,7 @@ pub enum ErrorKind {
     Input,
     /// The host failed to supply or take bytes (a `ByteSource` read, a sink write).
     Io,
-    /// Valid input that lamina doesn't implement.
+    /// Valid input that Lamina PDF doesn't implement.
     Unsupported,
     /// A `Limits` value or another resource bound was hit.
     Limit,
@@ -32,7 +32,7 @@ pub enum ErrorKind {
     State,
     /// A cancel token stopped the work.
     Cancelled,
-    /// A lamina bug or a broken invariant.
+    /// A Lamina PDF bug or a broken invariant.
     Internal,
 }
 

@@ -1,4 +1,4 @@
-//! Paths, colour, opacity and the page frame, read back with lamina's reader and
+//! Paths, colour, opacity and the page frame, read back with Lamina PDF's reader and
 //! `laminapdf-content`: what is drawn in page space lands where ADR 0027 says.
 #![allow(
     clippy::unwrap_used,

@@ -14,7 +14,7 @@ lamina is one library with one version: every crate and the npm packages `@lamin
 ## Promises that hold across every version, `0.x` included
 
 - **Error and warning codes are never renamed or reused** with a new meaning ([ADR 0026](decisions/0026-error-and-diagnostic-contract.md), [ADR 0003 §2](decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes)). A retired code stays listed in `fixtures/codes.json` with the version that retired it and keeps its [explain page](errors/README.md). Code on a `code` string keeps working; new codes can appear in any release, so handle unknown ones.
-- **The error object's shape** is versioned by its schema id (`lamina.error/1`); a field is only added, never removed or retyped, within one schema version.
+- **The error object's shape** is versioned by its schema id (`laminapdf.error/1`); a field is only added, never removed or retyped, within one schema version.
 - **Op JSON is versioned** by its envelope (`{ "v": 1, "ops": [ … ] }`, [ADR 0006](decisions/0006-op-log-and-undo.md)). Adding an op or an optional field keeps `v`; changing or removing one bumps `v` and adds a migration, and every older `v` stays loadable. The frozen samples in `fixtures/ops/v1/` are tested on every PR.
 - **Byte-identical output across platforms and runtimes** for the same input, options and version: Rust and every JavaScript runtime produce the same bytes (the release lane checks the quick start in each).
 

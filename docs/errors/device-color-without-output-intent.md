@@ -9,7 +9,7 @@ Under a PDF/A profile, a page draws with `DeviceCMYK` (CMYK given as plain numbe
 
 ## Why
 
-The PDF/A standard for archival PDF (ISO 19005) gives device colour a defined meaning through the document's output intent, which lamina writes as sRGB. That sRGB intent defines device RGB and gray, but not device CMYK, so ISO 19005-2 §6.2.4.3 forbids CMYK under it.
+The PDF/A standard for archival PDF (ISO 19005) gives device colour a defined meaning through the document's output intent, which Lamina PDF writes as sRGB. That sRGB intent defines device RGB and gray, but not device CMYK, so ISO 19005-2 §6.2.4.3 forbids CMYK under it.
 
 ## How to fix
 

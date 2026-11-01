@@ -42,7 +42,7 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
     - `clone3` → `SECCOMP_RET_ERRNO(ENOSYS)`: its flags sit behind a pointer seccomp cannot inspect, and glibc (≥ 2.34) and Rust's std fall back to `clone` on `ENOSYS`, which the rule above filters.
     - `fork`, `vfork` (x86_64 only; aarch64 has neither), `execve`, `execveat` → kill.
     - Landlock's deny-all ruleset also handles `LANDLOCK_ACCESS_FS_EXECUTE`, so even a missed exec path finds no executable file.
-- `SandboxLevel` reported per engine to the main process and logged; a setting/env var `LAMINA_ENGINE_SANDBOX=off` only in debug builds.
+- `SandboxLevel` reported per engine to the main process and logged; a setting/env var `LAMINA_PDF_ENGINE_SANDBOX=off` only in debug builds.
 - Supervisor treats an engine killed by the sandbox (SIGSYS, job memory limit) like a crash (restart policy from D2b) and logs the reason category.
 - ADR 0008 amendment: a table "what is enforced per OS", known gaps, kernel/OS version requirements.
 

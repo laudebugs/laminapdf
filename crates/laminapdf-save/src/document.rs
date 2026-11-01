@@ -1,8 +1,8 @@
 //! Saving a [`laminapdf_ops::Document`] and rebasing it onto the output ([ADR 0005] §3,
 //! [ADR 0007] §6).
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use std::sync::Arc;
 
@@ -65,7 +65,7 @@ use crate::sink::{ReadableSink, WriteSink};
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 pub trait Save {
     /// How a save with `options` would go ([`SavePlanner::plan`]).
     ///

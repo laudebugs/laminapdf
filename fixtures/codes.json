@@ -1,7 +1,7 @@
 {
   "version": 2,
   "docsUrl": {
-    "base": "https://github.com/laudebugs/lamina/blob/main/docs/errors/",
+    "base": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/",
     "suffix": ".md"
   },
   "warnings": [
@@ -51,7 +51,7 @@
       "code": "page-count-mismatch",
       "kind": "input",
       "summary": "the page tree's /Count differs from the number of pages walked",
-      "hint": "nothing to do; lamina uses the walked page count",
+      "hint": "nothing to do; Lamina PDF uses the walked page count",
       "since": "0.1.0"
     },
     {
@@ -232,7 +232,7 @@
     {
       "code": "cmap-invalid",
       "kind": "input",
-      "summary": "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap lamina has no table for",
+      "summary": "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for",
       "hint": "nothing to do; the bad entries were skipped and the rest of the CMap is used",
       "since": "0.1.0"
     },
@@ -312,7 +312,7 @@
       "code": "unset-object",
       "kind": "internal",
       "summary": "a writer object number was reserved but never given a value",
-      "hint": "this is a lamina bug: report it with the steps that led to it",
+      "hint": "this is a Lamina PDF bug: report it with the steps that led to it",
       "since": "0.1.0"
     },
     {
@@ -346,7 +346,7 @@
     {
       "code": "unsupported-security-handler",
       "kind": "unsupported",
-      "summary": "the document uses a security handler lamina cannot decrypt",
+      "summary": "the document uses a security handler Lamina PDF cannot decrypt",
       "hint": "use a tool that supports this encryption to decrypt the file first",
       "since": "0.1.0"
     },
@@ -367,7 +367,7 @@
     {
       "code": "unsupported-filter",
       "kind": "unsupported",
-      "summary": "a stream uses a filter lamina does not implement",
+      "summary": "a stream uses a filter Lamina PDF does not implement",
       "hint": "use a tool that supports the filter to read this stream",
       "since": "0.1.0"
     },
@@ -426,7 +426,7 @@
       "code": "unsupported-version",
       "kind": "unsupported",
       "summary": "an op log has a schema version this reader does not know",
-      "hint": "upgrade lamina to a version that reads this op log version",
+      "hint": "upgrade Lamina PDF to a version that reads this op log version",
       "since": "0.1.0"
     },
     {
@@ -439,7 +439,7 @@
     {
       "code": "saved-not-rebased",
       "kind": "state",
-      "summary": "the document was saved to a sink lamina cannot read back and waits for rebase",
+      "summary": "the document was saved to a sink Lamina PDF cannot read back and waits for rebase",
       "hint": "call rebase with the saved bytes before applying ops or saving again",
       "since": "0.1.0"
     },
@@ -570,7 +570,7 @@
       "code": "invalid-text-range",
       "kind": "usage",
       "summary": "a byte range was out of bounds or not on character boundaries of the text",
-      "hint": "take ranges from lamina's results (line_breaks, itemize, break_lines) and pass the same text",
+      "hint": "take ranges from Lamina PDF's results (line_breaks, itemize, break_lines) and pass the same text",
       "since": "0.1.0"
     },
     {
@@ -629,7 +629,7 @@
     {
       "code": "unsupported-image",
       "kind": "unsupported",
-      "summary": "the image uses a feature that PDF or lamina does not support",
+      "summary": "the image uses a feature that PDF or Lamina PDF does not support",
       "hint": "convert it to a baseline or progressive 8-bit JPEG, or to PNG",
       "since": "0.1.0"
     },
@@ -707,7 +707,7 @@
       "code": "profile-version-conflict",
       "kind": "usage",
       "summary": "the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7)",
-      "hint": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which lamina doesn't write yet",
+      "hint": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which Lamina PDF doesn't write yet",
       "since": "0.2.0"
     },
     {
@@ -828,7 +828,7 @@
       "code": "render-backend-unavailable",
       "kind": "io",
       "summary": "the render engine is not available: its library or module could not be loaded",
-      "hint": "run cargo xtask fetch-pdfium or set LAMINA_PDFIUM_DIR to the folder holding the PDFium library",
+      "hint": "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
       "since": "0.1.0"
     }
   ],
@@ -880,7 +880,7 @@
     {
       "code": "unknown-option",
       "kind": "usage",
-      "summary": "an options record passed to a binding has a key lamina does not know",
+      "summary": "an options record passed to a binding has a key Lamina PDF does not know",
       "hint": "remove the key or correct its spelling; didYouMean lists the closest known names",
       "since": "0.1.0"
     }
@@ -945,15 +945,15 @@
     {
       "code": "worker-crashed",
       "kind": "internal",
-      "summary": "the worker running lamina stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected",
+      "summary": "the worker running Lamina PDF stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected",
       "hint": "call client.restart() and open the document again; report the file if it keeps happening",
       "since": "0.1.0"
     },
     {
       "code": "worker-failed",
       "kind": "internal",
-      "summary": "the worker client failed with an error that isn't lamina's (a bug in @laminapdf/sdk/worker, or a result it couldn't send)",
-      "hint": "this is a lamina bug: report it with the call and the message; the worker keeps running",
+      "summary": "the worker client failed with an error that isn't Lamina PDF's (a bug in @laminapdf/sdk/worker, or a result it couldn't send)",
+      "hint": "this is a Lamina PDF bug: report it with the call and the message; the worker keeps running",
       "since": "0.1.0"
     }
   ]

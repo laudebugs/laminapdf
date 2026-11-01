@@ -1,10 +1,10 @@
-//! The text differential (todo B9c; ADR 0018 tier 6): lamina's `page_texts` against pdf.js and
+//! The text differential (todo B9c; ADR 0018 tier 6): Lamina PDF's `page_texts` against pdf.js and
 //! pdftotext, page by page, on `fixtures/corpus` and the text goldens. Their output is
 //! precomputed in `fixtures/differential/text.json` (`cargo xtask differential --text --update`,
 //! `tools/differential/text.mjs`); this test needs neither tool.
 //!
 //! **Comparison rule:** whitespace is removed on both sides before comparing (pdf.js, pdftotext
-//! and lamina each insert spaces and line breaks by their own heuristics), so a page agrees when
+//! and Lamina PDF each insert spaces and line breaks by their own heuristics), so a page agrees when
 //! the same characters come out in the same order. Every disagreement must be listed in
 //! `fixtures/differential/text-exceptions.json` with a reason, and every listed one must still
 //! disagree (a fixed one is removed from the list).
@@ -36,7 +36,7 @@ fn squeeze(text: &str) -> String {
         .collect()
 }
 
-/// lamina's pages, squeezed; none when lamina can't extract the file (every page then
+/// Lamina PDF's pages, squeezed; none when Lamina PDF can't extract the file (every page then
 /// disagrees, and must be listed).
 fn lamina_pages(rel: &str) -> Vec<String> {
     let bytes = std::fs::read(root().join(rel)).unwrap();

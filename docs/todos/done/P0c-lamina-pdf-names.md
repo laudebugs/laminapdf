@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `P0c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [§8 Q3](../../plans/architecture.md#8-open-questions-for-the-team) |
 | Round / milestone | Publishing (deferred) |
-| Depends on | [P0b](../done/P0b-crate-names-laminapdf.md) |
+| Depends on | [P0b](./P0b-crate-names-laminapdf.md) |
 | Blocks | [P1](../ready/P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Amends [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (names), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (the error schema ID) |
 | Branch | `refactor/p0c-lamina-pdf-names` |
 | PR title | `refactor: call the product Lamina PDF and rename its public names` |
 | Size | XL in lines, but a mechanical rename |
-| PR | — |
+| PR | [#179](https://github.com/laudebugs/laminapdf/pull/179) |
 
 ## Goal
 
@@ -45,11 +45,11 @@ Give the product one name, Lamina PDF, and make every public name follow it befo
 
 ## Tasks
 
-- [ ] Rename the public names listed above (a token-exact script), keeping PDF and fixture text
-- [ ] Regenerate what is generated (codes, schemas, explain pages) and format
-- [ ] Teach the ratchet's rename exemption the new names
-- [ ] A changeset for the npm packages (renamed exports and files)
-- [ ] Record the decision in ADR 0015 and ADR 0026
+- [x] Rename the public names listed above (a token-exact script), keeping PDF and fixture text
+- [x] Regenerate what is generated (codes, schemas, explain pages) and format
+- [x] Teach the ratchet's rename exemption the new names
+- [x] A changeset for the npm packages (renamed exports and files)
+- [x] Record the decision in ADR 0015 and ADR 0026
 
 ## Acceptance criteria
 
@@ -68,7 +68,7 @@ The existing suites, unchanged apart from the names; the error-contract tests ch
 
 ## Docs to update
 
-- [ ] ADR 0015 and ADR 0026 (amendments), [architecture §8 Q3](../../plans/architecture.md#8-open-questions-for-the-team), `CLAUDE.md`, READMEs and the docs site
+- [x] ADR 0015 and ADR 0026 (amendments), [architecture §8 Q3](../../plans/architecture.md#8-open-questions-for-the-team), `CLAUDE.md`, READMEs and the docs site
 
 ## Risks and open questions
 
@@ -77,7 +77,7 @@ The existing suites, unchanged apart from the names; the error-contract tests ch
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, added this file in `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Claimed: the work PR, opened from a fresh worktree, added this file in `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green

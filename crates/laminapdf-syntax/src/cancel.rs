@@ -2,7 +2,7 @@
 //! crate so every crate that does long work (the façade's jobs, `laminapdf-render`'s renders) takes
 //! the same type; the façade re-exports it as `laminapdf::CancelToken`.
 //!
-//! [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+//! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,7 +14,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// (ADR 0005 §7). The core polls it at the start of every step, at every budget check and
 /// inside long loops; a tripped token makes the call fail with `cancelled`.
 ///
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug, Clone, Default)]
 pub struct CancelToken(Arc<AtomicBool>);
 

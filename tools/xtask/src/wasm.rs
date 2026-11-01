@@ -70,7 +70,7 @@ const TARGET: &str = "wasm32-unknown-unknown";
 
 /// One module of `@laminapdf/wasm`.
 pub(crate) struct Module {
-    /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_<name>.{js,d.ts,wasm}`.
+    /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_pdf_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
     /// The crate built (`laminapdf-wasm` for lamina's three modules).
     krate: &'static str,
@@ -130,7 +130,7 @@ fn work(ws: &Workspace, module: &Module) -> PathBuf {
 
 /// The named, optimised copy of `module` (for twiggy).
 fn named(ws: &Workspace, module: &Module) -> PathBuf {
-    work(ws, module).join(format!("lamina_{}.named.wasm", module.name))
+    work(ws, module).join(format!("lamina_pdf_{}.named.wasm", module.name))
 }
 
 /// `cargo xtask wasm`: every module into `packages/wasm/dist/`, then the tests that load them.
@@ -177,7 +177,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
         &built,
     )
     .with_context(|| format!("copying the {} artefact", module.krate))?;
-    let stem = format!("lamina_{}", module.name);
+    let stem = format!("lamina_pdf_{}", module.name);
     let built_arg = built.to_string_lossy().into_owned();
     let work_arg = work.to_string_lossy().into_owned();
     crate::run(
@@ -223,7 +223,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
 
 /// The `wasm-bindgen-test` suite (Node) for each module's features, the package's smoke test
 /// (Vitest, Node) over `dist/`, then `@laminapdf/sdk`: build, typecheck, tests, publint and attw;
-/// then `@laminapdf/render-hayro`'s `RenderBackend` contract over `lamina_render_hayro` (C2c).
+/// then `@laminapdf/render-hayro`'s `RenderBackend` contract over `lamina_pdf_render_hayro` (C2c).
 fn test(ws: &Workspace) -> Result<()> {
     crate::step("laminapdf-wasm tests in Node (wasm-bindgen-test-runner)");
     for module in MODULES.iter().filter(|m| m.is_lamina()) {
@@ -250,7 +250,7 @@ fn test(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "test:wasm"])?;
     ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "lint:package"])?;
     crate::step(
-        "@laminapdf/render-hayro over lamina_render_hayro: build, typecheck, the RenderBackend contract (Node)",
+        "@laminapdf/render-hayro over lamina_pdf_render_hayro: build, typecheck, the RenderBackend contract (Node)",
     );
     ws.pnpm(&["--filter", "@laminapdf/render", "run", "build"])?;
     ws.pnpm(&["--filter", "@laminapdf/render-hayro", "run", "test:wasm"])
@@ -421,13 +421,13 @@ pub(crate) fn violations(measured: &BTreeMap<String, ModuleSizes>, budgets: &BTr
         };
         if sizes.wasm.gzip > budget.wasm_gzip {
             out.push(format!(
-                "{name}: lamina_{name}.wasm is {} B gzip, over its budget of {} B",
+                "{name}: lamina_pdf_{name}.wasm is {} B gzip, over its budget of {} B",
                 sizes.wasm.gzip, budget.wasm_gzip
             ));
         }
         if sizes.glue.gzip > budget.glue_gzip {
             out.push(format!(
-                "{name}: lamina_{name}.js (minified) is {} B gzip, over its budget of {} B",
+                "{name}: lamina_pdf_{name}.js (minified) is {} B gzip, over its budget of {} B",
                 sizes.glue.gzip, budget.glue_gzip
             ));
         }
@@ -725,7 +725,7 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
     let out = dist(ws);
     let mut files = Vec::new();
     for module in &MODULES {
-        let stem = format!("lamina_{}", module.name);
+        let stem = format!("lamina_pdf_{}", module.name);
         let wasm = out.join(format!("{stem}.wasm"));
         let wasm =
             fs::read(&wasm).with_context(|| format!("reading {}: run `cargo xtask wasm` first", wasm.display()))?;

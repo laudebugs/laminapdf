@@ -25,4 +25,4 @@ Nothing to do; the view uses the entry's default.
 
 ## Data fields
 
-`key` (from lamina's fixed list).
+`key` (from Lamina PDF's fixed list).

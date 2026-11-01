@@ -106,7 +106,7 @@ fn target_dir(ws: &Workspace) -> std::path::PathBuf {
         .join("clippy-examples")
 }
 
-/// A clippy warning in one of `lamina`'s examples, as `(path, finding)`.
+/// A clippy warning in one of `laminapdf`'s examples, as `(path, finding)`.
 fn example_finding(message: &Value, root: &Path) -> Option<(String, crate::reports::Finding)> {
     if message.get("reason")?.as_str()? != "compiler-message" {
         return None;

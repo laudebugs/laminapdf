@@ -1,7 +1,7 @@
 //! Transactions ([ADR 0006] §2): atomic groups of ops, with savepoints for trying something
 //! and recovering.
 //!
-//! [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+//! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -41,7 +41,7 @@ impl fmt::Display for PeerId {
 /// Where a transaction comes from ([ADR 0006] §2). Only [`Origin::Local`] ones are undoable
 /// (§4): remote and system changes never rewind.
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Origin {
@@ -49,13 +49,13 @@ pub enum Origin {
     Local,
     /// A collaborator, through sync.
     Remote(PeerId),
-    /// lamina itself (for example a migration on open).
+    /// Lamina PDF itself (for example a migration on open).
     System,
 }
 
 /// What a committed transaction, or one op inside it, did ([ADR 0006] §3).
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct Applied {
@@ -85,7 +85,7 @@ pub(crate) struct TxState {
 /// There is no way to start a transaction from inside one: code that wants to try something
 /// and recover uses [`Tx::savepoint`].
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 pub struct Tx<'d> {
     pub(crate) doc: &'d mut laminapdf_model::Document,
     pub(crate) state: &'d mut TxState,
@@ -152,7 +152,7 @@ impl Tx<'_> {
     /// # Errors
     /// What `f` returns.
     ///
-    /// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+    /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
     pub fn savepoint<T>(&mut self, f: impl FnOnce(&mut Tx<'_>) -> Result<T>) -> Result<T> {
         let mark = self.doc.journal_mark();
         let touched = self.state.touched.clone();

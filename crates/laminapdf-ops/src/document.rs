@@ -36,7 +36,7 @@ use crate::tx::{Applied, Origin, Tx, TxState};
 ///
 /// Like the documents below it, it is `Send` but `!Sync`.
 ///
-/// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+/// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #[derive(Debug)]
 pub struct Document {
     model: laminapdf_model::Document,
@@ -65,7 +65,7 @@ pub enum PendingRebase {
 
 /// Where a document stands relative to its last save ([ADR 0005] §3).
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum SaveState {
@@ -197,7 +197,7 @@ impl Document {
     /// and the overlay's changes would be lost); COS errors opening `source` (the document is
     /// then unchanged and still waiting).
     ///
-    /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+    /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
     pub fn rebase(&mut self, source: impl Into<Source>) -> Result<()> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
@@ -268,7 +268,7 @@ impl Document {
     /// [`Error::NestedTransaction`] when a transaction is already open;
     /// [`Error::SavedNotRebased`]; what `f` returns.
     ///
-    /// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+    /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
     pub fn transact<T>(&mut self, origin: Origin, f: impl FnOnce(&mut Tx<'_>) -> Result<T>) -> Result<(T, Applied)> {
         self.run(origin, None, f)
     }
@@ -409,7 +409,7 @@ impl Document {
     /// [`Error::NestedTransaction`] while a transaction is open; [`Error::SavedNotRebased`];
     /// COS errors reading the document (the entry stays on the stack).
     ///
-    /// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+    /// [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
     pub fn undo(&mut self) -> Result<Option<Reverted>> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);

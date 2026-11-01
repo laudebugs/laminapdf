@@ -7,10 +7,10 @@ use crate::codes;
 use crate::data;
 use crate::{Diagnostic, WarningCode};
 
-/// A recoverable problem lamina repaired or worked around ([ADR 0003] §2), with the same
+/// A recoverable problem Lamina PDF repaired or worked around ([ADR 0003] §2), with the same
 /// accessors and serialisation as [`Error`](crate::Error) (no `didYouMean`).
 ///
-/// [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+/// [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Warning {
@@ -43,7 +43,7 @@ impl Warning {
 
     /// The kind ([ADR 0026] §2), from the generated [`WarningCode`](crate::WarningCode) table.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         self.warning_code().kind()
@@ -51,7 +51,7 @@ impl Warning {
 
     /// Where the problem is ([ADR 0026] §1.1).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
@@ -77,7 +77,7 @@ impl Warning {
     /// `message` is the code's fixed summary from `fixtures/codes.json`; it never quotes the
     /// document.
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
         Diagnostic::warning(self.warning_code())
@@ -118,7 +118,7 @@ impl From<laminapdf_text::Warning> for Warning {
 /// # Ok::<(), laminapdf::Error>(())
 /// ```
 ///
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WarningCursor {
     items: Vec<Warning>,

@@ -1,7 +1,7 @@
 //! The incremental writer ([ADR 0007] §5, ISO 32000-2 §7.5.6): the base bytes, unchanged,
 //! then the overlay as an appended revision.
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use laminapdf_cos::{ByteSource, Dict, Document, Name, Object, OverlayEntry, merge_ranges, read_exact};
 

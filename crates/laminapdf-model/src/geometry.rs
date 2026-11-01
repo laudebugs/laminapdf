@@ -3,7 +3,7 @@
 //! space only in `UserSpace…` types ([`UserSpacePoint`], [`UserSpaceRect`]), and the
 //! [`PageFrame`] that converts between the two.
 //!
-//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+//! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -271,7 +271,7 @@ pub const LETTER: UserSpaceRect = UserSpaceRect::from_corners(0.0, 0.0, 612.0, 7
 /// assert_eq!((turned.width(), turned.height()), (Pt::new(792.0), Pt::new(612.0)));
 /// ```
 ///
-/// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+/// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PageFrame {
     crop_box: UserSpaceRect,

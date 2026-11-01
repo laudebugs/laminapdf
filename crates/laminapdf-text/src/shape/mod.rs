@@ -8,7 +8,7 @@
 //! first character it came from) and advances and offsets in font units. Clusters are the
 //! source of truth for ToUnicode and `ActualText` ([`crate::pdf_run`]).
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 
 mod engine;
 

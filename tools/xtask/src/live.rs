@@ -1599,7 +1599,7 @@ mod tests {
     #[test]
     fn known_entries_should_mark_a_failure_as_known() {
         let known = "[[known]]\nfile = \"a.pdf\"\nfacts = [\"page_count\"]\n\
-                     issue = \"https://github.com/laudebugs/lamina/issues/1\"\nreason = \"r\"\n";
+                     issue = \"https://github.com/laudebugs/laminapdf/issues/1\"\nreason = \"r\"\n";
         let lamina = report("lamina", true, &json!({"a.pdf": opened(2)}));
         let tools = [report("qpdf", true, &json!({"a.pdf": opened(3)}))];
         let c = compare(&lamina, &tools, &Exceptions::parse(known).unwrap());
@@ -1609,7 +1609,7 @@ mod tests {
     #[test]
     fn known_entries_should_read_files_lists_one_entry_per_file() {
         let known = "[[known]]\nfiles = [\"a.pdf\", \"b.pdf\"]\nfacts = [\"page_count\"]\n\
-                     issue = \"https://github.com/laudebugs/lamina/issues/1\"\nreason = \"r\"\n";
+                     issue = \"https://github.com/laudebugs/laminapdf/issues/1\"\nreason = \"r\"\n";
         let e = Exceptions::parse(known).unwrap();
         let (ours, theirs) = (json!({"page_count": 1}), json!(2));
         assert_eq!(

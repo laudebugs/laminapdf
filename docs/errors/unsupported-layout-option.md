@@ -1,11 +1,11 @@
 # `unsupported-layout-option`
 
 - Type: error
-- Kind: `unsupported` (valid input that lamina doesn't implement)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
-`break_lines` was given a layout option lamina does not implement yet: `LayoutOptions::justify` set to `true`.
+`break_lines` was given a layout option Lamina PDF does not implement yet: `LayoutOptions::justify` set to `true`.
 
 ## Why
 

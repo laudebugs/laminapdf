@@ -6,7 +6,7 @@
 //! [`IoWrite`] over any [`std::io::Write`]; spooling to OPFS or a temporary file, files and
 //! uploads are edge implementations.
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use std::sync::Arc;
 

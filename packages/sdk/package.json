@@ -2,7 +2,7 @@
   "name": "@laminapdf/sdk",
   "version": "0.2.0-alpha.0",
   "private": true,
-  "description": "Create, read, edit and save PDFs from TypeScript: lamina's Rust core as WebAssembly, synchronous after init(), in browsers, Node, Deno, Bun and Cloudflare Workers.",
+  "description": "Create, read, edit and save PDFs from TypeScript: Lamina PDF's Rust core as WebAssembly, synchronous after init(), in browsers, Node, Deno, Bun and Cloudflare Workers.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,

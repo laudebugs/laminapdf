@@ -38,11 +38,11 @@
 //! [`Limits::max_nesting_depth`] (saved graphics states per stream) and
 //! [`Limits::max_decoded_total`] (bytes interpreted).
 //!
-//! This crate is part of lamina's pure core: bytes in, bytes out, no file system, network,
+//! This crate is part of Lamina PDF's pure core: bytes in, bytes out, no file system, network,
 //! clocks or threads.
 //!
-//! [ADR 0023]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0023-content-stream-reading.md
-//! [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+//! [ADR 0023]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0023-content-stream-reading.md
+//! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
 
 mod interp;

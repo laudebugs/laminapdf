@@ -250,9 +250,15 @@ fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeS
     }
 }
 
-/// Names the repository renamed everywhere at once (new, old): the crates' `laminapdf` (todo P0b,
-/// which removes this exemption once no open branch predates the rename).
-const RENAMED: [(&str, &str); 1] = [("laminapdf", "lamina")];
+/// Names the repository renamed everywhere at once (new, old), in lower case and longest first:
+/// the product's "Lamina PDF" and the `lamina_pdf_` modules and `LAMINA_PDF_` variables (todo P0c),
+/// then `laminapdf` (the crates, P0b; also `LaminaPdfError` and `laminapdf.error/1`). P0b's
+/// post-merge check removes this exemption once no open branch predates the renames.
+const RENAMED: [(&str, &str); 3] = [
+    ("lamina pdf", "lamina"),
+    ("lamina_pdf_", "lamina_"),
+    ("laminapdf", "lamina"),
+];
 
 /// Whether `path`'s only change since `merge_base` is one of the [`RENAMED`] names and the
 /// line breaks that came with it (its old path, if it moved, is `old_path`). Such a file isn't
@@ -262,18 +268,18 @@ fn renamed_only(root: &Path, merge_base: &str, path: &str, old_path: Option<&str
     let Ok(now) = std::fs::read_to_string(root.join(path)) else {
         return false;
     };
-    if !RENAMED.iter().any(|(new, _)| now.contains(new)) {
+    if !RENAMED.iter().any(|(new, _)| now.to_lowercase().contains(new)) {
         return false;
     }
     crate::changes::at_revision(root, merge_base, old_path.unwrap_or(path))
         .is_ok_and(|before| without_renames(&before) == without_renames(&now))
 }
 
-/// `text` with each [`RENAMED`] name in its old form and no whitespace.
+/// `text` in lower case, with each [`RENAMED`] name in its old form and no whitespace.
 fn without_renames(text: &str) -> String {
     let text = RENAMED
         .iter()
-        .fold(text.to_owned(), |text, (new, old)| text.replace(new, old));
+        .fold(text.to_lowercase(), |text, (new, old)| text.replace(new, old));
     text.split_whitespace().collect()
 }
 
@@ -297,6 +303,13 @@ mod tests {
         let after = "use laminapdf::Document;\nfn main() {\n    laminapdf_cos::open();\n}\n";
         assert_eq!(without_renames(before), without_renames(after));
         assert_ne!(without_renames(before), without_renames("use laminapdf::Builder;\n"));
+    }
+
+    #[test]
+    fn without_renames_should_match_the_lamina_pdf_names() {
+        let before = "// lamina's errors are LaminaError (lamina.error/1), in lamina_base.wasm; LAMINA_PYTHON\n";
+        let after = "// Lamina PDF's errors are LaminaPdfError (laminapdf.error/1), in lamina_pdf_base.wasm; LAMINA_PDF_PYTHON\n";
+        assert_eq!(without_renames(before), without_renames(after));
     }
 
     fn flags(list: &[&str]) -> Vec<String> {

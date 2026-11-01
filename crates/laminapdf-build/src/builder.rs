@@ -306,7 +306,7 @@ pub(crate) struct Target<'b> {
 /// # Ok::<(), laminapdf_build::Error>(())
 /// ```
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #[derive(Debug)]
 pub struct Builder {
     doc: laminapdf_cos::Document,
@@ -456,7 +456,7 @@ impl Builder {
     /// text, in page order. Empty while the document isn't tagged (see
     /// [`BuildOptions::with_tagged`]).
     ///
-    /// [B8a]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8a-structure-tree.md
+    /// [B8a]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B8a-structure-tree.md
     #[must_use]
     pub fn tagging_diagnostics(&self) -> &[TagDiagnostic] {
         self.state.tag.diagnostics()
@@ -480,7 +480,7 @@ impl Builder {
     /// # Errors
     /// As [`Appender::new`].
     ///
-    /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+    /// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
     pub fn on<'d>(doc: &'d mut laminapdf_model::Document, options: &BuildOptions) -> Result<Appender<'d>> {
         Appender::new(doc, options)
     }

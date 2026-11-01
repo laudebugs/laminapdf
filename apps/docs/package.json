@@ -2,7 +2,7 @@
   "name": "@laminapdf/docs",
   "version": "0.0.0",
   "private": true,
-  "description": "lamina's documentation site (Astro + Starlight): quick starts, guides, the @laminapdf/sdk API reference (TypeDoc) and the examples, deployed to Cloudflare Workers static assets.",
+  "description": "Lamina PDF's documentation site (Astro + Starlight): quick starts, guides, the @laminapdf/sdk API reference (TypeDoc) and the examples, deployed to Cloudflare Workers static assets.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "engines": {
@@ -12,7 +12,7 @@
     "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
-    "typecheck": "ASTRO_TELEMETRY_DISABLED=1 LAMINA_DOCS_TYPEDOC=0 astro sync && tsc --noEmit",
+    "typecheck": "ASTRO_TELEMETRY_DISABLED=1 LAMINA_PDF_DOCS_TYPEDOC=0 astro sync && tsc --noEmit",
     "check:api-docs": "node scripts/check-api-docs.mjs"
   },
   "devDependencies": {

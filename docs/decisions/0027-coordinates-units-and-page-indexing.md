@@ -82,7 +82,7 @@ New pages made by the builder default to `/Rotate 0`, `/UserUnit` absent and a M
 
 ### 4. The `coordinates` block and `bboxNorm`
 
-Every JSON output that carries positions (extraction, `lamina info --json`, render metadata, MCP results) has a `coordinates` block on each page object, next to the displayed `width` and `height` in points:
+Every JSON output that carries positions (extraction, `laminapdf info --json`, render metadata, MCP results) has a `coordinates` block on each page object, next to the displayed `width` and `height` in points:
 
 ```json
 { "index": 0, "number": 1, "width": 792, "height": 612,

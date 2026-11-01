@@ -18,7 +18,8 @@ edition = "2024"
 # rust-toolchain.toml. Before the first public release we move to N-2. CI's `msrv-and-spike` job checks it.
 rust-version = "1.99"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/laudebugs/lamina"
+repository = "https://github.com/laudebugs/laminapdf"
+homepage = "https://laminapdf.com"
 publish = false
 
 [workspace.dependencies]
@@ -111,7 +112,7 @@ serde = { version = "1.0.229", default-features = false, features = ["std", "der
 # MIT OR Apache-2.0
 serde_json = "1.0.154"
 # JSON Schema 2020-12 validation, for xtask (`gen codes` validates fixtures/codes.json against
-# fixtures/codes.schema.json) and tests (errors against the generated lamina.error/1 schema):
+# fixtures/codes.schema.json) and tests (errors against the generated laminapdf.error/1 schema):
 # never in a library. 0.6.1 (2025-01). MIT OR Apache-2.0 (ahash, base64, idna, url, once_cell,
 # regex: MIT OR Apache-2.0; appendlist, fluent-uri: MIT; borrow-or-share: MIT-0, a deny.toml
 # exception; ICU4X via idna: Unicode-3.0). Chosen

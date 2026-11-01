@@ -23,7 +23,7 @@ Nothing.
 …
 ```
 
-The index says object 21 starts at offset 14 of the stream, but it starts elsewhere. lamina searches the stream for it, uses what it finds and raises the warning.
+The index says object 21 starts at offset 14 of the stream, but it starts elsewhere. Lamina PDF searches the stream for it, uses what it finds and raises the warning.
 
 ## Data fields
 

@@ -14,7 +14,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 /// tags and texts are in the variant's fields, never in its `Display`. Kinds and pages:
 /// `docs/errors/<code>.md`.
 ///
-/// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+/// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -64,7 +64,7 @@ pub enum Error {
         /// The font's embedding permissions.
         fs_type: FsType,
     },
-    /// The font has no glyph for a character: lamina never draws `.notdef` silently.
+    /// The font has no glyph for a character: Lamina PDF never draws `.notdef` silently.
     #[error("the font has no glyph for U+{code:04X}", code = u32::from(*ch))]
     MissingGlyph {
         /// The character.
@@ -115,7 +115,7 @@ pub enum Error {
         /// The text's length (bytes).
         len: usize,
     },
-    /// A layout option lamina does not implement yet (B4b: `LayoutOptions::justify`).
+    /// A layout option Lamina PDF does not implement yet (B4b: `LayoutOptions::justify`).
     #[error("layout option {option} is not supported yet")]
     UnsupportedLayoutOption {
         /// The option's name (fixed text).
@@ -208,7 +208,7 @@ impl Error {
     /// [`Error::code`] (a test checks every variant). COS errors report
     /// [`laminapdf_cos::Error::kind`].
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
@@ -301,7 +301,7 @@ impl Warning {
     /// The kind of this warning ([ADR 0026] §2), as `fixtures/codes.json` lists it for
     /// [`Warning::code`] (a test checks every variant).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {

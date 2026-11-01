@@ -1,6 +1,6 @@
 //! Resolving the save mode from the constraint ([ADR 0007] §3).
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use crate::constraint::{ConstraintKind, RewriteReason, SaveConstraint, SignatureInfo};
 use crate::error::{Result, SaveError};
@@ -24,7 +24,7 @@ use crate::options::{SaveMode, SaveOptions};
 /// [`RewriteReason::NoBase`], so it is `RequiresRewrite` (`Auto` writes a full rewrite).
 /// Unknown signatures ([`SaveConstraint::signatures_unknown`]) count as signatures.
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #[expect(clippy::match_same_arms, reason = "one arm per cell of the ADR's table")]
 pub(crate) fn resolve(constraint: &SaveConstraint, options: SaveOptions) -> Result<(SaveMode, Vec<SignatureInfo>)> {
     let reasons = &constraint.rewrite_reasons;

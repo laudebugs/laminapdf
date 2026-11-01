@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-source"
-description = "Edge byte sources for lamina: a sparse source filled range by range (remote and lazy inputs), the fetch-and-retry loop over `data-pending`, and native file and memory-mapped sources."
+description = "Edge byte sources for Lamina PDF: a sparse source filled range by range (remote and lazy inputs), the fetch-and-retry loop over `data-pending`, and native file and memory-mapped sources."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +10,7 @@ publish.workspace = true
 
 # Read by `cargo xtask`: an edge crate. The sparse source and the retry loop are pure and build
 # for wasm32 (laminapdf-wasm uses them); file and mmap sources sit behind `native` and `mmap`.
-[package.metadata.lamina]
+[package.metadata.laminapdf]
 layer = "edge"
 wasm = true
 

@@ -6,7 +6,7 @@ import {
   Font,
   init,
   isInitialized,
-  isLaminaError,
+  isLaminaPdfError,
   isTextLoaded,
   loadText,
   wasmMemory,
@@ -17,7 +17,7 @@ import { read, thrown } from "./helpers.js";
 describe("init", () => {
   it("is required before the first call (not-initialized)", () => {
     const e = thrown(() => Document.open(read("fixtures/golden/examples/hello.pdf")));
-    expect(isLaminaError(e, "not-initialized") && e.kind).toBe("state");
+    expect(isLaminaPdfError(e, "not-initialized") && e.kind).toBe("state");
   });
 
   it("loads the base module from the file next to the package", async () => {
@@ -32,8 +32,8 @@ describe("init", () => {
   });
 
   it("refuses a different source once the module is loaded (already-initialized)", async () => {
-    const e = await init(read("packages/wasm/dist/lamina_base.wasm")).catch((error: unknown) => error);
-    expect(isLaminaError(e, "already-initialized")).toBe(true);
+    const e = await init(read("packages/wasm/dist/lamina_pdf_base.wasm")).catch((error: unknown) => error);
+    expect(isLaminaPdfError(e, "already-initialized")).toBe(true);
   });
 
   it("builds without text in the base module", () => {
@@ -45,12 +45,12 @@ describe("init", () => {
   it("refuses text in a base-module builder (text-module-not-loaded)", () => {
     const page = new Builder().page("A6");
     const e = thrown(() => page.surface().text("x", { font: Font.standard("Helvetica"), size: 9, at: [9, 9] }));
-    expect(isLaminaError(e, "text-module-not-loaded")).toBe(true);
+    expect(isLaminaPdfError(e, "text-module-not-loaded")).toBe(true);
   });
 
   it("refuses new Builder({ text: true }) before the text module is loaded", () => {
     expect(
-      isLaminaError(
+      isLaminaPdfError(
         thrown(() => new Builder({ text: true })),
         "text-module-not-loaded",
       ),
@@ -58,7 +58,7 @@ describe("init", () => {
   });
 
   it("loads the text module from a compiled WebAssembly.Module", async () => {
-    const module = await WebAssembly.compile(read("packages/wasm/dist/lamina_text.wasm").slice());
+    const module = await WebAssembly.compile(read("packages/wasm/dist/lamina_pdf_text.wasm").slice());
     await loadText(module);
     await loadText(module); // the same source again is fine
     const b = new Builder();

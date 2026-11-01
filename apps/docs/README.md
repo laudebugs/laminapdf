@@ -1,6 +1,6 @@
 # `apps/docs`: the docs site
 
-lamina's documentation site ([todo B7a](../../docs/todos/done/B7a-docs-site.md)): [Astro](https://astro.build/) with [Starlight](https://starlight.astro.build/), served from Cloudflare Workers static assets. It has quick starts per runtime, guides, an examples gallery, the `@laminapdf/sdk` API reference (TypeDoc) and a page on the Rust API (rustdoc).
+Lamina PDF's documentation site ([todo B7a](../../docs/todos/done/B7a-docs-site.md)): [Astro](https://astro.build/) with [Starlight](https://starlight.astro.build/), served from Cloudflare Workers static assets. It has quick starts per runtime, guides, an examples gallery, the `@laminapdf/sdk` API reference (TypeDoc) and a page on the Rust API (rustdoc).
 
 ```sh
 pnpm install                        # once per worktree
@@ -17,12 +17,12 @@ Two environment variables change what the build writes (`astro.config.mjs`):
 
 | Variable | Default | Effect |
 | --- | --- | --- |
-| `LAMINA_DOCS_GITHUB` | off | `1` adds every link to GitHub: the repository in the header, "Edit page", TypeDoc's "Defined in" source links, and links to the repository inside the code pages. Off while the repository is private, since those links would 404 for readers. Turn it on (in `.github/workflows/docs.yml`'s build steps) when the repository is public. |
-| `LAMINA_DOCS_TYPEDOC` | on | `0` leaves the TypeDoc reference out. `typecheck` uses it, so each lane runs TypeDoc once, in the build. |
+| `LAMINA_PDF_DOCS_GITHUB` | off | `1` adds every link to GitHub: the repository in the header, "Edit page", TypeDoc's "Defined in" source links, and links to the repository inside the code pages. Off while the repository is private, since those links would 404 for readers. Turn it on (in `.github/workflows/docs.yml`'s build steps) when the repository is public. |
+| `LAMINA_PDF_DOCS_TYPEDOC` | on | `0` leaves the TypeDoc reference out. `typecheck` uses it, so each lane runs TypeDoc once, in the build. |
 
 ## Look
 
-The site uses lamina's [Paper design language](../../docs/design/paper/design-language.md), the look of the apps:
+The site uses Lamina PDF's [Paper design language](../../docs/design/paper/design-language.md), the look of the apps:
 - **Ground and accent:** warm paper grounds and ink text, with one deep-teal accent.
 - **Type:** Source Sans 3 for everything, titles included; weight and size carry the hierarchy ([quality plan §5](../../docs/plans/quality.md#5-the-font)).
 - **Themes:** Starlight's light theme is Paper's light theme (§2.1), and its dark theme is Paper's proposed dark theme (§2.3).
@@ -74,5 +74,5 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR pre
    Scope it to the one account (Account Resources → Include → that account). Optionally, set a TTL and restrict client IPs.
 2. Add two repository secrets (Settings → Secrets and variables → Actions): `CLOUDFLARE_API_TOKEN` (the token) and `CLOUDFLARE_ACCOUNT_ID` (the account ID, shown on the account's Workers overview page).
 3. After this site is on `main`, run the **Docs site** workflow there once (Actions → Docs site → Run workflow). The first `wrangler deploy` creates the Worker, and previews need it to exist. The account also needs a workers.dev subdomain, which the dashboard asks for on first use of Workers.
-4. When the repository becomes public, set `LAMINA_DOCS_GITHUB: "1"` in the workflow's `env` so the site links to GitHub.
+4. When the repository becomes public, set `LAMINA_PDF_DOCS_GITHUB: "1"` in the workflow's `env` so the site links to GitHub.
 5. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).

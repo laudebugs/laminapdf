@@ -1,5 +1,5 @@
 //! RC4 (ARC4), used by the `/V2` crypt filter and by Algorithms 3–7 of the standard security
-//! handler (ISO 32000-1 §7.6.2, §7.6.3). A broken cipher: lamina only *reads* it, so this
+//! handler (ISO 32000-1 §7.6.2, §7.6.3). A broken cipher: Lamina PDF only *reads* it, so this
 //! module is crate-private and nothing public offers RC4 for writing.
 
 /// RC4 keystream applied to `data` under `key` (encryption and decryption are the same

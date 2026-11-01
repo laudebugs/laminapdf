@@ -1,7 +1,7 @@
 {
-  "name": "lamina",
+  "name": "laminapdf",
   "private": true,
-  "description": "lamina monorepo root: dev tooling and scripts only, no runtime code.",
+  "description": "Lamina PDF monorepo root: dev tooling and scripts only, no runtime code.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@11.20.0",

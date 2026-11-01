@@ -197,7 +197,7 @@ A wasm-bindgen module is a single binary. JS tree shaking can drop unused *JS gl
   - Enforce `Limits` (ADR 0003) inside Rust, including a max-allocation budget.
   - Set the wasm `maximum` memory via a linker flag (`-C link-arg=--max-memory=…`), so growth fails as an error rather than an OOM of the tab.
   - Provide `lamina.reset()` (or run in a worker that can be terminated) to reclaim grown memory.
-- After dispose, any method call throws `LaminaError { code: "DISPOSED" }`, not a wasm-bindgen null-pointer panic.
+- After dispose, any method call throws `LaminaPdfError { code: "DISPOSED" }`, not a wasm-bindgen null-pointer panic.
 
 ### Gaps
 - Exact wasm-bindgen version that added `Symbol.dispose`, and Safari's stable status (MDN compat table not fetched).
@@ -207,7 +207,7 @@ A wasm-bindgen module is a single binary. JS tree shaking can drop unused *JS gl
 ### Takeaway
 - Use discriminated unions for options and results.
 - Use branded numeric units for points and page indices.
-- Use one `LaminaError` class with a `code` string-literal union generated from `fixtures/codes.json`, so Rust and TS share one source of truth.
+- Use one `LaminaPdfError` class with a `code` string-literal union generated from `fixtures/codes.json`, so Rust and TS share one source of truth.
 - Use tsify for data shapes, with handwritten TS wrappers for ergonomics.
 - Validate packaging with publint and attw in CI. `isolatedDeclarations` keeps .d.ts generation fast and honest.
 
@@ -229,10 +229,10 @@ export const mm = (n: number) => (n * 72 / 25.4) as Pt;
 
 // errors: codes generated from fixtures/codes.json at build time
 export type ErrorCode = "PARSE" | "LIMIT_EXCEEDED" | "STRICT" | "ENCRYPTED" | "WRONG_PASSWORD" | "DISPOSED" | "UNSUPPORTED";
-export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
+export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   readonly code: C; readonly offset?: number; readonly objRef?: `${number} ${number} R`;   // template literal
 }
-export const isLaminaError = <C extends ErrorCode>(e: unknown, code?: C): e is LaminaError<C> => …;
+export const isLaminaPdfError = <C extends ErrorCode>(e: unknown, code?: C): e is LaminaPdfError<C> => …;
 
 // discriminated options
 export type SaveOptions =
@@ -321,7 +321,7 @@ using src = Document.open(input, { limits: { maxObjects: 1e6 }, strict: false, p
 for (const w of src.warnings) console.warn(w.code, w.offset);
 
 // fill form
-src.form.fill({ name: "Jane", agreed: true });          // unknown field → LaminaError<"FORM_FIELD_NOT_FOUND">
+src.form.fill({ name: "Jane", agreed: true });          // unknown field → LaminaPdfError<"FORM_FIELD_NOT_FOUND">
 const filled = src.save({ mode: "incremental" });
 
 // merge

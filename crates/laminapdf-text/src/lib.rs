@@ -83,11 +83,11 @@
 //! # Ok::<(), laminapdf_text::Error>(())
 //! ```
 //!
-//! The `surface.text()` API (B5b) builds on this crate. It is part of lamina's pure core:
+//! The `surface.text()` API (B5b) builds on this crate. It is part of Lamina PDF's pure core:
 //! bytes in, bytes out, no file system, network, clocks or threads; font bytes are parsed by
 //! `skrifa`/`read-fonts` and `subsetter`, which bounds-check every read.
 //!
-//! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #![forbid(unsafe_code)]
 
 pub mod agl;

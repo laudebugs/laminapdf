@@ -2,7 +2,7 @@
 //! [--full] --update`, which runs pypdf over them: the fast set (every `fixtures/corpus` file
 //! and its four mutants), or with `--full` the full lane's mutants. The inputs come from
 //! `tests/common/mutants.rs`, the same code the differential test uses, so pypdf's facts and
-//! lamina's answers are about the same bytes.
+//! Lamina PDF's answers are about the same bytes.
 //!
 //! With `--nightly <N>`, it writes the nightly lane's inputs for `cargo xtask differential
 //! --live`: every corpus file, the first `N` mutants of the fast set's series (the fast set is

@@ -5,12 +5,12 @@
 
 [package]
 name = "render-golden"
-description = "lamina's render goldens (todo B5c, ADR 0018 tier 8): renders PDFs with hayro, reads PDFium's renders (pdfium.py), compares them with the committed PNGs and with each other; and render-diff (todo X3b), the nightly hayro-vs-PDFium diff through laminapdf-render's adapters. A tool: never a dependency of a crate."
+description = "Lamina PDF's render goldens (todo B5c, ADR 0018 tier 8): renders PDFs with hayro, reads PDFium's renders (pdfium.py), compares them with the committed PNGs and with each other; and render-diff (todo X3b), the nightly hayro-vs-PDFium diff through laminapdf-render's adapters. A tool: never a dependency of a crate."
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.99"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/laudebugs/lamina"
+repository = "https://github.com/laudebugs/laminapdf"
 publish = false
 # Two binaries: `render-golden` (the default, `cargo xtask render-golden`) and `render-diff`
 # (`cargo xtask render-diff`, the nightly hayro-vs-PDFium diff through laminapdf-render, todo X3b).

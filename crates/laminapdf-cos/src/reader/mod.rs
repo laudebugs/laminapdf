@@ -196,7 +196,7 @@ type ObjStmMembers = Arc<Vec<(u32, laminapdf_syntax::Result<Arc<Object>>)>>;
 /// Repairs are reported as [`Warning`]s, raised at open or lazily as objects are resolved
 /// ([`Document::warnings`]), or refused with [`Error::Strict`] in strict mode.
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #[expect(
     clippy::struct_excessive_bools,
     reason = "independent facts about the opened file, not states of one machine"
@@ -276,7 +276,7 @@ const fn must_propagate(e: &Error) -> bool {
 }
 
 /// Encryption errors that no repair can get around: the password is wrong or missing, or the
-/// handler is one lamina can't decrypt.
+/// handler is one Lamina PDF can't decrypt.
 const fn is_security_refusal(e: &Error) -> bool {
     matches!(
         e,

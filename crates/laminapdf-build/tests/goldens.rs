@@ -1,5 +1,5 @@
 //! ADR 0018 tier 3: every golden `laminapdf-build` owns is rebuilt byte for byte, twice the same,
-//! and reads back cleanly: lamina's reader and model open it without warnings and
+//! and reads back cleanly: Lamina PDF's reader and model open it without warnings and
 //! `laminapdf-content` interprets every page without content warnings.
 #![allow(
     clippy::unwrap_used,

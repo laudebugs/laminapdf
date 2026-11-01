@@ -211,7 +211,7 @@ export class RenderError extends Error {
   /**
    * The ADR 0026 §1 object: what crosses a worker boundary (structured clone keeps neither a
    * custom error name nor own properties). `@laminapdf/sdk`'s worker posts it, and the page gets
-   * a `LaminaError` with the same code, message and `ranges`. A `data-pending` lists its ranges
+   * a `LaminaPdfError` with the same code, message and `ranges`. A `data-pending` lists its ranges
    * as `[offset, length]` pairs in `data.ranges`, as the Rust core does. It carries no hint.
    */
   toDiagnostic(): RenderDiagnostic {
@@ -230,7 +230,7 @@ export class RenderError extends Error {
  * test/codes.test.ts checks that `toDiagnostic()`'s URLs agree. Hand-copied, like KINDS, until
  * this package's code tables are generated.
  */
-const DOCS_URL = { base: "https://github.com/laudebugs/lamina/blob/main/docs/errors/", suffix: ".md" } as const;
+const DOCS_URL = { base: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/", suffix: ".md" } as const;
 
 /** A RenderError as the ADR 0026 §1 object (see {@link RenderError.toDiagnostic}). */
 export interface RenderDiagnostic {

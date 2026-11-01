@@ -1,5 +1,5 @@
-//! lamina's facts (outcome, page count, outline titles) for every file in a list, as JSON:
-//! lamina's side of the nightly lane's live differential (`cargo xtask differential --live`),
+//! Lamina PDF's facts (outcome, page count, outline titles) for every file in a list, as JSON:
+//! Lamina PDF's side of the nightly lane's live differential (`cargo xtask differential --live`),
 //! computed by the same code as the PR lane's `tests/differential.rs`.
 //!
 //! The list has one `<name>\t<path>` line per file; the output maps each name to its facts.

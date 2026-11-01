@@ -76,7 +76,7 @@ fn cipher_of(filter: &Dict) -> Result<Cipher> {
     }
 }
 
-/// `/V` and `/R` of a standard security handler lamina can read: V1/V2 with R2/R3, V4 with R4,
+/// `/V` and `/R` of a standard security handler Lamina PDF can read: V1/V2 with R2/R3, V4 with R4,
 /// V5 with R5/R6.
 fn handler_revision(encrypt: &Dict) -> Result<(i64, u8)> {
     let version = encrypt.get_int("V").unwrap_or(0);

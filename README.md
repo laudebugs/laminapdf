@@ -1,6 +1,6 @@
-# lamina
+# Lamina PDF
 
-lamina creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime.
+Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime.
 
 **Documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, examples and the API reference.
 
@@ -19,7 +19,7 @@ const bytes = builder.finish().save(); // a Uint8Array holding the PDF
 
 ## What's here
 
-lamina's core is Rust. The `laminapdf` crate is its API, over the core crates `laminapdf-syntax`, `laminapdf-cos`, `laminapdf-model`, `laminapdf-ops`, `laminapdf-save`, `laminapdf-content`, `laminapdf-text` and `laminapdf-build`. Its WebAssembly build is `@laminapdf/wasm`, and `@laminapdf/sdk` is the TypeScript API over it. The web viewer is `@laminapdf/viewer`, with its renderers in `@laminapdf/render`, `-pdfium` and `-hayro`.
+Lamina PDF's core is Rust. The `laminapdf` crate is its API, over the core crates `laminapdf-syntax`, `laminapdf-cos`, `laminapdf-model`, `laminapdf-ops`, `laminapdf-save`, `laminapdf-content`, `laminapdf-text` and `laminapdf-build`. Its WebAssembly build is `@laminapdf/wasm`, and `@laminapdf/sdk` is the TypeScript API over it. The web viewer is `@laminapdf/viewer`, with its renderers in `@laminapdf/render`, `-pdfium` and `-hayro`.
 
 The docs site is built from [`apps/docs/`](apps/docs/README.md): run `pnpm install`, then `pnpm --filter @laminapdf/docs dev`. Decisions are recorded as [ADRs](docs/decisions/README.md); the plans and the todo board are in [`docs/`](docs/README.md).
 

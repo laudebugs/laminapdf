@@ -8,7 +8,7 @@
 //! ```
 //!
 //! Every `<name>\t<path>` line of the list is opened with `laminapdf-render`'s hayro adapter and
-//! its PDFium adapter (the library in `--pdfium-dir`, else `LAMINA_PDFIUM_DIR`; `cargo xtask
+//! its PDFium adapter (the library in `--pdfium-dir`, else `LAMINA_PDF_PDFIUM_DIR`; `cargo xtask
 //! fetch-pdfium`), and each page (the first
 //! `N`) is rendered by both at the same DPI with the hayro-parity spike's settings (white
 //! background, annotations and form widgets on, the longest side capped at 3000 px by the same
@@ -169,7 +169,7 @@ fn run(args: &Args) -> Result<()> {
                 None => PdfiumBackend::from_env(),
             };
             Some(bound.context(
-                "binding PDFium: run `cargo xtask fetch-pdfium`, pass --pdfium-dir or set LAMINA_PDFIUM_DIR",
+                "binding PDFium: run `cargo xtask fetch-pdfium`, pass --pdfium-dir or set LAMINA_PDF_PDFIUM_DIR",
             )?)
         };
     let list = fs::read_to_string(&args.list).with_context(|| format!("reading {}", args.list.display()))?;

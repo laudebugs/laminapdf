@@ -47,6 +47,16 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
 
 **Amendment (owner, 2026-11-01):** the crates are named **`laminapdf-*`** and the façade **`laminapdf`**, not `lamina-*` and `lamina`, because `lamina` on crates.io belongs to an unrelated project. The names now match the npm scope and the domain. The crate directories follow (`crates/laminapdf-<name>`), and so do the Rust paths (`laminapdf_cos::…`). The product is still called lamina, and the `@laminapdf/wasm` module files (`lamina_base`, `lamina_text`, `lamina_extract`, `lamina_render_hayro`) keep their names ([P0b](../todos/done/P0b-crate-names-laminapdf.md)).
 
+**Amendment (owner, 2026-11-01, later):** the product is **Lamina PDF**, and the public names that kept the old one follow it before anything is published ([P0c](../todos/done/P0c-lamina-pdf-names.md)):
+
+- `@laminapdf/wasm`'s modules are `lamina_pdf_base`, `lamina_pdf_text`, `lamina_pdf_extract` and `lamina_pdf_render_hayro`.
+- TypeScript names say `LaminaPdf`: `LaminaPdfError`, `isLaminaPdfError`, `LaminaPdfWarning`.
+- Schema IDs start with `laminapdf.` (`laminapdf.error/1`, [ADR 0026](0026-error-and-diagnostic-contract.md)).
+- Environment variables start with `LAMINA_PDF_`, the crates' table is `[package.metadata.laminapdf]`, and the planned command-line program is `laminapdf`.
+
+Rust type names such as `LaminaId` keep theirs. The site is laminapdf.com and the repository `laudebugs/laminapdf`.
+
+
 The detailed rules (naming, dependency direction, public API, tests, configuration inheritance, generated code, when to split a crate) are in [`docs/guidelines/code-organization.md`](../guidelines/code-organization.md). Where this ADR and the guide disagree, update one of them in the same PR so they agree again.
 
 ## Consequences

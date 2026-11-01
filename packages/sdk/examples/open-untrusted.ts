@@ -1,7 +1,7 @@
 // Open bytes from someone else: a password, tighter limits than the defaults, and the outcome as
 // a value rather than an exception (the docs site's encrypted files, limits and errors guides).
 // It has no Rust golden: it writes nothing; test/examples.test.ts checks what it reports.
-import { Document, isLaminaError } from "@laminapdf/sdk";
+import { Document, isLaminaPdfError } from "@laminapdf/sdk";
 
 /** What opening a file gave: its page count and warning codes, or why it didn't open. */
 export type Opened =
@@ -25,9 +25,9 @@ export function openUntrusted(bytes: Uint8Array, password = ""): Opened {
       doc.free();
     }
   } catch (e) {
-    // `password-required`, `wrong-password`, `not-pdf`, `limit-exceeded`, …: a coded LaminaError
+    // `password-required`, `wrong-password`, `not-pdf`, `limit-exceeded`, …: a coded LaminaPdfError
     // whose message and hint never contain text from the file (ADR 0026 §4).
-    if (isLaminaError(e)) return { ok: false, code: e.code, hint: e.hint };
+    if (isLaminaPdfError(e)) return { ok: false, code: e.code, hint: e.hint };
     throw e;
   }
 }

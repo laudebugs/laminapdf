@@ -1,5 +1,5 @@
-// LaminaError and LaminaWarning (ADR 0026 §1, §7): every error @laminapdf/sdk throws is a
-// LaminaError built from the §1 object the WASM throws, or raised here with the kind and hint
+// LaminaPdfError and LaminaPdfWarning (ADR 0026 §1, §7): every error @laminapdf/sdk throws is a
+// LaminaPdfError built from the §1 object the WASM throws, or raised here with the kind and hint
 // codes.json gives the code.
 import { docsUrl, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type WarningCode } from "./generated/codes.js";
 
@@ -19,7 +19,7 @@ export interface Location {
   readonly id?: string;
 }
 
-/** The ADR 0026 §1 object: what `LaminaError.toJSON()` returns and the WASM throws. */
+/** The ADR 0026 §1 object: what `LaminaPdfError.toJSON()` returns and the WASM throws. */
 export interface Diagnostic<C extends string = ErrorCode> {
   readonly code: C;
   readonly kind: ErrorKind;
@@ -32,10 +32,10 @@ export interface Diagnostic<C extends string = ErrorCode> {
 }
 
 /**
- * A warning: something lamina repaired or skipped (ADR 0003, ADR 0026 §1). The §1 object without
+ * A warning: something Lamina PDF repaired or skipped (ADR 0003, ADR 0026 §1). The §1 object without
  * `didYouMean`; document text appears only in `data`.
  */
-export type LaminaWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
+export type LaminaPdfWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
 
 /**
  * The one error class of `@laminapdf/sdk` (ADR 0026 §7). `message`, `hint` and `didYouMean` never
@@ -47,20 +47,20 @@ export type LaminaWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
  * try {
  *   Document.open(bytes, { password: "secret" });
  * } catch (e) {
- *   if (isLaminaError(e, "wrong-password")) askAgain();
+ *   if (isLaminaPdfError(e, "wrong-password")) askAgain();
  *   else throw e;
  * }
  * ```
  */
-export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
-  override readonly name = "LaminaError";
+export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
+  override readonly name = "LaminaPdfError";
   /** The stable code (`fixtures/codes.json`). */
   readonly code: C;
   /** What the caller can do about it. */
   readonly kind: ErrorKind;
   /** One actionable sentence for this code. */
   readonly hint?: string;
-  /** For `usage` errors: the closest known names (lamina's own vocabulary). */
+  /** For `usage` errors: the closest known names (Lamina PDF's own vocabulary). */
   readonly didYouMean?: readonly string[];
   /** Where in the input or the document. */
   readonly location?: Location;
@@ -115,14 +115,14 @@ export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
 }
 
 /**
- * Whether `e` is a {@link LaminaError}, with `code` when given.
+ * Whether `e` is a {@link LaminaPdfError}, with `code` when given.
  *
  * @param e - anything caught.
  * @param code - the code to match.
- * @returns true for a LaminaError (with that code).
+ * @returns true for a LaminaPdfError (with that code).
  */
-export function isLaminaError<C extends ErrorCode>(e: unknown, code?: C): e is LaminaError<C> {
-  return e instanceof LaminaError && (code === undefined || e.code === code);
+export function isLaminaPdfError<C extends ErrorCode>(e: unknown, code?: C): e is LaminaPdfError<C> {
+  return e instanceof LaminaPdfError && (code === undefined || e.code === code);
 }
 
 /** Whether `value` is the §1 object the WASM throws. */
@@ -132,15 +132,15 @@ export function isDiagnostic(value: unknown): value is Diagnostic<ErrorCode> {
   return typeof v.code === "string" && typeof v.kind === "string" && typeof v.docsUrl === "string";
 }
 
-/** A LaminaError for a code `@laminapdf/sdk` raises itself (kind and hint from codes.json). */
+/** A LaminaPdfError for a code `@laminapdf/sdk` raises itself (kind and hint from codes.json). */
 export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
   code: C,
   message: string,
   extra: Pick<Diagnostic<C>, "didYouMean" | "data"> & { readonly cause?: unknown } = {},
-): LaminaError<C> {
+): LaminaPdfError<C> {
   const { kind, hint } = RAISED_BY_PACKAGE[code];
   const { cause, ...fields } = extra;
-  return new LaminaError<C>(
+  return new LaminaPdfError<C>(
     { code, kind, message, hint, ...fields, docsUrl: docsUrl(code) },
     cause === undefined ? undefined : { cause },
   );
@@ -169,13 +169,13 @@ export function didYouMean(given: string, known: readonly string[]): string[] {
 }
 
 /**
- * Runs `f`, turning the §1 object the WASM throws into a {@link LaminaError}. Other errors (a
+ * Runs `f`, turning the §1 object the WASM throws into a {@link LaminaPdfError}. Other errors (a
  * `RangeError`, a trap) pass through unchanged.
  */
 export function guard<T>(f: () => T): T {
   try {
     return f();
   } catch (e) {
-    throw isDiagnostic(e) ? new LaminaError(e) : e;
+    throw isDiagnostic(e) ? new LaminaPdfError(e) : e;
   }
 }

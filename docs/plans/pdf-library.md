@@ -57,7 +57,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 6. **Conformance profiles** (B8): `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` (associated files). Missing alt text, missing `Lang` or title, content that is neither tagged nor marked as an artifact, a link without a `Link` structure element and `/Contents`, an unembedded font or an unmapped glyph is an error at `finish()`.
 7. **Read/edit path.** `Document::open(source, OpenOptions)` (`Limits`, strict mode and an optional password; [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (standard security handler, read only: RC4 and AES-128 for R2–R4, AES-256 for R5/R6, [04 §7.2](../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)), typed read views (pages, outline, metadata), `transact`, undo, `save({ mode: "auto" | "incremental" | "full" })` with `SaveConstraint` honoured (ADRs 0005–0007).
 8. **Text extraction** (B9): per page, glyph runs with Unicode text (ToUnicode first, then encoding and glyph-name fallbacks, [03 §4–5](../research/pdf/03-text-and-fonts.md#4-encodings-965-in-pdf-20--966-in-iso-32000-1-975-annex-d)), font size, writing direction and a quad per glyph in page space; `ActualText` and MCIDs where present.
-9. **Errors and warnings.** One error type per crate and one `LaminaError` class with matching string codes in TS ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)) ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
+9. **Errors and warnings.** One error type per crate and one `LaminaPdfError` class with matching string codes in TS ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)) ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
 
 ### Non-functional
 
@@ -175,14 +175,14 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B2. Document model
 
-**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/lamina/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/lamina/pull/22)), [B2d](../todos/done/B2d-windowed-reading.md) (windowed reading; done in [#29](https://github.com/laudebugs/lamina/pull/29)), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`laminapdf-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
+**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/laminapdf/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/laminapdf/pull/22)), [B2d](../todos/done/B2d-windowed-reading.md) (windowed reading; done in [#29](https://github.com/laudebugs/laminapdf/pull/29)), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`laminapdf-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
 
 **Deliverable:** `laminapdf-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `laminapdf-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
 **Accepted when:** every file in `fixtures/corpus` opens or fails with a coded error; encrypted fixtures for every standard revision (R2, R3, R4 RC4, R4 AES-128, R5, R6; user and owner passwords; empty user password) open and match the unencrypted original's page count, outline and strings; a wrong password fails with a coded error; fuzz targets run 10 min in CI without a panic; page count and outline match pypdf's on the corpus.
 
 ### B3. Ops and save
 
-**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `laminapdf-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`laminapdf-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/lamina/pull/35)), [B3c](../todos/done/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip; done in [#50](https://github.com/laudebugs/lamina/pull/50)).
+**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `laminapdf-ops`, undo; done in [#31](https://github.com/laudebugs/laminapdf/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`laminapdf-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/laminapdf/pull/35)), [B3c](../todos/done/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip; done in [#50](https://github.com/laudebugs/laminapdf/pull/50)).
 
 **Deliverable:** `laminapdf-ops` (`Op`, `transact`, inverses, undo/redo) and `laminapdf-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
 **Accepted when:** open → op → save → reopen round-trips in lamina, pdf.js, PDFium and qpdf; signed fixtures report `AppendOnly` and refuse a full rewrite; undo restores byte-identical output.
@@ -274,8 +274,8 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Stable warning codes and strict mode; `fixtures/codes.json` checked against the Rust enums ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §2, §4) (B2a)
 - [x] Move the robustness tests' 30 s wall-clock budget to a nextest timeout ([ADR 0018](../decisions/0018-test-strategy.md)) (B2a)
 - [x] Windowed reading for sources without `as_slice` (64 KiB windows, chunked repair scan, `DataPending` with only the needed windows; [ADR 0005](../decisions/0005-document-model.md) §2) ([B2d](../todos/done/B2d-windowed-reading.md))
-- [x] Standard security handler decryption in `laminapdf-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata` (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
-- [x] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
+- [x] Standard security handler decryption in `laminapdf-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata` (B2b, [#22](https://github.com/laudebugs/laminapdf/pull/22))
+- [x] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code (B2b, [#22](https://github.com/laudebugs/laminapdf/pull/22))
 - [x] Assign `LaminaId`s to pages and outline items; test stability across reopen (B2c; also across an incremental save, and path IDs for direct pages)
 - [x] Add `fixtures/corpus/expected.json` facts (page count, outline titles) and a corpus test (B2c; written by `tools/corpus-facts`, exceptions in `exceptions.toml`)
 - [x] Add `fuzz/` targets for open and page-tree walk; run 10 min in CI (B2c: `lex`, `parse_object`, `flate_decode`, `open`, `page_tree`; scheduled in `nightly.yml` since [X3a](../todos/done/X3a-nightly-lane.md))
@@ -313,7 +313,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B6. WASM and `@laminapdf/sdk`
 
 - [x] Create `crates/laminapdf-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt` ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md); `-O1`, which gzips smaller than `-Oz`, ADR 0016 §5)
-- [x] Create `packages/sdk` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust ([B6b](../todos/done/B6b-lamina-pdf-package.md))
+- [x] Create `packages/sdk` with `init()`, `Builder`, `Document`, `Font`, `LaminaPdfError` codes matching Rust ([B6b](../todos/done/B6b-lamina-pdf-package.md))
 - [x] Add export conditions and validate with publint and `attw --pack` ([B6b](../todos/done/B6b-lamina-pdf-package.md))
 - [x] Write ADR 0016 with measured sizes; decide split WASM modules ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), [ADR 0016](../decisions/0016-package-design.md): base + text)
 - [x] Add size-budget checks to CI (WASM gz, JS min+gz) ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): `cargo xtask size`, the fast lane's `wasm` job; the TS API's share with B6b)

@@ -128,7 +128,7 @@ jobs:
   # The @laminapdf/wasm modules (ADR 0016): built, tested in Node (wasm-bindgen-test and the
   # package's smoke test), and measured against the size budgets, failing above them.
   wasm:
-    name: WASM (lamina_base + lamina_text, Node tests, size budgets)
+    name: WASM (lamina_pdf_base + lamina_pdf_text, Node tests, size budgets)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]

@@ -16,7 +16,7 @@
 //   fires and the caller opens again with the password.
 
 import type { RenderRequest } from "@laminapdf/render";
-import { isLaminaError } from "@laminapdf/sdk";
+import { isLaminaPdfError } from "@laminapdf/sdk";
 import {
   connect,
   Emitter,
@@ -41,11 +41,11 @@ import {
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
 const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 
-/** `ViewerClient.create`'s options: the backend, lamina's WebAssembly, the timeouts, the worker and a signal to stop starting. */
+/** `ViewerClient.create`'s options: the backend, Lamina PDF's WebAssembly, the timeouts, the worker and a signal to stop starting. */
 export interface ViewerOptions {
   /** The render engine; PDFium needs its `.wasm` URL from your bundler (`pdfium.wasm?url`). */
   readonly backend: BackendInit;
-  /** Where the worker loads lamina's own WebAssembly from (`@laminapdf/sdk/worker`'s `init`). */
+  /** Where the worker loads Lamina PDF's own WebAssembly from (`@laminapdf/sdk/worker`'s `init`). */
   readonly lamina?: WorkerWasmSource | WorkerInitOptions;
   /** Render timeouts in ms (`soft` emits `render-slow`; `hard` restarts or emits `render-stuck`). */
   readonly timeouts?: { readonly soft?: number; readonly hard?: number };
@@ -93,7 +93,7 @@ function workerFactory(): Worker {
 }
 
 function abortError(e: unknown): unknown {
-  return isLaminaError(e, "cancelled") ? new DOMException("the call was cancelled", "AbortError") : e;
+  return isLaminaPdfError(e, "cancelled") ? new DOMException("the call was cancelled", "AbortError") : e;
 }
 
 /** One document worker and the typed RPC to it. */
@@ -186,7 +186,7 @@ export class ViewerClient {
   }
 
   /**
-   * Opens `source` in the worker (lamina and the backend, from the same bytes). The password is
+   * Opens `source` in the worker (Lamina PDF and the backend, from the same bytes). The password is
    * sent once and kept only in the worker; a Blob is sent by reference, bytes are copied (and
    * kept here, so a restarted worker can reopen them).
    */

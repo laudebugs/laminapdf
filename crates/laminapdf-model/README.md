@@ -1,6 +1,6 @@
 # laminapdf-model
 
-Typed, tolerant views over a PDF's COS graph and the stable `LaminaId`s that ops, undo and sync address ([ADR 0005](../../docs/decisions/0005-document-model.md) §4–§5). Part of lamina's pure core: bytes in, bytes out.
+Typed, tolerant views over a PDF's COS graph and the stable `LaminaId`s that ops, undo and sync address ([ADR 0005](../../docs/decisions/0005-document-model.md) §4–§5). Part of Lamina PDF's pure core: bytes in, bytes out.
 
 - `Document`: a `laminapdf_cos::Document` (it dereferences to one) plus the document-level `IdAllocator`, a view of the COS overlay's number allocator (new objects' IDs come from the numbers it reserves). Views read through the overlay, so they see edits made by [`laminapdf-ops`](../laminapdf-ops/README.md); `cos_mut()` is the write access `laminapdf-ops` keeps private.
 - `Pages` / `Page`: boundary boxes as normalised `UserSpaceRect`s (crop, bleed, trim and art boxes clipped and defaulted as §14.11.2 says), `Rotation`, user unit, the `PageFrame`, resources, contents and annotation references, page labels. The boxes, rotation, user unit and frame are read once per page and cached in `Pages`, so their warnings are raised once.

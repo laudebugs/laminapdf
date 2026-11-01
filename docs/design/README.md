@@ -1,6 +1,6 @@
 # Design
 
-lamina's visual design. The owner chose the **Paper** direction on 2026-10-29 ([Paper design plan](../plans/paper-design.md)); the interaction rules it draws are in the [UI/UX plan](../plans/ui-ux.md).
+Lamina PDF's visual design. The owner chose the **Paper** direction on 2026-10-29 ([Paper design plan](../plans/paper-design.md)); the interaction rules it draws are in the [UI/UX plan](../plans/ui-ux.md).
 
 | Document | What it is |
 | --- | --- |

@@ -1,6 +1,6 @@
 //! The PDFium adapter through the public trait. Every test needs the PDFium library, so all are
 //! `#[ignore]`d: `cargo xtask render-golden` runs them after `fetch-pdfium` (or
-//! `LAMINA_PDFIUM_DIR=… cargo test -p laminapdf-render-pdfium -- --ignored`).
+//! `LAMINA_PDF_PDFIUM_DIR=… cargo test -p laminapdf-render-pdfium -- --ignored`).
 #![allow(
     clippy::unwrap_used,
     clippy::panic,

@@ -1,5 +1,5 @@
 //! The standard 14 fonts and simple-font encodings (todo B4c): metrics against the bundled AFM
-//! files, the encoding tables, text encoding, and the simple font dictionaries lamina writes.
+//! files, the encoding tables, text encoding, and the simple font dictionaries Lamina PDF writes.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,

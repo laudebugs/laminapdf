@@ -142,7 +142,7 @@ impl Standard14 {
         }
     }
 
-    /// The encoding lamina writes text in: `WinAnsiEncoding` for the Latin fonts (with
+    /// The encoding Lamina PDF writes text in: `WinAnsiEncoding` for the Latin fonts (with
     /// `/Differences` for glyphs it lacks), the built-in encoding for the symbolic ones.
     #[must_use]
     pub const fn text_encoding(self) -> Encoding {

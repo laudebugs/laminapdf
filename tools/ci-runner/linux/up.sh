@@ -38,7 +38,7 @@ install -m 0755 "$here/loop.sh" "$SUPPORT_DIR/loop.sh"
 install -m 0644 "$here/common.sh" "$SUPPORT_DIR/common.sh"
 
 # launchd starts agents with a bare environment: give it the directories of docker and gh, and
-# the settings from common.sh (with any LAMINA_RUNNER_* overrides this run was given).
+# the settings from common.sh (with any LAMINA_PDF_RUNNER_* overrides this run was given).
 path="$(dirname "$(command -v docker)"):$(dirname "$(command -v gh)"):/usr/bin:/bin:/usr/sbin:/sbin"
 cat >"$PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -51,10 +51,10 @@ cat >"$PLIST" <<PLIST
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key><string>$path</string>
-    <key>LAMINA_RUNNER_REPO</key><string>$REPO</string>
-    <key>LAMINA_RUNNER_NAME</key><string>$NAME</string>
-    <key>LAMINA_RUNNER_IMAGE</key><string>$IMAGE</string>
-    <key>LAMINA_RUNNER_AGENT</key><string>$LABEL</string>
+    <key>LAMINA_PDF_RUNNER_REPO</key><string>$REPO</string>
+    <key>LAMINA_PDF_RUNNER_NAME</key><string>$NAME</string>
+    <key>LAMINA_PDF_RUNNER_IMAGE</key><string>$IMAGE</string>
+    <key>LAMINA_PDF_RUNNER_AGENT</key><string>$LABEL</string>
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

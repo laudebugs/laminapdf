@@ -1,7 +1,7 @@
 # `unsupported-image`
 
 - Type: error
-- Kind: `unsupported` (valid input that lamina doesn't implement)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 

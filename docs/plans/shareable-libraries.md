@@ -14,7 +14,7 @@ Make lamina's libraries good for three kinds of user at once: frontend and mobil
 1. **One contract** across every surface: errors, coordinates and units, jobs and cancellation, versioned JSON schemas.
 2. **TypeScript hardening:** a worker client, disposal and memory bounds, range loading.
 3. **AI-ready extraction:** reading order, tables, Markdown and JSON with bounding boxes for citations.
-4. **A CLI** (`lamina`) for humans and agents, with a thin MCP mode.
+4. **A CLI** (`laminapdf`) for humans and agents, with a thin MCP mode.
 5. **Docs for agents:** `llms.txt`, docs shipped in the packages.
 6. **Mobile:** a `lamina-ffi` spike (UniFFI), then a mobile SDK plan.
 
@@ -48,7 +48,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
-5. **Versioned schemas and deterministic output:** every JSON output carries a schema id (`lamina.extract/1`, `lamina.info/1`); new keys may appear within a version, consumers ignore unknown keys (qpdf's contract).
+5. **Versioned schemas and deterministic output:** every JSON output carries a schema id (`laminapdf.extract/1`, `laminapdf.info/1`); new keys may appear within a version, consumers ignore unknown keys (qpdf's contract).
 6. **Separate binaries for heavy features:** wasm code cannot be tree-shaken, so render, extract and sign are separate `.wasm` modules with their own budgets; the 350 KB gz budget covers the base module only.
 7. **Rules in core, models as plug-ins:** extraction is rule-based and dependency-light; layout and OCR models implement traits in optional edge crates with licence-clean weights.
 
@@ -82,10 +82,10 @@ const md = await doc.extract({ format: "markdown", pages: "1-5" });
 
 ```sh
 # lamina CLI (L4): pipe-friendly, JSON for agents, exit codes 0 ok / 1 failure / 2 usage / 3 warnings / 4 needs --force / 5 password
-cat invoice.pdf | lamina extract - --format md > invoice.md
-lamina info report.pdf --json | jq '.pages'
-lamina pages merge a.pdf b.pdf:1-z:odd -o out.pdf
-lamina mcp --root ./docs                               # stdio MCP server over the same commands; read-only unless --allow-write
+cat invoice.pdf | laminapdf extract - --format md > invoice.md
+laminapdf info report.pdf --json | jq '.pages'
+laminapdf pages merge a.pdf b.pdf:1-z:odd -o out.pdf
+laminapdf mcp --root ./docs                               # stdio MCP server over the same commands; read-only unless --allow-write
 ```
 
 ## 6. Decisions to record (ADRs)
@@ -98,7 +98,7 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 | [0027](../decisions/0027-coordinates-units-and-page-indexing.md) (Accepted, owner 2026-10-29) | Coordinates, units and page indexing in public APIs | [L1a](../todos/done/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted, owner 2026-10-29) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
 | [0029](../decisions/0029-mobile-bindings-and-packaging.md) (Accepted, 2026-10-30) | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
-| 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
+| 0030 | Extraction output (`laminapdf.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 
 ## 7. Rounds
@@ -110,7 +110,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 **Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1c](../todos/done/L1c-error-contract-core.md) (kinds, hints and tagged locations in the Rust core, before B5c), [L1b](../todos/done/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
-**Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (the class is `LaminaError`, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §7); a change to `codes.json` without regenerating fails CI.
+**Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (the class is `LaminaPdfError`, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §7); a change to `codes.json` without regenerating fails CI.
 
 ### L2. TypeScript hardening
 
@@ -123,12 +123,12 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 **Todos:** [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) (ADR 0030, `laminapdf-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
 
-**Deliverable:** `laminapdf-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `lamina.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
+**Deliverable:** `laminapdf-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `laminapdf.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
 **Accepted when:** reading-order and table scores are measured on a public benchmark subset and recorded; every block carries a bbox in top-left points; hidden text never appears in Markdown and is flagged in JSON.
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`lamina mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
+**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
 **Deliverable:** the `laminapdf` binary (`crates/laminapdf-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
@@ -185,7 +185,7 @@ This plan adjusts these todos (edited in the same PR):
 
 - [ ] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
 - [ ] Batch and NDJSON, `--jobs`, `render`, Markdown/JSON extraction, `schema`, completions, man pages
-- [ ] `lamina mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
+- [ ] `laminapdf mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages
 
 ### L5. Docs for agents

@@ -56,15 +56,15 @@ pub struct PageInfo { pub index: u32, pub width_pt: f32, pub height_pt: f32, pub
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Error))]
-pub enum LaminaError { #[error("malformed PDF: {0}")] Malformed(String),
+pub enum LaminaPdfError { #[error("malformed PDF: {0}")] Malformed(String),
                        #[error("limit exceeded: {0}")] LimitExceeded(String),
                        #[error("cancelled")] Cancelled }
 
 impl Document {
-    pub fn open(bytes: Vec<u8>, opts: OpenOptions) -> Result<Self, LaminaError> { /* … */ }
+    pub fn open(bytes: Vec<u8>, opts: OpenOptions) -> Result<Self, LaminaPdfError> { /* … */ }
     pub fn page_count(&self) -> u32 { /* … */ }
-    pub fn page_info(&self, i: u32) -> Result<PageInfo, LaminaError> { /* … */ }
-    pub fn save(&self, cancel: &CancelToken) -> Result<Vec<u8>, LaminaError> { /* … */ }
+    pub fn page_info(&self, i: u32) -> Result<PageInfo, LaminaPdfError> { /* … */ }
+    pub fn save(&self, cancel: &CancelToken) -> Result<Vec<u8>, LaminaPdfError> { /* … */ }
 }
 pub struct CancelToken(Arc<AtomicBool>);   // polled in long loops (save, render, text extraction)
 
@@ -87,11 +87,11 @@ impl WasmDocument {
 #[uniffi::export]
 impl FfiDocument {
     #[uniffi::constructor]
-    pub fn open(bytes: Vec<u8>, opts: laminapdf::OpenOptions) -> Result<Arc<Self>, laminapdf::LaminaError> {
+    pub fn open(bytes: Vec<u8>, opts: laminapdf::OpenOptions) -> Result<Arc<Self>, laminapdf::LaminaPdfError> {
         laminapdf::Document::open(bytes, opts).map(|d| Arc::new(Self(d))) }
     pub fn page_count(&self) -> u32 { self.0.page_count() }
-    pub fn page_info(&self, i: u32) -> Result<laminapdf::PageInfo, laminapdf::LaminaError> { self.0.page_info(i) }
-    pub fn save(&self, c: Arc<FfiCancel>) -> Result<Vec<u8>, laminapdf::LaminaError> { self.0.save(&c.0) } // → Data / ByteArray
+    pub fn page_info(&self, i: u32) -> Result<laminapdf::PageInfo, laminapdf::LaminaPdfError> { self.0.page_info(i) }
+    pub fn save(&self, c: Arc<FfiCancel>) -> Result<Vec<u8>, laminapdf::LaminaPdfError> { self.0.save(&c.0) } // → Data / ByteArray
 }
 uniffi::setup_scaffolding!();
 ```
@@ -129,7 +129,7 @@ Comparable Rust WASM libraries sit far above lamina's ≤350 KB gz budget once t
 - Profile (lamina already has `wasm-release`): `opt-level = "z"` (try `"s"`, often similar size and faster), `lto = "fat"`, `codegen-units = 1`, `panic = "abort"`, `strip = true`, then `wasm-opt -Oz --enable-bulk-memory` (plus `--converge` if time allows). **[prior knowledge]** This typically gives 15–30% over an un-opted release build.
 - **std::fmt bloat** **[prior knowledge]**: every `format!`/`{:?}`/`panic!` message pulls in `core::fmt` (~20–40 KB). Avoid `Debug` derives in hot error paths of wasm builds, use static `&'static str` + code error variants, and `-Zlocation-detail=none` / `-Zfmt-debug=none` (nightly) for size builds. Panic messages vanish with `panic_immediate_abort` (`-Zbuild-std-features`, nightly).
 - **Feature gates:** `render`, `text-shaping` (HarfRust + ICU4X data, the biggest risk: ICU4X segmenter/normaliser data can be hundreds of KB, so use `icu_provider` baked data with a minimal locale/key set), `sign` (RustCrypto + rsa bignum), `jpx`/`jbig2` decoders. hayro-interpret already depends on `skrifa`, `moxcms` and `phf` — [crates.io hayro-interpret 0.8.0 deps](https://crates.io/api/v1/crates/hayro-interpret/0.8.0/dependencies) — so render pulls in font and colour management.
-- **Split modules:** ship `lamina_core.wasm` (parse/model/ops/save, target ≤350 KB gz), `lamina_render.wasm`, `lamina_text.wasm`, `laminapdf_sign.wasm` loaded on demand. Separate wasm-bindgen modules don't share memory, so pass bytes/handles across by serialisation. The other route is `wasm-split` (single build, lazily loaded chunks, sharing one memory), which is newer and less proven.
+- **Split modules:** ship `lamina_core.wasm` (parse/model/ops/save, target ≤350 KB gz), `laminapdf_render.wasm`, `lamina_pdf_text.wasm`, `laminapdf_sign.wasm` loaded on demand. Separate wasm-bindgen modules don't share memory, so pass bytes/handles across by serialisation. The other route is `wasm-split` (single build, lazily loaded chunks, sharing one memory), which is newer and less proven.
 - Enforce the budget in CI (`cargo xtask wasm` + gzip size check + `twiggy top`/`twiggy dominators` diff on PRs).
 - Native: **[prior knowledge]** iOS static `.a` files are large before linking (LLVM bitcode/metadata), but the app-size cost after dead-strip is what matters; measure with an Xcode app-thinning report. Android `.so` per ABI with `opt-level="z"`, LTO, `strip` is typically 1.5–3× the gz wasm size. Ship only `arm64-v8a` (+ `x86_64` for emulators).
 

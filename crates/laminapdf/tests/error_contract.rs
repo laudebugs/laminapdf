@@ -1,7 +1,7 @@
 //! ADR 0026: the error contract from the Rust side.
 //!
 //! - Every error and warning serialises to JSON that validates against the generated
-//!   `lamina.error/1` schema (`crates/laminapdf/schemas/error.schema.json`).
+//!   `laminapdf.error/1` schema (`crates/laminapdf/schemas/error.schema.json`).
 //! - The shared cases of `fixtures/errors/contract.json` (ADR 0018 §5) give exactly the
 //!   expected object; `packages/sdk/test/codes.test.ts` checks the same cases through the WASM.
 //! - No `message` or `hint` carries document text (§4): `fixtures/errors/marker-text.pdf`
@@ -40,7 +40,7 @@ fn json(rel: &str) -> Value {
     serde_json::from_slice(&read(rel)).unwrap()
 }
 
-/// The compiled `lamina.error/1` schema.
+/// The compiled `laminapdf.error/1` schema.
 struct Schema {
     schemas: boon::Schemas,
     index: boon::SchemaIndex,
@@ -60,7 +60,7 @@ impl Schema {
     /// Fails with the schema's report when `value` does not validate.
     fn check(&self, value: &Value) {
         if let Err(e) = self.schemas.validate(value, self.index) {
-            panic!("{value} does not match lamina.error/1:\n{e}");
+            panic!("{value} does not match laminapdf.error/1:\n{e}");
         }
     }
 }

@@ -2,7 +2,7 @@
 //!
 //! Two sets: [`all`], four per corpus file, which the fast lane checks, and [`full`], the
 //! full lane's [`FULL_PER_FILE`] per file (`cargo xtask differential --full`). Shared by
-//! `tests/differential.rs` (which compares lamina with the precomputed pypdf facts) and
+//! `tests/differential.rs` (which compares Lamina PDF with the precomputed pypdf facts) and
 //! `examples/differential-inputs.rs` (which writes the same files for
 //! `cargo xtask differential --update`), so both always see the same bytes.
 

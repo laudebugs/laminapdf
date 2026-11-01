@@ -34,7 +34,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
 - **Environments are two Workers,** so a staging deploy can never replace production. Both come from one `wrangler.jsonc` with a Wrangler environment `staging`.
   - **`lamina-web-staging`:** custom domain `staging.laminapdf.com`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
   - **`lamina-web`:** custom domain `laminapdf.com`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
-- **`noindex`:** the build takes the environment as an input (`LAMINA_ENV=staging|production`) and writes `_headers` from one template. Staging and preview builds add `X-Robots-Tag: noindex`; production doesn't. Everything else in §4 is identical, and C4d compares the two files.
+- **`noindex`:** the build takes the environment as an input (`LAMINA_PDF_ENV=staging|production`) and writes `_headers` from one template. Staging and preview builds add `X-Robots-Tag: noindex`; production doesn't. Everything else in §4 is identical, and C4d compares the two files.
 - **Assets:**
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.

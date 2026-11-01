@@ -1,4 +1,4 @@
-# lamina documentation
+# Lamina PDF documentation
 
 Everything we know, plan and decide lives here, in Markdown, versioned with the code.
 
@@ -22,7 +22,7 @@ Time-boxed experiments under [`spikes/`](../spikes/) that answer one question ea
 | Spike | Question | Result |
 | --- | --- | --- |
 | [`pdf-basics`](../spikes/pdf-basics/) | Rust or TypeScript for the core? | Rust core (ADR 0001); see [research ch. 07](research/pdf/07-spike-rust-and-typescript.md) |
-| [`krilla-fit`](../spikes/krilla-fit/README.md) | Can krilla generate into lamina's object graph? | No (bytes only). Recommends an own builder over `laminapdf-cos` reusing `pdf-writer`, `subsetter`, `skrifa`, HarfRust; recorded in ADR 0005 §6 |
+| [`krilla-fit`](../spikes/krilla-fit/README.md) | Can krilla generate into Lamina PDF's object graph? | No (bytes only). Recommends an own builder over `laminapdf-cos` reusing `pdf-writer`, `subsetter`, `skrifa`, HarfRust; recorded in ADR 0005 §6 |
 | [`lamina-ffi`](../spikes/lamina-ffi/README.md) | Does the `laminapdf` façade bind to Swift and Kotlin through UniFFI 0.32 without changes? | Yes, with five edge-only adaptations. Swift (macOS, iOS simulator) and Kotlin pass with byte-equal output; Kotlin drops a cancelled `suspend` call's Rust future, the generated Swift never does (the layer cancels through Rust); every Android `.so` is 16 KB-aligned; about 2.0 MB on iOS and 2.4 MB per Android ABI with `text`; UniFFI is MPL-2.0 (allowed by the owner as an exception in `deny.toml`). Input to ADR 0029 (Accepted; L6a done) |
 | [`hayro-parity`](../spikes/hayro-parity/README.md) | How close is hayro to PDFium on the pdf.js and PDFBox corpora? | 81.8 % pass, 90.8 % pass+minor at 96 DPI (macOS); where hayro is clearly wrong, it is mostly fonts and annotations. Recommends PDFium as the default and hayro as the CI oracle (input to ADR 0004) |
 

@@ -1,6 +1,6 @@
 [package]
 name = "xtask"
-description = "lamina's task runner: `cargo xtask <task>` (checks, tests, formatting, licences)."
+description = "Lamina PDF's task runner: `cargo xtask <task>` (checks, tests, formatting, licences)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

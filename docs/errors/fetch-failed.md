@@ -9,7 +9,7 @@ A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it ask
 
 ## Why
 
-Opening a remote file range by range depends on the server: it must allow the `Range` request (and, across origins, expose `Content-Range`, `Content-Length` and `ETag` through CORS), and must not compress the response (`Content-Encoding` breaks byte ranges). lamina never retries on its own; the error says the bytes are not available.
+Opening a remote file range by range depends on the server: it must allow the `Range` request (and, across origins, expose `Content-Range`, `Content-Length` and `ETag` through CORS), and must not compress the response (`Content-Encoding` breaks byte ranges). Lamina PDF never retries on its own; the error says the bytes are not available.
 
 ## How to fix
 
@@ -23,6 +23,6 @@ const doc = await Document.openRange(httpRangeSource(url)); // throws { code: "f
 
 ## Data fields
 
-- `reason`: `network`, `status`, `content-range` or `length` (lamina's own words). The URL is never included.
+- `reason`: `network`, `status`, `content-range` or `length` (Lamina PDF's own words). The URL is never included.
 - `status`: the HTTP status, when there was a response.
 - `expected`, `got`: for `length`, the bytes asked for and the bytes returned.

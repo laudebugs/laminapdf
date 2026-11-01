@@ -11,7 +11,7 @@ use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest,
 /// A rendering engine: opens documents. Object-safe, so shells hold `Box<dyn RenderBackend>`.
 ///
 /// A renderer only produces pixels: text, glyph quads, structure, annotation and form
-/// geometry, links and outlines always come from lamina's model, never from the renderer
+/// geometry, links and outlines always come from Lamina PDF's model, never from the renderer
 /// (ADR 0004 §1).
 pub trait RenderBackend: Send {
     /// `"pdfium"` or `"hayro"`; with [`RenderBackend::version`], part of every golden's key.
@@ -20,7 +20,7 @@ pub trait RenderBackend: Send {
     /// The engine's version (a crate version or a PDFium build tag).
     fn version(&self) -> &'static str;
 
-    /// Opens a document from `source` (the same source lamina reads, never a second copy).
+    /// Opens a document from `source` (the same source Lamina PDF reads, never a second copy).
     ///
     /// # Errors
     /// `password-required`, `wrong-password`, `data-pending` (with the ranges to fetch),

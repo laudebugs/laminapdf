@@ -429,7 +429,7 @@ export class Surface {
    *   s.tag({ type: "P", lang: "en-GB" }, (s) => s.textBox(summary, { font, size: 11, box }));
    * });
    * ```
-   * @throws {@link LaminaError} `invalid-argument` for an unknown type without a `role`.
+   * @throws {@link LaminaPdfError} `invalid-argument` for an unknown type without a `role`.
    */
   tag(tag: Tag, draw: (s: this) => void): this {
     this.#begin(tag);
@@ -503,7 +503,7 @@ export class Surface {
    * Draws `text`: shaped, bidi-resolved, one line per line break (needs the text module).
    *
    * @returns what the run measures.
-   * @throws {@link LaminaError} `text-module-not-loaded`, `missing-glyph`, `font-not-shapable`, …
+   * @throws {@link LaminaPdfError} `text-module-not-loaded`, `missing-glyph`, `font-not-shapable`, …
    */
   text(text: string, options: TextOptions): TextRunInfo {
     const font = this.#builder.wasmFont(options.font);
@@ -517,7 +517,7 @@ export class Surface {
    * Lays `text` out in `options.box`, breaking lines at Unicode line-break opportunities.
    *
    * @returns the lines drawn and where the overflow starts (UTF-16 offsets).
-   * @throws {@link LaminaError} as {@link Surface.text}; `text-overflow` with `overflow: "error"`.
+   * @throws {@link LaminaPdfError} as {@link Surface.text}; `text-overflow` with `overflow: "error"`.
    */
   textBox(text: string, options: TextBoxOptions): TextLayout {
     const font = this.#builder.wasmFont(options.font);
@@ -587,7 +587,7 @@ export class Page {
    * drawing afterwards (`builder-finished`).
    *
    * @returns the page's ID.
-   * @throws {@link LaminaError} `invalid-geometry`, `builder-finished`.
+   * @throws {@link LaminaPdfError} `invalid-geometry`, `builder-finished`.
    */
   finish(): string {
     const page = this.#page.get();
@@ -632,7 +632,7 @@ export class Builder {
   /**
    * @param options - version, file ID, producer, creation date, compression, tagging,
    *   conformance `profiles`; `text`.
-   * @throws {@link LaminaError} `not-initialized`, `text-module-not-loaded`; `unknown-option`.
+   * @throws {@link LaminaPdfError} `not-initialized`, `text-module-not-loaded`; `unknown-option`.
    */
   constructor(options: BuilderOptions = {}) {
     const text = textModule();
@@ -676,7 +676,7 @@ export class Builder {
   /**
    * Registers `font` with this builder (otherwise it is registered at first use).
    *
-   * @throws {@link LaminaError} `text-module-not-loaded`, `invalid-font`, `font-not-embeddable`.
+   * @throws {@link LaminaPdfError} `text-module-not-loaded`, `invalid-font`, `font-not-embeddable`.
    */
   font(font: Font): FontInfo {
     const raw = this.wasmFont(font);
@@ -746,7 +746,7 @@ export class Builder {
    * @param mime - its MIME type, such as `text/xml`.
    * @param options - how the file relates to the document (`relationship`, default
    *   `unspecified`), its `description` and `modDate`.
-   * @throws {@link LaminaError} `invalid-argument` for a `modDate` that isn't a PDF date,
+   * @throws {@link LaminaPdfError} `invalid-argument` for a `modDate` that isn't a PDF date,
    *   `unknown-option` for an unknown key, `builder-finished` after {@link Builder.finish}.
    */
   attach(name: string, bytes: Uint8Array, mime: string, options?: AttachmentOptions): this {
@@ -765,7 +765,7 @@ export class Builder {
    * pages) take no more calls afterwards.
    *
    * @returns the new document (unsaved; its save is a full rewrite).
-   * @throws {@link LaminaError} `page-index-out-of-range`, `unknown-destination`,
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, `unknown-destination`,
    *   `invalid-page-labels`, `invalid-geometry`, `subset-failed`, `builder-finished`; under a
    *   profile (`profiles` in the options), the first rule the document breaks, with that rule's
    *   code (the error reference lists them, from `profile-version-conflict` on).

@@ -16,4 +16,4 @@ cargo xtask render-golden            # compare; diff images (expected | actual |
 cargo xtask render-golden --update   # rewrite the PNGs; review them like code (still fails if hayro and PDFium disagree)
 ```
 
-Both need Python with `tools/render/requirements.txt` (`$LAMINA_PYTHON`, else `python3`). The PNGs are lamina's own output rendered by the two engines; they carry the licence of the examples (MIT OR Apache-2.0) and of the OFL fonts drawn in them (`fixtures/fonts/OFL.txt`).
+Both need Python with `tools/render/requirements.txt` (`$LAMINA_PDF_PYTHON`, else `python3`). The PNGs are lamina's own output rendered by the two engines; they carry the licence of the examples (MIT OR Apache-2.0) and of the OFL fonts drawn in them (`fixtures/fonts/OFL.txt`).

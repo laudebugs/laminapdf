@@ -9,7 +9,7 @@ The save planner refused a save because it would break one or more signatures. E
 
 ## Why
 
-A signature covers the bytes of the file as it was signed (ISO 32000-2 §12.8). A full rewrite moves those bytes, and a change a certification forbids invalidates it even when appended. lamina never breaks a signature without an explicit override.
+A signature covers the bytes of the file as it was signed (ISO 32000-2 §12.8). A full rewrite moves those bytes, and a change a certification forbids invalidates it even when appended. Lamina PDF never breaks a signature without an explicit override.
 
 ## How to fix
 

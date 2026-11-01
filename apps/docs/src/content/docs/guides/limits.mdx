@@ -1,13 +1,13 @@
 ---
 title: Limits
-description: Bound what an untrusted file can make lamina decode, read or draw.
+description: Bound what an untrusted file can make Lamina PDF decode, read or draw.
 sidebar:
   order: 7
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-A small PDF can ask for a lot of work: a stream that inflates to gigabytes, a page tree thousands of levels deep, forms drawn inside forms. lamina keeps such files within `Limits`, which you pass when you open one. Every field has a safe default, and you set only the ones you want to change.
+A small PDF can ask for a lot of work: a stream that inflates to gigabytes, a page tree thousands of levels deep, forms drawn inside forms. Lamina PDF keeps such files within `Limits`, which you pass when you open one. Every field has a safe default, and you set only the ones you want to change.
 
 - **Hard limits** stop the call with `limit-exceeded`. Its `data.limit` names the limit, so you can tell the user which one.
 - **Soft limits** drop the excess with a warning and carry on.

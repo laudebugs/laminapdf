@@ -6,7 +6,7 @@
 //! drop the item over the limit and carry on with a warning (the reader in `laminapdf-cos`
 //! raises it).
 //!
-//! [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+//! [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 //! [`Error::LimitExceeded`]: crate::Error::LimitExceeded
 
 use core::fmt;
@@ -146,7 +146,7 @@ impl fmt::Display for Limit {
 /// Reserved limits are part of the API now so they can be configured once, but nothing
 /// enforces them until the feature they bound lands (image decoding).
 ///
-/// [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
+/// [ADR 0003]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[expect(
     clippy::struct_field_names,
@@ -219,7 +219,7 @@ impl Limits {
         }
     }
 
-    /// No limits at all, for trusted input only (lamina's own output in tests).
+    /// No limits at all, for trusted input only (Lamina PDF's own output in tests).
     ///
     /// Nesting is parsed recursively, so hostile input with unlimited nesting depth can
     /// exhaust the stack: never use this for files from outside.

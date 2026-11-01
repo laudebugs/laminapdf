@@ -1,7 +1,7 @@
 # `unsupported-version`
 
 - Type: error
-- Kind: `unsupported` (valid input that lamina doesn't implement)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
@@ -9,11 +9,11 @@ An op log has a schema version this reader doesn't know.
 
 ## Why
 
-A newer lamina wrote it.
+A newer Lamina PDF wrote it.
 
 ## How to fix
 
-Upgrade lamina.
+Upgrade Lamina PDF.
 
 ## Example
 

@@ -1,22 +1,22 @@
 //! Glyph quads against PDFium's character boxes (todo B9c, ADR 0018 tier 6). PDFium's loose
-//! boxes (`FPDFText_GetLooseCharBox`, from the font's ascent to its descent, as lamina's quads
+//! boxes (`FPDFText_GetLooseCharBox`, from the font's ascent to its descent, as Lamina PDF's quads
 //! are) are precomputed in `fixtures/text/charboxes.json` (`cargo xtask quads --update`,
 //! `tools/render/charbox.py`); this test needs no PDFium.
 //!
-//! **Rule (what the two boxes have in common):** lamina's quad runs along the glyph's advance,
+//! **Rule (what the two boxes have in common):** Lamina PDF's quad runs along the glyph's advance,
 //! from the font program's ascent to its descent; PDFium's loose box covers the ink too (an `f`'s
 //! overhang) and takes ascent and descent from the PDF's font descriptor. So, for every glyph with
 //! one character of text, matched by position with PDFium's nearest unused character of the same
 //! text (order isn't used: PDFium reorders right-to-left text):
 //!
-//! - horizontally, lamina's box lies within PDFium's (give or take the tolerance: 1 pt, or 15 % of
+//! - horizontally, Lamina PDF's box lies within PDFium's (give or take the tolerance: 1 pt, or 15 % of
 //!   the font size when that is more), and at least one edge agrees within the tolerance: PDFium's
 //!   box may extend past the advance on one side only, by the ink's overhang (an `f`, the Arabic
 //!   lam whose stroke runs under the next alef);
 //! - the vertical extents overlap by at least 80 % of the shorter one.
 //!
 //! Glyphs without a one-to-one character are counted and skipped, not compared: ligatures and
-//! clusters (several characters in one glyph), combining marks (zero-width in lamina, ink boxes in
+//! clusters (several characters in one glyph), combining marks (zero-width in Lamina PDF, ink boxes in
 //! PDFium) and the Indic blocks, where PDFium's box for a consonant spans the shaped cluster.
 //! Pages are unrotated (PDFium reports boxes in unrotated user space).
 #![cfg(feature = "extract")]

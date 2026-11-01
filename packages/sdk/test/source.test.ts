@@ -3,7 +3,7 @@
 import { readdirSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { callbackSource, Document, httpRangeSource, init, isLaminaError, type LaminaError } from "@laminapdf/sdk";
+import { callbackSource, Document, httpRangeSource, init, isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { fromRoot } from "@laminapdf/test-utils/root";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
@@ -179,13 +179,13 @@ describe("Document.openRange over HTTP", () => {
     try {
       expected = await facts(Document.open(bytes));
     } catch (e) {
-      expected = (e as LaminaError).code;
+      expected = (e as LaminaPdfError).code;
     }
     let ours: unknown;
     try {
       ours = await facts(await Document.openRange(httpRangeSource(server.url)));
     } catch (e) {
-      ours = (e as LaminaError).code;
+      ours = (e as LaminaPdfError).code;
     }
     expect(ours).toEqual(expected);
   });
@@ -256,7 +256,7 @@ describe("Document.openRange over HTTP", () => {
   it("opens an empty remote file as empty (the reader then says it isn't a PDF)", async () => {
     server.serve(new Uint8Array());
     const e = await Document.openRange(httpRangeSource(server.url)).catch((x: unknown) => x);
-    expect(isLaminaError(e) && e.code !== "fetch-failed").toBe(true);
+    expect(isLaminaPdfError(e) && e.code !== "fetch-failed").toBe(true);
     expect(server.log.map((l) => l.status)).toEqual([416]);
   });
 
@@ -266,7 +266,7 @@ describe("Document.openRange over HTTP", () => {
     const doc = await Document.openRange(httpRangeSource(server.url));
     server.etag = '"v2"';
     const e = await doc.ensure(() => doc.save({ mode: "fullRewrite" })).catch((x: unknown) => x);
-    expect(isLaminaError(e, "source-changed")).toBe(true);
+    expect(isLaminaPdfError(e, "source-changed")).toBe(true);
     expect(JSON.stringify(e)).not.toContain(server.url);
   });
 
@@ -278,7 +278,7 @@ describe("Document.openRange over HTTP", () => {
     const doc = await Document.openRange(httpRangeSource(server.url));
     server.lastModified = "Thu, 22 Oct 2026 07:28:00 GMT";
     const e = await doc.ensure(() => doc.save({ mode: "fullRewrite" })).catch((x: unknown) => x);
-    expect(isLaminaError(e, "source-changed")).toBe(true);
+    expect(isLaminaPdfError(e, "source-changed")).toBe(true);
   });
 
   it("starts a new full download after one that was aborted", async () => {
@@ -304,7 +304,7 @@ describe("Document.openRange over HTTP", () => {
     const e = await httpRangeSource(`${server.url}?token=secret`, {
       fetch: async () => new Response("nope", { status: 403 }),
     }).catch((x: unknown) => x);
-    expect(isLaminaError(e, "fetch-failed") && [e.data, e.message.includes("secret")]).toEqual([
+    expect(isLaminaPdfError(e, "fetch-failed") && [e.data, e.message.includes("secret")]).toEqual([
       { reason: "status", status: 403 },
       false,
     ]);
@@ -337,7 +337,7 @@ describe("doc.ensure", () => {
     } catch (e) {
       bare = e;
     }
-    expect(isLaminaError(bare, "data-pending") && (bare.ranges?.length ?? 0) > 0).toBe(true);
+    expect(isLaminaPdfError(bare, "data-pending") && (bare.ranges?.length ?? 0) > 0).toBe(true);
     const saved = await doc.ensure(() => doc.save({ mode: "fullRewrite" }));
     expect(saved.length).toBeGreaterThan(bytes.length / 2);
   });
@@ -389,7 +389,7 @@ describe("callbackSource", () => {
     const { bytes } = largePdf(4);
     const source = callbackSource(bytes.length, async (o, n) => bytes.slice(o, o + n - 1));
     const e = await Document.openRange(source).catch((x: unknown) => x);
-    expect(isLaminaError(e, "fetch-failed") && e.data?.reason).toBe("length");
+    expect(isLaminaPdfError(e, "fetch-failed") && e.data?.reason).toBe("length");
   });
 
   it("aborts the other fetches of a round when one fails, and waits for them", async () => {
@@ -417,6 +417,6 @@ describe("callbackSource", () => {
     const { bytes } = largePdf(4);
     const source = callbackSource(bytes.length, async (o, n) => bytes.slice(o, o + n));
     const e = await Document.openRange(source, { budget: 1_000 }).catch((x: unknown) => x);
-    expect(isLaminaError(e, "source-budget-exceeded")).toBe(true);
+    expect(isLaminaPdfError(e, "source-budget-exceeded")).toBe(true);
   });
 });

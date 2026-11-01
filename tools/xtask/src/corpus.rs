@@ -5,7 +5,7 @@
 //! Corpus files are never committed: only the manifest is. Each source is a sparse, shallow,
 //! blob-filtered git checkout of the PDFs its `include` patterns name (plus its licence file),
 //! so nothing else from those repositories is downloaded and nothing from them is run. When
-//! git fails and a mirror is configured (`mirror` in the manifest or `$LAMINA_CORPUS_MIRROR`),
+//! git fails and a mirror is configured (`mirror` in the manifest or `$LAMINA_PDF_CORPUS_MIRROR`),
 //! each listed file is downloaded from `<mirror>/<source>/<commit>/<path>` instead and checked
 //! against the same hashes; the mirror is a copy, never the source of truth.
 
@@ -24,7 +24,7 @@ use crate::{run, step};
 pub(crate) const MANIFEST: &str = "fixtures/corpus-manifest.toml";
 
 /// Where the corpora are checked out, relative to the repository root (gitignored);
-/// `$LAMINA_CORPUS_DIR` overrides it (the nightly workflow caches a folder outside `target/`).
+/// `$LAMINA_PDF_CORPUS_DIR` overrides it (the nightly workflow caches a folder outside `target/`).
 const CORPUS_DIR: &str = "target/corpus";
 
 /// The manifest's header; `--update-manifest` writes it back unchanged.
@@ -43,7 +43,7 @@ const HEADER: &str = "\
 # `include` patterns are git sparse-checkout patterns, case-sensitive on Linux but not on macOS:
 # name every spelling a source uses (qpdf has `*.Pdf` files).
 #
-# `mirror` (or $LAMINA_CORPUS_MIRROR) is an optional base URL serving <mirror>/<name>/<commit>/<path>,
+# `mirror` (or $LAMINA_PDF_CORPUS_MIRROR) is an optional base URL serving <mirror>/<name>/<commit>/<path>,
 # used only when git fails; the hashes here stay the source of truth.
 ";
 
@@ -226,7 +226,7 @@ pub(crate) fn select<'a>(manifest: &'a Manifest, names: &[String]) -> Result<Vec
 /// `cargo xtask corpus fetch [--source <name>]… [--update-manifest]`.
 pub(crate) fn fetch(ws: &Workspace, args: &FetchArgs) -> Result<()> {
     let mut manifest = load(ws)?;
-    let mirror = std::env::var("LAMINA_CORPUS_MIRROR").unwrap_or_else(|_| manifest.mirror.clone());
+    let mirror = std::env::var("LAMINA_PDF_CORPUS_MIRROR").unwrap_or_else(|_| manifest.mirror.clone());
     let names: Vec<String> = select(&manifest, &args.sources)?
         .iter()
         .map(|s| s.name.clone())
@@ -304,7 +304,7 @@ fn short(commit: &str) -> &str {
 }
 
 pub(crate) fn source_dir(ws: &Workspace, name: &str) -> PathBuf {
-    let base = std::env::var_os("LAMINA_CORPUS_DIR").map_or_else(|| ws.root.join(CORPUS_DIR), PathBuf::from);
+    let base = std::env::var_os("LAMINA_PDF_CORPUS_DIR").map_or_else(|| ws.root.join(CORPUS_DIR), PathBuf::from);
     base.join(name)
 }
 

@@ -13,7 +13,7 @@ The PDF/A standard for archival PDF (ISO 19005-2 §6.2.11.4.1) needs every font 
 
 ## How to fix
 
-Load a font file with `Builder::font` (or `Builder::font_bytes` in the façade): lamina embeds the subset of glyphs you draw.
+Load a font file with `Builder::font` (or `Builder::font_bytes` in the façade): Lamina PDF embeds the subset of glyphs you draw.
 
 ## Example
 

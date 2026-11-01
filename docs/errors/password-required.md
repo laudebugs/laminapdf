@@ -21,7 +21,7 @@ Ask the user for the password and pass it in `OpenOptions` (`{ password }` in TS
 try {
   Document.open(bytes);
 } catch (e) {
-  if (isLaminaError(e, "password-required")) Document.open(bytes, { password: await ask() });
+  if (isLaminaPdfError(e, "password-required")) Document.open(bytes, { password: await ask() });
 }
 ```
 

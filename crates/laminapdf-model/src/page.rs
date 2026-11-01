@@ -398,7 +398,7 @@ impl<'p> Page<'p> {
     /// # Errors
     /// As [`Page::media_box`], [`Page::rotate`] and [`Page::user_unit`].
     ///
-    /// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+    /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
     pub fn frame(&self) -> Result<PageFrame> {
         memo(self.cache().map(|c| &c.frame), || self.read_frame())
     }

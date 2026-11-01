@@ -23,7 +23,7 @@ startxref
 %%EOF
 ```
 
-`startxref` points past the end of a file that was truncated and re-padded. lamina scans the file for `n g obj` headers, rebuilds the table, raises `xref-repaired` and opens normally. `save(SaveMode::Incremental)` is then refused with [`repaired-base`](repaired-base.md); `SaveMode::Auto` rewrites the file.
+`startxref` points past the end of a file that was truncated and re-padded. Lamina PDF scans the file for `n g obj` headers, rebuilds the table, raises `xref-repaired` and opens normally. `save(SaveMode::Incremental)` is then refused with [`repaired-base`](repaired-base.md); `SaveMode::Auto` rewrites the file.
 
 ## Data fields
 

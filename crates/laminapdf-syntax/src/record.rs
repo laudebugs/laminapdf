@@ -13,7 +13,7 @@ use crate::{ErrorKind, Location};
 
 /// One error or warning as the [ADR 0026] §1 object: what the façade's `Error` and `Warning`
 /// serialise to, what the WASM bindings throw, as a record of strings and numbers an edge
-/// maps one-to-one (the `UniFFI` `Diagnostic` record, the TS `LaminaError` fields; ADR 0028
+/// maps one-to-one (the `UniFFI` `Diagnostic` record, the TS `LaminaPdfError` fields; ADR 0028
 /// F9). Serialises with camelCase keys, optional keys omitted (never `null`).
 ///
 /// Built with [`Diagnostic::error`] or [`Diagnostic::warning`], which read the kind, hint and
@@ -23,7 +23,7 @@ use crate::{ErrorKind, Location};
 /// `data` is the only place such strings appear, under the keys each code's explain page
 /// marks *untrusted*.
 ///
-/// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+/// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Diagnostic {
@@ -35,7 +35,7 @@ pub struct Diagnostic {
     pub message: String,
     /// One actionable sentence for this code.
     pub hint: Option<String>,
-    /// Candidates from lamina's own vocabulary (errors of kind `usage` only); empty today.
+    /// Candidates from Lamina PDF's own vocabulary (errors of kind `usage` only); empty today.
     pub did_you_mean: Vec<String>,
     /// Where: file offset, object, stream offset, page index, `LaminaId`.
     pub location: Location,
@@ -50,7 +50,7 @@ impl Diagnostic {
     /// table; no location, data or candidates. `message` is one lowercase sentence that
     /// never quotes the document or the caller ([ADR 0026] §4).
     ///
-    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    /// [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn error(code: ErrorCode, message: impl Into<String>) -> Self {
         Self::of(code.as_str(), code.kind(), message.into(), code.hint(), code.docs_url())

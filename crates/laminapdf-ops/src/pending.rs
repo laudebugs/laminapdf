@@ -16,7 +16,7 @@ use crate::op::Op;
 /// can make the planner refuse a save it could allow; a class that is missing would let a save
 /// break a signature without saying so.
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,

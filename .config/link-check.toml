@@ -8,7 +8,7 @@
 # reason = "answers 403 to non-browser clients"
 
 [[allow]]
-prefix = "https://github.com/laudebugs/lamina/"
+prefix = "https://github.com/laudebugs/laminapdf/"
 reason = "the repository is private: its PRs, issues and runs answer 404 without a login"
 
 [[allow]]

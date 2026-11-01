@@ -1,6 +1,6 @@
 ---
 title: Glossary
-description: The PDF and lamina terms the docs use, each in a sentence or two.
+description: The PDF and Lamina PDF terms the docs use, each in a sentence or two.
 prose:
   allow:
     - overlay
@@ -26,11 +26,11 @@ prose:
 
 The terms the docs use, in plain words. Each page links a term here the first time it uses one.
 
-## How lamina works
+## How Lamina PDF works
 
 ### Overlay
 
-Where lamina keeps your edits. The bytes you opened never change; the overlay sits on top of them, and saving writes it out. See [how lamina thinks about a PDF](/concepts/how-lamina-thinks/).
+Where Lamina PDF keeps your edits. The bytes you opened never change; the overlay sits on top of them, and saving writes it out. See [how Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/).
 
 ### Incremental save
 
@@ -42,7 +42,7 @@ A save that writes the whole file again. The result is smaller and tidier, but i
 
 ### Façade
 
-The `laminapdf` crate: one API in front of lamina's core crates, which most Rust code depends on alone.
+The `laminapdf` crate: one API in front of Lamina PDF's core crates, which most Rust code depends on alone.
 
 ### Glue
 
@@ -80,7 +80,7 @@ A compressed stream that holds many small objects together, to make the file sma
 
 ### Page space
 
-lamina's coordinates: points from the top-left corner of the page as it's displayed, with y going down. See [pages and coordinates](/concepts/pages-and-coordinates/).
+Lamina PDF's coordinates: points from the top-left corner of the page as it's displayed, with y going down. See [pages and coordinates](/concepts/pages-and-coordinates/).
 
 ### Crop box
 
@@ -88,11 +88,11 @@ The part of a page a viewer shows; anything outside it is cut off. Page space st
 
 ### User unit
 
-A page entry that makes each user-space unit bigger than 1/72 of an inch, for very large pages. lamina applies it, so page-space numbers are always points of 1/72 inch.
+A page entry that makes each user-space unit bigger than 1/72 of an inch, for very large pages. Lamina PDF applies it, so page-space numbers are always points of 1/72 inch.
 
 ### User space
 
-PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. lamina's API uses page space instead; see [pages and coordinates](/concepts/pages-and-coordinates/).
+PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. Lamina PDF's API uses page space instead; see [pages and coordinates](/concepts/pages-and-coordinates/).
 
 ## Fonts and text
 
@@ -102,7 +102,7 @@ The fourteen fonts every PDF reader supplies: Times, Helvetica and Courier, each
 
 ### Type 0
 
-A font type whose character codes can be more than one byte long, so a font can reach any of its glyphs. lamina embeds every font except the standard 14 as Type 0.
+A font type whose character codes can be more than one byte long, so a font can reach any of its glyphs. Lamina PDF embeds every font except the standard 14 as Type 0.
 
 ### CMap
 

@@ -1,4 +1,4 @@
-//! The render backend contract ([ADR 0004]): every lamina surface renders pages through
+//! The render backend contract ([ADR 0004]): every Lamina PDF surface renders pages through
 //! [`RenderBackend`] and [`RenderDocument`], which draw bounded tiles of a page at a scale into
 //! a caller-supplied straight-alpha RGBA8 buffer.
 //!
@@ -8,7 +8,7 @@
 //!   oracle and debug choice. The PDFium adapter is the edge crate `laminapdf-render-pdfium`.
 //! - Errors follow the ADR 0026 contract ([`RenderError`]).
 //!
-//! [ADR 0004]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0004-render-backend.md
+//! [ADR 0004]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0004-render-backend.md
 #![forbid(unsafe_code)]
 
 mod backend;

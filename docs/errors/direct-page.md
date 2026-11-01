@@ -1,7 +1,7 @@
 # `direct-page`
 
 - Type: error
-- Kind: `unsupported` (valid input that lamina doesn't implement)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
@@ -13,7 +13,7 @@ Non-standard files.
 
 ## How to fix
 
-Rewrite the file so every page is an indirect object (any full rewrite by another tool does), or wait for lamina's page-structure ops.
+Rewrite the file so every page is an indirect object (any full rewrite by another tool does), or wait for Lamina PDF's page-structure ops.
 
 ## Example
 

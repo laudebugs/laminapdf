@@ -1,4 +1,4 @@
-//! lamina: create, read, edit and save PDFs, in pure Rust, bytes in and bytes out.
+//! Lamina PDF: create, read, edit and save PDFs, in pure Rust, bytes in and bytes out.
 //!
 //! An invoice, built, saved, reopened, edited and saved again:
 //!
@@ -90,11 +90,11 @@
 //! * `text` (default; implies `build`): fonts and text (`laminapdf-text`). Without either, the
 //!   crate opens, reads, edits and saves only.
 //!
-//! This crate is part of lamina's pure core: no file system, network, clocks or threads.
+//! This crate is part of Lamina PDF's pure core: no file system, network, clocks or threads.
 //!
-//! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
-//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-//! [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+//! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+//! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+//! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
 #[cfg(feature = "build")]

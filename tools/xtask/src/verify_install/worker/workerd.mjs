@@ -1,5 +1,5 @@
 // `cargo xtask verify-install workerd`: starts `wrangler dev --local` (the repository's pinned
-// wrangler, LAMINA_WRANGLER) in this folder, waits for the Worker to answer, prints its check line,
+// wrangler, LAMINA_PDF_WRANGLER) in this folder, waits for the Worker to answer, prints its check line,
 // then stops wrangler.
 import { spawn } from "node:child_process";
 import { cwd, env } from "node:process";
@@ -8,7 +8,7 @@ import { freePort } from "./free-port.mjs";
 
 const port = await freePort();
 const wrangler = spawn(
-  env.LAMINA_WRANGLER ?? "wrangler",
+  env.LAMINA_PDF_WRANGLER ?? "wrangler",
   ["dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--log-level", "warn"],
   {
     cwd: cwd(),

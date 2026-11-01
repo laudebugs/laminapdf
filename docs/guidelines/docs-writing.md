@@ -1,6 +1,6 @@
 # Writing docs people enjoy reading
 
-Lamina's docs exist so that people can build things with it. These rules apply to every page a reader of the docs sees:
+Lamina PDF's docs exist so that people can build things with it. These rules apply to every page a reader of the docs sees:
 
 - the docs site (`apps/docs/src/content/docs/**`);
 - the error-code pages (`docs/errors/*.md`, which the site renders);
@@ -13,7 +13,7 @@ They build on the writing style in [design language §9](../design/paper/design-
 ## Tell a story
 
 - **MUST:** add every new page to the explicit sidebar in `apps/docs/astro.config.mjs` (no `autogenerate`). The sidebar runs in this order:
-  1. start: what lamina is, install, your first PDF;
+  1. start: what Lamina PDF is, install, your first PDF;
   2. your runtime;
   3. concepts;
   4. tasks (create, read and edit);

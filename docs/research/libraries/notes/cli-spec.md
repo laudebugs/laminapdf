@@ -68,8 +68,8 @@ The consensus contract: data on stdout, everything else on stderr; `-` for stdin
 - Agent-oriented CLI example: Arcjet's CLI returns exit code 4 and a JSON "confirmation envelope" on stdout instead of an interactive prompt when `--confirm` is absent, and defaults to JSON when stdout is not a TTY — [Arcjet blog via search summary](https://blog.arcjet.com/designing-a-cli-for-ai-agents/) (page not fetchable; summary only).
 
 ### Inferences
-- Exit codes for lamina (recommendation): `0` ok; `1` generic failure; `2` usage error (clap's default for parse errors); `3` completed with warnings (qpdf-compatible, opt out with `--warnings-ok`); `4` needs confirmation / refused destructive op without `--force`; `5` password required/wrong; `64–78` not used directly but mapped in JSON `error.sysexit` for tooling that wants them. Document with `lamina help exit-codes` (gh pattern).
-- Defaults: human tables on TTY, `--json` explicit; optionally `LAMINA_OUTPUT=json` env to make JSON the default for agent sessions (avoid Arcjet-style auto-JSON on non-TTY for `extract text`, where piping raw text is the common case).
+- Exit codes for lamina (recommendation): `0` ok; `1` generic failure; `2` usage error (clap's default for parse errors); `3` completed with warnings (qpdf-compatible, opt out with `--warnings-ok`); `4` needs confirmation / refused destructive op without `--force`; `5` password required/wrong; `64–78` not used directly but mapped in JSON `error.sysexit` for tooling that wants them. Document with `laminapdf help exit-codes` (gh pattern).
+- Defaults: human tables on TTY, `--json` explicit; optionally `LAMINA_PDF_OUTPUT=json` env to make JSON the default for agent sessions (avoid Arcjet-style auto-JSON on non-TTY for `extract text`, where piping raw text is the common case).
 
 ### Gaps
 - cargo `--message-format=json` reason-tagged stream docs (cargo `external-tools.md`) 404'd at the path tried; known shape (`{"reason":"compiler-message",…}`, `build-finished`) is from training knowledge — verify at https://doc.rust-lang.org/cargo/reference/external-tools.html.
@@ -87,7 +87,7 @@ Be xargs/parallel-friendly (one file per invocation works, NUL-safe input, stdou
 - MCP 2026-07-28 says servers SHOULD return tools in deterministic order to improve caching/prompt-cache hits — the same argument applies to deterministic CLI output ordering — [MCP 2026-07-28 changelog](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/docs/specification/2026-07-28/changelog.mdx).
 
 ### Inferences
-- `lamina <cmd> a.pdf b.pdf … --jobs 8 --json` → NDJSON, one `{"type":"result","input":…}` per file, emitted in argument order (buffer out-of-order completions; rayon in the binary only — core crates stay single-threaded per portability rules), then `{"type":"summary","ok":N,"failed":M,"warnings":K}`; exit `1` if any failed, `3` if only warnings. `--fail-fast` to stop on first error. `--files-from FILE|-` with `-0/--null` for NUL-separated lists (xargs -0 parity).
+- `laminapdf <cmd> a.pdf b.pdf … --jobs 8 --json` → NDJSON, one `{"type":"result","input":…}` per file, emitted in argument order (buffer out-of-order completions; rayon in the binary only — core crates stay single-threaded per portability rules), then `{"type":"summary","ok":N,"failed":M,"warnings":K}`; exit `1` if any failed, `3` if only warnings. `--fail-fast` to stop on first error. `--files-from FILE|-` with `-0/--null` for NUL-separated lists (xargs -0 parity).
 - Output naming: `-o 'out/{stem}.txt'` / `{page}` / `{n:03}` templates instead of printf `%d`; refuse to overwrite unless `--force`; `--in-place` writes atomically (temp file + rename) — atomicity is a recommendation, no source verified here.
 
 ### Gaps
@@ -96,7 +96,7 @@ Be xargs/parallel-friendly (one file per invocation works, NUL-safe input, stdou
 ## 4. Agent-readiness: schemas, MCP, security, what agents need
 
 ### Takeaway
-As of Oct 2026 MCP's current stable revision is **2026-07-28** (stateless, `server/discover`, tasks moved to an extension, roots/sampling/logging deprecated), with `outputSchema`/`structuredContent` and untrusted annotations from 2025-06-18/2025-11-25; at the same time major vendors (Playwright) now tell coding agents a CLI + skills is more token-efficient than MCP. So: make the CLI itself the primary agent interface (stable JSON, schema introspection, concise output), and offer `lamina mcp` as a thin stdio adapter over the same command layer.
+As of Oct 2026 MCP's current stable revision is **2026-07-28** (stateless, `server/discover`, tasks moved to an extension, roots/sampling/logging deprecated), with `outputSchema`/`structuredContent` and untrusted annotations from 2025-06-18/2025-11-25; at the same time major vendors (Playwright) now tell coding agents a CLI + skills is more token-efficient than MCP. So: make the CLI itself the primary agent interface (stable JSON, schema introspection, concise output), and offer `laminapdf mcp` as a thin stdio adapter over the same command layer.
 
 ### Cited Findings
 **MCP spec status**
@@ -119,8 +119,8 @@ As of Oct 2026 MCP's current stable revision is **2026-07-28** (stateless, `serv
 - qpdf's `--json-help` (schema-by-example) — §1.
 
 ### Inferences
-- Agent surface (recommended): `lamina schema [cmd] --json` emits JSON Schema 2020-12 for each command's input (flags) and output (`--json` shape) generated from the same Rust types via `schemars`; this is reused verbatim as MCP `inputSchema`/`outputSchema`, so CLI and MCP never drift. Also `lamina --help --json` alias, and a `usage` KDL export for completions/docs.
-- `lamina mcp` (stdio only at first): tools = the read-only commands (`info`, `extract`, `inspect`, `check`, `diff`, `render`) with `readOnlyHint: true`, plus write commands with `destructiveHint` set honestly (`false` when output is a new file, `true` for `--in-place`). Require an explicit `--root DIR` allow-list (Roots is deprecated in 2026-07-28, so config not protocol), canonicalize paths, reject symlink escapes, never overwrite inputs unless started with `--allow-in-place`.
+- Agent surface (recommended): `laminapdf schema [cmd] --json` emits JSON Schema 2020-12 for each command's input (flags) and output (`--json` shape) generated from the same Rust types via `schemars`; this is reused verbatim as MCP `inputSchema`/`outputSchema`, so CLI and MCP never drift. Also `laminapdf --help --json` alias, and a `usage` KDL export for completions/docs.
+- `laminapdf mcp` (stdio only at first): tools = the read-only commands (`info`, `extract`, `inspect`, `check`, `diff`, `render`) with `readOnlyHint: true`, plus write commands with `destructiveHint` set honestly (`false` when output is a new file, `true` for `--in-place`). Require an explicit `--root DIR` allow-list (Roots is deprecated in 2026-07-28, so config not protocol), canonicalize paths, reject symlink escapes, never overwrite inputs unless started with `--allow-in-place`.
 - Prompt injection from PDFs: extracted text is attacker-controlled. Wrap extracted content in clearly delimited JSON fields (`"content"`), never mix it into `"message"`/`"hint"` fields, report hidden/invisible text (white text, off-page, OCG-hidden, tiny font) as flags (`"visibility":"hidden"`), and offer `--visible-only`. These are recommendations; no source evaluated PDF-specific injection.
 - Token economy: default `info` output under ~20 lines; `--fields a,b` (gh-style) and `--max-chars/--pages` on `extract`; never invoke a pager unless stdout is a TTY; `--quiet` suppresses progress; errors one line + JSON form.
 
@@ -132,7 +132,7 @@ As of Oct 2026 MCP's current stable revision is **2026-07-28** (stateless, `serv
 ## 5. Rust implementation and distribution
 
 ### Takeaway
-clap 4 derive + clap_complete + clap_mangen, annotate-snippets/miette-style diagnostics on stderr, indicatif progress (stderr, hidden when not a TTY), anstream for NO_COLOR-aware colour, schemars for schemas, rmcp 3.x for `lamina mcp`, cargo-dist for GitHub releases/Homebrew/installers, and the biome/esbuild npm pattern (meta package + per-platform `optionalDependencies`).
+clap 4 derive + clap_complete + clap_mangen, annotate-snippets/miette-style diagnostics on stderr, indicatif progress (stderr, hidden when not a TTY), anstream for NO_COLOR-aware colour, schemars for schemas, rmcp 3.x for `laminapdf mcp`, cargo-dist for GitHub releases/Homebrew/installers, and the biome/esbuild npm pattern (meta package + per-platform `optionalDependencies`).
 
 ### Cited Findings
 - Latest stable versions on crates.io (read 2026-10-29): clap 4.6.7 (2026-09-14), clap_complete 4.6.11, clap_complete_nushell 4.6.2, clap_mangen 0.3.3, miette 7.6.0 (last updated 2025-04-27 — older), annotate-snippets 0.12.17 (2026-10-19), indicatif 0.18.6, anstream 1.0.0 (2026-02-11), schemars 1.2.3, rmcp 3.8.0 (2026-10-26), cargo-dist 0.32.0 (2026-05-22) — [crates.io API](https://crates.io/api/v1/crates/clap) (same endpoint per crate).
@@ -153,7 +153,7 @@ clap 4 derive + clap_complete + clap_mangen, annotate-snippets/miette-style diag
 ## 6. Proposed command set with example sessions (recommendations)
 
 ### Takeaway
-A verb-first single binary, `lamina <command> [inputs…] [-o OUT|--in-place] [--json]`, with qpdf page ranges, qpdf-style versioned JSON, and the same commands exposed over `lamina mcp`.
+A verb-first single binary, `laminapdf <command> [inputs…] [-o OUT|--in-place] [--json]`, with qpdf page ranges, qpdf-style versioned JSON, and the same commands exposed over `laminapdf mcp`.
 
 ### Cited Findings
 - Grammar precedents: mutool verbs (`info`, `pages`, `merge`, `extract`, `show`, `sign`, `clean`, `draw/convert`) — [mutool.1](https://raw.githubusercontent.com/ArtifexSoftware/mupdf/master/docs/man/mutool.1); qpdf ranges/`--split-pages`/`--rotate=+90:1-3`/`--replace-input` — [qpdf cli.rst](https://raw.githubusercontent.com/qpdf/qpdf/main/manual/cli.rst); pdftk handles and `shuffle` — [pdftk man](https://leancrew.com/all-this/man/man1/pdftk.html); `-` for stdio, `--force`, `--dry-run`, `--no-input` — [clig.dev](https://raw.githubusercontent.com/cli-guidelines/cli-guidelines/main/content/_index.md).
@@ -167,7 +167,7 @@ Command set (all accept `-` for stdin input and `-o -` for stdout; never write t
 | `pages merge/split/select/rotate/reorder/shuffle/delete` | page algebra (qpdf ranges, pdftk handles) | additive (new file) |
 | `extract text\|markdown\|json\|images\|tables\|attachments\|fonts` | content | readOnly |
 | `render` | page → PNG/SVG (`--dpi`, `--pages`) | readOnly |
-| `fill` | AcroForm from JSON (`lamina fill f.pdf --data data.json`), `fill --list-fields` | additive |
+| `fill` | AcroForm from JSON (`laminapdf fill f.pdf --data data.json`), `fill --list-fields` | additive |
 | `sign` / `verify` | PAdES sign; verify signatures/DocMDP | sign additive, verify readOnly |
 | `encrypt` / `decrypt` | AES-256 R6; passwords via `--password-file`/env, never argv by default | additive |
 | `optimize` | object streams, dedup, recompress, subset | additive |
@@ -179,55 +179,55 @@ Command set (all accept `-` for stdin input and `-o -` for stdout; never write t
 
 Example session (human):
 ```console
-$ lamina info report.pdf
+$ laminapdf info report.pdf
 report.pdf  PDF 1.7 · 42 pages · 1.8 MB · not encrypted · tagged
 Title: Q3 Report   Producer: LibreOffice 7.6
-Forms: 0 fields   Signatures: 1 (valid? run `lamina verify`)
+Forms: 0 fields   Signatures: 1 (valid? run `laminapdf verify`)
 warning[W0102]: xref offset off by 3 bytes (repaired)
 $ echo $?
 3
-$ lamina pages select report.pdf 1-5,z,r3 -o summary.pdf
-$ lamina pages merge cover.pdf report.pdf:2-z appendix.pdf -o full.pdf
-$ lamina pages shuffle A=fronts.pdf B=backs.pdf A Bz-1 -o duplex.pdf
-$ lamina pages rotate scan.pdf +90:1-3,x2 --in-place
+$ laminapdf pages select report.pdf 1-5,z,r3 -o summary.pdf
+$ laminapdf pages merge cover.pdf report.pdf:2-z appendix.pdf -o full.pdf
+$ laminapdf pages shuffle A=fronts.pdf B=backs.pdf A Bz-1 -o duplex.pdf
+$ laminapdf pages rotate scan.pdf +90:1-3,x2 --in-place
 error[E0004]: refusing to modify scan.pdf in place without --force (stdin is not a terminal)
-$ lamina pages split big.pdf --every 10 -o 'parts/{stem}-{n:03}.pdf'
+$ laminapdf pages split big.pdf --every 10 -o 'parts/{stem}-{n:03}.pdf'
 ```
 
 Pipes:
 ```console
-$ curl -sL https://example.org/a.pdf | lamina extract text - --pages 1-3 | rg -i invoice
-$ lamina pages select in.pdf 1-z:odd -o - | lamina render - --pages 1 --dpi 72 -o thumb.png
-$ lamina fill form.pdf --data - -o filled.pdf < answers.json
-$ fd -e pdf -0 | xargs -0 -n1 -P8 lamina check --json --quiet
-$ lamina check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and .status!="ok")'
+$ curl -sL https://example.org/a.pdf | laminapdf extract text - --pages 1-3 | rg -i invoice
+$ laminapdf pages select in.pdf 1-z:odd -o - | laminapdf render - --pages 1 --dpi 72 -o thumb.png
+$ laminapdf fill form.pdf --data - -o filled.pdf < answers.json
+$ fd -e pdf -0 | xargs -0 -n1 -P8 laminapdf check --json --quiet
+$ laminapdf check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and .status!="ok")'
 ```
 
 Agent session (non-TTY, JSON):
 ```console
-$ lamina info report.pdf --json --fields pages,encrypted,warnings
-{"schema":"lamina.info/1","input":"report.pdf","pages":42,"encrypted":false,
+$ laminapdf info report.pdf --json --fields pages,encrypted,warnings
+{"schema":"laminapdf.info/1","input":"report.pdf","pages":42,"encrypted":false,
  "warnings":[{"code":"W0102","message":"xref offset off by 3 bytes (repaired)","offset":18342}]}
 ```
 
 NDJSON batch:
 ```json
-{"type":"result","schema":"lamina.check/1","index":0,"input":"a.pdf","status":"ok","warnings":[]}
-{"type":"result","schema":"lamina.check/1","index":1,"input":"b.pdf","status":"error","error":{"code":"E0201","kind":"password_required"}}
+{"type":"result","schema":"laminapdf.check/1","index":0,"input":"a.pdf","status":"ok","warnings":[]}
+{"type":"result","schema":"laminapdf.check/1","index":1,"input":"b.pdf","status":"error","error":{"code":"E0201","kind":"password_required"}}
 {"type":"summary","ok":1,"warnings":0,"failed":1,"elapsed_ms":412}
 ```
 
 Error JSON shape (stderr when `--json`; also the MCP `isError` text/structuredContent):
 ```json
 {
-  "schema": "lamina.error/1",
+  "schema": "laminapdf.error/1",
   "error": {
     "code": "E0201",
     "kind": "password_required",
     "message": "b.pdf is encrypted (AES-256, R6); a user password is required",
     "input": "b.pdf",
     "location": {"offset": 1024, "object": "12 0 R"},
-    "hint": "pass --password-file FILE or set LAMINA_PASSWORD",
+    "hint": "pass --password-file FILE or set LAMINA_PDF_PASSWORD",
     "exit_code": 5,
     "retryable": false,
     "docs": "https://lamina.dev/errors/E0201"
@@ -238,10 +238,10 @@ Rules: `code`/`kind` stable and listed in `fixtures/codes.json` (lamina already 
 
 MCP:
 ```console
-$ lamina mcp --root ./docs --read-only        # stdio; tools: lamina_info, lamina_extract_text, lamina_render, …
+$ laminapdf mcp --root ./docs --read-only        # stdio; tools: laminapdf_info, laminapdf_extract_text, laminapdf_render, …
 ```
-Tool definitions reuse `lamina schema extract.text --json` as `inputSchema`/`outputSchema`, annotations as in the table, deterministic tool order.
+Tool definitions reuse `laminapdf schema extract.text --json` as `inputSchema`/`outputSchema`, annotations as in the table, deterministic tool order.
 
 ### Gaps
-- Naming/branding of the binary (`lamina` vs `lam`) and whether `pages` sub-verbs vs flat verbs (`merge`, `split`) test better with users — no evidence gathered; worth a small usability check.
+- Naming/branding of the binary (`laminapdf` vs `lam`) and whether `pages` sub-verbs vs flat verbs (`merge`, `split`) test better with users — no evidence gathered; worth a small usability check.
 - PAdES/LTV `verify` semantics and PDF/A `convert` depend on future ADRs not yet accepted.

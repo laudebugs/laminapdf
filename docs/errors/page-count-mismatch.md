@@ -13,7 +13,7 @@ Writers that don't update `/Count`.
 
 ## How to fix
 
-Nothing; lamina uses the walked count.
+Nothing; Lamina PDF uses the walked count.
 
 ## Example
 

@@ -87,7 +87,7 @@ tasks:
                     the error contract from it: ErrorCode/WarningCode
                     (crates/laminapdf-syntax/src/generated/), the façade's explain pages
                     (crates/laminapdf/src/generated/), @laminapdf/sdk's unions, tables and explain
-                    pages (packages/sdk/src/generated/), the lamina.error/1 JSON Schema
+                    pages (packages/sdk/src/generated/), the laminapdf.error/1 JSON Schema
                     (packages/sdk/schemas/, crates/laminapdf/schemas/) and docs/errors/README.md's
                     tables; --check fails naming each stale file; --md prints the tables
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
@@ -96,7 +96,7 @@ tasks:
   portability       core crates: forbidden-API grep, dependency and unsafe rules,
                     cargo check for wasm32, iOS and Android
   wasm              build the wasm32 crates with the size-optimised `wasm-release` profile, then
-                    the @laminapdf/wasm modules (lamina_base, lamina_text) into packages/wasm/dist/
+                    the @laminapdf/wasm modules (lamina_pdf_base, lamina_pdf_text) into packages/wasm/dist/
                     (wasm-bindgen, wasm-opt) and their tests in Node
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
@@ -122,7 +122,7 @@ tasks:
                     with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
   render-golden [--update]
                     render every page of fixtures/golden/examples/ with PDFium (pypdfium2:
-                    tools/render/requirements.txt, $LAMINA_PYTHON) and hayro (tools/render, its
+                    tools/render/requirements.txt, $LAMINA_PDF_PYTHON) and hayro (tools/render, its
                     own workspace) at 72 dpi, compare with fixtures/render-golden/ (thresholds.toml;
                     diff images in target/xtask/render-golden/), and hayro vs PDFium at 150 dpi;
                     --update rewrites the PNGs (and still fails on a parity disagreement)
@@ -137,7 +137,7 @@ tasks:
                     with the worst diffs in target/nightly/render-diff/; with --history, a pass-rate
                     drop of more than 2 points writes regression.md (--dry-run prints the issue)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
-                    tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
+                    tools/corpus-facts/requirements.txt; $LAMINA_PDF_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
                     check out the external corpora pinned in fixtures/corpus-manifest.toml into
                     target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)
@@ -157,17 +157,17 @@ tasks:
                     corpus (whitespace and bidi controls removed; a page agrees when lamina
                     matches one tool); report in target/nightly/differential-text/
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
-                    check its SHA-256, unpack the library and its notices, print LAMINA_PDFIUM_DIR
-                    (cache: $LAMINA_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
+                    check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
+                    (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
   verapdf [--dir <dir>]
                     run the lamina examples into target/examples-out/ (or take the PDFs in <dir>)
                     and validate each with veraPDF for the profiles its XMP claims (PDF/A-2b, 2u,
                     3b, PDF/UA-1); any violation fails; summary in target/xtask/verapdf/summary.md.
                     veraPDF's pinned CLI (doctor.rs) is installed into $RUNNER_TOOL_CACHE/lamina-verapdf
-                    or target/verapdf; Java: $LAMINA_JAVA, Homebrew's openjdk@21, or java on PATH
+                    or target/verapdf; Java: $LAMINA_PDF_JAVA, Homebrew's openjdk@21, or java on PATH
   quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
                     fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
-                    pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)
+                    pypdfium2 from tools/render/requirements.txt; $LAMINA_PDF_PYTHON or python3)
   roundtrip [--tools qpdf,pdfjs,pdfium]
                     lamina saves every fixture x proving op x mode, reopens each output and
                     checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
@@ -516,7 +516,7 @@ fn package_args<'a>(names: impl Iterator<Item = &'a str>, kind: &str) -> Result<
     let args: Vec<&str> = names.flat_map(|name| ["-p", name]).collect();
     if args.is_empty() {
         bail!(
-            "no {kind} crates found: every crate in crates/ declares [package.metadata.lamina] layer, \
+            "no {kind} crates found: every crate in crates/ declares [package.metadata.laminapdf] layer, \
              and at least one must be \"core\""
         );
     }

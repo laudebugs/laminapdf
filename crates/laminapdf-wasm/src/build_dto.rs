@@ -3,7 +3,7 @@
 //! (ADR 0028 F5, F6: every option optional, unknown keys refused), converted to
 //! `laminapdf-build`'s types.
 //!
-//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+//! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 use laminapdf::{
     AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin,

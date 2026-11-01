@@ -33,8 +33,8 @@ pub(crate) struct Instance;
 /// **Revision.** Every committed edit, undo, redo and save bumps a revision counter that
 /// every job checks before each step (`document-changed`, ADR 0028 §3).
 ///
-/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
+/// [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
+/// [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #[derive(Debug)]
 pub struct Document {
     inner: laminapdf_ops::Document,
@@ -55,7 +55,7 @@ pub struct Document {
 /// One page's facts, owned (F1, F5): its index, its [`PageId`], its displayed size in points
 /// (the `CropBox` with `/Rotate` and `/UserUnit` applied, [ADR 0027]) and its rotation.
 ///
-/// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+/// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageInfo {

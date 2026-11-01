@@ -4,10 +4,10 @@
 //! checked by `qpdf --check`, pdf.js (`tools/roundtrip/pdfjs.mjs`) and `PDFium`
 //! (`tools/roundtrip/pdfium.py`, pypdfium2) against the manifest the example wrote.
 //!
-//! Needs qpdf on `PATH`, Node with pdf.js (`$LAMINA_PDFJS`, the path to a `pdfjs-dist` folder,
+//! Needs qpdf on `PATH`, Node with pdf.js (`$LAMINA_PDF_PDFJS`, the path to a `pdfjs-dist` folder,
 //! else `tools/roundtrip/node_modules/pdfjs-dist`, installed with npm from
 //! `tools/roundtrip/package.json` when missing) and Python with pypdfium2
-//! (`tools/roundtrip/requirements.txt`; `$LAMINA_PYTHON` or `python3`). The outputs, the
+//! (`tools/roundtrip/requirements.txt`; `$LAMINA_PDF_PYTHON` or `python3`). The outputs, the
 //! manifest and `versions.json` (every tool's version, for reproducing a failure) are in
 //! `target/xtask/roundtrip/`.
 
@@ -167,7 +167,7 @@ fn qpdf(out: &Path, files: &[String]) -> Checked {
 /// pdf.js over the manifest.
 fn pdfjs(ws: &Workspace, out: &Path) -> Checked {
     let tools = ws.root.join("tools/roundtrip");
-    let dir = if let Some(dir) = std::env::var_os("LAMINA_PDFJS") {
+    let dir = if let Some(dir) = std::env::var_os("LAMINA_PDF_PDFJS") {
         dir.into()
     } else {
         let dir = tools.join("node_modules/pdfjs-dist");

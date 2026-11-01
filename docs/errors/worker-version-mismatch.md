@@ -19,7 +19,7 @@ Let the bundler serve the Web Worker from the same `@laminapdf/sdk` package as t
 
 ```ts
 const client = await connect({ worker: new Worker("/old/lamina-worker.js", { type: "module" }) });
-// rejects: LaminaError { code: "worker-version-mismatch", … }
+// rejects: LaminaPdfError { code: "worker-version-mismatch", … }
 ```
 
 ## Data fields

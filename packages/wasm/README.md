@@ -1,14 +1,14 @@
 # `@laminapdf/wasm`
 
-lamina's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue. The package is private: use [`@laminapdf/sdk`](../sdk/README.md), which is built on it. This package is its raw layer.
+Lamina PDF's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue. The package is private: use [`@laminapdf/sdk`](../sdk/README.md), which is built on it. This package is its raw layer.
 
 | Export | File | What it has |
 | --- | --- | --- |
-| `@laminapdf/wasm/base` | `dist/lamina_base.js`, `.d.ts`, `lamina_base.wasm` | Open, read, edit with ops, undo, save (save jobs, warnings); build vector and image pages with links, outline, labels, metadata |
-| `@laminapdf/wasm/text` | `dist/lamina_text.js`, `.d.ts`, `lamina_text.wasm` | All of base, plus fonts (`fontBytes`, `standardFont`), `text` and `textBox`, and `WasmPage.text` |
-| `@laminapdf/wasm/extract` | `dist/lamina_extract.js`, `.d.ts`, `lamina_extract.wasm` | All of base, plus `WasmPage.text` (text extraction) |
+| `@laminapdf/wasm/base` | `dist/lamina_pdf_base.js`, `.d.ts`, `lamina_pdf_base.wasm` | Open, read, edit with ops, undo, save (save jobs, warnings); build vector and image pages with links, outline, labels, metadata |
+| `@laminapdf/wasm/text` | `dist/lamina_pdf_text.js`, `.d.ts`, `lamina_pdf_text.wasm` | All of base, plus fonts (`fontBytes`, `standardFont`), `text` and `textBox`, and `WasmPage.text` |
+| `@laminapdf/wasm/extract` | `dist/lamina_pdf_extract.js`, `.d.ts`, `lamina_pdf_extract.wasm` | All of base, plus `WasmPage.text` (text extraction) |
 
-Each glue module exports a default async `init(input)` (a URL, `Response`, bytes or `WebAssembly.Module`) and `initSync({ module })`; after either, every call is synchronous. Errors are thrown as lamina's error object, the same fields as `LaminaError`'s. Paths are flat `Float64Array`s (verb, numbers…: `0 x y` moveTo, `1 x y` lineTo, `2 x1 y1 x2 y2 x y` cubicTo, `3 x1 y1 x y` quadTo, `4` close, `5 x y w h` rect, `6 x y w h` ellipse, `7 cx cy r` circle), colours arrays of 1, 3 or 4 components.
+Each glue module exports a default async `init(input)` (a URL, `Response`, bytes or `WebAssembly.Module`) and `initSync({ module })`; after either, every call is synchronous. Errors are thrown as Lamina PDF's error object, the same fields as `LaminaPdfError`'s. Paths are flat `Float64Array`s (verb, numbers…: `0 x y` moveTo, `1 x y` lineTo, `2 x1 y1 x2 y2 x y` cubicTo, `3 x1 y1 x y` quadTo, `4` close, `5 x y w h` rect, `6 x y w h` ellipse, `7 cx cy r` circle), colours arrays of 1, 3 or 4 components.
 
 ## For contributors
 

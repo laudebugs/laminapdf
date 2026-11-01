@@ -14,7 +14,7 @@
 
 import { defined } from "../defined.js";
 import { Document, PageRef } from "../document.js";
-import { type Diagnostic, isDiagnostic, LaminaError, packageError } from "../errors.js";
+import { type Diagnostic, isDiagnostic, LaminaPdfError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import { init, loadExtract, loadText } from "../index.js";
 import { httpRangeSource } from "../source/http.js";
@@ -124,16 +124,16 @@ export function emit(name: string, data?: unknown, transfer: Transferable[] = []
 }
 
 /**
- * The ADR 0026 object for anything thrown. lamina's own errors pass through, and so does the §1
+ * The ADR 0026 object for anything thrown. Lamina PDF's own errors pass through, and so does the §1
  * object the WASM modules throw. Any other error that can describe itself (`toDiagnostic()`,
  * as `@laminapdf/render`'s RenderError does) is posted as that object, so a render
- * `data-pending` keeps its `[offset, length]` ranges in `data.ranges` (`LaminaError.ranges`).
+ * `data-pending` keeps its `[offset, length]` ranges in `data.ranges` (`LaminaPdfError.ranges`).
  * Anything else is a failure of the worker itself (`worker-failed`, kind internal). Caller
  * mistakes the worker detects (an unknown method) are thrown as `invalid-argument` where they
  * are found.
  */
 function diagnostic(e: unknown): Diagnostic<ErrorCode> {
-  if (e instanceof LaminaError) return e.toJSON();
+  if (e instanceof LaminaPdfError) return e.toJSON();
   if (isDiagnostic(e)) return e;
   const described = fromToDiagnostic(e);
   if (described !== undefined) return described;

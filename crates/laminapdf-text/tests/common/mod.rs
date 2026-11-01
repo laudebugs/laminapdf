@@ -393,7 +393,7 @@ pub fn expand_widths(w: &[Object]) -> std::collections::BTreeMap<u16, f64> {
     out
 }
 
-/// Parses the `bfchar` and `bfrange` entries of a ToUnicode CMap (the subset lamina writes:
+/// Parses the `bfchar` and `bfrange` entries of a ToUnicode CMap (the subset Lamina PDF writes:
 /// two-byte codes, incrementing ranges) into code → text, and returns the entry count of
 /// every block.
 pub fn parse_cmap(cmap: &str) -> (std::collections::BTreeMap<u16, String>, Vec<usize>) {

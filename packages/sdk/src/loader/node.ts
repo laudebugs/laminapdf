@@ -7,9 +7,9 @@ export const locate: Locate = (module) =>
   readFile(
     new URL(
       module === "base"
-        ? import.meta.resolve("@laminapdf/wasm/lamina_base.wasm")
+        ? import.meta.resolve("@laminapdf/wasm/lamina_pdf_base.wasm")
         : module === "text"
-          ? import.meta.resolve("@laminapdf/wasm/lamina_text.wasm")
-          : import.meta.resolve("@laminapdf/wasm/lamina_extract.wasm"),
+          ? import.meta.resolve("@laminapdf/wasm/lamina_pdf_text.wasm")
+          : import.meta.resolve("@laminapdf/wasm/lamina_pdf_extract.wasm"),
     ),
   );

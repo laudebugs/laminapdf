@@ -3,7 +3,7 @@
 
 import { decodePng, fetcher } from "@laminapdf/test-utils/browser-harness";
 import { renderContract } from "@laminapdf/test-utils/render-contract";
-import wasmUrl from "@laminapdf/wasm/lamina_render_hayro.wasm?url";
+import wasmUrl from "@laminapdf/wasm/lamina_pdf_render_hayro.wasm?url";
 import { type HayroBackend, initHayro } from "../../src/index.js";
 
 const urls = import.meta.glob<string>(

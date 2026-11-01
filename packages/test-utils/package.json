@@ -2,7 +2,7 @@
   "name": "@laminapdf/test-utils",
   "version": "0.0.0",
   "private": true,
-  "description": "Test helpers the lamina packages share: the render contract suite, the browser harness and config, the Firefox workaround and the repository root. Workspace-only; never published or versioned.",
+  "description": "Test helpers the Lamina PDF packages share: the render contract suite, the browser harness and config, the Firefox workaround and the repository root. Workspace-only; never published or versioned.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,

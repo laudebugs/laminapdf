@@ -5,7 +5,7 @@ import { type RangeSource, WHOLE } from "./range.js";
 
 /** Options for {@link httpRangeSource}. */
 export interface HttpRangeOptions {
-  /** Extra request headers (authorisation, …). `Range` and `If-Range` are lamina's. */
+  /** Extra request headers (authorisation, …). `Range` and `If-Range` are Lamina PDF's. */
   readonly headers?: Readonly<Record<string, string>>;
   /** `fetch`'s credentials mode. */
   readonly credentials?: RequestCredentials;
@@ -54,7 +54,7 @@ function changed() {
  * @param url - the file.
  * @param options - headers, credentials, signal, block size.
  * @returns the source, once the first request has answered.
- * @throws {@link LaminaError} `fetch-failed` (with `data.status`), `source-changed`.
+ * @throws {@link LaminaPdfError} `fetch-failed` (with `data.status`), `source-changed`.
  */
 export async function httpRangeSource(url: string | URL, options: HttpRangeOptions = {}): Promise<RangeSource> {
   const doFetch = options.fetch ?? fetch;
@@ -88,7 +88,7 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
     } as RangeSource;
   }
   if (first.status === 416 && /^bytes \*\/0$/.test(first.headers.get("Content-Range")?.trim() ?? "")) {
-    // An empty file has no last bytes to send: open it as empty (lamina then says what it is).
+    // An empty file has no last bytes to send: open it as empty (Lamina PDF then says what it is).
     await first.body?.cancel();
     return { size: 0, read: async () => new Uint8Array() };
   }

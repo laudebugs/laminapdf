@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-wasm"
-description = "wasm-bindgen bindings of the lamina façade: owned handles for documents, builders, pages, fonts and images, JSON records with tsify types, errors as the ADR 0026 object; built twice by `cargo xtask wasm` (base and text modules) into @laminapdf/wasm."
+description = "wasm-bindgen bindings of the Lamina PDF façade: owned handles for documents, builders, pages, fonts and images, JSON records with tsify types, errors as the ADR 0026 object; built twice by `cargo xtask wasm` (base and text modules) into @laminapdf/wasm."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,7 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 # Read by `cargo xtask`: an edge crate (wasm-bindgen, js-sys), also linted and built for wasm32.
-[package.metadata.lamina]
+[package.metadata.laminapdf]
 layer = "edge"
 wasm = true
 

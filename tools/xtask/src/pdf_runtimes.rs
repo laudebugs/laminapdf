@@ -2,7 +2,7 @@
 //! runtime the package supports (todo B6c; pdf-library §5): Node (whichever `node` is on PATH),
 //! Chromium, Firefox and `WebKit` (Vitest browser mode with Playwright), Deno, Bun and workerd.
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
-//! smoke's figures (`LAMINA_MEASUREMENT {json}` lines), which this task collects into
+//! smoke's figures (`LAMINA_PDF_MEASUREMENT {json}` lines), which this task collects into
 //! `target/xtask/pdf-runtimes/measurements.json` (`measurements-<label>.json` with `--label`)
 //! and a job-summary table against the §4 targets.
 //! The targets are reported, never asserted. `--history <dir> --runner <label> --record` appends
@@ -27,7 +27,7 @@ use crate::{program_path, step};
 const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
 
 /// The prefix of a measurement line (`MEASUREMENT_PREFIX` in packages/sdk/test/suite/examples.ts).
-const PREFIX: &str = "LAMINA_MEASUREMENT ";
+const PREFIX: &str = "LAMINA_PDF_MEASUREMENT ";
 
 /// pdf-library §4: hello after `init()`, the 100-page report, and peak memory in a Worker.
 const HELLO_TARGET_MS: f64 = 5.0;
@@ -185,7 +185,7 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 
 /// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@laminapdf/render`
 /// built, then `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` (over the `wasm` job's
-/// `lamina_render_hayro.wasm`), each with C2b's goldens, and `@laminapdf/viewer`'s document worker and RPC
+/// `lamina_pdf_render_hayro.wasm`), each with C2b's goldens, and `@laminapdf/viewer`'s document worker and RPC
 /// (C3a, built first). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
@@ -242,8 +242,8 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     ws.require_node_modules()?;
     for dist in [
-        "packages/wasm/dist/lamina_text.wasm",
-        "packages/wasm/dist/lamina_render_hayro.wasm",
+        "packages/wasm/dist/lamina_pdf_text.wasm",
+        "packages/wasm/dist/lamina_pdf_render_hayro.wasm",
         "packages/sdk/dist/index.js",
     ] {
         if !ws.root.join(dist).is_file() {
@@ -534,8 +534,8 @@ mod tests {
 
     #[test]
     fn parse_measurements_should_read_prefixed_lines_anywhere_in_a_line() {
-        let output = "noise\nstdout | x\nLAMINA_MEASUREMENT {\"runtime\":\"deno\",\"case\":\"hello\",\"value\":1.5}\n\
-                      \u{1b}[0mLAMINA_MEASUREMENT {\"runtime\":\"bun\",\"case\":\"report\",\"value\":400}\n";
+        let output = "noise\nstdout | x\nLAMINA_PDF_MEASUREMENT {\"runtime\":\"deno\",\"case\":\"hello\",\"value\":1.5}\n\
+                      \u{1b}[0mLAMINA_PDF_MEASUREMENT {\"runtime\":\"bun\",\"case\":\"report\",\"value\":400}\n";
         let found = parse_measurements(output).unwrap();
         assert_eq!(
             found.iter().map(|m| (m.runtime.as_str(), m.value)).collect::<Vec<_>>(),
@@ -545,7 +545,7 @@ mod tests {
 
     #[test]
     fn parse_measurements_should_fail_on_a_malformed_line() {
-        assert!(parse_measurements("LAMINA_MEASUREMENT {not json}").is_err());
+        assert!(parse_measurements("LAMINA_PDF_MEASUREMENT {not json}").is_err());
     }
 
     #[test]

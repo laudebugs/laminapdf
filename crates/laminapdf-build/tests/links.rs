@@ -1,5 +1,5 @@
 //! Link annotations and named destinations (todo B5b): what the golden's links resolve to
-//! through lamina's reader and `laminapdf-model`, refusals, and links on pages appended to an
+//! through Lamina PDF's reader and `laminapdf-model`, refusals, and links on pages appended to an
 //! open document.
 #![allow(
     clippy::unwrap_used,

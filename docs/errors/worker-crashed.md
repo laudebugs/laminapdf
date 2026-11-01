@@ -9,7 +9,7 @@ The Web Worker running `@laminapdf/sdk` (from `@laminapdf/sdk/worker`) stopped: 
 
 ## Why
 
-A long synchronous call can keep the Web Worker busy without answering, so lamina has no heartbeat and never treats silence as a crash. Only the Web Worker's `error` or `messageerror` event, or a trap it reports, counts as a crash.
+A long synchronous call can keep the Web Worker busy without answering, so Lamina PDF has no heartbeat and never treats silence as a crash. Only the Web Worker's `error` or `messageerror` event, or a trap it reports, counts as a crash.
 
 ## How to fix
 
@@ -19,7 +19,7 @@ Call `client.restart()`, then open the document again: handles from the old Web 
 
 ```ts
 client.on("crashed", () => client.restart());
-await doc.save(); // rejects with LaminaError { code: "worker-crashed", … } if the Web Worker died
+await doc.save(); // rejects with LaminaPdfError { code: "worker-crashed", … } if the Web Worker died
 ```
 
 ## Data fields

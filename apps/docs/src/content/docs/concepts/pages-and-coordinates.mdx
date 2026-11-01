@@ -5,11 +5,11 @@ description: Points from the top-left corner of the page as it's displayed, y go
 
 import Snippet from "../../../components/Snippet.astro";
 
-Every position you pass lamina is in [page space](/reference/glossary/#page-space): points measured from the top-left corner of the page, with y going down. It's the way a screen or a sheet of paper reads, so a number means the same thing in every part of the API.
+Every position you pass Lamina PDF is in [page space](/reference/glossary/#page-space): points measured from the top-left corner of the page, with y going down. It's the way a screen or a sheet of paper reads, so a number means the same thing in every part of the API.
 
 ## Points
 
-A point is 1/72 of an inch. An A4 page is about 595 × 842 points, and a US Letter page is 612 × 792. Some pages set a [user unit](/reference/glossary/#user-unit), which scales the file's own units; lamina applies it, so a point is always 1/72 inch.
+A point is 1/72 of an inch. An A4 page is about 595 × 842 points, and a US Letter page is 612 × 792. Some pages set a [user unit](/reference/glossary/#user-unit), which scales the file's own units; Lamina PDF applies it, so a point is always 1/72 inch.
 
 ## The top-left corner of the page you see
 
@@ -27,4 +27,4 @@ The first page is page 0 everywhere: `doc.page(0)`, a link's target, a page labe
 
 ## PDF's own coordinates
 
-Inside the file, PDF measures from the bottom-left corner with y going up, before rotation. That's [user space](/reference/glossary/#user-space). lamina converts for you, so you only meet it in Rust, in names that contain `UserSpace` or `user_space`.
+Inside the file, PDF measures from the bottom-left corner with y going up, before rotation. That's [user space](/reference/glossary/#user-space). Lamina PDF converts for you, so you only meet it in Rust, in names that contain `UserSpace` or `user_space`.

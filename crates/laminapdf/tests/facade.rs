@@ -310,7 +310,7 @@ mod diagnostics {
                 "hint": "the input exceeds a safety limit; raise max_nesting_depth in Limits only if you trust the input",
                 "location": { "object": 12 },
                 "data": { "limit": "max_nesting_depth" },
-                "docsUrl": "https://github.com/laudebugs/lamina/blob/main/docs/errors/limit-exceeded.md"
+                "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/limit-exceeded.md"
             })
         );
     }

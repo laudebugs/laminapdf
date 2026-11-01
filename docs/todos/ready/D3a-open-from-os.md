@@ -64,7 +64,7 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 ## Acceptance criteria
 
 - [ ] On each OS, with a dev bundle installed (dmg/NSIS/deb), double-clicking a PDF when lamina is **running** opens it in the running instance (no second window process remains — checked with the process list) — manual check recorded in the PR per OS.
-- [ ] Cold start via double-click or `lamina /path/to/file.pdf` opens the file on every OS through `PendingOpens` (no code path opens a document before the frontend has called `take_pending_opens`); first page within the cold-start + first-page budgets.
+- [ ] Cold start via double-click or `laminapdf /path/to/file.pdf` opens the file on every OS through `PendingOpens` (no code path opens a document before the frontend has called `take_pending_opens`); first page within the cold-start + first-page budgets.
 - [ ] Dropping a PDF onto the window opens it; dropping onto the macOS dock icon opens it; dropping a non-PDF shows a toast and opens nothing.
 - [ ] Paths with spaces, non-ASCII characters and (Windows) > 260 characters open correctly (unit tests for parsing + manual check).
 - [ ] lamina appears in "Open with" on all three OSes and does **not** become the default handler unless the user chooses it.

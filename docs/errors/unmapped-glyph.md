@@ -13,7 +13,7 @@ The file has no ToUnicode CMap for a subset or symbolic font, uses arbitrary gly
 
 ## How to fix
 
-Nothing to do in lamina. A producer that writes ToUnicode CMaps (lamina does) avoids it; OCR is the only way to recover such text.
+Nothing to do in Lamina PDF. A producer that writes ToUnicode CMaps (Lamina PDF does) avoids it; OCR is the only way to recover such text.
 
 ## Example
 

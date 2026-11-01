@@ -1,7 +1,7 @@
 //! [`SavePlanner`] and [`SavePlan`] ([ADR 0007] §1–§3): what restricts a save, and how it
 //! goes.
 //!
-//! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+//! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
 use laminapdf_ops::{ModificationClass, Op};
 
@@ -37,7 +37,7 @@ use crate::resolve::resolve;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 ///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 #[derive(Debug, Clone)]
 pub struct SavePlanner {
     signatures: Signatures,
@@ -112,7 +112,7 @@ impl SavePlanner {
     /// [`SaveError::WouldInvalidateSignatures`](crate::SaveError::WouldInvalidateSignatures)
     /// and [`SaveError::RequiresRewrite`](crate::SaveError::RequiresRewrite) as the table says.
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     pub fn plan(&self, options: &SaveOptions) -> Result<SavePlan> {
         let mut plan = SavePlan::resolve(self.constraint.clone(), options)?;
         if plan.mode == SaveMode::Incremental && !plan.would_invalidate.is_empty() {
@@ -139,7 +139,7 @@ impl SavePlanner {
     /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]).
     /// The planner stays the authority at save time.
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
         let mut out = self.would_violate_class(op.class());
@@ -190,7 +190,7 @@ impl SavePlan {
     /// # Errors
     /// As [`SavePlanner::plan`].
     ///
-    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     pub fn resolve(constraint: SaveConstraint, options: &SaveOptions) -> Result<Self> {
         let (mode, would_invalidate) = resolve(&constraint, *options)?;
         let removes_encryption =

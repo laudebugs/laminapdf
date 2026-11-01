@@ -2,6 +2,7 @@
 
 - Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
+- Amended 2026-11-01 (owner): the schema ID is `laminapdf.error/1` and the TypeScript class `LaminaPdfError` ([P0c](../todos/done/P0c-lamina-pdf-names.md), ADR 0015). Nothing was published under the old names.
 
 ## Context
 
@@ -13,7 +14,7 @@ The research says three things ([report: errors and schemas as a single contract
 - LLM-written JavaScript often bypasses types, so an unknown option should say "did you mean …".
 - PDF text is attacker-controlled. Anything an agent reads as an *instruction channel* (an error message, a hint) must not carry it.
 
-The guidelines name the TypeScript class `PdfError` ([code organisation §5](../guidelines/code-organization.md#5-error-handling-by-layer), [TypeScript: errors](../guidelines/typescript.md#errors)). The plan, the report and the later todos (L1b, L2a–L2c) say `LaminaError`. No TypeScript package exists yet, so renaming costs nothing now.
+The guidelines name the TypeScript class `PdfError` ([code organisation §5](../guidelines/code-organization.md#5-error-handling-by-layer), [TypeScript: errors](../guidelines/typescript.md#errors)). The plan, the report and the later todos (L1b, L2a–L2c) say `LaminaPdfError`. No TypeScript package exists yet, so renaming costs nothing now.
 
 ## Decision
 
@@ -32,7 +33,7 @@ Every error and warning serialises to the same object (camelCase keys; optional 
 | `data` | object | no | Code-specific structured fields, documented on the code's `explain` page: the limit name, `ranges` for `data-pending`, `declared`/`walked` for `page-count-mismatch`. **The only place document-derived strings may appear**, and each such key is marked *untrusted* on its page |
 | `docsUrl` | string | yes | The code's `explain` page (§6) |
 
-Warnings use the same shape without `didYouMean`. The object has no schema field of its own. L1b publishes its JSON Schema as `lamina.error/1`, and outputs that embed it (CLI `--json`, extraction results) carry their own schema id.
+Warnings use the same shape without `didYouMean`. The object has no schema field of its own. L1b publishes its JSON Schema as `laminapdf.error/1`, and outputs that embed it (CLI `--json`, extraction results) carry their own schema id.
 
 #### 1.1 `location`
 
@@ -58,7 +59,7 @@ Example (illustrative, after that change):
   "hint": "the input exceeds a safety limit; raise max_nesting_depth in Limits only if you trust the input",
   "location": { "object": 12, "streamOffset": 4096 },
   "data": { "limit": "max_nesting_depth" },
-  "docsUrl": "https://github.com/laudebugs/lamina/blob/main/docs/errors/limit-exceeded.md"
+  "docsUrl": "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/limit-exceeded.md"
 }
 ```
 
@@ -82,12 +83,12 @@ impl serde::Serialize for Error { /* writes the §1 object; variant fields go to
 ```ts
 // @laminapdf/sdk (B6b ships the class with the §1 fields; L1b generates the code unions). Illustrative.
 export type ErrorKind = "input" | "io" | "unsupported" | "limit" | "security" | "usage" | "state" | "cancelled" | "internal";
-export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
+export class LaminaPdfError<C extends ErrorCode = ErrorCode> extends Error {
   readonly code: C; readonly kind: ErrorKind; readonly hint?: string; readonly didYouMean?: readonly string[];
   readonly location?: Location; readonly data?: Readonly<Record<string, unknown>>; readonly docsUrl: string;
   toJSON(): Diagnostic<C>;
 }
-export function isLaminaError<C extends ErrorCode>(e: unknown, code?: C): e is LaminaError<C>;
+export function isLaminaPdfError<C extends ErrorCode>(e: unknown, code?: C): e is LaminaPdfError<C>;
 ```
 
 ### 2. Kinds
@@ -143,8 +144,8 @@ Today three variants break this rule: `laminapdf_syntax::Error::UnsupportedFilte
 
 ### 6. `docsUrl` and `explain` pages
 
-- **One page per code**, the source of truth for its explanation: **`docs/errors/<code>.md`**, with fixed headings *What happened*, *Why*, *How to fix* and *Example*, plus a *Data fields* section listing the `data` keys (marked untrusted where they apply). This PR adds a page for every current code, with the headings filled briefly. Every PR that adds a code adds its page in the same PR (B5c for the job codes). L1b expands the pages and adds the check that every code has a page and every page has a code. B7a publishes them on the docs site, L5a ships them inside the packages, and `lamina explain <code>` (ADR 0031) prints the same text. Generated `explain` text is an opt-in feature or subpath, so it never costs base wasm size.
-- **URL:** `docsUrl` = a base, then the code, then a suffix. Base and suffix are **one constant**, held in `codes.json` and carried to every surface. The domain is `laminapdf.com` (chosen 2026-10-31, [ADR 0011 §1](0011-cloudflare-topology-and-privacy.md#1-topology)); until the base moves to the docs site, it is the GitHub-rendered page (`https://github.com/laudebugs/lamina/blob/main/docs/errors/<code>.md`). It resolves for every current code once this ADR's PR merges, and no surface emits `docsUrl` before B5c. Once production serves the code pages, it becomes `https://docs.laminapdf.com/reference/codes/<code>/`, and the constant changes in one place. The stable part callers can rely on is the code at the end of the path.
+- **One page per code**, the source of truth for its explanation: **`docs/errors/<code>.md`**, with fixed headings *What happened*, *Why*, *How to fix* and *Example*, plus a *Data fields* section listing the `data` keys (marked untrusted where they apply). This PR adds a page for every current code, with the headings filled briefly. Every PR that adds a code adds its page in the same PR (B5c for the job codes). L1b expands the pages and adds the check that every code has a page and every page has a code. B7a publishes them on the docs site, L5a ships them inside the packages, and `laminapdf explain <code>` (ADR 0031) prints the same text. Generated `explain` text is an opt-in feature or subpath, so it never costs base wasm size.
+- **URL:** `docsUrl` = a base, then the code, then a suffix. Base and suffix are **one constant**, held in `codes.json` and carried to every surface. The domain is `laminapdf.com` (chosen 2026-10-31, [ADR 0011 §1](0011-cloudflare-topology-and-privacy.md#1-topology)); until the base moves to the docs site, it is the GitHub-rendered page (`https://github.com/laudebugs/laminapdf/blob/main/docs/errors/<code>.md`). It resolves for every current code once this ADR's PR merges, and no surface emits `docsUrl` before B5c. Once production serves the code pages, it becomes `https://docs.laminapdf.com/reference/codes/<code>/`, and the constant changes in one place. The stable part callers can rely on is the code at the end of the path.
 
 ### 7. Per surface
 
@@ -152,9 +153,9 @@ Today three variants break this rule: `laminapdf_syntax::Error::UnsupportedFilte
 | --- | --- |
 | Rust core crates | One `thiserror` enum per crate as today (`code()` exists). They gain `kind()` and `location()` (L1c: a table checked against `codes.json` by test; generated from L1b on). Their error enums carry no `hint`/`docs_url` text. That text lives in the generated table in `laminapdf-syntax` (see the note below), and a build links the table only when it reads a hint |
 | Rust façade (`laminapdf`) | `laminapdf::Error` with `code()`, `kind()`, `hint()`, `location()`, `docs_url()` and `Serialize` into §1. Warnings likewise |
-| wasm edge (`laminapdf-wasm`) | Returns the §1 object. The TS layer turns it into a `LaminaError` (ADR 0002 §1's "JS `Error` with a stable `code`", with all §1 fields) |
-| TypeScript (`@laminapdf/sdk`, worker client) | **`LaminaError<C>`** (decided; `PdfError` is not used), `isLaminaError(e, code?)`, `toJSON()` to §1. Warnings are plain `LaminaWarning` objects. The worker sends §1 JSON and the client rebuilds `LaminaError`, because structured clone drops `Error` fields |
-| Swift and Kotlin (UniFFI, L6a/ADR 0029) | A `LaminaError` error enum with **one variant per kind**, each carrying a `Diagnostic` record of strings and integers (the §1 fields). That is the "string-payload error enum" of [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §1. Swift catches `LaminaError.cancelled`; Kotlin gets the generated exception class, named as ADR 0029 records |
+| wasm edge (`laminapdf-wasm`) | Returns the §1 object. The TS layer turns it into a `LaminaPdfError` (ADR 0002 §1's "JS `Error` with a stable `code`", with all §1 fields) |
+| TypeScript (`@laminapdf/sdk`, worker client) | **`LaminaPdfError<C>`** (decided; `PdfError` is not used), `isLaminaPdfError(e, code?)`, `toJSON()` to §1. Warnings are plain `LaminaPdfWarning` objects. The worker sends §1 JSON and the client rebuilds `LaminaPdfError`, because structured clone drops `Error` fields |
+| Swift and Kotlin (UniFFI, L6a/ADR 0029) | A `LaminaPdfError` error enum with **one variant per kind**, each carrying a `Diagnostic` record of strings and integers (the §1 fields). That is the "string-payload error enum" of [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §1. Swift catches `LaminaPdfError.cancelled`; Kotlin gets the generated exception class, named as ADR 0029 records |
 | CLI (ADR 0031) | Text mode, rustc style on stderr: `error[wrong-password]: wrong password`, then `= hint: …` and `= see: <docsUrl>`. `--json` writes §1 objects on stderr, one per line, warnings included |
 | MCP (L4c) | Tool errors carry the §1 object in `structuredContent` |
 
@@ -174,7 +175,7 @@ The rule above still holds for the core crates' own error enums: they carry code
 - Kinds are a closed contract. Adding one later is an ADR amendment and a breaking change for exhaustive matches in Swift/Kotlin.
 - Docs drift becomes a CI failure, not a stale page: every code has a page and every page has a code.
 - `docsUrl`s emitted before the domain exists point at GitHub. Old binaries keep those URLs after the switch, so the GitHub pages stay in place (they are the source anyway).
-- The kinds, hints and locations reach the Rust core in L1c, and the JSON shape reaches the façade in B5c, both before any binding exists. B6b's `LaminaError` carries them from its first release, and L1b turns the hand-checked tables into generated ones. Nothing ships with a shape that changes later.
+- The kinds, hints and locations reach the Rust core in L1c, and the JSON shape reaches the façade in B5c, both before any binding exists. B6b's `LaminaPdfError` carries them from its first release, and L1b turns the hand-checked tables into generated ones. Nothing ships with a shape that changes later.
 
 ## Alternatives considered
 
@@ -182,5 +183,5 @@ The rule above still holds for the core crates' own error enums: they carry code
 - **Numeric codes** (rustc's `E0308`). Compact and stable, but opaque without a lookup. Kebab-case codes describe themselves, and ADR 0003 already ships them.
 - **Per-crate code lists.** They mirror the crate split, but the same failure would get different codes in different layers, and users don't see crates. One namespace in one file is simpler to generate and to check.
 - **miette-style diagnostics** (labelled spans with source snippets). Good for a CLI, but snippets quote the document, which §4 forbids, and the dependency doesn't belong in core crates. The CLI may render §1 richly at the edge.
-- **Keeping `PdfError`** (the spike and the guidelines). lamina also reports errors about op logs, workers, jobs and disposed handles. `LaminaError` matches the package and brand names that models search for, and the report and later todos already use it. Renaming now costs nothing.
+- **Keeping `PdfError`** (the spike and the guidelines). lamina also reports errors about op logs, workers, jobs and disposed handles. `LaminaPdfError` matches the package and brand names that models search for, and the report and later todos already use it. Renaming now costs nothing.
 - **Messages with document text, escaped or truncated.** Escaping doesn't stop an instruction written in plain words, and truncation only shortens it. Rejected for `data`-only.

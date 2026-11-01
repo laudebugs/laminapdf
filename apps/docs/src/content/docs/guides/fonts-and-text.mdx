@@ -12,10 +12,10 @@ Text needs the text module: `init({ text: true })` or `loadText()` in TypeScript
 
 ## Pick a font
 
-lamina draws with two kinds of font:
+Lamina PDF draws with two kinds of font:
 
 - **The [standard 14 fonts](/reference/glossary/#standard-14-fonts)** (`Font.standard("Helvetica")`, `Standard14::Helvetica` in Rust) need no font file and aren't embedded, because every PDF reader has them. They cover Latin text only, without shaping.
-- **Your own fonts** (`Font.fromBytes(bytes)`: TrueType, OpenType or a font collection) handle any script. lamina shapes their text, so letters join and ligatures form, and embeds only the glyphs you draw.
+- **Your own fonts** (`Font.fromBytes(bytes)`: TrueType, OpenType or a font collection) handle any script. Lamina PDF shapes their text, so letters join and ligatures form, and embeds only the glyphs you draw.
 
 A font is embedded once per document, however many `Font` objects name it.
 
@@ -43,7 +43,7 @@ This example draws five scripts (Latin with ligatures, Arabic, Devanagari, Hebre
 - **A font that may not be embedded:** a font whose licence bits forbid embedding (restricted, or bitmap only) fails with `font-not-embeddable`. In Rust, `EmbedPolicy::Override` embeds it anyway, if you hold the rights. A font marked "no subsetting" is embedded whole.
 
 :::note[Details]
-lamina shapes your own fonts' text with HarfRust, a Rust port of the HarfBuzz shaper, and subsets each font to the glyphs you draw. It embeds them as [Type 0](/reference/glossary/#type-0) fonts with `/W` widths and a [ToUnicode](/reference/glossary/#tounicode) [CMap](/reference/glossary/#cmap), which is what lets the text be extracted again. Line breaking follows [UAX #14](https://www.unicode.org/reports/tr14/), and the order of mixed-direction text follows [UAX #9](https://www.unicode.org/reports/tr9/) (bidi). The licence bits are the font's `fsType`.
+Lamina PDF shapes your own fonts' text with HarfRust, a Rust port of the HarfBuzz shaper, and subsets each font to the glyphs you draw. It embeds them as [Type 0](/reference/glossary/#type-0) fonts with `/W` widths and a [ToUnicode](/reference/glossary/#tounicode) [CMap](/reference/glossary/#cmap), which is what lets the text be extracted again. Line breaking follows [UAX #14](https://www.unicode.org/reports/tr14/), and the order of mixed-direction text follows [UAX #9](https://www.unicode.org/reports/tr9/) (bidi). The licence bits are the font's `fsType`.
 :::
 
 Next: [shapes, colour and images](/guides/images-and-vectors/).

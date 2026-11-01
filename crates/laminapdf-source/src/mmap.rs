@@ -16,7 +16,7 @@ use memmap2::Mmap;
 ///
 /// **Only for files nothing else changes while the document is open.** If another process
 /// truncates the file, touching a page past the new end raises `SIGBUS` (the process dies; it is
-/// not an error lamina can catch), and changed bytes change under the parser. Prefer
+/// not an error Lamina PDF can catch), and changed bytes change under the parser. Prefer
 /// [`FileSource`](crate::FileSource) unless the file is known to be immutable (a read-only
 /// volume, a file the app wrote and keeps locked). An empty file maps as empty.
 #[derive(Debug)]

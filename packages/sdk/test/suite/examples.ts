@@ -204,7 +204,7 @@ export interface Measurement {
 }
 
 /** The line prefix `cargo xtask pdf-runtimes` reads measurements from (stdout, any runner). */
-const MEASUREMENT_PREFIX = "LAMINA_MEASUREMENT ";
+const MEASUREMENT_PREFIX = "LAMINA_PDF_MEASUREMENT ";
 
 /** Prints `m` on its own line for `cargo xtask pdf-runtimes`. */
 export function printMeasurement(m: Measurement): void {

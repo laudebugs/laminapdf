@@ -5,7 +5,7 @@
 
 ## What happened
 
-An options record passed to `@laminapdf/wasm` (`OpenOptionsInit`, `SaveOptionsInit`, `BuildOptionsInit`, …) has a key lamina doesn't know.
+An options record passed to `@laminapdf/wasm` (`OpenOptionsInit`, `SaveOptionsInit`, `BuildOptionsInit`, …) has a key Lamina PDF doesn't know.
 
 ## Why
 
