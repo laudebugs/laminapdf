@@ -4,7 +4,7 @@
   "extends": "//",
   "overrides": [
     {
-      "includes": ["src/**", "test/**", "examples/**"],
+      "includes": ["src/**", "examples/**", "test/browser/**"],
       "linter": {
         "rules": {
           "correctness": {
