@@ -13,7 +13,9 @@ This app builds one A4 page that says "Hello, world!" and offers it to your user
 
 <Snippet file="packages/sdk/examples/quick-start/browser.ts" />
 
-Import `hello` from your page's script and call it when your user asks for the file, for example from a button: `button.addEventListener("click", () => hello())`. Then start the page with your bundler, such as `npx vite`. lamina's tests bundle this app with Vite and run it in Chromium, Firefox and WebKit, checking that it builds the reference PDF byte for byte.
+Import `hello` from your page's script and call it when your user asks for the file, for example from a button: `button.addEventListener("click", () => hello())`. Then start the page with your bundler, such as `npx vite`.
+
+lamina's tests bundle this app with Vite, run it in Chromium, Firefox and WebKit, and check that it builds the reference PDF byte for byte.
 
 - **Two modules, loaded on demand.** `init()` loads the base module (open, edit, save, vector pages). `loadText()` (or `init({ text: true })`, as the app does) adds fonts and text. A page that never draws text never downloads the text module.
 - **Vite:** exclude the package from dependency pre-bundling (`optimizeDeps.exclude: ["@laminapdf/sdk"]` in `vite.config.ts`), so the `.wasm` files stay next to the JavaScript that loads them.

@@ -3,6 +3,7 @@ import { Builder, type BuilderOptions, Font, init } from "@laminapdf/sdk";
 
 /** The space between the page's edge and the text, in points (72 points = 1 inch). */
 const MARGIN = 72;
+/** The text's size in points; its baseline sits this far below the margin. */
 const FONT_SIZE = 24;
 
 /** Builds the page and hands its bytes to `save`, which writes hello.pdf unless you pass another `save` function. */
@@ -15,7 +16,7 @@ export async function hello(
   await init({ text: true });
   using builder = new Builder(options);
   const page = builder.page("A4");
-  // Points from the page's top-left corner, y down; the text sits on a baseline one line below the margin.
+  // Points from the page's top-left corner, y down; the text's baseline sits FONT_SIZE points below the margin.
   page.surface().text("Hello, world!", {
     font: Font.standard("Helvetica"),
     size: FONT_SIZE,

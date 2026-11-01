@@ -244,14 +244,27 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
 
 /// An exclamation mark in the writer's own words: one inside double quotes ("Hello, world!") is
 /// quoted text, such as what an example draws, and is allowed.
-/// A `!` counts as quoted only with an open quote before it and a closing one after it, so a
-/// stray `"` (a measurement such as 3") can't hide the rest of the block.
+/// Quotes pair up left to right (a straight `"` with the next one, `“` with the next `”`), and a
+/// `!` inside a pair is quoted. A `"` with no partner opens nothing, so it can't hide later marks;
+/// a stray `"` that a real quote follows still pairs with it (a limit the tests show).
 fn has_unquoted_exclamation(text: &str) -> bool {
+    let mut quoted_ranges = Vec::new();
+    let straight: Vec<usize> = text.match_indices('"').map(|(index, _)| index).collect();
+    quoted_ranges.extend(straight.as_chunks::<2>().0.iter().map(|[open, close]| (*open, *close)));
+    let mut rest = text;
+    let mut base = 0;
+    while let Some(open) = rest.find('“') {
+        let Some(close) = rest.get(open..).and_then(|after| after.find('”')) else {
+            break;
+        };
+        quoted_ranges.push((base + open, base + open + close));
+        base += open + close;
+        rest = text.get(base..).unwrap_or_default();
+    }
     text.match_indices('!').any(|(index, _)| {
-        let (before, after) = text.split_at(index);
-        let straight_open = before.matches('"').count() % 2 == 1 && after.contains('"');
-        let curly_open = before.rfind('“') > before.rfind('”') && after.contains('”');
-        !(straight_open || curly_open)
+        !quoted_ranges
+            .iter()
+            .any(|(open, close)| *open < index && index < *close)
     })
 }
 
@@ -654,6 +667,16 @@ mod tests {
             Vec::<&str>::new()
         );
         assert_eq!(rules_for("It works!\n", false), vec!["banned-word"]);
+    }
+
+    #[test]
+    fn quotes_should_pair_left_to_right() {
+        // The limit of pairing: a stray `"` followed by a real quote reads as one quoted span.
+        assert_eq!(rules_for("A 3\" margin. It works! \"x\"\n", false), Vec::<&str>::new());
+        assert_eq!(
+            rules_for("\"Hi!\" and \"there\". It works!\n", false),
+            vec!["banned-word"]
+        );
     }
 
     #[test]

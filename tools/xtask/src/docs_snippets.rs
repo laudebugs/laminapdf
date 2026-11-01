@@ -149,6 +149,7 @@ fn snippet_globs(source: &str) -> Vec<Glob> {
     let list = rest.get(..rest.find(']').unwrap_or(rest.len())).unwrap_or_default();
     let first_line = source.get(..start).map_or(1, |before| before.matches('\n').count() + 1);
     // Every double-quoted string in the list, however the formatter wrapped it, outside comments.
+    // (The list ends at its first `]`, so a `]` in a comment there would end it early.)
     let mut globs = Vec::new();
     for (offset, line) in list.lines().enumerate() {
         let code = line.split_once("//").map_or(line, |(code, _)| code);
