@@ -191,7 +191,7 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
   - `emit(name, data)` in the Web Worker reaches `client.on("event", …)`.
   - `connect({ onDiscard })` sees the answers of calls already rejected. By default it closes the `ImageBitmap`s in them.
   - `serve({ methods, saveBudget })` sets how many work units each step of a save takes (20,000 by default). A smaller budget answers a cancel sooner and reports progress more often, at some cost in speed.
-  - `workerStats()` in the Web Worker reports the calls started, the handles the page holds and the calls queued, for checking that handles are freed.
+  - `workerStats()` in the Web Worker reports the calls started, the handles the page holds and the calls queued. A handle the page never frees keeps its document's WebAssembly memory alive, so a growing count finds the `RemoteDocument` an app forgot to close.
   - `Emitter`, from `@laminapdf/sdk/worker`, is the typed event emitter the client uses, for a package that wraps it: `on(event, listener)` returns a function that stops listening, and a listener that throws doesn't stop the others.
 
 ## Memory

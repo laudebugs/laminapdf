@@ -6,12 +6,15 @@
 // a late answer is dropped. Errors come back as ADR 0026 objects and are rebuilt as LaminaError.
 // A worker `error` or `messageerror`, or a trap the worker reports, rejects every pending call
 // with `worker-crashed` and emits `crashed`; `restart()` starts a new worker. No heartbeat.
+
+import { defined } from "../defined.js";
 import { type Diagnostic, LaminaError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import type { HttpRangeOptions } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
 import { PageText } from "../text.js";
 import type { OpenOptions, Progress } from "../types.js";
+import { Emitter } from "./emitter.js";
 import {
   type FromWorker,
   HANDSHAKE,
@@ -22,8 +25,8 @@ import {
   type Request,
   type ToWorker,
 } from "./protocol.js";
-import { defined, Emitter, whole } from "./shared.js";
 import { DOCUMENT_METHODS, PAGE_METHODS } from "./support.js";
+import { whole } from "./transfer.js";
 import type { CallOptions, RemoteDocument, RequestOptions } from "./types.js";
 
 /** `Symbol.asyncDispose` where the runtime has it, else the registered symbol (no globals touched). */

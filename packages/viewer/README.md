@@ -85,7 +85,6 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 - **Sources:**
   - A `Blob`/`File` is sent by reference, and the Web Worker reads it in 4 MiB `slice()`s.
   - Bytes are copied, and kept on the page for a reopen.
-  - The Web Worker reads a `Blob` through `@laminapdf/sdk`'s `RangeSource`, the interface its HTTP range source implements too.
 
 ## For contributors
 

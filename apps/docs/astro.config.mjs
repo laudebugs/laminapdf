@@ -16,10 +16,9 @@ import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { checkedLinks, examplePdfs, inlineScriptHashes } from "./plugins/integrations.mjs";
-import { REPOSITORY } from "./plugins/repository.mjs";
+import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
-const GITHUB = process.env.LAMINA_DOCS_GITHUB === "1";
 const TYPEDOC = process.env.LAMINA_DOCS_TYPEDOC !== "0";
 
 const typeDoc = starlightTypeDoc({

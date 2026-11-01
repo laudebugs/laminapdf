@@ -11,6 +11,8 @@
 // its callers cancelled: `save` and `saveWithReport` run as stepped jobs that yield between steps
 // (ADR 0028), and a range document's fetches take the signal. A WebAssembly trap is reported as a
 // crash and ends the worker.
+
+import { defined } from "../defined.js";
 import { Document, PageRef } from "../document.js";
 import { type Diagnostic, isDiagnostic, LaminaError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
@@ -29,8 +31,8 @@ import {
   type Request,
   type ToWorker,
 } from "./protocol.js";
-import { defined, whole } from "./shared.js";
 import { DOCUMENT_METHODS, PAGE_METHODS } from "./support.js";
+import { whole } from "./transfer.js";
 
 /** What an extension method sees of its call. */
 export interface CallContext {

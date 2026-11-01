@@ -117,19 +117,19 @@ export class ViewerClient {
     this.#backend = options.backend;
     this.#timeouts = { ...DEFAULT_TIMEOUTS, ...options.timeouts };
     pdf.on("event", (name, data) => {
-      if (name === "warning") this.#emit("warning", data as ViewerEvents["warning"]);
+      if (name === "warning") this.#events.emit("warning", data as ViewerEvents["warning"]);
       else if (name === "render-start") {
         const started = data as ViewerEvents["render-start"];
         this.#drawing = started.key;
         for (const start of this.#waiting.get(started.key) ?? []) start();
         this.#waiting.delete(started.key);
-        this.#emit("render-start", started);
+        this.#events.emit("render-start", started);
       }
     });
     pdf.on("crashed", (reason) => {
-      this.#emit("crashed", { reason });
+      this.#events.emit("crashed", { reason });
       this.#recover(reason as RestartReason).catch((error) =>
-        this.#emit("restart-failed", { reason: reason as RestartReason, error }),
+        this.#events.emit("restart-failed", { reason: reason as RestartReason, error }),
       );
     });
   }
@@ -163,10 +163,6 @@ export class ViewerClient {
   /** Listens for `event`; returns a function that stops listening. */
   on<E extends ViewerEvent>(event: E, listener: (data: ViewerEvents[E]) => void): () => void {
     return this.#events.on(event, listener);
-  }
-
-  #emit<E extends ViewerEvent>(event: E, data: ViewerEvents[E]): void {
-    this.#events.emit(event, data);
   }
 
   /** A typed call: `method` and `params` are checked against `Methods`. */
@@ -238,11 +234,13 @@ export class ViewerClient {
     let soft: ReturnType<typeof setTimeout> | undefined;
     let hard: ReturnType<typeof setTimeout> | undefined;
     const start = () => {
-      soft = setTimeout(() => this.#emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
+      soft = setTimeout(() => this.#events.emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
       hard = setTimeout(() => {
-        if (needsPassword) this.#emit("render-stuck", { id, page: request.page, needsPassword: true });
+        if (needsPassword) this.#events.emit("render-stuck", { id, page: request.page, needsPassword: true });
         else
-          this.stop("hard-timeout").catch((error) => this.#emit("restart-failed", { reason: "hard-timeout", error }));
+          this.stop("hard-timeout").catch((error) =>
+            this.#events.emit("restart-failed", { reason: "hard-timeout", error }),
+          );
       }, this.#timeouts.hard);
     };
     let waiting = this.#waiting.get(key);
@@ -296,7 +294,7 @@ export class ViewerClient {
           // The password died with the worker; it is never kept on the page.
           this.#reopen = undefined;
           this.#document = undefined;
-          this.#emit("password-required", {});
+          this.#events.emit("password-required", {});
         } else {
           this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
             priority: PRIORITY.document,
@@ -304,7 +302,7 @@ export class ViewerClient {
           reopened = true;
         }
       }
-      this.#emit("restarted", { reason, reopened });
+      this.#events.emit("restarted", { reason, reopened });
     })();
     const tracked = recovering.finally(() => {
       if (this.#recovering === tracked) this.#recovering = undefined;

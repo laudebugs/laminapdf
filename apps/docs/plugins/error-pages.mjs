@@ -6,7 +6,7 @@
 // LAMINA_DOCS_GITHUB=1 (astro.config.mjs: the repository is private for now). A page's last
 // section, "For contributors" (decision records and todos), is left out.
 
-import { REPOSITORY } from "./repository.mjs";
+import { GITHUB, REPOSITORY } from "./repository.mjs";
 
 /**
  * A page's Markdown without its "For contributors" section, which is always last: everything
@@ -41,7 +41,7 @@ function readerMarkdown(markdown) {
  * @returns {string | undefined}
  */
 function siteHref(href) {
-  if (href.startsWith(REPOSITORY) && process.env.LAMINA_DOCS_GITHUB !== "1") return undefined;
+  if (href.startsWith(REPOSITORY) && !GITHUB) return undefined;
   if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#") || href.startsWith("/")) return href;
   const code = /^([a-z0-9-]+)\.md(#.*)?$/.exec(href);
   return code ? `/reference/codes/${code[1]}/${code[2] ?? ""}` : undefined;
