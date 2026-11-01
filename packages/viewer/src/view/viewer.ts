@@ -72,7 +72,9 @@ export interface ViewerEventMap {
 export interface PageLayer {
   /** Its slot: `text`, `annot` and `highlight` exist on every page; another name gets a new one on top. */
   readonly name: string;
+  /** Page `page` was mounted: `element` is the layer's slot in its shell. */
   onMount?(page: number, element: HTMLElement): void;
+  /** Page `page` is about to be unmounted (its renders already aborted). */
   onUnmount?(page: number, element: HTMLElement): void;
   /** The page's CSS size changed (zoom or rotation). */
   onZoom?(page: number, element: HTMLElement, size: { readonly width: number; readonly height: number }): void;

@@ -41,6 +41,7 @@ export interface CallContext {
 
 /** A method an extension adds (called on the client itself, handle 0). */
 export interface ExtensionMethod {
+  /** Runs the method in the worker: its result, or a promise of it; what it throws is the caller's error. */
   run(params: readonly unknown[], context: CallContext): unknown;
   /**
    * One caller's answer from the result, and what to transfer with it. Called once per caller of

@@ -76,6 +76,7 @@ export class PageLayout {
     this.maxWidth = max;
   }
 
+  /** How many pages the layout holds. */
   get pageCount(): number {
     return this.widths.length;
   }

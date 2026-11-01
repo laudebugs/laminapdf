@@ -23,6 +23,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/worker/document.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useThrowOnlyError": "off"
+          }
+        }
+      }
     }
   ]
 }
