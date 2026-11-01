@@ -24,7 +24,7 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 - [UI/UX plan §5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) and ADR 0024.
 - [Research: mobile ergonomics](../../research/product/pdf-app-product-and-ux.md#mobile-ergonomics-bottom-bar-sheets-with-detents-and-the-viewer-owns-gestures) — Hoober's grip data, Apple sheets and detents, `viewport-fit=cover`, WCAG 2.5.7/2.5.8.
 - [Engines notes](../../research/product/notes/engines-sdks.md) — iOS Safari canvas caps (≈ 16.7 MP per canvas, 224–384 MB total) and pdf.js's 5 MP mobile cap.
-- [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) — tiles, zoom anchoring; [C4b](./C4b-web-app-shell.md) — the app shell.
+- [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) — tiles, zoom anchoring; [C4b](./C4b-web-app-shell.md) — the app shell.
 - [web-app plan open question 5](../../plans/web-app.md#8-open-questions) — tablet UX in v0.1; this todo answers it for reading.
 
 ## Scope
