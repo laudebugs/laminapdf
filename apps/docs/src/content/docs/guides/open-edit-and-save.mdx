@@ -8,7 +8,7 @@ sidebar:
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-The bytes you open never change. Every edit goes into an overlay on top of them. A save then either appends a revision (incremental) or writes the whole file again (full rewrite).
+Edits never change the bytes you opened, and a save either appends a revision or writes the whole file again; [how lamina thinks about a PDF](/concepts/how-lamina-thinks/) explains both.
 
 ## Edits are ops in transactions
 
@@ -26,10 +26,10 @@ The bytes you open never change. Every edit goes into an overlay on top of them.
 | `incremental` | The original bytes unchanged, then one appended revision |
 | `fullRewrite` | The whole file again |
 
-Every save plans first. The planner reads the file's **save constraint**: signatures, DocMDP and UR3 permissions, `/Lock`, document timestamps, and whether the file needed repair. Then it chooses or refuses:
+Every save plans first. The planner reads the file's **save constraint**: signatures, [DocMDP](/reference/glossary/#docmdp) and [UR3](/reference/glossary/#ur3) permissions, `/Lock`, document timestamps, and whether the file needed repair. Then it chooses or refuses:
 
 - A signed file saves only incrementally, and only edits its signatures allow. Anything else fails with `would-invalidate-signatures`, unless you pass `invalidateSignatures: true`, which removes the invalidated signatures from the output.
-- A repaired file can't be appended to safely, so it needs a full rewrite. Asking for `incremental` fails with `requires-rewrite`.
+- A repaired file can't be appended to safely, so it needs a [full rewrite](/reference/glossary/#full-rewrite). Asking for `incremental` fails with `requires-rewrite`.
 - An encrypted file isn't rewritten in plaintext unless you pass `removeEncryption: true`. Otherwise saving fails with `encrypted-base`.
 - An unchanged document always saves incrementally, which returns its bytes unchanged.
 

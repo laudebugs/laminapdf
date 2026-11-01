@@ -1,29 +1,39 @@
 ---
 title: lamina
 description: Create, read, edit and save PDFs from Rust and TypeScript, with one Rust core that runs natively and as WebAssembly.
+template: splash
+hero:
+  tagline: Create, read, edit and save PDFs from Rust and TypeScript. One core runs on servers, in browsers and at the edge.
+  actions:
+    - text: Your first PDF
+      link: /start/first-pdf/
+      icon: right-arrow
+    - text: See the examples
+      link: /examples/
+      variant: minimal
 ---
 
-lamina creates, reads, edits and saves PDFs. One Rust core does the work. It runs natively, and as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers. It takes bytes and gives back bytes: it doesn't touch the file system or the network, and it reads no clock.
+lamina creates, reads, edits and saves PDFs. One Rust core does the work, and it runs natively and as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers. It's for apps that make documents, such as invoices, reports and tickets, and for apps that open documents other people send.
 
-- **[`lamina`](/reference/rust/)** is the Rust crate: `Document::open_bytes`, `Builder`, saving and jobs you can cancel.
+- **[`lamina`](/reference/rust/)** is the Rust crate.
 - **[`@laminapdf/sdk`](/reference/sdk/readme/)** is the TypeScript API over the WebAssembly build. After one `await init()`, every call is synchronous, and the API is the same in every runtime.
 
 :::caution[Not published yet]
 Neither package is on a registry yet. [Install](/install/) explains how to use them from a checkout, a `pnpm pack` tarball or a path dependency.
 :::
 
-## What it does today
+## What works today
 
 | Area | What you get | Guide |
 | --- | --- | --- |
 | Generate | Pages, text with shaping, bidi and line breaking, embedded and subset fonts, the standard 14, vectors, colour, images, tagged PDF | [Fonts and text](/guides/fonts-and-text/), [Images and vectors](/guides/images-and-vectors/) |
 | Navigate | Links, named destinations, outlines, page labels, Info and XMP metadata | [Links, outlines and metadata](/guides/links-outlines-and-metadata/) |
 | Edit | Ops in transactions, undo and redo, incremental or full saves that respect signatures | [Open, edit and save](/guides/open-edit-and-save/) |
-| Read safely | Repair of damaged files as warnings, resource limits, strict mode, passwords (R2–R6) | [Encrypted files](/guides/encrypted-files/), [Limits](/guides/limits/) |
-| Errors | One coded error and warning shape on every surface | [Errors and warnings](/guides/errors-and-warnings/) |
+| Read safely | Repair of damaged files as warnings, resource limits, strict mode, passwords | [Encrypted files](/guides/encrypted-files/), [Limits](/guides/limits/) |
+| Errors | One coded error and warning shape on every surface | [Errors and warnings](/concepts/errors-and-warnings/) |
 
-Each code block on this site is one of the repository's tested example files, loaded when the site is built, so the code shown is the code that runs. Every example produces the same bytes in Rust and in each JavaScript runtime. Browse them in the [examples gallery](/examples/).
+Every code block on this site is a tested example file, so the code you see is the code that runs. Each example writes the same bytes in Rust and in every JavaScript runtime.
 
-## Start here
+## Where to go next
 
-Pick your runtime: [browser or bundler](/quick-start/browser/), [Node](/quick-start/node/), [Deno](/quick-start/deno/), [Bun](/quick-start/bun/), [Cloudflare Workers](/quick-start/workers/) or [Rust](/quick-start/rust/).
+Start with [your first PDF](/start/first-pdf/), then read [how lamina thinks about a PDF](/concepts/how-lamina-thinks/). When you're ready for your own setup, pick [your runtime](/quick-start/browser/).
