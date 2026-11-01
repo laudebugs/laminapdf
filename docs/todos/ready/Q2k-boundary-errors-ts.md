@@ -39,7 +39,7 @@ The worker turns a render error's `ranges` into `{offset, length}` objects, but 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Write a test where a render `data-pending` crosses the worker; watch it lose its ranges.
 - [ ] Add `toDiagnostic`; switch the worker; delete the unused pair.
-- [ ] Change the viewer's throws; remove its entries from [Q2b](./Q2b-ts-lint-rules.md)'s `useThrowOnlyError` override.
+- [ ] Change the viewer's throws; remove its entries from [Q2b](../ongoing/Q2b-ts-lint-rules.md)'s `useThrowOnlyError` override.
 - [ ] Run the Node and browser suites.
 
 ## Acceptance criteria

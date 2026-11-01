@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2p](./Q2p-ts-complexity-splits.md) |
+| Blocks | [Q2p](../ready/Q2p-ts-complexity-splits.md) |
 | ADRs | None |
 | Branch | `ci/q2b-ts-lint-rules` |
 | PR title | `ci(ts): Biome complexity and throw rules, TypeDoc check for undocumented exports` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-This todo adds the TypeScript rules from the [maintainability guideline](../../guidelines/maintainability.md) that the tools already in the repository can check: Biome's cognitive complexity (15), function length (60) and `useThrowOnlyError`, and TypeDoc's check for undocumented exports. Today's offenders are listed in an override until [Q2p](./Q2p-ts-complexity-splits.md) splits them.
+This todo adds the TypeScript rules from the [maintainability guideline](../../guidelines/maintainability.md) that the tools already in the repository can check: Biome's cognitive complexity (15), function length (60) and `useThrowOnlyError`, and TypeDoc's check for undocumented exports. Today's offenders are listed in an override until [Q2p](../ready/Q2p-ts-complexity-splits.md) splits them.
 
 ## Context
 
@@ -32,14 +32,14 @@ This todo adds the TypeScript rules from the [maintainability guideline](../../g
 
 **Out of scope** (and which todo covers it)
 
-- Dependency-cruiser, jscpd and knip ([Q2u](./Q2u-ts-dependency-tools.md)).
-- Splitting the offenders ([Q2p](./Q2p-ts-complexity-splits.md)).
+- Dependency-cruiser, jscpd and knip ([Q2u](../ready/Q2u-ts-dependency-tools.md)).
+- Splitting the offenders ([Q2p](../ready/Q2p-ts-complexity-splits.md)).
 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Add the Biome rules; run `biome ci`; list the offenders in an override with a comment pointing at Q2p.
-- [ ] Fix any `useThrowOnlyError` hits outside the viewer worker, which [Q2k](./Q2k-boundary-errors-ts.md) handles (list those in the override too).
+- [ ] Fix any `useThrowOnlyError` hits outside the viewer worker, which [Q2k](../ready/Q2k-boundary-errors-ts.md) handles (list those in the override too).
 - [ ] Add the TypeDoc validation run for each package entry; document the missing TSDoc or list it.
 - [ ] Wire both into `cargo xtask check ts`.
 

@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 229 ready · 55 done** (287 total).
+**4 ongoing · 228 ready · 55 done** (287 total).
 
 ## Can start now
 
@@ -28,7 +28,6 @@ Ready todos whose dependencies are all done:
 - [Q1c](ready/Q1c-examples-checks.md): The examples checks: `docs-snippets`, a Biome override and `clippy-examples`
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q2a](ready/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
-- [Q2b](ready/Q2b-ts-lint-rules.md): TypeScript lint rules: complexity, function length, throws and TSDoc
 - [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
 - [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
 - [Q2j](ready/Q2j-boundary-errors-rust.md): One error object at every Rust boundary
@@ -44,6 +43,7 @@ Ready todos whose dependencies are all done:
 - [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md): Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`
 - [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md): `@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
 - [Q1a](ongoing/Q1a-docs-font-source-sans.md): One sans-serif font on the docs site (Source Sans 3)
+- [Q2b](ongoing/Q2b-ts-lint-rules.md): TypeScript lint rules: complexity, function length, throws and TSDoc
 
 ## Architecture — Round A
 
@@ -349,7 +349,7 @@ Ready todos whose dependencies are all done:
 | Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](ready/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
 | Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q2a | [`check maintainability` for Rust: module budget and new lints](ready/Q2a-maintainability-checks-rust.md) | ready | — |
-| Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](ready/Q2b-ts-lint-rules.md) | ready | — |
+| Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](ongoing/Q2b-ts-lint-rules.md) | ongoing | — |
 | Q2c | [`lamina-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
 | Q2d | [One PDF serialiser: the test `Writer` built on lamina-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](ready/Q2e-error-policy-consolidation.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
@@ -363,7 +363,7 @@ Ready todos whose dependencies are all done:
 | Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](ready/Q2m-ts-test-utils.md) | ready | — |
 | Q2n | [Shared code for the render adapters](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](ready/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](ready/Q2o-ts-hygiene.md) | ready | [Q2u](ready/Q2u-ts-dependency-tools.md) |
-| Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](ready/Q2b-ts-lint-rules.md) |
+| Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](ongoing/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2e](ready/Q2e-error-policy-consolidation.md) |
 | Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
