@@ -52,7 +52,7 @@ The viewer's worker keeps `renderLog`, which grows on every render and is never 
 
 ## Outcome
 
-No package's `src/` has a test hook now, and the viewer exports only its documented API. A changeset records the viewer's smaller surface and the SDK's new worker options. Five details add to the plan.
+No package's `src/` has a test hook now, and the viewer exports only its documented API. A changeset records the viewer's smaller surface and the SDK's new worker options. Five choices go beyond the plan.
 
 - **Test hooks:** the SDK's and the viewer's browser tests start their own workers (`test/browser/test-worker.ts`), which register the `__` methods on top of what ships.
   - The viewer's methods moved into `src/worker/methods.ts` (`viewerMethods`), so its test worker serves the same methods and wraps `render` to log scales. `renderLog`, the list that grew with every render, is gone, and `test/worker-state.test.ts` checks that the render module keeps no collection at module level.
