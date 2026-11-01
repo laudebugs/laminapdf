@@ -195,7 +195,9 @@
 }
 
 /* Titles use Source Sans 3 like all other text (quality plan §5); weight, size and slight
-   negative tracking set them apart. h6 is smaller and in `text-2`, so it never reads as bold body text (TypeDoc uses it for API names, so no case change). */
+   negative tracking set them apart. h6 is smaller and in
+   `text-2` so it never reads as bold body text; it keeps its case because TypeDoc uses h6 for
+   API names. */
 .sl-markdown-content :is(h1, h2, h3, h4, h5, h6),
 h1#_top,
 .site-title,

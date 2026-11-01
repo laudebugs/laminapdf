@@ -53,7 +53,7 @@ The owner asked (2026-10-31) for one sans-serif font across the docs site. Headi
 
 - [x] No `Newsreader` under `apps/docs/` and no Newsreader request in the built site.
 - [x] Headings stand out from body text by weight and size in both themes (screenshots of four pages, two themes and two widths checked locally and sent to the owner; the GitHub CLI can't attach images to a PR).
-- [x] The CSP `font-src 'self'` is unchanged; the docs build in `cargo xtask check ts` passes.
+- [ ] The CSP `font-src 'self'` is unchanged; the docs build in `cargo xtask check ts` passes.
 
 ## Post-merge checks
 
