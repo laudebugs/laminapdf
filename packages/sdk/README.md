@@ -123,7 +123,7 @@ if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
 
 Documents open in the richest module loaded: text, then extract, then base. Load the extract or text module before you open or build a document whose text you need; otherwise `page.text()` throws `extract-module-not-loaded`. `doc.canExtractText` tells which module a document is in.
 
-The text module also extracts text. Once it is loaded, lamina doesn't load the extract module, and documents live in the text module's memory. In a Cloudflare Worker, pass the module yourself, so a Cloudflare Worker that doesn't extract text doesn't bundle it: `import extract from "@laminapdf/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
+The text module also extracts text. Once it is loaded, lamina doesn't load the extract module, and documents live in the text module's memory. In a Cloudflare Worker, pass the module yourself: then only a Cloudflare Worker that extracts text bundles it: `import extract from "@laminapdf/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
 
 ```ts
 await init({ extract: true });

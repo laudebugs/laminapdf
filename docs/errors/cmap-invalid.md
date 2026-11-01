@@ -5,7 +5,11 @@
 
 ## What happened
 
-A font's CMap (its Type 0 `/Encoding`) or ToUnicode CMap couldn't be fully used, for one of three reasons. It has entries that can't be read, which are skipped. Or it names a predefined CMap lamina has no table for, which is read as Identity: lamina knows only `Identity-H`/`-V` and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones. Or its `/UseCMap` chain is deeper than 8 levels, which is cut.
+A font's CMap (its Type 0 `/Encoding`) or ToUnicode CMap couldn't be fully used, for one of three reasons:
+
+- entries that can't be read, which are skipped;
+- a predefined CMap lamina has no table for, read as Identity (lamina knows only `Identity-H`/`-V` and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones);
+- a `/UseCMap` chain deeper than 8 levels, cut there.
 
 ## Why
 
