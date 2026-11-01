@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -49,19 +49,19 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the stripping pass with unit tests on tricky MDX: imports, `<Tabs>`, nested lists, tables and admonitions.
-- [ ] Write each rule as its own function with pass and fail tests; read configuration from `docs-prose.toml`.
-- [ ] Add the changed-files logic by reusing `changes.rs`; make failures on changed files exit non-zero.
-- [ ] Wire the step into `cargo xtask check docs`; print `path:line: rule: message` and a count per rule.
-- [ ] Run it on `main`; record the warning counts per rule in the PR description as the baseline the rewrite todos work down.
-- [ ] Add a line to the guideline's "How it's checked" if anything differs from what it says.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Write the stripping pass with unit tests on tricky MDX: imports, `<Tabs>`, nested lists, tables and admonitions.
+- [x] Write each rule as its own function with pass and fail tests; read configuration from `docs-prose.toml`.
+- [x] Add the changed-files logic by reusing `changes.rs`; make failures on changed files exit non-zero.
+- [x] Wire the step into `cargo xtask check docs`; print `path:line: rule: message` and a count per rule.
+- [x] Run it on `main`; record the warning counts per rule in the PR description as the baseline the rewrite todos work down.
+- [x] Add a line to the guideline's "How it's checked" if anything differs from what it says.
 
 ## Acceptance criteria
 
-- [ ] Each rule reports file and line; a report on a changed file fails the step; `--all-strict` fails on any report.
-- [ ] Unit tests cover every rule both ways.
-- [ ] `cargo xtask check docs` passes on `main`.
+- [x] Each rule reports file and line; a report on a changed file fails the step; `--all-strict` fails on any report.
+- [x] Unit tests cover every rule both ways.
+- [x] `cargo xtask check docs` passes on `main`.
 
 ## Post-merge checks
 
@@ -81,9 +81,9 @@ The sentence splitter will meet abbreviations and version numbers: keep an abbre
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -60,6 +60,6 @@ They build on the writing style in [design language §9](../design/paper/design-
 
 ## How it's checked
 
-`cargo xtask check docs-prose` runs inside `cargo xtask check docs` on every PR, docs-only ones included. Todo Q1b in the [quality plan](../plans/quality.md#6-todos) adds it. It checks the "Write in plain English" rules and the "open with one paragraph" and "Show code" rules. The sidebar order, the "pleasure to read" advice and the reviewer checklist stay with reviewers.
+`cargo xtask check docs-prose` runs inside `cargo xtask check docs` on every PR, docs-only ones included. It checks the MUST and MUST NOT rules under "Write in plain English", the opening paragraph of guides and recipes, and the sentence before each `<Snippet>`. The docs site's `Snippet` component already refuses code from anywhere but the tested example files. The sidebar order, the SHOULD rules, the reviewer checklist and the "pleasure to read" advice stay with reviewers. Its word lists (banned words, glossary terms, spellings, proper nouns) live in `tools/xtask/docs-prose.toml`.
 
-The check is strict on every file a PR adds or changes, so new writing is checked as it is written. It only warns on untouched files until the rewrite todos have cleared them; after that it is strict everywhere. Run it while drafting: it needs no build and takes about a second.
+The check is strict on every file a PR adds or changes, so new writing is checked as it is written. It only warns on untouched files until the rewrite todos have cleared them; after that it is strict everywhere. Run it while drafting with `cargo xtask check docs-prose`, or with `--warnings` to list every report and `--all-strict` to treat them all as errors. It needs no build beyond xtask and takes about a second.

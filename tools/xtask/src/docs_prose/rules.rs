@@ -9,6 +9,7 @@ use super::extract::{Block, CODE, Kind, Page};
 
 /// `tools/xtask/docs-prose.toml`.
 #[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Config {
     #[serde(default)]
     pub(crate) banned_words: Vec<String>,
@@ -32,6 +33,7 @@ pub(crate) struct Config {
 
 /// A spelling to replace ("One term per thing").
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Term {
     pub(crate) spelling: String,
     #[serde(rename = "use")]
@@ -40,6 +42,7 @@ pub(crate) struct Term {
 
 /// A word that needs a qualifier before it ("Worker" → "Cloudflare Worker" or "Web Worker").
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Qualified {
     pub(crate) word: String,
     pub(crate) after: Vec<String>,
@@ -92,7 +95,11 @@ pub(crate) fn check(page: &Page, scope: Scope, config: &Config) -> Vec<Finding> 
 }
 
 fn finding(line: usize, rule: &'static str, message: impl Into<String>) -> Finding {
-    Finding { line, rule, message: message.into() }
+    Finding {
+        line,
+        rule,
+        message: message.into(),
+    }
 }
 
 /// Words of prose: whitespace-separated, with surrounding punctuation trimmed.
@@ -104,7 +111,11 @@ fn words(text: &str) -> impl Iterator<Item = &str> {
 
 fn frontmatter(page: &Page) -> Vec<Finding> {
     let Some(frontmatter) = &page.frontmatter else {
-        return vec![finding(1, "frontmatter", "the page has no frontmatter with a title and a description")];
+        return vec![finding(
+            1,
+            "frontmatter",
+            "the page has no frontmatter with a title and a description",
+        )];
     };
     let mut findings = Vec::new();
     if frontmatter.title.as_deref().is_none_or(str::is_empty) {
@@ -135,7 +146,9 @@ fn opening_paragraph(page: &Page) -> Vec<Finding> {
                 vec![finding(
                     block.line,
                     "opening-paragraph",
-                    format!("the opening paragraph has {count} words; keep it to {MAX_OPENING_WORDS} that say what you'll make and why"),
+                    format!(
+                        "the opening paragraph has {count} words; keep it to {MAX_OPENING_WORDS} that say what you'll make and why"
+                    ),
                 )]
             } else {
                 Vec::new()
@@ -183,7 +196,11 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
         .into_iter()
         .filter(|&count| count > MAX_SENTENCE_WORDS)
         .map(|count| {
-            finding(block.line, "sentence-length", format!("a sentence has {count} words; the limit is {MAX_SENTENCE_WORDS}"))
+            finding(
+                block.line,
+                "sentence-length",
+                format!("a sentence has {count} words; the limit is {MAX_SENTENCE_WORDS}"),
+            )
         })
         .collect();
     let count = words(&text).count();
@@ -232,7 +249,9 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
     }
     for path in &config.repository_paths {
         let mentions_path = text.match_indices(path.as_str()).any(|(index, _)| {
-            text.get(..index).and_then(|before| before.chars().next_back()).is_none_or(|c| c.is_whitespace() || c == '(')
+            text.get(..index)
+                .and_then(|before| before.chars().next_back())
+                .is_none_or(|c| c.is_whitespace() || c == '(')
         });
         if mentions_path {
             found.insert(format!("the repository path `{path}…`"));
@@ -240,7 +259,13 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
     }
     found
         .into_iter()
-        .map(|what| finding(block.line, "internal-id", format!("reader text mentions {what}; contributors find those in `docs/`")))
+        .map(|what| {
+            finding(
+                block.line,
+                "internal-id",
+                format!("reader text mentions {what}; contributors find those in `docs/`"),
+            )
+        })
         .collect()
 }
 
@@ -263,10 +288,20 @@ fn banned_words(block: &Block, config: &Config) -> Vec<Finding> {
         .banned_words
         .iter()
         .filter(|banned| contains_phrase(&lower, &banned.to_lowercase()))
-        .map(|banned| finding(block.line, "banned-word", format!("\"{banned}\" is on the guideline's list of words to avoid")))
+        .map(|banned| {
+            finding(
+                block.line,
+                "banned-word",
+                format!("\"{banned}\" is on the guideline's list of words to avoid"),
+            )
+        })
         .collect();
     if text.contains('!') {
-        findings.push(finding(block.line, "banned-word", "no exclamation marks in reader text"));
+        findings.push(finding(
+            block.line,
+            "banned-word",
+            "no exclamation marks in reader text",
+        ));
     }
     findings
 }
@@ -277,7 +312,11 @@ fn one_term(block: &Block, config: &Config) -> Vec<Finding> {
     let mut findings = Vec::new();
     for term in &config.term {
         if words.iter().any(|word| *word == term.spelling) {
-            findings.push(finding(block.line, "one-term", format!("write \"{}\", not \"{}\"", term.replacement, term.spelling)));
+            findings.push(finding(
+                block.line,
+                "one-term",
+                format!("write \"{}\", not \"{}\"", term.replacement, term.spelling),
+            ));
         }
     }
     for qualified in &config.qualified {
@@ -292,7 +331,10 @@ fn one_term(block: &Block, config: &Config) -> Vec<Finding> {
             findings.push(finding(
                 block.line,
                 "one-term",
-                format!("write \"{}\" in full, not \"{}\" alone", qualified.replacement, qualified.word),
+                format!(
+                    "write \"{}\" in full, not \"{}\" alone",
+                    qualified.replacement, qualified.word
+                ),
             ));
         }
     }
@@ -326,7 +368,10 @@ fn sentence_case(block: &Block, config: &Config) -> Vec<Finding> {
         vec![finding(
             block.line,
             "sentence-case",
-            format!("headings use sentence case: lowercase {} (or add a proper noun to docs-prose.toml)", capitalised.join(", ")),
+            format!(
+                "headings use sentence case: lowercase {} (or add a proper noun to docs-prose.toml)",
+                capitalised.join(", ")
+            ),
         )]
     }
 }
@@ -356,12 +401,17 @@ fn glossary(page: &Page, config: &Config) -> Vec<Finding> {
                     .map(|segment| (block.line, segment))
             });
         if let Some((line, segment)) = first_use {
-            let linked = segment.link.as_deref().is_some_and(|link| link.contains("/reference/glossary"));
+            let linked = segment
+                .link
+                .as_deref()
+                .is_some_and(|link| link.contains("/reference/glossary"));
             if !linked {
                 findings.push(finding(
                     line,
                     "glossary",
-                    format!("link the first \"{term}\" to /reference/glossary/, explain it, or list it under `prose.allow`"),
+                    format!(
+                        "link the first \"{term}\" to /reference/glossary/, explain it, or list it under `prose.allow`"
+                    ),
                 ));
             }
         }
@@ -384,7 +434,11 @@ fn snippet_intro(page: &Page) -> Vec<Finding> {
             .rev()
             .find(|previous| !matches!(previous.kind, Kind::Wrapper | Kind::Snippet));
         if !before.is_some_and(|previous| matches!(previous.kind, Kind::Paragraph | Kind::ListItem)) {
-            findings.push(finding(block.line, "snippet-intro", "put a sentence that says what the code does before this snippet"));
+            findings.push(finding(
+                block.line,
+                "snippet-intro",
+                "put a sentence that says what the code does before this snippet",
+            ));
         }
     }
     findings
@@ -404,12 +458,18 @@ mod tests {
 
     fn rules_for(body: &str, guide: bool) -> Vec<&'static str> {
         let page = parse(&format!("{FRONT}{body}"));
-        check(&page, Scope::SitePage { guide }, &config()).into_iter().map(|f| f.rule).collect()
+        check(&page, Scope::SitePage { guide }, &config())
+            .into_iter()
+            .map(|f| f.rule)
+            .collect()
     }
 
     #[test]
     fn a_clean_page_should_have_no_findings() {
-        assert!(rules_for("You make an invoice here. It takes five minutes.\n", true).is_empty());
+        assert_eq!(
+            rules_for("You make an invoice here. It takes five minutes.\n", true),
+            Vec::<&str>::new()
+        );
     }
 
     #[test]
@@ -421,14 +481,17 @@ mod tests {
 
     #[test]
     fn a_long_description_should_be_reported() {
-        let page = parse(&format!("---\ntitle: T\ndescription: {}\n---\n\nText.\n", "x".repeat(161)));
+        let page = parse(&format!(
+            "---\ntitle: T\ndescription: {}\n---\n\nText.\n",
+            "x".repeat(161)
+        ));
         assert_eq!(frontmatter(&page).len(), 1);
     }
 
     #[test]
     fn a_sentence_over_forty_words_should_be_reported_and_forty_should_pass() {
         let forty = "word ".repeat(40).trim_end().to_owned() + ".";
-        assert!(rules_for(&format!("{forty}\n"), false).is_empty());
+        assert_eq!(rules_for(&format!("{forty}\n"), false), Vec::<&str>::new());
         let forty_one = format!("one {forty}\n");
         assert_eq!(rules_for(&forty_one, false), vec!["sentence-length"]);
     }
@@ -447,7 +510,10 @@ mod tests {
 
     #[test]
     fn a_guide_should_open_with_a_paragraph() {
-        assert_eq!(rules_for("## Heading first\n\nText.\n", true), vec!["opening-paragraph"]);
+        assert_eq!(
+            rules_for("## Heading first\n\nText.\n", true),
+            vec!["opening-paragraph"]
+        );
     }
 
     #[test]
@@ -458,29 +524,41 @@ mod tests {
 
     #[test]
     fn paper_sizes_and_revisions_should_not_be_todo_ids() {
-        assert!(rules_for("Print on A4 paper with R5 encryption in Q3.\n", false).is_empty());
+        assert_eq!(
+            rules_for("Print on A4 paper with R5 encryption in Q3.\n", false),
+            Vec::<&str>::new()
+        );
     }
 
     #[test]
     fn repository_paths_in_prose_should_be_reported_but_not_in_code() {
         assert_eq!(rules_for("Look in crates/lamina for it.\n", false), vec!["internal-id"]);
-        assert!(rules_for("Look in `crates/lamina` for it.\n", false).is_empty());
+        assert_eq!(
+            rules_for("Look in `crates/lamina` for it.\n", false),
+            Vec::<&str>::new()
+        );
     }
 
     #[test]
     fn banned_words_and_exclamation_marks_should_be_reported() {
-        assert_eq!(rules_for("It is just text!\n", false), vec!["banned-word", "banned-word"]);
+        assert_eq!(
+            rules_for("It is just text!\n", false),
+            vec!["banned-word", "banned-word"]
+        );
     }
 
     #[test]
     fn banned_words_should_match_whole_words_only() {
-        assert!(rules_for("Adjust the margins.\n", false).is_empty());
+        assert_eq!(rules_for("Adjust the margins.\n", false), Vec::<&str>::new());
     }
 
     #[test]
     fn a_bare_worker_should_be_reported_but_not_a_qualified_one() {
         assert_eq!(rules_for("Run it in a worker.\n", false), vec!["one-term"]);
-        assert!(rules_for("Run it in a Web Worker or a Cloudflare Worker.\n", false).is_empty());
+        assert_eq!(
+            rules_for("Run it in a Web Worker or a Cloudflare Worker.\n", false),
+            Vec::<&str>::new()
+        );
     }
 
     #[test]
@@ -491,32 +569,49 @@ mod tests {
     #[test]
     fn title_case_headings_should_be_reported() {
         assert_eq!(rules_for("## Open And Save\n\nText.\n", false), vec!["sentence-case"]);
-        assert!(rules_for("## Open a PDF in TypeScript\n\nText.\n", false).is_empty());
+        assert_eq!(
+            rules_for("## Open a PDF in TypeScript\n\nText.\n", false),
+            Vec::<&str>::new()
+        );
     }
 
     #[test]
     fn an_unlinked_glossary_term_should_be_reported_unless_allowed() {
         assert_eq!(rules_for("Edits go into the overlay.\n", false), vec!["glossary"]);
-        assert!(rules_for("Edits go into the [overlay](/reference/glossary/#overlay).\n", false).is_empty());
-        let page = parse("---\ntitle: T\ndescription: D\nprose:\n  allow:\n    - overlay\n---\n\nEdits go into the overlay.\n");
-        assert!(check(&page, Scope::SitePage { guide: false }, &config()).is_empty());
+        assert_eq!(
+            rules_for("Edits go into the [overlay](/reference/glossary/#overlay).\n", false),
+            Vec::<&str>::new()
+        );
+        let page = parse(
+            "---\ntitle: T\ndescription: D\nprose:\n  allow:\n    - overlay\n---\n\nEdits go into the overlay.\n",
+        );
+        assert_eq!(
+            check(&page, Scope::SitePage { guide: false }, &config()),
+            Vec::<Finding>::new()
+        );
     }
 
     #[test]
     fn a_snippet_should_follow_a_sentence() {
-        assert_eq!(rules_for("## Code\n\n<Snippet file=\"a.ts\" />\n", false), vec!["snippet-intro"]);
-        assert!(rules_for("This builds a page:\n\n<Snippet file=\"a.ts\" />\n", false).is_empty());
+        assert_eq!(
+            rules_for("## Code\n\n<Snippet file=\"a.ts\" />\n", false),
+            vec!["snippet-intro"]
+        );
+        assert_eq!(
+            rules_for("This builds a page:\n\n<Snippet file=\"a.ts\" />\n", false),
+            Vec::<&str>::new()
+        );
     }
 
     #[test]
     fn snippets_in_tabs_should_share_one_sentence() {
         let body = "This builds a page:\n\n<Tabs>\n<TabItem label=\"TS\">\n\n<Snippet file=\"a.ts\" />\n\n</TabItem>\n<TabItem label=\"Rust\">\n\n<Snippet file=\"a.rs\" />\n\n</TabItem>\n</Tabs>\n";
-        assert!(rules_for(body, false).is_empty());
+        assert_eq!(rules_for(body, false), Vec::<&str>::new());
     }
 
     #[test]
     fn rendered_pages_should_skip_site_only_rules() {
         let page = parse("# `aes-padding-invalid`\n\nThe overlay is fine here.\n");
-        assert!(check(&page, Scope::Rendered, &config()).is_empty());
+        assert_eq!(check(&page, Scope::Rendered, &config()), Vec::<Finding>::new());
     }
 }

@@ -77,7 +77,10 @@ pub(crate) fn parse(source: &str) -> Page {
     for (event, range) in parser {
         walker.event(event, line_of(&line_starts, range.start));
     }
-    Page { frontmatter, blocks: walker.blocks }
+    Page {
+        frontmatter,
+        blocks: walker.blocks,
+    }
 }
 
 /// Splits off a leading `---` frontmatter block, replacing its lines with blank ones.
@@ -149,13 +152,19 @@ fn blank_mdx_statements(body: &str) -> String {
                 in_fence = !in_fence;
             }
             let statement = trimmed.starts_with("import ") || trimmed.starts_with("export ");
-            if !in_fence && statement { if line.ends_with('\n') { "\n" } else { "" } } else { line }
+            if !in_fence && statement {
+                if line.ends_with('\n') { "\n" } else { "" }
+            } else {
+                line
+            }
         })
         .collect()
 }
 
 fn line_starts(text: &str) -> Vec<usize> {
-    std::iter::once(0).chain(text.match_indices('\n').map(|(index, _)| index + 1)).collect()
+    std::iter::once(0)
+        .chain(text.match_indices('\n').map(|(index, _)| index + 1))
+        .collect()
 }
 
 fn line_of(line_starts: &[usize], offset: usize) -> usize {
@@ -196,23 +205,43 @@ impl Walker {
         }
         match tag {
             Tag::Paragraph if self.skip_depth == 0 => {
-                let kind = if self.list_depth > 0 { Kind::ListItem } else { Kind::Paragraph };
-                self.open = Some(Block { kind, line, segments: Vec::new() });
+                let kind = if self.list_depth > 0 {
+                    Kind::ListItem
+                } else {
+                    Kind::Paragraph
+                };
+                self.open = Some(Block {
+                    kind,
+                    line,
+                    segments: Vec::new(),
+                });
             }
             Tag::Heading { level, .. } if self.skip_depth == 0 => {
                 let level = u8::try_from(*level as usize).unwrap_or(6);
-                self.open = Some(Block { kind: Kind::Heading(level), line, segments: Vec::new() });
+                self.open = Some(Block {
+                    kind: Kind::Heading(level),
+                    line,
+                    segments: Vec::new(),
+                });
             }
             Tag::Link { dest_url, .. } => self.links.push(dest_url.to_string()),
             Tag::List(_) => self.list_depth += 1,
             Tag::Item if self.list_depth > 0 => {
                 // A tight list item has text but no paragraph: open one for it.
-                self.open = Some(Block { kind: Kind::ListItem, line, segments: Vec::new() });
+                self.open = Some(Block {
+                    kind: Kind::ListItem,
+                    line,
+                    segments: Vec::new(),
+                });
             }
             Tag::CodeBlock(_) | Tag::Table(_) => {
                 self.close();
                 self.skip_depth += 1;
-                self.blocks.push(Block { kind: Kind::Other, line, segments: Vec::new() });
+                self.blocks.push(Block {
+                    kind: Kind::Other,
+                    line,
+                    segments: Vec::new(),
+                });
             }
             _ => {}
         }
@@ -238,7 +267,10 @@ impl Walker {
         if let Some(block) = self.open.as_mut() {
             match block.segments.last_mut() {
                 Some(last) if last.link == link => last.text.push_str(text),
-                _ => block.segments.push(Segment { text: text.to_owned(), link }),
+                _ => block.segments.push(Segment {
+                    text: text.to_owned(),
+                    link,
+                }),
             }
         }
     }
@@ -251,21 +283,28 @@ impl Walker {
         let trimmed = html.trim_start();
         let kind = if trimmed.starts_with("<Snippet") {
             Kind::Snippet
-        } else if ["<Tabs", "<TabItem", "</Tabs", "</TabItem"].iter().any(|tag| trimmed.starts_with(tag)) {
+        } else if ["<Tabs", "<TabItem", "</Tabs", "</TabItem"]
+            .iter()
+            .any(|tag| trimmed.starts_with(tag))
+        {
             Kind::Wrapper
         } else if trimmed.starts_with("<!--") {
             return;
         } else {
             Kind::Other
         };
-        self.blocks.push(Block { kind, line, segments: Vec::new() });
+        self.blocks.push(Block {
+            kind,
+            line,
+            segments: Vec::new(),
+        });
     }
 
     fn close(&mut self) {
-        if let Some(block) = self.open.take() {
-            if !block.text().trim().is_empty() {
-                self.blocks.push(block);
-            }
+        if let Some(block) = self.open.take()
+            && !block.text().trim().is_empty()
+        {
+            self.blocks.push(block);
         }
     }
 }
@@ -310,7 +349,11 @@ mod tests {
     fn link_text_should_keep_its_destination() {
         let page = parse("See the [overlay](/reference/glossary/#overlay).\n");
         let segments = &page.blocks.first().unwrap().segments;
-        assert!(segments.iter().any(|s| s.text == "overlay" && s.link.as_deref() == Some("/reference/glossary/#overlay")));
+        assert!(
+            segments
+                .iter()
+                .any(|s| s.text == "overlay" && s.link.as_deref() == Some("/reference/glossary/#overlay"))
+        );
     }
 
     #[test]
@@ -321,8 +364,19 @@ mod tests {
 
     #[test]
     fn components_should_be_classified() {
-        let page = parse("Intro:\n\n<Tabs>\n<TabItem label=\"TS\">\n\n<Snippet file=\"a.ts\" />\n\n</TabItem>\n</Tabs>\n");
-        assert_eq!(kinds(&page), vec![Kind::Paragraph, Kind::Wrapper, Kind::Snippet, Kind::Wrapper]);
+        let page =
+            parse("Intro:\n\n<Tabs>\n<TabItem label=\"TS\">\n\n<Snippet file=\"a.ts\" />\n\n</TabItem>\n</Tabs>\n");
+        assert_eq!(
+            kinds(&page),
+            vec![
+                Kind::Paragraph,
+                Kind::Wrapper,
+                Kind::Wrapper,
+                Kind::Snippet,
+                Kind::Wrapper,
+                Kind::Wrapper
+            ]
+        );
     }
 
     #[test]

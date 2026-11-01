@@ -1,6 +1,6 @@
 //! `cargo xtask check docs-prose`: the rules of docs/guidelines/docs-writing.md that a tool can
 //! check, over every page a reader of the docs sees: the docs site's pages, the error-code pages
-//! it renders (`docs/errors/`) and the package READMEs TypeDoc renders.
+//! it renders (`docs/errors/`) and the package READMEs that `TypeDoc` renders.
 //!
 //! The check binds while people write: a report on a file changed since the merge base with
 //! `main` (the working tree and untracked drafts included) is an error, and a report on a file
@@ -48,9 +48,11 @@ pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
         let source = std::fs::read_to_string(root.join(path)).with_context(|| format!("reading {path}"))?;
         let page = extract::parse(&source);
         let error = options.all_strict || changed.as_ref().is_some_and(|changed| changed.contains(path));
-        reports.extend(
-            rules::check(&page, *scope, &config).into_iter().map(|finding| Report { path: path.clone(), finding, error }),
-        );
+        reports.extend(rules::check(&page, *scope, &config).into_iter().map(|finding| Report {
+            path: path.clone(),
+            finding,
+            error,
+        }));
     }
     if options.json {
         println!("{}", json(&reports));
@@ -79,21 +81,32 @@ fn files(root: &Path) -> Result<BTreeMap<String, Scope>> {
         .files()
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .chain(untracked.split('\0').filter(|path| !path.is_empty()).map(str::to_owned));
-    Ok(paths.filter_map(|path| scope(&path).map(|scope| (path, scope))).collect())
+    Ok(paths
+        .filter_map(|path| scope(&path).map(|scope| (path, scope)))
+        .collect())
 }
 
 /// Which rules apply to a path, or `None` when the check doesn't read it.
 fn scope(path: &str) -> Option<Scope> {
     if let Some(page) = path.strip_prefix("apps/docs/src/content/docs/") {
-        if !(page.ends_with(".md") || page.ends_with(".mdx")) {
+        if !has_extension(page, &["md", "mdx"]) {
             return None;
         }
         let guide = page.starts_with("guides/") || page.starts_with("recipes/");
         return Some(Scope::SitePage { guide });
     }
-    let error_page = path.starts_with("docs/errors/") && path.ends_with(".md") && !path.ends_with("/README.md");
-    let package_readme = path.starts_with("packages/") && path.ends_with("/README.md") && path.matches('/').count() == 2;
+    let error_page = path.starts_with("docs/errors/") && has_extension(path, &["md"]) && !path.ends_with("/README.md");
+    let package_readme =
+        path.starts_with("packages/") && path.ends_with("/README.md") && path.matches('/').count() == 2;
     (error_page || package_readme).then_some(Scope::Rendered)
+}
+
+/// True when `path`'s extension is one of `extensions`, ignoring case.
+fn has_extension(path: &str, extensions: &[&str]) -> bool {
+    Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extensions.iter().any(|wanted| extension.eq_ignore_ascii_case(wanted)))
 }
 
 /// Paths changed since the merge base with `main`, the working tree and untracked files included;
@@ -138,7 +151,10 @@ fn print_text(reports: &[Report], file_count: usize, changed: Option<&BTreeSet<S
         reports.len() - errors
     );
     if !warnings_by_rule.is_empty() && !show_warnings {
-        let counts: Vec<String> = warnings_by_rule.iter().map(|(rule, count)| format!("{rule} {count}")).collect();
+        let counts: Vec<String> = warnings_by_rule
+            .iter()
+            .map(|(rule, count)| format!("{rule} {count}"))
+            .collect();
         println!("  warnings by rule: {} (list them with --warnings)", counts.join(", "));
     }
 }
@@ -165,9 +181,18 @@ mod tests {
 
     #[test]
     fn site_pages_should_be_in_scope_and_guides_marked() {
-        assert_eq!(scope("apps/docs/src/content/docs/install.mdx"), Some(Scope::SitePage { guide: false }));
-        assert_eq!(scope("apps/docs/src/content/docs/guides/limits.mdx"), Some(Scope::SitePage { guide: true }));
-        assert_eq!(scope("apps/docs/src/content/docs/recipes/invoice.mdx"), Some(Scope::SitePage { guide: true }));
+        assert_eq!(
+            scope("apps/docs/src/content/docs/install.mdx"),
+            Some(Scope::SitePage { guide: false })
+        );
+        assert_eq!(
+            scope("apps/docs/src/content/docs/guides/limits.mdx"),
+            Some(Scope::SitePage { guide: true })
+        );
+        assert_eq!(
+            scope("apps/docs/src/content/docs/recipes/invoice.mdx"),
+            Some(Scope::SitePage { guide: true })
+        );
     }
 
     #[test]
