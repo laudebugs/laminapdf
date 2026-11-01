@@ -1,4 +1,4 @@
-# Q2l — Lists that cross the WASM boundary are generated or pinned
+# Q2l — Lists that cross the WASM boundary are generated
 
 | Field | Value |
 | --- | --- |
@@ -9,24 +9,24 @@
 | Depends on | None |
 | Blocks | None |
 | ADRs | None |
-| Branch | `refactor/q2l-boundary-lists` |
-| PR title | `refactor(wasm,sdk,render): generate or pin every list shared by Rust and TypeScript` |
+| Branch | `refactor/q2l-boundary-lists-generated` |
+| PR title | `refactor(wasm,sdk,render): generate every list shared by Rust and TypeScript` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-Fill rules, line caps and joins, blend modes, artifact kinds and table scopes are kept by hand in both `lamina-wasm/src/build_dto.rs` and `packages/sdk/src/builder.ts`, some matched by index with no check (reordering one silently mis-tags documents), crossing in two encodings (strings vs `u8`). The render error codes and `HAYRO_VERSION` are also hand-copied into TS. Define each list once in Rust and generate the TS side (as `generated/codes.ts` already is), with one encoding (strings).
+Fill rules, line caps and joins, blend modes, artifact kinds and table scopes are kept by hand in both `lamina-wasm/src/build_dto.rs` and `packages/sdk/src/builder.ts`. Some are matched by index with no check, so reordering one silently mis-tags documents, and they cross in two encodings (strings and `u8`). The render error codes and `HAYRO_VERSION` are also hand-copied into TypeScript. This todo defines each list once in Rust and generates the TypeScript side.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse), [maintainability guideline](../../guidelines/maintainability.md) rule 3; `lamina-wasm/src/build_dto.rs:185-257`, `packages/sdk/src/builder.ts:68-135`, `lamina-build/src/tag/mod.rs:80` (`TagKind::ALL`), `lamina-build/tests/tagging.rs:875` (scrapes TS source today), `packages/render/src/index.ts:153-178`, `packages/render-hayro/src/index.ts:31`, `cargo xtask gen codes`.
+- The [maintainability guideline](../../guidelines/maintainability.md) ("One home per concept"); `lamina-wasm/src/build_dto.rs:185-257`, `packages/sdk/src/builder.ts:68-135`, `lamina-build/src/tag/mod.rs:80` (`TagKind::ALL`), `lamina-build/tests/tagging.rs:875` (scrapes TypeScript source today), `packages/render/src/index.ts:153-178`, `packages/render-hayro/src/index.ts:31`; `cargo xtask gen codes` (the generator to extend).
 
 ## Scope
 
 **In scope**
 
-- Extend `cargo xtask gen` (or add `gen boundary`) to write `packages/sdk/src/generated/builder-enums.ts` and `packages/render/src/generated/codes.ts`; strings on the wire; `HAYRO_VERSION` exported from lamina-render-wasm or checked against `Cargo.toml`; `--check` in `check docs`.
+- `cargo xtask gen` writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render/src/generated/codes.ts`; strings on the wire; `HAYRO_VERSION` exported from lamina-render-wasm or checked against `Cargo.toml`; `--check` in `check docs`.
 
 **Out of scope** (and which todo covers it)
 
@@ -35,7 +35,10 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Generate, switch the encodings, delete the hand lists and the TS-scraping test.
+- [ ] Add `ALL` constants where a Rust enum lacks one.
+- [ ] Extend the generator; generate both files; commit them with the `@generated` header.
+- [ ] Switch the index-encoded values to strings on both sides; update `@laminapdf/sdk` and lamina-wasm together.
+- [ ] Delete the hand lists and the source-scraping test; add `--check` to `check docs`.
 
 ## Acceptance criteria
 
@@ -47,20 +50,21 @@ None.
 
 ## Tests
 
-Generated-file freshness check; existing builder and tagging tests.
+The generated-file freshness check; existing builder and tagging tests.
 
 ## Docs to update
 
-TypeScript guideline (generated code), CLAUDE.md `gen` commands, plan §9.
+typescript.md (generated code), the `gen` commands in CLAUDE.md, plan §9.
 
 ## Risks and open questions
 
-Changing `u8` indices to strings changes the WASM call signatures: update `@laminapdf/sdk` in the same PR.
+Changing indices to strings changes the WASM call signatures: change `@laminapdf/sdk` in the same PR.
 
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

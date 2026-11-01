@@ -1,4 +1,4 @@
-# Q2a — Maintainability checks for Rust: module budget, lint additions and the `check maintainability` step
+# Q2a — `check maintainability` for Rust: module budget and new lints
 
 | Field | Value |
 | --- | --- |
@@ -7,44 +7,54 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | None |
+| Blocks | [Q2c](./Q2c-test-fixtures-crate.md), [Q2e](./Q2e-error-policy-consolidation.md), [Q2g](./Q2g-one-matrix.md), [Q2i](./Q2i-one-lexer-one-png-filter.md), [Q2q](./Q2q-split-cos-reader.md), [Q2r](./Q2r-split-surface-modules.md), [Q2s](./Q2s-facade-names.md), [Q2t](./Q2t-history-out-of-names.md), [Q2w](./Q2w-split-content-interpreter.md) |
 | ADRs | None |
-| Branch | `ci/q2a-maintainability-checks` |
-| PR title | `ci(xtask): check maintainability (module budget, expect counter, duplicate names) and new workspace lints` |
+| Branch | `ci/q2a-maintainability-checks-rust` |
+| PR title | `ci(xtask): check maintainability (module budget, expect count, duplicate names) and new workspace lints` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-Make the [maintainability guideline](../../guidelines/maintainability.md) checkable for Rust. Add `cargo xtask check maintainability` to `cargo xtask check`, with a module-size budget (800 lines of non-test code, a baseline that only goes down), a counter for `#[expect]` on size lints, bans on cross-crate `#[path]` includes (baseline until [Q2c](./Q2c-test-fixtures-crate.md)), duplicate public type names across crates (allow-list) and two-path re-exports in the façade; switch on `clippy::cognitive_complexity` and `unreachable_pub`.
+This todo adds `cargo xtask check maintainability` to `cargo xtask check`, the home for every Rust rule in the [maintainability guideline](../../guidelines/maintainability.md) that a tool can check. It starts with the module budget (800 lines of non-test code, against a baseline that only shrinks), a count of `#[expect]` on size lints, duplicate public type names across crates and colliding façade re-exports. It also switches on `clippy::cognitive_complexity` and `unreachable_pub`. Later todos add their bans to the same step.
 
 ## Context
 
-- [Maintainability guideline](../../guidelines/maintainability.md), [Quality plan §4.3](../../plans/quality.md#4-standards).
-- Workspace `Cargo.toml` `[workspace.lints]` (pedantic already enforced, so `too_many_lines` at 100 passes everywhere; 3 `#[expect(clippy::too_many_lines)]` today), `clippy.toml`, `tools/xtask/`.
+- The [maintainability guideline](../../guidelines/maintainability.md) ("Size", "Public surface and tests", "How it's checked"); [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse).
+- Workspace `[workspace.lints]` (pedantic already enforced, so `too_many_lines` at 100 passes everywhere; three `#[expect(clippy::too_many_lines)]` today), `clippy.toml`, `tools/xtask/`.
 
 ## Scope
 
 **In scope**
 
-- `check maintainability`: module budget with `tools/xtask/maintainability-baseline.toml` (today's over-budget files: `lamina-cos/src/reader/mod.rs`, `lamina-content/src/interp.rs`, `lamina-text/src/extract/font.rs`, `lamina-build/src/surface/{mod,png}.rs`, `lamina-wasm/src/{builder,build_dto}.rs`, with their counts); the `#[expect]` counter; the cross-crate `#[path]` ban with baseline; `pub struct|enum` names defined in two crates (allow-list file with reasons); the façade re-export collision check.
-- Lints: `cognitive_complexity = "warn"` (nursery; comment), `unreachable_pub = "warn"`, explicit `too-many-lines-threshold = 100` in `clippy.toml`; fix the `unreachable_pub` hits.
-- A hook other todos extend: Q2c, Q2e, Q2i and Q2t add their bans to the same step.
+- `check maintainability` with:
+  - the module budget and `tools/xtask/maintainability-baseline.toml` (today's files over budget and their non-test counts);
+  - the `#[expect]` counter for size lints;
+  - `pub struct` and `pub enum` names defined in two crates, against an allow-list with reasons;
+  - two re-exports with one name in the `lamina` façade.
+- A small registry of named checks so later todos add theirs (Q2c, Q2e, Q2i, Q2t).
+- Lints: `cognitive_complexity = "warn"` (a nursery lint; say so in a comment), `unreachable_pub = "warn"`, and `too-many-lines-threshold = 100` in `clippy.toml`; fix the hits.
 
 **Out of scope** (and which todo covers it)
 
-- TypeScript checks ([Q2b](./Q2b-maintainability-checks-ts.md)).
-- Fixing the over-budget modules (Q2q, Q2r) and the duplicates (Q2c–Q2s).
+- TypeScript checks ([Q2b](./Q2b-ts-lint-rules.md), [Q2u](./Q2u-ts-dependency-tools.md)).
+- Shrinking the baseline (Q2q, Q2w, Q2r) and removing the duplicates (the other Q2 todos).
 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the step with unit tests; generate the baseline; add the lints and fix their hits; wire into `check` and CI's fast lane.
+- [ ] Write the non-test line counter (skip comments, blank lines and `#[cfg(test)]` blocks) with unit tests.
+- [ ] Generate the baseline from today's code and commit it.
+- [ ] Write the `#[expect]` counter, the duplicate-name check (with the allow-list file listing today's duplicates and why) and the façade collision check.
+- [ ] Add the registry so a check is a function plus a name.
+- [ ] Add the two lints and the `clippy.toml` threshold; fix every `unreachable_pub` hit.
+- [ ] Wire the step into `cargo xtask check` and CI's fast lane.
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask check maintainability` passes on `main` with the baseline; adding 1 line to a baselined file or a new 801-line module fails.
-- [ ] The new lints are on and clean.
+- [ ] `cargo xtask check maintainability` passes on `main`.
+- [ ] One more line in a baselined file, a new 801-line module, or a new duplicate name fails it (unit tests).
+- [ ] The two lints are on and clean.
 
 ## Post-merge checks
 
@@ -52,20 +62,21 @@ None.
 
 ## Tests
 
-xtask unit tests with tiny source trees.
+Unit tests in `tools/xtask` with small source trees for every check.
 
 ## Docs to update
 
-Rust guideline (size limits section), maintainability guideline, CLAUDE.md commands, plan §9.
+rust.md (size limits), the maintainability guideline if anything differs, the commands list in CLAUDE.md, plan §9.
 
 ## Risks and open questions
 
-Counting non-test lines: exclude `#[cfg(test)] mod tests { … }` blocks and comments/blank lines; document the method in the guideline.
+The non-test line count must be stable and documented: describe the method in the guideline.
 
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

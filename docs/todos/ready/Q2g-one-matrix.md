@@ -1,4 +1,4 @@
-# Q2g — One `Matrix`, `FillRule`, `Dash` and `Color` shared by building and reading
+# Q2g — One `Matrix`, `FillRule`, `Dash` and `Color`
 
 | Field | Value |
 | --- | --- |
@@ -6,17 +6,17 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | None |
+| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2g-one-matrix` |
-| PR title | `refactor(model): one Matrix, FillRule, Dash and Color for build and content` |
+| PR title | `refactor(model): one Matrix, FillRule, Dash and Color for building and reading` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-`Matrix` exists in lamina-build (`new([f64;6])`, `after`) and lamina-content (6-argument `new`, `multiply`) with opposite composition conventions, and raw `[f64; 6]` matrices appear in lamina-model, lamina-render and lamina-wasm. `FillRule`, `Dash` and `Color` are also duplicated. Put one of each in lamina-model (both crates already depend on it) with clearly named composition helpers; the others re-export it.
+`Matrix` exists in lamina-build (`new([f64;6])`, `after`) and in lamina-content (six-argument `new`, `multiply`), with opposite composition orders, and raw `[f64; 6]` matrices appear in lamina-model, lamina-render and lamina-wasm. `FillRule`, `Dash` and `Color` are also duplicated. This todo puts one of each in lamina-model, which both crates already depend on.
 
 ## Context
 
@@ -26,21 +26,24 @@
 
 **In scope**
 
-- One type each in lamina-model; names that say the composition order (`then`/`pre_concat` or similar); migrate both crates and the raw arrays; keep public names stable via re-exports where the façade shows them.
+- One `Matrix` with composition methods whose names say the order (for example `then` and `pre_concat`); one `FillRule`, `Dash` and `Color`; re-exports where the façade shows them; the raw arrays replaced.
+- The duplicate-name allow-list from [Q2a](./Q2a-maintainability-checks-rust.md) loses these entries.
 
 **Out of scope** (and which todo covers it)
 
-- Façade renames ([Q2s](./Q2s-facade-names-and-errors.md)).
+- Façade renames ([Q2s](./Q2s-facade-names.md)).
 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Introduce, migrate crate by crate, run all goldens.
+- [ ] Write unit tests that pin each composition order.
+- [ ] Add the types to lamina-model; migrate lamina-build, then lamina-content, then the raw arrays in render and wasm.
+- [ ] Remove the allow-list entries; run every reference suite.
 
 ## Acceptance criteria
 
-- [ ] One definition of each type (the `check maintainability` duplicate-name check drops them from its allow-list).
-- [ ] All goldens unchanged.
+- [ ] One definition of each type; the duplicate-name check passes without them.
+- [ ] Every reference PDF and image is unchanged.
 
 ## Post-merge checks
 
@@ -48,7 +51,7 @@ None.
 
 ## Tests
 
-Unit tests for composition order (both conventions named); existing goldens.
+Composition-order unit tests; existing reference suites.
 
 ## Docs to update
 
@@ -56,12 +59,13 @@ Crate docs, plan §9.
 
 ## Risks and open questions
 
-Mixing up composition order changes output: the goldens catch it.
+Mixing up the order changes output: the reference suites catch it.
 
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

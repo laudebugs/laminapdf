@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](./Q1c-examples-check.md) |
+| Depends on | [Q1c](./Q1c-examples-checks.md) |
 | Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md) |
 | ADRs | None |
 | Branch | `refactor/q1g-worker-examples` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-The Cloudflare Worker example imports fonts from `../../../../../fixtures/` and the Web Worker client example returns a shape made for its test. Make the Cloudflare Worker self-contained (fonts from its own folder, no cast) and give `worker-client` the API a reader needs (`onProgress`, `signal`, returns the saved bytes); its browser test counts the calls instead.
+The Cloudflare Worker example imports fonts from `../../../../../fixtures/`, and the Web Worker client example returns a shape made for its test. This todo makes the Cloudflare Worker self-contained and gives `worker-client` the API a reader needs: `onProgress` and `signal` in, the saved bytes out.
 
 ## Context
 
@@ -26,8 +26,8 @@ The Cloudflare Worker example imports fonts from `../../../../../fixtures/` and 
 
 **In scope**
 
-- Worker example: a local `fonts/` folder (copied by the test setup or committed if small and OFL), no repo-relative imports, no cast (after [Q1d](./Q1d-example-api-cleanups.md) the cast isn't needed; if Q1d hasn't landed, keep it with a comment).
-- `worker-client.ts(bytes, { onProgress, signal })` → `Uint8Array`; the test supplies the callbacks.
+- Cloudflare Worker example: fonts from its own folder (copied by the test setup), no repository-relative imports, no cast (after [Q1d](./Q1d-example-api-cleanups.md); keep it with a comment if Q1d hasn't landed).
+- `worker-client.ts`: `(bytes, { onProgress, signal })` returning `Uint8Array`; its browser test supplies the callbacks and counts the calls.
 
 **Out of scope** (and which todo covers it)
 
@@ -36,7 +36,9 @@ The Cloudflare Worker example imports fonts from `../../../../../fixtures/` and 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Rewrite both; update their runners; run workerd and the browser tests.
+- [ ] Change the workerd runner's setup to copy the fonts into the example's folder; change the imports.
+- [ ] Rewrite `worker-client.ts` and update `worker.browser.test.ts`.
+- [ ] Run the workerd runner and the browser tests; run `docs-snippets` on both files.
 
 ## Acceptance criteria
 
@@ -53,16 +55,17 @@ The workerd runner and `worker.browser.test.ts`.
 
 ## Docs to update
 
-"Keep the page responsive" and the Cloudflare Workers page captions.
+Captions on the Cloudflare Workers and "Keep the page responsive" pages, plan §9.
 
 ## Risks and open questions
 
-Committing font files into `examples/` adds bytes: prefer copying them in the test setup.
+None.
 
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

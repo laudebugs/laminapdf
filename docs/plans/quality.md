@@ -16,7 +16,7 @@
 
 ## 1. Goal
 
-The docs site exists and its examples are tested. But it reads like a repository tour, not a guide. Two runtime pages show CI test files where readers expect an app, every example carries scaffolding from the golden tests, and the sidebar follows the folder layout.
+The docs site exists and its examples are tested. But it reads like a repository tour, not a guide. Three of the six runtime pages show CI test runners where readers expect an app, every example carries scaffolding from the golden tests, and the sidebar follows the folder layout.
 
 The code is held to strict lints, but nothing yet guards file size, duplication across crates and packages, or the readability of what we show readers.
 
@@ -45,7 +45,11 @@ Six read-only reviews covered the docs prose and navigation, the code examples, 
   - The browser page shows a Vite test app that returns page counts and builds nothing a reader can see.
 - **No first-PDF path and no concepts page.**
   - The overview asks the reader to choose among six runtimes before they've learned anything.
-  - The key ideas appear only as asides on runtime pages: bytes in, bytes out; your edits kept apart from the opened bytes; incremental save vs full rewrite; the base, text and extract modules; same input, same bytes; freeing WebAssembly memory; coordinates.
+  - The key ideas appear only as asides on runtime pages:
+    - bytes in, bytes out, and the same input always giving the same bytes;
+    - your edits kept apart from the opened bytes, then saved incrementally or as a full rewrite;
+    - the base, text and extract modules, and freeing WebAssembly memory;
+    - page coordinates.
 - **Spec jargon with no "why".**
   - Guides open on an API call.
   - They use spec terms the reader hasn't met: Type 0, `/W`, ToUnicode, export condition, glue, overlay, DocMDP, `/Kids`, golden.
@@ -99,7 +103,7 @@ What readers see is not:
 
 ### 2.3 Code quality and reuse
 
-The code is disciplined where rules already exist. Workspace clippy `pedantic` runs with `-D warnings`, so `too_many_lines` (100) and friends pass everywhere: only three functions opt out with `#[expect]`. Visibility is mostly `pub(crate)`. There is one error type per crate. The TypeScript is strict and well commented. The debt is where no rule reaches:
+The code is disciplined where rules already exist. Workspace clippy `pedantic` runs with `-D warnings`, so `too_many_lines` (100) passes everywhere: only three functions opt out with `#[expect]`. Visibility is mostly `pub(crate)`. There is one error type per crate. The TypeScript is strict and well commented. The debt is where no rule reaches:
 
 **Parallel implementations that already disagree.** These are bugs, not just tidiness:
 
@@ -108,7 +112,7 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 - **Surrogate pairs split.** There are two ToUnicode CMap writers in lamina-text, and the simple-font one can split a surrogate pair that the Type 0 one never splits.
 - **"Did you mean" that depends on the layer.** It is written in both Rust (`lamina-wasm`) and TypeScript (`@laminapdf/sdk`), and they break ties differently, so a typo's suggestion depends on which layer raised it.
 - **`/Rotate 90.0` read as unrotated.** `/Rotate` and `/MediaBox` are parsed in both `lamina-cos` and `lamina-model`, and ops (`rotate.rs`) reads the cos copy, which accepts integers only.
-- **Two `Matrix` types with opposite composition order.** `Matrix`, `FillRule`, `Dash` and `Color` each exist twice (lamina-build and lamina-content).
+- **Two `Matrix` types that compose in opposite orders.** lamina-build composes with `after` and lamina-content with `multiply`, so a matrix moved from one crate to the other needs its order reversed. `FillRule`, `Dash` and `Color` are also defined in both crates.
 
 **Second implementations of things the codebase already has:**
 
@@ -140,7 +144,7 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 
 - `lamina-cos/src/reader/mod.rs` is 1,533 lines (1,080 of them code).
 - `lamina-content`'s `execute` is 318 lines behind an `#[expect]`.
-- `lamina-text/src/extract/font.rs`, `lamina-build/src/surface/{mod,png}.rs` and `lamina-wasm/src/{builder,build_dto}.rs` are each 750–1,330 lines.
+- `lamina-text/src/extract/font.rs` (1,321 lines), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872) are the other files over the 800-line budget, counted in total lines; Q2a's baseline records their non-test counts.
 - In TypeScript, eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39.
 
 **Façade names that collide.** Readers of the docs meet:
@@ -192,99 +196,17 @@ Every guide and recipe opens with what you'll make and when you'd need it, then 
 
 ## 4. Standards
 
-Three new guidelines join [`docs/guidelines/`](../guidelines/README.md). CLAUDE.md's working agreements name them, so every session and every `/code-review` (whose standards axis reads the guidelines) applies them from then on.
+Three new guidelines hold the rules; this plan doesn't restate them, so there is one copy to keep current. CLAUDE.md names all three, so every session applies them. So does every `/code-review`, whose standards axis reads the guidelines.
 
-### 4.1 Writing docs (`docs/guidelines/docs-writing.md`)
+| Guideline | What it asks | How it's checked |
+| --- | --- | --- |
+| [Writing docs](../guidelines/docs-writing.md) | Pages in story order; a first paragraph that says what you'll make; plain English with no internal IDs; one term per thing; a pleasure to read | `cargo xtask check docs-prose` in `check docs` (Q1b); reviewers and `/writing-review` for the rest |
+| [Code examples](../guidelines/examples.md) | Examples from `examples/` only; public API only; no test scaffolding; `using`; named numbers; small functions; matching TS and Rust pairs | `cargo xtask check docs-snippets` in `check docs`, a Biome override in `check ts`, `cargo xtask clippy-examples` in `check rust` (Q1c) |
+| [Maintainable code](../guidelines/maintainability.md) | One home per concept; size budgets whose baseline only shrinks; one public path per item; no test code in shipped code; one error serialiser per language | `cargo xtask check maintainability` (Q2a, extended by Q2c, Q2e, Q2i, Q2t); Biome and TypeDoc rules (Q2b); dependency-cruiser, jscpd and knip (Q2u) |
 
-**Who it's for.** Reader-facing text: `apps/docs/src/content/docs/**`, `docs/errors/*.md` (rendered on the site) and package READMEs (rendered by TypeDoc). The rules build on design-language §9 (writing style).
+**The checks bind while we write.** From the day each check lands, it is strict on every file a PR adds or changes, and it only warns on files nobody has touched yet. So a new page or example is checked as it is written, and the rewrite todos clear the rest; Q1l and the baselines' shrinking make everything strict. The docs checks need no build and run in about a second, so authors run them while drafting.
 
-**The rules:**
-
-1. **Frontmatter.** Every page has a `title` and a `description` of at most 160 characters.
-2. **Length.** Sentences warn above 30 words and fail above 40. Paragraphs stay under 100 words.
-3. **Open with the why.** Every guide and recipe opens with a paragraph of at most 50 words before its first list, snippet or heading: what you'll make and when you'd need it.
-4. **No internal IDs.** Reader text never contains ADR numbers, todo IDs, "Round", "fast lane", "golden" or repository paths.
-5. **Explain terms.** A glossary term links to `/reference/glossary/` on its first use on a page, or the page's frontmatter lists it as allowed.
-6. **Plain words.** No "simply", "just", "easy", "obviously", "note that", "please", "etc.", "via" or "utilize", and no exclamation marks.
-7. **Introduce code.** Every `<Snippet>` follows a sentence that says what the code does.
-8. **Sentence case.** Headings are in sentence case.
-9. **One term per thing.** "Cloudflare Worker" and "Web Worker" are always written in full, and "reference PDF" replaces "golden".
-
-**How it's checked.**
-
-- **Automated.** `cargo xtask check docs-prose` becomes part of `cargo xtask check docs`, so it runs in CI on every PR, including docs-only ones. It strips frontmatter, code, JSX, tables and link URLs first. It covers rules 1–8 and adds no new dependency. It starts at warning level and fails from Q1l onwards.
-- **Why not Vale.** Vale (MIT) was considered. It would need a Go binary and an extra MDX tool in CI for a subset of these rules.
-
-### 4.2 Code examples (`docs/guidelines/examples.md`)
-
-**Where the rules apply.**
-
-- `packages/sdk/examples/**` and `crates/lamina/examples/**`.
-- Anything the site's `Snippet` component may show.
-
-**The rules:**
-
-1. **Show only examples.** A page shows a file from `examples/`, never from `test/`.
-2. **One job, top to bottom.** An example does one thing, reads top to bottom, and could be pasted into an app unchanged.
-3. **Public API only.** Examples import the public entry points only: `@laminapdf/sdk`, `@laminapdf/sdk/worker`, and `lamina::…`. They never import from a relative path into another package, from `src/`, `test/` or `fixtures/`, and never from `lamina_<crate>` directly.
-4. **No test scaffolding.** Fixed file IDs, dates and producers come from the caller; the tests pass them in. Self-checks belong in the tests.
-5. **Free what you create.** In TypeScript, use `using` for documents and builders.
-6. **Name your numbers.** No unexplained layout numbers: use named constants, or read the value from the API (the page width comes from the page size).
-7. **Stay small.** Functions are at most 40 lines and files at most 100.
-8. **A plain header.** Every example opens with a comment saying what it shows, with no ADR or todo IDs, repository paths or test vocabulary.
-9. **Pairs match.** A task shown in both languages has the same name in each (kebab-case and snake_case) and the same first header sentence.
-10. **Every example is shown.** Each example appears on a page, or is listed as unused with a reason.
-
-**How it's checked.**
-
-- **`cargo xtask check docs-snippets`**, part of `check docs`, covers rules 1, 3 (Rust), 4, 7 (file length), 8, 9 and 10.
-- **A Biome override for `packages/sdk/examples/**`** covers rules 3 (TypeScript), 6 and 7 (functions):
-  - `noRestrictedImports`;
-  - `noNonNullAssertion` and `noExplicitAny` as errors;
-  - `noExcessiveCognitiveComplexity`.
-- **A clippy configuration for the examples** covers rule 7 in Rust: `too-many-lines-threshold = 40` through an examples-only `clippy.toml`.
-- **A reviewer checklist** in the guideline covers what tools can't judge (rules 2, 5 and 6).
-
-### 4.3 Maintainable code (`docs/guidelines/maintainability.md`)
-
-**Where the rules apply.** `crates/*`, `packages/*`, `apps/*` and `tools/*`. The rules sit beside rust.md, typescript.md and code-organization.md, which they extend.
-
-**The rules:**
-
-1. **One home per concept.** Before writing a helper, type or table, search the workspace. If one exists, use it; if it is wrong, fix it there. A concept used by two crates or packages lives in the lower one: for example, one `Matrix` in lamina-model, one PDF lexer in lamina-syntax, one error-propagation policy per meaning in `lamina_cos::error`.
-2. **Interpret a PDF attribute in one place.** Lower layers hold the raw object; one crate reads its meaning (page attributes belong to lamina-model). Each crate's README names what it owns.
-3. **Generate or pin lists that cross a boundary.**
-   - A list that crosses Rust ↔ WASM ↔ TypeScript (codes, enums, tag names, version strings) is defined once and generated for the other side, or pinned by a test until generation lands.
-   - Logic that exists in both languages (for example did-you-mean) is pinned by one shared fixture that both test suites run.
-4. **Size budgets.** In Rust, a function is at most 100 lines (pedantic `too_many_lines`, already enforced) and a module at most 800 lines of non-test code. In TypeScript, a function's cognitive complexity is at most 15 and a function is at most 60 lines. `generated/` is exempt. The size budgets ratchet down and never go up:
-   - code over a budget today is listed in a baseline;
-   - new code may not exceed the budget;
-   - `#[expect]`s for these lints are counted and may not grow.
-5. **One public path per item.** A library's item has one public path, and the façade never re-exports two items with the same name.
-6. **No test code in shipped code.**
-   - No test-only API in a product crate's or package's public surface, and no test hooks (`__*` methods, logs kept for tests) in `src/`.
-   - Test helpers used by two crates live in the dev-only `lamina-test-fixtures` crate; in TypeScript they live in the private `@laminapdf/test-utils` package.
-   - No `#[path]` and no relative import reaching into another crate or package.
-7. **Throw only `Error` subclasses.** TypeScript throws only `Error` subclasses. Every error that crosses a boundary is the ADR 0026 object, built by one serialiser per language.
-8. **Name things for what they do.** Code and test files are named after behaviour, never after the review or todo that created them. Comments explain *why*. Todo IDs belong in commit messages and plans, not in `src/`.
-
-**How it's checked.**
-
-- **`cargo xtask check maintainability`** becomes part of `cargo xtask check`. It covers:
-  - the module budget, with a baseline file;
-  - the `#[expect]` counter;
-  - bans on cross-crate `#[path]`, crate-local error-policy matches, lexers outside lamina-syntax, test helpers outside the fixtures crate, todo IDs in `src/` and `__` test methods in package `src/`;
-  - duplicate public type names across crates (an allow-list file);
-  - two-path re-exports in the façade.
-- **New workspace lints:** `clippy::cognitive_complexity` (warn) and `unreachable_pub` (warn), plus an explicit `too-many-lines-threshold`.
-- **Biome:** `noExcessiveCognitiveComplexity` and `noExcessiveLinesPerFunction`, with the current offenders in an override list, and `useThrowOnlyError`.
-- **New TypeScript tools.** Each is checked against the licence policy (ADR 0019) before it lands:
-  - dependency-cruiser (MIT), for cycles and cross-package imports;
-  - jscpd (MIT), for duplicated blocks;
-  - knip (ISC), for unused exports and files;
-  - TypeDoc `notDocumented`, which is already a dependency, for undocumented exports.
-
-The `/code-review` standards axis reads all of this. The judgement calls (rules 1–3) are review rules; the rest are CI.
+**No new dependency for the docs checks.** Vale (MIT) would need a Go binary and an extra MDX tool in CI for a subset of the rules, so the docs checks are written in xtask. The TypeScript maintainability tools (dependency-cruiser MIT, jscpd MIT, knip ISC) pass the licence policy (ADR 0019) before they land.
 
 ## 5. The font
 
@@ -308,54 +230,62 @@ The product app keeps Newsreader for titles unless the owner decides otherwise (
 
 ## 6. Todos
 
-Each todo is one PR on the [todo board](../todos/README.md). Q1 and Q2 run in parallel, so the three sessions can split them. Inside each group, `Depends on` orders the work: the checks land first at warning level, the rewrites clear what they report, and Q1l makes the docs checks fail. The bug fixes (Q2e, Q2f, Q2h, Q2k) come first in Q2 because they change behaviour; the rest are refactors guarded by the existing goldens.
+Each todo is one PR on the [todo board](../todos/README.md). Q1 and Q2 run in parallel, so the three sessions can split them. Inside each group, `Depends on` orders the work: the checks land first, the rewrites clear what they report, and Q1l makes the docs checks strict everywhere.
+
+Start Q2 with the bug fixes (Q2e, Q2f, Q2h, Q2v, then Q2k after Q2j), because they change behaviour. The rest are refactors that the reference PDFs and existing tests guard. The bug fixes, the new TypeScript tools (Q2u) and the façade and API changes (Q1d, Q2s, Q2y) go beyond what the owner asked for; the review found them, and the plan includes them because the docs and examples depend on them. The API changes carry a changeset, and Q2y amends ADR 0028.
 
 ### Q1: the docs site
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [Q1a](../todos/ready/Q1a-docs-font-source-sans.md) | The docs site in one sans-serif font (Source Sans 3) | S | — |
-| [Q1b](../todos/ready/Q1b-docs-prose-check.md) | Docs writing guideline and the `docs-prose` check | M | — |
-| [Q1c](../todos/ready/Q1c-examples-check.md) | Examples guideline and the `docs-snippets` check | M | — |
-| [Q1d](../todos/ready/Q1d-example-api-cleanups.md) | API fixes the examples need (Rust and TypeScript) | S | — |
+| [Q1a](../todos/ready/Q1a-docs-font-source-sans.md) | One sans-serif font on the docs site (Source Sans 3) | S | — |
+| [Q1b](../todos/ready/Q1b-docs-prose-check.md) | The `docs-prose` check for reader-facing text | M | — |
+| [Q1c](../todos/ready/Q1c-examples-checks.md) | The examples checks: `docs-snippets`, a Biome override and `clippy-examples` | M | — |
+| [Q1d](../todos/ready/Q1d-example-api-cleanups.md) | API fixes the examples need | S | — |
 | [Q1e](../todos/ready/Q1e-quick-start-apps.md) | Runnable quick-start apps for every runtime | M | Q1c |
-| [Q1f](../todos/ready/Q1f-examples-readable.md) | Examples readers can copy: no scaffolding, `using`, small functions, named numbers | M | Q1c, Q1d |
+| [Q1f](../todos/ready/Q1f-examples-readable.md) | Examples readers can copy | M | Q1c, Q1d |
 | [Q1g](../todos/ready/Q1g-worker-examples.md) | Worker examples that work outside this repository | S | Q1c |
-| [Q1h](../todos/ready/Q1h-docs-story.md) | The docs as a story: new start pages, concepts and an explicit sidebar | M | Q1b, Q1e |
-| [Q1i](../todos/ready/Q1i-guides-plain-english.md) | Plain-English guides: why first, terms explained, split and renamed | M | Q1h |
-| [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes (one page per example) and a Troubleshooting page | M | Q1h, Q1f, Q1g |
-| [Q1k](../todos/ready/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages, package READMEs and the repo README | M | Q1b |
-| [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | Docs checks fail instead of warn | S | Q1i, Q1j, Q1k, Q1f |
+| [Q1h](../todos/ready/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |
+| [Q1i](../todos/ready/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
+| [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
+| [Q1k](../todos/ready/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
+| [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
+| [Q1m](../todos/ready/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 
 ### Q2: code quality and reuse
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [Q2a](../todos/ready/Q2a-maintainability-checks-rust.md) | Maintainability checks for Rust: module budget, lint additions and the `check maintainability` step | M | — |
-| [Q2b](../todos/ready/Q2b-maintainability-checks-ts.md) | Maintainability checks for TypeScript: complexity, cycles, duplication, unused exports, TSDoc | M | — |
-| [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures`: one home for Rust test helpers | M | — |
-| [Q2d](../todos/ready/Q2d-test-writer-on-save-helpers.md) | One PDF serialiser: the test `Writer` built on lamina-save's own xref and object-stream code | M | Q2c |
-| [Q2e](../todos/ready/Q2e-error-policy-consolidation.md) | One error-propagation policy per meaning (fixes I/O errors swallowed by text extraction) | S | — |
-| [Q2f](../todos/ready/Q2f-page-attributes-one-owner.md) | One owner for page attributes and rotation (fixes `/Rotate 90.0`) | M | — |
-| [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` shared by building and reading | M | — |
-| [Q2h](../todos/ready/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder in lamina-text (fixes split surrogates) | S | — |
-| [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | — |
-| [Q2j](../todos/ready/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary (render, WASM, did-you-mean) | M | — |
+| [Q2a](../todos/ready/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
+| [Q2b](../todos/ready/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
+| [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures` for the core crates' test helpers | M | Q2a |
+| [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on lamina-save's helpers | M | Q2c |
+| [Q2e](../todos/ready/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
+| [Q2f](../todos/ready/Q2f-page-attributes-one-owner.md) | One reader of page attributes and one rotation type (fixes `/Rotate 90.0`) | M | — |
+| [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
+| [Q2h](../todos/ready/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
+| [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
+| [Q2j](../todos/ready/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
 | [Q2k](../todos/ready/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
-| [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated or pinned | M | — |
-| [Q2m](../todos/ready/Q2m-ts-test-utils.md) | `@laminapdf/test-utils`: shared TypeScript test helpers | M | — |
-| [Q2n](../todos/ready/Q2n-render-adapter-shared.md) | Shared code for the render adapters in `@laminapdf/render` | M | Q2m |
-| [Q2o](../todos/ready/Q2o-ts-hygiene.md) | TypeScript hygiene: test hooks out of shipped code, shared helpers, viewer surface | M | — |
+| [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
+| [Q2m](../todos/ready/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
+| [Q2n](../todos/ready/Q2n-render-adapter-shared.md) | Shared code for the render adapters | M | Q2m |
+| [Q2o](../todos/ready/Q2o-ts-hygiene.md) | TypeScript hygiene: no test hooks in shipped code | M | Q2u |
 | [Q2p](../todos/ready/Q2p-ts-complexity-splits.md) | Split the TypeScript functions over the complexity limit | M | Q2b |
-| [Q2q](../todos/ready/Q2q-split-large-rust-modules-core.md) | Split the largest core modules: the COS reader and the content interpreter | M | Q2e |
-| [Q2r](../todos/ready/Q2r-split-large-rust-modules-surface.md) | Split the large builder, extraction and WASM modules | M | Q2h, Q2i |
-| [Q2s](../todos/ready/Q2s-facade-names-and-errors.md) | Façade names that don't collide, one public path per item, and the error-wrapping decision | M | — |
-| [Q2t](../todos/ready/Q2t-history-out-of-names.md) | Names and comments without project history | S | — |
+| [Q2q](../todos/ready/Q2q-split-cos-reader.md) | Split the COS reader module | M | Q2a, Q2e |
+| [Q2r](../todos/ready/Q2r-split-surface-modules.md) | Split the large builder, extraction and WASM modules | M | Q2a, Q2h, Q2i |
+| [Q2s](../todos/ready/Q2s-facade-names.md) | Façade names that don't collide | M | Q2a |
+| [Q2t](../todos/ready/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
+| [Q2u](../todos/ready/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
+| [Q2v](../todos/ready/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
+| [Q2w](../todos/ready/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
+| [Q2x](../todos/ready/Q2x-test-fixtures-migration.md) | `lamina-test-fixtures` for the remaining crates | M | Q2c |
+| [Q2y](../todos/ready/Q2y-facade-error-wrapping.md) | Decide and implement how the façade wraps crate errors | S | — |
 
 ## 7. Risks
 
 - **The prose lint could become a box-ticking exercise.** Its rules are deliberately few and mechanical; judgement stays with the `/code-review` standards axis and the guideline's checklist. A rule that keeps producing false positives is removed, not worked around.
-- **Example refactors could change the reference PDFs.** The goldens are byte-compared in CI, so any change to the output shows up. The example todos say whether their goldens may change. Pure refactors keep them byte-identical.
+- **Example refactors could change the reference PDFs.** CI byte-compares them, so any change to the output shows up. The example todos say whether their reference PDFs may change; pure refactors keep them byte-identical.
 - **Two sessions could edit the same sidebar or guideline.** The Q1 todos chain through `Depends on`, so they don't compete for `astro.config.mjs` or the same pages.
 
 ## 8. Open questions
@@ -368,12 +298,12 @@ Each todo is one PR on the [todo board](../todos/README.md). Q1 and Q2 run in pa
 - [x] Review the docs site, the examples, the TypeScript packages and the Rust crates (2026-10-31; §2)
 - [x] Write the guidelines: [docs writing](../guidelines/docs-writing.md), [examples](../guidelines/examples.md), [maintainability](../guidelines/maintainability.md); name them in CLAUDE.md
 - [ ] Q1a: one sans-serif font on the docs site
-- [ ] Q1b, Q1c: the docs-prose and docs-snippets checks (warning level)
+- [ ] Q1b, Q1c: the docs-prose and examples checks
 - [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples
-- [ ] Q1h–Q1k: the story (start pages, concepts, glossary, sidebar), plain-English guides, recipes and troubleshooting, internal IDs out of reader text
-- [ ] Q1l: the docs checks fail on any report
-- [ ] Q2a, Q2b: maintainability checks for Rust and TypeScript
-- [ ] Q2e, Q2f, Q2h, Q2k: the behaviour bugs the review found
-- [ ] Q2c, Q2d, Q2g, Q2i, Q2j, Q2l–Q2o: one home per concept (test helpers, serialiser, graphics types, lexer, boundary errors and lists, render adapters, TypeScript hygiene)
-- [ ] Q2p, Q2q, Q2r: complexity and module splits; the baselines reach zero
-- [ ] Q2s, Q2t: façade names, error-wrapping decision, names without history
+- [ ] Q1h, Q1i, Q1m, Q1j, Q1k: the story, plain-English guides, recipes and troubleshooting, internal IDs out of reader text
+- [ ] Q1l: the docs checks are strict everywhere
+- [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript
+- [ ] Q2e, Q2f, Q2h, Q2v, Q2k: the behaviour bugs the review found
+- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n, Q2o: one home per concept
+- [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
+- [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history

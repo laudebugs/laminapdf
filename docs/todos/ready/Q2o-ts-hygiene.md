@@ -1,4 +1,4 @@
-# Q2o — TypeScript hygiene: test hooks out of shipped code, shared helpers, viewer surface
+# Q2o — TypeScript hygiene: no test hooks in shipped code
 
 | Field | Value |
 | --- | --- |
@@ -6,30 +6,31 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | None |
+| Depends on | [Q2u](./Q2u-ts-dependency-tools.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2o-ts-hygiene` |
-| PR title | `fix(viewer,sdk): no test hooks in shipped code; shared helpers; smaller viewer surface` |
+| PR title | `fix(viewer,sdk): no test hooks in shipped code; shared helpers; a smaller viewer surface` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-The viewer's worker keeps `renderLog` (grows on every render, never trimmed: a leak in the shipped worker) and the public method types include `__busy`, `__renderLog`, `__crash`, `__budget`, `__stats`. Small helpers are written several times (`whole()` 2×, listener fan-out 2×, "drop undefined keys" 4× plus 23 inline spreads), the viewer has its own byte-source type next to sdk's `RangeSource`, and it exports plumbing without TSDoc.
+The viewer's worker keeps `renderLog`, which grows on every render and is never trimmed: a leak in the shipped worker. The public method types include the test hooks `__busy`, `__renderLog`, `__crash`, `__budget` and `__stats`. Small helpers are written several times, the viewer has its own byte-source type next to sdk's `RangeSource`, and it exports plumbing without TSDoc. This todo cleans all of that up.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `packages/viewer/src/{worker/render.ts:11, protocol.ts:58-63, client.ts:161-183,227-235, source.ts, index.ts:18-20}`, `packages/sdk/src/worker/{server.ts:139,167,268-278, client.ts:78,116,491}`, `packages/sdk/src/builder.ts:244`, `apps/docs` (`tsconfig` without `checkJs`; codes.json parsed twice; repo URL in two places), `tsconfig.base.json` (`ESNext.Disposable` repeated in 10 tsconfigs), the three near-identical sdk entries.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `packages/viewer/src/{worker/render.ts:11, protocol.ts:58-63, client.ts:161-183,227-235, source.ts, index.ts:18-20}`, `packages/sdk/src/worker/{server.ts:139,167,268-278, client.ts:78,116,491}`, `packages/sdk/src/builder.ts:244`.
+- The docs app: `tsconfig` without `checkJs`; `codes.json` parsed twice; the repository URL in two places. `tsconfig.base.json`: `ESNext.Disposable` repeated in 10 package configs. The three near-identical sdk entry files.
 
 ## Scope
 
 **In scope**
 
 - Test methods registered only from test worker entries; `renderLog` removed.
-- `whole`, `Emitter<E>` and `defined()` once in `@laminapdf/sdk/worker` (or sdk-internal); viewer uses `RangeSource`/`callbackSource`; viewer exports trimmed; missing TSDoc added.
-- Docs app: `checkJs` for `plugins/*.mjs`, `src/lib/codes.ts`, one repo-URL constant.
-- `ESNext.Disposable` in the base tsconfig; a test that the three sdk entries differ only in their `locate` import and TSDoc phrase.
+- `whole`, `Emitter<E>` and `defined()` written once in `@laminapdf/sdk/worker` (or sdk-internal); the viewer uses `RangeSource` and `callbackSource`; viewer exports trimmed and documented.
+- Docs app: `checkJs` for `plugins/*.mjs`, `src/lib/codes.ts`, one repository-URL constant.
+- `ESNext.Disposable` in the base config; a test that the three sdk entries differ only in their `locate` import and one TSDoc phrase.
 
 **Out of scope** (and which todo covers it)
 
@@ -38,12 +39,16 @@ The viewer's worker keeps `renderLog` (grows on every render, never trimmed: a l
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] One change at a time with its tests.
+- [ ] Add test worker entries in sdk and viewer that register the `__` methods; remove them from `src/`; remove `renderLog`.
+- [ ] Extract the shared helpers; replace each copy.
+- [ ] Switch the viewer to `RangeSource`; trim and document its exports; remove knip's baseline entries for it.
+- [ ] Fix the docs app and the base config; write the entry-diff test.
+- [ ] Run every suite.
 
 ## Acceptance criteria
 
-- [ ] No `__`-prefixed method in any package `src/` (grep in `check ts`).
-- [ ] knip (from [Q2b](./Q2b-maintainability-checks-ts.md)) reports no unused export in the viewer.
+- [ ] No `__`-prefixed method in any package's `src/`.
+- [ ] knip reports no unused viewer export.
 
 ## Post-merge checks
 
@@ -51,7 +56,7 @@ None.
 
 ## Tests
 
-Existing suites; the entry-diff test; a test that the worker keeps no per-render state.
+Existing suites, the entry-diff test, and a test that the worker keeps no per-render state.
 
 ## Docs to update
 
@@ -59,12 +64,13 @@ Plan §9.
 
 ## Risks and open questions
 
-Viewer API trim is a breaking change while private: fine; note in a changeset.
+Trimming the viewer's exports breaks callers while it is private: add a changeset.
 
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

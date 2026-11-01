@@ -1,4 +1,4 @@
-# Q2m — `@laminapdf/test-utils`: shared TypeScript test helpers
+# Q2m — `@laminapdf/test-utils` for shared TypeScript test helpers
 
 | Field | Value |
 | --- | --- |
@@ -16,17 +16,17 @@
 
 ## Goal
 
-The render adapters import `../render/test/{contract,browser-harness,browser-config}.js` by relative path (forbidden by code-organization §2), the Firefox profile workaround is copied three times, and about 20 test files compute `../../../` to find the repository root. Create a private `@laminapdf/test-utils` package for the render contract suite, the browser harness and config, the Firefox workaround, the PNG decoder and one repo-root/fixtures resolver.
+The render adapters import `../render/test/{contract,browser-harness,browser-config}.js` by relative path, which code-organization §2 forbids; the Firefox profile workaround is copied three times; and about 20 test files compute `../../../` to find the repository root. This todo creates a private `@laminapdf/test-utils` for the render contract suite, the browser harness and configuration, the Firefox workaround, the PNG decoder and one repository-root resolver.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `packages/render-{hayro,pdfium}/test/*`, `vitest.browser.config.ts` files, `packages/render/test/browser-config.ts:17`, `packages/sdk/vitest.browser.config.ts:12`, `packages/viewer/vitest.browser.config.ts:11`; code-organization §2 (names `@laminapdf/test-utils` as the example).
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `packages/render-{hayro,pdfium}/test/*`, the `vitest.browser.config.ts` files, `packages/render/test/browser-config.ts:17`, `packages/sdk/vitest.browser.config.ts:12`, `packages/viewer/vitest.browser.config.ts:11`; code-organization §2 (names `@laminapdf/test-utils` as its example).
 
 ## Scope
 
 **In scope**
 
-- The package (private, workspace-only); migrate the three packages; remove the relative cross-package imports; dependency-cruiser's baseline from [Q2b](./Q2b-maintainability-checks-ts.md) shrinks to zero.
+- The package (private, workspace-only); the three packages migrated; no relative import into another package; [Q2u](./Q2u-ts-dependency-tools.md)'s baseline emptied if it has landed.
 
 **Out of scope** (and which todo covers it)
 
@@ -35,7 +35,9 @@ The render adapters import `../render/test/{contract,browser-harness,browser-con
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Create, move, migrate, run Node and browser suites.
+- [ ] Create the package with its own `tsconfig` and `biome.json`.
+- [ ] Move the contract suite, harness, configuration, Firefox workaround, PNG decoder and root resolver.
+- [ ] Migrate render, render-hayro, render-pdfium, sdk and viewer tests; run Node and the three browsers.
 
 ## Acceptance criteria
 
@@ -62,6 +64,7 @@ None.
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

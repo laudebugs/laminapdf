@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 224 ready · 55 done** (281 total).
+**2 ongoing · 230 ready · 55 done** (287 total).
 
 ## Can start now
 
@@ -24,24 +24,20 @@ Ready todos whose dependencies are all done:
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
-- [Q1a](ready/Q1a-docs-font-source-sans.md): The docs site in one sans-serif font (Source Sans 3)
-- [Q1b](ready/Q1b-docs-prose-check.md): Docs writing guideline and the `docs-prose` check
-- [Q1c](ready/Q1c-examples-check.md): Examples guideline and the `docs-snippets` check
-- [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need (Rust and TypeScript)
-- [Q2a](ready/Q2a-maintainability-checks-rust.md): Maintainability checks for Rust: module budget, lint additions and the `check maintainability` step
-- [Q2b](ready/Q2b-maintainability-checks-ts.md): Maintainability checks for TypeScript: complexity, cycles, duplication, unused exports, TSDoc
-- [Q2c](ready/Q2c-test-fixtures-crate.md): `lamina-test-fixtures`: one home for Rust test helpers
-- [Q2e](ready/Q2e-error-policy-consolidation.md): One error-propagation policy per meaning (fixes I/O errors swallowed by text extraction)
-- [Q2f](ready/Q2f-page-attributes-one-owner.md): One owner for page attributes and rotation (fixes `/Rotate 90.0`)
-- [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color` shared by building and reading
-- [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder in lamina-text (fixes split surrogates)
-- [Q2i](ready/Q2i-one-lexer-one-png-filter.md): One PDF lexer and one PNG row filter
-- [Q2j](ready/Q2j-boundary-errors-rust.md): One error object at every Rust boundary (render, WASM, did-you-mean)
-- [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated or pinned
-- [Q2m](ready/Q2m-ts-test-utils.md): `@laminapdf/test-utils`: shared TypeScript test helpers
-- [Q2o](ready/Q2o-ts-hygiene.md): TypeScript hygiene: test hooks out of shipped code, shared helpers, viewer surface
-- [Q2s](ready/Q2s-facade-names-and-errors.md): Façade names that don't collide, one public path per item, and the error-wrapping decision
-- [Q2t](ready/Q2t-history-out-of-names.md): Names and comments without project history
+- [Q1a](ready/Q1a-docs-font-source-sans.md): One sans-serif font on the docs site (Source Sans 3)
+- [Q1b](ready/Q1b-docs-prose-check.md): The `docs-prose` check for reader-facing text
+- [Q1c](ready/Q1c-examples-checks.md): The examples checks: `docs-snippets`, a Biome override and `clippy-examples`
+- [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
+- [Q2a](ready/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
+- [Q2b](ready/Q2b-ts-lint-rules.md): TypeScript lint rules: complexity, function length, throws and TSDoc
+- [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
+- [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
+- [Q2j](ready/Q2j-boundary-errors-rust.md): One error object at every Rust boundary
+- [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated
+- [Q2m](ready/Q2m-ts-test-utils.md): `@laminapdf/test-utils` for shared TypeScript test helpers
+- [Q2u](ready/Q2u-ts-dependency-tools.md): TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports
+- [Q2v](ready/Q2v-did-you-mean.md): One did-you-mean rule, pinned in both languages
+- [Q2y](ready/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
@@ -339,38 +335,44 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| Q1a | [The docs site in one sans-serif font (Source Sans 3)](ready/Q1a-docs-font-source-sans.md) | ready | — |
-| Q1b | [Docs writing guideline and the `docs-prose` check](ready/Q1b-docs-prose-check.md) | ready | — |
-| Q1c | [Examples guideline and the `docs-snippets` check](ready/Q1c-examples-check.md) | ready | — |
-| Q1d | [API fixes the examples need (Rust and TypeScript)](ready/Q1d-example-api-cleanups.md) | ready | — |
-| Q1e | [Runnable quick-start apps for every runtime](ready/Q1e-quick-start-apps.md) | ready | [Q1c](ready/Q1c-examples-check.md) |
-| Q1f | [Examples readers can copy: no scaffolding, `using`, small functions, named numbers](ready/Q1f-examples-readable.md) | ready | [Q1c](ready/Q1c-examples-check.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
-| Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](ready/Q1c-examples-check.md) |
-| Q1h | [The docs as a story: new start pages, concepts and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](ready/Q1b-docs-prose-check.md), [Q1e](ready/Q1e-quick-start-apps.md) |
-| Q1i | [Plain-English guides: why first, terms explained, split and renamed](ready/Q1i-guides-plain-english.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
-| Q1j | [Recipes (one page per example) and a Troubleshooting page](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](ready/Q1h-docs-story.md) |
-| Q1k | [Internal IDs out of error pages, package READMEs and the repo README](ready/Q1k-internal-ids-out-of-reader-text.md) | ready | [Q1b](ready/Q1b-docs-prose-check.md) |
-| Q1l | [Docs checks fail instead of warn](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-plain-english.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](ready/Q1k-internal-ids-out-of-reader-text.md) |
-| Q2a | [Maintainability checks for Rust: module budget, lint additions and the `check maintainability` step](ready/Q2a-maintainability-checks-rust.md) | ready | — |
-| Q2b | [Maintainability checks for TypeScript: complexity, cycles, duplication, unused exports, TSDoc](ready/Q2b-maintainability-checks-ts.md) | ready | — |
-| Q2c | [`lamina-test-fixtures`: one home for Rust test helpers](ready/Q2c-test-fixtures-crate.md) | ready | — |
-| Q2d | [One PDF serialiser: the test `Writer` built on lamina-save's own xref and object-stream code](ready/Q2d-test-writer-on-save-helpers.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
-| Q2e | [One error-propagation policy per meaning (fixes I/O errors swallowed by text extraction)](ready/Q2e-error-policy-consolidation.md) | ready | — |
-| Q2f | [One owner for page attributes and rotation (fixes `/Rotate 90.0`)](ready/Q2f-page-attributes-one-owner.md) | ready | — |
-| Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color` shared by building and reading](ready/Q2g-one-matrix.md) | ready | — |
-| Q2h | [One ToUnicode writer and one FontDescriptor builder in lamina-text (fixes split surrogates)](ready/Q2h-text-writers-dedup.md) | ready | — |
-| Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | — |
-| Q2j | [One error object at every Rust boundary (render, WASM, did-you-mean)](ready/Q2j-boundary-errors-rust.md) | ready | — |
+| Q1a | [One sans-serif font on the docs site (Source Sans 3)](ready/Q1a-docs-font-source-sans.md) | ready | — |
+| Q1b | [The `docs-prose` check for reader-facing text](ready/Q1b-docs-prose-check.md) | ready | — |
+| Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](ready/Q1c-examples-checks.md) | ready | — |
+| Q1d | [API fixes the examples need](ready/Q1d-example-api-cleanups.md) | ready | — |
+| Q1e | [Runnable quick-start apps for every runtime](ready/Q1e-quick-start-apps.md) | ready | [Q1c](ready/Q1c-examples-checks.md) |
+| Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](ready/Q1c-examples-checks.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
+| Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](ready/Q1c-examples-checks.md) |
+| Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](ready/Q1b-docs-prose-check.md), [Q1e](ready/Q1e-quick-start-apps.md) |
+| Q1i | [Plain-English guides: creating PDFs](ready/Q1i-guides-create.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
+| Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](ready/Q1h-docs-story.md) |
+| Q1k | [Internal IDs out of error pages and READMEs](ready/Q1k-internal-ids-out-of-reader-text.md) | ready | [Q1b](ready/Q1b-docs-prose-check.md) |
+| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](ready/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
+| Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
+| Q2a | [`check maintainability` for Rust: module budget and new lints](ready/Q2a-maintainability-checks-rust.md) | ready | — |
+| Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](ready/Q2b-ts-lint-rules.md) | ready | — |
+| Q2c | [`lamina-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2d | [One PDF serialiser: the test `Writer` built on lamina-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
+| Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](ready/Q2e-error-policy-consolidation.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](ready/Q2f-page-attributes-one-owner.md) | ready | — |
+| Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](ready/Q2h-text-writers-dedup.md) | ready | — |
+| Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2j | [One error object at every Rust boundary](ready/Q2j-boundary-errors-rust.md) | ready | — |
 | Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](ready/Q2k-boundary-errors-ts.md) | ready | [Q2j](ready/Q2j-boundary-errors-rust.md) |
-| Q2l | [Lists that cross the WASM boundary are generated or pinned](ready/Q2l-boundary-lists-generated.md) | ready | — |
-| Q2m | [`@laminapdf/test-utils`: shared TypeScript test helpers](ready/Q2m-ts-test-utils.md) | ready | — |
-| Q2n | [Shared code for the render adapters in `@laminapdf/render`](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](ready/Q2m-ts-test-utils.md) |
-| Q2o | [TypeScript hygiene: test hooks out of shipped code, shared helpers, viewer surface](ready/Q2o-ts-hygiene.md) | ready | — |
-| Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](ready/Q2b-maintainability-checks-ts.md) |
-| Q2q | [Split the largest core modules: the COS reader and the content interpreter](ready/Q2q-split-large-rust-modules-core.md) | ready | [Q2e](ready/Q2e-error-policy-consolidation.md) |
-| Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-large-rust-modules-surface.md) | ready | [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
-| Q2s | [Façade names that don't collide, one public path per item, and the error-wrapping decision](ready/Q2s-facade-names-and-errors.md) | ready | — |
-| Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | — |
+| Q2l | [Lists that cross the WASM boundary are generated](ready/Q2l-boundary-lists-generated.md) | ready | — |
+| Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](ready/Q2m-ts-test-utils.md) | ready | — |
+| Q2n | [Shared code for the render adapters](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](ready/Q2m-ts-test-utils.md) |
+| Q2o | [TypeScript hygiene: no test hooks in shipped code](ready/Q2o-ts-hygiene.md) | ready | [Q2u](ready/Q2u-ts-dependency-tools.md) |
+| Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](ready/Q2b-ts-lint-rules.md) |
+| Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2e](ready/Q2e-error-policy-consolidation.md) |
+| Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
+| Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](ready/Q2u-ts-dependency-tools.md) | ready | — |
+| Q2v | [One did-you-mean rule, pinned in both languages](ready/Q2v-did-you-mean.md) | ready | — |
+| Q2w | [Split the content interpreter's `execute`](ready/Q2w-split-content-interpreter.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2x | [`lamina-test-fixtures` for the remaining crates](ready/Q2x-test-fixtures-migration.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
+| Q2y | [Decide and implement how the façade wraps crate errors](ready/Q2y-facade-error-wrapping.md) | ready | — |
 
 ## Cross-cutting
 

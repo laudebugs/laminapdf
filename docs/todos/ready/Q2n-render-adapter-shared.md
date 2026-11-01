@@ -1,4 +1,4 @@
-# Q2n — Shared code for the render adapters in `@laminapdf/render`
+# Q2n — Shared code for the render adapters
 
 | Field | Value |
 | --- | --- |
@@ -9,14 +9,14 @@
 | Depends on | [Q2m](./Q2m-ts-test-utils.md) |
 | Blocks | None |
 | ADRs | None |
-| Branch | `refactor/q2n-render-adapters` |
+| Branch | `refactor/q2n-render-adapter-shared` |
 | PR title | `refactor(render): shared adapter helpers, one WasmSource type, memory() on RenderBackend` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-The hayro and PDFium adapters repeat the page-index check, the "bytes could not be read" handling, the input-size limit and the disposed flag; only PDFium merges pending ranges; five packages define their own WASM-source type, and PDFium hand-writes an instantiate that the glue already provides. Move the shared pieces into `@laminapdf/render` and give both adapters the same behaviour.
+The hayro and PDFium adapters repeat the page-index check, the "bytes could not be read" handling, the input-size limit and the disposed flag, and only PDFium merges pending ranges. Five packages define their own WASM-source type, and PDFium hand-writes an instantiate that the glue already provides. This todo moves the shared pieces into `@laminapdf/render` so both adapters behave the same.
 
 ## Context
 
@@ -26,7 +26,8 @@ The hayro and PDFium adapters repeat the page-index check, the "bytes could not 
 
 **In scope**
 
-- `checkPageIndex`, `readFailure`, `readRange` (with range merging), the input limit constant and a disposed guard in `@laminapdf/render`; one `WasmSource` type there, reused by both adapters and the viewer; `memory()` on `RenderBackend`; PDFium uses the glue's init where possible.
+- `checkPageIndex`, `readFailure`, `readRange` (merging pending ranges), the input-limit constant and a disposed guard in `@laminapdf/render`.
+- One `WasmSource` type there, used by both adapters and the viewer; `memory()` on `RenderBackend`; PDFium uses the glue's init where it can.
 
 **Out of scope** (and which todo covers it)
 
@@ -35,11 +36,14 @@ The hayro and PDFium adapters repeat the page-index check, the "bytes could not 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Move, adapt both adapters, run the contract suite in Node and browsers.
+- [ ] Add a contract case for merged pending ranges; watch hayro fail it.
+- [ ] Move each helper into `@laminapdf/render` and switch both adapters.
+- [ ] Add `WasmSource` and `memory()`; switch the viewer.
+- [ ] Run the contract suite in Node and the three browsers.
 
 ## Acceptance criteria
 
-- [ ] Both adapters pass the shared contract unchanged; both report merged pending ranges (new contract case).
+- [ ] Both adapters pass the shared contract, including merged ranges.
 
 ## Post-merge checks
 
@@ -47,7 +51,7 @@ None.
 
 ## Tests
 
-Contract suite with a merged-ranges case.
+The contract suite with the merged-ranges case.
 
 ## Docs to update
 
@@ -61,6 +65,7 @@ None.
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -6,17 +6,17 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2b](./Q2b-maintainability-checks-ts.md) |
+| Depends on | [Q2b](./Q2b-ts-lint-rules.md) |
 | Blocks | None |
 | ADRs | None |
-| Branch | `refactor/q2p-ts-complexity` |
+| Branch | `refactor/q2p-ts-complexity-splits` |
 | PR title | `refactor(ts): split the eight functions over the complexity limit` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-Eight functions are over Biome's cognitive-complexity limit of 15 (the PDFium `render` closure scores 39). Split each into named steps and remove them from [Q2b](./Q2b-maintainability-checks-ts.md)'s override list, so the limit holds everywhere.
+Eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39. This todo splits each into named steps and empties [Q2b](./Q2b-ts-lint-rules.md)'s override, so the limit holds everywhere.
 
 ## Context
 
@@ -26,7 +26,7 @@ Eight functions are over Biome's cognitive-complexity limit of 15 (the PDFium `r
 
 **In scope**
 
-- PDFium `render` → background fill, draw with widgets, draw with matrix; `execute` → run and reply; `openUrl` option splitting; `planTile` checks as functions; `http.ts` request and response handling; `PdfiumDocument.open`; hayro `fill`; `WorkerClient.call`.
+- PDFium `render` into background fill, drawing with widgets and drawing with the matrix; `execute` into run and reply; `openUrl`'s option splitting; `planTile`'s checks as functions; `http.ts` request and response handling; `PdfiumDocument.open`; hayro `fill`; `WorkerClient.call`.
 
 **Out of scope** (and which todo covers it)
 
@@ -35,11 +35,12 @@ Eight functions are over Biome's cognitive-complexity limit of 15 (the PDFium `r
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Split one function per commit with its tests green.
+- [ ] Split one function per commit, running its package's suite after each.
+- [ ] Remove each from the override as it lands; empty the override.
 
 ## Acceptance criteria
 
-- [ ] Biome's override list for complexity and function length is empty.
+- [ ] Biome's override for complexity and function length is empty.
 
 ## Post-merge checks
 
@@ -47,7 +48,7 @@ None.
 
 ## Tests
 
-Existing suites (Node and browsers).
+Existing suites in Node and the three browsers.
 
 ## Docs to update
 
@@ -61,6 +62,7 @@ None.
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

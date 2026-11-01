@@ -1,18 +1,18 @@
 # Writing docs people enjoy reading
 
-These rules apply to every page a reader of lamina's docs sees:
+Lamina's docs exist so that people can build things with it. These rules apply to every page a reader of the docs sees:
 
 - the docs site (`apps/docs/src/content/docs/**`);
 - the error-code pages (`docs/errors/*.md`, which the site renders);
 - package READMEs (TypeDoc renders `packages/sdk/README.md`).
 
-They build on the writing style in [design language §9](../design/paper/design-language.md#9-writing-style) and the `/writing` skill ([git workflow §7](git-workflow.md#7-review-and-merge-process)). The [quality plan](../plans/quality.md) explains why they exist.
+They build on the writing style in [design language §9](../design/paper/design-language.md#9-writing-style). Draft with the `/writing` skill and review with `/writing-review` ([git workflow §7](git-workflow.md#7-review-and-merge-process)); where a finding conflicts with a rule here, the rule here wins. The [quality plan](../plans/quality.md) records why these rules exist.
 
-**MUST**/**SHOULD** are rules. *Recommendation* marks advice.
+**MUST**/**SHOULD** are rules.
 
 ## Tell a story
 
-- **MUST:** a page takes its place in the sidebar's order, which is fixed in `apps/docs/astro.config.mjs` (no `autogenerate`). The order runs:
+- **MUST:** add every new page to the explicit sidebar in `apps/docs/astro.config.mjs` (no `autogenerate`). The sidebar runs in this order:
   1. start: what lamina is, install, your first PDF;
   2. your runtime;
   3. concepts;
@@ -21,31 +21,43 @@ They build on the writing style in [design language §9](../design/paper/design-
   6. recipes;
   7. troubleshooting;
   8. reference.
-- **MUST:** every guide and recipe opens with one paragraph of at most 50 words that says what you'll make and when you'd need it. The code comes next, then the details.
-- **SHOULD:** a page links to the page a reader needs next.
+- **MUST:** open every guide and recipe with one paragraph of at most 50 words that says what you'll make and when you'd need it. Show the code next, then the details.
+- **SHOULD:** end a page with a link to the page a reader needs next.
+
+## Make it a pleasure to read
+
+- **SHOULD:** build something a reader recognises: an invoice, a report, a form, not `foo` and `bar`.
+- **SHOULD:** show the result early: the PDF it makes (a screenshot or the reference PDF), the text it reads or the error it prevents.
+- **SHOULD:** talk to the reader as "you", in the present tense, the way a colleague explains something at their desk.
+- **SHOULD:** keep each code block runnable and short enough to read without scrolling. Longer code belongs in a recipe.
 
 ## Write in plain English
 
-- **MUST:** every page has a `title` and a `description` of at most 160 characters in its frontmatter.
-- **MUST:** sentences stay under 40 words, and aim for under 30. Paragraphs stay under 100 words.
-- **MUST:** reader text never mentions:
-  - ADR numbers or todo IDs;
-  - "Round", "fast lane", "golden" or repository paths;
-  - CI.
-
-  Contributors find those in `docs/`.
-- **MUST:** a spec term is explained where it first appears on a page, or linked to the glossary (`/reference/glossary/`). Move spec detail into a "Details" aside rather than deleting it.
-- **MUST:** use one term per thing. "Cloudflare Worker" and "Web Worker" are always written in full. A byte-exact reference output is a "reference PDF", never a "golden". The standard fonts are "the standard 14 fonts".
-- **MUST:** headings use sentence case.
-- **SHOULD NOT:** use "simply", "just", "easy", "obviously", "note that", "please", "etc.", "via", "utilize" or exclamation marks.
+- **MUST:** give every page a `title` and a `description` of at most 160 characters in its frontmatter.
+- **MUST:** keep every sentence to 40 words or fewer. **SHOULD:** keep sentences to 30 words or fewer. **MUST:** keep paragraphs to 100 words or fewer.
+- **MUST NOT:** mention ADR numbers, todo IDs, "Round", "fast lane", "golden", CI or repository paths in reader text. Contributors find those in `docs/`.
+- **MUST:** explain a spec term where it first appears on a page, link it to the glossary (`/reference/glossary/`), or list it under `prose.allow` in the page's frontmatter. Move spec detail into a "Details" aside rather than deleting it.
+- **MUST:** use one term per thing.
+  - Write "Cloudflare Worker" and "Web Worker" in full every time.
+  - Call a byte-exact reference output a "reference PDF", never a "golden".
+  - Call the standard fonts "the standard 14 fonts".
+- **MUST:** write headings in sentence case.
+- **MUST NOT:** use "simply", "just", "easy", "obviously", "note that", "please", "etc.", "via", "utilize" or exclamation marks.
 
 ## Show code
 
-- **MUST:** a sentence that says what the code does comes before every `<Snippet>`.
-- **MUST:** code on a page comes from a tested example file; [examples.md](examples.md) has the rules for those files.
+- **MUST:** put a sentence that says what the code does before every `<Snippet>`.
+- **MUST:** show code only from a tested example file; [examples.md](examples.md) has the rules for those files.
+
+## Reviewer checklist
+
+- Could a newcomer follow this page from the one before it to the one after it?
+- Does the first paragraph say what you'll make and why you'd want it?
+- Would a reader enjoy it: a real task, an early result, a friendly voice?
+- Is every term explained or linked where it first appears?
 
 ## How it's checked
 
-`cargo xtask check docs-prose` checks every rule above except "tell a story" and the link to the next page, which stay with the reviewer. It is part of `cargo xtask check docs`, so it runs on every PR, docs-only ones included. It warns until the rewrite todos land, and fails after [Q1l](../todos/ready/Q1l-docs-checks-strict.md).
+`cargo xtask check docs-prose` runs inside `cargo xtask check docs` on every PR, docs-only ones included. It is added by todo Q1b in the [quality plan](../plans/quality.md#6-todos). It checks the "Write in plain English" rules and the "open with one paragraph" and "Show code" rules. The sidebar order, the "pleasure to read" advice and the reviewer checklist stay with reviewers.
 
-Reviewers also run `/writing-review` on changed pages ([git workflow §7](git-workflow.md#7-review-and-merge-process)). Where a writing finding conflicts with a rule here, the rule here wins.
+The check is strict on every file a PR adds or changes, so new writing is checked as it is written. It only warns on untouched files until the rewrite todos have cleared them; after that it is strict everywhere. Run it while drafting: it needs no build and takes about a second.
