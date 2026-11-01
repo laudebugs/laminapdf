@@ -20,7 +20,7 @@ Rewrite every guide to the [docs writing guideline](../../guidelines/docs-writin
 
 ## Context
 
-- [Quality plan §2.1](../../plans/quality.md#21-docs-prose-and-navigation) (worst passages with rewrites), `apps/docs/src/content/docs/guides/*.mdx`, the guides Rex's [B8b](./B8b-conformance-profiles-and-verapdf.md) adds (Accessible PDFs, Archival PDFs) if merged by then.
+- [Quality plan §2.1](../../plans/quality.md#21-docs-prose-and-navigation) (worst passages with rewrites), `apps/docs/src/content/docs/guides/*.mdx`, the guides Rex's [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md) adds (Accessible PDFs, Archival PDFs) if merged by then.
 - `crates/lamina-syntax/src/crypt/mod.rs` (password order: owner first for R5/R6).
 
 ## Scope
