@@ -56,7 +56,7 @@ A key in a package's `exports` map, such as `node`, `browser`, `deno` or `worker
 
 ### COS
 
-PDF's object layer: the dictionaries, arrays, numbers, strings, names, streams and references a file is made of. The name comes from Adobe's Carousel Object System.
+PDF's object layer: the dictionaries, arrays, numbers, strings, names, streams and references a file is made of.
 
 ### Content stream
 
@@ -78,6 +78,18 @@ Short for [cross-reference table](#cross-reference-table).
 
 A compressed stream that holds many small objects together, to make the file smaller. Files from PDF 1.5 on can use them.
 
+### Page space
+
+lamina's coordinates: points from the top-left corner of the page as it's displayed, with y going down. See [pages and coordinates](/concepts/pages-and-coordinates/).
+
+### Crop box
+
+The part of a page a viewer shows; anything outside it is cut off. Page space starts at its top-left corner.
+
+### User unit
+
+A page entry that makes each point bigger than 1/72 of an inch, for very large pages. lamina applies it, so your numbers stay in points.
+
 ### User space
 
 PDF's own coordinates: points from the bottom-left corner of the page, with y going up, before any rotation. lamina's API uses page space instead; see [pages and coordinates](/concepts/pages-and-coordinates/).
@@ -90,11 +102,11 @@ The fourteen fonts every PDF reader supplies: Times, Helvetica and Courier, each
 
 ### Type 0
 
-A font type whose character codes can be more than one byte long, so a font can reach any of its glyphs. lamina embeds every other font as Type 0.
+A font type whose character codes can be more than one byte long, so a font can reach any of its glyphs. lamina embeds every font except the standard 14 as Type 0.
 
 ### CMap
 
-A table that maps a font's character codes to its glyphs, or, in a ToUnicode CMap, to Unicode text.
+A table that maps a font's character codes to character IDs (CIDs), which pick its glyphs, or, in a ToUnicode CMap, to Unicode text.
 
 ### ToUnicode
 

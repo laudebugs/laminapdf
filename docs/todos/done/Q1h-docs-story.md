@@ -45,7 +45,7 @@ This todo gives the site a path a newcomer can follow. It rewrites the overview 
 - [x] Write the two concept pages from the ADR facts, in plain words, with one small example each.
 - [x] Write the glossary; link the terms from the new pages.
 - [x] Move the concept asides out of the runtime pages.
-- [x] Replace `autogenerate` with the explicit sidebar; add redirects; build the site and click through the Start group. The existing guides sit in the plan's groups under labels that match their future names; Q1i and Q1m rename them. Recipes is the examples page until Q1j. The home page is a splash page (plan §8 question 2).
+- [x] Replace `autogenerate` with the explicit sidebar; add redirects; build the site and click through the Start group. The existing guides sit in the plan's groups under labels that match their future names; Q1i and Q1m rename them. Until Q1j writes the recipes, the sidebar keeps its Examples link in their place, under the name it shows. The home page is a splash page (plan §8 question 2).
 - [x] Run `docs-prose` on every changed page.
 
 ## Acceptance criteria

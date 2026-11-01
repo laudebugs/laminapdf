@@ -178,7 +178,7 @@ Concepts
   Pages and coordinates           points, top-left origin, y down, 0-based page index
   Errors and warnings
 Create PDFs
-  Text and fonts · Shapes, colour and images · Links, outlines and metadata
+  Text and fonts · Shapes, colour and images · Links, outlines and metadata · Accessible PDFs · Archival PDFs
 Read and edit PDFs
   Edit a PDF                (transactions, undo)
   Save a PDF                (modes, signatures)

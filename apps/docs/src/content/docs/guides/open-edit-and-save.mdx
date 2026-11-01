@@ -8,7 +8,7 @@ sidebar:
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-Edits never change the bytes you opened, and a save either appends a revision or writes the whole file again; [how lamina thinks about a PDF](/concepts/how-lamina-thinks/) explains both.
+Edits never change the bytes you opened. A save either appends a revision (an [incremental save](/reference/glossary/#incremental-save)) or writes the whole file again (a [full rewrite](/reference/glossary/#full-rewrite)). [How lamina thinks about a PDF](/concepts/how-lamina-thinks/) explains why.
 
 ## Edits are ops in transactions
 
