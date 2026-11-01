@@ -20,7 +20,7 @@ Its modules are TypeScript source. Vitest compiles them for the tests, and Node 
 - **`@laminapdf/test-utils/firefox`:** `firefoxProvider(packageDir)`, for every package's browser config. Playwright's Firefox looks for the user's Firefox data folder and fails where the system refuses access, as it does on the build machines. The provider gives it a folder of its own under the package's `node_modules`.
 - **`@laminapdf/test-utils/root`:** `fromRoot(path)`, a file's URL from its path from the repository root (`fixtures/corpus/hello.pdf`), so a test needn't count `../` from its own folder.
 
-## Where it doesn't reach
+## What keeps its own paths
 
 - **Vite globs:** `import.meta.glob` needs a literal path, so browser tests still list their fixtures relative to their own folder.
 - **Deno, Bun and workerd:** these runners load the SDK's tests their own way, and they keep their own path to the root. So do the SDK's Cloudflare Worker example, which uses only the public API, and its benchmark script, which runs in plain Node.

@@ -12,7 +12,7 @@
 | Branch | `refactor/q2m-ts-test-utils` |
 | PR title | `refactor(test): @laminapdf/test-utils for shared TS test helpers` |
 | Size | M |
-| PR | — |
+| PR | [#162](https://github.com/laudebugs/lamina/pull/162) |
 
 ## Goal
 
@@ -48,7 +48,7 @@ The render adapters import `../render/test/{contract,browser-harness,browser-con
 
 `@laminapdf/test-utils` (`packages/test-utils`) holds the shared test helpers, and no package imports another's files by relative path: dependency-cruiser's known-violations list is now empty. Five details add to the plan.
 
-- **TypeScript source, no build:** the package exports its `src/*.ts` files directly (`render-contract`, `browser-harness`, `browser-config`, `firefox`, `root`). The TypeScript guideline names it as the one exception to its packaging rule. Vitest compiles them for the tests, and Node strips their types when a Vitest config imports them, so nothing has to be built before a test run. Node doesn't map a relative `.js` import to its `.ts` file, so the package's modules import each other through the package name (`@laminapdf/test-utils/firefox`), whose `exports` point at the `.ts` files. A Firefox run caught that. It has no `tsconfig.build.json`, which keeps it out of the TypeDoc check, and its `biome.json` turns off the function-length rule for `src/`: everything there is test code, like the `test/` folders the root config already exempts.
+- **TypeScript source, no build:** the package exports its `src/*.ts` files directly (`render-contract`, `browser-harness`, `browser-config`, `firefox`, `root`). The TypeScript guideline names it as the one exception to its packaging rule. Vitest compiles them for the tests, and Node strips their types when a Vitest config imports them, so nothing has to be built before a test run. Node doesn't map a relative `.js` import to its `.ts` file, so the package's modules import each other through the package name (`@laminapdf/test-utils/firefox`), whose `exports` point at the `.ts` files. A Firefox run caught the relative import. It has no `tsconfig.build.json`, which keeps it out of the TypeDoc check, and its `biome.json` turns off the function-length rule for `src/`: everything there is test code, like the `test/` folders the root config already exempts.
 - **The Firefox workaround** is `firefoxProvider(packageDir)` in its own `firefox` module. The SDK's and the viewer's browser configs use it, and so does `renderBrowserConfig` for both adapters, so the workaround has one copy instead of three.
 - **The repository root** is `fromRoot(path)` in `root`. Six test files that run under Vitest used to count `../` from their own folder and now read files by their path from the root: both adapters' `node.test.ts`, the SDK's `helpers.ts`, `source.test.ts` and `vite.test.ts`, and the WASM smoke test. Of the 19 files that counted `../`, the other 13 keep their paths:
   - Vite's `import.meta.glob` needs literal paths, so the browser tests keep their glob patterns;
@@ -76,7 +76,7 @@ None.
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
