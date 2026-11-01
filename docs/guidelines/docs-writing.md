@@ -34,7 +34,9 @@ They build on the writing style in [design language §9](../design/paper/design-
 ## Write in plain English
 
 - **MUST:** give every page a `title` and a `description` of at most 160 characters in its frontmatter.
-- **MUST:** keep every sentence to 40 words or fewer. **SHOULD:** keep sentences to 30 words or fewer. **MUST:** keep paragraphs to 100 words or fewer.
+- **MUST:** keep every sentence to 40 words or fewer.
+- **SHOULD:** keep sentences to 30 words or fewer.
+- **MUST:** keep paragraphs to 100 words or fewer.
 - **MUST NOT:** mention ADR numbers, todo IDs, "Round", "fast lane", "golden", CI or repository paths in reader text. Contributors find those in `docs/`.
 - **MUST:** explain a spec term where it first appears on a page, link it to the glossary (`/reference/glossary/`), or list it under `prose.allow` in the page's frontmatter. Move spec detail into a "Details" aside rather than deleting it.
 - **MUST:** use one term per thing.
@@ -58,6 +60,6 @@ They build on the writing style in [design language §9](../design/paper/design-
 
 ## How it's checked
 
-`cargo xtask check docs-prose` runs inside `cargo xtask check docs` on every PR, docs-only ones included. It is added by todo Q1b in the [quality plan](../plans/quality.md#6-todos). It checks the "Write in plain English" rules and the "open with one paragraph" and "Show code" rules. The sidebar order, the "pleasure to read" advice and the reviewer checklist stay with reviewers.
+`cargo xtask check docs-prose` runs inside `cargo xtask check docs` on every PR, docs-only ones included. Todo Q1b in the [quality plan](../plans/quality.md#6-todos) adds it. It checks the "Write in plain English" rules and the "open with one paragraph" and "Show code" rules. The sidebar order, the "pleasure to read" advice and the reviewer checklist stay with reviewers.
 
 The check is strict on every file a PR adds or changes, so new writing is checked as it is written. It only warns on untouched files until the rewrite todos have cleared them; after that it is strict everywhere. Run it while drafting: it needs no build and takes about a second.

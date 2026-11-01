@@ -36,7 +36,7 @@ The façade re-exports every wrapped crate's error type (`CosError`, `OpsError`,
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Draft the amendment with `/writing`; list every caller that matches on an inner error type.
-- [ ] Ask the owner if the choice changes the public API in a way users would notice.
+- [ ] If the choice changes the public API in a way users would notice, ask the owner before implementing it.
 - [ ] Implement the choice; run every suite.
 - [ ] Run `/writing-review` on the amendment after opening the PR.
 

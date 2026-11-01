@@ -16,7 +16,7 @@
 
 ## 1. Goal
 
-The docs site exists and its examples are tested. But it reads like a repository tour, not a guide. Three of the six runtime pages show CI test runners where readers expect an app, every example carries scaffolding from the golden tests, and the sidebar follows the folder layout.
+The docs site exists and its examples are tested. But it reads like a repository tour, not a guide. Three of the six runtime pages show CI test runners where readers expect an app, every example carries scaffolding from the reference-PDF tests, and the sidebar follows the folder layout.
 
 The code is held to strict lints, but nothing yet guards file size, duplication across crates and packages, or the readability of what we show readers.
 
@@ -144,7 +144,7 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 
 - `lamina-cos/src/reader/mod.rs` is 1,533 lines (1,080 of them code).
 - `lamina-content`'s `execute` is 318 lines behind an `#[expect]`.
-- `lamina-text/src/extract/font.rs` (1,321 lines), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872) are the other files over the 800-line budget, counted in total lines; Q2a's baseline records their non-test counts.
+- Four other files are over the 800-line budget in total lines: `lamina-text/src/extract/font.rs` (1,321), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). Q2a's baseline records their non-test counts.
 - In TypeScript, eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39.
 
 **Façade names that collide.** Readers of the docs meet:
@@ -196,7 +196,7 @@ Every guide and recipe opens with what you'll make and when you'd need it, then 
 
 ## 4. Standards
 
-Three new guidelines hold the rules; this plan doesn't restate them, so there is one copy to keep current. CLAUDE.md names all three, so every session applies them. So does every `/code-review`, whose standards axis reads the guidelines.
+Three new guidelines hold the rules; this plan doesn't restate them, so there is one copy to keep current. CLAUDE.md names all three, so every session applies them, and every `/code-review` applies them too, because its standards axis reads the guidelines.
 
 | Guideline | What it asks | How it's checked |
 | --- | --- | --- |
@@ -204,7 +204,7 @@ Three new guidelines hold the rules; this plan doesn't restate them, so there is
 | [Code examples](../guidelines/examples.md) | Examples from `examples/` only; public API only; no test scaffolding; `using`; named numbers; small functions; matching TS and Rust pairs | `cargo xtask check docs-snippets` in `check docs`, a Biome override in `check ts`, `cargo xtask clippy-examples` in `check rust` (Q1c) |
 | [Maintainable code](../guidelines/maintainability.md) | One home per concept; size budgets whose baseline only shrinks; one public path per item; no test code in shipped code; one error serialiser per language | `cargo xtask check maintainability` (Q2a, extended by Q2c, Q2e, Q2i, Q2t); Biome and TypeDoc rules (Q2b); dependency-cruiser, jscpd and knip (Q2u) |
 
-**The checks bind while we write.** From the day each check lands, it is strict on every file a PR adds or changes, and it only warns on files nobody has touched yet. So a new page or example is checked as it is written, and the rewrite todos clear the rest; Q1l and the baselines' shrinking make everything strict. The docs checks need no build and run in about a second, so authors run them while drafting.
+**The checks bind while we write.** From the day each check lands, it is strict on every file a PR adds or changes, and it only warns on files nobody has touched yet. So a new page or example is checked as it is written, and the rewrite todos clear the rest; Q1l then makes the docs checks strict everywhere, and each maintainability check becomes strict as its baseline reaches zero. The docs checks need no build and run in about a second, so authors run them while drafting.
 
 **No new dependency for the docs checks.** Vale (MIT) would need a Go binary and an extra MDX tool in CI for a subset of the rules, so the docs checks are written in xtask. The TypeScript maintainability tools (dependency-cruiser MIT, jscpd MIT, knip ISC) pass the licence policy (ADR 0019) before they land.
 
@@ -230,9 +230,9 @@ The product app keeps Newsreader for titles unless the owner decides otherwise (
 
 ## 6. Todos
 
-Each todo is one PR on the [todo board](../todos/README.md). Q1 and Q2 run in parallel, so the three sessions can split them. Inside each group, `Depends on` orders the work: the checks land first, the rewrites clear what they report, and Q1l makes the docs checks strict everywhere.
+Each todo is one PR on the [todo board](../todos/README.md). Q1 and Q2 run in parallel, so several sessions can work on them at once. Inside each group, `Depends on` orders the work: the checks land first, the rewrites clear what they report, and Q1l makes the docs checks strict everywhere.
 
-Start Q2 with the bug fixes (Q2e, Q2f, Q2h, Q2v, then Q2k after Q2j), because they change behaviour. The rest are refactors that the reference PDFs and existing tests guard. The bug fixes, the new TypeScript tools (Q2u) and the façade and API changes (Q1d, Q2s, Q2y) go beyond what the owner asked for; the review found them, and the plan includes them because the docs and examples depend on them. The API changes carry a changeset, and Q2y amends ADR 0028.
+Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o after Q2u), because they change behaviour. The rest are refactors that the reference PDFs and existing tests guard. Three groups go beyond what the owner asked for: the bug fixes, the new TypeScript tools (Q2u) and the façade and API changes (Q1d, Q2s, Q2y). The review found them, and the docs and examples depend on them. The API changes carry a changeset, and Q2y amends ADR 0028.
 
 ### Q1: the docs site
 
@@ -303,7 +303,7 @@ Start Q2 with the bug fixes (Q2e, Q2f, Q2h, Q2v, then Q2k after Q2j), because th
 - [ ] Q1h, Q1i, Q1m, Q1j, Q1k: the story, plain-English guides, recipes and troubleshooting, internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
 - [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript
-- [ ] Q2e, Q2f, Q2h, Q2v, Q2k: the behaviour bugs the review found
-- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n, Q2o: one home per concept
+- [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found
+- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history

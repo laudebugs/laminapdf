@@ -1,6 +1,6 @@
 # Code that stays easy to change
 
-These rules keep lamina's code easy to read, change and reuse as it grows. They apply to `crates/*`, `packages/*`, `apps/*` and `tools/*`, and they extend [code-organization.md](code-organization.md), [rust.md](rust.md) and [typescript.md](typescript.md). The [quality plan](../plans/quality.md) records the review behind them and the todos that bring today's code in line; a rule whose tooling a todo still has to build names that todo.
+These rules keep lamina's code easy to read, change and reuse as it grows. They apply to `crates/*`, `packages/*`, `apps/*` and `tools/*`, and they extend [code-organization.md](code-organization.md), [rust.md](rust.md) and [typescript.md](typescript.md). The [quality plan](../plans/quality.md) records the review behind them and the todos that bring today's code in line; where a rule's tooling doesn't exist yet, the rule names the todo that builds it.
 
 **MUST**/**SHOULD** are rules.
 
@@ -18,8 +18,9 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 ## Size
 
 - **MUST:** a Rust function is at most 100 lines; `clippy::too_many_lines` already enforces this. A Rust module is at most 800 lines of non-test code. Comments, blank lines and `#[cfg(test)]` blocks don't count.
+- **MUST:** a Rust function stays within clippy's `cognitive_complexity` threshold (the default, 25).
 - **MUST:** a TypeScript function has a cognitive complexity of at most 15 and is at most 60 lines.
-- **MUST:** the baseline of code over a budget only shrinks. New code may not join it. Nor may the count of `#[expect]` on size lints grow. Generated files (`generated/`) are exempt.
+- **MUST:** the baseline of code over a budget only shrinks. New code must not join it, and the count of `#[expect]` on size lints must not grow. Generated files (`generated/`) are exempt.
 
 ## Public surface and tests
 
@@ -43,7 +44,7 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 
 ## How it's checked
 
-- **Rust:** `cargo xtask check maintainability`, part of `cargo xtask check`, is added by todo Q2a. Q2a starts it with the module budget and its baseline, the `#[expect]` count, duplicate public type names (an allow-list with reasons) and colliding façade re-exports. Later todos add their own bans to it:
+- **Rust:** todo Q2a adds `cargo xtask check maintainability` to `cargo xtask check`, starting with the module budget and its baseline, the `#[expect]` count, duplicate public type names (an allow-list with reasons) and colliding façade re-exports. Later todos add their own bans to it:
   - Q2c: cross-crate `#[path]` and shared helpers outside the fixtures crate;
   - Q2e: error-policy matches outside `lamina_cos::error`;
   - Q2i: lexers outside `lamina-syntax`;
