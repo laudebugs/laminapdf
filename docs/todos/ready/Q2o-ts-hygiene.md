@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2u](../ongoing/Q2u-ts-dependency-tools.md) |
+| Depends on | [Q2u](../done/Q2u-ts-dependency-tools.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2o-ts-hygiene` |

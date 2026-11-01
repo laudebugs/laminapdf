@@ -28,7 +28,13 @@ catalog:
   ajv: 8.20.0
   bun: 1.4.3
   deno: 2.9.6
+  # Maintainability checks in `cargo xtask check ts` (Q2u): import cycles and cross-package
+  # imports, duplicated blocks, unused exports and files. Dev-only. dependency-cruiser and jscpd:
+  # MIT; knip: ISC. Each pinned to a release at least two weeks old when added.
+  dependency-cruiser: 18.6.0
   esbuild: 0.28.2
+  jscpd: 5.4.1
+  knip: 6.41.0
   playwright: 1.64.1
   publint: 0.3.25
   typescript: 7.0.2
@@ -46,3 +52,10 @@ catalogs:
 
 # Fail installs on the wrong Node version instead of warning.
 engineStrict: true
+
+# dependency-cruiser parses TypeScript with the compiler API, which TypeScript 7 (the native
+# compiler) no longer has: it gets TypeScript 6, the same pin the docs site's TypeDoc uses.
+packageExtensions:
+  dependency-cruiser@18.6.0:
+    dependencies:
+      typescript: 6.0.3

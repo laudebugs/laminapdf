@@ -51,5 +51,8 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
   - Q2t: todo IDs in `src/`.
 
   Q2a also switches on `clippy::cognitive_complexity` and `unreachable_pub` for the workspace.
-- **TypeScript:** todo Q2b adds Biome's complexity, function-length and `useThrowOnlyError` rules and TypeDoc's check for undocumented exports to `cargo xtask check ts`. Todo Q2u adds dependency-cruiser (cycles, cross-package imports), jscpd (duplicated blocks) and knip (unused exports and files).
+- **TypeScript:** todo Q2b adds Biome's complexity, function-length and `useThrowOnlyError` rules and TypeDoc's check for undocumented exports to `cargo xtask check ts`. Todo Q2u adds three more, run by `cargo xtask check ts` through the root scripts `check:deps`, `check:duplicates` and `check:unused`:
+  - dependency-cruiser (`.dependency-cruiser.json`) fails on an import cycle or a relative import into another package. Today's eight render-adapter test imports, which Q2m moves into a shared package, are in `.dependency-cruiser-known-violations.json`, and that list only shrinks.
+  - jscpd (`.jscpd.json`) fails on any block of 10 lines or more repeated in `packages/*/src`. Tests aren't checked yet. The SDK's per-condition entries (`src/entry/*.ts`) are excluded: each binds the same three loader functions to its own runtime's loader, with that runtime in its doc comments.
+  - knip (`knip.config.ts`) fails on an unused file, export or dependency. It reads each package's entries from its `exports`, plus the worker files, tests, configs and examples no `exports` can name.
 - **Review:** the "one home per concept" rules are a reviewer's judgement; the `/code-review` standards axis reads this file.

@@ -59,6 +59,7 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 
 - **MUST:** [Biome](https://biomejs.dev/) does linting **and** formatting. There's one root `biome.json` with the `recommended` preset and the formatter enabled. Nested configs use `"extends": "//"` and say why they override anything ([Biome: big projects](https://biomejs.dev/guides/big-projects/)). Don't add ESLint or Prettier alongside it.
 - **MUST:** `biome ci` passes in CI. Turn off a rule inline with `// biome-ignore lint/<group>/<rule>: <reason>`. The reason is mandatory.
+- **MUST:** `cargo xtask check ts` passes dependency-cruiser, jscpd and knip, which find import cycles, relative imports into another package, duplicated blocks and unused code ([maintainability guideline](maintainability.md#how-its-checked)). Fix a finding where it lives. A tool's baseline or ignore list takes an entry only for what another todo will fix, or for a repetition the guideline explains.
 - **MUST:** tests use [Vitest](https://vitest.dev/). Unit tests sit next to the source (`foo.test.ts`). Integration, WASM-interop and corpus tests live in `test/`. Shared fixtures come from root `fixtures/`.
 - **MUST:** `describe` names the unit and `it` states the behavior (`describe("open")`, `it("repairs a file whose xref offset is wrong")`). One behavior per test.
 - **SHOULD:** run shared packages' tests in a real browser too (Vitest browser mode with Playwright) once they're product code. The spike only ran them in Node.

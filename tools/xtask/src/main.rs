@@ -333,10 +333,23 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     Ok(())
 }
 
+/// The maintainability guideline's structure checks for TypeScript (Q2u): no import cycles and no
+/// relative import into another package (dependency-cruiser, with today's known violations in
+/// `.dependency-cruiser-known-violations.json`), no duplicated blocks in `packages/*/src` (jscpd),
+/// and no unused files, exports or dependencies (knip, entries from each package's `exports`).
+fn ts_structure(ws: &Workspace) -> Result<()> {
+    step("TypeScript structure: import cycles, duplicates, unused code");
+    for script in ["check:deps", "check:duplicates", "check:unused"] {
+        ws.pnpm(&["run", script])?;
+    }
+    Ok(())
+}
+
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
+    ts_structure(ws)?;
     docs_site(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");

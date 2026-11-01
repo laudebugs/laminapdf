@@ -1,0 +1,17 @@
+{
+  "threshold": 0,
+  "minLines": 10,
+  "minTokens": 50,
+  "format": ["typescript", "javascript"],
+  "path": [
+    "packages/render-hayro/src",
+    "packages/render-pdfium/src",
+    "packages/render/src",
+    "packages/sdk/src",
+    "packages/viewer/src"
+  ],
+  "ignore": ["**/node_modules/**", "**/dist/**", "**/src/generated/**", "**/*.test.ts", "**/sdk/src/entry/*.ts"],
+  "reporters": ["console"],
+  "absolute": false,
+  "gitignore": true
+}
