@@ -75,3 +75,6 @@ __diff_output__/
 
 # Vitest browser mode attachments and failure screenshots
 .vitest/
+
+# Packed packages for a project outside the checkout (docs: Your first PDF).
+/packs/

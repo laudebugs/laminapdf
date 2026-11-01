@@ -38,7 +38,7 @@ The owner asked (2026-10-31) for one sans-serif font across the docs site. Headi
 **Out of scope** (and which todo covers it)
 
 - The app's fonts ([U6b](../ready/U6b-self-hosted-fonts.md)).
-- Copy changes ([Q1h](../ongoing/Q1h-docs-story.md) and later).
+- Copy changes ([Q1h](../done/Q1h-docs-story.md) and later).
 
 ## Tasks
 

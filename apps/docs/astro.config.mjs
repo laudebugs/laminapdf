@@ -45,6 +45,8 @@ export default defineConfig({
   site: "https://docs.laminapdf.com",
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
+  // Moved pages keep their old URLs (static redirects; Workers static assets ignore _redirects).
+  redirects: { "/guides/errors-and-warnings/": "/concepts/errors-and-warnings/" },
   integrations: [
     starlight({
       title: "lamina",
@@ -67,23 +69,66 @@ export default defineConfig({
         }),
         ...(TYPEDOC ? [typeDoc] : []),
       ],
+      // The docs as a story (quality plan §3): the order is a decision, so every page is listed.
+      // Q1i, Q1m and Q1j rename the guides and add the recipes and troubleshooting.
       sidebar: [
         {
           label: "Start here",
           items: [
-            { label: "Overview", link: "/" },
+            { label: "What is lamina", link: "/" },
             { label: "Install", slug: "install" },
+            { label: "Your first PDF", slug: "start/first-pdf" },
           ],
         },
-        { label: "Quick start", items: [{ autogenerate: { directory: "quick-start" } }] },
-        { label: "Guides", items: [{ autogenerate: { directory: "guides" } }] },
+        {
+          label: "Your runtime",
+          items: [
+            { label: "Browser and bundlers", slug: "quick-start/browser" },
+            { label: "Node", slug: "quick-start/node" },
+            { label: "Deno", slug: "quick-start/deno" },
+            { label: "Bun", slug: "quick-start/bun" },
+            { label: "Cloudflare Workers", slug: "quick-start/workers" },
+            { label: "Rust", slug: "quick-start/rust" },
+          ],
+        },
+        {
+          label: "Concepts",
+          items: [
+            { label: "How lamina thinks about a PDF", slug: "concepts/how-lamina-thinks" },
+            { label: "Pages and coordinates", slug: "concepts/pages-and-coordinates" },
+            { label: "Errors and warnings", slug: "concepts/errors-and-warnings" },
+          ],
+        },
+        {
+          label: "Create PDFs",
+          items: [
+            { label: "Text and fonts", slug: "guides/fonts-and-text" },
+            { label: "Shapes, colour and images", slug: "guides/images-and-vectors" },
+            { label: "Links, outlines and metadata", slug: "guides/links-outlines-and-metadata" },
+            { label: "Accessible PDFs", slug: "guides/accessible-pdfs" },
+            { label: "Archival PDFs", slug: "guides/archival-pdfs" },
+          ],
+        },
+        {
+          label: "Read and edit PDFs",
+          items: [
+            { label: "Open, edit and save", slug: "guides/open-edit-and-save" },
+            { label: "Open password-protected files", slug: "guides/encrypted-files" },
+            { label: "Open files you don't trust", slug: "guides/limits" },
+          ],
+        },
+        {
+          label: "Production",
+          items: [{ label: "Keep the page responsive", slug: "guides/off-the-main-thread" }],
+        },
         { label: "Examples", link: "/examples/" },
         {
           label: "Reference",
           items: [
+            ...(TYPEDOC ? [typeDocSidebarGroup] : []),
             { label: "Rust API (rustdoc)", slug: "reference/rust" },
             { label: "Error and warning codes", slug: "reference/codes" },
-            ...(TYPEDOC ? [typeDocSidebarGroup] : []),
+            { label: "Glossary", slug: "reference/glossary" },
           ],
         },
       ],
