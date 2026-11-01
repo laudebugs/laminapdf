@@ -1,7 +1,7 @@
 /*
  * The docs site in lamina's Paper design language (docs/design/paper/design-language.md):
- * warm paper grounds, ink text, hairline rules, one deep teal accent, and Source Sans 3 for every
- * piece of text, titles included (quality plan §5: the docs site uses one sans-serif font). Starlight is themed through its CSS custom properties
+ * warm paper grounds, ink text, hairline rules, one deep teal accent, and Source Sans 3 for all
+ * text, titles included (quality plan §5). Starlight is themed through its CSS custom properties
  * (`--sl-*`); the `--paper-*` names are the design language's token names (§2) and their
  * values are copied from it by hand. Keep them in step with the design language until U6a's
  * `@laminapdf/tokens` and U6b's `@laminapdf/fonts` exist; then this file imports those packages and
@@ -194,8 +194,8 @@
   --sl-color-green-high: var(--paper-positive);
 }
 
-/* Titles in Source Sans 3, like everything else (quality plan §5): weight, size and a slight
-   negative tracking carry the hierarchy that a second family used to. */
+/* Titles use Source Sans 3 like all other text (quality plan §5); weight, size and slight
+   negative tracking set them apart. h6 is smaller and in `text-2`, so it never reads as bold body text (TypeDoc uses it for API names, so no case change). */
 .sl-markdown-content :is(h1, h2, h3, h4, h5, h6),
 h1#_top,
 .site-title,
@@ -208,14 +208,18 @@ h1#_top,
   letter-spacing: -0.02em;
 }
 .sl-markdown-content :is(h2, h3) {
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 .sl-markdown-content :is(h4, h5, h6) {
   font-weight: 600;
 }
+.sl-markdown-content h6 {
+  font-size: var(--sl-text-sm);
+  color: var(--paper-text-2);
+}
 .site-title {
-  font-size: 1.375rem;
+  font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--paper-text);

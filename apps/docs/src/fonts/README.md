@@ -1,6 +1,6 @@
 # Fonts of the docs site
 
-Source Sans 3, the one family the docs site uses for all its text, self-hosted ([quality plan §5](../../../../docs/plans/quality.md#5-the-font): the site dropped the Paper design language's Newsreader titles for one sans-serif font). The site's CSP allows fonts from `'self'` only, and the product makes no third-party requests (UI/UX plan principle 7). `src/styles/paper.css` loads them, and Astro bundles them into `/_astro/` with hashed names.
+This folder self-hosts Source Sans 3, the one family the docs site uses for all its text. The site dropped the Paper design language's Newsreader titles for one sans-serif font ([quality plan §5](../../../../docs/plans/quality.md#5-the-font)). The site's CSP allows fonts from `'self'` only, and the product makes no third-party requests (UI/UX plan principle 7). `src/styles/paper.css` loads the files, and Astro bundles them into `/_astro/` with hashed names.
 
 | File | Family | Axes | Range | From | SHA-256 |
 | --- | --- | --- | --- | --- | --- |
