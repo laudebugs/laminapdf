@@ -1,7 +1,8 @@
-# Release lane (ADR 0018 §2, ADR 0017; todo B7b): on a `v*` tag, everything the PR lanes and the
-# nightly lane run, on the release commit, plus the packaging checks and clean installs. It
-# publishes NOTHING: no npm publish, no cargo publish, no GitHub release, no `changeset publish`.
-# Publishing (OIDC trusted publishing, provenance, attestations) is todo P1.
+# Release lane (ADR 0018 §2, ADR 0017; todos B7b, P1): on a `v*` tag, everything the PR lanes and
+# the nightly lane run, on the release commit, plus the packaging checks and clean installs; then,
+# only when every one of them passed, the publish jobs (ADR 0017 §7). Only a tag push publishes:
+# a `workflow_dispatch` run, even on a tag, does the same with `--dry-run`, so it uploads and
+# stages nothing and creates no release.
 #
 #   guard           refuses to go on unless the latest completed scheduled nightly.yml run on main
 #                   succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
@@ -16,7 +17,15 @@
 #                   (path and git dependencies, the git one pinned to the tag) in clean projects
 #                   outside the checkout: Node 22, 24 and 26, Deno, Bun, Chromium (a Vite app),
 #                   workerd (`wrangler dev --local`) and a Rust binary
-#   release         passes when every job above passed (the result to look at)
+#   release         passes when every job above passed
+#   publish-crates  `cargo xtask publish crates`: every `publish = true` crate, with a crates.io token
+#                   from trusted publishing (rust-lang/crates-io-auth-action; no stored token)
+#   publish-npm     `cargo xtask publish npm-pack`, then `npm-stage`: the fixed group packed
+#                   without the token, then staged on npm with the NPM_TOKEN secret (stage-only;
+#                   the owner approves each version on npmjs.com)
+#   github-release  CycloneDX SBOMs (`cargo xtask sbom`) and, for a tag, the GitHub release with them
+# The repository is private, so there is no npm provenance and no artifact attestation yet
+# (ADR 0017 §7).
 #
 # Besides the tag trigger it runs on `workflow_dispatch`, so the lane can be tried without a tag:
 #   gh workflow run release.yml --ref <branch-or-tag> [-f ref=<tag-or-sha>]
@@ -427,10 +436,10 @@ jobs:
           # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
           cargo xtask verify-install $RUNTIMES --git-ref "$GIT_REF" --git-url "file://$GITHUB_WORKSPACE"
 
-  # The lane's result: every job passed (check-linux may be skipped while that runner is off).
-  # There is deliberately no publish job (todo P1 adds it).
+  # The checks' result: every job passed (check-linux may be skipped while that runner is off).
+  # The publish jobs below need it.
   release:
-    name: Release checks passed (nothing published)
+    name: Release checks passed
     if: always()
     needs:
       [
@@ -463,4 +472,126 @@ jobs:
             echo "::error::release checks failed: $failed"
             exit 1
           fi
-          echo "Every release check passed on $REF. Nothing was published (todo P1)."
+          echo "Every release check passed on $REF."
+
+  # Publishing (ADR 0017 §7, todo P1): only after every check passed; for real only on a tag push
+  # (`github.event_name == 'push' && github.ref_type == 'tag'`; a dispatch on a tag is a dry run).
+  # A re-run after a partial publish skips the crates and packages already at the version.
+  # crates.io trusted publishing accepts self-hosted runners and private repositories, so the
+  # workflow's OIDC token buys a short-lived crates.io token and no crates.io secret exists.
+  publish-crates:
+    name: Publish the crates${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
+    needs: [guard, release]
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # For rust-lang/crates-io-auth-action's token exchange (crates.io trusted publishing).
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: release-publish-crates
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - name: Get a crates.io token (trusted publishing)
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        id: crates-io
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+      - name: cargo xtask publish crates
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
+          DRY_RUN: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') && '--dry-run' || '' }}
+        run: |
+          # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
+          cargo xtask publish crates $DRY_RUN
+
+  # npm's trusted publishing rejects self-hosted runners, so npm gets a granular token limited to
+  # @laminapdf that can stage but not publish: each version waits for the owner's 2FA approval
+  # on npmjs.com (npm staged publishing).
+  publish-npm:
+    name: Stage the npm packages${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
+    needs: [guard, fast, release]
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-lamina-pdf-dist
+          path: packages/
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: release-publish-npm
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - uses: ./.github/actions/node-pnpm
+      - run: pnpm install --frozen-lockfile
+      # Built and packed without the token, so no build script or dependency can read it.
+      - run: cargo xtask publish npm-pack
+      - name: cargo xtask publish npm-stage
+        env:
+          NPM_TOKEN: ${{ github.event_name == 'push' && github.ref_type == 'tag' && secrets.NPM_TOKEN || '' }}
+          DRY_RUN: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') && '--dry-run' || '' }}
+        run: |
+          # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
+          cargo xtask publish npm-stage $DRY_RUN
+
+  # SBOMs for every published crate and package; for a tag, the GitHub release that carries them
+  # with the version's changelog. A dry run uploads the SBOMs as an artifact instead.
+  github-release:
+    name: SBOMs and the GitHub release${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
+    needs: [guard, publish-crates, publish-npm]
+    if: ${{ !cancelled() && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    permissions:
+      # gh release create.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: release-sbom
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # Same version as tools/xtask/src/doctor.rs.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-cyclonedx@0.5.9
+      - uses: ./.github/actions/node-pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cargo xtask sbom target/sbom
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-sbom
+          path: target/sbom/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Create the GitHub release
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cargo xtask release-notes "$TAG" target/release-notes.md
+          prerelease=()
+          if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$TAG" --title "$TAG" --notes-file target/release-notes.md --verify-tag \
+            "${prerelease[@]}" target/sbom/*.json

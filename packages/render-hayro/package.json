@@ -1,9 +1,20 @@
 {
   "name": "@laminapdf/render-hayro",
   "version": "0.2.0-alpha.0",
-  "private": true,
   "description": "ADR 0004's second web renderer and CI oracle: laminapdf-render's hayro adapter as its own WebAssembly module (lamina_pdf_render_hayro in @laminapdf/wasm) behind @laminapdf/render's RenderBackend interface.",
   "license": "MIT OR Apache-2.0",
+  "homepage": "https://laminapdf.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/laminapdf.git",
+    "directory": "packages/render-hayro"
+  },
+  "keywords": [
+    "pdf",
+    "render",
+    "hayro",
+    "wasm"
+  ],
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -36,5 +47,8 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

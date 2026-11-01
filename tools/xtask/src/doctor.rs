@@ -16,6 +16,8 @@ use crate::workspace::Workspace;
 const CARGO_DENY_VERSION: &str = "0.20.2";
 /// cargo-nextest release (`cargo xtask test`; plain `cargo test` is the fallback).
 const CARGO_NEXTEST_VERSION: &str = "0.9.150";
+/// cargo-cyclonedx release (`cargo xtask sbom`, the release lane; Apache-2.0).
+const CARGO_CYCLONEDX_VERSION: &str = "0.5.9";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// qpdf release for the nightly differential (`cargo xtask differential --live`; the nightly
@@ -161,6 +163,16 @@ pub(crate) fn cargo_nextest() -> Tool {
     }
 }
 
+pub(crate) fn cargo_cyclonedx() -> Tool {
+    Tool {
+        name: "cargo-cyclonedx",
+        version_command: &["cargo", "cyclonedx", "--version"],
+        pin: Pin::Exact(CARGO_CYCLONEDX_VERSION.to_owned()),
+        fix: format!("cargo install cargo-cyclonedx --locked --version {CARGO_CYCLONEDX_VERSION}"),
+        optional_for: Some("cargo xtask sbom (the release lane's SBOMs)"),
+    }
+}
+
 pub(crate) fn cargo_fuzz() -> Tool {
     Tool {
         name: "cargo-fuzz",
@@ -213,6 +225,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         },
         cargo_deny(),
         cargo_nextest(),
+        cargo_cyclonedx(),
         cargo_fuzz(),
         qpdf(),
         pdftotext(),

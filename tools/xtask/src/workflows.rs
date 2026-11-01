@@ -8,7 +8,7 @@
 //! module is compiled only for tests (`main.rs`).
 
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
-fn job_id(line: &str) -> Option<&str> {
+pub(crate) fn job_id(line: &str) -> Option<&str> {
     if !line.starts_with("  ") || line.starts_with("   ") || line.trim_start().starts_with('#') {
         return None;
     }
@@ -16,20 +16,31 @@ fn job_id(line: &str) -> Option<&str> {
     key.strip_suffix(':').map(str::trim)
 }
 
+/// Every job of `workflow` with its own lines (the `<id>:` line left out), in order.
+pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
+    let body = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
+    let mut jobs: Vec<(&str, Vec<&str>)> = Vec::new();
+    for line in body.lines() {
+        if let Some(id) = job_id(line) {
+            jobs.push((id, Vec::new()));
+        } else if let Some((_, lines)) = jobs.last_mut() {
+            lines.push(line);
+        }
+    }
+    jobs
+}
+
 /// The job ids of a workflow, in order.
 fn job_ids(workflow: &str) -> Vec<&str> {
-    let jobs = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
-    jobs.lines().filter_map(job_id).collect()
+    jobs(workflow).into_iter().map(|(id, _)| id).collect()
 }
 
 /// The ids in `job`'s one-line `needs: [a, b]`, read only from that job's own lines.
 fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
-    let jobs = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
-    jobs.lines()
-        .skip_while(|l| job_id(l) != Some(job))
-        .skip(1)
-        .take_while(|l| job_id(l).is_none())
-        .find_map(|l| l.trim().strip_prefix("needs: ["))
+    jobs(workflow)
+        .into_iter()
+        .find(|(id, _)| *id == job)
+        .and_then(|(_, lines)| lines.into_iter().find_map(|l| l.trim().strip_prefix("needs: [")))
         .and_then(|l| l.strip_suffix(']'))
         .map(|l| l.split(',').map(str::trim).collect())
         .unwrap_or_default()

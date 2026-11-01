@@ -7,7 +7,7 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [§8 Q3](../../plans/architecture.md#8-open-questions-for-the-team) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | [P0b](./P0b-crate-names-laminapdf.md) |
-| Blocks | [P1](../ready/P1-reserve-names-and-trusted-publishing.md) |
+| Blocks | [P1](./P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Amends [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (names), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (the error schema ID) |
 | Branch | `refactor/p0c-lamina-pdf-names` |
 | PR title | `refactor: call the product Lamina PDF and rename its public names` |

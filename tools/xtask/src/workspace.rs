@@ -61,6 +61,8 @@ struct Crate {
     dir: PathBuf,
     layer: Layer,
     wasm: bool,
+    /// Whether `cargo publish` may upload it (`publish` in its manifest, not `false`).
+    publishable: bool,
 }
 
 /// A package in a crate's dependency graph ([`crate_graph`]).
@@ -132,6 +134,11 @@ impl Workspace {
         })
     }
 
+    /// The crates `cargo publish --workspace` uploads (ADR 0017 §7).
+    pub(crate) fn publishable_crates(&self) -> impl Iterator<Item = &str> {
+        self.crates.iter().filter(|c| c.publishable).map(|c| c.name.as_str())
+    }
+
     /// Names of the core crates.
     pub(crate) fn core_crates(&self) -> impl Iterator<Item = &str> {
         self.crates
@@ -169,7 +176,7 @@ impl Workspace {
             }
             for file in rust_files(&krate.dir.join("src"))? {
                 let source = fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
-                for (number, line) in source.lines().enumerate() {
+                for (number, line) in code_lines(&source) {
                     if let Some(found) = forbidden_api(line) {
                         problems.push(format!("{}:{}: uses `{found}`", file.display(), number + 1));
                     }
@@ -225,8 +232,55 @@ impl Crate {
             wasm: layer == Layer::Edge
                 && package.pointer("/metadata/laminapdf/wasm").and_then(Value::as_bool) == Some(true),
             layer,
+            // cargo metadata: `publish` is null for any registry, `[]` for `publish = false`.
+            publishable: package
+                .get("publish")
+                .is_none_or(|p| p.as_array().is_none_or(|r| !r.is_empty())),
         })
     }
+}
+
+/// `source`'s lines (0-based number, text) without the insides of raw string literals, which
+/// are text, not code: the generated explain pages quote `std::fs::read(…)` in their examples.
+/// A line that opens a raw string keeps the code before it.
+fn code_lines(source: &str) -> Vec<(usize, &str)> {
+    let mut lines = Vec::new();
+    let mut closing: Option<String> = None;
+    for (number, line) in source.lines().enumerate() {
+        if let Some(end) = &closing {
+            if line.contains(end.as_str()) {
+                closing = None;
+            }
+            continue;
+        }
+        match raw_string_start(line) {
+            Some((at, hashes)) => {
+                let end = format!("\"{}", "#".repeat(hashes));
+                let rest = line.get(at..).unwrap_or_default();
+                // Closed on the same line (after its opening quote)?
+                let body = rest.split_once('"').map_or("", |(_, body)| body);
+                if !body.contains(end.as_str()) {
+                    closing = Some(end);
+                }
+                lines.push((number, line.get(..at).unwrap_or_default()));
+            }
+            None => lines.push((number, line)),
+        }
+    }
+    lines
+}
+
+/// Where a raw string literal (`r"`, `r#"`, …) starts in `line`, with its number of `#`s.
+fn raw_string_start(line: &str) -> Option<(usize, usize)> {
+    line.match_indices('r').find_map(|(at, _)| {
+        let before = line.get(..at).and_then(|b| b.chars().next_back());
+        if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+            return None;
+        }
+        let rest = line.get(at + 1..)?;
+        let hashes = rest.chars().take_while(|c| *c == '#').count();
+        rest.get(hashes..)?.starts_with('"').then_some((at, hashes))
+    })
 }
 
 /// `name`'s normal dependency graph for every target, as a build of it alone resolves its
@@ -431,6 +485,14 @@ fn rust_files(dir: &Path) -> Result<Vec<PathBuf>> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn code_lines_should_skip_raw_string_bodies() {
+        let source =
+            "let a = 1;\nlet page = r#\"# title\nstd::fs::read(\"x\")\n\"#;\nuse std::fs;\nlet b = r\"one line\";\n";
+        let lines: Vec<&str> = super::code_lines(source).into_iter().map(|(_, l)| l).collect();
+        assert_eq!(lines, ["let a = 1;", "let page = ", "use std::fs;", "let b = "]);
+    }
+
     use std::collections::BTreeMap;
 
     use std::path::Path;
