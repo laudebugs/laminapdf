@@ -47,7 +47,7 @@ pnpm exec bun test ./test/bun/
 pnpm exec vitest run -c vitest.workers.config.ts
 ```
 
-In CI, the fast lane runs Node 22 and 26 and Chromium on every PR; Node 24 (`.nvmrc`) is the `wasm` job's own run. The full lane runs Firefox, WebKit, Deno, Bun and workerd, and the nightly lane runs all of them with the figures recorded.
+In CI, the fast lane runs every runtime on every PR in two jobs, one for the browsers and one for Deno, Bun, workerd and Node 22 and 26; Node 24 (`.nvmrc`) is the `wasm` job's own run. The nightly lane runs all of them with the figures recorded.
 
 ## The worker client
 

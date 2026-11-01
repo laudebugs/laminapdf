@@ -5,8 +5,9 @@
 # every suite passed or was not needed. Branch protection requires `gate` and ci.yml's
 # `fast-gate` (todo X7). Never add a workflow-level `paths` filter here.
 #
-# Adding a suite (B4b/B5b extraction; B5c added `examples`, B6c `pdf-build` and
-# `pdf-runtimes`): give the job `needs: changes` (or a job that has it), `runs-on: [self-hosted,
+# Adding a suite: add it as a step of `suites` when it takes a few minutes or less (it shares that
+# job's build directory and Rust setup; give it `if: ${{ !cancelled() }}` so it runs after a
+# failure). Otherwise give the job `needs: changes` (or a job that has it), `runs-on: [self-hosted,
 # macOS, ARM64]`, isolate-rust-home with its own `target-dir` if it builds Rust, and exactly
 # this condition, then add it to `gate`'s `needs`:
 #
@@ -20,10 +21,10 @@
 # `gate` doesn't wait on a runner that isn't there, and `gate` accepts that skip. Both read the
 # one output, so changing the variables mid-run can't make them disagree.
 #
-# Every job runs on self-hosted runners on one Mac: the two macOS ARM64 runners, where jobs
-# isolate the Rust install (isolate-rust-home, which also gives each Rust-building job its own
-# persistent CARGO_TARGET_DIR per runner and kind of trigger: PR output is never reused on main),
-# install pnpm into ${{ runner.temp }} and don't use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the same Mac
+# Every job runs on self-hosted runners: the macOS ARM64 runners, where jobs isolate the Rust
+# install (isolate-rust-home, which also gives each Rust-building job its own persistent
+# CARGO_TARGET_DIR per runner and kind of trigger: PR output is never reused on main) and don't
+# use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the owner's Mac
 # (tools/ci-runner/linux/README.md), which runs `check-linux` only. There is no Windows runner
 # (X6); the fast lane covers `cargo xtask check` on macOS.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
@@ -106,37 +107,10 @@ jobs:
           BASE: origin/${{ github.base_ref }}
         run: cargo xtask changes --base "$BASE"
       # Docs-only PRs skip both lanes' suites, so the docs checks run here, under `gate`:
-      # every relative link, the todo board and path portability (no network).
-      - name: Docs checks (links, todo board, portable paths)
+      # links, prose, snippets, the todo board, portable paths and generated files (no network).
+      - name: Docs checks (cargo xtask check docs)
         if: github.event_name == 'pull_request'
         run: cargo xtask check docs
-
-  # ADR 0018 tier 6: lamina vs pypdf's precomputed facts over the full set, 36 fixed-seed
-  # mutants per corpus file (fixtures/differential/full.json). No Python: the facts are
-  # committed. Runs under nextest's ci profile, so a hang is killed.
-  differential:
-    name: Differential (full mutant set)
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: full-differential
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
-          # self-hosted runners without passwordless sudo.
-          cache: false
-      # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
-        with:
-          tool: cargo-nextest@0.9.150
-      - run: cargo xtask differential --full
 
   # ADR 0018 tier 9: every fuzz target under default Limits, 4 at once (`--jobs 4`: built once,
   # then separate cargo-fuzz processes): 30 s per target on PRs, a smoke test that keeps the PR
@@ -249,75 +223,83 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: cargo xtask check
 
-  # ADR 0018 tier 7 (todo B3c): lamina saves every fixture x proving op x mode, reopens each
-  # output, and qpdf --check, pdf.js and PDFium check them (`cargo xtask roundtrip`). Needs
-  # qpdf on the runner (Homebrew), Node (pdfjs-dist from tools/roundtrip/package.json) and a
-  # per-job Python venv with tools/roundtrip/requirements.txt.
-  roundtrip:
-    name: Round trip (lamina, qpdf, pdf.js, PDFium)
+  # Four suites in one job, run one after another into one build directory: each takes under a
+  # minute and a half, less than waiting for a runner and setting up, and they compile mostly the
+  # same crates. Every suite runs even when one before it failed (`!cancelled()`).
+  # - ADR 0018 tier 6: lamina vs pypdf's precomputed facts over the full set, 36 fixed-seed
+  #   mutants per corpus file (fixtures/differential/full.json). No Python: the facts are
+  #   committed. Runs under nextest's ci profile, so a hang is killed.
+  # - Todo X2 (full-editor §3): every test tagged `/// capability: <ID> <surface> <status>`; fails
+  #   when docs/capabilities/README.md differs from what they prove, or one fails. `cargo xtask
+  #   check docs` (in `changes`, every PR) already rejects a README that claims more than any
+  #   tagged test could prove; this checks the tests pass. Plain cargo test.
+  # - ADR 0018 tier 7 (todo B3c): lamina saves every fixture x proving op x mode, reopens each
+  #   output, and qpdf --check, pdf.js and PDFium check them (`cargo xtask roundtrip`; Node for
+  #   pdfjs-dist from tools/roundtrip/package.json, a venv with tools/roundtrip/requirements.txt).
+  # - Todo B5c (ADR 0018 tiers 3 and 8): the `lamina` examples, byte-compared with
+  #   fixtures/golden/examples/ and checked by `qpdf --check` (`cargo xtask examples`), then every
+  #   page rendered by PDFium (a venv with tools/render/requirements.txt) and hayro, compared with
+  #   fixtures/render-golden/ and with each other (`cargo xtask render-golden`).
+  # qpdf comes from Homebrew on the runner.
+  suites:
+    name: Suites (differential, capability matrix, round trip, examples and render goldens)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
         with:
-          target-dir: full-roundtrip
+          target-dir: full-suites
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
+          # self-hosted runners without passwordless sudo.
           cache: false
+      # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-nextest@0.9.150
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: qpdf and a Python venv with pypdfium2
+          package-manager-cache: false
+      - name: qpdf and the Python venvs (pypdfium2)
         run: |
           qpdf --version
           python3 -m venv "$RUNNER_TEMP/roundtrip-venv"
           "$RUNNER_TEMP/roundtrip-venv/bin/pip" install -r tools/roundtrip/requirements.txt
-      - run: cargo xtask roundtrip
+          python3 -m venv "$RUNNER_TEMP/render-venv"
+          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
+      - name: Differential (full mutant set)
+        run: cargo xtask differential --full
+      - name: Capability matrix
+        if: ${{ !cancelled() }}
+        run: cargo xtask capabilities --check
+      - name: Round trip (lamina, qpdf, pdf.js, PDFium)
+        if: ${{ !cancelled() }}
         env:
           LAMINA_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
-      - name: Upload the outputs
+        run: cargo xtask roundtrip
+      - name: Examples (goldens, qpdf)
+        if: ${{ !cancelled() }}
+        run: cargo xtask examples
+      - name: Render goldens (PDFium and hayro)
+        if: ${{ !cancelled() }}
+        env:
+          LAMINA_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+        run: cargo xtask render-golden
+      - name: Upload the round-trip outputs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: roundtrip-outputs
           path: target/xtask/roundtrip/
           if-no-files-found: ignore
-
-  # Todo B5c (ADR 0018 tiers 3 and 8): the `lamina` examples, byte-compared with
-  # fixtures/golden/examples/ and checked by `qpdf --check` (`cargo xtask examples`), then every
-  # page rendered by PDFium (pypdfium2, a per-job venv with tools/render/requirements.txt) and
-  # hayro, compared with fixtures/render-golden/ and with each other (`cargo xtask render-golden`).
-  examples:
-    name: Examples (goldens, qpdf, PDFium and hayro render goldens)
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: full-examples
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          cache: false
-      - name: qpdf and a Python venv with pypdfium2
-        run: |
-          qpdf --version
-          python3 -m venv "$RUNNER_TEMP/render-venv"
-          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
-      - run: cargo xtask examples
-      - run: cargo xtask render-golden
-        env:
-          LAMINA_PYTHON: ${{ runner.temp }}/render-venv/bin/python
-      - name: Upload the outputs and diff images
+      - name: Upload the example outputs and diff images
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -325,121 +307,6 @@ jobs:
           path: |
             target/examples-out/
             target/xtask/render-golden/diff/
-          if-no-files-found: ignore
-
-  # Todo X2 (full-editor §3): run every test tagged `/// capability: <ID> <surface> <status>`
-  # and fail when docs/capabilities/README.md differs from what they prove, or one fails.
-  # `cargo xtask check docs` (in `changes`, every PR) already rejects a README that claims more
-  # than any tagged test could prove; this job checks the tests actually pass. Plain cargo test.
-  capabilities:
-    name: Capability matrix
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: full-capabilities
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          cache: false
-      - run: cargo xtask capabilities --check
-
-  # Todo B6c (pdf-library §5): @laminapdf/sdk's example suite in the runtimes the fast lane leaves
-  # out: Firefox and WebKit (Vitest browser mode with Playwright), Deno, Bun and workerd
-  # (wrangler's test harness), byte-identical to the Rust goldens. `pdf-build` builds the
-  # modules and the package once (`cargo xtask wasm`) for the matrix. Timings and WebAssembly
-  # memory go to the job summary (`cargo xtask pdf-runtimes`; recorded, not asserted).
-  pdf-build:
-    name: "@laminapdf/sdk build for the runtime matrix"
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: full-wasm
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          cache: false
-      # Same versions as ci.yml's wasm job (tools/xtask/src/doctor.rs).
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
-        with:
-          tool: wasm-bindgen@0.2.129
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: cargo xtask wasm
-      - name: Upload the built packages
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: lamina-pdf-dist
-          path: |
-            packages/wasm/dist/
-            packages/sdk/dist/
-          if-no-files-found: error
-          retention-days: 1
-
-  pdf-runtimes:
-    name: "@laminapdf/sdk in ${{ matrix.runtime }}"
-    needs: [changes, pdf-build]
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        runtime: [firefox, webkit, deno, bun, workerd]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # Fails here when pdf-build did (gate fails on either).
-      - name: Download the built packages
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: lamina-pdf-dist
-          path: packages/
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
-      - uses: ./.github/actions/host-rust
-        with:
-          cache: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      # Deno, Bun and wrangler (workerd) are dev dependencies of @laminapdf/sdk.
-      - run: pnpm install --frozen-lockfile
-      # The browsers stay in the runner's own tool cache between runs (see ci.yml).
-      - name: Keep the Playwright browsers in the runner's tool cache
-        run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - env:
-          RUNTIME: ${{ matrix.runtime }}
-        run: cargo xtask pdf-runtimes "$RUNTIME"
-      - name: Upload the measurements
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pdf-runtimes-${{ matrix.runtime }}
-          path: target/xtask/pdf-runtimes/
           if-no-files-found: ignore
 
   # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with `code`
@@ -450,7 +317,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, differential, fuzz, check-linux, roundtrip, capabilities, examples, pdf-build, pdf-runtimes]
+    needs: [changes, suites, fuzz, check-linux]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:

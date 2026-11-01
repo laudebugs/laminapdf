@@ -20,6 +20,7 @@
 #     pull_request   pull requests
 #     other          anything else (a dispatch on another branch, a tag push, …): rare, so it is
 #                    emptied before every use rather than kept
+#   .github/actions/node-pnpm keys the pnpm store on the same buckets; change both together.
 #   Build output a pull request's (or another branch's) code produced is never reused by a run
 #   on main: main's runs only ever build into, and read from, directories that only main's runs
 #   write. This is the same rule as check-linux's rust-cache (only main saves). It keeps cargo

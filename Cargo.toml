@@ -15,7 +15,7 @@ exclude = ["spikes", "fuzz", "tools/render"]
 version = "0.2.0-alpha.0"
 edition = "2024"
 # MSRV policy (rust.md): while nothing is published, the MSRV tracks the pinned toolchain in
-# rust-toolchain.toml. Before the first public release we move to N-2. CI's `msrv` job checks it.
+# rust-toolchain.toml. Before the first public release we move to N-2. CI's `msrv-and-spike` job checks it.
 rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/laudebugs/lamina"

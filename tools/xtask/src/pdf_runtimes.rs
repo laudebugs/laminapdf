@@ -3,7 +3,8 @@
 //! Chromium, Firefox and `WebKit` (Vitest browser mode with Playwright), Deno, Bun and workerd.
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
 //! smoke's figures (`LAMINA_MEASUREMENT {json}` lines), which this task collects into
-//! `target/xtask/pdf-runtimes/measurements.json` and a job-summary table against the §4 targets.
+//! `target/xtask/pdf-runtimes/measurements.json` (`measurements-<label>.json` with `--label`)
+//! and a job-summary table against the §4 targets.
 //! The targets are reported, never asserted. `--history <dir> --runner <label> --record` appends
 //! the figures to the nightly benchmark history (`<dir>/history.jsonl`, the record format of
 //! `cargo xtask bench`).
@@ -33,12 +34,15 @@ const HELLO_TARGET_MS: f64 = 5.0;
 const REPORT_TARGET_MS: f64 = 500.0;
 const WORKER_MEMORY_TARGET_BYTES: f64 = 64.0 * 1024.0 * 1024.0;
 
-const USAGE: &str = "usage: cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--history <dir> --runner <label> --record]";
+const USAGE: &str = "usage: cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--label <name>] [--history <dir> --runner <label> --record]";
 
 /// What `cargo xtask pdf-runtimes` was asked to do; the default runs every runtime, recording nothing.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Args {
     runtimes: Vec<&'static str>,
+    /// Names the measurements file (`measurements-<label>.json`), so several runs in one job
+    /// (the fast lane's Node 22 and 26) each keep theirs.
+    label: Option<String>,
     history: Option<String>,
     runner: Option<String>,
 }
@@ -47,6 +51,7 @@ impl Default for Args {
     fn default() -> Self {
         Self {
             runtimes: RUNTIMES.to_vec(),
+            label: None,
             history: None,
             runner: None,
         }
@@ -65,6 +70,17 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             "--record" => record = true,
             "--history" => parsed.history = Some(rest.next().context(USAGE)?.clone()),
             "--runner" => parsed.runner = Some(rest.next().context(USAGE)?.clone()),
+            "--label" => {
+                let label = rest.next().context(USAGE)?;
+                // Not starting with '-', so `--label --record` can't take the flag as the label.
+                if label.is_empty()
+                    || label.starts_with('-')
+                    || !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+                {
+                    bail!("--label takes letters, digits and '-' only, not {label:?}; {USAGE}");
+                }
+                parsed.label = Some(label.clone());
+            }
             name => {
                 let Some(&runtime) = RUNTIMES.iter().find(|r| **r == name) else {
                     bail!("unknown runtime or argument {name:?}; {USAGE}");
@@ -218,8 +234,8 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
     Ok(captured)
 }
 
-/// `cargo xtask pdf-runtimes [runtime…] [--history <dir> --runner <label> --record]`: runs each
-/// runtime's suite in turn (all of them by default); every runtime runs even when an earlier
+/// `cargo xtask pdf-runtimes [runtime…] [--label <name>] [--history <dir> --runner <label> --record]`:
+/// runs each runtime's suite in turn (all of them by default); every runtime runs even when an earlier
 /// one failed, and the failures are listed at the end. Needs `cargo xtask wasm` first (it
 /// builds `packages/wasm/dist/` and `packages/sdk/dist/`); installs the Playwright browsers it
 /// needs (`playwright install`, a no-op when they are present).
@@ -269,7 +285,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let out_dir = ws.root.join("target/xtask/pdf-runtimes");
     fs::create_dir_all(&out_dir)?;
     fs::write(
-        out_dir.join("measurements.json"),
+        out_dir.join(measurements_file(args.label.as_deref())),
         serde_json::to_string_pretty(&measurements.iter().map(Measurement::json).collect::<Vec<_>>())? + "\n",
     )?;
     let table = table(&measurements);
@@ -290,6 +306,14 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     } else {
         bail!("pdf-runtimes: {} failed", failed.join(", "))
     }
+}
+
+/// The measurements file's name: `measurements.json`, or `measurements-<label>.json`.
+fn measurements_file(label: Option<&str>) -> String {
+    label.map_or_else(
+        || "measurements.json".to_owned(),
+        |label| format!("measurements-{label}.json"),
+    )
 }
 
 /// `value` against an upper `target`: a mark when it misses (reported, not a failure).
@@ -445,6 +469,27 @@ mod tests {
         };
         assert_eq!(last("node"), [Some("measure"), Some("node")]);
         assert_eq!(last("chromium"), [Some("chromium"), Some("vite-build")]);
+    }
+
+    #[test]
+    fn a_label_should_name_the_measurements_file() {
+        let parsed = parse_args(&args(&["node", "--label", "node22"])).unwrap();
+        assert_eq!(measurements_file(parsed.label.as_deref()), "measurements-node22.json");
+    }
+
+    #[test]
+    fn no_label_should_keep_the_default_measurements_file() {
+        assert_eq!(measurements_file(None), "measurements.json");
+    }
+
+    #[test]
+    fn parse_args_should_reject_a_label_with_a_path_in_it() {
+        assert!(parse_args(&args(&["--label", "../x"])).is_err());
+    }
+
+    #[test]
+    fn parse_args_should_not_take_a_flag_as_the_label() {
+        assert!(parse_args(&args(&["--label", "--record"])).is_err());
     }
 
     #[test]

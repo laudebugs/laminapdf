@@ -53,7 +53,7 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 
 ## Post-merge checks
 
-- [ ] The owner has made `fast-gate` required, and the next code PR shows it among the required checks. Then drop "(X7; the owner adds `fast-gate` after X7 merges)" from CLAUDE.md and "once the owner adds it" from git-workflow §5. The workflow comments in `ci.yml` and `full.yml` are written as true after this step.
+- [x] The owner has made `fast-gate` required (branch protection lists `gate` and `fast-gate`, 2026-11-01), and the next code PR shows it among the required checks. PR #173 dropped the notes saying it wasn't required yet from CLAUDE.md and git-workflow §5. The workflow comments in `ci.yml` and `full.yml` are written as true after this step.
 - [ ] The next docs-only PR shows `fast-gate` green with every fast-lane job skipped.
 - [ ] The first PR with a red fast-lane job shows `fast-gate` red: this checks GitHub's own `needs` results, which the local run only imitated.
 
