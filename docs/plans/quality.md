@@ -238,7 +238,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [Q1a](../todos/ongoing/Q1a-docs-font-source-sans.md) | One sans-serif font on the docs site (Source Sans 3) | S | — |
+| [Q1a](../todos/done/Q1a-docs-font-source-sans.md) | One sans-serif font on the docs site (Source Sans 3) | S | — |
 | [Q1b](../todos/ready/Q1b-docs-prose-check.md) | The `docs-prose` check for reader-facing text | M | — |
 | [Q1c](../todos/ready/Q1c-examples-checks.md) | The examples checks: `docs-snippets`, a Biome override and `clippy-examples` | M | — |
 | [Q1d](../todos/ready/Q1d-example-api-cleanups.md) | API fixes the examples need | S | — |
@@ -257,7 +257,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [Q2a](../todos/ready/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
-| [Q2b](../todos/ready/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
+| [Q2b](../todos/ongoing/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
 | [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures` for the core crates' test helpers | M | Q2a |
 | [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on lamina-save's helpers | M | Q2c |
 | [Q2e](../todos/ready/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
@@ -297,7 +297,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 
 - [x] Review the docs site, the examples, the TypeScript packages and the Rust crates (2026-10-31; §2)
 - [x] Write the guidelines: [docs writing](../guidelines/docs-writing.md), [examples](../guidelines/examples.md), [maintainability](../guidelines/maintainability.md); name them in CLAUDE.md
-- [ ] Q1a: one sans-serif font on the docs site
+- [x] Q1a: one sans-serif font on the docs site
 - [ ] Q1b, Q1c: the docs-prose and examples checks
 - [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples
 - [ ] Q1h, Q1i, Q1m, Q1j, Q1k: the story, plain-English guides, recipes and troubleshooting, internal IDs out of reader text

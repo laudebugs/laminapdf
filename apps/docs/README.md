@@ -24,7 +24,7 @@ Two environment variables change what the build writes (`astro.config.mjs`):
 
 The site uses lamina's [Paper design language](../../docs/design/paper/design-language.md), the look of the apps:
 - **Ground and accent:** warm paper grounds and ink text, with one deep-teal accent.
-- **Type:** Newsreader for titles, Source Sans 3 for everything else.
+- **Type:** Source Sans 3 for everything, titles included; weight and size carry the hierarchy ([quality plan §5](../../docs/plans/quality.md#5-the-font)).
 - **Themes:** Starlight's light theme is Paper's light theme (§2.1), and its dark theme is Paper's proposed dark theme (§2.3).
 
 `src/styles/paper.css` (Starlight's `customCss`) maps the design language's tokens (`--paper-*`) onto Starlight's `--sl-*` properties:
