@@ -20,13 +20,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "dependencies": {
-    "@laminapdf/render": "workspace:*",
-    "@vitest/browser-playwright": "catalog:",
-    "vitest": "catalog:"
-  },
   "devDependencies": {
+    "@laminapdf/render": "workspace:*",
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@vitest/browser-playwright": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
