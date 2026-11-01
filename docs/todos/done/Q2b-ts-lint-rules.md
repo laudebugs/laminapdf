@@ -60,7 +60,7 @@ All four rules are checked, and four details differ from the plan.
 
   JSON has no comments, so [typescript.md](../../guidelines/typescript.md#lint-format-test) explains the lists and points at Q2p and Q2k.
 - **Tests and length:** test files are exempt from the 60-line limit (an override on `**/test/**` and `**/*.test.ts`). A `describe` callback holds a whole suite, and eight test files would otherwise be listed for that alone. The complexity and throw rules apply to tests too.
-- **What TypeDoc checks:** the script reads each package's entries from its `package.json` `exports` (every subpath and condition, such as the SDK's `node` and `workerd` entries), so a new entry is checked without editing it. `@laminapdf/wasm` is left out: wasm-bindgen generates its code and types. `requiredToBeDocumented` covers declarations and public methods and accessors, not every property. With every property included, the viewer alone had 60 warnings, most of them fields inside type literals.
+- **What TypeDoc checks:** the script finds every package under `packages/` with `exports`, and reads its entries from those `exports` (every subpath and condition, such as the SDK's `node` and `workerd` entries), so a new entry is checked without editing it. `@laminapdf/wasm` is left out: wasm-bindgen generates its code and types. `requiredToBeDocumented` covers declarations and public methods and accessors, not every property. With every property included, the viewer alone had 60 warnings, most of them fields inside type literals.
 - **No list for TypeDoc:** the check found 18 undocumented exports across the five packages, and this PR documents all 18. No exception list is needed.
 
 ## Post-merge checks
