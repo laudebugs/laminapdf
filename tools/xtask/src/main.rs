@@ -8,6 +8,7 @@ mod changes;
 mod codegen;
 mod corpus;
 mod docs_links;
+mod docs_prose;
 mod doctor;
 mod examples;
 mod harness;
@@ -47,7 +48,12 @@ tasks:
                     everything a PR must pass (default: docs, rust and ts)
                     docs: docs-links, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
-                    gen codes --check and version sync --check
+                    gen codes --check and version sync --check, docs-prose
+  check docs-prose [--all-strict] [--warnings] [--json]
+                    reader-facing text (docs site, docs/errors, package READMEs) against
+                    docs/guidelines/docs-writing.md: errors on files changed since the merge
+                    base with main (drafts included), counted warnings elsewhere;
+                    --all-strict fails on every report, --warnings lists them
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm
                           workspace, the docs site's build (apps/docs), npm licences
@@ -230,6 +236,7 @@ fn main() -> Result<()> {
             check_ts(&ws)
         }
         ("check", [scope]) if scope == "docs" => check_docs(&ws),
+        ("check", [scope, flags @ ..]) if scope == "docs-prose" => docs_prose::run(&ws.root, prose_options(flags)?),
         ("check", [scope]) if scope == "rust" => check_rust(&ws),
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
@@ -310,6 +317,8 @@ fn repo_root() -> Result<PathBuf> {
 fn check_docs(ws: &Workspace) -> Result<()> {
     step("docs-links: relative links and anchors in tracked Markdown");
     docs_links::run(&ws.root, false)?;
+    step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on changed files)");
+    docs_prose::run(&ws.root, docs_prose::Options::default())?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
@@ -320,6 +329,20 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())
+}
+
+/// `check docs-prose`'s flags.
+fn prose_options(flags: &[String]) -> Result<docs_prose::Options> {
+    let mut options = docs_prose::Options::default();
+    for flag in flags {
+        match flag.as_str() {
+            "--all-strict" => options.all_strict = true,
+            "--warnings" => options.warnings = true,
+            "--json" => options.json = true,
+            _ => bail!("usage: cargo xtask check docs-prose [--all-strict] [--warnings] [--json]"),
+        }
+    }
+    Ok(options)
 }
 
 fn check_rust(ws: &Workspace) -> Result<()> {

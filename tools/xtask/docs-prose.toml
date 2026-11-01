@@ -1,0 +1,84 @@
+# Configuration for `cargo xtask check docs-prose` (docs/guidelines/docs-writing.md).
+# Words and phrases match whole words, case-insensitively, unless a comment says otherwise.
+
+# "Write in plain English": words the guideline bans in reader text.
+banned_words = [
+  "simply",
+  "just",
+  "easy",
+  "obviously",
+  "note that",
+  "please",
+  "etc",
+  "via",
+  "utilize",
+  "utilise",
+]
+
+# Terms a page must explain, link to /reference/glossary/ on first use, or list under
+# `prose.allow` in its frontmatter.
+glossary = [
+  "overlay",
+  "xref",
+  "cross-reference table",
+  "COS",
+  "ToUnicode",
+  "CMap",
+  "Type 0",
+  "export condition",
+  "glue",
+  "façade",
+  "incremental save",
+  "full rewrite",
+  "DocMDP",
+  "UR3",
+  "XObject",
+  "content stream",
+  "object stream",
+  "user space",
+  "standard 14 fonts",
+]
+
+# "One term per thing": spellings to replace, matched as written (case-sensitive).
+[[term]]
+spelling = "Standard14"
+use = "the standard 14 fonts"
+
+[[term]]
+spelling = "standard-14"
+use = "the standard 14 fonts"
+
+[[term]]
+spelling = "std14"
+use = "the standard 14 fonts"
+
+# Words that must be qualified (case-insensitive): "Worker" alone is ambiguous.
+[[qualified]]
+word = "worker"
+after = ["cloudflare", "web", "service", "shared", "dedicated"]
+use = "Cloudflare Worker or Web Worker"
+
+[[qualified]]
+word = "workers"
+after = ["cloudflare", "web", "service", "shared", "dedicated"]
+use = "Cloudflare Workers or Web Workers"
+
+# Capitalised words that headings may contain after their first word (sentence case).
+# Acronyms in capitals and words containing digits are always allowed.
+proper_nouns = [
+  "Acrobat", "Adobe", "Android", "Arabic", "Astro", "Bun", "Chrome", "Chromium", "Cloudflare",
+  "Deno", "Firefox", "Hebrew", "HarfRust", "Hindi", "I", "JavaScript", "Latin", "Linux", "Markdown",
+  "Node", "OpenType", "Paper", "PDFium", "Rust", "Safari", "Sans", "Source", "Starlight", "Tauri",
+  "TrueType", "TypeScript", "TypeDoc", "Unicode", "Vite", "Web", "WebAssembly", "WebKit", "Windows",
+  "Worker", "Workers", "Wrangler", "Xcode", "macOS", "iOS",
+]
+
+# Internal vocabulary reader text never contains (docs-writing.md, "Write in plain English").
+# Todo IDs (a capital letter, a number and a lowercase suffix such as B8b) and "ADR" followed
+# by a four-digit number are matched by the check itself.
+internal_words = ["golden", "goldens", "CI"]          # case-sensitive whole words
+internal_phrases = ["fast lane", "full lane"]          # case-insensitive
+repository_paths = ["crates/", "packages/", "fixtures/", "tools/", "apps/", "docs/", "spikes/"]
+
+# Sentence splitting: words that end with a full stop without ending the sentence.
+abbreviations = ["e.g", "i.e", "vs", "cf", "approx", "no", "fig", "p", "pp"]
