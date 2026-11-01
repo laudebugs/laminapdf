@@ -149,8 +149,11 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
-cargo xtask check docs       # docs-links + todos --check + portable paths + capability matrix static checks
+cargo xtask check docs       # docs-links + docs-prose + todos --check + portable paths + capability matrix static checks
                              #   + gen codes --check + version sync --check (fast; no network, no build, no node_modules)
+cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
+                             #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on
+                             #   files changed since the merge base with main (drafts included), counted warnings elsewhere
 cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc, cargo-deny
 cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences
