@@ -1,5 +1,17 @@
-// A browser app using @laminapdf/sdk, bundled by test/vite.test.ts.
+// A browser app using @laminapdf/sdk, bundled by test/vite.test.ts: the browser quick start, and
+// both modules loaded the way a page would.
 import { Builder, Document, Font, init, loadText } from "@laminapdf/sdk";
+import { hello } from "../../examples/quick-start/browser.js";
+import { HELLO_OPTIONS } from "../suite/hello-options.js";
+
+/** The browser quick start's bytes, built with the hello golden's options. */
+export async function quickStart(): Promise<Uint8Array | undefined> {
+  let saved: Uint8Array | undefined;
+  await hello((pdf) => {
+    saved = pdf;
+  }, HELLO_OPTIONS);
+  return saved;
+}
 
 /** Opens `bytes`, then builds a page of text: both modules, loaded the way a page would. */
 export async function run(bytes: Uint8Array): Promise<readonly [number, number]> {

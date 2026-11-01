@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 use serde::Deserialize;
 
 use super::extract::{Block, CODE, Kind, Page};
+use crate::reports::{Finding, finding};
 
 /// `tools/xtask/docs-prose.toml`.
 #[derive(Debug, Default, Deserialize)]
@@ -61,14 +62,6 @@ pub(crate) enum Scope {
     Rendered,
 }
 
-/// One rule broken at one line.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Finding {
-    pub(crate) line: usize,
-    pub(crate) rule: &'static str,
-    pub(crate) message: String,
-}
-
 pub(crate) const MAX_SENTENCE_WORDS: usize = 40;
 pub(crate) const MAX_PARAGRAPH_WORDS: usize = 100;
 pub(crate) const MAX_OPENING_WORDS: usize = 50;
@@ -107,14 +100,6 @@ fn reader_blocks(page: &Page) -> &[Block] {
         .rposition(|block| block.kind == Kind::Heading(2) && block.text() == "For contributors")
         .unwrap_or(page.blocks.len());
     page.blocks.get(..end).unwrap_or(&page.blocks)
-}
-
-fn finding(line: usize, rule: &'static str, message: impl Into<String>) -> Finding {
-    Finding {
-        line,
-        rule,
-        message: message.into(),
-    }
 }
 
 /// Words of prose: whitespace-separated, with surrounding punctuation and a possessive `'s`
@@ -257,11 +242,37 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
     findings
 }
 
+/// An exclamation mark in the writer's own words: one inside double quotes ("Hello, world!") is
+/// quoted text, such as what an example draws, and is allowed.
+/// Quotes pair up left to right (a straight `"` with the next one, `“` with the next `”`), and a
+/// `!` inside a pair is quoted. A `"` with no partner opens nothing, so it can't hide later marks;
+/// a stray `"` that a real quote follows still pairs with it (a limit the tests show).
+fn has_unquoted_exclamation(text: &str) -> bool {
+    let mut quoted_ranges = Vec::new();
+    let straight: Vec<usize> = text.match_indices('"').map(|(index, _)| index).collect();
+    quoted_ranges.extend(straight.as_chunks::<2>().0.iter().map(|[open, close]| (*open, *close)));
+    let mut rest = text;
+    let mut base = 0;
+    while let Some(open) = rest.find('“') {
+        let Some(close) = rest.get(open..).and_then(|after| after.find('”')) else {
+            break;
+        };
+        quoted_ranges.push((base + open, base + open + close));
+        base += open + close;
+        rest = text.get(base..).unwrap_or_default();
+    }
+    text.match_indices('!').any(|(index, _)| {
+        !quoted_ranges
+            .iter()
+            .any(|(open, close)| *open < index && index < *close)
+    })
+}
+
 /// A todo ID: one capital letter, one or two digits and a lowercase suffix (`B8b`, `Q1a`). Bare
 /// IDs without a suffix (`X5`, `P1`) are left out on purpose: they read like paper sizes (`A4`),
 /// quarters (`Q3`) and revisions (`R5`). `id_exceptions` in the config lists words that look
 /// like IDs but aren't.
-fn is_todo_id(word: &str) -> bool {
+pub(crate) fn is_todo_id(word: &str) -> bool {
     let mut chars = word.chars();
     let letter = chars.next().is_some_and(|c| c.is_ascii_uppercase());
     let rest: Vec<char> = chars.collect();
@@ -350,7 +361,7 @@ fn banned_words(block: &Block, config: &Config) -> Vec<Finding> {
             )
         })
         .collect();
-    if text.contains('!') {
+    if has_unquoted_exclamation(&text) {
         findings.push(finding(
             block.line,
             "banned-word",
@@ -647,6 +658,30 @@ mod tests {
     fn the_contributor_section_should_not_be_checked() {
         let body = "## Why\n\nRepair keeps the file usable.\n\n## For contributors\n\nSee ADR 0003 and Q1a.\n";
         assert_eq!(rules_for(body, false), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn a_quoted_exclamation_should_be_allowed() {
+        assert_eq!(
+            rules_for("It says \"Hello, world!\" on one page.\n", false),
+            Vec::<&str>::new()
+        );
+        assert_eq!(rules_for("It works!\n", false), vec!["banned-word"]);
+    }
+
+    #[test]
+    fn quotes_should_pair_left_to_right() {
+        // The limit of pairing: a stray `"` followed by a real quote reads as one quoted span.
+        assert_eq!(rules_for("A 3\" margin. It works! \"x\"\n", false), Vec::<&str>::new());
+        assert_eq!(
+            rules_for("\"Hi!\" and \"there\". It works!\n", false),
+            vec!["banned-word"]
+        );
+    }
+
+    #[test]
+    fn a_stray_quote_should_not_hide_a_later_exclamation() {
+        assert_eq!(rules_for("A 3\" margin. It works!\n", false), vec!["banned-word"]);
     }
 
     #[test]

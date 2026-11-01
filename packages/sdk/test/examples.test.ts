@@ -4,13 +4,15 @@
 import { Builder, Font, init } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openUntrusted } from "../examples/open-untrusted.js";
+import { hello as nodeQuickStart } from "../examples/quick-start/node.js";
 import { read } from "./helpers.js";
-import { runSuite } from "./suite/examples.js";
+import { registerQuickStart, runSuite } from "./suite/examples.js";
 
 beforeAll(() => init({ text: true }));
 
 describe("examples", () => {
   runSuite("node", read, it, "examples");
+  registerQuickStart("node", read, it, nodeQuickStart);
 
   it("uses one PDF font for equal fonts created per call", () => {
     const build = (font: () => Font) => {

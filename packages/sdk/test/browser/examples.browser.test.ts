@@ -4,7 +4,8 @@
 // it runs cold in this file's fresh module instance.
 import { describe, it } from "vitest";
 import { server } from "vitest/browser";
-import { runSuite } from "../suite/examples.js";
+import { hello } from "../../examples/quick-start/browser.js";
+import { registerQuickStart, runSuite } from "../suite/examples.js";
 
 // Every fixture the suite may read, as the URL the Vite server serves it at.
 const urls = import.meta.glob<string>(
@@ -26,4 +27,5 @@ async function read(path: string): Promise<Uint8Array> {
 
 describe(`examples in ${server.browser}`, () => {
   runSuite(server.browser, read, it);
+  registerQuickStart(server.browser, read, it, hello);
 });

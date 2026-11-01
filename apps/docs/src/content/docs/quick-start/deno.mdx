@@ -7,10 +7,18 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-In Deno, `@laminapdf/sdk` fetches each `.wasm` file from next to its own code (a `file:` URL), so reading files needs `--allow-read`.
+In Deno, `@laminapdf/sdk` fetches its `.wasm` files from next to its own code, through `file:` URLs. Reading them needs `--allow-read`, and writing `hello.pdf` needs `--allow-write`. Call `await init({ text: true })` once; after that, every call is synchronous.
 
-This is how lamina's tests run every example in Deno. It reads each input with `Deno.readFile` and registers each example with `Deno.test`:
+This app builds one A4 page that says "Hello, world!" and writes it to `hello.pdf`:
 
-<Snippet file="packages/sdk/test/deno/examples.test.ts" />
+<Snippet file="packages/sdk/examples/quick-start/deno.ts" />
 
-The suite it runs, `runSuite`, calls `await init({ text: true })` once, then builds each example, such as [`hello`](/quick-start/node/), and checks that its bytes match the Rust version's.
+Save it as `hello.ts` in a project with `@laminapdf/sdk` [installed](/install/), and run it:
+
+```sh
+deno run --allow-read --allow-write hello.ts
+```
+
+lamina's tests run this app in Deno and check that it builds the reference PDF byte for byte.
+
+Next: draw text with [fonts](/guides/fonts-and-text/), or [open and edit](/guides/open-edit-and-save/) a file.

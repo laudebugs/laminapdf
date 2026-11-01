@@ -50,6 +50,14 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     })
 }
 
+/// True when `path`'s extension is one of `extensions`, ignoring case.
+pub(crate) fn has_extension(path: &str, extensions: &[&str]) -> bool {
+    Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extensions.iter().any(|wanted| extension.eq_ignore_ascii_case(wanted)))
+}
+
 /// `text` safe inside a Markdown table cell (a `|` would end the cell, even in a code span).
 pub(crate) fn md_cell(text: &str) -> String {
     text.replace('|', "\\|").replace('\n', " ")

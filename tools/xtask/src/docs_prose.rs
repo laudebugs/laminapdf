@@ -5,49 +5,28 @@
 //! The check binds while people write: a report on a file changed since the merge base with
 //! `main` (the working tree and untracked drafts included) is an error, and a report on a file
 //! nobody has touched is a warning, counted per rule, until the rewrite todos have cleared them.
-//! `--all-strict` makes every report an error (Q1l turns it on in `check docs`).
+//! `--all-strict` makes every report an error (Q1l turns it on in `check docs`). The ratchet is
+//! shared with the examples checks ([`crate::reports`]).
 
 mod extract;
 mod rules;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::path::Path;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 
-use crate::changes::default_base;
-use crate::tracked::{Tracked, git};
-use rules::{Config, Finding, Scope};
-
-/// How the check runs.
-#[derive(Debug, Default, Clone, Copy)]
-pub(crate) struct Options {
-    /// Every report is an error, not only reports on changed files.
-    pub(crate) all_strict: bool,
-    /// Print the reports as JSON instead of text.
-    pub(crate) json: bool,
-    /// Print warnings one by one instead of counting them.
-    pub(crate) warnings: bool,
-}
-
-/// One finding in one file, and whether it fails the check.
-#[derive(Debug)]
-struct Report {
-    path: String,
-    finding: Finding,
-    error: bool,
-}
+use crate::reports::{Options, Ratchet};
+use crate::tracked::Tracked;
+pub(crate) use rules::is_todo_id;
+use rules::{Config, Scope};
 
 /// `cargo xtask check docs-prose [--all-strict] [--warnings] [--json]`.
 pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
-    if options.json && options.warnings {
-        bail!("docs-prose: --json already lists every report; drop --warnings");
-    }
     let config = load_config(root)?;
-    let untracked = untracked_files(root)?;
+    let untracked = Ratchet::untracked(root)?;
     let files = files(root, &untracked)?;
-    let changed = changed_files(root, &untracked);
-    let mut reports = Vec::new();
+    let mut ratchet = Ratchet::new(root, "docs-prose", options, &untracked);
     for (path, scope) in &files {
         let source = match std::fs::read_to_string(root.join(path)) {
             Ok(source) => source,
@@ -55,24 +34,9 @@ pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
             Err(error) => return Err(error).with_context(|| format!("reading {path}")),
         };
-        let page = extract::parse(&source);
-        let error = options.all_strict || changed.as_ref().is_some_and(|changed| changed.contains(path));
-        reports.extend(rules::check(&page, *scope, &config).into_iter().map(|finding| Report {
-            path: path.clone(),
-            finding,
-            error,
-        }));
+        ratchet.add(path, rules::check(&extract::parse(&source), *scope, &config));
     }
-    if options.json {
-        println!("{}", json(&reports));
-    } else {
-        print_text(&reports, files.len(), changed.as_ref(), options.warnings);
-    }
-    let errors = reports.iter().filter(|report| report.error).count();
-    if errors > 0 {
-        bail!("docs-prose: {errors} report(s) on changed files; see docs/guidelines/docs-writing.md");
-    }
-    Ok(())
+    ratchet.finish(files.len(), "docs/guidelines/docs-writing.md")
 }
 
 fn load_config(root: &Path) -> Result<Config> {
@@ -97,106 +61,17 @@ fn files(root: &Path, untracked: &[String]) -> Result<BTreeMap<String, Scope>> {
 /// Which rules apply to a path, or `None` when the check doesn't read it.
 fn scope(path: &str) -> Option<Scope> {
     if let Some(page) = path.strip_prefix("apps/docs/src/content/docs/") {
-        if !has_extension(page, &["md", "mdx"]) {
+        if !crate::util::has_extension(page, &["md", "mdx"]) {
             return None;
         }
         let guide = page.starts_with("guides/") || page.starts_with("recipes/");
         return Some(Scope::SitePage { guide });
     }
-    let error_page = path.starts_with("docs/errors/") && has_extension(path, &["md"]) && !path.ends_with("/README.md");
+    let error_page =
+        path.starts_with("docs/errors/") && crate::util::has_extension(path, &["md"]) && !path.ends_with("/README.md");
     let package_readme =
         path.starts_with("packages/") && path.ends_with("/README.md") && path.matches('/').count() == 2;
     (error_page || package_readme).then_some(Scope::Rendered)
-}
-
-/// True when `path`'s extension is one of `extensions`, ignoring case.
-fn has_extension(path: &str, extensions: &[&str]) -> bool {
-    Path::new(path)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extensions.iter().any(|wanted| extension.eq_ignore_ascii_case(wanted)))
-}
-
-/// Paths changed since the merge base with `main`, the working tree and untracked files included;
-/// `None` (and a note) when there is no merge base, so nothing is strict.
-fn changed_files(root: &Path, untracked: &[String]) -> Option<BTreeSet<String>> {
-    let base = default_base(root);
-    let changed = git(root, &["merge-base", base, "HEAD"]).and_then(|merge_base| {
-        let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base.trim()])?;
-        Ok(diff
-            .split('\0')
-            .filter(|path| !path.is_empty())
-            .map(str::to_owned)
-            .chain(untracked.iter().cloned())
-            .collect())
-    });
-    match changed {
-        Ok(changed) => Some(changed),
-        Err(error) => {
-            // A shallow CI checkout has no merge base: say so where CI shows it, not only in the log.
-            let note = format!(
-                "no merge base with {base}, so every report is a warning (a shallow clone needs fetch-depth: 0)"
-            );
-            if std::env::var_os("GITHUB_ACTIONS").is_some() {
-                println!("::warning title=docs-prose::{note}");
-            }
-            eprintln!("docs-prose: {note} ({error:#})");
-            None
-        }
-    }
-}
-
-/// Untracked files that git doesn't ignore, so a page is checked while it is drafted.
-fn untracked_files(root: &Path) -> Result<Vec<String>> {
-    let listing = git(root, &["ls-files", "--others", "--exclude-standard", "-z"])?;
-    Ok(listing
-        .split('\0')
-        .filter(|path| !path.is_empty())
-        .map(str::to_owned)
-        .collect())
-}
-
-fn print_text(reports: &[Report], file_count: usize, changed: Option<&BTreeSet<String>>, show_warnings: bool) {
-    let mut warnings_by_rule: BTreeMap<&str, usize> = BTreeMap::new();
-    for report in reports {
-        if report.error || show_warnings {
-            let level = if report.error { "error" } else { "warning" };
-            let Finding { line, rule, message } = &report.finding;
-            println!("{level}: {}:{line}: {rule}: {message}", report.path);
-        }
-        if !report.error {
-            *warnings_by_rule.entry(report.finding.rule).or_default() += 1;
-        }
-    }
-    let errors = reports.iter().filter(|report| report.error).count();
-    let changed_count = changed.map_or(0, BTreeSet::len);
-    println!(
-        "docs-prose: {file_count} files, {errors} error(s) on changed files ({changed_count} paths changed), {} warning(s) elsewhere",
-        reports.len() - errors
-    );
-    if !warnings_by_rule.is_empty() && !show_warnings {
-        let counts: Vec<String> = warnings_by_rule
-            .iter()
-            .map(|(rule, count)| format!("{rule} {count}"))
-            .collect();
-        println!("  warnings by rule: {} (list them with --warnings)", counts.join(", "));
-    }
-}
-
-fn json(reports: &[Report]) -> String {
-    let items: Vec<serde_json::Value> = reports
-        .iter()
-        .map(|report| {
-            serde_json::json!({
-                "path": report.path,
-                "line": report.finding.line,
-                "rule": report.finding.rule,
-                "message": report.finding.message,
-                "level": if report.error { "error" } else { "warning" },
-            })
-        })
-        .collect();
-    serde_json::Value::Array(items).to_string()
 }
 
 #[cfg(test)]

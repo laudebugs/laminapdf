@@ -31,7 +31,7 @@ This todo splits the 88-line Examples page into Recipes, one page per example (w
 
 **Out of scope** (and which todo covers it)
 
-- Quick starts ([Q1e](./Q1e-quick-start-apps.md)).
+- Quick starts ([Q1e](../done/Q1e-quick-start-apps.md)).
 
 ## Tasks
 

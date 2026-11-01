@@ -151,13 +151,22 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
-cargo xtask check docs       # docs-links + docs-prose + todos --check + portable paths + capability matrix static checks
+cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos --check + portable paths + capability matrix static checks
                              #   + gen codes --check + version sync --check (fast; no network, no build, no node_modules)
 cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
                              #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on
                              #   files changed since the merge base with main (drafts included), counted warnings elsewhere
-cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc, cargo-deny
-cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*, the docs site's build
+cargo xtask check docs-snippets [--all-strict] [--warnings] [--json]  # the examples and Snippet's glob vs
+                             #   docs/guidelines/examples.md (headers, shown on a page or in examples/UNUSED.md, TS/Rust pairs in
+                             #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding, ≤ 100 lines); strict on changed
+                             #   examples, warnings elsewhere
+cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on the changed TS examples (every one with --all-strict)
+cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on lamina's examples with
+                             #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
+                             #   strict on changed examples, warnings elsewhere
+cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), clippy-examples, tests, rustdoc, cargo-deny
+cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
+                             #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences
 cargo xtask fmt              # format Rust and TS/JSON (fmt --check only verifies)
 cargo xtask lint             # clippy (native all-targets + wasm32 core crates) and biome ci

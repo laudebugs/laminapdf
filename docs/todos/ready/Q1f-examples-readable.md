@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](./Q1c-examples-checks.md), [Q1d](./Q1d-example-api-cleanups.md) |
+| Depends on | [Q1c](../done/Q1c-examples-checks.md), [Q1d](./Q1d-example-api-cleanups.md) |
 | Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1l](./Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `refactor/q1f-examples-readable` |
@@ -37,7 +37,7 @@ This todo rewrites the TypeScript and Rust examples to the [examples guideline](
 **Out of scope** (and which todo covers it)
 
 - Cloudflare Worker and Web Worker examples ([Q1g](./Q1g-worker-examples.md)).
-- Quick-start apps ([Q1e](./Q1e-quick-start-apps.md)).
+- Quick-start apps ([Q1e](../done/Q1e-quick-start-apps.md)).
 
 ## Tasks
 

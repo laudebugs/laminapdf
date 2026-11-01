@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1e](./Q1e-quick-start-apps.md), [Q1f](./Q1f-examples-readable.md), [Q1g](./Q1g-worker-examples.md) |
+| Blocks | [Q1e](./Q1e-quick-start-apps.md), [Q1f](../ready/Q1f-examples-readable.md), [Q1g](../ready/Q1g-worker-examples.md) |
 | ADRs | None |
 | Branch | `feat/q1c-examples-checks` |
 | PR title | `feat(xtask): docs-snippets, the examples Biome override and clippy-examples` |
 | Size | M |
-| PR | — |
+| PR | [#155](https://github.com/laudebugs/lamina/pull/155) |
 
 ## Goal
 
@@ -43,21 +43,21 @@ The owner asked for a check that keeps examples maintainable while we write them
 
 **Out of scope** (and which todo covers it)
 
-- Rewriting the examples ([Q1e](./Q1e-quick-start-apps.md), [Q1f](./Q1f-examples-readable.md), [Q1g](./Q1g-worker-examples.md)).
+- Rewriting the examples ([Q1e](../done/Q1e-quick-start-apps.md), [Q1f](../ready/Q1f-examples-readable.md), [Q1g](../ready/Q1g-worker-examples.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write `docs-snippets` with unit tests; read the glob from `Snippet.astro` and the uses from the `.mdx` files.
-- [ ] Add the Biome override; run it and list today's violations.
-- [ ] Add `clippy-examples` and its configuration directory; run it and list today's violations.
-- [ ] Add the changed-files logic (shared with Q1b if it has landed) and `--all-strict` to all three.
-- [ ] Wire each check into its lane; put today's violations in the PR description as Q1e–Q1g's work list.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Write `docs-snippets` with unit tests; read the glob from `Snippet.astro` and the uses from the `.mdx` files.
+- [x] Add the Biome override; run it and list today's violations. Deviation: the override's rules are warnings, not errors, so untouched examples pass `biome ci`; `biome-examples` makes them errors on changed examples.
+- [x] Add `clippy-examples` and its configuration directory; run it and list today's violations. Deviation: `let_underscore_must_use` is warned and ratcheted like the rest, not denied with `-D`, so untouched examples don't fail.
+- [x] Add the changed-files logic (shared with Q1b if it has landed) and `--all-strict` to all three. Q1b's ratchet moved into `tools/xtask/src/reports.rs`, which docs-prose and the three examples checks use; Biome's strict pass is `cargo xtask biome-examples`.
+- [x] Wire each check into its lane; put today's violations in the PR description as Q1e–Q1g's work list.
 
 ## Acceptance criteria
 
-- [ ] Each check reports file and line, fails on a changed example, and warns elsewhere.
-- [ ] `cargo xtask check` passes on `main`.
+- [x] Each check reports file and line, fails on a changed example, and warns elsewhere.
+- [x] `cargo xtask check` passes on `main`.
 
 ## Post-merge checks
 
@@ -65,7 +65,7 @@ None.
 
 ## Tests
 
-Unit tests in `tools/xtask` with small example trees under `tools/xtask/tests/` (one violation per rule).
+Unit tests in `tools/xtask` with small example trees under `tools/xtask/tests/` (one violation per rule). Deviation: as in Q1b, the cases are inline in `docs_snippets.rs`, `examples_lints.rs` and `reports.rs` (one passing and one failing case per rule), since xtask has no `tests/` folder.
 
 ## Docs to update
 
@@ -77,9 +77,9 @@ Biome rule names can differ between versions: confirm each with `biome explain` 
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
