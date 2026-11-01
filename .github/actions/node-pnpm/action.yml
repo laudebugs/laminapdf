@@ -6,11 +6,13 @@
 # puts its store next to itself, so without `pnpm_config_store_dir` every job would start with an
 # empty store, and setup-node's `cache: pnpm` refilled it by downloading ~290 MB from the Actions
 # cache (one to three minutes per job, and as long again to save it). Instead the store lives in
-# the runner's own tool cache, like isolate-rust-home's build directories: one per runner, used by
-# one job at a time, so `pnpm install` only links what it already has.
+# the runner's own tool cache, like isolate-rust-home's build directories: one per runner (used
+# by one job at a time) and one per kind of run, with the same buckets, so what a pull request's
+# install wrote is never linked into a run on main. `pnpm install` then only links what it
+# already has.
 #
-# Not for the Linux runner container (full.yml's check-linux, release.yml): it starts empty for
-# every job, so it keeps setup-node's cache.
+# Not for the jobs in the Linux runner container (full.yml's check-linux and release.yml's Linux
+# check): the container starts empty for every job, so they keep setup-node's cache.
 name: Node and pnpm on self-hosted runners
 description: Install pnpm and Node, keep the pnpm store in the runner's tool cache, and optionally install.
 inputs:
@@ -37,7 +39,25 @@ runs:
         package_json_file: ${{ inputs.package-json-file }}
     - name: Keep the pnpm store in the runner's tool cache
       shell: bash
-      run: echo "pnpm_config_store_dir=$RUNNER_TOOL_CACHE/pnpm-store" >> "$GITHUB_ENV"
+      env:
+        EVENT: ${{ github.event_name }}
+        REF: ${{ github.ref }}
+      run: |
+        set -euo pipefail
+        # isolate-rust-home's buckets; `other` is emptied before every use.
+        case "$EVENT/$REF" in
+          push/refs/heads/main) bucket=main-push ;;
+          schedule/refs/heads/main | workflow_dispatch/refs/heads/main) bucket=main-nightly ;;
+          pull_request/*) bucket=pull_request ;;
+          *) bucket=other ;;
+        esac
+        store="$RUNNER_TOOL_CACHE/pnpm-store/$bucket"
+        if [ "$bucket" = other ]; then
+          rm -rf "$store"
+        fi
+        mkdir -p "$store"
+        echo "pnpm store: $store"
+        echo "pnpm_config_store_dir=$store" >> "$GITHUB_ENV"
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         # An empty node-version falls back to node-version-file.

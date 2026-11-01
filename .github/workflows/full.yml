@@ -21,10 +21,10 @@
 # `gate` doesn't wait on a runner that isn't there, and `gate` accepts that skip. Both read the
 # one output, so changing the variables mid-run can't make them disagree.
 #
-# Every job runs on self-hosted runners on one Mac: the two macOS ARM64 runners, where jobs
-# isolate the Rust install (isolate-rust-home, which also gives each Rust-building job its own
-# persistent CARGO_TARGET_DIR per runner and kind of trigger: PR output is never reused on main),
-# install pnpm into ${{ runner.temp }} and don't use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the same Mac
+# Every job runs on self-hosted runners: the macOS ARM64 runners, where jobs isolate the Rust
+# install (isolate-rust-home, which also gives each Rust-building job its own persistent
+# CARGO_TARGET_DIR per runner and kind of trigger: PR output is never reused on main) and don't
+# use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the owner's Mac
 # (tools/ci-runner/linux/README.md), which runs `check-linux` only. There is no Windows runner
 # (X6); the fast lane covers `cargo xtask check` on macOS.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
@@ -107,8 +107,8 @@ jobs:
           BASE: origin/${{ github.base_ref }}
         run: cargo xtask changes --base "$BASE"
       # Docs-only PRs skip both lanes' suites, so the docs checks run here, under `gate`:
-      # every relative link, the todo board and path portability (no network).
-      - name: Docs checks (links, todo board, portable paths)
+      # links, prose, snippets, the todo board, portable paths and generated files (no network).
+      - name: Docs checks (cargo xtask check docs)
         if: github.event_name == 'pull_request'
         run: cargo xtask check docs
 

@@ -102,7 +102,7 @@ jobs:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # On PRs the full lane's `changes` job runs these checks; it skips them on pushes to main,
       # so they run here only then.
-      - name: Docs checks (links, todo board, prose, snippets, portable paths)
+      - name: Docs checks (cargo xtask check docs)
         if: github.event_name == 'push'
         run: cargo xtask check docs
       # On pushes to main, `check rust` renders the rustdoc into an empty doc/ (cargo rewrites
@@ -189,7 +189,7 @@ jobs:
   # runs even when one fails. Timings and WebAssembly memory go to the job summary (`cargo
   # xtask pdf-runtimes`; recorded, not asserted).
   pdf-runtimes:
-    name: "@laminapdf/sdk in ${{ matrix.label }}"
+    name: "@laminapdf/sdk in ${{ matrix.name }}"
     needs: [changes, wasm]
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -198,8 +198,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { group: browsers, label: "Chromium, Firefox and WebKit", runtimes: "chromium firefox webkit" }
-          - { group: servers, label: "Deno, Bun, workerd and Node 22 and 26", runtimes: "deno bun workerd" }
+          - { group: browsers, name: "Chromium, Firefox and WebKit", runtimes: "chromium firefox webkit" }
+          - { group: servers, name: "Deno, Bun, workerd and Node 22 and 26", runtimes: "deno bun workerd" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -222,17 +222,15 @@ jobs:
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       # Every runtime runs even when one before it failed (`!cancelled()`); the Node runs come
-      # last, each after switching the Node on PATH.
-      - name: "@laminapdf/sdk in ${{ matrix.runtimes }}"
+      # last, each after switching the Node on PATH. `--label` gives each run its own
+      # measurements file.
+      - name: "@laminapdf/sdk in ${{ matrix.group == 'servers' && 'Deno, Bun and workerd' || matrix.name }}"
         env:
           RUNTIMES: ${{ matrix.runtimes }}
-          LABEL: ${{ matrix.group }}
+          GROUP: ${{ matrix.group }}
         run: |
-          # Each run rewrites target/xtask/pdf-runtimes/measurements.json (also when a runtime
-          # fails), so it is kept under the run's own name for the upload.
-          trap 'mkdir -p target/xtask/measurements && cp target/xtask/pdf-runtimes/measurements.json "target/xtask/measurements/$LABEL.json" || true' EXIT
           # shellcheck disable=SC2086 # one argument per runtime
-          cargo xtask pdf-runtimes $RUNTIMES
+          cargo xtask pdf-runtimes $RUNTIMES --label "$GROUP"
       - if: ${{ !cancelled() && matrix.group == 'servers' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -240,13 +238,7 @@ jobs:
           package-manager-cache: false
       - name: "@laminapdf/sdk in Node 22"
         if: ${{ !cancelled() && matrix.group == 'servers' }}
-        env:
-          RUNTIMES: node
-          LABEL: node22
-        run: |
-          trap 'mkdir -p target/xtask/measurements && cp target/xtask/pdf-runtimes/measurements.json "target/xtask/measurements/$LABEL.json" || true' EXIT
-          # shellcheck disable=SC2086 # one argument per runtime
-          cargo xtask pdf-runtimes $RUNTIMES
+        run: cargo xtask pdf-runtimes node --label node22
       - if: ${{ !cancelled() && matrix.group == 'servers' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -254,19 +246,13 @@ jobs:
           package-manager-cache: false
       - name: "@laminapdf/sdk in Node 26"
         if: ${{ !cancelled() && matrix.group == 'servers' }}
-        env:
-          RUNTIMES: node
-          LABEL: node26
-        run: |
-          trap 'mkdir -p target/xtask/measurements && cp target/xtask/pdf-runtimes/measurements.json "target/xtask/measurements/$LABEL.json" || true' EXIT
-          # shellcheck disable=SC2086 # one argument per runtime
-          cargo xtask pdf-runtimes $RUNTIMES
+        run: cargo xtask pdf-runtimes node --label node26
       - name: Upload the measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pdf-runtimes-${{ matrix.group }}
-          path: target/xtask/measurements/
+          path: target/xtask/pdf-runtimes/
           if-no-files-found: ignore
 
   # Two short checks in one job, since each takes about a minute, less than waiting for a runner.
@@ -320,6 +306,8 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false
+          # No `rustup override set` either: rust-toolchain.toml already picks this toolchain.
+          override: false
       # The spike builds into its own target/ (unsetting the MSRV check's CARGO_TARGET_DIR): its
       # scripts and TS tests read its wasm from spikes/pdf-basics/rust/target/.
       - name: Rust spike (cross-target checks, wasm build, fmt, clippy, tests)

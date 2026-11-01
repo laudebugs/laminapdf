@@ -187,11 +187,12 @@ cargo xtask wasm             # build the wasm32 crates with the `wasm-release` p
                              #   (tsc, typecheck, Vitest in Node and Vite, publint, attw --pack)
 cargo xtask size             # raw/gzip/brotli of each module, min+gzip glue and @laminapdf/sdk's JS; fails above packages/wasm/size-budgets.json
                              #   (ADR 0016 §6), writes target/size-report.json, twiggy diff on > 5 % growth
-cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]…  # @laminapdf/sdk's example suite per runtime (default
+cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--label <name>]  # @laminapdf/sdk's example suite per runtime (default
                              #   all; after `wasm`): byte-identical to the goldens; hello/report timings and WebAssembly memory
                              #   vs pdf-library §4 in the job summary (recorded, not asserted); `node` is the one on PATH;
                              #   Deno, Bun, wrangler and Playwright are dev deps (`playwright install` runs first);
-                             #   --history <dir> --runner <label> --record appends them to history.jsonl (nightly)
+                             #   --history <dir> --runner <label> --record appends them to history.jsonl (nightly);
+                             #   --label <name> writes measurements-<name>.json instead of measurements.json
 cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against codes.schema.json, then write the error contract:
                              #   ErrorCode/WarningCode (crates/lamina-syntax/src/generated/codes.rs; the façade re-exports
                              #   them), the façade's explain pages (crates/lamina/src/generated/explain.rs), @laminapdf/sdk's
@@ -309,7 +310,7 @@ Web rendering (ADR 0004, 0009; C2c): `@laminapdf/render-pdfium`'s `await initPdf
 
 Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.
 
-Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
+Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks, in the fast lane's `msrv-and-spike` job.
 
 `spikes/krilla-fit/` — krilla vs a builder over `lamina-cos` (Round B1); standalone, not in CI: `scripts/fetch-font.sh` once, then `cargo run --release` prints the measurements (see its README).
 
