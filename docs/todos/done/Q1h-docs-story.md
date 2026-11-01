@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1b](./Q1b-docs-prose-check.md), [Q1e](./Q1e-quick-start-apps.md) |
-| Blocks | [Q1i](../ready/Q1i-guides-create.md), [Q1j](../ready/Q1j-recipes-and-troubleshooting.md), [Q1m](../ready/Q1m-guides-read-and-edit.md) |
+| Blocks | [Q1i](./Q1i-guides-create.md), [Q1j](../ready/Q1j-recipes-and-troubleshooting.md), [Q1m](../ready/Q1m-guides-read-and-edit.md) |
 | ADRs | None |
 | Branch | `feat/q1h-docs-story` |
 | PR title | `feat(docs): tell lamina's story: first PDF, concepts, glossary and an explicit sidebar` |
@@ -36,7 +36,7 @@ This todo gives the site a path a newcomer can follow. It rewrites the overview 
 
 **Out of scope** (and which todo covers it)
 
-- Guides ([Q1i](../ready/Q1i-guides-create.md), [Q1m](../ready/Q1m-guides-read-and-edit.md)), recipes and troubleshooting ([Q1j](../ready/Q1j-recipes-and-troubleshooting.md)).
+- Guides ([Q1i](../done/Q1i-guides-create.md), [Q1m](../ready/Q1m-guides-read-and-edit.md)), recipes and troubleshooting ([Q1j](../ready/Q1j-recipes-and-troubleshooting.md)).
 
 ## Tasks
 
