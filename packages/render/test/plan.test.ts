@@ -1,6 +1,6 @@
 // The tile planner against Rust's TilePlan (lamina-render's request.rs tests, same cases).
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LIMITS, isRenderError, pageToTile, planTile, RenderError, reviveRenderError } from "../src/index.js";
+import { DEFAULT_LIMITS, isRenderError, pageToTile, planTile, RenderError } from "../src/index.js";
 
 const LETTER = { width: 612, height: 792, rotate: 0 };
 
@@ -91,11 +91,14 @@ describe("RenderError", () => {
     expect(isRenderError(e, "render-failed")).toBe(false);
   });
 
-  it("survives structured clone through toJSON and reviveRenderError", () => {
+  it("is the ADR 0026 object as a diagnostic, with the ranges as pairs in data", () => {
     const e = new RenderError("data-pending", "missing", [[0, 10]]);
-    const posted = structuredClone(e.toJSON());
-    expect(isRenderError(posted, "data-pending")).toBe(true);
-    const revived = reviveRenderError(posted);
-    expect([revived instanceof RenderError, revived.code, revived.ranges]).toEqual([true, "data-pending", [[0, 10]]]);
+    expect(structuredClone(e.toDiagnostic())).toEqual({
+      code: "data-pending",
+      kind: "state",
+      message: "missing",
+      data: { ranges: [[0, 10]] },
+      docsUrl: "https://github.com/laudebugs/lamina/blob/main/docs/errors/data-pending.md",
+    });
   });
 });

@@ -2,7 +2,7 @@
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
 
-import { bytesSource, type RenderBackend, type RenderDocument } from "@laminapdf/render";
+import { bytesSource, type RenderBackend, type RenderDocument, RenderError } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
 import { Document, isLaminaError } from "@laminapdf/sdk";
@@ -36,6 +36,8 @@ export async function initBackend(init: BackendInit): Promise<{ name: string; ve
 }
 
 function currentBackend(): RenderBackend {
+  // Only a viewer bug gets here (the client loads the backend before anything else), so it stays
+  // an Error: the worker reports it as worker-failed, kind internal.
   if (backend === undefined) throw new Error("initBackend was not called");
   return backend;
 }
@@ -90,7 +92,7 @@ export async function openDocument(
   if (signal.aborted) {
     render.close();
     model.free();
-    throw { code: "cancelled", kind: "cancelled", message: "the open was cancelled" };
+    throw new RenderError("cancelled", "the open was cancelled");
   }
   // The new pair is open: only now is the previous document closed, so a failed open (a wrong
   // password, a broken file) leaves it working.
@@ -115,7 +117,7 @@ export function closeDocument(): undefined {
 /** The open document (`disposed` when there is none, or when `id` names a document since replaced). */
 export function current(id?: number): Open {
   if (open === undefined || (id !== undefined && id !== open.id)) {
-    throw { code: "disposed", kind: "state", message: "that document is not open in this worker" };
+    throw new RenderError("disposed", "that document is not open in this worker");
   }
   return open;
 }
