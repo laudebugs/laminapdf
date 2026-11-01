@@ -3,6 +3,7 @@
 //! backend's own golden).
 #![allow(
     dead_code,
+    unreachable_pub,
     clippy::unwrap_used,
     clippy::panic,
     clippy::indexing_slicing,

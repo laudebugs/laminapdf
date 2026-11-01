@@ -11,6 +11,10 @@
 //! repaired base only with the override, as a full rewrite; an encrypted base only with
 //! `remove_encryption`, as a plaintext full rewrite.
 #![allow(
+    unreachable_pub,
+    reason = "shared by the tests and the `roundtrip` example, as `tests/common` helpers are"
+)]
+#![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
     reason = "test support: a panic is a test failure"

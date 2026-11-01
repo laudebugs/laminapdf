@@ -2,6 +2,8 @@
 //! on a file changed since the merge base with `main` (the working tree and untracked drafts
 //! included) is an error, and a report on a file nobody has touched is a warning, counted per rule,
 //! until the cleanup todos have cleared them. `--all-strict` makes every report an error.
+//! [`Ratchet::everywhere`] is the same printer for a check whose findings are always errors
+//! (`check maintainability`), with warnings for what only needs a reader's attention.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -77,6 +79,8 @@ pub(crate) struct Ratchet {
     options: Options,
     changed: Option<BTreeSet<String>>,
     reports: Vec<Report>,
+    /// Built by [`Ratchet::everywhere`]: every [`Ratchet::add`] is an error, whatever changed.
+    everywhere: bool,
 }
 
 impl Ratchet {
@@ -88,6 +92,24 @@ impl Ratchet {
             options,
             changed: changed_files(root, untracked, name),
             reports: Vec::new(),
+            everywhere: false,
+        }
+    }
+
+    /// A check with no ratchet on changed files: every [`Ratchet::add`] is an error and every
+    /// [`Ratchet::warn`] a warning printed in full (`check maintainability`, whose baseline files
+    /// do the ratcheting).
+    pub(crate) fn everywhere(name: &'static str) -> Self {
+        Self {
+            name,
+            options: Options {
+                all_strict: true,
+                json: false,
+                warnings: true,
+            },
+            changed: None,
+            reports: Vec::new(),
+            everywhere: true,
         }
     }
 
@@ -111,6 +133,15 @@ impl Ratchet {
         }));
     }
 
+    /// Records `findings` on `path` as warnings, which never fail the check.
+    pub(crate) fn warn(&mut self, path: &str, findings: impl IntoIterator<Item = Finding>) {
+        self.reports.extend(findings.into_iter().map(|finding| Report {
+            path: path.to_owned(),
+            finding,
+            error: false,
+        }));
+    }
+
     /// Prints the reports and fails when any is an error; `file_count` is how many files were read.
     pub(crate) fn finish(mut self, file_count: usize, guideline: &str) -> Result<()> {
         self.reports
@@ -121,6 +152,9 @@ impl Ratchet {
             self.print_text(file_count);
         }
         let errors = self.reports.iter().filter(|report| report.error).count();
+        if errors > 0 && self.everywhere {
+            bail!("{}: {errors} error(s); see {guideline}", self.name);
+        }
         if errors > 0 {
             bail!("{}: {errors} report(s) on changed files; see {guideline}", self.name);
         }
@@ -140,6 +174,14 @@ impl Ratchet {
             }
         }
         let errors = self.reports.iter().filter(|report| report.error).count();
+        if self.everywhere {
+            let warnings = self.reports.len() - errors;
+            println!(
+                "{}: {file_count} files, {errors} error(s), {warnings} warning(s)",
+                self.name
+            );
+            return;
+        }
         let changed_count = self.changed.as_ref().map_or(0, BTreeSet::len);
         println!(
             "{}: {file_count} files, {errors} error(s) on changed files ({changed_count} paths changed), {} warning(s) elsewhere",
@@ -229,6 +271,20 @@ mod tests {
     #[test]
     fn json_with_warnings_should_be_refused() {
         assert!(Options::parse("x", &flags(&["--json", "--warnings"])).is_err());
+    }
+
+    #[test]
+    fn an_everywhere_ratchet_should_fail_on_an_error() {
+        let mut ratchet = Ratchet::everywhere("x");
+        ratchet.add("a.rs", [finding(1, "rule", "bad")]);
+        assert!(ratchet.finish(1, "guide").is_err());
+    }
+
+    #[test]
+    fn an_everywhere_ratchet_should_pass_with_warnings_only() {
+        let mut ratchet = Ratchet::everywhere("x");
+        ratchet.warn("a.rs", [finding(1, "rule", "note")]);
+        assert!(ratchet.finish(1, "guide").is_ok());
     }
 
     #[test]
