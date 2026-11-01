@@ -37,7 +37,7 @@ This todo rewrites the TypeScript and Rust examples to the [examples guideline](
 **Out of scope** (and which todo covers it)
 
 - Cloudflare Worker and Web Worker examples ([Q1g](./Q1g-worker-examples.md)).
-- Quick-start apps ([Q1e](./Q1e-quick-start-apps.md)).
+- Quick-start apps ([Q1e](../ongoing/Q1e-quick-start-apps.md)).
 
 ## Tasks
 
