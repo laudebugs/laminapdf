@@ -239,7 +239,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [Q1a](../todos/done/Q1a-docs-font-source-sans.md) | One sans-serif font on the docs site (Source Sans 3) | S | — |
-| [Q1b](../todos/ready/Q1b-docs-prose-check.md) | The `docs-prose` check for reader-facing text | M | — |
+| [Q1b](../todos/ongoing/Q1b-docs-prose-check.md) | The `docs-prose` check for reader-facing text | M | — |
 | [Q1c](../todos/ready/Q1c-examples-checks.md) | The examples checks: `docs-snippets`, a Biome override and `clippy-examples` | M | — |
 | [Q1d](../todos/ready/Q1d-example-api-cleanups.md) | API fixes the examples need | S | — |
 | [Q1e](../todos/ready/Q1e-quick-start-apps.md) | Runnable quick-start apps for every runtime | M | Q1c |

@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1h](./Q1h-docs-story.md), [Q1k](./Q1k-internal-ids-out-of-reader-text.md) |
+| Blocks | [Q1h](../ready/Q1h-docs-story.md), [Q1k](../ready/Q1k-internal-ids-out-of-reader-text.md) |
 | ADRs | None |
 | Branch | `feat/q1b-docs-prose-check` |
 | PR title | `feat(xtask): docs-prose check for reader-facing text` |
@@ -44,8 +44,8 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
 
 **Out of scope** (and which todo covers it)
 
-- Fixing the text it reports ([Q1i](./Q1i-guides-create.md), [Q1k](./Q1k-internal-ids-out-of-reader-text.md) and the other rewrites).
-- Checks on example code ([Q1c](./Q1c-examples-checks.md)).
+- Fixing the text it reports ([Q1i](../ready/Q1i-guides-create.md), [Q1k](../ready/Q1k-internal-ids-out-of-reader-text.md) and the other rewrites).
+- Checks on example code ([Q1c](../ready/Q1c-examples-checks.md)).
 
 ## Tasks
 

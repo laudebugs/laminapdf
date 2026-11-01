@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1b](./Q1b-docs-prose-check.md) |
+| Depends on | [Q1b](../ongoing/Q1b-docs-prose-check.md) |
 | Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1k-internal-ids-out-of-reader-text` |
