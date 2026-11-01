@@ -33,7 +33,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Guide rewrites ([Q1i](../ready/Q1i-guides-create.md), [Q1m](../ready/Q1m-guides-read-and-edit.md)).
+- Guide rewrites ([Q1i](../done/Q1i-guides-create.md), [Q1m](../ready/Q1m-guides-read-and-edit.md)).
 
 ## Tasks
 
@@ -69,6 +69,6 @@ Contributors use those IDs: keep them reachable in the contributor section, just
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process)) Findings and fixes in #149's commits 3f6dc7a (writing), 0240161 (code), 0d45fa3 (second round).
+- [x] CI green (every check run on #149's last tested commit)
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

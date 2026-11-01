@@ -44,13 +44,26 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 
 ## How it's checked
 
-- **Rust:** todo Q2a adds `cargo xtask check maintainability` to `cargo xtask check`, starting with the module budget and its baseline, the `#[expect]` count, duplicate public type names (an allow-list with reasons) and colliding façade re-exports. Later todos add their own bans to it:
+- **Rust:** `cargo xtask check maintainability` runs inside `cargo xtask check rust`, so on every code PR. It needs no build and takes about a second. It has six checks:
+  - `module-budget`: each `.rs` file under `crates/*/src/`, `tools/*/src/` and `apps/*/src-tauri/src/` holds at most 800 lines of non-test code. Tests, benches and examples have no module budget, and generated files (`generated/`, `*_generated.rs`) are exempt.
+  - `size-expect`: counts each size lint named by an `#[expect]`, `#[allow]` or `#[cfg_attr(…)]` attribute (inner `#![…]` ones too). The size lints are `clippy::too_many_lines`, `cognitive_complexity`, `too_many_arguments` and `excessive_nesting`, and an attribute that names two counts twice. The check counts them in every Rust file under `crates/`, `tools/` and `apps/`, tests and examples included, generated files not, and fails when the total passes the baseline's.
+  - `duplicate-type`: a `pub struct` or `pub enum` name defined in the `src/` of two crates, outside test code.
+  - `facade-collision`: one name made public twice by the `lamina` façade's public modules (`lib.rs` and the `pub mod name;` files it declares), by a `pub use` or by a `pub` item defined there. It doesn't see what a glob (`pub use a::*`) brings in, and it doesn't follow an inline `pub mod name { … }`; the façade uses neither.
+  - `baseline-shrinks` and `allow-list-shrinks` compare the two record files below with their versions at the merge base with `main`.
+
+  Two files record what exists today. `tools/xtask/maintainability-baseline.toml` lists the modules over the budget with their counts, and the number of size expects. `tools/xtask/maintainability-duplicates.toml` lists the duplicate names and façade collisions, each with a reason. Both only shrink. The check fails when the code goes past a record: a listed module grows by one line, a new module passes 800 lines, or a new expect or duplicate appears. It also fails when the code improves and the record doesn't, so lower or remove the entry in the same PR. Against the merge base, a baseline entry may not be added or raised, nor may the size-expect count. A new allow-list entry, or one with more homes, is a warning: a new duplicate is sometimes right, so a reviewer decides. When main's record files can't be read (no merge base in a shallow clone, or a file that no longer parses), the check warns that it couldn't compare.
+
+  A line of non-test code holds something other than whitespace and comments, outside `#[cfg(test)]` items. The check reads each file with a small lexer rather than line by line:
+  - Line comments, doc comments (`///`, `//!`) and block comments, nested ones included, are comments. A line with code and a comment counts.
+  - The inside of a string, byte string, C string, raw string or character literal is code, so a non-blank line of a multi-line string counts. Braces, quotes and `//` inside a literal don't change the count, and a lifetime (`'a`) isn't read as a character literal.
+  - A `#[cfg(test)]` attribute, or `#[cfg(all(…))]` with `test` among its arguments, marks every line from the attribute to the end of what it is on. That end is the first `;` outside brackets, or the `}` that closes its first braced body (an item's, a macro call's, a match arm's or a block's). On a field, a variant or a match arm, it is also the first `,`. A bracket that closes the enclosing list or block ends it too. Where the scan can't tell, it stops early, so the count errs towards more code.
+  - A `#![cfg(test)]` makes its module test code: the whole file at the top, or an inline `mod name { … }`. A module declared by `#[cfg(test)] mod name;` is a test file, found where Cargo looks for it or at its `#[path]`.
+
+  The workspace also turns on `clippy::cognitive_complexity` and `unreachable_pub` ([rust.md](rust.md#lints)). Later todos add their own bans to the check, each as one more entry in its list of checks (`tools/xtask/src/maintainability.rs`):
   - Q2c: cross-crate `#[path]` and shared helpers outside the fixtures crate;
   - Q2e: error-policy matches outside `lamina_cos::error`;
   - Q2i: lexers outside `lamina-syntax`;
   - Q2t: todo IDs in `src/`.
-
-  Q2a also switches on `clippy::cognitive_complexity` and `unreachable_pub` for the workspace.
 - **TypeScript:** todo Q2b adds Biome's complexity, function-length and `useThrowOnlyError` rules and TypeDoc's check for undocumented exports to `cargo xtask check ts`. Todo Q2u adds three more, run by `cargo xtask check ts` through the root scripts `check:deps`, `check:duplicates` and `check:unused`:
   - dependency-cruiser (`.dependency-cruiser.json`) fails on an import cycle, or a relative import from one package or app into another, across `packages/` and `apps/`. Today's eight render-adapter test imports, which Q2m moves into a shared package, are in `.dependency-cruiser-known-violations.json`. That list only shrinks: `check ts` fails while it lists a violation that no longer occurs.
   - jscpd (`.jscpd.json`) fails on any block of 10 lines or more repeated in any package's top-level `src/`, a new package's included (an example's own `src/`, such as the SDK's Worker example, is out of scope). It checks `src/` only for now. The SDK's two per-condition entries (`src/entry/node.ts` and `src/entry/workerd.ts`) are excluded: each binds the same three loader functions to its own runtime's loader, with that runtime in its doc comments.

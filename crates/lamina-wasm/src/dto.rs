@@ -12,7 +12,7 @@ use crate::error::{JsResult, invalid_argument};
 /// Options for `WasmDocument.openBytes`.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct OpenOptionsInit {
+pub(crate) struct OpenOptionsInit {
     /// The user or owner password of an encrypted document.
     #[tsify(optional)]
     pub password: Option<String>,
@@ -30,11 +30,11 @@ macro_rules! limits_init {
         /// `Limits` with every field optional (ADR 0003 §3; names as in Rust, camelCase).
         #[derive(Debug, Default, Deserialize, Tsify)]
         #[serde(rename_all = "camelCase", deny_unknown_fields)]
-        pub struct LimitsInit {
+        pub(crate) struct LimitsInit {
             $(
                 #[doc = concat!("`", stringify!($field), "`.")]
                 #[tsify(optional)]
-                pub $field: Option<u64>,
+                pub(crate) $field: Option<u64>,
             )*
         }
 
@@ -90,7 +90,7 @@ impl OpenOptionsInit {
 /// The save mode (ADR 0007 §3).
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum SaveModeJs {
+pub(crate) enum SaveModeJs {
     /// Incremental when allowed, else a full rewrite (the default).
     Auto,
     /// Append a revision.
@@ -102,7 +102,7 @@ pub enum SaveModeJs {
 /// What an incremental save returns.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum OutputJs {
+pub(crate) enum OutputJs {
     /// The whole file (the default).
     Whole,
     /// Only the appended revision (F7).
@@ -112,7 +112,7 @@ pub enum OutputJs {
 /// Object numbering in a full rewrite.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum RenumberJs {
+pub(crate) enum RenumberJs {
     /// Keep the numbers (the default).
     Keep,
     /// Number objects densely from 1.
@@ -122,7 +122,7 @@ pub enum RenumberJs {
 /// The cross-reference form.
 #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum XrefJs {
+pub(crate) enum XrefJs {
     /// Cross-reference and object streams (the default).
     Stream,
     /// A classic `xref` table.
@@ -132,7 +132,7 @@ pub enum XrefJs {
 /// Options for saving.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SaveOptionsInit {
+pub(crate) struct SaveOptionsInit {
     /// The mode (default `auto`).
     #[tsify(optional)]
     pub mode: Option<SaveModeJs>,
@@ -195,7 +195,7 @@ impl SaveOptionsInit {
 /// One page's facts (`lamina::PageInfo`).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct PageInfoJs {
+pub(crate) struct PageInfoJs {
     /// The 0-based index.
     pub index: u32,
     /// The stable page ID (`p12.0`).
@@ -228,7 +228,7 @@ impl From<lamina::PageInfo> for PageInfoJs {
 /// The Info dictionary's text entries; absent ones are left out (document text).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct DocumentInfoJs {
+pub(crate) struct DocumentInfoJs {
     /// `/Title`.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
@@ -271,7 +271,7 @@ impl From<lamina::DocumentInfo> for DocumentInfoJs {
 /// The pages an edit touched.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct EditedJs {
+pub(crate) struct EditedJs {
     /// IDs of the pages whose content or attributes changed.
     pub touched_pages: Vec<String>,
 }
@@ -287,7 +287,7 @@ impl From<lamina::Edited> for EditedJs {
 /// What a save wrote (`lamina::SaveReport`).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct SaveReportJs {
+pub(crate) struct SaveReportJs {
     /// Bytes written.
     pub bytes_written: u64,
     /// The mode used (`incremental` or `fullRewrite`).
@@ -326,7 +326,7 @@ impl From<&SaveReport> for SaveReportJs {
 /// How an undo or redo went (`lamina::UndoOutcome`).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub enum UndoOutcomeJs {
+pub(crate) enum UndoOutcomeJs {
     /// Everything was restored.
     Applied,
     /// Some properties were left alone (a later change replaced them, or they are gone).
@@ -348,7 +348,7 @@ impl From<&lamina::UndoOutcome> for UndoOutcomeJs {
 /// A job's progress (`lamina::Step::Progress`).
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct ProgressJs {
+pub(crate) struct ProgressJs {
     /// Work done so far (units of the phase).
     pub done: u32,
     /// The total, when known.

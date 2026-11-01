@@ -1,8 +1,6 @@
 ---
 title: Accessible PDFs
 description: Build PDF/UA-1 documents that screen readers can follow, with every machine-checkable rule checked when the builder finishes.
-sidebar:
-  order: 9
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
@@ -12,7 +10,7 @@ This guide builds a report that screen-reader users can read, which you need whe
 
 ## What PDF/UA asks for
 
-PDF/UA-1 (ISO 14289-1, "Universal Accessibility") is the standard for accessible PDF. A PDF/UA file is tagged: its structure tree says which content is a heading, a paragraph, a list, a table or a figure, and in what order to read it. Everything else, such as running headers and decorative rules, is marked as an artifact, which assistive technology skips. The file also needs a title, a language, alternate text for every figure, a description for every link and embedded fonts that map each glyph to characters.
+PDF/UA-1 ("Universal Accessibility") is the standard for accessible PDF. A PDF/UA file is tagged: its structure tree says which content is a heading, a paragraph, a list, a table or a figure, and in what order to read it. Everything else, such as running headers and decorative rules, is marked as an artifact, which assistive technology skips. The file also needs a title, a language, alternate text for every figure, a description for every link and embedded fonts that map each glyph to characters.
 
 Turn the profile on with one option: `profiles: ["PDF/UA-1"]` in TypeScript, `BuildOptions::default().with_profile(Profile::PdfUa1)` in Rust. Then `finish()` checks the rules a program can check and fails with a coded error for the first one the document breaks:
 
@@ -28,6 +26,7 @@ Turn the profile on with one option: `profiles: ["PDF/UA-1"]` in TypeScript, `Bu
 | Every link has a `Link` element and a description | [`link-without-structure`](/reference/codes/link-without-structure/), [`link-without-contents`](/reference/codes/link-without-contents/) |
 | Every font is embedded (no standard 14 font) | [`font-not-embedded`](/reference/codes/font-not-embedded/) |
 | Every glyph maps to Unicode | [`glyph-without-unicode`](/reference/codes/glyph-without-unicode/) |
+| The PDF version is 1.7 or lower | [`profile-version-conflict`](/reference/codes/profile-version-conflict/) |
 
 The builder writes the rest for you. It puts the PDF/UA identifier in the document's XMP metadata, the XML packet in the file that describes it. It also asks viewers to show the title instead of the file name, and orders links by the structure.
 
@@ -54,4 +53,8 @@ About half of PDF/UA's requirements need a person. lamina can check that a figur
 
 Every example on this site that claims PDF/UA-1 is validated each night with veraPDF, the open-source validator the PDF Association backs.
 
-To make a document both accessible and archival, add a PDF/A profile next to `PDF/UA-1`: see [Archival PDFs](/guides/archival-pdfs/).
+:::note[Details]
+PDF/UA-1 is ISO 14289-1. veraPDF checks it against the Matterhorn Protocol, the PDF Association's list of PDF/UA failure conditions; most of the builder's checks are Matterhorn conditions a program can test; the version check comes from PDF/UA-1's base, PDF 1.7.
+:::
+
+Next: to make a document both accessible and archival, add a PDF/A profile next to `PDF/UA-1`, as [Archival PDFs](/guides/archival-pdfs/) shows.

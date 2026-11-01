@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../ongoing/Q2a-maintainability-checks-rust.md) |
+| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2s-facade-names` |
@@ -20,7 +20,7 @@ Readers of the docs meet `lamina::TextRun` (drawn text) next to `lamina::extract
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina/src/{lib.rs:125-163, extract.rs:17, document.rs:390-398}`, `lamina-text/src/lib.rs:93,98`, lamina-build's `TextRun`, `Font` and `Tag`; the façade collision check from [Q2a](../ongoing/Q2a-maintainability-checks-rust.md).
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina/src/{lib.rs:125-163, extract.rs:17, document.rs:390-398}`, `lamina-text/src/lib.rs:93,98`, lamina-build's `TextRun`, `Font` and `Tag`; the façade collision check from [Q2a](../done/Q2a-maintainability-checks-rust.md).
 
 ## Scope
 

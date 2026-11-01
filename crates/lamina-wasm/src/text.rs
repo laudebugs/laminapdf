@@ -13,7 +13,7 @@ use crate::error::JsResult;
 /// Options for `WasmPage.text`.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct TextOptionsInit {
+pub(crate) struct TextOptionsInit {
     /// Leave out text drawn invisibly (rendering modes 3 and 7: OCR layers, hidden text).
     #[tsify(optional)]
     pub skip_invisible: Option<bool>,
@@ -29,7 +29,7 @@ impl TextOptionsInit {
 /// content on one baseline, in logical order.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct TextRunJs {
+pub(crate) struct TextRunJs {
     /// The run's text in logical order (document text).
     pub text: String,
     /// The font's `/BaseFont` (document text).

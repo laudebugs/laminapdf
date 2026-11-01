@@ -17,6 +17,7 @@ mod harness;
 mod licenses;
 mod lines;
 mod live;
+mod maintainability;
 mod nightly;
 mod pdf_runtimes;
 mod pdfium;
@@ -35,6 +36,8 @@ mod verapdf;
 mod verify_install;
 mod version;
 mod wasm;
+#[cfg(test)]
+mod workflows;
 mod workspace;
 
 use std::env;
@@ -55,9 +58,16 @@ tasks:
                     docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
                     gen codes --check and version sync --check
-                    rust: fmt --check, portability, clippy (native + wasm32), clippy-examples, tests, rustdoc, cargo-deny
+                    rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
+                          tests, rustdoc, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
                           workspace, the docs site's build (apps/docs), npm licences
+  check maintainability
+                    docs/guidelines/maintainability.md's Rust rules, without a build: modules of at most 800
+                    lines of non-test code and no more size-lint #[expect]s than
+                    tools/xtask/maintainability-baseline.toml records, no public type name in two crates
+                    and no name the lamina façade re-exports twice beyond
+                    tools/xtask/maintainability-duplicates.toml (both files only shrink)
   check docs-prose [--all-strict] [--warnings] [--json]
                     reader-facing text (docs site, docs/errors, package READMEs) against
                     docs/guidelines/docs-writing.md: errors on files changed since the merge
@@ -252,16 +262,8 @@ fn main() -> Result<()> {
     let ws = Workspace::load(repo_root()?)?;
 
     match (task, rest) {
-        ("check", []) => {
-            check_docs(&ws)?;
-            check_rust(&ws)?;
-            check_ts(&ws)
-        }
-        ("check", [scope]) if scope == "docs" => check_docs(&ws),
-        ("check", [scope, flags @ ..]) if is_docs_ratchet(scope) => ratchet(&ws, &format!("check {scope}"), flags),
+        ("check", scopes) => check(&ws, scopes),
         (command @ ("biome-examples" | "clippy-examples"), flags) => ratchet(&ws, command, flags),
-        ("check", [scope]) if scope == "rust" => check_rust(&ws),
-        ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
         ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
         ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
@@ -329,6 +331,23 @@ fn main() -> Result<()> {
     }
 }
 
+/// `cargo xtask check [scope] [flags]`.
+fn check(ws: &Workspace, scopes: &[String]) -> Result<()> {
+    match scopes {
+        [] => {
+            check_docs(ws)?;
+            check_rust(ws)?;
+            check_ts(ws)
+        }
+        [scope] if scope == "docs" => check_docs(ws),
+        [scope, flags @ ..] if is_docs_ratchet(scope) => ratchet(ws, &format!("check {scope}"), flags),
+        [scope] if scope == "rust" => check_rust(ws),
+        [scope] if scope == "maintainability" => maintainability::run(&ws.root),
+        [scope] if scope == "ts" => check_ts(ws),
+        _ => bail!("unknown check: {}\n\n{USAGE}", scopes.join(" ")),
+    }
+}
+
 /// The repository root: two levels above this crate (`tools/xtask`), so tasks work from any directory.
 fn repo_root() -> Result<PathBuf> {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -378,6 +397,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
 
 fn check_rust(ws: &Workspace) -> Result<()> {
     fmt_rust(ws, true)?;
+    maintainability::run(&ws.root)?;
     portability(ws)?;
     clippy(ws)?;
     step("clippy-examples: lamina's examples, functions of at most 40 lines (strict on changed examples)");
