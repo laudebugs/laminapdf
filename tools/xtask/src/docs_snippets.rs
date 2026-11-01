@@ -208,7 +208,7 @@ fn glob_findings(globs: &[Glob]) -> Vec<Finding> {
                 glob.line,
                 "glob-test-path",
                 format!(
-                    "pages show examples, not tests: move `{}` into an examples/ folder and drop it from the glob",
+                    "pages show examples, not tests: move the files `{}` matches into an examples/ folder, then drop the pattern from Snippet's glob",
                     glob.pattern
                 ),
             )
@@ -380,7 +380,9 @@ fn pair_findings(
                 findings.push(finding(
                     0,
                     "pair",
-                    format!("the pair table names `{side}`, which doesn't exist"),
+                    format!(
+                        "`{side}` doesn't exist: fix its path in tools/xtask/docs-snippets.toml or remove the pair"
+                    ),
                 ));
             }
         }
@@ -389,7 +391,7 @@ fn pair_findings(
                 0,
                 "pair",
                 format!(
-                    "`{}` and `{}` show the same task under different names: rename one",
+                    "`{}` and `{}` show the same task under different names: give both the same name (kebab-case for .ts, snake_case for .rs) and update the pair table",
                     pair.ts, pair.rust
                 ),
             ));

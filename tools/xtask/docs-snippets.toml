@@ -2,7 +2,7 @@
 #
 # The TypeScript and Rust examples that show the same task. Each pair must share a name
 # (`links-and-outlines.ts`, `links_and_outlines.rs`) and the first sentence of its header comment.
-# A TypeScript and Rust example whose names match must be listed here.
+# A TypeScript example and a Rust example whose names match must be listed here.
 
 [[pair]]
 ts = "packages/sdk/examples/hello.ts"

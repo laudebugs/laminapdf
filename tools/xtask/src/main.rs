@@ -55,6 +55,9 @@ tasks:
                     docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
                     gen codes --check and version sync --check
+                    rust: fmt --check, portability, clippy (native + wasm32), clippy-examples, tests, rustdoc, cargo-deny
+                    ts:   biome ci, biome-examples, typecheck and tests of the pnpm
+                          workspace, the docs site's build (apps/docs), npm licences
   check docs-prose [--all-strict] [--warnings] [--json]
                     reader-facing text (docs site, docs/errors, package READMEs) against
                     docs/guidelines/docs-writing.md: errors on files changed since the merge
@@ -62,16 +65,13 @@ tasks:
                     --all-strict fails on every report, --warnings lists them
                     (--json lists every report, so it takes no --warnings)
   check docs-snippets [--all-strict] [--warnings] [--json]
-                    the examples and Snippet's glob against docs/guidelines/examples.md, with
-                    the same ratchet; TS/Rust pairs in tools/xtask/docs-snippets.toml
+                    the examples and Snippet's glob against docs/guidelines/examples.md: strict on
+                    changed examples, warnings elsewhere; TS/Rust pairs in tools/xtask/docs-snippets.toml
   biome-examples [--all-strict]
                     Biome with --error-on-warnings on the changed TS examples (all with --all-strict)
   clippy-examples [--all-strict] [--warnings] [--json]
                     clippy on lamina's examples (functions of at most 40 lines, no discarded
-                    results), with the same ratchet
-                    rust: fmt --check, portability, clippy (native + wasm32), clippy-examples, tests, rustdoc, cargo-deny
-                    ts:   biome ci, biome-examples, typecheck and tests of the pnpm
-                          workspace, the docs site's build (apps/docs), npm licences
+                    results): strict on changed examples, warnings elsewhere
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: ErrorCode/WarningCode
@@ -344,7 +344,12 @@ const RATCHETS: [&str; 4] = ["docs-prose", "docs-snippets", "biome-examples", "c
 
 /// Runs ratcheting check `name` with its `[--all-strict] [--warnings] [--json]` flags.
 fn ratchet(ws: &Workspace, name: &str, flags: &[String]) -> Result<()> {
-    let options = reports::Options::parse(name, flags)?;
+    let command = if name.starts_with("docs-") {
+        format!("check {name}")
+    } else {
+        name.to_owned()
+    };
+    let options = reports::Options::parse(&command, flags)?;
     match name {
         "docs-prose" => docs_prose::run(&ws.root, options),
         "docs-snippets" => docs_snippets::run(&ws.root, options),

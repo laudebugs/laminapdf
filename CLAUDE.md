@@ -158,10 +158,12 @@ cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-faci
                              #   files changed since the merge base with main (drafts included), counted warnings elsewhere
 cargo xtask check docs-snippets [--all-strict] [--warnings] [--json]  # the examples and Snippet's glob vs
                              #   docs/guidelines/examples.md (headers, shown on a page or in examples/UNUSED.md, TS/Rust pairs in
-                             #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding, ≤ 100 lines); same ratchet
+                             #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding, ≤ 100 lines); strict on changed
+                             #   examples, warnings elsewhere
 cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on the changed TS examples (every one with --all-strict)
 cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on lamina's examples with
-                             #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use; same ratchet
+                             #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
+                             #   strict on changed examples, warnings elsewhere
 cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), clippy-examples, tests, rustdoc, cargo-deny
 cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build

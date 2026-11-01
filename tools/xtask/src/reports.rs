@@ -23,19 +23,20 @@ pub(crate) struct Options {
 }
 
 impl Options {
-    /// Parses `[--all-strict] [--warnings] [--json]`; `name` is the check, for the usage line.
-    pub(crate) fn parse(name: &str, flags: &[String]) -> Result<Self> {
+    /// Parses `[--all-strict] [--warnings] [--json]`; `command` is how the check is run
+    /// (`check docs-prose`, `clippy-examples`), for the usage line.
+    pub(crate) fn parse(command: &str, flags: &[String]) -> Result<Self> {
         let mut options = Self::default();
         for flag in flags {
             match flag.as_str() {
                 "--all-strict" => options.all_strict = true,
                 "--warnings" => options.warnings = true,
                 "--json" => options.json = true,
-                _ => bail!("usage: cargo xtask check {name} [--all-strict] [--warnings] [--json]"),
+                _ => bail!("usage: cargo xtask {command} [--all-strict] [--warnings] [--json]"),
             }
         }
         if options.json && options.warnings {
-            bail!("{name}: --json already lists every report; drop --warnings");
+            bail!("{command}: --json already lists every report; drop --warnings");
         }
         Ok(options)
     }

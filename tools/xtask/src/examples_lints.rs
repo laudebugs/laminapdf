@@ -20,6 +20,9 @@ const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 /// Biome's `packages/sdk/biome.json` override warns on every example; this lints the changed
 /// ones again with warnings as errors.
 pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
+    if options.json || options.warnings {
+        bail!("usage: cargo xtask biome-examples [--all-strict] (Biome prints its own report)");
+    }
     let untracked = Ratchet::untracked(&ws.root)?;
     let ratchet = Ratchet::new(&ws.root, "examples (Biome)", options, &untracked);
     let tracked = Tracked::from_git(&ws.root)?;
@@ -114,13 +117,20 @@ fn example_finding(message: &Value, root: &Path) -> Option<(String, crate::repor
         .get("line_start")?
         .as_u64()
         .and_then(|line| usize::try_from(line).ok())?;
-    let rule = match code {
-        "clippy::too_many_lines" => "function-length",
-        "clippy::let_underscore_must_use" => "discarded-result",
-        _ => "clippy",
-    };
     let text = diagnostic.get("message")?.as_str()?;
-    Some((path, finding(line, rule, format!("{text} ({code})"))))
+    let (rule, message) = match code {
+        "clippy::too_many_lines" => (
+            "function-length",
+            format!("{text}: split it into functions of 40 lines or fewer"),
+        ),
+        "clippy::let_underscore_must_use" => (
+            "discarded-result",
+            "handle the `#[must_use]` result (with `?` or a `match`) instead of discarding it with `let _ =`"
+                .to_owned(),
+        ),
+        _ => ("clippy", format!("{text} ({code})")),
+    };
+    Some((path, finding(line, rule, message)))
 }
 
 #[cfg(test)]

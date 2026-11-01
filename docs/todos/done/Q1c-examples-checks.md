@@ -12,7 +12,7 @@
 | Branch | `feat/q1c-examples-checks` |
 | PR title | `feat(xtask): docs-snippets, the examples Biome override and clippy-examples` |
 | Size | M |
-| PR | — |
+| PR | [#155](https://github.com/laudebugs/lamina/pull/155) |
 
 ## Goal
 
@@ -51,7 +51,7 @@ The owner asked for a check that keeps examples maintainable while we write them
 - [x] Write `docs-snippets` with unit tests; read the glob from `Snippet.astro` and the uses from the `.mdx` files.
 - [x] Add the Biome override; run it and list today's violations.
 - [x] Add `clippy-examples` and its configuration directory; run it and list today's violations. Deviation: `let_underscore_must_use` is warned and ratcheted like the rest, not denied with `-D`, so untouched examples don't fail.
-- [x] Add the changed-files logic (shared with Q1b if it has landed) and `--all-strict` to all three. Q1b's ratchet moved into `tools/xtask/src/reports.rs`, which all four checks use; Biome's strict pass is `cargo xtask biome-examples`.
+- [x] Add the changed-files logic (shared with Q1b if it has landed) and `--all-strict` to all three. Q1b's ratchet moved into `tools/xtask/src/reports.rs`, which docs-prose and the three examples checks use; Biome's strict pass is `cargo xtask biome-examples`.
 - [x] Wire each check into its lane; put today's violations in the PR description as Q1e–Q1g's work list.
 
 ## Acceptance criteria

@@ -16,5 +16,5 @@ disallowed-types = [
 doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto", "ToUnicode", "CMap", "CMaps", "CIDFont", "CIDFonts", "TrueType", "OpenType", "PostScript", "XObject", "XObjects", "ExtGState", "DeviceGray", "DeviceRGB", "DeviceCMYK", "DeviceN", "ICCBased", "HarfBuzz", "HarfRust", "ICU4X", "ICU4C", "PDFium"]
 
 # The examples only (docs/guidelines/examples.md): functions of at most 40 lines. This file is the root
-# clippy.toml plus this line, because clippy reads one configuration (a test checks they agree).
+# clippy.toml plus this line, because clippy reads one configuration (a test checks the two files agree).
 too-many-lines-threshold = 40
