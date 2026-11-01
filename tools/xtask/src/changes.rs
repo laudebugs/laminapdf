@@ -63,9 +63,8 @@ pub(crate) fn renames(root: &Path, merge_base: &str) -> Result<BTreeMap<String, 
 /// path and the new one, each ended by a NUL.
 fn parse_renames(name_status: &str) -> BTreeMap<String, String> {
     let fields: Vec<&str> = name_status.split('\0').filter(|field| !field.is_empty()).collect();
-    fields
-        .as_chunks::<3>()
-        .0
+    let (records, _partial) = fields.as_chunks::<3>();
+    records
         .iter()
         .map(|[_, old, new]| ((*old).to_owned(), (*new).to_owned()))
         .collect()

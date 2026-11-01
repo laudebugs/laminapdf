@@ -37,9 +37,10 @@ Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an
 
 - The product name (lamina), the repository, `LAMINA_*` environment variables and `[package.metadata.lamina]`.
 - The `@laminapdf/wasm` module files (`lamina_base`, `lamina_text`, `lamina_extract`, `lamina_render_hayro`): npm file names, not crates.
-- Text written into PDFs and fixtures (producers, creators, document IDs such as `lamina-build-B5a`), so every golden stays byte-identical.
+- Text written into PDFs and fixtures (producers, creators, document IDs such as `lamina-build-B5a`), so every golden stays byte-identical, and checksummed inputs such as `tools/std14-gen/data/latin-encodings.txt`, whose comment still names `lamina_syntax`.
 - The frozen spikes' own crate names (`lamina-ffi`, `lamina-pdf-basics`, …); their dependencies on the workspace crates are updated.
-- Generated changelogs (`CHANGELOG.md`), and done todos and their board titles, which keep the names they were written under, as in [P0](P0-npm-scope-laminapdf.md); only their links follow the rename.
+- Generated changelogs (`CHANGELOG.md`).
+- Done todos and their board titles: they keep the names they were written under, as in [P0](P0-npm-scope-laminapdf.md), and only their links follow the rename.
 
 ## Tasks
 
@@ -52,9 +53,9 @@ Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an
 
 ## Acceptance criteria
 
-- [ ] `cargo metadata` lists only `laminapdf` and `laminapdf-*` crates under `crates/`, and `git grep` finds no `lamina-<crate>` or `lamina_<crate>` outside the out-of-scope list
-- [ ] Every PDF golden and every checksummed input is unchanged byte for byte; a text fixture changes only where it names a renamed path (the reading-order corpus's `method`, which names its generator)
-- [ ] CI green
+- [x] `cargo metadata` lists only `laminapdf` and `laminapdf-*` crates under `crates/`, and `git grep` finds no `lamina-<crate>` or `lamina_<crate>` outside the out-of-scope list
+- [x] Every PDF golden and every checksummed input is unchanged byte for byte; a text fixture changes only where it names a renamed path (the reading-order corpus's `method`, which names its generator)
+- [x] CI green
 
 ## Post-merge checks
 
@@ -71,12 +72,12 @@ The existing suites, unchanged; they prove the rename kept behaviour and output.
 ## Risks and open questions
 
 - Every open Rust branch conflicts with the rename; the other agents hold new Rust work until it lands.
-- The examples checks (`docs-snippets`, `clippy-examples`, `biome-examples`) are strict on changed files, and the rename changes every example, so their existing problems, which [Q1d](../ready/Q1d-example-api-cleanups.md) and [Q1f](../ready/Q1f-examples-readable.md) clear, fail this PR.
+- The examples checks (`docs-snippets`, `clippy-examples`, `biome-examples`) are strict on changed files, and the rename changes every example. Their existing problems belong to [Q1d](../ready/Q1d-example-api-cleanups.md) and [Q1f](../ready/Q1f-examples-readable.md), so the ratchet skips rename-only files until the post-merge check removes that exemption.
 
 ## Definition of done
 
 - [x] Claimed: the work PR, opened from a fresh worktree, added this file in `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
