@@ -34,7 +34,7 @@ The viewer's worker keeps `renderLog`, which grows on every render and is never 
 
 **Out of scope** (and which todo covers it)
 
-- Error shapes ([Q2k](./Q2k-boundary-errors-ts.md)); complexity splits ([Q2p](./Q2p-ts-complexity-splits.md)).
+- Error shapes ([Q2k](../ongoing/Q2k-boundary-errors-ts.md)); complexity splits ([Q2p](./Q2p-ts-complexity-splits.md)).
 
 ## Tasks
 

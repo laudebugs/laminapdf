@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2k` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2j](../done/Q2j-boundary-errors-rust.md) |
@@ -32,7 +32,7 @@ The worker turns a render error's `ranges` into `{offset, length}` objects, but 
 
 **Out of scope** (and which todo covers it)
 
-- Generated render codes ([Q2l](./Q2l-boundary-lists-generated.md)).
+- Generated render codes ([Q2l](../ready/Q2l-boundary-lists-generated.md)).
 
 ## Tasks
 
@@ -65,7 +65,7 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))

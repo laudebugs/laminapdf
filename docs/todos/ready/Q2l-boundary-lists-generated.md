@@ -30,7 +30,7 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 
 **Out of scope** (and which todo covers it)
 
-- Error shapes ([Q2j](../done/Q2j-boundary-errors-rust.md), [Q2k](./Q2k-boundary-errors-ts.md)).
+- Error shapes ([Q2j](../done/Q2j-boundary-errors-rust.md), [Q2k](../ongoing/Q2k-boundary-errors-ts.md)).
 
 ## Tasks
 
