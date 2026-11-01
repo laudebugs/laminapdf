@@ -1,6 +1,7 @@
 //! [`RenderError`]: what a render backend can refuse or fail with, in the ADR 0026 contract.
 
-use lamina_syntax::{ErrorKind, Location, Position};
+use lamina_syntax::{Diagnostic, ErrorCode, ErrorKind, Location, Position};
+use serde_json::{Map, Value, json};
 
 /// Why a render backend refused a request or couldn't render.
 ///
@@ -102,39 +103,74 @@ impl RenderError {
     /// variants reuse codes defined by other groups.
     pub const CODES: &'static [&'static str] = &["render-too-large", "render-failed", "render-backend-unavailable"];
 
-    /// A stable kebab-case code for this error (ADR 0026 §1).
+    /// The variant's entry in the generated [`ErrorCode`] table (one per entry of
+    /// `fixtures/codes.json`), which holds its code string, kind, hint and `docsUrl`.
     #[must_use]
-    pub const fn code(&self) -> &'static str {
+    pub const fn error_code(&self) -> ErrorCode {
         match self {
-            Self::TooLarge { .. } | Self::InputTooLarge { .. } => "render-too-large",
-            Self::InvalidRequest { .. } | Self::BufferSize { .. } => "invalid-argument",
-            Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
-            Self::PasswordRequired => "password-required",
-            Self::WrongPassword => "wrong-password",
-            Self::DataPending { .. } => "data-pending",
-            Self::Source { .. } => "source",
-            Self::Failed { .. } => "render-failed",
-            Self::Unavailable { .. } => "render-backend-unavailable",
-            Self::Cancelled => "cancelled",
+            Self::TooLarge { .. } | Self::InputTooLarge { .. } => ErrorCode::RenderTooLarge,
+            Self::InvalidRequest { .. } | Self::BufferSize { .. } => ErrorCode::InvalidArgument,
+            Self::PageIndexOutOfRange { .. } => ErrorCode::PageIndexOutOfRange,
+            Self::PasswordRequired => ErrorCode::PasswordRequired,
+            Self::WrongPassword => ErrorCode::WrongPassword,
+            Self::DataPending { .. } => ErrorCode::DataPending,
+            Self::Source { .. } => ErrorCode::Source,
+            Self::Failed { .. } => ErrorCode::RenderFailed,
+            Self::Unavailable { .. } => ErrorCode::RenderBackendUnavailable,
+            Self::Cancelled => ErrorCode::Cancelled,
         }
     }
 
-    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
-    /// [`RenderError::code`] (a unit test checks every variant).
+    /// A stable kebab-case code for this error (ADR 0026 §1).
+    #[must_use]
+    pub const fn code(&self) -> &'static str {
+        self.error_code().as_str()
+    }
+
+    /// The kind of this error ([ADR 0026] §2), from the generated [`ErrorCode`] table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
+        self.error_code().kind()
+    }
+
+    /// The [ADR 0026] §1 object: what a binding hands to another language. `data` holds the
+    /// fields each code's `docs/errors` page lists; nothing in it is read from the document.
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub fn diagnostic(&self) -> Diagnostic {
+        Diagnostic::error(self.error_code(), self.to_string())
+            .with_location(self.location())
+            .with_data(self.data())
+    }
+
+    /// The `data` of [`RenderError::diagnostic`].
+    fn data(&self) -> Map<String, Value> {
         match self {
-            Self::TooLarge { .. } | Self::InputTooLarge { .. } => ErrorKind::Limit,
-            Self::InvalidRequest { .. } | Self::BufferSize { .. } | Self::PageIndexOutOfRange { .. } => {
-                ErrorKind::Usage
-            }
-            Self::PasswordRequired | Self::WrongPassword => ErrorKind::Security,
-            Self::DataPending { .. } => ErrorKind::State,
-            Self::Source { .. } | Self::Unavailable { .. } => ErrorKind::Io,
-            Self::Failed { .. } => ErrorKind::Input,
-            Self::Cancelled => ErrorKind::Cancelled,
+            Self::TooLarge {
+                width,
+                height,
+                limit,
+                unit,
+            } => fields([
+                ("width", json!(width)),
+                ("height", json!(height)),
+                ("limit", json!(limit)),
+                ("unit", json!(unit)),
+            ]),
+            Self::InputTooLarge { len, limit } => fields([("len", json!(len)), ("limit", json!(limit))]),
+            Self::InvalidRequest { what } => fields([("argument", json!("request")), ("detail", json!(what))]),
+            Self::BufferSize { .. } => fields([
+                ("argument", json!("output")),
+                ("detail", json!("the buffer does not hold exactly the tile's bytes")),
+            ]),
+            Self::PageIndexOutOfRange { index, count } => fields([("index", json!(index)), ("count", json!(count))]),
+            Self::DataPending { ranges } => fields([("ranges", json!(ranges))]),
+            Self::Failed { backend, stage } => fields([("backend", json!(backend)), ("stage", json!(stage))]),
+            Self::Unavailable { backend } => fields([("backend", json!(backend))]),
+            Self::PasswordRequired | Self::WrongPassword | Self::Source { .. } | Self::Cancelled => Map::new(),
         }
     }
 
@@ -157,6 +193,11 @@ impl RenderError {
             | Self::Cancelled => Location::NONE,
         }
     }
+}
+
+/// A `data` object from its entries.
+fn fields<const N: usize>(entries: [(&str, Value); N]) -> Map<String, Value> {
+    entries.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()
 }
 
 impl From<lamina_cos::SourceError> for RenderError {
@@ -201,6 +242,37 @@ mod tests {
             RenderError::Unavailable { backend: "pdfium" },
             RenderError::Cancelled,
         ]
+    }
+
+    /// Every variant's §1 object validates against the generated `lamina.error/1` schema.
+    #[test]
+    fn every_diagnostic_matches_the_error_schema() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../../lamina/schemas/error.schema.json")).unwrap();
+        let id = schema["$id"].as_str().unwrap().to_owned();
+        let mut schemas = boon::Schemas::new();
+        let mut compiler = boon::Compiler::new();
+        compiler.add_resource(&id, schema).unwrap();
+        let index = compiler.compile(&id, &mut schemas).unwrap();
+        for e in samples() {
+            let value = e.diagnostic().to_json();
+            if let Err(report) = schemas.validate(&value, index) {
+                panic!("{value} does not match lamina.error/1:\n{report}");
+            }
+        }
+    }
+
+    /// A `data-pending` lists its ranges as `[offset, length]` pairs under `data.ranges`, the
+    /// shape `@laminapdf/sdk`'s `LaminaError.ranges` takes.
+    #[test]
+    fn data_pending_lists_its_ranges_as_pairs() {
+        let e = RenderError::DataPending {
+            ranges: vec![(0, 1), (4096, 512)],
+        };
+        assert_eq!(
+            e.diagnostic().to_json()["data"]["ranges"],
+            serde_json::json!([[0, 1], [4096, 512]])
+        );
     }
 
     #[test]

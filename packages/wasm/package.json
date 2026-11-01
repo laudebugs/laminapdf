@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "ajv": "catalog:",
     "esbuild": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

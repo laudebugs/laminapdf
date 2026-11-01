@@ -54,11 +54,23 @@ export async function initHayro(wasm?: InitInput | Promise<InitInput>): Promise<
 /** Set once the module trapped: its state may be half-updated, so nothing else runs in it. */
 let broken = false;
 
+/** What the module throws: the ADR 0026 §1 object (crates/lamina-render-wasm), a plain object. */
+interface ModuleError {
+  readonly code: RenderErrorCode;
+  readonly message: string;
+  readonly data?: { readonly ranges?: [number, number][] };
+}
+
+/** Whether `e` is one of the module's own errors: an object with a known render code. */
+function isModuleError(e: unknown): e is ModuleError {
+  return typeof e === "object" && e !== null && isRenderErrorCode((e as { code?: unknown }).code);
+}
+
 /**
- * Converts what the module threw: its errors (`code`, `kind`, `ranges`) into RenderError, and a
- * WebAssembly trap (a hayro panic: the module is built with `panic = "abort"`) into
- * `render-failed`, after which the instance is broken and the worker must be restarted
- * (ADR 0009 §3.6).
+ * Converts what the module threw: its errors (the ADR 0026 object, `data.ranges` for
+ * `data-pending`) into RenderError, and a WebAssembly trap (a hayro panic: the module is built
+ * with `panic = "abort"`) into `render-failed`, after which the instance is broken and the
+ * worker must be restarted (ADR 0009 §3.6).
  */
 function rethrow(e: unknown): never {
   if (e instanceof WebAssembly.RuntimeError) {
@@ -66,10 +78,7 @@ function rethrow(e: unknown): never {
     throw new RenderError("render-failed", "the hayro backend failed on this document (the module must be reloaded)");
   }
   // Only the module's own errors (a known render code): anything else is passed on unchanged.
-  if (e instanceof Error && isRenderErrorCode((e as { code?: unknown }).code)) {
-    const { code, ranges } = e as unknown as { code: RenderErrorCode; ranges?: [number, number][] };
-    throw new RenderError(code, e.message, ranges);
-  }
+  if (isModuleError(e)) throw new RenderError(e.code, e.message, e.data?.ranges);
   throw e;
 }
 

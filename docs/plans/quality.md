@@ -265,7 +265,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
 | [Q2h](../todos/ready/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
 | [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
-| [Q2j](../todos/ongoing/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
+| [Q2j](../todos/done/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
 | [Q2k](../todos/ready/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
 | [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
 | [Q2m](../todos/ready/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
@@ -305,6 +305,6 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [ ] Q1l: the docs checks are strict everywhere
 - [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript (the TypeScript checks are done: [Q2b](../todos/done/Q2b-ts-lint-rules.md) adds the lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found
-- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept
+- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, is done)
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history

@@ -3,10 +3,12 @@
 //!
 //! It validates `codes.json` against `fixtures/codes.schema.json`, then writes:
 //!
-//! - `crates/lamina/src/generated/codes.rs`: the façade's `ErrorCode` and `WarningCode` enums
-//!   (`as_str`, `from_code`, `kind`, `summary`, `hint`, `docs_url`) and, behind the façade's
-//!   `explain` feature, `explain(code)` over the `docs/errors/<code>.md` pages (`include_str!`,
-//!   so the text is never copied and never reaches a build without the feature);
+//! - `crates/lamina-syntax/src/generated/codes.rs`: the `ErrorCode` and `WarningCode` enums
+//!   (`as_str`, `from_code`, `kind`, `summary`, `hint`, `docs_url`), in the bottom crate so every
+//!   crate that builds an ADR 0026 object reads the same table (the façade re-exports them);
+//! - `crates/lamina/src/generated/explain.rs`: behind the façade's `explain` feature,
+//!   `explain(code)` over the `docs/errors/<code>.md` pages (`include_str!`, so the text is
+//!   never copied and never reaches a build without the feature);
 //! - `packages/sdk/src/generated/codes.ts`: the `ErrorKind`, `ErrorCode`, `WarningCode` and
 //!   `LimitName` unions, the code lists, `KINDS`, `HINTS`, `docsUrl()` and the kind and hint of
 //!   the codes the TS layer raises itself;
@@ -42,7 +44,8 @@ const CODES: &str = "fixtures/codes.json";
 const CODES_SCHEMA: &str = "fixtures/codes.schema.json";
 
 /// The outputs.
-const RUST: &str = "crates/lamina/src/generated/codes.rs";
+const RUST: &str = "crates/lamina-syntax/src/generated/codes.rs";
+const RUST_EXPLAIN: &str = "crates/lamina/src/generated/explain.rs";
 const TS: &str = "packages/sdk/src/generated/codes.ts";
 const TS_EXPLAIN: &str = "packages/sdk/src/generated/explain.ts";
 const SCHEMAS: [&str; 2] = [
@@ -167,6 +170,7 @@ fn render_all(root: &Path) -> Result<Vec<(String, String)>> {
     let schema = render_error_schema(&codes)?;
     let mut out = vec![
         (RUST.to_owned(), render_rust(&codes)),
+        (RUST_EXPLAIN.to_owned(), render_rust_explain(&codes)),
         (TS.to_owned(), render_ts(&codes)),
         (TS_EXPLAIN.to_owned(), render_ts_explain(&pages)),
         (ERRORS_README.to_owned(), render_readme(&readme, &codes)?),
@@ -284,17 +288,16 @@ fn quoted(s: &str) -> String {
 fn render_rust(codes: &Codes) -> String {
     let mut out = format!(
         "{HEADER}\n\
-         //! Every error and warning code the Rust crates and the WASM binding raise, from\n\
-         //! `fixtures/codes.json` (ADR 0026 §3): kind, summary, hint and `docsUrl` per code, and\n\
-         //! the `explain` pages behind the `explain` feature. `cargo xtask check docs` fails when\n\
-         //! this file is stale.\n\
+         //! Every error and warning code the Rust crates and the WASM bindings raise, from\n\
+         //! `fixtures/codes.json` (ADR 0026 §3): kind, summary, hint and `docsUrl` per code.\n\
+         //! `cargo xtask check docs` fails when this file is stale.\n\
          #![allow(
     clippy::too_many_lines,
     clippy::match_same_arms,
     clippy::doc_markdown,
     reason = \"generated: one match arm per code; summaries are codes.json text\"
 )]\n\n\
-         use lamina_cos::ErrorKind;\n\n\
+         use crate::ErrorKind;\n\n\
          /// The base of every `docsUrl` (ADR 0026 §6): `DOCS_URL_BASE` + code + `DOCS_URL_SUFFIX`.\n\
          pub const DOCS_URL_BASE: &str = {};\n\n\
          /// The suffix of every `docsUrl` (ADR 0026 §6).\n\
@@ -316,6 +319,17 @@ fn render_rust(codes: &Codes) -> String {
         "WarningCode",
         "Every warning code, in `codes.json` order.",
         &warnings,
+    );
+    out
+}
+
+/// The façade's module of explain pages.
+fn render_rust_explain(codes: &Codes) -> String {
+    let mut out = format!(
+        "{HEADER}\n\
+         //! The `explain` pages of every code in `fixtures/codes.json`, behind the `explain`\n\
+         //! feature. `cargo xtask check docs` fails when this file is stale.\n\
+         #![allow(clippy::too_many_lines, reason = \"generated: one match arm per code\")]\n"
     );
     out.push_str(
         "\n/// The `explain` page of `code`: the Markdown of `docs/errors/<code>.md`, for every code\n\
@@ -880,10 +894,13 @@ mod tests {
     #[test]
     fn render_rust_should_leave_ts_only_codes_out_of_the_enums() {
         let rust = render_rust(&codes(&small()));
-        assert!(
-            !rust.contains("POnly") && rust.contains("\"p-only\" => include_str!"),
-            "{rust}"
-        );
+        assert!(!rust.contains("POnly") && !rust.contains("include_str!"), "{rust}");
+    }
+
+    #[test]
+    fn render_rust_explain_should_list_every_code_including_ts_only_ones() {
+        let explain = super::render_rust_explain(&codes(&small()));
+        assert!(explain.contains("\"p-only\" => include_str!"), "{explain}");
     }
 
     #[test]

@@ -13,15 +13,15 @@
 //! the worker (ADR 0009 §3.6). Requests are `(page, scale, clip x/y/width/height, rotation, flags, background)`,
 //! with a clip width of 0 meaning the whole page; flags are bits (1 annotations, 2 form
 //! widgets, 4 print, 8 grayscale); the background is `0xRRGGBBAA` or `None` for transparent.
-//! Errors are thrown as `Error` objects carrying the ADR 0026 `code` and `kind` (and `ranges`
-//! for `data-pending`). A render is synchronous: the wrapper checks its `AbortSignal` before
-//! and after.
+//! Errors are thrown as the ADR 0026 §1 object (a plain object: `code`, `kind`, `message`,
+//! `hint`, `data`, `docsUrl`; a `data-pending` lists its `[offset, length]` pairs in
+//! `data.ranges`), built by `RenderError::diagnostic`, the serialiser every binding shares. A
+//! render is synchronous: the wrapper checks its `AbortSignal` before and after.
 //!
 //! [ADR 0004]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0004-render-backend.md
 
 use std::sync::Arc;
 
-use js_sys::{Array, Reflect};
 use lamina_render::{
     ByteSource, CancelToken, HayroBackend, PixelRect, RenderBackend, RenderDocument, RenderError, RenderFlags,
     RenderLimits, RenderOpenOptions, RenderRequest, Rgba8, ViewRotation,
@@ -88,7 +88,7 @@ impl HayroDocument {
     /// are the JS `RenderLimits`, applied as given (0 pixels refuses every render).
     ///
     /// # Errors
-    /// The render errors of opening, thrown as `Error` objects with `code` and `kind`.
+    /// The render errors of opening, thrown as ADR 0026 §1 objects.
     #[expect(
         clippy::needless_pass_by_value,
         reason = "wasm-bindgen passes JS values as owned values"
@@ -244,26 +244,11 @@ fn request(
     Ok(req)
 }
 
-/// The error as a JS `Error` with the ADR 0026 `code`, `kind` and, for `data-pending`, `ranges`
-/// (`[offset, length]` pairs).
+/// The error as the ADR 0026 §1 object, a plain JS object (offsets stay below 2^53, so the
+/// JSON numbers are exact). `JSON.parse` of `serde_json`'s output can't fail; if it ever did,
+/// the error is a JS `Error` with the message, never `undefined`.
 fn throw(e: &RenderError) -> JsValue {
-    let error = js_sys::Error::new(&e.to_string());
-    let set = |key: &str, value: &JsValue| {
-        // Setting a property on a fresh Error object can't fail.
-        let _ = Reflect::set(&error, &JsValue::from_str(key), value);
-    };
-    set("code", &JsValue::from_str(e.code()));
-    set("kind", &JsValue::from_str(e.kind().as_str()));
-    if let RenderError::DataPending { ranges } = e {
-        let list = Array::new();
-        for &(offset, len) in ranges {
-            #[expect(clippy::cast_precision_loss, reason = "offsets stay below 2^53 (JS numbers)")]
-            list.push(&Array::of2(
-                &JsValue::from_f64(offset as f64),
-                &JsValue::from_f64(len as f64),
-            ));
-        }
-        set("ranges", &list);
-    }
-    error.into()
+    let diagnostic = e.diagnostic();
+    js_sys::JSON::parse(&diagnostic.to_json().to_string())
+        .unwrap_or_else(|_| js_sys::Error::new(&diagnostic.message).into())
 }

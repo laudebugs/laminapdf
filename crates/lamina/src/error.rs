@@ -4,10 +4,10 @@
 use lamina_cos::{ErrorKind, Location};
 use serde::{Serialize, Serializer};
 
+use crate::Diagnostic;
+use crate::ErrorCode;
 use crate::codes;
 use crate::data;
-use crate::diagnostic::Diagnostic;
-use crate::generated::codes::ErrorCode;
 
 /// Everything that can go wrong in the façade: the errors of the core crates, flattened so
 /// a COS error is always [`Error::Cos`] whichever layer raised it, plus the job codes of
@@ -159,16 +159,10 @@ impl Error {
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
-        Diagnostic {
-            code: self.code().to_owned(),
-            kind: self.kind(),
-            message: self.to_string(),
-            hint: self.hint(),
-            did_you_mean: Vec::new(),
-            location: self.location(),
-            data: data::of_error(self),
-            docs_url: self.docs_url(),
-        }
+        Diagnostic::error(self.error_code(), self.to_string())
+            .with_hint(self.hint())
+            .with_location(self.location())
+            .with_data(data::of_error(self))
     }
 
     /// The output of a save whose rebase failed (`not-rebased`): the file was written in

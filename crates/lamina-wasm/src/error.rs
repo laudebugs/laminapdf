@@ -11,10 +11,10 @@
 //!
 //! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
-use serde::Serialize;
+use serde_json::{Map, Value, json};
 use wasm_bindgen::JsValue;
 
-use lamina::ErrorCode;
+use lamina::{Diagnostic, ErrorCode};
 
 use crate::convert::to_js;
 
@@ -26,44 +26,38 @@ pub(crate) fn lamina_error(e: &lamina::Error) -> JsValue {
     to_js(&e.diagnostic())
 }
 
-/// The §1 object of a binding error. `message` and `hint` are fixed text; what the caller
-/// passed appears only in `data` (ADR 0026 §4).
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct BindingDiagnostic {
-    code: &'static str,
-    kind: &'static str,
-    message: &'static str,
-    hint: &'static str,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    did_you_mean: Vec<String>,
-    data: BindingData,
-    docs_url: String,
-}
-
 /// `data` of a binding error.
-#[derive(Serialize)]
 struct BindingData {
     /// The parameter that was wrong (lamina's own vocabulary).
     argument: &'static str,
     /// The key given (**untrusted**: caller text), for `unknown-option`.
-    #[serde(skip_serializing_if = "Option::is_none")]
     option: Option<String>,
     /// What the conversion said (**untrusted**: it may quote the value), for `invalid-argument`.
-    #[serde(skip_serializing_if = "Option::is_none")]
     detail: Option<String>,
 }
 
+impl BindingData {
+    fn into_map(self) -> Map<String, Value> {
+        let mut data = Map::new();
+        data.insert("argument".to_owned(), json!(self.argument));
+        if let Some(option) = self.option {
+            data.insert("option".to_owned(), json!(option));
+        }
+        if let Some(detail) = self.detail {
+            data.insert("detail".to_owned(), json!(detail));
+        }
+        data
+    }
+}
+
+/// The §1 object of a binding error. `message` and `hint` are fixed text; what the caller
+/// passed appears only in `data` (ADR 0026 §4).
 fn binding(code: ErrorCode, message: &'static str, did_you_mean: Vec<String>, data: BindingData) -> JsValue {
-    to_js(&BindingDiagnostic {
-        code: code.as_str(),
-        kind: code.kind().as_str(),
-        message,
-        hint: code.hint(),
-        did_you_mean,
-        data,
-        docs_url: code.docs_url(),
-    })
+    to_js(
+        &Diagnostic::error(code, message)
+            .with_did_you_mean(did_you_mean)
+            .with_data(data.into_map()),
+    )
 }
 
 /// `builder-finished`: a builder or page was used after its `finish`.
