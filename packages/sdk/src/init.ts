@@ -11,7 +11,7 @@ export type BaseGlue = typeof baseGlue;
 /** The text module's wasm-bindgen glue (a superset of the base module's API). */
 export type TextGlue = typeof import("@laminapdf/wasm/text");
 /** The extract module's wasm-bindgen glue (the base module's API plus `WasmPage.text`). */
-export type ExtractGlue = typeof import("@laminapdf/wasm/extract");
+type ExtractGlue = typeof import("@laminapdf/wasm/extract");
 
 /**
  * Where a module comes from: a URL (or URL string) to fetch, a `Response` (or a promise of one),

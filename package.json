@@ -16,11 +16,17 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "licenses": "cargo xtask npm-licenses",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "check:deps": "depcruise --config .dependency-cruiser.json --ignore-known .dependency-cruiser-known-violations.json --output-type err packages apps",
+    "check:duplicates": "jscpd --config .jscpd.json",
+    "check:unused": "knip --no-progress"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@changesets/cli": "catalog:",
+    "dependency-cruiser": "catalog:",
+    "jscpd": "catalog:",
+    "knip": "catalog:",
     "typescript": "catalog:"
   }
 }

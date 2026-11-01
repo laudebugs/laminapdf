@@ -1,0 +1,90 @@
+[
+  {
+    "type": "dependency",
+    "from": "packages/render-hayro/test/browser/contract.browser.test.ts",
+    "to": "packages/render/test/browser-harness.ts",
+    "unresolvedTo": "../../../render/test/browser-harness.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-hayro/test/browser/contract.browser.test.ts",
+    "to": "packages/render/test/contract.ts",
+    "unresolvedTo": "../../../render/test/contract.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-hayro/test/node.test.ts",
+    "to": "packages/render/test/contract.ts",
+    "unresolvedTo": "../../render/test/contract.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-hayro/vitest.browser.config.ts",
+    "to": "packages/render/test/browser-config.ts",
+    "unresolvedTo": "../render/test/browser-config.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-pdfium/test/browser/contract.browser.test.ts",
+    "to": "packages/render/test/browser-harness.ts",
+    "unresolvedTo": "../../../render/test/browser-harness.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-pdfium/test/browser/contract.browser.test.ts",
+    "to": "packages/render/test/contract.ts",
+    "unresolvedTo": "../../../render/test/contract.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-pdfium/test/node.test.ts",
+    "to": "packages/render/test/contract.ts",
+    "unresolvedTo": "../../render/test/contract.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "packages/render-pdfium/vitest.browser.config.ts",
+    "to": "packages/render/test/browser-config.ts",
+    "unresolvedTo": "../render/test/browser-config.js",
+    "dependencyTypes": ["local", "import"],
+    "rule": {
+      "severity": "error",
+      "name": "no-reach-into-another-package"
+    }
+  }
+]

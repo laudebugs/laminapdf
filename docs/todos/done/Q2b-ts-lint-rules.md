@@ -32,7 +32,7 @@ This todo adds the TypeScript rules from the [maintainability guideline](../../g
 
 **Out of scope** (and which todo covers it)
 
-- Dependency-cruiser, jscpd and knip ([Q2u](../ongoing/Q2u-ts-dependency-tools.md)).
+- Dependency-cruiser, jscpd and knip ([Q2u](../done/Q2u-ts-dependency-tools.md)).
 - Splitting the offenders ([Q2p](../ready/Q2p-ts-complexity-splits.md)).
 
 ## Tasks
