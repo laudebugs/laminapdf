@@ -69,27 +69,40 @@ pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
             "clippy::let_underscore_must_use",
         ])
         .env("CLIPPY_CONF_DIR", ws.root.join(CLIPPY_CONF_DIR))
+        // Its own build folder: these clippy arguments differ from `check rust`'s, so sharing one
+        // would make each run re-check every crate under `lamina`.
+        .env("CARGO_TARGET_DIR", target_dir(ws))
         .current_dir(&ws.root)
         .output()
         .context("running cargo clippy on lamina's examples")?;
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut files = std::collections::BTreeSet::new();
     for message in stdout
         .lines()
         .filter_map(|line| serde_json::from_str::<Value>(line).ok())
     {
         if let Some((path, found)) = example_finding(&message, &ws.root) {
-            files.insert(path.clone());
             ratchet.add(&path, [found]);
         }
     }
+    let files = Tracked::from_git(&ws.root)?
+        .files()
+        .map(|path| path.to_string_lossy().replace('\\', "/"))
+        .filter(|path| path.starts_with(RUST_EXAMPLES) && crate::util::has_extension(path, &["rs"]))
+        .count();
     if !output.status.success() {
         bail!(
             "cargo clippy on lamina's examples failed (a build error, not a lint):\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    ratchet.finish(files.len(), "docs/guidelines/examples.md")
+    ratchet.finish(files, "docs/guidelines/examples.md")
+}
+
+/// `clippy-examples`' build folder: `clippy-examples/` in `$CARGO_TARGET_DIR` or `target/`.
+fn target_dir(ws: &Workspace) -> std::path::PathBuf {
+    std::env::var_os("CARGO_TARGET_DIR")
+        .map_or_else(|| ws.root.join("target"), std::path::PathBuf::from)
+        .join("clippy-examples")
 }
 
 /// A clippy warning in one of `lamina`'s examples, as `(path, finding)`.

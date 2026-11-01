@@ -258,8 +258,8 @@ fn main() -> Result<()> {
             check_ts(&ws)
         }
         ("check", [scope]) if scope == "docs" => check_docs(&ws),
-        ("check", [scope, flags @ ..]) if RATCHETS.contains(&scope.as_str()) => ratchet(&ws, scope, flags),
-        (name, flags) if RATCHETS.contains(&name) && !name.starts_with("docs-") => ratchet(&ws, name, flags),
+        ("check", [scope, flags @ ..]) if is_docs_ratchet(scope) => ratchet(&ws, &format!("check {scope}"), flags),
+        (command @ ("biome-examples" | "clippy-examples"), flags) => ratchet(&ws, command, flags),
         ("check", [scope]) if scope == "rust" => check_rust(&ws),
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
@@ -338,23 +338,21 @@ fn repo_root() -> Result<PathBuf> {
         .context("xtask must live at <root>/tools/xtask")
 }
 
-/// The checks that are strict on changed files and warn elsewhere ([`reports`]): `check docs-prose`
-/// and `check docs-snippets`, `biome-examples` and `clippy-examples`.
-const RATCHETS: [&str; 4] = ["docs-prose", "docs-snippets", "biome-examples", "clippy-examples"];
+/// `check docs-prose` and `check docs-snippets`, the `check` scopes that [`ratchet`] runs.
+fn is_docs_ratchet(scope: &str) -> bool {
+    matches!(scope, "docs-prose" | "docs-snippets")
+}
 
-/// Runs ratcheting check `name` with its `[--all-strict] [--warnings] [--json]` flags.
-fn ratchet(ws: &Workspace, name: &str, flags: &[String]) -> Result<()> {
-    let command = if name.starts_with("docs-") {
-        format!("check {name}")
-    } else {
-        name.to_owned()
-    };
-    let options = reports::Options::parse(&command, flags)?;
-    match name {
-        "docs-prose" => docs_prose::run(&ws.root, options),
-        "docs-snippets" => docs_snippets::run(&ws.root, options),
+/// Runs a check that is strict on changed files and warns elsewhere ([`reports`]), as `command`
+/// (`check docs-prose`, `clippy-examples`) names it, with its flags.
+fn ratchet(ws: &Workspace, command: &str, flags: &[String]) -> Result<()> {
+    let options = reports::Options::parse(command, flags)?;
+    match command {
+        "check docs-prose" => docs_prose::run(&ws.root, options),
+        "check docs-snippets" => docs_snippets::run(&ws.root, options),
         "biome-examples" => examples_lints::biome(ws, options),
-        _ => examples_lints::clippy(ws, options),
+        "clippy-examples" => examples_lints::clippy(ws, options),
+        _ => bail!("{command} is not a ratcheting check"),
     }
 }
 
