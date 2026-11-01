@@ -33,7 +33,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Guide rewrites ([Q1i](../ready/Q1i-guides-create.md), [Q1m](../ready/Q1m-guides-read-and-edit.md)).
+- Guide rewrites ([Q1i](../ready/Q1i-guides-create.md), [Q1m](../ongoing/Q1m-guides-read-and-edit.md)).
 
 ## Tasks
 

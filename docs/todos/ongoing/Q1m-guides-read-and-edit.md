@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1m` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1h](../done/Q1h-docs-story.md) |
-| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
+| Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1m-guides-read-and-edit` |
 | PR title | `docs(site): plain-English guides for reading and editing PDFs` |
 | Size | M |
-| PR | — |
+| PR | (this PR) |
 
 ## Goal
 
@@ -32,11 +32,11 @@ This todo rewrites the "Read and edit" and "Production" guides to the [docs-writ
 
 **Out of scope** (and which todo covers it)
 
-- The create guides ([Q1i](./Q1i-guides-create.md)).
+- The create guides ([Q1i](../ready/Q1i-guides-create.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim it: this PR's first commit moved the todo to `ongoing/`.
 - [ ] Split and rename the pages; add redirects; update the sidebar.
 - [ ] Rewrite each page with `/writing`, keeping every fact.
 - [ ] Correct the password sentence against `crypt/mod.rs`.

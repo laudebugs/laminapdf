@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1f](./Q1f-examples-readable.md), [Q1i](./Q1i-guides-create.md), [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1k](../done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](./Q1m-guides-read-and-edit.md) |
+| Depends on | [Q1f](./Q1f-examples-readable.md), [Q1i](./Q1i-guides-create.md), [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1k](../done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](../ongoing/Q1m-guides-read-and-edit.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `ci/q1l-docs-checks-strict` |
