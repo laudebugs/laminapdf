@@ -54,7 +54,7 @@ This todo adds `cargo xtask check maintainability` to `cargo xtask check`, the h
 
 - [x] `cargo xtask check maintainability` passes on `main`.
 - [x] One more line in a baselined file, a new 801-line module, or a new duplicate name fails it (unit tests).
-- [ ] The two lints are on and clean.
+- [x] The two lints are on and clean.
 
 ## Post-merge checks
 
@@ -77,6 +77,6 @@ The non-test line count must be stable and documented: describe the method in th
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
