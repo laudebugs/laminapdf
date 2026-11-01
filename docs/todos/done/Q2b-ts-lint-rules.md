@@ -49,16 +49,18 @@ This todo adds the TypeScript rules from the [maintainability guideline](../../g
 
 ## Outcome
 
-The rules are on, and four things differ from the plan.
+All four rules are checked, and four details differ from the plan.
 
 - **Where the offenders are listed:** Biome matches a root override's paths against each nested config's folder, so a path such as `packages/render/src/index.ts` in the root never matches. Each package lists its own offenders in its `biome.json`:
-  - `@laminapdf/render`, `@laminapdf/render-hayro` and `@laminapdf/render-pdfium` list `src/index.ts`;
-  - `@laminapdf/sdk` lists `src/source/http.ts`, `src/worker/server.ts` and `test/source.test.ts`;
+  - `@laminapdf/render`, `@laminapdf/render-hayro` and `@laminapdf/render-pdfium` list `src/index.ts`, for complexity;
+  - `@laminapdf/sdk` lists `src/worker/server.ts` and `test/source.test.ts` for complexity, and `src/source/http.ts` for complexity and length;
   - `@laminapdf/viewer` lists `src/worker/document.ts`, for its plain-object throws, which Q2k replaces.
+
+  Each file is exempt only from the rules it breaks today, so a new long function in a file listed for complexity still fails.
 
   JSON has no comments, so [typescript.md](../../guidelines/typescript.md#lint-format-test) explains the lists and points at Q2p and Q2k.
 - **Tests and length:** test files are exempt from the 60-line limit (an override on `**/test/**` and `**/*.test.ts`). A `describe` callback holds a whole suite, and eight test files would otherwise be listed for that alone. The complexity and throw rules apply to tests too.
-- **What TypeDoc checks:** `requiredToBeDocumented` covers declarations and public methods and accessors, not every property. With every property included, the viewer alone had 60 warnings, most of them fields inside type literals.
+- **What TypeDoc checks:** the script reads each package's entries from its `package.json` `exports` (every subpath and condition, such as the SDK's `node` and `workerd` entries), so a new entry is checked without editing it. `@laminapdf/wasm` is left out: wasm-bindgen generates its code and types. `requiredToBeDocumented` covers declarations and public methods and accessors, not every property. With every property included, the viewer alone had 60 warnings, most of them fields inside type literals.
 - **No list for TypeDoc:** the check found 18 undocumented exports across the five packages, and this PR documents all 18. No exception list is needed.
 
 ## Post-merge checks

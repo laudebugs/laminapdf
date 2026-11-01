@@ -82,7 +82,7 @@ function whole(p: unknown): ArrayBuffer[] {
   return buffer instanceof ArrayBuffer && p.byteOffset === 0 && p.byteLength === buffer.byteLength ? [buffer] : [];
 }
 
-/** `connect()`'s options: the worker to start, a signal to stop connecting, and the WebAssembly to load. */
+/** `connect()`'s options: the worker to start, a signal to stop connecting, the WebAssembly to load, and what to do with late answers. */
 export interface ConnectOptions {
   /**
    * The worker to use, or a function that makes one (needed for `restart()`). Omitted, the

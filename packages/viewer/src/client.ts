@@ -35,7 +35,7 @@ import {
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
 export const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 
-/** `ViewerClient.create`'s options: the backend, lamina's WebAssembly, timeouts and the worker. */
+/** `ViewerClient.create`'s options: the backend, lamina's WebAssembly, the timeouts, the worker and a signal to stop starting. */
 export interface ViewerOptions {
   /** The render engine; PDFium needs its `.wasm` URL from your bundler (`pdfium.wasm?url`). */
   readonly backend: BackendInit;
