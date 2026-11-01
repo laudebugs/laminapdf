@@ -7,7 +7,7 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-The `lamina` crate is the façade over the core crates. Add it as a [path dependency](/install/#rust-lamina), then build a document. This is the `hello` example, whose bytes are checked against `fixtures/golden/examples/hello.pdf` in CI:
+The `lamina` crate is the one to depend on: it wraps lamina's core crates in one API. Add it as a [path dependency](/install/#rust-lamina), then build a document. This is the `hello` example, which is tested on every change:
 
 <Snippet file="crates/lamina/examples/hello.rs" />
 

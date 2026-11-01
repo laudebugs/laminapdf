@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1k` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1b](../done/Q1b-docs-prose-check.md) |
+| Depends on | [Q1b](./Q1b-docs-prose-check.md) |
 | Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1k-internal-ids-out-of-reader-text` |
@@ -38,15 +38,15 @@
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Run `docs-prose` for its internal-ID reports; fix each.
-- [ ] Teach `error-pages.mjs` to drop the contributor section; check a rendered error page.
-- [ ] Rewrite the two READMEs and the Rust reference page.
-- [ ] Run `cargo xtask gen codes --check` (the error pages feed generated tables).
+- [x] Run `docs-prose` for its internal-ID reports; fix each.
+- [x] Teach `error-pages.mjs` to drop the contributor section; check a rendered error page (on the PR's preview).
+- [x] Rewrite the two READMEs and the Rust reference page. Deviation: the viewer, render and wasm READMEs and the site pages had internal IDs too, so they were rewritten as well (acceptance covers everywhere the check looks); the SDK's test matrix moved to `packages/sdk/CONTRIBUTING.md`.
+- [x] Run `cargo xtask gen codes --check` (the error pages feed generated tables).
 
 ## Acceptance criteria
 
-- [ ] `docs-prose --all-strict` reports no internal ID anywhere it checks.
-- [ ] `cargo xtask gen codes --check` passes.
+- [x] `docs-prose --all-strict` reports no internal ID anywhere it checks.
+- [x] `cargo xtask gen codes --check` passes.
 
 ## Post-merge checks
 
@@ -62,13 +62,13 @@ None.
 
 ## Risks and open questions
 
-Contributors use those IDs: keep them reachable in the contributor section, just not in reader text.
+Contributors use those IDs: keep them reachable in the contributor section, just not in reader text. The Rust and TypeScript `explain` text still carries the whole page, contributor section included (the Rust side `include_str!`s the file); only the docs site leaves it out.
 
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

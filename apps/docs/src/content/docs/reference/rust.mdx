@@ -3,9 +3,12 @@ title: Rust API (rustdoc)
 description: Where to read the lamina crate's API documentation.
 ---
 
-Every public item of every crate is documented, because `missing_docs` is denied workspace-wide. The crates aren't on crates.io yet, so docs.rs has no copy. Read them one of two ways:
+lamina's Rust crates aren't on crates.io yet, so docs.rs has no copy of their documentation. Build it on your own machine from a checkout of lamina:
 
-- **From CI:** each push to `main` uploads the rendered docs, built fresh for that commit, as the **`rustdoc`** artefact of the fast lane's CI run. If you can read the repository, open its latest CI run on `main` (Actions → CI), download `rustdoc`, unzip it and open `lamina/index.html`.
-- **Locally:** `cargo doc --workspace --no-deps --all-features --open`. That is the build `cargo xtask check rust` runs, with warnings denied.
+```sh
+cargo doc --workspace --no-deps --all-features --open
+```
 
-Start with the `lamina` crate. It's the façade: `Document`, `Builder`, `Error`, `Warning`, jobs and `CancelToken`. The core crates under it (`lamina-syntax`, `lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-content`, `lamina-text`, `lamina-build`) are documented the same way.
+The command opens the docs in your browser. Every public item of every crate is documented.
+
+Start with the `lamina` crate. It's the one to depend on, and it wraps the core crates: `Document`, `Builder`, `Error`, `Warning`, jobs and `CancelToken`. The core crates under it (`lamina-syntax`, `lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-content`, `lamina-text`, `lamina-build`) are documented the same way.
