@@ -4,6 +4,7 @@ import { readdirSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { callbackSource, Document, httpRangeSource, init, isLaminaError, type LaminaError } from "@laminapdf/sdk";
+import { fromRoot } from "@laminapdf/test-utils/root";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
 
@@ -166,7 +167,7 @@ async function facts(doc: Document): Promise<unknown[]> {
   return [pages, info, Array.from(saved)];
 }
 
-const corpus = readdirSync(new URL("../../../fixtures/corpus/", import.meta.url))
+const corpus = readdirSync(fromRoot("fixtures/corpus/"))
   .filter((f) => f.endsWith(".pdf"))
   .sort();
 

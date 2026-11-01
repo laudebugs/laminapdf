@@ -12,8 +12,11 @@
     ]
   ],
   "linked": [],
-  "ignore": ["@laminapdf/docs"],
-  "privatePackages": { "version": true, "tag": true },
+  "ignore": ["@laminapdf/docs", "@laminapdf/test-utils"],
+  "privatePackages": {
+    "version": true,
+    "tag": true
+  },
   "access": "restricted",
   "changelog": "@changesets/cli/changelog",
   "commit": false,

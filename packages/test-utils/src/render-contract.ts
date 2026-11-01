@@ -3,7 +3,7 @@
 // lamina reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
 // AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), C2b's
 // render goldens of the same backend.
-import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   bytesSource,
   isRenderError,
@@ -11,7 +11,8 @@ import {
   type RenderDocument,
   type RenderedTile,
   type RenderSource,
-} from "../src/index.js";
+} from "@laminapdf/render";
+import { beforeAll, describe, expect, it } from "vitest";
 
 export interface Decoded {
   readonly width: number;

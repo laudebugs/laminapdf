@@ -57,7 +57,11 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 │                        #   (lamina_base / lamina_text / lamina_extract / lamina_render_hayro .js, .d.ts, .wasm),
 │                        #   test/smoke.test.ts (Vitest, Node)
 ├── packages/render/     # @laminapdf/render (private): ADR 0004's web RenderBackend interface, planTile/pageToTile (the Rust
-│                        #   planner's port), RenderError; test/contract.ts: the suite both adapters run (Node + browsers)
+│                        #   planner's port), RenderError
+├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
+│                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
+│                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig,
+│                        #   firefoxProvider), root (ROOT, fromRoot)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium (private): @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro (private): lamina_render_hayro behind RenderBackend

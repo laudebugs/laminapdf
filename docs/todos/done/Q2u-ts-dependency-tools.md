@@ -21,7 +21,7 @@ This todo adds three dev tools to `cargo xtask check ts`, after a licence check:
 ## Context
 
 - The [maintainability guideline](../../guidelines/maintainability.md) ("Public surface and tests", "How it's checked"); ADR 0019 and `cargo xtask npm-licenses` (dependency-cruiser MIT, jscpd MIT, knip ISC).
-- Today's cross-package imports: `packages/render-{hayro,pdfium}/test/*` and `vitest.browser.config.ts` import `../render/test/…` (fixed by [Q2m](../ongoing/Q2m-ts-test-utils.md)).
+- Today's cross-package imports: `packages/render-{hayro,pdfium}/test/*` and `vitest.browser.config.ts` import `../render/test/…` (fixed by [Q2m](../done/Q2m-ts-test-utils.md)).
 
 ## Scope
 

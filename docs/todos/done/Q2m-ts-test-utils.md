@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2m` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -34,15 +34,28 @@ The render adapters import `../render/test/{contract,browser-harness,browser-con
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Create the package with its own `tsconfig` and `biome.json`.
-- [ ] Move the contract suite, harness, configuration, Firefox workaround, PNG decoder and root resolver.
-- [ ] Migrate render, render-hayro, render-pdfium, sdk and viewer tests; run Node and the three browsers.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Create the package with its own `tsconfig` and `biome.json`.
+- [x] Move the contract suite, harness, configuration, Firefox workaround, PNG decoder and root resolver.
+- [x] Migrate render, render-hayro, render-pdfium, sdk and viewer tests; run Node and the three browsers.
 
 ## Acceptance criteria
 
-- [ ] No relative import from one package into another.
-- [ ] Every suite passes in Node and the three browsers.
+- [x] No relative import from one package into another.
+- [x] Every suite passes in Node and the three browsers.
+
+## Outcome
+
+`@laminapdf/test-utils` (`packages/test-utils`) holds the shared test helpers, and no package imports another's files by relative path: dependency-cruiser's known-violations list is now empty. Five details add to the plan.
+
+- **TypeScript source, no build:** the package exports its `src/*.ts` files directly (`render-contract`, `browser-harness`, `browser-config`, `root`). Vitest compiles them for the tests, and Vite bundles them into the configs, because a workspace package resolves outside `node_modules`. So nothing has to be built before a test run. It has no `tsconfig.build.json`, which keeps it out of the TypeDoc check, and its `biome.json` turns off the function-length rule for `src/`: everything there is test code, like the `test/` folders the root config already exempts.
+- **The Firefox workaround** is `firefoxProvider(packageDir)` in `browser-config`. The SDK's and the viewer's browser configs use it, and `renderBrowserConfig` still covers both adapters, so the workaround has one copy instead of three.
+- **The repository root** is `fromRoot(path)` and `ROOT` in `root`. Nine test files that ran under Vitest used to count `../` from their own folder; they now read files by their path from the root. Some paths stay:
+  - Vite's `import.meta.glob` needs literal paths, so the browser tests keep their glob patterns;
+  - the Deno, Bun and workerd runners load the SDK's tests their own way, and `packages/sdk/bench/reports.mjs` is a plain Node script, so they keep their own paths;
+  - `@laminapdf/render`'s own tests keep theirs. `@laminapdf/test-utils` depends on `@laminapdf/render` for the contract suite, and a dependency back made a cycle, so pnpm type-checked test-utils before render was built.
+- **Versioning:** the package is in `.changeset/config.json`'s `ignore` list, like the docs site, so it stays at `0.0.0` outside the shared version.
+- **Docs:** the package has a README listing what each module offers and what it doesn't reach, and the render README points to it for the contract suite. The maintainability guideline names the package, and CLAUDE.md's layout lists it.
 
 ## Post-merge checks
 

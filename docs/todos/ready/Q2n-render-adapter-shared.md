@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2m](../ongoing/Q2m-ts-test-utils.md) |
+| Depends on | [Q2m](../done/Q2m-ts-test-utils.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2n-render-adapter-shared` |
