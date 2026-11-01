@@ -37,7 +37,7 @@ This todo adds `cargo xtask check maintainability` to `cargo xtask check`, the h
 
 **Out of scope** (and which todo covers it)
 
-- TypeScript checks ([Q2b](../ongoing/Q2b-ts-lint-rules.md), [Q2u](./Q2u-ts-dependency-tools.md)).
+- TypeScript checks ([Q2b](../ongoing/Q2b-ts-lint-rules.md), [Q2u](../ongoing/Q2u-ts-dependency-tools.md)).
 - Shrinking the baseline (Q2q, Q2w, Q2r) and removing the duplicates (the other Q2 todos).
 
 ## Tasks
