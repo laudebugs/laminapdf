@@ -19,7 +19,7 @@ self.postMessage(await createImageBitmap(new ImageData(pixels, width, height)));
   - `background?`: white by default, `null` for transparent.
 - **Output:** straight-alpha RGBA8 rows of `width × 4` bytes.
 - **`planTile`:** the port of Rust's `TilePlan::new`, so both adapters agree on sizes. The page is `max(1, floor(points × scale))` pixels per side after the view rotation, and `RenderLimits` (16.7 MP and 16,384 px per tile, 1 GiB of input) are checked before anything is allocated. `pageToTile` is Rust's `TilePlan::page_to_tile`.
-- **Errors:** `RenderError` (`code`, `kind`, `ranges`), with lamina's error codes; `isRenderError(e, code)` checks structurally, so errors survive the trip out of a Web Worker. An aborted `signal` throws a `DOMException` named `AbortError`, and a closed document throws `disposed`.
+- **Errors:** `RenderError` (`code`, `kind`, `ranges`), with lamina's error codes. `isRenderError(e, code)` checks structurally, so it works across copies of the package. `toDiagnostic()` returns the same error as the plain object every lamina surface uses. `@laminapdf/sdk`'s Web Worker posts that object, and the page receives a `LaminaError` with the same code, message and ranges. An aborted `signal` throws a `DOMException` named `AbortError`, and a closed document throws `disposed`.
 
 ## For contributors
 

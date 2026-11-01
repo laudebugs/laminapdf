@@ -26,11 +26,11 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 
 **In scope**
 
-- `cargo xtask gen` writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render/src/generated/codes.ts`; strings on the wire; `HAYRO_VERSION` exported from lamina-render-wasm or checked against `Cargo.toml`; `--check` in `check docs`.
+- `cargo xtask gen` writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render/src/generated/codes.ts` (the render codes, their kinds and the `docsUrl` base `RenderError.toDiagnostic()` uses, all hand-copied in `packages/render/src/index.ts` today); strings on the wire; `HAYRO_VERSION` exported from lamina-render-wasm or checked against `Cargo.toml`; `--check` in `check docs`.
 
 **Out of scope** (and which todo covers it)
 
-- Error shapes ([Q2j](../done/Q2j-boundary-errors-rust.md), [Q2k](../ongoing/Q2k-boundary-errors-ts.md)).
+- Error shapes ([Q2j](../done/Q2j-boundary-errors-rust.md), [Q2k](../done/Q2k-boundary-errors-ts.md)).
 
 ## Tasks
 

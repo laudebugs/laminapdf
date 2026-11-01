@@ -173,7 +173,13 @@ export type RenderErrorCode =
   | "cancelled"
   | "disposed";
 
-const KINDS: Record<RenderErrorCode, string> = {
+/** What kind of failure a render code is (the ADR 0026 kinds its codes use). */
+export type RenderErrorKind = "limit" | "input" | "io" | "usage" | "security" | "state" | "cancelled";
+
+/** A byte range of the input: its first byte and its length. */
+export type ByteRange = readonly [offset: number, length: number];
+
+const KINDS: Record<RenderErrorCode, RenderErrorKind> = {
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
@@ -191,11 +197,11 @@ const KINDS: Record<RenderErrorCode, string> = {
 export class RenderError extends Error {
   override readonly name = "RenderError";
   readonly code: RenderErrorCode;
-  readonly kind: string;
-  /** For `data-pending`: the `[offset, length]` ranges to fetch before calling again. */
-  readonly ranges: readonly (readonly [number, number])[] | undefined;
+  readonly kind: RenderErrorKind;
+  /** For `data-pending`: the ranges to fetch before calling again. */
+  readonly ranges: readonly ByteRange[] | undefined;
 
-  constructor(code: RenderErrorCode, message: string, ranges?: readonly (readonly [number, number])[]) {
+  constructor(code: RenderErrorCode, message: string, ranges?: readonly ByteRange[]) {
     super(message);
     this.code = code;
     this.kind = KINDS[code];
@@ -203,38 +209,41 @@ export class RenderError extends Error {
   }
 
   /**
-   * A plain object that survives `postMessage` (structured clone keeps neither a custom error
-   * name nor own properties): post `e.toJSON()`, then `reviveRenderError` on the other side.
+   * The ADR 0026 §1 object: what crosses a worker boundary (structured clone keeps neither a
+   * custom error name nor own properties). `@laminapdf/sdk`'s worker posts it, and the page gets
+   * a `LaminaError` with the same code, message and `ranges`. A `data-pending` lists its ranges
+   * as `[offset, length]` pairs in `data.ranges`, as the Rust core does. It carries no hint.
    */
-  toJSON(): SerializedRenderError {
+  toDiagnostic(): RenderDiagnostic {
     return {
-      name: "RenderError",
       code: this.code,
       kind: this.kind,
       message: this.message,
-      ...(this.ranges === undefined ? {} : { ranges: this.ranges }),
+      ...(this.ranges === undefined ? {} : { data: { ranges: this.ranges } }),
+      docsUrl: `${DOCS_URL.base}${this.code}${DOCS_URL.suffix}`,
     };
   }
 }
 
-/** A RenderError as a plain, cloneable object. */
-export interface SerializedRenderError {
-  readonly name: "RenderError";
-  readonly code: RenderErrorCode;
-  readonly kind: string;
-  readonly message: string;
-  readonly ranges?: readonly (readonly [number, number])[];
-}
+/**
+ * Where each code's page is (ADR 0026 §6), as `fixtures/codes.json`'s `docsUrl` says;
+ * test/codes.test.ts checks that `toDiagnostic()`'s URLs agree. Hand-copied, like KINDS, until
+ * this package's code tables are generated.
+ */
+const DOCS_URL = { base: "https://github.com/laudebugs/lamina/blob/main/docs/errors/", suffix: ".md" } as const;
 
-/** A RenderError again, from `toJSON()`'s object (after `postMessage`). */
-export function reviveRenderError(e: SerializedRenderError): RenderError {
-  return new RenderError(e.code, e.message, e.ranges);
+/** A RenderError as the ADR 0026 §1 object (see {@link RenderError.toDiagnostic}). */
+export interface RenderDiagnostic {
+  readonly code: RenderErrorCode;
+  readonly kind: RenderErrorKind;
+  readonly message: string;
+  readonly data?: { readonly ranges: readonly ByteRange[] };
+  readonly docsUrl: string;
 }
 
 /** Whether `e` is a RenderError (with `code`, if given). */
 export function isRenderError<C extends RenderErrorCode>(e: unknown, code?: C): e is RenderError & { code: C } {
-  // Structural, not instanceof: module copies give one class per copy, and a serialised error
-  // (`toJSON()`, posted across a worker boundary) is a plain object (ADR 0009 §3).
+  // Structural, not instanceof: module copies give one class per copy (ADR 0009 §3).
   if (typeof e !== "object" || e === null || (e as { name?: unknown }).name !== "RenderError") return false;
   const actual = (e as { code?: unknown }).code;
   return typeof actual === "string" && (code === undefined || actual === code);
