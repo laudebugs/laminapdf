@@ -68,14 +68,18 @@ describe("Vite", () => {
     };
     try {
       const entry = readdirSync(join(out, "assets")).find((f) => f.startsWith("main") && f.endsWith(".js"));
-      const { run } = (await import(join(out, "assets", entry ?? "main.js"))) as {
+      const { run, quickStart } = (await import(join(out, "assets", entry ?? "main.js"))) as {
         run(bytes: Uint8Array): Promise<readonly number[]>;
+        quickStart(): Promise<Uint8Array | undefined>;
       };
-      const result = await run(read("fixtures/golden/examples/hello.pdf"));
+      const hello = read("fixtures/golden/examples/hello.pdf");
+      const result = await run(hello);
       expect([assets.map((a) => a.replace(/-[\w-]+\.wasm$/, "")).sort(), result]).toEqual([
         ["lamina_base", "lamina_extract", "lamina_text"],
         [1, 1],
       ]);
+      // The browser quick start, bundled: the same bytes as the Rust hello example.
+      expect(await quickStart()).toEqual(hello);
     } finally {
       globalThis.fetch = realFetch;
     }

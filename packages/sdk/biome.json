@@ -81,6 +81,26 @@
           }
         }
       }
+    },
+    {
+      "includes": ["examples/quick-start/node.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["examples/quick-start/browser.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": "off"
+          }
+        }
+      }
     }
   ]
 }

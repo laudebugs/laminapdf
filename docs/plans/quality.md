@@ -242,7 +242,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1b](../todos/done/Q1b-docs-prose-check.md) | The `docs-prose` check for reader-facing text | M | — |
 | [Q1c](../todos/done/Q1c-examples-checks.md) | The examples checks: `docs-snippets`, a Biome override and `clippy-examples` | M | — |
 | [Q1d](../todos/ready/Q1d-example-api-cleanups.md) | API fixes the examples need | S | — |
-| [Q1e](../todos/ongoing/Q1e-quick-start-apps.md) | Runnable quick-start apps for every runtime | M | Q1c |
+| [Q1e](../todos/done/Q1e-quick-start-apps.md) | Runnable quick-start apps for every runtime | M | Q1c |
 | [Q1f](../todos/ready/Q1f-examples-readable.md) | Examples readers can copy | M | Q1c, Q1d |
 | [Q1g](../todos/ready/Q1g-worker-examples.md) | Worker examples that work outside this repository | S | Q1c |
 | [Q1h](../todos/ready/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |

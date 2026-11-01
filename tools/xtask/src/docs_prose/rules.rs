@@ -242,6 +242,18 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
     findings
 }
 
+/// An exclamation mark in the writer's own words: one inside double quotes ("Hello, world!") is
+/// quoted text, such as what an example draws, and is allowed.
+fn has_unquoted_exclamation(text: &str) -> bool {
+    let mut quoted = false;
+    text.chars().any(|c| {
+        if matches!(c, '"' | '“' | '”') {
+            quoted = c == '“' || (c == '"' && !quoted);
+        }
+        c == '!' && !quoted
+    })
+}
+
 /// A todo ID: one capital letter, one or two digits and a lowercase suffix (`B8b`, `Q1a`). Bare
 /// IDs without a suffix (`X5`, `P1`) are left out on purpose: they read like paper sizes (`A4`),
 /// quarters (`Q3`) and revisions (`R5`). `id_exceptions` in the config lists words that look
@@ -335,7 +347,7 @@ fn banned_words(block: &Block, config: &Config) -> Vec<Finding> {
             )
         })
         .collect();
-    if text.contains('!') {
+    if has_unquoted_exclamation(&text) {
         findings.push(finding(
             block.line,
             "banned-word",
@@ -632,6 +644,15 @@ mod tests {
     fn the_contributor_section_should_not_be_checked() {
         let body = "## Why\n\nRepair keeps the file usable.\n\n## For contributors\n\nSee ADR 0003 and Q1a.\n";
         assert_eq!(rules_for(body, false), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn a_quoted_exclamation_should_be_allowed() {
+        assert_eq!(
+            rules_for("It says \"Hello, world!\" on one page.\n", false),
+            Vec::<&str>::new()
+        );
+        assert_eq!(rules_for("It works!\n", false), vec!["banned-word"]);
     }
 
     #[test]

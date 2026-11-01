@@ -4,3 +4,7 @@ declare namespace Deno {
   function test(name: string, fn: () => Promise<void>): void;
   function readFile(path: URL): Promise<Uint8Array<ArrayBuffer>>;
 }
+// And the one examples/quick-start/deno.ts uses.
+declare namespace Deno {
+  function writeFile(path: string, data: Uint8Array): Promise<void>;
+}

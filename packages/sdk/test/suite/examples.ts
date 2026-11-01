@@ -3,7 +3,7 @@
 // framework; each runner supplies the fixture bytes its own way (`runSuite`'s `read`, or the
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
-import { init, wasmMemory } from "@laminapdf/sdk";
+import { type BuilderOptions, init, wasmMemory } from "@laminapdf/sdk";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
@@ -161,6 +161,32 @@ export function runSuite(runtime: string, read: Read, register: Register, part: 
       if (problem !== undefined) throw new Error(problem);
     });
   }
+}
+
+/** A quick-start app (`examples/quick-start/<runtime>.ts`): builds hello and hands the bytes to `save`. */
+export type QuickStartApp = (
+  save: (pdf: Uint8Array) => void | Promise<void>,
+  options?: BuilderOptions,
+) => Promise<void>;
+
+/** What a quick start's environment would supply (file ID, producer, date), fixed so its bytes are the golden's. */
+export const HELLO_OPTIONS: BuilderOptions = {
+  id: new TextEncoder().encode("lamina-ex-hello!"),
+  producer: "lamina examples",
+  creationDate: "D:20261030120000Z",
+};
+
+/** Registers `runtime`'s quick-start app, which must hand `save` the hello golden's bytes. */
+export function registerQuickStart(runtime: string, read: Read, register: Register, app: QuickStartApp): void {
+  register(`the ${runtime} quick start builds the bytes of the Rust hello golden`, async () => {
+    let saved: Uint8Array | undefined;
+    await app((pdf) => {
+      saved = pdf;
+    }, HELLO_OPTIONS);
+    if (saved === undefined) throw new Error(`the ${runtime} quick start saved nothing`);
+    const problem = await difference(saved, await read("fixtures/golden/examples/hello.pdf"));
+    if (problem !== undefined) throw new Error(problem);
+  });
 }
 
 /** Lowercase hex SHA-256 with Web Crypto (every runtime has it). */

@@ -7,10 +7,16 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-Bun loads `@laminapdf/sdk` the way Node does: it reads each `.wasm` file from `@laminapdf/wasm`.
+Bun loads `@laminapdf/sdk` the way Node does: it reads the `.wasm` files from the `@laminapdf/wasm` package.
 
-This is how lamina's tests run every example in Bun:
+This app builds one A4 page that says "Hello, world!" and writes it to `hello.pdf` with `Bun.write`:
 
-<Snippet file="packages/sdk/test/bun/examples.test.ts" />
+<Snippet file="packages/sdk/examples/quick-start/bun.ts" />
 
-`runSuite` calls `await init({ text: true })` once. Then each example, such as [`hello`](/quick-start/node/), builds its bytes synchronously.
+Save it as `hello.ts` and run it:
+
+```sh
+bun hello.ts
+```
+
+lamina's tests run this app in Bun and check that it writes exactly the bytes of the Rust quick start.

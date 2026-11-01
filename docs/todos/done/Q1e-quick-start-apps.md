@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](../done/Q1c-examples-checks.md) |
+| Depends on | [Q1c](./Q1c-examples-checks.md) |
 | Blocks | [Q1h](../ready/Q1h-docs-story.md) |
 | ADRs | None |
 | Branch | `feat/q1e-quick-start-apps` |
 | PR title | `feat(docs): runnable quick-start examples for Node, Deno, Bun and the browser` |
 | Size | M |
-| PR | — |
+| PR | [#157](https://github.com/laudebugs/lamina/pull/157) |
 
 ## Goal
 
@@ -39,17 +39,17 @@ Three of the six runtime pages show CI test runners, and the browser page shows 
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the four apps, each taking the output path or a byte sink as a parameter so a runner can capture the bytes.
-- [ ] Change the Node, Deno, Bun and Vite runners to import the apps; run `cargo xtask pdf-runtimes`.
-- [ ] Remove the `test/**` globs from `Snippet.astro`.
-- [ ] Rewrite the six runtime pages; run `docs-prose` and `docs-snippets` on them.
-- [ ] Check that `cargo xtask verify-install` still passes with the new apps.
+- [x] Write the four apps, each taking the output path or a byte sink as a parameter so a runner can capture the bytes. Each takes a `save` callback (writing `hello.pdf`, or offering a download, by default) and the build options, which the runners fill with the hello golden's fixed ID, producer and date (`HELLO_OPTIONS` in the suite); `import.meta.main` runs it as a script.
+- [x] Change the Node, Deno, Bun and Vite runners to import the apps; run `cargo xtask pdf-runtimes`. The browser runner (Chromium, Firefox, WebKit) runs the browser app too; `pdf-runtimes` is left to CI (no local CI).
+- [x] Remove the `test/**` globs from `Snippet.astro`.
+- [x] Rewrite the six runtime pages; run `docs-prose` and `docs-snippets` on them. The Rust and Cloudflare Workers pages already showed examples, so only the other four changed. `docs-prose` now allows an exclamation mark inside double quotes ("Hello, world!").
+- [x] Check that `cargo xtask verify-install` still passes with the new apps. Deviation: verify-install keeps copying `hello.ts`, which is unchanged, into its clean projects; moving it onto the apps would rework its Vite and Worker projects too, so the runners above run the apps instead.
 
 ## Acceptance criteria
 
-- [ ] No reader page shows a file under `test/`.
-- [ ] Each quick-start app runs in its runtime in CI and produces the hello reference PDF.
-- [ ] `docs-prose` and `docs-snippets` report nothing for the quick-start pages and apps.
+- [x] No reader page shows a file under `test/`.
+- [x] Each quick-start app runs in its runtime in CI and produces the hello reference PDF.
+- [x] `docs-prose` and `docs-snippets` report nothing for the quick-start pages and apps.
 
 ## Post-merge checks
 
@@ -70,8 +70,8 @@ Deno and Bun need write permissions in CI: keep the write behind the parameter s
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

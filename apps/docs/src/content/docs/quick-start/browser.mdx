@@ -9,11 +9,13 @@ import Snippet from "../../../components/Snippet.astro";
 
 In a browser, `@laminapdf/sdk` finds each of its `.wasm` files with `new URL("…", import.meta.url)`, so your bundler emits the files as assets next to your code, and they load from your own origin.
 
-This app is bundled by Vite and tested in Chromium. It loads the base module, opens a document, then loads the text module and builds a page:
+This app builds one A4 page that says "Hello, world!" and offers it to the reader as `hello.pdf`:
 
-<Snippet file="packages/sdk/test/vite-app/main.ts" />
+<Snippet file="packages/sdk/examples/quick-start/browser.ts" />
 
-- **Two modules, loaded on demand.** `init()` loads the base module (open, edit, save, vector pages). `loadText()` (or `init({ text: true })`) adds fonts and text. A page that never draws text never downloads the text module.
+Call `hello()` when the reader asks for the file, for example from a button: `button.addEventListener("click", () => hello())`. lamina's tests bundle this app with Vite, run it in Chromium, Firefox and WebKit, and check that it builds exactly the bytes of the Rust quick start.
+
+- **Two modules, loaded on demand.** `init()` loads the base module (open, edit, save, vector pages). `loadText()` (or `init({ text: true })`, as the app does) adds fonts and text. A page that never draws text never downloads the text module.
 - **Vite:** exclude the package from dependency pre-bundling (`optimizeDeps.exclude: ["@laminapdf/sdk"]` in `vite.config.ts`), so the `.wasm` files stay next to the JavaScript that loads them.
 - **Content Security Policy:** compiling WebAssembly needs `script-src 'wasm-unsafe-eval'`. Nothing else is needed.
 
