@@ -61,7 +61,7 @@ stringprep = { version = "0.1.5", default-features = false }
 # Fonts (lamina-text, B4a; ADR 0005 §6). skrifa: font loading, cmap and metrics over read-fonts
 # (re-exported as `skrifa::raw`); pinned to the version subsetter's `variable-fonts` feature uses,
 # so the graph has one copy. MIT OR Apache-2.0 (read-fonts, font-types, bytemuck: likewise)
-skrifa = { version = "=0.42.0", default-features = false, features = ["std"] }
+skrifa = { version = "=0.46.2", default-features = false, features = ["std"] }
 # Subsetting TrueType/CFF/CFF2 into PDF-ready font programs, with variable-font instancing
 # (`variable-fonts`, its default feature: write-fonts, kurbo). MIT OR Apache-2.0
 subsetter = { version = "=0.2.6" }

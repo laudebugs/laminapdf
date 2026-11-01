@@ -1248,7 +1248,7 @@ dependencies = [
  "pdf-writer",
  "serde_json",
  "sha2",
- "skrifa 0.42.0",
+ "skrifa 0.46.2",
  "subsetter",
  "thiserror",
  "unicode-bidi",
@@ -1875,9 +1875,9 @@ checksum = "33f4fe9184a62d842c9ef383018f3306d8ba224fd9d836f56d7288308847c256"
 
 [[package]]
 name = "skrifa"
-version = "0.42.0"
+version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c844316c7318cf6ae9034ee45edd2c432076ef910fdc4bc598183b31f88d03c3"
+checksum = "0c34617370ae968efb7161bb2beb517d9084659aae19e24b89e3db25b46e4564"
 dependencies = [
  "bytemuck",
  "read-fonts 0.39.2",
@@ -1948,7 +1948,7 @@ checksum = "38803281d1c23166c5ebcb455439a5d2afe711cc909cf88af72448c297756ad6"
 dependencies = [
  "kurbo",
  "rustc-hash",
- "skrifa 0.42.0",
+ "skrifa 0.42.1",
  "write-fonts",
 ]
 
