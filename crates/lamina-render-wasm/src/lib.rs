@@ -245,7 +245,10 @@ fn request(
 }
 
 /// The error as the ADR 0026 §1 object, a plain JS object (offsets stay below 2^53, so the
-/// JSON numbers are exact).
+/// JSON numbers are exact). `JSON.parse` of `serde_json`'s output can't fail; if it ever did,
+/// the error is a JS `Error` with the message, never `undefined`.
 fn throw(e: &RenderError) -> JsValue {
-    js_sys::JSON::parse(&e.diagnostic().to_json().to_string()).unwrap_or(JsValue::UNDEFINED)
+    let diagnostic = e.diagnostic();
+    js_sys::JSON::parse(&diagnostic.to_json().to_string())
+        .unwrap_or_else(|_| js_sys::Error::new(&diagnostic.message).into())
 }

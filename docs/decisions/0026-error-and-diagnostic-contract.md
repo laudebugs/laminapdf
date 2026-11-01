@@ -150,7 +150,7 @@ Today three variants break this rule: `lamina_syntax::Error::UnsupportedFilter(S
 
 | Surface | Form |
 | --- | --- |
-| Rust core crates | One `thiserror` enum per crate as today (`code()` exists). They gain `kind()` and `location()` (L1c: a table checked against `codes.json` by test; generated from L1b on). No `hint`/`docs_url` text in core crates: it stays out of the base wasm |
+| Rust core crates | One `thiserror` enum per crate as today (`code()` exists). They gain `kind()` and `location()` (L1c: a table checked against `codes.json` by test; generated from L1b on). Their error enums carry no `hint`/`docs_url` text: it lives only in the generated table (in `lamina-syntax` since Q2j, see the note below), linked only into builds that read it |
 | Rust façade (`lamina`) | `lamina::Error` with `code()`, `kind()`, `hint()`, `location()`, `docs_url()` and `Serialize` into §1. Warnings likewise |
 | wasm edge (`lamina-wasm`) | Returns the §1 object. The TS layer turns it into a `LaminaError` (ADR 0002 §1's "JS `Error` with a stable `code`", with all §1 fields) |
 | TypeScript (`@laminapdf/sdk`, worker client) | **`LaminaError<C>`** (decided; `PdfError` is not used), `isLaminaError(e, code?)`, `toJSON()` to §1. Warnings are plain `LaminaWarning` objects. The worker sends §1 JSON and the client rebuilds `LaminaError`, because structured clone drops `Error` fields |

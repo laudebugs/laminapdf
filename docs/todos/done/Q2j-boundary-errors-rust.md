@@ -12,7 +12,7 @@
 | Branch | `refactor/q2j-boundary-errors-rust` |
 | PR title | `refactor(errors): every Rust boundary error is the ADR 0026 object from one serialiser` |
 | Size | M |
-| PR | — |
+| PR | [#151](https://github.com/laudebugs/lamina/pull/151) |
 
 ## Goal
 
@@ -75,7 +75,7 @@ None.
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green

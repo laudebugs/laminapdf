@@ -103,9 +103,8 @@ impl RenderError {
     /// variants reuse codes defined by other groups.
     pub const CODES: &'static [&'static str] = &["render-too-large", "render-failed", "render-backend-unavailable"];
 
-    /// The code as the generated [`ErrorCode`] (one per entry of `fixtures/codes.json`),
-    /// from which [`code`](RenderError::code), [`kind`](RenderError::kind) and the
-    /// [`diagnostic`](RenderError::diagnostic)'s hint and `docsUrl` are read.
+    /// The variant's entry in the generated [`ErrorCode`] table (one per entry of
+    /// `fixtures/codes.json`), which holds its code string, kind, hint and `docsUrl`.
     #[must_use]
     pub const fn error_code(&self) -> ErrorCode {
         match self {
@@ -149,27 +148,29 @@ impl RenderError {
 
     /// The `data` of [`RenderError::diagnostic`].
     fn data(&self) -> Map<String, Value> {
-        let value = match self {
+        match self {
             Self::TooLarge {
                 width,
                 height,
                 limit,
                 unit,
-            } => json!({ "width": width, "height": height, "limit": limit, "unit": unit }),
-            Self::InputTooLarge { len, limit } => json!({ "len": len, "limit": limit }),
-            Self::InvalidRequest { what } => json!({ "argument": "request", "detail": what }),
-            Self::BufferSize { .. } => json!({ "argument": "output", "detail": self.to_string() }),
-            Self::PageIndexOutOfRange { index, count } => json!({ "index": index, "count": count }),
-            Self::DataPending { ranges } => json!({ "ranges": ranges }),
-            Self::Failed { backend, stage } => json!({ "backend": backend, "stage": stage }),
-            Self::Unavailable { backend } => json!({ "backend": backend }),
-            Self::PasswordRequired | Self::WrongPassword | Self::Source { .. } | Self::Cancelled => json!({}),
-        };
-        // Every arm above is an object literal.
-        if let Value::Object(map) = value {
-            map
-        } else {
-            Map::new()
+            } => fields([
+                ("width", json!(width)),
+                ("height", json!(height)),
+                ("limit", json!(limit)),
+                ("unit", json!(unit)),
+            ]),
+            Self::InputTooLarge { len, limit } => fields([("len", json!(len)), ("limit", json!(limit))]),
+            Self::InvalidRequest { what } => fields([("argument", json!("request")), ("detail", json!(what))]),
+            Self::BufferSize { .. } => fields([
+                ("argument", json!("output")),
+                ("detail", json!("the buffer does not hold exactly the tile's bytes")),
+            ]),
+            Self::PageIndexOutOfRange { index, count } => fields([("index", json!(index)), ("count", json!(count))]),
+            Self::DataPending { ranges } => fields([("ranges", json!(ranges))]),
+            Self::Failed { backend, stage } => fields([("backend", json!(backend)), ("stage", json!(stage))]),
+            Self::Unavailable { backend } => fields([("backend", json!(backend))]),
+            Self::PasswordRequired | Self::WrongPassword | Self::Source { .. } | Self::Cancelled => Map::new(),
         }
     }
 
@@ -192,6 +193,11 @@ impl RenderError {
             | Self::Cancelled => Location::NONE,
         }
     }
+}
+
+/// A `data` object from its entries.
+fn fields<const N: usize>(entries: [(&str, Value); N]) -> Map<String, Value> {
+    entries.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()
 }
 
 impl From<lamina_cos::SourceError> for RenderError {
@@ -254,6 +260,19 @@ mod tests {
                 panic!("{value} does not match lamina.error/1:\n{report}");
             }
         }
+    }
+
+    /// A `data-pending` lists its ranges as `[offset, length]` pairs under `data.ranges`, the
+    /// shape `@laminapdf/sdk`'s `LaminaError.ranges` takes.
+    #[test]
+    fn data_pending_lists_its_ranges_as_pairs() {
+        let e = RenderError::DataPending {
+            ranges: vec![(0, 1), (4096, 512)],
+        };
+        assert_eq!(
+            e.diagnostic().to_json()["data"]["ranges"],
+            serde_json::json!([[0, 1], [4096, 512]])
+        );
     }
 
     #[test]
