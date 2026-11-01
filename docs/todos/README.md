@@ -112,7 +112,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](done/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
-| L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](done/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
+| L6b | [Mobile SDK plan: `LaminaPdfView` (SwiftUI) and `LaminaPdfViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](done/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
 
 ## Web reader — Round C
 

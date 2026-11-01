@@ -10,7 +10,7 @@
 | Blocks | [L4b](./L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](./L4d-cli-distribution.md) |
 | ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](../done/L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
-| PR title | `feat(cli): ADR 0031 and the lamina CLI with info, check, pages rotate, extract and explain` |
+| PR title | `feat(cli): ADR 0031 and the laminapdf CLI with info, check, pages rotate, extract and explain` |
 | Size | L (≈ 600–900 lines: ADR, command layer, clap front end, tests; generated schemas and test fixtures don't count) |
 | PR | — |
 

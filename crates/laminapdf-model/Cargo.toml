@@ -1,6 +1,6 @@
 [package]
 name = "laminapdf-model"
-description = "Typed, tolerant views over a PDF's COS graph (pages, outline, Info, name and number trees, page labels) and stable LaminaIds (pure, bytes in / bytes out)."
+description = "Typed, tolerant views over a PDF's COS graph (pages, outline, Info, name and number trees, page labels) and stable LaminaPdfIds (pure, bytes in / bytes out)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

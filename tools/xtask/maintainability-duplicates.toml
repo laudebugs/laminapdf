@@ -59,7 +59,7 @@ reason = "the COS page-tree leaf and the typed page view; Q2f makes laminapdf-mo
 [[type]]
 name = "PathSegment"
 crates = ["laminapdf-content", "laminapdf-cos"]
-reason = "a segment of a drawn path and a segment of an object path (LaminaId): different concepts with one name"
+reason = "a segment of a drawn path and a segment of an object path (LaminaPdfId): different concepts with one name"
 
 [[type]]
 name = "Tag"

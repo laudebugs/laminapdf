@@ -666,7 +666,7 @@ impl ErrorCode {
             Self::Source => "retry the call, or check the source; the document stays usable",
             Self::Type => "use another copy of the file, or repair it with another tool",
             Self::InvalidStructure => "use another copy of the file, or repair it with another tool",
-            Self::UnsetObject => "this is a Lamina PDF bug: report it with the steps that led to it",
+            Self::UnsetObject => "this is a bug in Lamina PDF: report it with the steps that led to it",
             Self::RepairedBase => "save with a full rewrite instead of an incremental update",
             Self::EncryptedBase => "saving encrypted documents is not supported yet; use another tool to decrypt or re-encrypt",
             Self::PasswordRequired => "pass the document's password in OpenOptions",

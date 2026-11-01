@@ -52,7 +52,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0015](../decisions/0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Round A | Accepted |
 | [0019](../decisions/0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence checks, SBOM) | Round A | Accepted |
 | [0003](../decisions/0003-reader-tolerance-and-limits.md) | Reader tolerance policy and `Limits` defaults | Round B | Accepted |
-| [0005](../decisions/0005-document-model.md) | Document model: lazy COS overlay, typed views, stable `LaminaId`s | Round B | Accepted (generation strategy Proposed) |
+| [0005](../decisions/0005-document-model.md) | Document model: lazy COS overlay, typed views, stable `LaminaPdfId`s | Round B | Accepted (generation strategy Proposed) |
 | [0006](../decisions/0006-op-log-and-undo.md) | Op log, transactions, undo semantics | Round B | Accepted |
 | [0007](../decisions/0007-save-planner.md) | Save planner and `SaveConstraint` | Round B | Accepted |
 | [0016](../decisions/0016-package-design.md) | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Accepted |

@@ -73,7 +73,7 @@ const _: () = assert!(
 
 /// The [`ErrorCode`] of a wrapped crate's error code. Every such code is in the table (the
 /// assertions above), so the fallback is never taken; it is `unset-object`, kind `internal`,
-/// whose hint says to report a Lamina PDF bug.
+/// whose hint says to report a bug in Lamina PDF.
 pub(crate) const fn error_code(code: &str) -> ErrorCode {
     match ErrorCode::from_code(code) {
         Some(c) => c,

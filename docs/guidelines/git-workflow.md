@@ -18,7 +18,7 @@ lamina.git/                  # bare repository (no working files of its own)
 One-time setup (if you don't already have it):
 
 ```sh
-git clone --bare git@github.com:laudebugs/lamina.git lamina.git
+git clone --bare git@github.com:laudebugs/laminapdf.git lamina.git
 cd lamina.git
 # A bare clone has no remote-tracking refspec; add one so `git fetch` updates origin/*.
 git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'

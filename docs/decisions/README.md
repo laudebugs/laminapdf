@@ -31,7 +31,7 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0002](0002-binding-strategy.md) | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Accepted |
 | [0003](0003-reader-tolerance-and-limits.md) | Reader tolerance policy, warning codes and `Limits` defaults | Accepted |
 | [0004](0004-render-backend.md) | Render backend: `RenderBackend` trait (tiles in straight RGBA, `CancelToken`, `RenderLimits`), PDFium by default per surface (pinned and hashed), hayro as CI oracle with switch criteria, MuPDF prohibited, the two-parsers rule | Accepted |
-| [0005](0005-document-model.md) | Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaId`s | Accepted (generation strategy: own builder over the overlay, per the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)) |
+| [0005](0005-document-model.md) | Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaPdfId`s | Accepted (generation strategy: own builder over the overlay, per the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)) |
 | [0006](0006-op-log-and-undo.md) | Op log, transactions, undo/redo and barrier ops | Accepted |
 | [0007](0007-save-planner.md) | Save planner, `SaveMode` and `SaveConstraint` | Accepted |
 | [0009](0009-web-client-architecture.md) | Web client: React 19 chrome in `@laminapdf/ui`, framework-free `@laminapdf/viewer`, one document worker per document, typed RPC on `@laminapdf/sdk/worker`, transferred `ImageBitmap`s, single-threaded v0.1 without COOP/COEP | Accepted |

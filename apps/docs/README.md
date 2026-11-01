@@ -56,7 +56,7 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR pre
 
 ## Deploying
 
-`wrangler.toml` is the Worker `lamina-docs`: static assets only, no script, served at **https://docs.laminapdf.com** (a Workers custom domain) with `preview_urls` on for the per-PR previews on workers.dev. `.github/workflows/docs.yml` deploys it. It runs for changes to the site or anything it's built from (`apps/docs/`, `packages/sdk/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
+`wrangler.toml` is the Worker `lamina-pdf-docs`: static assets only, no script, served at **https://docs.laminapdf.com** (a Workers custom domain) with `preview_urls` on for the per-PR previews on workers.dev. `.github/workflows/docs.yml` deploys it. It runs for changes to the site or anything it's built from (`apps/docs/`, `packages/sdk/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
 
 - **`preview-build`** (pull requests): builds the PR's site with no secrets and uploads `dist/` as an artifact.
 - **`preview-deploy`** (pull requests): holds the secrets and never checks out or runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch, installs that exact Wrangler with `npx` into a fresh npm cache, and uploads the artifact as a preview version (`--preview-alias pr-<n>`). Then it posts one comment with the URL and updates it on each push. It skips with a notice until the default branch has `apps/docs/wrangler.toml`.

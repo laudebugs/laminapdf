@@ -18,7 +18,7 @@ Report it, with the call you made and the message. The same call through the syn
 ## Example
 
 ```ts
-await doc.pageCount(); // rejects with LaminaPdfError { code: "worker-failed", kind: "internal", … } on a bug in lamina's client
+await doc.pageCount(); // rejects with LaminaPdfError { code: "worker-failed", kind: "internal", … } on a bug in Lamina PDF's client
 ```
 
 ## Data fields

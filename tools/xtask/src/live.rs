@@ -449,7 +449,7 @@ impl Report {
 enum Relation {
     /// lamina skipped what it could not read: a lower page count, or outline titles that are
     /// a shorter subsequence of the tool's.
-    LaminaSkips,
+    LaminaPdfSkips,
     /// Page text that differs from the tool's only by lamina's U+FFFD for glyphs without a
     /// Unicode value, where the tool writes nothing or a C0 control character.
     Unmapped,
@@ -458,7 +458,7 @@ enum Relation {
 impl Relation {
     fn holds(self, ours: &Value, theirs: &Value) -> bool {
         match self {
-            Self::LaminaSkips => match (ours, theirs) {
+            Self::LaminaPdfSkips => match (ours, theirs) {
                 (Value::Number(a), Value::Number(b)) => a.as_u64().zip(b.as_u64()).is_some_and(|(a, b)| a < b),
                 (Value::Array(a), Value::Array(b)) => {
                     let mut rest = b.iter();
@@ -506,7 +506,7 @@ impl Class {
         e.require_rule()?;
         let relation = match entry.get("relation").and_then(toml::Value::as_str) {
             None => None,
-            Some("lamina-skips") => Some(Relation::LaminaSkips),
+            Some("lamina-skips") => Some(Relation::LaminaPdfSkips),
             Some("unmapped") => Some(Relation::Unmapped),
             Some(other) => bail!("[[class]] relation {other:?}: \"lamina-skips\" or \"unmapped\""),
         };
@@ -1587,7 +1587,7 @@ mod tests {
 
     #[test]
     fn lamina_skips_should_hold_for_fewer_pages_and_a_shorter_outline_subsequence() {
-        let skips = Relation::LaminaSkips;
+        let skips = Relation::LaminaPdfSkips;
         assert!(
             skips.holds(&json!(2), &json!(3))
                 && skips.holds(&json!(["a", "c"]), &json!(["a", "b", "c"]))

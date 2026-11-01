@@ -32,7 +32,7 @@ pub enum ErrorKind {
     State,
     /// A cancel token stopped the work.
     Cancelled,
-    /// A Lamina PDF bug or a broken invariant.
+    /// A bug in Lamina PDF or a broken invariant.
     Internal,
 }
 
@@ -145,7 +145,7 @@ pub struct Location {
     pub stream_offset: Option<u64>,
     /// 0-based page index.
     pub page_index: Option<u64>,
-    /// A `LaminaId` string, e.g. `p12.0`.
+    /// A `LaminaPdfId` string, e.g. `p12.0`.
     pub id: Option<String>,
 }
 

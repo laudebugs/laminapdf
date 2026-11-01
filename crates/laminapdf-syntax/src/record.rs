@@ -37,7 +37,7 @@ pub struct Diagnostic {
     pub hint: Option<String>,
     /// Candidates from Lamina PDF's own vocabulary (errors of kind `usage` only); empty today.
     pub did_you_mean: Vec<String>,
-    /// Where: file offset, object, stream offset, page index, `LaminaId`.
+    /// Where: file offset, object, stream offset, page index, `LaminaPdfId`.
     pub location: Location,
     /// Code-specific fields, documented on the code's explain page.
     pub data: Map<String, Value>,

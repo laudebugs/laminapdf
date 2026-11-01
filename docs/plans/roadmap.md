@@ -47,7 +47,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `laminapdf-syntax` + `laminapdf-cos`, ADRs 0001/0002/0015/0019 |
-| M1 Library alpha | B1–B7 | `lamina` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
+| M1 Library alpha | B1–B7 | `laminapdf` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |

@@ -8,7 +8,7 @@
 //! `differential/full.json`, `full-exceptions.toml`), checked by the ignored test at the end,
 //! which `cargo xtask differential --full` runs (X4).
 //!
-//! A disagreement is either a Lamina PDF bug (fix it) or a deliberate difference, listed in the
+//! A disagreement is either a bug in Lamina PDF (fix it) or a deliberate difference, listed in the
 //! set's exceptions file with the ADR 0003 rule behind Lamina PDF's answer.
 #![allow(
     clippy::unwrap_used,

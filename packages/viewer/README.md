@@ -99,10 +99,10 @@ The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-
 │  call(method, params, opts) │  call / cancel │  handshake · priority queue · coalescing  │
 │  render timers (slow/stuck) │                │  cancellation · ADR 0026 errors · traps   │
 │  restart + reopen on crash  │ ◀───────────── │   ├─ viewer methods (src/worker/)         │
-│  AbortError on abort        │ result / event │   │   openDocument → lamina Document +    │
+│  AbortError on abort        │ result / event │   │   openDocument → SDK Document +       │
 │ @laminapdf/sdk/worker client   │  (transferred  │   │                  RenderDocument       │
 │  request() · onDiscard      │   ImageBitmap) │   │   render → backend → ImageBitmap      │
-└────────────────────────────┘                 │   └─ lamina's own methods (open, …)       │
+└────────────────────────────┘                 │   └─ the SDK's own methods (open, …)    │
                                                └──────────────────────────────────────────┘
 ```
 

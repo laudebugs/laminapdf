@@ -1,4 +1,4 @@
-# 0005 — Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaId`s
+# 0005 — Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaPdfId`s
 
 - Status: Accepted. §6 (generation strategy) is recommended by the [`krilla-fit` spike](../../spikes/krilla-fit/README.md) and accepted when the spike's PR merges (owner sign-off)
 - Date: 2026-10-28
@@ -13,7 +13,7 @@ Today `laminapdf_cos::Document<'a>` borrows a `&[u8]`, parses objects lazily and
 
 ### 1. Layers
 
-`laminapdf-syntax` (objects, parser) → `laminapdf-cos` (xref, lazy resolution, overlay) → `laminapdf-model` (typed views, `LaminaId`s) → `laminapdf-ops` / `laminapdf-save` → `laminapdf` façade. Views read; only ops write; only the save planner serialises.
+`laminapdf-syntax` (objects, parser) → `laminapdf-cos` (xref, lazy resolution, overlay) → `laminapdf-model` (typed views, `LaminaPdfId`s) → `laminapdf-ops` / `laminapdf-save` → `laminapdf` façade. Views read; only ops write; only the save planner serialises.
 
 ### 2. `ByteSource` and ownership of the input
 
@@ -64,15 +64,15 @@ pub trait ByteSource: Send + Sync {
 | `Dirty` | Overlay non-empty | undo to base → `Clean`; save succeeds → rebase → `Clean`; save fails → stays `Dirty`, overlay untouched |
 | `SavedNotRebased` | Written to a sink the core can't read back, and not rebased yet | `Document::rebase(source)` → `Clean` |
 
-Rebasing (1) makes the saved output the new base: for an incremental save the core builds it itself as the old base followed by the appended revision, which it keeps in memory; for a full rewrite the planner gets it back from a readable sink ([ADR 0007](0007-save-planner.md) §6), or the shell passes the saved file to `rebase`; (2) loads the xref of the new newest revision; (3) clears the overlay and the dirty set; (4) keeps the `LaminaId` map, applying the renumbering map if the save compacted; and (5) re-detects the `SaveConstraint` from the new base. So open → sign → save → edit → save appends to the signed revision, and a signature made in this session makes the document `AppendOnly`. In `SavedNotRebased`, reads work and ops are refused, and so is another save, so nothing is ever written against a stale base.
+Rebasing (1) makes the saved output the new base: for an incremental save the core builds it itself as the old base followed by the appended revision, which it keeps in memory; for a full rewrite the planner gets it back from a readable sink ([ADR 0007](0007-save-planner.md) §6), or the shell passes the saved file to `rebase`; (2) loads the xref of the new newest revision; (3) clears the overlay and the dirty set; (4) keeps the `LaminaPdfId` map, applying the renumbering map if the save compacted; and (5) re-detects the `SaveConstraint` from the new base. So open → sign → save → edit → save appends to the signed revision, and a signature made in this session makes the document `AppendOnly`. In `SavedNotRebased`, reads work and ops are refused, and so is another save, so nothing is ever written against a stale base.
 
 ### 4. Typed views (`laminapdf-model`)
 
 `Page`, `Outline`/`OutlineItem`, `Info`, `NameTree`, `NumberTree`, `PageLabels` in B2; annotations, fields and the structure tree in later rounds. Views are thin, borrowed wrappers (`Page<'d>` holds `&'d Document` and an object reference) that read fields lazily and apply [ADR 0003](0003-reader-tolerance-and-limits.md)'s tolerance per field: a bad `/MediaBox` is `None` plus a warning, not a failed page. Views never cache copies of the graph. Bindings don't see lifetimes: the façade exposes owned handles and IDs ([ADR 0002](0002-binding-strategy.md) decision 3).
 
-### 5. `LaminaId`s
+### 5. `LaminaPdfId`s
 
-A `LaminaId` is an opaque, typed identifier for a page, annotation, outline item or field (`PageId`, `AnnotId`, … newtypes over one `LaminaId`). Ops and sync refer to IDs, never to object references.
+A `LaminaPdfId` is an opaque, typed identifier for a page, annotation, outline item or field (`PageId`, `AnnotId`, … newtypes over one `LaminaPdfId`). Ops and sync refer to IDs, never to object references.
 
 - **Object identity.** An item's ID is its kind plus the number and generation of the indirect object that represents it (`p12.0` in the JSON string form, documented as opaque). Object numbers are unique across the document, so IDs are unique document-wide; nothing depends on siblings, page position or walk order.
 - **Allocation.** One document-level allocator assigns IDs: existing objects get theirs on first sight, and new objects get theirs when the overlay allocates their number (§3). Numbers, and therefore IDs, are never reused in a session; undoing a delete brings the same ID back.

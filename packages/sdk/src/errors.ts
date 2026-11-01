@@ -15,7 +15,7 @@ export interface Location {
   readonly streamOffset?: number;
   /** 0-based page index (ADR 0027 §6). */
   readonly pageIndex?: number;
-  /** A LaminaId (`p12.0`). */
+  /** A LaminaPdfId (`p12.0`). */
   readonly id?: string;
 }
 

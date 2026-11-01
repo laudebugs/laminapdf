@@ -484,7 +484,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "source": "retry the call, or check the source; the document stays usable",
   "type": "use another copy of the file, or repair it with another tool",
   "invalid-structure": "use another copy of the file, or repair it with another tool",
-  "unset-object": "this is a Lamina PDF bug: report it with the steps that led to it",
+  "unset-object": "this is a bug in Lamina PDF: report it with the steps that led to it",
   "repaired-base": "save with a full rewrite instead of an incremental update",
   "encrypted-base": "saving encrypted documents is not supported yet; use another tool to decrypt or re-encrypt",
   "password-required": "pass the document's password in OpenOptions",
@@ -571,7 +571,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "worker-version-mismatch": "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy",
   "worker-crashed": "call client.restart() and open the document again; report the file if it keeps happening",
-  "worker-failed": "this is a Lamina PDF bug: report it with the call and the message; the worker keeps running",
+  "worker-failed": "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running",
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */
@@ -622,5 +622,5 @@ export const RAISED_BY_PACKAGE = {
   "disposed": { kind: "state", hint: "free a handle only after its last use; to keep working, open the document again or create a new builder" },
   "worker-version-mismatch": { kind: "usage", hint: "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy" },
   "worker-crashed": { kind: "internal", hint: "call client.restart() and open the document again; report the file if it keeps happening" },
-  "worker-failed": { kind: "internal", hint: "this is a Lamina PDF bug: report it with the call and the message; the worker keeps running" },
+  "worker-failed": { kind: "internal", hint: "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running" },
 } as const;

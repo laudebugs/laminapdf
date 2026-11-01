@@ -9,7 +9,7 @@ use crate::info::SetInfo;
 use crate::rotate::RotatePage;
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
-/// [`LaminaId`](laminapdf_model::LaminaId), never by object reference), serialisable, and free
+/// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
 /// of ambient inputs (a modification date is in the payload), so the same op on the same
 /// document gives the same result on every platform.
 ///

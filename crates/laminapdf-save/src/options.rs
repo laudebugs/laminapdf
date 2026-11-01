@@ -40,7 +40,7 @@ pub enum IncrementalOutput {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum Renumber {
-    /// Keep every object's number and generation, so `LaminaId`s stay valid (ADR 0005 §5).
+    /// Keep every object's number and generation, so `LaminaPdfId`s stay valid (ADR 0005 §5).
     #[default]
     Keep,
     /// Number the written objects `1..=n` in their old order, generation 0; the report

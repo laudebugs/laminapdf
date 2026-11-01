@@ -312,7 +312,7 @@
       "code": "unset-object",
       "kind": "internal",
       "summary": "a writer object number was reserved but never given a value",
-      "hint": "this is a Lamina PDF bug: report it with the steps that led to it",
+      "hint": "this is a bug in Lamina PDF: report it with the steps that led to it",
       "since": "0.1.0"
     },
     {
@@ -953,7 +953,7 @@
       "code": "worker-failed",
       "kind": "internal",
       "summary": "the worker client failed with an error that isn't Lamina PDF's (a bug in @laminapdf/sdk/worker, or a result it couldn't send)",
-      "hint": "this is a Lamina PDF bug: report it with the call and the message; the worker keeps running",
+      "hint": "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running",
       "since": "0.1.0"
     }
   ]

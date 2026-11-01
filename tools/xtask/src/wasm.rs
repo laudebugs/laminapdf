@@ -72,7 +72,7 @@ const TARGET: &str = "wasm32-unknown-unknown";
 pub(crate) struct Module {
     /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_pdf_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
-    /// The crate built (`laminapdf-wasm` for lamina's three modules).
+    /// The crate built (`laminapdf-wasm` for Lamina PDF's three modules).
     krate: &'static str,
     /// The crate's cdylib file stem in `target/wasm32-unknown-unknown/wasm-release/`.
     artefact: &'static str,
@@ -80,7 +80,12 @@ pub(crate) struct Module {
 }
 
 impl Module {
-    /// Whether this is one of lamina's own modules (`laminapdf-wasm`'s builds), which its
+    /// The stem of the module's files: `lamina_pdf_<name>`.
+    pub(crate) fn stem(&self) -> String {
+        format!("lamina_pdf_{}", self.name)
+    }
+
+    /// Whether this is one of Lamina PDF's own modules (`laminapdf-wasm`'s builds), which its
     /// `wasm-bindgen-test` suite and `@laminapdf/sdk` cover.
     fn is_lamina(&self) -> bool {
         self.krate == "laminapdf-wasm"
@@ -130,7 +135,7 @@ fn work(ws: &Workspace, module: &Module) -> PathBuf {
 
 /// The named, optimised copy of `module` (for twiggy).
 fn named(ws: &Workspace, module: &Module) -> PathBuf {
-    work(ws, module).join(format!("lamina_pdf_{}.named.wasm", module.name))
+    work(ws, module).join(format!("{}.named.wasm", module.stem()))
 }
 
 /// `cargo xtask wasm`: every module into `packages/wasm/dist/`, then the tests that load them.
@@ -177,7 +182,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
         &built,
     )
     .with_context(|| format!("copying the {} artefact", module.krate))?;
-    let stem = format!("lamina_pdf_{}", module.name);
+    let stem = module.stem();
     let built_arg = built.to_string_lossy().into_owned();
     let work_arg = work.to_string_lossy().into_owned();
     crate::run(
@@ -725,7 +730,7 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
     let out = dist(ws);
     let mut files = Vec::new();
     for module in &MODULES {
-        let stem = format!("lamina_pdf_{}", module.name);
+        let stem = module.stem();
         let wasm = out.join(format!("{stem}.wasm"));
         let wasm =
             fs::read(&wasm).with_context(|| format!("reading {}: run `cargo xtask wasm` first", wasm.display()))?;

@@ -25,7 +25,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-cos/   #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
 │   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree)
-│                        #     and LaminaIds
+│                        #     and LaminaPdfIds
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetInfo, RotatePage), transactions, savepoints, undo/redo
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers
 │   │                    #     over the overlay, WriteSink, /ID, rebase; the spike-era Writer
@@ -87,7 +87,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   ops/v1/ (op JSON samples), fonts/ (OFL Noto subsets), images/ (JPEG, ICC), text/ (pypdf extraction facts),
 │                        #   build/ (pypdf + pdf.js facts for laminapdf-build's goldens), signed/ (pyHanko), codes.json + codes.schema.json,
 │                        #   errors/ (contract.json: shared error objects; marker-text.pdf),
-│                        #   golden/examples/ and render-golden/ (the lamina examples), reading-order/ (U2b's generated
+│                        #   golden/examples/ and render-golden/ (the Lamina PDF examples), reading-order/ (U2b's generated
 │                        #   corpus, expected block order, ratchet threshold); README.md has provenance
 ├── fuzz/                # cargo-fuzz targets (OSS-Fuzz layout), its own nightly workspace outside the root one
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
@@ -96,7 +96,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── tools/corpus-facts/  # pypdf facts for fixtures (Python, pinned in requirements.txt) and pdf.js operator counts
 │                        #   (pdfjs-operators.mjs); never run by tests
 ├── tools/differential/  # pdf.js, PDFium, qpdf and pypdf runners for the nightly differential (pinned; own pnpm project)
-├── tools/fixtures/      # generators for fixtures written for lamina's tests (outline.py: no dependencies;
+├── tools/fixtures/      # generators for fixtures written for Lamina PDF's tests (outline.py: no dependencies;
 │                        #   fonts.py: fontTools, pinned in requirements.txt; text_facts.py: pypdf, qpdf;
 │                        #   build_facts.py: pypdf, pdf.js, pdftotext, qpdf; images.py: no dependencies, macOS sips for the JPEGs;
 │                        #   text_encrypted.py: qpdf)
@@ -110,7 +110,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   docs deploys (workflows/docs.yml), Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
-│   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
+│   ├── krilla-fit/      # Round B1: can krilla generate into Lamina PDF's object graph? (answer + measurements in its README)
 │   ├── hayro-parity/    # Round C1a: hayro vs PDFium render parity on the pdf.js and PDFBox corpora (baseline in its README)
 │   ├── pdfium-wasm/     # Round C1b: PDFium-WASM beside laminapdf-wasm in one web worker (measurements in its README; ADRs 0004, 0009)
 │   └── lamina-ffi/      # Round L6a: the façade over UniFFI 0.32 for Swift and Kotlin (findings in its README; ADR 0029)
@@ -165,7 +165,7 @@ cargo xtask check docs-snippets [--all-strict] [--warnings] [--json]  # the exam
                              #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding, ≤ 100 lines); strict on changed
                              #   examples, warnings elsewhere
 cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on the changed TS examples (every one with --all-strict)
-cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on lamina's examples with
+cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on Lamina PDF's examples with
                              #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
                              #   strict on changed examples, warnings elsewhere
 cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32 (-D warnings), clippy-examples,
@@ -210,26 +210,26 @@ cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surfa
 cargo xtask capabilities --check  # full lane: fail if that page differs from what the passing tagged tests prove
 cargo xtask golden --update  # regenerate every golden in fixtures/golden/ (and fixtures/reading-order/) from its source, print the list
                              #   (and fixtures/shaping/ with hb-shape when HarfBuzz is installed)
-cargo xtask examples         # run the lamina examples into target/examples-out/, byte-compare with
+cargo xtask examples         # run the Lamina PDF examples into target/examples-out/, byte-compare with
                              #   fixtures/golden/examples/, qpdf --check each (needs qpdf)
 cargo xtask render-golden [--update]  # every page of fixtures/golden/examples/ by PDFium (Python with
                              #   tools/render/requirements.txt) and hayro at 72 dpi vs fixtures/render-golden/,
                              #   and hayro vs PDFium at 150 dpi; then laminapdf-render's PDFium and hayro adapters on
                              #   fixtures/corpus/ at 96 dpi vs fixtures/golden/render/ (laminapdf-render-pdfium's ignored tests)
-cargo xtask verapdf [--dir <dir>]  # the lamina examples (or the PDFs in <dir>) through veraPDF for the profiles each one's XMP
+cargo xtask verapdf [--dir <dir>]  # the Lamina PDF examples (or the PDFs in <dir>) through veraPDF for the profiles each one's XMP
                              #   claims (PDF/A-2b, 2u, 3b, PDF/UA-1); any violation fails; the pinned greenfield CLI (doctor.rs,
                              #   SHA-256 checked) installed into $RUNNER_TOOL_CACHE/lamina-verapdf or target/verapdf, run with
                              #   $LAMINA_PDF_JAVA, Homebrew's openjdk@21 or java (17+); an external process only (ADR 0019)
 cargo xtask fetch-pdfium     # the pinned native PDFium (pdfium-binaries chromium/7881, SHA-256 per host) and its notices,
                              #   unpacked into $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium; prints LAMINA_PDF_PDFIUM_DIR
 cargo xtask corpus facts     # rewrite fixtures/corpus/expected.json with pypdf ($LAMINA_PDF_PYTHON or python3)
-cargo xtask differential     # lamina vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
+cargo xtask differential     # Lamina PDF vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
 cargo xtask differential --update  # regenerate fixtures/differential/expected.json with pypdf
-cargo xtask differential --text [--update]  # lamina's page text vs pdf.js and pdftotext (whitespace and bidi controls removed) from
+cargo xtask differential --text [--update]  # Lamina PDF's page text vs pdf.js and pdftotext (whitespace and bidi controls removed) from
                              #   fixtures/differential/text.json (tools/differential/text.mjs), exceptions in text-exceptions.json
-cargo xtask quads [--update] # lamina's glyph quads vs PDFium's loose char boxes, fixtures/text/charboxes.json (tools/render/charbox.py)
+cargo xtask quads [--update] # Lamina PDF's glyph quads vs PDFium's loose char boxes, fixtures/text/charboxes.json (tools/render/charbox.py)
 cargo xtask differential --full [--update]  # the full lane's set: 36 mutants per corpus file (full.json; needs cargo-nextest)
-cargo xtask roundtrip [--tools qpdf,pdfjs,pdfium]  # lamina saves fixtures x ops x modes, reopens each output; qpdf --check,
+cargo xtask roundtrip [--tools qpdf,pdfjs,pdfium]  # Lamina PDF saves fixtures x ops x modes, reopens each output; qpdf --check,
                              #   pdf.js and PDFium check them (needs qpdf, Node, Python with tools/roundtrip/requirements.txt)
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree, content,
                                       #   ops_json, save_roundtrip, extract_text
@@ -241,10 +241,10 @@ cargo xtask changes [--base <rev>]    # paths changed since the merge base with 
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]
-                             # nightly: lamina vs live pdf.js, PDFium, qpdf, pypdf over the external corpus and the mutants
+                             # nightly: Lamina PDF vs live pdf.js, PDFium, qpdf, pypdf over the external corpus and the mutants
                              #   (250 per corpus file from the fast set's series + the full set's 36); --sample is stratified per source
-cargo xtask differential --live --text [--source <name>]… [--sample N]  # nightly: lamina's page text vs live pdf.js and pdftotext
-                             #   over the external corpus, page by page (B9c's rule; a page agrees when lamina matches one tool);
+cargo xtask differential --live --text [--source <name>]… [--sample N]  # nightly: Lamina PDF's page text vs live pdf.js and pdftotext
+                             #   over the external corpus, page by page (B9c's rule; a page agrees when Lamina PDF matches one tool);
                              #   agreement per source in the summary, report in target/nightly/differential-text/
 cargo xtask render-diff [--corpus external] [--source <name>]… [--pages N] [--sample N] [--jobs N] [--top N] \
     [--history <dir> [--runner <label>] [--record] [--dry-run]]  # nightly: hayro vs PDFium (laminapdf-render's adapters, tools/render's
@@ -267,7 +267,7 @@ cargo xtask version check-tag <tag>  # fail unless <tag> is v<version> (the rele
 cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep]
                              # after `wasm`: pnpm pack @laminapdf/wasm and @laminapdf/sdk (not the render packages yet), run the quick start in clean projects in the temp dir
                              #   (npm-installed tarballs; a Vite app in Playwright's Chromium; a Worker under wrangler dev
-                             #   --local; Rust binaries with path and git deps on lamina, git default HEAD of this clone);
+                             #   --local; Rust binaries with path and git deps on Lamina PDF, git default HEAD of this clone);
                              #   each output must equal fixtures/golden/examples/hello.pdf
 cargo xtask release-guard [--run <id>] [--commit <rev>]  # fail unless the latest completed scheduled nightly.yml run on main (or run <id>)
                              #   succeeded on <rev> (default HEAD) or an ancestor (gh, git merge-base)
@@ -286,7 +286,7 @@ Fuzzing (`fuzz/`, see its README) needs nightly Rust and cargo-fuzz (pinned in `
 
 The nightly lane (`.github/workflows/nightly.yml`, cron, `workflow_dispatch`, and `workflow_call` for the release lane; ADR 0018 §2) runs on `main`, on the same self-hosted runners as the PR lanes: the live differential, every fuzz target for 10 minutes (corpus kept in the Actions cache), the scaling tests, the benchmarks (history in `history.jsonl` on the `bench-data` branch, under the runner label `self-hosted-macos-arm64`), `@laminapdf/sdk` in every runtime with its timings and WebAssembly memory appended to the same history (`pdf-runtimes`, after `bench`; `pdf/<runtime>/<case>` keys; recorded, never a regression issue), the hayro-vs-PDFium render diff (`render-diff`, X3b: `cargo xtask render-diff --pages 20` over the external corpus with PDFium from `cargo xtask fetch-pdfium`; the pass+minor share per source appended to the same history as `render-diff/<source>` basis points, with the sampling; a drop of more than 2 points against the last point from the same runner and sampling opens "Nightly render-diff regression on <ref>", never a failure; report and diff images in the `render-diff` artefact; every job that fetches the history pushes it with `.github/actions/bench-history`, which retries a refused push), veraPDF (`verapdf`, B8b: `cargo xtask verapdf` over every example that claims a profile; any violation fails; writes nothing but its artefact) and the external link check (`links`: a dead URL fails it and its table goes in the issue; a URL that passes only on a retry is reported as flaky; hosts that refuse bots go in `.config/link-check.toml` with a reason). A failed job, a flaky scaling test or a flaky link opens or comments on the `nightly` issue "Nightly lane failing on <ref>"; a benchmark regression over 10% and a render-diff regression open their own issues and never fail the run; every write (history pushes, the fuzz cache, issues) is gated on the `record` input, which the release lane sets to `false` (`release_lane_should_call_the_nightly_lane_without_recording` in `tools/xtask/src/release.rs` checks each step). Its jobs are the `cargo xtask` tasks above. The live differential needs the corpus (`cargo xtask corpus fetch`), qpdf at the version pinned in `doctor.rs`, `pnpm --dir tools/differential install --frozen-lockfile` (pdf.js) and Python with `tools/differential/requirements.txt` (`$LAMINA_PDF_PYTHON`); every reader runs at once, in chunks of separate processes under time limits, so a crash or hang costs one file (`tools/xtask/src/runner.rs`). It fails when Lamina PDF disagrees with every tool on a fact and neither exceptions file (`fixtures/differential/exceptions.toml`, `full-exceptions.toml`) excuses it (per-file `[[exception]]`, value-matched `[[class]]` with its ADR 0003 rule, or `[[known]]` with its issue), when Lamina PDF panics, crashes or hangs on a file, or when a reader breaks or reports the wrong files. The same job then runs the text differential (`--live --text`, B9f): Lamina PDF's `text-facts` example (`crates/laminapdf/examples/differential/`) against `tools/differential/text.mjs --facts pdfjs|pdftotext` (pdftotext from the runner's poppler, only at the version pinned in `doctor.rs`: another version or none is a `::warning::` and pdf.js alone is compared) under the same runner, page by page with whitespace and bidi controls removed; a page fails when Lamina PDF matches neither tool that read it and no text `[[class]]` or `[[known]]` entry (`facts = ["text"]`, split off the facts lane's when the file is read) excuses it: classes match Lamina PDF's page text, its `page_error`, its warnings (`lamina_warning`) and the relation `unmapped`; a text `[[known]]` lists its pages per file in `[known.pages]`; entries that could have applied and excused nothing are reported as stale. External corpus files are never committed.
 
-Reading API (ADR 0003, 0005): `Document::open(source, OpenOptions)` takes an owned or shared `ByteSource` (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, `Arc<dyn ByteSource>`; in-memory ones are parsed in place, others are read in 64 KiB windows bounded by `Limits::max_read_window`, and a source answering `Pending` makes open or any lazy call fail with `Error::DataPending { ranges }` listing the ranges it needs next: windows, stream data or xref-entry probes; the edge crate `laminapdf-source` has `SparseSource`, filled with `supply(offset, bytes)`, and `retry`/`open_with`, which fetch those ranges and call again, plus `FileSource` and `MmapSource`); `OpenOptions` holds `Limits` (hard limits fail with `Error::LimitExceeded`, soft ones drop with a warning), strict mode (`Error::Strict`) and the password: the standard security handler (R2–R6, ISO 32000 §7.6) decrypts strings and streams on load, tries it as user then owner password (owner first for R5/R6), and fails with `password-required` or `wrong-password`; `Document::encryption()` and `permissions()` describe the result. Warning and error codes are listed once in `fixtures/codes.json` (v2: `code`, `kind`, `summary`, `hint`, `since` per code; ADR 0026; its schema is `fixtures/codes.schema.json`), from which `cargo xtask gen codes` generates every surface's tables (never edit them by hand; a new code is one entry, one `docs/errors/<code>.md` page, its `code()`/`kind()` arms and a regeneration), and which `crates/laminapdf-cos/tests/codes.rs` checks against the Rust enums and the `docs/errors/<code>.md` pages; every error and `Warning` has `code()`, `kind()` (one of nine `ErrorKind`s, an exhaustive match per type that each crate's unit tests check against the file) and `location()` (positions are tagged: `Position::{FileOffset, Object, InStream}`), and no `Display` formats text read from the input. Typed views live in `laminapdf-model`: its `Document` wraps the COS one (and derefs to it) with the ID allocator; `doc.pages()`, `doc.outline()`, `doc.info()`, `doc.page_labels()`, `doc.name_tree(key)`; views raise warnings on the document via `laminapdf_cos::Document::report`. `LaminaId`s are `p12.0` (kind + object) or path IDs such as `p5.0/Kids/3` for direct dictionaries (ADR 0005 §5).
+Reading API (ADR 0003, 0005): `Document::open(source, OpenOptions)` takes an owned or shared `ByteSource` (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, `Arc<dyn ByteSource>`; in-memory ones are parsed in place, others are read in 64 KiB windows bounded by `Limits::max_read_window`, and a source answering `Pending` makes open or any lazy call fail with `Error::DataPending { ranges }` listing the ranges it needs next: windows, stream data or xref-entry probes; the edge crate `laminapdf-source` has `SparseSource`, filled with `supply(offset, bytes)`, and `retry`/`open_with`, which fetch those ranges and call again, plus `FileSource` and `MmapSource`); `OpenOptions` holds `Limits` (hard limits fail with `Error::LimitExceeded`, soft ones drop with a warning), strict mode (`Error::Strict`) and the password: the standard security handler (R2–R6, ISO 32000 §7.6) decrypts strings and streams on load, tries it as user then owner password (owner first for R5/R6), and fails with `password-required` or `wrong-password`; `Document::encryption()` and `permissions()` describe the result. Warning and error codes are listed once in `fixtures/codes.json` (v2: `code`, `kind`, `summary`, `hint`, `since` per code; ADR 0026; its schema is `fixtures/codes.schema.json`), from which `cargo xtask gen codes` generates every surface's tables (never edit them by hand; a new code is one entry, one `docs/errors/<code>.md` page, its `code()`/`kind()` arms and a regeneration), and which `crates/laminapdf-cos/tests/codes.rs` checks against the Rust enums and the `docs/errors/<code>.md` pages; every error and `Warning` has `code()`, `kind()` (one of nine `ErrorKind`s, an exhaustive match per type that each crate's unit tests check against the file) and `location()` (positions are tagged: `Position::{FileOffset, Object, InStream}`), and no `Display` formats text read from the input. Typed views live in `laminapdf-model`: its `Document` wraps the COS one (and derefs to it) with the ID allocator; `doc.pages()`, `doc.outline()`, `doc.info()`, `doc.page_labels()`, `doc.name_tree(key)`; views raise warnings on the document via `laminapdf_cos::Document::report`. `LaminaPdfId`s are `p12.0` (kind + object) or path IDs such as `p5.0/Kids/3` for direct dictionaries (ADR 0005 §5).
 
 Content API (ADR 0023): `laminapdf_content::ContentIter::new(&bytes)` tokenizes decoded content into `Op`s (Annex A `Operator` + operands; inline images whole) and `Issue`s; `interpret_page(&doc, &page, &mut visitor)` (or `interpret_content(&doc, &bytes, resources, &mut visitor)`) runs it with graphics/text state, resources, Form XObjects (depth `max_xobject_depth`, cycles by object identity) and marked content, calling `Visitor` methods (`show_text` returns the `TextAdvance` of the glyphs; glyph decoding is `laminapdf-text`'s). Content repairs are `laminapdf_cos::Warning`s (`content-*`, `inline-image-unterminated`, `xobject-cycle`) recorded on the document; `max_content_operators` counts every operator of one call, forms each time they are drawn.
 

@@ -104,7 +104,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E2. Page organisation
 
 - **Ships (group C):** insert blank pages, insert pages from other PDFs, delete and duplicate, reorder (drag in thumbnails), extract selected pages, merge documents, split by count/ranges/bookmarks, rotate, crop display area (with a warning that cropped content remains), resize page, margins and page boxes, portrait ↔ landscape, reverse order, page labels, replace pages. From H: export pages/ranges.
-- **Crates:** `laminapdf-content` append API (introduced here, see §6): resizing that scales content wraps the existing streams in `q <scale cm> … Q` without parsing them; `laminapdf-ops` page ops (view-level mapping of `LaminaId`s, no re-parse); merge remaps outlines, named destinations, AcroForm fields and the structure tree ([05 §3.1](../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
+- **Crates:** `laminapdf-content` append API (introduced here, see §6): resizing that scales content wraps the existing streams in `q <scale cm> … Q` without parsing them; `laminapdf-ops` page ops (view-level mapping of `LaminaPdfId`s, no re-parse); merge remaps outlines, named destinations, AcroForm fields and the structure tree ([05 §3.1](../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
 - **Save:** `Free` → incremental. On signed files, page insertion/deletion is blocked by DocMDP P1/P2 and allowed with warning only when it invalidates signatures.
 - **Web vs desktop:** identical; desktop allows multi-file merge from Finder/Explorer selection.
 - **Todos:** [E2a](../todos/ready/E2a-page-organisation-feature-plan.md) feature plan · [E2b](../todos/ready/E2b-page-structure-ops.md) Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse · [E2c](../todos/ready/E2c-cross-document-pages.md) Insert pages from other PDFs, replace pages, extract and export ranges · [E2d](../todos/ready/E2d-merge-and-split.md) Merge documents and split by count, ranges and bookmarks · [E2e](../todos/ready/E2e-content-append-api.md) `laminapdf-content` append API · [E2f](../todos/ready/E2f-page-geometry.md) Crop, resize, page boxes and orientation · [E2g](../todos/ready/E2g-page-labels.md) Page labels editor · [E2h](../todos/ready/E2h-page-organiser-ui.md) Page organiser UI: thumbnails drag-and-drop, multi-select and page dialogs · [E2i](../todos/ready/E2i-signed-gating-and-close.md) DocMDP gating tests on signed fixtures and E2 round close.
@@ -122,7 +122,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E4. Markup and drawing annotations
 
 - **Ships (group D):** highlight/underline/strike-through, sticky notes and text comments, text-correction (caret) annotations, freehand ink, shapes/lines/arrows, callouts and text boxes, appearance-stream generation (cross-cutting). Group B "arrows, paths, freehand drawing" as annotations.
-- **Crates:** `laminapdf-model` annotations with `/NM` as `LaminaId`; appearance generator in `laminapdf-build`; overlay rendering from lamina's model until save.
+- **Crates:** `laminapdf-model` annotations with `/NM` as `LaminaPdfId`; appearance generator in `laminapdf-build`; overlay rendering from lamina's model until save.
 - **Save:** incremental. Signed files: annotations allowed only when DocMDP P3 or no certification signature; otherwise warn.
 - **Web vs desktop:** identical; pen/stylus pressure for ink where the platform reports it.
 - **Todos:** [E4a](../todos/ready/E4a-markup-and-drawing-annotations-feature-plan.md) feature plan · [E4b](../todos/ready/E4b-annotation-model-and-overlay.md) Annotation model with `/NM` IDs, annotation ops and overlay rendering · [E4c](../todos/ready/E4c-appearances-markup-notes-caret.md) Appearances and creation: text markup, notes and caret · [E4d](../todos/ready/E4d-appearances-ink-and-shapes.md) Appearances and creation: ink, shapes, lines and arrows · [E4e](../todos/ready/E4e-freetext-callouts.md) FreeText text boxes and callouts with `/DA` and rich text · [E4f](../todos/ready/E4f-annotation-tools-ui.md) Annotation tools and properties panel · [E4g](../todos/ready/E4g-appearance-parity-suite.md) Cross-viewer appearance parity suite and E4 round close.
@@ -308,7 +308,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E2. Page organisation
 - [ ] Feature-plan PR for E2
-- [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaId` mapping
+- [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaPdfId` mapping
 - [ ] Merge with outline, destination, AcroForm and struct-tree remapping
 - [ ] Split by count, ranges and bookmarks; extract and export pages
 - [ ] `laminapdf-content` append API: wrap existing content in `q … Q`, append streams, register Form XObjects, balance `q`/`Q` by token scan

@@ -267,13 +267,13 @@ UniFFI maps Rust `async fn` to Swift `async` and Kotlin `suspend` ([futures.md](
 // SwiftUI
 import Lamina
 struct ReaderScreen: View {
-    let doc: LaminaDocument                         // try await LaminaDocument.open(url:)
-    @State private var viewer = LaminaViewerState() // @Observable: page, zoom, selection, tool
+    let doc: LaminaPdfDocument                         // try await LaminaPdfDocument.open(url:)
+    @State private var viewer = LaminaPdfViewerState() // @Observable: page, zoom, selection, tool
     var body: some View {
-        LaminaView(document: doc, state: viewer)
+        LaminaPdfView(document: doc, state: viewer)
             .laminaTool($viewer.tool)               // .none / .ink(.pen) / .highlight / .form
             .onLaminaSave { data in try data.write(to: url) }   // incremental when required
-            .toolbar { LaminaAnnotationToolbar(state: viewer) }
+            .toolbar { LaminaPdfAnnotationToolbar(state: viewer) }
     }
 }
 let png = try await doc.page(0).render(scale: 2)    // Task cancellation → job.cancel()
@@ -283,9 +283,9 @@ for try await hit in doc.search("invoice") { … }    // AsyncThrowingStream<Sea
 ```kotlin
 // Compose
 @Composable fun ReaderScreen(uri: Uri) {
-    val doc by rememberLaminaDocument(uri)          // State<LoadState<LaminaDocument>>
+    val doc by rememberLaminaDocument(uri)          // State<LoadState<LaminaPdfDocument>>
     val state = rememberLaminaViewerState()
-    LaminaViewer(document = doc, state = state, tool = LaminaTool.Ink(Brush.Pen), formFillingEnabled = true)
+    LaminaPdfViewer(document = doc, state = state, tool = LaminaPdfTool.Ink(Brush.Pen), formFillingEnabled = true)
 }
 scope.launch {
     doc.search("invoice").collect { hit -> … }      // Flow<SearchHit>
@@ -452,7 +452,7 @@ for await (const line of readline.createInterface({ input: child.stdout }))
 ```
 
 ```console
-$ laminapdf mcp --root ./docs --read-only     # stdio; tools in deterministic order: laminapdf_info, lamina_pdf_extract, laminapdf_render …
+$ laminapdf mcp --root ./docs --read-only     # stdio; tools in deterministic order: laminapdf_info, laminapdf_extract, laminapdf_render …
 ```
 
 The current crates are clap 4.6.7, clap_complete, clap_mangen, annotate-snippets 0.12.17 (rustc's renderer, preferred to miette 7.6.0, last released April 2025, for pointing at byte offsets), anstream 1.0, schemars 1.2.3, rmcp 3.8.0 (which implements 2026-07-28) and cargo-dist 0.32.0 ([crates.io](https://crates.io/api/v1/crates/clap), [rmcp README](https://raw.githubusercontent.com/modelcontextprotocol/rust-sdk/main/README.md)). Because the core is bytes-in/bytes-out, a `wasm32-wasip2` build of the CLI could run sandboxed under wasmtime with preopened directories. That idea is a recommendation the notes did not verify.
@@ -481,7 +481,7 @@ Each item names what it is, why it is needed, and which existing round or todo i
 | L14 | **Agent docs**: `llms.txt` plus `.md` twins, docs shipped inside the npm package and the crate, AGENTS.md snippet in examples, machine-readable renames changelog | New APIs are low-frequency for every model | B7a, B7b |
 | L15 | **Coordinates and units types**: `Pt`/`Mm` branded types in TS, `RectPt` with an origin in Rust, top-left in high-level APIs, raw `UserSpace` for low level | Removes the `height - y` footgun; aligns extraction with vendors | B5a, B5b, B9b |
 | L16 | **`lamina-ffi` spike**: UniFFI binding of the B5c façade, Swift package via cargo-swift, AAR via cargo-ndk, size report per ABI | Validates L1 early and measures native size before committing to mobile | B5c; UniFFI pin decision |
-| L17 | **Mobile SDK plan**: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose) with tiles, `trim()`, stylus-to-`/Ink`, accessibility from the struct tree, SPM and Maven Central | Compete with free platform viewers on parity, fidelity and editing | L16, C2b (render), C3b (tiling ideas), E4d (ink appearances), E8 (forms) |
+| L17 | **Mobile SDK plan**: `LaminaPdfView` (SwiftUI) and `LaminaPdfViewer` (Compose) with tiles, `trim()`, stylus-to-`/Ink`, accessibility from the struct tree, SPM and Maven Central | Compete with free platform viewers on parity, fidelity and editing | L16, C2b (render), C3b (tiling ideas), E4d (ink appearances), E8 (forms) |
 | L18 | **hayro wasm size measurement** added to C1a | Needed to decide the render module per surface | C1a (ongoing) |
 
 ### Proposed ADRs

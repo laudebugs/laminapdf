@@ -29,7 +29,8 @@ Give the product one name, Lamina PDF, and make every public name follow it befo
 
 - The product name in what readers see: the docs site, the READMEs, `docs/errors`, the guidelines and `CLAUDE.md`: lamina → Lamina PDF.
 - `@laminapdf/wasm`'s modules: `lamina_base`, `lamina_text`, `lamina_extract`, `lamina_render_hayro` → `lamina_pdf_base`, `lamina_pdf_text`, `lamina_pdf_extract`, `lamina_pdf_render_hayro`.
-- TypeScript names: `LaminaError` → `LaminaPdfError`, `LaminaWarning` → `LaminaPdfWarning`, `isLaminaError` → `isLaminaPdfError`, and the other `Lamina*` TypeScript names.
+- Type names in every language: `LaminaError` → `LaminaPdfError`, `LaminaWarning` → `LaminaPdfWarning` and `isLaminaError` → `isLaminaPdfError` in TypeScript; `LaminaId` → `LaminaPdfId` in Rust (and xtask's `LaminaSkips`); the planned Swift and Kotlin names (`LaminaView` → `LaminaPdfView`, …). The owner added Rust on 2026-11-01, during review.
+- Cloudflare resources: the docs Worker `lamina-docs` → `lamina-pdf-docs`, and the planned Workers and R2 buckets (`lamina-web`, `lamina-web-staging`, `lamina-releases`, `lamina-staging`, `lamina-nightly`, `lamina-symbols`) → `lamina-pdf-*`. Also added during review.
 - Schema IDs: `lamina.error/1` → `laminapdf.error/1`, and every other `lamina.<name>/<n>`.
 - Environment variables: `LAMINA_*` → `LAMINA_PDF_*`.
 - `[package.metadata.lamina]` → `[package.metadata.laminapdf]`.
@@ -38,9 +39,8 @@ Give the product one name, Lamina PDF, and make every public name follow it befo
 
 **Out of scope**
 
-- Rust type names (`LaminaId`) and the planned Swift and Kotlin names (`LaminaView`, `LaminaViewer`): only TypeScript names change.
 - The product name inside plans, research notes, ADR bodies and todos, which are the project's working notes; done todos, frozen spikes, `CHANGELOG.md` and text written into PDFs and fixtures, as in P0b.
-- Cloudflare resource names (`lamina-web`, `lamina-symbols`): renaming them is an owner action in the Cloudflare account.
+- Other infrastructure names: the Linux runner's container image, name and label (`lamina-ci-runner-linux`, `lamina-self-hosted-linux-1`).
 - Removing the ratchet's rename exemption: P0b's post-merge check, once no open branch predates this rename.
 
 ## Tasks
@@ -61,6 +61,7 @@ Give the product one name, Lamina PDF, and make every public name follow it befo
 ## Post-merge checks
 
 - [ ] Rename `LAMINA_*` variables set outside the repository (the Linux runner's environment, local shells) to `LAMINA_PDF_*`
+- [ ] Cloudflare: the first production deploy creates the Worker `lamina-pdf-docs`; move the custom domain `docs.laminapdf.com` to it if the deploy can't, then delete the old `lamina-docs` Worker (owner approval)
 
 ## Tests
 

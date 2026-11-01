@@ -1,4 +1,4 @@
-//! [`LaminaId`]s (ADR 0005 §5): opaque, typed identifiers for pages, outline items,
+//! [`LaminaPdfId`]s (ADR 0005 §5): opaque, typed identifiers for pages, outline items,
 //! annotations and fields, and the document-level [`IdAllocator`].
 
 use std::fmt::{self, Write as _};
@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use laminapdf_cos::{DirectPath, Error, ObjRef, PathSegment};
 
-/// What a [`LaminaId`] identifies. Its letter starts the string form.
+/// What a [`LaminaPdfId`] identifies. Its letter starts the string form.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum Kind {
@@ -41,7 +41,7 @@ impl Kind {
     }
 }
 
-/// Where a [`LaminaId`]'s path starts.
+/// Where a [`LaminaPdfId`]'s path starts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Anchor {
     /// An indirect object.
@@ -66,23 +66,23 @@ enum Segment {
 /// store them, send them, but don't derive meaning from them.
 ///
 /// ```
-/// use laminapdf_model::{Kind, LaminaId};
+/// use laminapdf_model::{Kind, LaminaPdfId};
 /// use laminapdf_cos::ObjRef;
 ///
-/// let id = LaminaId::object(Kind::Page, ObjRef::new(12, 0));
+/// let id = LaminaPdfId::object(Kind::Page, ObjRef::new(12, 0));
 /// assert_eq!(id.to_string(), "p12.0");
-/// assert_eq!("p12.0".parse::<LaminaId>()?, id);
-/// assert_eq!("p5.0/Kids/3".parse::<LaminaId>()?.to_string(), "p5.0/Kids/3");
+/// assert_eq!("p12.0".parse::<LaminaPdfId>()?, id);
+/// assert_eq!("p5.0/Kids/3".parse::<LaminaPdfId>()?.to_string(), "p5.0/Kids/3");
 /// # Ok::<(), laminapdf_model::ParseIdError>(())
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LaminaId {
+pub struct LaminaPdfId {
     kind: Kind,
     anchor: Anchor,
     path: Box<[Segment]>,
 }
 
-impl LaminaId {
+impl LaminaPdfId {
     /// The ID of the indirect object `r` as an item of `kind`.
     #[must_use]
     pub fn object(kind: Kind, r: ObjRef) -> Self {
@@ -133,7 +133,7 @@ impl LaminaId {
     }
 }
 
-impl fmt::Display for LaminaId {
+impl fmt::Display for LaminaPdfId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind.letter())?;
         match self.anchor {
@@ -150,7 +150,7 @@ impl fmt::Display for LaminaId {
     }
 }
 
-/// Why a string is not a [`LaminaId`] (or not one of the expected kind).
+/// Why a string is not a [`LaminaPdfId`] (or not one of the expected kind).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ParseIdError {
@@ -221,7 +221,7 @@ fn unescape_key(part: &str) -> Option<String> {
     (escape_key(&key) == part).then_some(key)
 }
 
-impl FromStr for LaminaId {
+impl FromStr for LaminaPdfId {
     type Err = ParseIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -256,7 +256,7 @@ macro_rules! typed_id {
     ($(#[$doc:meta])* $name:ident, $kind:expr) => {
         $(#[$doc])*
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub struct $name(LaminaId);
+        pub struct $name(LaminaPdfId);
 
         impl $name {
             /// The kind every ID of this type has.
@@ -265,18 +265,18 @@ macro_rules! typed_id {
             /// The ID of the indirect object `r`.
             #[must_use]
             pub fn object(r: ObjRef) -> Self {
-                Self(LaminaId::object(Self::KIND, r))
+                Self(LaminaPdfId::object(Self::KIND, r))
             }
 
             /// The path ID of a direct dictionary at `path`.
             #[must_use]
             pub fn path(path: &DirectPath) -> Self {
-                Self(LaminaId::path(Self::KIND, path))
+                Self(LaminaPdfId::path(Self::KIND, path))
             }
 
             /// The untyped ID.
             #[must_use]
-            pub const fn as_lamina_id(&self) -> &LaminaId {
+            pub const fn as_lamina_id(&self) -> &LaminaPdfId {
                 &self.0
             }
         }
@@ -291,14 +291,14 @@ macro_rules! typed_id {
             type Err = ParseIdError;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
-                Self::try_from(s.parse::<LaminaId>()?)
+                Self::try_from(s.parse::<LaminaPdfId>()?)
             }
         }
 
-        impl TryFrom<LaminaId> for $name {
+        impl TryFrom<LaminaPdfId> for $name {
             type Error = ParseIdError;
 
-            fn try_from(id: LaminaId) -> Result<Self, Self::Error> {
+            fn try_from(id: LaminaPdfId) -> Result<Self, Self::Error> {
                 if id.kind == Self::KIND {
                     Ok(Self(id))
                 } else {
@@ -310,7 +310,7 @@ macro_rules! typed_id {
             }
         }
 
-        impl From<$name> for LaminaId {
+        impl From<$name> for LaminaPdfId {
             fn from(id: $name) -> Self {
                 id.0
             }
@@ -319,23 +319,23 @@ macro_rules! typed_id {
 }
 
 typed_id!(
-    /// The [`LaminaId`] of a page. Kept when the page moves (page ops never replace the page
+    /// The [`LaminaPdfId`] of a page. Kept when the page moves (page ops never replace the page
     /// object, ADR 0005 §5).
     PageId,
     Kind::Page
 );
 typed_id!(
-    /// The [`LaminaId`] of an outline item.
+    /// The [`LaminaPdfId`] of an outline item.
     OutlineItemId,
     Kind::OutlineItem
 );
 typed_id!(
-    /// The [`LaminaId`] of an annotation (views arrive with the editor rounds).
+    /// The [`LaminaPdfId`] of an annotation (views arrive with the editor rounds).
     AnnotId,
     Kind::Annot
 );
 typed_id!(
-    /// The [`LaminaId`] of an interactive form field (views arrive with the editor rounds).
+    /// The [`LaminaPdfId`] of an interactive form field (views arrive with the editor rounds).
     FieldId,
     Kind::Field
 );
@@ -367,7 +367,7 @@ impl<'d> IdAllocator<'d> {
     /// Whether this document handed out `id`'s object number (existing items' IDs are
     /// derived, not allocated, so this never depends on which views were read).
     #[must_use]
-    pub fn is_allocated(&self, id: &LaminaId) -> bool {
+    pub fn is_allocated(&self, id: &LaminaPdfId) -> bool {
         id.obj_ref()
             .is_some_and(|r| r.gen_nr == 0 && self.cos.is_reserved_number(r.num))
     }
@@ -378,9 +378,9 @@ impl<'d> IdAllocator<'d> {
     /// # Errors
     /// [`Error::InvalidStructure`] once the next number would exceed the document's
     /// [`Limits::max_object_number`](laminapdf_cos::Limits::max_object_number).
-    pub fn allocate(&self, kind: Kind) -> Result<(ObjRef, LaminaId), Error> {
+    pub fn allocate(&self, kind: Kind) -> Result<(ObjRef, LaminaPdfId), Error> {
         let r = self.cos.reserve_number()?;
-        Ok((r, LaminaId::object(kind, r)))
+        Ok((r, LaminaPdfId::object(kind, r)))
     }
 }
 
@@ -407,7 +407,7 @@ mod tests {
     use super::*;
 
     fn round_trip(s: &str) -> String {
-        s.parse::<LaminaId>().unwrap().to_string()
+        s.parse::<LaminaPdfId>().unwrap().to_string()
     }
 
     #[test]
@@ -449,7 +449,7 @@ mod tests {
             "p1.65536",
             "p1.0/07",
         ] {
-            assert!(s.parse::<LaminaId>().is_err(), "{s:?}");
+            assert!(s.parse::<LaminaPdfId>().is_err(), "{s:?}");
         }
     }
 
@@ -464,8 +464,8 @@ mod tests {
 
     #[test]
     fn obj_ref_is_only_set_for_object_ids() {
-        let object: LaminaId = "p3.1".parse().unwrap();
-        let path: LaminaId = "p3.1/Kids/0".parse().unwrap();
+        let object: LaminaPdfId = "p3.1".parse().unwrap();
+        let path: LaminaPdfId = "p3.1/Kids/0".parse().unwrap();
         assert_eq!((object.obj_ref(), path.obj_ref()), (Some(ObjRef::new(3, 1)), None));
     }
 
@@ -489,12 +489,12 @@ mod tests {
     #[test]
     fn ids_of_different_kinds_for_one_object_differ() {
         let r = ObjRef::new(7, 0);
-        assert_ne!(LaminaId::object(Kind::Page, r), LaminaId::object(Kind::Annot, r));
+        assert_ne!(LaminaPdfId::object(Kind::Page, r), LaminaPdfId::object(Kind::Annot, r));
     }
 
     #[test]
     fn a_trailer_rooted_empty_path_round_trips() {
-        let id = LaminaId::path(Kind::Page, &DirectPath::new(None, Vec::new()));
-        assert_eq!(id.to_string().parse::<LaminaId>().unwrap(), id);
+        let id = LaminaPdfId::path(Kind::Page, &DirectPath::new(None, Vec::new()));
+        assert_eq!(id.to_string().parse::<LaminaPdfId>().unwrap(), id);
     }
 }

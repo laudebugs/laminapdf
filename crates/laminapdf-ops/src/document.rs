@@ -184,7 +184,7 @@ impl Document {
 
     /// Makes `source`, the bytes the pending save wrote, the new base ([ADR 0005] §3): its
     /// newest xref is loaded, the overlay and its journal are dropped, and the state becomes
-    /// [`SaveState::Clean`]. Object numbers, and so `LaminaId`s, are the output's. The undo
+    /// [`SaveState::Clean`]. Object numbers, and so `LaminaPdfId`s, are the output's. The undo
     /// history and the reserved numbers are kept or dropped as the save said
     /// ([`PendingRebase`]).
     ///

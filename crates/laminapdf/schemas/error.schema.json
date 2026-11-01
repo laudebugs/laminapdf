@@ -168,7 +168,7 @@
       "description": "Where the problem is (ADR 0026 §1.1); every value is lamina-made.",
       "properties": {
         "id": {
-          "description": "A LaminaId (p12.0).",
+          "description": "A LaminaPdfId (p12.0).",
           "type": "string"
         },
         "object": {

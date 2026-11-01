@@ -703,7 +703,7 @@ fn render_error_schema(codes: &Codes) -> Result<String> {
                     "object": { "description": "Object number of the indirect object the problem is in or at.", "type": "integer", "minimum": 0 },
                     "streamOffset": { "description": "Byte offset in the decoded data of `object`.", "type": "integer", "minimum": 0 },
                     "pageIndex": { "description": "0-based page index (ADR 0027 §6).", "type": "integer", "minimum": 0 },
-                    "id": { "description": "A LaminaId (p12.0).", "type": "string" }
+                    "id": { "description": "A LaminaPdfId (p12.0).", "type": "string" }
                 },
                 "dependentRequired": { "streamOffset": ["object"] }
             }

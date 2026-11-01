@@ -1,4 +1,4 @@
-# Plan: PDF generation library (`@laminapdf/sdk` and `lamina`)
+# Plan: PDF generation library (`@laminapdf/sdk` and `laminapdf`)
 
 - **Status:** Draft
 - **Date:** 2026-10-28
@@ -177,7 +177,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 **Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/laminapdf/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/laminapdf/pull/22)), [B2d](../todos/done/B2d-windowed-reading.md) (windowed reading; done in [#29](https://github.com/laudebugs/laminapdf/pull/29)), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`laminapdf-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
 
-**Deliverable:** `laminapdf-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `laminapdf-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
+**Deliverable:** `laminapdf-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaPdfId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `laminapdf-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
 **Accepted when:** every file in `fixtures/corpus` opens or fails with a coded error; encrypted fixtures for every standard revision (R2, R3, R4 RC4, R4 AES-128, R5, R6; user and owner passwords; empty user password) open and match the unencrypted original's page count, outline and strings; a wrong password fails with a coded error; fuzz targets run 10 min in CI without a panic; page count and outline match pypdf's on the corpus.
 
 ### B3. Ops and save
@@ -260,7 +260,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B1. Decisions and spike
 
 - [x] Write ADR 0003: tolerance policy, warning codes, `Limits` defaults with numbers
-- [x] Write ADR 0005: lazy COS overlay, typed views, `LaminaId` rules
+- [x] Write ADR 0005: lazy COS overlay, typed views, `LaminaPdfId` rules
 - [x] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
 - [x] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
 - [x] Write ADR 0018: goldens, corpus, differential and fuzz tiers
@@ -276,7 +276,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Windowed reading for sources without `as_slice` (64 KiB windows, chunked repair scan, `DataPending` with only the needed windows; [ADR 0005](../decisions/0005-document-model.md) §2) ([B2d](../todos/done/B2d-windowed-reading.md))
 - [x] Standard security handler decryption in `laminapdf-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata` (B2b, [#22](https://github.com/laudebugs/laminapdf/pull/22))
 - [x] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code (B2b, [#22](https://github.com/laudebugs/laminapdf/pull/22))
-- [x] Assign `LaminaId`s to pages and outline items; test stability across reopen (B2c; also across an incremental save, and path IDs for direct pages)
+- [x] Assign `LaminaPdfId`s to pages and outline items; test stability across reopen (B2c; also across an incremental save, and path IDs for direct pages)
 - [x] Add `fixtures/corpus/expected.json` facts (page count, outline titles) and a corpus test (B2c; written by `tools/corpus-facts`, exceptions in `exceptions.toml`)
 - [x] Add `fuzz/` targets for open and page-tree walk; run 10 min in CI (B2c: `lex`, `parse_object`, `flate_decode`, `open`, `page_tree`; scheduled in `nightly.yml` since [X3a](../todos/done/X3a-nightly-lane.md))
 - [x] Differential test: page count and outline vs pypdf (B2c; corpus plus fixed-seed mutants, precomputed by `cargo xtask differential --update`)

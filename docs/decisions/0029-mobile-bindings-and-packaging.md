@@ -30,7 +30,7 @@ The measured findings:
    - **Patch releases:** take the same path.
    - **React Native and Kotlin Multiplatform:** React Native (ubrn supports only `=0.31`) and Kotlin Multiplatform (Gobley) are re-evaluated when scheduled, not by moving the pin.
 2. **One edge crate, `crates/laminapdf-ffi`** (layer `edge`).
-   - **What goes in it:** binding code only, meaning UniFFI wrapper types and conversions over `lamina`. No PDF logic.
+   - **What goes in it:** binding code only, meaning UniFFI wrapper types and conversions over `laminapdf`. No PDF logic.
    - **No UniFFI in core crates:** derives live on wrapper types in `laminapdf-ffi`, not as `cfg_attr(feature = "uniffi", derive(…))` on core types. Core crates take no UniFFI dependency (none of the portability rules change, and the MPL code stays at the edge). The cost is duplicated record definitions, which a test keeps in step with the façade.
 3. **Rules for the edge crate**, from the spike:
    - **Errors:** every export that locks or calls into `lamina` returns `Result<_, FfiError>`, because Swift calls infallible exports with `try!`, so a panic would trap the app. Exports that can't fail except by running out of memory may stay infallible: handle constructors that only allocate, atomic accessors and constant strings (the spike's full list, test probes included, is in its README). L6b's test lists them.
@@ -82,7 +82,7 @@ The measured findings:
 - The façade stays binding-agnostic, and the rules ADR 0028 wrote for UniFFI held without a change.
 - **Swift panics:** an export added without a `Result` is a crash risk in Swift. L6b adds a test that every exported function in the generated Swift `throws`.
 - **Passwords:** `@laminapdf/sdk` retries a failed password with its NFKC form; the spike passes the UTF-8 bytes as given. L6b's layer does the same retry (or the façade takes it over for every binding), so a password works the same on every surface.
-- **Kotlin error field:** Kotlin users read `detail`, not `message`, on `FfiException.Lamina`. The idiomatic layer can expose a `LaminaException` with `message` set from `detail`.
+- **Kotlin error field:** Kotlin users read `detail`, not `message`, on `FfiException.Lamina`. The idiomatic layer can expose a `LaminaPdfException` with `message` set from `detail`.
 - **Copies:** large inputs are copied once into Rust through the zero-copy `&[u8]` path (a direct `ByteBuffer` in Kotlin, from its position); a Kotlin `ByteArray` costs a second copy through a `RustBuffer`. Files of 50 MB and more should open through a host `ByteSource` (a mapped file) in L6b rather than through bytes.
 - **Licence:** adds an MPL-2.0 dependency at the edge (the owner allowed it for the UniFFI crates, 2026-10-30).
 

@@ -12,7 +12,7 @@ You'll write `hello.pdf`, one A4 page that says "Hello, world!", from a short No
 Lamina PDF isn't on npm yet, so you install it from a build of the repository, which is private for now. You need access to it, Node 24.2 or newer, pnpm, and Rust; [Install](/install/) covers the details. Clone it into a folder named `laminapdf` (ask a maintainer for the URL), build the packages once, and pack them into one folder:
 
 ```sh
-git clone <repository URL> lamina && cd lamina
+git clone <repository URL> laminapdf && cd laminapdf
 pnpm install
 cargo xtask wasm
 (cd packages/wasm && pnpm pack --pack-destination ../../packs)
@@ -29,7 +29,7 @@ Leave the checkout, create a folder next to it and install both packages:
 cd ..
 mkdir hello-pdf && cd hello-pdf
 npm init -y && npm pkg set type=module
-npm install ../lamina/packs/*.tgz
+npm install ../laminapdf/packs/*.tgz
 ```
 
 ## Write the page

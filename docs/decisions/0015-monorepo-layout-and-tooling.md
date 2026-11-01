@@ -50,12 +50,12 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
 **Amendment (owner, 2026-11-01, later):** the product is **Lamina PDF**, and the public names that kept the old one follow it before anything is published ([P0c](../todos/done/P0c-lamina-pdf-names.md)):
 
 - `@laminapdf/wasm`'s modules are `lamina_pdf_base`, `lamina_pdf_text`, `lamina_pdf_extract` and `lamina_pdf_render_hayro`.
-- TypeScript names say `LaminaPdf`: `LaminaPdfError`, `isLaminaPdfError`, `LaminaPdfWarning`.
+- Type names say `LaminaPdf` in every language: `LaminaPdfError`, `isLaminaPdfError` and `LaminaPdfWarning` in TypeScript, `LaminaPdfId` in Rust, and the planned Swift and Kotlin names (`LaminaPdfView`, `LaminaPdfViewer`).
 - Schema IDs start with `laminapdf.` (`laminapdf.error/1`, [ADR 0026](0026-error-and-diagnostic-contract.md)).
 - Environment variables start with `LAMINA_PDF_`, the crates' table is `[package.metadata.laminapdf]`, and the planned command-line program is `laminapdf`.
+- Cloudflare resources are `lamina-pdf-*`: the docs Worker `lamina-pdf-docs`, and the planned `lamina-pdf-web`, `lamina-pdf-web-staging` and R2 buckets (`lamina-pdf-releases`, …).
 
-Rust type names such as `LaminaId` keep theirs. The site is laminapdf.com and the repository `laudebugs/laminapdf`.
-
+The site is laminapdf.com and the repository `laudebugs/laminapdf`.
 
 The detailed rules (naming, dependency direction, public API, tests, configuration inheritance, generated code, when to split a crate) are in [`docs/guidelines/code-organization.md`](../guidelines/code-organization.md). Where this ADR and the guide disagree, update one of them in the same PR so they agree again.
 

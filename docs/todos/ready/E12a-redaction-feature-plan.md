@@ -51,7 +51,7 @@ The short feature-plan PR that opens round E12 ([full-editor §E12](../../plans/
 
 ## Tasks
 
-- [ ] Create `docs/plans/editor/e12-redaction.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`G.06`, `G.07`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
+- [ ] Create `docs/plans/editor/e12-redaction.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`G.06`, `G.07`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaPdfId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
 - [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)

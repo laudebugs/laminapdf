@@ -77,7 +77,7 @@ Re-measure run times with `gh` (writes one row per job: date, workflow, event, j
 gh run list --limit 1000 --created ">=YYYY-MM-DD" --json databaseId,workflowName,event,createdAt \
   --jq '.[] | select(.workflowName=="CI" or .workflowName=="Full lane") | [.databaseId,.workflowName,.event,.createdAt[:10]] | @tsv' |
 while IFS=$'\t' read -r id wf ev d; do
-  gh api "repos/laudebugs/lamina/actions/runs/$id/jobs?per_page=50" |
+  gh api "repos/laudebugs/laminapdf/actions/runs/$id/jobs?per_page=50" |
     jq -r --arg wf "$wf" --arg ev "$ev" --arg d "$d" '.jobs[] | select(.started_at and .completed_at)
       | [$d,$wf,$ev,.name,.conclusion,((.completed_at|fromdate)-(.started_at|fromdate)),(.labels|join(","))] | @tsv'
 done > jobs.tsv
@@ -90,4 +90,4 @@ done > jobs.tsv
 - CircleCI pricing: <https://circleci.com/pricing/> and price list: <https://circleci.com/pricing/price-list/>
 - GitHub-hosted runner pricing: <https://docs.github.com/en/billing/reference/actions-runner-pricing>
 - GitHub's 2026 Actions pricing changes and the self-hosted charge's postponement: <https://github.com/resources/insights/2026-pricing-changes-for-github-actions>
-- Run times: GitHub Actions job data for `laudebugs/lamina`, 2026-10-29 to 2026-10-30, collected with the script above.
+- Run times: GitHub Actions job data for `laudebugs/laminapdf`, 2026-10-29 to 2026-10-30, collected with the script above.

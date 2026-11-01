@@ -1,5 +1,5 @@
 //! Typed, tolerant views over a PDF's COS graph ([ADR 0005] §4) and the stable
-//! [`LaminaId`]s that ops, undo and sync address (§5).
+//! [`LaminaPdfId`]s that ops, undo and sync address (§5).
 //!
 //! ```
 //! use laminapdf_model::{Document, OpenOptions, Rotation};
@@ -44,7 +44,7 @@
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
 //! * [`StructTree`] / [`StructElem`]: a minimal read-only view of the logical structure
 //!   (types, attributes, MCIDs and `OBJR`s per element, the `RoleMap`).
-//! * [`LaminaId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
+//! * [`LaminaPdfId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
 //! * Units and coordinates ([ADR 0027]): [`Pt`], [`PointPt`], [`RectPt`] (page space) and
 //!   [`UserSpacePoint`], [`UserSpaceRect`] (raw user space).
 //!
@@ -77,7 +77,7 @@ mod tree;
 pub use date::{InvalidDate, PdfDate};
 pub use document::Document;
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
-pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaId, OutlineItemId, PageId, ParseIdError};
+pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};

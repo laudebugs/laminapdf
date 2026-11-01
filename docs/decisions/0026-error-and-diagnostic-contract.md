@@ -2,7 +2,7 @@
 
 - Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
-- Amended 2026-11-01 (owner): the schema ID is `laminapdf.error/1` and the TypeScript class `LaminaPdfError` ([P0c](../todos/done/P0c-lamina-pdf-names.md), ADR 0015). Nothing was published under the old names.
+- Amended 2026-11-01 (owner): the schema ID is `laminapdf.error/1`, the TypeScript class `LaminaPdfError` and the planned Swift and Kotlin error `LaminaPdfError` ([P0c](../todos/done/P0c-lamina-pdf-names.md), ADR 0015). Nothing was published under the old names.
 
 ## Context
 
@@ -14,7 +14,7 @@ The research says three things ([report: errors and schemas as a single contract
 - LLM-written JavaScript often bypasses types, so an unknown option should say "did you mean …".
 - PDF text is attacker-controlled. Anything an agent reads as an *instruction channel* (an error message, a hint) must not carry it.
 
-The guidelines name the TypeScript class `PdfError` ([code organisation §5](../guidelines/code-organization.md#5-error-handling-by-layer), [TypeScript: errors](../guidelines/typescript.md#errors)). The plan, the report and the later todos (L1b, L2a–L2c) say `LaminaPdfError`. No TypeScript package exists yet, so renaming costs nothing now.
+The guidelines name the TypeScript class `PdfError` ([code organisation §5](../guidelines/code-organization.md#5-error-handling-by-layer), [TypeScript: errors](../guidelines/typescript.md#errors)). The plan, the report and the later todos (L1b, L2a–L2c) say `LaminaError`. No TypeScript package exists yet, so renaming costs nothing now.
 
 ## Decision
 
@@ -45,7 +45,7 @@ Each field names one kind of position, so a number is never ambiguous:
 | `object` | Object number of the indirect object the problem is in or at |
 | `streamOffset` | Byte offset **in the decoded data of `object`** (an object stream's or a content stream's contents). Only with `object` |
 | `pageIndex` | 0-based page index ([ADR 0027](0027-coordinates-units-and-page-indexing.md) §6) |
-| `id` | A `LaminaId` string (`p12.0`) |
+| `id` | A `LaminaPdfId` string (`p12.0`) |
 
 Today's variants can't fill this unambiguously, so the location data is changed in code. `Error::LimitExceeded { at: Option<u64> }` is an offset *or* an object number, depending on the limit. `laminapdf_syntax` offsets are positions in whatever buffer was parsed: the file, a read window, or the decoded data of an object stream. [L1c](../todos/done/L1c-error-contract-core.md) replaces `at` and the bare syntax offsets with a tagged position (`FileOffset(u64)`, `Object(u32)`, `InStream { object, offset }`). The COS layer, which knows which buffer it handed to the parser, adds the tag when it wraps a syntax error. Until then, `location()` reports only what is unambiguous.
 
@@ -122,7 +122,7 @@ Text an agent may treat as instructions must not carry text an attacker controls
 
 - codes, kinds and lamina's own fixed vocabulary (`&'static str` in Rust: key names lamina chose such as `"MediaBox"`, limit names, option names, op names);
 - numbers: offsets, object numbers, counts, sizes, page indices;
-- `LaminaId`s, which lamina generates.
+- `LaminaPdfId`s, which lamina generates.
 
 Everything else counts as document text and goes only in `data` (or in the result's data fields): strings and names read from the file, stream content, form field names and values, font names, passwords, file paths and URLs given by the caller, and the text of an invalid op log. In Rust this means `Display` formats only `&'static str` and numeric fields, and any `String` field of an error variant is serialised into `data`, never into the message.
 
@@ -183,5 +183,5 @@ The rule above still holds for the core crates' own error enums: they carry code
 - **Numeric codes** (rustc's `E0308`). Compact and stable, but opaque without a lookup. Kebab-case codes describe themselves, and ADR 0003 already ships them.
 - **Per-crate code lists.** They mirror the crate split, but the same failure would get different codes in different layers, and users don't see crates. One namespace in one file is simpler to generate and to check.
 - **miette-style diagnostics** (labelled spans with source snippets). Good for a CLI, but snippets quote the document, which §4 forbids, and the dependency doesn't belong in core crates. The CLI may render §1 richly at the edge.
-- **Keeping `PdfError`** (the spike and the guidelines). lamina also reports errors about op logs, workers, jobs and disposed handles. `LaminaPdfError` matches the package and brand names that models search for, and the report and later todos already use it. Renaming now costs nothing.
+- **Keeping `PdfError`** (the spike and the guidelines). lamina also reports errors about op logs, workers, jobs and disposed handles. `LaminaPdfError` matches the package and brand names that models search for, and the report and later todos already use it (as `LaminaError`, renamed `LaminaPdfError` by the 2026-11-01 amendment). Renaming now costs nothing.
 - **Messages with document text, escaped or truncated.** Escaping doesn't stop an instruction written in plain words, and truncation only shortens it. Rejected for `data`-only.

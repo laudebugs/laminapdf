@@ -144,7 +144,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 **Todos:** [L6a](../todos/done/L6a-lamina-ffi-spike.md) (`lamina-ffi` spike, ADR 0029), [L6b](../todos/ready/L6b-mobile-sdk-plan.md) (mobile SDK plan).
 
-**Deliverable:** a spike that binds the B5c façade with UniFFI, builds an XCFramework and AARs, runs open/extract/save from Swift and Kotlin tests, and reports per-ABI sizes; then a mobile plan (`LaminaView` for SwiftUI, `LaminaViewer` for Compose; tiles, memory trimming, stylus to `/Ink`, accessibility, SPM and Maven Central) with its own rounds and todos.
+**Deliverable:** a spike that binds the B5c façade with UniFFI, builds an XCFramework and AARs, runs open/extract/save from Swift and Kotlin tests, and reports per-ABI sizes; then a mobile plan (`LaminaPdfView` for SwiftUI, `LaminaPdfViewer` for Compose; tiles, memory trimming, stylus to `/Ink`, accessibility, SPM and Maven Central) with its own rounds and todos.
 **Accepted when:** the spike README answers "does the façade bind without changes?" with measurements; the plan is reviewed and its todos are on the board.
 
 ## 8. Changes to existing todos

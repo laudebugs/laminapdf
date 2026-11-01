@@ -1,7 +1,7 @@
 # `unset-object`
 
 - Type: error
-- Kind: `internal` (a Lamina PDF bug or a broken invariant)
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
 
 ## What happened
 
@@ -9,7 +9,7 @@ A writer object number was reserved but never given a value.
 
 ## Why
 
-A Lamina PDF bug.
+A bug in Lamina PDF.
 
 ## How to fix
 

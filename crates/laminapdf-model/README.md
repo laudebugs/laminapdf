@@ -1,6 +1,6 @@
 # laminapdf-model
 
-Typed, tolerant views over a PDF's COS graph and the stable `LaminaId`s that ops, undo and sync address ([ADR 0005](../../docs/decisions/0005-document-model.md) §4–§5). Part of Lamina PDF's pure core: bytes in, bytes out.
+Typed, tolerant views over a PDF's COS graph and the stable `LaminaPdfId`s that ops, undo and sync address ([ADR 0005](../../docs/decisions/0005-document-model.md) §4–§5). Part of Lamina PDF's pure core: bytes in, bytes out.
 
 - `Document`: a `laminapdf_cos::Document` (it dereferences to one) plus the document-level `IdAllocator`, a view of the COS overlay's number allocator (new objects' IDs come from the numbers it reserves). Views read through the overlay, so they see edits made by [`laminapdf-ops`](../laminapdf-ops/README.md); `cos_mut()` is the write access `laminapdf-ops` keeps private.
 - `Pages` / `Page`: boundary boxes as normalised `UserSpaceRect`s (crop, bleed, trim and art boxes clipped and defaulted as §14.11.2 says), `Rotation`, user unit, the `PageFrame`, resources, contents and annotation references, page labels. The boxes, rotation, user unit and frame are read once per page and cached in `Pages`, so their warnings are raised once.
@@ -8,7 +8,7 @@ Typed, tolerant views over a PDF's COS graph and the stable `LaminaId`s that ops
 - `Outline` / `OutlineItem`: titles (PDFDocEncoding, UTF-16BE, UTF-8), nesting, open state, destinations resolved to `PageId` + view (explicit, `/Dests`, `/Names /Dests`, `GoTo` actions), action kinds.
 - `Info` with dates as `PdfDate` (raw string kept when invalid); `NameTree`, `NumberTree`; `PageLabels`.
 - `StructTree` / `StructElem` / `StructKid` (`Document::structure()`, B8a): a minimal read-only view of the logical structure: each element's `/S`, `/Pg`, `/Alt`, `/ActualText`, `/E`, `/Lang` and kids (child elements, MCIDs with their page, `OBJR`s), the `RoleMap` (`standard_kind`), the raw `ParentTree` and `/ParentTreeNextKey`; elements reached twice or deeper than `max_tree_depth` are skipped with `invalid-entry`.
-- `LaminaId` (`p12.0`, path IDs such as `p5.0/Kids/3` for direct dictionaries) and the typed `PageId`, `OutlineItemId`, `AnnotId`, `FieldId`.
+- `LaminaPdfId` (`p12.0`, path IDs such as `p5.0/Kids/3` for direct dictionaries) and the typed `PageId`, `OutlineItemId`, `AnnotId`, `FieldId`.
 
 Per-field tolerance follows [ADR 0003](../../docs/decisions/0003-reader-tolerance-and-limits.md): a malformed field is absent (or its default) plus a warning on the document (`invalid-box`, `invalid-rotate`, `name-tree-node-skipped`, `outline-cycle`, `outline-item-skipped`, `invalid-date`, `invalid-page-label`, `invalid-entry`); strict mode turns each into `Error::Strict`. Tree walks are iterative with visited sets and skip subtrees deeper than `Limits::max_tree_depth`.
 

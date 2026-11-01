@@ -1,4 +1,4 @@
-//! ADR 0005 §5: `LaminaId`s for pages and outline items survive reopen and an incremental
+//! ADR 0005 §5: `LaminaPdfId`s for pages and outline items survive reopen and an incremental
 //! save; a moved page keeps its `PageId`; a direct page dictionary gets a path ID that is
 //! stable for the same bytes.
 #![allow(
@@ -12,7 +12,7 @@ mod common;
 
 use common::{classic, corpus, fixture, open};
 use laminapdf_cos::{ObjRef, Object};
-use laminapdf_model::{Document, Kind, LaminaId};
+use laminapdf_model::{Document, Kind, LaminaPdfId};
 use laminapdf_save::{XrefEol, incremental_update};
 
 /// Every page and outline-item ID of `doc`, in document order.
@@ -133,7 +133,7 @@ fn a_direct_page_tree_root_is_anchored_at_the_catalog() {
 fn every_id_parses_back_to_itself() {
     for (name, bytes) in corpus() {
         for id in ids(&open(&bytes).unwrap()) {
-            assert_eq!(id.parse::<LaminaId>().unwrap().to_string(), id, "{name}");
+            assert_eq!(id.parse::<LaminaPdfId>().unwrap().to_string(), id, "{name}");
         }
     }
 }
@@ -151,7 +151,7 @@ fn allocated_ids_never_collide_with_existing_objects() {
     let doc = open(&fixture("corpus/outline.pdf")).unwrap();
     let existing: Vec<u32> = doc.object_numbers().collect();
     let (r, _) = doc.ids().allocate(Kind::Annot).unwrap();
-    assert!(doc.ids().is_allocated(&LaminaId::object(Kind::Annot, r)));
+    assert!(doc.ids().is_allocated(&LaminaPdfId::object(Kind::Annot, r)));
     assert!(existing.iter().all(|&n| n < r.num));
 }
 
