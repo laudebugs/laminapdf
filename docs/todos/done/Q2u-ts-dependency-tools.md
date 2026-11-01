@@ -12,7 +12,7 @@
 | Branch | `ci/q2u-ts-dependency-tools` |
 | PR title | `ci(ts): dependency-cruiser, jscpd and knip in check ts` |
 | Size | M |
-| PR | — |
+| PR | [#147](https://github.com/laudebugs/lamina/pull/147) |
 
 ## Goal
 
