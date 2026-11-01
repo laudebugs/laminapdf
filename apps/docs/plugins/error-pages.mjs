@@ -19,7 +19,8 @@ export function readerMarkdown(markdown) {
     if (marker) {
       // A fence closes on the same character, at least as long, with nothing after it.
       if (fence === undefined) fence = marker[1];
-      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && marker[2].trim() === "") fence = undefined;
+      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && marker[2].trim() === "")
+        fence = undefined;
       return;
     }
     if (fence === undefined && /^## For contributors[ \t]*\r?$/.test(line)) cut = index;
@@ -62,7 +63,13 @@ export function errorPagesLoader(dir) {
         if (!name.endsWith(".md") || name === "README.md") continue;
         const body = await readFile(new URL(name, dir), "utf8");
         const id = name.slice(0, -".md".length);
-        store.set({ id, data: {}, body, digest: generateDigest(body), rendered: await renderMarkdown(readerMarkdown(body)) });
+        store.set({
+          id,
+          data: {},
+          body,
+          digest: generateDigest(body),
+          rendered: await renderMarkdown(readerMarkdown(body)),
+        });
       }
     },
   };
