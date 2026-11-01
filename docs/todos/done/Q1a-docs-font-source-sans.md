@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -12,7 +12,7 @@
 | Branch | `feat/q1a-docs-font-source-sans` |
 | PR title | `feat(docs): one sans-serif font for the docs site (Source Sans 3)` |
 | Size | S |
-| PR | — |
+| PR | [#140](https://github.com/laudebugs/lamina/pull/140) |
 
 ## Goal
 
@@ -42,18 +42,18 @@ The owner asked (2026-10-31) for one sans-serif font across the docs site. Headi
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Delete the Newsreader `@font-face` rules and `--paper-font-serif` from `paper.css`.
-- [ ] Rewrite the heading, site-title and hero rules on `--sl-font` with explicit weights and letter-spacing.
-- [ ] Delete `newsreader-*.woff2` and `OFL-Newsreader.txt`; update `apps/docs/src/fonts/README.md` and `apps/docs/README.md`.
-- [ ] Build the site (`pnpm --filter @laminapdf/docs build`) and compare the home page, a guide, the code table and an error page in light and dark, at desktop and phone widths; adjust weights until headings stand out clearly.
-- [ ] Amend design-language §3 and §7.39, and add a line to U6b's Context.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Delete the Newsreader `@font-face` rules and `--paper-font-serif` from `paper.css`.
+- [x] Rewrite the heading, site-title and hero rules on `--sl-font` with explicit weights and letter-spacing.
+- [x] Delete `newsreader-*.woff2` and `OFL-Newsreader.txt`; update `apps/docs/src/fonts/README.md` and `apps/docs/README.md`.
+- [x] Build the site (`pnpm --filter @laminapdf/docs build`) and compare the home page, a guide, the code table and an error page in light and dark, at desktop and phone widths; adjust weights until headings stand out clearly.
+- [x] Amend design-language §3 and §7.39, and add a line to U6b's Context.
 
 ## Acceptance criteria
 
-- [ ] No `Newsreader` under `apps/docs/` and no Newsreader request in the built site.
-- [ ] Headings stand out from body text by weight and size in both themes (screenshots in the PR).
-- [ ] The CSP `font-src 'self'` is unchanged; the docs build in `cargo xtask check ts` passes.
+- [x] No `Newsreader` under `apps/docs/` and no Newsreader request in the built site.
+- [x] Headings stand out from body text by weight and size in both themes (screenshots of four pages, two themes and two widths checked locally and sent to the owner; the GitHub CLI can't attach images to a PR).
+- [x] The CSP `font-src 'self'` is unchanged; the docs build in `cargo xtask check ts` passes.
 
 ## Post-merge checks
 
@@ -61,7 +61,7 @@ None.
 
 ## Tests
 
-The docs build in `cargo xtask check ts`; before-and-after screenshots of four pages in the PR description.
+The docs build in `cargo xtask check ts` (CI's TypeScript job; a full local `astro build` with TypeDoc also passed); screenshots of four pages checked locally and sent to the owner.
 
 ## Docs to update
 
@@ -73,9 +73,9 @@ Pure CSS and assets. If headings look too close to body text, raise the weight b
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

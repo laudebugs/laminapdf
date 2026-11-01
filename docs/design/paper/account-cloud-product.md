@@ -261,7 +261,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 **Entry points.** Site navigation "Pricing"; links from H02 ("Pricing and promises"), H11 ("Compare plans") and the app’s About dialog.
 
-**Layout.** Docs-site page (not the app shell): the docs-site header of design language [§7.39](design-language.md#739-site-and-product-pages-proposed) (64 px, wordmark Newsreader 24/500, 15 px nav, one secondary button) with the one site nav list for every docs-site page: Download · Docs · Pricing · Performance · Privacy, plus "Open the web app"; the download page (S09) uses §7.39's 56 px variant of the same header and should carry the same list. Footer 12 `muted` with the licence line. Content max 1120 px. Sections: heading and lead; two plan cards; a terms line; "Our promises" band on `surface`; "What needs an account" table; footer.
+**Layout.** Docs-site page (not the app shell): the docs-site header of design language [§7.39](design-language.md#739-site-and-product-pages-proposed) (64 px, wordmark Source Sans 3 24/700, 15 px nav, one secondary button) with the one site nav list for every docs-site page: Download · Docs · Pricing · Performance · Privacy, plus "Open the web app"; the download page (S09) uses §7.39's 56 px variant of the same header and should carry the same list. Footer 12 `muted` with the licence line. Content max 1120 px. Sections: heading and lead; two plan cards; a terms line; "Our promises" band on `surface`; "What needs an account" table; footer. The H08/H09 boards predate the sans-only docs site and still show Newsreader; this text wins.
 
 **Content and controls.**
 
