@@ -9,7 +9,7 @@ A PDF/UA-1 document (`Profile::PdfUa1`) reached `Builder::finish` without a natu
 
 ## Why
 
-A screen reader picks its voice and pronunciation from the document's language (`/Lang` in the catalog, ISO 32000-2 §14.9.2). PDF/UA-1 §7.2 requires that the language of all text can be determined (Matterhorn Protocol 11-001 and 11-006).
+A screen reader picks its voice and pronunciation from the document's language (`/Lang` in the catalog, ISO 32000-2 §14.9.2). PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.2 requires that the language of all text can be determined (Matterhorn Protocol 11-001 and 11-006; the protocol is the PDF Association's checklist of PDF/UA failures).
 
 ## How to fix
 

@@ -9,7 +9,7 @@ Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own
 
 ## Why
 
-PDF/A-2u (ISO 19005-2 §6.2.11.7.2) and PDF/UA-1 (ISO 14289-1 §7.21.7, Matterhorn Protocol 31-027 to 31-029) ask for every glyph to map to a usable Unicode value, so the text can be searched, copied and read aloud. lamina maps a glyph that stands for no text to an empty value, which these profiles don't accept.
+PDF/A-2u, an archival standard (ISO 19005-2 §6.2.11.7.2), and PDF/UA-1, the standard for accessible PDF (ISO 14289-1 §7.21.7; Matterhorn Protocol 31-027 to 31-029), ask for every glyph to map to a usable Unicode value, so the text can be searched, copied and read aloud. lamina maps a glyph that stands for no text to an empty value, which these profiles don't accept.
 
 ## How to fix
 

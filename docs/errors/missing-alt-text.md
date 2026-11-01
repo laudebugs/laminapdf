@@ -9,7 +9,7 @@ Under PDF/UA-1, a page has a `Figure` element without alternate text: neither `/
 
 ## Why
 
-A screen reader can't describe a picture by itself. PDF/UA-1 §7.3 requires every `Figure` to carry a text alternative (Matterhorn Protocol 13-004). lamina checks only that a description exists; whether it describes the figure well is for a person to judge.
+A screen reader can't describe a picture by itself. PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.3 requires every `Figure` to carry a text alternative (Matterhorn Protocol 13-004; the protocol is the PDF Association's checklist of PDF/UA failures). lamina checks only that a description exists; whether it describes the figure well is for a person to judge.
 
 ## How to fix
 

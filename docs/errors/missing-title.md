@@ -9,7 +9,7 @@ A PDF/UA-1 document (`Profile::PdfUa1`) reached `Builder::finish` without a titl
 
 ## Why
 
-PDF/UA-1 §7.1 needs a `dc:title` in the document's XMP packet, and asks viewers to show it in the title bar instead of the file name (`/DisplayDocTitle`, which the builder writes for you). A screen reader announces the title first, so a document without one is hard to tell apart from others (Matterhorn Protocol 06-003).
+PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.1 needs a `dc:title` in the document's XMP packet, and asks viewers to show it in the title bar instead of the file name (`/DisplayDocTitle`, which the builder writes for you). A screen reader announces the title first, so a document without one is hard to tell apart from others (Matterhorn Protocol 06-003; the protocol is the PDF Association's checklist of PDF/UA failures).
 
 ## How to fix
 

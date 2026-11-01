@@ -1,20 +1,21 @@
-//! A hybrid invoice (PDF/A-3b, todo B8b): the invoice people read, with the same invoice as
-//! XML attached for software to read. `Builder::attach` writes the file into
-//! `/EmbeddedFiles` and associates it with the document (`/AF`, `/AFRelationship
-//! /Alternative`), which PDF/A-3 requires of every attached file.
+//! A PDF/A-3b invoice that carries the same invoice as XML, attached for software to read.
 //!
-//! ```sh
-//! cargo run -p lamina --example pdf_a3_invoice_with_xml -- [out-dir]   # writes <out-dir>/pdf_a3_invoice_with_xml.pdf
-//! ```
+//! Run it with `cargo run -p lamina --example pdf_a3_invoice_with_xml -- [out-dir]`.
 
 use std::error::Error;
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use lamina::{
-    AfRelationship, Attachment, BuildOptions, Builder, CancelToken, Color, LinkTarget, Metadata, PageSize, PointPt,
-    Profile, Pt, SaveOptions, StrokeStyle,
+    AfRelationship, Attachment, BuildError, BuildOptions, Builder, CancelToken, Color, FontHandle, LinkTarget,
+    Metadata, PageSize, PointPt, Profile, Pt, SaveOptions, StrokeStyle, Surface,
 };
+
+const MARGIN: f64 = 56.0;
+const AMOUNTS: f64 = 460.0;
+const ROW: f64 = 22.0;
+const BODY: Pt = Pt::new(11.0);
+const ITEMS: [(&str, u32, f64); 3] = [("Sprockets", 12, 1.25), ("Gadget", 1, 79.90), ("Delivery", 1, 4.50)];
 
 fn main() -> Result<(), Box<dyn Error>> {
     let out = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| "target/examples-out".into()));
@@ -23,30 +24,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-const ITEMS: [(&str, u32, f64); 3] = [("Sprockets", 12, 1.25), ("Gadget", 1, 79.90), ("Delivery", 1, 4.50)];
+/// The invoice's total.
+fn total() -> f64 {
+    ITEMS.iter().map(|(_, qty, price)| f64::from(*qty) * price).sum()
+}
 
-/// The invoice as XML: the attachment, in a made-up schema (a real e-invoice would follow
-/// EN 16931, such as Factur-X's Cross Industry Invoice).
-fn invoice_xml(total: f64) -> String {
+/// The invoice as XML, in a made-up schema (a real e-invoice follows EN 16931, as Factur-X does).
+fn invoice_xml() -> Result<String, std::fmt::Error> {
     let mut xml =
         String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<invoice number=\"42\" currency=\"EUR\">\n");
     for (item, qty, price) in ITEMS {
-        // Writing into a String can't fail.
-        let _ = writeln!(xml, "  <line item=\"{item}\" quantity=\"{qty}\" price=\"{price:.2}\"/>");
+        writeln!(xml, "  <line item=\"{item}\" quantity=\"{qty}\" price=\"{price:.2}\"/>")?;
     }
-    let _ = writeln!(xml, "  <total>{total:.2}</total>\n</invoice>");
-    xml
+    writeln!(xml, "  <total>{:.2}</total>\n</invoice>", total())?;
+    Ok(xml)
 }
 
-/// The document's bytes.
+/// The invoice's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
-    let at = PointPt::from_points;
-    let options = BuildOptions::default()
-        .with_id(*b"lamina-ex-pdfa3b")
-        .with_producer("lamina examples")
-        .with_creation_date("D:20261031120000Z".parse()?)
-        .with_profile(Profile::PdfA3b);
-    let mut b = Builder::new(options);
+    let mut b = Builder::new(BuildOptions::default().with_profile(Profile::PdfA3b));
     b.metadata(
         Metadata::default()
             .with_title("Invoice 42")
@@ -54,39 +50,43 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     );
     let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;
     let mut page = b.page(PageSize::A4);
-    let s = page.surface();
-    let _ = s.text("Invoice 42", &font, Pt::new(24.0), at(56.0, 80.0))?;
-    let mut total = 0.0;
-    for (row, (item, qty, price)) in (0_u8..).zip(ITEMS) {
-        let y = 130.0 + 22.0 * f64::from(row);
-        let amount = f64::from(qty) * price;
-        total += amount;
-        let _ = s.text(&format!("{qty} × {item}"), &font, Pt::new(11.0), at(56.0, y))?;
-        let _ = s.text(&format!("€ {amount:.2}"), &font, Pt::new(11.0), at(460.0, y))?;
-    }
-    s.stroke_color(Color::gray(0.5))
-        .path(|p| {
-            p.move_to(at(56.0, 205.0)).line_to(at(539.0, 205.0));
-        })
-        .stroke(&StrokeStyle::default());
-    let _ = s.text(&format!("Total € {total:.2}"), &font, Pt::new(14.0), at(420.0, 230.0))?;
-    let _ = s
-        .text(
-            "The invoice is attached as invoice-42.xml.",
-            &font,
-            Pt::new(9.0),
-            at(56.0, 280.0),
-        )?
-        .link(
-            LinkTarget::Uri("https://example.com/invoices/42".into()),
-            Some("Invoice 42 online".into()),
-        );
+    draw(page.surface(), &font)?;
     page.finish()?;
-    b.attach(
-        Attachment::new("invoice-42.xml", invoice_xml(total).into_bytes(), "text/xml")
-            .with_relationship(AfRelationship::Alternative)
-            .with_description("Invoice 42 as XML"),
-    );
+    let xml = Attachment::new("invoice-42.xml", invoice_xml()?.into_bytes(), "text/xml")
+        .with_relationship(AfRelationship::Alternative)
+        .with_description("Invoice 42 as XML");
+    b.attach(xml);
     let mut doc = b.finish()?;
     Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+}
+
+fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {
+    let at = PointPt::from_points;
+    drop(s.text("Invoice 42", font, Pt::new(24.0), at(MARGIN, 80.0))?);
+    let mut y = 130.0;
+    for (item, qty, price) in ITEMS {
+        drop(s.text(&format!("{qty} × {item}"), font, BODY, at(MARGIN, y))?);
+        let amount = f64::from(qty) * price;
+        drop(s.text(&format!("€ {amount:.2}"), font, BODY, at(AMOUNTS, y))?);
+        y += ROW;
+    }
+    let rule = y - 7.0;
+    s.stroke_color(Color::gray(0.5))
+        .path(|p| _ = p.move_to(at(MARGIN, rule)).line_to(at(539.0, rule)))
+        .stroke(&StrokeStyle::default());
+    drop(s.text(
+        &format!("Total € {:.2}", total()),
+        font,
+        Pt::new(14.0),
+        at(AMOUNTS - 40.0, y + 18.0),
+    )?);
+    let note = s.text(
+        "The invoice is attached as invoice-42.xml.",
+        font,
+        BODY,
+        at(MARGIN, y + 68.0),
+    )?;
+    let online = LinkTarget::Uri("https://example.com/invoices/42".into());
+    drop(note.link(online, Some("Invoice 42 online".into())));
+    Ok(())
 }

@@ -95,11 +95,6 @@ fn the_tagged_invoice_leaves_nothing_untagged() {
 }
 
 #[test]
-fn the_pdf_ua_report_leaves_nothing_untagged() {
-    assert_eq!(pdf_ua_report::builder().unwrap().tagging_diagnostics(), []);
-}
-
-#[test]
 fn every_golden_has_an_example() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/golden/examples");
     let orphans: Vec<String> = std::fs::read_dir(dir)

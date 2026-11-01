@@ -55,7 +55,7 @@
 //!   MCIDs per page, `/StructParents`, the `ParentTree`, `OBJR`s for links, the `RoleMap`
 //!   and `/MarkInfo`; [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left
 //!   untagged.
-//! * Conformance ([B8b]): [`BuildOptions::with_profile`] ([`Profile`]: PDF/UA-1, PDF/A-2b,
+//! * Conformance: [`BuildOptions::with_profile`] ([`Profile`]: PDF/UA-1, PDF/A-2b,
 //!   PDF/A-2u, PDF/A-3b) turns each machine-checkable rule the document breaks into a coded
 //!   error at [`Builder::finish`], and writes the XMP identification, `/DisplayDocTitle` and
 //!   the PDF/A output intent with an embedded sRGB profile; [`Builder::attach`]
@@ -65,7 +65,6 @@
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 //! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
 //! [B8a]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8a-structure-tree.md
-//! [B8b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8b-conformance-profiles-and-verapdf.md
 #![forbid(unsafe_code)]
 
 mod annot;

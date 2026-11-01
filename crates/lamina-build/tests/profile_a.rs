@@ -1,4 +1,4 @@
-//! PDF/A-2b, PDF/A-2u and PDF/A-3b (todo B8b): each rule of ISO 19005-2/-3 lamina's builder
+//! PDF/A-2b, PDF/A-2u and PDF/A-3b: each rule of ISO 19005-2/-3 lamina's builder
 //! could break fails `Builder::finish` with its coded error, one test per rule (the veraPDF
 //! rule is in each test's comment), and a conforming document carries the output intent with
 //! the sRGB profile, the XMP identification and the same values in Info and XMP.

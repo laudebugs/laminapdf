@@ -1,4 +1,4 @@
-//! Attached files (todo B8b; ISO 32000-2 §7.11, §14.13; ISO 19005-3 §6.8): each attachment is
+//! Attached files (ISO 32000-2 §7.11, §14.13; ISO 19005-3 §6.8): each attachment is
 //! an `/EmbeddedFile` stream with its MIME type, size and modification date, a file
 //! specification with `/F`, `/UF`, `/Desc` and `/AFRelationship`, listed by name in
 //! `/Names /EmbeddedFiles` and in the catalog's `/AF`; PDF/A-3b accepts them.

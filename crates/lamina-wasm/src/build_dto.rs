@@ -821,7 +821,20 @@ impl ViewerPreferencesInit {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_id;
+    use serde::Deserialize as _;
+    use serde::de::IntoDeserializer as _;
+
+    use super::{Profile, ProfileInit, parse_id};
+
+    /// The profile names TypeScript sees are the Rust `Profile::as_str` names.
+    #[test]
+    fn every_profile_name_is_the_rust_profiles_name() {
+        for profile in [Profile::PdfUa1, Profile::PdfA2b, Profile::PdfA2u, Profile::PdfA3b] {
+            let name: serde::de::value::StrDeserializer<'_, serde::de::value::Error> =
+                profile.as_str().into_deserializer();
+            assert_eq!(ProfileInit::deserialize(name).unwrap().to_profile(), profile);
+        }
+    }
 
     #[test]
     fn parse_id_refuses_a_sign() {

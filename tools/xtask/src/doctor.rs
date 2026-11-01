@@ -42,8 +42,8 @@ pub(crate) const HB_SHAPE_VERSION: &str = "14.3.0";
 /// directory, so `doctor` can't probe it; `crates/lamina-text/tests/extraction.rs` checks the
 /// scripts' pins against this one.
 const PDFJS_DIST_VERSION: &str = "6.4.299";
-/// veraPDF greenfield release for `cargo xtask verapdf` and the nightly `verapdf` job (todo
-/// B8b). Run as a Java command-line application, never linked (ADR 0019: GPL-3.0-or-later or
+/// veraPDF greenfield release for `cargo xtask verapdf` and the nightly `verapdf` job. Run as a
+/// Java command-line application, never linked (ADR 0019: GPL-3.0-or-later or
 /// MPL-2.0). Bump deliberately: rule changes between releases change verdicts.
 pub(crate) const VERAPDF_VERSION: &str = "1.30.3";
 /// SHA-256 of `verapdf-greenfield-1.30.3-installer.zip` from software.verapdf.org (recorded

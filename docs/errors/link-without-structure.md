@@ -9,7 +9,7 @@ Under PDF/UA-1, a link annotation has no `Link` structure element. The builder g
 
 ## Why
 
-A screen reader finds links through the structure tree: PDF/UA-1 §7.18.5 requires each link annotation to be nested in a `Link` element (Matterhorn Protocol 28-011). A link inside decoration can't be reached that way.
+A screen reader finds links through the structure tree. PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.18.5 requires each link annotation to be nested in a `Link` element (Matterhorn Protocol 28-011; the protocol is the PDF Association's checklist of PDF/UA failures). A link inside decoration can't be reached that way.
 
 ## How to fix
 

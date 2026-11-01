@@ -1,4 +1,4 @@
-//! `cargo xtask verapdf [--dir <dir>]` (ADR 0018 tier 10, todo B8b): validates every generated
+//! `cargo xtask verapdf [--dir <dir>]` (ADR 0018 tier 10): validates every generated
 //! example against the profiles it claims with veraPDF, and fails on any violation.
 //!
 //! Without `--dir`, the `lamina` examples are run into `target/examples-out/` first (as

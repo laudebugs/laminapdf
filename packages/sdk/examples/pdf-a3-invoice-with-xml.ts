@@ -1,62 +1,67 @@
-// A hybrid invoice (PDF/A-3b): the invoice people read, with the same invoice as XML attached for
-// software to read. `attach` writes the file and associates it with the document, which PDF/A-3
-// requires of every attached file. The TS twin of crates/lamina/examples/pdf_a3_invoice_with_xml.rs.
-import { Builder, Font } from "@laminapdf/sdk";
+// A PDF/A-3b invoice that carries the same invoice as XML, attached for software to read.
+import { Builder, Font, type Surface } from "@laminapdf/sdk";
 
-const ITEMS: readonly (readonly [item: string, qty: number, price: number])[] = [
+const MARGIN = 56;
+const AMOUNTS = 460;
+const ROW = 22;
+const BODY = 11;
+const ITEMS = [
   ["Sprockets", 12, 1.25],
   ["Gadget", 1, 79.9],
   ["Delivery", 1, 4.5],
-];
+] as const;
+
+/** The invoice's total. */
+function total(): number {
+  return ITEMS.reduce((sum, [, qty, price]) => sum + qty * price, 0);
+}
 
 /** The invoice as XML, in a made-up schema (a real e-invoice follows EN 16931, as Factur-X does). */
-function invoiceXml(total: number): string {
+function invoiceXml(): string {
   const lines = ITEMS.map(
     ([item, qty, price]) => `  <line item="${item}" quantity="${qty}" price="${price.toFixed(2)}"/>\n`,
-  ).join("");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<invoice number="42" currency="EUR">\n${lines}  <total>${total.toFixed(2)}</total>\n</invoice>\n`;
+  );
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<invoice number="42" currency="EUR">\n${lines.join("")}  <total>${total().toFixed(2)}</total>\n</invoice>\n`;
 }
 
 /**
- * The document's bytes. Needs `init({ text: true })`.
+ * The invoice's bytes. Needs `init({ text: true })`.
  *
- * @param notoSans - `fixtures/fonts/NotoSans-Regular.ttf`.
+ * @param notoSans - the bytes of the Noto Sans font file.
  */
 export function pdfA3InvoiceWithXml(notoSans: Uint8Array): Uint8Array {
-  const b = new Builder({
-    id: new TextEncoder().encode("lamina-ex-pdfa3b"),
-    producer: "lamina examples",
-    creationDate: "D:20261031120000Z",
-    profiles: ["PDF/A-3b"],
-  });
+  using b = new Builder({ profiles: ["PDF/A-3b"] });
   b.metadata({ title: "Invoice 42", author: "Acme Widgets Ltd" });
   const font = Font.fromBytes(notoSans);
   b.font(font);
   const page = b.page("A4");
-  const s = page.surface();
-  s.text("Invoice 42", { font, size: 24, at: [56, 80] });
-  let total = 0;
-  ITEMS.forEach(([item, qty, price], row) => {
-    const y = 130 + 22 * row;
-    const amount = qty * price;
-    total += amount;
-    s.text(`${qty} × ${item}`, { font, size: 11, at: [56, y] });
-    s.text(`€ ${amount.toFixed(2)}`, { font, size: 11, at: [460, y] });
-  });
-  s.strokeColor([0.5])
-    .path((p) => p.moveTo(56, 205).lineTo(539, 205))
-    .stroke();
-  s.text(`Total € ${total.toFixed(2)}`, { font, size: 14, at: [420, 230] });
-  s.text("The invoice is attached as invoice-42.xml.", {
-    font,
-    size: 9,
-    at: [56, 280],
-    link: { target: { type: "uri", uri: "https://example.com/invoices/42" }, contents: "Invoice 42 online" },
-  });
+  draw(page.surface(), font);
   page.finish();
-  b.attach("invoice-42.xml", new TextEncoder().encode(invoiceXml(total)), "text/xml", {
+  b.attach("invoice-42.xml", new TextEncoder().encode(invoiceXml()), "text/xml", {
     relationship: "alternative",
     description: "Invoice 42 as XML",
   });
-  return b.finish().save();
+  using doc = b.finish();
+  return doc.save();
+}
+
+function draw(s: Surface, font: Font): void {
+  s.text("Invoice 42", { font, size: 24, at: [MARGIN, 80] });
+  let y = 130;
+  for (const [item, qty, price] of ITEMS) {
+    s.text(`${qty} × ${item}`, { font, size: BODY, at: [MARGIN, y] });
+    s.text(`€ ${(qty * price).toFixed(2)}`, { font, size: BODY, at: [AMOUNTS, y] });
+    y += ROW;
+  }
+  const rule = y - 7;
+  s.strokeColor([0.5])
+    .path((p) => p.moveTo(MARGIN, rule).lineTo(539, rule))
+    .stroke();
+  s.text(`Total € ${total().toFixed(2)}`, { font, size: 14, at: [AMOUNTS - 40, y + 18] });
+  s.text("The invoice is attached as invoice-42.xml.", {
+    font,
+    size: BODY,
+    at: [MARGIN, y + 68],
+    link: { target: { type: "uri", uri: "https://example.com/invoices/42" }, contents: "Invoice 42 online" },
+  });
 }

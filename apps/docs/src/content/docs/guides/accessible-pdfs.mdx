@@ -28,11 +28,11 @@ Turn the profile on with one option. Then `finish()` checks the rules a program 
 | Every font is embedded (no standard 14 font) | `font-not-embedded` |
 | Every glyph maps to Unicode | `glyph-without-unicode` |
 
-The builder writes the rest for you: the PDF/UA identifier in the document's XMP metadata (the XML packet in the file that describes it), the title shown in the viewer's title bar instead of the file name, and the reading order of links.
+The builder writes the rest for you. It puts the PDF/UA identifier in the document's XMP metadata, the XML packet in the file that describes it. It also asks viewers to show the title instead of the file name, and orders links by the structure.
 
 ## The example
 
-The report below has a running header as an artifact, a heading and a paragraph, a list, a table with header cells, a bar chart as a figure with alternate text, and a link with a description.
+The report below draws its running header as an artifact. Then come a heading, a paragraph, a table with header cells, a bar chart as a figure with alternate text, and a link with a description. A small `line` helper gives each line of text its structure element.
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">

@@ -9,7 +9,7 @@ Under PDF/UA-1, something was drawn outside every structure element and artifact
 
 ## Why
 
-Assistive technology reads a tagged document through its structure tree. Content outside it is either skipped or read out of order, so PDF/UA-1 §7.1 requires every piece of content to be tagged or marked as an artifact (Matterhorn Protocol 01-005).
+Assistive technology reads a tagged document through its structure tree. Content outside it is either skipped or read out of order, so PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.1 requires every piece of content to be tagged or marked as an artifact (Matterhorn Protocol 01-005; the protocol is the PDF Association's checklist of PDF/UA failures).
 
 ## How to fix
 

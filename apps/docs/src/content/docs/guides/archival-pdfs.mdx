@@ -18,7 +18,7 @@ PDF/A (ISO 19005) is the archival subset of PDF. A PDF/A file carries everything
 - **PDF/A-2u** ("Unicode"): PDF/A-2b, and every glyph maps to Unicode, so the text can be searched and copied.
 - **PDF/A-3b** (ISO 19005-3): PDF/A-2b that may carry attached files of any kind.
 
-Choose one with the `profiles` option. The builder then writes what the standard asks for. First, the identification in the document's XMP metadata (the XML packet in the file that describes it), always written and always agreeing with the Info dictionary. Second, an output intent: a declaration of the colour space that device colours mean, with its ICC profile embedded. lamina's output intent is sRGB, so RGB and gray colour are defined. The embedded profile is 480 bytes.
+Choose one with the `profiles` option. The builder then writes what the standard asks for. First, the identification in the document's XMP metadata (the XML packet in the file that describes it), always written and always agreeing with the Info dictionary. Second, an output intent: a declaration of the colour space that device colours mean. It embeds an ICC profile, the standard file format that describes a colour space. lamina's output intent is sRGB, so RGB and gray colour are defined, and its profile is 480 bytes.
 
 `finish()` fails with a coded error for each rule the document breaks:
 
@@ -34,7 +34,7 @@ For CMYK colour under PDF/A, give the colour an ICC profile (`Color::icc` in Rus
 
 ## An archived letter
 
-The letter below is written twice, as PDF/A-2b and as PDF/A-2u. The PDF/A-2u copy is also PDF/UA-1, the accessibility standard (see [Accessible PDFs](/guides/accessible-pdfs/)): a document can be both archival and accessible.
+The letter below is written twice, as PDF/A-2b and as PDF/A-2u. It embeds its font, places a photo and draws a translucent band across the top. The PDF/A-2u copy is also PDF/UA-1, the accessibility standard (see [Accessible PDFs](/guides/accessible-pdfs/)): a document can be both archival and accessible.
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">

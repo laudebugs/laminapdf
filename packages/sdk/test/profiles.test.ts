@@ -1,4 +1,4 @@
-// Conformance profiles (todo B8b): `profiles` in the builder's options turns each
+// Conformance profiles: `profiles` in the builder's options turns each
 // machine-checkable PDF/UA-1 and PDF/A rule the document breaks into a coded `LaminaError` at
 // `finish()`, with the same codes and data as the Rust builder; `attach` adds associated files.
 import { Builder, type BuilderOptions, Font, init, isLaminaError, type Surface } from "@laminapdf/sdk";
@@ -75,7 +75,9 @@ describe("PDF/UA-1", () => {
   });
 
   it("fails a cell outside a row with invalid-structure-nesting", () => {
-    const b = build(ua, (s, font) => s.tag("Table", (s) => s.text("Cell", { font, size: 12, at: [56, 80], tag: "TD" })));
+    const b = build(ua, (s, font) =>
+      s.tag("Table", (s) => s.text("Cell", { font, size: 12, at: [56, 80], tag: "TD" })),
+    );
     expect(isLaminaError(finishError(b), "invalid-structure-nesting")).toBe(true);
   });
 
@@ -104,7 +106,11 @@ describe("PDF/UA-1", () => {
 
 describe("PDF/A", () => {
   it("writes the output intent and the identification", () => {
-    const text = latin1.decode(build({ profiles: ["PDF/A-2u"] }, paragraph, false).finish().save({ xref: "classic" }));
+    const text = latin1.decode(
+      build({ profiles: ["PDF/A-2u"] }, paragraph, false)
+        .finish()
+        .save({ xref: "classic" }),
+    );
     expect([text.includes("/GTS_PDFA1"), text.includes("<pdfaid:conformance>U</pdfaid:conformance>")]).toEqual([
       true,
       true,
@@ -112,7 +118,12 @@ describe("PDF/A", () => {
   });
 
   it("fails a DeviceCMYK colour with device-color-without-output-intent", () => {
-    const b = build({ profiles: ["PDF/A-2b"] }, (s) => s.fillColor([0, 0.5, 1, 0]).path((p) => p.rect([56, 56, 9, 9])).fill());
+    const b = build({ profiles: ["PDF/A-2b"] }, (s) =>
+      s
+        .fillColor([0, 0.5, 1, 0])
+        .path((p) => p.rect([56, 56, 9, 9]))
+        .fill(),
+    );
     expect(isLaminaError(finishError(b), "device-color-without-output-intent")).toBe(true);
   });
 
@@ -136,6 +147,11 @@ describe("PDF/A", () => {
   });
 
   it("refuses an unknown profile name", () => {
-    expect(isLaminaError(thrown(() => new Builder({ profiles: ["PDF/A-1b" as never] })), "invalid-argument")).toBe(true);
+    expect(
+      isLaminaError(
+        thrown(() => new Builder({ profiles: ["PDF/A-1b" as never] })),
+        "invalid-argument",
+      ),
+    ).toBe(true);
   });
 });
