@@ -144,7 +144,7 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 
 - `lamina-cos/src/reader/mod.rs` is 1,533 lines (1,080 of them code).
 - `lamina-content`'s `execute` is 318 lines behind an `#[expect]`.
-- Four other files are over the 800-line budget in total lines: `lamina-text/src/extract/font.rs` (1,321), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). In non-test lines, all four are within the budget (`lamina-text`'s `font.rs` is the closest, at 786). Q2a's baseline (`tools/xtask/maintainability-baseline.toml`) lists the four modules that are over it: the COS reader (1,080), `lamina-content`'s `interp.rs` (824) and two xtask modules (`live.rs`, 1,115; `render_diff.rs`, 923), which Q2r now splits too.
+- Four other files are over the 800-line budget in total lines: `lamina-text/src/extract/font.rs` (1,321), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). In non-test lines, all four are within the budget (`lamina-text`'s `font.rs` is the closest, at 786). Q2a's baseline (`tools/xtask/maintainability-baseline.toml`) lists the four modules that are over it. They are the COS reader (1,080), `lamina-content`'s `interp.rs` (824) and two xtask modules (`live.rs`, 1,115; `render_diff.rs`, 923). Q2r now splits the two xtask modules too.
 - In TypeScript, eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39.
 
 **Façade names that collide.** Readers of the docs meet:

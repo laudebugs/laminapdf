@@ -4,8 +4,8 @@
 //! Each check is a name and a function in [`CHECKS`]. A check reads the [`Tree`] (the Rust files
 //! of `crates/`, `tools/` and `apps/`, scanned once, and the two record files, parsed once) and
 //! returns its problems. What exists today is recorded in [`BASELINE`] and [`DUPLICATES`]; a
-//! check fails when the code and a record disagree in either direction, and when a record grows
-//! against the merge base with `main`.
+//! check fails when the code and a record disagree in either direction, and when the baseline
+//! grows against the merge base with `main`; it warns when the allow-list grows.
 
 mod budget;
 mod names;
@@ -139,7 +139,7 @@ impl Tree {
             sources,
             baseline: parse(BASELINE, &read(BASELINE)?)?,
             allowed: parse(DUPLICATES, &read(DUPLICATES)?)?,
-            base: load_base(root)?,
+            base: load_base(root),
         })
     }
 
@@ -163,16 +163,21 @@ fn parse<T: DeserializeOwned>(path: &str, text: &str) -> Result<T> {
 }
 
 /// The record files at the merge base with `main` (`changes::default_base`).
-fn load_base(root: &Path) -> Result<Base> {
+fn load_base(root: &Path) -> Base {
     let base = crate::changes::default_base(root);
     let Ok(merge_base) = git(root, &["merge-base", base, "HEAD"]) else {
-        return Ok(Base::Unknown);
+        return Base::Unknown;
     };
     let at_base = |path: &str| git(root, &["show", &format!("{}:{path}", merge_base.trim())]).ok();
-    Ok(Base::Records {
-        baseline: at_base(BASELINE).map(|text| parse(BASELINE, &text)).transpose()?,
-        allowed: at_base(DUPLICATES).map(|text| parse(DUPLICATES, &text)).transpose()?,
-    })
+    // A base file that doesn't parse (a later schema change) can't be compared, like a missing
+    // merge base: a warning, not a failure that only `--admin` could get past.
+    let (Ok(baseline), Ok(allowed)) = (
+        at_base(BASELINE).map(|text| parse(BASELINE, &text)).transpose(),
+        at_base(DUPLICATES).map(|text| parse(DUPLICATES, &text)).transpose(),
+    ) else {
+        return Base::Unknown;
+    };
+    Base::Records { baseline, allowed }
 }
 
 #[cfg(test)]

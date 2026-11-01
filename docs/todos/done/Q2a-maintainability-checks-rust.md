@@ -12,7 +12,7 @@
 | Branch | `ci/q2a-maintainability-checks-rust` |
 | PR title | `ci(xtask): check maintainability (module budget, expect count, duplicate names) and new workspace lints` |
 | Size | M |
-| PR | — |
+| PR | [#168](https://github.com/laudebugs/lamina/pull/168) |
 
 ## Goal
 
@@ -75,7 +75,7 @@ The non-test line count must be stable and documented: describe the method in th
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green

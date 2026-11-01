@@ -128,7 +128,7 @@ impl Source {
             if let Some(name) = out_of_line_module(item) {
                 modules.push(TestModule {
                     name: name.to_owned(),
-                    path: path_attribute(&self.code, text, attribute.end, end),
+                    path: path_attribute(&self.code, text, attribute.start, end),
                 });
             }
             ranges.push((attribute.start, end));
@@ -345,10 +345,20 @@ fn skip_attributes(bytes: &[u8], from: usize) -> usize {
     at
 }
 
-/// The value of a `#[path = "…"]` attribute among the attributes in `from..to`, read from the
-/// unmasked `text` (masking hides the value but keeps the offsets).
-fn path_attribute(code: &str, text: &str, from: usize, to: usize) -> Option<String> {
+/// The value of a `#[path = "…"]` attribute on the item whose `#[cfg(test)]` starts at `cfg`
+/// and which ends at `to` (before or after the cfg), read from the unmasked `text` (masking hides
+/// the value but keeps the offsets).
+fn path_attribute(code: &str, text: &str, cfg: usize, to: usize) -> Option<String> {
     let attributes = attributes(code.get(..to)?);
+    // The start of the run of outer attributes that holds the cfg.
+    let mut from = cfg;
+    while let Some(before) = attributes.iter().find(|attribute| {
+        !attribute.inner
+            && attribute.end <= from
+            && code.get(attribute.end..from).is_some_and(|gap| gap.trim().is_empty())
+    }) {
+        from = before.start;
+    }
     let attribute = attributes.iter().find(|attribute| {
         attribute.start >= from
             && attribute
@@ -698,6 +708,13 @@ mod tests {
             path: Some("t.rs".to_owned()),
         };
         assert_eq!((source.non_test_lines(), source.test_modules), (1, vec![module]));
+    }
+
+    #[test]
+    fn a_path_attribute_before_the_cfg_should_name_the_test_module_file() {
+        let source = Source::new("#[path = \"t.rs\"]\n#[cfg(test)]\nmod tests;\nfn f() {}\n");
+        let paths: Vec<_> = source.test_modules.iter().map(|module| module.path.clone()).collect();
+        assert_eq!(paths, [Some("t.rs".to_owned())]);
     }
 
     #[test]

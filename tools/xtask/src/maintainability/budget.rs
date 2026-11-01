@@ -27,7 +27,8 @@ const SIZE_LINTS: [&str; 4] = [
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub(super) struct Baseline {
-    /// `#[expect]` and `#[allow]` attributes naming a size lint, across every file the check reads.
+    /// Size lints named by `#[expect]`, `#[allow]` or `cfg_attr` attributes (an attribute naming two
+    /// counts twice), across every file the check reads.
     #[serde(default)]
     size_expects: usize,
     /// Path → lines of non-test code, for each module over the budget.
@@ -148,8 +149,8 @@ pub(super) fn baseline_shrinks(tree: &Tree) -> Vec<Problem> {
         // A new baseline file: nothing to compare with yet.
         Base::Records { baseline: None, .. } => return Vec::new(),
         Base::Unknown => {
-            let message = "no merge base with main (a shallow clone needs fetch-depth: 0), so the record files \
-                           weren't compared with main's";
+            let message = "main's record files couldn't be read (no merge base: a shallow clone needs \
+                           fetch-depth: 0; or a file that no longer parses), so they weren't compared";
             return vec![warning(BASELINE, RULE, message)];
         }
     };

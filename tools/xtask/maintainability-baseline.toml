@@ -2,9 +2,10 @@
 # (docs/guidelines/maintainability.md, "Size"). This file only shrinks: the check fails when a
 # module listed here grows, and also when it shrinks, until its entry is lowered or removed.
 
-# `#[expect]` and `#[allow]` attributes that name a clippy size lint (too_many_lines,
-# cognitive_complexity, too_many_arguments, excessive_nesting) in the Rust files under crates/,
-# tools/ and apps/, tests and examples included, generated files not.
+# Size lints (too_many_lines, cognitive_complexity, too_many_arguments, excessive_nesting) named
+# by `#[expect]`, `#[allow]` or `cfg_attr` attributes, where an attribute naming two counts twice,
+# in the Rust files under crates/, tools/ and apps/, tests and examples included, generated
+# files not.
 size-expects = 13
 
 # Modules over the 800-line budget: path = lines of non-test code (blank lines, comment lines
