@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) |
+| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
 | Blocks | [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6c](./C6c-print-download-properties.md), [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) tier 11 and §2 lanes (no wall-clock assertions in PR lanes; perf in nightly; regressions open issues) and §4 (flaky tests are bugs) |
 | Branch | `test/c3c-viewer-perf-harness` |
@@ -22,7 +22,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 
 - [web-app.md §4 non-functional table](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) — the numbers.
 - [ADR 0018 §1 tier 11, §2](../../decisions/0018-test-strategy.md#1-tiers) — perf runs in the nightly lane; PR lanes don't assert durations; a >10 % regression opens an issue.
-- [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) `renderstats` events and the demo page.
+- [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) `renderstats` events and the demo page.
 - [C1b result](../done/C1b-pdfium-wasm-spike.md) — memory-measurement methods per browser.
 
 ## Scope
