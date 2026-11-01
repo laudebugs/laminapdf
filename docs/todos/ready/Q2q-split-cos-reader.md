@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md), [Q2e](./Q2e-error-policy-consolidation.md) |
+| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md), [Q2e](../done/Q2e-error-policy-consolidation.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2q-split-cos-reader` |
@@ -20,7 +20,7 @@
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-cos/src/reader/mod.rs` (opening at :532, loading at :980–1210, the page tree at :60–490 and :1242–1450); [Q2e](./Q2e-error-policy-consolidation.md) has already moved the error policies out.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-cos/src/reader/mod.rs` (opening at :532, loading at :980–1210, the page tree at :60–490 and :1242–1450); [Q2e](../done/Q2e-error-policy-consolidation.md) has already moved the error policies out.
 
 ## Scope
 

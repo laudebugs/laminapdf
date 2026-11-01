@@ -9,6 +9,7 @@
 
 mod budget;
 mod names;
+mod policy;
 mod source;
 
 use std::collections::BTreeMap;
@@ -43,7 +44,7 @@ struct Check {
 }
 
 /// Every check, in the order they run. A new check is one entry here.
-const CHECKS: [Check; 6] = [
+const CHECKS: [Check; 7] = [
     Check {
         name: "module-budget",
         run: budget::module_budget,
@@ -67,6 +68,10 @@ const CHECKS: [Check; 6] = [
     Check {
         name: "allow-list-shrinks",
         run: names::allow_list_shrinks,
+    },
+    Check {
+        name: "error-policy",
+        run: policy::error_policy_tests,
     },
 ];
 
@@ -218,6 +223,13 @@ impl Tree {
         };
         self
     }
+}
+
+/// The crate a library or binary source belongs to: `crates/<crate>/src/…`.
+fn crate_of(path: &str) -> Option<&str> {
+    let rest = path.strip_prefix("crates/")?;
+    let (krate, inside) = rest.split_once('/')?;
+    inside.starts_with("src/").then_some(krate)
 }
 
 /// Whether the checks read `path`: a `.rs` file under [`ROOTS`].

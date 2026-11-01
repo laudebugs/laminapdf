@@ -58,7 +58,7 @@ pub use runs::TextRun;
 use std::sync::Arc;
 
 use laminapdf_content::{MarkedContent, Matrix, TextAdvance, TextItem, TextShow, Visitor};
-use laminapdf_cos::{Error, Result, Warning};
+use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
 use laminapdf_model::{PageFrame, PointPt, UserSpacePoint};
 use laminapdf_syntax::{ObjRef, Object};
 
@@ -169,8 +169,9 @@ impl TextExtractor {
     ///
     /// # Errors
     /// What [`laminapdf_content::interpret_page`] returns (the content limits, strict mode, an
-    /// undecodable content stream), and [`Error::LimitExceeded`] or [`Error::Strict`] while
-    /// reading a font or the page's boxes.
+    /// undecodable content stream), and, while reading a font, `/ActualText` or the page's
+    /// boxes, the errors [`laminapdf_cos::absent_if_malformed`] returns: a reference cycle,
+    /// [`Error::LimitExceeded`], [`Error::Strict`], [`Error::DataPending`] and [`Error::Source`].
     pub fn page(&mut self, doc: &laminapdf_model::Document, page: &laminapdf_model::Page<'_>) -> Result<PageText> {
         let frame = page.frame()?;
         let mut collector = Collector {
@@ -331,12 +332,8 @@ impl Collector<'_> {
         let Some(value) = marked.properties.and_then(|p| p.get("ActualText")) else {
             return Ok(None);
         };
-        let value = match self.doc.deref(value) {
-            Ok(resolved) => resolved.into_arc(),
-            Err(error @ (Error::LimitExceeded { .. } | Error::Strict { .. } | Error::DataPending { .. })) => {
-                return Err(error);
-            }
-            Err(_) => return Ok(None),
+        let Some(value) = absent_if_malformed(self.doc.deref(value))? else {
+            return Ok(None);
         };
         Ok(match &*value {
             Object::String(s) => Some(laminapdf_syntax::text::decode_text_string(&s.bytes)),

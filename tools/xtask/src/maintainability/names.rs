@@ -9,7 +9,7 @@ use std::fmt::Write as _;
 use serde::Deserialize;
 
 use super::source::{Source, Token};
-use super::{Base, DUPLICATES, Problem, Tree, child_module_files, problem, warning};
+use super::{Base, DUPLICATES, Problem, Tree, child_module_files, crate_of, problem, warning};
 
 /// The façade's root module.
 const FACADE: &str = "crates/laminapdf/src/lib.rs";
@@ -149,13 +149,6 @@ pub(super) fn duplicate_types(tree: &Tree) -> Vec<Problem> {
         }
     }
     compare(&found, &tree.allowed.types, &TYPES)
-}
-
-/// The crate a library or binary source belongs to: `crates/<crate>/src/…`.
-fn crate_of(path: &str) -> Option<&str> {
-    let rest = path.strip_prefix("crates/")?;
-    let (krate, inside) = rest.split_once('/')?;
-    inside.starts_with("src/").then_some(krate)
 }
 
 /// Names the `laminapdf` façade makes public more than once across its public modules, by a

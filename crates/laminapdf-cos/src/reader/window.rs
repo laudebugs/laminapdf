@@ -53,24 +53,12 @@ pub(crate) fn read_window_exceeded(offset: usize) -> Error {
     }
 }
 
-/// Whether `e` is [`Limits::max_read_window`] being hit, which tolerant paths treat like an
-/// item that does not parse.
-pub(crate) const fn is_read_window_limit(e: &Error) -> bool {
-    matches!(
-        e,
-        Error::LimitExceeded {
-            limit: Limit::ReadWindow,
-            ..
-        }
-    )
-}
-
 /// `Some` result, or `None` when the read hit [`Limits::max_read_window`] (tolerant paths:
 /// the item counts as unreadable); other errors are returned.
 pub(crate) fn within_read_window<T>(result: Result<T>) -> Result<Option<T>> {
     match result {
         Ok(value) => Ok(Some(value)),
-        Err(e) if is_read_window_limit(&e) => Ok(None),
+        Err(e) if e.is_read_window_limit() => Ok(None),
         Err(e) => Err(e),
     }
 }
