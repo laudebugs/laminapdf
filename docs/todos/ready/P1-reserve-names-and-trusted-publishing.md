@@ -6,7 +6,7 @@
 | Status | `ready` — **blocked on the owner's decision to publish** (2026-10-28: crates and npm packages stay local until then) |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
-| Depends on | [B7b](../done/B7b-versioning-and-0-1-0-alpha.md), [P0](../done/P0-npm-scope-laminapdf.md), [P0b](../done/P0b-crate-names-laminapdf.md) |
+| Depends on | [B7b](../done/B7b-versioning-and-0-1-0-alpha.md), [P0](../done/P0-npm-scope-laminapdf.md), [P0b](../done/P0b-crate-names-laminapdf.md), [P0c](../ongoing/P0c-lamina-pdf-names.md) |
 | Blocks | [L4d](./L4d-cli-distribution.md), [P2](./P2-first-registry-prerelease.md) |
 | ADRs | Completes **0017** (publishing part: OIDC trusted publishing, provenance, attestations); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM), [0002](../../decisions/0002-binding-strategy.md) (`@laminapdf/wasm` packaging) |
 | Branch | `build/p1-trusted-publishing` |
