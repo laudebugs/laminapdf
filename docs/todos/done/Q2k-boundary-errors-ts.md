@@ -12,7 +12,7 @@
 | Branch | `fix/q2k-boundary-errors-ts` |
 | PR title | `fix(sdk,render,viewer): one error wire shape; render data-pending keeps its ranges across the worker` |
 | Size | M |
-| PR | — |
+| PR | [#153](https://github.com/laudebugs/lamina/pull/153) |
 
 ## Goal
 
@@ -49,12 +49,12 @@ The worker turns a render error's `ranges` into `{offset, length}` objects, but 
 
 ## Outcome
 
-A render `data-pending` thrown in the worker now reaches the page with its ranges. The new browser test failed before the fix: the ranges arrived as `[]`. Four details add to the plan.
+A render `data-pending` thrown in the worker now reaches the page with its ranges. The new browser test failed before the fix: the ranges arrived as `[]`. A changeset records the fix and the removal of `toJSON()`, `reviveRenderError` and `SerializedRenderError`. Four choices go beyond the plan.
 
 - **How the worker finds the object:** `@laminapdf/sdk` can't import `@laminapdf/render`, so the worker's `diagnostic()` can't check for `RenderError` by class. Instead it calls any thrown value's `toDiagnostic()` method and posts the result if it is a §1 object. Any error class can cross the worker this way. The TypeScript guideline now says so.
 - **The object:** `RenderError.toDiagnostic()` returns `code`, `kind`, `message`, `docsUrl` and, for `data-pending`, `data.ranges` as `[offset, length]` pairs (`ByteRange`). It has no hint, because `@laminapdf/render` has no hint table. The `docsUrl` base is hand-copied like the kinds, and [Q2l](../ready/Q2l-boundary-lists-generated.md), which generates the render tables, now lists it. A new test checks the `docsUrl` of every render code against `fixtures/codes.json`. The worker file shrank from 15,702 to 15,667 bytes gzipped.
-- **The viewer:** its worker throws `RenderError("cancelled")` and `RenderError("disposed")`, and the viewer's `useThrowOnlyError` override is gone. The bare `Error` for a missing backend stays: only a viewer bug reaches it, since the client loads the backend before anything else, and the worker reports it as `worker-failed`, kind `internal`, which is the right kind. Every code that would make it a `RenderError` means something else (`render-backend-unavailable` is a library that failed to load).
-- **Ranges on the page:** `LaminaError.ranges` still returns `{ offset, length }` objects, since that is its public API and `Document.ensure` reads it. What crosses the worker is pairs everywhere. A changeset records the fix and the removal of `toJSON()`, `reviveRenderError` and `SerializedRenderError`.
+- **The viewer:** its worker throws `RenderError("cancelled")` and `RenderError("disposed")`, and the viewer's `useThrowOnlyError` override is gone. The bare `Error` for a missing backend stays: only a viewer bug reaches it, since the client loads the backend before anything else, and the worker reports it as `worker-failed`, kind `internal`, which is the right kind. The render codes all mean something else: `render-backend-unavailable`, for one, is a library that failed to load.
+- **Ranges on the page:** `LaminaError.ranges` still returns `{ offset, length }` objects, since that is its public API and `Document.ensure` reads it. What crosses the worker is pairs everywhere.
 
 ## Post-merge checks
 
@@ -75,7 +75,7 @@ None.
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
