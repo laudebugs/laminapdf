@@ -9,7 +9,7 @@ The render engine (PDFium or hayro, `lamina-render`) could not open the document
 
 ## Why
 
-The engines have their own parsers. A file that lamina repairs may still be too damaged for an engine, or use a feature it can't draw. An engine failure (for example a hayro panic, which C1a saw once) is reported this way too, never as a crash.
+The engines have their own parsers. A file that lamina repairs may still be too damaged for an engine, or use a feature it can't draw. An engine failure (for example a panic inside hayro) is reported this way too, never as a crash.
 
 ## How to fix
 
@@ -25,3 +25,9 @@ let doc = HayroBackend::new().open(Arc::new(bytes), &RenderOpenOptions::new())?;
 
 - `backend`: `pdfium` or `hayro`.
 - `stage`: `open` or `render`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [C1a](../todos/done/C1a-hayro-parity-spike.md): the hayro parity spike, which saw such a panic once

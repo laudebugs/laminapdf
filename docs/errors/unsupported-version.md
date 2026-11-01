@@ -5,7 +5,7 @@
 
 ## What happened
 
-An op log has a schema version this reader doesn't know (ADR 0006 §6).
+An op log has a schema version this reader doesn't know.
 
 ## Why
 
@@ -24,3 +24,9 @@ doc.apply_log(r#"{ "v": 9, "ops": [] }"#)?; // unsupported-version, data.version
 ## Data fields
 
 `version`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0006](../decisions/0006-op-log-and-undo.md) §6

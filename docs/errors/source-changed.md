@@ -9,7 +9,7 @@ A remote file changed while `@laminapdf/sdk` was reading it range by range: a re
 
 ## Why
 
-A range document is assembled from many responses. If the file changed between them, the parts no longer belong to one file, and the document would read a mix of two versions. `httpRangeSource` sends `If-Range` with the first `ETag` and compares each response's `ETag` and `Content-Range` length with the first ([L2c](../todos/done/L2c-range-byte-source.md)).
+A range document is assembled from many responses. If the file changed between them, the parts no longer belong to one file, and the document would read a mix of two versions. `httpRangeSource` sends `If-Range` with the first `ETag` and compares each response's `ETag` and `Content-Range` length with the first.
 
 ## How to fix
 
@@ -25,3 +25,9 @@ await doc.ensure(() => doc.pages); // throws { code: "source-changed", … } if 
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2c](../todos/done/L2c-range-byte-source.md): the range byte source

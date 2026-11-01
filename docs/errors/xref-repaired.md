@@ -9,7 +9,7 @@ The stored cross-reference data was unusable and was rebuilt by scanning the fil
 
 ## Why
 
-Edited, truncated or concatenated files often have stale offsets (ADR 0003 §1).
+Edited, truncated or concatenated files often have stale offsets.
 
 ## How to fix
 
@@ -28,3 +28,9 @@ startxref
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §1

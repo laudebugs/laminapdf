@@ -5,23 +5,30 @@
 
 ## What happened
 
-The worker running `@laminapdf/sdk` (from `@laminapdf/sdk/worker`) stopped: an uncaught error, a WebAssembly trap or the browser killing it (out of memory). Every call still in flight was rejected with this code, and the client emitted a `crashed` event.
+The Web Worker running `@laminapdf/sdk` (from `@laminapdf/sdk/worker`) stopped: an uncaught error, a WebAssembly trap or the browser killing it (out of memory). Every call still in flight was rejected with this code, and the client emitted a `crashed` event.
 
 ## Why
 
-A crash isn't detected by silence: a long synchronous call can keep the worker busy without answering, so there is no heartbeat. Only the worker's `error` or `messageerror` event, or a trap the worker reports, counts as a crash ([L2a](../todos/done/L2a-worker-client.md), ADR 0009 §3.6).
+Silence doesn't count as a crash: a long synchronous call can keep the Web Worker busy without answering, so there is no heartbeat. Only the Web Worker's `error` or `messageerror` event, or a trap it reports, counts as a crash.
 
 ## How to fix
 
-Call `client.restart()`, then open the document again: handles from the old worker are gone. An encrypted document needs its password again. If one file keeps crashing the worker, report it.
+Call `client.restart()`, then open the document again: handles from the old Web Worker are gone. An encrypted document needs its password again. If one file keeps crashing the Web Worker, report it.
 
 ## Example
 
 ```ts
 client.on("crashed", () => client.restart());
-await doc.save(); // rejects with LaminaError { code: "worker-crashed", … } if the worker died
+await doc.save(); // rejects with LaminaError { code: "worker-crashed", … } if the Web Worker died
 ```
 
 ## Data fields
 
-- `reason`: what ended the worker: `error`, `messageerror` or `trap` (a crash, which emits `crashed`), or `terminated` (`client.terminate()`, `restart()`, or a call made when no worker runs).
+- `reason`: what ended the Web Worker: `error`, `messageerror` or `trap` (a crash, which emits `crashed`), or `terminated` (`client.terminate()`, `restart()`, or a call made when no Web Worker runs).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2a](../todos/done/L2a-worker-client.md): the worker client
+- [ADR 0009](../decisions/0009-web-client-architecture.md) §3.6

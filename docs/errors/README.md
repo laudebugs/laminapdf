@@ -6,7 +6,7 @@ A PR that adds a code adds:
 
 - its entry in `codes.json` (`code`, `kind`, `summary`, `hint`, `since`; the file's schema is [`fixtures/codes.schema.json`](../../fixtures/codes.schema.json)): the summary is one lowercase sentence saying what happened, the hint one sentence saying what to do, neither with document text nor a trailing period (ADR 0026 §4, §5);
 - the arm in its type's `code()` and `kind()` (the core crates' `kind()` is an exhaustive match, checked against `codes.json` by that crate's tests);
-- its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`; *Data fields* lists the `data` keys, marking the ones that can carry document or caller text *untrusted*;
+- its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`; *Data fields* lists the `data` keys, marking the ones that can carry document or caller text *untrusted*. The page is written for readers of the docs site: ADR numbers, todo IDs and CI go in an optional last section, *For contributors*, which the site leaves out (`apps/docs/plugins/error-pages.mjs`) and `cargo xtask check docs-prose` skips;
 - the output of `cargo xtask gen codes`, which regenerates the façade's `ErrorCode`/`WarningCode`, `@laminapdf/sdk`'s unions, tables and explain text, the `lamina.error/1` schema and the tables below. `cargo xtask check docs` fails, naming the file, when any of them is stale.
 
 `crates/lamina-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code.

@@ -9,7 +9,7 @@ The PDFium backend (`lamina-render-pdfium`) could not load the PDFium library, s
 
 ## Why
 
-PDFium is bound at runtime (ADR 0004 §3), never linked at build time: the library has to be present on the machine. Development machines and CI fetch the pinned build with `cargo xtask fetch-pdfium`; shipped apps bundle it.
+PDFium is bound at runtime, never linked at build time: the library has to be present on the machine. Ship it with your app, next to the executable or on the library path.
 
 ## How to fix
 
@@ -24,3 +24,10 @@ let backend = PdfiumBackend::from_env()?; // render-backend-unavailable when the
 ## Data fields
 
 - `backend`: `pdfium`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0004](../decisions/0004-render-backend.md) §3
+- Development machines and the test runners fetch the pinned build with `cargo xtask fetch-pdfium`.

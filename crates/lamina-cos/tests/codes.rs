@@ -35,6 +35,10 @@ const PAGE_HEADINGS: [&str; 5] = [
     "## Data fields",
 ];
 
+/// The optional last heading: notes for contributors (decision records, todos), which the docs
+/// site leaves out.
+const CONTRIBUTOR_HEADING: &str = "## For contributors";
+
 /// The codes listed in group `key`, in order.
 fn listed(key: &str) -> Vec<String> {
     codes_json()[key]
@@ -116,9 +120,10 @@ fn problems(group: &str, entry: &Value) -> Vec<String> {
                 .filter(|l| l.starts_with("## "))
                 .map(str::trim_end)
                 .collect();
-            if headings != PAGE_HEADINGS {
+            let reader_headings = headings.strip_suffix(&[CONTRIBUTOR_HEADING]).unwrap_or(&headings);
+            if reader_headings != PAGE_HEADINGS {
                 out.push(format!(
-                    "docs/errors/{code}.md: headings {headings:?}, expected {PAGE_HEADINGS:?}"
+                    "docs/errors/{code}.md: headings {headings:?}, expected {PAGE_HEADINGS:?} (then optionally {CONTRIBUTOR_HEADING:?})"
                 ));
             }
             if let Some(kind) = kind

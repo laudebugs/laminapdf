@@ -9,7 +9,7 @@ A font or text method (`Font` use, `surface.text`, `surface.textBox`, `builder.f
 
 ## Why
 
-`@laminapdf/sdk` ships two modules ([ADR 0016](../decisions/0016-package-design.md) §4): the base module (open, edit, save, vector and image pages) and the larger text module (all of the base plus fonts, shaping and text layout). A document that draws text is built entirely in the text module, and loading it is asynchronous, so it can't happen inside a synchronous drawing call. A builder created without the text module can't gain it later.
+`@laminapdf/sdk` ships two modules: the base module (open, edit, save, vector and image pages) and the larger text module (all of the base plus fonts, shaping and text layout). A document that draws text is built entirely in the text module, and loading it is asynchronous, so it can't happen inside a synchronous drawing call. A builder created without the text module can't gain it later.
 
 ## How to fix
 
@@ -28,3 +28,9 @@ await loadText(); // then create a new Builder
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §4

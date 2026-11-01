@@ -85,7 +85,7 @@ pub(crate) fn check(page: &Page, scope: Scope, config: &Config) -> Vec<Finding> 
         findings.extend(glossary(page, config));
         findings.extend(snippet_intro(page));
     }
-    for block in &page.blocks {
+    for block in reader_blocks(page) {
         findings.extend(lengths(block, config));
         findings.extend(internal_ids(block, config));
         findings.extend(banned_words(block, config));
@@ -94,6 +94,17 @@ pub(crate) fn check(page: &Page, scope: Scope, config: &Config) -> Vec<Finding> 
     }
     findings.sort_by_key(|finding| finding.line);
     findings
+}
+
+/// The blocks a reader sees: an error page's last section, "For contributors", is left out of
+/// the docs site (`apps/docs/plugins/error-pages.mjs`), so its decision and todo links are fine.
+fn reader_blocks(page: &Page) -> &[Block] {
+    let end = page
+        .blocks
+        .iter()
+        .position(|block| block.kind == Kind::Heading(2) && block.text() == "For contributors")
+        .unwrap_or(page.blocks.len());
+    page.blocks.get(..end).unwrap_or(&page.blocks)
 }
 
 fn finding(line: usize, rule: &'static str, message: impl Into<String>) -> Finding {
@@ -628,6 +639,12 @@ mod tests {
             .map(|finding| finding.message)
             .next();
         assert!(message.is_some_and(|message| message.starts_with("the sentence starting \"word word word")));
+    }
+
+    #[test]
+    fn the_contributor_section_should_not_be_checked() {
+        let body = "## Why\n\nRepair keeps the file usable.\n\n## For contributors\n\nSee ADR 0003 and Q1a.\n";
+        assert_eq!(rules_for(body, false), Vec::<&str>::new());
     }
 
     #[test]

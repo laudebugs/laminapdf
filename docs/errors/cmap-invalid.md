@@ -5,7 +5,7 @@
 
 ## What happened
 
-A font's CMap (its Type 0 `/Encoding`) or ToUnicode CMap had entries that could not be read, which were skipped; or it names a predefined CMap lamina has no table for (only `Identity-H`/`-V` and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones are known), which is read as Identity; or its `/UseCMap` chain is deeper than 8 levels, which is cut (todo B9b).
+A font's CMap (its Type 0 `/Encoding`) or ToUnicode CMap is malformed in one of three ways. It had entries that could not be read, which were skipped. Or it names a predefined CMap lamina has no table for, which is read as Identity: lamina knows only `Identity-H`/`-V` and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones. Or its `/UseCMap` chain is deeper than 8 levels, which is cut.
 
 ## Why
 
@@ -30,3 +30,9 @@ The destination string is not closed; the entry is skipped, and the rest of the 
 None.
 
 The `location` is `object`, the font dictionary's object; none for a direct font dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B9b](../todos/done/B9b-text-extraction-core.md): text extraction
