@@ -160,18 +160,17 @@ fn main() -> ExitCode {
 
 fn run(args: &Args) -> Result<()> {
     let hayro = (args.engines != Engines::Pdfium).then(HayroBackend::new);
-    let pdfium =
-        if args.engines == Engines::Hayro {
-            None
-        } else {
-            let bound = match &args.pdfium_dir {
-                Some(dir) => PdfiumBackend::bind(dir),
-                None => PdfiumBackend::from_env(),
-            };
-            Some(bound.context(
-                "binding PDFium: run `cargo xtask fetch-pdfium`, pass --pdfium-dir or set LAMINA_PDF_PDFIUM_DIR",
-            )?)
+    let pdfium = if args.engines == Engines::Hayro {
+        None
+    } else {
+        let bound = match &args.pdfium_dir {
+            Some(dir) => PdfiumBackend::bind(dir),
+            None => PdfiumBackend::from_env(),
         };
+        Some(bound.context(
+            "binding PDFium: run `cargo xtask fetch-pdfium`, pass --pdfium-dir or set LAMINA_PDF_PDFIUM_DIR",
+        )?)
+    };
     let list = fs::read_to_string(&args.list).with_context(|| format!("reading {}", args.list.display()))?;
     let mut rows = match &args.rows {
         Some(path) => Some(Rows(
