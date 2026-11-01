@@ -3,7 +3,7 @@
 // `<h1>` goes (the page title shows the code), a link to another code's page points at its page
 // on the site, and other relative links (ADRs, todos: repository files the site doesn't have)
 // keep their text without the link, as do links to the repository on GitHub unless
-// LAMINA_DOCS_GITHUB=1 (astro.config.mjs: the repository is private for now). A page's last
+// LAMINA_DOCS_GITHUB=1 (`GITHUB` in repository.mjs: the repository is private for now). A page's last
 // section, "For contributors" (decision records and todos), is left out.
 
 import { GITHUB, REPOSITORY } from "./repository.mjs";
