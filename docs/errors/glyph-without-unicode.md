@@ -5,7 +5,7 @@
 
 ## What happened
 
-Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own, or whose text is U+0000, U+FEFF or U+FFFE. A glyph stands for no text when shaping draws one cluster, a group of characters that display as one unit, with several glyphs: the text belongs to the first, and the others have none.
+Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own, or whose text is U+0000, U+FEFF or U+FFFE. Shaping can draw one cluster (a group of characters that display as one unit) with several glyphs. The text then belongs to the first glyph, and the others stand for none.
 
 ## Why
 
@@ -13,7 +13,7 @@ Software can search, copy or read text aloud only when every glyph maps to a usa
 
 ## How to fix
 
-Check the text for control characters and byte-order marks. If shaping draws several glyphs for one cluster, choose a font that draws each cluster as one glyph. An archive that needs no accessibility can use PDF/A-2b instead, which doesn't need Unicode for every glyph. PDF/UA-1 has no such level, so a PDF/UA-1 document needs the font change.
+Check the text for control characters and byte-order marks. If shaping draws several glyphs for one cluster, choose a font that draws each cluster as one glyph. An archive that needs no accessibility can use PDF/A-2b instead, which doesn't need Unicode for every glyph. PDF/UA-1 has no such relaxed variant, so a PDF/UA-1 document needs the font change.
 
 ## Example
 

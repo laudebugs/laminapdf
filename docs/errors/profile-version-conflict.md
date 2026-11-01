@@ -9,7 +9,7 @@
 
 ## Why
 
-PDF/UA-1 (ISO 14289-1), the standard for accessible PDF, and PDF/A-2 and PDF/A-3 (ISO 19005-2 and -3), the archival standards, build their rules on ISO 32000-1, which is PDF 1.7. A file that says it is PDF 2.0 can't conform to them. Validators such as veraPDF, the open-source PDF/A and PDF/UA validator, check the header first.
+The PDF/UA-1 standard for accessible PDF (ISO 14289-1) and the PDF/A-2 and PDF/A-3 archival standards (ISO 19005-2 and -3) build their rules on ISO 32000-1, which is PDF 1.7. A file that says it is PDF 2.0 can't conform to them. Validators such as veraPDF, the open-source PDF/A and PDF/UA validator, check the header first.
 
 ## How to fix
 

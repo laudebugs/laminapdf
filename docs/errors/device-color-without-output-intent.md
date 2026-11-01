@@ -5,7 +5,7 @@
 
 ## What happened
 
-Under a PDF/A profile, a page draws with `DeviceCMYK`: a `Color::cmyk` colour or a CMYK JPEG.
+Under a PDF/A profile, a page draws with `DeviceCMYK` (CMYK given as plain numbers, with no profile to say which inks they mean): a `Color::cmyk` colour or a CMYK JPEG.
 
 ## Why
 

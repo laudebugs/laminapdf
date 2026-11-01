@@ -540,7 +540,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "profile-version-conflict": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which lamina doesn't write yet",
   "missing-title": "set a title with Builder::metadata (Metadata::with_title)",
   "missing-lang": "set the language with Builder::lang, such as \"en-GB\"",
-  "missing-alt-text": "give the figure a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
+  "missing-alt-text": "give the figure or formula a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
   "untagged-content": "draw it inside Surface::tag (real content) or Surface::artifact (decoration)",
   "heading-level-skipped": "start with H1 and go down one level at a time",
   "unnumbered-heading-misused": "use numbered headings (H1, H2, ...) throughout, or one H per section",

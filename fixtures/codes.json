@@ -727,8 +727,8 @@
     {
       "code": "missing-alt-text",
       "kind": "usage",
-      "summary": "a Figure has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires",
-      "hint": "give the figure a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
+      "summary": "a Figure or Formula has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires",
+      "hint": "give the figure or formula a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
       "since": "0.2.0"
     },
     {

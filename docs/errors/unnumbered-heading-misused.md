@@ -9,7 +9,7 @@ Under PDF/UA-1, the document misuses the unnumbered heading `H`, a heading whose
 
 ## Why
 
-A screen reader works out an `H` heading's level from the sections around it, so a section has one `H` at most, and a document that mixes the two kinds gives no consistent outline. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.4.4) requires one `H` per section and only one kind of heading per document. These are conditions 14-006 and 14-007 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+A screen reader works out an `H` heading's level from the sections around it. A section therefore has one `H` at most, and a document that mixes the two kinds gives no consistent outline. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.4.4) requires one `H` per section and only one kind of heading per document. These are conditions 14-006 and 14-007 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
 
 ## How to fix
 

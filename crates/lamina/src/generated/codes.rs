@@ -149,7 +149,7 @@ pub enum ErrorCode {
     MissingTitle,
     /// `missing-lang`: PDF/UA-1 needs the document's natural language, and none was set.
     MissingLang,
-    /// `missing-alt-text`: a Figure has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires.
+    /// `missing-alt-text`: a Figure or Formula has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires.
     MissingAltText,
     /// `untagged-content`: content was drawn outside every structure element and artifact, which PDF/UA-1 forbids.
     UntaggedContent,
@@ -629,7 +629,7 @@ impl ErrorCode {
             Self::ProfileVersionConflict => "the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7)",
             Self::MissingTitle => "PDF/UA-1 needs a document title, and the metadata gives none",
             Self::MissingLang => "PDF/UA-1 needs the document's natural language, and none was set",
-            Self::MissingAltText => "a Figure has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires",
+            Self::MissingAltText => "a Figure or Formula has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires",
             Self::UntaggedContent => "content was drawn outside every structure element and artifact, which PDF/UA-1 forbids",
             Self::HeadingLevelSkipped => "a heading skips a level (the first is not H1, or an H3 follows an H1), which PDF/UA-1 forbids",
             Self::UnnumberedHeadingMisused => "an unnumbered H heading shares its parent with another H, or the document also uses H1-H6, which PDF/UA-1 forbids",
@@ -721,7 +721,7 @@ impl ErrorCode {
             Self::ProfileVersionConflict => "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which lamina doesn't write yet",
             Self::MissingTitle => "set a title with Builder::metadata (Metadata::with_title)",
             Self::MissingLang => "set the language with Builder::lang, such as \"en-GB\"",
-            Self::MissingAltText => "give the figure a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
+            Self::MissingAltText => "give the figure or formula a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
             Self::UntaggedContent => "draw it inside Surface::tag (real content) or Surface::artifact (decoration)",
             Self::HeadingLevelSkipped => "start with H1 and go down one level at a time",
             Self::UnnumberedHeadingMisused => "use numbered headings (H1, H2, ...) throughout, or one H per section",

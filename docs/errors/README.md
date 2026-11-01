@@ -146,7 +146,7 @@ A PR that adds a code adds:
 | [`profile-version-conflict`](profile-version-conflict.md) | `usage` | the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7) |
 | [`missing-title`](missing-title.md) | `usage` | PDF/UA-1 needs a document title, and the metadata gives none |
 | [`missing-lang`](missing-lang.md) | `usage` | PDF/UA-1 needs the document's natural language, and none was set |
-| [`missing-alt-text`](missing-alt-text.md) | `usage` | a Figure has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires |
+| [`missing-alt-text`](missing-alt-text.md) | `usage` | a Figure or Formula has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires |
 | [`untagged-content`](untagged-content.md) | `usage` | content was drawn outside every structure element and artifact, which PDF/UA-1 forbids |
 | [`heading-level-skipped`](heading-level-skipped.md) | `usage` | a heading skips a level (the first is not H1, or an H3 follows an H1), which PDF/UA-1 forbids |
 | [`unnumbered-heading-misused`](unnumbered-heading-misused.md) | `usage` | an unnumbered H heading shares its parent with another H, or the document also uses H1-H6, which PDF/UA-1 forbids |

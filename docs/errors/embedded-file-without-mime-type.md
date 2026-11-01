@@ -5,11 +5,11 @@
 
 ## What happened
 
-Under a PDF/A profile, `Builder::attach` added a file whose MIME type, such as `text/xml`, is empty.
+Under a PDF/A profile, `Builder::attach` added a file with an empty MIME type. A MIME type names the file's format, such as `text/xml`.
 
 ## Why
 
-Software reading an archive years later needs to know what each attached file is. The PDF/A-3 archival standard (ISO 19005-3 §6.8) requires every embedded file to name its MIME type in the `/Subtype` of its stream, and lamina writes no `/Subtype` for an empty one.
+Software reading an archive years later needs to know what each attached file is. The PDF/A-3 standard for archival PDF (ISO 19005-3 §6.8) requires every embedded file to name its MIME type in the `/Subtype` of its stream, and lamina writes no `/Subtype` for an empty one.
 
 ## How to fix
 
