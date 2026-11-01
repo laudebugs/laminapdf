@@ -80,7 +80,7 @@ Conventions on every board in this area:
 
 **Artboards.** `R02-loading.dc.html`, `R02-loading-download.dc.html`.
 
-**Todos.** [C3b](../../todos/ready/C3b-viewer-virtualiser-and-zoom.md).
+**Todos.** [C3b](../../todos/ongoing/C3b-viewer-virtualiser-and-zoom.md).
 
 ## R03 Password prompt
 
