@@ -1,0 +1,16 @@
+# What `cargo xtask check maintainability` accepts today over the size budgets
+# (docs/guidelines/maintainability.md, "Size"). This file only shrinks: the check fails when a
+# module listed here grows, and also when it shrinks, until its entry is lowered or removed.
+
+# `#[expect]` and `#[allow]` attributes that name a clippy size lint (too_many_lines,
+# cognitive_complexity, too_many_arguments, excessive_nesting) in the Rust files under crates/,
+# tools/ and apps/, tests and examples included, generated files not.
+size-expects = 13
+
+# Modules over the 800-line budget: path = lines of non-test code (blank lines, comment lines
+# and #[cfg(test)] items don't count). The splits in the quality plan's §6 clear them.
+[modules]
+"crates/lamina-content/src/interp.rs" = 824
+"crates/lamina-cos/src/reader/mod.rs" = 1080
+"tools/xtask/src/live.rs" = 1115
+"tools/xtask/src/render_diff.rs" = 923

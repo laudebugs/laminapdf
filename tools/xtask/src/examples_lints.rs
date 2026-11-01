@@ -189,7 +189,13 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let read = |path: &str| std::fs::read_to_string(root.join(path)).unwrap_or_default();
         let examples = read(&format!("{CLIPPY_CONF_DIR}/clippy.toml"));
-        assert!(examples.starts_with(&read("clippy.toml")));
+        // The root file's last paragraph sets its own threshold, which this file replaces.
+        let root_config = read("clippy.toml");
+        let shared = root_config
+            .trim_end()
+            .rsplit_once("\n\n")
+            .map_or("", |(shared, _)| shared);
+        assert!(!shared.is_empty() && examples.starts_with(shared));
         assert!(examples.contains("too-many-lines-threshold = 40"));
     }
 }

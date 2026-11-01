@@ -67,7 +67,7 @@ jobs:
         run: cargo xtask changes --base "$BASE"
 
   rust:
-    name: Rust (docs links and todo board, fmt, portability, clippy, tests, docs, cargo-deny)
+    name: Rust (docs links and todo board, fmt, maintainability, portability, clippy, tests, docs, cargo-deny)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
