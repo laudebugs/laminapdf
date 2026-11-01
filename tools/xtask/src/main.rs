@@ -26,6 +26,7 @@ mod roundtrip;
 mod runner;
 mod todos;
 mod tracked;
+mod ts_structure;
 mod util;
 mod verapdf;
 mod verify_install;
@@ -379,6 +380,7 @@ fn check_ts(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     api_docs(ws)?;
+    ts_structure::check(ws)?;
     docs_site(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");
@@ -566,7 +568,7 @@ fn docs_site(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["--filter", "@laminapdf/docs", "run", "build"])
 }
 
-fn step(message: &str) {
+pub(crate) fn step(message: &str) {
     println!("\n==> {message}");
 }
 

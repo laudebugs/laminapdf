@@ -1,0 +1,56 @@
+// knip: unused files, exports and dependencies across the packages and the docs site. Each
+// package's entries are its `exports` (tools/ts/package-entries.mjs), plus what runs without being
+// exported: the worker files started with `new URL(…)`, the test files, the files a test runner
+// loads (Vite's app, workerd's Worker), Vitest configs, examples and benches. Test helpers are not
+// entries, so an export only a helper's own file uses is reported. Run by `cargo xtask check ts`
+// (`pnpm run check:unused`).
+import { existsSync, readdirSync } from "node:fs";
+import type { KnipConfig } from "knip";
+import { entrySources, packageDirs } from "./tools/ts/package-entries.mjs";
+
+/** Entry globs that apply where their folder or file exists. */
+const RUNS_UNEXPORTED: Record<string, string[]> = {
+  "src/worker/entry.ts": ["src/worker/entry.ts"],
+  test: ["test/**/*.test.ts"],
+  "test/vite-app": ["test/vite-app/*.ts"],
+  "test/workerd/worker.ts": ["test/workerd/worker.ts"],
+  examples: ["examples/**/*.{ts,mjs}"],
+  bench: ["bench/**/*.mjs"],
+  scripts: ["scripts/**/*.mjs"],
+};
+
+function entries(dir: string): string[] {
+  const at = (p: string) => existsSync(`packages/${dir}/${p}`);
+  const runs = Object.entries(RUNS_UNEXPORTED).flatMap(([p, globs]) => (at(p) ? globs : []));
+  const vitest = readdirSync(`packages/${dir}`).some((f) => /^vitest\..*config\.ts$/.test(f))
+    ? ["vitest.*config.ts"]
+    : [];
+  return [...entrySources(".", dir), ...runs, ...vitest];
+}
+
+function project(dir: string): string[] {
+  return ["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
+    existsSync(`packages/${dir}/${g.split("/")[0]}`),
+  );
+}
+
+const config: KnipConfig = {
+  workspaces: {
+    // The root has no code of its own: its tools (tools/, docs/ research) are run by xtask.
+    ".": { entry: [], project: [] },
+    ...Object.fromEntries(
+      packageDirs(".").map((dir) => [`packages/${dir}`, { entry: entries(dir), project: project(dir) }]),
+    ),
+    "apps/docs": {},
+  },
+  ignore: ["**/src/generated/**"],
+  // knip finds pnpm's workspaces itself; the generated package is left out here too.
+  ignoreWorkspaces: ["packages/wasm"],
+  ignoreDependencies: [
+    // Run by `cargo xtask pdf-runtimes` as `pnpm exec deno` and `pnpm exec bun`, which knip can't see.
+    "deno",
+    "bun",
+  ],
+};
+
+export default config;

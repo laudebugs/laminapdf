@@ -26,7 +26,7 @@ The render adapters import `../render/test/{contract,browser-harness,browser-con
 
 **In scope**
 
-- The package (private, workspace-only); the three packages migrated; no relative import into another package; [Q2u](../ongoing/Q2u-ts-dependency-tools.md)'s baseline emptied if it has landed.
+- The package (private, workspace-only); the three packages migrated; no relative import into another package; [Q2u](../done/Q2u-ts-dependency-tools.md)'s baseline emptied if it has landed.
 
 **Out of scope** (and which todo covers it)
 

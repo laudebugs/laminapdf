@@ -24,7 +24,7 @@ export interface Hello {
 }
 
 /** The worker's answer to `hello`: its own handshake, and whether `init()` worked. */
-export interface Welcome {
+interface Welcome {
   readonly kind: "welcome";
   readonly worker: Handshake;
   readonly error?: Diagnostic<ErrorCode>;
@@ -49,12 +49,12 @@ export interface Cancel {
   readonly id: number;
 }
 
-export type Response =
+type Response =
   | { readonly kind: "result"; readonly id: number; readonly ok: true; readonly result: unknown }
   | { readonly kind: "result"; readonly id: number; readonly ok: false; readonly error: Diagnostic<ErrorCode> };
 
 /** Fire-and-forget news from the worker. */
-export type Event =
+type Event =
   | { readonly kind: "progress"; readonly id: number; readonly progress: unknown }
   | { readonly kind: "crashed"; readonly reason: string }
   /** An extension's own news (`emit()` in the worker, `on("event")` on the page). */

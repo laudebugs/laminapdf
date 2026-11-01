@@ -265,7 +265,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
 | [Q2h](../todos/ready/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
 | [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
-| [Q2j](../todos/ready/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
+| [Q2j](../todos/ongoing/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
 | [Q2k](../todos/ready/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
 | [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
 | [Q2m](../todos/ready/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
@@ -276,7 +276,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2r](../todos/ready/Q2r-split-surface-modules.md) | Split the large builder, extraction and WASM modules | M | Q2a, Q2h, Q2i |
 | [Q2s](../todos/ready/Q2s-facade-names.md) | Façade names that don't collide | M | Q2a |
 | [Q2t](../todos/ready/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
-| [Q2u](../todos/ongoing/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
+| [Q2u](../todos/done/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
 | [Q2v](../todos/ready/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
 | [Q2w](../todos/ready/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
 | [Q2x](../todos/ready/Q2x-test-fixtures-migration.md) | `lamina-test-fixtures` for the remaining crates | M | Q2c |
@@ -303,7 +303,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [ ] Q1h, Q1i, Q1m, Q1j: the story, plain-English guides, recipes and troubleshooting
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
-- [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript (Q2b, the TypeScript lint rules and the TypeDoc check, is [done](../todos/done/Q2b-ts-lint-rules.md))
+- [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript (the TypeScript checks are done: [Q2b](../todos/done/Q2b-ts-lint-rules.md) adds the lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero

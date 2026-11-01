@@ -35,7 +35,7 @@ export async function initBackend(init: BackendInit): Promise<{ name: string; ve
   return { name: loaded.name, version: loaded.version };
 }
 
-export function currentBackend(): RenderBackend {
+function currentBackend(): RenderBackend {
   if (backend === undefined) throw new Error("initBackend was not called");
   return backend;
 }
