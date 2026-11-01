@@ -87,6 +87,7 @@ pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
     let files = Tracked::from_git(&ws.root)?
         .files()
         .map(|path| path.to_string_lossy().replace('\\', "/"))
+        .chain(untracked)
         .filter(|path| path.starts_with(RUST_EXAMPLES) && crate::util::has_extension(path, &["rs"]))
         .count();
     if !output.status.success() {

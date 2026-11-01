@@ -186,7 +186,10 @@ fn match_parts(parts: &[&str], names: &[&str]) -> bool {
     match (parts.split_first(), names.split_first()) {
         (None, None) => true,
         (Some((&"**", rest)), _) => {
-            match_parts(rest, names) || names.split_first().is_some_and(|(_, more)| match_parts(parts, more))
+            match_parts(rest, names)
+                || names
+                    .split_first()
+                    .is_some_and(|(name, more)| !name.starts_with('.') && match_parts(parts, more))
         }
         (Some((part, rest)), Some((name, more))) => match_name(part, name) && match_parts(rest, more),
         _ => false,
@@ -308,12 +311,13 @@ fn file_findings(path: &str, text: &str) -> Vec<Finding> {
         }
     }
     let rust = crate::util::has_extension(path, &["rs"]);
+    let toml = crate::util::has_extension(path, &["toml"]);
+    let mut in_block_comment = false;
     for (index, line) in text.lines().enumerate() {
         let line_number = index + 1;
-        let code = line.trim_start();
-        if code.starts_with("//") || code.starts_with('*') || code.starts_with("/*") {
+        let Some(code) = code_part(line, toml, &mut in_block_comment) else {
             continue;
-        }
+        };
         if rust && names_internal_crate(code) {
             findings.push(finding(
                 line_number,
@@ -329,14 +333,14 @@ fn file_findings(path: &str, text: &str) -> Vec<Finding> {
             ));
         }
         let scaffolding = [
-            ("lamina-ex-", line.contains("lamina-ex-")),
-            ("D:20", has_fixed_date(line)),
+            ("a `lamina-ex-…` ID", code.contains("lamina-ex-")),
+            ("a quoted PDF date (`\"D:…\"`)", has_fixed_date(code)),
         ];
         for (marker, _) in scaffolding.iter().filter(|(_, found)| *found) {
             findings.push(finding(
                 line_number,
                 "test-scaffolding",
-                format!("`{marker}…` is a fixed test value: make it a parameter and let the tests pass it in"),
+                format!("{marker} is a fixed test value: make it a parameter and let the tests pass it in"),
             ));
         }
     }
@@ -351,6 +355,25 @@ fn file_findings(path: &str, text: &str) -> Vec<Finding> {
     findings
 }
 
+/// The code on a line without its comments, or `None` when the line is all comment. Block
+/// comments (`/* … */`) are followed across lines; a trailing `//` (or `#` in TOML) is cut.
+fn code_part<'a>(line: &'a str, toml: bool, in_block_comment: &mut bool) -> Option<&'a str> {
+    let code = line.trim_start();
+    if toml {
+        return (!code.starts_with('#')).then_some(code);
+    }
+    if *in_block_comment {
+        *in_block_comment = !code.contains("*/");
+        return None;
+    }
+    if code.starts_with("/*") {
+        *in_block_comment = !code.contains("*/");
+        return None;
+    }
+    let code = code.split_once(" //").map_or(code, |(code, _)| code);
+    (!code.starts_with("//")).then_some(code)
+}
+
 /// Whether code names a crate other than the façade: `lamina_build::…`, `use lamina_text`.
 fn names_internal_crate(code: &str) -> bool {
     code.match_indices("lamina_").any(|(index, _)| {
@@ -359,7 +382,13 @@ fn names_internal_crate(code: &str) -> bool {
         let rest = code.get(index + "lamina_".len()..).unwrap_or_default();
         let name_len = rest.chars().take_while(|c| c.is_ascii_lowercase() || *c == '_').count();
         let after = rest.get(name_len..).unwrap_or_default();
-        starts_word && name_len > 0 && (after.starts_with("::") || after.starts_with(';') || after.starts_with(" as"))
+        // `lamina_x::…` anywhere; `use lamina_x;` and `use lamina_x as y;` only in a use line.
+        let use_line = ["use ", "pub use ", "extern crate "]
+            .iter()
+            .any(|start| code.starts_with(start));
+        starts_word
+            && name_len > 0
+            && (after.starts_with("::") || (use_line && (after.starts_with(';') || after.starts_with(" as "))))
     })
 }
 
@@ -450,21 +479,22 @@ fn pair_findings(
                 ),
             ));
         }
-        if let (Some(ts), Some(rust)) = (headers.get(&pair.ts), headers.get(&pair.rust))
-            && ts != rust
-        {
-            findings.push(finding(
-                1,
-                "pair",
-                format!(
-                    "the header's first sentence differs from `{}`'s: use the same one in both",
-                    pair.rust
-                ),
-            ));
+        let sentences_differ = matches!(
+            (headers.get(&pair.ts), headers.get(&pair.rust)),
+            (Some(ts), Some(rust)) if ts != rust
+        );
+        // On both files, so a PR that changes either side is held to the pair; each names the other.
+        for (path, other) in [(&pair.ts, &pair.rust), (&pair.rust, &pair.ts)] {
+            let mut side = findings.clone();
+            if sentences_differ {
+                side.push(finding(
+                    1,
+                    "pair",
+                    format!("the header's first sentence differs from `{other}`'s: use the same one in both"),
+                ));
+            }
+            out.push((path.clone(), side));
         }
-        // On both files, so a PR that changes either side is held to the pair.
-        out.push((pair.rust.clone(), findings.clone()));
-        out.push((pair.ts.clone(), findings));
     }
     let ts: Vec<&String> = examples
         .iter()
@@ -650,6 +680,32 @@ mod tests {
         assert!(!glob("a/x*y*z.ts").matches("a/x1z.ts"));
         assert!(glob("a/{b,c}/*.{ts,rs}").matches("a/c/d.rs"));
         assert!(!glob("a/*.ts").matches("a/.hidden.ts"));
+    }
+
+    #[test]
+    fn identifiers_that_start_with_lamina_should_not_be_crates() {
+        let text = "//! Shows lengths.\nlet n = lamina_len as usize;\nreturn lamina_bytes;\n";
+        assert_eq!(rules("a.rs", text), Vec::<&str>::new());
+        assert_eq!(
+            rules("a.rs", "//! Shows text.\nuse lamina_text as text;\n"),
+            vec!["public-imports"]
+        );
+    }
+
+    #[test]
+    fn comments_should_not_be_read_as_code() {
+        let text = "// Shows a date.\n/* \"D:20260101\"\n * lamina-ex-x\n */\nlet x = 1; // \"D:20260101\"\n";
+        assert_eq!(rules("a.ts", text), Vec::<&str>::new());
+        assert_eq!(
+            rules("a.toml", "# Deploys it.\n# \"D:20260101\"\nname = \"x\"\n"),
+            Vec::<&str>::new()
+        );
+    }
+
+    #[test]
+    fn double_stars_should_skip_dot_folders() {
+        assert!(!glob("a/**/*.ts").matches("a/.cache/x.ts"));
+        assert!(glob("a/**/*.ts").matches("a/b/x.ts"));
     }
 
     #[test]
