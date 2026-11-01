@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa), requirement [§4 F6](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M4 Library 0.2 |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B6b](./B6b-lamina-pdf-package.md) |
-| Blocks | [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U4b](../ready/U4b-reader-mode-from-structure-tree.md), [E2b](../ready/E2b-page-structure-ops.md), [E2d](../ready/E2d-merge-and-split.md), [E6c](../ready/E6c-add-text.md), [E6d](../ready/E6d-watermarks-headers-footers.md) |
+| Blocks | [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U4b](../ready/U4b-reader-mode-from-structure-tree.md), [E2b](../ready/E2b-page-structure-ops.md), [E2d](../ready/E2d-merge-and-split.md), [E6c](../ready/E6c-add-text.md), [E6d](../ready/E6d-watermarks-headers-footers.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (lamina owns tagging; krilla's rule lists as reference), [0006](../../decisions/0006-op-log-and-undo.md) (no ops here: build-time only) |
 | Branch | `feat/b8a-structure-tree` |
 | PR title | `feat(build): tagged PDF with structure tree, artifacts, alt text, MCIDs and ParentTree` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Make generated documents tagged: every piece of content is either inside a structure element (with marked-content IDs linked through the ParentTree) or marked as an artifact; figures carry alt text; links are `Link` structure elements containing their annotation via OBJR; headings, paragraphs, lists, tables and figures map to standard structure types. This is the structural half of B8; conformance profiles and validation are [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
+Make generated documents tagged: every piece of content is either inside a structure element (with marked-content IDs linked through the ParentTree) or marked as an artifact; figures carry alt text; links are `Link` structure elements containing their annotation via OBJR; headings, paragraphs, lists, tables and figures map to standard structure types. This is the structural half of B8; conformance profiles and validation are [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md).
 
 ## Context
 
@@ -39,7 +39,7 @@ Make generated documents tagged: every piece of content is either inside a struc
 
 **Out of scope** (and which todo covers it)
 
-- Profiles (`PdfUa1`, `PdfA*`), errors at `finish()`, XMP identification, output intents, veraPDF: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
+- Profiles (`PdfUa1`, `PdfA*`), errors at `finish()`, XMP identification, output intents, veraPDF: [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md).
 - Editing structure of existing files, auto-tagging: full-editor E15.
 - Merging structure trees when importing pages: full-editor E2.
 
@@ -80,7 +80,7 @@ None.
 ## Docs to update
 
 - [x] [pdf-library §10 B8](../../plans/pdf-library.md#10-to-dos): tick "Add structure-tree building"
-- [ ] Docs site guide stub "Accessible PDFs" (completed in [B8b](../ready/B8b-conformance-profiles-and-verapdf.md)): not written, there is no docs site yet ([B7a](./B7a-docs-site.md) is still `ready`); B8b writes the page
+- [ ] Docs site guide stub "Accessible PDFs" (completed in [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md)): not written, there is no docs site yet ([B7a](./B7a-docs-site.md) is still `ready`); B8b writes the page
 
 ## Risks and open questions
 

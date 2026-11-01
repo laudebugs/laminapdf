@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `B8b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa), requirement [§4 F6](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — **M4 Library 0.2** |
 | Depends on | [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B7b](../done/B7b-versioning-and-0-1-0-alpha.md), [B8a](../done/B8a-structure-tree.md), [X3a](../done/X3a-nightly-lane.md) |
-| Blocks | [E1b](./E1b-xmp-packet-model.md), [E1c](./E1c-metadata-ops.md), [E2b](./E2b-page-structure-ops.md), [E2d](./E2d-merge-and-split.md), [E3e](./E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E6c](./E6c-add-text.md), [E6d](./E6d-watermarks-headers-footers.md), [E7i](./E7i-structure-and-conformance-maintenance.md), [E15a](./E15a-accessibility-feature-plan.md), [E15b](./E15b-structure-tree-editing.md) |
+| Blocks | [E1b](../ready/E1b-xmp-packet-model.md), [E1c](../ready/E1c-metadata-ops.md), [E2b](../ready/E2b-page-structure-ops.md), [E2d](../ready/E2d-merge-and-split.md), [E3e](../ready/E3e-xmp-editor.md), [E3f](../ready/E3f-attachments-and-associated-files.md), [E6c](../ready/E6c-add-text.md), [E6d](../ready/E6d-watermarks-headers-footers.md), [E7i](../ready/E7i-structure-and-conformance-maintenance.md), [E15a](../ready/E15a-accessibility-feature-plan.md), [E15b](../ready/E15b-structure-tree-editing.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) tier 10 (veraPDF as an external process, any violation fails from B8), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (veraPDF never linked), [0001](../../decisions/0001-core-language-and-licence.md) (determinism), 0017 (version bump) |
 | Branch | `feat/b8b-conformance-profiles` |
 | PR title | `feat(build): PDF/UA-1 and PDF/A-2b/2u/3b profiles with build-time errors; veraPDF nightly` |
