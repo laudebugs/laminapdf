@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
-| Blocks | [Q2q](./Q2q-split-cos-reader.md) |
+| Blocks | [Q2q](../ready/Q2q-split-cos-reader.md) |
 | ADRs | Follows 0003 |
 | Branch | `fix/q2e-error-policy-consolidation` |
 | PR title | `fix(cos,text): one set of error-propagation policies; extraction propagates source errors` |

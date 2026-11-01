@@ -260,7 +260,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2b](../todos/done/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
 | [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `laminapdf-test-fixtures` for the core crates' test helpers | M | Q2a |
 | [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on laminapdf-save's helpers | M | Q2c |
-| [Q2e](../todos/ready/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
+| [Q2e](../todos/ongoing/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
 | [Q2f](../todos/ready/Q2f-page-attributes-one-owner.md) | One reader of page attributes and one rotation type (fixes `/Rotate 90.0`) | M | — |
 | [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
 | [Q2h](../todos/ready/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
