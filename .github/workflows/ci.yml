@@ -1,6 +1,7 @@
 # CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6, ADR 0018 §2): every PR
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
-# The full lane (full.yml) runs alongside it; its `gate` job is the required check.
+# The full lane (full.yml) runs alongside it. Two checks are required: full.yml's `gate` and
+# `fast-gate` at the end of this file, which a new job here must join (its `needs`).
 # Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
 # GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
 # serves full.yml's check-linux.) The runners share one machine, so jobs that install Rust
@@ -350,3 +351,45 @@ jobs:
           pnpm typecheck
           pnpm lint
           pnpm test
+
+  # The fast lane's required check (todo X7), beside full.yml's `gate`: it passes when every job
+  # above passed, or was skipped because the PR is docs-only. Every new job joins its `needs`
+  # (tools/xtask's workflows test fails otherwise).
+  fast-gate:
+    name: fast-gate
+    if: always()
+    needs: [changes, rust, wasm, pdf-runtimes, msrv, typescript, spikes]
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 5
+    steps:
+      - name: Check every job passed or was not needed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          CODE: ${{ needs.changes.outputs.code }}
+        run: |
+          set -euo pipefail
+          changes=$(jq -r '.changes.result' <<<"$NEEDS")
+          if [ "$changes" != success ]; then
+            echo "::error::the changes job ended with '$changes'"
+            exit 1
+          fi
+          case "$CODE" in
+            true|false) echo "Jobs needed: $CODE" ;;
+            *)
+              echo "::error::the changes job's code output is '$CODE', not true or false"
+              exit 1
+              ;;
+          esac
+          failed=0
+          for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
+            result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
+            echo "$job: $result"
+            case "$CODE/$result" in
+              true/success | false/skipped) ;;
+              *)
+                echo "::error::$job ended with '$result' (jobs needed: $CODE)"
+                failed=1
+                ;;
+            esac
+          done
+          exit "$failed"

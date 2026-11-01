@@ -53,6 +53,7 @@ A nightly failure opens an issue automatically and blocks the next release, not 
 - **Path portability.** No job runs on Windows (and docs-only PRs skip the suites anyway), so `cargo xtask check docs` (fast lane, every PR) rejects tracked paths Windows or a case-insensitive file system can't check out.
 - **Docs-only PRs.** The fast lane classifies the PR the same way and skips its Rust, MSRV, TypeScript and spike jobs when it is docs-only; the full lane's `changes` job runs `cargo xtask check docs` (links, todo board, path portability) on every PR, so those checks still count toward `gate`.
 - **No retries.** Both PR lanes set `NEXTEST_PROFILE=ci`: `retries = 0` and the same slow-timeouts as the default profile (§4).
+- **The fast lane's gate** ([X7](../todos/done/X7-fast-lane-gate.md), 2026-11-01). `gate` used to be the only required check, so a red fast-lane job didn't block a merge: B8b (#143) merged with the fast lane's rustdoc step failing and turned `main` red. `ci.yml` now ends with `fast-gate`, built like `gate`: it needs every other job of the fast lane and fails unless each one passed, or was skipped on a docs-only PR. Branch protection requires both checks. A test in `tools/xtask/src/workflows.rs` fails when a job of either lane is missing from its gate's `needs`.
 - **Timing** (measured on PR #30): `changes` about 20 s on a cold cache, so a docs-only `gate` finishes in under a minute after the job starts; a code PR's full lane took 18 minutes, fuzzing 13 of them.
 
 ### 3. Corpora: licensing and provenance

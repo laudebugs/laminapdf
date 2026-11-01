@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `X7` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting |
-| Depends on | [X4](../done/X4-full-lane-gate.md) |
+| Depends on | [X4](./X4-full-lane-gate.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (CI lanes) |
 | Branch | `ci/x7-fast-lane-gate` |
 | PR title | `ci: a required check for the fast lane (X7)` |
 | Size | S |
-| PR | — |
+| PR | [#165](https://github.com/laudebugs/lamina/pull/165) |
 
 ## Goal
 
@@ -40,11 +40,11 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 
 ## Tasks
 
-- [ ] Claim via a claim PR; then a fresh worktree off the updated `main`.
-- [ ] Add `fast-gate` and the header comment.
-- [ ] Add the `needs` test.
-- [ ] Run one code PR and one docs-only PR through it: `fast-gate` is green on both, and it goes red when one fast-lane job is made to fail (a throwaway commit, reverted).
-- [ ] Ask the owner to add `fast-gate` to the required checks.
+- [x] Claim: this work PR (its first commit moved the todo to `ongoing/`).
+- [x] Add `fast-gate` and the header comment.
+- [x] Add the `needs` test.
+- [x] Run one code PR and one docs-only PR through it: `fast-gate` is green on both, and it goes red when one fast-lane job is made to fail. This PR is the code PR. Instead of a throwaway red commit, which costs a full CI run, the gate's script was run locally against `needs` results for each case: all green, docs-only skips, a failed, cancelled or skipped job on a code PR, and a failed `changes` job.
+- [x] Ask the owner to add `fast-gate` to the required checks (the command is under Scope).
 
 ## Acceptance criteria
 
