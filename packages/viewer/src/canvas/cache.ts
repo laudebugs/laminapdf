@@ -22,10 +22,12 @@ export class BitmapCache {
     this.budget = budget;
   }
 
+  /** The decoded bytes the cached bitmaps hold. */
   get bytes(): number {
     return this.#bytes;
   }
 
+  /** How many bitmaps are cached. */
   get size(): number {
     return this.#entries.size;
   }

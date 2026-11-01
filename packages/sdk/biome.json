@@ -22,6 +22,27 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/worker/server.ts", "test/source.test.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/source/http.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off",
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
     }
   ]
 }

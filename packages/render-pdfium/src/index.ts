@@ -102,6 +102,7 @@ export class PdfiumBackend implements RenderBackend {
     return heap(this.#pdfium).buffer.byteLength;
   }
 
+  /** Opens `source` (see {@link RenderBackend.open}). */
   open(source: RenderSource, options: RenderOpenOptions = {}): RenderDocument {
     return PdfiumDocument.open(this.#pdfium, source, options);
   }

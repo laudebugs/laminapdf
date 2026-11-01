@@ -257,7 +257,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [Q2a](../todos/ready/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
-| [Q2b](../todos/ongoing/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
+| [Q2b](../todos/done/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
 | [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures` for the core crates' test helpers | M | Q2a |
 | [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on lamina-save's helpers | M | Q2c |
 | [Q2e](../todos/ready/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
@@ -303,7 +303,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [ ] Q1h, Q1i, Q1m, Q1j: the story, plain-English guides, recipes and troubleshooting
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
-- [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript
+- [ ] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript (Q2b, the TypeScript lint rules and the TypeDoc check, is [done](../todos/done/Q2b-ts-lint-rules.md))
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero

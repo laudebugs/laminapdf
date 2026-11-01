@@ -45,8 +45,35 @@
               "__filename": "Node-only and CommonJS-only: resolve paths in the caller."
             }
           }
+        },
+        "useThrowOnlyError": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        },
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 60
+          }
         }
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/test/**", "**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
+    }
+  ]
 }
