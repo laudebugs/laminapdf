@@ -12,7 +12,7 @@
 | Branch | `ci/q2b-ts-lint-rules` |
 | PR title | `ci(ts): Biome complexity and throw rules, TypeDoc check for undocumented exports` |
 | Size | S |
-| PR | — |
+| PR | [#145](https://github.com/laudebugs/lamina/pull/145) |
 
 ## Goal
 
