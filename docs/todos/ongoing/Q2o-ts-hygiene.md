@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2o` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2u](../done/Q2u-ts-dependency-tools.md) |
@@ -34,11 +34,11 @@ The viewer's worker keeps `renderLog`, which grows on every render and is never 
 
 **Out of scope** (and which todo covers it)
 
-- Error shapes ([Q2k](../done/Q2k-boundary-errors-ts.md)); complexity splits ([Q2p](./Q2p-ts-complexity-splits.md)).
+- Error shapes ([Q2k](../done/Q2k-boundary-errors-ts.md)); complexity splits ([Q2p](../ready/Q2p-ts-complexity-splits.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Add test worker entries in sdk and viewer that register the `__` methods; remove them from `src/`; remove `renderLog`.
 - [ ] Extract the shared helpers; replace each copy.
 - [ ] Switch the viewer to `RangeSource`; trim and document its exports. (knip has no baseline: [Q2u](../done/Q2u-ts-dependency-tools.md) found nothing to list, because knip counts an export as used when a test uses it and never reports a package entry's own exports.)
@@ -68,7 +68,7 @@ Trimming the viewer's exports breaks callers while it is private: add a changese
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
