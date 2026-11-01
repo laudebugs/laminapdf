@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1h](../ongoing/Q1h-docs-story.md), [Q1k](./Q1k-internal-ids-out-of-reader-text.md) |
+| Blocks | [Q1h](./Q1h-docs-story.md), [Q1k](./Q1k-internal-ids-out-of-reader-text.md) |
 | ADRs | None |
 | Branch | `feat/q1b-docs-prose-check` |
 | PR title | `feat(xtask): docs-prose check for reader-facing text` |

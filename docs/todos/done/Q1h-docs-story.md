@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1h` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1b](../done/Q1b-docs-prose-check.md), [Q1e](../done/Q1e-quick-start-apps.md) |
+| Depends on | [Q1b](./Q1b-docs-prose-check.md), [Q1e](./Q1e-quick-start-apps.md) |
 | Blocks | [Q1i](../ready/Q1i-guides-create.md), [Q1j](../ready/Q1j-recipes-and-troubleshooting.md), [Q1m](../ready/Q1m-guides-read-and-edit.md) |
 | ADRs | None |
 | Branch | `feat/q1h-docs-story` |
 | PR title | `feat(docs): tell lamina's story: first PDF, concepts, glossary and an explicit sidebar` |
 | Size | M |
-| PR | — |
+| PR | [#159](https://github.com/laudebugs/lamina/pull/159) |
 
 ## Goal
 
@@ -41,19 +41,19 @@ This todo gives the site a path a newcomer can follow. It rewrites the overview 
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write "What is lamina" and "Your first PDF"; read them as a newcomer and cut what a newcomer doesn't need yet.
-- [ ] Write the two concept pages from the ADR facts, in plain words, with one small example each.
-- [ ] Write the glossary; link the terms from the new pages.
-- [ ] Move the concept asides out of the runtime pages.
-- [ ] Replace `autogenerate` with the explicit sidebar; add redirects; build the site and click through the Start group.
-- [ ] Run `docs-prose` on every changed page.
+- [x] Write "What is lamina" and "Your first PDF"; read them as a newcomer and cut what a newcomer doesn't need yet.
+- [x] Write the two concept pages from the ADR facts, in plain words, with one small example each.
+- [x] Write the glossary; link the terms from the new pages.
+- [x] Move the concept asides out of the runtime pages.
+- [x] Replace `autogenerate` with the explicit sidebar; add redirects; build the site and click through the Start group. The existing guides sit in the plan's groups under labels that match their future names; Q1i and Q1m rename them. Recipes is the examples page until Q1j. The home page is a splash page (plan §8 question 2).
+- [x] Run `docs-prose` on every changed page.
 
 ## Acceptance criteria
 
-- [ ] The sidebar matches plan §3, apart from the groups later todos fill.
-- [ ] `docs-prose` reports nothing on the new and changed pages.
-- [ ] No old URL returns 404.
-- [ ] A first-time reader gets from the home page to a written `hello.pdf` without leaving the Start group.
+- [x] The sidebar matches plan §3, apart from the groups later todos fill.
+- [x] `docs-prose` reports nothing on the new and changed pages.
+- [x] No old URL returns 404.
+- [x] A first-time reader gets from the home page to a written `hello.pdf` without leaving the Start group.
 
 ## Post-merge checks
 
@@ -74,8 +74,8 @@ Workers static assets may not honour `_redirects`: use Astro's `redirects` (stat
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

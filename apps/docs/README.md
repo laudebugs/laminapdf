@@ -28,6 +28,7 @@ The site uses lamina's [Paper design language](../../docs/design/paper/design-la
 - **Themes:** Starlight's light theme is Paper's light theme (§2.1), and its dark theme is Paper's proposed dark theme (§2.3).
 
 `src/styles/paper.css` (Starlight's `customCss`) maps the design language's tokens (`--paper-*`) onto Starlight's `--sl-*` properties:
+- **The sidebar** is an explicit list in `astro.config.mjs`, in the order of the [quality plan §3](../../docs/plans/quality.md#3-the-docs-as-a-story): a new page appears only once it is added there. A page that moves keeps its old URL through `redirects` in the same file (static redirect pages, since Workers static assets ignore `_redirects`).
 - **Colours:** asides use Paper's accent, Plum, `warning` and `danger`, and the sidebar marks the current page as a selected row.
 - **Fonts:** self-hosted from `src/fonts/` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [`src/fonts/README.md`](src/fonts/README.md).
 
