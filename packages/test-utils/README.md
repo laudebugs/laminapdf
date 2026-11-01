@@ -2,7 +2,7 @@
 
 The test helpers lamina's TypeScript packages share, so no package reaches into another's `test/` folder. It is private and lives only in the workspace: never published, and left out of the version every other package shares.
 
-Its modules are TypeScript source. Vitest compiles them for the tests, and Node strips their types when a Vitest config imports one, so there is nothing to build first. A module that a config imports reaches another one through the package name (`@laminapdf/test-utils/firefox`), not a relative path.
+Its modules are TypeScript source. Vitest compiles them for the tests, and Node strips their types when a Vitest config imports one, so there is nothing to build first. Its modules import each other through the package name (`@laminapdf/test-utils/firefox`), not a relative path, which Node wouldn't map to the `.ts` file.
 
 ## Modules
 
