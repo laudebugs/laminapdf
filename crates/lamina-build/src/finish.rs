@@ -17,6 +17,7 @@ use crate::meta::xmp;
 use crate::nav::dest::Targets;
 use crate::nav::{LinkTarget, labels, outline};
 use crate::page::count;
+use crate::profile::{checks, pdfa};
 
 fn invalid(message: &'static str) -> lamina_cos::Error {
     lamina_cos::Error::InvalidStructure {
@@ -49,6 +50,7 @@ fn resolve_links(links: Vec<PendingLink>, targets: &Targets<'_>) -> Result<Vec<(
                  object,
                  mut dict,
                  target,
+                 ..
              }| {
                 targets.apply(&mut dict, &target)?;
                 Ok((object, dict))
@@ -149,6 +151,51 @@ fn merged_metadata(options: &BuildOptions, features: &DocFeatures) -> Metadata {
     meta
 }
 
+/// Runs the profiles' checks (nothing is written yet).
+fn check_profiles(options: &BuildOptions, state: &BuildState, features: &DocFeatures, meta: &Metadata) -> Result<()> {
+    let conformance = options.conformance();
+    if conformance.is_empty() {
+        return Ok(());
+    }
+    checks::check(&checks::Inputs {
+        conformance,
+        version: version_of(options.version().as_str().as_bytes()).unwrap_or((1, 7)),
+        title: meta.title.as_deref(),
+        lang: features.lang.as_deref(),
+        diagnostics: state.tag.diagnostics(),
+        elements: state.tag.infos(),
+        links: &state.links,
+        device_cmyk: state.device_cmyk,
+        attachments: &features.attachments,
+    })?;
+    #[cfg(feature = "text")]
+    checks::fonts(conformance, &state.fonts, &state.font_keys)?;
+    Ok(())
+}
+
+/// The catalog's `/Names` (named destinations, attached files) and `/AF`.
+fn write_names(
+    cos: &mut CosMut<'_>,
+    cat: &mut Dict,
+    targets: &Targets<'_>,
+    features: &DocFeatures,
+    created: Option<&lamina_model::PdfDate>,
+) -> Result<()> {
+    let mut names = Dict::new();
+    if let Some(tree) = targets.dests_tree()? {
+        names.insert("Dests", tree);
+    }
+    if !features.attachments.is_empty() {
+        let (tree, specs) = crate::attach::write(cos, &features.attachments, created)?;
+        names.insert("EmbeddedFiles", tree);
+        cat.insert("AF", Object::Array(specs.into_iter().map(Object::Ref).collect()));
+    }
+    if !names.is_empty() {
+        cat.insert("Names", names);
+    }
+    Ok(())
+}
+
 /// A new document's objects: fonts, links, the reserved page tree root and catalog, the
 /// outline, names, page labels, Info and XMP, the trailer.
 pub(crate) fn new_document(
@@ -165,6 +212,9 @@ pub(crate) fn new_document(
         count: state.pages.len(),
         names: Some(&features.names),
     };
+    let conformance = options.conformance();
+    let meta = merged_metadata(options, features);
+    check_profiles(options, state, features, &meta)?;
     let links = resolve_links(std::mem::take(&mut state.links), &targets)?;
     let mut cos = doc.edit();
     #[cfg(feature = "text")]
@@ -177,7 +227,6 @@ pub(crate) fn new_document(
     root.insert("Count", count(state.pages.len()));
     cos.set(state.pages_root, Object::Dict(root))?;
 
-    let meta = merged_metadata(options, features);
     let mut required = state.required;
     if !features.names.is_empty() {
         required = required.max((1, 2));
@@ -192,10 +241,21 @@ pub(crate) fn new_document(
     if features.labels.is_some() {
         required = required.max((1, 3));
     }
-    if let Some(prefs) = features.prefs {
+    // PDF/UA-1 §7.1-9 (Matterhorn 07-001, 07-002): the title bar shows the title.
+    let prefs = if conformance.ua {
+        Some(features.prefs.unwrap_or_default().with_display_doc_title(true))
+    } else {
+        features.prefs
+    };
+    if let Some(prefs) = prefs {
         required = required.max(prefs.version());
     }
-    if features.lang.is_some() || features.metadata.is_some() || state.tag.tagged {
+    if !features.attachments.is_empty() {
+        // `/UF` (§7.11.3) is PDF 1.7.
+        required = required.max((1, 7));
+    }
+    let xmp = features.metadata.is_some() || !conformance.is_empty();
+    if features.lang.is_some() || xmp || state.tag.tagged {
         required = required.max((1, 4));
     }
     let mut cat = Dict::new();
@@ -204,11 +264,7 @@ pub(crate) fn new_document(
         cat.insert("Version", version_name(required));
     }
     cat.insert("Pages", state.pages_root);
-    if let Some(tree) = targets.dests_tree()? {
-        let mut names = Dict::new();
-        names.insert("Dests", tree);
-        cat.insert("Names", names);
-    }
+    write_names(&mut cos, &mut cat, &targets, features, meta.creation_date.as_ref())?;
     if let Some(o) = &features.outline {
         outline::write(&mut cos, o.root, &o.entries, &o.ids, &targets)?;
         cat.insert("Outlines", o.root);
@@ -216,19 +272,22 @@ pub(crate) fn new_document(
     if let Some(ranges) = &features.labels {
         cat.insert("PageLabels", labels::labels_tree(ranges, state.pages.len())?);
     }
-    if let Some(prefs) = features.prefs {
+    if let Some(prefs) = prefs {
         prefs.write(&mut cat);
     }
     if let Some(lang) = &features.lang {
         cat.insert("Lang", PdfString::literal(encode_text_string(lang)));
     }
     state.tag.write(&mut cos, &mut cat)?;
-    if features.metadata.is_some() {
+    if xmp {
         let mut d = Dict::new();
         d.insert("Type", Name::from("Metadata"));
         d.insert("Subtype", Name::from("XML"));
-        let stream = Stream::new(d, xmp::packet(&meta).into_bytes());
+        let stream = Stream::new(d, xmp::packet(&meta, conformance).into_bytes());
         cat.insert("Metadata", cos.create(Object::Stream(stream))?);
+    }
+    if conformance.pdfa.is_some() {
+        cat.insert("OutputIntents", pdfa::output_intents(&mut cos)?);
     }
     cos.set(catalog, Object::Dict(cat))?;
 

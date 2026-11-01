@@ -37,7 +37,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 **Out of scope** (and which todo covers it)
 
 - Changesets, tag, install verification: [B7b](./B7b-versioning-and-0-1-0-alpha.md).
-- PDF/UA and PDF/A guides: [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md).
+- PDF/UA and PDF/A guides: [B8b](../done/B8b-conformance-profiles-and-verapdf.md).
 - docs.rs publishing: [P2](../ready/P2-first-registry-prerelease.md).
 
 ## Tasks

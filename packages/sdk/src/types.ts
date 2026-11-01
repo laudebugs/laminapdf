@@ -2,7 +2,9 @@
 // under @laminapdf/sdk's names. They are the Rust façade's records, camelCase; only `OpenOptions`
 // and `Color` are written here.
 import type {
+  AfRelationshipInit,
   AlignInit,
+  AttachmentInit,
   BuildOptionsInit,
   DirectionInit,
   DocumentInfoJs,
@@ -17,6 +19,7 @@ import type {
   OverflowInit,
   PageInfoJs,
   PageLabelInit,
+  ProfileInit,
   ProgressJs,
   RectJs,
   RenderModeInit,
@@ -62,6 +65,12 @@ export type UndoOutcome = UndoOutcomeJs;
 export type Progress = ProgressJs;
 /** Options for a new document: version, fixed file ID (32 hex digits), producer, creation date. */
 export type BuildOptions = BuildOptionsInit;
+/** A conformance profile: `PDF/UA-1` (accessible), `PDF/A-2b`, `PDF/A-2u` or `PDF/A-3b` (archival). */
+export type Profile = ProfileInit;
+/** How an attached file relates to the document (`/AFRelationship`). */
+export type AfRelationship = AfRelationshipInit;
+/** An attached file's relationship, description and modification date. */
+export type AttachmentOptions = AttachmentInit;
 /** Where a link or outline item goes. */
 export type LinkTarget = LinkTargetInit;
 /** How a destination shows its page. */

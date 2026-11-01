@@ -248,7 +248,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1h](../todos/ready/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |
 | [Q1i](../todos/ready/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
 | [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
-| [Q1k](../todos/ready/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
+| [Q1k](../todos/ongoing/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
 | [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
 | [Q1m](../todos/ready/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 

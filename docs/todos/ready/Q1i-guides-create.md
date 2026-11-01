@@ -16,7 +16,7 @@
 
 ## Goal
 
-This todo rewrites the "Create PDFs" guides to the [docs-writing guideline](../../guidelines/docs-writing.md): each opens with what you'll make and when you'd need it, explains or links every spec term, moves spec detail into "Details" asides, and uses one term per thing. It covers Text and fonts; Shapes, colour and images; Links, outlines and metadata; and the accessible-PDF and archival-PDF guides that [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md) adds, if merged.
+This todo rewrites the "Create PDFs" guides to the [docs-writing guideline](../../guidelines/docs-writing.md): each opens with what you'll make and when you'd need it, explains or links every spec term, moves spec detail into "Details" asides, and uses one term per thing. It covers Text and fonts; Shapes, colour and images; Links, outlines and metadata; and the accessible-PDF and archival-PDF guides that [B8b](../done/B8b-conformance-profiles-and-verapdf.md) adds, if merged.
 
 ## Context
 

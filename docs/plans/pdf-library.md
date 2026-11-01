@@ -217,7 +217,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
-**Todos:** [B8a](../todos/done/B8a-structure-tree.md) (structure tree), [B8b](../todos/ongoing/B8b-conformance-profiles-and-verapdf.md) (profiles, veraPDF, `0.2.0-alpha`).
+**Todos:** [B8a](../todos/done/B8a-structure-tree.md) (structure tree), [B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md) (profiles, veraPDF, `0.2.0-alpha`).
 
 **Deliverable:** structure tree builder (`tag()` on content, artifacts, alt text, MCID and ParentTree bookkeeping), conformance profiles, XMP identification, output intents, embedded sRGB ICC; veraPDF in the nightly lane (as an external tool, never linked); release `0.2.0-alpha`.
 **Accepted when:** generated examples pass veraPDF for PDF/UA-1 and PDF/A-2b/2u/3b; a missing alt text or `Lang` fails `finish()` with a coded error; the Matterhorn checks that machines can test pass.
@@ -295,7 +295,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Integrate HarfRust shaping behind a `Shaper` trait; add per-run OpenType features ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Add ICU4X bidi and line breaking; greedy breaking inside a box ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Integrate `subsetter`; deterministic subset tags; `/W` and chunked ToUnicode ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
-- [x] Bundle standard 14 AFM metrics ([B4c](../todos/done/B4c-standard-14-and-simple-fonts.md)); reject them under PDF/A and PDF/UA profiles ([B8b](../todos/ongoing/B8b-conformance-profiles-and-verapdf.md))
+- [x] Bundle standard 14 AFM metrics ([B4c](../todos/done/B4c-standard-14-and-simple-fonts.md)); reject them under PDF/A and PDF/UA profiles ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md))
 - [x] Emit missing-glyph diagnostics with codes ([B4a](../todos/done/B4a-font-loading-and-subsetting.md): `missing-glyph`)
 - [x] Shaping goldens for five scripts ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK; [B4d](../todos/done/B4d-tounicode-per-text-cids.md): one CID per glyph and text and pdftotext facts; Arabic, Devanagari (pypdf) and the mixed line now exact, the remaining lines listed as extractor bugs with upstream links)
@@ -332,11 +332,11 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
 - [x] Add structure-tree building: `tag()`, artifacts, alt text, MCIDs, ParentTree, RoleMap ([B8a](../todos/done/B8a-structure-tree.md))
-- [ ] Add profiles `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` with build-time errors
-- [ ] Write XMP identification schemas and output intents with an embedded sRGB profile
-- [ ] Add veraPDF (Docker, nightly) over all generated examples; fail on any violation
-- [ ] Add PDF/UA and PDF/A examples and docs pages
-- [ ] Tag `0.2.0-alpha` (local, unpublished)
+- [x] Add profiles `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` with build-time errors ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md); associated files for PDF/A-3b)
+- [x] Write XMP identification schemas and output intents with an embedded sRGB profile ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md): the 480-byte CC0 sRGB v4 profile)
+- [x] Add veraPDF (nightly) over all generated examples; fail on any violation ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md): the pinned Java CLI, not Docker; `cargo xtask verapdf`)
+- [x] Add PDF/UA and PDF/A examples and docs pages ([B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md))
+- [ ] Tag `0.2.0-alpha` (local, unpublished): the version is `0.2.0-alpha.0` since [B8b](../todos/done/B8b-conformance-profiles-and-verapdf.md); the owner tags `v0.2.0-alpha.0` after it merges
 
 ### B9. Text extraction
 

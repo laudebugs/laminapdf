@@ -22,9 +22,13 @@
 #                 metric; the pass rate per source goes to the bench-data history
 #                 (`render-diff/<source>`), and a drop of more than 2 points opens an issue,
 #                 never a failure (`cargo xtask render-diff`; todo X3b)
+#   verapdf       every generated example validated by veraPDF for the profiles its XMP claims
+#                 (PDF/UA-1, PDF/A-2b, 2u, 3b); any violation fails (`cargo xtask verapdf`;
+#                 ADR 0018 tier 10, todo B8b). veraPDF is the pinned Java CLI (doctor.rs), run
+#                 as an external process (ADR 0019), with Homebrew's openjdk@21 on the runner
 #
 # Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
-# runs them all with short budgets. veraPDF (B8b) adds its job here.
+# runs them all with short budgets.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Nightly
 
@@ -484,6 +488,31 @@ jobs:
           path: target/nightly/render-diff/
           if-no-files-found: ignore
 
+  # Writes nothing but its artefact, so it needs no record gate. The veraPDF install stays in
+  # the runner's tool cache ($RUNNER_TOOL_CACHE/lamina-verapdf) between nights.
+  verapdf:
+    name: veraPDF (PDF/UA-1, PDF/A-2b, 2u, 3b)
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-verapdf
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - run: cargo xtask verapdf
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verapdf
+          path: target/xtask/verapdf/
+          if-no-files-found: ignore
+
   # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
   forced-failure:
     name: Forced failure (on request)
@@ -502,7 +531,7 @@ jobs:
   # main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, forced-failure]
+    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result).
     if: >-
       ${{ always() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')

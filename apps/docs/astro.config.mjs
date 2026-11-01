@@ -63,7 +63,7 @@ export default defineConfig({
         starlightLinksValidator({
           errorOnLocalLinks: true,
           // Not pages: plugins/integrations.mjs `checkedLinks` checks these (and the code pages).
-          exclude: ["/examples/pdf/*"],
+          exclude: ["/examples/pdf/*", "/reference/codes/*/"],
         }),
         ...(TYPEDOC ? [typeDoc] : []),
       ],
