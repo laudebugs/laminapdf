@@ -1,6 +1,6 @@
 # Ship one hardened core through five front ends
 
-lamina should build one handle-based Rust façade and keep it strict enough for UniFFI's rules from day one: `&self` methods only, `Send + Sync` handles, no generics, no borrowed returns, explicit cancellation. Thin edge crates then expose it as `@laminapdf/sdk` (wasm-bindgen + tsify), Swift and Kotlin SDKs (UniFFI), and a `lamina` CLI that doubles as an MCP server. The opening is real. In October 2026 no permissively licensed library covers parse, edit, incremental save, sign and render in one engine across web, Node, iOS and Android. pdf-lib has not shipped a release since November 2021. LibPDF is the strongest TypeScript successor, but it is beta and does not render. hayro is the best pure-Rust renderer, but it does not edit. The permissive CLIs stop at structure, because text extraction and rendering on the command line mean AGPL or GPL tools. What decides adoption in all three audiences is the contract, more than the feature list: one coordinate convention, one error shape with stable codes, versioned JSON schemas, deterministic output, and docs that ship with the package. Those choices serve a frontend engineer, a backend script and an LLM agent at the same time. The accepted decisions stand, but the evidence presses on three planned choices, which this report raises as open questions: the 350 KB gzip budget, the "UniFFI later" timing (ADR 0002) and the PDFium-default rendering plan (proposed ADR 0004). The last section turns all of this into proposed work items and ADRs.
+lamina should build one handle-based Rust façade and keep it strict enough for UniFFI's rules from day one: `&self` methods only, `Send + Sync` handles, no generics, no borrowed returns, explicit cancellation. Thin edge crates then expose it as `@laminapdf/sdk` (wasm-bindgen + tsify), Swift and Kotlin SDKs (UniFFI), and a `laminapdf` CLI that doubles as an MCP server. The opening is real. In October 2026 no permissively licensed library covers parse, edit, incremental save, sign and render in one engine across web, Node, iOS and Android. pdf-lib has not shipped a release since November 2021. LibPDF is the strongest TypeScript successor, but it is beta and does not render. hayro is the best pure-Rust renderer, but it does not edit. The permissive CLIs stop at structure, because text extraction and rendering on the command line mean AGPL or GPL tools. What decides adoption in all three audiences is the contract, more than the feature list: one coordinate convention, one error shape with stable codes, versioned JSON schemas, deterministic output, and docs that ship with the package. Those choices serve a frontend engineer, a backend script and an LLM agent at the same time. The accepted decisions stand, but the evidence presses on three planned choices, which this report raises as open questions: the 350 KB gzip budget, the "UniFFI later" timing (ADR 0002) and the PDFium-default rendering plan (proposed ADR 0004). The last section turns all of this into proposed work items and ADRs.
 
 Everything labelled **Recommendation** below is the author's proposal, not existing lamina code or an accepted decision. Claims marked **[unverified]** come from the researchers' prior knowledge and were not re-checked against a source in this round.
 
@@ -38,7 +38,7 @@ Each audience expects a one-liner for the common job: open a file leniently, fil
 
 ```rust
 // Rust (lamina façade)
-let doc = lamina::Document::open(bytes, OpenOptions::default())?;   // tolerant; warnings collected
+let doc = laminapdf::Document::open(bytes, OpenOptions::default())?;   // tolerant; warnings collected
 doc.form().fill(&[("name", "Jane".into()), ("agreed", true.into())])?;
 let out = doc.save(SaveOptions::auto())?;   // planner picks incremental when signatures exist
 for w in doc.warnings() { eprintln!("{} {}", w.code, w.message); }
@@ -70,7 +70,7 @@ The UniFFI version is a real trade-off. **UniFFI 0.32.2 (September 2026) adds ze
 **Recommendation: façade, wasm edge and UniFFI edge (Rust)**
 
 ```rust
-// crates/lamina (façade; no wasm-bindgen or uniffi dependency in the logic)
+// crates/laminapdf (façade; no wasm-bindgen or uniffi dependency in the logic)
 #[derive(Clone)] pub struct Document { inner: Arc<RwLock<Session>> }   // Send + Sync, cheap clone
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "tsify",  derive(serde::Serialize, tsify::Tsify), tsify(into_wasm_abi))]
@@ -86,16 +86,16 @@ pub enum LaminaError {                     // codes from fixtures/codes.json; st
 pub struct PageRef { doc: Document, index: u32 }   // owned handle, never Page<'doc>
 pub struct CancelToken(Arc<AtomicBool>);           // polled by long loops
 
-// crates/lamina-wasm (edge)
-#[wasm_bindgen(js_name = Document)] pub struct WasmDocument(lamina::Document);
+// crates/laminapdf-wasm (edge)
+#[wasm_bindgen(js_name = Document)] pub struct WasmDocument(laminapdf::Document);
 #[wasm_bindgen(js_class = Document)]
 impl WasmDocument {
     pub fn open(bytes: &[u8], opts: JsOpenOptions) -> Result<WasmDocument, JsError> { … }
-    #[wasm_bindgen(js_name = pageInfo)] pub fn page_info(&self, i: u32) -> Result<lamina::PageInfo, JsError> { … }
+    #[wasm_bindgen(js_name = pageInfo)] pub fn page_info(&self, i: u32) -> Result<laminapdf::PageInfo, JsError> { … }
 }
 
 // crates/lamina-ffi (edge)
-#[derive(uniffi::Object)] pub struct FfiDocument(lamina::Document);
+#[derive(uniffi::Object)] pub struct FfiDocument(laminapdf::Document);
 #[uniffi::export] impl FfiDocument {
     #[uniffi::constructor] pub fn open(bytes: Vec<u8>, opts: OpenOptions) -> Result<Arc<Self>, LaminaError> { … }
     pub fn page_info(&self, i: u32) -> Result<PageInfo, LaminaError> { … }
@@ -138,7 +138,7 @@ $ lamina render big.pdf --pages 1 --scale 2 --timeout 10s -o p1.png
 
 ### Rendering: hayro is the small-footprint candidate; PDFium wins on fidelity at about 2 MB
 
-**hayro 0.8.0 renders on the CPU through `vello_cpu`, emits SVG, and has its own JPX, JBIG2 and CCITT decoders.** It lacks knockout groups, CMYK blending and glyph caching ([GitHub](https://github.com/LaurenzV/hayro), [deps](https://crates.io/api/v1/crates/hayro/0.8.0/dependencies)). It has no published wasm build, so its size is unknown. Its parser, hayro-syntax, is separate from `lamina-cos`, so lamina would either parse twice or adapt at hayro-interpret's `Device` trait. PDFium through `pdfium-render 0.9.4` has the best fidelity. It costs about **2.15 MB gz** on the web, or a native library per platform, and brings C++ memory-safety exposure ([crates.io](https://crates.io/api/v1/crates/pdfium-render/0.9.4/dependencies), [embedpdf](https://registry.npmjs.org/@embedpdf/pdfium/-/pdfium-2.15.1.tgz)). lamina's plan (proposed ADR 0004) makes PDFium the default and hayro the CI oracle, and the C1a hayro-parity and C1b pdfium-wasm spikes will measure both. The research does not overturn that plan. It does add two inputs. On mobile, PDFium means shipping the C++ binary weight that pushes developers away from AndroidPdfViewer. And a hayro wasm build may be the only renderer small enough for an edge-runtime `@laminapdf/sdk/render`. ADR 0004 should therefore decide per surface rather than once for all.
+**hayro 0.8.0 renders on the CPU through `vello_cpu`, emits SVG, and has its own JPX, JBIG2 and CCITT decoders.** It lacks knockout groups, CMYK blending and glyph caching ([GitHub](https://github.com/LaurenzV/hayro), [deps](https://crates.io/api/v1/crates/hayro/0.8.0/dependencies)). It has no published wasm build, so its size is unknown. Its parser, hayro-syntax, is separate from `laminapdf-cos`, so lamina would either parse twice or adapt at hayro-interpret's `Device` trait. PDFium through `pdfium-render 0.9.4` has the best fidelity. It costs about **2.15 MB gz** on the web, or a native library per platform, and brings C++ memory-safety exposure ([crates.io](https://crates.io/api/v1/crates/pdfium-render/0.9.4/dependencies), [embedpdf](https://registry.npmjs.org/@embedpdf/pdfium/-/pdfium-2.15.1.tgz)). lamina's plan (proposed ADR 0004) makes PDFium the default and hayro the CI oracle, and the C1a hayro-parity and C1b pdfium-wasm spikes will measure both. The research does not overturn that plan. It does add two inputs. On mobile, PDFium means shipping the C++ binary weight that pushes developers away from AndroidPdfViewer. And a hayro wasm build may be the only renderer small enough for an edge-runtime `@laminapdf/sdk/render`. ADR 0004 should therefore decide per surface rather than once for all.
 
 ### Signing: prepare, hand off the digest, finish
 
@@ -432,7 +432,7 @@ Batch mode emits results in argument order even when they finish out of order. I
 **Recommendation: one command layer under clap and rmcp (Rust), consumed from TS**
 
 ```rust
-// crates/lamina-cli (layer = "app"); tokio/rmcp only behind the `mcp` feature
+// crates/laminapdf-cli (layer = "app"); tokio/rmcp only behind the `mcp` feature
 pub mod commands {
     #[derive(clap::Args, serde::Deserialize, schemars::JsonSchema)] pub struct InfoArgs { pub input: Input, #[arg(long)] pub fields: Vec<String> }
     #[derive(serde::Serialize, schemars::JsonSchema)] pub struct InfoReport { pub schema: &'static str, pub pages: u32, pub encrypted: bool, pub warnings: Vec<Warning> }
@@ -473,9 +473,9 @@ Each item names what it is, why it is needed, and which existing round or todo i
 | L6 | **Disposal and memory hardening**: `Symbol.dispose` on all handles, `DISPOSED` code, wasm max-memory link flag, `reset()`, abort-and-reinstantiate wrapper | Linear memory never shrinks; Safari `using` support unclear | B6b |
 | L7 | **Range `ByteSource` with `NeedData`** at the edges (HTTP range, JS callback, mmap) | Large and remote files without an async core | B2d |
 | L8 | **Two-phase signing API** (`prepare_signature` / `finish`, P1363-to-DER conversion) as the E10d `Signer` shape | WebCrypto, the Secure Enclave and HSMs are async or remote; the core stays sync | E10d, E10i |
-| L9 | **`lamina-extract` crate**: reading order (structure tree, then XY-Cut++), headings, lists, lattice tables, header/footer removal, de-hyphenation, visibility flags, Markdown/JSON/chunk serialisers, `lamina.extract/1` schema | Rules reach ~0.90 reading order at 15 ms/page; no permissive Rust equivalent; RAG and agent demand | B9b, B9c, B8a (struct tree reading) |
+| L9 | **`laminapdf-extract` crate**: reading order (structure tree, then XY-Cut++), headings, lists, lattice tables, header/footer removal, de-hyphenation, visibility flags, Markdown/JSON/chunk serialisers, `lamina.extract/1` schema | Rules reach ~0.90 reading order at 15 ms/page; no permissive Rust equivalent; RAG and agent demand | B9b, B9c, B8a (struct tree reading) |
 | L10 | **Model plug-in traits** (`LayoutModel`, `OcrEngine`) with an optional Heron ONNX edge crate | Borderless tables and scans need models; keep weights out of core | L9; E13d (local OCR) |
-| L11 | **`lamina-cli`** (layer `app`): command layer, clap front end, qpdf ranges plus pdftk handles, exit codes 0–5, `--json`/NDJSON, `--jobs`, `schema`, `explain`, completions, man pages | First permissive CLI covering structure, text and render | B5c, B9c; grows with B3, C2b, E10d |
+| L11 | **`laminapdf-cli`** (layer `app`): command layer, clap front end, qpdf ranges plus pdftk handles, exit codes 0–5, `--json`/NDJSON, `--jobs`, `schema`, `explain`, completions, man pages | First permissive CLI covering structure, text and render | B5c, B9c; grows with B3, C2b, E10d |
 | L12 | **`lamina mcp`** behind a feature: rmcp stdio adapter over L11 commands, `--root`, `--read-only`, honest annotations, deterministic tool order | Agents in MCP loops; same schemas as the CLI | L11 |
 | L13 | **CLI distribution**: cargo-dist releases, Homebrew, npm meta package with per-platform `optionalDependencies` | `npx` and `brew` reach for backend and agent users | L11; P1 (publishing) |
 | L14 | **Agent docs**: `llms.txt` plus `.md` twins, docs shipped inside the npm package and the crate, AGENTS.md snippet in examples, machine-readable renames changelog | New APIs are low-frequency for every model | B7a, B7b |
@@ -486,7 +486,7 @@ Each item names what it is, why it is needed, and which existing round or todo i
 
 ### Proposed ADRs
 
-Numbers 0020–0023 are already reserved in todos (signatures, JavaScript policy, content editing, `lamina-content`). The UI/UX plan, merged after this research, took 0024 (app shell UX) and 0025 (mobile shell), so this report's ADRs are numbered 0026–0031.
+Numbers 0020–0023 are already reserved in todos (signatures, JavaScript policy, content editing, `laminapdf-content`). The UI/UX plan, merged after this research, took 0024 (app shell UX) and 0025 (mobile shell), so this report's ADRs are numbered 0026–0031.
 
 | ADR | Decision to record | Relationship to accepted ADRs |
 |---|---|---|

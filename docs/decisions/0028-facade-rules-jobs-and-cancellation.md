@@ -5,7 +5,7 @@
 
 ## Context
 
-[ADR 0002 §3](0002-binding-strategy.md) requires a handle-based façade in the `lamina` crate, designed once and wrapped by `lamina-wasm` (wasm-bindgen + tsify), Tauri commands and, later, `lamina-ffi` (UniFFI). It names the principles (owned types, opaque handles, bytes in and out, no lifetimes or generics) but not the rules. B5c will write the façade, so the rules have to exist first. Fixing them after `@laminapdf/sdk` ships would break its API ([report: design the façade to the stricter binding now](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)).
+[ADR 0002 §3](0002-binding-strategy.md) requires a handle-based façade in the `laminapdf` crate, designed once and wrapped by `laminapdf-wasm` (wasm-bindgen + tsify), Tauri commands and, later, `lamina-ffi` (UniFFI). It names the principles (owned types, opaque handles, bytes in and out, no lifetimes or generics) but not the rules. B5c will write the façade, so the rules have to exist first. Fixing them after `@laminapdf/sdk` ships would break its API ([report: design the façade to the stricter binding now](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)).
 
 Constraints from the binding tools:
 
@@ -16,26 +16,26 @@ Constraints from the binding tools:
 Constraints from lamina:
 
 - [ADR 0005 §7](0005-document-model.md#7-threads): `Document` is `Send` but `!Sync` (`Arc` objects, `RefCell` caches), with no `Mutex` or atomics-based caches in the core.
-- The [portability rules](../guidelines/code-organization.md#2-boundaries-and-dependency-direction): core crates (the `lamina` façade included) use no threads and no clocks (`Instant`, `SystemTime`). `cargo xtask portability` enforces this (`FORBIDDEN_IDENTS` in `tools/xtask/src/workspace.rs`). On `wasm32-unknown-unknown`, std's `Instant::now()` panics in any case, because the target has no clock.
-- `lamina_model::Page<'d>` and `Pages<'d>` borrow the document ([ADR 0005 §4](0005-document-model.md#4-typed-views-lamina-model)). `Document::open` is generic over `ByteSource`.
+- The [portability rules](../guidelines/code-organization.md#2-boundaries-and-dependency-direction): core crates (the `laminapdf` façade included) use no threads and no clocks (`Instant`, `SystemTime`). `cargo xtask portability` enforces this (`FORBIDDEN_IDENTS` in `tools/xtask/src/workspace.rs`). On `wasm32-unknown-unknown`, std's `Instant::now()` panics in any case, because the target has no clock.
+- `laminapdf_model::Page<'d>` and `Pages<'d>` borrow the document ([ADR 0005 §4](0005-document-model.md#4-typed-views-laminapdf-model)). `Document::open` is generic over `ByteSource`.
 
 ## Decision
 
 ### 1. Façade rules
 
-The `lamina` façade is a core crate whose public API each binding wraps one-to-one. B5c's acceptance criteria refer to these rules by number.
+The `laminapdf` façade is a core crate whose public API each binding wraps one-to-one. B5c's acceptance criteria refer to these rules by number.
 
 | # | Rule | Why (constraint) |
 | --- | --- | --- |
 | F1 | **No lifetimes in façade signatures.** No `Page<'d>`, no borrowed returns. Sub-objects are addressed by value: `doc.page_info(index)`, `doc.page_by_id(&PageId)`. Methods return owned data | Neither binding can return a borrow. UniFFI objects are `Arc`s, and wasm-bindgen classes own their Rust value |
-| F2 | **Handles with a back-pointer live in the edge crates.** `PageRef { doc, page: PageId }` is built in `lamina-wasm`/`lamina-ffi` from the edge's shared document pointer (§2) and resolves its index lazily. It holds the `PageId`, not the index, so moving pages doesn't retarget it ([ADR 0005 §5](0005-document-model.md#5-laminaids)) | The core can't share ownership of a `!Sync` document across threads without a lock (§2). An edge handle can |
+| F2 | **Handles with a back-pointer live in the edge crates.** `PageRef { doc, page: PageId }` is built in `laminapdf-wasm`/`lamina-ffi` from the edge's shared document pointer (§2) and resolves its index lazily. It holds the `PageId`, not the index, so moving pages doesn't retarget it ([ADR 0005 §5](0005-document-model.md#5-laminaids)) | The core can't share ownership of a `!Sync` document across threads without a lock (§2). An edge handle can |
 | F3 | **No generics, `impl Trait` or closures in bound signatures.** Constructors are monomorphised: `open_bytes(Vec<u8>, OpenOptions)`; `open_source(Arc<dyn ByteSource>, OpenOptions)` is for edge crates, which wrap a host-specific source (L2c's `SparseSource`) behind a concrete constructor. Rust-only conveniences (`Job` helpers, generic `Step<T>`) are allowed if every bound type has a concrete form | wasm-bindgen exports can't be generic; UniFFI has no generics (Bitwarden had to add non-generic wrappers, [PR #488](https://github.com/bitwarden/sdk-internal/pull/488)) |
 | F4 | **Reads take `&self`; changes take `&mut self` on the façade.** The edge decides how `&mut` is reached (§2). The façade never uses interior mutability to fake `&self` | UniFFI forbids `&mut self` on *objects*. The edge object takes `&self` and locks. The core keeps Rust's borrow rules instead of a hidden lock |
 | F5 | **Plain owned data across the boundary**: records of `String`, `bool`, integers, `f64`, `Vec`, `Option` and other records. Counts and indices are `u32`. A `u64` is used only where the range is needed (byte offsets) and is a number in serde/tsify records | Maps to tsify records and `uniffi::Record`. A `u64` in a wasm-bindgen signature becomes `BigInt` |
 | F6 | **Options are records with defaults.** Rust keeps private fields and `with_*` builders (as `OpenOptions`, `Limits` do, ADR 0003 §3); edges define their own DTOs (all fields optional) and convert. Unknown keys fail as `unknown-option` with `didYouMean` ([ADR 0026](0026-error-and-diagnostic-contract.md) §1) | Builders don't bind; plain records do. LLM-written JS bypasses types |
 | F7 | **Bytes in as `Vec<u8>`** (or `&[u8]` in edges where the tool lends it), **out as `Vec<u8>`**, never as serde arrays (ADR 0002 §1). Incremental saves can return only the appended bytes | `Uint8Array` / `Data` / `ByteArray`; avoids copying a large original back |
 | F8 | **Cursors, not iterators.** Sequences that can be long (warnings, search hits, extraction blocks) are `next_batch(&mut self, max: u32) -> Vec<T>` on a cursor value. TS wraps a cursor in an (async) iterator | Neither binding has an iterator or stream type |
-| F9 | **One error type**, `lamina::Error`, serialising to ADR 0026 §1. Edges map it to the UniFFI `LaminaError` enum (one variant per kind, each with a `Diagnostic` record of strings and integers) and to the TS `LaminaError` | A string-payload error enum is the only error shape both bindings express |
+| F9 | **One error type**, `laminapdf::Error`, serialising to ADR 0026 §1. Edges map it to the UniFFI `LaminaError` enum (one variant per kind, each with a `Diagnostic` record of strings and integers) and to the TS `LaminaError` | A string-payload error enum is the only error shape both bindings express |
 | F10 | **Long work is a `Job`** (§3), and every long operation also has a run-to-completion form that takes a `CancelToken`. No progress callbacks cross the boundary | Neither binding can cancel or interrupt a sync call; callbacks cost an FFI crossing each (§6) |
 | F11 | **No panics across the boundary.** The core doesn't panic (lints, fuzzing, `Limits`). Native edges build with `panic = "unwind"` so UniFFI's scaffolding can catch a bug, and the web treats a trapped instance as disposable (L2b) | Scaffolding can only catch a panic that unwinds; under wasm `panic=abort` a panic kills the instance ([report: panic safety](../research/libraries/shareable-libraries.md#panic-safety-no-panics-in-core-a-disposable-instance-on-the-web-unwinding-at-native-edges)) |
 | F12 | **Same names on every surface**, modulo case (`page_info` → `pageInfo`). One façade method maps to one binding method | Guessable APIs across languages and for models (report) |
@@ -48,12 +48,12 @@ The edge wrappers are mechanical. B5c or L6a may generate them with a `macro_rul
 
 | Edge | Wrapper | Why |
 | --- | --- | --- |
-| `lamina-ffi` (UniFFI) | `struct FfiDocument(Mutex<lamina::Document>)`, `Arc`'d by UniFFI; `&self` methods lock | `Mutex<T>` is `Send + Sync` when `T: Send`, which is exactly what ADR 0005 §7 provides |
-| `lamina-wasm` | `Rc<RefCell<lamina::Document>>` | wasm32 without threads; wasm-bindgen classes need no `Send`. `RefCell` double borrows can't happen with no re-entrancy |
-| Desktop (Tauri, app code) | `Mutex<lamina::Document>` in managed state, work in `spawn_blocking` | Tauri state must be `Send + Sync` |
+| `lamina-ffi` (UniFFI) | `struct FfiDocument(Mutex<laminapdf::Document>)`, `Arc`'d by UniFFI; `&self` methods lock | `Mutex<T>` is `Send + Sync` when `T: Send`, which is exactly what ADR 0005 §7 provides |
+| `laminapdf-wasm` | `Rc<RefCell<laminapdf::Document>>` | wasm32 without threads; wasm-bindgen classes need no `Send`. `RefCell` double borrows can't happen with no re-entrancy |
+| Desktop (Tauri, app code) | `Mutex<laminapdf::Document>` in managed state, work in `spawn_blocking` | Tauri state must be `Send + Sync` |
 | CLI | The document by value | One thread per document (`--jobs` opens one document per worker) |
 
-Compile-time tests (B5c, L6a) assert `lamina::Document: Send`, `lamina::Document: !Sync` and `FfiDocument: Send + Sync`.
+Compile-time tests (B5c, L6a) assert `laminapdf::Document: Send`, `laminapdf::Document: !Sync` and `FfiDocument: Send + Sync`.
 
 A poisoned `Mutex` (a panic while locked, caught under unwind) means the document is in an unknown state. `lamina-ffi` reports it as an `internal` error (code added by L6a in `codes.json`), and the caller reopens. An edge lock serialises all calls on one document. That is UniFFI's model anyway, and parallelism comes from one document per thread over a shared `Arc<dyn ByteSource>` (ADR 0005 §7). B5c and L6a measure it once real workloads exist. If a measured case needs concurrent reads of one document, the remedy is an amendment of ADR 0005 §7 to a `Sync` core, not a lock added quietly.
 
@@ -62,7 +62,7 @@ A poisoned `Mutex` (a panic while locked, caught under unwind) means the documen
 Long operations (save, render, extract, search, signing, validation) are resumable state machines the caller steps. Jobs don't borrow the document: it is passed to each step, so the edge can lock it per step and other calls (rendering a tile while an extraction runs) can interleave.
 
 ```rust
-// Illustrative; B5c defines the façade forms, core crates (lamina-extract, L3a) the same shape.
+// Illustrative; B5c defines the façade forms, core crates (laminapdf-extract, L3a) the same shape.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Budget { units: u32 }
 impl Budget {
@@ -149,7 +149,7 @@ UniFFI async exports are not used. lamina's work is CPU-bound, so there is nothi
 ## Consequences
 
 - One job model serves every surface. Cancel and progress work in single-threaded wasm without SharedArrayBuffer, and identically on native.
-- The façade is a little less ergonomic for Rust callers: jobs take the document per step, and sub-objects are addressed by ID. Rust callers who want borrowed views can still use `lamina-model` directly.
+- The façade is a little less ergonomic for Rust callers: jobs take the document per step, and sub-objects are addressed by ID. Rust callers who want borrowed views can still use `laminapdf-model` directly.
 - Each long operation costs a state machine instead of a straight loop. That is the main cost of this ADR, and B5c, L3a and C-round renderers pay it.
 - ADR 0005 §7 holds unchanged. The lock's cost is visible and measurable at one place per edge, and a `Sync` core stays an explicit, later choice.
 - B5c adds the document revision counter and its check in every job, the compile-time auto-trait tests, and the codes `cancelled`, `job-finished` and `document-changed`, with their kinds and `explain` pages. The edge crates add F2's `PageRef`. This ADR informs proposed ADR 0009 (worker RPC, C2a): the RPC carries job steps, cancel and progress messages, not proxies.

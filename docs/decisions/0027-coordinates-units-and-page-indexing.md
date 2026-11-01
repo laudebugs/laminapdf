@@ -13,7 +13,7 @@ PDF positions content in **user space**. Its origin is wherever the page's boxes
 
 pdf-lib exposes raw user space, so its users write `y: height - 150` to place text near the top. It is the library's best-known footgun. Extraction vendors disagree with each other: Textract uses ratios from the top-left, Azure uses inches, Docling top-left points, OpenDataLoader bottom-left points ([report: coordinates must be an explicit, typed field](../research/libraries/shareable-libraries.md#coordinates-must-be-an-explicit-typed-field)). An LLM handed a bbox without its frame guesses.
 
-What exists today: `lamina_model::Page` reads `media_box()`, `crop_box()` (intersected with the MediaBox, defaulting to it), the other boxes, `rotate() -> Rotation` (0/90/180/270; invalid values read as 0 with `invalid-rotate`) and `user_unit() -> f64` (1 when absent or invalid, with `invalid-entry`). Boxes come back as `lamina_model::Rect { x0, y0, x1, y1 }` in user space with normalised corners (§7.9.5 *Rectangles*). Pages are addressed by a 0-based `index` and a stable `PageId`. No public API takes or returns positions yet: B5a's builder and L3a's extraction will be the first.
+What exists today: `laminapdf_model::Page` reads `media_box()`, `crop_box()` (intersected with the MediaBox, defaulting to it), the other boxes, `rotate() -> Rotation` (0/90/180/270; invalid values read as 0 with `invalid-rotate`) and `user_unit() -> f64` (1 when absent or invalid, with `invalid-entry`). Boxes come back as `laminapdf_model::Rect { x0, y0, x1, y1 }` in user space with normalised corners (§7.9.5 *Rectangles*). Pages are addressed by a 0-based `index` and a stable `PageId`. No public API takes or returns positions yet: B5a's builder and L3a's extraction will be the first.
 
 ## Decision
 
@@ -22,7 +22,7 @@ What exists today: `lamina_model::Page` reads `media_box()`, `crop_box()` (inter
 | Space | Origin and axes | Unit | Used by |
 | --- | --- | --- | --- |
 | **Page space** (the default) | Top-left corner of the page's **effective CropBox as displayed** (after `/Rotate`); x right, **y down** | **Points**: 1 pt = 1/72 inch, physical (`/UserUnit` applied) | High-level drawing (B5a builder, B5c façade), annotations and forms at the façade, all extraction and render output (L3, C), CLI `--json`, MCP |
-| **User space** (raw) | As the content stream sees it: §8.3.2.3, y up, the CTM at page level | User-space units (not scaled by `/UserUnit`) | Low-level APIs only: `lamina-content` (ADR 0023), COS/model views (`/MediaBox`, annotation `/Rect` as stored), content-stream editing |
+| **User space** (raw) | As the content stream sees it: §8.3.2.3, y up, the CTM at page level | User-space units (not scaled by `/UserUnit`) | Low-level APIs only: `laminapdf-content` (ADR 0023), COS/model views (`/MediaBox`, annotation `/Rect` as stored), content-stream editing |
 
 Every type and function in user space says so in its name (`UserSpaceRect`, `UserSpacePoint`, `…_user_space`). Unprefixed geometry is page space. A conversion between the two is always explicit, through the page's frame (§3).
 
@@ -43,10 +43,10 @@ pub struct PointPt { pub x: Pt, pub y: Pt }                        // page space
 pub struct RectPt  { pub x0: Pt, pub y0: Pt, pub x1: Pt, pub y1: Pt } // page space: x0 ≤ x1, y0 ≤ y1, (x0, y0) is top-left
 impl RectPt { pub fn from_xywh(x: Pt, y: Pt, width: Pt, height: Pt) -> Self; pub fn width(&self) -> Pt; pub fn height(&self) -> Pt; }
 pub struct UserSpacePoint { pub x: f64, pub y: f64 }
-pub struct UserSpaceRect  { pub x0: f64, pub y0: f64, pub x1: f64, pub y1: f64 } // today's lamina_model::Rect
+pub struct UserSpaceRect  { pub x0: f64, pub y0: f64, pub x1: f64, pub y1: f64 } // today's laminapdf_model::Rect
 ```
 
-- **Concrete types, not `Rect<Space>`.** A space parameter would be a generic at the binding boundary, which [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §1 rules out. Two concrete types are as safe and bind directly. `lamina_model::Rect` becomes `UserSpaceRect` (B5a renames it; the name `Rect` alone is not kept).
+- **Concrete types, not `Rect<Space>`.** A space parameter would be a generic at the binding boundary, which [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §1 rules out. Two concrete types are as safe and bind directly. `laminapdf_model::Rect` becomes `UserSpaceRect` (B5a renames it; the name `Rect` alone is not kept).
 - **f64** throughout, like the model. Bindings receive plain numbers.
 - **TypeScript:** `type Pt = number & { readonly [ptBrand]: "pt" }`, with constructors `pt(n)`, `mm(n)` and `inch(n)` (`in` is a reserved word). Inputs take `Pt`. Outputs are typed `Pt`, so passing millimetres by mistake is a type error, and `mm(210)` is the documented way to write A4.
 - **JSON:** numbers in points. A rect is the array `[x0, y0, x1, y1]`, i.e. `[left, top, right, bottom]` in page space. Drawing inputs in TS also accept `{ x, y, width, height }`, which the binding converts.
@@ -76,7 +76,7 @@ Worked example: a US Letter page, CropBox = MediaBox = `[0 0 612 792]`, `u` = 1,
 | Page space, `/Rotate 0` | `RectPt [72 72 272 100]` | 612 × 792 |
 | Page space, `/Rotate 90` | `RectPt [692 72 720 272]` | 792 × 612 |
 
-The frame is a value: `PageFrame { crop_box: UserSpaceRect, rotate: Rotation, user_unit: f64 }`, with `to_page(UserSpacePoint) -> PointPt` and `to_user_space(PointPt) -> UserSpacePoint`. Every API that converts names the frame it used. **Which API sees which frame:** high-level reads and writes use page space in the displayed frame, including drawing onto an existing rotated page (the builder maps through the frame, so "top-left" means what the user sees). Content-stream reading and editing (`lamina-content`, E-round content editing) use user space, unrotated and unscaled, because operators and the CTM live there. Both are always available, so the two needs don't conflict.
+The frame is a value: `PageFrame { crop_box: UserSpaceRect, rotate: Rotation, user_unit: f64 }`, with `to_page(UserSpacePoint) -> PointPt` and `to_user_space(PointPt) -> UserSpacePoint`. Every API that converts names the frame it used. **Which API sees which frame:** high-level reads and writes use page space in the displayed frame, including drawing onto an existing rotated page (the builder maps through the frame, so "top-left" means what the user sees). Content-stream reading and editing (`laminapdf-content`, E-round content editing) use user space, unrotated and unscaled, because operators and the CTM live there. Both are always available, so the two needs don't conflict.
 
 New pages made by the builder default to `/Rotate 0`, `/UserUnit` absent and a MediaBox at the origin, so page space is a y-flip of user space and nothing else.
 
@@ -110,7 +110,7 @@ Every JSON output that carries positions (extraction, `lamina info --json`, rend
 - Every position API does one frame transform per page. Today `Pages` caches only the media and crop boxes. `Page::rotate()` and `Page::user_unit()` re-read the dictionary on every call, and every invalid value goes through the warning log again (deduplicated there by code and object, but read, checked and, in strict mode, failed again each time). So the `PageFrame` (box, rotation, unit, fallback) is computed **once per page and cached next to the boxes**, and its warnings are raised once. [B5a](../todos/done/B5a-lamina-build-core.md) owns this.
 - Code working on content streams must convert explicitly. That is the point, but content-editing ops (E-rounds) will carry user-space geometry and need `PageFrame` to show it in the UI.
 - A malformed or missing box, `/Rotate` or `/UserUnit` falls back to a default with a warning (`invalid-box`, `invalid-rotate`, `invalid-entry`; §3 for the boxes), so the frame is always defined.
-- B5a renames `lamina_model::Rect` to `UserSpaceRect`. Nothing is published, so nothing breaks for users.
+- B5a renames `laminapdf_model::Rect` to `UserSpaceRect`. Nothing is published, so nothing breaks for users.
 
 ## Alternatives considered
 

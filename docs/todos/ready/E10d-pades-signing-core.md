@@ -16,7 +16,7 @@
 
 ## Goal
 
-Create `lamina-sign`: signature dictionary with `/ByteRange` and fixed-size `/Contents` placeholder (size estimation + retry), CMS SignedData detached (`ETSI.CAdES.detached`, SHA-256, `signing-certificate-v2`), visible or invisible widget, executed by the save planner as its last step; public two-phase API `prepare() → digest`, external sign, `inject(cms)`.
+Create `laminapdf-sign`: signature dictionary with `/ByteRange` and fixed-size `/Contents` placeholder (size estimation + retry), CMS SignedData detached (`ETSI.CAdES.detached`, SHA-256, `signing-certificate-v2`), visible or invisible widget, executed by the save planner as its last step; public two-phase API `prepare() → digest`, external sign, `inject(cms)`.
 
 ## Context
 
@@ -42,7 +42,7 @@ Create `lamina-sign`: signature dictionary with `/ByteRange` and fixed-size `/Co
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.03` certificate-based digital signatures; `F.11` signing workflows via external services
-- **Crates and packages:** new `lamina-sign` (core), `lamina-save`
+- **Crates and packages:** new `laminapdf-sign` (core), `laminapdf-save`
 - **`Op` variants:** `Sign` (class `Signature`, barrier)
 - **`SaveConstraint`:** signing makes the document `AppendOnly`; adding a signature is allowed without certification and under DocMDP P2/P3, and is a violation under P1 (ADR 0007 §2); signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
 - **Web vs desktop:** identical in core; key sources in E10i
@@ -60,7 +60,7 @@ Create `lamina-sign`: signature dictionary with `/ByteRange` and fixed-size `/Co
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug. Expected for `Sign`: allowed with no certification, on P2 and P3 and on the FieldMDP-lock fixture; violation on P1
 - [ ] Signed output validates in pyHanko, `pdfsig` (external), Adobe Reader (manual, recorded) and EU DSS validation (B-B)
 - [ ] Signing on a base with a pending rewrite reason that exists already (a repaired base, ADR 0007 §2) produces the full rewrite then the signature as an incremental revision in one save (ADR 0007 §4); the same ordering with a pending redaction is tested in [E12d](E12d-scrub-and-rewrite.md), once `ApplyRedactions` exists

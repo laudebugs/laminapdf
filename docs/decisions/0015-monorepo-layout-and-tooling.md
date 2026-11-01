@@ -28,7 +28,7 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
 
    | Folder | Holds | Workspace |
    | --- | --- | --- |
-   | `crates/` | Rust crates, flat, directory name = crate name (`lamina-*`) | Cargo |
+   | `crates/` | Rust crates, flat, directory name = crate name (`laminapdf-*`) | Cargo |
    | `packages/` | TypeScript packages, `@laminapdf/<dir>` | pnpm |
    | `apps/` | Deployables (`web`, `desktop` with `src-tauri/`, `updates`); never depended on | pnpm (+ Cargo for `src-tauri`) |
    | `fixtures/` | Shared test inputs and goldens, with provenance and licence per file | neither |
@@ -44,6 +44,8 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
 6. **Pinned toolchains.** `rust-toolchain.toml` pins the Rust toolchain, components and targets (`wasm32-unknown-unknown`, `aarch64-apple-ios`, `aarch64-linux-android`); the root `package.json` pins pnpm via `packageManager`; Node is pinned in `.nvmrc` and declared in `engines`, with `engine-strict=true` in `.npmrc` (details in [ADR 0019](0019-supply-chain-and-licence-hygiene.md)).
 
 **Amendment (owner, 2026-10-31):** the npm scope is **`@laminapdf`**, not `@lamina` as first written: `packages/<dir>` is `@laminapdf/<dir>` (`@laminapdf/sdk`, `@laminapdf/wasm`) and apps use it too (`@laminapdf/docs`), matching the `laminapdf.com` domain. Crate names (`lamina-*`) and the product name are unchanged ([P0](../todos/done/P0-npm-scope-laminapdf.md), [architecture §8 Q3](../plans/architecture.md#8-open-questions-for-the-team)).
+
+**Amendment (owner, 2026-11-01):** the crates are named **`laminapdf-*`** and the façade **`laminapdf`**, not `lamina-*` and `lamina`, because `lamina` on crates.io belongs to an unrelated project. The names now match the npm scope and the domain. The crate directories follow (`crates/laminapdf-<name>`), and so do the Rust paths (`laminapdf_cos::…`). The product is still called lamina, and the `@laminapdf/wasm` module files (`lamina_base`, `lamina_text`, `lamina_extract`, `lamina_render_hayro`) keep their names ([P0b](../todos/done/P0b-crate-names-laminapdf.md)).
 
 The detailed rules (naming, dependency direction, public API, tests, configuration inheritance, generated code, when to split a crate) are in [`docs/guidelines/code-organization.md`](../guidelines/code-organization.md). Where this ADR and the guide disagree, update one of them in the same PR so they agree again.
 

@@ -60,7 +60,7 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-/// The shared `page.text()` snapshot (todo B9c): `crates/lamina/tests/page_text_snapshot.rs`
+/// The shared `page.text()` snapshot (todo B9c): `crates/laminapdf/tests/page_text_snapshot.rs`
 /// writes it (its ignored `write_snapshot` test, to a scratch file); with `update`, into
 /// `fixtures/text/page-text.json`, else compared. `@laminapdf/sdk`'s text test reads the same file.
 fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
@@ -74,7 +74,7 @@ fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
             "--locked",
             "-q",
             "-p",
-            "lamina",
+            "laminapdf",
             "--test",
             "page_text_snapshot",
             "--",
@@ -96,7 +96,7 @@ fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
     Ok(vec!["text/page-text.json".to_owned()])
 }
 
-/// The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example writes it.
+/// The reading-order corpus (todo U2b): `laminapdf-build`'s `reading_order` example writes it.
 /// With `update`, into `fixtures/reading-order/`, removing the files no layout writes any
 /// more (they would still be scored); without, it compares and returns the files that
 /// differ or have no generator. `threshold.json` is hand-kept.
@@ -108,7 +108,7 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
         "--locked",
         "-q",
         "-p",
-        "lamina-build",
+        "laminapdf-build",
         "--example",
         "reading_order",
         "--",
@@ -144,7 +144,7 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
 }
 
 /// The crates whose `golden` example writes goldens into `fixtures/golden/`.
-const GOLDEN_CRATES: [&str; 3] = ["lamina-build", "lamina-save", "lamina-text"];
+const GOLDEN_CRATES: [&str; 3] = ["laminapdf-build", "laminapdf-save", "laminapdf-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list), the `lamina` examples' into
@@ -177,7 +177,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     let mut reading_stale = reading_order(ws, update)?;
     reading_stale.extend(page_text_snapshot(ws, update)?);
     if update {
-        // A golden whose example is gone would fail `crates/lamina/tests/examples.rs`.
+        // A golden whose example is gone would fail `crates/laminapdf/tests/examples.rs`.
         for path in files_in(&out.join("examples"))? {
             if !examples.contains(&path) {
                 fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
@@ -229,7 +229,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
 /// Rewrites the shaping goldens `fixtures/shaping/<script>.json` with HarfBuzz's `hb-shape`
 /// (`tools/shaping-goldens/goldens.py`, todo B4b) when `hb-shape` is installed at the pinned
 /// version; otherwise says so and leaves them (they are HarfBuzz's output, not lamina's, so
-/// `golden` without `--update` never needs them: `crates/lamina-text/tests/shaping_goldens.rs`
+/// `golden` without `--update` never needs them: `crates/laminapdf-text/tests/shaping_goldens.rs`
 /// compares).
 fn shaping_goldens(ws: &Workspace) -> Result<()> {
     match crate::doctor::hb_shape().probe(ws) {
@@ -301,7 +301,7 @@ fn full_set_test_args() -> Vec<String> {
         "--profile",
         "ci",
         "-p",
-        "lamina-model",
+        "laminapdf-model",
         "--test",
         "differential",
         "--run-ignored",
@@ -332,7 +332,7 @@ pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
             "--locked",
             "-q",
             "-p",
-            "lamina-model",
+            "laminapdf-model",
             "--example",
             "differential-inputs",
             "--",
@@ -364,7 +364,7 @@ pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
         let args: Vec<&str> = args.iter().map(String::as_str).collect();
         ws.cargo(&args)
     } else {
-        ws.cargo(&["test", "--locked", "-q", "-p", "lamina-model", "--test", "differential"])
+        cargo_test(ws, "laminapdf-model", "differential")
     }
 }
 
@@ -399,7 +399,7 @@ fn text_differential(ws: &Workspace, update: bool) -> Result<()> {
         args.extend(text_inputs(ws)?);
         run(&ws.root, "node", &args)?;
     }
-    ws.cargo(&["test", "--locked", "-q", "-p", "lamina", "--test", "text_differential"])
+    cargo_test(ws, "laminapdf", "text_differential")
 }
 
 /// The quad fixtures: the text goldens and the examples with text.
@@ -433,7 +433,12 @@ pub(crate) fn quads(ws: &Workspace, args: &[String]) -> Result<()> {
         script.extend(QUAD_FILES.iter().map(|f| (*f).to_owned()));
         run(&ws.root, &python(), &script)?;
     }
-    ws.cargo(&["test", "--locked", "-q", "-p", "lamina", "--test", "quads"])
+    cargo_test(ws, "laminapdf", "quads")
+}
+
+/// `cargo test --locked -q -p <package> --test <test>`.
+fn cargo_test(ws: &Workspace, package: &str, test: &str) -> Result<()> {
+    ws.cargo(&["test", "--locked", "-q", "-p", package, "--test", test])
 }
 
 /// What `cargo xtask fuzz` was asked to do.
@@ -822,11 +827,11 @@ fn host_triple(version: &str) -> Option<String> {
 
 /// The parameter bytes appended to every Flate stream seed: the `flate_decode` target reads
 /// its predictor parameters from the input's last four bytes (predictor 1: none).
-/// Must match `FLATE_SEED_PARAMS` in `crates/lamina-model/tests/common/fuzz_entry.rs`.
+/// Must match `FLATE_SEED_PARAMS` in `crates/laminapdf-model/tests/common/fuzz_entry.rs`.
 const FLATE_SEED_PARAMS: [u8; 4] = [1, 1, 8, 1];
 
 /// The control bytes every `save_roundtrip` seed starts with, before a fixture PDF.
-/// Must match `SAVE_SEED_CONTROL` in `crates/lamina-save/tests/common/fuzz_entry.rs`.
+/// Must match `SAVE_SEED_CONTROL` in `crates/laminapdf-save/tests/common/fuzz_entry.rs`.
 const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04];
 
 /// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs (`corpus/`,
@@ -989,7 +994,7 @@ mod tests {
     #[test]
     fn the_save_seed_control_bytes_match_the_fuzz_entry() {
         let entry = fs::read_to_string(
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lamina-save/tests/common/fuzz_entry.rs"),
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/laminapdf-save/tests/common/fuzz_entry.rs"),
         )
         .unwrap();
         assert_eq!(const_bytes(&entry, "SAVE_SEED_CONTROL"), SAVE_SEED_CONTROL);

@@ -16,18 +16,18 @@
 
 ## Goal
 
-Readers of the docs meet `lamina::TextRun` (drawn text) next to `lamina::extract::TextRun` (extracted text), `Font` next to `FontHandle`, and `Tag` meaning both an OpenType tag and a structure element in the crates below; `ops()` hands out a second `Document` type; and lamina-text exposes `extract` both as a module and at its root. This todo renames, hides and leaves one public path per item.
+Readers of the docs meet `laminapdf::TextRun` (drawn text) next to `laminapdf::extract::TextRun` (extracted text), `Font` next to `FontHandle`, and `Tag` meaning both an OpenType tag and a structure element in the crates below; `ops()` hands out a second `Document` type; and laminapdf-text exposes `extract` both as a module and at its root. This todo renames, hides and leaves one public path per item.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina/src/{lib.rs:125-163, extract.rs:17, document.rs:390-398}`, `lamina-text/src/lib.rs:93,98`, lamina-build's `TextRun`, `Font` and `Tag`; the façade collision check from [Q2a](../done/Q2a-maintainability-checks-rust.md).
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina/src/{lib.rs:125-163, extract.rs:17, document.rs:390-398}`, `laminapdf-text/src/lib.rs:93,98`, laminapdf-build's `TextRun`, `Font` and `Tag`; the façade collision check from [Q2a](../done/Q2a-maintainability-checks-rust.md).
 
 ## Scope
 
 **In scope**
 
 - Renames such as `ExtractedRun` and `OpenTypeTag`, and one of `Font` or `FontHandle` renamed so the two read differently, with `@laminapdf/sdk`'s names kept in step.
-- lamina-text modules private, re-exported at the root only; `MAX_USECMAP_DEPTH` private.
+- laminapdf-text modules private, re-exported at the root only; `MAX_USECMAP_DEPTH` private.
 - `ops()` and `into_ops()` `#[doc(hidden)]` or behind a feature.
 - Examples, guides and CLAUDE.md updated; a changeset.
 
@@ -40,7 +40,7 @@ Readers of the docs meet `lamina::TextRun` (drawn text) next to `lamina::extract
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] List every collision the façade check reports; choose names with the TypeScript SDK in view.
 - [ ] Rename at the source crate where the name is wrong there too, else at the façade.
-- [ ] Make lamina-text's modules private; hide `ops()`.
+- [ ] Make laminapdf-text's modules private; hide `ops()`.
 - [ ] Update the examples, guides, rustdoc and CLAUDE.md; add the changeset; run everything.
 
 ## Acceptance criteria

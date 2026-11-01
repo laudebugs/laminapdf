@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
 | Blocks | None |
-| Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `lamina-render`, ADR 0011) |
+| Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `laminapdf-render`, ADR 0011) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3h-images-to-pdf-and-page-export` |
 | PR title | `feat(build): images to PDF and page image export` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + SMask, EXIF orientation) and export pages or ranges as PNG/JPEG/TIFF at a chosen DPI through `lamina-render`; desktop exports to a folder, web zips.
+Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + SMask, EXIF orientation) and export pages or ranges as PNG/JPEG/TIFF at a chosen DPI through `laminapdf-render`; desktop exports to a folder, web zips.
 
 ## Context
 
@@ -30,7 +30,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 **In scope**
 
-- `lamina_build::images_to_pdf(images, options)`
+- `laminapdf_build::images_to_pdf(images, options)`
 - `render::export_pages(doc, pages, format, dpi)` via `RenderBackend` (PDFium default)
 - TIFF encoder choice per E3a (licence-checked), multi-page TIFF optional
 - Export dialog in `@laminapdf/ui`
@@ -42,7 +42,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.02` images → PDF; `H.06` pages → PNG/JPEG/TIFF; `H.11` render pages to images
-- **Crates and packages:** `lamina-build`, `lamina-render`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-build`, `laminapdf-render`, `@laminapdf/ui`
 - **`SaveConstraint`:** new document (full write) for images → PDF
 - **Web vs desktop:** desktop writes files to a folder (native render, multi-threaded); web zips and streams; web memory capped by `Limits`
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

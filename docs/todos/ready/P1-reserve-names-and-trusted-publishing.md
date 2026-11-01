@@ -6,7 +6,7 @@
 | Status | `ready` — **blocked on the owner's decision to publish** (2026-10-28: crates and npm packages stay local until then) |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
-| Depends on | [B7b](../done/B7b-versioning-and-0-1-0-alpha.md), [P0](../done/P0-npm-scope-laminapdf.md), [P0b](../ongoing/P0b-crate-names-laminapdf.md) |
+| Depends on | [B7b](../done/B7b-versioning-and-0-1-0-alpha.md), [P0](../done/P0-npm-scope-laminapdf.md), [P0b](../done/P0b-crate-names-laminapdf.md) |
 | Blocks | [L4d](./L4d-cli-distribution.md), [P2](./P2-first-registry-prerelease.md) |
 | ADRs | Completes **0017** (publishing part: OIDC trusted publishing, provenance, attestations); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM), [0002](../../decisions/0002-binding-strategy.md) (`@laminapdf/wasm` packaging) |
 | Branch | `build/p1-trusted-publishing` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Prepare publishing so the first release is safe and needs no long-lived tokens: reserve `lamina` and the `lamina-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), record the publishing policy in ADR 0017, and add a release workflow (Changesets version PR → publish job) that publishes with OIDC trusted publishing, npm provenance and GitHub artifact attestations for the `.wasm` files — without actually publishing a release yet (that is [P2](./P2-first-registry-prerelease.md)).
+Prepare publishing so the first release is safe and needs no long-lived tokens: reserve `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), record the publishing policy in ADR 0017, and add a release workflow (Changesets version PR → publish job) that publishes with OIDC trusted publishing, npm provenance and GitHub artifact attestations for the `.wasm` files — without actually publishing a release yet (that is [P2](./P2-first-registry-prerelease.md)).
 
 ## Context
 
@@ -28,11 +28,11 @@ Prepare publishing so the first release is safe and needs no long-lived tokens: 
 
 **In scope**
 
-- Name reservation (owner action, documented step by step): crates.io placeholder `0.0.0` publishes for `lamina` and each planned `lamina-*` crate (manual, owner's account, first publish), npm `@laminapdf` org/scope (create the `laminapdf` npm organisation on the owner's account).
+- Name reservation (owner action, documented step by step): crates.io placeholder `0.0.0` publishes for `laminapdf` and each planned `laminapdf-*` crate (manual, owner's account, first publish), npm `@laminapdf` org/scope (create the `laminapdf` npm organisation on the owner's account).
 - Switch each crate to trusted-publishing-only on crates.io; configure npm trusted publishers for `@laminapdf/wasm` and `@laminapdf/sdk` (GitHub Actions OIDC, repo + workflow file + environment).
 - `.github/workflows/release.yml`: on `main`, Changesets action opens/updates the version PR; on merge of the version PR, a `publish` job in a protected `release` environment (required reviewer: owner) runs the release lane suites, builds, `pnpm publish --provenance`, `cargo publish` per crate in dependency order (via OIDC token exchange), uploads `.wasm` and SBOMs with `actions/attest-build-provenance`.
 - SBOM generation (CycloneDX for Cargo and npm) attached to GitHub releases.
-- ADR 0017 publishing section; `publish = false` removed only for crates meant to be public (keep xtask, test kits, `lamina-wasm` crate private).
+- ADR 0017 publishing section; `publish = false` removed only for crates meant to be public (keep xtask, test kits, `laminapdf-wasm` crate private).
 - Dry-run mode (`workflow_dispatch` with `dry-run: true` → `cargo publish --dry-run`, `pnpm publish --dry-run`).
 
 **Out of scope** (and which todo covers it)

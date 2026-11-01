@@ -16,7 +16,7 @@
 
 ## Goal
 
-Measure, every night, how far hayro is from PDFium on the external corpus, so the decision to make hayro the default renderer (architecture principle 4, ADR 0004) is made on data. Render every page of the corpus with both adapters of `lamina-render`, compare perceptually, and record the pass rate and the worst offenders over time.
+Measure, every night, how far hayro is from PDFium on the external corpus, so the decision to make hayro the default renderer (architecture principle 4, ADR 0004) is made on data. Render every page of the corpus with both adapters of `laminapdf-render`, compare perceptually, and record the pass rate and the worst offenders over time.
 
 ## Context
 
@@ -28,7 +28,7 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 
 **In scope**
 
-- `cargo xtask render-diff --corpus external [--pages N]`: render via `lamina-render` (both backends, same DPI), compare (SSIM / per-pixel ΔE with thresholds from the `hayro-parity` spike), emit a JSON report and an HTML summary with the top-N diffs.
+- `cargo xtask render-diff --corpus external [--pages N]`: render via `laminapdf-render` (both backends, same DPI), compare (SSIM / per-pixel ΔE with thresholds from the `hayro-parity` spike), emit a JSON report and an HTML summary with the top-N diffs.
 - Nightly job in `nightly.yml`, artefacts uploaded; pass-rate history appended (same storage as benchmarks).
 - A regression in pass rate > 2 points opens an issue (not a failure).
 
@@ -38,7 +38,7 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 
 ## Tasks
 
-- [x] Implement `render-diff` on top of `lamina-render` (`tools/xtask/src/render_diff.rs`; the reader is `tools/render/src/bin/render-diff.rs`, which reuses `render-golden`'s parity comparison)
+- [x] Implement `render-diff` on top of `laminapdf-render` (`tools/xtask/src/render_diff.rs`; the reader is `tools/render/src/bin/render-diff.rs`, which reuses `render-golden`'s parity comparison)
 - [x] Nightly job, history storage, issue on regression (`render-diff` in `nightly.yml`; the report job files the issue; every write gated on `record`)
 - [x] Document the metric and thresholds in ADR 0004 notes or the C2 docs (ADR 0004 §6, implementation note)
 
@@ -78,6 +78,6 @@ Unit tests for the comparator and report generator.
 
 ## Notes
 
-- **Where the code lives.** The reader is a second binary of `tools/render` (`render-diff`, next to `render-golden`), so it reuses `render-golden`'s parity comparison (`compare::parity`, C1a's metric) and image code. That workspace now depends on `lamina-render` (feature `hayro`) and `lamina-render-pdfium` by path; neither crate changed. `cargo xtask render-diff` (`tools/xtask/src/render_diff.rs`) builds it, runs it through `runner.rs` and writes the reports.
+- **Where the code lives.** The reader is a second binary of `tools/render` (`render-diff`, next to `render-golden`), so it reuses `render-golden`'s parity comparison (`compare::parity`, C1a's metric) and image code. That workspace now depends on `laminapdf-render` (feature `hayro`) and `laminapdf-render-pdfium` by path; neither crate changed. `cargo xtask render-diff` (`tools/xtask/src/render_diff.rs`) builds it, runs it through `runner.rs` and writes the reports.
 - **Differences from C1a's harness.** C1a restarted a crashed or hung file at the next page. Here `runner.rs` isolates files: the pages finished before a crash or hang are kept (each row is written as it is known), the rest count as that crash or hang once per page (by lamina's or an engine's page count, capped at `--pages`), and the file is then rendered by each engine alone to say which engine to blame. Page sizes that differ by one pixel are compared on their common part, as `render-golden`'s parity check does; C1a failed them. The nightly lane caps each file at 20 pages, so its rates aren't C1a's whole-corpus figures. The corpus is the nightly's four sources (pdf.js, PDFBox, PDFium, qpdf), not C1a's two.
 - **Run time.** The whole corpus took about an hour on the shared Mac, most of it waiting on the seven PDFium hangs (each costs one 6-minute chunk timeout plus single-file reruns). The job's limit is 180 minutes.

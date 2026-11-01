@@ -6,7 +6,7 @@ Every operation of the [feature inventory](../research/pdf/06-feature-inventory.
 
 **Statuses**, weakest first: 🔴 `unsupported` (detected and reported, never silently dropped), 🟡 `read` (displayed or extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--check` and opens in pdf.js and PDFium), 🟢 `round-trip` (open → change → save → reopen preserves the feature and everything else). `—` means no evidence yet; `n/a` means the row doesn't target that surface. **Columns:** `core` (the Rust crates), `pdf` (`@laminapdf/sdk`), `web`, `desktop`; *Target* is the round that must reach the target status on every targeted surface.
 
-**Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or `tests/<name>.rs`. TypeScript tests will use their name, `test("[cap C.04 pdf round-trip] …")`. `cargo xtask capabilities` runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core `write` and `round-trip` may be claimed only by tests in the round-trip suite ([`roundtrip_suite.rs`](../../crates/lamina-save/tests/roundtrip_suite.rs)), whose saves the full lane's `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
+**Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or `tests/<name>.rs`. TypeScript tests will use their name, `test("[cap C.04 pdf round-trip] …")`. `cargo xtask capabilities` runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core `write` and `round-trip` may be claimed only by tests in the round-trip suite ([`roundtrip_suite.rs`](../../crates/laminapdf-save/tests/roundtrip_suite.rs)), whose saves the full lane's `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
 
 ## Summary
 
@@ -23,7 +23,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| A.01 | Add text anywhere on a page | 🔵 write | — | — | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
+| A.01 | Add text anywhere on a page | 🔵 write | — | — | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | A.02 | Edit existing text | — | — | — | — | E7 round-trip |  |
 | A.03 | Delete or replace text | — | — | — | — | E7 round-trip |  |
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
@@ -31,8 +31,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.06 | Alignment & line spacing | — | — | — | — | E7 round-trip |  |
 | A.07 | Move/resize/rotate text blocks | — | — | — | — | E7 round-trip |  |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
-| A.09 | Add hyperlinks to text | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
-| A.10 | Extract text with position & formatting | 🟡 read | — | — | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/lamina-text/tests/extract_runs.rs) core read |
+| A.09 | Add hyperlinks to text | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| A.10 | Extract text with position & formatting | 🟡 read | — | — | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/laminapdf-text/tests/extract_runs.rs) core read |
 | A.11 | Convert outlined or scanned text via OCR | — | — | — | — | E13 round-trip |  |
 | A.12 | Insert special characters & symbols | — | — | — | — | E6 round-trip |  |
 
@@ -60,17 +60,17 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.01 | Insert blank pages | — | — | — | — | E2 round-trip |  |
 | C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
 | C.03 | Delete & duplicate pages | — | — | — | — | E2 round-trip |  |
-| C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/lamina-model/tests/views.rs) core read |
+| C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.05 | Extract selected pages | — | — | — | — | E2 round-trip |  |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
 | C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 round-trip |  |
-| C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/lamina-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/lamina-save/tests/roundtrip_suite.rs) core round-trip |
-| C.09 | Crop display area | 🟡 read | — | — | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/lamina-model/tests/views.rs) core read |
+| C.08 | Rotate pages 90/180/270 | 🟢 round-trip | — | — | — | E2 round-trip | [`rotate_normalises_negative_multiples_of_90`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| C.09 | Crop display area | 🟡 read | — | — | — | E2 round-trip | [`crop_box_is_clipped_to_the_media_box`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.10 | Resize page dimensions | — | — | — | — | E2 round-trip |  |
-| C.11 | Modify margins & page boxes | 🟡 read | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/lamina-model/tests/views.rs) core read |
+| C.11 | Modify margins & page boxes | 🟡 read | — | — | — | E2 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.12 | Portrait ↔ landscape | — | — | — | — | E2 round-trip |  |
 | C.13 | Reverse page order | — | — | — | — | E2 round-trip |  |
-| C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/lamina-model/tests/views.rs) core read |
+| C.14 | Labels, page numbers, headers/footers | 🟡 read | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read |
 | C.15 | Booklet / N-up layouts | — | — | — | — | E16 round-trip |  |
 | C.16 | Replace pages, preserving the rest | — | — | — | — | E2 round-trip |  |
 
@@ -125,11 +125,11 @@ Rows per surface by best proven status (of the rows that target the surface).
 | F.02 | Draw/type e-signature | — | — | — | — | E10 round-trip |  |
 | F.03 | Certificate-based digital signatures | — | — | — | — | E10 round-trip |  |
 | F.04 | Verify signatures | — | — | — | — | E10 read |  |
-| F.05 | Certify a document | 🟡 read | — | — | — | E10 round-trip | [`certified_files_report_their_docmdp_permission`](../../crates/lamina-save/tests/constraint.rs) core read |
+| F.05 | Certify a document | 🟡 read | — | — | — | E10 round-trip | [`certified_files_report_their_docmdp_permission`](../../crates/laminapdf-save/tests/constraint.rs) core read |
 | F.06 | Trusted timestamps | — | — | — | — | E10 round-trip |  |
 | F.07 | Inspect signer identity & certificates | — | — | — | — | E10 read |  |
-| F.08 | Lock fields after signing | 🟡 read | — | — | — | E10 round-trip | [`a_field_lock_restricts_form_changes_only`](../../crates/lamina-save/tests/constraint.rs) core read |
-| F.09 | Allowed changes after certification | 🟡 read | — | — | — | E10 round-trip | [`docmdp_p3_allows_annotations_and_p2_does_not`](../../crates/lamina-save/tests/constraint.rs) core read |
+| F.08 | Lock fields after signing | 🟡 read | — | — | — | E10 round-trip | [`a_field_lock_restricts_form_changes_only`](../../crates/laminapdf-save/tests/constraint.rs) core read |
+| F.09 | Allowed changes after certification | 🟡 read | — | — | — | E10 round-trip | [`docmdp_p3_allows_annotations_and_p2_does_not`](../../crates/laminapdf-save/tests/constraint.rs) core read |
 | F.10 | Signature status & modification warnings | — | — | — | — | E10 read |  |
 | F.11 | Signing workflows via external services | — | — | — | — | E10 round-trip |  |
 
@@ -137,17 +137,17 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| G.01 | Document-open password | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_user_password`](../../crates/lamina-cos/tests/encryption.rs) core read |
+| G.01 | Document-open password | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_user_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
 | G.02 | Encrypt a PDF | — | — | — | — | E11 round-trip |  |
-| G.03 | Permission passwords | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_owner_password`](../../crates/lamina-cos/tests/encryption.rs) core read |
-| G.04 | Restrict print/copy/edit | 🟡 read | — | — | — | E11 round-trip | [`permissions_match_qpdf_show_encryption`](../../crates/lamina-cos/tests/encryption.rs) core read |
-| G.05 | Remove security with authorisation | 🟢 round-trip | — | — | — | E11 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/lamina-save/tests/roundtrip_suite.rs) core round-trip |
+| G.03 | Permission passwords | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_owner_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
+| G.04 | Restrict print/copy/edit | 🟡 read | — | — | — | E11 round-trip | [`permissions_match_qpdf_show_encryption`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
+| G.05 | Remove security with authorisation | 🟢 round-trip | — | — | — | E11 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | G.06 | Permanent redaction | — | — | — | — | E12 round-trip |  |
 | G.07 | Search sensitive content to redact | — | — | — | — | E12 round-trip |  |
 | G.08 | Remove hidden metadata & comments | — | — | — | — | E11 round-trip |  |
 | G.09 | Sanitise embedded content | — | — | — | — | E11 round-trip |  |
 | G.10 | Remove attachments & scripts | — | — | — | — | E11 round-trip |  |
-| G.11 | Inspect encryption | 🟡 read | — | — | — | E11 read | [`encryption_matches_the_encrypt_dictionary`](../../crates/lamina-cos/tests/encryption.rs) core read |
+| G.11 | Inspect encryption | 🟡 read | — | — | — | E11 read | [`encryption_matches_the_encrypt_dictionary`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
 | G.12 | Certificate-based security | — | — | — | — | E11 round-trip |  |
 | G.13 | Remove hidden layers/information | — | — | — | — | E11 round-trip |  |
 
@@ -173,26 +173,26 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| I.01 | Create/edit bookmarks; nested trees | 🟡 read | — | — | — | E3 round-trip | [`outline_titles_match_pypdf`](../../crates/lamina-model/tests/corpus.rs) core read<br>[`items_nest_as_in_the_file`](../../crates/lamina-model/tests/views.rs) core read |
-| I.02 | Internal page links | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
-| I.03 | External hyperlinks | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
-| I.04 | Named destinations | 🔵 write | — | — | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/lamina-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/lamina-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
+| I.01 | Create/edit bookmarks; nested trees | 🟡 read | — | — | — | E3 round-trip | [`outline_titles_match_pypdf`](../../crates/laminapdf-model/tests/corpus.rs) core read<br>[`items_nest_as_in_the_file`](../../crates/laminapdf-model/tests/views.rs) core read |
+| I.02 | Internal page links | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| I.03 | External hyperlinks | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| I.04 | Named destinations | 🔵 write | — | — | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | I.05 | Clickable table of contents | — | — | — | — | E3 round-trip |  |
 | I.06 | Initial view & zoom; page display mode | — | — | — | — | E3 round-trip |  |
 | I.07 | Define reading order; logical structure tags | — | — | — | — | E15 round-trip |  |
 | I.08 | Optional content groups (layers) | — | — | — | — | E17 round-trip |  |
 | I.09 | Article threads | — | — | — | — | E3 read |  |
-| I.10 | Page labels | 🔵 write | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/lamina-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
+| I.10 | Page labels | 🔵 write | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | I.11 | Outline & navigation preferences | — | — | — | — | E3 round-trip |  |
 
 ## J. Metadata & attachments
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| J.01 | Title, author, subject, keywords | 🟢 round-trip | — | — | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/lamina-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/lamina-save/tests/roundtrip_suite.rs) core round-trip |
-| J.02 | Creation/modification dates | 🟡 read | — | — | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/lamina-model/tests/views.rs) core read |
+| J.01 | Title, author, subject, keywords | 🟢 round-trip | — | — | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| J.02 | Creation/modification dates | 🟡 read | — | — | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/laminapdf-model/tests/views.rs) core read |
 | J.03 | Producer & creator | — | — | — | — | E1 round-trip |  |
-| J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
+| J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | J.05 | Attach / extract / delete embedded files | — | — | — | — | E3 round-trip |  |
 | J.06 | Portfolios / collections | — | — | — | — | E3 read |  |
 | J.07 | Inspect version & conformance | — | — | — | — | E3 read |  |
@@ -213,7 +213,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | K.07 | Flatten transparency | — | — | — | — | E16 round-trip |  |
 | K.08 | Convert colour spaces | — | — | — | — | E16 round-trip |  |
 | K.09 | ICC profiles & output intents | — | — | — | — | E16 round-trip |  |
-| K.10 | Bleed, trim, crop | 🟡 read | — | — | — | E16 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/lamina-model/tests/views.rs) core read |
+| K.10 | Bleed, trim, crop | 🟡 read | — | — | — | E16 round-trip | [`art_and_bleed_boxes_are_read_from_the_page`](../../crates/laminapdf-model/tests/views.rs) core read |
 | K.11 | Print-ready PDFs / preflight | — | — | — | — | E16 read |  |
 | K.12 | Validate PDF/A or PDF/X | — | — | — | — | E16 read |  |
 | K.13 | Imposition & booklet | — | — | — | — | E16 round-trip |  |

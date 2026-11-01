@@ -330,10 +330,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina-cos"
+name = "laminapdf-cos"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-syntax",
+ "laminapdf-syntax",
  "thiserror",
 ]
 
@@ -343,9 +343,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "krilla",
- "lamina-cos",
- "lamina-save",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-save",
+ "laminapdf-syntax",
  "pdf-writer",
  "png",
  "skrifa",
@@ -353,40 +353,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina-model"
+name = "laminapdf-model"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-syntax",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-ops"
+name = "laminapdf-ops"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-model",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-syntax",
  "serde",
  "serde_json",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-save"
+name = "laminapdf-save"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-model",
- "lamina-ops",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
  "sha2",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-syntax"
+name = "laminapdf-syntax"
 version = "0.2.0-alpha.0"
 dependencies = [
  "aes",

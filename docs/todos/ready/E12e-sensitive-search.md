@@ -39,7 +39,7 @@ Find redaction candidates by text, regex and built-in patterns (emails, phone nu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.07` search sensitive content to redact
-- **Crates and packages:** `lamina-text`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-text`, `@laminapdf/ui`
 - **`Op` variants:** produces `MarkRedaction` ops
 - **`SaveConstraint`:** as E12b
 - **Web vs desktop:** identical

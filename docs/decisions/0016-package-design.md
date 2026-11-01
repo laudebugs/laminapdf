@@ -6,7 +6,7 @@
 
 ## Context
 
-[ADR 0002](0002-binding-strategy.md) fixed the binding: `crates/lamina-wasm` (wasm-bindgen + tsify), the `cargo xtask wasm` pipeline (wasm-bindgen CLI pinned to Cargo.lock, binaryen's `wasm-opt` pinned with rustc's feature set) and the committed `@laminapdf/wasm` manifest with a gitignored `dist/`. It left the package design to this ADR: module format, export conditions, how `init()` takes the module, whether the WASM is split, and the size budgets.
+[ADR 0002](0002-binding-strategy.md) fixed the binding: `crates/laminapdf-wasm` (wasm-bindgen + tsify), the `cargo xtask wasm` pipeline (wasm-bindgen CLI pinned to Cargo.lock, binaryen's `wasm-opt` pinned with rustc's feature set) and the committed `@laminapdf/wasm` manifest with a gitignored `dist/`. It left the package design to this ADR: module format, export conditions, how `init()` takes the module, whether the WASM is split, and the size budgets.
 
 The budgets needed measuring first. The [`krilla-fit` spike](../../spikes/krilla-fit/README.md#measurements) put the builder stack (pdf-writer, skrifa, subsetter, no shaper) at 377 KB gzipped, already over the plan's 350 KB for `@laminapdf/sdk` *with* shaping. [ADR 0005 §6](0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) point 4 asked B6 to decide the split and re-measure with `wasm-opt`. On 2026-10-29 the owner decided the budget is **per module**, 350 KB gzipped for the base module ([pdf-library §4](../plans/pdf-library.md#non-functional), [shareable-libraries §8](../plans/shareable-libraries.md#8-changes-to-existing-todos)).
 
@@ -14,7 +14,7 @@ Constraints:
 
 - One `.wasm` can't be tree-shaken by the caller: what is linked is downloaded. Splitting features into separate modules is the only way a user who doesn't draw text avoids paying for HarfRust and ICU4X ([repo notes §4](../research/architecture/notes/repo-and-packaging.md#4-package-design-esm-only-exports-maps-runtime-compatibility-lazy-wasm-bundlers-jsr)).
 - Two WASM instances share no memory. A document living in one can't hand a font program to the other without copying bytes through JavaScript.
-- `lamina-build` writes fonts into the document's overlay when the build finishes (`FontRegistry::finish_fonts`): text isn't a pure function from (font, string) to bytes that a second module could compute on the side.
+- `laminapdf-build` writes fonts into the document's overlay when the build finishes (`FontRegistry::finish_fonts`): text isn't a pure function from (font, string) to bytes that a second module could compute on the side.
 - Workers (workerd) can't fetch or compile WASM at run time: they import a `WebAssembly.Module`. Browsers want `compileStreaming` on a URL; Node and Deno read bytes ([report: one `.wasm` file per export condition](../research/libraries/shareable-libraries.md#one-wasm-file-resolved-per-export-condition-with-an-escape-hatch)).
 
 ## Decision
@@ -44,15 +44,15 @@ Constraints:
 
 | Module | Built as | Contains |
 | --- | --- | --- |
-| `lamina_base.wasm` | `lamina-wasm` without features (`lamina` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
-| `lamina_text.wasm` | `lamina-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (lamina-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`) |
-| `lamina_extract.wasm` | `lamina-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: lamina-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
+| `lamina_base.wasm` | `laminapdf-wasm` without features (`lamina` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
+| `lamina_text.wasm` | `laminapdf-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`) |
+| `lamina_extract.wasm` | `laminapdf-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: laminapdf-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
 
 The text module is a **superset**, not an add-on: a document that needs text is built entirely in the text module. A document moves between the two as PDF bytes (save, then open), which is the narrow ABI between them. `@laminapdf/sdk` loads the base module by default and the text module on its first text call or with `init({ text: true })` (B6b); a page that loaded only base never downloads text.
 
-To make the base module exclude text, `lamina-build` gained a `text` feature (default on): without it, the builder has no fonts, no text runs or boxes, and doesn't link `lamina-text`. The façade's `text` feature now implies a new `build` feature (the builder alone).
+To make the base module exclude text, `laminapdf-build` gained a `text` feature (default on): without it, the builder has no fonts, no text runs or boxes, and doesn't link `laminapdf-text`. The façade's `text` feature now implies a new `build` feature (the builder alone).
 
-**Text extraction (B9c, owner decision 2026-10-30): a third module.** [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) measured three placements (gzip): base with extraction 523 KB (+143 KB: ICU4X's bidi data and the font parsing join base), the text module with extraction 1,008 KB (+56 KB, since it already has both), and a third `extract` module, base plus extraction, about 525 KB. The owner chose the third: a reader's text layer and search load about half the text module, and nobody who doesn't extract pays for it. The text module has extraction too (it stays a superset). `@laminapdf/sdk` opens documents in the richest module loaded (text, then extract, then base), and `page.text()` on a document opened in base is `extract-module-not-loaded`. The façade gained an `extract` feature (lamina-text's extractor without the builder's text), which `text` implies. Two consequences: documents opened while the text module is loaded now live in its memory, not base's (so `wasmMemory()` and the nightly memory history move to `text` for runs that load it), and loading the extract module while the text module is loaded or loading does nothing. In workerd, where each module is a static import that every Worker bundles, the loader leaves the extract module out (about 526 KB): a Worker that extracts text imports `@laminapdf/wasm/lamina_extract.wasm` and passes it to `loadExtract`.
+**Text extraction (B9c, owner decision 2026-10-30): a third module.** [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) measured three placements (gzip): base with extraction 523 KB (+143 KB: ICU4X's bidi data and the font parsing join base), the text module with extraction 1,008 KB (+56 KB, since it already has both), and a third `extract` module, base plus extraction, about 525 KB. The owner chose the third: a reader's text layer and search load about half the text module, and nobody who doesn't extract pays for it. The text module has extraction too (it stays a superset). `@laminapdf/sdk` opens documents in the richest module loaded (text, then extract, then base), and `page.text()` on a document opened in base is `extract-module-not-loaded`. The façade gained an `extract` feature (laminapdf-text's extractor without the builder's text), which `text` implies. Two consequences: documents opened while the text module is loaded now live in its memory, not base's (so `wasmMemory()` and the nightly memory history move to `text` for runs that load it), and loading the extract module while the text module is loaded or loading does nothing. In workerd, where each module is a static import that every Worker bundles, the loader leaves the extract module out (about 526 KB): a Worker that extracts text imports `@laminapdf/wasm/lamina_extract.wasm` and passes it to `loadExtract`.
 
 ### 5. Measurements and the shrinking pass
 
@@ -60,15 +60,15 @@ All sizes are of the base and text modules as `cargo xtask wasm` builds them (ru
 
 | Step | Base (bindgen) | Base (after wasm-opt) | Text (bindgen) | Text (after wasm-opt) |
 | --- | ---: | ---: | ---: | ---: |
-| First build: base links lamina-text, unexported (`opt-level = "s"`, serde-wasm-bindgen records, `-Oz`) | 882,047 | 931,949 | 1,147,049 | 1,206,285 |
-| `lamina-build` `text` feature: base without lamina-text | 527,264 | 554,594 | 1,147,045 | 1,206,275 |
+| First build: base links laminapdf-text, unexported (`opt-level = "s"`, serde-wasm-bindgen records, `-Oz`) | 882,047 | 931,949 | 1,147,049 | 1,206,285 |
+| `laminapdf-build` `text` feature: base without laminapdf-text | 527,264 | 554,594 | 1,147,045 | 1,206,275 |
 | Records as JSON through `serde_json` (already linked) instead of serde-wasm-bindgen | 525,591 | 550,644 | 1,148,485 | 1,204,246 |
 | `opt-level = "z"` instead of `"s"` | 495,619 | 529,679 | 1,064,042 | 1,135,095 |
 | SASLprep optional (`saslprep` feature; stringprep's Unicode tables out of the WASM) | 425,053 | 457,932 (−Oz) | 994,993 | 1,064,873 (−Oz) |
 | Flat drawing ABI (paths as `Float64Array`, colours as component arrays, names as strings) | 417,160 | 444,964 (−Oz) | — | — |
 | Own PNG decoder instead of the `png` crate (`fdeflate`, a second `miniz_oxide`, `crc32fast`) | ≈ 369,000 | **367,904** (−O1, final) | — | **933,367** (−O1, final) |
 
-For comparison, the read/edit/save core alone (no builder) was 363,785 B before the SASLprep step and **293,076 B** after it; the spike's lamina-cos-only module was 59,851 B. The rest of the base module is the builder (≈ 75 KB with `pdf-writer`, images, navigation and metadata), the save planner and writers, decryption (AES, RC4, MD5, SHA-2), `serde_json` (op logs and the ADR 0026 object) and the hint and summary tables of `codes.json`.
+For comparison, the read/edit/save core alone (no builder) was 363,785 B before the SASLprep step and **293,076 B** after it; the spike's laminapdf-cos-only module was 59,851 B. The rest of the base module is the builder (≈ 75 KB with `pdf-writer`, images, navigation and metadata), the save planner and writers, decryption (AES, RC4, MD5, SHA-2), `serde_json` (op logs and the ADR 0026 object) and the hint and summary tables of `codes.json`.
 
 What `wasm-opt` does, on the base module of the JSON-records row (bindgen output: 1,423,835 B raw, 525,591 B gzip, 415,829 B brotli):
 
@@ -113,7 +113,7 @@ The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip,
 
 **Amendment (owner, 2026-10-30, B9c):** the extract module's budget is 535,000 bytes, and the text module's rises from 960,000 to 1,020,000, both for text extraction (§4).
 
-**Amendment (owner, 2026-10-30, L2c):** the base budget rises from 380,000 to 390,000 bytes. Range loading (`WasmDocument.openSource` over a sparse source, [L2c](../todos/done/L2c-range-byte-source.md)) links `lamina-cos`'s windowed reader (64 KiB windows, chunked repair, xref-entry probes), which the base module never used while it only opened in-memory bytes: +9.3 KB gzip (372,688 → 382,000). Range loading belongs with reading, so it stays in the base module rather than moving to a third one.
+**Amendment (owner, 2026-10-30, L2c):** the base budget rises from 380,000 to 390,000 bytes. Range loading (`WasmDocument.openSource` over a sparse source, [L2c](../todos/done/L2c-range-byte-source.md)) links `laminapdf-cos`'s windowed reader (64 KiB windows, chunked repair, xref-entry probes), which the base module never used while it only opened in-memory bytes: +9.3 KB gzip (372,688 → 382,000). Range loading belongs with reading, so it stays in the base module rather than moving to a third one.
 
 ### 7. API naming and shape at the WASM boundary
 
@@ -130,7 +130,7 @@ The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip,
 
 - A page that only reads, edits, saves or draws vectors and images downloads ≈ 368 KB gzipped; one that draws text downloads ≈ 937 KB, once. Both are measured on every PR, and growth shows up as a twiggy diff before it becomes a budget failure.
 - Text and non-text documents are built in different instances; moving a document between them costs a save and an open. The TS layer hides the choice.
-- `lamina-build`, `lamina-syntax`/`lamina-cos` (`saslprep`) and the façade (`build`) have features whose combinations `cargo xtask portability` builds; the workspace dependencies on `lamina-build`, `lamina-syntax` and `lamina-cos` are `default-features = false`, and crates ask for `text` and `saslprep` where they need them.
+- `laminapdf-build`, `laminapdf-syntax`/`laminapdf-cos` (`saslprep`) and the façade (`build`) have features whose combinations `cargo xtask portability` builds; the workspace dependencies on `laminapdf-build`, `laminapdf-syntax` and `laminapdf-cos` are `default-features = false`, and crates ask for `text` and `saslprep` where they need them.
 - `png` is now a dev-dependency only (it writes test PNGs and is the reference the new decoder is compared with).
 - The WASM pipeline needs wasm-bindgen-cli and twiggy (cargo installs, pinned in `doctor.rs`) and binaryen 133, which `cargo xtask wasm` downloads into `target/tools/` with a pinned SHA-256 when `PATH` has none.
 - ADR 0005 §6's budget question is answered: per module, as §6 says.
@@ -138,7 +138,7 @@ The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip,
 ## Alternatives considered
 
 - **One module with everything** (≈ 937 KB): every user pays for shaping and ICU4X data. Rejected; the split is the point of the per-module budget.
-- **A text add-on module linked at run time through JavaScript** (the base module owns the document, the text module shapes and subsets and returns bytes): font embedding writes into the overlay at `finish` and shaping needs the font registry the document owns, so every call would copy font programs and glyph tables across instances, and `lamina-build` and `lamina-text` would have to be split along a new internal ABI. The superset is simpler and costs the text user only the base module's download once more, if both are loaded. Revisit when a measurement shows the double download matters.
+- **A text add-on module linked at run time through JavaScript** (the base module owns the document, the text module shapes and subsets and returns bytes): font embedding writes into the overlay at `finish` and shaping needs the font registry the document owns, so every call would copy font programs and glyph tables across instances, and `laminapdf-build` and `laminapdf-text` would have to be split along a new internal ABI. The superset is simpler and costs the text user only the base module's download once more, if both are loaded. Revisit when a measurement shows the double download matters.
 - **Options B and C of §5**: see §5.
 - **`wasm-opt -Oz`**: smallest raw size, larger gzip (§5).
 - **serde-wasm-bindgen records** (ADR 0002's default): more code than JSON through the already linked `serde_json` (§5); the types come from tsify either way.

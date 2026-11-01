@@ -99,7 +99,7 @@ export type BlendMode =
   | "luminosity";
 
 /**
- * The standard structure types (ISO 32000-1 §14.8.4), in the order of lamina-build's
+ * The standard structure types (ISO 32000-1 §14.8.4), in the order of laminapdf-build's
  * `TagKind::ALL` (the module takes their index).
  */
 export const TAG_NAMES = [

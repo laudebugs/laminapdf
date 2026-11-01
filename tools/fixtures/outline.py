@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes fixtures/corpus/outline.pdf (no dependencies): three pages with an outline, named
-destinations, page labels and an Info dictionary, for lamina-model's views (B2c).
+destinations, page labels and an Info dictionary, for laminapdf-model's views (B2c).
 
 The outline exercises: nesting (three levels), a closed item (negative /Count), titles in
 PDFDocEncoding (with codes outside Latin-1) and in UTF-16BE (a surrogate pair), explicit

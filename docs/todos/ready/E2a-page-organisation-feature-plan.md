@@ -17,7 +17,7 @@
 
 ## Goal
 
-The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)): page insert/delete/duplicate/reorder/rotate/reverse/replace, extract and export, merge and split, crop, resize, page boxes, orientation, page labels, and the `lamina-content` **append API** that resize, flattening (E5) and adding content (E6) use. It fixes the op list, test plan, fixtures and PR stack before any code, as every editor round requires ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): "each starts with a short feature-plan PR").
+The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)): page insert/delete/duplicate/reorder/rotate/reverse/replace, extract and export, merge and split, crop, resize, page boxes, orientation, page labels, and the `laminapdf-content` **append API** that resize, flattening (E5) and adding content (E6) use. It fixes the op list, test plan, fixtures and PR stack before any code, as every editor round requires ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): "each starts with a short feature-plan PR").
 
 ## Context
 
@@ -27,7 +27,7 @@ The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/fu
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) §1 and [ADR 0007](../../decisions/0007-save-planner.md) §2: how each op is classified and how the planner gates it
 - [ADR 0018](../../decisions/0018-test-strategy.md): test tiers the plan must assign (golden, corpus, differential, fuzz)
 - [05 §3.1 Merge and split](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split): remapping outlines, destinations, fields, struct tree
-- [full-editor §6](../../plans/full-editor.md#6-design-summary): the three steps of `lamina-content` (read, append, edit)
+- [full-editor §6](../../plans/full-editor.md#6-design-summary): the three steps of `laminapdf-content` (read, append, edit)
 
 ## Scope
 
@@ -44,7 +44,7 @@ The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/fu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.02` insert pages from other PDFs; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.05` extract selected pages; `C.06` merge multiple documents; `C.07` split by count, ranges, bookmarks; `C.08` rotate pages 90/180/270; `C.09` crop display area; `C.10` resize page dimensions; `C.11` modify margins and page boxes; `C.12` portrait ↔ landscape; `C.13` reverse page order; `C.14` labels, page numbers, headers/footers; `C.16` replace pages, preserving the rest; `H.10` export pages/ranges; `I.10` page labels
-- **Crates and packages:** (planned for the round) `lamina-content` (append API, new here), `lamina-ops` page ops, `lamina-model` merge remapping
+- **Crates and packages:** (planned for the round) `laminapdf-content` (append API, new here), `laminapdf-ops` page ops, `laminapdf-model` merge remapping
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free` → incremental; under a certification signature page insertion/deletion/reordering is a DocMDP violation at every level (ADR 0007 §2) and is allowed only through the override that invalidates the named signatures; with approval signatures only it is `AppendOnly` (incremental), unless it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical; desktop merges a multi-file Finder/Explorer selection
 - **Server features:** none
@@ -53,7 +53,7 @@ The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/fu
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e2-page-organisation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`C.01`, `C.02`, `C.03`, `C.04`, `C.05`, `C.06`, `C.07`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `C.14`, `C.16`, `H.10`, `I.10`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

@@ -15,12 +15,12 @@ path = "src/lib.rs"
 
 [features]
 krilla-gen = ["dep:krilla"]
-lamina-gen = ["dep:pdf-writer", "dep:subsetter", "dep:skrifa", "dep:lamina-syntax"]
-# lamina-cos is always in: @lamina/pdf ships the reader/writer either way.
+lamina-gen = ["dep:pdf-writer", "dep:subsetter", "dep:skrifa", "dep:laminapdf-syntax"]
+# laminapdf-cos is always in: @lamina/pdf ships the reader/writer either way.
 
 [dependencies]
-lamina-cos = { path = "../../../crates/lamina-cos" }
-lamina-syntax = { path = "../../../crates/lamina-syntax", optional = true }
+laminapdf-cos = { path = "../../../crates/laminapdf-cos" }
+laminapdf-syntax = { path = "../../../crates/laminapdf-syntax", optional = true }
 krilla = { version = "=0.8.2", optional = true }
 pdf-writer = { version = "=0.15.0", optional = true }
 subsetter = { version = "=0.2.6", optional = true }

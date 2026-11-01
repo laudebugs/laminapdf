@@ -1,7 +1,7 @@
 // ADR 0003 §4 and ADR 0026, TS half: the generated tables are fixtures/codes.json's, every code
 // has its explain page, LaminaError.toJSON() validates against lamina.error/1, and the shared
 // cases of fixtures/errors/contract.json (ADR 0018 §5) throw exactly the object the Rust façade
-// serialises (crates/lamina/tests/error_contract.rs checks the same file).
+// serialises (crates/laminapdf/tests/error_contract.rs checks the same file).
 import { Document, init, LaminaError, type OpenOptions } from "@laminapdf/sdk";
 import { DOCS_URL, docsUrl, ERROR_CODES, explain, HINTS, isCode, KINDS, WARNING_CODES } from "@laminapdf/sdk/explain";
 import { Ajv2020 } from "ajv/dist/2020.js";

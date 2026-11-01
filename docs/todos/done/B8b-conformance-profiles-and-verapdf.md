@@ -47,8 +47,8 @@ Make accessible and archival output the easy path: choosing a profile turns ever
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read 03 §9.4, the Matterhorn machine checks list, ISO 19005-2 §6
-- [x] `lamina-build/src/profile/{mod,checks,pdfa}.rs` (the PDF/UA-1 and PDF/A rules share `checks.rs`); error codes
-- [x] XMP identification and Info sync; output intent + ICC data (`crates/lamina-build/data/` with its provenance, pointed to from `fixtures/README.md`; `include_bytes!` in the crate)
+- [x] `laminapdf-build/src/profile/{mod,checks,pdfa}.rs` (the PDF/UA-1 and PDF/A rules share `checks.rs`); error codes
+- [x] XMP identification and Info sync; output intent + ICC data (`crates/laminapdf-build/data/` with its provenance, pointed to from `fixtures/README.md`; `include_bytes!` in the crate)
 - [x] Attachments API and `/AF`
 - [x] Examples (Rust + TS), docs pages
 - [x] Nightly veraPDF job; `cargo xtask verapdf`
@@ -67,7 +67,7 @@ Make accessible and archival output the easy path: choosing a profile turns ever
 - **API.** `BuildOptions::with_profile(Profile)` (TS `profiles: ["PDF/UA-1", "PDF/A-2u"]`): PDF/UA-1 combines with one PDF/A profile, a second PDF/A profile replaces the first and `Profile::None` clears them; PDF/UA-1 makes the document tagged. `Builder::attach(Attachment::new(name, bytes, mime).with_relationship(AfRelationship::Alternative))` (TS `attach(name, bytes, mime, { relationship, description, modDate })`). The checks run in `Builder::finish` before anything is written, and the first broken rule is the error.
 - **Codes** (15, `buildErrors`): `missing-title`, `missing-lang`, `untagged-content`, `missing-alt-text`, `heading-level-skipped`, `unnumbered-heading-misused`, `invalid-structure-nesting`, `link-without-structure`, `link-without-contents`, `font-not-embedded`, `glyph-without-unicode`, `device-color-without-output-intent`, `embedded-file-forbidden`, `embedded-file-without-mime-type`, `profile-version-conflict`. `glyph-without-unicode` replaces the scope's `unmapped-glyph` (already an extraction warning code); `device-color-without-output-intent` is spelt like the existing `color-*` codes.
 - **Not added, because lamina can't produce them:** `encryption-forbidden` (the builder never encrypts), `forbidden-action` (links are URI, page and named targets only), `transparency-without-blending-space` (every PDF/A document gets an output intent, which covers transparency) and `embedded-file-not-associated` (`attach` always writes `/AF` and `/AFRelationship`). PDF/A-2 attachments became `embedded-file-forbidden` instead. Five codes were added beyond the scope, for rules the builder's API lets a caller break: `heading-level-skipped` (Matterhorn 14-002, 14-003), `unnumbered-heading-misused` (14-006, 14-007), `invalid-structure-nesting` (09-004, 09-005), `embedded-file-without-mime-type` (ISO 19005-3 §6.8) and `profile-version-conflict` (PDF 2.0 under a PDF 1.7 profile; veraPDF 6.1.2-1). The builder also writes an `/ID` for every `Note` element and the `IDTree` (Matterhorn 19-003, 19-004), and requires alternate text on a `Formula` as on a `Figure` (17-002).
-- **Output intent.** `GTS_PDFA1` with `sRGB-v4.icc` from Clinton Ingram's Compact ICC Profiles (480 bytes, CC0-1.0; provenance in `crates/lamina-build/data/README.md`). It is small enough for every WASM module, so no feature gates it. Because the intent is sRGB, `DeviceRGB` and `DeviceGray` are covered and `DeviceCMYK` is refused; ICC-based CMYK is fine.
+- **Output intent.** `GTS_PDFA1` with `sRGB-v4.icc` from Clinton Ingram's Compact ICC Profiles (480 bytes, CC0-1.0; provenance in `crates/laminapdf-build/data/README.md`). It is small enough for every WASM module, so no feature gates it. Because the intent is sRGB, `DeviceRGB` and `DeviceGray` are covered and `DeviceCMYK` is refused; ICC-based CMYK is fine.
 - **veraPDF runs as its Java CLI, not Docker** (a deviation from the scope's "Docker image pinned by digest"): the Docker daemon isn't running on the CI Mac, whose runners share it. `cargo xtask verapdf` installs the pinned greenfield release 1.30.3 (installer SHA-256 in `doctor.rs`) with its unattended installer into `$RUNNER_TOOL_CACHE/lamina-verapdf` or `target/verapdf`, and runs it with `$LAMINA_JAVA`, Homebrew's `openjdk@21` or `java` on `PATH` (17+). veraPDF is GPL-3.0-or-later or MPL-2.0; it runs as an external process only, never linked or bundled (ADR 0019). Each PDF's flavours come from its XMP identification, so a new example is validated without an xtask change.
 - **Examples.** `pdf_ua_report`, `pdf_a_archive` (`-2b` and `-2u`, the latter also PDF/UA-1, which exercises the `pdfuaid` extension schema) and `pdf_a3_invoice_with_xml`, in Rust and TS, byte-identical, with render goldens. veraPDF validates the Rust outputs only; the TS ones are covered because they are byte-identical to them (the TS example suite compares each with its Rust golden). `cargo xtask examples` takes an example's `<name>-<variant>.pdf` outputs.
 
@@ -78,7 +78,7 @@ Make accessible and archival output the easy path: choosing a profile turns ever
 
 ## Tests
 
-- `crates/lamina-build/tests/{profile_ua,profile_a,attachments}.rs`; TS tests for profile errors.
+- `crates/laminapdf-build/tests/{profile_ua,profile_a,attachments}.rs`; TS tests for profile errors.
 - Nightly veraPDF over `target/examples-out/` (both languages).
 
 ## Docs to update

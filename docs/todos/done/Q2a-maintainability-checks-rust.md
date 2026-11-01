@@ -31,7 +31,7 @@ This todo adds `cargo xtask check maintainability` to `cargo xtask check`, the h
   - the module budget and `tools/xtask/maintainability-baseline.toml` (today's files over budget and their non-test counts);
   - the `#[expect]` counter for size lints;
   - `pub struct` and `pub enum` names defined in two crates, against an allow-list with reasons;
-  - two re-exports with one name in the `lamina` façade.
+  - two re-exports with one name in the `laminapdf` façade.
 - A small registry of named checks so later todos add theirs (Q2c, Q2e, Q2i, Q2t).
 - Lints: `cognitive_complexity = "warn"` (a nursery lint; say so in a comment), `unreachable_pub = "warn"`, and `too-many-lines-threshold = 100` in `clippy.toml`; fix the hits.
 

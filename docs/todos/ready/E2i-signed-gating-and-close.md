@@ -40,7 +40,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 
 **Editor facts**
 
-- **Crates and packages:** tests only (`crates/lamina/tests/signed_gating.rs`, e2e spec)
+- **Crates and packages:** tests only (`crates/laminapdf/tests/signed_gating.rs`, e2e spec)
 - **`SaveConstraint`:** exercises all kinds
 - **Web vs desktop:** e2e checks the banner on both shells
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

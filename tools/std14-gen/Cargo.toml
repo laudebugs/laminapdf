@@ -1,6 +1,6 @@
 [package]
 name = "std14-gen"
-description = "Generates lamina-text's standard 14 font metrics, simple-font encodings and Adobe Glyph List tables from the files in data/ (todo B4c). A developer tool: never a dependency."
+description = "Generates laminapdf-text's standard 14 font metrics, simple-font encodings and Adobe Glyph List tables from the files in data/ (todo B4c). A developer tool: never a dependency."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

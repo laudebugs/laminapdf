@@ -43,12 +43,12 @@ The common convention is `crates/` (Rust), `packages/` (published npm packages),
 ### Inferences
 - Proposed Lamina layout, synthesized from the above:
   ```
-  crates/lamina-core, lamina-render, lamina-*      # pure Rust, no JS deps
-  crates/lamina-wasm                                # wasm-bindgen facade (cdylib) -> packages/lamina-wasm/dist
+  crates/laminapdf-core, laminapdf-render, laminapdf-*      # pure Rust, no JS deps
+  crates/laminapdf-wasm                                # wasm-bindgen facade (cdylib) -> packages/laminapdf-wasm/dist
   crates/lamina-napi (optional)                     # napi-rs facade
   crates/lamina-ffi (optional)                      # UniFFI facade for mobile
-  packages/lamina (TS API, depends on lamina-wasm via workspace:*)
-  packages/lamina-wasm (generated glue + .wasm; committed only as build output, gitignored)
+  packages/lamina (TS API, depends on laminapdf-wasm via workspace:*)
+  packages/laminapdf-wasm (generated glue + .wasm; committed only as build output, gitignored)
   apps/web (Cloudflare), apps/desktop (Tauri; src-tauri depends on crates/* by path)
   fixtures/ or tests/corpus/ (golden PDFs, git-LFS or fetched), fuzz/, xtask/ or tasks/, justfile
   ```
@@ -77,7 +77,7 @@ The `rustwasm` org was sunset in 2025. **wasm-bindgen** moved to a new `wasm-bin
 
 ### Inferences
 - Recommended for Lamina:
-  - `crates/lamina-wasm` built with `cargo build --target wasm32-unknown-unknown --release`, then `wasm-bindgen --target web` (or `bundler`), then `wasm-opt -Oz`, driven from `just`/xtask. This pins the wasm-bindgen CLI version to the crate version, which is required anyway.
+  - `crates/laminapdf-wasm` built with `cargo build --target wasm32-unknown-unknown --release`, then `wasm-bindgen --target web` (or `bundler`), then `wasm-opt -Oz`, driven from `just`/xtask. This pins the wasm-bindgen CLI version to the crate version, which is required anyway.
   - wasm-pack is acceptable but optional.
   - Use tsify (upstream) for data structs and `#[wasm_bindgen]` classes for handles (Document, Page). This keeps large PDF buffers as `Uint8Array` and avoids serde round-trips.
   - Use `wasm32-unknown-unknown` + wasm-bindgen for the browser and Workers. napi-rs suits a later Node-native package; its browser WASM requires SharedArrayBuffer/COOP-COEP, a burden for library consumers.

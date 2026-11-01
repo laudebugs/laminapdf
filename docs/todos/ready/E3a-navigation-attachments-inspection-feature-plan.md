@@ -41,7 +41,7 @@ The short feature-plan PR that opens round E3 ([full-editor §E3](../../plans/fu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.02` internal page links; `I.03` external hyperlinks; `I.04` named destinations; `I.05` clickable table of contents; `I.06` initial view and zoom; page display mode; `I.09` article threads; `I.11` outline and navigation preferences; `J.04` manage XMP; `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `J.07` inspect version and conformance; `J.08` identify fonts and colour profiles; `J.09` inspect internal objects, streams, references; `A.09` add hyperlinks to text; `B.03` extract original embedded images; `H.02` images → PDF; `H.06` pages → PNG/JPEG/TIFF; `H.07` extract text and images; `H.08` extract hyperlinks and bookmarks; `H.09` extract attachments; `H.11` render pages to images; `M.09` associated files and structured metadata
-- **Crates and packages:** (planned for the round) `lamina-model` (outline, names, embedded files, XMP schemas), `lamina-build` (images → PDF), `lamina-render` (export), `lamina-text` (extraction)
+- **Crates and packages:** (planned for the round) `laminapdf-model` (outline, names, embedded files, XMP schemas), `laminapdf-build` (images → PDF), `laminapdf-render` (export), `laminapdf-text` (extraction)
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free`; on signed files, outline, destination, attachment and XMP changes (class `Document`/`Metadata`) are DocMDP violations under any certification and gated, links (`Annotation`) are allowed under P3; with approval signatures only, all are `AppendOnly` incremental updates
 - **Web vs desktop:** object inspector on both; desktop exports to a folder, web zips
 - **Server features:** none
@@ -50,7 +50,7 @@ The short feature-plan PR that opens round E3 ([full-editor §E3](../../plans/fu
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e3-navigation-attachments-inspection.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`I.01`, `I.02`, `I.03`, `I.04`, `I.05`, `I.06`, `I.09`, `I.11`, `J.04`, `J.05`, `J.06`, `J.07`, `J.08`, `J.09`, `A.09`, `B.03`, `H.02`, `H.06`, `H.07`, `H.08`, `H.09`, `H.11`, `M.09`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

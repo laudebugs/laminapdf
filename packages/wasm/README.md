@@ -12,7 +12,7 @@ Each glue module exports a default async `init(input)` (a URL, `Response`, bytes
 
 ## For contributors
 
-The modules are built from [`crates/lamina-wasm`](../../crates/lamina-wasm) by `cargo xtask wasm` into `dist/`, which is generated and gitignored; this `package.json` is committed so `pnpm install --frozen-lockfile` works before a build ([ADR 0002](../../docs/decisions/0002-binding-strategy.md) §2). The package design is [ADR 0016](../../docs/decisions/0016-package-design.md) and the error object [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1.
+The modules are built from [`crates/laminapdf-wasm`](../../crates/laminapdf-wasm) by `cargo xtask wasm` into `dist/`, which is generated and gitignored; this `package.json` is committed so `pnpm install --frozen-lockfile` works before a build ([ADR 0002](../../docs/decisions/0002-binding-strategy.md) §2). The package design is [ADR 0016](../../docs/decisions/0016-package-design.md) and the error object [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1.
 
 ```sh
 cargo xtask wasm   # build both modules into dist/, run the wasm-bindgen-test suite and test/smoke.test.ts (Node)

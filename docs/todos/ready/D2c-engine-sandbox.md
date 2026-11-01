@@ -30,7 +30,7 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 
 **In scope**
 
-- `apps/desktop/src-tauri/src/engine/sandbox/{mod.rs,macos.rs,windows.rs,linux.rs}` (spawn-side policy) and `crates/lamina-desktop-engine/src/sandbox/` (self-restriction the engine applies at start-up where the OS allows it; the order differs per OS, see below):
+- `apps/desktop/src-tauri/src/engine/sandbox/{mod.rs,macos.rs,windows.rs,linux.rs}` (spawn-side policy) and `crates/laminapdf-desktop-engine/src/sandbox/` (self-restriction the engine applies at start-up where the OS allows it; the order differs per OS, see below):
   - **Lock-down order (per OS)** — fonts: PDFium's built-in base-14 fonts; system font access decided here (prefer passing font bytes from main on request over granting font directory reads). In every case no `OpenDocument` is read before the sandbox is fully on, and `Ready { sandboxed: SandboxLevel }` is sent last.
     - **Linux**: load PDFium → apply no-new-privs + Landlock + seccomp (all self-applied at run time) → `Ready`.
     - **macOS**: App Sandbox comes from the entitlement and is in force **from exec**, before `main` runs, so PDFium is loaded *inside* the sandbox. It must be readable there: ship it inside the bundle (`Contents/Frameworks` or `Contents/Resources`, which a sandboxed process can read) and verify `dlopen` works under the sandbox and library validation (same Team ID signature, D6c). If it doesn't, use the Seatbelt fallback below, which is applied at run time after loading (Linux-style order).
@@ -80,7 +80,7 @@ None.
 
 ## Tests
 
-- `crates/lamina-desktop-engine/tests/sandbox_selftest.rs`: spawn the engine with `--sandbox-selftest` and assert each probe is blocked, per OS (`#[cfg(target_os = …)]`); runs in the three-OS desktop CI job.
+- `crates/laminapdf-desktop-engine/tests/sandbox_selftest.rs`: spawn the engine with `--sandbox-selftest` and assert each probe is blocked, per OS (`#[cfg(target_os = …)]`); runs in the three-OS desktop CI job.
 - Supervisor test: engine killed by sandbox violation → restart path taken.
 - Linux-only tests: seccomp default action kills on a forbidden syscall (selftest `socket()` probe → exit by `SIGSYS`); `fork()` and `execve("/bin/true")` probes are killed; a `clone` with `CLONE_THREAD` (via `std::thread::spawn`) succeeds; a raw `clone3` returns `ENOSYS`; `getrlimit(RLIMIT_NPROC)` is unchanged from the parent's value (guards against reintroducing the limit).
 

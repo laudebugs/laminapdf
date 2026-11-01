@@ -8,7 +8,7 @@
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2c](../done/C2c-render-packages.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
 | Blocks | [D1b](./D1b-desktop-print-spike.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
-| Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)): the spike's webview half reuses the `@laminapdf/viewer` canvas pool / `ImageBitmap` paint path so the numbers match what the reader will do. C3 brings C2's `lamina-render` with it. |
+| Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)): the spike's webview half reuses the `@laminapdf/viewer` canvas pool / `ImageBitmap` paint path so the numbers match what the reader will do. C3 brings C2's `laminapdf-render` with it. |
 | ADRs | Informs ADR 0008 (desktop shell, written in D2a). Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (spikes live outside both workspaces), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/d1a-desktop-ipc` |
 | PR title | `spike(desktop): measure Tauri tile transports and cross-origin isolation` |
@@ -35,7 +35,7 @@ Answer, with numbers from all three desktop webviews (WKWebView on macOS, WebVie
 **In scope**
 
 - `spikes/desktop-ipc/`: a minimal Tauri 2 app (own `Cargo.toml` + `package.json`, not a workspace member) whose Rust side generates tiles and whose webview paints them on a `<canvas>` with Canvas2D (`drawImage` of an `ImageBitmap`), exactly the reader's baseline paint path. No WebGL/WebGPU (Linux constraint).
-- Tile sources: (a) synthetic tiles (deterministic gradient + noise so compression is realistic but not trivial) and (b) real pages rendered with `lamina-render`'s PDFium adapter from 3 `fixtures/` files (text-heavy, image-heavy, vector-heavy), so compressed-size numbers are honest.
+- Tile sources: (a) synthetic tiles (deterministic gradient + noise so compression is realistic but not trivial) and (b) real pages rendered with `laminapdf-render`'s PDFium adapter from 3 `fixtures/` files (text-heavy, image-heavy, vector-heavy), so compressed-size numbers are honest.
 - Transports, each behind a URL switch in the spike UI:
   1. **Channel / raw RGBA**: `#[tauri::command] async fn stream_tiles(req: TileBatch, on_tile: tauri::ipc::Channel<tauri::ipc::InvokeResponseBody>)`, sending `InvokeResponseBody::Raw(header ++ rgba)`; JS side `new Channel<ArrayBuffer>()` → `new ImageData(new Uint8ClampedArray(buf, 16), w, h)` → `createImageBitmap`.
   2. **`ipc::Response` / raw RGBA**: one `invoke('tile', {...})` per tile returning `tauri::ipc::Response::new(bytes)`; JS receives an `ArrayBuffer`.

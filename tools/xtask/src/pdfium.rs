@@ -1,6 +1,6 @@
 //! `cargo xtask fetch-pdfium` (ADR 0004 §3, todo C2b): downloads the pinned native PDFium build
 //! (`bblanchon/pdfium-binaries`, `chromium/7881`) for this host, checks its SHA-256 and unpacks
-//! the library and its licence notices. `lamina-render-pdfium` binds it at runtime from the
+//! the library and its licence notices. `laminapdf-render-pdfium` binds it at runtime from the
 //! folder this prints (`LAMINA_PDFIUM_DIR`).
 //!
 //! The cache is `$LAMINA_PDFIUM_CACHE`, else the CI runner's tool cache
@@ -139,11 +139,11 @@ fn verify(path: &Path, sha: &str) -> Result<bool> {
 mod tests {
     use super::ASSETS;
 
-    /// xtask can't depend on lamina-render-pdfium (it would build PDFium's bindings for every
+    /// xtask can't depend on laminapdf-render-pdfium (it would build PDFium's bindings for every
     /// task), so the build tag and the variable are checked against the crate's source.
     #[test]
     fn the_tag_and_variable_match_the_crate() {
-        let crate_src = include_str!("../../../crates/lamina-render-pdfium/src/lib.rs");
+        let crate_src = include_str!("../../../crates/laminapdf-render-pdfium/src/lib.rs");
         assert!(crate_src.contains(&format!("pub const PDFIUM_BUILD: &str = \"{}\";", super::TAG)));
         assert!(crate_src.contains(&format!(
             "pub const PDFIUM_DIR_ENV: &str = \"{}\";",

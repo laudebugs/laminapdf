@@ -5,7 +5,7 @@
 
 ## What happened
 
-The render engine (PDFium or hayro, `lamina-render`) could not open the document, or could not draw the page it was asked for.
+The render engine (PDFium or hayro, `laminapdf-render`) could not open the document, or could not draw the page it was asked for.
 
 ## Why
 

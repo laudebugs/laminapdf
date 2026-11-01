@@ -16,7 +16,7 @@
 
 ## Goal
 
-Let models improve extraction where rules fail (complex untagged layouts, borderless tables, scans) without putting weights or native runtimes in core. Core `lamina-extract` gets two small traits, `LayoutModel` and `OcrEngine`, and uses their results when the caller supplies them. An optional edge crate runs a permissively licensed layout model (recommendation: Docling's Heron via ONNX, licence to verify) on native targets. A licence gate makes sure no model with restricted weights can be wired in by accident.
+Let models improve extraction where rules fail (complex untagged layouts, borderless tables, scans) without putting weights or native runtimes in core. Core `laminapdf-extract` gets two small traits, `LayoutModel` and `OcrEngine`, and uses their results when the caller supplies them. An optional edge crate runs a permissively licensed layout model (recommendation: Docling's Heron via ONNX, licence to verify) on native targets. A licence gate makes sure no model with restricted weights can be wired in by accident.
 
 ## Context
 
@@ -25,13 +25,13 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - [Report: cancellation and progress belong in lamina's API](../../research/libraries/shareable-libraries.md#cancellation-and-progress-belong-in-laminas-api-not-the-bindings): the core stays synchronous; async hosts (WebCrypto-style, platform OCR) need a request/provide shape.
 - [Research 03 §8.3 scanned PDFs and OCR](../../research/pdf/03-text-and-fonts.md#83-scanned-pdfs-and-ocr), [§8.5 layout analysis](../../research/pdf/03-text-and-fonts.md#85-layout-analysis-and-ml-document-understanding-state-of-the-art-2026).
 - [E13d](./E13d-local-ocr.md) (local OCR on web and desktop) and [full-editor E13](../../plans/full-editor.md#e13-ocr-and-conversion): the editor's OCR engines should implement this PR's `OcrEngine` rather than a second interface.
-- [C2b](../done/C2b-lamina-render-crate.md): models need page images; rendering stays in `lamina-render`, never in `lamina-extract`.
+- [C2b](../done/C2b-lamina-render-crate.md): models need page images; rendering stays in `laminapdf-render`, never in `laminapdf-extract`.
 
 ## Scope
 
 **In scope**
 
-- **Traits in `lamina-extract` (core, no new dependencies):**
+- **Traits in `laminapdf-extract` (core, no new dependencies):**
   - `LayoutModel: Send + Sync` — `fn detect(&self, page: &PageRaster, cancel: &CancelToken) -> Result<Vec<LayoutRegion>, ModelError>`; `LayoutRegion { label: RegionLabel, bbox: RectPt, score }` with labels mapped from the model (text, title, section-header, list-item, table, picture, caption, footnote, formula, page-header, page-footer); `fn info(&self) -> ModelInfo { name, version, sha256, licence }`.
   - `OcrEngine: Send + Sync` — `fn recognise(&self, page: &PageRaster, langs: &[String], cancel: &CancelToken) -> Result<Vec<OcrWord>, ModelError>`; `OcrWord { text, bbox: RectPt, confidence }`; `fn info(&self) -> ModelInfo`.
   - `PageRaster { width_px, height_px, dpi, pixels: Vec<u8> (format documented), page_box: RectPt }` supplied by the caller; core never renders.
@@ -41,9 +41,9 @@ Let models improve extraction where rules fail (complex untagged layouts, border
   - Table regions without ruling lines run L3b's stream fallback inside the region (cell structure models are out of scope).
   - OCR runs on pages without a usable text layer (no glyphs, or only `Tr 3` text whose quality is in doubt — policy documented) and produces spans flagged `ocr` with confidence; OCR text in an existing invisible layer is not duplicated.
   - Output records `generator.mode` (`rules`, `rules+layout`, `rules+ocr`, …) and every model's `ModelInfo` in `generator.models`.
-- **Optional edge crate `crates/lamina-layout-onnx`** (layer `edge`, native targets only): implements `LayoutModel` with `ort` (ONNX Runtime bindings; licences of `ort` and ONNX Runtime to verify, both expected MIT/Apache) for the Heron ONNX export; pre- and post-processing (resize, normalise, NMS, label map); weights loaded from bytes or a path given by the app, never bundled.
+- **Optional edge crate `crates/laminapdf-layout-onnx`** (layer `edge`, native targets only): implements `LayoutModel` with `ort` (ONNX Runtime bindings; licences of `ort` and ONNX Runtime to verify, both expected MIT/Apache) for the Heron ONNX export; pre- and post-processing (resize, normalise, NMS, label map); weights loaded from bytes or a path given by the app, never bundled.
 - **Model manifest and licence gate:** `tools/models/models.toml` lists allowed models (name, version, URL, SHA-256, code licence, weights licence, source of the licence statement); `cargo xtask models fetch <name>` downloads and verifies by hash into a gitignored cache; `cargo xtask models check` fails if any entry's code or weights licence is outside the allow-list (Apache-2.0, MIT, BSD-2/3-Clause, CDLA-Permissive) or if a weights file appears in the repository.
-- **Docs:** a "using models" section in the `lamina-extract` README that states what the rules do alone and what each plug-in adds, with the licence of each listed model.
+- **Docs:** a "using models" section in the `laminapdf-extract` README that states what the rules do alone and what each plug-in adds, with the licence of each listed model.
 
 **Out of scope** (and which todo covers it)
 
@@ -55,14 +55,14 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices` and follow [docs/guidelines/rust.md](../../guidelines/rust.md); `lamina-extract` stays `core` and `#![forbid(unsafe_code)]`; `lamina-layout-onnx` is `edge` (any `unsafe` only inside `ort`; none in our code, or `// SAFETY:` comments if unavoidable)
+- [ ] Load `/rust-best-practices` and follow [docs/guidelines/rust.md](../../guidelines/rust.md); `laminapdf-extract` stays `core` and `#![forbid(unsafe_code)]`; `laminapdf-layout-onnx` is `edge` (any `unsafe` only inside `ort`; none in our code, or `// SAFETY:` comments if unavoidable)
 - [ ] **Verify licences first** and write the findings into `models.toml` with links: Heron weights and its ONNX export (Hugging Face model cards), Docling code (MIT vs Apache-2.0 conflict), RT-DETRv2 code, `ort`, ONNX Runtime; note Marker (code reportedly Apache-2.0 since v2.0.0, Surya weights under modified OpenRAIL-M: excluded) and MinerU (custom conditions: excluded)
-- [ ] `lamina-extract/src/plugins/{mod,layout,ocr,raster}.rs`: traits, types, `ModelError` (`thiserror`), `ModelInfo`
+- [ ] `laminapdf-extract/src/plugins/{mod,layout,ocr,raster}.rs`: traits, types, `ModelError` (`thiserror`), `ModelInfo`
 - [ ] Extend `ExtractOptions` with `layout: Option<Arc<dyn LayoutModel>>`, `ocr: Option<Arc<dyn OcrEngine>>` (façade-friendly; no generics at the boundary per ADR 0028) and the request/provide steps in `ExtractJob`
 - [ ] Integrate regions into block building, ordering, furniture and table passes; integrate OCR words as synthetic runs
-- [ ] `crates/lamina-layout-onnx`: crate with `[package.metadata.lamina] layer = "edge"`; Heron pre/post-processing; tests behind `#[ignore]` that need fetched weights
+- [ ] `crates/laminapdf-layout-onnx`: crate with `[package.metadata.lamina] layer = "edge"`; Heron pre/post-processing; tests behind `#[ignore]` that need fetched weights
 - [ ] `tools/xtask`: `models fetch`, `models check`; add `models check` to `cargo xtask check` (fast, offline); `deny.toml` updates for `ort` and its dependencies
-- [ ] Façade: re-export the traits behind the `extract` feature; `lamina-wasm` exposes the request/provide steps (no model runtime in wasm)
+- [ ] Façade: re-export the traits behind the `extract` feature; `laminapdf-wasm` exposes the request/provide steps (no model runtime in wasm)
 - [ ] README and ADR 0030 updates (request/provide decision, allow-list)
 
 ## Acceptance criteria
@@ -72,8 +72,8 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - [ ] The request/provide path produces the same output as the sync trait path for the same fake results (test)
 - [ ] Cancelling during a model step returns `Cancelled` and the model receives the token
 - [ ] `cargo xtask models check` passes on `main`, and fails on a test manifest entry with a non-allowed licence and on a weights file added to the tree
-- [ ] `lamina-extract` and `lamina` still pass `cargo xtask portability` (no `ort`, no unsafe, wasm32 builds); `lamina-layout-onnx` builds on Linux, macOS and Windows
-- [ ] With Heron weights fetched (full lane or locally), `lamina-layout-onnx` detects regions on the layout fixtures within a documented IoU threshold of a recorded reference run; scores before and after the plug-in recorded on L3b's benchmark subset
+- [ ] `laminapdf-extract` and `laminapdf` still pass `cargo xtask portability` (no `ort`, no unsafe, wasm32 builds); `laminapdf-layout-onnx` builds on Linux, macOS and Windows
+- [ ] With Heron weights fetched (full lane or locally), `laminapdf-layout-onnx` detects regions on the layout fixtures within a documented IoU threshold of a recorded reference run; scores before and after the plug-in recorded on L3b's benchmark subset
 
 ## Post-merge checks
 
@@ -82,14 +82,14 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 ## Tests
 
 - Unit tests: region-to-block assignment, label mapping, OCR word to run conversion, request/provide state machine.
-- Integration: `crates/lamina-extract/tests/plugins.rs` with deterministic fakes (no weights).
-- `crates/lamina-layout-onnx/tests/heron.rs` (`#[ignore]`, run via `cargo xtask models test` after `models fetch`).
+- Integration: `crates/laminapdf-extract/tests/plugins.rs` with deterministic fakes (no weights).
+- `crates/laminapdf-layout-onnx/tests/heron.rs` (`#[ignore]`, run via `cargo xtask models test` after `models fetch`).
 - xtask tests for `models check` with fixture manifests.
 
 ## Docs to update
 
 - [ ] [shareable-libraries §9 L3](../../plans/shareable-libraries.md#9-to-dos): tick "`LayoutModel` and `OcrEngine` traits; optional model edge crate"; add a to-do for the onnxruntime-web follow-up
-- [ ] ADR 0030 (plug-in section, allow-list, request/provide), `crates/lamina-extract/README.md`, new `crates/lamina-layout-onnx/README.md`
+- [ ] ADR 0030 (plug-in section, allow-list, request/provide), `crates/laminapdf-extract/README.md`, new `crates/laminapdf-layout-onnx/README.md`
 - [ ] E13d: note that its engines implement `OcrEngine` (edit that todo in this PR or file a follow-up)
 - [ ] `CLAUDE.md` layout tree (new edge crate), `tools/` README (model manifest)
 

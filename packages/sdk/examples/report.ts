@@ -3,7 +3,7 @@
 // It has no Rust golden: it is the §4 performance case (pdf-library plan: a 100-page report in
 // ≤ 500 ms, < 64 MB in a Worker) that the runtime matrix (B6c) times in every runtime, checking
 // that each produces the same bytes (test/suite/examples.ts). Its Rust twin is the
-// `report_100_pages` bench in crates/lamina/benches/report.rs, which checks it builds the same
+// `report_100_pages` bench in crates/laminapdf/benches/report.rs, which checks it builds the same
 // bytes (REPORT_SHA256): change both together.
 import { Builder, Font } from "@laminapdf/sdk";
 

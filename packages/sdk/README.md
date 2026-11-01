@@ -147,7 +147,7 @@ const bytes = await doc.ensure(() => doc.save({ mode: "fullRewrite" })); // fetc
 - **`callbackSource(size, read)`:** any other random-access input (a `Blob`'s `slice`, a file handle, an IPC call).
 - **Options:** `signal` (for the open; aborting rejects and cancels its requests in flight; `ensure(f, { signal })` takes its own), `blockSize`, `readahead`, `budget` (the most bytes the document may hold; more is `source-budget-exceeded`) and `maxRounds`.
 - **Off the main thread:** each `ensure` call can take several round trips. `client.openUrl` in a Web Worker hides the loop behind its async API (see below).
-- **Large local files in Rust:** the `lamina-source` crate's `FileSource` (positioned reads) or, for files nothing changes, `MmapSource`; its rustdoc describes both.
+- **Large local files in Rust:** the `laminapdf-source` crate's `FileSource` (positioned reads) or, for files nothing changes, `MmapSource`; its rustdoc describes both.
 
 ## Off the main thread: `@laminapdf/sdk/worker`
 

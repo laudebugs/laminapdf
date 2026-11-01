@@ -2,4 +2,4 @@
 //! content of a small file with every kind of resource (`fuzz_entry::content`).
 #![no_main]
 
-libfuzzer_sys::fuzz_target!(|data: &[u8]| lamina_fuzz::content_entry::content(data));
+libfuzzer_sys::fuzz_target!(|data: &[u8]| laminapdf_fuzz::content_entry::content(data));

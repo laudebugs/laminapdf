@@ -16,7 +16,7 @@
 
 ## Goal
 
-Test files are named after reviews and todos (`lamina-text/tests/review_b4b.rs`, `review_fixes.rs`, `lamina-build/tests/common/b5b.rs` and others), and 77 todo IDs sit in `src/` comments, where they explain nothing. This todo renames and folds the tests by behaviour, rewrites the comments to say why, and adds the ban to `check maintainability`.
+Test files are named after reviews and todos (`laminapdf-text/tests/review_b4b.rs`, `review_fixes.rs`, `laminapdf-build/tests/common/b5b.rs` and others), and 77 todo IDs sit in `src/` comments, where they explain nothing. This todo renames and folds the tests by behaviour, rewrites the comments to say why, and adds the ban to `check maintainability`.
 
 ## Context
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The PDFium half of the round-trip suite (todo B3c, ADR 0018 tier 7).
 
-Opens every output listed in <out-dir>/manifest.json (written by lamina-save's `roundtrip`
+Opens every output listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip`
 example) with pypdfium2 and checks the page count, each page's rotation, the Info /Title
 and whether the file is encrypted against it. `cargo xtask roundtrip` runs it; it prints one JSON line
 ({ tool, version, pdfium, checked, failures }) and exits 1 on any failure.

@@ -7,11 +7,11 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-The `lamina` crate is the one to depend on: it wraps lamina's core crates in one API. Add it as a [path dependency](/install/#rust-lamina), then build a document. This is the `hello` example, which is tested on every change:
+The `laminapdf` crate is the one to depend on: it wraps lamina's core crates in one API. Add it as a [path dependency](/install/#rust-lamina), then build a document. This is the `hello` example, which is tested on every change:
 
-<Snippet file="crates/lamina/examples/hello.rs" />
+<Snippet file="crates/laminapdf/examples/hello.rs" />
 
-Run it with `cargo run -p lamina --example hello`, which writes `target/examples-out/hello.pdf`.
+Run it with `cargo run -p laminapdf --example hello`, which writes `target/examples-out/hello.pdf`.
 
 - **Same input, same bytes:** the file ID, the producer and the dates are given, so the output never changes; see [how lamina thinks about a PDF](/concepts/how-lamina-thinks/#same-input-same-bytes).
 - **`CancelToken`:** long work (saving, jobs) takes a token, so another thread can stop it. `save_job` returns a job that you step through with a work budget instead.

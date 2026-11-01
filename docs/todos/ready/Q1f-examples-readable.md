@@ -21,7 +21,7 @@ This todo rewrites the TypeScript and Rust examples to the [examples guideline](
 ## Context
 
 - [Quality plan §2.2](../../plans/quality.md#22-code-examples): every finding with its file.
-- `packages/sdk/examples/*.ts`, `crates/lamina/examples/*.rs`, `packages/sdk/test/suite/examples.ts`, `crates/lamina/tests/examples.rs`, `fixtures/golden/examples/`.
+- `packages/sdk/examples/*.ts`, `crates/laminapdf/examples/*.rs`, `packages/sdk/test/suite/examples.ts`, `crates/laminapdf/tests/examples.rs`, `fixtures/golden/examples/`.
 
 ## Scope
 

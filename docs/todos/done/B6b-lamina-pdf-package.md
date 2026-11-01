@@ -30,7 +30,7 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 **In scope**
 
 - `packages/sdk` (`@lamina/pdf`, private for now): `init(input?)` (URL, `Response`, `ArrayBuffer`/`Uint8Array`, `WebAssembly.Module`; idempotent; text module loaded on first text use or via `init({ text: true })`), `Builder`, `Page`, `Surface`, `Font.fromBytes`, `Document.open(bytes, { password?, strict?, limits? })`, `doc.pages`, `doc.outline`, `doc.info`, `doc.warnings`, `doc.transact(tx => …)`, `doc.apply(ops)`, `doc.undo()/redo()`, `doc.save({ mode })` → `Uint8Array`, `doc.free()` + `Symbol.dispose` support.
-- `LaminaError` with every [ADR 0026](../../decisions/0026-error-and-diagnostic-contract.md) §1 field (`code`, `kind`, `message`, `hint`, `location`, `data`, `docsUrl`; `didYouMean` from the unknown-key check), built from the JSON `lamina-wasm` returns (B5c's `Serialize`), and `LaminaWarning`. Kinds and hints come from `fixtures/codes.json` v2 ([L1c](../done/L1c-error-contract-core.md)); [L1b](./L1b-error-contract-codegen.md) later generates the unions, the schema and `explain`, without changing the shape; codes generated from `fixtures/codes.json` into a TS union type.
+- `LaminaError` with every [ADR 0026](../../decisions/0026-error-and-diagnostic-contract.md) §1 field (`code`, `kind`, `message`, `hint`, `location`, `data`, `docsUrl`; `didYouMean` from the unknown-key check), built from the JSON `laminapdf-wasm` returns (B5c's `Serialize`), and `LaminaWarning`. Kinds and hints come from `fixtures/codes.json` v2 ([L1c](../done/L1c-error-contract-core.md)); [L1b](./L1b-error-contract-codegen.md) later generates the unions, the schema and `explain`, without changing the shape; codes generated from `fixtures/codes.json` into a TS union type.
 - Op types re-exported from tsify output; JSON samples in `fixtures/ops/v1` round-trip through TS.
 - `package.json` `exports` with conditions `browser`, `workerd`, `node`, `deno`, `default`; `.wasm` shipped as an asset referenced by `new URL(..., import.meta.url)`; Workers path imports a `WebAssembly.Module`.
 - Build with `tsc` (or tsup/tsdown — pick per guideline) to `dist/`; `publint` and `attw --pack` in `cargo xtask check ts`.
@@ -76,7 +76,7 @@ None.
 ## Docs to update
 
 - [x] [pdf-library §10 B6](../../plans/pdf-library.md#10-to-dos): tick `packages/sdk`, export conditions + publint/attw
-- [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick "`lamina-wasm` … and `@lamina/pdf`"
+- [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick "`laminapdf-wasm` … and `@lamina/pdf`"
 - [x] `CLAUDE.md` (layout: `packages/sdk`), package README
 
 ## Risks and open questions

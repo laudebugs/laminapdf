@@ -103,7 +103,7 @@ export async function settle<T>(state: RangeState, call: () => T | Promise<T>, s
     const asked = rangesOf(error);
     const key = JSON.stringify(asked);
     const flat = new Float64Array(asked.flatMap((r) => [r.offset, r.offset + r.length]));
-    // The planning is lamina-source's (`SparseSource::to_fetch`), shared with the Rust loop.
+    // The planning is laminapdf-source's (`SparseSource::to_fetch`), shared with the Rust loop.
     const todo = guard(() => sparse.toFetch(flat, blockSize, readahead));
     if (round >= maxRounds || todo.length === 0 || key === previous) throw error;
     signal?.throwIfAborted();

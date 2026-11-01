@@ -3,14 +3,14 @@
 //!
 //! It packs `@laminapdf/wasm` and `@laminapdf/sdk` with `pnpm pack`, then builds temporary projects in
 //! the system temp directory, outside the repository, whose only lamina dependencies are those
-//! tarballs or the `lamina` crate, and runs the quick start (`packages/sdk/examples/hello.ts`,
-//! `crates/lamina/examples/hello.rs`, copied in) in each runtime:
+//! tarballs or the `laminapdf` crate, and runs the quick start (`packages/sdk/examples/hello.ts`,
+//! `crates/laminapdf/examples/hello.rs`, copied in) in each runtime:
 //!
 //! - `node`: every `--node <binary>` (default: `node` on `PATH`; Node ≥ 22.18 runs `.ts` files);
 //! - `deno`, `bun`: the repository's pinned binaries (dev dependencies of `@laminapdf/sdk`);
 //! - `chromium`: a Vite app built for production and opened in Playwright's Chromium;
 //! - `workerd`: a Worker run by `wrangler dev --local`;
-//! - `rust`: a binary with a `path =` dependency on `crates/lamina`, and one with a `git =`
+//! - `rust`: a binary with a `path =` dependency on `crates/laminapdf`, and one with a `git =`
 //!   dependency pinned to `--git-ref` (a tag such as `v0.1.0-alpha.0`, or a commit SHA: default
 //!   `HEAD`) at `--git-url` (default: this clone, as a `file://` URL).
 //!
@@ -36,7 +36,7 @@ const RUNTIMES: [&str; 6] = ["node", "deno", "bun", "chromium", "workerd", "rust
 const GOLDEN: &str = "fixtures/golden/examples/hello.pdf";
 /// The quick starts copied into the projects.
 const HELLO_TS: &str = "packages/sdk/examples/hello.ts";
-const HELLO_RS: &str = "crates/lamina/examples/hello.rs";
+const HELLO_RS: &str = "crates/laminapdf/examples/hello.rs";
 /// The package whose dev dependencies provide deno, bun, vite, Playwright and wrangler.
 const TOOLS_PACKAGE: &str = "packages/sdk";
 /// The line a JavaScript check prints (`report.ts`).
@@ -473,7 +473,7 @@ fn split(label: &str, result: Result<(Option<String>, String)>) -> Outcome {
     }
 }
 
-/// The two Rust binaries: `lamina` by path and by git, built with the pinned toolchain into one
+/// The two Rust binaries: `laminapdf` by path and by git, built with the pinned toolchain into one
 /// shared target directory (their third-party crates build once).
 fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> {
     let git_ref = args.git_ref.clone().unwrap_or_else(|| "HEAD".to_owned());
@@ -481,16 +481,16 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
         git_stdout(&ws.root, &["rev-parse", "--path-format=absolute", "--git-common-dir"])
             .map(|dir| format!("file://{dir}"))
     });
-    let path_dep = format!("{{ path = {:?} }}", ws.root.join("crates/lamina").to_string_lossy());
+    let path_dep = format!("{{ path = {:?} }}", ws.root.join("crates/laminapdf").to_string_lossy());
     let spec = git_spec(&ws.root, &git_ref);
     let (kind, value) = spec.as_ref().map_or(("rev", git_ref.clone()), |(k, v)| (*k, v.clone()));
     let mut outcomes = vec![Outcome {
-        label: "Rust binary, `lamina = { path = … }`".to_owned(),
+        label: "Rust binary, `laminapdf = { path = … }`".to_owned(),
         result: rust_project(ws, work, "rust-path", &path_dep, golden),
     }];
     outcomes.push(Outcome {
         label: format!(
-            "Rust binary, `lamina = {{ git = {}, {kind} = \"{value}\" }}`",
+            "Rust binary, `laminapdf = {{ git = {}, {kind} = \"{value}\" }}`",
             git_url.as_deref().unwrap_or("?")
         ),
         result: match (&git_url, spec) {
@@ -511,7 +511,7 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
 fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golden: &str) -> Result<String> {
     let dir = work.join(name);
     let manifest = format!(
-        "# cargo xtask verify-install: the Rust quick start (crates/lamina/examples/hello.rs) outside the\n\
+        "# cargo xtask verify-install: the Rust quick start (crates/laminapdf/examples/hello.rs) outside the\n\
          # repository. An empty [workspace]: this project is its own workspace.\n\
          [package]\nname = \"lamina-verify-{name}\"\nversion = \"0.0.0\"\nedition = \"2024\"\npublish = false\n\n\
          [dependencies]\nlamina = {dependency}\n\n[workspace]\n"

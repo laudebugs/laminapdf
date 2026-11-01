@@ -41,7 +41,7 @@ Decide the collaboration model: one Durable Object per document (SQLite storage,
 
 **Editor facts**
 
-- **Crates and packages:** (decision) `apps/collab` Worker + DO, `lamina-sync` (record ↔ op mapping)
+- **Crates and packages:** (decision) `apps/collab` Worker + DO, `laminapdf-sync` (record ↔ op mapping)
 - **`SaveConstraint`:** no new save behaviour beyond the round's: base PDFs immutable; content edits and redactions via lease or server job minting a new base revision
 - **Web vs desktop:** identical on web and desktop
 - **Server features:** DO, R2, D1

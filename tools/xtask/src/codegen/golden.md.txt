@@ -20,7 +20,7 @@
 | [`nested-transaction`](nested-transaction.md) | `state` | what happened |
 | [`no-transaction`](no-transaction.md) | `state` | what happened |
 
-## Binding errors (`lamina-wasm`)
+## Binding errors (`laminapdf-wasm`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |

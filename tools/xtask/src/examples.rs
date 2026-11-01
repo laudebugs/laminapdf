@@ -1,4 +1,4 @@
-//! `cargo xtask examples` (todo B5c): runs every example of the `lamina` façade crate into
+//! `cargo xtask examples` (todo B5c): runs every example of the `laminapdf` façade crate into
 //! `target/examples-out/`, compares each output byte for byte with its golden in
 //! `fixtures/golden/examples/` and runs `qpdf --check` on it (the full lane). `cargo xtask
 //! golden --update` writes the goldens with the same runner ([`run_all`]).
@@ -12,12 +12,12 @@ use anyhow::{Context, Result, bail};
 use crate::step;
 use crate::workspace::Workspace;
 
-/// The façade's examples: every `crates/lamina/examples/<name>.rs`, each writing `<name>.pdf`
+/// The façade's examples: every `crates/laminapdf/examples/<name>.rs`, each writing `<name>.pdf`
 /// or, for an example with variants (`pdf_a_archive`: PDF/A-2b and PDF/A-2u), one
 /// `<name>-<variant>.pdf` per variant ([`outputs_of`]), in name order. Discovered, not listed, so a new example is a golden without an xtask edit
-/// (`crates/lamina/tests/examples.rs` checks its own list against the same folder).
+/// (`crates/laminapdf/tests/examples.rs` checks its own list against the same folder).
 pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
-    let dir = root.join("crates/lamina/examples");
+    let dir = root.join("crates/laminapdf/examples");
     let mut names = Vec::new();
     for entry in fs::read_dir(&dir).with_context(|| format!("reading {}", dir.display()))? {
         let path = entry?.path();
@@ -42,7 +42,7 @@ pub(crate) fn run_all(ws: &Workspace, out: &Path) -> Result<Vec<PathBuf>> {
     fs::create_dir_all(out).with_context(|| format!("creating {}", out.display()))?;
     let out_arg = out.to_string_lossy().into_owned();
     // One build for all of them, then each example on its own.
-    ws.cargo(&["build", "--locked", "-q", "-p", "lamina", "--examples"])?;
+    ws.cargo(&["build", "--locked", "-q", "-p", "laminapdf", "--examples"])?;
     let mut files = Vec::new();
     for name in names(&ws.root)? {
         let name = name.as_str();
@@ -51,7 +51,7 @@ pub(crate) fn run_all(ws: &Workspace, out: &Path) -> Result<Vec<PathBuf>> {
             "--locked",
             "-q",
             "-p",
-            "lamina",
+            "laminapdf",
             "--example",
             name,
             "--",

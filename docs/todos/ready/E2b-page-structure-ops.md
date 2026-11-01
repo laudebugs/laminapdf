@@ -34,7 +34,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - Ops: `InsertBlankPages { at, count, size: PageSize, rotate }`, `DeletePages { pages }`, `DuplicatePages { pages, at }`, `MovePages { pages, to }`, `RotatePages { pages, rotate }`, `ReversePages { range }`
 - Page-tree editing that materialises inherited attributes (`/Resources`, `/MediaBox`, `/CropBox`, `/Rotate`) before moving a page out of its parent
 - Rebalancing: keep the tree shape for small edits; flatten-and-rebuild only when depth or fan-out passes a threshold
-- **Tree writers** in `lamina-model`, shared by every later op that edits a number or name tree: a number-tree writer (`/PageLabels`, `/ParentTree`; balanced, sorted keys, `/Nums` leaf limit, `/Limits` maintained) and a name-tree writer (`/Dests`, `/EmbeddedFiles`, …; balanced, keys sorted by byte order, `/Names` leaf limit, `/Limits` maintained). [E2c](E2c-cross-document-pages.md), [E2d](E2d-merge-and-split.md), [E2g](E2g-page-labels.md), [E3b](E3b-bookmarks-and-destinations.md) and [E3f](E3f-attachments-and-associated-files.md) build on them rather than writing their own
+- **Tree writers** in `laminapdf-model`, shared by every later op that edits a number or name tree: a number-tree writer (`/PageLabels`, `/ParentTree`; balanced, sorted keys, `/Nums` leaf limit, `/Limits` maintained) and a name-tree writer (`/Dests`, `/EmbeddedFiles`, …; balanced, keys sorted by byte order, `/Names` leaf limit, `/Limits` maintained). [E2c](E2c-cross-document-pages.md), [E2d](E2d-merge-and-split.md), [E2g](E2g-page-labels.md), [E3b](E3b-bookmarks-and-destinations.md) and [E3f](E3f-attachments-and-associated-files.md) build on them rather than writing their own
 - **Page-label maintenance** for every op here: `PageLabels::remap(old_index → new_index)` rebuilds `/PageLabels` ranges from `PageId`s so each surviving page keeps its label after insert/delete/duplicate/move/reverse (inserted blank pages continue the range they land in); E2c and E2d call the same function for `InsertPagesFrom`, `ReplacePages`, extract and merge
 - Reference cleanup on delete according to the E2a decision (named destinations removed or retargeted through the name-tree writer), with an `OpReport` listing affected outline items/links/destinations
 - Duplicate copies the page dict and annotations (new `/NM`, new IDs), sharing content streams and resources, and never leaves shared structure or field links behind:
@@ -50,7 +50,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.08` rotate pages 90/180/270; `C.13` reverse page order
-- **Crates and packages:** `lamina-model` (page tree mutation helpers), `lamina-ops`, bindings
+- **Crates and packages:** `laminapdf-model` (page tree mutation helpers), `laminapdf-ops`, bindings
 - **`Op` variants:** `InsertBlankPages`, `DeletePages`, `DuplicatePages`, `MovePages`, `RotatePages`, `ReversePages` (class `PageStructure`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget), and **always a violation when it touches a signed signature field's widget**: deleting the page that holds the widget of a signed `/FT /Sig` field removes the signature's visible appearance and leaves the widget's `/P` (and the field's `/Kids`) pointing at a page that is gone, so `DeletePages` (and `ReplacePages` in E2c, which reuses this check) reports `Violation::SignedWidgetPage { field, signature }` and the save is `Conflict`, never plain `AppendOnly`. `MovePages`, `RotatePages` and `ReversePages` on such a page keep `/P` valid but change how the signed appearance is presented (`/Rotate` turns it), so `RotatePages` on a page holding a signed widget is also a violation; moving/reversing is allowed (`AppendOnly`) and reported. Pages holding only unsigned signature fields follow the normal rule
 - **Web vs desktop:** identical (core); UI in E2h
@@ -59,7 +59,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 
 ## Tasks
 
-- [ ] Implement page-tree mutation in `lamina-model` with inherited-attribute materialisation and `/Count` maintenance
+- [ ] Implement page-tree mutation in `laminapdf-model` with inherited-attribute materialisation and `/Count` maintenance
 - [ ] Implement each op with undo records; `MovePages` must keep `PageId`s and object numbers
 - [ ] Reference index: find outline items, link annotations, named destinations, struct elements and open action pointing at a page
 - [ ] Number-tree and name-tree writers (balanced, sorted keys, leaf limits, `/Limits`) with property tests (random insert/delete → valid tree that qpdf and pdf.js read back identically)
@@ -71,7 +71,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean

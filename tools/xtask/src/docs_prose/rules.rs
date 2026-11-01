@@ -694,9 +694,12 @@ mod tests {
 
     #[test]
     fn repository_paths_in_prose_should_be_reported_but_not_in_code() {
-        assert_eq!(rules_for("Look in crates/lamina for it.\n", false), vec!["internal-id"]);
         assert_eq!(
-            rules_for("Look in `crates/lamina` for it.\n", false),
+            rules_for("Look in crates/laminapdf for it.\n", false),
+            vec!["internal-id"]
+        );
+        assert_eq!(
+            rules_for("Look in `crates/laminapdf` for it.\n", false),
             Vec::<&str>::new()
         );
     }

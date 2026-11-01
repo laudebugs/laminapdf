@@ -2,7 +2,7 @@
 //
 //   node tools/differential/text.mjs <out.json> <repo-relative path>…
 //     `cargo xtask differential --text --update`: writes fixtures/differential/text.json, which
-//     crates/lamina/tests/text_differential.rs compares lamina's `page_texts` with.
+//     crates/laminapdf/tests/text_differential.rs compares lamina's `page_texts` with.
 //
 //   node tools/differential/text.mjs --facts pdfjs|pdftotext <list.tsv> <out.json>
 //     `cargo xtask differential --live --text`: one tool's text for every `<name>\t<path>` line

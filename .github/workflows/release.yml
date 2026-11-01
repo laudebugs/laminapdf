@@ -12,7 +12,7 @@
 #                   trip, the examples and render goldens, the capability matrix, @laminapdf/sdk in
 #                   every runtime, and `cargo xtask check` on Linux while that runner is on
 #   nightly         nightly.yml itself, called as a reusable workflow on the release commit
-#   verify-install  `cargo xtask verify-install`: the `pnpm pack` tarballs and the `lamina` crate
+#   verify-install  `cargo xtask verify-install`: the `pnpm pack` tarballs and the `laminapdf` crate
 #                   (path and git dependencies, the git one pinned to the tag) in clean projects
 #                   outside the checkout: Node 22, 24 and 26, Deno, Bun, Chromium (a Vite app),
 #                   workerd (`wrangler dev --local`) and a Rust binary

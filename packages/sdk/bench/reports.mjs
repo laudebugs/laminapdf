@@ -3,7 +3,7 @@
 // - `report`: examples/report.ts, the report `cargo xtask pdf-runtimes` times in every runtime;
 // - `text-boxes`: B6b's first measurement, a Helvetica-Bold heading and six 4-sentence Noto Sans
 //   text boxes per page.
-// Both have native twins in crates/lamina/benches/report.rs (`cargo bench -p lamina --bench
+// Both have native twins in crates/laminapdf/benches/report.rs (`cargo bench -p laminapdf --bench
 // report`), so a gap between the two is binding cost.
 //
 //   cargo xtask wasm && node packages/sdk/bench/reports.mjs [runs]   # Node ≥ 22.18 (type stripping)

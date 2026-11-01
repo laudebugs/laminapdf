@@ -41,7 +41,7 @@ The short feature-plan PR that opens round E17 ([full-editor §E17](../../plans/
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.01` add/edit JavaScript actions; `M.02` interactive buttons; `M.03` event-triggered actions; `M.04` manage/show/hide layers; `M.05` embed audio and video; `M.06` embed 3D models; `M.07` measurement tools and scales; `M.08` geospatial coordinates; `M.10` document open actions; `M.11` rich-media annotations; `I.08` optional content groups (layers); `D.09` audio annotations
-- **Crates and packages:** (planned for the round) `lamina-model` actions, OCGs, measurement dictionaries
+- **Crates and packages:** (planned for the round) `laminapdf-model` actions, OCGs, measurement dictionaries
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental on `Free`
 - **Web vs desktop:** media playback depends on platform codecs; JavaScript never runs outside the ADR 0021 sandbox
 - **Server features:** none
@@ -50,7 +50,7 @@ The short feature-plan PR that opens round E17 ([full-editor §E17](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e17-advanced-interactions.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`M.01`, `M.02`, `M.03`, `M.04`, `M.05`, `M.06`, `M.07`, `M.08`, `M.10`, `M.11`, `I.08`, `D.09`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

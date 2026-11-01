@@ -7,7 +7,7 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [§8 Q3](../../plans/architecture.md#8-open-questions-for-the-team) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | None |
-| Blocks | [P0b](../ongoing/P0b-crate-names-laminapdf.md), [P1](../ready/P1-reserve-names-and-trusted-publishing.md) |
+| Blocks | [P0b](./P0b-crate-names-laminapdf.md), [P1](../ready/P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Amends [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (the `packages/` scope) |
 | Branch | `refactor/npm-scope-laminapdf` |
 | PR title | `refactor: publish the npm packages under @laminapdf` |
@@ -39,7 +39,7 @@ The owner decided (2026-10-31) that lamina's npm packages are published under th
 **Out of scope** (and which todo covers it)
 
 - Reserving the scope and publishing → [P1](../ready/P1-reserve-names-and-trusted-publishing.md), [P2](../ready/P2-first-registry-prerelease.md).
-- Crate names (`lamina-*`), the Rust façade `lamina` and the product name: unchanged.
+- Crate names (`lamina-*`), the Rust façade `lamina` and the product name: unchanged (the crates became `laminapdf-*` later, in [P0b](P0b-crate-names-laminapdf.md)).
 - History: done todos keep the name they were written under (links into renamed anchors are fixed), and so do their titles on the generated board. The frozen spikes `pdfium-wasm`, `krilla-fit` and `hayro-parity` keep it too: `pdfium-wasm`'s lockfile pins the old tarballs, and it is re-run only with a rename of its own.
 
 ## Tasks

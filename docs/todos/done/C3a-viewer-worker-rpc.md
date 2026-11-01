@@ -17,7 +17,7 @@
 
 ## Goal
 
-Create `packages/viewer` and its foundation: one **document worker** per open document that hosts `lamina-wasm` (via `@laminapdf/sdk`) and a `RenderBackend` adapter, and a **hand-written typed RPC** between the main thread and that worker, with request IDs, a method union, priority queues, transfer lists, `AbortSignal` cancellation and automatic restart after a crash. Everything later in the viewer (virtualiser, text layer, find, thumbnails, print) talks to the document only through this RPC, so its shape and cancellation semantics are the most important thing to get right in Round C.
+Create `packages/viewer` and its foundation: one **document worker** per open document that hosts `laminapdf-wasm` (via `@laminapdf/sdk`) and a `RenderBackend` adapter, and a **hand-written typed RPC** between the main thread and that worker, with request IDs, a method union, priority queues, transfer lists, `AbortSignal` cancellation and automatic restart after a crash. Everything later in the viewer (virtualiser, text layer, find, thumbnails, print) talks to the document only through this RPC, so its shape and cancellation semantics are the most important thing to get right in Round C.
 
 ## Context
 

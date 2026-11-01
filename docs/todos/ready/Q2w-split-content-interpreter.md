@@ -16,11 +16,11 @@
 
 ## Goal
 
-`lamina-content/src/interp.rs`'s `execute` is 318 lines behind an `#[expect(too_many_lines)]` whose reason is "one match arm per operator". This todo makes the match a table of one-line arms that dispatch to per-group handlers, removes the `#[expect]` and brings the file under budget.
+`laminapdf-content/src/interp.rs`'s `execute` is 318 lines behind an `#[expect(too_many_lines)]` whose reason is "one match arm per operator". This todo makes the match a table of one-line arms that dispatch to per-group handlers, removes the `#[expect]` and brings the file under budget.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-content/src/interp.rs:383`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-content/src/interp.rs:383`.
 
 ## Scope
 

@@ -16,8 +16,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, ensure};
-use lamina_cos::{Object, PdfString};
-use lamina_save::{XrefEol, incremental_update};
+use laminapdf_cos::{Object, PdfString};
+use laminapdf_save::{XrefEol, incremental_update};
 
 const RUNS: usize = 30;
 
@@ -44,8 +44,8 @@ fn kib(n: usize) -> String {
 
 /// Open + walk every page and every object (what "open" costs for a caller that touches all).
 fn open_and_walk(bytes: &[u8]) -> Result<usize> {
-    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
-    ensure!(!doc.was_repaired(), "lamina-cos had to repair the file");
+    let doc = laminapdf_cos::Document::open(bytes.to_vec(), laminapdf_cos::OpenOptions::default())?;
+    ensure!(!doc.was_repaired(), "laminapdf-cos had to repair the file");
     let pages = doc.pages()?;
     for p in &pages {
         doc.page_content(p)?;
@@ -58,7 +58,7 @@ fn open_and_walk(bytes: &[u8]) -> Result<usize> {
 
 /// Total stored bytes of embedded font programs (streams with /Length1, /Length2 or /Subtype).
 fn font_program_bytes(bytes: &[u8]) -> Result<usize> {
-    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
+    let doc = laminapdf_cos::Document::open(bytes.to_vec(), laminapdf_cos::OpenOptions::default())?;
     let mut total = 0;
     for n in doc.object_numbers().collect::<Vec<_>>() {
         let obj = doc.object(n)?;
@@ -79,7 +79,7 @@ fn font_program_bytes(bytes: &[u8]) -> Result<usize> {
 
 /// Every page's /Parent is a /Type /Pages node (checks B1 doesn't point pages elsewhere).
 fn parents_ok(bytes: &[u8]) -> Result<bool> {
-    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
+    let doc = laminapdf_cos::Document::open(bytes.to_vec(), laminapdf_cos::OpenOptions::default())?;
     for p in doc.pages()? {
         let parent = p.dict.get("Parent").cloned().unwrap_or(Object::Null);
         let parent = doc.deref(&parent)?;
@@ -92,7 +92,7 @@ fn parents_ok(bytes: &[u8]) -> Result<bool> {
 
 /// Sets /Info /Title with an incremental update.
 fn retitle(bytes: &[u8], title: &str) -> Result<Vec<u8>> {
-    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
+    let doc = laminapdf_cos::Document::open(bytes.to_vec(), laminapdf_cos::OpenOptions::default())?;
     let info_ref = doc
         .trailer()
         .get("Info")
@@ -108,7 +108,7 @@ fn retitle(bytes: &[u8], title: &str) -> Result<Vec<u8>> {
 }
 
 fn title_of(bytes: &[u8]) -> Result<String> {
-    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
+    let doc = laminapdf_cos::Document::open(bytes.to_vec(), laminapdf_cos::OpenOptions::default())?;
     let info = doc.trailer().get("Info").cloned().context("no /Info")?;
     let info = doc.deref(&info)?;
     match info.as_dict().and_then(|d| d.get("Title")) {
@@ -153,10 +153,10 @@ fn main() -> Result<()> {
     row("A krilla tagged output size", kib(a_tagged.len()));
     let (t, pages) = best(|| open_and_walk(&a))?;
     row(
-        "A lamina-cos open + walk all pages/objects",
+        "A laminapdf-cos open + walk all pages/objects",
         format!("{} ({pages} pages)", ms(t)),
     );
-    let (t, edited) = best(|| retitle(&a, "Edited by lamina-cos"))?;
+    let (t, edited) = best(|| retitle(&a, "Edited by laminapdf-cos"))?;
     row(
         "A incremental /Info title update",
         format!("{}, +{} B", ms(t), edited.len() - a.len()),
@@ -187,8 +187,8 @@ fn main() -> Result<()> {
         (exp_c::generate(&assets, false)?.bytes == c.bytes).to_string(),
     );
     let (t, pages) = best(|| open_and_walk(&c.bytes))?;
-    row("C lamina-cos open + walk", format!("{} ({pages} pages)", ms(t)));
-    let c_edited = retitle(&c.bytes, "Edited by lamina-cos")?;
+    row("C laminapdf-cos open + walk", format!("{} ({pages} pages)", ms(t)));
+    let c_edited = retitle(&c.bytes, "Edited by laminapdf-cos")?;
     row("C reopened title after incremental update", title_of(&c_edited)?);
     save("c-lamina.pdf", &c.bytes)?;
     save("c-lamina-compact.pdf", &cc.bytes)?;
@@ -246,7 +246,7 @@ fn main() -> Result<()> {
     );
     row("B2 page count after reopen", open_and_walk(&b2)?.to_string());
     let (t, parsed) = best(|| {
-        let doc = lamina_cos::Document::open(a.clone(), lamina_cos::OpenOptions::default())?;
+        let doc = laminapdf_cos::Document::open(a.clone(), laminapdf_cos::OpenOptions::default())?;
         let mut chunk_bytes = 0;
         for n in doc.object_numbers().collect::<Vec<_>>() {
             chunk_bytes += doc.object(n)?.to_bytes().len();

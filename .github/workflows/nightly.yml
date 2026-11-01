@@ -17,7 +17,7 @@
 #                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
 #   links         every external URL in the tracked Markdown answers, with retries, a per-host
 #                 rate limit and an allowlist (`cargo xtask docs-links --external`; todo X3c)
-#   render-diff   every page (the first 20 per file) of the external corpus by lamina-render's
+#   render-diff   every page (the first 20 per file) of the external corpus by laminapdf-render's
 #                 hayro and PDFium adapters at 96 DPI, compared with the hayro-parity spike's
 #                 metric; the pass rate per source goes to the bench-data history
 #                 (`render-diff/<source>`), and a drop of more than 2 points opens an issue,

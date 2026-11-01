@@ -31,7 +31,7 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 **In scope**
 
 - Job API (create, status, result, delete) with signed short-lived tokens
-- Container images built and pinned in CI (licences recorded, SBOM). `containers/ocr` holds Tesseract + Leptonica + language data and a lamina binary that renders pages (`lamina-render`) and writes the text layer from Tesseract's hOCR (E13c `AddOcrLayer`); no ocrmypdf and no Ghostscript (AGPL), per ADR 0013's Tesseract-only pipeline
+- Container images built and pinned in CI (licences recorded, SBOM). `containers/ocr` holds Tesseract + Leptonica + language data and a lamina binary that renders pages (`laminapdf-render`) and writes the text layer from Tesseract's hOCR (E13c `AddOcrLayer`); no ocrmypdf and no Ghostscript (AGPL), per ADR 0013's Tesseract-only pipeline
 - Workflow with retries and step results in R2
 - Retention: inputs and outputs expire (e.g. 24 h) and are deleted on completion download if the user chooses
 - Client opt-in dialog per document

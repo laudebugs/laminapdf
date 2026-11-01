@@ -1,5 +1,5 @@
 //! `cargo xtask roundtrip [--tools pdfjs,pdfium,qpdf]` (ADR 0018 tier 7; todo B3c): lamina
-//! saves every fixture × proving op × mode (lamina-save's `roundtrip` example, which also
+//! saves every fixture × proving op × mode (laminapdf-save's `roundtrip` example, which also
 //! reopens each output in lamina and checks the planner's decisions), then each output is
 //! checked by `qpdf --check`, pdf.js (`tools/roundtrip/pdfjs.mjs`) and `PDFium`
 //! (`tools/roundtrip/pdfium.py`, pypdfium2) against the manifest the example wrote.
@@ -57,7 +57,7 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
             "--locked",
             "-q",
             "-p",
-            "lamina-save",
+            "laminapdf-save",
             "--example",
             "roundtrip",
             "--",

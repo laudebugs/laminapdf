@@ -40,7 +40,7 @@ Record an op sequence (ADR 0006 JSON with `v` envelope), parameterise it, and ap
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-ops`, `apps/desktop`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-ops`, `apps/desktop`, `@laminapdf/ui`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: read-only views; batch outputs follow each op's rules
 - **Web vs desktop:** desktop: folders, parallel; web: selected files, zip output
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

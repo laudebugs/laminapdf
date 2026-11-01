@@ -29,13 +29,13 @@ Make generated documents tagged: every piece of content is either inside a struc
 
 **In scope**
 
-- `StructTree` builder in `lamina-build`: `StructElem` kinds (`Document`, `Part`, `Sect`, `H1`–`H6`, `P`, `L`/`LI`/`Lbl`/`LBody`, `Table`/`TR`/`TH`/`TD`, `Figure`, `Caption`, `Link`, `Span`, `Quote`, `Note`, `Code`), nesting via `surface.tag(kind, |s| …)` or `.tag(kind)` on a run; attributes (`/Lang` per element, `/Alt`, `/ActualText`, `/E`, table `/Scope`).
+- `StructTree` builder in `laminapdf-build`: `StructElem` kinds (`Document`, `Part`, `Sect`, `H1`–`H6`, `P`, `L`/`LI`/`Lbl`/`LBody`, `Table`/`TR`/`TH`/`TD`, `Figure`, `Caption`, `Link`, `Span`, `Quote`, `Note`, `Code`), nesting via `surface.tag(kind, |s| …)` or `.tag(kind)` on a run; attributes (`/Lang` per element, `/Alt`, `/ActualText`, `/E`, table `/Scope`).
 - Marked content emission (`/<Tag> <</MCID n>> BDC … EMC`), per-page MCID counters, `/StructParents` on pages, `/StructParent` on annotations, `ParentTree` number tree (deterministic), `OBJR` for link annotations, `RoleMap` for custom tag names, `/MarkInfo << /Marked true >>`, `/StructTreeRoot`, `/K` ordering in reading order.
 - Artifacts: `surface.artifact(ArtifactKind::{Layout, Page, Pagination, Background}, |s| …)` emitting `/Artifact BMC/BDC`.
 - Images: `image(..., alt)` creates a `Figure` with `/Alt`; missing alt recorded for B8b's profile check.
 - Builder bookkeeping exposing "untagged content" diagnostics (content outside any element or artifact) for B8b.
-- TS bindings (`tag`, `artifact`, `alt`) in `@lamina/pdf` and `lamina-wasm`.
-- Reading back: `lamina-model` gets a minimal read-only `StructTree` view (root, kids, kinds, MCIDs) used by tests.
+- TS bindings (`tag`, `artifact`, `alt`) in `@lamina/pdf` and `laminapdf-wasm`.
+- Reading back: `laminapdf-model` gets a minimal read-only `StructTree` view (root, kids, kinds, MCIDs) used by tests.
 
 **Out of scope** (and which todo covers it)
 
@@ -46,15 +46,15 @@ Make generated documents tagged: every piece of content is either inside a struc
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read 03 §9 and ISO 32000-2 §14.7–14.8
-- [x] `lamina-build/src/tag/{mod,elem,mcid,parent_tree,artifact,rolemap}.rs`
+- [x] `laminapdf-build/src/tag/{mod,elem,mcid,parent_tree,artifact,rolemap}.rs`
 - [x] Integrate with text runs, images, paths and links from B5a/B5b
-- [x] `lamina-model::structure` read view
+- [x] `laminapdf-model::structure` read view
 - [x] TS API and tests; update examples (`invoice` tagged)
 - [x] Goldens: `tagged-report.pdf`; full-lane checks with pdf.js (structure tree via `getStructTree`) and PDFium
 
 ## Acceptance criteria
 
-- [x] A tagged example's structure tree read by pdf.js `getStructTree()` and by `lamina-model` matches the builder input (kinds, order, alt text)
+- [x] A tagged example's structure tree read by pdf.js `getStructTree()` and by `laminapdf-model` matches the builder input (kinds, order, alt text)
 - [x] Every MCID on every page is referenced exactly once from the ParentTree; every `/StructParent(s)` resolves
 - [x] Link annotations are inside `Link` elements via OBJR and have `/Contents`
 - [x] Untagged-content diagnostics are empty for all tagged examples and non-empty for a deliberately untagged path
@@ -62,7 +62,7 @@ Make generated documents tagged: every piece of content is either inside a struc
 
 ## Outcome
 
-- **API.** Rust: closures, as `path(|p| …)` and ADR 0016's `transact(tx => …)`: `surface.tag(tag, |s| …)`, `surface.artifact(kind, |s| …)` (the closure returns `lamina_build::Result`; the element ends even when it fails), `TextRun::tag`, `surface.figure(&image, rect, alt)`; `begin_tag`/`begin_artifact`/`end_tag` are the begin/end form the bindings use. TS: the same closures (`s.tag("H1", s => …)`, `s.artifact("layout", s => …)`, ended in a `finally`), a `tag` option on `text`/`textBox`, `image(image, rect, alt)`; WASM: `beginTag`/`beginArtifact`/`endTag` with flat arguments, types and artifact kinds as indices that `@lamina/pdf` checks and suggests names for (no new serde records or name tables in the modules, for the size budget; `TAG_NAMES` mirrors `TagKind::ALL`, which a Rust test checks). `BuildOptions::with_tagged` (TS `tagged: true`) tags a document before any element; a page using one tags it either way.
+- **API.** Rust: closures, as `path(|p| …)` and ADR 0016's `transact(tx => …)`: `surface.tag(tag, |s| …)`, `surface.artifact(kind, |s| …)` (the closure returns `laminapdf_build::Result`; the element ends even when it fails), `TextRun::tag`, `surface.figure(&image, rect, alt)`; `begin_tag`/`begin_artifact`/`end_tag` are the begin/end form the bindings use. TS: the same closures (`s.tag("H1", s => …)`, `s.artifact("layout", s => …)`, ended in a `finally`), a `tag` option on `text`/`textBox`, `image(image, rect, alt)`; WASM: `beginTag`/`beginArtifact`/`endTag` with flat arguments, types and artifact kinds as indices that `@lamina/pdf` checks and suggests names for (no new serde records or name tables in the modules, for the size budget; `TAG_NAMES` mirrors `TagKind::ALL`, which a Rust test checks). `BuildOptions::with_tagged` (TS `tagged: true`) tags a document before any element; a page using one tags it either way.
 - **Elements are per page** (one doesn't continue on the next page); appended pages (`Builder::on`) are never tagged (merging structure trees is E2). Tables: `TH` `/Scope` only; `/Headers`, `RowSpan`/`ColSpan`, `THead`/`TBody`/`TFoot` are not offered.
 - **Diagnostics** are `Builder::tagging_diagnostics()` → `TagDiagnostic::{Untagged { page, content, count }, MissingAlt { page }}` (Rust and the façade only; no new error or warning codes: B8b decides which become errors). A clip path alone isn't counted as content. Tagging may begin on a later page (a page using an element tags the document), so every page is counted whether or not the document is tagged yet: pages finished before tagging began report all they drew and linked, and a link annotation without a `Link` element (inside an artifact, or on such a page) is `ContentKind::Link`. The list is empty only when everything has structure.
 - **Custom types** never remap a standard type: a `Tag::custom` name that is one of `TagKind`'s is that kind, and any other PDF 1.7 or 2.0 standard type (`Div`, `BlockQuote`, `THead`, `Formula`, `Hn`, …) is written as `/S` unmapped.
@@ -75,7 +75,7 @@ None.
 
 ## Tests
 
-- Unit tests (MCID allocation, ParentTree writer); `crates/lamina-build/tests/tagging.rs`; TS tests in `packages/sdk/test/tagging.test.ts`.
+- Unit tests (MCID allocation, ParentTree writer); `crates/laminapdf-build/tests/tagging.rs`; TS tests in `packages/sdk/test/tagging.test.ts`.
 
 ## Docs to update
 

@@ -1,6 +1,6 @@
 # `would-invalidate-signatures`
 
-- Type: error (`lamina_save::SaveError::WouldInvalidateSignatures`)
+- Type: error (`laminapdf_save::SaveError::WouldInvalidateSignatures`)
 - Kind: `security` (signatures block the call)
 
 ## What happened

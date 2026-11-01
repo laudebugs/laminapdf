@@ -221,7 +221,7 @@ let out = doc.extract(ExtractOptions {
     coords: Coords { origin: Origin::TopLeft, unit: Unit::Pt, normalized: true },
     drop: Drop::INVISIBLE | Drop::RUNNING_HEADERS | Drop::ARTIFACTS,
     tables: TableMode::Lattice,                   // Off | Lattice | LatticeAndStream
-    layout: None,                                 // Some(&dyn LayoutModel) from lamina-layout-onnx
+    layout: None,                                 // Some(&dyn LayoutModel) from laminapdf-layout-onnx
     ocr: None,                                    // Some(&dyn OcrEngine)
     ..Default::default()
 })?;

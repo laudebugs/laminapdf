@@ -40,7 +40,7 @@ run "cargo-swift 0.11.1 probe" bash -c '
   rsync -a --exclude target --exclude swift/build . "$probe/"
   cd "$probe"
   # cargo-swift reads the path dependency relative to the crate: point it back at the repo.
-  sed -i "" "s|path = \"../../crates/lamina\"|path = \"'"$PWD"'/../../crates/lamina\"|" Cargo.toml
+  sed -i "" "s|path = \"../../crates/laminapdf\"|path = \"'"$PWD"'/../../crates/laminapdf\"|" Cargo.toml
   cargo swift package -y -p ios macos -n LaminaCargoSwift -r --lib-type static \
     --exclude-arch x86_64-apple-ios --exclude-arch x86_64-apple-darwin && du -sh LaminaCargoSwift/*.xcframework'
 

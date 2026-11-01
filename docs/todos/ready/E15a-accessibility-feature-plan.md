@@ -44,7 +44,7 @@ The short feature-plan PR that opens round E15 ([full-editor §E15](../../plans/
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `L.01` add structure tags; `L.02` logical reading order; `L.03` alt text for images; `L.04` document language; `L.05` mark decorative artifacts; `L.06` accessible form labels; `L.07` accessible link descriptions; `L.08` check missing fonts / Unicode mappings; `L.09` run accessibility validation; `L.10` fix tagging and structure issues; `L.11` PDF/UA-compliant output; `I.07` define reading order; logical structure tags; `H.12` convert to PDF/A, PDF/X, PDF/UA
-- **Crates and packages:** (planned for the round) structure-tree editing in `lamina-model`; checks shared with B8; veraPDF external
+- **Crates and packages:** (planned for the round) structure-tree editing in `laminapdf-model`; checks shared with B8; veraPDF external
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental on `Free`; tagging a certified file is a DocMDP violation at every level (gated, override names the signatures); with approval signatures only it is an `AppendOnly` incremental update
 - **Web vs desktop:** identical; tag tree panel and reading-order overlay on both
 - **Server features:** optional veraPDF Container (GPL, never linked)
@@ -53,7 +53,7 @@ The short feature-plan PR that opens round E15 ([full-editor §E15](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e15-accessibility.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`L.01`, `L.02`, `L.03`, `L.04`, `L.05`, `L.06`, `L.07`, `L.08`, `L.09`, `L.10`, `L.11`, `I.07`, `H.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

@@ -1,4 +1,4 @@
-// pdf.js's view of lamina-build's B5b goldens (todo B5b): per file, each page's text lines
+// pdf.js's view of laminapdf-build's B5b goldens (todo B5b): per file, each page's text lines
 // (`getTextContent()` items joined, a break wherever pdf.js marks one), link annotations, the
 // outline with each item's page, the named destinations, page labels, the Info dictionary and
 // the XMP values. Called by tools/fixtures/build_facts.py; prints JSON. Tools only, never run

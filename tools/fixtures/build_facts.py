@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Writes fixtures/build/facts.json (todo B5b): for each of lamina-build's B5b goldens, its
+"""Writes fixtures/build/facts.json (todo B5b): for each of laminapdf-build's B5b goldens, its
 SHA-256, whether `qpdf --check` passes, pdftotext's text lines per page, and what pypdf and pdf.js read from it: each page's
 text lines, link annotations, the outline with each item's page, the named destinations, the
-page labels, the Info dictionary and the XMP values. crates/lamina-build/tests/external.rs
+page labels, the Info dictionary and the XMP values. crates/laminapdf-build/tests/external.rs
 checks the facts against the builder's input and the goldens' current bytes, so tests need
 neither Python, Node nor qpdf.
 

@@ -1,8 +1,8 @@
-//! Experiment C: the same three pages with a minimal builder directly over lamina-cos.
+//! Experiment C: the same three pages with a minimal builder directly over laminapdf-cos.
 //!
 //! Reused building blocks: `pdf-writer::Content` for content-stream operators (bytes only, it
 //! never allocates object numbers), `skrifa` for cmap and metrics, `subsetter` for the font
-//! subset, `png` for decoding. Objects are lamina `Object`s held by a `lamina_cos::Writer`;
+//! subset, `png` for decoding. Objects are lamina `Object`s held by a `laminapdf_cos::Writer`;
 //! the font objects are *reserved* up front and filled in at `finish()`, which is all that
 //! "subsetting needs the whole document" requires of the graph.
 //!
@@ -13,8 +13,8 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 use anyhow::{Result, anyhow};
-use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
-use lamina_save::Writer;
+use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
+use laminapdf_save::Writer;
 use pdf_writer::{Content, Str};
 use skrifa::instance::{LocationRef, Size};
 use skrifa::raw::TableProvider;

@@ -853,7 +853,7 @@ The sizes are all within 2× of each other because none embeds a font. With a re
                  │ check:  Arlington syntax validator · conformance pre-checks                                         │
                  └──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬─────────────────────────┘
                                 │              │              │              │              │
-                         lamina-wasm     lamina-node    lamina-python   lamina-ffi (C ABI)   lamina-cli
+                         laminapdf-wasm     lamina-node    lamina-python   lamina-ffi (C ABI)   laminapdf-cli
                          (browser/edge)  (napi-rs)      (PyO3)          → Swift/Kotlin/Go/.NET
                                 │
                        @laminapdf/js (TS API, idiomatic; optional React/JSX layer later)

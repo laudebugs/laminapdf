@@ -7,7 +7,7 @@
 
 A strict ISO 32000 parser rejects a large minority of the files that every mainstream viewer opens, so lamina must read tolerantly ([research ch. 01 §11.2](../research/pdf/01-file-structure.md#112-when-the-normal-path-fails-reconstruction)). But tolerance that is not written down drifts: the spike's first differential run disagreed on 12% of damaged files, and *every* disagreement was an unwritten policy choice (missing kids, missing header, which trailer wins, duplicate entries, integer overflow, truncated deflate, hybrid free entries). The same spike found that every number read from a file is an attacker-controlled allocation size ([ch. 07 §4](../research/pdf/07-spike-rust-and-typescript.md#4-what-we-learned)). Repairs are also security-relevant: signature attacks rely on readers that silently repair ([ch. 04 §11.3](../research/pdf/04-interactive-security.md#113-guidelines-for-building-a-safe-parser-lamina)), and parser differentials let one file show different content in different viewers ([ch. 01 §13](../research/pdf/01-file-structure.md#13-security-relevant-parsing-pitfalls)).
 
-The policy already exists in code, ported from the spike and fixed in review of PR #8: `crates/lamina-cos/src/lib.rs` (crate docs), `reader/mod.rs`, `reader/xref.rs`, `reader/repair.rs`, and `lamina-syntax`'s `parser.rs`, `lexer.rs` and `filters.rs`. Only two limits are configurable (`OpenOptions::max_decoded_size`, the constant `MAX_DEPTH`); the rest are private constants. qpdf added page-tree depth limits, a 25-filter cap and a global limits API in 2026 for the same reasons ([report: editing](../research/architecture/app-and-package-architecture.md#editing-is-an-op-log-over-a-lazy-object-graph-and-signatures-and-redaction-govern-saving)).
+The policy already exists in code, ported from the spike and fixed in review of PR #8: `crates/laminapdf-cos/src/lib.rs` (crate docs), `reader/mod.rs`, `reader/xref.rs`, `reader/repair.rs`, and `laminapdf-syntax`'s `parser.rs`, `lexer.rs` and `filters.rs`. Only two limits are configurable (`OpenOptions::max_decoded_size`, the constant `MAX_DEPTH`); the rest are private constants. qpdf added page-tree depth limits, a 25-filter cap and a global limits API in 2026 for the same reasons ([report: editing](../research/architecture/app-and-package-architecture.md#editing-is-an-op-log-over-a-lazy-object-graph-and-signatures-and-redaction-govern-saving)).
 
 ## Decision
 
@@ -29,7 +29,7 @@ The policy already exists in code, ported from the spike and fixed in review of 
 | Integer too large for `i64` | Becomes a `Real` (§7.3.3); integers up to `i64::MAX` stay exact | `lexer::parse_number` |
 | Truncated Flate data or bad Adler-32 | Partial output is kept if non-empty; no output → `Error::Decompress` | `filters::flate_decode` |
 | Unsupported filter | The document opens; only decoding that stream fails (`Error::UnsupportedFilter`) | `filters::decode` |
-| Encrypted file (standard security handler, R2–R6) | Opens and decrypts given its user or owner password (the empty user password is tried when none is given); strings and streams are decrypted as objects load. Exempt: the `/Encrypt` dictionary, xref streams, the trailer `/ID`, a signature's `/Contents`, object-stream members (their container is decrypted once), and the XMP metadata stream when `/EncryptMetadata` is false. AES data that isn't `IV ‖ whole blocks` is kept as stored and bad padding is kept unstripped (`aes-padding-invalid`); a plaintext object spliced into an encrypted file (PDFex) is decrypted like any other, i.e. to garbage. An R5/R6 `/Perms` that disagrees with `/P` → `perms-mismatch`. No password or a wrong one → `PasswordRequired` / `WrongPassword`; another handler (public key) or an unknown `/V`/`/R`/`/CFM` → `UnsupportedSecurityHandler` | `reader/encrypt.rs`, `Document::load_in_file`, `lamina_syntax::crypt` |
+| Encrypted file (standard security handler, R2–R6) | Opens and decrypts given its user or owner password (the empty user password is tried when none is given); strings and streams are decrypted as objects load. Exempt: the `/Encrypt` dictionary, xref streams, the trailer `/ID`, a signature's `/Contents`, object-stream members (their container is decrypted once), and the XMP metadata stream when `/EncryptMetadata` is false. AES data that isn't `IV ‖ whole blocks` is kept as stored and bad padding is kept unstripped (`aes-padding-invalid`); a plaintext object spliced into an encrypted file (PDFex) is decrypted like any other, i.e. to garbage. An R5/R6 `/Perms` that disagrees with `/P` → `perms-mismatch`. No password or a wrong one → `PasswordRequired` / `WrongPassword`; another handler (public key) or an unknown `/V`/`/R`/`/CFM` → `UnsupportedSecurityHandler` | `reader/encrypt.rs`, `Document::load_in_file`, `laminapdf_syntax::crypt` |
 
 **Rejected** (errors, never repaired): empty input or no `n g obj` anywhere (`NotPdf`); no catalog even after repair (`MissingRoot`); an encrypted file without the right password (`PasswordRequired`, `WrongPassword`) or with a handler lamina can't decrypt (`UnsupportedSecurityHandler`); reference and page-tree cycles (`ReferenceCycle`); exceeding a **hard** limit (§3) outside a tolerant path. Soft limits, and hard limits hit inside a tolerant path, degrade with a warning instead (§3). A malformed object is an error *for the call that resolves it*, not for `open`; errors are not cached. **Writing is strict:** an incremental update refuses a repaired base (`RepairedBase`) or an encrypted one (`EncryptedBase`, until full-editor E11), never shrinks `/Size`, and appends a section of the same kind as the newest.
 
@@ -79,7 +79,7 @@ Warnings raised lazily (on resolve or decode) are recorded on the `Document` and
 
 ### 3. `Limits`
 
-One `Limits` struct, defined in `lamina-syntax` and re-exported by `lamina-cos`, `lamina-model` and `lamina`, replaces `OpenOptions::max_decoded_size` and the private constants in B2. It is `Copy` with **private fields**: callers read them through `const fn` getters (`limits.max_nesting_depth()`) and change them with `const fn with_*` builders on `Limits::default()`, so new limits can be added without breaking anyone. `OpenOptions` (also private fields and builders) holds the `Limits`, `strict` and (B2) the password; `Document::open(source, OpenOptions)` takes it.
+One `Limits` struct, defined in `laminapdf-syntax` and re-exported by `laminapdf-cos`, `laminapdf-model` and `lamina`, replaces `OpenOptions::max_decoded_size` and the private constants in B2. It is `Copy` with **private fields**: callers read them through `const fn` getters (`limits.max_nesting_depth()`) and change them with `const fn with_*` builders on `Limits::default()`, so new limits can be added without breaking anyone. `OpenOptions` (also private fields and builders) holds the `Limits`, `strict` and (B2) the password; `Document::open(source, OpenOptions)` takes it.
 
 Limits are of two kinds:
 
@@ -88,7 +88,7 @@ Limits are of two kinds:
 
 | Field | Kind | Default | On exceeding | Today |
 | --- | --- | --- | --- | --- |
-| `max_nesting_depth` (arrays/dictionaries; saved graphics states per content stream, [ADR 0023](0023-content-stream-reading.md) §4) | hard | 256 | `LimitExceeded` | `lamina_syntax::MAX_DEPTH`, `TooDeep` |
+| `max_nesting_depth` (arrays/dictionaries; saved graphics states per content stream, [ADR 0023](0023-content-stream-reading.md) §4) | hard | 256 | `LimitExceeded` | `laminapdf_syntax::MAX_DEPTH`, `TooDeep` |
 | `max_stream_decoded` (bytes, one stream) | hard | 64 MiB | `LimitExceeded` | `DEFAULT_MAX_DECODED`, `DecompressLimit` |
 | `max_decoded_total` (bytes decoded by one top-level call: `open`, one page's content, one save) | hard | 1 GiB | `LimitExceeded` | new |
 | `max_filter_chain` (filters per stream) | hard | 8 | `LimitExceeded` | new (qpdf caps at 25) |
@@ -99,8 +99,8 @@ Limits are of two kinds:
 | `max_xref_sections` (`/Prev` hops) | soft | 4,096 | stored xref abandoned → repair, `xref-repaired` | `MAX_SECTIONS` (load failure → repair) |
 | `max_object_number` | soft | 8,388,607 (ISO 32000-1 Annex C) | entry dropped, `object-number-out-of-range` | new |
 | `max_warnings` | soft | 1,000 | later warnings dropped, `warnings-truncated` | new |
-| `max_content_operators` (operators read by one content interpretation, every stream and each drawing of a Form XObject together; [ADR 0023](0023-content-stream-reading.md) §4) | hard | 10,000,000 | `LimitExceeded` | used by `lamina-content` (B9a) |
-| `max_xobject_depth` (Form XObjects drawn at once; patterns and Type 3 glyphs when they are interpreted; ADR 0023 §4) | hard | 32 | `LimitExceeded` | used by `lamina-content` (B9a) |
+| `max_content_operators` (operators read by one content interpretation, every stream and each drawing of a Form XObject together; [ADR 0023](0023-content-stream-reading.md) §4) | hard | 10,000,000 | `LimitExceeded` | used by `laminapdf-content` (B9a) |
+| `max_xobject_depth` (Form XObjects drawn at once; patterns and Type 3 glyphs when they are interpreted; ADR 0023 §4) | hard | 32 | `LimitExceeded` | used by `laminapdf-content` (B9a) |
 | `max_image_pixels` (when lamina decodes images) | hard | 2^28 | `LimitExceeded` | reserved |
 | `max_read_window` (bytes one parse may read from a source without `as_slice`: an object's head, a stream's data, the search for a missing `endstream`, the walk back over a repaired header; ADR 0005 §2) | hard | 256 MiB | `LimitExceeded`; tolerant paths (repair, `/Length` recovery, the xref entry check) treat the item as unreadable | new in B2d (amendment); in-memory input is not limited by it |
 
@@ -108,7 +108,7 @@ Limits are of two kinds:
 
 ### 4. Enforcement
 
-- Each rule in §1 has a named test in `crates/lamina-cos/tests/policy.rs` or `reader_tolerance.rs` (most exist; B2 adds one per new warning code).
+- Each rule in §1 has a named test in `crates/laminapdf-cos/tests/policy.rs` or `reader_tolerance.rs` (most exist; B2 adds one per new warning code).
 - Each hard limit has a pair of tests: at the limit succeeds, one past fails with `LimitExceeded` (as `parse_object_accepts_nesting_at_the_limit` / `…_rejects_nesting_past_the_limit` do now), plus a test that a tolerant path hitting it degrades with its warning. Each soft limit has a test that the item is dropped and its warning raised.
 - Warning and error codes are listed once in `fixtures/codes.json`; a Rust test and (from B6) a TS test check that both expose exactly those codes.
 - The differential suite ([ADR 0018](0018-test-strategy.md)) compares page count and repaired/failed outcome with pdf.js, PDFium, qpdf and pypdf. A disagreement is triaged as a lamina bug, a deliberate policy difference (listed with the rule from §1 in the suite's exceptions file), or another reader's bug.

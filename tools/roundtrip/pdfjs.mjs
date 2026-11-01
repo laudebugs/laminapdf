@@ -1,5 +1,5 @@
 // The pdf.js half of the round-trip suite (todo B3c, ADR 0018 tier 7): opens every output
-// listed in <out-dir>/manifest.json (written by lamina-save's `roundtrip` example) and checks
+// listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip` example) and checks
 // the page count, each page's rotation, the Info /Title and whether the file is encrypted
 // against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any

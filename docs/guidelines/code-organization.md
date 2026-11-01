@@ -22,12 +22,12 @@ lamina/
 ├── .editorconfig  .gitattributes  .gitignore
 │
 ├── crates/                 # Rust crates, flat, directory name == crate name
-│   ├── lamina-syntax/      #   e.g. lexer/parser (pure)
-│   ├── lamina-core/        #   e.g. document model, read/write (pure)
-│   ├── lamina-wasm/        #   e.g. wasm-bindgen binding (edge)
-│   └── lamina-cli/         #   e.g. command-line binary (consumer, like an app)
+│   ├── laminapdf-syntax/   #   e.g. lexer/parser (pure)
+│   ├── laminapdf-core/     #   e.g. document model, read/write (pure)
+│   ├── laminapdf-wasm/     #   e.g. wasm-bindgen binding (edge)
+│   └── laminapdf-cli/      #   e.g. command-line binary (consumer, like an app)
 ├── packages/               # TypeScript packages published or shared as @laminapdf/*
-│   ├── pdf/                #   e.g. @laminapdf/sdk: idiomatic TS API over lamina-wasm
+│   ├── pdf/                #   e.g. @laminapdf/sdk: idiomatic TS API over laminapdf-wasm
 │   └── viewer/             #   e.g. @laminapdf/viewer: UI components
 ├── apps/                   # deployable things, never depended on
 │   ├── web/                #   e.g. web app deployed to Cloudflare
@@ -63,18 +63,18 @@ lamina/
 ## 2. Boundaries and dependency direction
 
 ```
-apps/web ─┐               apps/desktop (Tauri)   crates/lamina-cli    ← consumers (apps, binaries): never depended on
+apps/web ─┐               apps/desktop (Tauri)   crates/laminapdf-cli    ← consumers (apps, binaries): never depended on
           ▼                       └──────────┬──────────┘
    packages/* (@laminapdf/…)                 │ depend on library crates only
           │ uses build output of             ▼
-          ▼                    crates/lamina (façade), lamina-ffi …  ← libraries; bindings (ffi, wasm) are edges
-   crates/lamina-wasm …                      │
+          ▼                    crates/laminapdf (façade), lamina-ffi …  ← libraries; bindings (ffi, wasm) are edges
+   crates/laminapdf-wasm …                      │
           └──────────────┬───────────────────┘
                          ▼
-          crates/lamina-core, lamina-syntax …                        ← pure core: bytes in, bytes out
+          crates/lamina-core, laminapdf-syntax …                        ← pure core: bytes in, bytes out
 ```
 
-Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-tauri`, and bin crates such as `lamina-cli`) sit at the top: they depend on library crates (a façade such as `lamina`, core crates, or a binding they need) and nothing depends on them. A bin crate is never a dependency; `lamina-cli` is a sibling consumer of the same libraries.
+Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-tauri`, and bin crates such as `laminapdf-cli`) sit at the top: they depend on library crates (a façade such as `laminapdf`, core crates, or a binding they need) and nothing depends on them. A bin crate is never a dependency; `laminapdf-cli` is a sibling consumer of the same libraries.
 
 ### Rules
 
@@ -100,7 +100,7 @@ Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-taur
 | Branch | `<type>/<short-description>` | `feat/xref-repair` (see [git-workflow.md](git-workflow.md)) |
 
 - **MUST NOT** use `-rs`/`-rust` in crate names, or meaningless words in feature names. Use `std`, not `use-std`. Negative features such as `no-std` are "practically never correct" ([Rust API Guidelines C-CASE, C-FEATURE](https://rust-lang.github.io/api-guidelines/naming.html)).
-- The npm scope is `@laminapdf` (owner, 2026-10-31; [ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)). *Recommendation:* reserve the `lamina` crate name on crates.io and the `@laminapdf` scope on npm before the first public release ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)), and check that both are free before relying on them.
+- The npm scope is `@laminapdf` (owner, 2026-10-31; [ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)). *Recommendation:* reserve the `laminapdf` crate name on crates.io and the `@laminapdf` scope on npm before the first public release ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)), and check that both are free before relying on them.
 
 ## 4. Public API surface and stability
 
@@ -139,7 +139,7 @@ Tolerant reading **MUST** be a written policy. Recoverable problems become *warn
 ## 6. Tests and fixtures
 
 ```
-crates/lamina-core/
+crates/laminapdf-core/
 ├── src/parser.rs          # unit tests at the bottom: #[cfg(test)] mod tests { … }
 ├── tests/                 # integration tests: public API only, one file per topic
 │   ├── common/mod.rs      #   shared helpers (fixture loading)
@@ -197,7 +197,7 @@ fixtures/
 Split when at least one of these holds:
 
 1. **Different dependencies.** A heavy or optional dependency (a renderer, a crypto stack) shouldn't be compiled by every user. Use a separate crate, or a feature flag if the code is small.
-2. **Different platform.** Edge code (bindings such as `lamina-wasm` or `lamina-ffi`) is always separate from the pure core. The Tauri crate is not an edge crate but an app: it lives under `apps/desktop/src-tauri`, and its platform code (Tauri commands) stays there, on top of the library crates.
+2. **Different platform.** Edge code (bindings such as `laminapdf-wasm` or `lamina-ffi`) is always separate from the pure core. The Tauri crate is not an edge crate but an app: it lives under `apps/desktop/src-tauri`, and its platform code (Tauri commands) stays there, on top of the library crates.
 3. **Different stability or audience.** A crate you publish with semver guarantees is split from internal helpers (`publish = false`).
 4. **Build time.** A crate is the unit of parallel and incremental compilation. Split a big crate along a clean seam when profiling (`cargo build --timings`) shows it's the bottleneck.
 5. **A real, acyclic boundary.** The lower part makes sense on its own and has its own tests (for example syntax → model → operations).
@@ -220,7 +220,7 @@ Don't split:
 
 **Do**
 
-- ✅ Add a crate under `crates/lamina-<name>`, inherit workspace package fields, lints and dependencies, and add it to `CLAUDE.md` once it matters.
+- ✅ Add a crate under `crates/laminapdf-<name>`, inherit workspace package fields, lints and dependencies, and add it to `CLAUDE.md` once it matters.
 - ✅ Keep core crates and shared packages free of I/O, and pass bytes and callbacks in.
 - ✅ Re-export the public API from `lib.rs` / `index.ts` by name.
 - ✅ Put a new fixture in `fixtures/` with its provenance, and test it from every implementation.

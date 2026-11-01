@@ -1,5 +1,5 @@
 {
-  "comment": "Lines of fixtures/build/facts.json where an extractor does not return the text lamina-build drew, each with the extractor's limitation behind it (todo B5b). crates/lamina-build/tests/external.rs requires every other line to equal the drawn text and every entry here to still match the facts.",
+  "comment": "Lines of fixtures/build/facts.json where an extractor does not return the text laminapdf-build drew, each with the extractor's limitation behind it (todo B5b). crates/laminapdf-build/tests/external.rs requires every other line to equal the drawn text and every entry here to still match the facts.",
   "exceptions": [
     {
       "file": "build-text-multiscript.pdf",

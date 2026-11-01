@@ -33,7 +33,7 @@ Create the empty but fully checked monorepo that every later PR lands in: one Ca
 - `tools/xtask`: `check [rust|ts]`, `fmt [--check]`, `lint`, `test`, `portability` (core crates: no fs/net/process/thread/clocks, no edge deps transitively, crate-level `forbid(unsafe_code)`, cross-target `cargo check`), `wasm`, `deny`, `npm-licenses`, `ci`, `doctor [--install]` with tool pins in `doctor.rs`.
 - `deny.toml` (allow-list without AGPL/GPL, mupdf crates banned, wildcard rules); npm licence check reading the same allow-list.
 - `.github/workflows/ci.yml` fast lane (Rust, MSRV, TypeScript, pdf-basics spike jobs) and `dependabot.yml`; `LICENSE-MIT`, `LICENSE-APACHE`.
-- A placeholder `lamina-syntax` crate so the checks have something to run on.
+- A placeholder `laminapdf-syntax` crate so the checks have something to run on.
 
 **Out of scope**
 

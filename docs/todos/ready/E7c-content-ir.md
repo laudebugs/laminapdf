@@ -16,7 +16,7 @@
 
 ## Goal
 
-Implement the ADR 0022 IR in `lamina-content`: parse a page's content (and Form XObjects) into objects with stable identity, bounding boxes and graphics state, hit-testing, and an encoder that re-emits unmodified spans byte-identically and modified ones canonically.
+Implement the ADR 0022 IR in `laminapdf-content`: parse a page's content (and Form XObjects) into objects with stable identity, bounding boxes and graphics state, hit-testing, and an encoder that re-emits unmodified spans byte-identically and modified ones canonically.
 
 ## Context
 
@@ -40,7 +40,7 @@ Implement the ADR 0022 IR in `lamina-content`: parse a page's content (and Form 
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-content`
+- **Crates and packages:** `laminapdf-content`
 - **`Op` variants:** none yet (read + encode)
 - **`SaveConstraint`:** n/a
 - **Web vs desktop:** identical (core)

@@ -8,78 +8,78 @@
 
 [[type]]
 name = "Builder"
-crates = ["lamina", "lamina-build"]
-reason = "the façade's Builder wraps lamina-build's to finish into a façade Document (ADR 0028)"
+crates = ["laminapdf", "laminapdf-build"]
+reason = "the façade's Builder wraps laminapdf-build's to finish into a façade Document (ADR 0028)"
 
 [[type]]
 name = "Color"
-crates = ["lamina-build", "lamina-content"]
+crates = ["laminapdf-build", "laminapdf-content"]
 reason = "a colour to draw and a colour read from content; Q2g gives them one home"
 
 [[type]]
 name = "Dash"
-crates = ["lamina-build", "lamina-content"]
+crates = ["laminapdf-build", "laminapdf-content"]
 reason = "a dash pattern to draw and one read from content; Q2g gives them one home"
 
 [[type]]
 name = "Document"
-crates = ["lamina", "lamina-cos", "lamina-model", "lamina-ops"]
+crates = ["laminapdf", "laminapdf-cos", "laminapdf-model", "laminapdf-ops"]
 reason = "each layer's document wraps the one below (ADR 0005); Q2s hides the second one ops() hands out"
 
 [[type]]
 name = "Error"
-crates = ["lamina", "lamina-build", "lamina-cos", "lamina-ops", "lamina-syntax", "lamina-text"]
+crates = ["laminapdf", "laminapdf-build", "laminapdf-cos", "laminapdf-ops", "laminapdf-syntax", "laminapdf-text"]
 reason = "one error type per crate (rust.md, Errors), flattened by the façade's (ADR 0026)"
 
 [[type]]
 name = "FillRule"
-crates = ["lamina-build", "lamina-content"]
+crates = ["laminapdf-build", "laminapdf-content"]
 reason = "a fill rule to draw with and one read from content; Q2g gives them one home"
 
 [[type]]
 name = "Font"
-crates = ["lamina-build", "lamina-text"]
-reason = "lamina-build's is a handle to a font registered with a builder; Q2s renames one of them"
+crates = ["laminapdf-build", "laminapdf-text"]
+reason = "laminapdf-build's is a handle to a font registered with a builder; Q2s renames one of them"
 
 [[type]]
 name = "Matrix"
-crates = ["lamina-build", "lamina-content"]
+crates = ["laminapdf-build", "laminapdf-content"]
 reason = "the two compose in opposite orders (quality plan §2.3); Q2g makes one Matrix"
 
 [[type]]
 name = "Op"
-crates = ["lamina-content", "lamina-ops"]
+crates = ["laminapdf-content", "laminapdf-ops"]
 reason = "a content-stream operator with its operands (ADR 0023) and an edit (ADR 0006): different concepts with one short name"
 
 [[type]]
 name = "Page"
-crates = ["lamina-cos", "lamina-model"]
-reason = "the COS page-tree leaf and the typed page view; Q2f makes lamina-model the owner of page attributes"
+crates = ["laminapdf-cos", "laminapdf-model"]
+reason = "the COS page-tree leaf and the typed page view; Q2f makes laminapdf-model the owner of page attributes"
 
 [[type]]
 name = "PathSegment"
-crates = ["lamina-content", "lamina-cos"]
+crates = ["laminapdf-content", "laminapdf-cos"]
 reason = "a segment of a drawn path and a segment of an object path (LaminaId): different concepts with one name"
 
 [[type]]
 name = "Tag"
-crates = ["lamina-build", "lamina-text"]
+crates = ["laminapdf-build", "laminapdf-text"]
 reason = "a structure element and an OpenType tag; Q2s renames the OpenType one"
 
 [[type]]
 name = "TextRun"
-crates = ["lamina-build", "lamina-text"]
+crates = ["laminapdf-build", "laminapdf-text"]
 reason = "drawn text and extracted text; Q2s renames the extracted one"
 
 [[type]]
 name = "Warning"
-crates = ["lamina", "lamina-cos", "lamina-text"]
+crates = ["laminapdf", "laminapdf-cos", "laminapdf-text"]
 reason = "one warning type per crate that warns, flattened by the façade's (ADR 0026)"
 
-# A name the `lamina` façade re-exports more than once across its public modules. `paths`
+# A name the `laminapdf` façade re-exports more than once across its public modules. `paths`
 # lists every public path.
 
 [[facade]]
 name = "TextRun"
-paths = ["lamina::TextRun", "lamina::extract::TextRun"]
+paths = ["laminapdf::TextRun", "laminapdf::extract::TextRun"]
 reason = "drawn text and extracted text; Q2s renames the extracted one"

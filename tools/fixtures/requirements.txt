@@ -2,8 +2,8 @@
 # BSD-3-Clause; also needs qpdf at the version pinned in tools/xtask/src/doctor.rs), structure_facts.py
 # (pypdfium2: Apache-2.0 OR BSD-3-Clause, with PDFium's BSD-3-Clause binaries; same pin as
 # tools/render/requirements.txt). Tools only:
-# nothing here ships or links into lamina. crates/lamina-text/tests/extraction.rs and
-# crates/lamina-build/tests/external.rs and tagging.rs check that fixtures/text/extracted.json,
+# nothing here ships or links into lamina. crates/laminapdf-text/tests/extraction.rs and
+# crates/laminapdf-build/tests/external.rs and tagging.rs check that fixtures/text/extracted.json,
 # fixtures/build/facts.json and fixtures/build/structure.json were written with these versions.
 fonttools==4.68.0
 pypdf==6.21.3

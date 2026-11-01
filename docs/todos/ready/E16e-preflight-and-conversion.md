@@ -40,7 +40,7 @@ Preflight with rules as data (fonts embedded, colour spaces, resolution, overpri
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `K.07` flatten transparency; `K.11` print-ready PDFs / preflight; `K.12` validate PDF/A or PDF/X; `H.12` convert to PDF/A, PDF/X, PDF/UA
-- **Crates and packages:** `lamina-model` (profiles), `lamina-save`
+- **Crates and packages:** `laminapdf-model` (profiles), `laminapdf-save`
 - **`SaveConstraint`:** `RequiresRewrite` for optimisation (full rewrite); signed files → `Conflict`, warned and overridden only explicitly
 - **Web vs desktop:** identical; desktop recommended for large print files
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

@@ -7,7 +7,7 @@
 //!             [--rows <file.jsonl>] <list.tsv> <out.json>
 //! ```
 //!
-//! Every `<name>\t<path>` line of the list is opened with `lamina-render`'s hayro adapter and
+//! Every `<name>\t<path>` line of the list is opened with `laminapdf-render`'s hayro adapter and
 //! its PDFium adapter (the library in `--pdfium-dir`, else `LAMINA_PDFIUM_DIR`; `cargo xtask
 //! fetch-pdfium`), and each page (the first
 //! `N`) is rendered by both at the same DPI with the hayro-parity spike's settings (white
@@ -53,10 +53,10 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::{Context, Result, bail};
-use lamina_render::{
+use laminapdf_render::{
     ByteSource, CancelToken, HayroBackend, RenderBackend, RenderDocument, RenderOpenOptions, RenderRequest,
 };
-use lamina_render_pdfium::PdfiumBackend;
+use laminapdf_render_pdfium::PdfiumBackend;
 use serde_json::{Value, json};
 
 use crate::image::Rgb;
@@ -200,7 +200,7 @@ fn run(args: &Args) -> Result<()> {
     let version = format!(
         "hayro {} / PDFium {}",
         HayroBackend::new().version(),
-        lamina_render_pdfium::PDFIUM_BUILD
+        laminapdf_render_pdfium::PDFIUM_BUILD
     );
     let report = json!({
         "tool": "render-diff",
@@ -250,7 +250,7 @@ impl Engine<'_> {
         // Before either engine touches the file: how many pages it has by lamina's reading, so
         // a file that crashes, hangs or opens in neither engine still counts once per page.
         let lamina_pages = catch_unwind(AssertUnwindSafe(|| {
-            lamina_cos::Document::open(Arc::clone(&source), lamina_cos::OpenOptions::default())
+            laminapdf_cos::Document::open(Arc::clone(&source), laminapdf_cos::OpenOptions::default())
                 .and_then(|doc| doc.page_count())
                 .ok()
         }))

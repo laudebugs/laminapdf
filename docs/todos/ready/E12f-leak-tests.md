@@ -53,7 +53,7 @@ The plan's proof: for a redaction fixture set (text, images, vectors, annotation
 ## Acceptance criteria
 
 - [ ] Zero secret markers recovered by any tool on any fixture
-- [ ] Suite runs on every PR touching `lamina-content` or redaction code
+- [ ] Suite runs on every PR touching `laminapdf-content` or redaction code
 
 ## Post-merge checks
 

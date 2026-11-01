@@ -2,7 +2,7 @@
 """Writes the shaping goldens fixtures/shaping/<script>.json (todo B4b) with HarfBuzz's
 `hb-shape`: for every case in fixtures/shaping/cases.json, the glyphs HarfBuzz produces
 (glyph ID, cluster as a UTF-8 byte offset, advances and offsets in font units, no scaling).
-crates/lamina-text/tests/shaping_goldens.rs shapes the same cases with HarfRust and compares
+crates/laminapdf-text/tests/shaping_goldens.rs shapes the same cases with HarfRust and compares
 number for number; cases HarfRust is known to differ on go in
 fixtures/shaping/exceptions.json with an upstream link, never silently.
 

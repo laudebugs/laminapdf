@@ -12,7 +12,7 @@ Writes fixtures/text/encrypted/:
 * build-text-multiscript-rc4-128.pdf: fixtures/golden/build-text-multiscript.pdf with R3
   (RC4, 128-bit key), the same passwords.
 
-crates/lamina-text/tests/extract_encrypted.rs opens each with the user password and requires the
+crates/laminapdf-text/tests/extract_encrypted.rs opens each with the user password and requires the
 same glyphs, text and quads as its plaintext golden. The files are not byte-reproducible (qpdf
 uses random IVs and salts); only what they decrypt to matters. Rerun after the goldens change.
 """

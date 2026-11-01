@@ -27,7 +27,7 @@ Define the synced records (annotation, field value, page-order entry `{pageId, s
 
 **In scope**
 
-- `lamina-sync` crate (core)
+- `laminapdf-sync` crate (core)
 - Record schemas (serde + tsify)
 - Fractional index implementation
 - Apply remote patches as `Origin::Remote` transactions
@@ -38,7 +38,7 @@ Define the synced records (annotation, field value, page-order entry `{pageId, s
 
 **Editor facts**
 
-- **Crates and packages:** new `lamina-sync`
+- **Crates and packages:** new `laminapdf-sync`
 - **`Op` variants:** maps E4/E5/E8/E2 ops to records (annotation ops from [E4b](E4b-annotation-model-and-overlay.md), reply/review-state ops from [E5b](E5b-comment-threads-and-review.md), field-value ops from [E8c](E8c-acroform-field-model.md), page-order ops from [E2b](E2b-page-structure-ops.md), all dependencies)
 - **`SaveConstraint`:** no new save behaviour beyond the round's: base PDFs immutable; content edits and redactions via lease or server job minting a new base revision
 - **Web vs desktop:** identical

@@ -13,7 +13,7 @@ use crate::tracked::Tracked;
 use crate::workspace::Workspace;
 
 const TS_EXAMPLES: &str = "packages/sdk/examples/";
-const RUST_EXAMPLES: &str = "crates/lamina/examples/";
+const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
 /// The examples' clippy configuration: the root `clippy.toml` plus a 40-line function limit.
 const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 
@@ -47,7 +47,7 @@ pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
     ws.pnpm(&args)
 }
 
-/// `cargo xtask clippy-examples [--all-strict] [--warnings] [--json]`: clippy on `lamina`'s
+/// `cargo xtask clippy-examples [--all-strict] [--warnings] [--json]`: clippy on `laminapdf`'s
 /// examples with [`CLIPPY_CONF_DIR`] and `let_underscore_must_use`; findings in a changed example
 /// fail, the others are counted.
 pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
@@ -58,7 +58,7 @@ pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
             "clippy",
             "--locked",
             "-p",
-            "lamina",
+            "laminapdf",
             "--examples",
             "--all-features",
             "--message-format=json",
@@ -70,7 +70,7 @@ pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
         ])
         .env("CLIPPY_CONF_DIR", ws.root.join(CLIPPY_CONF_DIR))
         // Its own build folder: these clippy arguments differ from `check rust`'s, so sharing one
-        // would make each run re-check every crate under `lamina`.
+        // would make each run re-check every crate under `laminapdf`.
         .env("CARGO_TARGET_DIR", target_dir(ws))
         .current_dir(&ws.root)
         .output()
@@ -159,12 +159,12 @@ mod tests {
                 "level": "warning",
                 "message": "this function has too many lines (55/40)",
                 "code": { "code": "clippy::too_many_lines" },
-                "spans": [{ "is_primary": true, "file_name": "crates/lamina/examples/invoice.rs", "line_start": 12 }],
+                "spans": [{ "is_primary": true, "file_name": "crates/laminapdf/examples/invoice.rs", "line_start": 12 }],
             }
         });
         let found = example_finding(&message, Path::new("/repo"));
         assert!(
-            found.is_some_and(|(path, finding)| path == "crates/lamina/examples/invoice.rs"
+            found.is_some_and(|(path, finding)| path == "crates/laminapdf/examples/invoice.rs"
                 && finding.line == 12
                 && finding.rule == "function-length")
         );
@@ -178,7 +178,7 @@ mod tests {
                 "level": "warning",
                 "message": "x",
                 "code": { "code": "clippy::too_many_lines" },
-                "spans": [{ "is_primary": true, "file_name": "crates/lamina/src/lib.rs", "line_start": 1 }],
+                "spans": [{ "is_primary": true, "file_name": "crates/laminapdf/src/lib.rs", "line_start": 1 }],
             }
         });
         assert!(example_finding(&message, Path::new("/repo")).is_none());

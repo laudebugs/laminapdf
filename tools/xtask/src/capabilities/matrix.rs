@@ -39,7 +39,7 @@ impl<'a> Matrix<'a> {
 /// The only file whose tests may claim core `write` or `round-trip`: lamina's side of the
 /// round-trip suite, whose outputs the full lane's `cargo xtask roundtrip` also checks with
 /// qpdf `--check`, pdf.js and `PDFium` (the definition of those statuses, full-editor §3).
-pub(crate) const ROUND_TRIP_SUITE: &str = "crates/lamina-save/tests/roundtrip_suite.rs";
+pub(crate) const ROUND_TRIP_SUITE: &str = "crates/laminapdf-save/tests/roundtrip_suite.rs";
 
 /// Tags that don't fit the manifest (unknown or retired IDs, a surface the row doesn't
 /// target) or claim core `write`/`round-trip` outside [`ROUND_TRIP_SUITE`].
@@ -89,7 +89,7 @@ runs every tagged test and rewrites this page; `cargo xtask capabilities --check
 from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when \
 this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core \
 `write` and `round-trip` may be claimed only by tests in the round-trip suite \
-([`roundtrip_suite.rs`](../../crates/lamina-save/tests/roundtrip_suite.rs)), whose saves the full lane's \
+([`roundtrip_suite.rs`](../../crates/laminapdf-save/tests/roundtrip_suite.rs)), whose saves the full lane's \
 `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
 ";
 

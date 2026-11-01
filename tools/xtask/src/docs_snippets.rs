@@ -1,5 +1,5 @@
 //! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can check,
-//! over the examples (`packages/sdk/examples/**`, `crates/lamina/examples/**`) and the files the
+//! over the examples (`packages/sdk/examples/**`, `crates/laminapdf/examples/**`) and the files the
 //! docs site's `Snippet` component may show (its `import.meta.glob`). Strict on changed files and
 //! counted warnings elsewhere, like `docs-prose` ([`crate::reports`]).
 
@@ -14,7 +14,7 @@ use crate::tracked::Tracked;
 
 const SNIPPET: &str = "apps/docs/src/components/Snippet.astro";
 const PAGES: &str = "apps/docs/src/content/docs/";
-const EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "crates/lamina/examples/"];
+const EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "crates/laminapdf/examples/"];
 const MAX_LINES: usize = 100;
 
 /// `tools/xtask/docs-snippets.toml`: the TypeScript and Rust examples that show the same task.
@@ -324,7 +324,7 @@ fn file_findings(path: &str, text: &str) -> Vec<Finding> {
             findings.push(finding(
                 line_number,
                 "public-imports",
-                "import from `lamina::…`, the crate readers depend on, not from `lamina_<crate>`",
+                "import from `laminapdf::…`, the crate readers depend on, not from `lamina_<crate>`",
             ));
         }
         if rust && code.contains("include_bytes!(\"../../..") {
@@ -376,15 +376,15 @@ fn code_part<'a>(line: &'a str, toml: bool, in_block_comment: &mut bool) -> Opti
     (!code.starts_with("//")).then_some(code)
 }
 
-/// Whether code names a crate other than the façade: `lamina_build::…`, `use lamina_text`.
+/// Whether code names a crate other than the façade: `laminapdf_build::…`, `use laminapdf_text`.
 fn names_internal_crate(code: &str) -> bool {
-    code.match_indices("lamina_").any(|(index, _)| {
+    code.match_indices("laminapdf_").any(|(index, _)| {
         let before = code.get(..index).and_then(|before| before.chars().next_back());
         let starts_word = before.is_none_or(|c| !(c.is_alphanumeric() || c == '_'));
-        let rest = code.get(index + "lamina_".len()..).unwrap_or_default();
+        let rest = code.get(index + "laminapdf_".len()..).unwrap_or_default();
         let name_len = rest.chars().take_while(|c| c.is_ascii_lowercase() || *c == '_').count();
         let after = rest.get(name_len..).unwrap_or_default();
-        // `lamina_x::…` anywhere; `use lamina_x;` and `use lamina_x as y;` only in a use line.
+        // `laminapdf_x::…` anywhere; `use laminapdf_x;` and `use laminapdf_x as y;` only in a use line.
         let use_line = ["use ", "pub use ", "extern crate "]
             .iter()
             .any(|start| code.starts_with(start));
@@ -541,7 +541,9 @@ mod tests {
         assert!(examples.matches("packages/sdk/examples/worker/src/index.ts"));
         assert!(examples.matches("packages/sdk/examples/worker/wrangler.toml"));
         assert!(!examples.matches("packages/sdk/examples/README.md"));
-        assert!(!glob("crates/lamina/examples/*.rs").matches("crates/lamina/examples/differential/text-facts.rs"));
+        assert!(
+            !glob("crates/laminapdf/examples/*.rs").matches("crates/laminapdf/examples/differential/text-facts.rs")
+        );
     }
 
     #[test]
@@ -580,10 +582,10 @@ mod tests {
 
     #[test]
     fn snippet_uses_should_be_read_from_pages() {
-        let page = "Text.\n\n<Snippet file=\"packages/sdk/examples/hello.ts\" />\n<Snippet\n  title=\"x\"\n  file=\"crates/lamina/examples/hello.rs\"\n/>\n";
+        let page = "Text.\n\n<Snippet file=\"packages/sdk/examples/hello.ts\" />\n<Snippet\n  title=\"x\"\n  file=\"crates/laminapdf/examples/hello.rs\"\n/>\n";
         assert_eq!(
             snippet_uses(page),
-            vec!["packages/sdk/examples/hello.ts", "crates/lamina/examples/hello.rs"]
+            vec!["packages/sdk/examples/hello.ts", "crates/laminapdf/examples/hello.rs"]
         );
     }
 
@@ -608,7 +610,7 @@ mod tests {
 
     #[test]
     fn rust_examples_should_use_the_facade_and_no_repository_files() {
-        let text = "//! Shows text.\nuse lamina_build::Builder;\nconst F: &[u8] = include_bytes!(\"../../../fixtures/x.ttf\");\n";
+        let text = "//! Shows text.\nuse laminapdf_build::Builder;\nconst F: &[u8] = include_bytes!(\"../../../fixtures/x.ttf\");\n";
         assert_eq!(rules("a.rs", text), vec!["public-imports", "public-imports"]);
     }
 
@@ -638,14 +640,14 @@ mod tests {
         let config = Config {
             pair: vec![Pair {
                 ts: "packages/sdk/examples/images-and-vectors.ts".into(),
-                rust: "crates/lamina/examples/vectors.rs".into(),
+                rust: "crates/laminapdf/examples/vectors.rs".into(),
             }],
         };
         let examples = vec![
             "packages/sdk/examples/images-and-vectors.ts".to_owned(),
-            "crates/lamina/examples/vectors.rs".to_owned(),
+            "crates/laminapdf/examples/vectors.rs".to_owned(),
             "packages/sdk/examples/hello.ts".to_owned(),
-            "crates/lamina/examples/hello.rs".to_owned(),
+            "crates/laminapdf/examples/hello.rs".to_owned(),
         ];
         let headers: BTreeMap<String, String> = examples
             .iter()
@@ -686,7 +688,7 @@ mod tests {
 
     #[test]
     fn internal_crates_should_be_reported_wherever_they_are_named() {
-        let text = "//! Shows text.\npub use lamina_text::Font;\nlet b = lamina_build::Builder::new();\nuse lamina::Document;\n";
+        let text = "//! Shows text.\npub use laminapdf_text::Font;\nlet b = laminapdf_build::Builder::new();\nuse laminapdf::Document;\n";
         assert_eq!(rules("a.rs", text), vec!["public-imports", "public-imports"]);
     }
 
@@ -699,11 +701,11 @@ mod tests {
     }
 
     #[test]
-    fn identifiers_that_start_with_lamina_should_not_be_crates() {
-        let text = "//! Shows lengths.\nlet n = lamina_len as usize;\nreturn lamina_bytes;\n";
+    fn identifiers_that_start_with_laminapdf_should_not_be_crates() {
+        let text = "//! Shows lengths.\nlet n = laminapdf_len as usize;\nreturn laminapdf_bytes;\n";
         assert_eq!(rules("a.rs", text), Vec::<&str>::new());
         assert_eq!(
-            rules("a.rs", "//! Shows text.\nuse lamina_text as text;\n"),
+            rules("a.rs", "//! Shows text.\nuse laminapdf_text as text;\n"),
             vec!["public-imports"]
         );
     }

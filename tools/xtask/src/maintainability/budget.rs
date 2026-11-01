@@ -36,6 +36,18 @@ pub(super) struct Baseline {
     modules: BTreeMap<String, usize>,
 }
 
+impl Baseline {
+    /// The same baseline with each module in `moved` (old path → new path) under its new path.
+    pub(super) fn follow_renames(mut self, moved: &BTreeMap<String, String>) -> Self {
+        self.modules = self
+            .modules
+            .into_iter()
+            .map(|(path, count)| (moved.get(&path).cloned().unwrap_or(path), count))
+            .collect();
+        self
+    }
+}
+
 /// Whether the module budget applies to `path`: library and binary sources (`src/` of a crate
 /// or tool, `src-tauri/src/` of an app), not tests, benches, examples or generated files.
 fn in_budget(path: &str) -> bool {

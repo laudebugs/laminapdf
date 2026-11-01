@@ -29,10 +29,10 @@
 
 **In scope**
 
-- Removal engine in `lamina-content` over the IR
+- Removal engine in `laminapdf-content` over the IR
 - Image redaction (JPEG re-encode, Flate, JPX: decode where possible or remove the image with a report)
 - Overlay drawing
-- **Gate:** `ApplyRedactions` is partial after this PR (content only; annotations, forms, metadata, bookmarks, attachments and the rewrite scrub come in E12d), so it must not be usable as "redaction" yet. The `Op::ApplyRedactions` variant and its engine sit behind the off-by-default cargo feature `unstable-redaction` in `lamina-ops`/`lamina-content`; without it the variant does not exist, so `{"op":"applyRedactions"}` fails to deserialise as an unknown op (ADR 0006 §1). `lamina`, `lamina-wasm`/`@laminapdf/sdk`, the web and desktop apps are built without the feature, so the op is not in the public Rust or TS API, the JSON schema or the UI. Only this crate's tests (and E12d's) enable it. [E12d](E12d-scrub-and-rewrite.md) removes the gate
+- **Gate:** `ApplyRedactions` is partial after this PR (content only; annotations, forms, metadata, bookmarks, attachments and the rewrite scrub come in E12d), so it must not be usable as "redaction" yet. The `Op::ApplyRedactions` variant and its engine sit behind the off-by-default cargo feature `unstable-redaction` in `laminapdf-ops`/`laminapdf-content`; without it the variant does not exist, so `{"op":"applyRedactions"}` fails to deserialise as an unknown op (ADR 0006 §1). `laminapdf`, `laminapdf-wasm`/`@laminapdf/sdk`, the web and desktop apps are built without the feature, so the op is not in the public Rust or TS API, the JSON schema or the UI. Only this crate's tests (and E12d's) enable it. [E12d](E12d-scrub-and-rewrite.md) removes the gate
 
 **Out of scope** (and which todo covers it)
 
@@ -41,7 +41,7 @@
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.06` permanent redaction
-- **Crates and packages:** `lamina-content`, image codecs
+- **Crates and packages:** `laminapdf-content`, image codecs
 - **`Op` variants:** `ApplyRedactions` (barrier, requires rewrite)
 - **`SaveConstraint`:** `RequiresRewrite`: a full rewrite, every earlier revision dropped. On signed files the constraint is `Conflict`: the UI names the signatures that will be invalidated and removed (ADR 0007 §3 override); order redact → rewrite → sign
 - **Web vs desktop:** identical; very large files may be routed to desktop (web `Limits`)
@@ -55,7 +55,7 @@
 - [ ] Images
 - [ ] XObjects and patterns
 - [ ] Overlay
-- [ ] `unstable-redaction` feature gate in `lamina-ops`/`lamina-content`; CI builds the default feature set and checks the op is absent
+- [ ] `unstable-redaction` feature gate in `laminapdf-ops`/`laminapdf-content`; CI builds the default feature set and checks the op is absent
 
 ## Acceptance criteria
 

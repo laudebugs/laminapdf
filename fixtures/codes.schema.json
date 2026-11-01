@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/laudebugs/lamina/blob/main/fixtures/codes.schema.json",
   "title": "lamina codes.json v2",
-  "description": "The one list of lamina's error and warning codes (ADR 0003 §2, ADR 0026 §3). `cargo xtask gen codes` validates fixtures/codes.json against this schema before it generates anything; crates/lamina-cos/tests/codes.rs checks the rest (pages, unique codes, the Rust enums).",
+  "description": "The one list of lamina's error and warning codes (ADR 0003 §2, ADR 0026 §3). `cargo xtask gen codes` validates fixtures/codes.json against this schema before it generates anything; crates/laminapdf-cos/tests/codes.rs checks the rest (pages, unique codes, the Rust enums).",
   "type": "object",
   "required": ["version", "docsUrl", "limits", "warnings", "errors"],
   "properties": {

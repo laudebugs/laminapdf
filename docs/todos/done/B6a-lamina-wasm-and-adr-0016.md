@@ -1,4 +1,4 @@
-# B6a — `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
+# B6a — `laminapdf-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
 
 | Field | Value |
 | --- | --- |
@@ -10,17 +10,17 @@
 | Blocks | [B6b](./B6b-lamina-pdf-package.md) |
 | ADRs | Writes **0016** (package design: ESM-only, export conditions, split WASM modules, size budgets); implements [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify, committed `@lamina/wasm` manifest, gitignored `dist/`, pinned binaryen with rustc's feature set) |
 | Branch | `feat/b6a-lamina-wasm` |
-| PR title | `feat(wasm): lamina-wasm bindings, split base/text modules, ADR 0016 and size budgets` |
+| PR title | `feat(wasm): laminapdf-wasm bindings, split base/text modules, ADR 0016 and size budgets` |
 | Size | L (≈ 900–1,300 lines incl. ADR) |
 | PR | [#75](https://github.com/laudebugs/lamina/pull/75) |
 
 ## Goal
 
-Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike measured **377 KB gzip for the builder stack before any shaper**, already over the plan's 350 KB budget for `@lamina/pdf` *including* shaping and subsetting. This todo builds `lamina-wasm`, splits it into a base module (COS, model, ops, save, build without text) and a lazily loaded text module (skrifa, subsetter, HarfRust, ICU4X data, standard-14 tables), measures both with `wasm-opt -Oz`, decides the budgets in ADR 0016 from those numbers, and makes CI fail above them.
+Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike measured **377 KB gzip for the builder stack before any shaper**, already over the plan's 350 KB budget for `@lamina/pdf` *including* shaping and subsetting. This todo builds `laminapdf-wasm`, splits it into a base module (COS, model, ops, save, build without text) and a lazily loaded text module (skrifa, subsetter, HarfRust, ICU4X data, standard-14 tables), measures both with `wasm-opt -Oz`, decides the budgets in ADR 0016 from those numbers, and makes CI fail above them.
 
 ## Context
 
-- [krilla-fit WASM table](../../../spikes/krilla-fit/README.md#measurements): 59.9 KB gz lamina-cos only; 377 KB gz builder + pdf-writer + skrifa + subsetter (no wasm-opt; includes `anyhow` and `png`); krilla 830 KB.
+- [krilla-fit WASM table](../../../spikes/krilla-fit/README.md#measurements): 59.9 KB gz laminapdf-cos only; 377 KB gz builder + pdf-writer + skrifa + subsetter (no wasm-opt; includes `anyhow` and `png`); krilla 830 KB.
 - [ADR 0005 §6 point 4](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges): B6 must decide the split, re-measure with wasm-opt, revise the budget if needed.
 - [ADR 0002](../../decisions/0002-binding-strategy.md): wasm-bindgen + tsify, owned handles across the boundary, `@lamina/wasm` layout.
 - [Repo and packaging notes §3–4](../../research/architecture/notes/repo-and-packaging.md#3-rustwasmts-rustnode-rustmobile-ts-type-generation); [report: repository](../../research/architecture/app-and-package-architecture.md#the-repository-is-cargo-pnpm-and-a-task-runner-released-through-oidc-and-gated-by-a-pdf-corpus).
@@ -30,7 +30,7 @@ Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike
 
 **In scope**
 
-- `crates/lamina-wasm` (edge layer: wasm-bindgen glue; may use `unsafe` only via generated code): owned handles (`WasmDocument`, `WasmBuilder`, `WasmPage`, `WasmFont`), JSON ops via serde + tsify types, errors as `{ code, message }`, warnings list, `init` entry points; two cdylib targets or one crate with features producing `lamina_base.wasm` and `lamina_text.wasm` (decide: two crates `lamina-wasm` + `lamina-wasm-text`, or one crate built twice; the text module is linked at runtime through a narrow ABI — e.g. the base module calls into JS which calls the text module, passing bytes).
+- `crates/laminapdf-wasm` (edge layer: wasm-bindgen glue; may use `unsafe` only via generated code): owned handles (`WasmDocument`, `WasmBuilder`, `WasmPage`, `WasmFont`), JSON ops via serde + tsify types, errors as `{ code, message }`, warnings list, `init` entry points; two cdylib targets or one crate with features producing `lamina_base.wasm` and `lamina_text.wasm` (decide: two crates `laminapdf-wasm` + `laminapdf-wasm-text`, or one crate built twice; the text module is linked at runtime through a narrow ABI — e.g. the base module calls into JS which calls the text module, passing bytes).
 - `packages/wasm` (`@lamina/wasm`): committed `package.json` (private for now), gitignored `dist/` filled by `cargo xtask wasm` (wasm-bindgen CLI pinned, `wasm-opt -Oz` with rustc's enabled features, strip), generated `.d.ts`.
 - Size measurement: `cargo xtask size` reporting raw/gzip/brotli for each module and the JS glue (min+gz via esbuild), writing `target/size-report.json`; CI fails above the budgets recorded in ADR 0016.
 - Shrinking pass: no `anyhow` in core, `png` decoding only in the text/image path or replaced, `panic = "abort"`, `opt-level = "z"` vs `"s"` comparison, `codegen-units = 1`, ICU4X data sliced, `lto = "fat"`; record each step's effect.
@@ -46,10 +46,10 @@ Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read ADR 0002, the krilla-fit README, repo/packaging notes §3–4
-- [x] Create `crates/lamina-wasm` (edge) and the text module crate/feature; `tsify` feature enabled on `lamina-ops` types (one crate built twice: feature `text`; `lamina-build` gained a `text` feature and the façade a `build` feature so the base module links no `lamina-text`)
+- [x] Create `crates/laminapdf-wasm` (edge) and the text module crate/feature; `tsify` feature enabled on `laminapdf-ops` types (one crate built twice: feature `text`; `laminapdf-build` gained a `text` feature and the façade a `build` feature so the base module links no `laminapdf-text`)
 - [x] `packages/wasm/package.json` (committed), `.gitignore` for `dist/` (the root `.gitignore`'s `dist/` already covers it)
 - [x] Extend `cargo xtask wasm` (wasm-bindgen + wasm-opt pinned in `doctor.rs`), add `cargo xtask size` (binaryen 133 fetched into `target/tools/` with a pinned SHA-256 when not on `PATH`; twiggy 0.8.0 pinned for the growth diff)
-- [x] Shrinking pass with a table of before/after sizes in the PR description (and in ADR 0016 §5: `lamina-build` `text` feature, JSON records, `opt-level = "z"`, optional SASLprep, flat drawing ABI, own PNG decoder; `wasm-opt -O1` because `-Oz` gzips 6–8 % larger)
+- [x] Shrinking pass with a table of before/after sizes in the PR description (and in ADR 0016 §5: `laminapdf-build` `text` feature, JSON records, `opt-level = "z"`, optional SASLprep, flat drawing ABI, own PNG decoder; `wasm-opt -O1` because `-Oz` gzips 6–8 % larger)
 - [x] Write `docs/decisions/0016-package-design.md` with the measured numbers; add to the decisions index and architecture §3
 - [x] CI: size job in the fast lane (fails above budget), uploading `size-report.json` (the `wasm` job of `ci.yml`; `cargo xtask wasm` moved there from the `rust` job)
 - [x] Smoke test in Node (`node --test` or Vitest) loading both modules and building `hello` (Vitest)
@@ -69,15 +69,15 @@ None.
 
 ## Tests
 
-- `crates/lamina-wasm/tests/` with `wasm-bindgen-test` (Node runner) for the boundary types.
+- `crates/laminapdf-wasm/tests/` with `wasm-bindgen-test` (Node runner) for the boundary types.
 - `packages/wasm/test/smoke.test.ts` (Vitest, Node) loading the built modules.
 - Byte-identity of `hello` vs `fixtures/golden/examples/hello.pdf`.
 
 ## Docs to update
 
-- [x] [pdf-library §10 B6](../../plans/pdf-library.md#10-to-dos): tick `lamina-wasm` + `wasm-opt -Oz`, ADR 0016, size-budget checks; update §4 non-functional table with the ADR's budgets
-- [x] [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) (0016 → link, status), [§7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) (ADR 0016 half of "Write ADRs 0016, 0017"; `lamina-wasm` half)
-- [x] `docs/decisions/README.md`, `CLAUDE.md` (layout: `crates/lamina-wasm`, `packages/wasm`; commands `wasm`, `size`)
+- [x] [pdf-library §10 B6](../../plans/pdf-library.md#10-to-dos): tick `laminapdf-wasm` + `wasm-opt -Oz`, ADR 0016, size-budget checks; update §4 non-functional table with the ADR's budgets
+- [x] [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) (0016 → link, status), [§7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) (ADR 0016 half of "Write ADRs 0016, 0017"; `laminapdf-wasm` half)
+- [x] `docs/decisions/README.md`, `CLAUDE.md` (layout: `crates/laminapdf-wasm`, `packages/wasm`; commands `wasm`, `size`)
 
 ## Risks and open questions
 
@@ -89,7 +89,7 @@ None.
 
 - Deviations: the base budget is 380 KB gzip, not 350 KB (owner, 2026-10-30, option A of ADR 0016 §5); the text module is a superset of base (documents move between modules as bytes), not a run-time add-on; records cross as JSON through `serde_json`, not serde-wasm-bindgen (measured, ADR 0016 §7); `wasm-opt -O1`, not `-Oz`. The cross-module call overhead and the 100-page report against the §4 targets are not measured here: with no cross-module calls (superset), the first is moot; the second goes to B6b's TS example suite.
 - Measured by `cargo xtask size` (after the review fixes and B9d): base 372,711 B gzip, text 943,924 B; glue 3.8 KB and 4.0 KB min+gzip (ADR 0016 §6). `cargo xtask wasm` twice gives identical `dist/` bytes.
-- Cfg-only change in `crates/lamina/src/data.rs` (three attributes: `Build` under `build`, its `Text` arm under `text`), agreed with the B9b session.
+- Cfg-only change in `crates/laminapdf/src/data.rs` (three attributes: `Build` under `build`, its `Text` arm under `text`), agreed with the B9b session.
 
 ## Definition of done
 

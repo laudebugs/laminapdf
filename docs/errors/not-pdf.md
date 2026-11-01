@@ -18,7 +18,7 @@ Check that you passed the right bytes.
 ## Example
 
 ```rust
-let err = lamina::Document::open_bytes(b"<html>…</html>".to_vec(), Default::default()).unwrap_err();
+let err = laminapdf::Document::open_bytes(b"<html>…</html>".to_vec(), Default::default()).unwrap_err();
 assert_eq!(err.code(), "not-pdf");
 ```
 

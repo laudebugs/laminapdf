@@ -32,7 +32,7 @@ Decide how lamina signs and validates: PAdES levels (B-B, B-T now; B-LT/B-LTA la
 **In scope**
 
 - ADR 0020 file
-- Crate plan: `lamina-sign` (core: CMS, PAdES, validation) and edge adapters (keychain/PKCS#11 in desktop, WebCrypto in web)
+- Crate plan: `laminapdf-sign` (core: CMS, PAdES, validation) and edge adapters (keychain/PKCS#11 in desktop, WebCrypto in web)
 - Licence and audit status of crypto crates (RustCrypto: MIT/Apache)
 - Trust anchors: OS stores on desktop, bundled (e.g. EUTL/AATL?) on web — decision
 - TSA proxy contract (hash-only request, allow-listed TSAs, no logging of hashes)
@@ -43,7 +43,7 @@ Decide how lamina signs and validates: PAdES levels (B-B, B-T now; B-LT/B-LTA la
 
 **Editor facts**
 
-- **Crates and packages:** (decision) new `lamina-sign`
+- **Crates and packages:** (decision) new `laminapdf-sign`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: signing makes the document `AppendOnly`; signing runs after any pending rewrite
 - **Web vs desktop:** the ADR lists per-platform key storage
 - **Server features:** TSA proxy Worker contract

@@ -42,7 +42,7 @@ Open documents encrypted with the public-key handler (`/Adobe.PubSec`, `adbe.pkc
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.12` certificate-based security
-- **Crates and packages:** `lamina-syntax`, `lamina-sign` (CMS)
+- **Crates and packages:** `laminapdf-syntax`, `laminapdf-sign` (CMS)
 - **`SaveConstraint`:** `RequiresRewrite`: a full rewrite, every earlier revision dropped. On signed files the constraint is `Conflict`: the UI names the signatures that will be invalidated and removed (ADR 0007 §3 override); order redact → rewrite → sign (when writing)
 - **Web vs desktop:** key sources as E10i
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

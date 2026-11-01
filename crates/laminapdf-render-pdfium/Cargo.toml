@@ -1,0 +1,27 @@
+[package]
+name = "laminapdf-render-pdfium"
+description = "The PDFium adapter of laminapdf-render's RenderBackend (ADR 0004): native PDFium through pdfium-render, bound at runtime to the pinned pdfium-binaries build, reading lamina's ByteSource through PDFium's custom file access."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# Edge: FFI into a C++ library loaded at runtime from the file system (ADR 0004 §5).
+[package.metadata.lamina]
+layer = "edge"
+
+[dependencies]
+laminapdf-render = { workspace = true }
+pdfium-render = { workspace = true }
+
+[dev-dependencies]
+# The goldens and cross-checks render with both backends and compare sizes with lamina's model.
+laminapdf = { workspace = true }
+laminapdf-render = { workspace = true, features = ["hayro"] }
+png = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

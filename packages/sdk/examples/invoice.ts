@@ -1,6 +1,6 @@
 // An invoice: an embedded, subset font and a standard 14 one, a coloured band, right-aligned
 // text boxes, hairlines and a link, tagged (headings, a table, a link element; the bar and the
-// rules as artifacts). The TS twin of crates/lamina/examples/invoice.rs.
+// rules as artifacts). The TS twin of crates/laminapdf/examples/invoice.rs.
 import { Builder, Font, type Rect } from "@laminapdf/sdk";
 
 const ITEMS: readonly (readonly [item: string, qty: number, price: number])[] = [

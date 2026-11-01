@@ -6,6 +6,7 @@
 //! (`.cargo/config.toml`, `.gitattributes`, `rust-toolchain.toml`, a new workflow) always runs
 //! the suites instead of slipping through.
 
+use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::path::Path;
@@ -39,6 +40,40 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         writeln!(file, "code={code}").context("writing $GITHUB_OUTPUT")?;
     }
     Ok(())
+}
+
+/// Old path → new path for each file renamed between `merge_base` and the working tree.
+pub(crate) fn renames(root: &Path, merge_base: &str) -> Result<BTreeMap<String, String>> {
+    let diff = git(
+        root,
+        &[
+            "diff",
+            "--name-status",
+            "-M",
+            "-l0",
+            "--diff-filter=R",
+            "-z",
+            merge_base,
+        ],
+    )?;
+    Ok(parse_renames(&diff))
+}
+
+/// The renames in `git diff --name-status -z` output: `R<score>`, old path, new path, each
+/// ended by a NUL.
+fn parse_renames(name_status: &str) -> BTreeMap<String, String> {
+    let mut fields = name_status.split('\0').filter(|field| !field.is_empty());
+    let mut renames = BTreeMap::new();
+    while let Some(status) = fields.next() {
+        let paths = if status.starts_with(['R', 'C']) { 2 } else { 1 };
+        let (Some(old), new) = (fields.next(), if paths == 2 { fields.next() } else { None }) else {
+            break;
+        };
+        if let (true, Some(new)) = (status.starts_with('R'), new) {
+            renames.insert(old.to_owned(), new.to_owned());
+        }
+    }
+    renames
 }
 
 /// True when any path is outside the docs allowlist. No paths at all is docs-only.
@@ -79,6 +114,18 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn parse_renames_should_map_each_old_path_to_its_new_one() {
+        let renames = super::parse_renames("R100\0crates/a/x.rs\0crates/b/x.rs\0M\0README.md\0R087\0a.md\0b.md\0");
+        assert_eq!(
+            renames.into_iter().collect::<Vec<_>>(),
+            [
+                ("a.md".to_owned(), "b.md".to_owned()),
+                ("crates/a/x.rs".to_owned(), "crates/b/x.rs".to_owned())
+            ]
+        );
+    }
+
     use super::{is_docs, pick_base, touches_code};
 
     /// One example per allowlist pattern.
@@ -112,7 +159,7 @@ mod tests {
         "Cargo.lock",
         "pnpm-lock.yaml",
         "deny.toml",
-        "crates/lamina-cos/src/lib.rs",
+        "crates/laminapdf-cos/src/lib.rs",
         "fixtures/corpus/hello.pdf",
         "tools/xtask/src/main.rs",
         "docs.toml",
@@ -122,7 +169,7 @@ mod tests {
     /// Markdown that can be a build input (`#![doc = include_str!("../README.md")]`, doc
     /// tests, a docs site's content) or sits outside the allowlisted folders.
     const CODE_MARKDOWN: [&str; 7] = [
-        "crates/lamina-cos/README.md",
+        "crates/laminapdf-cos/README.md",
         "packages/sdk/README.md",
         "apps/docs/src/content/docs/index.md",
         "tools/corpus-facts/README.md",
@@ -151,7 +198,7 @@ mod tests {
 
     #[test]
     fn license_counts_only_at_the_root() {
-        assert!(!is_docs("crates/lamina-cos/LICENSE-MIT"));
+        assert!(!is_docs("crates/laminapdf-cos/LICENSE-MIT"));
     }
 
     #[test]

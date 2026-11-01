@@ -107,7 +107,7 @@ def outcome_facts(data):
     """Open/repair/fail outcome, page count and outline titles (the differential's facts).
 
     The outcome is about opening the file and counting its pages, as lamina's side of the
-    comparison is (crates/lamina-model/tests/differential.rs): a file that opens but whose
+    comparison is (crates/laminapdf-model/tests/differential.rs): a file that opens but whose
     outline cannot be read keeps its outcome and page count, with `outline_titles` null."""
     with captured_warnings() as warnings:
         try:

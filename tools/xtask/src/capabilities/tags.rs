@@ -309,7 +309,7 @@ mod pages {
 
     #[test]
     fn scan_rust_should_find_every_tag_and_its_function() {
-        let tags = scan("crates/lamina-model/tests/views.rs", SOURCE).unwrap();
+        let tags = scan("crates/laminapdf-model/tests/views.rs", SOURCE).unwrap();
         let found: Vec<(&str, &str, Status)> = tags
             .iter()
             .map(|t| (t.id.as_str(), t.test.function.as_str(), t.status))
@@ -326,16 +326,16 @@ mod pages {
 
     #[test]
     fn scan_rust_should_map_an_integration_test_file_to_its_target() {
-        let tags = scan("crates/lamina-model/tests/views.rs", SOURCE).unwrap();
+        let tags = scan("crates/laminapdf-model/tests/views.rs", SOURCE).unwrap();
         assert_eq!(
             (tags[0].test.krate.as_str(), &tags[0].test.target),
-            ("lamina-model", &Target::Test("views".to_owned()))
+            ("laminapdf-model", &Target::Test("views".to_owned()))
         );
     }
 
     #[test]
     fn scan_rust_should_map_a_source_file_to_the_lib_target() {
-        let tags = scan("crates/lamina-ops/src/op.rs", SOURCE).unwrap();
+        let tags = scan("crates/laminapdf-ops/src/op.rs", SOURCE).unwrap();
         assert_eq!(tags[0].test.target, Target::Lib);
     }
 
@@ -443,7 +443,7 @@ test result: FAILED. 1 passed; 1 failed; 1 ignored
 
     #[test]
     fn runs_should_group_by_package_and_target_without_duplicates() {
-        let tags = scan("crates/lamina-model/tests/views.rs", SOURCE).unwrap();
+        let tags = scan("crates/laminapdf-model/tests/views.rs", SOURCE).unwrap();
         let runs = runs(&tags);
         assert_eq!(
             runs.values().cloned().collect::<Vec<_>>(),

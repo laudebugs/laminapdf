@@ -1,6 +1,6 @@
 # Render goldens
 
-ADR 0018 tier 8, started by todo B5c for the `lamina` examples (the C round reuses the tooling). For every page of every example golden in `fixtures/golden/examples/` (the output of `crates/lamina/examples/`, kept equal to it by `cargo xtask examples` and `crates/lamina/tests/examples.rs`):
+ADR 0018 tier 8, started by todo B5c for the `laminapdf` examples (the C round reuses the tooling). For every page of every example golden in `fixtures/golden/examples/` (the output of `crates/laminapdf/examples/`, kept equal to it by `cargo xtask examples` and `crates/laminapdf/tests/examples.rs`):
 
 - `<example>/<page>-pdfium.png` and `<page>-hayro.png`: the page rendered at **72 dpi** by PDFium (pypdfium2, pinned in `tools/render/requirements.txt`) and by hayro (`tools/render`, its own workspace: hayro and its whole graph pinned by `tools/render/Cargo.lock`). `<page>` is the 0-based page index.
 - At **150 dpi** nothing is committed: hayro and PDFium are compared with each other, with the hayro-parity spike's metric ([`spikes/hayro-parity/README.md`](../../spikes/hayro-parity/README.md), "Method").

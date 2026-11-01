@@ -22,7 +22,7 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 
 - [Research 03 §7](../../research/pdf/03-text-and-fonts.md#7-text-layout--shaping--everything-pdf-does-not-do-for-you): [§7.2 shaping](../../research/pdf/03-text-and-fonts.md#72-shaping), [§7.3 bidi](../../research/pdf/03-text-and-fonts.md#73-bidirectional-text-uax-9), [§7.4 line breaking](../../research/pdf/03-text-and-fonts.md#74-line-breaking-uax-14), [§7.6 justification](../../research/pdf/03-text-and-fonts.md#76-justification), [§7.7 fallback](../../research/pdf/03-text-and-fonts.md#77-font-fallback); [§5.3 ligatures, reordering and ActualText](../../research/pdf/03-text-and-fonts.md#53-ligatures-reordering-and-actualtext); [§2.6–2.7 displacement and TJ kerning](../../research/pdf/03-text-and-fonts.md#26-matrices-and-glyph-displacement-math).
 - [pdf-library §8 risks](../../plans/pdf-library.md#8-risks): WASM size of shaping and ICU4X data (slice data).
-- `lamina-text` from [B4a](../done/B4a-font-loading-and-subsetting.md) (`Font`, `FontUse`).
+- `laminapdf-text` from [B4a](../done/B4a-font-loading-and-subsetting.md) (`Font`, `FontUse`).
 
 ## Scope
 
@@ -71,7 +71,7 @@ None.
 ## Tests
 
 - Unit tests per module; UAX conformance subsets under `fixtures/unicode/` (Unicode licence noted in `fixtures/README.md`).
-- `crates/lamina-text/tests/{shaping_goldens,bidi,linebreak,extraction}.rs`; goldens in `fixtures/shaping/`.
+- `crates/laminapdf-text/tests/{shaping_goldens,bidi,linebreak,extraction}.rs`; goldens in `fixtures/shaping/`.
 - External extraction checks in the full lane ([X4](../done/X4-full-lane-gate.md)).
 
 ## Docs to update

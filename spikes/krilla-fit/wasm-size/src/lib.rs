@@ -22,7 +22,7 @@ fn inputs() -> assets::Assets {
     }
 }
 
-/// Generates the sample and opens it with lamina-cos (as `@lamina/pdf` would after `finish`).
+/// Generates the sample and opens it with laminapdf-cos (as `@lamina/pdf` would after `finish`).
 #[unsafe(no_mangle)]
 pub extern "C" fn generate() -> usize {
     let a = inputs();
@@ -34,5 +34,5 @@ pub extern "C" fn generate() -> usize {
         .unwrap_or_default();
     #[cfg(not(any(feature = "krilla-gen", feature = "lamina-gen")))]
     let bytes = black_box(a.font);
-    lamina_cos::open(&bytes).and_then(|d| d.page_count()).unwrap_or(0)
+    laminapdf_cos::open(&bytes).and_then(|d| d.page_count()).unwrap_or(0)
 }

@@ -16,11 +16,11 @@
 
 ## Goal
 
-`lamina-cos/src/reader/mod.rs` is 1,533 lines (1,080 of code) and mixes opening and repair, object loading and the page-tree walk. This todo splits it along those seams with no API change and takes it off the maintainability baseline.
+`laminapdf-cos/src/reader/mod.rs` is 1,533 lines (1,080 of code) and mixes opening and repair, object loading and the page-tree walk. This todo splits it along those seams with no API change and takes it off the maintainability baseline.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-cos/src/reader/mod.rs` (opening at :532, loading at :980–1210, the page tree at :60–490 and :1242–1450); [Q2e](./Q2e-error-policy-consolidation.md) has already moved the error policies out.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-cos/src/reader/mod.rs` (opening at :532, loading at :980–1210, the page tree at :60–490 and :1242–1450); [Q2e](./Q2e-error-policy-consolidation.md) has already moved the error policies out.
 
 ## Scope
 

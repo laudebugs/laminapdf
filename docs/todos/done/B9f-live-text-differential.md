@@ -20,7 +20,7 @@ Run B9c's text comparison on the external corpus every night, not only on the fi
 
 ## Context
 
-- [B9c](./B9c-text-extraction-bindings-and-differential.md): `tools/differential/text.mjs` (pdf.js `getTextContent` and pdftotext per page), the comparison rule (whitespace and bidi controls removed; `crates/lamina/tests/text_differential.rs`), `fixtures/differential/text-exceptions.json` (ASCII85Decode content, pdftotext's widget text, pdftotext's visual-order RTL).
+- [B9c](./B9c-text-extraction-bindings-and-differential.md): `tools/differential/text.mjs` (pdf.js `getTextContent` and pdftotext per page), the comparison rule (whitespace and bidi controls removed; `crates/laminapdf/tests/text_differential.rs`), `fixtures/differential/text-exceptions.json` (ASCII85Decode content, pdftotext's widget text, pdftotext's visual-order RTL).
 - [X3a](./X3a-nightly-lane.md): `cargo xtask differential --live` (`tools/xtask/src/live.rs`), the runner that kills overrunning readers and reruns their files one per process (`tools/xtask/src/runner.rs`), exception classes in `fixtures/differential/exceptions.toml`.
 
 ## Scope

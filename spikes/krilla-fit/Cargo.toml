@@ -10,10 +10,10 @@ publish = false
 [workspace]
 
 [dependencies]
-lamina-syntax = { path = "../../crates/lamina-syntax" }
-lamina-cos = { path = "../../crates/lamina-cos" }
+laminapdf-syntax = { path = "../../crates/laminapdf-syntax" }
+laminapdf-cos = { path = "../../crates/laminapdf-cos" }
 # The writer moved here in B3b.
-lamina-save = { path = "../../crates/lamina-save" }
+laminapdf-save = { path = "../../crates/laminapdf-save" }
 krilla = "=0.8.2"
 pdf-writer = "=0.15.0"
 subsetter = "=0.2.6"

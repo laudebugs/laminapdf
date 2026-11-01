@@ -43,7 +43,7 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
   - Lookup is `Symbol.dispose ?? Symbol.for("Symbol.dispose")`, so runtimes without the symbol still work; the library does not assign to globals (`sideEffects: false`).
 - **`disposed` code.** Any method on a disposed handle throws `LaminaError` with code `disposed`. [L1b](../done/L1b-error-contract-codegen.md) adds the code and the `LaminaError` class; this todo uses them.
 - **FinalizationRegistry backstop.** Keep wasm-bindgen's registry. Register TS wrapper handles too, so a forgotten handle is freed eventually. An opt-in debug hook (`onLeak`) reports handles collected without dispose.
-- **Capped wasm memory.** Add `-C link-arg=--max-memory=<bytes>` for `lamina-wasm` in the `cargo xtask wasm` build (value set in ADR 0016 or this PR; recommendation: 2 GiB, the safe cross-browser wasm32 ceiling, to verify). Document it in ADR 0016 if it has merged. Growth past the cap traps. The wrapper below turns the trap into a coded error (`out-of-memory`).
+- **Capped wasm memory.** Add `-C link-arg=--max-memory=<bytes>` for `laminapdf-wasm` in the `cargo xtask wasm` build (value set in ADR 0016 or this PR; recommendation: 2 GiB, the safe cross-browser wasm32 ceiling, to verify). Document it in ADR 0016 if it has merged. Growth past the cap traps. The wrapper below turns the trap into a coded error (`out-of-memory`).
 - **`reset()`.** A module-level `reset()` drops the instance and re-runs `init()` from the cached `WebAssembly.Module`. Every live handle becomes disposed. Memory returns to the fresh-instance size.
 - **Abort-and-reinstantiate wrapper.** Every call into the glue goes through one guard. On a `WebAssembly.RuntimeError` it:
   1. marks the instance poisoned;
@@ -51,7 +51,7 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
   3. lets the next call reinstantiate.
 
   Handles from the poisoned instance throw `instance-reset` (or `disposed`; decide in the PR). Optional recovery: `Document.open(bytes, { recoverable: true })` keeps the input so `doc.reopen()` can rebuild it.
-- **Test hooks** behind a non-default `test-hooks` Cargo feature in `lamina-wasm`: `__trap()` and `__grow(bytes)`. They are never in release builds; CI checks the release `.wasm` does not export them.
+- **Test hooks** behind a non-default `test-hooks` Cargo feature in `laminapdf-wasm`: `__trap()` and `__grow(bytes)`. They are never in release builds; CI checks the release `.wasm` does not export them.
 
 **Out of scope** (and which todo covers it)
 
@@ -61,7 +61,7 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
 
 ## Tasks
 
-- [ ] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md) for the `lamina-wasm` changes. Core crates do not change and stay bytes-in/bytes-out
+- [ ] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md) for the `laminapdf-wasm` changes. Core crates do not change and stay bytes-in/bytes-out
 - [ ] Inventory every wasm-backed class exported by `packages/sdk` and `@laminapdf/wasm`; list them in the PR description
 - [ ] `src/internal/handle.ts`:
   - [ ] A base `Handle` with `disposed` state, `[Symbol.dispose]`, `free()`/`close()` aliases, child tracking and the `assertLive()` check

@@ -85,10 +85,10 @@ tasks:
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: ErrorCode/WarningCode
-                    (crates/lamina-syntax/src/generated/), the façade's explain pages
-                    (crates/lamina/src/generated/), @laminapdf/sdk's unions, tables and explain
+                    (crates/laminapdf-syntax/src/generated/), the façade's explain pages
+                    (crates/laminapdf/src/generated/), @laminapdf/sdk's unions, tables and explain
                     pages (packages/sdk/src/generated/), the lamina.error/1 JSON Schema
-                    (packages/sdk/schemas/, crates/lamina/schemas/) and docs/errors/README.md's
+                    (packages/sdk/schemas/, crates/laminapdf/schemas/) and docs/errors/README.md's
                     tables; --check fails naming each stale file; --md prints the tables
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
@@ -126,12 +126,12 @@ tasks:
                     own workspace) at 72 dpi, compare with fixtures/render-golden/ (thresholds.toml;
                     diff images in target/xtask/render-golden/), and hayro vs PDFium at 150 dpi;
                     --update rewrites the PNGs (and still fails on a parity disagreement)
-                    then lamina-render's PDFium and hayro adapters on fixtures/corpus/ at 96 dpi
-                    against fixtures/golden/render/ (fetches PDFium first; lamina-render-pdfium's
+                    then laminapdf-render's PDFium and hayro adapters on fixtures/corpus/ at 96 dpi
+                    against fixtures/golden/render/ (fetches PDFium first; laminapdf-render-pdfium's
                     ignored tests, or its `goldens` example with --update)
   render-diff [--corpus external] [--source <name>]… [--pages N] [--sample N] [--jobs N] [--top N]
               [--history <dir> [--runner <label>] [--record] [--dry-run]]
-                    nightly: every page of the external corpus by lamina-render's hayro and PDFium
+                    nightly: every page of the external corpus by laminapdf-render's hayro and PDFium
                     adapters at 96 dpi, compared with the hayro-parity spike's metric (tools/render's
                     render-diff, per-file processes with time limits); report.json, summary.html
                     with the worst diffs in target/nightly/render-diff/; with --history, a pass-rate
@@ -464,16 +464,16 @@ fn clippy(ws: &Workspace) -> Result<()> {
     args.extend(["--", "-D", "warnings"]);
     ws.cargo(&args)?;
     // The shipping configurations, which the unified build above never compiles: the WASM
-    // modules (the base: lamina-build without text, no SASLprep, the façade with `build`
+    // modules (the base: laminapdf-build without text, no SASLprep, the façade with `build`
     // only; ADR 0016 §4) and the façade without the builder. Clippy lints every workspace
     // crate a build compiles, so each of these lints its dependencies' configuration too.
     for features in [
-        &["-p", "lamina-wasm"][..],
-        &["-p", "lamina-wasm", "--features", "text"],
-        &["-p", "lamina-wasm", "--features", "extract"],
-        &["-p", "lamina", "--no-default-features"],
+        &["-p", "laminapdf-wasm"][..],
+        &["-p", "laminapdf-wasm", "--features", "text"],
+        &["-p", "laminapdf-wasm", "--features", "extract"],
+        &["-p", "laminapdf", "--no-default-features"],
         // The reader configuration: extraction without the builder (B9c).
-        &["-p", "lamina", "--no-default-features", "--features", "extract"],
+        &["-p", "laminapdf", "--no-default-features", "--features", "extract"],
     ] {
         let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
         args.extend(features);
@@ -556,7 +556,7 @@ fn portability(ws: &Workspace) -> Result<()> {
                 "--target",
                 target,
                 "-p",
-                "lamina",
+                "laminapdf",
                 "--no-default-features",
             ];
             args.extend(features);
@@ -576,9 +576,9 @@ fn wasm(ws: &Workspace) -> Result<()> {
         "--target",
         WASM_TARGET,
     ];
-    // lamina-wasm is built per module by `wasm::build` (an LTO link here would be thrown away).
+    // laminapdf-wasm is built per module by `wasm::build` (an LTO link here would be thrown away).
     args.extend(package_args(
-        ws.wasm_crates().filter(|c| *c != "lamina-wasm"),
+        ws.wasm_crates().filter(|c| *c != "laminapdf-wasm"),
         "wasm32",
     )?);
     // Every wasm32 crate builds with the shipping profile; then the two modules of @laminapdf/wasm

@@ -5,7 +5,7 @@
 
 ## What happened
 
-Font bytes passed to `Font::from_bytes` or `Font::from_collection` (`lamina-text`) could not be read as a font.
+Font bytes passed to `Font::from_bytes` or `Font::from_collection` (`laminapdf-text`) could not be read as a font.
 
 ## Why
 
@@ -18,7 +18,7 @@ Pass the bytes of a `.ttf`, `.otf`, `.ttc` or `.otc` file; check that the file i
 ## Example
 
 ```rust
-let err = lamina::Font::from_bytes(std::fs::read("font.woff2")?).unwrap_err(); // invalid-font
+let err = laminapdf::Font::from_bytes(std::fs::read("font.woff2")?).unwrap_err(); // invalid-font
 ```
 
 ## Data fields

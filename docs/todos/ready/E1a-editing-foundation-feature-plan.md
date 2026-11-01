@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [C7c](./C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md), [X2](../done/X2-capability-matrix.md) |
 | Blocks | [E1b](./E1b-xmp-packet-model.md), [E1d](./E1d-edit-session-undo-ui.md), [E2a](./E2a-page-organisation-feature-plan.md) |
-| Dependency notes | `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D7` ([desktop-app §D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta): desktop beta), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate): builder and `lamina` crate), `X2` (capability-matrix generator: manifest, test tagging, `cargo xtask capabilities`, CI gate; [architecture §7](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix)) |
+| Dependency notes | `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1), `D7` ([desktop-app §D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta): desktop beta), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate), `X2` (capability-matrix generator: manifest, test tagging, `cargo xtask capabilities`, CI gate; [architecture §7](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix)) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e1a-editing-foundation-feature-plan` |
 | PR title | `docs(editor): E1 feature plan (editing foundation)` |
@@ -44,7 +44,7 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.01` title, author, subject, keywords; `J.02` creation/modification dates; `J.03` producer and creator; `J.10` remove selected metadata
-- **Crates and packages:** (planned for the round) `lamina-ops`, `lamina-save`, `lamina-model` (XMP), `@laminapdf/ui`, platform adapters
+- **Crates and packages:** (planned for the round) `laminapdf-ops`, `laminapdf-save`, `laminapdf-model` (XMP), `@laminapdf/ui`, platform adapters
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free` → incremental by default; approval-signed files `AppendOnly` (metadata edits as incremental updates); under a certification signature metadata edits are a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) and gated
 - **Web vs desktop:** desktop saves in place and watches for external changes; web saves in place only with the File System Access API, otherwise downloads a copy
 - **Server features:** none
@@ -53,7 +53,7 @@ The short feature-plan PR that opens round E1 ([full-editor §E1](../../plans/fu
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e1-editing-foundation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`J.01`, `J.02`, `J.03`, `J.10`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

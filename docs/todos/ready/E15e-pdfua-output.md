@@ -37,7 +37,7 @@
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `L.11` PDF/UA-compliant output; `H.12` convert to PDF/A, PDF/X, PDF/UA
-- **Crates and packages:** `lamina-save`, `lamina-model`
+- **Crates and packages:** `laminapdf-save`, `laminapdf-model`
 - **`SaveConstraint`:** incremental on `Free`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

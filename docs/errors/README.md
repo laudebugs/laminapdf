@@ -1,6 +1,6 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `lamina::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `lamina explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `lamina explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
 
 A PR that adds a code adds:
 
@@ -9,7 +9,7 @@ A PR that adds a code adds:
 - its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`; *Data fields* lists the `data` keys, marking the ones that can carry document or caller text *untrusted*. The page is written for readers of the docs site: ADR numbers, todo IDs and CI go in an optional last section, *For contributors*, which the site leaves out (`apps/docs/plugins/error-pages.mjs`) and `cargo xtask check docs-prose` skips;
 - the output of `cargo xtask gen codes`, which regenerates the façade's `ErrorCode`/`WarningCode`, `@laminapdf/sdk`'s unions, tables and explain text, the `lamina.error/1` schema and the tables below. `cargo xtask check docs` fails, naming the file, when any of them is stale.
 
-`crates/lamina-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code.
+`crates/laminapdf-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code.
 
 <!-- @generated below by cargo xtask gen codes. DO NOT EDIT. -->
 
@@ -99,7 +99,7 @@ A PR that adds a code adds:
 | [`would-invalidate-signatures`](would-invalidate-signatures.md) | `security` | the save would break one or more signatures |
 | [`requires-rewrite`](requires-rewrite.md) | `state` | an incremental save was requested but only a full rewrite is safe |
 
-## Text errors (`lamina-text`)
+## Text errors (`laminapdf-text`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |
@@ -120,14 +120,14 @@ A PR that adds a code adds:
 | [`encoding-full`](encoding-full.md) | `limit` | a standard 14 font has no free one-byte code left for another glyph |
 | [`font-not-shapable`](font-not-shapable.md) | `unsupported` | a standard 14 font was given to shaping or layout, which need a font program |
 
-## Text warnings (`lamina-text`)
+## Text warnings (`laminapdf-text`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`tounicode-conflict`](tounicode-conflict.md) | `usage` | one glyph was used for two different texts; ToUnicode keeps the first |
 | [`whole-font-rebuilt`](whole-font-rebuilt.md) | `usage` | a font that forbids subsetting was rebuilt with every glyph kept |
 
-## Build errors (`lamina-build`)
+## Build errors (`laminapdf-build`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |
@@ -159,7 +159,7 @@ A PR that adds a code adds:
 | [`embedded-file-forbidden`](embedded-file-forbidden.md) | `usage` | PDF/A-2 doesn't allow attached files that aren't PDF/A themselves |
 | [`embedded-file-without-mime-type`](embedded-file-without-mime-type.md) | `usage` | an attached file has no MIME type, which every PDF/A profile requires |
 
-## Render errors (`lamina-render`)
+## Render errors (`laminapdf-render`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |
@@ -167,7 +167,7 @@ A PR that adds a code adds:
 | [`render-failed`](render-failed.md) | `input` | the render engine could not open the document or draw the page |
 | [`render-backend-unavailable`](render-backend-unavailable.md) | `io` | the render engine is not available: its library or module could not be loaded |
 
-## Façade errors (`lamina`)
+## Façade errors (`laminapdf`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |
@@ -175,7 +175,7 @@ A PR that adds a code adds:
 | [`job-finished`](job-finished.md) | `state` | a job was stepped after it had finished, failed or been cancelled |
 | [`document-changed`](document-changed.md) | `state` | the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step |
 
-## Binding errors (`lamina-wasm`)
+## Binding errors (`laminapdf-wasm`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |

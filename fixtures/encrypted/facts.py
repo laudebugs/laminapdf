@@ -31,7 +31,7 @@ from make import QPDF_CANNOT_READ
 HERE = Path(__file__).resolve().parent
 PYPDF = "6.21.3"
 
-# qpdf --show-encryption labels → lamina_cos::Permissions methods.
+# qpdf --show-encryption labels → laminapdf_cos::Permissions methods.
 PERMISSIONS = {
     "extract for accessibility": "accessibility",
     "extract for any purpose": "extract",

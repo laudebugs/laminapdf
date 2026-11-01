@@ -18,9 +18,9 @@ Stop stepping once a step returns `Done` or an error. To run the work again, cre
 ## Example
 
 ```rust
-let mut job = doc.save_job(&lamina::SaveOptions::new());
-while let lamina::Step::Progress { .. } = job.step(&mut doc, lamina::Budget::UNLIMITED)? {}
-assert_eq!(job.step(&mut doc, lamina::Budget::UNLIMITED).unwrap_err().code(), "job-finished");
+let mut job = doc.save_job(&laminapdf::SaveOptions::new());
+while let laminapdf::Step::Progress { .. } = job.step(&mut doc, laminapdf::Budget::UNLIMITED)? {}
+assert_eq!(job.step(&mut doc, laminapdf::Budget::UNLIMITED).unwrap_err().code(), "job-finished");
 ```
 
 ## Data fields

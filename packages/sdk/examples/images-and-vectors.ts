@@ -1,7 +1,7 @@
 // Vector graphics and images: rectangles, circles, Bézier curves, dashed round-capped strokes,
 // gray/RGB/CMYK/hex colour, transparency and a blend mode, a clip, a rotated transform, a JPEG
 // passed through and an RGBA image with a soft mask. Needs only the base module. The TS twin of
-// crates/lamina/examples/vectors.rs (fixtures/golden/examples/vectors.pdf).
+// crates/laminapdf/examples/vectors.rs (fixtures/golden/examples/vectors.pdf).
 import { Builder, Image, Matrix } from "@laminapdf/sdk";
 
 /** A 16×16 RGBA gradient whose alpha falls off towards the right. */

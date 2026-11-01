@@ -334,7 +334,7 @@ fn suite_round_trips() {}
             MANIFEST,
             INVENTORY,
             [
-                (Path::new("crates/lamina-model/tests/views.rs"), VIEWS),
+                (Path::new("crates/laminapdf-model/tests/views.rs"), VIEWS),
                 (Path::new(matrix::ROUND_TRIP_SUITE), SUITE),
             ],
         )
@@ -344,11 +344,11 @@ fn suite_round_trips() {}
     fn results(suite: &str) -> BTreeMap<(String, Target), BTreeMap<String, bool>> {
         BTreeMap::from([
             (
-                ("lamina-model".to_owned(), Target::Test("views".to_owned())),
+                ("laminapdf-model".to_owned(), Target::Test("views".to_owned())),
                 tags::parse_libtest("test pages::rotate_is_read ... ok\n"),
             ),
             (
-                ("lamina-save".to_owned(), Target::Test("roundtrip_suite".to_owned())),
+                ("laminapdf-save".to_owned(), Target::Test("roundtrip_suite".to_owned())),
                 tags::parse_libtest(&format!("test tests::suite_round_trips ... {suite}\n")),
             ),
         ])
@@ -368,7 +368,7 @@ fn suite_round_trips() {}
     #[test]
     fn evaluate_should_fail_when_a_tagged_test_did_not_run() {
         let mut results = results("ok");
-        results.remove(&("lamina-save".to_owned(), Target::Test("roundtrip_suite".to_owned())));
+        results.remove(&("laminapdf-save".to_owned(), Target::Test("roundtrip_suite".to_owned())));
         assert!(evaluate(&fake_inputs(), &results).is_err());
     }
 
@@ -397,7 +397,7 @@ fn suite_round_trips() {}
             &MANIFEST.replacen("round = \"E2\"", "round = \"E3\"", 1),
             INVENTORY,
             [
-                (Path::new("crates/lamina-model/tests/views.rs"), VIEWS),
+                (Path::new("crates/laminapdf-model/tests/views.rs"), VIEWS),
                 (Path::new(matrix::ROUND_TRIP_SUITE), SUITE),
             ],
         )
@@ -415,9 +415,9 @@ fn suite_round_trips() {}
         assert_eq!(static_problems(&inputs, &readme).len(), 1);
     }
 
-    const CARGO_MESSAGES: &str = r#"{"reason":"compiler-artifact","manifest_path":"/r/crates/lamina-save/Cargo.toml","target":{"kind":["test"],"name":"roundtrip_suite"},"executable":"/r/target/debug/deps/roundtrip_suite-1"}
-{"reason":"compiler-artifact","manifest_path":"/r/crates/lamina-save/Cargo.toml","target":{"kind":["lib"],"name":"lamina_save"},"executable":"/r/target/debug/deps/lamina_save-2"}
-{"reason":"compiler-artifact","manifest_path":"/r/crates/lamina-save/Cargo.toml","target":{"kind":["lib"],"name":"lamina_save"},"executable":null}
+    const CARGO_MESSAGES: &str = r#"{"reason":"compiler-artifact","manifest_path":"/r/crates/laminapdf-save/Cargo.toml","target":{"kind":["test"],"name":"roundtrip_suite"},"executable":"/r/target/debug/deps/roundtrip_suite-1"}
+{"reason":"compiler-artifact","manifest_path":"/r/crates/laminapdf-save/Cargo.toml","target":{"kind":["lib"],"name":"laminapdf_save"},"executable":"/r/target/debug/deps/laminapdf_save-2"}
+{"reason":"compiler-artifact","manifest_path":"/r/crates/laminapdf-save/Cargo.toml","target":{"kind":["lib"],"name":"laminapdf_save"},"executable":null}
 {"reason":"compiler-artifact","manifest_path":"/r/crates/x/Cargo.toml","target":{"kind":["bin"],"name":"tool"},"executable":"/r/target/debug/deps/tool-3"}
 {"reason":"build-finished","success":true}"#;
 
@@ -427,8 +427,8 @@ fn suite_round_trips() {}
         assert_eq!(
             binaries.keys().cloned().collect::<Vec<_>>(),
             [
-                ("lamina-save".to_owned(), Target::Lib),
-                ("lamina-save".to_owned(), Target::Test("roundtrip_suite".to_owned())),
+                ("laminapdf-save".to_owned(), Target::Lib),
+                ("laminapdf-save".to_owned(), Target::Test("roundtrip_suite".to_owned())),
                 ("x".to_owned(), Target::Bin("tool".to_owned())),
             ]
         );

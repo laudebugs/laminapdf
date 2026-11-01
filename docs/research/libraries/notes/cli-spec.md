@@ -141,7 +141,7 @@ clap 4 derive + clap_complete + clap_mangen, annotate-snippets/miette-style diag
 - npm per-platform pattern: `@biomejs/biome` has `bin: biome` and `optionalDependencies` on `@biomejs/cli-{win32,darwin,linux}-{x64,arm64}`, `linux-*-musl`, and `android-{x64,arm64}` (v2.6.4) — [biome package.json](https://raw.githubusercontent.com/biomejs/biome/main/packages/%40biomejs/biome/package.json).
 
 ### Inferences
-- Crate layout: `crates/lamina-cli` with `layer = "app"` (or `edge`), depending on core crates; core stays free of clap/tokio/rayon. Put command logic in a library module (`commands::info(args) -> Result<InfoReport>`) consumed by both the clap front-end and the rmcp tools; `tokio` only behind a `mcp` cargo feature.
+- Crate layout: `crates/laminapdf-cli` with `layer = "app"` (or `edge`), depending on core crates; core stays free of clap/tokio/rayon. Put command logic in a library module (`commands::info(args) -> Result<InfoReport>`) consumed by both the clap front-end and the rmcp tools; `tokio` only behind a `mcp` cargo feature.
 - Diagnostics: annotate-snippets (rustc's renderer, actively maintained per crates.io dates) is preferable to miette for pointing at byte offsets in the PDF (`file.pdf:offset 18342: xref entry 12 points past EOF`).
 - WASI: since core is bytes-in/bytes-out, a `wasm32-wasip2` build of the CLI could run via `npx`/wasmtime with preopened dirs as a natural sandbox (recommendation; no source verified this session).
 - Licence check: cargo-dist, clap, rmcp are MIT/Apache per their repos (verify via `cargo deny` per ADR 0019).

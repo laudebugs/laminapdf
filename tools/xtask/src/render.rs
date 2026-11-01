@@ -1,13 +1,13 @@
 //! `cargo xtask render-golden [--update]` (ADR 0018 tier 8, todos B5c and C2b): renders every page of
 //! the committed example goldens (`fixtures/golden/examples/*.pdf`, which `cargo xtask
-//! examples` and `crates/lamina/tests/examples.rs` keep equal to the examples' output) with
+//! examples` and `crates/laminapdf/tests/examples.rs` keep equal to the examples' output) with
 //! PDFium (`tools/render/pdfium.py`, pypdfium2 pinned in `tools/render/requirements.txt`;
 //! `$LAMINA_PYTHON` or `python3`) at 72 and 150 dpi, then runs `tools/render` (`render-golden`,
 //! with hayro; its own workspace and lockfile, built here in release mode after its fmt,
 //! clippy and tests): each page's 72 dpi renders against
 //! `fixtures/render-golden/<example>/<page>-<engine>.png`, and hayro against PDFium at 150
 //! dpi, with the limits in `fixtures/render-golden/thresholds.toml`. Failures write expected |
-//! actual | diff images into `target/xtask/render-golden/diff/`. Then [`corpus`]: lamina-render's
+//! actual | diff images into `target/xtask/render-golden/diff/`. Then [`corpus`]: laminapdf-render's
 //! PDFium and hayro adapters on `fixtures/corpus/` against `fixtures/golden/render/`.
 
 use std::fs;
@@ -87,9 +87,9 @@ pub(crate) fn run(ws: &Workspace, update: bool) -> Result<()> {
     corpus(ws, update)
 }
 
-/// Part 3 (todo C2b, ADR 0004): `lamina-render`'s backends on `fixtures/corpus/`, against
+/// Part 3 (todo C2b, ADR 0004): `laminapdf-render`'s backends on `fixtures/corpus/`, against
 /// `fixtures/golden/render/<backend>/`. Fetches the pinned PDFium, then runs
-/// `lamina-render-pdfium`'s ignored tests (goldens, determinism, errors, tile and rotation
+/// `laminapdf-render-pdfium`'s ignored tests (goldens, determinism, errors, tile and rotation
 /// geometry, page sizes against lamina), or with `update` its `goldens` example, which rewrites
 /// the PNGs. The fast lane never runs these: they need the library, and the goldens are
 /// written on macOS arm64, the CI runners' platform.
@@ -106,7 +106,7 @@ fn corpus(ws: &Workspace, update: bool) -> Result<()> {
                 "--release",
                 "-q",
                 "-p",
-                "lamina-render-pdfium",
+                "laminapdf-render-pdfium",
                 "--example",
                 "goldens",
             ],
@@ -118,11 +118,11 @@ fn corpus(ws: &Workspace, update: bool) -> Result<()> {
         crate::run_env(
             &ws.root,
             "cargo",
-            &["test", "-p", "lamina-render-pdfium", "--locked", "--", "--ignored"],
+            &["test", "-p", "laminapdf-render-pdfium", "--locked", "--", "--ignored"],
             &env,
         )
     }
 }
 
-/// The variable `lamina-render-pdfium` reads the library folder from.
+/// The variable `laminapdf-render-pdfium` reads the library folder from.
 pub(crate) const PDFIUM_DIR_ENV: &str = "LAMINA_PDFIUM_DIR";

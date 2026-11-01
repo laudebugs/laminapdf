@@ -7,13 +7,13 @@
 
 Every mature engine keeps a COS object graph under a typed model. lopdf's eager whole-document model doesn't fit large files in WASM, which has a 4 GB ceiling on Safari (no Memory64), and PDFBox's hand-flagged dirty tracking silently lost changes ([report: editing](../research/architecture/app-and-package-architecture.md#editing-is-an-op-log-over-a-lazy-object-graph-and-signatures-and-redaction-govern-saving)). So dirty tracking must be automatic at the COS mutation API, and objects must load on demand from a source that need not be in memory: mmap on desktop, `Blob` slices or OPFS in a browser, HTTP range requests in a Worker ([ADR 0001](0001-core-language-and-licence.md) consequences).
 
-Today `lamina_cos::Document<'a>` borrows a `&[u8]`, parses objects lazily and caches them in `RefCell<BTreeMap<u32, Rc<Object>>>`, which makes it `!Send` and `!Sync` (`crates/lamina-cos/src/reader/mod.rs`). ADR 0001 left "which types are `Send`/`Sync`" to this ADR. Editing ops ([ADR 0006](0006-op-log-and-undo.md)) and sync need IDs that survive page reorders ([editing notes §2](../research/architecture/notes/editing-architecture.md#2-command-pattern--operation-log-undoredo-transactions-dirty-tracking)).
+Today `laminapdf_cos::Document<'a>` borrows a `&[u8]`, parses objects lazily and caches them in `RefCell<BTreeMap<u32, Rc<Object>>>`, which makes it `!Send` and `!Sync` (`crates/laminapdf-cos/src/reader/mod.rs`). ADR 0001 left "which types are `Send`/`Sync`" to this ADR. Editing ops ([ADR 0006](0006-op-log-and-undo.md)) and sync need IDs that survive page reorders ([editing notes §2](../research/architecture/notes/editing-architecture.md#2-command-pattern--operation-log-undoredo-transactions-dirty-tracking)).
 
 ## Decision
 
 ### 1. Layers
 
-`lamina-syntax` (objects, parser) → `lamina-cos` (xref, lazy resolution, overlay) → `lamina-model` (typed views, `LaminaId`s) → `lamina-ops` / `lamina-save` → `lamina` façade. Views read; only ops write; only the save planner serialises.
+`laminapdf-syntax` (objects, parser) → `laminapdf-cos` (xref, lazy resolution, overlay) → `laminapdf-model` (typed views, `LaminaId`s) → `laminapdf-ops` / `laminapdf-save` → `laminapdf` façade. Views read; only ops write; only the save planner serialises.
 
 ### 2. `ByteSource` and ownership of the input
 
@@ -28,16 +28,16 @@ pub trait ByteSource: Send + Sync {
 }
 ```
 
-- **`Document` owns its input** as an `Arc<dyn ByteSource>` and has no lifetime parameter. `Document::open(source: impl Into<Arc<dyn ByteSource>>, options)`. Zero-copy comes from shared ownership, not borrowing: core implementations are `Vec<u8>` (moved in), `Arc<[u8]>` and `&'static [u8]`, and all of them return `Some` from `as_slice`, so in-memory input is parsed in place as today. The borrowed `lamina_cos::Document<'a>` and `open(&[u8])` are replaced in B2; tests pass owned or shared buffers.
+- **`Document` owns its input** as an `Arc<dyn ByteSource>` and has no lifetime parameter. `Document::open(source: impl Into<Arc<dyn ByteSource>>, options)`. Zero-copy comes from shared ownership, not borrowing: core implementations are `Vec<u8>` (moved in), `Arc<[u8]>` and `&'static [u8]`, and all of them return `Some` from `as_slice`, so in-memory input is parsed in place as today. The borrowed `laminapdf_cos::Document<'a>` and `open(&[u8])` are replaced in B2; tests pass owned or shared buffers.
 - **Synchronous**, as the core has no async runtime. `SourceError::Pending { offset, len }` means "not fetched yet": the call fails with `Error::DataPending { ranges }`, the shell fetches those ranges and retries (pdf.js's missing-data pattern). That keeps HTTP range loading out of the core.
-- **Edge implementations:** mmap (desktop engine process), `FileReaderSync` over a `Blob`, and an HTTP-range cache over OPFS (`lamina-wasm`/web worker). None of these live in core crates.
+- **Edge implementations:** mmap (desktop engine process), `FileReaderSync` over a `Blob`, and an HTTP-range cache over OPFS (`laminapdf-wasm`/web worker). None of these live in core crates.
 - For sources without `as_slice`, the COS layer reads a window around an offset (64 KiB, doubled up to the object's extent within `Limits`) and the parser works on that `&[u8]`. Repair scans in overlapping chunks.
 
-**Implementation note (L2c, the edge half):** the edge sources live in `crates/lamina-source` (layer `edge`). `SparseSource` is a source of known length filled by `supply(offset, bytes)` (chunks merged, a byte budget, gaps answer `Pending`); it is behind a lock, which is why it isn't in `lamina-cos` (§7). `retry` / `open_with` run the fetch-and-retry loop over `DataPending` (4 KiB blocks, only missing bytes; stops on no progress or a round cap). `FileSource` (feature `native`) reads with positioned reads; `MmapSource` (feature `mmap`, memmap2) maps the file and is only for files nothing changes (`SIGBUS`). The wasm edge exposes `WasmSparseSource` and `WasmDocument.openSource`; `@laminapdf/sdk` has `Document.openRange`, `doc.ensure`, `httpRangeSource` and `callbackSource`.
+**Implementation note (L2c, the edge half):** the edge sources live in `crates/laminapdf-source` (layer `edge`). `SparseSource` is a source of known length filled by `supply(offset, bytes)` (chunks merged, a byte budget, gaps answer `Pending`); it is behind a lock, which is why it isn't in `laminapdf-cos` (§7). `retry` / `open_with` run the fetch-and-retry loop over `DataPending` (4 KiB blocks, only missing bytes; stops on no progress or a round cap). `FileSource` (feature `native`) reads with positioned reads; `MmapSource` (feature `mmap`, memmap2) maps the file and is only for files nothing changes (`SIGBUS`). The wasm edge exposes `WasmSparseSource` and `WasmDocument.openSource`; `@laminapdf/sdk` has `Document.openRange`, `doc.ensure`, `httpRangeSource` and `callbackSource`.
 
-**Implementation note (B2d, as built in `lamina-cos`):**
+**Implementation note (B2d, as built in `laminapdf-cos`):**
 
-- **Windows and growth.** Windows are 64 KiB and aligned. A parse starts on the window holding its offset. While the parser says it looked past the window's end (`Lexer::reached_end` / `Parser::reached_end` in `lamina-syntax`), the window doubles; only the new part is read. A parse that never looked past the end saw only bytes that are the same as in the whole input, so it gives the in-memory result exactly; byte offsets in its errors are moved back to input offsets.
+- **Windows and growth.** Windows are 64 KiB and aligned. A parse starts on the window holding its offset. While the parser says it looked past the window's end (`Lexer::reached_end` / `Parser::reached_end` in `laminapdf-syntax`), the window doubles; only the new part is read. A parse that never looked past the end saw only bytes that are the same as in the whole input, so it gives the in-memory result exactly; byte offsets in its errors are moved back to input offsets.
 - **"Within `Limits`" is `Limits::max_read_window`** (hard, default 256 MiB; ADR 0003 §3 amendment). It bounds every read for one item on a source without `as_slice`: an object's head, a stream's data, the search for a missing `endstream`, and repair's walk back over a header. Past it, the object fails with `LimitExceeded`, and tolerant paths (repair, `/Length` recovery, the xref entry check) treat the item as unreadable. Within it the results equal the in-memory ones; in-memory input is not limited by it.
 - **Stream data is not read through a growing window.** `Parser::indirect_head` stops after `stream`. A declared `/Length` is checked with a small read at the declared end (a declared end past the input is wrong without reading), and only when that fails is `endstream` searched for forward. `Parser::indirect_object` makes the same checks (`endstream_at`, `stream_data_end`).
 - **Cache.** Each `Source` keeps the 64 most recently used windows (4 MiB), shared by its clones, so documents opened over one source reuse each other's windows while they stay cached. Two threads missing the same window at once may both read it, and evicted windows are read again. Reads spanning more than four windows (large streams) and one-off probes use cached windows but don't fill the cache. The cache is behind a `Mutex` because `Source` clones cross threads (as B2a's read-once buffer did); `Document` itself stays `Send + !Sync` as §7 says.
@@ -66,7 +66,7 @@ pub trait ByteSource: Send + Sync {
 
 Rebasing (1) makes the saved output the new base: for an incremental save the core builds it itself as the old base followed by the appended revision, which it keeps in memory; for a full rewrite the planner gets it back from a readable sink ([ADR 0007](0007-save-planner.md) §6), or the shell passes the saved file to `rebase`; (2) loads the xref of the new newest revision; (3) clears the overlay and the dirty set; (4) keeps the `LaminaId` map, applying the renumbering map if the save compacted; and (5) re-detects the `SaveConstraint` from the new base. So open → sign → save → edit → save appends to the signed revision, and a signature made in this session makes the document `AppendOnly`. In `SavedNotRebased`, reads work and ops are refused, and so is another save, so nothing is ever written against a stale base.
 
-### 4. Typed views (`lamina-model`)
+### 4. Typed views (`laminapdf-model`)
 
 `Page`, `Outline`/`OutlineItem`, `Info`, `NameTree`, `NumberTree`, `PageLabels` in B2; annotations, fields and the structure tree in later rounds. Views are thin, borrowed wrappers (`Page<'d>` holds `&'d Document` and an object reference) that read fields lazily and apply [ADR 0003](0003-reader-tolerance-and-limits.md)'s tolerance per field: a bad `/MediaBox` is `None` plus a warning, not a failed page. Views never cache copies of the graph. Bindings don't see lifetimes: the façade exposes owned handles and IDs ([ADR 0002](0002-binding-strategy.md) decision 3).
 
@@ -83,10 +83,10 @@ A `LaminaId` is an opaque, typed identifier for a page, annotation, outline item
 
 ### 6. Generation strategy — Option B (recommended by the `krilla-fit` spike; accepted when its PR merges)
 
-The `krilla-fit` spike ([`spikes/krilla-fit`](../../spikes/krilla-fit/README.md), B1b) generated the same 3-page document (subset font, PNG with alpha, JPEG, paths, link, outline) with krilla and with a minimal builder over `lamina-cos`, and measured both.
+The `krilla-fit` spike ([`spikes/krilla-fit`](../../spikes/krilla-fit/README.md), B1b) generated the same 3-page document (subset font, PNG with alpha, JPEG, paths, link, outline) with krilla and with a minimal builder over `laminapdf-cos`, and measured both.
 
 - **Option A: krilla generates, lamina opens.** `finish()` serialises with krilla and opens the bytes as a `Document`. Gains krilla's text, tagging and PDF/A/UA work; costs a serialise-and-parse round trip, and content can't be added to an existing document this way, which full-editor E6 needs.
-- **Option B: `lamina-build` writes into the overlay.** Our own builder over `lamina-cos`, reusing the crates beneath krilla (`subsetter`, `skrifa`, HarfRust). One code path for new documents and for adding content to existing ones; more work up front.
+- **Option B: `laminapdf-build` writes into the overlay.** Our own builder over `laminapdf-cos`, reusing the crates beneath krilla (`subsetter`, `skrifa`, HarfRust). One code path for new documents and for adding content to existing ones; more work up front.
 
 **Decision: Option B.** Against the criteria, in order:
 
@@ -111,9 +111,9 @@ How it fits this ADR: the builder allocates objects in the overlay (§3) as `New
 - Large files open in bounded memory on every platform, and remote files load by range without an async core.
 - PDFBox's lost-changes bug is unrepresentable: the overlay is the only write path.
 - Rebasing after every save means constraints, IDs and the next save always refer to what is actually on disk.
-- `Document` owns its input; the borrowed `Document<'a>`, `Rc` → `Arc` and windowed parsing are B2 work in `lamina-cos`, with the existing tests kept.
+- `Document` owns its input; the borrowed `Document<'a>`, `Rc` → `Arc` and windowed parsing are B2 work in `laminapdf-cos`, with the existing tests kept.
 - Page IDs are not persisted in the file; collaboration needs a sidecar map, which ADR 0012 already plans.
-- The builder is ours (§6): B4 (`lamina-text`) and B5 (`lamina-build`) build over the overlay with `pdf-writer`, `subsetter`, `skrifa` and HarfRust, and own tagging and conformance in B8.
+- The builder is ours (§6): B4 (`laminapdf-text`) and B5 (`laminapdf-build`) build over the overlay with `pdf-writer`, `subsetter`, `skrifa` and HarfRust, and own tagging and conformance in B8.
 
 ## Alternatives considered
 

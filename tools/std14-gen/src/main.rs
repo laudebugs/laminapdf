@@ -1,4 +1,4 @@
-//! Generates `lamina-text`'s standard 14 tables (todo B4c) from the files in `data/`:
+//! Generates `laminapdf-text`'s standard 14 tables (todo B4c) from the files in `data/`:
 //!
 //! * `metrics.rs`: per font, the AFM header values and the advance width of every glyph;
 //! * `encodings.rs`: `StandardEncoding`, `WinAnsiEncoding`, `MacRomanEncoding` (ISO 32000-2
@@ -9,7 +9,7 @@
 //!   for extraction.
 //!
 //! ```sh
-//! cargo run -p std14-gen             # rewrite crates/lamina-text/src/std14/generated/*.rs
+//! cargo run -p std14-gen             # rewrite crates/laminapdf-text/src/std14/generated/*.rs
 //! cargo run -p std14-gen -- --check  # fail if the committed files differ from a regeneration
 //! ```
 //!
@@ -99,7 +99,7 @@ const INPUTS: [(&str, &str); 18] = [
     ),
 ];
 
-/// The fonts, in the order of `lamina_text::Standard14` (the generated `FONTS` array).
+/// The fonts, in the order of `laminapdf_text::Standard14` (the generated `FONTS` array).
 const FONTS: [&str; 14] = [
     "Courier",
     "Courier-Bold",
@@ -118,7 +118,7 @@ const FONTS: [&str; 14] = [
 ];
 
 /// The output directory, relative to the workspace root.
-const OUT: &str = "crates/lamina-text/src/std14/generated";
+const OUT: &str = "crates/laminapdf-text/src/std14/generated";
 
 /// The notice of the Core 14 AFM files' `MustRead.html`, which derived files must keep.
 const ADOBE_AFM_TERMS: &str = "This file and the 14 PostScript(R) AFM files it accompanies may be used, copied, and \

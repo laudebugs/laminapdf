@@ -83,7 +83,7 @@ mod tests {
     fn ordinary_paths_are_fine() {
         let paths = [
             "docs/README.md",
-            "crates/lamina-cos/src/lib.rs",
+            "crates/laminapdf-cos/src/lib.rs",
             ".github/workflows/ci.yml",
         ];
         assert_eq!(problems(paths), Vec::<String>::new());

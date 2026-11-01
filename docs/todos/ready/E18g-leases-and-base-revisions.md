@@ -43,7 +43,7 @@ Non-mergeable changes (content edits, page structure if decided, applied redacti
 
 **Editor facts**
 
-- **Crates and packages:** `apps/collab`, `lamina-sync`
+- **Crates and packages:** `apps/collab`, `laminapdf-sync`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: base PDFs immutable; content edits and redactions via lease or server job minting a new base revision
 - **Web vs desktop:** identical
 - **Server features:** DO, R2

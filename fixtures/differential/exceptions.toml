@@ -6,7 +6,7 @@
 # `<source>/<path>`), the facts (outcome | page_count | outline_titles), the ADR 0003 rule behind
 # lamina's answer, and why the readers differ. `tools` (pdfjs, pdfium, qpdf, pypdf) defaults to
 # pypdf, the PR lanes' only tool; an entry whose `tools` leaves out pypdf is skipped there.
-# crates/lamina-model/tests/differential.rs skips exactly these and fails on an entry that is no
+# crates/laminapdf-model/tests/differential.rs skips exactly these and fails on an entry that is no
 # longer needed.
 #
 # [[class]] (nightly lane only, `cargo xtask differential --live`): a whole class of deliberate

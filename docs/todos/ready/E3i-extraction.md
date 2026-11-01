@@ -40,7 +40,7 @@ Export extracted content: text (plain, with positions as JSON), original embedde
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.07` extract text and images; `H.08` extract hyperlinks and bookmarks; `B.03` extract original embedded images; `A.10` extract text with position and formatting
-- **Crates and packages:** `lamina-text`, `lamina-content` (XObject walk), image decoders (licence-checked)
+- **Crates and packages:** `laminapdf-text`, `laminapdf-content` (XObject walk), image decoders (licence-checked)
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** desktop writes to a folder; web zips
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

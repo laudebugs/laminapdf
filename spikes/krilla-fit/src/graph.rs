@@ -4,8 +4,8 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use anyhow::{Context, Result, anyhow, bail};
-use lamina_cos::{Dict, Document, ObjRef, Object};
-use lamina_save::{XrefEol, incremental_update};
+use laminapdf_cos::{Dict, Document, ObjRef, Object};
+use laminapdf_save::{XrefEol, incremental_update};
 
 /// What an import did, for the README.
 #[derive(Debug, Default)]
@@ -34,8 +34,8 @@ pub fn next_free(doc: &Document) -> u32 {
 /// `base`. Catalog-level features of `src` (outline, structure tree, …) are imported when the
 /// base lacks them and reported as conflicts otherwise.
 pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> {
-    let base_doc = lamina_cos::Document::open(base.to_vec(), lamina_cos::OpenOptions::default())?;
-    let src_doc = lamina_cos::Document::open(src.to_vec(), lamina_cos::OpenOptions::default())?;
+    let base_doc = laminapdf_cos::Document::open(base.to_vec(), laminapdf_cos::OpenOptions::default())?;
+    let src_doc = laminapdf_cos::Document::open(src.to_vec(), laminapdf_cos::OpenOptions::default())?;
     let mut report = ImportReport::default();
 
     let root_ref = base_doc
@@ -139,7 +139,7 @@ pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> 
     let mut changes = cx.out;
     changes.push((pages_ref, Object::Dict(pages_root)));
     changes.push((root_ref, Object::Dict(catalog)));
-    let bytes = incremental_update(&lamina_cos::Document::open(base.to_vec(), lamina_cos::OpenOptions::default())?, &changes, XrefEol::default())?;
+    let bytes = incremental_update(&laminapdf_cos::Document::open(base.to_vec(), laminapdf_cos::OpenOptions::default())?, &changes, XrefEol::default())?;
     Ok((bytes, report))
 }
 

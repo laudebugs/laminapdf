@@ -29,7 +29,7 @@ Let people read comfortably at night and in sepia without the broken photo negat
 
 **In scope**
 
-- `RenderOptions::appearance`: `Original | Sepia | Dark | HighContrast { fg, bg }` in `lamina-render`, implemented in the PDFium adapter (its colour-scheme rendering) and the hayro adapter (path/text colour mapping), with images untouched.
+- `RenderOptions::appearance`: `Original | Sepia | Dark | HighContrast { fg, bg }` in `laminapdf-render`, implemented in the PDFium adapter (its colour-scheme rendering) and the hayro adapter (path/text colour mapping), with images untouched.
 - Annotation appearance streams drawn with original colours in every mode (render annotations in a separate pass or flag them).
 - UI: a page-mode menu and palette commands (U1b), per-document override, global default, stored locally; `forced-colors: active` selects High contrast automatically unless the user overrides.
 - A `--page-backdrop` token for the gutter in each UI theme.
@@ -61,11 +61,11 @@ None.
 
 ## Tests
 
-Golden renders in `crates/lamina-render/tests/` per adapter and mode; Playwright mode switching; the nightly PDFium-vs-hayro diff includes modes.
+Golden renders in `crates/laminapdf-render/tests/` per adapter and mode; Playwright mode switching; the nightly PDFium-vs-hayro diff includes modes.
 
 ## Docs to update
 
-`crates/lamina-render` README; ADR 0004 amendment note if the trait changes; tick the page-mode item in [UI/UX §9](../../plans/ui-ux.md#9-to-dos).
+`crates/laminapdf-render` README; ADR 0004 amendment note if the trait changes; tick the page-mode item in [UI/UX §9](../../plans/ui-ux.md#9-to-dos).
 
 ## Risks and open questions
 

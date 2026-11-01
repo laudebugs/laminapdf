@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-10-28
 - **Builds on:** [architecture plan](architecture.md) Round C (ADRs 0004, 0009, 0010, 0011; spikes `pdfium-wasm`, `hayro-parity`) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (web client and Cloudflare sections)
-- **Depends on:** [pdf-library.md](pdf-library.md) Rounds B2–B3 (`Document::open` with decryption, typed model), B6 (`lamina-wasm`; gates C1) and B9 (text extraction; gates C5)
+- **Depends on:** [pdf-library.md](pdf-library.md) Rounds B2–B3 (`Document::open` with decryption, typed model), B6 (`laminapdf-wasm`; gates C1) and B9 (text extraction; gates C5)
 - **Research:** [06 §9 phase 1](../research/pdf/06-feature-inventory.md#9-suggested-phasing), [04 §1 navigation](../research/pdf/04-interactive-security.md#1-navigation), [04 §7 encryption](../research/pdf/04-interactive-security.md#7-encryption-76), [03 §8 extraction](../research/pdf/03-text-and-fonts.md)
 - **UI/UX:** [ui-ux.md](ui-ux.md) sets the layout, command registry, selection surfaces and phone layout; U1b and U1c gate C7a, and U2a, U2c, U3a and U4a gate C7c
 - **Roadmap:** [roadmap.md](roadmap.md)
@@ -83,26 +83,26 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 Architecture details live in [architecture.md](architecture.md) and the research report. The reader adds:
 
 - **Packages**: `@laminapdf/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@laminapdf/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@laminapdf/render-pdfium` (PDFium WASM adapter) and `@laminapdf/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@laminapdf/sdk` stays small.
-- **Worker**: one document worker running `lamina-wasm` plus PDFium-WASM, a typed RPC with request IDs, priorities, transfer lists and `AbortSignal` cancellation (ADR 0009).
+- **Worker**: one document worker running `laminapdf-wasm` plus PDFium-WASM, a typed RPC with request IDs, priorities, transfer lists and `AbortSignal` cancellation (ADR 0009).
 - **Platform adapter** (ADR 0010): the web implementation provides file open/save, print, clipboard and capability flags (`canWriteInPlace: false` on most browsers, `multiWindow: false`).
 - **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `laminapdf.com` (deployed only from `web-v*` release tags), staging from `main`, previews per PR via Workers preview URLs.
 - **Storage**: OPFS as the random-access cache for large files and the "recent files" list (IndexedDB holds metadata only; files stay on the device and can be cleared in settings).
 
 ## 6. Rounds
 
-Architecture Round C is delivered as rounds C1–C7, each split into todos (one PR each). C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
+Architecture Round C is delivered as rounds C1–C7, each split into todos (one PR each). C1 needs B6, because its PDFium spike loads `laminapdf-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
 
 Each round is split into one or more todos (one pull request each) on the [todo board](../todos/README.md); they move `ready/` → `ongoing/` → `done/`. When a todo moves, the PR that moves it updates every link to it, including these. Their "Depends on" fields fix the order, including the cross-plan gates on library B6 and B9.
 
 ### C1. Rendering spikes
 
-**Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
+**Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `laminapdf-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
 **Todos:** [C1a](../todos/done/C1a-hayro-parity-spike.md), [C1b](../todos/done/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 
-**Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@laminapdf/render-pdfium`.
+**Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/laminapdf-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@laminapdf/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
 **Todos:** [C2a](../todos/done/C2a-render-adrs.md), [C2b](../todos/done/C2b-lamina-render-crate.md), [C2c](../todos/done/C2c-render-packages.md)
 
@@ -120,7 +120,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 ### C5. Text, selection and search
 
-**Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`lamina-content` interpreter + `lamina-text`), selection and copy, find bar with streaming results and highlights. The API exists ([B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md)): `await init({ extract: true })` loads the extract module (about 525 KB gzip), and `doc.page(i).text()` returns lines, runs and every glyph's quad in page space, with `buffers` to transfer the arrays from a worker.
+**Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`laminapdf-content` interpreter + `laminapdf-text`), selection and copy, find bar with streaming results and highlights. The API exists ([B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md)): `await init({ extract: true })` loads the extract module (about 525 KB gzip), and `doc.page(i).text()` returns lines, runs and every glyph's quad in page space, with `buffers` to transfer the arrays from a worker.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
 **Todos:** [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
 
@@ -162,9 +162,9 @@ Each round's todos (one per PR, with dependencies) are linked from [§6](#6-roun
 Ticked by the PR that completes them.
 
 ### C1. Rendering spikes
-- [x] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker ([C1b](../todos/done/C1b-pdfium-wasm-spike.md), [result](../../spikes/pdfium-wasm/README.md))
+- [x] Build `spikes/pdfium-wasm`: load PDFium-WASM and `laminapdf-wasm` in one worker ([C1b](../todos/done/C1b-pdfium-wasm-spike.md), [result](../../spikes/pdfium-wasm/README.md))
 - [x] Measure bundle size, peak memory and render time per page on 3 reference files
-- [x] Measure reload cost after an incremental save from `lamina-save`
+- [x] Measure reload cost after an incremental save from `laminapdf-save`
 - [x] Build `spikes/hayro-parity`: render the pdf.js and PDFBox corpora with hayro and PDFium; compute pass rate at a perceptual threshold ([C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md): 81.8 % pass, 90.8 % pass+minor at 96 DPI)
 - [x] Write both results with a recommendation for ADR 0004 (and ADR 0009: [C1b's joint recommendation](../../spikes/pdfium-wasm/README.md#recommendation-for-adrs-0004-and-0009-joint-with-c1a))
 
@@ -173,7 +173,7 @@ Ticked by the PR that completes them.
 - [x] Write [ADR 0009](../decisions/0009-web-client-architecture.md) (React chrome + framework-free viewer, typed worker RPC)
 - [x] Write [ADR 0010](../decisions/0010-platform-adapter.md) (Platform adapter and capability flags)
 - [x] Write [ADR 0011](../decisions/0011-cloudflare-topology-and-privacy.md) (Cloudflare topology, privacy and retention, telemetry policy, and the hosted service: login, accounts, cloud storage and sync as opt-in features; the login stack is added after the `auth` spike)
-- [x] Create `crates/lamina-render` with the trait and PDFium and hayro adapters behind features ([C2b](../todos/done/C2b-lamina-render-crate.md): the hayro adapter behind `hayro`, the PDFium adapter in the edge crate `lamina-render-pdfium`)
+- [x] Create `crates/laminapdf-render` with the trait and PDFium and hayro adapters behind features ([C2b](../todos/done/C2b-lamina-render-crate.md): the hayro adapter behind `hayro`, the PDFium adapter in the edge crate `laminapdf-render-pdfium`)
 - [x] Create `packages/render-pdfium` (pin and hash the PDFium build) and `packages/render-hayro` ([C2c](../todos/done/C2c-render-packages.md), with the shared `packages/render` contract)
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff
 

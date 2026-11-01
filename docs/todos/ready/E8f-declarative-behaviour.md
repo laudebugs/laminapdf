@@ -41,7 +41,7 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.05` date/formatted input; `E.07` input validation; `E.08` automatic calculations; `E.10` conditional behaviour
-- **Crates and packages:** `lamina-model` (forms), new `forms::behaviour` module
+- **Crates and packages:** `laminapdf-model` (forms), new `forms::behaviour` module
 - **`Op` variants:** calculations run as `System`-origin transactions? No: as part of the user's `SetFieldValue` transaction (decide in E8b)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
 - **Web vs desktop:** identical
@@ -58,7 +58,7 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug (here: calculation/format side effects inside a `SetFieldValue` transaction stay `FormFill`; a calculated field that is FieldMDP-locked is a violation)
 - [ ] Recognised AF* formats produce the same displayed values as Acrobat on reference forms
 - [ ] Unhandled scripts are listed in the UI; nothing executes outside ADR 0021

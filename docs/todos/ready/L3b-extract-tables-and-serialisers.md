@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the L3 deliverable. Detect tables from vector ruling lines (with a conservative stream fallback), serialise an `Extraction` to Markdown, `lamina.extract/1` JSON and retrieval-sized chunks with provenance, and expose it on every surface: `lamina::Document::extract` in Rust, the extract module in `lamina-wasm`, and `doc.extract({ format })` in `@laminapdf/sdk`. Measure reading-order and table scores on a licence-clean public benchmark subset and record them, so users know what rules achieve before models (L3c).
+Finish the L3 deliverable. Detect tables from vector ruling lines (with a conservative stream fallback), serialise an `Extraction` to Markdown, `lamina.extract/1` JSON and retrieval-sized chunks with provenance, and expose it on every surface: `laminapdf::Document::extract` in Rust, the extract module in `laminapdf-wasm`, and `doc.extract({ format })` in `@laminapdf/sdk`. Measure reading-order and table scores on a licence-clean public benchmark subset and record them, so users know what rules achieve before models (L3c).
 
 ## Context
 
@@ -31,16 +31,16 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 
 **In scope**
 
-- **Lattice tables** (`lamina-extract::tables::lattice`): collect stroked line segments and thin filled rectangles from `lamina-content` path events in page space (top-left points); snap (default 3 pt), join collinear segments, find intersections, build the cell grid, infer row and column spans from missing inner edges, assign glyphs to cells by glyph centre, mark header rows (tagged `TH`, else bold or shaded first row). Tagged tables (`Table`/`TR`/`TH`/`TD` with spans) win when the structure tree is used. Output `Block { kind: Table { rows, cols, detector }, cells: [Cell { row, col, row_span, col_span, header, text, bbox }] }`.
+- **Lattice tables** (`laminapdf-extract::tables::lattice`): collect stroked line segments and thin filled rectangles from `laminapdf-content` path events in page space (top-left points); snap (default 3 pt), join collinear segments, find intersections, build the cell grid, infer row and column spans from missing inner edges, assign glyphs to cells by glyph centre, mark header rows (tagged `TH`, else bold or shaded first row). Tagged tables (`Table`/`TR`/`TH`/`TD` with spans) win when the structure tree is used. Output `Block { kind: Table { rows, cols, detector }, cells: [Cell { row, col, row_span, col_span, header, text, bbox }] }`.
 - **Stream fallback** (`TableMode::LatticeAndStream`, off by default): whitespace column inference inside a region only when at least 3 rows and 2 columns align within tolerance; `detector: "stream"` and lower `confidence`. Conservative by design: no tables beat wrong tables.
-- **Serialisers** (`lamina-extract::output`):
+- **Serialisers** (`laminapdf-extract::output`):
   - *Markdown*: `#`–`######` headings, paragraphs, nested lists, GFM pipe tables (escape `|`; tables with spans fall back to an HTML `<table>`), optional `<!-- page N -->` markers; hidden and dropped text never appears.
   - *JSON* `lamina.extract/1`: every key from ADR 0030; `textRange` offsets into the Markdown (or plain-text) output; deterministic key order and number formatting (fixed decimals for coordinates).
   - *Chunks*: `ChunkOptions { max_tokens, overlap, split_on: Headings | Blocks | Pages }`; token count approximated by a documented rule (no tokenizer dependency); each chunk carries `id`, `text`, `blockIds`, `headingPath`, `pages`, `regions` (page + bbox), `textRange`, `tokensApprox`; JSONL for streaming.
   - *Plain text*: reading-order text with blank lines between blocks.
 - **JSON Schema** 2020-12 for `lamina.extract/1` generated from the Rust types (schemars, licence-checked, behind a build-time feature or xtask, not a runtime dependency of core), committed under the schema location ADR 0030 chose; a check fails if the committed schema is stale.
-- **Façade** (`lamina` crate): `Document::extract(ExtractOptions) -> ExtractJob` and `Extraction::{to_markdown, to_json, to_text, chunks}`, behind a feature `extract` so structure-only builds stay small.
-- **WASM** (`lamina-wasm`): extract bindings in the separate extract module per ADR 0016; JSON output crosses as a string (one copy) and chunk iteration is lazy; size measured against the module budget.
+- **Façade** (`laminapdf` crate): `Document::extract(ExtractOptions) -> ExtractJob` and `Extraction::{to_markdown, to_json, to_text, chunks}`, behind a feature `extract` so structure-only builds stay small.
+- **WASM** (`laminapdf-wasm`): extract bindings in the separate extract module per ADR 0016; JSON output crosses as a string (one copy) and chunk iteration is lazy; size measured against the module budget.
 - **TypeScript** (`@laminapdf/sdk`): `doc.extract({ format: "markdown" | "json" | "text" | "chunks", pages?, readingOrder?, drop?, tables?, chunk? })` with discriminated return types (`string` for Markdown and text, typed `Extraction` for JSON, `Chunk[]` or an iterator for chunks); tsify types generated from Rust; unknown option keys rejected with a "did you mean" hint (ADR 0026); the subpath (e.g. `@laminapdf/sdk/extract`) follows B6a's module split.
 - **Benchmark**: `cargo xtask extract-bench` runs extraction on a pinned public benchmark subset fetched by URL and SHA-256 (never committed unless the licence allows redistribution), computes a reading-order score (normalised edit distance over block order, as OmniDocBench defines it, or the benchmark's own metric) and table TEDS, and writes a results table. Results recorded in the crate README with the tool version, subset IDs and date.
 
@@ -54,12 +54,12 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices` and follow [docs/guidelines/rust.md](../../guidelines/rust.md); `lamina-extract` stays `core`, `#![forbid(unsafe_code)]`, bytes in / bytes out; read the Context links and ISO 32000-2 §8.5, §14.8.4.8.3
-- [ ] `lamina-extract/src/tables/{mod,edges,lattice,stream,tagged}.rs`; reuse `lamina-content`'s `paint_path` events (add a path-segments view there if B9a only reports paint events)
-- [ ] `lamina-extract/src/output/{markdown,json,text,chunks}.rs`; `textRange` bookkeeping shared between Markdown and JSON
+- [ ] Load `/rust-best-practices` and follow [docs/guidelines/rust.md](../../guidelines/rust.md); `laminapdf-extract` stays `core`, `#![forbid(unsafe_code)]`, bytes in / bytes out; read the Context links and ISO 32000-2 §8.5, §14.8.4.8.3
+- [ ] `laminapdf-extract/src/tables/{mod,edges,lattice,stream,tagged}.rs`; reuse `laminapdf-content`'s `paint_path` events (add a path-segments view there if B9a only reports paint events)
+- [ ] `laminapdf-extract/src/output/{markdown,json,text,chunks}.rs`; `textRange` bookkeeping shared between Markdown and JSON
 - [ ] Schema generation: schemars derives behind a feature; `cargo xtask schemas [--check]` (or extend L1b's codegen command if it exists) writes the committed schema file
-- [ ] Façade: `lamina` feature `extract`, re-exports, docs with a runnable example (`examples/extract_markdown.rs`)
-- [ ] `lamina-wasm`: extract module bindings; size measurement recorded against ADR 0016's extract budget
+- [ ] Façade: `laminapdf` feature `extract`, re-exports, docs with a runnable example (`examples/extract_markdown.rs`)
+- [ ] `laminapdf-wasm`: extract module bindings; size measurement recorded against ADR 0016's extract budget
 - [ ] `@laminapdf/sdk`: `doc.extract()` overloads, types, tests in Node and Chromium (B6c config); README section
 - [ ] `tools/xtask`: `extract-bench` with a pinned dataset manifest (`tools/bench/extract-datasets.toml`: URL, SHA-256, licence, subset IDs); run it and record scores
 - [ ] Check every benchmark dataset's licence before use (see Risks); record licence and source in the manifest
@@ -84,7 +84,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 ## Tests
 
 - Unit tests: edge snapping and joining, intersection grid, span inference, glyph-to-cell assignment, stream column inference, Markdown escaping, chunk splitting and overlap, `textRange` arithmetic.
-- Integration: `crates/lamina-extract/tests/{tables,markdown,json_schema,chunks}.rs` against goldens in `fixtures/extract/` (generated tables via `lamina-build`; a few permissive third-party table PDFs with provenance).
+- Integration: `crates/laminapdf-extract/tests/{tables,markdown,json_schema,chunks}.rs` against goldens in `fixtures/extract/` (generated tables via `laminapdf-build`; a few permissive third-party table PDFs with provenance).
 - Façade doc tests and the example.
 - TS: Vitest in Node and Chromium; shared JSON snapshot with Rust.
 - Benchmark: `extract-bench` (not in the PR lane; data not committed unless licensed for it).
@@ -92,7 +92,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 ## Docs to update
 
 - [ ] [shareable-libraries §9 L3](../../plans/shareable-libraries.md#9-to-dos): tick "Lattice tables; Markdown, JSON and chunk serialisers; expose in Rust, WASM and TS"
-- [ ] `crates/lamina-extract/README.md` (tables, formats, benchmark results), `packages/sdk/README.md` (extract section), `lamina` crate docs
+- [ ] `crates/laminapdf-extract/README.md` (tables, formats, benchmark results), `packages/sdk/README.md` (extract section), `laminapdf` crate docs
 - [ ] `fixtures/README.md` (table fixtures), `tools/` README for the bench manifest
 - [ ] ADR 0016 note if the extract budget changes; ADR 0030 if the schema gains keys during the work
 

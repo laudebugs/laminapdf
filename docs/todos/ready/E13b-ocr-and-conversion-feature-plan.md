@@ -41,7 +41,7 @@ The short feature-plan PR that opens round E13 ([full-editor §E13](../../plans/
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.11` convert outlined or scanned text via OCR; `H.01` Word / Excel / PowerPoint → PDF; `H.03` HTML / webpages → PDF; `H.04` PDF → Word; `H.05` PDF tables → Excel; `H.13` scanned → searchable PDF
-- **Crates and packages:** (planned for the round) OCR text layer in `lamina-build`; external conversion engines
+- **Crates and packages:** (planned for the round) OCR text layer in `laminapdf-build`; external conversion engines
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) OCR layer and converted outputs follow normal rules (incremental / new document)
 - **Web vs desktop:** web: client OCR for small documents and opt-in server OCR; desktop: local OCR with optional engine download; Office conversion server-only on web
 - **Server features:** ADR 0013: Containers via Workflows for OCR and Office; Browser Run for HTML → PDF; opt-in, R2 lifecycle expiry
@@ -50,7 +50,7 @@ The short feature-plan PR that opens round E13 ([full-editor §E13](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e13-ocr-and-conversion.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`A.11`, `H.01`, `H.03`, `H.04`, `H.05`, `H.13`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

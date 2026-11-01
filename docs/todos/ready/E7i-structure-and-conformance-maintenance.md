@@ -39,7 +39,7 @@ Keep tagged documents valid across E6/E7 edits: update MCIDs, ParentTree, `/Actu
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-model` (struct tree), `lamina-content`
+- **Crates and packages:** `laminapdf-model` (struct tree), `laminapdf-content`
 - **`SaveConstraint`:** as E7
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

@@ -16,11 +16,11 @@
 
 ## Goal
 
-Finish what [B9b](../done/B9b-text-extraction-core.md) started: B9b decodes every shown glyph to Unicode with its origin and advance. This todo gives each glyph a quad in page space, groups glyphs into runs, applies `ActualText` and attaches MCIDs, flags invisible text, and exposes the result as `page.text()` in the `lamina` façade. B9b was split here because the whole of it passed the ~1,500-line limit its risks section set.
+Finish what [B9b](../done/B9b-text-extraction-core.md) started: B9b decodes every shown glyph to Unicode with its origin and advance. This todo gives each glyph a quad in page space, groups glyphs into runs, applies `ActualText` and attaches MCIDs, flags invisible text, and exposes the result as `page.text()` in the `laminapdf` façade. B9b was split here because the whole of it passed the ~1,500-line limit its risks section set.
 
 ## Context
 
-- B9b's `lamina_text::extract` (`TextExtractor`, `PageText`, `Glyph`, the CMap and font readers) and its tests (`crates/lamina-text/tests/extract_fonts.rs`): left-to-right text of every text golden already equals what pypdf, pdf.js and pdftotext extract; right-to-left lines come out in visual order.
+- B9b's `laminapdf_text::extract` (`TextExtractor`, `PageText`, `Glyph`, the CMap and font readers) and its tests (`crates/laminapdf-text/tests/extract_fonts.rs`): left-to-right text of every text golden already equals what pypdf, pdf.js and pdftotext extract; right-to-left lines come out in visual order.
 - [Research 03 §2.6](../../research/pdf/03-text-and-fonts.md#26-matrices-and-glyph-displacement-math) (text rendering matrix, quads), [§5.3](../../research/pdf/03-text-and-fonts.md#53-ligatures-reordering-and-actualtext) (`ActualText`), [§8.1](../../research/pdf/03-text-and-fonts.md#81-how-extractors-work).
 - [Rendering notes §3](../../research/architecture/notes/rendering.md#3-text-layer-selection-search-accessibility-hit-testing) (what the text layer needs); web plan [C5](../../plans/web-app.md#c5-text-selection-and-search).
 
@@ -33,7 +33,7 @@ Finish what [B9b](../done/B9b-text-extraction-core.md) started: B9b decodes ever
 - Runs: consecutive glyphs with the same font, size, direction, MCID and `ActualText` span; `TextRun { text, glyphs, font_name, font_size, direction, mcid, actual_text, invisible }` (as built: `vertical` for the direction, plus `font` and `bounds`). `ActualText` from `BDC` property lists replaces the run's text and keeps its quads; `Tr 3` sets `invisible` (OCR layers).
 - Right-to-left text in logical order: `ActualText` where the producer wrote it, else a bidi pass per line (UAX #9 through `BidiParagraph`), documented with its limits.
   *As built:* in two steps. Within a run with right-to-left characters, glyphs are read by position (zero-width glyphs, marks and textless ones, go with the letter they sit on, in canonical combining-class order) and UAX #9 puts grapheme clusters in logical order; a run of only neutral characters after a right-to-left run on its line is reversed too. Then each line with right-to-left runs orders its runs by UAX #9 at run level (runs by position; strong classes R, L, neutrals by N1/N2; levels; L2), so a line split into runs (fonts, punctuation) comes out right whether its runs were drawn in visual or logical order. A run drawn in logical order glyph by glyph would come out reversed; no producer we test does that.
-- `Document::page_text(index, &TextOptions) -> Result<PageText>` in the `lamina` façade (an addition: the existing façade items keep their shape), with the font cache kept per document until the revision moves.
+- `Document::page_text(index, &TextOptions) -> Result<PageText>` in the `laminapdf` façade (an addition: the existing façade items keep their shape), with the font cache kept per document until the revision moves.
 
 **Out of scope** (and which todo covers it)
 
@@ -45,7 +45,7 @@ Finish what [B9b](../done/B9b-text-extraction-core.md) started: B9b decodes ever
 
 - [x] Load `/rust-best-practices`; read 03 §2.6, §5.3, §8.1 and ADR 0027
 - [x] Quads in `extract/mod.rs` (the glyph loop; the extent in `extract/font.rs`), `extract/runs.rs` (grouping, `ActualText`, MCIDs, `Tr 3`, bidi for runs without `ActualText`, lines)
-- [x] Façade `Document::page_text` (feature `text`, `lamina::extract`) with the per-document font cache; warnings flow through `WarningCursor`
+- [x] Façade `Document::page_text` (feature `text`, `laminapdf::extract`) with the per-document font cache; warnings flow through `WarningCursor`
 - [x] Encrypted fixtures: two text goldens through qpdf (`tools/fixtures/text_encrypted.py` → `fixtures/text/encrypted/`, R6 AES-256 and R3 RC4-128), not B2b's generator, whose rerun would rewrite every encrypted fixture (its outputs are not reproducible)
 - [x] Tests below
 
@@ -62,12 +62,12 @@ None.
 
 ## Tests
 
-- `crates/lamina-text/tests/extract_fonts.rs` (every golden line, right to left included), `extract_runs.rs` (quads, runs, `ActualText`, MCIDs, invisible text; tagged capability A.10), `extract_encrypted.rs`; unit tests in `extract/runs.rs` and `extract/font.rs`; `crates/lamina/tests/page_text.rs`.
+- `crates/laminapdf-text/tests/extract_fonts.rs` (every golden line, right to left included), `extract_runs.rs` (quads, runs, `ActualText`, MCIDs, invisible text; tagged capability A.10), `extract_encrypted.rs`; unit tests in `extract/runs.rs` and `extract/font.rs`; `crates/laminapdf/tests/page_text.rs`.
 
 ## Docs to update
 
 - [x] [pdf-library §10 B9](../../plans/pdf-library.md#10-to-dos): tick the glyph runs item (Rust part)
-- [x] `CLAUDE.md` (façade and fonts API), the `lamina` and `lamina-text` READMEs
+- [x] `CLAUDE.md` (façade and fonts API), the `laminapdf` and `laminapdf-text` READMEs
 
 ## Risks and open questions
 

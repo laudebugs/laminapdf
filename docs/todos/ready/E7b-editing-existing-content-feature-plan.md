@@ -41,7 +41,7 @@ The short feature-plan PR that opens round E7 ([full-editor §E7](../../plans/fu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.02` edit existing text; `A.03` delete or replace text; `A.04` change font family/size/colour/style; `A.05` bold, italic, underline, super/subscript; `A.06` alignment and line spacing; `A.07` move/resize/rotate text blocks; `A.08` search and replace throughout the document; `B.01` insert, delete, replace images; `B.02` resize, rotate, crop, reposition; `B.07` edit vector paths, fills, strokes; `B.08` change stacking order; `B.11` clipping paths and masks; `B.12` transformations on graphical objects
-- **Crates and packages:** (planned for the round) ADR 0022 and the `lamina-content` IR with identity and encoder; `lamina-text` re-layout and subsetting
+- **Crates and packages:** (planned for the round) ADR 0022 and the `laminapdf-content` IR with identity and encoder; `laminapdf-text` re-layout and subsetting
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental on `Free`; struct tree and MCIDs maintained; PDF/A/UA claims re-checked on save
 - **Web vs desktop:** identical; desktop font substitution can use system fonts
 - **Server features:** none
@@ -50,7 +50,7 @@ The short feature-plan PR that opens round E7 ([full-editor §E7](../../plans/fu
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e7-editing-existing-content.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`A.02`, `A.03`, `A.04`, `A.05`, `A.06`, `A.07`, `A.08`, `B.01`, `B.02`, `B.07`, `B.08`, `B.11`, `B.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

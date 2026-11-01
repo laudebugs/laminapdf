@@ -40,7 +40,7 @@ Import/export field values as FDF, XFDF and JSON; reset form; a library API to p
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.11` import and export form data; `E.12` populate fields programmatically; `E.13` reset form fields; `E.14` flatten forms
-- **Crates and packages:** `lamina-model`, `lamina-content`, `lamina-ops`
+- **Crates and packages:** `laminapdf-model`, `laminapdf-content`, `laminapdf-ops`
 - **`Op` variants:** `ImportFormData` (class `FormFill`), `FlattenForm` (class `Content`: one class per op, ADR 0006 §1; never `FormFill`, because it removes fields and rewrites page content rather than setting values, so it must not pass as form filling under DocMDP P2/P3)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named. Flattening is a `Content` change: under a certification signature a violation at every DocMDP level, saved only through the override; with approval signatures only `AppendOnly`, except flattening a field locked by FieldMDP/`/Lock`, which is a violation
 - **Web vs desktop:** identical
@@ -56,7 +56,7 @@ Import/export field values as FDF, XFDF and JSON; reset form; a library API to p
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug. Expected: `ImportFormData` (`FormFill`) allowed on P2, P3 and approval-only, violation on P1 and on locked fields; `FlattenForm` (`Content`) violation on P1, P2 and P3, and on the FieldMDP-lock fixture when it flattens a locked field
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean

@@ -21,7 +21,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 ## Context
 
 - [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) nightly lane; [§3](../../decisions/0018-test-strategy.md#3-corpora-licensing-and-provenance) corpora (pdf.js, PDFium, qpdf suites, SafeDocs, veraPDF and Arlington test files) fetched by `cargo xtask corpus fetch`, pinned by SHA-256 with licences; tier 11 scaling (ratios, never absolute times; regressions > 10% open an issue).
-- Ignored scaling test: [`crates/lamina-cos/tests/reader_cache.rs`](../../../crates/lamina-cos/tests/reader_cache.rs) `pages_should_scale_linearly_with_shared_resources` ("run with --release in the nightly lane").
+- Ignored scaling test: [`crates/laminapdf-cos/tests/reader_cache.rs`](../../../crates/laminapdf-cos/tests/reader_cache.rs) `pages_should_scale_linearly_with_shared_resources` ("run with --release in the nightly lane").
 - Scheduled fuzz workflow from [B2c](../done/B2c-lamina-model-corpus-fuzz.md) (folded in here).
 
 ## Scope
@@ -38,7 +38,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 **Out of scope** (and which todo covers it)
 
-- hayro-vs-PDFium render diffs: [X3b](./X3b-render-diff-nightly.md) (needs web C2's `lamina-render`).
+- hayro-vs-PDFium render diffs: [X3b](./X3b-render-diff-nightly.md) (needs web C2's `laminapdf-render`).
 - veraPDF: [B8b](../done/B8b-conformance-profiles-and-verapdf.md) adds its job to this workflow.
 - PR-lane suites: [X4](../done/X4-full-lane-gate.md).
 - The release-lane guard (refuse a release when the latest nightly failed) and running the nightly suites on a release commit: [B7b](./B7b-versioning-and-0-1-0-alpha.md), which owns the release lane.
@@ -48,7 +48,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 - [x] Write `fixtures/corpus-manifest.toml` (start with pdf.js test PDFs that are redistributable-licence-checked, qpdf test suite, PDFium testing corpus, SafeDocs subset); `cargo xtask corpus fetch`. **Deviation:** pdf.js, PDFBox, PDFium and qpdf (2,172 files, 177 MB, pinned by commit with per-file SHA-256); SafeDocs is left out (multi-GB archives with mixed provenance), and so are PDFium's `.in` templates (they need its generator script); the mirror fallback is wired (`mirror` / `$LAMINA_CORPUS_MIRROR`) but no mirror exists yet
 - [x] Differential runners in `tools/differential/` (pinned versions, manifest of tool versions in the report)
 - [x] `nightly.yml` jobs: differential, fuzz (matrix over targets), scaling, benches; issue-on-failure step
-- [x] Bench harness in `crates/lamina-cos/benches/` (+ save benches once B3b exists): criterion, open + walk, Flate decode, `Writer` serialisation; save benches in `crates/lamina-save/benches/` (full rewrite in both layouts, incremental) since B3b merged
+- [x] Bench harness in `crates/laminapdf-cos/benches/` (+ save benches once B3b exists): criterion, open + walk, Flate decode, `Writer` serialisation; save benches in `crates/laminapdf-save/benches/` (full rewrite in both layouts, incremental) since B3b merged
 - [x] Document in `CLAUDE.md` and ADR 0018 (implementation notes)
 
 ## Acceptance criteria
