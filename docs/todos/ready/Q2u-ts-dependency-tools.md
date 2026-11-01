@@ -34,7 +34,7 @@ This todo adds three dev tools to `cargo xtask check ts`, after a licence check:
 
 **Out of scope** (and which todo covers it)
 
-- Biome and TypeDoc rules ([Q2b](./Q2b-ts-lint-rules.md)).
+- Biome and TypeDoc rules ([Q2b](../ongoing/Q2b-ts-lint-rules.md)).
 
 ## Tasks
 
