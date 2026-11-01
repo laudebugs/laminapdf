@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -12,7 +12,7 @@
 | Branch | `feat/q1b-docs-prose-check` |
 | PR title | `feat(xtask): docs-prose check for reader-facing text` |
 | Size | M |
-| PR | — |
+| PR | [#144](https://github.com/laudebugs/lamina/pull/144) |
 
 ## Goal
 
@@ -28,7 +28,7 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
 
 **In scope**
 
-- `cargo xtask check docs-prose [--all-strict] [--json]` over `apps/docs/src/content/docs/**/*.mdx`, `docs/errors/*.md` and `packages/*/README.md`.
+- `cargo xtask check docs-prose [--all-strict] [--warnings] [--json]` over `apps/docs/src/content/docs/**/*.mdx`, `docs/errors/*.md` and `packages/*/README.md`.
 - A stripping pass: frontmatter, fenced and inline code, MDX imports and components, tables and link URLs.
 - Rules from the guideline's "Write in plain English" and "Show code" sections, plus the opening paragraph of guides and recipes:
   - frontmatter `title` and `description` (≤ 160 characters);
@@ -40,7 +40,7 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
   - sentence-case headings;
   - a sentence before each `<Snippet>`.
 - Strict on files changed since the merge base with `main`; warnings elsewhere; `--all-strict` makes every file strict (Q1l turns it on).
-- Configuration in `tools/xtask/docs-prose.toml`: banned words, proper nouns, glossary terms, internal-ID patterns and allowed exceptions (`R2`–`R6`, the security handler revisions).
+- Configuration in `tools/xtask/docs-prose.toml`: banned words, proper nouns, glossary terms and exceptions to the ID rule. Deviation: the ID patterns live in the code. Todo IDs match only with their letter suffix, so `R2`–`R6`, `A4` and `Q3` never match; `id_exceptions` lists any other ID-like word.
 
 **Out of scope** (and which todo covers it)
 
@@ -49,19 +49,19 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the stripping pass with unit tests on tricky MDX: imports, `<Tabs>`, nested lists, tables and admonitions.
-- [ ] Write each rule as its own function with pass and fail tests; read configuration from `docs-prose.toml`.
-- [ ] Add the changed-files logic by reusing `changes.rs`; make failures on changed files exit non-zero.
-- [ ] Wire the step into `cargo xtask check docs`; print `path:line: rule: message` and a count per rule.
-- [ ] Run it on `main`; record the warning counts per rule in the PR description as the baseline the rewrite todos work down.
-- [ ] Add a line to the guideline's "How it's checked" if anything differs from what it says.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Write the stripping pass with unit tests on tricky MDX: imports, `<Tabs>`, nested lists, tables and admonitions.
+- [x] Write each rule as its own function with pass and fail tests; read configuration from `docs-prose.toml`.
+- [x] Add the changed-files logic by reusing `changes.rs`; make failures on changed files exit non-zero.
+- [x] Wire the step into `cargo xtask check docs`; print `path:line: rule: message` and a count per rule.
+- [x] Run it on `main`; record the warning counts per rule in the PR description as the baseline the rewrite todos work down.
+- [x] Add a line to the guideline's "How it's checked" if anything differs from what it says.
 
 ## Acceptance criteria
 
-- [ ] Each rule reports file and line; a report on a changed file fails the step; `--all-strict` fails on any report.
-- [ ] Unit tests cover every rule both ways.
-- [ ] `cargo xtask check docs` passes on `main`.
+- [x] Each rule reports file and line; a report on a changed file fails the step; `--all-strict` fails on any report.
+- [x] Unit tests cover every rule both ways.
+- [x] `cargo xtask check docs` passes on `main`.
 
 ## Post-merge checks
 
@@ -69,7 +69,7 @@ None.
 
 ## Tests
 
-Unit tests in `tools/xtask` for the stripper and each rule; a fixture tree under `tools/xtask/tests/` with one violation per rule.
+Unit tests in `tools/xtask` for the stripper and each rule, both ways. Deviation: xtask has no `tests/` folder, so the cases live inline in `docs_prose/{extract,rules}.rs` (one passing and one failing case per rule) instead of a fixture tree.
 
 ## Docs to update
 
@@ -81,9 +81,9 @@ The sentence splitter will meet abbreviations and version numbers: keep an abbre
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
