@@ -21,7 +21,7 @@ A font is embedded once per document, however many `Font` objects name it.
 
 ## Draw a line or a paragraph
 
-`surface.text(str, { font, size, at })` draws one line, with `at[1]` its baseline. `surface.textBox(str, { font, size, box, direction, align })` wraps a paragraph to fit its box and puts each line's words in reading order for its direction. When the text doesn't fit, it reports `overflow`.
+`surface.text(str, { font, size, at })` draws one line, with `at[1]` its baseline. `surface.textBox(str, { font, size, box, direction, align })` wraps a paragraph to fit its box and lays out each line's words in display order, so right-to-left text reads correctly. When the text doesn't fit, it reports `overflow`.
 
 This example draws five scripts (Latin with ligatures, Arabic, Devanagari, Hebrew and Chinese), each in its own embedded font:
 
@@ -39,11 +39,11 @@ This example draws five scripts (Latin with ligatures, Arabic, Devanagari, Hebre
 ## When a font can't draw the text
 
 - **A missing character:** text a font can't encode fails with `missing-glyph`, never with a blank box.
-- **Too many letters for a standard 14 font:** one of them holds at most 37 distinct letters beyond its Western European set (WinAnsi); one more fails with `encoding-full`. Use your own font instead.
+- **Too many letters for a standard 14 font:** a standard 14 font holds at most 37 distinct letters beyond its Western European set (WinAnsi); one more fails with `encoding-full`. Use your own font instead.
 - **A font that may not be embedded:** a font whose licence bits forbid embedding (restricted, or bitmap only) fails with `font-not-embeddable`. In Rust, `EmbedPolicy::Override` embeds it anyway, if you hold the rights. A font marked "no subsetting" is embedded whole.
 
 :::note[Details]
-lamina shapes your own fonts' text with HarfRust and subsets each font to the glyphs you draw. It embeds them as [Type 0](/reference/glossary/#type-0) fonts with `/W` widths and a [ToUnicode](/reference/glossary/#tounicode) [CMap](/reference/glossary/#cmap), which is what lets the text be extracted again. Line breaking follows UAX #14, and the order of mixed-direction text follows UAX #9 (bidi). The licence bits are the font's `fsType`.
+lamina shapes your own fonts' text with HarfRust, a Rust port of the HarfBuzz shaper, and subsets each font to the glyphs you draw. It embeds them as [Type 0](/reference/glossary/#type-0) fonts with `/W` widths and a [ToUnicode](/reference/glossary/#tounicode) [CMap](/reference/glossary/#cmap), which is what lets the text be extracted again. Line breaking follows [UAX #14](https://www.unicode.org/reports/tr14/), and the order of mixed-direction text follows [UAX #9](https://www.unicode.org/reports/tr9/) (bidi). The licence bits are the font's `fsType`.
 :::
 
 Next: [shapes, colour and images](/guides/images-and-vectors/).

@@ -16,15 +16,15 @@ You'll make a document readers can find their way around: links between pages an
 
 ## Add an outline and page labels
 
-- **Outline:** `builder.outline([...])` builds the bookmarks a viewer shows beside the pages, with nested entries, colour, bold, italic and `open`.
-- **Page labels:** `builder.pageLabels([{ start, style }])` sets the page numbers a viewer shows. Here, roman numerals for the front matter, then decimal from page 3.
+- **Outline:** `builder.outline([...])` builds the bookmarks a viewer shows beside the pages, with nested entries, colour, bold, italic and `open` (an entry shown expanded).
+- **Page labels:** `builder.pageLabels([{ start, style }])` sets the page numbers a viewer shows. The example below uses roman numerals for the front matter, then decimal from page 3.
 - **Viewer preferences:** for example, `pageMode: "outlines"` opens the file with the outline showing.
 
 ## Set the metadata
 
-`builder.metadata({ title, author, … })` sets the document's title, author and the rest, in both places a reader looks for them. [Open, edit and save](/guides/open-edit-and-save/) uses it.
+`builder.metadata({ title, author, … })` sets the document's title, author and the rest (see Details). [Open, edit and save](/guides/open-edit-and-save/) uses it.
 
-This example builds four pages that link to each other and to the web, with an outline, page labels and the outline shown on open. It draws its labels as text, so it needs the text module:
+This example builds four pages that link to each other and to the web, with an outline, page labels and the outline shown on open. It draws its labels as text, so it needs the text module. It sets no metadata; Open, edit and save does:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
@@ -38,7 +38,7 @@ This example builds four pages that link to each other and to the web, with an o
 [See the output](/examples/#links-and-outlines).
 
 :::note[Details]
-The metadata goes into the Info dictionary and an XMP packet, written from the same values so they always agree.
+The metadata goes into two places: an XMP packet, the XML that describes the file, and the Info dictionary, the older list of the same facts. lamina writes both from the same values, so they always agree.
 :::
 
 Next: [accessible PDFs](/guides/accessible-pdfs/).

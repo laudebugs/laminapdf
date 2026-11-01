@@ -12,11 +12,11 @@ Shapes and images need only the base module (`init()`).
 
 ## Draw a shape
 
-`surface.path(p => …)` describes a shape, then paints it: `fill`, `stroke`, `fillStroke`, or `clip`, which limits what comes after to the inside of the shape. A value that makes no shape, such as NaN or a negative line width, fails `page.finish()` with `invalid-geometry`.
+`surface.path(p => …)` returns the shape unpainted. Paint it with `fill`, `stroke` or `fillStroke`, or call `clip` to limit what comes after to its inside. A value that makes no shape, such as NaN or a negative line width, fails `page.finish()` with `invalid-geometry`.
 
 ## Colour it
 
-A colour is gray `[g]`, RGB `[r, g, b]`, CMYK `[c, m, y, k]` or hex. Opacity and blend modes set how a drawing mixes with what's already on the page.
+A colour is gray `[g]`, RGB `[r, g, b]`, CMYK `[c, m, y, k]` or hex. Opacity and blend modes set how a drawing mixes with what's already on the page: the example's `multiply`, for instance, darkens where shapes overlap.
 
 ## Place an image
 
