@@ -39,7 +39,7 @@ This todo rewrites the "Create PDFs" guides to the [docs-writing guideline](../.
 - [x] Claim it: this PR's first commit moved the todo to `ongoing/` (the claim rule changed on 2026-11-01).
 - [x] Rewrite one page at a time with `/writing`; keep every fact, moving spec detail into Details.
 - [x] Run `docs-prose` on each page and fix what it reports.
-- [ ] Run `/writing-review` on the changed pages after opening the PR; fix the findings.
+- [x] Run `/writing-review` on the changed pages after opening the PR; fix the findings.
 
 ## Acceptance criteria
 
@@ -67,6 +67,6 @@ Rewrites can drop facts: move spec detail into Details rather than deleting it.
 - [x] Claimed: this work PR's first commit moved this file `ready/` → `ongoing/` (the claim rule of 2026-11-01)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process)) Findings and fixes in #167's commits fdf9de5 (both reviews), c8b8282 (second round).
+- [x] CI green (every check run on #167's last tested commit)
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
