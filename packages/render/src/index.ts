@@ -10,6 +10,7 @@
  */
 export interface RenderSource {
   readonly size: number;
+  /** `length` bytes at `offset` (fewer only at the end), or `undefined` while they haven't arrived. */
   readSync(offset: number, length: number): Uint8Array | undefined;
 }
 
@@ -31,6 +32,7 @@ export interface RenderLimits {
   readonly maxInputBytes: number;
 }
 
+/** The render limits when none are given (ADR 0004): 16.7 MP, 16,384 px a side, 1 GiB of input. */
 export const DEFAULT_LIMITS: RenderLimits = Object.freeze({
   maxRenderPixels: 16_777_216,
   maxRenderSide: 16_384,
@@ -52,6 +54,7 @@ export interface RenderFlags {
   readonly grayscale: boolean;
 }
 
+/** The render flags when none are given: annotations and form widgets drawn, screen colours. */
 export const DEFAULT_FLAGS: RenderFlags = Object.freeze({
   annotations: true,
   formWidgets: true,
@@ -75,6 +78,7 @@ export interface Rgba8 {
   readonly a: number;
 }
 
+/** Opaque white, the default background. */
 export const WHITE: Rgba8 = Object.freeze({ r: 255, g: 255, b: 255, a: 255 });
 
 /** One render: a page, a scale, an optional tile, a view rotation, flags and a background. */
@@ -115,6 +119,7 @@ export interface RenderedTile {
   readonly pixels: Uint8ClampedArray<ArrayBuffer>;
 }
 
+/** Options for opening a document in a backend. */
 export interface RenderOpenOptions {
   /** Used by `open` only; the backend keeps no copy (ADR 0004 §1). */
   readonly password?: string;

@@ -1,6 +1,7 @@
 // Fails when a package entry exports something without a doc comment: TypeDoc's `notDocumented`
 // validation, with its warnings treated as errors, over every published TypeScript entry point.
 // Run by `cargo xtask check ts` (`pnpm --filter @laminapdf/docs run check:api-docs`).
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Application, LogLevel } from "typedoc";
 
