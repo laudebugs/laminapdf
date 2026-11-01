@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1i` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1h](../done/Q1h-docs-story.md) |
+| Depends on | [Q1h](./Q1h-docs-story.md) |
 | Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1i-guides-create` |
 | PR title | `docs(site): plain-English guides for creating PDFs` |
 | Size | M |
-| PR | (this PR) |
+| PR | [#167](https://github.com/laudebugs/lamina/pull/167) |
 
 ## Goal
 
@@ -37,14 +37,14 @@ This todo rewrites the "Create PDFs" guides to the [docs-writing guideline](../.
 ## Tasks
 
 - [x] Claim it: this PR's first commit moved the todo to `ongoing/` (the claim rule changed on 2026-11-01).
-- [ ] Rewrite one page at a time with `/writing`; keep every fact, moving spec detail into Details.
-- [ ] Run `docs-prose` on each page and fix what it reports.
+- [x] Rewrite one page at a time with `/writing`; keep every fact, moving spec detail into Details.
+- [x] Run `docs-prose` on each page and fix what it reports.
 - [ ] Run `/writing-review` on the changed pages after opening the PR; fix the findings.
 
 ## Acceptance criteria
 
-- [ ] `docs-prose` reports nothing on these pages.
-- [ ] No fact from the old pages is lost (the PR description lists where each moved).
+- [x] `docs-prose` reports nothing on these pages.
+- [x] No fact from the old pages is lost (the PR description lists where each moved).
 
 ## Post-merge checks
 
@@ -64,9 +64,9 @@ Rewrites can drop facts: move spec detail into Details rather than deleting it.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: this work PR's first commit moved this file `ready/` → `ongoing/` (the claim rule of 2026-11-01)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

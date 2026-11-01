@@ -1,8 +1,6 @@
 ---
 title: Accessible PDFs
 description: Build PDF/UA-1 documents that screen readers can follow, with every machine-checkable rule checked when the builder finishes.
-sidebar:
-  order: 9
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
@@ -12,7 +10,7 @@ This guide builds a report that screen-reader users can read, which you need whe
 
 ## What PDF/UA asks for
 
-PDF/UA-1 (ISO 14289-1, "Universal Accessibility") is the standard for accessible PDF. A PDF/UA file is tagged: its structure tree says which content is a heading, a paragraph, a list, a table or a figure, and in what order to read it. Everything else, such as running headers and decorative rules, is marked as an artifact, which assistive technology skips. The file also needs a title, a language, alternate text for every figure, a description for every link and embedded fonts that map each glyph to characters.
+PDF/UA-1 ("Universal Accessibility") is the standard for accessible PDF. A PDF/UA file is tagged: its structure tree says which content is a heading, a paragraph, a list, a table or a figure, and in what order to read it. Everything else, such as running headers and decorative rules, is marked as an artifact, which assistive technology skips. The file also needs a title, a language, alternate text for every figure, a description for every link and embedded fonts that map each glyph to characters.
 
 Turn the profile on with one option: `profiles: ["PDF/UA-1"]` in TypeScript, `BuildOptions::default().with_profile(Profile::PdfUa1)` in Rust. Then `finish()` checks the rules a program can check and fails with a coded error for the first one the document breaks:
 
@@ -54,4 +52,8 @@ About half of PDF/UA's requirements need a person. lamina can check that a figur
 
 Every example on this site that claims PDF/UA-1 is validated each night with veraPDF, the open-source validator the PDF Association backs.
 
-To make a document both accessible and archival, add a PDF/A profile next to `PDF/UA-1`: see [Archival PDFs](/guides/archival-pdfs/).
+:::note[Details]
+PDF/UA-1 is ISO 14289-1. veraPDF checks it against the Matterhorn Protocol, the PDF Association's list of PDF/UA failure conditions; the builder's checks are named after the ones a program can test.
+:::
+
+Next: to make a document both accessible and archival, add a PDF/A profile next to `PDF/UA-1`, as [Archival PDFs](/guides/archival-pdfs/) shows.

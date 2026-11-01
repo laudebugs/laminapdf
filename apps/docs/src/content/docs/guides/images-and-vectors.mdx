@@ -1,19 +1,34 @@
 ---
-title: Images and vectors
-description: Paths, strokes, colour, transparency, clipping, transforms and images.
-sidebar:
-  order: 2
+title: Shapes, colour and images
+description: Draw lines, shapes and images on a page, in any colour, with transparency, clipping and transforms.
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-Vector pages need only the base module (`init()`).
+You'll draw lines, shapes and images on a page, in colour and with transparency. You need this for anything visual in a PDF: a logo, a chart, the rules of a table or a photo.
 
-- **Paths:** `surface.path(p => …)` returns a pending path, which you paint with `fill`, `stroke`, `fillStroke` or `clip`. An invalid value (NaN, a negative width) fails `page.finish()` with `invalid-geometry`.
-- **Colour:** gray `[g]`, RGB `[r, g, b]`, CMYK `[c, m, y, k]` or hex, plus opacity and blend modes.
-- **Images:** `Image.jpeg(bytes)` passes the JPEG through as it is. `Image.png(bytes)` keeps its alpha channel as a soft mask. `Image.rgba(width, height, pixels)` takes raw pixels.
-- **Transforms:** `Matrix` for rotation, scaling and translation, in page space.
+Shapes and images need only the base module (`init()`).
+
+## Draw a shape
+
+`surface.path(p => …)` describes a shape, then paints it: `fill`, `stroke`, `fillStroke`, or `clip`, which limits what comes after to the inside of the shape. A value that makes no shape, such as NaN or a negative line width, fails `page.finish()` with `invalid-geometry`.
+
+## Colour it
+
+A colour is gray `[g]`, RGB `[r, g, b]`, CMYK `[c, m, y, k]` or hex. Opacity and blend modes set how a drawing mixes with what's already on the page.
+
+## Place an image
+
+- `Image.jpeg(bytes)` embeds a JPEG as it is, without decoding it.
+- `Image.png(bytes)` keeps the PNG's transparency.
+- `Image.rgba(width, height, pixels)` takes raw pixels.
+
+## Move, turn and scale
+
+A `Matrix` rotates, scales or moves what you draw. It works in [page space](/reference/glossary/#page-space), like every other position.
+
+This example draws rectangles, circles, curves and dashed strokes in several colours, with transparency, a clip and a rotation, and places a JPEG and a transparent image:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
@@ -25,3 +40,9 @@ Vector pages need only the base module (`init()`).
 </Tabs>
 
 [See the output](/examples/#images-and-vectors).
+
+:::note[Details]
+A PNG's alpha channel, and an RGBA image's, becomes a soft mask: a second image that holds the transparency.
+:::
+
+Next: [links, outlines and metadata](/guides/links-outlines-and-metadata/).
