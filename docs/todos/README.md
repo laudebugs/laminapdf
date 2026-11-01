@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**5 ongoing · 226 ready · 56 done** (287 total).
+**4 ongoing · 226 ready · 57 done** (287 total).
 
 ## Can start now
 
@@ -22,6 +22,8 @@ Ready todos whose dependencies are all done:
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
 - [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
+- [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
+- [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
 - [Q1c](ready/Q1c-examples-checks.md): The examples checks: `docs-snippets`, a Biome override and `clippy-examples`
@@ -39,7 +41,6 @@ Ready todos whose dependencies are all done:
 ## Ongoing
 
 - [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md): Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`
-- [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md): `@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
 - [Q1b](ongoing/Q1b-docs-prose-check.md): The `docs-prose` check for reader-facing text
 - [Q2b](ongoing/Q2b-ts-lint-rules.md): TypeScript lint rules: complexity, function length, throws and TSDoc
 - [Q2u](ongoing/Q2u-ts-dependency-tools.md): TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports
@@ -119,9 +120,9 @@ Ready todos whose dependencies are all done:
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](done/C2b-lamina-render-crate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
 | C2c | [`@laminapdf/render-pdfium` and `@laminapdf/render-hayro`: the web render adapters](done/C2c-render-packages.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [C2b](done/C2b-lamina-render-crate.md) |
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
-| C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ongoing/C3b-viewer-virtualiser-and-zoom.md) | ongoing | [C3a](done/C3a-viewer-worker-rpc.md) |
-| C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
+| C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
+| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
@@ -138,12 +139,12 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md) |
-| D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
+| D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
+| D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
 | D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
-| D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
+| D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
 | D2e | [Desktop end-to-end tests with WebdriverIO on three OSes](ready/D2e-desktop-e2e-webdriverio.md) | ready | [D2c](ready/D2c-engine-sandbox.md), [D2d](ready/D2d-tile-transport-and-first-document.md) |
 | D3a | [Open from the OS: file associations, argv, `RunEvent::Opened`, single instance, drag-drop](ready/D3a-open-from-os.md) | ready | [D2e](ready/D2e-desktop-e2e-webdriverio.md) |
 | D3b | [Recent files (OS and in-app) and reload on external change](ready/D3b-recent-files-and-file-watching.md) | ready | [D3a](ready/D3a-open-from-os.md) |
