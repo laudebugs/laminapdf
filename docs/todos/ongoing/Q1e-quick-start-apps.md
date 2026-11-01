@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1c](../done/Q1c-examples-checks.md) |
-| Blocks | [Q1h](./Q1h-docs-story.md) |
+| Blocks | [Q1h](../ready/Q1h-docs-story.md) |
 | ADRs | None |
 | Branch | `feat/q1e-quick-start-apps` |
 | PR title | `feat(docs): runnable quick-start examples for Node, Deno, Bun and the browser` |
@@ -34,11 +34,11 @@ Three of the six runtime pages show CI test runners, and the browser page shows 
 
 **Out of scope** (and which todo covers it)
 
-- The first-PDF and concept pages ([Q1h](./Q1h-docs-story.md)).
+- The first-PDF and concept pages ([Q1h](../ready/Q1h-docs-story.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Write the four apps, each taking the output path or a byte sink as a parameter so a runner can capture the bytes.
 - [ ] Change the Node, Deno, Bun and Vite runners to import the apps; run `cargo xtask pdf-runtimes`.
 - [ ] Remove the `test/**` globs from `Snippet.astro`.
@@ -69,7 +69,7 @@ Deno and Bun need write permissions in CI: keep the write behind the parameter s
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
