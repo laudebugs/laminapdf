@@ -12,6 +12,17 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/index.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off",
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
     }
   ]
 }

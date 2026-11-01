@@ -333,10 +333,18 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     Ok(())
 }
 
+/// Every export of every package entry has a doc comment (`TypeDoc`'s `notDocumented`, warnings
+/// as errors; maintainability guideline, "API"): `apps/docs/scripts/check-api-docs.mjs`.
+fn api_docs(ws: &Workspace) -> Result<()> {
+    step("every package export is documented (TypeDoc)");
+    ws.pnpm(&["--filter", "@laminapdf/docs", "run", "check:api-docs"])
+}
+
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
+    api_docs(ws)?;
     docs_site(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");

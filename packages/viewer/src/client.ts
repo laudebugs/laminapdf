@@ -35,6 +35,7 @@ import {
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
 export const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 
+/** `ViewerClient.create`'s options: the backend, lamina's WebAssembly, timeouts and the worker. */
 export interface ViewerOptions {
   /** The render engine; PDFium needs its `.wasm` URL from your bundler (`pdfium.wasm?url`). */
   readonly backend: BackendInit;
@@ -71,6 +72,7 @@ export interface ViewerEvents {
   "restart-failed": { readonly reason: RestartReason; readonly error: unknown };
 }
 
+/** The names of the client's events. */
 export type ViewerEvent = keyof ViewerEvents;
 
 /** Per-call options. */
@@ -234,12 +236,14 @@ export class ViewerClient {
     return this.#reopen;
   }
 
+  /** Closes the document in the worker (the worker stays, ready for another `open`). */
   async close(): Promise<void> {
     this.#reopen = undefined;
     this.#document = undefined;
     await this.call("closeDocument", []);
   }
 
+  /** Page `index`'s size, rotation, ID and label. */
   pageInfo(index: number, options?: ViewerCallOptions) {
     return this.call("pageInfo", [index], options);
   }

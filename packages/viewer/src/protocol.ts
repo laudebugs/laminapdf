@@ -63,8 +63,11 @@ export interface Methods {
   __crash: { params: []; result: never };
 }
 
+/** A viewer method's name. */
 export type MethodName = keyof Methods;
+/** Method `M`'s parameters. */
 export type Params<M extends MethodName> = Methods[M]["params"];
+/** Method `M`'s result. */
 export type Result<M extends MethodName> = Methods[M]["result"];
 
 /**

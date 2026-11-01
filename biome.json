@@ -1,6 +1,10 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "includes": [
       "**",
@@ -45,8 +49,35 @@
               "__filename": "Node-only and CommonJS-only: resolve paths in the caller."
             }
           }
+        },
+        "useThrowOnlyError": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 15
+          }
+        },
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 60
+          }
         }
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/test/**", "**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
+    }
+  ]
 }
