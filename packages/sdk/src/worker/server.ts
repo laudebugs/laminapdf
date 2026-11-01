@@ -218,7 +218,10 @@ function release(handle: number): void {
 
 async function stepSave(context: CallContext, doc: Document, method: string, options: SaveOptions | undefined) {
   const job = doc.saveJob(options);
-  let last = 0;
+  // The first progress event goes out after the first step, so a caller hears at once that a
+  // stepped save is under way; later ones at most every PROGRESS_EVERY ms. (Counting from 0 would
+  // wait for the worker's own clock, which starts when the worker does.)
+  let last = Number.NEGATIVE_INFINITY;
   try {
     for (;;) {
       if (context.signal.aborted) job.cancel();
