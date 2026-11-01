@@ -42,6 +42,15 @@ pub(crate) const HB_SHAPE_VERSION: &str = "14.3.0";
 /// directory, so `doctor` can't probe it; `crates/lamina-text/tests/extraction.rs` checks the
 /// scripts' pins against this one.
 const PDFJS_DIST_VERSION: &str = "6.4.299";
+/// veraPDF greenfield release for `cargo xtask verapdf` and the nightly `verapdf` job (todo
+/// B8b). Run as a Java command-line application, never linked (ADR 0019: GPL-3.0-or-later or
+/// MPL-2.0). Bump deliberately: rule changes between releases change verdicts.
+pub(crate) const VERAPDF_VERSION: &str = "1.30.3";
+/// SHA-256 of `verapdf-greenfield-1.30.3-installer.zip` from software.verapdf.org (recorded
+/// 2026-10-31).
+pub(crate) const VERAPDF_INSTALLER_SHA256: &str = "b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59";
+/// The oldest Java major veraPDF 1.30 runs on (its jars are built for Java 17).
+const MIN_JAVA_MAJOR: u32 = 17;
 /// The oldest Node major we support (`engines` in package.json; `.nvmrc` pins the one we develop on).
 const MIN_NODE_MAJOR: u32 = 22;
 
@@ -211,6 +220,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         wasm_bindgen_tool(wasm_bindgen),
         wasm_opt(),
         twiggy(),
+        java(),
     ])
 }
 
@@ -281,6 +291,19 @@ pub(crate) fn hb_shape() -> Tool {
         pin: Pin::Exact(HB_SHAPE_VERSION.to_owned()),
         fix: format!("brew install harfbuzz  # or a HarfBuzz {HB_SHAPE_VERSION} release"),
         optional_for: Some("regenerating the shaping goldens (tools/shaping-goldens/goldens.py)"),
+    }
+}
+
+/// Java for veraPDF (optional: only `cargo xtask verapdf` needs it). `cargo xtask verapdf`
+/// probes `$LAMINA_JAVA`, Homebrew's `openjdk@21` and `java` on `PATH` with this pin; doctor
+/// probes `PATH`.
+pub(crate) fn java() -> Tool {
+    Tool {
+        name: "java",
+        version_command: &["java", "--version"],
+        pin: Pin::MinMajor(MIN_JAVA_MAJOR),
+        fix: format!("brew install openjdk@21  # or any Java {MIN_JAVA_MAJOR}+; set LAMINA_JAVA to its java binary"),
+        optional_for: Some("cargo xtask verapdf (veraPDF, the nightly lane)"),
     }
 }
 

@@ -370,6 +370,7 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         ..render_diff::Args::default()
     };
     part("render-diff", render_diff::run(ws, &render_args));
+    part("verapdf", crate::verapdf::run(ws, None));
     part("docs-links --external", docs_links::external::run(&ws.root, false));
     if failed.is_empty() {
         step("Nightly lane passed");

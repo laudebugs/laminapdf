@@ -25,6 +25,7 @@ mod runner;
 mod todos;
 mod tracked;
 mod util;
+mod verapdf;
 mod verify_install;
 mod version;
 mod wasm;
@@ -127,6 +128,12 @@ tasks:
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDFIUM_DIR
                     (cache: $LAMINA_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
+  verapdf [--dir <dir>]
+                    run the lamina examples into target/examples-out/ (or take the PDFs in <dir>)
+                    and validate each with veraPDF for the profiles its XMP claims (PDF/A-2b, 2u,
+                    3b, PDF/UA-1); any violation fails; summary in target/xtask/verapdf/summary.md.
+                    veraPDF's pinned CLI (doctor.rs) is installed into $RUNNER_TOOL_CACHE/lamina-verapdf
+                    or target/verapdf; Java: $LAMINA_JAVA, Homebrew's openjdk@21, or java on PATH
   quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
                     fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
                     pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)
@@ -270,6 +277,8 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
+        ("verapdf", []) => verapdf::run(&ws, None),
+        ("verapdf", [flag, dir]) if flag == "--dir" => verapdf::run(&ws, Some(dir)),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
