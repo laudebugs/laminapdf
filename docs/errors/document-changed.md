@@ -5,7 +5,7 @@
 
 ## What happened
 
-A job's `step` was given a document other than the one the job was created from, or that document changed since: a committed transaction, an undo, a redo, a save or a rebase. Every step checks the document's instance and revision before any work ([ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3), and the job is now finished.
+A job's `step` was given a document other than the one the job was created from, or that document changed since: a committed transaction, an undo, a redo, a save or a rebase. Every step checks the document's instance and revision before any work, and the job is now finished.
 
 ## Why
 
@@ -26,3 +26,9 @@ assert_eq!(job.step(&mut doc, lamina::Budget::UNLIMITED).unwrap_err().code(), "d
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3

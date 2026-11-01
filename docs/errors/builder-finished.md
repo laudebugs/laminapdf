@@ -9,7 +9,7 @@ A `WasmBuilder` method was called after the builder's `finish`, or a `WasmPageBu
 
 ## Why
 
-`finish` hands the work over: a builder's becomes a `WasmDocument`, a page's is written into its builder. Neither holds anything to draw on afterwards (the binding's owned pages, [ADR 0016](../decisions/0016-package-design.md) §7).
+`finish` hands the work over: a builder's becomes a `WasmDocument`, a page's is written into its builder. Neither holds anything to draw on afterwards.
 
 ## How to fix
 
@@ -27,3 +27,9 @@ page.save(); // throws { code: "builder-finished", … }
 ## Data fields
 
 - `argument`: always `builder`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §7: the binding owns its pages

@@ -5,7 +5,7 @@
 
 ## What happened
 
-The `CancelToken` passed to a job, or to a run-to-completion call such as `Document::save`, was cancelled. The call returned at its next check: the start of a step, a budget check, or the next object or page of a long loop ([ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §5).
+The `CancelToken` passed to a job, or to a run-to-completion call such as `Document::save`, was cancelled. The call returned at its next check: the start of a step, a budget check, or the next object or page of a long loop.
 
 ## Why
 
@@ -27,3 +27,9 @@ assert_eq!(err.code(), "cancelled");
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §5

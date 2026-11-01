@@ -1,12 +1,27 @@
 # lamina
 
-A platform for anything and everything PDF — creating, reading, rendering, editing, filling, signing and transforming PDF documents from code.
+lamina creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime.
 
-> **Status:** early, nothing published yet. The core crates read, edit, save and generate PDFs (`lamina-syntax`, `lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-content`, `lamina-text`, `lamina-build`), behind the `lamina` façade. Its WebAssembly build (`@laminapdf/wasm`) and the TypeScript API over it (`@laminapdf/sdk`) are private packages, and the docs site is the first app (`apps/docs`). Decisions are recorded as [ADRs](docs/decisions/README.md); the plans and the todo board are in [`docs/`](docs/README.md).
+**Documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, examples and the API reference.
 
-## Documentation
+```ts
+import { Builder, Font, init } from "@laminapdf/sdk";
 
-The docs site (quick starts for the browser, Node, Deno, Bun, Cloudflare Workers and Rust, guides, the examples gallery and the `@laminapdf/sdk` API reference) is built from [`apps/docs/`](apps/docs/README.md): `pnpm install`, then `pnpm --filter @laminapdf/docs dev`. It deploys to Cloudflare Workers (workers.dev until a domain is chosen) once the owner adds the deploy secrets; see [its README](apps/docs/README.md#deploying).
+await init({ text: true });
+const builder = new Builder();
+const page = builder.page("A4");
+page.surface().text("Hello, world!", { font: Font.standard("Helvetica"), size: 24, at: [72, 96] });
+page.finish();
+const bytes = builder.finish().save(); // a Uint8Array holding the PDF
+```
+
+> **Status:** early, and nothing is published yet. The packages are private until the first release.
+
+## What's here
+
+lamina's core is Rust. The `lamina` crate is its API, over the core crates `lamina-syntax`, `lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-content`, `lamina-text` and `lamina-build`. Its WebAssembly build is `@laminapdf/wasm`, and `@laminapdf/sdk` is the TypeScript API over it. The web viewer is `@laminapdf/viewer`, with its renderers in `@laminapdf/render`, `-pdfium` and `-hayro`.
+
+The docs site is built from [`apps/docs/`](apps/docs/README.md): run `pnpm install`, then `pnpm --filter @laminapdf/docs dev`. Decisions are recorded as [ADRs](docs/decisions/README.md); the plans and the todo board are in [`docs/`](docs/README.md).
 
 ## Repository layout
 

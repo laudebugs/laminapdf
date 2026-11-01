@@ -5,11 +5,11 @@
 
 ## What happened
 
-A render backend (`lamina-render`) refused a request because the tile it asks for is larger than the document's `RenderLimits`: more than `max_render_pixels` pixels, more than `max_render_side` pixels on a side, or (for hayro, which reads the whole file) an input longer than `max_input_bytes`.
+A render backend (`lamina-render`) refused a request that is too large. The tile has more than `max_render_pixels` pixels or more than `max_render_side` pixels on a side (the document's `RenderLimits`), or more than 65,535 pixels on a side for hayro. Or, for hayro, which reads the whole file, the input is longer than `max_input_bytes`.
 
 ## Why
 
-Page sizes and zoom levels come from files and users, so a render could otherwise ask for a bitmap of any size. The limits are checked before anything is allocated (ADR 0004 §1). The defaults are 16,777,216 pixels per tile (4096 × 4096, iOS Safari's per-canvas cap), 16,384 pixels per side and 1 GiB of input.
+Page sizes and zoom levels come from files and users, so a render could otherwise ask for a bitmap of any size. The limits are checked before anything is allocated. The defaults are 16,777,216 pixels per tile (4096 × 4096, iOS Safari's per-canvas cap), 16,384 pixels per side and 1 GiB of input.
 
 ## How to fix
 
@@ -28,3 +28,9 @@ doc.render(&req, &mut out, &CancelToken::new())?; // render-too-large
 - `limit`: the limit exceeded.
 - `unit`: `pixels`, `pixels per side` or `pixels per side (hayro)` (tile limits).
 - `len`: the input's length in bytes (the input limit, with `limit`).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0004](../decisions/0004-render-backend.md) §1

@@ -5,7 +5,7 @@
 
 ## What happened
 
-A content stream ended with a path that no painting operator ended; it was dropped (ADR 0023).
+A content stream ended with a path that no painting operator ended; it was dropped.
 
 ## Why
 
@@ -28,3 +28,9 @@ The content stream ends after building a path without `S`, `f` or `n`: the path 
 - `offset`: the byte offset of the path's first segment in the decoded content.
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

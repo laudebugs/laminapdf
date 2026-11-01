@@ -35,6 +35,40 @@ const PAGE_HEADINGS: [&str; 5] = [
     "## Data fields",
 ];
 
+/// The optional last heading: notes for contributors (decision records, todos), which the docs
+/// site leaves out.
+const CONTRIBUTOR_HEADING: &str = "## For contributors";
+
+/// A page's `## ` headings, leaving out lines inside code fences (an example may show Markdown).
+/// A fence opens on three or more backticks or tildes, indented at most three spaces, and closes
+/// on the same character, at least as long, with nothing after it (as `readerMarkdown` in
+/// `apps/docs/plugins/error-pages.mjs` reads it).
+fn page_headings(text: &str) -> Vec<&str> {
+    let mut fence: Option<(char, usize)> = None;
+    text.lines()
+        .map(str::trim_end)
+        .filter(|line| {
+            let unindented = line.trim_start_matches(' ');
+            let marker_char = unindented.chars().next().filter(|c| matches!(c, '`' | '~'));
+            if line.len() - unindented.len() <= 3
+                && let Some(c) = marker_char
+            {
+                let length = unindented.chars().take_while(|&x| x == c).count();
+                if length >= 3 {
+                    let rest_blank = unindented.chars().skip(length).all(char::is_whitespace);
+                    match fence {
+                        None => fence = Some((c, length)),
+                        Some((open, open_length)) if open == c && length >= open_length && rest_blank => fence = None,
+                        Some(_) => {}
+                    }
+                    return false;
+                }
+            }
+            fence.is_none() && line.starts_with("## ")
+        })
+        .collect()
+}
+
 /// The codes listed in group `key`, in order.
 fn listed(key: &str) -> Vec<String> {
     codes_json()[key]
@@ -111,14 +145,11 @@ fn problems(group: &str, entry: &Value) -> Vec<String> {
     match std::fs::read_to_string(&page) {
         Err(_) => out.push(format!("{group}/{code}: no page docs/errors/{code}.md")),
         Ok(text) => {
-            let headings: Vec<&str> = text
-                .lines()
-                .filter(|l| l.starts_with("## "))
-                .map(str::trim_end)
-                .collect();
-            if headings != PAGE_HEADINGS {
+            let headings = page_headings(&text);
+            let reader_headings = headings.strip_suffix(&[CONTRIBUTOR_HEADING]).unwrap_or(&headings);
+            if reader_headings != PAGE_HEADINGS {
                 out.push(format!(
-                    "docs/errors/{code}.md: headings {headings:?}, expected {PAGE_HEADINGS:?}"
+                    "docs/errors/{code}.md: headings {headings:?}, expected {PAGE_HEADINGS:?} (then optionally {CONTRIBUTOR_HEADING:?})"
                 ));
             }
             if let Some(kind) = kind

@@ -8,7 +8,7 @@
 //!
 //! veraPDF runs as its Java command-line application, an external process only (ADR 0019: it
 //! is GPL-3.0-or-later / MPL-2.0, never linked or bundled). The pinned greenfield release
-//! ([`VERAPDF_VERSION`](crate::doctor::VERAPDF_VERSION)) is downloaded once, its SHA-256
+//! ([`VERAPDF_VERSION`]) is downloaded once, its SHA-256
 //! checked, and installed with its own installer's unattended mode into
 //! `$RUNNER_TOOL_CACHE/lamina-verapdf` (CI) or `target/verapdf/` (locally). Java is
 //! `$LAMINA_JAVA`, else Homebrew's `openjdk@21`, else `java` on `PATH`; veraPDF's

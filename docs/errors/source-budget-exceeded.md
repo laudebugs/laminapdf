@@ -9,7 +9,7 @@ A sparse source (`WasmSparseSource` in `@laminapdf/wasm`, or a `@laminapdf/sdk` 
 
 ## Why
 
-A range source keeps every byte it has fetched: the document may already have read them, so nothing is evicted. The budget bounds how much of a remote or lazily read file one document may hold in memory ([L2c](../todos/done/L2c-range-byte-source.md), [ADR 0005](../decisions/0005-document-model.md) §2).
+A range source keeps every byte it has fetched: the document may already have read them, so nothing is evicted. The budget bounds how much of a remote or lazily read file one document may hold in memory.
 
 ## How to fix
 
@@ -26,3 +26,10 @@ source.supply(0, new Uint8Array(2_000_000)); // throws { code: "source-budget-ex
 
 - `argument`: `bytes`.
 - `detail`: how many bytes the source would hold and its budget (lamina's own numbers).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2c](../todos/done/L2c-range-byte-source.md): the range byte source
+- [ADR 0005](../decisions/0005-document-model.md) §2

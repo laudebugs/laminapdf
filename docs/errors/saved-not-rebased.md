@@ -5,7 +5,7 @@
 
 ## What happened
 
-The document was saved to a sink lamina can't read back, and it waits for `rebase`: ops, undo, redo and saves are refused until then (ADR 0005 §3).
+The document was saved to a sink lamina can't read back, and it waits for `rebase`: ops, undo, redo and saves are refused until then.
 
 ## Why
 
@@ -26,3 +26,9 @@ ops.rebase(saved_bytes)?;                    // then edits work again
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0005](../decisions/0005-document-model.md) §3

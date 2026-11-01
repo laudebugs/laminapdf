@@ -5,7 +5,7 @@
 
 ## What happened
 
-An operator had too few operands or operands of the wrong type (it was skipped), or extra operands (the last ones were used) (ADR 0023).
+An operator had too few operands or operands of the wrong type (it was skipped), or extra operands (the last ones were used).
 
 ## Why
 
@@ -28,3 +28,9 @@ Nothing to do.
 - `offset`: the operator's byte offset in the decoded content.
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

@@ -5,11 +5,11 @@
 
 ## What happened
 
-A value passed from JavaScript to `@laminapdf/wasm` is not of the type its declaration describes: a record with a field of the wrong type, a string that names no known value (a blend mode, a fill rule, a standard 14 font, an op), a path in the flat encoding cut short, a colour with the wrong number of components, an ID that isn't 32 hex digits.
+A value passed from JavaScript to `@laminapdf/wasm` is not of the type its declaration describes. It might be a record with a field of the wrong type, or a string that names no known value (a blend mode, a fill rule, a standard 14 font, an op). It might also be a flat-encoded path cut short, a colour with the wrong number of components, or an ID that isn't 32 hex digits.
 
 ## Why
 
-The `.d.ts` types describe each argument, but JavaScript (and code written without the types) can pass anything. The binding checks each value as it converts it ([ADR 0016](../decisions/0016-package-design.md) §7, [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) F6).
+The `.d.ts` types describe each argument, but JavaScript (and code written without the types) can pass anything. The binding checks each value as it converts it.
 
 ## How to fix
 
@@ -25,3 +25,10 @@ page.blendMode("multiplly"); // throws { code: "invalid-argument", didYouMean: [
 
 - `argument`: the parameter that was wrong (`options`, `path`, `mode`, …).
 - `detail`: what the conversion said (untrusted: it may quote the value passed).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §7
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) F6

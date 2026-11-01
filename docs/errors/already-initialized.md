@@ -9,7 +9,7 @@
 
 ## Why
 
-Each module is instantiated once per JavaScript realm ([ADR 0016](../decisions/0016-package-design.md) §3): every document and builder lives in that instance. Loading a second copy from another source would leave two instances whose objects can't be mixed, so the second source is refused rather than silently ignored.
+Each module is instantiated once per JavaScript realm: every document and builder lives in that instance. Loading a second copy from another source would leave two instances whose objects can't be mixed, so the second source is refused rather than silently ignored.
 
 ## How to fix
 
@@ -26,3 +26,9 @@ await init(otherBytes); // throws { code: "already-initialized", … }
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §3

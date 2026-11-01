@@ -9,7 +9,7 @@ The `WriteSink` already held bytes when the save started, so the writer refused 
 
 ## Why
 
-Output offsets (the xref table, `startxref`) count from the sink's first byte, and a sink only appends (ADR 0007 §6). An `AppendedOnly` incremental save also accepts a sink that holds exactly the base.
+Output offsets (the xref table, `startxref`) count from the sink's first byte, and a sink only appends. An `AppendedOnly` incremental save also accepts a sink that holds exactly the base.
 
 ## How to fix
 
@@ -25,3 +25,9 @@ ops.save(&mut sink, &options)?; // sink-not-empty, data.held = 5
 ## Data fields
 
 - `held`: the bytes the sink held.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §6

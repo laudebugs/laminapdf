@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 223 ready · 62 done** (287 total).
+**1 ongoing · 223 ready · 63 done** (287 total).
 
 ## Can start now
 
@@ -41,7 +41,6 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
-- [Q1k](ongoing/Q1k-internal-ids-out-of-reader-text.md): Internal IDs out of error pages and READMEs
 - [Q2k](ongoing/Q2k-boundary-errors-ts.md): One error wire shape in TypeScript (fixes lost render ranges)
 
 ## Architecture — Round A
@@ -344,8 +343,8 @@ Ready todos whose dependencies are all done:
 | Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](ready/Q1e-quick-start-apps.md) |
 | Q1i | [Plain-English guides: creating PDFs](ready/Q1i-guides-create.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](ready/Q1h-docs-story.md) |
-| Q1k | [Internal IDs out of error pages and READMEs](ongoing/Q1k-internal-ids-out-of-reader-text.md) | ongoing | [Q1b](done/Q1b-docs-prose-check.md) |
-| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](ongoing/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
+| Q1k | [Internal IDs out of error pages and READMEs](done/Q1k-internal-ids-out-of-reader-text.md) | done | [Q1b](done/Q1b-docs-prose-check.md) |
+| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
 | Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q2a | [`check maintainability` for Rust: module budget and new lints](ready/Q2a-maintainability-checks-rust.md) | ready | — |
 | Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](done/Q2b-ts-lint-rules.md) | done | — |
