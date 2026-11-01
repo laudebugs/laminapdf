@@ -9,7 +9,7 @@ You'll write `hello.pdf`, one A4 page that says "Hello, world!", from a short No
 
 ## Before you start
 
-lamina isn't on npm yet, so you install it from a build of the repository, which is private for now. You need access to it, Node 24.2 or newer, pnpm, and Rust; [Install](/install/) covers the details. Clone it into a folder named `lamina`, build the packages once, and pack them into one folder:
+lamina isn't on npm yet, so you install it from a build of the repository, which is private for now. You need access to it, Node 24.2 or newer, pnpm, and Rust; [Install](/install/) covers the details. Clone it into a folder named `lamina` (ask a maintainer for the URL), build the packages once, and pack them into one folder:
 
 ```sh
 git clone <repository URL> lamina && cd lamina
@@ -48,6 +48,6 @@ Node runs the TypeScript file as it is. Open `hello.pdf` in any PDF viewer: one 
 
 ## What happened
 
-`init({ text: true })` loaded lamina's text module, the one that draws fonts; after it, every call is synchronous. The builder made an A4 page, drew the text on it and finished into a document, and `save` turned that document into bytes. `using` freed the builder and the document as soon as the function ended.
+`init({ text: true })` loaded lamina's text module, the one that draws fonts; after it, every call is synchronous. The builder made an A4 page, drew the text on it and finished into a document, `doc.save()` turned that document into bytes, and `save` wrote them to `hello.pdf`. `using` freed the builder and the document as soon as the function ended.
 
 Next, see [how lamina thinks about a PDF](/concepts/how-lamina-thinks/) and [where things go on a page](/concepts/pages-and-coordinates/). To use lamina somewhere other than Node, pick [your runtime](/quick-start/browser/).
