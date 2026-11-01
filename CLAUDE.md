@@ -60,8 +60,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 │                        #   planner's port), RenderError
 ├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
 │                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
-│                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig,
-│                        #   firefoxProvider), root (ROOT, fromRoot)
+│                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig),
+│                        #   firefox (firefoxProvider), root (fromRoot)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium (private): @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro (private): lamina_render_hayro behind RenderBackend

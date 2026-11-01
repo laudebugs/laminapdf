@@ -13,6 +13,7 @@
     "./render-contract": "./src/render-contract.ts",
     "./browser-harness": "./src/browser-harness.ts",
     "./browser-config": "./src/browser-config.ts",
+    "./firefox": "./src/firefox.ts",
     "./root": "./src/root.ts",
     "./package.json": "./package.json"
   },

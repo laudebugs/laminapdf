@@ -2,7 +2,7 @@
 // path from the root instead of counting `../` from its own folder.
 
 /** The repository root, as a `file:` URL ending in `/`. */
-export const ROOT = new URL("../../../", import.meta.url);
+const ROOT = new URL("../../../", import.meta.url);
 
 /** `path` (relative to the repository root, such as `fixtures/corpus/hello.pdf`) as a URL. */
 export function fromRoot(path: string): URL {

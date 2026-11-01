@@ -28,7 +28,7 @@ These rules keep lamina's code easy to read, change and reuse as it grows. They 
 - **MUST:** shipped code contains no test code. Test-only APIs never appear in a public surface, and `src/` contains no test hooks (`__`-prefixed methods, logs kept for tests).
 - **MUST:** shared test helpers have one home:
   - Rust helpers used by two crates live in `lamina-test-fixtures` (created by todo Q2c).
-  - TypeScript helpers live in `@laminapdf/test-utils` (`packages/test-utils`): the render contract suite, the browser harness and config, the Firefox workaround and the repository root (`fromRoot`).
+  - TypeScript helpers live in `@laminapdf/test-utils` (`packages/test-utils`): the render contract suite, the browser harness and config, the Firefox workaround (`firefoxProvider`) and the repository root (`fromRoot`).
 
   No `#[path]` and no relative import reaches into another crate or package.
 

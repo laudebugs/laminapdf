@@ -14,12 +14,14 @@ import {
 } from "@laminapdf/render";
 import { beforeAll, describe, expect, it } from "vitest";
 
+/** A decoded PNG: straight-alpha RGBA rows, as a backend renders them. */
 export interface Decoded {
   readonly width: number;
   readonly height: number;
   readonly pixels: Uint8ClampedArray;
 }
 
+/** What a backend's test file passes to {@link renderContract}. */
 export interface ContractOptions {
   /** A fresh backend (its module initialised). */
   readonly backend: () => Promise<RenderBackend>;

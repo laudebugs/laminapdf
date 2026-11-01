@@ -1,4 +1,4 @@
-import { firefoxProvider } from "@laminapdf/test-utils/browser-config";
+import { firefoxProvider } from "@laminapdf/test-utils/firefox";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
