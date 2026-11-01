@@ -1,13 +1,13 @@
 //! The error-policy check: the policies in `laminapdf_cos::error` (`tolerant`,
 //! `absent_if_malformed`, `Error::must_propagate`, `Error::ends_page_walk`, …) decide which
 //! errors a read swallows. A test for `LimitExceeded` or `DataPending` anywhere else in a crate's
-//! library code starts a second policy, as text extraction's private one did when it left out
-//! source errors.
+//! library code starts a second policy, which can drift from the first.
 //!
 //! Two shapes count as such a test: a `matches!` that names one of the variants, and an
-//! or-pattern that lists one beside other errors, written `Err(A | B)` or `e @ (A | B)`. A match
-//! arm on one variant alone (`Err(Error::DataPending { ranges }) => …`, which collects the
-//! ranges) handles that error rather than choosing which errors propagate.
+//! or-pattern that lists one beside other alternatives, wherever its `|` sits:
+//! `Err(A | B)`, `e @ (A | B)`, `Err(A) | Err(B)` or a bare `A | B =>`. A match arm on one
+//! variant alone (`Err(Error::DataPending { ranges }) => …`, which collects the ranges) handles
+//! that error rather than choosing which errors propagate.
 
 use super::source::Token;
 use super::{Problem, Tree, crate_of, problem};
@@ -16,9 +16,12 @@ use super::{Problem, Tree, crate_of, problem};
 const HOME: &str = "crates/laminapdf-cos/src/error.rs";
 /// The variants only a policy may test for.
 const VARIANTS: [&str; 2] = ["LimitExceeded", "DataPending"];
+/// The guidance every finding ends with.
+const ADVICE: &str = "decide which errors propagate with a policy in `laminapdf_cos::error` (`tolerant`, \
+                      `absent_if_malformed`, `Error::must_propagate`, `Error::ends_page_walk`), or add one there";
 
-/// Every `matches!` and every error or-pattern outside [`HOME`] and outside test code that
-/// names one of [`VARIANTS`].
+/// Every `matches!` and every or-pattern outside [`HOME`] and outside test code that names one
+/// of [`VARIANTS`].
 pub(super) fn error_policy_tests(tree: &Tree) -> Vec<Problem> {
     let test_files = tree.out_of_line_test_files();
     let mut problems = Vec::new();
@@ -27,89 +30,122 @@ pub(super) fn error_policy_tests(tree: &Tree) -> Vec<Problem> {
             continue;
         }
         let tokens = source.tokens();
-        for (at, token) in tokens.iter().enumerate() {
-            let Some(shape) = shape_at(&tokens, at) else { continue };
-            if source.is_test(token.offset()) {
-                continue;
+        let mut report = |at: usize, what: &str, variant: &str| {
+            let offset = tokens.get(at).map_or(0, |t| t.offset());
+            if !source.is_test(offset) {
+                let message = format!("{what} on `{variant}`: {ADVICE}");
+                problems.push(problem(path, source.line_of(offset), "error-policy", message));
             }
-            let group = tokens.get(at + shape.group_offset()..).unwrap_or_default();
-            if let Some(variant) = named_variant(group, shape) {
-                problems.push(problem(
-                    path,
-                    source.line_of(token.offset()),
-                    "error-policy",
-                    format!(
-                        "{} on `{variant}`: decide which errors propagate with a policy in \
-                         `laminapdf_cos::error` (`tolerant`, `absent_if_malformed`, \
-                         `Error::must_propagate`, `Error::ends_page_walk`), or add one there",
-                        shape.describe()
-                    ),
-                ));
+        };
+        let mut inside_matches = 0..0;
+        for (at, token) in tokens.iter().enumerate() {
+            if let Some(end) = matches_call(&tokens, at) {
+                if let Some(variant) = tokens.get(at..end).unwrap_or_default().iter().find_map(variant_of) {
+                    report(at, "`matches!`", variant);
+                }
+                inside_matches = at..end;
+            } else if let Some(variant) = variant_of(token)
+                && !inside_matches.contains(&at)
+                && in_or_pattern(&tokens, at)
+            {
+                report(at, "an or-pattern", variant);
             }
         }
     }
     problems
 }
 
-/// What opens at a token: `matches!(`, or the `(` of `Err(…)` or `name @ (…)`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Shape {
-    Matches,
-    OrPattern,
+/// The one of [`VARIANTS`] that `token` is, if any.
+fn variant_of(token: &Token<'_>) -> Option<&'static str> {
+    VARIANTS.into_iter().find(|v| token.is(v))
 }
 
-impl Shape {
-    /// How many tokens after the opening one its `(` comes.
-    const fn group_offset(self) -> usize {
-        match self {
-            Self::Matches => 2,
-            Self::OrPattern => 1,
-        }
-    }
-
-    /// The shape as a finding names it.
-    const fn describe(self) -> &'static str {
-        match self {
-            Self::Matches => "`matches!`",
-            Self::OrPattern => "an or-pattern of errors",
-        }
-    }
-}
-
-/// The shape that opens at `tokens[at]`, if any.
-fn shape_at(tokens: &[Token<'_>], at: usize) -> Option<Shape> {
+/// The index just past the `)` of a `matches!(…)` that starts at `tokens[at]`.
+fn matches_call(tokens: &[Token<'_>], at: usize) -> Option<usize> {
     let is_punct = |offset: usize, byte: u8| tokens.get(at + offset).is_some_and(|t| t.is_punct(byte));
-    let token = tokens.get(at)?;
-    if token.is("matches") && is_punct(1, b'!') && is_punct(2, b'(') {
-        Some(Shape::Matches)
-    } else if (token.is("Err") || token.is_punct(b'@')) && is_punct(1, b'(') {
-        Some(Shape::OrPattern)
-    } else {
-        None
-    }
+    let opens = tokens.get(at).is_some_and(|t| t.is("matches")) && is_punct(1, b'!') && is_punct(2, b'(');
+    opens.then(|| closing(tokens, at + 2) + 1)
 }
 
-/// The first of [`VARIANTS`] inside the parentheses that `tokens` opens with. For an
-/// or-pattern, only when a `|` at the group's own level lists it beside other errors.
-fn named_variant(tokens: &[Token<'_>], shape: Shape) -> Option<&'static str> {
+/// The index of the bracket that closes the one at `tokens[open]` (the last index when the file
+/// ends first). Parentheses, brackets and braces all count.
+fn closing(tokens: &[Token<'_>], open: usize) -> usize {
     let mut depth = 0_usize;
-    let mut variant = None;
-    let mut alternatives = false;
-    for token in tokens {
-        if token.is_punct(b'(') {
+    for (at, token) in tokens.iter().enumerate().skip(open) {
+        if b"([{".iter().any(|&b| token.is_punct(b)) {
             depth += 1;
-        } else if token.is_punct(b')') {
+        } else if b")]}".iter().any(|&b| token.is_punct(b)) {
             depth = depth.saturating_sub(1);
             if depth == 0 {
-                break;
+                return at;
             }
-        } else if token.is_punct(b'|') && depth == 1 {
-            alternatives = true;
-        } else if variant.is_none() {
-            variant = VARIANTS.into_iter().find(|v| token.is(v));
         }
     }
-    variant.filter(|_| shape == Shape::Matches || alternatives)
+    tokens.len().saturating_sub(1)
+}
+
+/// Whether the variant at `tokens[at]` is one alternative of an or-pattern over a result's
+/// errors: it sits inside an `Err(…)`, and a lone `|` follows its fields and any closing `)`, or
+/// one comes before its path (`Err(`, `name @ (` and `Error::` included) right after the end of
+/// another alternative.
+fn in_or_pattern(tokens: &[Token<'_>], at: usize) -> bool {
+    let is = |index: usize, byte: u8| tokens.get(index).is_some_and(|t| t.is_punct(byte));
+    let lone_bar =
+        |index: usize| is(index, b'|') && !is(index + 1, b'|') && !index.checked_sub(1).is_some_and(|i| is(i, b'|'));
+    if !inside_err(tokens, at) {
+        return false;
+    }
+    let mut after = at + 1;
+    if is(after, b'{') || is(after, b'(') {
+        after = closing(tokens, after) + 1;
+    }
+    while is(after, b')') {
+        after += 1;
+    }
+    if lone_bar(after) {
+        return true;
+    }
+    let path = |t: &Token<'_>| matches!(t, Token::Word(..)) || t.is_punct(b':') || t.is_punct(b'(') || t.is_punct(b'@');
+    let Some(before) = tokens.get(..at).and_then(|head| head.iter().rposition(|t| !path(t))) else {
+        return false;
+    };
+    let ends_alternative = before.checked_sub(1).and_then(|i| tokens.get(i)).is_some_and(|t| {
+        t.is_punct(b'}')
+            || t.is_punct(b')')
+            || matches!(t, Token::Word(..)) && before.checked_sub(2).is_some_and(|i| is(i, b':'))
+    });
+    lone_bar(before) && ends_alternative
+}
+
+/// Whether `tokens[at]` sits inside the parentheses of an `Err(…)`, directly or through
+/// `name @ (…)` groups. A `match` on an error itself (`Error::A | Error::B => …`, as in
+/// `kind()` or `location()`) maps each error to data rather than choosing which ones propagate.
+fn inside_err(tokens: &[Token<'_>], at: usize) -> bool {
+    let mut depth = 0_usize;
+    for index in (0..at).rev() {
+        let Some(token) = tokens.get(index) else { return false };
+        if token.is_punct(b')') || token.is_punct(b'}') || token.is_punct(b']') {
+            depth += 1;
+        } else if token.is_punct(b'(') || token.is_punct(b'{') || token.is_punct(b'[') {
+            if depth > 0 {
+                depth -= 1;
+                continue;
+            }
+            let opener = index.checked_sub(1).and_then(|i| tokens.get(i));
+            if !token.is_punct(b'(') {
+                return false;
+            }
+            if opener.is_some_and(|t| t.is("Err")) {
+                return true;
+            }
+            if !opener.is_some_and(|t| t.is_punct(b'@')) {
+                return false;
+            }
+        } else if depth == 0 && (token.is_punct(b';') || token.is_punct(b'=') || token.is_punct(b',')) {
+            return false;
+        }
+    }
+    false
 }
 
 #[cfg(test)]
@@ -145,10 +181,42 @@ mod tests {
     }
 
     #[test]
+    fn a_variant_after_the_bar_should_count() {
+        let text = "fn f(r: R) -> R { match r { Err(e @ (Error::Strict { .. } | Error::LimitExceeded { .. })) => r, _ => r } }\n";
+        assert_eq!(found("crates/a/src/lib.rs", text), ["crates/a/src/lib.rs:1"]);
+    }
+
+    #[test]
     fn an_or_pattern_in_err_should_be_reported() {
         let text = "fn f(r: R) -> bool { match r { Err(Error::LimitExceeded { .. } | Error::Strict { .. }) => true, \
                     _ => false } }\n";
         assert_eq!(found("crates/a/src/lib.rs", text), ["crates/a/src/lib.rs:1"]);
+    }
+
+    #[test]
+    fn alternatives_of_err_should_be_reported() {
+        let text = "fn f(r: R) -> R {\n    match r {\n        Err(Error::Source(_)) | Err(Error::DataPending { .. }) => r,\n        \
+                    _ => r,\n    }\n}\n";
+        assert_eq!(found("crates/a/src/lib.rs", text), ["crates/a/src/lib.rs:3"]);
+    }
+
+    #[test]
+    fn a_match_on_the_error_itself_should_be_allowed() {
+        let text = "fn location(&self) -> L { match self {\n    Self::LimitExceeded { .. } | Self::Source(_) => L::NONE,\n} }\n";
+        assert_eq!(found("crates/a/src/lib.rs", text), Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_unit_variant_before_the_bar_should_count() {
+        let text = "fn f(r: R) { if let Err(Error::WrongPassword | Error::DataPending { .. }) = r {} }\n";
+        assert_eq!(found("crates/a/src/lib.rs", text), ["crates/a/src/lib.rs:1"]);
+    }
+
+    #[test]
+    fn closures_and_constructors_should_be_allowed() {
+        let text = "fn f(v: Vec<R>) -> Result<(), Error> {\n    let e = v.iter().map(|r| Error::DataPending { ranges: r.0 });\n    \
+                    let ok = a || b;\n    Err(Error::LimitExceeded { limit: l, at: x.map(|p| p | 1) })\n}\n";
+        assert_eq!(found("crates/a/src/lib.rs", text), Vec::<String>::new());
     }
 
     #[test]
