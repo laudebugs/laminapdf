@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 219 ready · 68 done** (287 total).
+**1 ongoing · 219 ready · 68 done** (288 total).
 
 ## Can start now
 
@@ -30,7 +30,6 @@ Ready todos whose dependencies are all done:
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q1i](ready/Q1i-guides-create.md): Plain-English guides: creating PDFs
 - [Q1m](ready/Q1m-guides-read-and-edit.md): Plain-English guides: reading and editing PDFs
-- [Q2a](ready/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
 - [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
 - [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
 - [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated
@@ -40,10 +39,11 @@ Ready todos whose dependencies are all done:
 - [Q2v](ready/Q2v-did-you-mean.md): One did-you-mean rule, pinned in both languages
 - [Q2y](ready/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
+- [X7](ready/X7-fast-lane-gate.md): A required check for the fast lane
 
 ## Ongoing
 
-Nothing claimed right now.
+- [Q2a](ongoing/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
 
 ## Architecture — Round A
 
@@ -348,15 +348,15 @@ Nothing claimed right now.
 | Q1k | [Internal IDs out of error pages and READMEs](done/Q1k-internal-ids-out-of-reader-text.md) | done | [Q1b](done/Q1b-docs-prose-check.md) |
 | Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](ready/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
 | Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](done/Q1h-docs-story.md) |
-| Q2a | [`check maintainability` for Rust: module budget and new lints](ready/Q2a-maintainability-checks-rust.md) | ready | — |
+| Q2a | [`check maintainability` for Rust: module budget and new lints](ongoing/Q2a-maintainability-checks-rust.md) | ongoing | — |
 | Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](done/Q2b-ts-lint-rules.md) | done | — |
-| Q2c | [`lamina-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2c | [`lamina-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
 | Q2d | [One PDF serialiser: the test `Writer` built on lamina-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
-| Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](ready/Q2e-error-policy-consolidation.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](ready/Q2e-error-policy-consolidation.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
 | Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](ready/Q2f-page-attributes-one-owner.md) | ready | — |
-| Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
 | Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](ready/Q2h-text-writers-dedup.md) | ready | — |
-| Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
 | Q2j | [One error object at every Rust boundary](done/Q2j-boundary-errors-rust.md) | done | — |
 | Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](done/Q2k-boundary-errors-ts.md) | done | [Q2j](done/Q2j-boundary-errors-rust.md) |
 | Q2l | [Lists that cross the WASM boundary are generated](ready/Q2l-boundary-lists-generated.md) | ready | — |
@@ -364,13 +364,13 @@ Nothing claimed right now.
 | Q2n | [Shared code for the render adapters](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](done/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](ready/Q2o-ts-hygiene.md) | ready | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](done/Q2b-ts-lint-rules.md) |
-| Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2e](ready/Q2e-error-policy-consolidation.md) |
-| Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
-| Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
-| Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md), [Q2e](ready/Q2e-error-policy-consolidation.md) |
+| Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
+| Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
+| Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |
 | Q2v | [One did-you-mean rule, pinned in both languages](ready/Q2v-did-you-mean.md) | ready | — |
-| Q2w | [Split the content interpreter's `execute`](ready/Q2w-split-content-interpreter.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
+| Q2w | [Split the content interpreter's `execute`](ready/Q2w-split-content-interpreter.md) | ready | [Q2a](ongoing/Q2a-maintainability-checks-rust.md) |
 | Q2x | [`lamina-test-fixtures` for the remaining crates](ready/Q2x-test-fixtures-migration.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
 | Q2y | [Decide and implement how the façade wraps crate errors](ready/Q2y-facade-error-wrapping.md) | ready | — |
 
@@ -386,4 +386,5 @@ Nothing claimed right now.
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X5 | [Linux CI on a self-hosted runner in a container on the Mac](done/X5-linux-ci-container.md) | done | [X4](done/X4-full-lane-gate.md) |
 | X6 | [Windows CI coverage](ready/X6-windows-ci.md) | ready | [X5](done/X5-linux-ci-container.md) |
+| X7 | [A required check for the fast lane](ready/X7-fast-lane-gate.md) | ready | [X4](done/X4-full-lane-gate.md) |
 
