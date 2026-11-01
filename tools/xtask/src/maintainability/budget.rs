@@ -1,5 +1,5 @@
 //! The size budgets: at most [`MODULE_BUDGET`] lines of non-test code per module, and a count of
-//! `#[expect]` (or `#[allow]`) on clippy's size lints that may not grow. Today's modules over the
+//! clippy size lints named by `#[expect]`, `#[allow]` or `cfg_attr`, which may not grow. Today's modules over the
 //! budget and today's count are recorded in [`BASELINE`], which only shrinks: the check fails when
 //! a recorded module grows, and also when it shrinks or drops under the budget until its entry is
 //! lowered or removed, so the improvement can't be undone unnoticed. Against the merge base with
@@ -15,7 +15,7 @@ use super::{BASELINE, Base, Problem, Tree, problem, warning};
 pub(super) const MODULE_BUDGET: usize = 800;
 
 /// Clippy's lints on the size of a function or its signature: silencing one is how code grows
-/// past a budget, so their `#[expect]`s are counted.
+/// past a budget, so each one an `#[expect]`, `#[allow]` or `cfg_attr` names is counted.
 const SIZE_LINTS: [&str; 4] = [
     "too_many_lines",
     "cognitive_complexity",

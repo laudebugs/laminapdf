@@ -28,7 +28,8 @@ use source::{Source, TestModule};
 const NAME: &str = "maintainability";
 /// The guideline every finding points to.
 const GUIDELINE: &str = "docs/guidelines/maintainability.md";
-/// The modules over the size budget and the count of size-lint `#[expect]`s ([`budget`]).
+/// The modules over the size budget and the count of size lints named by `#[expect]`/`#[allow]`
+/// ([`budget`]).
 const BASELINE: &str = "tools/xtask/maintainability-baseline.toml";
 /// Today's duplicate public type names and façade collisions, each with its reason ([`names`]).
 const DUPLICATES: &str = "tools/xtask/maintainability-duplicates.toml";
@@ -102,7 +103,8 @@ enum Base {
         baseline: Option<Baseline>,
         allowed: Option<Allowed>,
     },
-    /// No merge base (a shallow clone): the records can't be compared, and a warning says so.
+    /// No merge base (a shallow clone), or a record file there that no longer parses: the records
+    /// can't be compared, and a warning says so.
     #[default]
     Unknown,
 }
