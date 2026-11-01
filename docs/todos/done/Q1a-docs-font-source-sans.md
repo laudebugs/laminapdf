@@ -12,7 +12,7 @@
 | Branch | `feat/q1a-docs-font-source-sans` |
 | PR title | `feat(docs): one sans-serif font for the docs site (Source Sans 3)` |
 | Size | S |
-| PR | — |
+| PR | [#140](https://github.com/laudebugs/lamina/pull/140) |
 
 ## Goal
 
