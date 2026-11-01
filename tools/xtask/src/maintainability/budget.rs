@@ -2,14 +2,14 @@
 //! `#[expect]` (or `#[allow]`) on clippy's size lints that may not grow. Today's modules over the
 //! budget and today's count are recorded in [`BASELINE`], which only shrinks: the check fails when
 //! a recorded module grows, and also when it shrinks or drops under the budget until its entry is
-//! lowered or removed, so the improvement can't be undone unnoticed.
+//! lowered or removed, so the improvement can't be undone unnoticed. Against the merge base with
+//! `main`, no entry may be added or raised.
 
 use std::collections::BTreeMap;
 
-use anyhow::Result;
 use serde::Deserialize;
 
-use super::{BASELINE, Problem, Tree, problem};
+use super::{BASELINE, Base, Problem, Tree, problem, warning};
 
 /// Lines of non-test code a module may hold (maintainability guideline, "Size").
 pub(super) const MODULE_BUDGET: usize = 800;
@@ -24,9 +24,9 @@ const SIZE_LINTS: [&str; 4] = [
 ];
 
 /// The contents of [`BASELINE`].
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-struct Baseline {
+pub(super) struct Baseline {
     /// `#[expect]` and `#[allow]` attributes naming a size lint, across every file the check reads.
     #[serde(default)]
     size_expects: usize,
@@ -53,9 +53,9 @@ fn is_generated(path: &str) -> bool {
 }
 
 /// Each module's lines of non-test code against [`MODULE_BUDGET`] and the baseline.
-pub(super) fn module_budget(tree: &Tree) -> Result<Vec<Problem>> {
+pub(super) fn module_budget(tree: &Tree) -> Vec<Problem> {
     const RULE: &str = "module-budget";
-    let baseline: Baseline = tree.parse_config(BASELINE)?;
+    let baseline = &tree.baseline;
     let test_files = tree.out_of_line_test_files();
     let mut problems = Vec::new();
     let mut counted = BTreeMap::new();
@@ -96,15 +96,14 @@ pub(super) fn module_budget(tree: &Tree) -> Result<Vec<Problem>> {
             ));
         }
     }
-    Ok(problems)
+    problems
 }
 
 /// The number of size lints that `#[expect]`, `#[allow]` (or a `cfg_attr` holding one) attributes
 /// name in each file the check reads (tests and examples included, generated files not), against
 /// the baseline's `size-expects`.
-pub(super) fn size_expects(tree: &Tree) -> Result<Vec<Problem>> {
+pub(super) fn size_expects(tree: &Tree) -> Vec<Problem> {
     const RULE: &str = "size-expect";
-    let baseline: Baseline = tree.parse_config(BASELINE)?;
     let mut per_file = BTreeMap::new();
     for (path, source) in tree.sources.iter().filter(|(path, _)| !is_generated(path)) {
         let count: usize = source
@@ -117,7 +116,7 @@ pub(super) fn size_expects(tree: &Tree) -> Result<Vec<Problem>> {
         }
     }
     let total: usize = per_file.values().sum();
-    let recorded = baseline.size_expects;
+    let recorded = tree.baseline.size_expects;
     let files: Vec<String> = per_file
         .iter()
         .map(|(path, count)| format!("{path} ({count})"))
@@ -132,9 +131,51 @@ pub(super) fn size_expects(tree: &Tree) -> Result<Vec<Problem>> {
         std::cmp::Ordering::Less => {
             format!("{total} #[expect]/#[allow] on size lints, down from {recorded}: set size-expects to {total}")
         }
-        std::cmp::Ordering::Equal => return Ok(Vec::new()),
+        std::cmp::Ordering::Equal => return Vec::new(),
     };
-    Ok(vec![problem(BASELINE, 0, RULE, message)])
+    vec![problem(BASELINE, 0, RULE, message)]
+}
+
+/// The baseline against its version at the merge base with `main`: no module joins it, no
+/// count goes up. (A module that grows past its count fails [`module_budget`] already; this
+/// catches the edit that raises the count with it.)
+pub(super) fn baseline_shrinks(tree: &Tree) -> Vec<Problem> {
+    const RULE: &str = "baseline-shrinks";
+    let base = match &tree.base {
+        Base::Records {
+            baseline: Some(base), ..
+        } => base,
+        // A new baseline file: nothing to compare with yet.
+        Base::Records { baseline: None, .. } => return Vec::new(),
+        Base::Unknown => {
+            let message = "no merge base with main (a shallow clone needs fetch-depth: 0), so the record files \
+                           weren't compared with main's";
+            return vec![warning(BASELINE, RULE, message)];
+        }
+    };
+    let mut problems = Vec::new();
+    for (path, &count) in &tree.baseline.modules {
+        let message = match base.modules.get(path) {
+            None => format!("{path} joins the baseline at {count}: a module may not join it; split the module instead"),
+            Some(&was) if count > was => format!(
+                "{path}'s entry goes up from {was} to {count}: the baseline only shrinks; move code out instead"
+            ),
+            Some(_) => continue,
+        };
+        problems.push(problem(BASELINE, 0, RULE, message));
+    }
+    if tree.baseline.size_expects > base.size_expects {
+        problems.push(problem(
+            BASELINE,
+            0,
+            RULE,
+            format!(
+                "size-expects goes up from {} to {}: the baseline only shrinks; split the function instead",
+                base.size_expects, tree.baseline.size_expects
+            ),
+        ));
+    }
+    problems
 }
 
 /// How many size lints an attribute's content silences.
@@ -184,7 +225,6 @@ mod tests {
     fn budget_messages(files: &[(&str, &str)]) -> Vec<String> {
         let tree = Tree::from_files(files);
         module_budget(&tree)
-            .unwrap()
             .into_iter()
             .map(|p| format!("{}: {}", p.path, p.finding.message))
             .collect()
@@ -276,9 +316,50 @@ mod tests {
         assert_eq!(messages.len(), 2);
     }
 
+    #[test]
+    fn a_test_module_named_by_a_path_attribute_should_have_no_budget() {
+        let big = module(900);
+        let parent = "#[cfg(test)]\n#[path = \"checks.rs\"]\nmod tests;\n";
+        let files = [
+            ("crates/a/src/lib.rs", parent),
+            ("crates/a/src/checks.rs", big.as_str()),
+        ];
+        assert_eq!(budget_messages(&files), Vec::<String>::new());
+    }
+
+    fn shrink_messages(baseline: &str, base: &str) -> Vec<String> {
+        let tree = Tree::from_files(&[(BASELINE, baseline)]).with_base(base, "");
+        baseline_shrinks(&tree).into_iter().map(|p| p.finding.message).collect()
+    }
+
+    #[test]
+    fn a_raised_baseline_entry_should_fail_against_the_merge_base() {
+        let messages = shrink_messages("[modules]\n\"a.rs\" = 901\n", "[modules]\n\"a.rs\" = 900\n");
+        assert!(messages.len() == 1 && messages[0].contains("goes up from 900 to 901"));
+    }
+
+    #[test]
+    fn a_new_baseline_entry_should_fail_against_the_merge_base() {
+        let messages = shrink_messages("[modules]\n\"a.rs\" = 900\n", "");
+        assert!(messages.len() == 1 && messages[0].contains("joins the baseline"));
+    }
+
+    #[test]
+    fn a_raised_size_expect_count_should_fail_against_the_merge_base() {
+        assert_eq!(shrink_messages("size-expects = 2\n", "size-expects = 1\n").len(), 1);
+    }
+
+    #[test]
+    fn a_lowered_baseline_should_pass_against_the_merge_base() {
+        let messages = shrink_messages(
+            "size-expects = 1\n[modules]\n\"a.rs\" = 850\n",
+            "size-expects = 2\n[modules]\n\"a.rs\" = 900\n\"b.rs\" = 900\n",
+        );
+        assert_eq!(messages, Vec::<String>::new());
+    }
+
     fn expect_messages(files: &[(&str, &str)]) -> Vec<String> {
         size_expects(&Tree::from_files(files))
-            .unwrap()
             .into_iter()
             .map(|p| p.finding.message)
             .collect()

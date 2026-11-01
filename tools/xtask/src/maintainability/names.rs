@@ -1,60 +1,129 @@
 //! Names with more than one home: a `pub struct` or `pub enum` name defined in two crates, and a
-//! name the `lamina` façade re-exports twice. Today's cases are listed in [`DUPLICATES`] with a
-//! reason each; the check fails on a new one and on an entry that no longer matches the code.
+//! name the `lamina` façade makes public twice. Today's cases are listed in [`DUPLICATES`] with a
+//! reason each; the check fails on a new one and on an entry that no longer matches the code, and
+//! warns about an entry the merge base with `main` doesn't have, for a reviewer to look at.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 
-use anyhow::Result;
 use serde::Deserialize;
 
-use super::source::Token;
-use super::{DUPLICATES, Problem, Tree, child_module_files, problem};
+use super::source::{Source, Token};
+use super::{Base, DUPLICATES, Problem, Tree, child_module_files, problem, warning};
 
 /// The façade's root module.
 const FACADE: &str = "crates/lamina/src/lib.rs";
 
 /// The contents of [`DUPLICATES`].
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Allowed {
+pub(super) struct Allowed {
     /// Public type names defined in more than one crate.
     #[serde(default, rename = "type")]
-    types: Vec<AllowedType>,
-    /// Names the façade re-exports more than once.
+    types: Vec<Entry>,
+    /// Names the façade makes public more than once.
     #[serde(default)]
-    facade: Vec<AllowedFacade>,
+    facade: Vec<Entry>,
 }
 
-#[derive(Debug, Deserialize)]
+/// One accepted duplicate: its name, its homes (the crates that define a type, or the façade's
+/// public paths of a name) and why it exists.
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct AllowedType {
+struct Entry {
     name: String,
-    crates: BTreeSet<String>,
+    #[serde(rename = "crates", alias = "paths")]
+    homes: BTreeSet<String>,
     reason: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AllowedFacade {
-    name: String,
-    paths: BTreeSet<String>,
-    reason: String,
-}
-
-/// Where a name is defined or re-exported: file and 1-based line.
+/// Where a name is defined or made public: file and 1-based line.
 #[derive(Debug, Clone)]
 struct Site {
     path: String,
     line: usize,
 }
 
+/// Name → home → where. A name with two or more homes is a duplicate.
+type Homes = BTreeMap<String, BTreeMap<String, Site>>;
+
+/// One kind of duplicate: how the check names it and what it tells the reader.
+struct Kind {
+    rule: &'static str,
+    /// The message for a duplicate not listed (or listed with other homes): name, homes found.
+    unlisted: fn(&str, &str) -> String,
+    /// The message for an entry the code no longer needs.
+    stale: fn(&str) -> String,
+}
+
+/// Compares the duplicates `found` with the `entries` that accept them.
+fn compare(found: &Homes, entries: &[Entry], kind: &Kind) -> Vec<Problem> {
+    let mut problems = Vec::new();
+    for (name, homes) in found.iter().filter(|(_, homes)| homes.len() > 1) {
+        let keys: BTreeSet<String> = homes.keys().cloned().collect();
+        let entry = entries.iter().find(|entry| entry.name == *name);
+        if entry.is_some_and(|entry| entry.homes == keys) {
+            continue;
+        }
+        let sites: Vec<String> = homes
+            .iter()
+            .map(|(home, site)| format!("{home} ({}:{})", site.path, site.line))
+            .collect();
+        let mut message = (kind.unlisted)(name, &sites.join(", "));
+        if let Some(entry) = entry {
+            let listed: Vec<&str> = entry.homes.iter().map(String::as_str).collect();
+            let _ = write!(
+                message,
+                "; {DUPLICATES} lists {}: a duplicate may only lose homes",
+                listed.join(", ")
+            );
+        }
+        let Some(first) = homes.values().min_by_key(|site| (&site.path, site.line)) else {
+            continue;
+        };
+        problems.push(problem(&first.path, first.line, kind.rule, message));
+    }
+    for entry in entries {
+        if found.get(&entry.name).is_none_or(|homes| homes.len() <= 1) {
+            problems.push(problem(DUPLICATES, 0, kind.rule, (kind.stale)(&entry.name)));
+        }
+        if entry.reason.trim().is_empty() {
+            problems.push(problem(
+                DUPLICATES,
+                0,
+                kind.rule,
+                format!("`{}` needs a reason", entry.name),
+            ));
+        }
+    }
+    problems
+}
+
+const TYPES: Kind = Kind {
+    rule: "duplicate-type",
+    unlisted: |name, sites| {
+        format!(
+            "`{name}` is a public type in {sites}: give it one home in the lowest crate that needs it, or a name of its own"
+        )
+    },
+    stale: |name| format!("`{name}` is no longer a public type in two crates: remove its entry"),
+};
+
+const FACADE_NAMES: Kind = Kind {
+    rule: "facade-collision",
+    unlisted: |name, sites| {
+        format!(
+            "the façade makes `{name}` public more than once: {sites}; each public item has one public path, so \
+             give one of them another name"
+        )
+    },
+    stale: |name| format!("the façade no longer makes `{name}` public twice: remove its entry"),
+};
+
 /// `pub struct` and `pub enum` names (outside test code) defined in two or more crates.
-pub(super) fn duplicate_types(tree: &Tree) -> Result<Vec<Problem>> {
-    const RULE: &str = "duplicate-type";
-    let allowed: Allowed = tree.parse_config(DUPLICATES)?;
+pub(super) fn duplicate_types(tree: &Tree) -> Vec<Problem> {
     let test_files = tree.out_of_line_test_files();
-    // name → crate → first definition
-    let mut defined: BTreeMap<&str, BTreeMap<&str, Site>> = BTreeMap::new();
+    let mut found = Homes::new();
     for (path, source) in &tree.sources {
         let Some(krate) = crate_of(path) else { continue };
         if test_files.contains(path) {
@@ -71,59 +140,15 @@ pub(super) fn duplicate_types(tree: &Tree) -> Result<Vec<Problem>> {
                     path: path.clone(),
                     line: source.line_of(keyword.offset()),
                 };
-                defined.entry(name).or_default().entry(krate).or_insert(site);
+                found
+                    .entry((*name).to_owned())
+                    .or_default()
+                    .entry(krate.to_owned())
+                    .or_insert(site);
             }
         }
     }
-    let mut problems = Vec::new();
-    let mut seen = BTreeSet::new();
-    for (name, crates) in defined.iter().filter(|(_, crates)| crates.len() > 1) {
-        seen.insert(*name);
-        let found: BTreeSet<String> = crates.keys().map(|krate| (*krate).to_owned()).collect();
-        let entry = allowed.types.iter().find(|entry| entry.name == *name);
-        if entry.is_some_and(|entry| entry.crates == found) {
-            continue;
-        }
-        let sites: Vec<String> = crates
-            .iter()
-            .map(|(krate, site)| format!("{krate} ({}:{})", site.path, site.line))
-            .collect();
-        let message = match entry {
-            None => format!(
-                "`{name}` is a public type in {}: give it one home in the lowest crate that needs it, or a \
-                 name of its own",
-                sites.join(", ")
-            ),
-            Some(entry) => format!(
-                "`{name}` is a public type in {}, but {DUPLICATES} lists {}: a duplicate may only lose crates; \
-                 update the entry",
-                sites.join(", "),
-                entry.crates.iter().cloned().collect::<Vec<_>>().join(", ")
-            ),
-        };
-        let first = crates.values().next().cloned().unwrap_or(Site {
-            path: DUPLICATES.to_owned(),
-            line: 0,
-        });
-        problems.push(problem(&first.path, first.line, RULE, message));
-    }
-    for entry in &allowed.types {
-        if !seen.contains(entry.name.as_str()) {
-            problems.push(problem(
-                DUPLICATES,
-                0,
-                RULE,
-                format!(
-                    "`{}` is no longer a public type in two crates: remove its entry",
-                    entry.name
-                ),
-            ));
-        }
-        if entry.reason.trim().is_empty() {
-            problems.push(problem(DUPLICATES, 0, RULE, format!("`{}` needs a reason", entry.name)));
-        }
-    }
-    Ok(problems)
+    compare(&found, &tree.allowed.types, &TYPES)
 }
 
 /// The crate a library or binary source belongs to: `crates/<crate>/src/…`.
@@ -133,28 +158,27 @@ fn crate_of(path: &str) -> Option<&str> {
     inside.starts_with("src/").then_some(krate)
 }
 
-/// Names the `lamina` façade re-exports more than once, across its public modules.
-pub(super) fn facade_collisions(tree: &Tree) -> Result<Vec<Problem>> {
-    const RULE: &str = "facade-collision";
-    let allowed: Allowed = tree.parse_config(DUPLICATES)?;
-    let mut exports: BTreeMap<String, Vec<(String, Site)>> = BTreeMap::new();
+/// Names the `lamina` façade makes public more than once across its public modules, by a
+/// `pub use` or by defining a public item.
+pub(super) fn facade_collisions(tree: &Tree) -> Vec<Problem> {
+    let mut found = Homes::new();
     let mut modules = vec![(FACADE.to_owned(), "lamina".to_owned())];
     while let Some((path, module)) = modules.pop() {
         let Some(source) = tree.sources.get(&path) else {
             continue;
         };
-        let found = public_items(source);
-        for (name, offset) in found.reexports {
+        let items = public_items(source);
+        for (name, offset) in items.names {
             let site = Site {
                 path: path.clone(),
                 line: source.line_of(offset),
             };
-            exports
+            found
                 .entry(name.clone())
                 .or_default()
-                .push((format!("{module}::{name}"), site));
+                .insert(format!("{module}::{name}"), site);
         }
-        for child in found.modules {
+        for child in items.modules {
             let file = child_module_files(&path, &child)
                 .into_iter()
                 .find(|file| tree.sources.contains_key(file));
@@ -163,61 +187,57 @@ pub(super) fn facade_collisions(tree: &Tree) -> Result<Vec<Problem>> {
             }
         }
     }
+    compare(&found, &tree.allowed.facade, &FACADE_NAMES)
+}
+
+/// The allow-list against its version at the merge base with `main`: a new entry, or one with
+/// more homes, is a warning. New duplicates are sometimes right (two crates' `Error`), so a
+/// reviewer decides, but the warning makes sure one sees it.
+pub(super) fn allow_list_shrinks(tree: &Tree) -> Vec<Problem> {
+    const RULE: &str = "allow-list-shrinks";
+    let Base::Records {
+        allowed: Some(base), ..
+    } = &tree.base
+    else {
+        return Vec::new();
+    };
     let mut problems = Vec::new();
-    let mut seen = BTreeSet::new();
-    for (name, sites) in exports.iter().filter(|(_, sites)| sites.len() > 1) {
-        seen.insert(name.as_str());
-        let paths: BTreeSet<String> = sites.iter().map(|(path, _)| path.clone()).collect();
-        if allowed
-            .facade
-            .iter()
-            .any(|entry| entry.name == *name && entry.paths == paths)
-        {
-            continue;
-        }
-        let listed: Vec<String> = sites
-            .iter()
-            .map(|(path, site)| format!("{path} ({}:{})", site.path, site.line))
-            .collect();
-        let message = format!(
-            "the façade re-exports `{name}` more than once: {}; each public item has one public path, so give \
-             one of them another name",
-            listed.join(", ")
-        );
-        let Some((_, first)) = sites.iter().min_by_key(|(_, site)| (&site.path, site.line)) else {
-            continue;
-        };
-        problems.push(problem(&first.path, first.line, RULE, message));
-    }
-    for entry in &allowed.facade {
-        if !seen.contains(entry.name.as_str()) {
-            problems.push(problem(
-                DUPLICATES,
-                0,
-                RULE,
-                format!(
-                    "the façade no longer re-exports `{}` twice: remove its entry",
+    for (current, before, kind) in [
+        (&tree.allowed.types, &base.types, "type"),
+        (&tree.allowed.facade, &base.facade, "facade"),
+    ] {
+        for entry in current {
+            let message = match before.iter().find(|old| old.name == entry.name) {
+                None => format!(
+                    "a new [[{kind}]] entry for `{}`: a reviewer must agree to the new duplicate",
                     entry.name
                 ),
-            ));
-        }
-        if entry.reason.trim().is_empty() {
-            problems.push(problem(DUPLICATES, 0, RULE, format!("`{}` needs a reason", entry.name)));
+                Some(old) if !entry.homes.is_subset(&old.homes) => format!(
+                    "the [[{kind}]] entry for `{}` gains homes: a reviewer must agree to the new duplicate",
+                    entry.name
+                ),
+                Some(_) => continue,
+            };
+            problems.push(warning(DUPLICATES, RULE, message));
         }
     }
-    Ok(problems)
+    problems
 }
 
 /// What one façade module makes public at its top level.
 #[derive(Debug, Default)]
 struct PublicItems {
-    /// Each name a `pub use` exports, with the byte offset of its `use`.
-    reexports: Vec<(String, usize)>,
-    /// The `pub mod name;` modules (inline `pub mod name { … }` are not followed).
+    /// Each name a `pub use` exports or a `pub` item defines, with the byte offset of its keyword.
+    names: Vec<(String, usize)>,
+    /// The `pub mod name;` modules. Inline `pub mod name { … }` modules and glob re-exports
+    /// (`pub use a::*`) are not followed.
     modules: Vec<String>,
 }
 
-fn public_items(source: &super::source::Source) -> PublicItems {
+/// Item keywords whose next word is the item's name.
+const NAMED_ITEMS: [&str; 7] = ["struct", "enum", "trait", "type", "union", "fn", "static"];
+
+fn public_items(source: &Source) -> PublicItems {
     let tokens = source.tokens();
     let mut items = PublicItems::default();
     let mut depth = 0usize;
@@ -242,14 +262,41 @@ fn public_items(source: &super::source::Source) -> PublicItems {
                 let mut names = Vec::new();
                 use_tree(tree, &mut 0, None, &mut names);
                 items
-                    .reexports
+                    .names
                     .extend(names.into_iter().map(|name| (name, keyword.offset())));
                 index += end;
             }
-            _ => {}
+            Some(rest) => items.names.extend(defined_name(rest)),
+            None => {}
         }
     }
     items
+}
+
+/// The name a `pub` item defines, from the tokens after `pub`: `struct A`, `fn f`, `static mut S`,
+/// `const C`, `const fn f`, `unsafe fn f`, `async fn f` (with the keyword's offset).
+fn defined_name(rest: &[Token<'_>]) -> Option<(String, usize)> {
+    let mut at = 0;
+    loop {
+        let keyword = *rest.get(at)?;
+        let next = rest.get(at + 1).copied();
+        let modifier = keyword.is("unsafe")
+            || keyword.is("async")
+            || (keyword.is("const") && next.is_some_and(|next| next.is("fn") || next.is("unsafe") || next.is("async")));
+        if modifier {
+            at += 1;
+            continue;
+        }
+        let mut name_at = at + 1;
+        if keyword.is("static") && next.is_some_and(|next| next.is("mut")) {
+            name_at += 1;
+        }
+        let named = NAMED_ITEMS.iter().any(|item| keyword.is(item)) || keyword.is("const");
+        return match rest.get(name_at) {
+            Some(Token::Word(name, _)) if named => Some(((*name).to_owned(), keyword.offset())),
+            _ => None,
+        };
+    }
 }
 
 /// Collects the names a use tree (`a::b::{C, D as E, f::{self, G}}`, `*` contributes none)
@@ -315,7 +362,7 @@ mod tests {
 
     fn names_of(statement: &str) -> Vec<String> {
         let items = public_items(&Source::new(statement));
-        items.reexports.into_iter().map(|(name, _)| name).collect()
+        items.names.into_iter().map(|(name, _)| name).collect()
     }
 
     #[test]
@@ -333,6 +380,13 @@ mod tests {
     }
 
     #[test]
+    fn public_items_should_yield_their_names() {
+        let text = "pub struct A;\npub const fn b() {}\npub static mut C: u8 = 0;\npub const D: u8 = 0;\n\
+                    pub unsafe fn e() {}\npub(crate) fn f() {}\nimpl A {\n    pub fn g() {}\n}\n";
+        assert_eq!(names_of(text), ["A", "b", "C", "D", "e"]);
+    }
+
+    #[test]
     fn crate_private_and_nested_uses_should_not_count() {
         let names = names_of("pub(crate) use a::B;\nmod inner {\n    pub use a::C;\n}\n#[cfg(test)]\npub use a::D;\n");
         assert_eq!(names, Vec::<String>::new());
@@ -340,7 +394,6 @@ mod tests {
 
     fn type_messages(files: &[(&str, &str)]) -> Vec<String> {
         duplicate_types(&Tree::from_files(files))
-            .unwrap()
             .into_iter()
             .map(|p| format!("{}:{}: {}", p.path, p.finding.line, p.finding.message))
             .collect()
@@ -408,7 +461,6 @@ mod tests {
 
     fn facade_messages(files: &[(&str, &str)]) -> Vec<String> {
         facade_collisions(&Tree::from_files(files))
-            .unwrap()
             .into_iter()
             .map(|p| p.finding.message)
             .collect()
@@ -453,6 +505,49 @@ mod tests {
             (DUPLICATES, allowed),
         ]);
         assert_eq!(messages, Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_facade_item_named_like_a_re_export_should_fail() {
+        let messages = facade_messages(&[(FACADE, LIB), ("crates/lamina/src/extract.rs", "pub struct TextRun;\n")]);
+        assert_eq!(messages.len(), 1);
+    }
+
+    fn shrink_messages(allowed: &str, base: &str) -> Vec<String> {
+        let tree = Tree::from_files(&[(DUPLICATES, allowed)]).with_base("", base);
+        allow_list_shrinks(&tree)
+            .into_iter()
+            .map(|p| p.finding.message)
+            .collect()
+    }
+
+    const MATRIX_AB: &str = "[[type]]\nname = \"Matrix\"\ncrates = [\"a\", \"b\"]\nreason = \"x\"\n";
+
+    #[test]
+    fn a_new_allow_list_entry_should_warn_against_the_merge_base() {
+        let messages = shrink_messages(MATRIX_AB, "");
+        assert!(messages.len() == 1 && messages[0].contains("a new [[type]] entry for `Matrix`"));
+    }
+
+    #[test]
+    fn an_allow_list_entry_with_more_homes_should_warn_against_the_merge_base() {
+        let wider = MATRIX_AB.replace("[\"a\", \"b\"]", "[\"a\", \"b\", \"c\"]");
+        assert_eq!(shrink_messages(&wider, MATRIX_AB).len(), 1);
+    }
+
+    #[test]
+    fn an_unchanged_allow_list_should_not_warn() {
+        assert_eq!(shrink_messages(MATRIX_AB, MATRIX_AB), Vec::<String>::new());
+    }
+
+    #[test]
+    fn allow_list_warnings_should_never_fail_the_check() {
+        let tree = Tree::from_files(&[(DUPLICATES, "")]).with_base("", "");
+        let tree = Tree {
+            allowed: toml::from_str(MATRIX_AB).unwrap(),
+            ..tree
+        };
+        assert!(allow_list_shrinks(&tree).iter().all(|problem| problem.warning));
     }
 
     #[test]

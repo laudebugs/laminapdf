@@ -1,5 +1,5 @@
 //! Shared by the integration tests: inputs and what a reader can tell about a document.
-#![allow(dead_code, reason = "each test file uses part of this module")]
+#![allow(dead_code, unreachable_pub, reason = "each test file uses part of this module")]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -16,12 +16,12 @@ use lamina::{CancelToken, Document, SaveMode, SaveOptions};
 use lamina_cos::{Dict, ObjRef, Object, Stream};
 use lamina_save::Writer;
 
-pub(crate) fn fixtures_dir() -> PathBuf {
+pub fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
 }
 
 /// `(name, bytes)` for every corpus file, sorted, then the generated large files.
-pub(crate) fn inputs() -> &'static [(String, Vec<u8>)] {
+pub fn inputs() -> &'static [(String, Vec<u8>)] {
     static INPUTS: OnceLock<Vec<(String, Vec<u8>)>> = OnceLock::new();
     INPUTS.get_or_init(|| {
         let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(fixtures_dir().join("corpus"))
@@ -42,11 +42,11 @@ pub(crate) fn inputs() -> &'static [(String, Vec<u8>)] {
     })
 }
 
-pub(crate) const PAGES: u32 = 32;
+pub const PAGES: u32 = 32;
 
 /// `PAGES` pages, each with a 40 KiB content stream first, then the page tree, catalog and
 /// xref together at the end (about 1.3 MiB), as many writers lay them out.
-pub(crate) fn multi_page(compact: bool) -> &'static [u8] {
+pub fn multi_page(compact: bool) -> &'static [u8] {
     static FILES: OnceLock<[Vec<u8>; 2]> = OnceLock::new();
     &FILES.get_or_init(|| [build_multi_page(false), build_multi_page(true)])[usize::from(compact)]
 }
@@ -99,17 +99,17 @@ fn build_multi_page(compact: bool) -> Vec<u8> {
     .unwrap()
 }
 
-pub(crate) fn show<T: Debug>(value: &T) -> String {
+pub fn show<T: Debug>(value: &T) -> String {
     format!("{value:?}")
 }
 
 /// How a test runs one read: once (in memory), or through a fetch-and-retry loop.
-pub(crate) trait Step {
+pub trait Step {
     fn run<T>(&mut self, call: &mut dyn FnMut() -> lamina::Result<T>) -> lamina::Result<T>;
 }
 
 /// Runs each read once.
-pub(crate) struct Once;
+pub struct Once;
 
 impl Step for Once {
     fn run<T>(&mut self, call: &mut dyn FnMut() -> lamina::Result<T>) -> lamina::Result<T> {
@@ -119,7 +119,7 @@ impl Step for Once {
 
 /// What a reader can tell about `doc`: pages, page facts, Info, a full-rewrite save (which reads
 /// and decodes every object), then the warnings raised along the way.
-pub(crate) fn facts(doc: &mut Document, step: &mut impl Step) -> Vec<String> {
+pub fn facts(doc: &mut Document, step: &mut impl Step) -> Vec<String> {
     let mut out = vec![
         show(&step.run(&mut || doc.page_count())),
         show(&step.run(&mut || doc.page_infos())),
@@ -133,7 +133,7 @@ pub(crate) fn facts(doc: &mut Document, step: &mut impl Step) -> Vec<String> {
 }
 
 /// The facts of an in-memory open of `bytes`, or its error.
-pub(crate) fn in_memory_facts(bytes: &[u8]) -> Vec<String> {
+pub fn in_memory_facts(bytes: &[u8]) -> Vec<String> {
     match Document::open_bytes(bytes.to_vec(), lamina::OpenOptions::default()) {
         Ok(mut doc) => facts(&mut doc, &mut Once),
         Err(e) => vec![show(&e)],
@@ -141,7 +141,7 @@ pub(crate) fn in_memory_facts(bytes: &[u8]) -> Vec<String> {
 }
 
 /// The first line where `ours` and `theirs` differ, for a readable failure.
-pub(crate) fn first_difference(ours: &[String], theirs: &[String]) -> Option<String> {
+pub fn first_difference(ours: &[String], theirs: &[String]) -> Option<String> {
     if ours == theirs {
         return None;
     }

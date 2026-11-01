@@ -2,9 +2,10 @@
 //! tool can check in Rust code, without building anything.
 //!
 //! Each check is a name and a function in [`CHECKS`]. A check reads the [`Tree`] (the Rust files
-//! of `crates/`, `tools/` and `apps/`, scanned once, and the check's config files) and returns its
-//! findings. Every finding is an error: what exists today is recorded in a baseline or an
-//! allow-list, and the check fails when the code and that record disagree in either direction.
+//! of `crates/`, `tools/` and `apps/`, scanned once, and the two record files, parsed once) and
+//! returns its problems. What exists today is recorded in [`BASELINE`] and [`DUPLICATES`]; a
+//! check fails when the code and a record disagree in either direction, and when a record grows
+//! against the merge base with `main`.
 
 mod budget;
 mod names;
@@ -13,13 +14,18 @@ mod source;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
+use serde::de::DeserializeOwned;
 
 use crate::reports::{Finding, Ratchet};
-use crate::tracked::Tracked;
+use crate::tracked::{Tracked, git};
 use crate::util::has_extension;
-use source::Source;
+use budget::Baseline;
+use names::Allowed;
+use source::{Source, TestModule};
 
+/// The check's name, as its summary line prints it.
+const NAME: &str = "maintainability";
 /// The guideline every finding points to.
 const GUIDELINE: &str = "docs/guidelines/maintainability.md";
 /// The modules over the size budget and the count of size-lint `#[expect]`s ([`budget`]).
@@ -32,11 +38,11 @@ const ROOTS: [&str; 3] = ["crates/", "tools/", "apps/"];
 /// One check: its name, as reports print it, and the function that runs it.
 struct Check {
     name: &'static str,
-    run: fn(&Tree) -> Result<Vec<Problem>>,
+    run: fn(&Tree) -> Vec<Problem>,
 }
 
-/// Every check, in the order they run. A new check is one line here.
-const CHECKS: [Check; 4] = [
+/// Every check, in the order they run. A new check is one entry here.
+const CHECKS: [Check; 6] = [
     Check {
         name: "module-budget",
         run: budget::module_budget,
@@ -46,6 +52,10 @@ const CHECKS: [Check; 4] = [
         run: budget::size_expects,
     },
     Check {
+        name: "baseline-shrinks",
+        run: budget::baseline_shrinks,
+    },
+    Check {
         name: "duplicate-type",
         run: names::duplicate_types,
     },
@@ -53,31 +63,62 @@ const CHECKS: [Check; 4] = [
         name: "facade-collision",
         run: names::facade_collisions,
     },
+    Check {
+        name: "allow-list-shrinks",
+        run: names::allow_list_shrinks,
+    },
 ];
 
-/// One finding of a check, in one file.
+/// One finding of a check in one file: an error, or a warning that only asks a reader to look.
 #[derive(Debug)]
 struct Problem {
     path: String,
     finding: Finding,
+    warning: bool,
 }
 
-/// A finding of `rule` in `path` at `line` (0: about the whole file).
+/// An error of `rule` in `path` at `line` (0: about the whole file).
 fn problem(path: &str, line: usize, rule: &'static str, message: impl Into<String>) -> Problem {
     Problem {
         path: path.to_owned(),
         finding: crate::reports::finding(line, rule, message),
+        warning: false,
     }
 }
 
-/// What the checks read: the Rust files, scanned, and the text of each config file.
+/// A warning of `rule` in `path`: printed, never a failure.
+fn warning(path: &str, rule: &'static str, message: impl Into<String>) -> Problem {
+    Problem {
+        warning: true,
+        ..problem(path, 0, rule, message)
+    }
+}
+
+/// The two record files as the merge base with `main` has them, to check that they only shrink.
+#[derive(Debug, Default)]
+enum Base {
+    /// Each file at the merge base; `None` when it didn't exist there yet.
+    Records {
+        baseline: Option<Baseline>,
+        allowed: Option<Allowed>,
+    },
+    /// No merge base (a shallow clone): the records can't be compared, and a warning says so.
+    #[default]
+    Unknown,
+}
+
+/// What the checks read: the Rust files, scanned, and the record files, parsed.
+#[derive(Debug, Default)]
 struct Tree {
     sources: BTreeMap<String, Source>,
-    configs: BTreeMap<&'static str, String>,
+    baseline: Baseline,
+    allowed: Allowed,
+    base: Base,
 }
 
 impl Tree {
-    /// The tracked and untracked (not ignored) Rust files under [`ROOTS`] and the config files.
+    /// The tracked and untracked (not ignored) Rust files under [`ROOTS`], the record files and
+    /// their versions at the merge base with `main`.
     fn load(root: &Path) -> Result<Self> {
         let untracked = Ratchet::untracked(root)?;
         let tracked = Tracked::from_git(root)?;
@@ -93,29 +134,16 @@ impl Tree {
             };
             sources.insert(path, Source::new(&text));
         }
-        let mut configs = BTreeMap::new();
-        for config in [BASELINE, DUPLICATES] {
-            let path = root.join(config);
-            let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-            configs.insert(config, text);
-        }
-        Ok(Self { sources, configs })
+        let read = |path: &str| std::fs::read_to_string(root.join(path)).with_context(|| format!("reading {path}"));
+        Ok(Self {
+            sources,
+            baseline: parse(BASELINE, &read(BASELINE)?)?,
+            allowed: parse(DUPLICATES, &read(DUPLICATES)?)?,
+            base: load_base(root)?,
+        })
     }
 
-    /// The text of config file `path` (one of the constants above).
-    fn config(&self, path: &str) -> Result<&str> {
-        self.configs
-            .get(path)
-            .map(String::as_str)
-            .with_context(|| format!("{path} was not loaded"))
-    }
-
-    /// Parses config file `path` as TOML.
-    fn parse_config<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T> {
-        toml::from_str(self.config(path)?).with_context(|| format!("parsing {path}"))
-    }
-
-    /// The modules declared by `#[cfg(test)] mod name;` across the tree, as file paths.
+    /// The files of the modules declared by `#[cfg(test)] mod name;` across the tree.
     fn out_of_line_test_files(&self) -> Vec<String> {
         self.sources
             .iter()
@@ -123,39 +151,77 @@ impl Tree {
                 source
                     .test_modules
                     .iter()
-                    .flat_map(move |name| child_module_files(path, name))
+                    .flat_map(move |module| test_module_files(path, module))
             })
             .collect()
     }
 }
 
+/// Parses record file `path`.
+fn parse<T: DeserializeOwned>(path: &str, text: &str) -> Result<T> {
+    toml::from_str(text).with_context(|| format!("parsing {path}"))
+}
+
+/// The record files at the merge base with `main` (`changes::default_base`).
+fn load_base(root: &Path) -> Result<Base> {
+    let base = crate::changes::default_base(root);
+    let Ok(merge_base) = git(root, &["merge-base", base, "HEAD"]) else {
+        return Ok(Base::Unknown);
+    };
+    let at_base = |path: &str| git(root, &["show", &format!("{}:{path}", merge_base.trim())]).ok();
+    Ok(Base::Records {
+        baseline: at_base(BASELINE).map(|text| parse(BASELINE, &text)).transpose()?,
+        allowed: at_base(DUPLICATES).map(|text| parse(DUPLICATES, &text)).transpose()?,
+    })
+}
+
 #[cfg(test)]
 impl Tree {
-    /// A tree of in-memory files: `.rs` files are scanned, the rest are config files (paths
-    /// must be the constants above; a missing one is empty).
+    /// A tree of in-memory files: `.rs` files are scanned, [`BASELINE`] and [`DUPLICATES`]
+    /// parsed (a missing one is empty). The merge base has the same records.
     fn from_files(files: &[(&str, &str)]) -> Self {
-        let mut sources = BTreeMap::new();
-        let mut configs: BTreeMap<&'static str, String> = [BASELINE, DUPLICATES]
-            .into_iter()
-            .map(|path| (path, String::new()))
-            .collect();
+        let mut tree = Self::default();
         for (path, text) in files {
-            match configs.keys().find(|config| *config == path).copied() {
-                Some(config) => {
-                    configs.insert(config, (*text).to_owned());
-                }
-                None => {
-                    sources.insert((*path).to_owned(), Source::new(text));
+            match *path {
+                BASELINE => tree.baseline = parse(path, text).unwrap(),
+                DUPLICATES => tree.allowed = parse(path, text).unwrap(),
+                _ => {
+                    tree.sources.insert((*path).to_owned(), Source::new(text));
                 }
             }
         }
-        Self { sources, configs }
+        tree.base = Base::Records {
+            baseline: Some(tree.baseline.clone()),
+            allowed: Some(tree.allowed.clone()),
+        };
+        tree
+    }
+
+    /// The same tree with these record files at the merge base instead.
+    fn with_base(mut self, baseline: &str, allowed: &str) -> Self {
+        self.base = Base::Records {
+            baseline: Some(parse(BASELINE, baseline).unwrap()),
+            allowed: Some(parse(DUPLICATES, allowed).unwrap()),
+        };
+        self
     }
 }
 
 /// Whether the checks read `path`: a `.rs` file under [`ROOTS`].
 fn is_rust_in_scope(path: &str) -> bool {
     has_extension(path, &["rs"]) && ROOTS.iter().any(|root| path.starts_with(root))
+}
+
+/// The files a test module declared out of line in `parent` can live in: its `#[path]`,
+/// relative to the parent's folder, or the two places Cargo looks for `name`.
+fn test_module_files(parent: &str, module: &TestModule) -> Vec<String> {
+    match &module.path {
+        Some(path) => {
+            let dir = parent.rsplit_once('/').map_or("", |(dir, _)| dir);
+            vec![format!("{dir}/{path}")]
+        }
+        None => child_module_files(parent, &module.name).to_vec(),
+    }
 }
 
 /// The two files a module `name` declared out of line in `parent` can live in.
@@ -169,37 +235,25 @@ fn child_module_files(parent: &str, name: &str) -> [String; 2] {
     [format!("{base}/{name}.rs"), format!("{base}/{name}/mod.rs")]
 }
 
-/// Runs every check and fails if any finds a problem.
+/// Runs every check and fails if any finds an error.
 pub(crate) fn run(root: &Path) -> Result<()> {
-    crate::step("maintainability: module budget, size-lint expects, duplicate type names, façade collisions");
-    let tree = Tree::load(root)?;
-    let problems = run_checks(&tree)?;
-    for Problem { path, finding } in &problems {
-        let Finding { line, rule, message } = finding;
-        println!("error: {path}:{line}: {rule}: {message}");
-    }
     let names: Vec<&str> = CHECKS.iter().map(|check| check.name).collect();
-    println!(
-        "maintainability: {} Rust files, {} check(s) ({}), {} problem(s)",
-        tree.sources.len(),
-        CHECKS.len(),
-        names.join(", "),
-        problems.len()
-    );
-    if !problems.is_empty() {
-        bail!("maintainability: {} problem(s); see {GUIDELINE}", problems.len());
+    crate::step(&format!("maintainability: {}", names.join(", ")));
+    let tree = Tree::load(root)?;
+    let mut ratchet = Ratchet::everywhere(NAME);
+    for Problem { path, finding, warning } in run_checks(&tree) {
+        if warning {
+            ratchet.warn(&path, [finding]);
+        } else {
+            ratchet.add(&path, [finding]);
+        }
     }
-    Ok(())
+    ratchet.finish(tree.sources.len(), GUIDELINE)
 }
 
-/// Every check's problems, sorted by path and line.
-fn run_checks(tree: &Tree) -> Result<Vec<Problem>> {
-    let mut problems = Vec::new();
-    for check in &CHECKS {
-        problems.extend((check.run)(tree).with_context(|| format!("check {}", check.name))?);
-    }
-    problems.sort_by(|a, b| (&a.path, a.finding.line).cmp(&(&b.path, b.finding.line)));
-    Ok(problems)
+/// Every check's problems.
+fn run_checks(tree: &Tree) -> Vec<Problem> {
+    CHECKS.iter().flat_map(|check| (check.run)(tree)).collect()
 }
 
 #[cfg(test)]
@@ -217,7 +271,7 @@ mod tests {
     #[test]
     fn a_clean_tree_should_pass_every_check() {
         let tree = Tree::from_files(&[("crates/a/src/lib.rs", "pub struct A;\n")]);
-        assert!(run_checks(&tree).unwrap().is_empty());
+        assert!(run_checks(&tree).is_empty());
     }
 
     #[test]
@@ -245,6 +299,18 @@ mod tests {
         assert_eq!(
             child_module_files("crates/a/src/crypt.rs", "tests"),
             ["crates/a/src/crypt/tests.rs", "crates/a/src/crypt/tests/mod.rs"]
+        );
+    }
+
+    #[test]
+    fn a_path_attribute_should_name_the_test_file_beside_its_parent() {
+        let module = TestModule {
+            name: "tests".to_owned(),
+            path: Some("checks/tests.rs".to_owned()),
+        };
+        assert_eq!(
+            test_module_files("crates/a/src/crypt.rs", &module),
+            ["crates/a/src/checks/tests.rs"]
         );
     }
 }

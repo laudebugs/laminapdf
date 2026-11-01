@@ -184,18 +184,19 @@ mod tests {
         assert!(example_finding(&message, Path::new("/repo")).is_none());
     }
 
+    /// The comment that opens the root `clippy.toml`'s last paragraph, its own threshold.
+    const ROOT_THRESHOLD_MARKER: &str = "# Keep this paragraph last:";
+
     #[test]
     fn the_examples_clippy_config_should_start_with_the_root_one() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let read = |path: &str| std::fs::read_to_string(root.join(path)).unwrap_or_default();
         let examples = read(&format!("{CLIPPY_CONF_DIR}/clippy.toml"));
-        // The root file's last paragraph sets its own threshold, which this file replaces.
+        // The root file ends with its own threshold, after this marker; the examples' file has
+        // everything before it, then its own.
         let root_config = read("clippy.toml");
-        let shared = root_config
-            .trim_end()
-            .rsplit_once("\n\n")
-            .map_or("", |(shared, _)| shared);
-        assert!(!shared.is_empty() && examples.starts_with(shared));
+        let (shared, own) = root_config.split_once(ROOT_THRESHOLD_MARKER).unwrap();
+        assert!(own.contains("too-many-lines-threshold = 100") && examples.starts_with(shared.trim_end()));
         assert!(examples.contains("too-many-lines-threshold = 40"));
     }
 }

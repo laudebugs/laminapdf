@@ -21,9 +21,17 @@ pub(crate) struct Source {
     /// For each line (0-based): whether it lies inside a `#[cfg(test)]` item, its attribute included.
     test: Vec<bool>,
     /// The modules declared out of line by a `#[cfg(test)] mod name;`: test code in another file.
-    pub(crate) test_modules: Vec<String>,
+    pub(crate) test_modules: Vec<TestModule>,
     /// Where each line of [`Source::code`] starts ([`lines::starts`]).
     starts: Vec<usize>,
+}
+
+/// A module declared out of line by `#[cfg(test)] mod name;`, with the file its `#[path]`
+/// attribute names, if it has one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct TestModule {
+    pub(crate) name: String,
+    pub(crate) path: Option<String>,
 }
 
 /// One token of [`Source::code`]: an identifier (or number, or masked literal text) or one
@@ -66,7 +74,7 @@ impl Source {
             test_modules: Vec::new(),
             starts,
         };
-        source.mark_test_items();
+        source.mark_test_items(text);
         source
     }
 
@@ -102,22 +110,26 @@ impl Source {
         attributes(&self.code)
     }
 
-    fn mark_test_items(&mut self) {
+    /// Marks the lines of every `#[cfg(test)]` item; `text` is the unmasked source, for `#[path]`.
+    fn mark_test_items(&mut self, text: &str) {
         let mut ranges = Vec::new();
         let mut modules = Vec::new();
         for attribute in attributes(&self.code) {
             if !is_test_cfg(attribute.content) {
                 continue;
             }
-            let before = self.code.get(..attribute.start).unwrap_or_default();
-            if attribute.inner && !before.contains(['{', '}', ';']) {
-                // `#![cfg(test)]` before the first item: the whole file is test code.
-                ranges.push((0, self.code.len()));
+            if attribute.inner {
+                // `#![cfg(test)]` makes the enclosing module test code: an inline one, or the file.
+                ranges.push(enclosing_block(&self.code, attribute.start));
                 continue;
             }
             let end = item_end(&self.code, attribute.end);
-            if let Some(name) = out_of_line_module(self.code.get(attribute.end..end).unwrap_or_default()) {
-                modules.push(name.to_owned());
+            let item = self.code.get(attribute.end..end).unwrap_or_default();
+            if let Some(name) = out_of_line_module(item) {
+                modules.push(TestModule {
+                    name: name.to_owned(),
+                    path: path_attribute(&self.code, text, attribute.end, end),
+                });
             }
             ranges.push((attribute.start, end));
         }
@@ -170,10 +182,53 @@ fn attributes(code: &str) -> Vec<Attribute<'_>> {
     found
 }
 
-/// Whether an attribute's content is `cfg(test)` or `cfg(all(test, …))`: code compiled only for tests.
+/// Whether an attribute's content is `cfg(test)`, or `cfg(all(…))` with `test` among its
+/// arguments: code compiled only for tests.
 fn is_test_cfg(content: &str) -> bool {
     let compact: String = content.chars().filter(|c| !c.is_whitespace()).collect();
-    compact == "cfg(test)" || compact.starts_with("cfg(all(test,")
+    if compact == "cfg(test)" {
+        return true;
+    }
+    let Some(arguments) = compact
+        .strip_prefix("cfg(all(")
+        .and_then(|rest| rest.strip_suffix("))"))
+    else {
+        return false;
+    };
+    let mut depth = 0usize;
+    let mut start = 0;
+    let mut found = false;
+    for (index, byte) in arguments.bytes().enumerate() {
+        match byte {
+            b'(' => depth += 1,
+            b')' => depth = depth.saturating_sub(1),
+            b',' if depth == 0 => {
+                found |= arguments.get(start..index) == Some("test");
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    found || arguments.get(start..) == Some("test")
+}
+
+/// The block that encloses byte `at`: from its `{` to just after its `}`, or the whole file
+/// when `at` is at the top level.
+fn enclosing_block(code: &str, at: usize) -> (usize, usize) {
+    let bytes = code.as_bytes();
+    let mut depth = 0usize;
+    for index in (0..at.min(bytes.len())).rev() {
+        match bytes.get(index) {
+            Some(b'}') => depth += 1,
+            Some(b'{') if depth == 0 => {
+                let end = matching(bytes, index).map_or(bytes.len(), |close| close + 1);
+                return (index, end);
+            }
+            Some(b'{') => depth -= 1,
+            _ => {}
+        }
+    }
+    (0, bytes.len())
 }
 
 /// The index of the bracket that closes the one at `open` (`(`, `[` or `{`, all counted together).
@@ -195,7 +250,7 @@ fn matching(bytes: &[u8], open: usize) -> Option<usize> {
 }
 
 /// Words that start an item, after any visibility. An attribute on anything else (a field, a
-/// variant, a match arm) covers it up to the next `,` outside brackets.
+/// variant, a match arm, a statement) covers it up to the next `,` outside brackets.
 const ITEM_KEYWORDS: [&str; 15] = [
     "async",
     "const",
@@ -214,22 +269,21 @@ const ITEM_KEYWORDS: [&str; 15] = [
     "use",
 ];
 
-/// Where the item that starts after an outer attribute ends: after its first `;` outside
-/// brackets, or after the `}` that closes its body (and a `;` straight after it, as in
-/// `static S: T = T { … };`). The item's own further attributes are skipped by the bracket count.
-/// A field, variant or match arm ends at its `,`; a bracket that closes the enclosing list or
-/// block ends whatever it holds. (A comma inside a field's generic arguments, `Map<A, B>`, ends
-/// it early, so such a line counts as code: the count errs towards more code, never less.)
+/// Where the item that starts after an outer attribute ends. Its own further attributes are
+/// skipped by the bracket count. It ends:
+/// - after its first `;` outside brackets;
+/// - after the `}` that closes its first braced body (an item's, a macro call's, a match arm's
+///   or a block's), and a `;` straight after it, as in `static S: T = T { … };` (or a `,` for a
+///   field, variant or arm);
+/// - for a field, variant or match arm, after its first `,` outside brackets;
+/// - before a bracket that closes the enclosing list or block.
+///
+/// Where it can't tell, it stops early, so the count errs towards more code, never less: a
+/// comma in a field's generic arguments (`Map<A, B>`) ends the field, and a `let` whose value
+/// has two braced blocks (`if a { b } else { c }`) ends after the first.
 fn item_end(code: &str, from: usize) -> usize {
     let bytes = code.as_bytes();
-    let is_item = tokens(code.get(skip_attributes(bytes, from)..).unwrap_or_default())
-        .into_iter()
-        .find_map(|token| match token {
-            Token::Word("pub" | "crate" | "super" | "self" | "in", _) | Token::Punct(b'(' | b')', _) => None,
-            Token::Word(word, _) => Some(ITEM_KEYWORDS.contains(&word)),
-            Token::Punct(..) => Some(false),
-        })
-        .unwrap_or(false);
+    let is_item = starts_item(bytes, skip_attributes(bytes, from));
     let mut depth = 0usize;
     for (index, &byte) in bytes.iter().enumerate().skip(from) {
         match byte {
@@ -238,13 +292,10 @@ fn item_end(code: &str, from: usize) -> usize {
             b')' | b']' => depth -= 1,
             b'}' => {
                 depth -= 1;
-                if depth == 0 && is_item {
+                if depth == 0 {
                     let after = skip_whitespace(bytes, index + 1);
-                    return if bytes.get(after) == Some(&b';') {
-                        after + 1
-                    } else {
-                        index + 1
-                    };
+                    let separator = bytes.get(after) == Some(&b';') || (!is_item && bytes.get(after) == Some(&b','));
+                    return if separator { after + 1 } else { index + 1 };
                 }
             }
             b';' if depth == 0 => return index + 1,
@@ -253,6 +304,29 @@ fn item_end(code: &str, from: usize) -> usize {
         }
     }
     bytes.len()
+}
+
+/// Whether the code at `at` starts an item: its first word, after `pub` and any `(…)`
+/// restriction (`pub(in crate::a)`), is one of [`ITEM_KEYWORDS`].
+fn starts_item(bytes: &[u8], at: usize) -> bool {
+    let word_at = |at: usize| {
+        let length = bytes
+            .get(at..)
+            .unwrap_or_default()
+            .iter()
+            .take_while(|&&b| is_ident(b))
+            .count();
+        (bytes.get(at..at + length).unwrap_or_default(), at + length)
+    };
+    let (mut word, after) = word_at(at);
+    if word == b"pub" {
+        let mut next = skip_whitespace(bytes, after);
+        if bytes.get(next) == Some(&b'(') {
+            next = matching(bytes, next).map_or(bytes.len(), |close| skip_whitespace(bytes, close + 1));
+        }
+        word = word_at(next).0;
+    }
+    ITEM_KEYWORDS.iter().any(|keyword| keyword.as_bytes() == word)
 }
 
 /// The offset of the first byte from `from` that is neither whitespace nor part of an outer attribute.
@@ -269,6 +343,24 @@ fn skip_attributes(bytes: &[u8], from: usize) -> usize {
         at = skip_whitespace(bytes, close + 1);
     }
     at
+}
+
+/// The value of a `#[path = "…"]` attribute among the attributes in `from..to`, read from the
+/// unmasked `text` (masking hides the value but keeps the offsets).
+fn path_attribute(code: &str, text: &str, from: usize, to: usize) -> Option<String> {
+    let attributes = attributes(code.get(..to)?);
+    let attribute = attributes.iter().find(|attribute| {
+        attribute.start >= from
+            && attribute
+                .content
+                .split('=')
+                .next()
+                .is_some_and(|key| key.trim() == "path")
+    })?;
+    let raw = text.get(attribute.start..attribute.end)?;
+    let open = raw.find('"')?;
+    let close = raw.rfind('"')?;
+    raw.get(open + 1..close).map(str::to_owned)
 }
 
 /// `name` when an item's text is a module declared out of line (`… mod name;`).
@@ -352,7 +444,9 @@ fn mask(text: &str) -> String {
         }
     }
     // Masking replaces whole characters with ASCII and copies the rest, so the bytes stay UTF-8.
-    String::from_utf8_lossy(&out).into_owned()
+    let code = String::from_utf8(out);
+    debug_assert!(code.is_ok(), "masking must keep the text UTF-8");
+    code.unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned())
 }
 
 /// The comment or literal that starts at `index`, if any. `after_ident` says whether the byte
@@ -597,12 +691,71 @@ mod tests {
     }
 
     #[test]
-    fn an_out_of_line_test_module_should_be_recorded() {
+    fn an_out_of_line_test_module_should_be_recorded_with_its_path() {
         let source = Source::new("#[cfg(test)]\n#[path = \"t.rs\"]\nmod tests;\nfn f() {}\n");
+        let module = TestModule {
+            name: "tests".to_owned(),
+            path: Some("t.rs".to_owned()),
+        };
+        assert_eq!((source.non_test_lines(), source.test_modules), (1, vec![module]));
+    }
+
+    #[test]
+    fn a_test_macro_call_should_end_at_its_closing_brace() {
         assert_eq!(
-            (source.non_test_lines(), source.test_modules),
-            (1, vec!["tests".to_owned()])
+            count("#[cfg(test)]\nproptest!{x}\nfn real(){ a(); }\nconst X: u8 = 1;"),
+            2
         );
+    }
+
+    #[test]
+    fn code_after_a_multi_line_test_macro_call_should_count() {
+        assert_eq!(
+            count("#[cfg(test)]\nproptest! {\n    x\n}\nfn real() {\n    a();\n}\nconst X: u8 = 1;\n"),
+            4
+        );
+    }
+
+    #[test]
+    fn a_restricted_visibility_should_still_start_an_item() {
+        assert_eq!(
+            count("#[cfg(test)]\npub(in crate::a) fn f() {\n    a();\n}\nfn real() {}\n"),
+            1
+        );
+    }
+
+    #[test]
+    fn a_test_match_arm_without_a_comma_should_end_at_its_block() {
+        let text = "match x {\n    #[cfg(test)]\n    A => {\n        a()\n    }\n    B => b(),\n}\n";
+        assert_eq!(count(text), 3);
+    }
+
+    #[test]
+    fn a_test_statement_block_should_end_at_its_brace() {
+        assert_eq!(
+            count("fn f() {\n    #[cfg(test)]\n    {\n        a();\n    }\n    b();\n}\n"),
+            3
+        );
+    }
+
+    #[test]
+    fn an_inner_cfg_test_in_an_inline_module_should_make_only_that_module_test_code() {
+        assert_eq!(
+            count("mod helpers {\n    #![cfg(test)]\n    fn h() {}\n}\nfn f() {}\n"),
+            1
+        );
+    }
+
+    #[test]
+    fn cfg_all_with_test_anywhere_should_count_as_test_code() {
+        let cfgs = [
+            "cfg(all(feature = \"x\", test))",
+            "cfg(all(test))",
+            "cfg(all(not(test), unix))",
+            "cfg(any(test, unix))",
+        ]
+        .map(is_test_cfg);
+        assert_eq!(cfgs, [true, true, false, false]);
     }
 
     #[test]

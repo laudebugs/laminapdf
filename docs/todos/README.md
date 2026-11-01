@@ -371,7 +371,7 @@ Ready todos whose dependencies are all done:
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](ready/Q2o-ts-hygiene.md) | ready | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](ready/Q2e-error-policy-consolidation.md) |
-| Q2r | [Split the large builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
+| Q2r | [Split the large xtask, builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |

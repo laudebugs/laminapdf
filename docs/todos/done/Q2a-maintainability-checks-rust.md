@@ -54,7 +54,7 @@ This todo adds `cargo xtask check maintainability` to `cargo xtask check`, the h
 
 - [x] `cargo xtask check maintainability` passes on `main`.
 - [x] One more line in a baselined file, a new 801-line module, or a new duplicate name fails it (unit tests).
-- [x] The two lints are on and clean.
+- [ ] The two lints are on and clean.
 
 ## Post-merge checks
 

@@ -1,4 +1,4 @@
-# Q2r — Split the large builder, extraction and WASM modules
+# Q2r — Split the large xtask, builder, extraction and WASM modules
 
 | Field | Value |
 | --- | --- |
@@ -10,23 +10,26 @@
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2r-split-surface-modules` |
-| PR title | `refactor(text,build,wasm): split extract/font, surface, png and the WASM builder` |
+| PR title | `refactor(xtask,text,build,wasm): split live, render_diff, extract/font, surface, png and the WASM builder` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-Four more files are over the 800-line budget: `lamina-text/src/extract/font.rs` (1,321 lines), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). This todo splits them along the boundaries the review proposed.
+Two xtask modules are over the 800-line budget in lines of non-test code, and the maintainability baseline lists them: `tools/xtask/src/live.rs` (1,115) and `tools/xtask/src/render_diff.rs` (923). This todo splits them and removes their entries, so every baseline entry has a todo (the COS reader is Q2q's, `interp.rs` Q2w's).
+
+It also splits four files that are long but within the budget, since tests make up much of their length: `lamina-text/src/extract/font.rs` (1,321 lines in total, 786 of non-test code), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). The review proposed the boundaries.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); the files above; `lamina-wasm/src/build_dto.rs`, which [Q2l](./Q2l-boundary-lists-generated.md) shrinks.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `tools/xtask/maintainability-baseline.toml`; the files above; `lamina-wasm/src/build_dto.rs`, which [Q2l](./Q2l-boundary-lists-generated.md) shrinks.
 
 ## Scope
 
 **In scope**
 
-- `extract/font/{mod,reader,simple,composite,extent}.rs`; `surface/{mod.rs (the API), writer.rs, pending.rs}`; `png/{chunks,decode,interlace}.rs`; `lamina-wasm/src/builder/{document,page,image,text}.rs`; the baseline entries removed.
+- `live.rs` and `render_diff.rs` split into folders of modules under 800 lines of non-test code each (for example the runner, the report and the history apart), and their baseline entries removed.
+- `extract/font/{mod,reader,simple,composite,extent}.rs`; `surface/{mod.rs (the API), writer.rs, pending.rs}`; `png/{chunks,decode,interlace}.rs`; `lamina-wasm/src/builder/{document,page,image,text}.rs`.
 
 **Out of scope** (and which todo covers it)
 
@@ -37,11 +40,11 @@ Four more files are over the 800-line budget: `lamina-text/src/extract/font.rs` 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Split one file per commit, as pure moves; run the crate's tests after each.
 - [ ] Run `cargo xtask wasm` after the builder split.
-- [ ] Remove the baseline entries.
+- [ ] Remove the two xtask entries from the baseline (`cargo xtask check maintainability` fails until they are gone).
 
 ## Acceptance criteria
 
-- [ ] No behaviour change; no file over budget; the baseline lists none of these.
+- [ ] No behaviour change; no file over budget; the baseline lists none of these files.
 
 ## Post-merge checks
 
