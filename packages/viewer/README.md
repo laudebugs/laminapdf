@@ -20,13 +20,13 @@ viewer.subscribe(() => toolbar.update(viewer.getState())); // page, zoom, rotati
 
 ## The viewer
 
-The viewer keeps only the pages near the viewport in the DOM. Each of those pages paints in two passes through the document worker:
+The viewer keeps only the pages near the viewport in the DOM and paints each in two passes through the document worker. Six parts do that work:
 
 - **Layout.** Every page's size comes from its displayed size in points, the zoom and the view rotation. The pages stack in one column with a gap. The offsets are prefix sums, so finding the page at a scroll position is a binary search, and a zoom change costs one pass over the pages (`PageLayout`).
 - **Virtualisation.** The viewer mounts a shell for each page in view, plus a margin of 2 pages or one viewport each side, whichever is larger. A shell that leaves the margin aborts its renders. If a result still arrives for that page, the viewer drops it and never draws it. Scroll handling reads the DOM first and writes it once per animation frame.
 - **Canvases.** A shell borrows its canvas from a pool of 12, which caps the canvases' total size at 64 million device pixels (`CanvasPool`). Safari fails past an undocumented total canvas area, so the pool shrinks a canvas rather than exceed the cap. Rendered bitmaps stay in a 256 MB cache, which closes the bitmaps farthest from the current page first (`BitmapCache`).
 - **Progressive rendering.** A page first paints a blurry whole-page pass, at most 256 pixels wide, at `visible` priority. Then it paints sharp tiles, 512 CSS px × the device pixel ratio on a side, over the part in view. Pages in the margin get only the blurry pass, at `prefetch` priority. A canvas is resized only when the new pixels are ready, so the page never flashes white.
-- **Zoom.** The modes are fit width, fit page, actual size (96 CSS px per inch) and 10–800 %. Zoom comes from ctrl/cmd+wheel, trackpad pinch (ctrl+wheel, or Safari's gesture events), touch pinch and the `+`, `-` and `0` keys. The document point under the cursor stays where it is vertically. It also stays put across while the pages are wider than the viewport; narrower pages are centred, so no horizontal scroll can hold the point. During a gesture the canvases stretch, and the sharp re-render waits until the gesture pauses for 150 ms.
+- **Zoom.** The modes are fit width, fit page, actual size (96 CSS px per inch) and 10–800 %. Zoom comes from ctrl/cmd+wheel, trackpad pinch (ctrl+wheel, or Safari's gesture events), touch pinch and the `+`, `-` and `0` keys. The document point under the cursor stays where it is: always vertically, and horizontally while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep it there. During a gesture the canvases stretch, and the sharp re-render waits until the gesture pauses for 150 ms.
 - **Tall documents.** A document taller than 16 million CSS px at the chosen zoom gets its zoom capped, because browsers stop scrolling near that height.
 
 **API.**

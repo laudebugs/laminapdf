@@ -70,17 +70,15 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 ## Outcome
 
-The viewer shipped as planned, with seven differences.
+The viewer shipped as planned, with six differences.
 
-- **Where the code lives:**
-  - The modules are in `src/layout/`, `src/view/`, `src/canvas/`, `src/render/` and `src/zoom/`.
+- **Where the tests live:**
   - The pure unit tests are in `test/layout.test.ts`, not `src/**/*.test.ts`, as in the rest of the package.
   - The Playwright specs run as Vitest browser-mode tests (`test/browser/viewer.browser.test.ts`), not as a separate `e2e/` suite. They run in the same three engines through the same Playwright provider, so one runner covers both C3a's and C3b's tests.
-- **Anchoring across:** the point under the cursor holds vertically at every zoom. Horizontally it holds while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep the point; the test checks x only in that case. The acceptance check uses the layout maths and real ctrl+wheel events, not screenshots.
-- **Tall documents:** a document taller than 16 million CSS px at the chosen zoom gets its zoom capped. A scaled scroll space, which maps the scroll position, waits until a real document needs it. 1,000 letter pages at 400 % come to about 1.4 million px.
-- **Pixel cap on iOS:** the pool's 64 MP cap is an option (`pool: { maxPixels }`), but there is no detection that lowers it on iOS. [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes the mobile caps.
+- **Anchoring across:** the point under the cursor holds vertically at every zoom. Horizontally it holds while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep the point; the test checks x only while the pages are wider than the viewport. The acceptance check uses the layout maths and real ctrl+wheel events, not screenshots.
+- **Tall documents:** a document taller than 16 million CSS px at the chosen zoom gets its zoom capped. A scaled scroll space, which maps the scroll position, waits until a real document needs it. 1,000 letter pages at 400 % come to about 4.2 million CSS px.
+- **Pixel cap on iOS:** the pool's 64-million-pixel cap is an option (`pool: { maxPixels }`), but there is no detection that lowers it on iOS. [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes the mobile caps.
 - **Prefetched pages:** pages in the margin get only the blurry pass, at `prefetch` priority. Their sharp tiles are drawn when they scroll into view.
-- **Stale tiles:** on a zoom, the canvas keeps its old pixels, stretched by CSS, until the new scale's blurry pass is ready. Then the canvas is resized and redrawn in one step, so the page never flashes white.
 - **API names:** the factory's options type is `CreateViewerOptions`, because `ViewerOptions` already names the client's. The view state includes `pageCount` and `percent`.
 
 ## Post-merge checks
