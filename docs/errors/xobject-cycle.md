@@ -5,7 +5,7 @@
 
 ## What happened
 
-A Form XObject draws itself, directly or through other forms; the inner `Do` was skipped (ADR 0023).
+A Form XObject draws itself, directly or through other forms; the inner `Do` was skipped.
 
 ## Why
 
@@ -28,3 +28,9 @@ The form draws itself: the inner `/Me Do` is skipped once lamina sees form 8 a s
 - `object`: the form reached again.
 
 The `location` is `object` (the form reached again).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

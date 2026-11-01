@@ -5,7 +5,7 @@
 
 ## What happened
 
-An operator named a resource (font, XObject, graphics state, colour space, shading, property list) that is missing, of the wrong type or unreadable, or a Form XObject's content could not be decoded; the operator was skipped or ran without it (ADR 0023).
+An operator named a resource (font, XObject, graphics state, colour space, shading, property list) that is missing, of the wrong type or unreadable, or a Form XObject's content could not be decoded; the operator was skipped or ran without it.
 
 ## Why
 
@@ -29,3 +29,9 @@ Check the page's `/Resources`.
 - `category`: the resource category, e.g. `Font` (lamina's own vocabulary).
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

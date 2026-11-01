@@ -9,7 +9,7 @@ A link (`LinkTarget::Page`), an outline item or a named destination (`Builder::d
 
 ## Why
 
-Page targets are resolved when `Builder::finish` (or `Appender::finish`) runs, so a link can name a page added after its own; by then every index must be one of the document's pages. Indexes are 0-based ([ADR 0027](../decisions/0027-coordinates-units-and-page-indexing.md) §6).
+Page targets are resolved when `Builder::finish` (or `Appender::finish`) runs, so a link can name a page added after its own; by then every index must be one of the document's pages. Indexes are 0-based.
 
 ## How to fix
 
@@ -26,3 +26,9 @@ builder.finish()?; // page-index-out-of-range: the document has 2 pages
 
 - `index`: the 0-based index given.
 - `count`: the number of pages.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0027](../decisions/0027-coordinates-units-and-page-indexing.md) §6

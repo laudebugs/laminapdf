@@ -5,11 +5,11 @@
 
 ## What happened
 
-The save planner refused a save because it would break one or more signatures: a full rewrite of a signed document, or a save whose pending changes or rewrite reasons conflict with the document's signatures (a DocMDP, FieldMDP or usage-rights restriction, a repaired or encrypted base). Nothing was written.
+The save planner refused a save because it would break one or more signatures. Either it was a full rewrite of a signed document, or its pending changes or rewrite reasons conflict with the document's signatures: a DocMDP, FieldMDP or usage-rights restriction, or a repaired or encrypted base. Nothing was written.
 
 ## Why
 
-A signature covers the bytes of the file as it was signed (ISO 32000-2 §12.8). A full rewrite moves those bytes, and a change a certification forbids invalidates it even when appended. lamina never breaks a signature without an explicit override ([ADR 0007](../decisions/0007-save-planner.md) §3).
+A signature covers the bytes of the file as it was signed (ISO 32000-2 §12.8). A full rewrite moves those bytes, and a change a certification forbids invalidates it even when appended. lamina never breaks a signature without an explicit override.
 
 ## How to fix
 
@@ -30,3 +30,9 @@ assert_eq!(err.code(), "would-invalidate-signatures");
 - `signatures_unknown`: part of the form couldn't be followed, so there may be signatures beyond `signatures`.
 
 None of them hold document text.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §3

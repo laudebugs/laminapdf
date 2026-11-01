@@ -9,11 +9,11 @@ A save was requested for an encrypted document without `SaveOptions::with_remove
 
 ## Why
 
-Encryption on write is not implemented yet (full-editor E11), and lamina never drops or corrupts encryption silently ([ADR 0007](../decisions/0007-save-planner.md) §9).
+lamina can't encrypt on save yet, and it never drops or corrupts encryption silently.
 
 ## How to fix
 
-Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full rewrite (every string and stream decrypted, no `/Encrypt`), or wait for encryption on save (E11b). A signed and encrypted document also needs `with_invalidate_signatures(true)`.
+Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full rewrite (every string and stream decrypted, no `/Encrypt`), or wait until lamina can encrypt on save. A signed and encrypted document also needs `with_invalidate_signatures(true)`.
 
 ## Example
 
@@ -25,3 +25,10 @@ let saved = doc.save(&SaveOptions::default().with_remove_encryption(true), &Canc
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §9
+- [E11b](../todos/ready/E11b-encrypt-on-write.md): encryption on save

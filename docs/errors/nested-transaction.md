@@ -5,7 +5,7 @@
 
 ## What happened
 
-A transaction was started, or undo/redo called, while one is open (ADR 0006 §2).
+A transaction was started, or undo/redo called, while one is open.
 
 ## Why
 
@@ -26,3 +26,9 @@ doc.transact((tx) => {
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0006](../decisions/0006-op-log-and-undo.md) §2

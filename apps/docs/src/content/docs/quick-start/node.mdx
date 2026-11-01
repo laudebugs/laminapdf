@@ -7,13 +7,13 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-Node (22 or newer) resolves the `node` export condition, which reads each `.wasm` file from `@laminapdf/wasm` as bytes. Call `await init({ text: true })` once. After that, every call is synchronous.
+In Node (22 or newer), `@laminapdf/sdk` reads each `.wasm` file from `@laminapdf/wasm` as bytes. Call `await init({ text: true })` once. After that, every call is synchronous.
 
 The smallest document is one page with a line of text in a standard 14 font. Its bytes are the same as those of the Rust `hello` example:
 
 <Snippet file="packages/sdk/examples/hello.ts" />
 
-This is how the package's tests run it, with every other example, in Node 22, 24 and 26: `init` once, then each example's bytes compared with the Rust golden.
+This is how the package's tests run it, with every other example, in Node 22, 24 and 26: `init` once, then each example's bytes checked against the Rust version's.
 
 <Snippet file="packages/sdk/test/examples.test.ts" />
 

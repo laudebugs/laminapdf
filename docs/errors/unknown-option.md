@@ -9,7 +9,7 @@ An options record passed to `@laminapdf/wasm` (`OpenOptionsInit`, `SaveOptionsIn
 
 ## Why
 
-Records refuse unknown keys instead of ignoring them, so a misspelt option fails loudly rather than silently doing nothing ([ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) F6, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §1).
+Records refuse unknown keys instead of ignoring them, so a misspelt option fails loudly rather than silently doing nothing.
 
 ## How to fix
 
@@ -25,3 +25,10 @@ WasmDocument.openBytes(bytes, { pasword: "secret" }); // throws { code: "unknown
 
 - `argument`: the parameter whose record had the key (`options`, `metadata`, …).
 - `option`: the key given (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) F6
+- [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §1

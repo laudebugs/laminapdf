@@ -7,9 +7,9 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-Workers can't compile WebAssembly at run time. Wrangler bundles the `workerd` export condition instead, which imports both `.wasm` files as `WebAssembly.Module`s. `init` instantiates them once per isolate.
+Cloudflare Workers can't compile WebAssembly at run time. So Wrangler bundles the package's entry for Cloudflare Workers, which imports both `.wasm` files as `WebAssembly.Module`s. `init` instantiates them once per isolate.
 
-This Worker returns a one-page letter at `/?name=…` and the 100-page report at `/report`. CI runs it in workerd (`cargo xtask pdf-runtimes workerd`):
+This Cloudflare Worker returns a one-page letter at `/?name=…` and the 100-page report at `/report`. lamina's tests run it in workerd, Cloudflare's runtime:
 
 <Snippet file="packages/sdk/examples/worker/src/index.ts" />
 

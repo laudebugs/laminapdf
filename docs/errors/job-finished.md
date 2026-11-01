@@ -9,7 +9,7 @@
 
 ## Why
 
-A job ends with its first `Step::Done`, or with its first error (errors end the job, [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3). A step loop that keeps going after either reaches this.
+A job ends with its first `Step::Done`, or with its first error: an error ends the job. A step loop that keeps going after either reaches this.
 
 ## How to fix
 
@@ -26,3 +26,9 @@ assert_eq!(job.step(&mut doc, lamina::Budget::UNLIMITED).unwrap_err().code(), "j
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3

@@ -5,7 +5,7 @@
 
 ## What happened
 
-A font dictionary read for text extraction has a missing, unreadable or malformed entry (the descendant font, `/Encoding` or its `/Differences`, `/Widths`, `/W`, `/W2`, the font descriptor or its font program). Its text was decoded with defaults: the standard encoding, the standard 14 font's widths or `/MissingWidth`, `/DW` (todo B9b).
+A font dictionary read for text extraction has a missing, unreadable or malformed entry (the descendant font, `/Encoding` or its `/Differences`, `/Widths`, `/W`, `/W2`, the font descriptor or its font program). Its text was decoded with defaults: the standard encoding, the standard 14 font's widths or `/MissingWidth`, `/DW`.
 
 ## Why
 
@@ -28,3 +28,9 @@ The descendant font is missing, so text in this font is decoded with defaults: t
 None.
 
 The `location` is `object`, the font dictionary's object; none for a direct font dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B9b](../todos/done/B9b-text-extraction-core.md): text extraction

@@ -3,7 +3,30 @@
 // `<h1>` goes (the page title shows the code), a link to another code's page points at its page
 // on the site, and other relative links (ADRs, todos: repository files the site doesn't have)
 // keep their text without the link, as do links to the repository on GitHub unless
-// LAMINA_DOCS_GITHUB=1 (astro.config.mjs: the repository is private for now).
+// LAMINA_DOCS_GITHUB=1 (astro.config.mjs: the repository is private for now). A page's last
+// section, "For contributors" (decision records and todos), is left out.
+
+/**
+ * A page's Markdown without its "For contributors" section, which is always last: everything
+ * from the last such heading outside a code fence. Trailing spaces and CRLF line ends are fine.
+ */
+function readerMarkdown(markdown) {
+  const lines = markdown.split("\n");
+  let fence;
+  let cut = -1;
+  lines.forEach((line, index) => {
+    const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (marker) {
+      // A fence closes on the same character, at least as long, with nothing after it.
+      if (fence === undefined) fence = marker[1];
+      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && marker[2].trim() === "")
+        fence = undefined;
+      return;
+    }
+    if (fence === undefined && /^## For contributors[ \t]*\r?$/.test(line)) cut = index;
+  });
+  return cut < 0 ? markdown : lines.slice(0, cut).join("\n");
+}
 
 /** A link to `href` from an error page, rewritten for the site, or `undefined` to drop the link. */
 function siteHref(href) {
@@ -40,7 +63,13 @@ export function errorPagesLoader(dir) {
         if (!name.endsWith(".md") || name === "README.md") continue;
         const body = await readFile(new URL(name, dir), "utf8");
         const id = name.slice(0, -".md".length);
-        store.set({ id, data: {}, body, digest: generateDigest(body), rendered: await renderMarkdown(body) });
+        store.set({
+          id,
+          data: {},
+          body,
+          digest: generateDigest(body),
+          rendered: await renderMarkdown(readerMarkdown(body)),
+        });
       }
     },
   };

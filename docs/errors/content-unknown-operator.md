@@ -5,7 +5,7 @@
 
 ## What happened
 
-A content stream used an operator ISO 32000-2 Annex A does not define, outside a `BX`/`EX` compatibility section; it was skipped (ADR 0023).
+A content stream used an operator ISO 32000-2 Annex A does not define, outside a `BX`/`EX` compatibility section; it was skipped.
 
 ## Why
 
@@ -29,3 +29,9 @@ BT /F1 12 Tf 72 720 Td (Hi) Tj ET
 - `offset`: the operator's byte offset in the decoded content.
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

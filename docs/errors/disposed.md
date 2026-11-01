@@ -9,7 +9,7 @@ A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free
 
 ## Why
 
-Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on ([L2b](../todos/ready/L2b-disposal-and-memory.md) adds the check that raises this code).
+Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on.
 
 ## How to fix
 
@@ -26,3 +26,9 @@ doc.save(); // throws LaminaError { code: "disposed", … }
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/ready/L2b-disposal-and-memory.md): adds the check that raises this code

@@ -5,7 +5,7 @@
 
 ## What happened
 
-No `EI` ends an inline image (neither at its declared or computed length nor by the heuristic of ADR 0023); the rest of the content was skipped.
+No `EI` ends an inline image (neither at its declared or computed length nor by searching for it); the rest of the content was skipped.
 
 ## Why
 
@@ -28,3 +28,9 @@ No `EI` follows the image data, so the rest of the stream is skipped.
 - `offset`: the `BI`'s byte offset in the decoded content.
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md): the inline-image search

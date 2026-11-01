@@ -7,9 +7,9 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-Bun resolves the `node` export condition, as Node does, and reads each `.wasm` file from `@laminapdf/wasm`.
+Bun loads `@laminapdf/sdk` the way Node does: it reads each `.wasm` file from `@laminapdf/wasm`.
 
-This is the Bun runner of the example suite, which CI runs with `cargo xtask pdf-runtimes bun`:
+This is how lamina's tests run every example in Bun:
 
 <Snippet file="packages/sdk/test/bun/examples.test.ts" />
 

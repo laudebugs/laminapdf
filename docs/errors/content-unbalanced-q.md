@@ -5,7 +5,7 @@
 
 ## What happened
 
-A `Q` had no matching `q` (it was ignored), or a content stream ended with saved graphics states still open (they were restored) (ADR 0023).
+A `Q` had no matching `q` (it was ignored), or a content stream ended with saved graphics states still open (they were restored).
 
 ## Why
 
@@ -28,3 +28,9 @@ The second `Q` has no matching `q` and is ignored.
 - `offset`: the `Q`'s byte offset, or the end of the content.
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

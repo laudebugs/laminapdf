@@ -5,7 +5,7 @@
 
 ## What happened
 
-A page boundary box is not four numbers; it reads as absent (ADR 0027 §3 for the fallback).
+A page boundary box is not four numbers; it reads as absent.
 
 ## Why
 
@@ -21,8 +21,14 @@ Nothing; the page uses the next box in the chain.
 3 0 obj << /Type /Page /MediaBox [0 0 612 792] /CropBox [0 0 612] >>
 ```
 
-The CropBox has three numbers, so it reads as absent and the page uses its MediaBox (ADR 0027 §3). `data` is `{ "key": "CropBox" }`.
+The CropBox has three numbers, so it reads as absent and the page uses its MediaBox. `data` is `{ "key": "CropBox" }`.
 
 ## Data fields
 
 `key` (which box, from lamina's fixed list).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0027](../decisions/0027-coordinates-units-and-page-indexing.md) §3

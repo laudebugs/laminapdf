@@ -5,7 +5,7 @@
 
 ## What happened
 
-An `EMC` had no matching `BMC`/`BDC` (it was ignored), or a content stream ended with marked-content sequences open (they were closed) (ADR 0023).
+An `EMC` had no matching `BMC`/`BDC` (it was ignored), or a content stream ended with marked-content sequences open (they were closed).
 
 ## Why
 
@@ -28,3 +28,9 @@ The stream ends with the marked-content sequence open; it is closed at the end, 
 - `offset`: the `EMC`'s byte offset, or the end of the content.
 
 The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)

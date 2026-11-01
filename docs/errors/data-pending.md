@@ -5,7 +5,7 @@
 
 ## What happened
 
-The `ByteSource` hasn't fetched the listed byte ranges yet (ADR 0005 §2).
+The `ByteSource` hasn't fetched the listed byte ranges yet.
 
 ## Why
 
@@ -26,3 +26,9 @@ const pages = await doc.ensure(() => doc.pages);
 ## Data fields
 
 `ranges` (offset, length pairs).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0005](../decisions/0005-document-model.md) §2

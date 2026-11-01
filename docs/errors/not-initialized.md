@@ -9,7 +9,7 @@ A function or class of `@laminapdf/sdk` (`Document.open`, `new Builder`, …) wa
 
 ## Why
 
-`@laminapdf/sdk` is synchronous after `init()` ([ADR 0016](../decisions/0016-package-design.md) §3), but fetching and compiling the `.wasm` file is asynchronous, so it happens once, up front, in `init()`. Until that promise resolves there is no module to call.
+`@laminapdf/sdk` is synchronous after `init()`, but fetching and compiling the `.wasm` file is asynchronous, so it happens once, up front, in `init()`. Until that promise resolves there is no module to call.
 
 ## How to fix
 
@@ -27,3 +27,9 @@ Document.open(bytes); // works
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §3

@@ -5,7 +5,7 @@
 
 ## What happened
 
-A font showed glyphs that its ToUnicode CMap, its encoding's glyph names and its font program's `cmap` all leave unmapped. They extract as U+FFFD; `PageText::unmapped` counts them (todo B9b).
+A font showed glyphs that its ToUnicode CMap, its encoding's glyph names and its font program's `cmap` all leave unmapped. They extract as U+FFFD; `PageText::unmapped` counts them.
 
 ## Why
 
@@ -28,3 +28,9 @@ A subset font with Identity-H and no ToUnicode: unless its embedded `cmap` maps 
 None.
 
 The `location` is `object`, the font dictionary's object; none for a direct font dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B9b](../todos/done/B9b-text-extraction-core.md): text extraction

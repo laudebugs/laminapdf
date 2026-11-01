@@ -5,7 +5,7 @@
 
 ## What happened
 
-The page is a direct dictionary, which ops can't edit yet (ADR 0005 §5).
+The page is a direct dictionary, which ops can't edit yet.
 
 ## Why
 
@@ -26,3 +26,9 @@ The page is written inline in `/Kids`. Reading works (its ID is a path ID such a
 ## Data fields
 
 None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0005](../decisions/0005-document-model.md) §5

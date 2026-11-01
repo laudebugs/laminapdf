@@ -9,7 +9,7 @@ A hard `Limits` value was exceeded.
 
 ## Why
 
-Hostile or unusually large input (ADR 0003 §3).
+Hostile or unusually large input.
 
 ## How to fix
 
@@ -29,4 +29,10 @@ let err = doc.page_count().unwrap_err();
 
 `limit` (the limit's name).
 
-The `location` tells where it was hit: `offset` (a file offset) for the nesting and string-length limits and the read window, `object` with `streamOffset` for the same limits inside an object stream, `object` alone for a reference chain; none for decoding budgets.
+The `location` tells where the limit was hit. The nesting and string-length limits and the read window give `offset`, a file offset; the same limits inside an object stream give `object` with `streamOffset`. A reference chain gives `object` alone, and decoding budgets give no location.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §3
