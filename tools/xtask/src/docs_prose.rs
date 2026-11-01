@@ -40,12 +40,21 @@ struct Report {
 
 /// `cargo xtask check docs-prose [--all-strict] [--warnings] [--json]`.
 pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
+    if options.json && options.warnings {
+        bail!("docs-prose: --json already lists every report; drop --warnings");
+    }
     let config = load_config(root)?;
-    let files = files(root)?;
-    let changed = changed_files(root);
+    let untracked = untracked_files(root)?;
+    let files = files(root, &untracked)?;
+    let changed = changed_files(root, &untracked);
     let mut reports = Vec::new();
     for (path, scope) in &files {
-        let source = std::fs::read_to_string(root.join(path)).with_context(|| format!("reading {path}"))?;
+        let source = match std::fs::read_to_string(root.join(path)) {
+            Ok(source) => source,
+            // Deleted in the working tree but not yet from the index: nothing to check.
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error).with_context(|| format!("reading {path}")),
+        };
         let page = extract::parse(&source);
         let error = options.all_strict || changed.as_ref().is_some_and(|changed| changed.contains(path));
         reports.extend(rules::check(&page, *scope, &config).into_iter().map(|finding| Report {
@@ -74,13 +83,12 @@ fn load_config(root: &Path) -> Result<Config> {
 
 /// The files the check reads, with the rules that apply to each, sorted by path. Untracked files
 /// count too, so a new page is checked while it is drafted.
-fn files(root: &Path) -> Result<BTreeMap<String, Scope>> {
+fn files(root: &Path, untracked: &[String]) -> Result<BTreeMap<String, Scope>> {
     let tracked = Tracked::from_git(root)?;
-    let untracked = git(root, &["ls-files", "--others", "--exclude-standard", "-z"])?;
     let paths = tracked
         .files()
         .map(|path| path.to_string_lossy().replace('\\', "/"))
-        .chain(untracked.split('\0').filter(|path| !path.is_empty()).map(str::to_owned));
+        .chain(untracked.iter().cloned());
     Ok(paths
         .filter_map(|path| scope(&path).map(|scope| (path, scope)))
         .collect())
@@ -111,25 +119,41 @@ fn has_extension(path: &str, extensions: &[&str]) -> bool {
 
 /// Paths changed since the merge base with `main`, the working tree and untracked files included;
 /// `None` (and a note) when there is no merge base, so nothing is strict.
-fn changed_files(root: &Path) -> Option<BTreeSet<String>> {
+fn changed_files(root: &Path, untracked: &[String]) -> Option<BTreeSet<String>> {
     let base = default_base(root);
     let changed = git(root, &["merge-base", base, "HEAD"]).and_then(|merge_base| {
         let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base.trim()])?;
-        let untracked = git(root, &["ls-files", "--others", "--exclude-standard", "-z"])?;
         Ok(diff
             .split('\0')
-            .chain(untracked.split('\0'))
             .filter(|path| !path.is_empty())
             .map(str::to_owned)
+            .chain(untracked.iter().cloned())
             .collect())
     });
     match changed {
         Ok(changed) => Some(changed),
         Err(error) => {
-            eprintln!("docs-prose: no merge base with {base} ({error:#}); every report is a warning");
+            // A shallow CI checkout has no merge base: say so where CI shows it, not only in the log.
+            let note = format!(
+                "no merge base with {base}, so every report is a warning (a shallow clone needs fetch-depth: 0)"
+            );
+            if std::env::var_os("GITHUB_ACTIONS").is_some() {
+                println!("::warning title=docs-prose::{note}");
+            }
+            eprintln!("docs-prose: {note} ({error:#})");
             None
         }
     }
+}
+
+/// Untracked files that git doesn't ignore, so a page is checked while it is drafted.
+fn untracked_files(root: &Path) -> Result<Vec<String>> {
+    let listing = git(root, &["ls-files", "--others", "--exclude-standard", "-z"])?;
+    Ok(listing
+        .split('\0')
+        .filter(|path| !path.is_empty())
+        .map(str::to_owned)
+        .collect())
 }
 
 fn print_text(reports: &[Report], file_count: usize, changed: Option<&BTreeSet<String>>, show_warnings: bool) {

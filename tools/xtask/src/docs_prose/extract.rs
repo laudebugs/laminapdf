@@ -71,11 +71,11 @@ pub(crate) struct Page {
 pub(crate) fn parse(source: &str) -> Page {
     let (frontmatter, body) = split_frontmatter(source);
     let body = blank_mdx_statements(&body);
-    let line_starts = line_starts(&body);
+    let line_starts = crate::lines::starts(&body);
     let mut walker = Walker::default();
     let parser = Parser::new_ext(&body, Options::ENABLE_TABLES).into_offset_iter();
     for (event, range) in parser {
-        walker.event(event, line_of(&line_starts, range.start));
+        walker.event(event, crate::lines::line_of(&line_starts, range.start));
     }
     Page {
         frontmatter,
@@ -108,8 +108,11 @@ fn split_frontmatter(source: &str) -> (Option<Frontmatter>, String) {
 /// `prose:` map holding an `allow:` list); the docs pages use nothing more complex.
 fn read_frontmatter(lines: &[&str]) -> Frontmatter {
     let mut frontmatter = Frontmatter::default();
+    let mut in_prose = false;
     let mut in_allow = false;
-    for line in lines {
+    let mut index = 0;
+    while let Some(line) = lines.get(index) {
+        index += 1;
         let indented = line.starts_with(' ');
         let trimmed = line.trim();
         if in_allow {
@@ -117,16 +120,41 @@ fn read_frontmatter(lines: &[&str]) -> Frontmatter {
                 frontmatter.allow.push(unquote(item));
                 continue;
             }
-            in_allow = indented && trimmed.is_empty();
+            in_allow = false;
         }
         if !indented {
-            if let Some(value) = trimmed.strip_prefix("title:") {
-                frontmatter.title = Some(unquote(value));
-            } else if let Some(value) = trimmed.strip_prefix("description:") {
-                frontmatter.description = Some(unquote(value));
+            in_prose = trimmed == "prose:";
+            let key_value = trimmed.split_once(':').map(|(key, value)| (key.trim(), value.trim()));
+            if let Some((key @ ("title" | "description"), value)) = key_value {
+                let value = if [">", ">-", "|", "|-"].contains(&value) {
+                    // A block scalar: the indented lines below it, joined.
+                    let block: Vec<&str> = lines
+                        .iter()
+                        .skip(index)
+                        .take_while(|next| next.starts_with(' '))
+                        .map(|next| next.trim())
+                        .collect();
+                    index += block.len();
+                    block.join(" ")
+                } else {
+                    unquote(value)
+                };
+                if key == "title" {
+                    frontmatter.title = Some(value);
+                } else {
+                    frontmatter.description = Some(value);
+                }
             }
-        } else if trimmed == "allow:" {
-            in_allow = true;
+        } else if in_prose && let Some(value) = trimmed.strip_prefix("allow:") {
+            let value = value.trim();
+            if let Some(flow) = value.strip_prefix('[').and_then(|inner| inner.strip_suffix(']')) {
+                // A flow list: `allow: [CMap, overlay]`.
+                frontmatter
+                    .allow
+                    .extend(flow.split(',').map(unquote).filter(|term| !term.is_empty()));
+            } else {
+                in_allow = true;
+            }
         }
     }
     frontmatter
@@ -142,33 +170,52 @@ fn unquote(value: &str) -> String {
         .to_owned()
 }
 
-/// Blanks MDX `import`/`export` lines (outside code fences) so Markdown doesn't read them as text.
+/// Blanks what Markdown can't parse in MDX, keeping every line: the `import`/`export` statements
+/// at the top of the file (multi-line ones too: a statement runs until a line that holds `from`
+/// or ends with `;`), and Starlight's `:::note` aside markers, so the aside's text is still read.
 fn blank_mdx_statements(body: &str) -> String {
-    let mut in_fence = false;
+    let blank = |line: &str| {
+        if line.ends_with('\n') {
+            "\n".to_owned()
+        } else {
+            String::new()
+        }
+    };
+    let mut in_header = true;
+    let mut in_statement = false;
+    let mut fence: Option<String> = None;
     body.split_inclusive('\n')
         .map(|line| {
             let trimmed = line.trim_start();
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
-                in_fence = !in_fence;
+            if in_statement {
+                in_statement =
+                    !(trimmed.contains(" from ") || trimmed.starts_with("from ") || trimmed.trim_end().ends_with(';'));
+                return blank(line);
             }
-            let statement = trimmed.starts_with("import ") || trimmed.starts_with("export ");
-            if !in_fence && statement {
-                if line.ends_with('\n') { "\n" } else { "" }
-            } else {
-                line
+            if in_header {
+                let keyword = trimmed.starts_with("import ") || trimmed.starts_with("export ");
+                let complete = trimmed.contains(" from ") || trimmed.trim_end().ends_with(';');
+                // Prose may start with "import" too: a statement looks like code.
+                if keyword && (complete || trimmed.contains('{')) {
+                    in_statement = !complete && trimmed.contains('{') && !trimmed.contains('}');
+                    return blank(line);
+                }
+                in_header = trimmed.trim().is_empty();
             }
+            // Code fences close only on the same marker, at least as long.
+            let marker: String = trimmed.chars().take_while(|c| *c == '`' || *c == '~').collect();
+            if marker.len() >= 3 {
+                match &fence {
+                    Some(open) if marker.starts_with(open.as_str()) => fence = None,
+                    None => fence = Some(marker),
+                    Some(_) => {}
+                }
+            } else if fence.is_none() && trimmed.starts_with(":::") {
+                return blank(line);
+            }
+            line.to_owned()
         })
         .collect()
-}
-
-fn line_starts(text: &str) -> Vec<usize> {
-    std::iter::once(0)
-        .chain(text.match_indices('\n').map(|(index, _)| index + 1))
-        .collect()
-}
-
-fn line_of(line_starts: &[usize], offset: usize) -> usize {
-    line_starts.partition_point(|&start| start <= offset)
 }
 
 /// Walks pulldown-cmark's events and collects the blocks.
@@ -277,10 +324,19 @@ impl Walker {
 
     /// Components arrive as HTML: classify them; inline HTML inside prose is dropped.
     fn html(&mut self, html: &str, line: usize) {
+        let trimmed = html.trim_start();
+        // A `<Snippet>` right under a line of text arrives as inline HTML: it ends the paragraph.
         if self.open.is_some() {
+            if trimmed.starts_with("<Snippet") {
+                self.close();
+                self.blocks.push(Block {
+                    kind: Kind::Snippet,
+                    line,
+                    segments: Vec::new(),
+                });
+            }
             return;
         }
-        let trimmed = html.trim_start();
         let kind = if trimmed.starts_with("<Snippet") {
             Kind::Snippet
         } else if ["<Tabs", "<TabItem", "</Tabs", "</TabItem"]
@@ -377,6 +433,52 @@ mod tests {
                 Kind::Wrapper
             ]
         );
+    }
+
+    #[test]
+    fn folded_descriptions_and_flow_lists_should_be_read() {
+        let page = parse(
+            "---\ntitle: T\ndescription: >-\n  A long\n  description.\nprose:\n  allow: [CMap, overlay]\n---\n\nText.\n",
+        );
+        let frontmatter = page.frontmatter.unwrap();
+        assert_eq!(
+            (frontmatter.description.as_deref(), frontmatter.allow.len()),
+            (Some("A long description."), 2)
+        );
+    }
+
+    #[test]
+    fn allow_should_count_only_under_prose() {
+        let page = parse("---\ntitle: T\nsidebar:\n  allow:\n    - CMap\n---\n\nText.\n");
+        assert_eq!(page.frontmatter.unwrap().allow, Vec::<String>::new());
+    }
+
+    #[test]
+    fn multi_line_imports_should_be_blanked_but_later_prose_kept() {
+        let page = parse("import {\n  Tabs,\n  TabItem,\n} from \"x\";\n\nimport the file below.\n");
+        assert_eq!(
+            page.blocks.first().map(Block::text),
+            Some("import the file below.".into())
+        );
+    }
+
+    #[test]
+    fn asides_should_keep_their_text() {
+        let page = parse(":::note\nRead this first.\n:::\n");
+        assert_eq!(page.blocks.first().map(Block::text), Some("Read this first.".into()));
+    }
+
+    #[test]
+    fn nested_list_items_should_keep_their_text() {
+        let page = parse("- outer item\n  - inner item\n");
+        let texts: Vec<String> = page.blocks.iter().map(Block::text).collect();
+        assert_eq!(texts, vec!["outer item", "inner item"]);
+    }
+
+    #[test]
+    fn a_snippet_under_a_line_of_text_should_be_a_snippet() {
+        let page = parse("This builds a page:\n<Snippet file=\"a.ts\" />\n");
+        assert_eq!(kinds(&page), vec![Kind::Paragraph, Kind::Snippet]);
     }
 
     #[test]

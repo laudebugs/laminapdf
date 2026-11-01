@@ -40,7 +40,7 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
   - sentence-case headings;
   - a sentence before each `<Snippet>`.
 - Strict on files changed since the merge base with `main`; warnings elsewhere; `--all-strict` makes every file strict (Q1l turns it on).
-- Configuration in `tools/xtask/docs-prose.toml`: banned words, proper nouns, glossary terms, internal-ID patterns and allowed exceptions (`R2`–`R6`, the security handler revisions).
+- Configuration in `tools/xtask/docs-prose.toml`: banned words, proper nouns, glossary terms, internal-ID patterns and allowed exceptions (`R2`–`R6`, the security handler revisions). Deviation: the ID patterns are in the code (todo IDs only with their letter suffix, so `R2`–`R6`, `A4` and `Q3` never match) and `id_exceptions` lists anything else that looks like an ID.
 
 **Out of scope** (and which todo covers it)
 
@@ -69,7 +69,7 @@ None.
 
 ## Tests
 
-Unit tests in `tools/xtask` for the stripper and each rule; a fixture tree under `tools/xtask/tests/` with one violation per rule.
+Unit tests in `tools/xtask` for the stripper and each rule, both ways. Deviation: xtask has no `tests/` folder, so the cases live inline in `docs_prose/{extract,rules}.rs` (one passing and one failing case per rule) instead of a fixture tree.
 
 ## Docs to update
 

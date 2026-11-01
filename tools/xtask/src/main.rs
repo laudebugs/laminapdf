@@ -13,6 +13,7 @@ mod doctor;
 mod examples;
 mod harness;
 mod licenses;
+mod lines;
 mod live;
 mod nightly;
 mod pdf_runtimes;
@@ -46,14 +47,15 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links, todos --check, portable paths, the capability
+                    docs: docs-links, docs-prose, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
-                    gen codes --check and version sync --check, docs-prose
+                    gen codes --check and version sync --check
   check docs-prose [--all-strict] [--warnings] [--json]
                     reader-facing text (docs site, docs/errors, package READMEs) against
                     docs/guidelines/docs-writing.md: errors on files changed since the merge
                     base with main (drafts included), counted warnings elsewhere;
                     --all-strict fails on every report, --warnings lists them
+                    (--json lists every report, so it takes no --warnings)
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm
                           workspace, the docs site's build (apps/docs), npm licences

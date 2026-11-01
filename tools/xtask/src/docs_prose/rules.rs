@@ -29,6 +29,8 @@ pub(crate) struct Config {
     pub(crate) repository_paths: Vec<String>,
     #[serde(default)]
     pub(crate) abbreviations: BTreeSet<String>,
+    #[serde(default)]
+    pub(crate) id_exceptions: Vec<String>,
 }
 
 /// A spelling to replace ("One term per thing").
@@ -102,11 +104,17 @@ fn finding(line: usize, rule: &'static str, message: impl Into<String>) -> Findi
     }
 }
 
-/// Words of prose: whitespace-separated, with surrounding punctuation trimmed.
+/// Words of prose: whitespace-separated, with surrounding punctuation and a possessive `'s`
+/// trimmed (so "CI's" is `CI` and "Adobe's" is `Adobe`).
 fn words(text: &str) -> impl Iterator<Item = &str> {
-    text.split_whitespace()
-        .map(|word| word.trim_matches(|c: char| !c.is_alphanumeric() && c != '⟨' && c != '⟩'))
-        .filter(|word| !word.is_empty())
+    text.split_whitespace().map(bare_word).filter(|word| !word.is_empty())
+}
+
+fn bare_word(raw: &str) -> &str {
+    let word = raw.trim_matches(|c: char| !c.is_alphanumeric() && c != '⟨' && c != '⟩');
+    word.strip_suffix("'s")
+        .or_else(|| word.strip_suffix("’s"))
+        .unwrap_or(word)
 }
 
 fn frontmatter(page: &Page) -> Vec<Finding> {
@@ -147,7 +155,7 @@ fn opening_paragraph(page: &Page) -> Vec<Finding> {
                     block.line,
                     "opening-paragraph",
                     format!(
-                        "the opening paragraph has {count} words; keep it to {MAX_OPENING_WORDS} that say what you'll make and why"
+                        "the opening paragraph has {count} words; cut it to {MAX_OPENING_WORDS} words or fewer that say what you'll make and when you'd need it"
                     ),
                 )]
             } else {
@@ -163,13 +171,25 @@ fn opening_paragraph(page: &Page) -> Vec<Finding> {
     }
 }
 
-/// Splits prose into sentences and returns each one's word count.
-fn sentence_lengths(text: &str, config: &Config) -> Vec<usize> {
-    let mut lengths = Vec::new();
+/// A sentence's word count and its first few words (to name it in a report).
+#[derive(Debug, PartialEq, Eq)]
+struct Sentence {
+    words: usize,
+    start: String,
+}
+
+/// Splits prose into sentences.
+fn sentences(text: &str, config: &Config) -> Vec<Sentence> {
+    const QUOTED_WORDS: usize = 6;
+    let mut sentences = Vec::new();
     let mut count = 0;
+    let mut start: Vec<&str> = Vec::new();
     for raw in text.split_whitespace() {
         if raw.chars().any(char::is_alphanumeric) || raw.contains(CODE) {
             count += 1;
+        }
+        if start.len() < QUOTED_WORDS {
+            start.push(raw);
         }
         let end = raw.trim_end_matches(['"', '\'', ')', '”', '’', '*', '_']);
         let ends_sentence = end.ends_with(['.', '?', '!']) && {
@@ -177,14 +197,21 @@ fn sentence_lengths(text: &str, config: &Config) -> Vec<usize> {
             !config.abbreviations.contains(stem.as_str())
         };
         if ends_sentence && count > 0 {
-            lengths.push(count);
+            sentences.push(Sentence {
+                words: count,
+                start: start.join(" "),
+            });
             count = 0;
+            start.clear();
         }
     }
     if count > 0 {
-        lengths.push(count);
+        sentences.push(Sentence {
+            words: count,
+            start: start.join(" "),
+        });
     }
-    lengths
+    sentences
 }
 
 fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
@@ -192,14 +219,17 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
         return Vec::new();
     }
     let text = block.text();
-    let mut findings: Vec<Finding> = sentence_lengths(&text, config)
+    let mut findings: Vec<Finding> = sentences(&text, config)
         .into_iter()
-        .filter(|&count| count > MAX_SENTENCE_WORDS)
-        .map(|count| {
+        .filter(|sentence| sentence.words > MAX_SENTENCE_WORDS)
+        .map(|sentence| {
             finding(
                 block.line,
                 "sentence-length",
-                format!("a sentence has {count} words; the limit is {MAX_SENTENCE_WORDS}"),
+                format!(
+                    "the sentence starting \"{}…\" has {} words; split it into sentences of {MAX_SENTENCE_WORDS} or fewer",
+                    sentence.start, sentence.words
+                ),
             )
         })
         .collect();
@@ -208,13 +238,16 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
         findings.push(finding(
             block.line,
             "paragraph-length",
-            format!("the paragraph has {count} words; the limit is {MAX_PARAGRAPH_WORDS}"),
+            format!("the paragraph has {count} words; split it into paragraphs of {MAX_PARAGRAPH_WORDS} or fewer"),
         ));
     }
     findings
 }
 
-/// A todo ID: one capital letter, one or two digits and a lowercase suffix (`B8b`, `Q1a`).
+/// A todo ID: one capital letter, one or two digits and a lowercase suffix (`B8b`, `Q1a`). Bare
+/// IDs without a suffix (`X5`, `P1`) are left out on purpose: they read like paper sizes (`A4`),
+/// quarters (`Q3`) and revisions (`R5`). `id_exceptions` in the config lists words that look
+/// like IDs but aren't.
 fn is_todo_id(word: &str) -> bool {
     let mut chars = word.chars();
     let letter = chars.next().is_some_and(|c| c.is_ascii_uppercase());
@@ -228,14 +261,22 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
     let words: Vec<&str> = words(&text).collect();
     let mut found = BTreeSet::new();
     for (index, word) in words.iter().enumerate() {
-        if is_todo_id(word) {
+        if is_todo_id(word) && !config.id_exceptions.iter().any(|exception| exception == word) {
             found.insert(format!("the todo ID `{word}`"));
         }
-        let next_is_adr_number = words
-            .get(index + 1)
-            .is_some_and(|next| next.len() == 4 && next.chars().all(|c| c.is_ascii_digit()));
-        if *word == "ADR" && next_is_adr_number {
+        let next = words.get(index + 1);
+        let is_number = |text: &str| text.len() == 4 && text.chars().all(|c| c.is_ascii_digit());
+        let adr_then_number = matches!(*word, "ADR" | "ADRs") && next.is_some_and(|next| is_number(next));
+        let joined_adr = word.strip_prefix("ADR-").is_some_and(is_number);
+        if adr_then_number || joined_adr {
             found.insert("an ADR number".to_owned());
+        }
+        let round_id = next.is_some_and(|next| {
+            let mut chars = next.chars();
+            chars.next().is_some_and(|c| c.is_ascii_uppercase()) && chars.next().is_some_and(|c| c.is_ascii_digit())
+        });
+        if *word == "Round" && round_id {
+            found.insert("a round (\"Round …\")".to_owned());
         }
         if config.internal_words.iter().any(|internal| internal == word) {
             found.insert(format!("`{word}`"));
@@ -263,7 +304,7 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
             finding(
                 block.line,
                 "internal-id",
-                format!("reader text mentions {what}; contributors find those in `docs/`"),
+                format!("remove {what} from reader text; contributors find those in `docs/`"),
             )
         })
         .collect()
@@ -292,7 +333,7 @@ fn banned_words(block: &Block, config: &Config) -> Vec<Finding> {
             finding(
                 block.line,
                 "banned-word",
-                format!("\"{banned}\" is on the guideline's list of words to avoid"),
+                format!("remove \"{banned}\": the docs-writing guideline bans it"),
             )
         })
         .collect();
@@ -300,7 +341,7 @@ fn banned_words(block: &Block, config: &Config) -> Vec<Finding> {
         findings.push(finding(
             block.line,
             "banned-word",
-            "no exclamation marks in reader text",
+            "replace the exclamation mark with a full stop",
         ));
     }
     findings
@@ -348,8 +389,18 @@ fn sentence_case(block: &Block, config: &Config) -> Vec<Finding> {
     let text = block.text();
     let mut after_colon = false;
     let mut capitalised = Vec::new();
-    for (index, raw) in text.split_whitespace().enumerate() {
-        let word = raw.trim_matches(|c: char| !c.is_alphanumeric());
+    // Hyphenated words are judged part by part, so "Right-To-Left" is caught.
+    let parts = text.split_whitespace().flat_map(|raw| {
+        let ends_with_colon = raw.ends_with(':');
+        let pieces: Vec<&str> = raw.split('-').collect();
+        let last = pieces.len().saturating_sub(1);
+        pieces
+            .into_iter()
+            .enumerate()
+            .map(move |(index, piece)| (piece, ends_with_colon && index == last))
+    });
+    for (index, (raw, ends_with_colon)) in parts.enumerate() {
+        let word = bare_word(raw);
         let allowed = index == 0
             || after_colon
             || raw.contains(CODE)
@@ -360,7 +411,7 @@ fn sentence_case(block: &Block, config: &Config) -> Vec<Finding> {
         if !allowed {
             capitalised.push(word.to_owned());
         }
-        after_colon = raw.ends_with(':');
+        after_colon = ends_with_colon;
     }
     if capitalised.is_empty() {
         Vec::new()
@@ -369,7 +420,7 @@ fn sentence_case(block: &Block, config: &Config) -> Vec<Finding> {
             block.line,
             "sentence-case",
             format!(
-                "headings use sentence case: lowercase {} (or add a proper noun to docs-prose.toml)",
+                "write the heading in sentence case: make {} lowercase, or add it to `proper_nouns` in tools/xtask/docs-prose.toml",
                 capitalised.join(", ")
             ),
         )]
@@ -410,7 +461,7 @@ fn glossary(page: &Page, config: &Config) -> Vec<Finding> {
                     line,
                     "glossary",
                     format!(
-                        "link the first \"{term}\" to /reference/glossary/, explain it, or list it under `prose.allow`"
+                        "explain \"{term}\" where it first appears, link it to /reference/glossary/, or list it under `prose.allow` in the frontmatter"
                     ),
                 ));
             }
@@ -420,19 +471,31 @@ fn glossary(page: &Page, config: &Config) -> Vec<Finding> {
 }
 
 /// A sentence that says what the code does comes before every `<Snippet>`. Snippets in a run of
-/// tabs share one sentence, so wrappers and the snippets of the same run are skipped.
+/// tabs share one sentence: walking back, an earlier snippet is skipped only when a tab wrapper
+/// separates it from this one; two snippets with nothing between them need two sentences.
 fn snippet_intro(page: &Page) -> Vec<Finding> {
     let mut findings = Vec::new();
     for (index, block) in page.blocks.iter().enumerate() {
         if block.kind != Kind::Snippet {
             continue;
         }
+        let mut crossed_wrapper = false;
         let before = page
             .blocks
             .iter()
             .take(index)
             .rev()
-            .find(|previous| !matches!(previous.kind, Kind::Wrapper | Kind::Snippet));
+            .find(|previous| match previous.kind {
+                Kind::Wrapper => {
+                    crossed_wrapper = true;
+                    false
+                }
+                Kind::Snippet if crossed_wrapper => {
+                    crossed_wrapper = false;
+                    false
+                }
+                _ => true,
+            });
         if !before.is_some_and(|previous| matches!(previous.kind, Kind::Paragraph | Kind::ListItem)) {
             findings.push(finding(
                 block.line,
@@ -498,8 +561,11 @@ mod tests {
 
     #[test]
     fn abbreviations_should_not_end_a_sentence() {
-        let lengths = sentence_lengths("Use one font, e.g. Source Sans 3, for text. Done.", &config());
-        assert_eq!(lengths, vec![9, 1]);
+        let counts: Vec<usize> = sentences("Use one font, e.g. Source Sans 3, for text. Done.", &config())
+            .into_iter()
+            .map(|sentence| sentence.words)
+            .collect();
+        assert_eq!(counts, vec![9, 1]);
     }
 
     #[test]
@@ -520,6 +586,47 @@ mod tests {
     fn todo_ids_adr_numbers_and_internal_words_should_be_reported() {
         let rules = rules_for("Q1a added this; see ADR 0026. The golden file and CI agree.\n", false);
         assert_eq!(rules, vec!["internal-id"; 4]);
+    }
+
+    #[test]
+    fn rounds_and_other_adr_spellings_should_be_reported() {
+        assert_eq!(rules_for("It came in Round B1.\n", false), vec!["internal-id"]);
+        assert_eq!(rules_for("See ADR-0026 and ADRs 0027.\n", false), vec!["internal-id"]);
+        assert_eq!(rules_for("A round of review.\n", false), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn possessives_should_not_hide_internal_words() {
+        assert_eq!(rules_for("The CI's checks pass.\n", false), vec!["internal-id"]);
+    }
+
+    #[test]
+    fn possessive_proper_nouns_should_be_allowed_in_headings() {
+        assert_eq!(rules_for("## Use Adobe's fonts\n\nText.\n", false), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn hyphenated_title_case_should_be_reported() {
+        assert_eq!(
+            rules_for("## Text that runs Right-To-Left\n\nText.\n", false),
+            vec!["sentence-case"]
+        );
+    }
+
+    #[test]
+    fn two_snippets_in_a_row_should_need_two_sentences() {
+        let body = "Intro:\n\n<Snippet file=\"a.ts\" />\n\n<Snippet file=\"b.ts\" />\n";
+        assert_eq!(rules_for(body, false), vec!["snippet-intro"]);
+    }
+
+    #[test]
+    fn a_long_sentence_should_be_named_by_its_first_words() {
+        let page = parse(&format!("{FRONT}{}\n", "word ".repeat(41).trim_end()));
+        let message = check(&page, Scope::SitePage { guide: false }, &config())
+            .into_iter()
+            .map(|finding| finding.message)
+            .next();
+        assert!(message.is_some_and(|message| message.starts_with("the sentence starting \"word word word")));
     }
 
     #[test]

@@ -52,9 +52,13 @@ proper_nouns = [
 # Internal vocabulary reader text never contains (docs-writing.md, "Write in plain English").
 # Todo IDs (a capital letter, a number and a lowercase suffix such as B8b) and "ADR" followed
 # by a four-digit number are matched by the check itself.
-internal_words = ["golden", "goldens", "CI"]          # case-sensitive whole words
+internal_words = ["golden", "goldens", "CI"]          # case-sensitive whole words; "Round" followed by
+                                                      # a round such as B1 is matched by the check
 internal_phrases = ["fast lane", "full lane"]          # case-insensitive
-repository_paths = ["crates/", "packages/", "fixtures/", "tools/", "apps/", "docs/", "spikes/"]
+repository_paths = ["crates/", "packages/", "fixtures/", "tools/", "apps/", "docs/", "spikes/"]  # prefixes, case-sensitive
+
+# Words that look like todo IDs (a capital, a number, a lowercase letter) but aren't, as written.
+id_exceptions = []
 
 # Sentence splitting: words that end with a full stop without ending the sentence.
 abbreviations = ["e.g", "i.e", "vs", "cf", "approx", "no", "fig", "p", "pp"]
@@ -72,7 +76,8 @@ use = "the standard 14 fonts"
 spelling = "std14"
 use = "the standard 14 fonts"
 
-# Words that must be qualified (case-insensitive): "Worker" alone is ambiguous.
+# Words that must be qualified (case-insensitive): "Worker" alone is ambiguous. `after` lists the
+# words that may come right before it; `use` is the replacement the report suggests.
 [[qualified]]
 word = "worker"
 after = ["cloudflare", "web", "service", "shared", "dedicated"]
