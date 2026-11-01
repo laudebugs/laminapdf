@@ -31,8 +31,8 @@ Set up publishing so a `v<version>` tag publishes the library safely, with no lo
 - Name reservation (owner, done 2026-11-01): `0.0.0` placeholders for `laminapdf` and every `laminapdf-*` crate on crates.io, owned by `laudebugs`; the `laminapdf` npm organisation.
 - crates.io trusted publishing (owner): each public crate's trusted publisher is `laudebugs/laminapdf`, `release.yml`, no environment.
 - npm (owner): a granular, stage-only token limited to `@laminapdf`, as the repository secret `NPM_TOKEN`; npm staged publishing, approved on npmjs.com with 2FA.
-- `release.yml`: `publish-crates` (crates.io token by OIDC, the only job with `id-token: write`), `publish-npm` (pack and stage) and `github-release` (SBOMs, the release for the tag), all after the `release` job; real only on a tag push, `--dry-run` on a dispatch.
-- `cargo xtask publish crates|npm [--dry-run]`, `cargo xtask sbom <dir>` (`cargo-cyclonedx` pinned in `doctor.rs`, `pnpm sbom`), `cargo xtask release-notes <tag> <out>`, with tests; the release-lane test that only the publish jobs publish, and only on a tag.
+- `release.yml`: `publish-crates` (crates.io token by OIDC, the only job with `id-token: write`), `publish-npm` (pack and stage) and `github-release` (SBOMs, the release for the tag), all after the `release` job; real only on a tag push, `--dry-run` on a dispatch (even on a tag); a re-run skips what is already published.
+- `cargo xtask publish crates|npm|npm-pack|npm-stage [--dry-run]`, `cargo xtask sbom <dir>` (`cargo-cyclonedx` pinned in `doctor.rs`, `pnpm sbom`), `cargo xtask release-notes <tag> <out>`, with tests; the release-lane test that only the publish jobs publish, and only on a tag.
 - Manifests: `publish = true`, `readme`, `homepage`, `keywords`, `categories` on the twelve public crates (not `laminapdf-wasm`, `laminapdf-render-wasm`, xtask, std14-gen); the six npm packages public (`publishConfig.access`, `repository`, `homepage`, `keywords`). Packaging fixes: workspace dev-dependencies by path only; `laminapdf`'s `explain` pages generated as raw strings.
 - ADR 0017 §7, Accepted.
 
@@ -71,9 +71,9 @@ Unit tests of the publish arguments, dist-tags, tarball names, release notes and
 
 ## Docs to update
 
-- [ ] [architecture: Publishing (later)](../../plans/architecture.md#publishing-later): tick names, ADR 0017 publishing part, release workflow
-- [ ] [architecture §7 Round A](../../plans/architecture.md#round-a--foundations): the struck-through "Reserve package names" item
-- [ ] `docs/decisions/README.md`, `CLAUDE.md` (release process), contributing guide
+- [x] [architecture: Publishing (later)](../../plans/architecture.md#publishing-later): tick names, ADR 0017 publishing part, release workflow
+- [x] [architecture §7 Round A](../../plans/architecture.md#round-a--foundations): the struck-through "Reserve package names" item
+- [x] `docs/decisions/README.md`, `CLAUDE.md` (release process), contributing guide
 
 ## Risks and open questions
 
@@ -82,8 +82,8 @@ Unit tests of the publish arguments, dist-tags, tarball names, release notes and
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

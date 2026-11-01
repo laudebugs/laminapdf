@@ -22,7 +22,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): cargo-dist 0.32, its installers (shell, PowerShell, Homebrew, npm, MSI), Biome's `optionalDependencies` layout.
 - [Report: the CLI is the primary agent interface](../../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it): crate versions read on 2026-10-29.
-- [P1](../done/P1-reserve-names-and-trusted-publishing.md): name reservation, OIDC trusted publishing, attestations and the `release` environment this PR plugs into; P1 itself is blocked on the owner's decision to publish.
+- [P1](../done/P1-reserve-names-and-trusted-publishing.md): the release lane's publish jobs this PR plugs into (crates.io trusted publishing, npm staged publishing with the owner's approval, SBOMs on the GitHub release); no attestations or `release` environment while the repository is private (ADR 0017 §7).
 - [ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release): binaries ship third-party licence notices and an SBOM.
 - [D6b](./D6b-release-workflow-and-linux-packages.md): the desktop release workflow; share runners and signing conventions where they overlap.
 

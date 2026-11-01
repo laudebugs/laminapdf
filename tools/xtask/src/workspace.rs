@@ -134,12 +134,9 @@ impl Workspace {
         })
     }
 
-    /// The crates `cargo publish --workspace` uploads, with their folders (ADR 0017 §7).
-    pub(crate) fn publishable_crates(&self) -> impl Iterator<Item = (&str, &Path)> {
-        self.crates
-            .iter()
-            .filter(|c| c.publishable)
-            .map(|c| (c.name.as_str(), c.dir.as_path()))
+    /// The crates `cargo publish --workspace` uploads (ADR 0017 §7).
+    pub(crate) fn publishable_crates(&self) -> impl Iterator<Item = &str> {
+        self.crates.iter().filter(|c| c.publishable).map(|c| c.name.as_str())
     }
 
     /// Names of the core crates.

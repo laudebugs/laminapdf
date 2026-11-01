@@ -189,20 +189,10 @@ fn notes_for(changelog: &str, tag: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn notes_for_should_take_the_tags_section_without_its_heading() {
-        let changelog = "# Changelog\n\n## 0.2.0\n\n### Minor Changes\n\n- b\n\n## 0.1.0\n\n- a\n";
-        assert_eq!(
-            super::notes_for(changelog, "v0.2.0").unwrap(),
-            "### Minor Changes\n\n- b\n"
-        );
-        assert!(super::notes_for(changelog, "v0.3.0").is_err());
-        assert!(super::notes_for(changelog, "0.2.0").is_err());
-    }
 
     use anyhow::Result;
 
-    use super::{Args, parse_args, verdict};
+    use super::{Args, notes_for, parse_args, verdict};
 
     fn run_with(conclusion: &str, status: &str, workflow: &str, branch: &str, event: &str) -> String {
         format!(
@@ -333,34 +323,32 @@ mod tests {
         );
     }
 
-    /// The jobs of a workflow by name (`  name:` under `jobs:`), each with its lines.
-    fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
-        let mut jobs: Vec<(&str, Vec<&str>)> = Vec::new();
-        let mut in_jobs = false;
-        for line in workflow.lines() {
-            if line == "jobs:" {
-                in_jobs = true;
-            } else if in_jobs
-                && let Some(name) = line.strip_prefix("  ").and_then(|l| l.strip_suffix(':'))
-                && !name.starts_with([' ', '#'])
-            {
-                jobs.push((name, Vec::new()));
-            } else if let Some((_, lines)) = jobs.last_mut() {
-                lines.push(line);
+    /// What publishes for real only on a tag push: `on_tag` in a step's `if:`, the token or
+    /// `DRY_RUN` behind it.
+    const ON_TAG: &str = "github.event_name == 'push' && github.ref_type == 'tag'";
+
+    /// The steps of a job (each `      - …` item with its lines), comment lines left out.
+    fn steps<'a>(lines: &[&'a str]) -> Vec<Vec<&'a str>> {
+        let mut steps: Vec<Vec<&str>> = Vec::new();
+        for line in lines.iter().copied().filter(|l| !l.trim_start().starts_with('#')) {
+            if line.starts_with("      - ") {
+                steps.push(vec![line]);
+            } else if let Some(step) = steps.last_mut() {
+                step.push(line);
             }
         }
-        jobs
+        steps
     }
 
     /// The release lane publishes only from its publish jobs (ADR 0017 §7, todo P1): no other job
-    /// runs a publish command, asks for an OIDC token or creates a release; each publish job runs
-    /// only after `release` (every check) passed; and only a tag push publishes, stages or
-    /// releases for real (a dispatch is a dry run). Comments may name anything.
+    /// runs a publish command, asks for an OIDC token or creates a release; each publish job waits
+    /// for every check; and only a tag push publishes, stages or releases for real, a dispatch
+    /// (even on a tag) being a dry run. Comments may name anything.
     #[test]
-    fn release_workflow_should_publish_only_from_its_publish_jobs_and_only_on_a_tag() {
+    fn release_workflow_should_publish_only_from_its_publish_jobs_and_only_on_a_tag_push() {
         const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
         const PUBLISH_JOBS: [&str; 3] = ["publish-crates", "publish-npm", "github-release"];
-        let publishing = [
+        const PUBLISHING: [&str; 13] = [
             "npm publish",
             "pnpm publish",
             "cargo publish",
@@ -375,18 +363,24 @@ mod tests {
             "git push",
             "id-token",
         ];
-        for (job, lines) in jobs(WORKFLOW) {
-            let found: Vec<&str> = lines
+        let jobs = crate::workflows::jobs(WORKFLOW);
+        assert!(PUBLISH_JOBS.iter().all(|job| jobs.iter().any(|(id, _)| id == job)));
+        for (job, lines) in &jobs {
+            let code: Vec<&str> = lines
                 .iter()
                 .copied()
-                .filter(|line| !line.trim_start().starts_with('#'))
-                .filter(|line| publishing.iter().any(|p| line.contains(p)))
+                .filter(|l| !l.trim_start().starts_with('#'))
                 .collect();
-            if !PUBLISH_JOBS.contains(&job) {
-                assert!(found.is_empty(), "{job} publishes: {found:?}");
+            let publishing: Vec<&str> = code
+                .iter()
+                .copied()
+                .filter(|l| PUBLISHING.iter().any(|p| l.contains(p)))
+                .collect();
+            if !PUBLISH_JOBS.contains(job) {
+                assert!(publishing.is_empty(), "{job} publishes: {publishing:?}");
                 continue;
             }
-            let text = lines.join("\n");
+            let text = code.join("\n");
             assert!(
                 text.contains("needs.release.result == 'success'")
                     || text.contains("needs.publish-crates.result == 'success'"),
@@ -394,19 +388,41 @@ mod tests {
             );
             assert_eq!(
                 text.contains("id-token"),
-                job == "publish-crates",
+                *job == "publish-crates",
                 "only publish-crates asks for an OIDC token"
             );
-            for line in &found {
-                let gated = ["xtask publish", "NPM_TOKEN", "crates-io-auth-action", "gh release"]
-                    .iter()
-                    .any(|p| line.contains(p));
-                if gated && !line.trim_start().starts_with("- name:") {
-                    let at = lines.iter().position(|l| l == line).unwrap_or_default();
-                    let window = lines.get(at.saturating_sub(12)..=at).unwrap_or_default().join("\n");
+            assert!(
+                code.iter()
+                    .filter(|l| l.contains("ref_type"))
+                    .all(|l| l.contains(ON_TAG)),
+                "{job} tests ref_type without event_name: a dispatch on a tag would publish"
+            );
+            for step in steps(lines) {
+                let step_text = step.join("\n");
+                let gated_by_if = step.iter().any(|l| l.trim() == format!("if: {ON_TAG}"));
+                let dry_run_unless_tag = step_text
+                    .contains(&format!("DRY_RUN: ${{{{ !({ON_TAG}) && '--dry-run' || '' }}}}"))
+                    && step
+                        .iter()
+                        .any(|l| l.contains("xtask publish") && l.contains("$DRY_RUN"));
+                let real = [
+                    "crates-io-auth-action",
+                    "gh release",
+                    "secrets.NPM_TOKEN",
+                    "xtask publish crates",
+                    "npm-stage",
+                ];
+                if real.iter().any(|p| step_text.contains(p)) {
                     assert!(
-                        window.contains("github.ref_type") || line.contains("$DRY_RUN"),
-                        "{job}: {line} isn't gated on a tag push"
+                        gated_by_if || dry_run_unless_tag,
+                        "{job}: a step publishes without the tag-push gate:\n{step_text}"
+                    );
+                }
+                if step_text.contains("secrets.NPM_TOKEN") {
+                    assert!(
+                        step.iter()
+                            .any(|l| l.contains(&format!("${{{{ {ON_TAG} && secrets.NPM_TOKEN || '' }}}}"))),
+                        "{job}: NPM_TOKEN reaches a run that isn't a tag push"
                     );
                 }
             }
@@ -515,5 +531,13 @@ mod tests {
                 None
             ]
         );
+    }
+
+    #[test]
+    fn notes_for_should_take_the_tags_section_without_its_heading() {
+        let changelog = "# Changelog\n\n## 0.2.0\n\n### Minor Changes\n\n- b\n\n## 0.1.0\n\n- a\n";
+        assert_eq!(notes_for(changelog, "v0.2.0").unwrap(), "### Minor Changes\n\n- b\n");
+        assert!(notes_for(changelog, "v0.3.0").is_err());
+        assert!(notes_for(changelog, "0.2.0").is_err());
     }
 }

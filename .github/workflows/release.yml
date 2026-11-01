@@ -1,7 +1,8 @@
 # Release lane (ADR 0018 §2, ADR 0017; todos B7b, P1): on a `v*` tag, everything the PR lanes and
 # the nightly lane run, on the release commit, plus the packaging checks and clean installs; then,
-# only when every one of them passed, the publish jobs (ADR 0017 §7). A `workflow_dispatch` run
-# does the same with `--dry-run`: it uploads and stages nothing and creates no release.
+# only when every one of them passed, the publish jobs (ADR 0017 §7). Only a tag push publishes:
+# a `workflow_dispatch` run, even on a tag, does the same with `--dry-run`, so it uploads and
+# stages nothing and creates no release.
 #
 #   guard           refuses to go on unless the latest completed scheduled nightly.yml run on main
 #                   succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
@@ -19,8 +20,9 @@
 #   release         passes when every job above passed
 #   publish-crates  `cargo xtask publish crates`: every `publish = true` crate, with a crates.io token
 #                   from trusted publishing (rust-lang/crates-io-auth-action; no stored token)
-#   publish-npm     `cargo xtask publish npm`: the fixed group packed and staged on npm with the
-#                   NPM_TOKEN secret (stage-only; the owner approves each version on npmjs.com)
+#   publish-npm     `cargo xtask publish npm-pack`, then `npm-stage`: the fixed group packed
+#                   without the token, then staged on npm with the NPM_TOKEN secret (stage-only;
+#                   the owner approves each version on npmjs.com)
 #   github-release  CycloneDX SBOMs (`cargo xtask sbom`) and, for a tag, the GitHub release with them
 # The repository is private, so there is no npm provenance and no artifact attestation yet
 # (ADR 0017 §7).
@@ -472,11 +474,13 @@ jobs:
           fi
           echo "Every release check passed on $REF."
 
-  # Publishing (ADR 0017 §7, todo P1): only after every check passed; for real only on a tag push.
+  # Publishing (ADR 0017 §7, todo P1): only after every check passed; for real only on a tag push
+  # (`github.event_name == 'push' && github.ref_type == 'tag'`; a dispatch on a tag is a dry run).
+  # A re-run after a partial publish skips the crates and packages already at the version.
   # crates.io trusted publishing accepts self-hosted runners and private repositories, so the
   # workflow's OIDC token buys a short-lived crates.io token and no crates.io secret exists.
   publish-crates:
-    name: Publish the crates${{ github.ref_type != 'tag' && ' (dry run)' || '' }}
+    name: Publish the crates${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -497,13 +501,13 @@ jobs:
         with:
           cache: false
       - name: Get a crates.io token (trusted publishing)
-        if: github.ref_type == 'tag'
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         id: crates-io
         uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
       - name: cargo xtask publish crates
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-io.outputs.token }}
-          DRY_RUN: ${{ github.ref_type != 'tag' && '--dry-run' || '' }}
+          DRY_RUN: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') && '--dry-run' || '' }}
         run: |
           # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
           cargo xtask publish crates $DRY_RUN
@@ -512,7 +516,7 @@ jobs:
   # @laminapdf that can stage but not publish: each version waits for the owner's 2FA approval
   # on npmjs.com (npm staged publishing).
   publish-npm:
-    name: Stage the npm packages${{ github.ref_type != 'tag' && ' (dry run)' || '' }}
+    name: Stage the npm packages${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, fast, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -534,18 +538,20 @@ jobs:
           cache: false
       - uses: ./.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
-      - name: cargo xtask publish npm
+      # Built and packed without the token, so no build script or dependency can read it.
+      - run: cargo xtask publish npm-pack
+      - name: cargo xtask publish npm-stage
         env:
-          NPM_TOKEN: ${{ github.ref_type == 'tag' && secrets.NPM_TOKEN || '' }}
-          DRY_RUN: ${{ github.ref_type != 'tag' && '--dry-run' || '' }}
+          NPM_TOKEN: ${{ github.event_name == 'push' && github.ref_type == 'tag' && secrets.NPM_TOKEN || '' }}
+          DRY_RUN: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') && '--dry-run' || '' }}
         run: |
           # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
-          cargo xtask publish npm $DRY_RUN
+          cargo xtask publish npm-stage $DRY_RUN
 
   # SBOMs for every published crate and package; for a tag, the GitHub release that carries them
   # with the version's changelog. A dry run uploads the SBOMs as an artifact instead.
   github-release:
-    name: SBOMs and the GitHub release${{ github.ref_type != 'tag' && ' (dry run)' || '' }}
+    name: SBOMs and the GitHub release${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, publish-crates, publish-npm]
     if: ${{ !cancelled() && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -578,7 +584,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Create the GitHub release
-        if: github.ref_type == 'tag'
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}

@@ -8,7 +8,7 @@
 //! module is compiled only for tests (`main.rs`).
 
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
-fn job_id(line: &str) -> Option<&str> {
+pub(crate) fn job_id(line: &str) -> Option<&str> {
     if !line.starts_with("  ") || line.starts_with("   ") || line.trim_start().starts_with('#') {
         return None;
     }
@@ -20,6 +20,20 @@ fn job_id(line: &str) -> Option<&str> {
 fn job_ids(workflow: &str) -> Vec<&str> {
     let jobs = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
     jobs.lines().filter_map(job_id).collect()
+}
+
+/// Every job of `workflow` with its own lines (the `<id>:` line left out), in order.
+pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
+    let body = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
+    let mut jobs: Vec<(&str, Vec<&str>)> = Vec::new();
+    for line in body.lines() {
+        if let Some(id) = job_id(line) {
+            jobs.push((id, Vec::new()));
+        } else if let Some((_, lines)) = jobs.last_mut() {
+            lines.push(line);
+        }
+    }
+    jobs
 }
 
 /// The ids in `job`'s one-line `needs: [a, b]`, read only from that job's own lines.
