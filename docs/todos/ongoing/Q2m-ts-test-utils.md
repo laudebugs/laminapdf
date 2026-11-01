@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2m` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2n](./Q2n-render-adapter-shared.md) |
+| Blocks | [Q2n](../ready/Q2n-render-adapter-shared.md) |
 | ADRs | None |
 | Branch | `refactor/q2m-ts-test-utils` |
 | PR title | `refactor(test): @laminapdf/test-utils for shared TS test helpers` |
@@ -30,7 +30,7 @@ The render adapters import `../render/test/{contract,browser-harness,browser-con
 
 **Out of scope** (and which todo covers it)
 
-- Render adapter helpers ([Q2n](./Q2n-render-adapter-shared.md)).
+- Render adapter helpers ([Q2n](../ready/Q2n-render-adapter-shared.md)).
 
 ## Tasks
 
@@ -62,7 +62,7 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
