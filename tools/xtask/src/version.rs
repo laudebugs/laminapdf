@@ -239,15 +239,15 @@ fn read(path: &Path) -> Result<String> {
 }
 
 /// The npm packages released together, as `.changeset/config.json` and their manifests say.
-struct FixedGroup {
+pub(crate) struct FixedGroup {
     /// Their one version.
-    version: String,
+    pub(crate) version: String,
     /// Each member's name and folder: [`LEAD_PACKAGE`] first, then in the config's order.
-    members: Vec<(String, PathBuf)>,
+    pub(crate) members: Vec<(String, PathBuf)>,
 }
 
 /// The fixed group and its version: every member's `package.json` must have it.
-fn fixed_group_version(root: &Path) -> Result<FixedGroup> {
+pub(crate) fn fixed_group_version(root: &Path) -> Result<FixedGroup> {
     let names = fixed_group(&read(&root.join(".changeset/config.json"))?)?;
     let mut found = find_packages(root, &names)?;
     let mut members = Vec::with_capacity(names.len());

@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4a](./L4a-lamina-cli.md), [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md) |
+| Depends on | [L4a](./L4a-lamina-cli.md), [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
 | Blocks | None |
-| ADRs | Follows 0017 (versioning and publishing, completed in [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](./L4a-lamina-cli.md)) |
+| ADRs | Follows 0017 (versioning and publishing, completed in [P1](../done/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](./L4a-lamina-cli.md)) |
 | Branch | `build/l4d-cli-distribution` |
 | PR title | `build(cli): release binaries with cargo-dist, Homebrew formula and npm wrapper packages` |
 | Size | M (≈ 300–500 lines: dist config, workflow, npm packages, install tests) |
@@ -22,7 +22,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): cargo-dist 0.32, its installers (shell, PowerShell, Homebrew, npm, MSI), Biome's `optionalDependencies` layout.
 - [Report: the CLI is the primary agent interface](../../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it): crate versions read on 2026-10-29.
-- [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md): name reservation, OIDC trusted publishing, attestations and the `release` environment this PR plugs into; P1 itself is blocked on the owner's decision to publish.
+- [P1](../done/P1-reserve-names-and-trusted-publishing.md): name reservation, OIDC trusted publishing, attestations and the `release` environment this PR plugs into; P1 itself is blocked on the owner's decision to publish.
 - [ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release): binaries ship third-party licence notices and an SBOM.
 - [D6b](./D6b-release-workflow-and-linux-packages.md): the desktop release workflow; share runners and signing conventions where they overlap.
 
@@ -40,7 +40,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 **Out of scope** (and which todo covers it)
 
-- Actually publishing a release, crates.io publishing of `laminapdf-cli`, npm publishing: the owner's decision; publishing mechanics in [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md), first registry release in [P2](./P2-first-registry-prerelease.md).
+- Actually publishing a release, crates.io publishing of `laminapdf-cli`, npm publishing: the owner's decision; publishing mechanics in [P1](../done/P1-reserve-names-and-trusted-publishing.md), first registry release in [P2](./P2-first-registry-prerelease.md).
 - Code signing and notarisation of the binaries (macOS, Windows): reuse [D6c](./D6c-macos-signing-and-notarisation.md) and [D6d](./D6d-windows-signing.md) when they land; note the gap in the README until then.
 - winget, Scoop, apt/rpm repositories, homebrew-core: later, on demand.
 - A `wasm32-wasip2` build of the CLI: an open question below.

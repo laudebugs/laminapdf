@@ -100,7 +100,7 @@ Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-taur
 | Branch | `<type>/<short-description>` | `feat/xref-repair` (see [git-workflow.md](git-workflow.md)) |
 
 - **MUST NOT** use `-rs`/`-rust` in crate names, or meaningless words in feature names. Use `std`, not `use-std`. Negative features such as `no-std` are "practically never correct" ([Rust API Guidelines C-CASE, C-FEATURE](https://rust-lang.github.io/api-guidelines/naming.html)).
-- The npm scope is `@laminapdf` (owner, 2026-10-31; [ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)). *Recommendation:* reserve the `laminapdf` crate name on crates.io and the `@laminapdf` scope on npm before the first public release ([P1](../todos/ongoing/P1-reserve-names-and-trusted-publishing.md)), and check that both are free before relying on them.
+- The npm scope is `@laminapdf` (owner, 2026-10-31; [ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)). *Recommendation:* reserve the `laminapdf` crate name on crates.io and the `@laminapdf` scope on npm before the first public release ([P1](../todos/done/P1-reserve-names-and-trusted-publishing.md)), and check that both are free before relying on them.
 
 ## 4. Public API surface and stability
 

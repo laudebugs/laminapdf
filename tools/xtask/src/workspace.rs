@@ -61,6 +61,8 @@ struct Crate {
     dir: PathBuf,
     layer: Layer,
     wasm: bool,
+    /// Whether `cargo publish` may upload it (`publish` in its manifest, not `false`).
+    publishable: bool,
 }
 
 /// A package in a crate's dependency graph ([`crate_graph`]).
@@ -130,6 +132,14 @@ impl Workspace {
             target_dir,
             crates,
         })
+    }
+
+    /// The crates `cargo publish --workspace` uploads, with their folders (ADR 0017 §7).
+    pub(crate) fn publishable_crates(&self) -> impl Iterator<Item = (&str, &Path)> {
+        self.crates
+            .iter()
+            .filter(|c| c.publishable)
+            .map(|c| (c.name.as_str(), c.dir.as_path()))
     }
 
     /// Names of the core crates.
@@ -225,6 +235,10 @@ impl Crate {
             wasm: layer == Layer::Edge
                 && package.pointer("/metadata/laminapdf/wasm").and_then(Value::as_bool) == Some(true),
             layer,
+            // cargo metadata: `publish` is null for any registry, `[]` for `publish = false`.
+            publishable: package
+                .get("publish")
+                .is_none_or(|p| p.as_array().is_none_or(|r| !r.is_empty())),
         })
     }
 }

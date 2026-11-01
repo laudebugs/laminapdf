@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 215 ready · 74 done** (290 total).
+**0 ongoing · 215 ready · 75 done** (290 total).
 
 ## Can start now
 
@@ -25,6 +25,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
+- [P2](ready/P2-first-registry-prerelease.md): First registry pre-release, public stability policy and changelog, cargo-semver-checks
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q1m](ready/Q1m-guides-read-and-edit.md): Plain-English guides: reading and editing PDFs
@@ -46,7 +47,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [P1](ongoing/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -108,7 +109,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
-| L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ongoing/P1-reserve-names-and-trusted-publishing.md) |
+| L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](done/P1-reserve-names-and-trusted-publishing.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](done/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
 | L6b | [Mobile SDK plan: `LaminaPdfView` (SwiftUI) and `LaminaPdfViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](done/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
@@ -333,8 +334,8 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | P0 | [Publish the npm packages under `@laminapdf`, with `@lamina/pdf` as `@laminapdf/sdk`](done/P0-npm-scope-laminapdf.md) | done | — |
 | P0b | [Rename the crates `laminapdf-*` and the façade `laminapdf`](done/P0b-crate-names-laminapdf.md) | done | [P0](done/P0-npm-scope-laminapdf.md) |
 | P0c | [Call the product Lamina PDF and rename its public names to match](done/P0c-lamina-pdf-names.md) | done | [P0b](done/P0b-crate-names-laminapdf.md) |
-| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ongoing/P1-reserve-names-and-trusted-publishing.md) | ongoing | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md), [P0b](done/P0b-crate-names-laminapdf.md), [P0c](done/P0c-lamina-pdf-names.md) |
-| P2 | [First registry pre-release, public stability policy and changelog, cargo-semver-checks](ready/P2-first-registry-prerelease.md) | ready | [P1](ongoing/P1-reserve-names-and-trusted-publishing.md) |
+| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](done/P1-reserve-names-and-trusted-publishing.md) | done | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md), [P0b](done/P0b-crate-names-laminapdf.md), [P0c](done/P0c-lamina-pdf-names.md) |
+| P2 | [First registry pre-release, public stability policy and changelog, cargo-semver-checks](ready/P2-first-registry-prerelease.md) | ready | [P1](done/P1-reserve-names-and-trusted-publishing.md) |
 
 ## Docs and code quality — Round Q
 

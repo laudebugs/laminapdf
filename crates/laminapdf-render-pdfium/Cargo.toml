@@ -6,7 +6,11 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-publish.workspace = true
+publish = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["pdf", "pdfium", "render", "raster"]
+categories = ["rendering", "graphics"]
 
 # Edge: FFI into a C++ library loaded at runtime from the file system (ADR 0004 §5).
 [package.metadata.laminapdf]
@@ -17,9 +21,11 @@ laminapdf-render = { workspace = true }
 pdfium-render = { workspace = true }
 
 [dev-dependencies]
+# Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
+# so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
 # The goldens and cross-checks render with both backends and compare sizes with lamina's model.
-laminapdf = { workspace = true }
-laminapdf-render = { workspace = true, features = ["hayro"] }
+laminapdf = { path = "../laminapdf" }
+laminapdf-render = { path = "../laminapdf-render", features = ["hayro"] }
 png = { workspace = true }
 serde_json = { workspace = true }
 

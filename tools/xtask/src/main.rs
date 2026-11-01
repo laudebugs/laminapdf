@@ -22,6 +22,7 @@ mod nightly;
 mod pdf_runtimes;
 mod pdfium;
 mod portable_paths;
+mod publish;
 mod release;
 mod render;
 mod render_diff;
@@ -260,6 +261,10 @@ fn main() -> Result<()> {
     if task == "release-guard" {
         return release::guard(&repo_root()?, &release::parse_args(rest)?);
     }
+    // Needs only CHANGELOG.md.
+    if let ("release-notes", [tag, out]) = (task, rest) {
+        return release::release_notes(&repo_root()?, tag, Path::new(out));
+    }
     let ws = Workspace::load(repo_root()?)?;
 
     match (task, rest) {
@@ -279,6 +284,8 @@ fn main() -> Result<()> {
             ts_tests(&ws)
         }
         ("portability", []) => portability(&ws),
+        ("publish", args) => publish::run(&ws, publish::parse_args(args)?),
+        ("sbom", [dir]) => publish::sbom(&ws, Path::new(dir)),
         ("wasm", []) => wasm(&ws),
         ("size", []) => wasm::size(&ws, false),
         ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),

@@ -7,7 +7,7 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [§8 Q3](../../plans/architecture.md#8-open-questions-for-the-team) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | [P0](./P0-npm-scope-laminapdf.md) |
-| Blocks | [P0c](./P0c-lamina-pdf-names.md), [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md) |
+| Blocks | [P0c](./P0c-lamina-pdf-names.md), [P1](./P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Amends [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate names) |
 | Branch | `refactor/p0b-rename-crates-laminapdf` |
 | PR title | `refactor: rename the crates laminapdf-* and the façade laminapdf` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an unrelated compiler project, so the façade becomes `laminapdf` and each core and edge crate `laminapdf-<name>`, matching the `@laminapdf` npm scope and the `laminapdf.com` domain. Publishing ([P1](../ongoing/P1-reserve-names-and-trusted-publishing.md)) then reserves names that are free.
+Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an unrelated compiler project, so the façade becomes `laminapdf` and each core and edge crate `laminapdf-<name>`, matching the `@laminapdf` npm scope and the `laminapdf.com` domain. Publishing ([P1](../done/P1-reserve-names-and-trusted-publishing.md)) then reserves names that are free.
 
 ## Context
 

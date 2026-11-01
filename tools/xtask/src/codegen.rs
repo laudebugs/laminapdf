@@ -7,8 +7,8 @@
 //!   (`as_str`, `from_code`, `kind`, `summary`, `hint`, `docs_url`), in the bottom crate so every
 //!   crate that builds an ADR 0026 object reads the same table (the façade re-exports them);
 //! - `crates/laminapdf/src/generated/explain.rs`: behind the façade's `explain` feature,
-//!   `explain(code)` over the `docs/errors/<code>.md` pages (`include_str!`, so the text is
-//!   never copied and never reaches a build without the feature);
+//!   `explain(code)` with the text of the `docs/errors/<code>.md` pages as raw strings, so the
+//!   published crate needs no file outside it, and no build without the feature carries them;
 //! - `packages/sdk/src/generated/codes.ts`: the `ErrorKind`, `ErrorCode`, `WarningCode` and
 //!   `LimitName` unions, the code lists, `KINDS`, `HINTS`, `docsUrl()` and the kind and hint of
 //!   the codes the TS layer raises itself;
@@ -174,7 +174,7 @@ fn render_all(root: &Path) -> Result<Vec<(String, String)>> {
     let schema = render_error_schema(&codes)?;
     let mut out = vec![
         (RUST.to_owned(), render_rust(&codes)),
-        (RUST_EXPLAIN.to_owned(), render_rust_explain(&codes)),
+        (RUST_EXPLAIN.to_owned(), render_rust_explain(&pages)),
         (TS.to_owned(), render_ts(&codes)),
         (TS_EXPLAIN.to_owned(), render_ts_explain(&pages)),
         (ERRORS_README.to_owned(), render_readme(&readme, &codes)?),
@@ -327,8 +327,8 @@ fn render_rust(codes: &Codes) -> String {
     out
 }
 
-/// The façade's module of explain pages.
-fn render_rust_explain(codes: &Codes) -> String {
+/// The façade's module of explain pages: each page's Markdown as a raw string literal.
+fn render_rust_explain(pages: &[(String, String)]) -> String {
     let mut out = format!(
         "{HEADER}\n\
          //! The `explain` pages of every code in `fixtures/codes.json`, behind the `explain`\n\
@@ -345,16 +345,34 @@ fn render_rust_explain(codes: &Codes) -> String {
          pub fn explain(code: &str) -> Option<&'static str> {\n    \
          Some(match code {\n",
     );
-    for e in &codes.entries {
-        let _ = writeln!(
-            out,
-            "        {} => include_str!(\"../../../../docs/errors/{}.md\"),",
-            rust_str(&e.code),
-            e.code
-        );
+    for (code, text) in pages {
+        let _ = writeln!(out, "        {} => {},", rust_str(code), raw_str(text));
     }
     out.push_str("        _ => return None,\n    })\n}\n");
     out
+}
+
+/// `text` as a Rust raw string literal: no `#` without a `"` in it, else one more `#` than the
+/// longest `"#…` run.
+fn raw_str(text: &str) -> String {
+    let longest = text
+        .match_indices('"')
+        .map(|(index, _)| {
+            text.get(index + 1..)
+                .unwrap_or_default()
+                .chars()
+                .take_while(|c| *c == '#')
+                .count()
+        })
+        .max()
+        .unwrap_or(0);
+    // No quote, no hashes (clippy's needless_raw_string_hashes); else one more than any run.
+    let hashes = if text.contains('"') {
+        "#".repeat(longest + 1)
+    } else {
+        String::new()
+    };
+    format!("r{hashes}\"{text}\"{hashes}")
 }
 
 /// One enum and its accessors.
@@ -903,8 +921,15 @@ mod tests {
 
     #[test]
     fn render_rust_explain_should_list_every_code_including_ts_only_ones() {
-        let explain = super::render_rust_explain(&codes(&small()));
-        assert!(explain.contains("\"p-only\" => include_str!"), "{explain}");
+        let pages = [("p-only".to_owned(), "# `p-only`\n".to_owned())];
+        let explain = super::render_rust_explain(&pages);
+        assert!(explain.contains("\"p-only\" => r\"# `p-only`\n\","), "{explain}");
+    }
+
+    #[test]
+    fn raw_str_should_use_more_hashes_than_the_text_contains() {
+        assert_eq!(super::raw_str("a \"# b"), "r##\"a \"# b\"##");
+        assert_eq!(super::raw_str("plain"), "r\"plain\"");
     }
 
     #[test]

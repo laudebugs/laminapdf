@@ -161,8 +161,45 @@ fn verdict(json: &str, release: &str, contains: &dyn Fn(&str) -> Result<bool>) -
     Ok(format!("ok: {what} succeeded on an ancestor of {release}"))
 }
 
+/// `cargo xtask release-notes <tag> <out>`: the root `CHANGELOG.md`'s section for the tag's
+/// version (`v0.2.0-alpha.1` → `## 0.2.0-alpha.1`), without its heading, into `out`: the body of
+/// the GitHub release the release lane creates (ADR 0017 §7).
+pub(crate) fn release_notes(root: &Path, tag: &str, out: &Path) -> Result<()> {
+    let changelog = std::fs::read_to_string(root.join("CHANGELOG.md")).context("reading CHANGELOG.md")?;
+    let notes = notes_for(&changelog, tag)?;
+    if let Some(dir) = out.parent() {
+        std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
+    }
+    std::fs::write(out, notes).with_context(|| format!("writing {}", out.display()))
+}
+
+/// The section of `changelog` under `## <version of tag>`, up to the next `## ` heading.
+fn notes_for(changelog: &str, tag: &str) -> Result<String> {
+    let version = tag
+        .strip_prefix('v')
+        .with_context(|| format!("{tag} is not a v<version> tag"))?;
+    let heading = format!("## {version}");
+    let mut lines = changelog.lines().skip_while(|line| *line != heading);
+    if lines.next().is_none() {
+        bail!("CHANGELOG.md has no `{heading}` section (run `pnpm changeset version` and `cargo xtask version sync`)");
+    }
+    let body: Vec<&str> = lines.take_while(|line| !line.starts_with("## ")).collect();
+    Ok(format!("{}\n", body.join("\n").trim()))
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn notes_for_should_take_the_tags_section_without_its_heading() {
+        let changelog = "# Changelog\n\n## 0.2.0\n\n### Minor Changes\n\n- b\n\n## 0.1.0\n\n- a\n";
+        assert_eq!(
+            super::notes_for(changelog, "v0.2.0").unwrap(),
+            "### Minor Changes\n\n- b\n"
+        );
+        assert!(super::notes_for(changelog, "v0.3.0").is_err());
+        assert!(super::notes_for(changelog, "0.2.0").is_err());
+    }
+
     use anyhow::Result;
 
     use super::{Args, parse_args, verdict};
@@ -296,30 +333,84 @@ mod tests {
         );
     }
 
-    /// The release lane publishes nothing (ADR 0017 §6; publishing is todo P1): no step of the
-    /// workflow may run a publish command or a release action. Comments may name them.
+    /// The jobs of a workflow by name (`  name:` under `jobs:`), each with its lines.
+    fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
+        let mut jobs: Vec<(&str, Vec<&str>)> = Vec::new();
+        let mut in_jobs = false;
+        for line in workflow.lines() {
+            if line == "jobs:" {
+                in_jobs = true;
+            } else if in_jobs
+                && let Some(name) = line.strip_prefix("  ").and_then(|l| l.strip_suffix(':'))
+                && !name.starts_with([' ', '#'])
+            {
+                jobs.push((name, Vec::new()));
+            } else if let Some((_, lines)) = jobs.last_mut() {
+                lines.push(line);
+            }
+        }
+        jobs
+    }
+
+    /// The release lane publishes only from its publish jobs (ADR 0017 §7, todo P1): no other job
+    /// runs a publish command, asks for an OIDC token or creates a release; each publish job runs
+    /// only after `release` (every check) passed; and only a tag push publishes, stages or
+    /// releases for real (a dispatch is a dry run). Comments may name anything.
     #[test]
-    fn release_workflow_should_have_no_publish_step() {
+    fn release_workflow_should_publish_only_from_its_publish_jobs_and_only_on_a_tag() {
         const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
-        let forbidden = [
+        const PUBLISH_JOBS: [&str; 3] = ["publish-crates", "publish-npm", "github-release"];
+        let publishing = [
             "npm publish",
             "pnpm publish",
             "cargo publish",
             "changeset publish",
             "changeset tag",
+            "xtask publish",
             "gh release",
             "action-gh-release",
+            "crates-io-auth-action",
+            "NPM_TOKEN",
             "git tag",
             "git push",
             "id-token",
         ];
-        let found: Vec<&str> = WORKFLOW
-            .lines()
-            .map(|line| line.split(" #").next().unwrap_or_default())
-            .filter(|line| !line.trim_start().starts_with('#'))
-            .filter(|line| forbidden.iter().any(|f| line.contains(f)))
-            .collect();
-        assert_eq!(found, Vec::<&str>::new());
+        for (job, lines) in jobs(WORKFLOW) {
+            let found: Vec<&str> = lines
+                .iter()
+                .copied()
+                .filter(|line| !line.trim_start().starts_with('#'))
+                .filter(|line| publishing.iter().any(|p| line.contains(p)))
+                .collect();
+            if !PUBLISH_JOBS.contains(&job) {
+                assert!(found.is_empty(), "{job} publishes: {found:?}");
+                continue;
+            }
+            let text = lines.join("\n");
+            assert!(
+                text.contains("needs.release.result == 'success'")
+                    || text.contains("needs.publish-crates.result == 'success'"),
+                "{job} doesn't wait for every check"
+            );
+            assert_eq!(
+                text.contains("id-token"),
+                job == "publish-crates",
+                "only publish-crates asks for an OIDC token"
+            );
+            for line in &found {
+                let gated = ["xtask publish", "NPM_TOKEN", "crates-io-auth-action", "gh release"]
+                    .iter()
+                    .any(|p| line.contains(p));
+                if gated && !line.trim_start().starts_with("- name:") {
+                    let at = lines.iter().position(|l| l == line).unwrap_or_default();
+                    let window = lines.get(at.saturating_sub(12)..=at).unwrap_or_default().join("\n");
+                    assert!(
+                        window.contains("github.ref_type") || line.contains("$DRY_RUN"),
+                        "{job}: {line} isn't gated on a tag push"
+                    );
+                }
+            }
+        }
     }
 
     /// The release lane calls nightly.yml with `record: false`, and every nightly step or job that

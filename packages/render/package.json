@@ -1,9 +1,20 @@
 {
   "name": "@laminapdf/render",
   "version": "0.2.0-alpha.0",
-  "private": true,
   "description": "The web render contract of ADR 0004: the RenderBackend interface @laminapdf/render-pdfium and @laminapdf/render-hayro implement, the tile planner they share, and RenderError.",
   "license": "MIT OR Apache-2.0",
+  "homepage": "https://laminapdf.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/laminapdf.git",
+    "directory": "packages/render"
+  },
+  "keywords": [
+    "pdf",
+    "render",
+    "renderer",
+    "interface"
+  ],
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -29,5 +40,8 @@
     "@vitest/browser-playwright": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

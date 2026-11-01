@@ -6,7 +6,11 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-publish.workspace = true
+publish = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["pdf", "range-requests", "streaming", "mmap"]
+categories = ["filesystem", "encoding"]
 
 # Read by `cargo xtask`: an edge crate. The sparse source and the retry loop are pure and build
 # for wasm32 (laminapdf-wasm uses them); file and mmap sources sit behind `native` and `mmap`.
@@ -28,9 +32,11 @@ memmap2 = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-laminapdf = { workspace = true, features = ["saslprep"] }
+# Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
+# so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
+laminapdf = { path = "../laminapdf", features = ["saslprep"] }
 # The spike-era Writer builds the large generated file the byte-count criterion needs.
-laminapdf-save = { workspace = true }
+laminapdf-save = { path = "../laminapdf-save" }
 
 [lints]
 workspace = true

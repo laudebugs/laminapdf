@@ -14,4 +14,4 @@ sync` reads, so a new member needs no code change), and the sync gives every cra
   `@laminapdf/sdk`'s `VERSION` in `packages/sdk/src/version.ts`).
 - `pre.json` exists while the versions are pre-releases (`-alpha.N`).
 
-Nothing is published from here: publishing is [P1](../docs/todos/ongoing/P1-reserve-names-and-trusted-publishing.md).
+Nothing is published from here: publishing is [P1](../docs/todos/done/P1-reserve-names-and-trusted-publishing.md).

@@ -6,9 +6,9 @@
 | Status | `ready` — **blocked on the owner's decision to publish** |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
-| Depends on | [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md) |
+| Depends on | [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
 | Blocks | None |
-| ADRs | Follows 0017 (complete after [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
+| ADRs | Follows 0017 (complete after [P1](../done/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p2-first-prerelease` |
 | PR title | `build: publish the first pre-release and enable cargo-semver-checks` |
 | Size | S–M (≈ 150–400 lines: docs, CI job, changeset) |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Publish lamina for the first time: a `0.x` pre-release of every public crate on crates.io and `@laminapdf/wasm` + `@laminapdf/sdk` on npm through the [P1](../ongoing/P1-reserve-names-and-trusted-publishing.md) workflow, verify installation and the quick start from the registries in each runtime, publish the stability policy and changelog, and from then on check every PR for semver breaks against the published version.
+Publish lamina for the first time: a `0.x` pre-release of every public crate on crates.io and `@laminapdf/wasm` + `@laminapdf/sdk` on npm through the [P1](../done/P1-reserve-names-and-trusted-publishing.md) workflow, verify installation and the quick start from the registries in each runtime, publish the stability policy and changelog, and from then on check every PR for semver breaks against the published version.
 
 ## Context
 
@@ -33,6 +33,7 @@ Publish lamina for the first time: a `0.x` pre-release of every public crate on 
 - Publish `docs/stability-policy.md` on the docs site; link the changelog; README badges.
 - `cargo-semver-checks` job in the fast lane against the latest published version for public crates (pinned in `doctor.rs`); for TS, `attw` + an API report (`api-extractor` or similar) diffed against the published package.
 - Docs site install pages switched from tarballs/path deps to registry installs; docs.rs builds verified.
+- The published crates' MSRV: move `rust-version` from the pinned toolchain to [rust.md](../../guidelines/rust.md)'s N-2 policy, checked by the `msrv-and-spike` job, and the root `CHANGELOG.md`'s "nothing is published" line (`cargo xtask version sync`'s template).
 
 **Out of scope**
 
@@ -41,7 +42,7 @@ Publish lamina for the first time: a `0.x` pre-release of every public crate on 
 ## Tasks
 
 - [ ] Owner approval of the version and the stability policy wording
-- [ ] Changeset + version PR; merge; release workflow publishes (owner approves the `release` environment)
+- [ ] Changeset + version PR; merge; the owner tags `v<version>`; the release lane publishes the crates and stages the npm packages, and the owner approves each staged version on npmjs.com
 - [ ] `verify-install --from-registry`; release-lane job
 - [ ] Stability policy and changelog on the docs site; README updates
 - [ ] cargo-semver-checks and TS API diff jobs

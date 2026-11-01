@@ -11,137 +11,4104 @@
 #[must_use]
 pub fn explain(code: &str) -> Option<&'static str> {
     Some(match code {
-        "missing-header" => include_str!("../../../../docs/errors/missing-header.md"),
-        "xref-repaired" => include_str!("../../../../docs/errors/xref-repaired.md"),
-        "xrefstm-ignored" => include_str!("../../../../docs/errors/xrefstm-ignored.md"),
-        "stream-length-recovered" => include_str!("../../../../docs/errors/stream-length-recovered.md"),
-        "stale-generation" => include_str!("../../../../docs/errors/stale-generation.md"),
-        "page-tree-node-skipped" => include_str!("../../../../docs/errors/page-tree-node-skipped.md"),
-        "page-count-mismatch" => include_str!("../../../../docs/errors/page-count-mismatch.md"),
-        "flate-truncated" => include_str!("../../../../docs/errors/flate-truncated.md"),
-        "objstm-index-mismatch" => include_str!("../../../../docs/errors/objstm-index-mismatch.md"),
-        "object-number-out-of-range" => include_str!("../../../../docs/errors/object-number-out-of-range.md"),
-        "aes-padding-invalid" => include_str!("../../../../docs/errors/aes-padding-invalid.md"),
-        "perms-mismatch" => include_str!("../../../../docs/errors/perms-mismatch.md"),
-        "warnings-truncated" => include_str!("../../../../docs/errors/warnings-truncated.md"),
-        "invalid-box" => include_str!("../../../../docs/errors/invalid-box.md"),
-        "invalid-rotate" => include_str!("../../../../docs/errors/invalid-rotate.md"),
-        "name-tree-node-skipped" => include_str!("../../../../docs/errors/name-tree-node-skipped.md"),
-        "outline-cycle" => include_str!("../../../../docs/errors/outline-cycle.md"),
-        "outline-item-skipped" => include_str!("../../../../docs/errors/outline-item-skipped.md"),
-        "invalid-date" => include_str!("../../../../docs/errors/invalid-date.md"),
-        "invalid-page-label" => include_str!("../../../../docs/errors/invalid-page-label.md"),
-        "invalid-entry" => include_str!("../../../../docs/errors/invalid-entry.md"),
-        "content-unknown-operator" => include_str!("../../../../docs/errors/content-unknown-operator.md"),
-        "content-bad-operands" => include_str!("../../../../docs/errors/content-bad-operands.md"),
-        "content-unbalanced-q" => include_str!("../../../../docs/errors/content-unbalanced-q.md"),
-        "content-unbalanced-bt" => include_str!("../../../../docs/errors/content-unbalanced-bt.md"),
-        "content-unbalanced-marked" => include_str!("../../../../docs/errors/content-unbalanced-marked.md"),
-        "content-syntax" => include_str!("../../../../docs/errors/content-syntax.md"),
-        "content-resource-missing" => include_str!("../../../../docs/errors/content-resource-missing.md"),
-        "inline-image-unterminated" => include_str!("../../../../docs/errors/inline-image-unterminated.md"),
-        "xobject-cycle" => include_str!("../../../../docs/errors/xobject-cycle.md"),
-        "content-path-unpainted" => include_str!("../../../../docs/errors/content-path-unpainted.md"),
-        "font-invalid" => include_str!("../../../../docs/errors/font-invalid.md"),
-        "cmap-invalid" => include_str!("../../../../docs/errors/cmap-invalid.md"),
-        "unmapped-glyph" => include_str!("../../../../docs/errors/unmapped-glyph.md"),
-        "not-pdf" => include_str!("../../../../docs/errors/not-pdf.md"),
-        "missing-root" => include_str!("../../../../docs/errors/missing-root.md"),
-        "reference-cycle" => include_str!("../../../../docs/errors/reference-cycle.md"),
-        "limit-exceeded" => include_str!("../../../../docs/errors/limit-exceeded.md"),
-        "strict" => include_str!("../../../../docs/errors/strict.md"),
-        "data-pending" => include_str!("../../../../docs/errors/data-pending.md"),
-        "source" => include_str!("../../../../docs/errors/source.md"),
-        "type" => include_str!("../../../../docs/errors/type.md"),
-        "invalid-structure" => include_str!("../../../../docs/errors/invalid-structure.md"),
-        "unset-object" => include_str!("../../../../docs/errors/unset-object.md"),
-        "repaired-base" => include_str!("../../../../docs/errors/repaired-base.md"),
-        "encrypted-base" => include_str!("../../../../docs/errors/encrypted-base.md"),
-        "password-required" => include_str!("../../../../docs/errors/password-required.md"),
-        "wrong-password" => include_str!("../../../../docs/errors/wrong-password.md"),
-        "unsupported-security-handler" => include_str!("../../../../docs/errors/unsupported-security-handler.md"),
-        "unexpected-eof" => include_str!("../../../../docs/errors/unexpected-eof.md"),
-        "syntax" => include_str!("../../../../docs/errors/syntax.md"),
-        "unsupported-filter" => include_str!("../../../../docs/errors/unsupported-filter.md"),
-        "decompress" => include_str!("../../../../docs/errors/decompress.md"),
-        "nested-transaction" => include_str!("../../../../docs/errors/nested-transaction.md"),
-        "no-transaction" => include_str!("../../../../docs/errors/no-transaction.md"),
-        "unknown-page" => include_str!("../../../../docs/errors/unknown-page.md"),
-        "direct-page" => include_str!("../../../../docs/errors/direct-page.md"),
-        "unsupported-version" => include_str!("../../../../docs/errors/unsupported-version.md"),
-        "invalid-op-log" => include_str!("../../../../docs/errors/invalid-op-log.md"),
-        "saved-not-rebased" => include_str!("../../../../docs/errors/saved-not-rebased.md"),
-        "no-pending-save" => include_str!("../../../../docs/errors/no-pending-save.md"),
-        "sink" => include_str!("../../../../docs/errors/sink.md"),
-        "not-rebased" => include_str!("../../../../docs/errors/not-rebased.md"),
-        "sink-not-empty" => include_str!("../../../../docs/errors/sink-not-empty.md"),
-        "would-invalidate-signatures" => include_str!("../../../../docs/errors/would-invalidate-signatures.md"),
-        "requires-rewrite" => include_str!("../../../../docs/errors/requires-rewrite.md"),
-        "invalid-font" => include_str!("../../../../docs/errors/invalid-font.md"),
-        "collection-index" => include_str!("../../../../docs/errors/collection-index.md"),
-        "unknown-axis" => include_str!("../../../../docs/errors/unknown-axis.md"),
-        "font-not-embeddable" => include_str!("../../../../docs/errors/font-not-embeddable.md"),
-        "missing-glyph" => include_str!("../../../../docs/errors/missing-glyph.md"),
-        "glyph-out-of-range" => include_str!("../../../../docs/errors/glyph-out-of-range.md"),
-        "unknown-font" => include_str!("../../../../docs/errors/unknown-font.md"),
-        "subset-failed" => include_str!("../../../../docs/errors/subset-failed.md"),
-        "invalid-axis-value" => include_str!("../../../../docs/errors/invalid-axis-value.md"),
-        "wrong-document" => include_str!("../../../../docs/errors/wrong-document.md"),
-        "invalid-feature" => include_str!("../../../../docs/errors/invalid-feature.md"),
-        "invalid-text-range" => include_str!("../../../../docs/errors/invalid-text-range.md"),
-        "unsupported-layout-option" => include_str!("../../../../docs/errors/unsupported-layout-option.md"),
-        "font-mismatch" => include_str!("../../../../docs/errors/font-mismatch.md"),
-        "encoding-full" => include_str!("../../../../docs/errors/encoding-full.md"),
-        "font-not-shapable" => include_str!("../../../../docs/errors/font-not-shapable.md"),
-        "tounicode-conflict" => include_str!("../../../../docs/errors/tounicode-conflict.md"),
-        "whole-font-rebuilt" => include_str!("../../../../docs/errors/whole-font-rebuilt.md"),
-        "invalid-image" => include_str!("../../../../docs/errors/invalid-image.md"),
-        "unsupported-image" => include_str!("../../../../docs/errors/unsupported-image.md"),
-        "image-too-large" => include_str!("../../../../docs/errors/image-too-large.md"),
-        "image-data-length" => include_str!("../../../../docs/errors/image-data-length.md"),
-        "invalid-icc-profile" => include_str!("../../../../docs/errors/invalid-icc-profile.md"),
-        "color-components" => include_str!("../../../../docs/errors/color-components.md"),
-        "invalid-color" => include_str!("../../../../docs/errors/invalid-color.md"),
-        "invalid-geometry" => include_str!("../../../../docs/errors/invalid-geometry.md"),
-        "text-overflow" => include_str!("../../../../docs/errors/text-overflow.md"),
-        "page-index-out-of-range" => include_str!("../../../../docs/errors/page-index-out-of-range.md"),
-        "unknown-destination" => include_str!("../../../../docs/errors/unknown-destination.md"),
-        "invalid-page-labels" => include_str!("../../../../docs/errors/invalid-page-labels.md"),
-        "profile-version-conflict" => include_str!("../../../../docs/errors/profile-version-conflict.md"),
-        "missing-title" => include_str!("../../../../docs/errors/missing-title.md"),
-        "missing-lang" => include_str!("../../../../docs/errors/missing-lang.md"),
-        "missing-alt-text" => include_str!("../../../../docs/errors/missing-alt-text.md"),
-        "untagged-content" => include_str!("../../../../docs/errors/untagged-content.md"),
-        "heading-level-skipped" => include_str!("../../../../docs/errors/heading-level-skipped.md"),
-        "unnumbered-heading-misused" => include_str!("../../../../docs/errors/unnumbered-heading-misused.md"),
-        "invalid-structure-nesting" => include_str!("../../../../docs/errors/invalid-structure-nesting.md"),
-        "link-without-structure" => include_str!("../../../../docs/errors/link-without-structure.md"),
-        "link-without-contents" => include_str!("../../../../docs/errors/link-without-contents.md"),
-        "font-not-embedded" => include_str!("../../../../docs/errors/font-not-embedded.md"),
-        "glyph-without-unicode" => include_str!("../../../../docs/errors/glyph-without-unicode.md"),
-        "device-color-without-output-intent" => include_str!("../../../../docs/errors/device-color-without-output-intent.md"),
-        "embedded-file-forbidden" => include_str!("../../../../docs/errors/embedded-file-forbidden.md"),
-        "embedded-file-without-mime-type" => include_str!("../../../../docs/errors/embedded-file-without-mime-type.md"),
-        "render-too-large" => include_str!("../../../../docs/errors/render-too-large.md"),
-        "render-failed" => include_str!("../../../../docs/errors/render-failed.md"),
-        "render-backend-unavailable" => include_str!("../../../../docs/errors/render-backend-unavailable.md"),
-        "cancelled" => include_str!("../../../../docs/errors/cancelled.md"),
-        "job-finished" => include_str!("../../../../docs/errors/job-finished.md"),
-        "document-changed" => include_str!("../../../../docs/errors/document-changed.md"),
-        "builder-finished" => include_str!("../../../../docs/errors/builder-finished.md"),
-        "invalid-argument" => include_str!("../../../../docs/errors/invalid-argument.md"),
-        "source-budget-exceeded" => include_str!("../../../../docs/errors/source-budget-exceeded.md"),
-        "unknown-option" => include_str!("../../../../docs/errors/unknown-option.md"),
-        "already-initialized" => include_str!("../../../../docs/errors/already-initialized.md"),
-        "extract-module-not-loaded" => include_str!("../../../../docs/errors/extract-module-not-loaded.md"),
-        "fetch-failed" => include_str!("../../../../docs/errors/fetch-failed.md"),
-        "not-initialized" => include_str!("../../../../docs/errors/not-initialized.md"),
-        "source-changed" => include_str!("../../../../docs/errors/source-changed.md"),
-        "text-module-not-loaded" => include_str!("../../../../docs/errors/text-module-not-loaded.md"),
-        "disposed" => include_str!("../../../../docs/errors/disposed.md"),
-        "worker-version-mismatch" => include_str!("../../../../docs/errors/worker-version-mismatch.md"),
-        "worker-crashed" => include_str!("../../../../docs/errors/worker-crashed.md"),
-        "worker-failed" => include_str!("../../../../docs/errors/worker-failed.md"),
+        "missing-header" => r"# `missing-header`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+No `%PDF-x.y` header was found in the first 1,024 bytes; parsing went ahead.
+
+## Why
+
+Files are often truncated at the front or prefixed with other data.
+
+## How to fix
+
+Nothing, if the document reads correctly. Open in strict mode to refuse such files, or strip whatever precedes `%PDF` before opening.
+
+## Example
+
+```text
+offset 0      From: mailer@example.org
+              …(1,200 bytes of mail headers and a MIME boundary)…
+offset 1,212  %PDF-1.7
+              1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+```
+
+Lamina PDF looks for `%PDF-` in the first 1,024 bytes only. Here it starts at byte 1,212, so `Document::open_bytes` warns `missing-header` and reads the objects anyway. With `OpenOptions::default().with_strict(true)` the same open fails with [`strict`](strict.md).
+
+## Data fields
+
+None.
+",
+        "xref-repaired" => r"# `xref-repaired`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The stored cross-reference data was unusable and was rebuilt by scanning the file.
+
+## Why
+
+Edited, truncated or concatenated files often have stale offsets.
+
+## How to fix
+
+Nothing, if the result is right. Incremental saves refuse a repaired base (`repaired-base`); save in full instead.
+
+## Example
+
+```text
+startxref
+123456
+%%EOF
+```
+
+`startxref` points past the end of a file that was truncated and re-padded. Lamina PDF scans the file for `n g obj` headers, rebuilds the table, raises `xref-repaired` and opens normally. `save(SaveMode::Incremental)` is then refused with [`repaired-base`](repaired-base.md); `SaveMode::Auto` rewrites the file.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §1
+",
+        "xrefstm-ignored" => r"# `xrefstm-ignored`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A hybrid file's `/XRefStm` could not be read and was ignored.
+
+## Why
+
+Hybrid files carry a classic xref table for old readers and an xref stream for objects in object streams. An editor that moved bytes without updating `/XRefStm`, or a damaged stream, leaves the stream unreadable.
+
+## How to fix
+
+Nothing; the classic table is used.
+
+## Example
+
+```text
+trailer << /Size 40 /Root 1 0 R /XRefStm 99999 >>
+```
+
+A hybrid-reference file (ISO 32000-2 §7.5.8.4) points `/XRefStm` at an offset with no stream. Lamina PDF ignores it and reads the classic table; objects only the stream listed may be missing.
+
+## Data fields
+
+`offset` (where `/XRefStm` points).
+",
+        "stream-length-recovered" => r"# `stream-length-recovered`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A stream's `/Length` was wrong or unresolvable; its end was found by scanning for `endstream`.
+
+## Why
+
+Writers that edit streams without updating `/Length`.
+
+## How to fix
+
+Nothing; re-saving writes the correct length.
+
+## Example
+
+```text
+4 0 obj << /Length 10 >>
+stream
+BT /F1 12 Tf 72 720 Td (Hello) Tj ET
+endstream
+```
+
+`/Length` says 10 bytes but the data is longer. Lamina PDF finds `endstream`, uses the real length and raises the warning with the stream's `object`.
+
+## Data fields
+
+None.
+",
+        "stale-generation" => r"# `stale-generation`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A reference's generation number did not match its xref entry, so it resolved to `null` (ISO 32000-2 §7.3.10).
+
+## Why
+
+An editor deleted and reused an object number (bumping its generation) but left a reference with the old generation behind.
+
+## How to fix
+
+Nothing; the reference is treated as missing.
+
+## Example
+
+```text
+/Contents 7 1 R      % but the xref entry for object 7 has generation 0
+```
+
+The reference resolves to `null` (ISO 32000-2 §7.3.10), as if object 7 were missing, and the warning carries `generation` 1.
+
+## Data fields
+
+`generation`.
+",
+        "page-tree-node-skipped" => r"# `page-tree-node-skipped`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A page-tree node was missing, unparsable, of the wrong type or too deep, and was skipped.
+
+## Why
+
+Damaged page trees: a kid that is missing, unparsable or of the wrong type, a `/Kids` that is not an array, or a tree deeper than `max_page_tree_depth`.
+
+## How to fix
+
+Check the page count; pages under the skipped node are missing.
+
+## Example
+
+```text
+2 0 obj << /Type /Pages /Kids [3 0 R 9 0 R] /Count 2 >>
+9 0 obj (not a page) endobj
+```
+
+Kid 9 is a string, not a page or a pages node: it is skipped with this warning, so the document has one page. The `location` is the skipped node's `object` when it has one.
+
+## Data fields
+
+None.
+",
+        "page-count-mismatch" => r#"# `page-count-mismatch`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The page tree's `/Count` differs from the number of pages walked; the walk wins.
+
+## Why
+
+Writers that don't update `/Count`.
+
+## How to fix
+
+Nothing; Lamina PDF uses the walked count.
+
+## Example
+
+```text
+2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R] /Count 7 >>
+```
+
+The root says 7 pages but two are reachable: `page_count()` is 2, and the warning's `data` is `{ "declared": 7, "walked": 2 }`.
+
+## Data fields
+
+`declared`, `walked`.
+"#,
+        "flate-truncated" => r"# `flate-truncated`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Flate data was truncated or had a bad checksum; the partial output was kept.
+
+## Why
+
+Truncated downloads or damaged streams.
+
+## How to fix
+
+Nothing, if the content looks right; part of the stream may be missing.
+
+## Example
+
+```text
+5 0 obj << /Filter /FlateDecode /Length 900 >> stream …(the zlib data stops early)… endstream
+```
+
+Lamina PDF keeps what inflated before the data ended or the Adler-32 checksum failed; the content may be cut short. The warning carries the stream's `object`.
+
+## Data fields
+
+None.
+",
+        "objstm-index-mismatch" => r"# `objstm-index-mismatch`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An object stream's index was stale; the object was found by searching.
+
+## Why
+
+Object streams rewritten by a tool that did not update the index at their start.
+
+## How to fix
+
+Nothing.
+
+## Example
+
+```text
+12 0 obj << /Type /ObjStm /N 3 /First 18 >> stream
+20 0 21 14 22 31
+…
+```
+
+The index says object 21 starts at offset 14 of the stream, but it starts elsewhere. Lamina PDF searches the stream for it, uses what it finds and raises the warning.
+
+## Data fields
+
+None.
+",
+        "object-number-out-of-range" => r"# `object-number-out-of-range`
+
+- Type: warning
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+An xref entry above `Limits::max_object_number` was dropped.
+
+## Why
+
+Corrupt or hostile xref data.
+
+## How to fix
+
+Raise `max_object_number` only for trusted input.
+
+## Example
+
+```text
+xref
+0 1
+0000000000 65535 f
+9999999 1
+0000000015 00000 n
+```
+
+Object 9,999,999 is above `Limits::max_object_number`; its entry is dropped so a hostile xref can't make Lamina PDF allocate for it. References to it resolve to `null`.
+
+## Data fields
+
+None.
+",
+        "aes-padding-invalid" => r"# `aes-padding-invalid`
+
+- Type: warning
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+AES-encrypted data was not `IV ‖ whole blocks` or had invalid padding; it was kept as stored or unstripped.
+
+## Why
+
+Damaged data, or plaintext spliced into an encrypted file (PDFex-style).
+
+## How to fix
+
+Treat the affected strings and streams as suspect: they may have been altered or spliced in. Don't use them for anything security-relevant.
+
+## Example
+
+```text
+(an AESV2 string whose last block does not end in valid PKCS#5 padding)
+```
+
+Lamina PDF keeps the data as stored (or unstripped) instead of failing, and raises the warning with the string's or stream's `object`.
+
+## Data fields
+
+None.
+",
+        "perms-mismatch" => r"# `perms-mismatch`
+
+- Type: warning
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+An R5/R6 document's `/Perms` does not match its `/P` and `/EncryptMetadata`.
+
+## Why
+
+`/P` may have been tampered with (ISO 32000-2 Algorithm 13).
+
+## How to fix
+
+Treat the permissions as untrusted.
+
+## Example
+
+```text
+/Encrypt << /V 5 /R 6 /P -3904 /Perms <…> … >>   % /Perms decrypts to a different /P
+```
+
+The document opens, but `Document::permissions()` comes from a `/P` that the encrypted `/Perms` contradicts.
+
+## Data fields
+
+None.
+",
+        "warnings-truncated" => r"# `warnings-truncated`
+
+- Type: warning
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+More than `Limits::max_warnings` warnings were raised; the rest were dropped.
+
+## Why
+
+A badly damaged or hostile file.
+
+## How to fix
+
+Raise `max_warnings` if you need the full list.
+
+## Example
+
+A damaged file raising 50,000 repairs with the default `max_warnings`: the first warnings are kept, then one `warnings-truncated`, and the rest are dropped.
+
+```rust
+let limits = laminapdf::Limits::default().with_max_warnings(100_000);
+let doc = laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::default().with_limits(limits))?;
+```
+
+## Data fields
+
+None.
+",
+        "invalid-box" => r#"# `invalid-box`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A page boundary box is not four numbers; it reads as absent.
+
+## Why
+
+A writer bug: a box that is not an array of four numbers (too few, or names or strings in it).
+
+## How to fix
+
+Nothing; the page uses the next box in the chain.
+
+## Example
+
+```text
+3 0 obj << /Type /Page /MediaBox [0 0 612 792] /CropBox [0 0 612] >>
+```
+
+The CropBox has three numbers, so it reads as absent and the page uses its MediaBox. `data` is `{ "key": "CropBox" }`.
+
+## Data fields
+
+`key` (which box, from Lamina PDF's fixed list).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0027](../decisions/0027-coordinates-units-and-page-indexing.md) §3
+"#,
+        "invalid-rotate" => r"# `invalid-rotate`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A page's `/Rotate` is not a multiple of 90; it reads as 0.
+
+## Why
+
+A writer bug, or a viewer setting stored as an arbitrary angle.
+
+## How to fix
+
+Nothing to do if the page displays upright. Otherwise set the rotation you want with the `rotatePage` op.
+
+## Example
+
+```text
+3 0 obj << /Type /Page /Rotate 45 … >>
+```
+
+`/Rotate` must be a multiple of 90 (ISO 32000-2 §7.7.3.3); the page reads as unrotated.
+
+## Data fields
+
+None.
+",
+        "name-tree-node-skipped" => r"# `name-tree-node-skipped`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A name- or number-tree node was malformed, reached twice or too deep, and was skipped.
+
+## Why
+
+Damaged trees: a node that is not a dictionary, a kid reached twice (a cycle), or a tree deeper than `max_tree_depth`.
+
+## How to fix
+
+Nothing to do; the entries under the skipped node are missing from the tree.
+
+## Example
+
+```text
+<< /Kids [20 0 R 21 0 R] >>   % 21 0 obj is (oops), not a dictionary
+```
+
+The walk of the `/Dests` name tree skips node 21 and keeps the entries under node 20.
+
+## Data fields
+
+None.
+",
+        "outline-cycle" => r"# `outline-cycle`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An outline item was reached twice; that branch stopped.
+
+## Why
+
+Damaged or hostile outlines.
+
+## How to fix
+
+Nothing; the outline is shown without the loop.
+
+## Example
+
+```text
+11 0 obj << /Title (Chapter 1) /Parent 10 0 R /Next 11 0 R >>
+```
+
+Item 11 is its own `/Next`; the outline walk stops that branch the second time it reaches it.
+
+## Data fields
+
+None.
+",
+        "outline-item-skipped" => r"# `outline-item-skipped`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An outline item was missing, not a dictionary or too deep; it and its subtree were skipped.
+
+## Why
+
+Damaged outlines.
+
+## How to fix
+
+Nothing to do; the skipped item and its children are missing from the outline.
+
+## Example
+
+```text
+10 0 obj << /Type /Outlines /First 11 0 R >>   % object 11 is missing
+```
+
+The first item can't be read, so it and everything under it are left out of `outline()`.
+
+## Data fields
+
+None.
+",
+        "invalid-date" => r#"# `invalid-date`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An Info date is not a valid PDF date (ISO 32000-2 §7.9.4); the raw string is kept.
+
+## Why
+
+Writers that write free-form dates.
+
+## How to fix
+
+The `Info` view keeps the raw string; read it there if you need it.
+
+## Example
+
+```text
+<< /CreationDate (last Tuesday) >>
+```
+
+The Info view's `creation_date` is `None` and its raw string is kept; `data` is `{ "key": "CreationDate" }`.
+
+## Data fields
+
+`key` (which entry).
+"#,
+        "invalid-page-label" => r#"# `invalid-page-label`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A `/PageLabels` entry is malformed; that part is dropped.
+
+## Why
+
+A writer bug: a range that is not a dictionary, an unknown `/S` style, a non-string `/P` prefix or an `/St` below 1.
+
+## How to fix
+
+Nothing; affected pages fall back to decimal labels.
+
+## Example
+
+```text
+/PageLabels << /Nums [0 << /S /Fancy >> 4 << /S /r >>] >>
+```
+
+`/Fancy` is not a numbering style, so pages 0–3 get decimal labels; the range starting at 4 is kept. `data` is `{ "start": 0 }`.
+
+## Data fields
+
+`start`.
+"#,
+        "invalid-entry" => r#"# `invalid-entry`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An entry a view reads is unreadable or of the wrong type; it reads as absent or its default.
+
+## Why
+
+A writer bug: an entry of the wrong type, or a reference that does not resolve.
+
+## How to fix
+
+Nothing to do; the view uses the entry's default.
+
+## Example
+
+```text
+1 0 obj << /Type /Catalog /Pages 2 0 R /Outlines (none) >>
+```
+
+`/Outlines` should be a dictionary; the outline reads as empty and `data` is `{ "key": "Outlines" }`.
+
+## Data fields
+
+`key` (from Lamina PDF's fixed list).
+"#,
+        "content-unknown-operator" => r"# `content-unknown-operator`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A content stream used an operator ISO 32000-2 Annex A does not define, outside a `BX`/`EX` compatibility section; it was skipped.
+
+## Why
+
+A producer wrote a private or misspelled operator.
+
+## How to fix
+
+Nothing to do; check the page's rendering if the operator mattered.
+
+## Example
+
+```text
+BT /F1 12 Tf 72 720 Td (Hi) Tj ET
+0 0 1 setcolor
+```
+
+`setcolor` is not an Annex A operator and is not inside `BX`/`EX`, so it is skipped with its operands. `data.offset` is its byte offset in the decoded content.
+
+## Data fields
+
+- `offset`: the operator's byte offset in the decoded content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-bad-operands" => r"# `content-bad-operands`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An operator had too few operands or operands of the wrong type (it was skipped), or extra operands (the last ones were used).
+
+## Why
+
+A producer bug, or damaged content.
+
+## How to fix
+
+Nothing to do.
+
+## Example
+
+```text
+72 Td
+```
+
+`Td` takes two numbers; with one, the operator is skipped.
+
+## Data fields
+
+- `offset`: the operator's byte offset in the decoded content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-unbalanced-q" => r"# `content-unbalanced-q`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A `Q` had no matching `q` (it was ignored), or a content stream ended with saved graphics states still open (they were restored).
+
+## Why
+
+Producers that split `q`/`Q` pairs across streams, or damaged content.
+
+## How to fix
+
+Nothing to do; each stream balances on its own.
+
+## Example
+
+```text
+q 1 0 0 1 72 72 cm 0 0 10 10 re f Q Q
+```
+
+The second `Q` has no matching `q` and is ignored.
+
+## Data fields
+
+- `offset`: the `Q`'s byte offset, or the end of the content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-unbalanced-bt" => r"# `content-unbalanced-bt`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A `BT` inside a text object, an `ET` outside one, a text operator outside one, or a content stream that ended inside one.
+
+## Why
+
+A producer bug, or damaged content.
+
+## How to fix
+
+Nothing to do; text operators were handled tolerantly.
+
+## Example
+
+```text
+BT /F1 12 Tf (one) Tj BT (two) Tj ET
+```
+
+The second `BT` opens a text object inside one; Lamina PDF treats it as a new text object and carries on.
+
+## Data fields
+
+- `offset`: the operator's byte offset, or the end of the content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-unbalanced-marked" => r"# `content-unbalanced-marked`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An `EMC` had no matching `BMC`/`BDC` (it was ignored), or a content stream ended with marked-content sequences open (they were closed).
+
+## Why
+
+A producer bug, or tagging split across streams.
+
+## How to fix
+
+Check tagged-content results; the sequences were closed for you.
+
+## Example
+
+```text
+/P << /MCID 0 >> BDC (text) Tj
+```
+
+The stream ends with the marked-content sequence open; it is closed at the end, so MCID 0 covers the text that follows it.
+
+## Data fields
+
+- `offset`: the `EMC`'s byte offset, or the end of the content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-syntax" => r"# `content-syntax`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A content stream held bytes that are not a token (an unbalanced `)` or `>`, a bad hex digit, an unterminated string or array) or a stray `ID`/`EI`; they were skipped with the operands read so far.
+
+## Why
+
+Damaged or truncated content.
+
+## How to fix
+
+Check the page's content around the reported offset.
+
+## Example
+
+```text
+BT (unbalanced Tj ET
+```
+
+The string never closes, so the bytes to the end of the token are skipped with the pending operands.
+
+## Data fields
+
+- `offset`: the problem's byte offset in the decoded content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-resource-missing" => r"# `content-resource-missing`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An operator named a resource (font, XObject, graphics state, colour space, shading, property list) that is missing, of the wrong type or unreadable, or a Form XObject's content could not be decoded; the operator was skipped or ran without it.
+
+## Why
+
+Resources lost in editing or merging, or damaged objects.
+
+## How to fix
+
+Check the page's `/Resources`.
+
+## Example
+
+```text
+/Im7 Do      % /Resources << /XObject << /Im1 8 0 R >> >>
+```
+
+`/Im7` is not in the page's resources, so the `Do` draws nothing. `data.category` is `XObject`; the resource's name, which comes from the file, is never put in the message.
+
+## Data fields
+
+- `offset`: the operator's byte offset in the decoded content.
+- `category`: the resource category, e.g. `Font` (Lamina PDF's own vocabulary).
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "inline-image-unterminated" => r"# `inline-image-unterminated`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+No `EI` ends an inline image (neither at its declared or computed length nor by searching for it); the rest of the content was skipped.
+
+## Why
+
+Damaged or truncated content.
+
+## How to fix
+
+Check the page: everything after the inline image is missing.
+
+## Example
+
+```text
+BI /W 10 /H 10 /CS /G /BPC 8 ID …(100 bytes, then the stream ends)…
+```
+
+No `EI` follows the image data, so the rest of the stream is skipped.
+
+## Data fields
+
+- `offset`: the `BI`'s byte offset in the decoded content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md): the inline-image search
+",
+        "xobject-cycle" => r"# `xobject-cycle`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A Form XObject draws itself, directly or through other forms; the inner `Do` was skipped.
+
+## Why
+
+A malformed or hostile file: forms that draw each other without end would never finish.
+
+## How to fix
+
+Nothing to do.
+
+## Example
+
+```text
+8 0 obj << /Subtype /Form /Resources << /XObject << /Me 8 0 R >> >> >> stream /Me Do endstream
+```
+
+The form draws itself: the inner `/Me Do` is skipped once Lamina PDF sees form 8 a second time.
+
+## Data fields
+
+- `object`: the form reached again.
+
+The `location` is `object` (the form reached again).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "content-path-unpainted" => r"# `content-path-unpainted`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A content stream ended with a path that no painting operator ended; it was dropped.
+
+## Why
+
+A producer bug, or truncated content.
+
+## How to fix
+
+Nothing to do.
+
+## Example
+
+```text
+0 0 m 100 100 l
+```
+
+The content stream ends after building a path without `S`, `f` or `n`: the path is dropped, as the spec intends.
+
+## Data fields
+
+- `offset`: the byte offset of the path's first segment in the decoded content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0023](../decisions/0023-content-stream-reading.md)
+",
+        "font-invalid" => r"# `font-invalid`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A font dictionary read for text extraction has a missing, unreadable or malformed entry (the descendant font, `/Encoding` or its `/Differences`, `/Widths`, `/W`, `/W2`, the font descriptor or its font program). Its text was decoded with defaults: the standard encoding, the standard 14 font's widths or `/MissingWidth`, `/DW`.
+
+## Why
+
+A producer bug, a damaged file, or a font dictionary that relies on what a viewer guesses.
+
+## How to fix
+
+Nothing to do. Text or positions extracted for that font may be off; regenerating the file with a current producer fixes it.
+
+## Example
+
+```text
+<< /Type /Font /Subtype /Type0 /BaseFont /Foo /Encoding /Identity-H /DescendantFonts 99 0 R >>
+```
+
+The descendant font is missing, so text in this font is decoded with defaults: two-byte codes, default widths. The `location` is the font dictionary's `object`.
+
+## Data fields
+
+None.
+
+The `location` is `object`, the font dictionary's object; none for a direct font dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B9b](../todos/done/B9b-text-extraction-core.md): text extraction
+",
+        "cmap-invalid" => r"# `cmap-invalid`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A font's CMap (its Type 0 `/Encoding`) or ToUnicode CMap couldn't be fully used, for one of three reasons:
+
+- entries that can't be read, which are skipped;
+- a predefined CMap Lamina PDF has no table for, read as Identity (Lamina PDF knows only `Identity-H`/`-V` and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones);
+- a `/UseCMap` chain deeper than 8 levels, cut there.
+
+## Why
+
+A producer bug (bad ranges, a missing `end…` keyword), or a CJK file using one of Adobe's character-collection CMaps without embedding it.
+
+## How to fix
+
+Nothing to do. The rest of the CMap is used; affected glyphs may extract as other text or U+FFFD.
+
+## Example
+
+```text
+1 beginbfchar
+<0003> <0020
+endbfchar
+```
+
+The destination string is not closed; the entry is skipped, and the rest of the ToUnicode CMap is used.
+
+## Data fields
+
+None.
+
+The `location` is `object`, the font dictionary's object; none for a direct font dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B9b](../todos/done/B9b-text-extraction-core.md): text extraction
+",
+        "unmapped-glyph" => r"# `unmapped-glyph`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A font showed glyphs that its ToUnicode CMap, its encoding's glyph names and its font program's `cmap` all leave unmapped. They extract as U+FFFD; `PageText::unmapped` counts them.
+
+## Why
+
+The file has no ToUnicode CMap for a subset or symbolic font, uses arbitrary glyph names (`g37`), or obfuscates its encoding (ISO 32000-2 §9.10.2: there is then no way to know what the glyph means).
+
+## How to fix
+
+Nothing to do in Lamina PDF. A producer that writes ToUnicode CMaps (Lamina PDF does) avoids it; OCR is the only way to recover such text.
+
+## Example
+
+```text
+<< /Subtype /Type0 /BaseFont /ABCDEF+Subset /Encoding /Identity-H >>   % no /ToUnicode
+```
+
+A subset font with Identity-H and no ToUnicode: unless its embedded `cmap` maps the glyphs, they extract as U+FFFD and the warning carries the font's `object`.
+
+## Data fields
+
+None.
+
+The `location` is `object`, the font dictionary's object; none for a direct font dictionary.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B9b](../todos/done/B9b-text-extraction-core.md): text extraction
+",
+        "not-pdf" => r#"# `not-pdf`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The input does not look like a PDF at all.
+
+## Why
+
+The bytes are empty, or no `n g obj` header appears anywhere in them: an HTML error page saved as `.pdf`, a different format, or the wrong buffer.
+
+## How to fix
+
+Check that you passed the right bytes.
+
+## Example
+
+```rust
+let err = laminapdf::Document::open_bytes(b"<html>…</html>".to_vec(), Default::default()).unwrap_err();
+assert_eq!(err.code(), "not-pdf");
+```
+
+## Data fields
+
+None.
+"#,
+        "missing-root" => r"# `missing-root`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+No document catalog (`/Root`) was found, even after repair.
+
+## Why
+
+The file is damaged beyond repair.
+
+## How to fix
+
+Use another copy of the file.
+
+## Example
+
+```text
+trailer << /Size 3 >>      % no /Root, and no object with /Type /Catalog in the file
+```
+
+Repair found no catalog to use, so `open` fails.
+
+## Data fields
+
+None.
+",
+        "reference-cycle" => r"# `reference-cycle`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A reference chain or the page tree loops back on itself.
+
+## Why
+
+Damaged or hostile files.
+
+## How to fix
+
+Use another copy of the file.
+
+## Example
+
+```text
+5 0 obj 6 0 R endobj
+6 0 obj 5 0 R endobj
+```
+
+Resolving object 5 leads back to itself; the call fails instead of looping. A page tree whose `/Kids` lead back to an ancestor fails the same way.
+
+## Data fields
+
+None.
+",
+        "limit-exceeded" => r#"# `limit-exceeded`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+A hard `Limits` value was exceeded.
+
+## Why
+
+Hostile or unusually large input.
+
+## How to fix
+
+Raise the named limit only if you trust the input.
+
+## Example
+
+```rust
+let options = OpenOptions::default().with_limits(Limits::new().with_max_nesting_depth(1));
+let doc = Document::open_bytes(bytes, options)?;
+let err = doc.page_count().unwrap_err();
+// { "code": "limit-exceeded", "kind": "limit", "data": { "limit": "max_nesting_depth" },
+//   "location": { "object": 9, "streamOffset": 89 }, … }
+```
+
+## Data fields
+
+`limit` (the limit's name).
+
+The `location` tells where the limit was hit. The nesting and string-length limits and the read window give `offset`, a file offset; the same limits inside an object stream give `object` with `streamOffset`. A reference chain gives `object` alone, and decoding budgets give no location.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §3
+"#,
+        "strict" => r#"# `strict`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Strict mode refused something the tolerant reader would have repaired.
+
+## Why
+
+The file needs repair; see the warning code in the data.
+
+## How to fix
+
+Open without strict mode, or fix the file.
+
+## Example
+
+```rust
+let options = OpenOptions::default().with_strict(true);
+let err = Document::open_bytes(bytes_with_a_broken_xref, options).unwrap_err();
+// { "code": "strict", "data": { "warning": "xref-repaired" }, … }
+```
+
+## Data fields
+
+`warning` (the warning code).
+"#,
+        "data-pending" => r"# `data-pending`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+The `ByteSource` hasn't fetched the listed byte ranges yet.
+
+## Why
+
+Range loading: the call needs more of the file.
+
+## How to fix
+
+Fetch the ranges and retry the call; the document stays usable.
+
+## Example
+
+```ts
+const doc = await Document.openRange(httpRangeSource(url));
+// pages() needs bytes that haven't arrived: ensure() fetches e.ranges and retries
+const pages = await doc.ensure(() => doc.pages);
+```
+
+## Data fields
+
+`ranges` (offset, length pairs).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0005](../decisions/0005-document-model.md) §2
+",
+        "source" => r"# `source`
+
+- Type: error
+- Kind: `io` (the host failed to supply bytes; often transient)
+
+## What happened
+
+The `ByteSource` failed to read.
+
+## Why
+
+A file-system or network error in the host.
+
+## How to fix
+
+Retry, or check the source.
+
+## Example
+
+A `ByteSource` reading from a network answered with an error for bytes 4096..+65536; the call fails with `source` and the same call can be retried once the connection is back.
+
+## Data fields
+
+None.
+",
+        "type" => r"# `type`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An object had a different type than the structure requires.
+
+## Why
+
+Malformed input: an object of the wrong type where the structure requires a specific one.
+
+## How to fix
+
+Use another copy of the file.
+
+## Example
+
+```text
+2 0 obj << /Type /Pages /Kids 5 >>
+```
+
+`/Kids` must be an array; reading the page tree fails with `type`, and `data` names what was expected and where (`expected`, `context`, from Lamina PDF's own vocabulary).
+
+## Data fields
+
+`expected`, `context` (from Lamina PDF's fixed list).
+",
+        "invalid-structure" => r"# `invalid-structure`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An object stream, xref section or filter parameter was malformed or out of range.
+
+## Why
+
+Malformed input: an object stream, xref section or filter parameter out of range.
+
+## How to fix
+
+Use another copy of the file.
+
+## Example
+
+```text
+12 0 obj << /Type /ObjStm /N 3 /First -4 >>
+```
+
+A negative `/First` makes the object stream unusable; `data.structure` says which structure was malformed.
+
+## Data fields
+
+`structure`.
+",
+        "unset-object" => r"# `unset-object`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
+
+## What happened
+
+A writer object number was reserved but never given a value.
+
+## Why
+
+A bug in Lamina PDF.
+
+## How to fix
+
+Report it at https://github.com/laudebugs/laminapdf/issues with the steps (and, if you can share it, the file) that led to it.
+
+## Example
+
+Raised by a writer when an object number reserved during a save never received its object. No input should cause it.
+
+## Data fields
+
+None.
+",
+        "repaired-base" => r"# `repaired-base`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+An incremental update was requested for a document whose xref needed repair.
+
+## Why
+
+Appending to a repaired file would build on offsets that are wrong.
+
+## How to fix
+
+Save with a full rewrite instead.
+
+## Example
+
+```rust
+let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::default())?; // warns xref-repaired
+let err = doc.save(&SaveOptions::default().with_mode(SaveMode::Incremental), &CancelToken::new());
+// repaired-base; SaveMode::Auto (the default) writes a full rewrite instead
+```
+
+## Data fields
+
+None.
+",
+        "encrypted-base" => r"# `encrypted-base`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+A save was requested for an encrypted document without `SaveOptions::with_remove_encryption(true)` (every mode: `Auto`, `Incremental` and `FullRewrite`). Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
+
+## Why
+
+Lamina PDF can't encrypt on save yet, and it never drops or corrupts encryption silently.
+
+## How to fix
+
+Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full rewrite (every string and stream decrypted, no `/Encrypt`), or wait until Lamina PDF can encrypt on save. A signed and encrypted document also needs `with_invalidate_signatures(true)`.
+
+## Example
+
+```rust
+let err = doc.save(&SaveOptions::default(), &CancelToken::new()).unwrap_err(); // encrypted-base
+let saved = doc.save(&SaveOptions::default().with_remove_encryption(true), &CancelToken::new())?;
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §9
+- [E11b](../todos/ready/E11b-encrypt-on-write.md): encryption on save
+",
+        "password-required" => r#"# `password-required`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+The document is encrypted with a non-empty user password and none was given.
+
+## Why
+
+Encrypted input.
+
+## How to fix
+
+Ask the user for the password and pass it in `OpenOptions` (`{ password }` in TS).
+
+## Example
+
+```ts
+try {
+  Document.open(bytes);
+} catch (e) {
+  if (isLaminaPdfError(e, "password-required")) Document.open(bytes, { password: await ask() });
+}
+```
+
+## Data fields
+
+None.
+"#,
+        "wrong-password" => r#"# `wrong-password`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+The given password is neither the user nor the owner password.
+
+## Why
+
+The password is neither the user nor the owner password. Lamina PDF tries it as both (owner first for R5/R6), and in TS also its NFKC form.
+
+## How to fix
+
+Ask for the password again. Passwords are case-sensitive.
+
+## Example
+
+```ts
+Document.open(bytes, { password: "nope" });
+// LaminaPdfError { code: "wrong-password", kind: "security",
+//   hint: "ask for the password again and retry with the correct one", … }
+```
+
+## Data fields
+
+None.
+"#,
+        "unsupported-security-handler" => r"# `unsupported-security-handler`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+The document uses a security handler Lamina PDF can't decrypt.
+
+## Why
+
+Not `/Standard`, an unknown `/V`/`/R`, or an unknown crypt filter method.
+
+## How to fix
+
+Use a tool that supports the handler.
+
+## Example
+
+```text
+trailer << /Encrypt << /Filter /Adobe.PubSec /SubFilter /adbe.pkcs7.s5 … >> >>
+```
+
+A public-key (certificate) handler: Lamina PDF implements only `/Standard`, so `open` fails. `data.filter` holds the handler's name as read from the file.
+
+## Data fields
+
+`filter` (**untrusted**: read from the file; the message never includes it), `version`, `revision`.
+",
+        "unexpected-eof" => r"# `unexpected-eof`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The input ended before a complete token or object was read.
+
+## Why
+
+Truncated files.
+
+## How to fix
+
+Use a complete copy of the file.
+
+## Example
+
+```text
+1 0 obj << /Type /Catalog /Pages 2 0 R
+```
+
+The file ends inside a dictionary; the `location` is the file offset where reading stopped.
+
+## Data fields
+
+None. The `location` is a file `offset`, or `object` with `streamOffset` inside an object stream.
+",
+        "syntax" => r"# `syntax`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A token or structure did not match the PDF grammar.
+
+## Why
+
+Malformed input.
+
+## How to fix
+
+Use another copy of the file.
+
+## Example
+
+```text
+1 0 obj << /Type /Catalog /Pages 2 0 R >> >> endobj
+```
+
+A stray `>>` where an object should end: parsing that object fails with `syntax` at its offset.
+
+## Data fields
+
+None. The `location` is a file `offset`, or `object` with `streamOffset` inside an object stream.
+",
+        "unsupported-filter" => r"# `unsupported-filter`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+A stream uses a filter Lamina PDF doesn't implement; only decoding that stream fails.
+
+## Why
+
+Rare or proprietary filters.
+
+## How to fix
+
+Use a tool that supports the filter.
+
+## Example
+
+```text
+5 0 obj << /Filter /JBIG2Decode /Length 2048 >> stream …
+```
+
+Decoding this stream fails; the rest of the document reads normally. `data.filter` is the filter's name as read from the file.
+
+## Data fields
+
+`filter` (**untrusted**: read from the file). The message never includes it.
+",
+        "decompress" => r"# `decompress`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Compressed data was corrupt and produced no output.
+
+## Why
+
+Damaged streams.
+
+## How to fix
+
+Use another copy of the file.
+
+## Example
+
+```text
+5 0 obj << /Filter /FlateDecode /Length 40 >> stream (40 bytes that are not zlib data) endstream
+```
+
+Inflating fails before producing any output, so the stream has no data.
+
+## Data fields
+
+None.
+",
+        "nested-transaction" => r"# `nested-transaction`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A transaction was started, or undo/redo called, while one is open.
+
+## Why
+
+Calling code opened a second transaction.
+
+## How to fix
+
+Commit or roll back first, or use a savepoint.
+
+## Example
+
+```ts
+doc.transact((tx) => {
+  doc.undo(); // nested-transaction: finish the transaction first
+});
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0006](../decisions/0006-op-log-and-undo.md) §2
+",
+        "no-transaction" => r"# `no-transaction`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+`apply`, `commit` or `rollback` was called without an open transaction.
+
+## Why
+
+Calling code skipped `begin`.
+
+## How to fix
+
+Call `begin` first, or use `transact`.
+
+## Example
+
+```rust
+// laminapdf_ops::Document, without begin():
+ops.commit()?; // no-transaction
+```
+
+## Data fields
+
+None.
+",
+        "unknown-page" => r"# `unknown-page`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op names a page the document doesn't have.
+
+## Why
+
+The page ID is stale or from another document.
+
+## How to fix
+
+Use a `PageId` from this document.
+
+## Example
+
+```rust
+let other = Document::open_bytes(other_bytes, OpenOptions::default())?;
+let id = other.page_info(0)?.id;
+doc.apply(vec![Op::from(RotatePage::new(id, Rotation::Clockwise90))]); // unknown-page
+```
+
+## Data fields
+
+None.
+",
+        "direct-page" => r"# `direct-page`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+The page is a direct dictionary, which ops can't edit yet.
+
+## Why
+
+Non-standard files.
+
+## How to fix
+
+Rewrite the file so every page is an indirect object (any full rewrite by another tool does), or wait for Lamina PDF's page-structure ops.
+
+## Example
+
+```text
+2 0 obj << /Type /Pages /Kids [<< /Type /Page /MediaBox [0 0 612 792] >>] /Count 1 >>
+```
+
+The page is written inline in `/Kids`. Reading works (its ID is a path ID such as `p2.0/Kids/0`), but a `rotatePage` op on it fails with `direct-page`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0005](../decisions/0005-document-model.md) §5
+",
+        "unsupported-version" => r##"# `unsupported-version`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+An op log has a schema version this reader doesn't know.
+
+## Why
+
+A newer Lamina PDF wrote it.
+
+## How to fix
+
+Upgrade Lamina PDF.
+
+## Example
+
+```rust
+doc.apply_log(r#"{ "v": 9, "ops": [] }"#)?; // unsupported-version, data.version = 9
+```
+
+## Data fields
+
+`version`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0006](../decisions/0006-op-log-and-undo.md) §6
+"##,
+        "invalid-op-log" => r##"# `invalid-op-log`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An op log does not parse: an unknown op or field, a bad value, or not JSON.
+
+## Why
+
+Hand-written or corrupted op logs.
+
+## How to fix
+
+Validate the log against the op schema; the samples in `fixtures/ops/v1/` show the format.
+
+## Example
+
+```rust
+doc.apply_log(r#"{ "v": 1, "ops": [{ "op": "rotate" }] }"#)?;
+// invalid-op-log: "rotate" is not an op (it is "rotatePage"); data.detail has serde's message
+```
+
+## Data fields
+
+`detail` (**untrusted**: may quote the log; the message never includes it).
+"##,
+        "saved-not-rebased" => r"# `saved-not-rebased`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the current state; it may succeed after a state change)
+
+## What happened
+
+The document was saved to a sink Lamina PDF can't read back, and it waits for `rebase`: ops, undo, redo and saves are refused until then.
+
+## Why
+
+`save_full` to a write-only sink leaves the document `SavedNotRebased`: the bytes it would continue from are not available to it.
+
+## How to fix
+
+Call `rebase` with the saved bytes, then retry.
+
+## Example
+
+```rust
+ops.save(&mut write_only_sink, &options)?;  // full rewrite; the document waits for rebase
+ops.apply(op);                               // saved-not-rebased
+ops.rebase(saved_bytes)?;                    // then edits work again
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0005](../decisions/0005-document-model.md) §3
+",
+        "no-pending-save" => r"# `no-pending-save`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the current state; it may succeed after a state change)
+
+## What happened
+
+`rebase` was called, but no save is waiting for it.
+
+## Why
+
+Rebasing onto other bytes would not match the undo history, and unsaved changes would be lost.
+
+## How to fix
+
+Call `rebase` only after a save that left the document `SavedNotRebased`.
+
+## Example
+
+```rust
+doc.rebase(bytes)?; // no-pending-save: no save is waiting
+```
+
+## Data fields
+
+None.
+",
+        "sink" => r"# `sink`
+
+- Type: error
+- Kind: `io` (the host failed to supply or take bytes)
+
+## What happened
+
+The `WriteSink` failed to take the bytes, or could not give them back. (A sink that already held bytes is [`sink-not-empty`](sink-not-empty.md).)
+
+## Why
+
+The destination failed: a full disk, a closed upload, a refused read-back.
+
+## How to fix
+
+Check the destination and retry the save. The document is unchanged; the sink may hold a prefix of the output.
+
+## Example
+
+An upload sink whose connection closed halfway through: the save fails with `sink`, the document is unchanged, and `data.kind` is the I/O error kind (`BrokenPipe`).
+
+## Data fields
+
+- `kind`: the I/O error kind, for a writer that failed.
+- `message`: the sink's or writer's own text (**untrusted**: it comes from the host and may name a path; never in the message).
+",
+        "not-rebased" => r#"# `not-rebased`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the current state; it may succeed after a state change)
+
+## What happened
+
+The save wrote its complete output, but rebasing the document onto it failed. The document is `SavedNotRebased`.
+
+## Why
+
+Reading the output back failed (for example a limit, or a source that can't deliver the bytes yet).
+
+## How to fix
+
+Retry `rebase` with the output the error carries (`saved.source()`; in the `laminapdf` façade, `Error::saved_output()` and `Document::rebase`).
+
+## Example
+
+```rust
+match doc.save(&options, &cancel) {
+    Err(e) if e.code() == "not-rebased" => doc.rebase(e.saved_output().unwrap())?,
+    other => { other?; }
+}
+```
+
+## Data fields
+
+- `error`: the rebase's own error (its code, kind and location).
+"#,
+        "sink-not-empty" => r#"# `sink-not-empty`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The `WriteSink` already held bytes when the save started, so the writer refused before writing anything.
+
+## Why
+
+Output offsets (the xref table, `startxref`) count from the sink's first byte, and a sink only appends. An `AppendedOnly` incremental save also accepts a sink that holds exactly the base.
+
+## How to fix
+
+Pass an empty sink. The document is unchanged.
+
+## Example
+
+```rust
+let mut sink = b"%PDF-".to_vec();
+ops.save(&mut sink, &options)?; // sink-not-empty, data.held = 5
+```
+
+## Data fields
+
+- `held`: the bytes the sink held.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §6
+"#,
+        "would-invalidate-signatures" => r#"# `would-invalidate-signatures`
+
+- Type: error (`laminapdf_save::SaveError::WouldInvalidateSignatures`)
+- Kind: `security` (signatures block the call)
+
+## What happened
+
+The save planner refused a save because it would break one or more signatures. Either it was a full rewrite of a signed document, or its pending changes or rewrite reasons conflict with the document's signatures: a DocMDP, FieldMDP or usage-rights restriction, or a repaired or encrypted base. Nothing was written.
+
+## Why
+
+A signature covers the bytes of the file as it was signed (ISO 32000-2 §12.8). A full rewrite moves those bytes, and a change a certification forbids invalidates it even when appended. Lamina PDF never breaks a signature without an explicit override.
+
+## How to fix
+
+Save with `SaveMode::Auto` or `SaveMode::Incremental` when the constraint allows it. Otherwise ask the user, naming the signatures in the error, and save again with `SaveOptions::with_invalidate_signatures(true)`: the invalidated signatures' values and `/Perms` entries are removed and `SaveReport::invalidated` lists them.
+
+## Example
+
+```rust
+let err = doc.save(&mut out, &SaveOptions::new().with_mode(SaveMode::FullRewrite)).unwrap_err();
+assert_eq!(err.code(), "would-invalidate-signatures");
+```
+
+## Data fields
+
+- `signatures`: every signature, as `{ field, kind, value, revision, covers }` (field ID, kind, signature dictionary as `num gen`, revision, covered length).
+- `rewrite_reasons`: why only a full rewrite is safe, if anything says so.
+- `violations`: pending changes a signature's restriction forbids, as `{ class, restriction, signature }`.
+- `signatures_unknown`: part of the form couldn't be followed, so there may be signatures beyond `signatures`.
+
+None of them hold document text.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §3
+"#,
+        "requires-rewrite" => r#"# `requires-rewrite`
+
+- Type: error (`laminapdf_save::SaveError::RequiresRewrite`)
+- Kind: `state` (the call isn't valid in the document's current state)
+
+## What happened
+
+An incremental save was requested, but only a full rewrite is safe for this document. Nothing was written.
+
+## Why
+
+The save planner found one of four reasons the file must be rewritten:
+
+- a repaired base, whose cross-reference data an appended revision can't build on;
+- an encrypted base being saved without its encryption;
+- a document built from scratch, with no base bytes at all;
+- a pending op, such as a redaction, that removes content an earlier revision would keep.
+
+## How to fix
+
+Save with `SaveMode::Auto` (it resolves to a full rewrite) or `SaveMode::FullRewrite`. If the document is also signed, that needs the explicit override ([`would-invalidate-signatures`](would-invalidate-signatures.md)).
+
+## Example
+
+```rust
+let err = doc.save(&mut out, &SaveOptions::new().with_mode(SaveMode::Incremental)).unwrap_err();
+assert_eq!(err.code(), "requires-rewrite");
+```
+
+## Data fields
+
+- `reasons`: the rewrite reasons (`RepairedBase`, `EncryptedBase`, `NoBase`, `OpRequiresRewrite`).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0007](../decisions/0007-save-planner.md) §2
+"#,
+        "invalid-font" => r#"# `invalid-font`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Font bytes passed to `Font::from_bytes` or `Font::from_collection` (`laminapdf-text`) could not be read as a font.
+
+## Why
+
+The bytes are not an OpenType/TrueType font or collection (WOFF/WOFF2 must be decompressed first), or a table every font needs (`head`, `hhea`, `hmtx`, `maxp`) is missing or malformed.
+
+## How to fix
+
+Pass the bytes of a `.ttf`, `.otf`, `.ttc` or `.otc` file; check that the file is complete.
+
+## Example
+
+```rust
+let err = laminapdf::Font::from_bytes(std::fs::read("font.woff2")?).unwrap_err(); // invalid-font
+```
+
+## Data fields
+
+- `index`: the collection member that was asked for (0 for a single font).
+"#,
+        "collection-index" => r"# `collection-index`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Font::from_collection` was asked for a member past the end of the font collection.
+
+## Why
+
+Members are numbered from 0; a single font counts as a collection of one.
+
+## How to fix
+
+Use an index below `Font::collection_len(bytes)`.
+
+## Example
+
+```rust
+let font = Font::from_collection(ttc_bytes, 4)?; // the collection has 4 members (0..=3): collection-index
+```
+
+## Data fields
+
+- `index`: the member that was asked for.
+- `count`: how many members the collection has.
+",
+        "unknown-axis" => r"# `unknown-axis`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Font::instance` was given a variation axis the font does not have.
+
+## Why
+
+A static font has no axes; a variable font has the axes listed in `FontInfo::axes` (`fvar`).
+
+## How to fix
+
+Check `font.info().axes` before choosing coordinates, or use a variable font.
+
+## Example
+
+```rust
+let bold = static_font.instance(&[(Tag::WEIGHT, 700.0)])?; // unknown-axis: no wght axis
+```
+
+## Data fields
+
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+- `tag`: the axis tag that was asked for.
+",
+        "font-not-embeddable" => r"# `font-not-embeddable`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`FontRegistry::add` refused a font whose `OS/2.fsType` forbids embedding (restricted licence, or bitmap embedding only).
+
+## Why
+
+Font vendors mark fonts whose licence does not allow embedding in documents (OpenType `OS/2` table; research 03 §6.3). `fsType` is advisory; the licence is what counts.
+
+## How to fix
+
+Use another font, or, if your licence allows embedding, register it with `EmbedPolicy::Override`.
+
+## Example
+
+```rust
+registry.add(restricted_font, EmbedPolicy::Respect)?;  // font-not-embeddable
+registry.add(restricted_font, EmbedPolicy::Override)?; // only if your licence allows embedding
+```
+
+## Data fields
+
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+- `fs_type`: the `fsType` bits.
+",
+        "missing-glyph" => r#"# `missing-glyph`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+Text contained a character the font has no glyph for. Lamina PDF never draws `.notdef` (an empty box) silently.
+
+## Why
+
+The font's `cmap` does not map the character (for example a CJK character with a Latin font).
+
+## How to fix
+
+Use a font that covers the character (check with `Font::glyph_for`), or split the text across fonts.
+
+## Example
+
+```rust
+registry.encode(latin_font, "東京")?; // missing-glyph: the font has no CJK glyphs
+```
+
+## Data fields
+
+- `ch`: the character (**untrusted**: caller or document text).
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+"#,
+        "glyph-out-of-range" => r#"# `glyph-out-of-range`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`FontRegistry::use_glyph` was given a glyph ID at or past the font's glyph count.
+
+## Why
+
+Glyph IDs must come from the same font (its `cmap` or a shaper run on it).
+
+## How to fix
+
+Pass glyph IDs from the font you registered.
+
+## Example
+
+```rust
+registry.use_glyph(key, GlyphId::new(60_000), "x")?; // the font has 1,200 glyphs
+```
+
+## Data fields
+
+- `gid`: the glyph ID.
+- `count`: the font's glyph count.
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+"#,
+        "unknown-font" => r#"# `unknown-font`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `FontKey` was used with a `FontRegistry` that did not hand it out.
+
+## Why
+
+Keys are indices into one registry; each document has its own.
+
+## How to fix
+
+Use the key returned by this registry's `add`.
+
+## Example
+
+```rust
+let key = registry_a.add(font, EmbedPolicy::Respect)?;
+registry_b.encode(key, "Hi")?; // unknown-font: key came from registry_a
+```
+
+## Data fields
+
+- `key`: the key's index.
+"#,
+        "subset-failed" => r"# `subset-failed`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+Subsetting a font at `FontRegistry::finish_fonts` failed.
+
+## Why
+
+The `subsetter` crate could not rebuild the font program: a font feature it does not support, or a table it could not parse.
+
+## How to fix
+
+Try another version or format of the font (for example TrueType instead of CFF), and report the font if it is a common one.
+
+## Example
+
+A font whose tables `subsetter` can't rebuild makes `FontRegistry::finish_fonts` (and so `Builder::finish`) fail with `subset-failed`; `data.font` is the font's PostScript name.
+
+## Data fields
+
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+- `reason`: the subsetter's failure class (fixed text).
+",
+        "invalid-axis-value" => r"# `invalid-axis-value`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Font::instance` was given a NaN or infinite axis value.
+
+## Why
+
+Variation coordinates are user-space numbers such as `wght` 700; NaN and infinities have no position on an axis.
+
+## How to fix
+
+Pass finite values; values outside the axis range are clamped, so there is no need for infinities.
+
+## Example
+
+```rust
+font.instance(&[(Tag::WEIGHT, f32::NAN)])?; // invalid-axis-value
+```
+
+## Data fields
+
+- `tag`: the axis.
+",
+        "wrong-document" => r"# `wrong-document`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`FontRegistry::finish_fonts` was given a document in which a font's reserved object is not a free number reserved in that document.
+
+## Why
+
+A `FontRegistry` belongs to one document: `reference` reserves numbers in the document it is given, and `finish_fonts` fills those numbers. Finishing into another document would overwrite its objects, so nothing is written.
+
+## How to fix
+
+Use one `FontRegistry` per document, and pass `finish_fonts` the document its `reference` calls used.
+
+## Example
+
+```rust
+let id = registry.reference(key, &doc_a)?;
+registry.finish_fonts(&mut doc_b.edit())?; // wrong-document: the fonts were reserved in doc_a
+```
+
+## Data fields
+
+- `object`: the reserved object number.
+",
+        "invalid-feature" => r#"# `invalid-feature`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An OpenType feature setting given to the shaper (`"liga=0".parse::<Feature>()`) did not parse.
+
+## Why
+
+Feature settings use HarfBuzz's syntax without ranges: `tag` or `+tag` (on), `-tag` (off), `tag=N`, `tag=on` or `tag=off`, where the tag is one to four printable ASCII characters. A sign together with a value (`+liga=1`), an empty or longer tag, or a value that is not a non-negative integer is refused.
+
+## How to fix
+
+Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Feature::new(Tag::new(b"liga"), 0)`.
+
+## Example
+
+```rust
+let f: Feature = "liga[3:5]=0".parse()?; // invalid-feature: ranges are not supported
+```
+
+## Data fields
+
+- `feature`: the setting as given (**untrusted**: caller text).
+"#,
+        "invalid-text-range" => r#"# `invalid-text-range`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A byte range of a text given to `Shaper::shape_range`, `BidiParagraph::visual_runs` or `BidiParagraph::line_levels`, or the range of a `ShapedRun` given to `pdf_run`, is past the end of the text or does not start and end on character boundaries.
+
+## Why
+
+Ranges are byte offsets into UTF-8 text; a range that cuts a character in two (or reaches past the end) names no text.
+
+## How to fix
+
+Take ranges from Lamina PDF's own results (`line_breaks`, `itemize`, `break_lines`, `ShapedRun::text_range`), or check them with `str::get` first, and pass the same text the range was computed on.
+
+## Example
+
+```rust
+shaper.shape_range(&font, "héllo", 0..2, &options)?; // byte 2 is inside 'é'
+```
+
+## Data fields
+
+- `start`, `end`: the range (bytes).
+- `len`: the text's length (bytes).
+"#,
+        "unsupported-layout-option" => r"# `unsupported-layout-option`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+`break_lines` was given a layout option Lamina PDF does not implement yet: `LayoutOptions::justify` set to `true`.
+
+## Why
+
+Justification (stretching inter-word gaps, kashida) is reserved for a later plan (research 03 §7.6); silently ignoring the option would lay out ragged lines the caller did not ask for.
+
+## How to fix
+
+Leave `justify` at `false` and pick an `Alignment` (start, end, left, right or centre).
+
+## Example
+
+```rust
+let options = LayoutOptions { justify: true, ..LayoutOptions::new(300.0, 12.0) };
+break_lines(&shaper, &fonts, text, &options)?; // unsupported-layout-option
+```
+
+## Data fields
+
+- `option`: the option's name (fixed text).
+",
+        "font-mismatch" => r"# `font-mismatch`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`pdf_run` was given a shaped run and the key of a font other than the one the run was shaped with. Nothing was recorded in the registry.
+
+## Why
+
+Glyph IDs, advances and units per em only mean something in the font that produced them; drawing them with another font would show the wrong glyphs and wrong text.
+
+## How to fix
+
+Register every font of a layout and pass the key of the run's own font: each `LineRun::font` is an index into the font list given to `break_lines`.
+
+## Example
+
+```rust
+let run = shaper.shape(&noto, text, &options)?;
+pdf_run(&run, text, &mut registry, roboto_key)?; // font-mismatch: shaped with Noto
+```
+
+## Data fields
+
+- `font`: the registered font's PostScript name (**untrusted**: read from the font).
+- `shaped_with`: the PostScript name of the font the run was shaped with (**untrusted**: read from the font).
+",
+        "encoding-full" => r"# `encoding-full`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+A standard 14 font had no free one-byte code left for another glyph in this document.
+
+## Why
+
+A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). Lamina PDF writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`. A document that draws more such glyphs with one font than there are free codes runs out. Assignment is all or nothing: when one `encode` call needs more new codes than are free, none are assigned and nothing of the text is recorded.
+
+## How to fix
+
+Embed a font (`Font::from_bytes`), which addresses every glyph through a Type 0 font, or split the text across two registrations of the standard font (each is its own font resource with its own codes).
+
+## Example
+
+Drawing more than 37 different non-WinAnsi Latin glyphs (Ā, ă, Ą, …) with `Standard14::Helvetica` in one document: the 38th has no free code in the font's `/Differences`, so the call fails with `encoding-full`.
+
+## Data fields
+
+- `font`: the standard font's PostScript name (fixed text: one of the fourteen).
+- `limit`: how many codes `/Differences` can assign for this font.
+- `free`: how many of them were still free; the text needed more, so none were assigned.
+",
+        "font-not-shapable" => r#"# `font-not-shapable`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+A standard 14 font (`Font::standard`) was given to the shaper, `itemize`, `break_lines` or `pdf_run`.
+
+## Why
+
+The standard 14 fonts are referred to by name and never embedded: Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with, no `cmap` for itemizing, and no CIDs for a shaped run (a standard 14 font is written as a simple font with one-byte codes).
+
+## How to fix
+
+Draw standard 14 text with `FontRegistry::encode` (one glyph per character, kerning not applied), or load a real font with `Font::from_bytes` and shape with it.
+
+## Example
+
+```rust
+let helvetica = Font::standard(Standard14::Helvetica);
+shaper.shape(&helvetica, "Hello", &options)?; // font-not-shapable
+```
+
+## Data fields
+
+- `font`: the standard font's PostScript name (fixed text: one of the fourteen).
+"#,
+        "tounicode-conflict" => r"# `tounicode-conflict`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+One glyph was used for two different texts; the ToUnicode CMap maps it to the first.
+
+## Why
+
+A ToUnicode CMap maps each code to one string (ISO 32000-2 §9.10.3), for example when one space glyph stands for both U+0020 and U+00A0.
+
+## How to fix
+
+Mark the second occurrence with `/ActualText` (§14.9.4) so extraction gets its text; Lamina PDF's builder does this for you.
+
+## Example
+
+A CFF font in which one space glyph is used for both U+0020 and U+00A0: the ToUnicode CMap maps it to U+0020 (the first use), and the warning names the glyph (`gid`) and the second text.
+
+## Data fields
+
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+- `gid`: the glyph, in the original font's numbering.
+- `kept`, `dropped`: the two texts (**untrusted**: caller text).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [B5b](../todos/done/B5b-builder-text-and-document-features.md): the builder marks repeated glyphs
+",
+        "whole-font-rebuilt" => r"# `whole-font-rebuilt`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A font whose `OS/2.fsType` forbids subsetting was embedded with every glyph, but rebuilt rather than byte for byte.
+
+## Why
+
+It is a variable-font instance or has CFF2 outlines; PDF can embed neither as it is, so `subsetter` instanced it (or converted CFF2 to TrueType outlines) while keeping every glyph. Its `cmap` and layout tables are dropped.
+
+## How to fix
+
+Check the font's licence allows this, or use a static TrueType/CFF version of the font.
+
+## Example
+
+Registering a variable font instance (`font.instance(&[(Tag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
+
+## Data fields
+
+- `font`: the font's PostScript name (**untrusted**: read from the font).
+",
+        "invalid-image" => r#"# `invalid-image`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+`Image::jpeg`, `Image::png` or `Image::png_with` (`laminapdf-build`) could not read the bytes as an image of that format.
+
+## Why
+
+A JPEG must start with a start-of-image marker and have a frame header (SOF) before its first scan, with every marker segment inside the data; a PNG must decode without errors (signature, chunk CRCs, zlib data, sizes).
+
+## How to fix
+
+Pass the complete file. Check that the bytes are the format you called (a PNG passed to `Image::jpeg` fails here).
+
+## Example
+
+```rust
+let img = Image::jpeg(std::fs::read("photo.png")?)?; // invalid-image: PNG bytes given as JPEG
+```
+
+## Data fields
+
+- `format`: `Jpeg`, `Png` or `Rgba`.
+- `reason`: what was wrong (fixed text).
+"#,
+        "unsupported-image" => r"# `unsupported-image`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+The image is valid but uses a feature the builder can't embed.
+
+## Why
+
+PDF's `DCTDecode` filter (ISO 32000-2 §7.4.8) takes baseline and progressive JPEG with 8-bit samples; lossless, hierarchical and arithmetic-coded JPEG and 12-bit samples are refused, as are JPEGs with 2 or more than 4 components.
+
+## How to fix
+
+Re-encode the image as a baseline or progressive 8-bit JPEG, or as PNG.
+
+## Example
+
+```rust
+let img = Image::jpeg(lossless_jpeg_bytes)?; // unsupported-image: data.feature says which
+```
+
+## Data fields
+
+- `format`: the image's format.
+- `feature`: the feature that is not supported (fixed text).
+",
+        "image-too-large" => r"# `image-too-large`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+Decoding a PNG would need more than `MAX_DECODED_IMAGE_BYTES` (256 MiB), or the dimensions given to `Image::rgba` describe more bytes than fit in memory's address space.
+
+## Why
+
+The builder decodes PNGs to split colour and alpha; a bound on the decoded size keeps a small file with huge dimensions from exhausting memory.
+
+## How to fix
+
+Scale the image down before adding it, or use a JPEG, which is embedded without decoding.
+
+## Example
+
+```rust
+let img = Image::png(&png_of_30000_by_30000_pixels)?; // image-too-large: over 256 MiB decoded
+```
+
+## Data fields
+
+- `limit`: the limit in decoded bytes.
+",
+        "image-data-length" => r"# `image-data-length`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Image::rgba(width, height, bytes)` was given a number of bytes other than `width × height × 4`.
+
+## Why
+
+Raw RGBA samples are 4 bytes per pixel, row by row from the top, with no padding.
+
+## How to fix
+
+Pass exactly 4 bytes per pixel.
+
+## Example
+
+```rust
+let img = Image::rgba(2, 2, &[0; 12])?; // image-data-length: 16 bytes expected
+```
+
+## Data fields
+
+- `expected`: the length the dimensions call for.
+- `actual`: the length given.
+",
+        "invalid-icc-profile" => r#"# `invalid-icc-profile`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+`IccProfile::new` (`laminapdf-build`) rejected the bytes.
+
+## Why
+
+An ICC profile (ICC.1:2010) starts with a 128-byte header holding its size, the `acsp` signature, its class and its data colour space. PDF's `ICCBased` colour spaces (ISO 32000-2 §8.6.5.5) take Gray, RGB, CMYK and Lab profiles; the builder takes Gray, RGB and CMYK (Lab components fall outside `[0, 1]` and need a `/Range`, not supported yet), and device-link, abstract and named-colour profiles can't be used.
+
+## How to fix
+
+Pass the complete bytes of an input, display, output or colour-space profile with a Gray, RGB or CMYK data colour space.
+
+## Example
+
+```rust
+let profile = IccProfile::new(b"not a profile".to_vec())?; // invalid-icc-profile
+```
+
+## Data fields
+
+- `reason`: what was wrong (fixed text).
+"#,
+        "color-components" => r"# `color-components`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Color::icc` was given a number of components that differs from the profile's channel count.
+
+## Why
+
+An `ICCBased` colour has one component per channel of its profile (`/N`: Gray 1, RGB and Lab 3, CMYK 4).
+
+## How to fix
+
+Give `IccProfile::components()` values.
+
+## Example
+
+```rust
+let c = Color::icc(&cmyk_profile, &[0.1, 0.2, 0.3])?; // color-components: 4 expected
+```
+
+## Data fields
+
+- `expected`: the colour space's number of components.
+- `actual`: how many were given.
+",
+        "invalid-color" => r##"# `invalid-color`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Color::hex` was given a string that is not `#rgb` or `#rrggbb`.
+
+## Why
+
+Hex colours are a `#` followed by three or six hexadecimal digits, in either case.
+
+## How to fix
+
+Write the colour as `#3366cc` or `#36c`, or use `Color::rgb`.
+
+## Example
+
+```rust
+let c = Color::hex("#12345")?; // invalid-color: 5 digits
+```
+
+## Data fields
+
+- `text`: the string as given (untrusted: caller text, never in the message).
+"##,
+        "invalid-geometry" => r"# `invalid-geometry`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A page size, page box, `/UserUnit`, drawing value or image size given to the builder is not usable. Drawing values are checked as the `Surface` receives them and the first bad one is reported by `PageBuilder::finish`.
+
+## Why
+
+Page sizes and `/UserUnit` must be finite and positive, page boxes, path coordinates, matrices and image rectangles finite, line widths and dash lengths finite and not negative (and a dash pattern not all zeros, ISO 32000-2 §8.4.3.6), miter limits at least 1, images at least one pixel wide and tall, font sizes and line heights positive, text boxes wider than 0, and destination coordinates finite.
+
+## How to fix
+
+Check the values passed to `Builder::page`, `PageBuilder::user_unit`, the box setters, the `Surface` (paths, `transform`, `StrokeStyle`, `image`, `text` and `text_box` sizes, positions, boxes and line heights, `link` rectangles), destinations (`Fit` coordinates) and `Image::rgba`.
+
+## Example
+
+```rust
+let page = builder.page(PageSize::new(Pt::new(0.0), Pt::new(842.0))); // invalid-geometry at finish
+```
+
+## Data fields
+
+- `what`: which value was invalid (fixed text).
+",
+        "text-overflow" => r"# `text-overflow`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Surface::text_box` laid its text out and not every line fit the box (its height, or a single grapheme cluster wider than the box), and its `TextBoxOptions` asked for `Overflow::Error`. Nothing was drawn.
+
+## Why
+
+A text box draws only lines that fit inside it. With `Overflow::Error` the caller asked to be told instead of having the text cut off.
+
+## How to fix
+
+Make the box taller or wider, the font smaller or the text shorter; or use `Overflow::Clip` (the default), which draws the lines that fit and reports where the rest starts in `TextLayout::overflow`.
+
+## Example
+
+```rust
+let options = TextBoxOptions::default().with_overflow(Overflow::Error);
+surface.text_box(long_text, &font, Pt::new(12.0), small_rect, &options)?; // text-overflow
+```
+
+## Data fields
+
+- `fits`: the number of lines that fit.
+- `needed`: the number of lines the text needs.
+",
+        "page-index-out-of-range" => r"# `page-index-out-of-range`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A link (`LinkTarget::Page`), an outline item or a named destination (`Builder::destination`) names a page index the document doesn't have when the build finishes.
+
+## Why
+
+Page targets are resolved when `Builder::finish` (or `Appender::finish`) runs, so a link can name a page added after its own; by then every index must be one of the document's pages. Indexes are 0-based.
+
+## How to fix
+
+Use an index below the document's page count, or add the page before finishing.
+
+## Example
+
+```rust
+surface.link(rect, LinkTarget::Page { index: 5, fit: Fit::Page }, None);
+builder.finish()?; // page-index-out-of-range: the document has 2 pages
+```
+
+## Data fields
+
+- `index`: the 0-based index given.
+- `count`: the number of pages.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0027](../decisions/0027-coordinates-units-and-page-indexing.md) §6
+",
+        "unknown-destination" => r#"# `unknown-destination`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A link or outline item of a new document targets `LinkTarget::Named(name)`, but `Builder::destination` never defined that name.
+
+## Why
+
+A named destination is looked up in the document's `/Names /Dests` tree (ISO 32000-2 §12.3.2.4); a name that isn't there goes nowhere in every viewer.
+
+## How to fix
+
+Define the name with `Builder::destination(name, page_index, fit)` before `Builder::finish`, or link to the page directly with `LinkTarget::Page`.
+
+## Example
+
+```rust
+surface.link(rect, LinkTarget::Named("appendix".into()), None);
+builder.finish()?; // unknown-destination: call builder.destination("appendix", …) first
+```
+
+## Data fields
+
+- `name`: the name as given (untrusted: caller text, never in the message).
+"#,
+        "invalid-page-labels" => r"# `invalid-page-labels`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The ranges given to `Builder::page_labels` can't be written as a `/PageLabels` number tree.
+
+## Why
+
+ISO 32000-2 §7.7.2 and §12.4.2: the tree must have an entry for page index 0, its keys are page indexes in increasing order, and a label range's first number (`/St`) is at least 1. A range starting past the document's last page would label nothing.
+
+## How to fix
+
+Give the ranges sorted by first page, the first starting at page 0, each start a page of the document, and numbers from 1 (`PageLabel::with_first`).
+
+## Example
+
+```rust
+builder.page_labels([PageLabel::new(1, Some(LabelStyle::Decimal))]); // invalid-page-labels at finish: no range starts at page 0
+```
+
+## Data fields
+
+- `what`: what is wrong (fixed text).
+",
+        "profile-version-conflict" => r"# `profile-version-conflict`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`BuildOptions::with_version(PdfVersion::V2_0)` was combined with a conformance profile (`BuildOptions::with_profile`) that is built on PDF 1.7. `Builder::finish` wrote nothing.
+
+## Why
+
+The PDF/UA-1 standard for accessible PDF (ISO 14289-1) and the PDF/A-2 and PDF/A-3 archival standards (ISO 19005-2 and -3) build their rules on ISO 32000-1, which is PDF 1.7. A file that says it is PDF 2.0 can't conform to them. Validators such as veraPDF, the open-source PDF/A and PDF/UA validator, check the header first.
+
+## How to fix
+
+Leave the version at its default, 1.7 (or choose a lower one: the builder raises it to what the content needs). PDF 2.0 has its own profiles, PDF/A-4 and PDF/UA-2, which Lamina PDF doesn't write yet.
+
+## Example
+
+```rust
+let options = BuildOptions::default()
+    .with_version(PdfVersion::V2_0)
+    .with_profile(Profile::PdfA2b);
+Builder::new(options).finish()?; // profile-version-conflict
+```
+
+## Data fields
+
+- `profile`: the profile, such as `PDF/A-2b`.
+",
+        "missing-title" => r#"# `missing-title`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A PDF/UA-1 document (`Profile::PdfUa1`) reached `Builder::finish` without a title: `Builder::metadata` was never called, or its `Metadata` has no title, or the title is blank.
+
+## Why
+
+A screen reader announces the title first, so a document without one is hard to tell apart from others. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.1) requires a title in the document's metadata. The title is `dc:title` in the XMP packet, the XML metadata stream that the builder writes from `Metadata`. The standard also asks viewers to show the title in the title bar instead of the file name (`/DisplayDocTitle`, which the builder writes for you). This is condition 06-003 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Give the document a title that says what it is.
+
+## Example
+
+```rust
+builder.metadata(Metadata::default().with_title("Quarterly report, Q3 2026"));
+```
+
+## Data fields
+
+None.
+"#,
+        "missing-lang" => r#"# `missing-lang`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A PDF/UA-1 document (`Profile::PdfUa1`) reached `Builder::finish` without a natural language: `Builder::lang` was never called, or was given a blank tag.
+
+## Why
+
+A screen reader picks its voice and pronunciation from the document's language (`/Lang` in the catalog, ISO 32000-2 §14.9.2). The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.2) requires that the language of all text can be determined. These are conditions 11-001 and 11-006 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Set the document's language with a BCP 47 tag, the standard language code of the web, such as `en-GB` or `fr`. Text in another language can carry its own tag with `Tag::with_lang`.
+
+## Example
+
+```rust
+builder.lang("en-GB");
+```
+
+## Data fields
+
+None.
+"#,
+        "missing-alt-text" => r#"# `missing-alt-text`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, a page has a `Figure` or `Formula` element without alternate text: neither `/Alt` (`Tag::with_alt`) nor `/ActualText` (`Tag::with_actual_text`).
+
+## Why
+
+A screen reader can't describe a picture or a formula by itself. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.3) requires every `Figure` and every `Formula` to carry a text alternative. These are conditions 13-004 and 17-002 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. Lamina PDF checks only that a description exists; whether it describes the figure well is for a person to judge.
+
+## How to fix
+
+Describe the figure with `Surface::figure(&image, rect, alt)` or `Tag::new(TagKind::Figure).with_alt(…)`. If the picture is decoration that carries no meaning, draw it inside `Surface::artifact` instead.
+
+## Example
+
+```rust
+surface.tag(TagKind::Figure, |s| { s.image(&chart, rect); Ok(()) })?;
+builder.finish()?; // missing-alt-text: use Tag::new(TagKind::Figure).with_alt("Sales by month")
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+"#,
+        "untagged-content" => r"# `untagged-content`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, something was drawn outside every structure element and artifact: a path, an image or text that is neither part of the document's structure nor marked as decoration.
+
+## Why
+
+Assistive technology reads a tagged document through its structure tree, and skips content outside it or reads it out of order. For this reason, the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.1) requires every piece of content to be tagged or marked as an artifact. This is condition 01-005 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Draw real content inside `Surface::tag` (or give a text run `TextRun::tag`) and decoration, such as rules, backgrounds and page numbers, inside `Surface::artifact`. `Builder::tagging_diagnostics` lists what is still untagged on each page.
+
+## Example
+
+```rust
+surface.path(|p| { p.rect(rule); }).fill(FillRule::NonZero);
+builder.finish()?; // untagged-content: wrap it in surface.artifact(ArtifactKind::Layout, …)
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+- `content`: what was drawn: `path`, `image` or `text`.
+- `count`: how many drawings of that kind.
+",
+        "heading-level-skipped" => r#"# `heading-level-skipped`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, the document's headings skip a level. Numbered headings are `H1`, `H2` and so on, as opposed to the unnumbered `H`. Either the first numbered heading is not `H1`, or a heading is more than one level below the heading before it (an `H3` straight after an `H1`).
+
+## Why
+
+Screen-reader users move through a document by its headings, and a skipped level suggests a missing section. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.4.2) requires numbered headings to start at `H1` and to go down one level at a time. These are conditions 14-002 and 14-003 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. Going back up any number of levels is fine.
+
+## How to fix
+
+Use the next level down for a subsection (`H2` under `H1`, `H3` under `H2`). If a heading should only look smaller, change its font size, not its level.
+
+## Example
+
+```rust
+s.text("Results", &font, Pt::new(18.0), at)?.tag(TagKind::H1);
+s.text("Method", &font, Pt::new(12.0), at2)?.tag(TagKind::H3);
+builder.finish()?; // heading-level-skipped: the second heading should be an H2
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+- `level`: the heading's level.
+- `previous`: the level of the heading before it (0 when there is none).
+"#,
+        "unnumbered-heading-misused" => r#"# `unnumbered-heading-misused`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, the document misuses the unnumbered heading `H`, a heading whose level comes from the section it sits in. Numbered headings are `H1`, `H2` and so on. Either two `H` elements share one parent, or the document uses `H` and numbered headings together.
+
+## Why
+
+A screen reader works out an `H` heading's level from the sections around it. A section therefore has one `H` at most, and a document that mixes the two kinds gives no consistent outline. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.4.4) requires one `H` per section and only one kind of heading per document. These are conditions 14-006 and 14-007 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Use numbered headings (`TagKind::H1` to `TagKind::H6`) throughout; most documents need nothing else. If you use `H` (`Tag::custom("H", …)`), give each section (`Sect`) its own and leave the numbered ones out.
+
+## Example
+
+```rust
+s.text("Results", &font, Pt::new(18.0), at)?.tag(TagKind::H1);
+s.text("Method", &font, Pt::new(14.0), at2)?.tag(Tag::custom("H", TagKind::H2));
+builder.finish()?; // unnumbered-heading-misused: use TagKind::H2 for the second heading
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+"#,
+        "invalid-structure-nesting" => r#"# `invalid-structure-nesting`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, a table or list element sits in a parent its type doesn't allow. A table (`Table`) holds rows (`TR`), each holding header cells (`TH`) and data cells (`TD`); a list (`L`) holds list items (`LI`), each holding a label (`Lbl`, its bullet or number) and a body (`LBody`). Examples of a wrong parent: a `TD` or `TH` outside a `TR`, a `TR` outside a `Table`, an `LI` outside an `L`, or a paragraph directly inside a `Table`, `TR`, `L` or `LI`.
+
+## Why
+
+ISO 32000-1 Tables 336 and 337 define how tables and lists are built, and assistive technology relies on that shape to announce rows, columns and list items. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.2) requires tables and lists to have that shape. These are conditions 09-004 and 09-005 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Nest tables as `Table` > `TR` > `TH` or `TD` (optionally with `THead`, `TBody` and `TFoot` around the rows, and a `Caption`), and lists as `L` > `LI` > `Lbl` and `LBody`. Put paragraphs and other content inside the cells and list bodies.
+
+## Example
+
+```rust
+s.tag(TagKind::Table, |s| {
+    s.text("Total", &font, Pt::new(11.0), at)?.tag(TagKind::TD); // a TD straight in the Table
+    Ok(())
+})?;
+builder.finish()?; // invalid-structure-nesting: wrap the cell in a TR
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+- `kind`: the element's standard type, such as `TD`.
+- `parent`: its parent's standard type (`Document` at the top level).
+"#,
+        "link-without-structure" => r#"# `link-without-structure`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, a link annotation has no `Link` structure element. The builder gives every link one automatically, except a link drawn inside an artifact, which stays outside the structure.
+
+## Why
+
+A screen reader finds links through the structure tree, so a link inside decoration can't be reached. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.18.5) requires each link annotation to be nested in a `Link` element. This is condition 28-011 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Draw the link outside `Surface::artifact`, next to the text it belongs to; the builder then wraps it in a `Link` element.
+
+## Example
+
+```rust
+surface.artifact(ArtifactKind::Layout, |s| {
+    s.link(rect, LinkTarget::Uri("https://example.com".into()), Some("Example".into()));
+    Ok(())
+})?;
+builder.finish()?; // link-without-structure
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+- `count`: how many links on that page lack a `Link` element.
+"#,
+        "link-without-contents" => r#"# `link-without-contents`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/UA-1, a link annotation has no description: `Surface::link` or `TextRun::link` was called with `None` (or an empty string) as its contents.
+
+## Why
+
+A screen reader announces a link by its `/Contents`, its alternate description. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.18.5) requires one on every link. This is condition 28-012 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Pass a short description of where the link goes as the link's contents.
+
+## Example
+
+```rust
+surface.link(rect, LinkTarget::Uri("https://example.com/pay".into()), None);
+builder.finish()?; // link-without-contents: pass Some("Pay the invoice online".into())
+```
+
+## Data fields
+
+- `page`: the page's index (0-based).
+"#,
+        "font-not-embedded" => r#"# `font-not-embedded`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Text was drawn with one of the standard 14 fonts (`Builder::standard_font`) under PDF/UA-1 or a PDF/A profile. The standard 14 fonts are never embedded: viewers substitute their own.
+
+## Why
+
+The PDF/A standard for archival PDF (ISO 19005-2 §6.2.11.4.1) needs every font embedded, so the document looks the same everywhere in the future. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.4.1) needs it too, so viewers can render the text and map it to characters reliably. This is condition 31-009 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
+
+## How to fix
+
+Load a font file with `Builder::font` (or `Builder::font_bytes` in the façade): Lamina PDF embeds the subset of glyphs you draw.
+
+## Example
+
+```rust
+let bold = builder.standard_font(Standard14::HelveticaBold)?;
+surface.text("Invoice", &bold, Pt::new(24.0), at)?;
+builder.finish()?; // font-not-embedded under Profile::PdfA2b
+```
+
+## Data fields
+
+- `profile`: the profile, such as `PDF/A-2b`.
+- `font`: the font's PostScript name, such as `Helvetica-Bold`.
+"#,
+        "glyph-without-unicode" => r#"# `glyph-without-unicode`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own, or whose text is U+0000, U+FEFF or U+FFFE. Shaping can draw one cluster (a group of characters that display as one unit) with several glyphs. The text then belongs to the first glyph, and the others stand for none.
+
+## Why
+
+Software can search, copy or read text aloud only when every glyph maps to a usable Unicode value. The PDF/A-2u archival standard (ISO 19005-2 §6.2.11.7.2) and the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.7) both need that mapping. These are conditions 31-027 to 31-029 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. Lamina PDF maps a glyph that stands for no text to an empty value, which these profiles reject.
+
+## How to fix
+
+Check the text for control characters and byte-order marks. If shaping draws several glyphs for one cluster, choose a font that draws each cluster as one glyph. An archive that needs no accessibility can use PDF/A-2b instead, which doesn't need Unicode for every glyph. PDF/UA-1 has no such relaxed variant, so a PDF/UA-1 document needs the font change.
+
+## Example
+
+```rust
+surface.text("\u{FEFF}Report", &font, Pt::new(12.0), at)?;
+builder.finish()?; // glyph-without-unicode under Profile::PdfA2u
+```
+
+## Data fields
+
+- `profile`: the profile, `PDF/A-2u` or `PDF/UA-1`.
+- `font`: the font's PostScript name (untrusted: read from the font file).
+- `gid`: the glyph's ID in the font.
+"#,
+        "device-color-without-output-intent" => r"# `device-color-without-output-intent`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under a PDF/A profile, a page draws with `DeviceCMYK` (CMYK given as plain numbers, with no profile to say which inks they mean): a `Color::cmyk` colour or a CMYK JPEG.
+
+## Why
+
+The PDF/A standard for archival PDF (ISO 19005) gives device colour a defined meaning through the document's output intent, which Lamina PDF writes as sRGB. That sRGB intent defines device RGB and gray, but not device CMYK, so ISO 19005-2 §6.2.4.3 forbids CMYK under it.
+
+## How to fix
+
+Use `Color::rgb` or `Color::gray`, convert CMYK images to RGB, or give CMYK colours an ICC profile with `Color::icc` (an ICC-based colour carries its own meaning).
+
+## Example
+
+```rust
+surface.fill_color(Color::cmyk(0.0, 0.5, 1.0, 0.0));
+builder.finish()?; // device-color-without-output-intent under Profile::PdfA2b
+```
+
+## Data fields
+
+- `page`: the index (0-based) of the first page that uses `DeviceCMYK`.
+",
+        "embedded-file-forbidden" => r#"# `embedded-file-forbidden`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::attach` added a file to a document built under PDF/A-2b or PDF/A-2u.
+
+## Why
+
+The PDF/A-2 standard for archival PDF (ISO 19005-2 §6.8) allows only attached files that are themselves PDF/A. Lamina PDF can't check what an attachment is, so it rejects every attachment under PDF/A-2 on purpose, PDF/A ones included. The PDF/A-3 standard for archival PDF (ISO 19005-3) allows files of any kind, provided they are associated with the document, which `Builder::attach` does.
+
+## How to fix
+
+Choose `Profile::PdfA3b` for documents that carry files, such as an e-invoice's XML, or leave the attachment out.
+
+## Example
+
+```rust
+let options = BuildOptions::default().with_profile(Profile::PdfA2b);
+let mut builder = Builder::new(options);
+builder.attach(Attachment::new("data.csv", csv, "text/csv"));
+builder.finish()?; // embedded-file-forbidden: use Profile::PdfA3b
+```
+
+## Data fields
+
+- `profile`: the profile, such as `PDF/A-2b`.
+"#,
+        "embedded-file-without-mime-type" => r#"# `embedded-file-without-mime-type`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+Under a PDF/A profile, `Builder::attach` added a file with an empty MIME type. A MIME type names the file's format, such as `text/xml`.
+
+## Why
+
+Software reading an archive years later needs to know what each attached file is. The PDF/A-3 standard for archival PDF (ISO 19005-3 §6.8) requires every embedded file to name its MIME type in the `/Subtype` of its stream, and Lamina PDF writes no `/Subtype` for an empty one.
+
+## How to fix
+
+Pass the file's MIME type to `Attachment::new`. For bytes of no particular type, use `application/octet-stream`.
+
+## Example
+
+```rust
+let options = BuildOptions::default().with_profile(Profile::PdfA3b);
+let mut builder = Builder::new(options);
+builder.attach(Attachment::new("invoice.xml", xml, ""));
+builder.finish()?; // embedded-file-without-mime-type: pass "text/xml"
+```
+
+## Data fields
+
+- `profile`: the profile, such as `PDF/A-3b`.
+- `name`: the file's name (untrusted: the caller's text).
+"#,
+        "render-too-large" => r"# `render-too-large`
+
+- Type: error
+- Kind: `limit` (a configured limit was exceeded)
+
+## What happened
+
+A render backend (`laminapdf-render`) refused a request that is too large. The tile has more than `max_render_pixels` pixels or more than `max_render_side` pixels on a side (the document's `RenderLimits`), or more than 65,535 pixels on a side for hayro. Or, for hayro, which reads the whole file, the input is longer than `max_input_bytes`.
+
+## Why
+
+Page sizes and zoom levels come from files and users, so a render could otherwise ask for a bitmap of any size. The limits are checked before anything is allocated. The defaults are 16,777,216 pixels per tile (4096 × 4096, iOS Safari's per-canvas cap), 16,384 pixels per side and 1 GiB of input.
+
+## How to fix
+
+At high zoom, render the visible part of the page as tiles of 256 to 512 pixels (`RenderRequest::with_clip`) instead of the whole page. Raise the limits with `RenderOpenOptions::with_limits` only when the larger bitmap is intended.
+
+## Example
+
+```rust
+let req = RenderRequest::page(0, 1000.0); // a letter page at 1000×: 612,000 × 792,000 pixels
+doc.render(&req, &mut out, &CancelToken::new())?; // render-too-large
+```
+
+## Data fields
+
+- `width`, `height`: the tile's size (tile limits).
+- `limit`: the limit exceeded.
+- `unit`: `pixels`, `pixels per side` or `pixels per side (hayro)` (tile limits).
+- `len`: the input's length in bytes (the input limit, with `limit`).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0004](../decisions/0004-render-backend.md) §1
+",
+        "render-failed" => r"# `render-failed`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+The render engine (PDFium or hayro, `laminapdf-render`) could not open the document, or could not draw the page it was asked for.
+
+## Why
+
+The engines have their own parsers. A file that Lamina PDF repairs may still be too damaged for an engine, or use a feature it can't draw. An engine failure (for example a panic inside hayro) is reported this way too, never as a crash.
+
+## How to fix
+
+Check the document's warnings: a damaged file is usually reported there too. Try the other backend from the debug menu. If neither can draw the page, report the file with the backend name and version.
+
+## Example
+
+```rust
+let doc = HayroBackend::new().open(Arc::new(bytes), &RenderOpenOptions::new())?; // render-failed for a file hayro can't parse
+```
+
+## Data fields
+
+- `backend`: `pdfium` or `hayro`.
+- `stage`: `open` or `render`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [C1a](../todos/done/C1a-hayro-parity-spike.md): the hayro parity spike, which saw such a panic once
+",
+        "render-backend-unavailable" => r"# `render-backend-unavailable`
+
+- Type: error
+- Kind: `io` (reading or writing outside Lamina PDF failed)
+
+## What happened
+
+The PDFium backend (`laminapdf-render-pdfium`) could not load the PDFium library, so nothing can be rendered with it.
+
+## Why
+
+PDFium is bound at runtime, never linked at build time: the library has to be present on the machine. Lamina PDF looks for it only in the folder you name.
+
+## How to fix
+
+Ship the PDFium library (`libpdfium.dylib`, `libpdfium.so` or `pdfium.dll`) with your app and pass its folder to `PdfiumBackend::bind(dir)`, or set `LAMINA_PDF_PDFIUM_DIR` to that folder for `PdfiumBackend::from_env()`.
+
+## Example
+
+```rust
+let backend = PdfiumBackend::from_env()?; // render-backend-unavailable when the library isn't there
+```
+
+## Data fields
+
+- `backend`: `pdfium`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0004](../decisions/0004-render-backend.md) §3
+
+In a checkout of Lamina PDF, `cargo xtask fetch-pdfium` fetches the pinned build and prints its `LAMINA_PDF_PDFIUM_DIR`.
+",
+        "cancelled" => r#"# `cancelled`
+
+- Type: error
+- Kind: `cancelled` (a `CancelToken` stopped the work)
+
+## What happened
+
+The `CancelToken` passed to a job, or to a run-to-completion call such as `Document::save`, was cancelled. The call returned at its next check: the start of a step, a budget check, or the next object or page of a long loop.
+
+## Why
+
+The caller (or a host on its behalf: an `AbortSignal`, Ctrl-C, a task cancellation) asked for the work to stop.
+
+## How to fix
+
+Nothing: this is the outcome that was asked for. The job is finished, a cancelled save left the document as it was (`Dirty`, nothing written), and a cancelled read returned no partial result. Start a new job with a fresh token to try again.
+
+## Example
+
+```rust
+let cancel = laminapdf::CancelToken::new();
+cancel.cancel();
+let err = doc.save(&laminapdf::SaveOptions::new(), &cancel).unwrap_err();
+assert_eq!(err.code(), "cancelled");
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §5
+"#,
+        "job-finished" => r#"# `job-finished`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+`step` was called on a job that had already returned its result, failed or been cancelled.
+
+## Why
+
+A job ends with its first `Step::Done`, or with its first error: an error ends the job. A step loop that keeps going after either reaches this.
+
+## How to fix
+
+Stop stepping once a step returns `Done` or an error. To run the work again, create a new job.
+
+## Example
+
+```rust
+let mut job = doc.save_job(&laminapdf::SaveOptions::new());
+while let laminapdf::Step::Progress { .. } = job.step(&mut doc, laminapdf::Budget::UNLIMITED)? {}
+assert_eq!(job.step(&mut doc, laminapdf::Budget::UNLIMITED).unwrap_err().code(), "job-finished");
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3
+"#,
+        "document-changed" => r#"# `document-changed`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A job's `step` was given a document other than the one the job was created from, or that document changed since: a committed transaction, an undo, a redo, a save or a rebase. Every step checks the document's instance and revision before any work, and the job is now finished.
+
+## Why
+
+Jobs don't borrow the document, so other calls can run between two steps. A save or a read that went on after an edit would mix two states of the document, so the job stops instead.
+
+## How to fix
+
+Pass the document the job was created from, don't change it while the job runs, and create a new job after a change. A failed save left the document as it was.
+
+## Example
+
+```rust
+let mut job = doc.save_job(&laminapdf::SaveOptions::new());
+doc.apply(vec![laminapdf::Op::from(set_info)])?; // the revision moves on
+assert_eq!(job.step(&mut doc, laminapdf::Budget::UNLIMITED).unwrap_err().code(), "document-changed");
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3
+"#,
+        "builder-finished" => r#"# `builder-finished`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A `WasmBuilder` method was called after the builder's `finish`, or a `WasmPageBuilder` was drawn on or finished again after its own `finish` (or after its builder's).
+
+## Why
+
+`finish` hands the work over: a builder's becomes a `WasmDocument`, a page's is written into its builder. Neither holds anything to draw on afterwards.
+
+## How to fix
+
+Draw everything on a page before finishing it, and finish every page before the builder. To build more, create a new page or builder.
+
+## Example
+
+```js
+const b = new WasmBuilder(undefined);
+const page = b.page(595, 842);
+page.finish();
+page.save(); // throws { code: "builder-finished", … }
+```
+
+## Data fields
+
+- `argument`: always `builder`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §7: the binding owns its pages
+"#,
+        "invalid-argument" => r#"# `invalid-argument`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A value passed from JavaScript to `@laminapdf/wasm` is not of the type its declaration describes. It might be a record with a field of the wrong type, or a string that names no known value (a blend mode, a fill rule, a standard 14 font, an op). It might also be a flat-encoded path cut short, a colour with the wrong number of components, or an ID that isn't 32 hex digits.
+
+## Why
+
+The `.d.ts` types describe each argument, but JavaScript (and code written without the types) can pass anything. The binding checks each value as it converts it.
+
+## How to fix
+
+Pass what the declaration says. When the value names an unknown string, `didYouMean` lists the closest allowed ones; `data.detail` says what the conversion found.
+
+## Example
+
+```js
+page.blendMode("multiplly"); // throws { code: "invalid-argument", didYouMean: ["multiply"], … }
+```
+
+## Data fields
+
+- `argument`: the parameter that was wrong (`options`, `path`, `mode`, …).
+- `detail`: what the conversion said (untrusted: it may quote the value passed).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §7
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) F6
+"#,
+        "source-budget-exceeded" => r#"# `source-budget-exceeded`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+A sparse source (`WasmSparseSource` in `@laminapdf/wasm`, or a `@laminapdf/sdk` range document) was handed bytes that would make it hold more than the byte budget it was created with. The bytes were not added.
+
+## Why
+
+A range source keeps every byte it has fetched: the document may already have read them, so nothing is evicted. The budget bounds how much of a remote or lazily read file one document may hold in memory.
+
+## How to fix
+
+Create the source with a larger budget, or fetch less per round: smaller blocks and no readahead. A file that must be read whole (a full rewrite, or a repaired file with no usable xref) needs a budget of at least its size.
+
+## Example
+
+```js
+const source = new WasmSparseSource(10_000_000, 1_000_000);
+source.supply(0, new Uint8Array(2_000_000)); // throws { code: "source-budget-exceeded", … }
+```
+
+## Data fields
+
+- `argument`: `bytes`.
+- `detail`: how many bytes the source would hold and its budget (Lamina PDF's own numbers).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2c](../todos/done/L2c-range-byte-source.md): the range byte source
+- [ADR 0005](../decisions/0005-document-model.md) §2
+"#,
+        "unknown-option" => r#"# `unknown-option`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An options record passed to `@laminapdf/wasm` (`OpenOptionsInit`, `SaveOptionsInit`, `BuildOptionsInit`, …) has a key Lamina PDF doesn't know.
+
+## Why
+
+Records refuse unknown keys instead of ignoring them, so a misspelt option fails loudly rather than silently doing nothing.
+
+## How to fix
+
+Remove the key or correct its spelling. `didYouMean` lists the known keys within two edits of it.
+
+## Example
+
+```js
+WasmDocument.openBytes(bytes, { pasword: "secret" }); // throws { code: "unknown-option", didYouMean: ["password"], … }
+```
+
+## Data fields
+
+- `argument`: the parameter whose record had the key (`options`, `metadata`, …).
+- `option`: the key given (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) F6
+- [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §1
+"#,
+        "already-initialized" => r#"# `already-initialized`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+`init()` or `loadText()` of `@laminapdf/sdk` named a source (a URL, `Response`, bytes or `WebAssembly.Module`) for a module that an earlier call had already loaded, or started loading, from another source (or from the default file).
+
+## Why
+
+Each module is instantiated once per JavaScript realm: every document and builder lives in that instance. Loading a second copy from another source would leave two instances whose objects can't be mixed, so the second source is refused rather than silently ignored.
+
+## How to fix
+
+Pass the source on the first call only; later calls (from other parts of the app) can call `init()` without one, which waits for the same load. Calling again with the very same source object is allowed.
+
+## Example
+
+```js
+await init(new URL("/wasm/lamina_pdf_base.wasm", location.href));
+await init(); // fine: the module is loaded
+await init(otherBytes); // throws { code: "already-initialized", … }
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §3
+"#,
+        "extract-module-not-loaded" => r#"# `extract-module-not-loaded`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+`page.text()` of `@laminapdf/sdk` was called on a page of a document opened in the base module, which has no text extraction.
+
+## Why
+
+`@laminapdf/sdk` ships three WebAssembly modules: base (open, read, edit, save), extract (base plus text extraction) and text (base plus fonts, shaping and extraction). A document lives in the module it was opened in, and opening uses the richest one loaded at that moment: text, then extract, then base. A document opened before the extract or text module was loaded stays in the base module.
+
+## How to fix
+
+Load the extract module (about half the size of the text module) before opening the document: `await init({ extract: true })` or `await loadExtract()`. A document already open in the base module can be moved by saving it and opening the bytes again.
+
+## Example
+
+```js
+await init();
+const doc = Document.open(bytes);
+doc.page(0).text(); // throws { code: "extract-module-not-loaded", … }
+
+await loadExtract();
+Document.open(bytes).page(0).text().text(); // works
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §4
+"#,
+        "fetch-failed" => r#"# `fetch-failed`
+
+- Type: error
+- Kind: `io` (the host failed to supply bytes; often transient)
+
+## What happened
+
+A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for: the request failed (network error, CORS refusal, DNS) or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for: a `Content-Range` the browser hides because CORS doesn't expose it looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
+
+## Why
+
+Opening a remote file range by range depends on the server: it must allow the `Range` request (and, across origins, expose `Content-Range`, `Content-Length` and `ETag` through CORS), and must not compress the response (`Content-Encoding` breaks byte ranges). Lamina PDF never retries on its own; the error says the bytes are not available.
+
+## How to fix
+
+Check that the URL is reachable from where the code runs and that the server sends `Access-Control-Allow-Origin`, `Access-Control-Allow-Headers: Range` and `Access-Control-Expose-Headers: Content-Range, Content-Length, ETag`. Serve PDFs without `Content-Encoding`. Retry the call yourself if the failure was transient.
+
+## Example
+
+```js
+const doc = await Document.openRange(httpRangeSource(url)); // throws { code: "fetch-failed", data: { status: 403 } }
+```
+
+## Data fields
+
+- `reason`: `network`, `status`, `content-range` or `length` (Lamina PDF's own words). The URL is never included.
+- `status`: the HTTP status, when there was a response.
+- `expected`, `got`: for `length`, the bytes asked for and the bytes returned.
+"#,
+        "not-initialized" => r#"# `not-initialized`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A function or class of `@laminapdf/sdk` (`Document.open`, `new Builder`, …) was called before `init()` had finished loading and instantiating the WebAssembly module.
+
+## Why
+
+`@laminapdf/sdk` is synchronous after `init()`, but fetching and compiling the `.wasm` file is asynchronous, so it happens once, up front, in `init()`. Until that promise resolves there is no module to call.
+
+## How to fix
+
+Await `init()` once, before the first call; calling it again is cheap (it is idempotent). In a Cloudflare Worker, pass the imported module: `await init({ module: wasm })`.
+
+## Example
+
+```js
+import { Document, init } from "@laminapdf/sdk";
+Document.open(bytes); // throws { code: "not-initialized", … }
+await init();
+Document.open(bytes); // works
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §3
+"#,
+        "source-changed" => r#"# `source-changed`
+
+- Type: error
+- Kind: `io` (the host failed to supply bytes; often transient)
+
+## What happened
+
+A remote file changed while `@laminapdf/sdk` was reading it range by range: a response's `ETag` or total length differs from the first one (or the server ignored `If-Range` and sent a different file).
+
+## Why
+
+A range document is assembled from many responses. If the file changed between them, the parts no longer belong to one file, and the document would read a mix of two versions. `httpRangeSource` sends `If-Range` with the first `ETag` and compares each response's `ETag` and `Content-Range` length with the first.
+
+## How to fix
+
+Open the file again (a new source, a new document). If the file changes often, download it whole with `Document.open(bytes)` instead.
+
+## Example
+
+```js
+const doc = await Document.openRange(httpRangeSource(url));
+await doc.ensure(() => doc.pages); // throws { code: "source-changed", … } if the file was replaced meanwhile
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2c](../todos/done/L2c-range-byte-source.md): the range byte source
+"#,
+        "text-module-not-loaded" => r#"# `text-module-not-loaded`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A font or text method (`Font` use, `surface.text`, `surface.textBox`, `builder.font`) was called on a `Builder` created while only the base WebAssembly module was loaded, or `new Builder({ text: true })` was called before the text module was loaded.
+
+## Why
+
+`@laminapdf/sdk` ships two modules: the base module (open, edit, save, vector and image pages) and the larger text module (all of the base plus fonts, shaping and text layout). A document that draws text is built entirely in the text module, and loading it is asynchronous, so it can't happen inside a synchronous drawing call. A builder created without the text module can't gain it later.
+
+## How to fix
+
+Load the text module before creating the builder that draws text: `await init({ text: true })`, or `await loadText()` after `init()`. Builders created after that use the text module.
+
+## Example
+
+```js
+await init();
+const b = new Builder();
+b.page("A4").surface().text("Hi", { font: Font.standard("Helvetica"), size: 12, at: [72, 72] });
+// throws { code: "text-module-not-loaded", … }
+await loadText(); // then create a new Builder
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0016](../decisions/0016-package-design.md) §4
+"#,
+        "disposed" => r#"# `disposed`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`).
+
+## Why
+
+Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on.
+
+## How to fix
+
+Free a handle only after its last use. To keep working with the document, open it again from its bytes, or create a new builder.
+
+## Example
+
+```ts
+const doc = Document.open(bytes);
+doc.free();
+doc.save(); // throws LaminaPdfError { code: "disposed", … }
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/ready/L2b-disposal-and-memory.md): adds the check that raises this code
+"#,
+        "worker-version-mismatch" => r#"# `worker-version-mismatch`
+
+- Type: error
+- Kind: `usage` (the caller did something the API doesn't allow)
+
+## What happened
+
+`connect()` from `@laminapdf/sdk/worker` started a Web Worker, and its handshake named a different protocol or package version than the client. The client rejected `connect()` and sent nothing else.
+
+## Why
+
+The client and the Web Worker exchange messages whose shape belongs to one build. A Web Worker from another version (an older deploy, a CDN copy, a separately bundled copy) could misread them, so the handshake fails loudly instead. PDF.js learned the same lesson.
+
+## How to fix
+
+Let the bundler serve the Web Worker from the same `@laminapdf/sdk` package as the page: `connect()` contains the literal `new Worker(new URL(…, import.meta.url))` that Vite and webpack follow. If you pass `{ worker }` yourself, build it from the same package version.
+
+## Example
+
+```ts
+const client = await connect({ worker: new Worker("/old/lamina-worker.js", { type: "module" }) });
+// rejects: LaminaPdfError { code: "worker-version-mismatch", … }
+```
+
+## Data fields
+
+- `expected`: the client's `{ protocol, version }`.
+- `actual`: what the Web Worker answered.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2a](../todos/done/L2a-worker-client.md): the worker client
+"#,
+        "worker-crashed" => r#"# `worker-crashed`
+
+- Type: error
+- Kind: `internal` (a bug or an environment failure, not the caller's input)
+
+## What happened
+
+The Web Worker running `@laminapdf/sdk` (from `@laminapdf/sdk/worker`) stopped: an uncaught error, a WebAssembly trap or the browser killing it (out of memory). Every call still in flight was rejected with this code, and the client emitted a `crashed` event.
+
+## Why
+
+A long synchronous call can keep the Web Worker busy without answering, so Lamina PDF has no heartbeat and never treats silence as a crash. Only the Web Worker's `error` or `messageerror` event, or a trap it reports, counts as a crash.
+
+## How to fix
+
+Call `client.restart()`, then open the document again: handles from the old Web Worker are gone. An encrypted document needs its password again. If one file keeps crashing the Web Worker, report it.
+
+## Example
+
+```ts
+client.on("crashed", () => client.restart());
+await doc.save(); // rejects with LaminaPdfError { code: "worker-crashed", … } if the Web Worker died
+```
+
+## Data fields
+
+- `reason`: what ended the Web Worker: `error`, `messageerror` or `trap` (a crash, which emits `crashed`), or `terminated` (`client.terminate()`, `restart()`, or a call made when no Web Worker runs).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2a](../todos/done/L2a-worker-client.md): the worker client
+- [ADR 0009](../decisions/0009-web-client-architecture.md) §3.6
+"#,
+        "worker-failed" => r#"# `worker-failed`
+
+- Type: error
+- Kind: `internal` (a bug or an environment failure, not the caller's input)
+
+## What happened
+
+A call through `@laminapdf/sdk/worker` failed inside the Web Worker with an error that isn't a `LaminaPdfError`. The call was rejected with this code and the error's message; the Web Worker and its documents keep working.
+
+## Why
+
+The Web Worker passes Lamina PDF's own errors through unchanged and rejects caller mistakes it can detect (an unknown method, a parameter it can't receive) with `invalid-argument`. Anything else is a failure of Lamina PDF's client code, such as a result it couldn't send back or a bug in its code.
+
+## How to fix
+
+Report it, with the call you made and the message. The same call through the sync API on the main thread is a workaround while it is fixed.
+
+## Example
+
+```ts
+await doc.pageCount(); // rejects with LaminaPdfError { code: "worker-failed", kind: "internal", … } on a bug in Lamina PDF's client
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2a](../todos/done/L2a-worker-client.md): the worker client
+"#,
         _ => return None,
     })
 }
