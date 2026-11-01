@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2k` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2j](../done/Q2j-boundary-errors-rust.md) |
+| Depends on | [Q2j](./Q2j-boundary-errors-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2k-boundary-errors-ts` |
@@ -36,16 +36,25 @@ The worker turns a render error's `ranges` into `{offset, length}` objects, but 
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write a test where a render `data-pending` crosses the worker; watch it lose its ranges.
-- [ ] Add `toDiagnostic`; switch the worker; delete the unused pair.
-- [ ] Change the viewer's throws; remove its entries from [Q2b](../done/Q2b-ts-lint-rules.md)'s `useThrowOnlyError` override.
-- [ ] Run the Node and browser suites.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Write a test where a render `data-pending` crosses the worker; watch it lose its ranges.
+- [x] Add `toDiagnostic`; switch the worker; delete the unused pair.
+- [x] Change the viewer's throws; remove its entries from [Q2b](../done/Q2b-ts-lint-rules.md)'s `useThrowOnlyError` override.
+- [x] Run the Node and browser suites.
 
 ## Acceptance criteria
 
-- [ ] The crossing test passes.
-- [ ] No plain-object throw in `packages/*/src`.
+- [x] The crossing test passes.
+- [x] No plain-object throw in `packages/*/src`.
+
+## Outcome
+
+A render `data-pending` thrown in the worker now reaches the page with its ranges. The new browser test failed before the fix: the ranges arrived as `[]`. Four details add to the plan.
+
+- **How the worker finds the object:** `@laminapdf/sdk` can't import `@laminapdf/render`, so the worker's `diagnostic()` can't check for `RenderError` by class. Instead it calls any thrown value's `toDiagnostic()` method and posts the result if it is a §1 object. Any error class can cross the worker this way. The TypeScript guideline now says so.
+- **The object:** `RenderError.toDiagnostic()` returns `code`, `kind`, `message`, `docsUrl` and, for `data-pending`, `data.ranges` as `[offset, length]` pairs. It has no hint, because `@laminapdf/render` has no hint table; Q2l generates the render tables. A new test checks the `docsUrl` of every render code against `fixtures/codes.json`. The worker file shrank from 15,702 to 15,667 bytes gzipped.
+- **The viewer:** its worker throws `RenderError("cancelled")`, `RenderError("disposed")` and, for a missing backend, `RenderError("render-backend-unavailable")`, which used to be a bare `Error` and reached the page as `worker-failed`. The viewer's `useThrowOnlyError` override is gone.
+- **Ranges on the page:** `LaminaError.ranges` still returns `{ offset, length }` objects, since that is its public API and `Document.ensure` reads it. What crosses the worker is pairs everywhere. A changeset records the fix and the removal of `toJSON()`, `reviveRenderError` and `SerializedRenderError`.
 
 ## Post-merge checks
 

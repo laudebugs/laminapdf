@@ -34,6 +34,15 @@ describe("RenderErrorCode", () => {
     }
   });
 
+  it("gives each code the docsUrl fixtures/codes.json defines", () => {
+    const { docsUrl } = JSON.parse(readFileSync(new URL("../../../fixtures/codes.json", import.meta.url), "utf8")) as {
+      docsUrl: { base: string; suffix: string };
+    };
+    for (const code of CODES) {
+      expect(new RenderError(code, "x").toDiagnostic().docsUrl).toBe(`${docsUrl.base}${code}${docsUrl.suffix}`);
+    }
+  });
+
   it("covers every renderErrors code", () => {
     const file = JSON.parse(readFileSync(new URL("../../../fixtures/codes.json", import.meta.url), "utf8")) as {
       renderErrors: { code: string }[];

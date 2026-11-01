@@ -31,7 +31,7 @@ Did-you-mean suggestions are written in both Rust (`lamina-wasm`) and TypeScript
 
 **Out of scope** (and which todo covers it)
 
-- Error shapes ([Q2j](../done/Q2j-boundary-errors-rust.md), [Q2k](../ongoing/Q2k-boundary-errors-ts.md)).
+- Error shapes ([Q2j](../done/Q2j-boundary-errors-rust.md), [Q2k](../done/Q2k-boundary-errors-ts.md)).
 
 ## Tasks
 

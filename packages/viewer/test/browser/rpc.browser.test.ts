@@ -1,5 +1,6 @@
 // The document worker and its RPC in Chromium, Firefox and WebKit (C3a's acceptance criteria).
-import { isLaminaError } from "@laminapdf/sdk";
+import { isLaminaError, type LaminaError } from "@laminapdf/sdk";
+import { connect } from "@laminapdf/sdk/worker";
 import { afterEach, describe, expect, it } from "vitest";
 import { CORPUS, ENCRYPTED, expected, next, PASSWORD, read, rejection, viewer } from "./helpers.js";
 
@@ -50,6 +51,22 @@ describe("open", () => {
     const client = await track(viewer());
     const e = await rejection(client.open(await read("fixtures/corpus/hello.pdf"), { limits: { maxNestingDepth: 1 } }));
     expect(isLaminaError(e, "limit-exceeded")).toBe(true);
+  });
+});
+
+describe("errors", () => {
+  it("keeps a render data-pending's ranges across the worker", async () => {
+    const client = await track(
+      connect({
+        worker: () => new Worker(new URL("./render-error.worker.ts", import.meta.url), { type: "module" }),
+      }),
+    );
+    const e = await rejection(client.request("pending", []));
+    expect(isLaminaError(e, "data-pending")).toBe(true);
+    expect((e as LaminaError).ranges).toEqual([
+      { offset: 0, length: 1024 },
+      { offset: 4096, length: 512 },
+    ]);
   });
 });
 

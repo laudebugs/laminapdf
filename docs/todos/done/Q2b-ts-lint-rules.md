@@ -39,7 +39,7 @@ This todo adds the TypeScript rules from the [maintainability guideline](../../g
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [x] Add the Biome rules; run `biome ci`; list the offenders in an override with a comment pointing at Q2p.
-- [x] Fix any `useThrowOnlyError` hits outside the viewer worker, which [Q2k](../ongoing/Q2k-boundary-errors-ts.md) handles (list those in the override too).
+- [x] Fix any `useThrowOnlyError` hits outside the viewer worker, which [Q2k](../done/Q2k-boundary-errors-ts.md) handles (list those in the override too).
 - [x] Add the TypeDoc validation run for each package entry; document the missing TSDoc or list it.
 - [x] Wire both into `cargo xtask check ts`.
 
