@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2k](./Q2k-boundary-errors-ts.md) |
+| Blocks | [Q2k](../ready/Q2k-boundary-errors-ts.md) |
 | ADRs | Follows 0026 |
 | Branch | `refactor/q2j-boundary-errors-rust` |
 | PR title | `refactor(errors): every Rust boundary error is the ADR 0026 object from one serialiser` |
@@ -32,7 +32,7 @@ Errors cross the Rust and JavaScript boundary in two shapes. lamina-wasm throws 
 
 **Out of scope** (and which todo covers it)
 
-- Did-you-mean ([Q2v](./Q2v-did-you-mean.md)); the TypeScript side ([Q2k](./Q2k-boundary-errors-ts.md)).
+- Did-you-mean ([Q2v](../ready/Q2v-did-you-mean.md)); the TypeScript side ([Q2k](../ready/Q2k-boundary-errors-ts.md)).
 
 ## Tasks
 
@@ -64,7 +64,7 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
