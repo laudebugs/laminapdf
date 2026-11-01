@@ -16,7 +16,7 @@
 
 ## Goal
 
-Expose text extraction everywhere the readers need it and prove it against independent tools: `page.text()` in `laminapdf-wasm` and `@lamina/pdf` returning glyph runs with quads in a compact transferable form, extracted text compared with pdf.js and pdftotext on the corpus, glyph quads compared with PDFium's character boxes, and an extraction fuzz target running 10 minutes clean. When this merges, web C5 can build its text layer.
+Expose text extraction everywhere the readers need it and prove it against independent tools: `page.text()` in `lamina-wasm` and `@lamina/pdf` returning glyph runs with quads in a compact transferable form, extracted text compared with pdf.js and pdftotext on the corpus, glyph quads compared with PDFium's character boxes, and an extraction fuzz target running 10 minutes clean. When this merges, web C5 can build its text layer.
 
 ## Context
 
@@ -44,7 +44,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read ADR 0016 and web plan C5
-- [x] `laminapdf-wasm` text bindings; `@lamina/pdf` `page.text()`; tests in Node and Chromium, using the Vitest browser/Playwright config from [B6c](../done/B6c-runtime-matrix.md)
+- [x] `lamina-wasm` text bindings; `@lamina/pdf` `page.text()`; tests in Node and Chromium, using the Vitest browser/Playwright config from [B6c](../done/B6c-runtime-matrix.md)
 - [x] `tools/differential/` additions (pdf.js script, pdftotext) and `cargo xtask differential --text [--update]`
 - [x] `tools/render/charbox.py` (pypdfium2) and `cargo xtask quads`
 - [x] `fuzz/fuzz_targets/extract_text.rs`
@@ -65,7 +65,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 
 ## Tests
 
-- `packages/sdk/test/text.test.ts`; `crates/laminapdf-wasm/tests/text.rs`; differential and quad xtask suites (fast lane: precomputed; full lane: live tools).
+- `packages/sdk/test/text.test.ts`; `crates/lamina-wasm/tests/text.rs`; differential and quad xtask suites (fast lane: precomputed; full lane: live tools).
 
 ## Docs to update
 
@@ -92,6 +92,6 @@ Expose text extraction everywhere the readers need it and prove it against indep
 - **API:** `WasmPage.text(options)` (struct of arrays); `PageRef.text()` → `PageText` in `@lamina/pdf`; `init({ extract })`, `loadExtract()`; `extract-module-not-loaded`.
 - **Rust = TypeScript:** `fixtures/text/page-text.json`, checked by both.
 - **Differential:** pdf.js and pdftotext agree with lamina on every page of the corpus and text goldens but five, each with its reason (`fixtures/differential/text-exceptions.json`).
-- **Quads:** 2,140 one-to-one glyphs within the documented rule against PDFium's loose boxes (`crates/laminapdf/tests/quads.rs`).
+- **Quads:** 2,140 one-to-one glyphs within the documented rule against PDFium's loose boxes (`crates/lamina/tests/quads.rs`).
 - **Fuzz:** `cargo xtask fuzz extract_text --time 600`: 154,463 runs in 601 s, coverage 10,106, no crash (macOS ARM64, nightly).
 

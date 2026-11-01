@@ -44,7 +44,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 
 ## 4. Principles (recommendations, recorded in ADRs 0026–0031)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `laminapdf` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@laminapdf/sdk` ships would break the TypeScript API.
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `laminapdf` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`laminapdf-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@laminapdf/sdk` ships would break the TypeScript API.
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
@@ -57,7 +57,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 The [report](../research/libraries/shareable-libraries.md) has side-by-side Rust, TypeScript, CLI, Swift and Kotlin sketches for each area. All snippets are illustrative, not final.
 
 ```rust
-// lamina façade (B5c, ADR 0028): Send + !Sync; lamina-ffi wraps it in a Mutex, laminapdf-wasm in Rc<RefCell<…>>
+// lamina façade (B5c, ADR 0028): Send + !Sync; laminapdf-ffi wraps it in a Mutex, laminapdf-wasm in Rc<RefCell<…>>
 let doc = laminapdf::Document::open_bytes(bytes, OpenOptions::default())?;
 let mut job = doc.extract_job(&ExtractOptions { format: Format::Markdown, ..Default::default() })?;
 let cancel = job.cancel_token();                       // clone it to another thread or the UI to cancel

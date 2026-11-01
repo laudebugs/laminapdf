@@ -292,7 +292,7 @@ fn parse_tree(text: &str) -> (BTreeMap<String, Node>, String) {
 }
 
 /// Every edge-only crate reachable from `root` through normal dependencies, as a path
-/// (`lamina-x → helper → getrandom`). Proc-macros are not followed: their dependencies run on the
+/// (`laminapdf-x → helper → getrandom`). Proc-macros are not followed: their dependencies run on the
 /// host at build time and are not shipped. Dev- and build-dependencies are not in the graph.
 fn edge_only_paths(graph: &BTreeMap<String, Node>, root: &str) -> Vec<String> {
     let mut parent: BTreeMap<&str, &str> = BTreeMap::new();

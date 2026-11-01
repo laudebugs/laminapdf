@@ -1,7 +1,7 @@
 //! `cargo xtask verapdf [--dir <dir>]` (ADR 0018 tier 10): validates every generated
 //! example against the profiles it claims with veraPDF, and fails on any violation.
 //!
-//! Without `--dir`, the `lamina` examples are run into `target/examples-out/` first (as
+//! Without `--dir`, the `laminapdf` examples are run into `target/examples-out/` first (as
 //! `cargo xtask examples` does). Each PDF's profiles are read from its XMP identification
 //! (`pdfaid:part` + `pdfaid:conformance`, `pdfuaid:part`), so an example declares what it is
 //! validated against by what it writes; a PDF that claims none is listed and skipped.

@@ -324,7 +324,7 @@ fn file_findings(path: &str, text: &str) -> Vec<Finding> {
             findings.push(finding(
                 line_number,
                 "public-imports",
-                "import from `laminapdf::…`, the crate readers depend on, not from `lamina_<crate>`",
+                "import from `laminapdf::…`, the crate readers depend on, not from `laminapdf_<crate>`",
             ));
         }
         if rust && code.contains("include_bytes!(\"../../..") {

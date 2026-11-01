@@ -229,7 +229,7 @@ fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeS
         Ok(diff
             .split('\0')
             .filter(|path| !path.is_empty())
-            .filter(|path| !renamed_only(root, merge_base, path, old_paths.get(*path)))
+            .filter(|path| !renamed_only(root, merge_base, path, old_paths.get(*path).map(String::as_str)))
             .map(str::to_owned)
             .chain(untracked.iter().cloned())
             .collect())
@@ -250,22 +250,23 @@ fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeS
     }
 }
 
-/// Names the repository renamed everywhere at once (new, old): the crates' `laminapdf` (todo P0b).
+/// Names the repository renamed everywhere at once (new, old): the crates' `laminapdf` (todo P0b,
+/// which removes this exemption once no open branch predates the rename).
 const RENAMED: [(&str, &str); 1] = [("laminapdf", "lamina")];
 
 /// Whether `path`'s only change since `merge_base` is one of the [`RENAMED`] names and the
 /// line breaks that came with it (its old path, if it moved, is `old_path`). Such a file isn't
 /// changed for the ratchet, so a rename across the repository doesn't make every file it touches
 /// strict at once.
-fn renamed_only(root: &Path, merge_base: &str, path: &str, old_path: Option<&String>) -> bool {
-    let old_path = old_path.map_or(path, String::as_str);
-    let (Ok(before), Ok(now)) = (
-        git(root, &["show", &format!("{merge_base}:{old_path}")]),
-        std::fs::read_to_string(root.join(path)),
-    ) else {
+fn renamed_only(root: &Path, merge_base: &str, path: &str, old_path: Option<&str>) -> bool {
+    let Ok(now) = std::fs::read_to_string(root.join(path)) else {
         return false;
     };
-    without_renames(&before) == without_renames(&now)
+    if !RENAMED.iter().any(|(new, _)| now.contains(new)) {
+        return false;
+    }
+    crate::changes::at_revision(root, merge_base, old_path.unwrap_or(path))
+        .is_ok_and(|before| without_renames(&before) == without_renames(&now))
 }
 
 /// `text` with each [`RENAMED`] name in its old form and no whitespace.

@@ -1,4 +1,4 @@
-# B9b — Text extraction in `laminapdf-text`: fonts from files, encodings, ToUnicode, glyph runs and quads
+# B9b — Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads
 
 | Field | Value |
 | --- | --- |
@@ -31,14 +31,14 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 
 **In scope**
 
-- `laminapdf-text::extract` module (read side), separate from generation, sharing encoding tables/AGL with B4c.
+- `lamina-text::extract` module (read side), separate from generation, sharing encoding tables/AGL with B4c.
 - Font dictionary reading: Type1/MMType1/TrueType simple fonts (`/FirstChar`, `/Widths`, `/MissingWidth`, `/Encoding` name or dict with `/Differences`, built-in encodings of embedded fonts via skrifa where available), standard 14 by name (AFM widths from B4c), Type 0 (`/Encoding` Identity-H/V or embedded CMap stream, `/DescendantFonts` CIDFontType0/2, `/W`, `/DW`, `/W2`/`/DW2` vertical, `CIDToGIDMap`), Type 3 (`/FontMatrix`, widths; Unicode via ToUnicode/encoding only).
 - CMap parser (codespace ranges, `cidchar`/`cidrange`/`notdefrange`, `usecmap` with depth limit) and ToUnicode parser (`bfchar`/`bfrange` incl. array form, UTF-16BE surrogates, multi-char mappings), both tolerant with warnings and limits.
 - Unicode resolution order: ToUnicode → encoding + AGL (incl. `uniXXXX`, `uXXXX[XX]`, `gNN`-style heuristics documented) → embedded font cmap via skrifa → U+FFFD with a `unmapped-glyph` warning count.
 - Geometry: for each glyph, text rendering matrix from `Tm`, CTM, font size, `Tz`, `Ts`, `Tc`/`Tw` (word spacing only for single-byte code 32), displacement from widths; quad = font bbox ascent/descent (from descriptor or font program) in page space (respecting `/Rotate` and `UserUnit` — page space before rotation, with a helper to map to rotated view space); vertical writing mode.
 - Runs: consecutive glyphs with the same font/size/direction/MCID grouped; `TextRun { text, glyphs: [Glyph { unicode, quad, code, gid? }], font_name, font_size, direction, mcid, actual_text }`; `ActualText` from `BDC` property lists replaces the run text while keeping quads; invisible text (`Tr 3`) flagged (OCR layers).
 - Simple reading-order heuristic (content order; optional line grouping by baseline) — no layout analysis.
-- `Page::text(&self, TextOptions) -> Result<PageText>` in `laminapdf` façade; per-page decode budget via `Limits`.
+- `Page::text(&self, TextOptions) -> Result<PageText>` in `lamina` façade; per-page decode budget via `Limits`.
 
 **Out of scope** (and which todo covers it)
 
@@ -50,11 +50,11 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read 03 §3–5, §2.6, §8.1
-- [x] `extract/font.rs` (simple, Type 0 and Type 3 fonts, descriptors, Unicode resolution), `extract/cmap.rs` (CMaps and ToUnicode CMaps, one parser), `extract/mod.rs` (the `laminapdf_content::Visitor`); geometry and runs moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
+- [x] `extract/font.rs` (simple, Type 0 and Type 3 fonts, descriptors, Unicode resolution), `extract/cmap.rs` (CMaps and ToUnicode CMaps, one parser), `extract/mod.rs` (the `lamina_content::Visitor`); geometry and runs moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Font cache per document (keyed by font object id) to avoid re-parsing
 - [x] Predefined CMaps: Identity-H/V built in, and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones read as UTF-16; bundling Adobe's CJK character-collection CMaps is left to [B9c](../done/B9c-text-extraction-bindings-and-differential.md) (WASM size budget); until then they raise `cmap-invalid`
 - [x] Warnings and codes (`font-invalid`, `cmap-invalid`, `unmapped-glyph`); the façade API moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
-- [x] Fixtures: the existing text goldens in five scripts (`text-*.pdf` from `laminapdf-text`, `build-text-*.pdf` from `laminapdf-build`) with what pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`; not lamina); encrypted copies moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
+- [x] Fixtures: the existing text goldens in five scripts (`text-*.pdf` from `lamina-text`, `build-text-*.pdf` from `lamina-build`) with what pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`; not lamina); encrypted copies moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Tests below
 
 ## Acceptance criteria
@@ -70,7 +70,7 @@ None.
 ## Tests
 
 - Unit tests (CMap/ToUnicode parsing, AGL heuristics, matrices).
-- `crates/laminapdf-text/tests/extract_fonts.rs` (goldens, matrices, warnings, strict mode); unit tests in `extract/cmap.rs` and `extract/font.rs`. `extract_scripts`, `extract_encrypted` and `extract_geometry` moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md).
+- `crates/lamina-text/tests/extract_fonts.rs` (goldens, matrices, warnings, strict mode); unit tests in `extract/cmap.rs` and `extract/font.rs`. `extract_scripts`, `extract_encrypted` and `extract_geometry` moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md).
 
 ## Docs to update
 

@@ -1,4 +1,4 @@
-# A3 — Port the spike reader/writer into `laminapdf-syntax` and `laminapdf-cos`
+# A3 — Port the spike reader/writer into `lamina-syntax` and `lamina-cos`
 
 | Field | Value |
 | --- | --- |
@@ -10,7 +10,7 @@
 | Blocks | [B1a](./B1a-round-b-adrs.md), [B1b](./B1b-krilla-fit-spike.md) |
 | ADRs | Implements [0001](../../decisions/0001-core-language-and-licence.md) (determinism, bytes in/out); its tolerance behaviour was later written down as [0003](../../decisions/0003-reader-tolerance-and-limits.md) |
 | Branch | `feat/port-spike-core` |
-| PR title | `feat(core): port the spike reader/writer into laminapdf-syntax and laminapdf-cos` |
+| PR title | `feat(core): port the spike reader/writer into lamina-syntax and lamina-cos` |
 | Size | XL as merged (≈ 6,800 lines incl. fixtures and tests; a straight port, so not split) |
 | PR | [#8](https://github.com/laudebugs/lamina/pull/8) (squash-merged as `0f55e72`) |
 
@@ -27,11 +27,11 @@ Turn the `pdf-basics` spike's Rust core into the first two product crates, keepi
 
 **In scope**
 
-- [`crates/laminapdf-syntax`](../../../crates/laminapdf-syntax/): object model and byte-exact serialisation, lexer, depth-limited parser, Flate + PNG predictor filters (with the bounds fixes), its own `Error`.
-- [`crates/laminapdf-cos`](../../../crates/laminapdf-cos/): tolerant reader (classic and stream xref, `/Prev`, hybrid `/XRefStm`, object streams, repair, page tree, object cache, `OpenOptions::max_decoded_size`) and the classic/compact/incremental writer (moves to `laminapdf-save` in [B3b](../done/B3b-lamina-save-writers.md)).
+- [`crates/lamina-syntax`](../../../crates/laminapdf-syntax/): object model and byte-exact serialisation, lexer, depth-limited parser, Flate + PNG predictor filters (with the bounds fixes), its own `Error`.
+- [`crates/lamina-cos`](../../../crates/laminapdf-cos/): tolerant reader (classic and stream xref, `/Prev`, hybrid `/XRefStm`, object streams, repair, page tree, object cache, `OpenOptions::max_decoded_size`) and the classic/compact/incremental writer (moves to `lamina-save` in [B3b](../done/B3b-lamina-save-writers.md)).
 - `HashMap`/`HashSet` replaced by `BTreeMap`/`BTreeSet`; determinism tests.
 - Fixtures moved to `fixtures/` (`golden/`, `corpus/` + `expected.json`) with a provenance and licence `fixtures/README.md`.
-- The spike's content builder and golden samples kept as test support in `crates/laminapdf-cos/tests/common/` until `laminapdf-build` ([B5a](./B5a-lamina-build-core.md)).
+- The spike's content builder and golden samples kept as test support in `crates/lamina-cos/tests/common/` until `lamina-build` ([B5a](./B5a-lamina-build-core.md)).
 - Review fixes: repair order (last definition in the file wins), generation checks (stale → `null`), `null` page attributes, references inside `/Filter`/`/DecodeParms`, object-stream header lexing, `incremental_update` refusing encrypted bases, matching xref kind and never shrinking `/Size`.
 
 **Out of scope**
@@ -52,7 +52,7 @@ Turn the `pdf-basics` spike's Rust core into the first two product crates, keepi
 
 ## Tests
 
-The integration tests listed above under `crates/laminapdf-cos/tests/`, unit tests in both crates.
+The integration tests listed above under `crates/lamina-cos/tests/`, unit tests in both crates.
 
 ## Docs to update
 

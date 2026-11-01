@@ -8,7 +8,7 @@
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [C2b](./C2b-lamina-render-crate.md) |
 | Blocks | [C3a](./C3a-viewer-worker-rpc.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md) |
-| Dependency notes | [C2b](../done/C2b-lamina-render-crate.md) (trait + hayro adapter to compile); library **B6** (`laminapdf-wasm` build pipeline, ADR 0016 package conventions, size-budget checks; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk)) |
+| Dependency notes | [C2b](../done/C2b-lamina-render-crate.md) (trait + hayro adapter to compile); library **B6** (`lamina-wasm` build pipeline, ADR 0016 package conventions, size-budget checks; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk)) |
 | ADRs | Implements 0004 (web side) and follows 0009 (worker-only use); follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), 0016 (package design, from B6), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned, hashed third-party binary) |
 | Branch | `feat/c2c-render-packages` |
 | PR title | `feat(render-pdfium): add the pdfium-wasm and hayro web render adapters` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Give the browser the same `RenderBackend` contract the Rust crate has. `@laminapdf/render-pdfium` ships the pinned PDFium-WASM build behind a small TypeScript adapter; `@laminapdf/render-hayro` ships `laminapdf-render`'s hayro adapter compiled to its own `.wasm`. Both are optional packages, loaded only inside the document worker, so `@laminapdf/pdf` stays small ([pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk) budgets) and the viewer can switch backends at runtime (debug menu, diffing).
+Give the browser the same `RenderBackend` contract the Rust crate has. `@laminapdf/render-pdfium` ships the pinned PDFium-WASM build behind a small TypeScript adapter; `@laminapdf/render-hayro` ships `lamina-render`'s hayro adapter compiled to its own `.wasm`. Both are optional packages, loaded only inside the document worker, so `@laminapdf/pdf` stays small ([pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk) budgets) and the viewer can switch backends at runtime (debug menu, diffing).
 
 ## Context
 
@@ -25,7 +25,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@laminap
 - [C1b result](../done/C1b-pdfium-wasm-spike.md) (`spikes/pdfium-wasm/README.md`) — loading strategy, input strategy (`File.slice()` custom access vs OPFS), measured sizes.
 - [TypeScript guidelines](../../guidelines/typescript.md) — ESM-only, `exports` with `types` first, `sideEffects: false`, named exports, no Node APIs, Vitest; [modules and packaging](../../guidelines/typescript.md#modules-and-packaging).
 - [web-app.md §5](../../plans/web-app.md#5-design-summary) — packages list and optionality.
-- B6's `packages/sdk` and `crates/laminapdf-wasm` — copy their build, `init()` and size-budget patterns.
+- B6's `packages/sdk` and `crates/lamina-wasm` — copy their build, `init()` and size-budget patterns.
 
 ## Scope
 
@@ -33,7 +33,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@laminap
 
 - `packages/render` (`@laminapdf/render`, a tiny types-and-helpers package): the TS `RenderBackend` interface mirroring the Rust trait (`open`, `pageCount`, `pageSize`, `render(req, signal) → { width, height, pixels: Uint8ClampedArray }`, `close`), error codes shared through `fixtures/codes.json`.
 - `packages/render-pdfium`: vendored or fetched PDFium-WASM (`pdfium.wasm` + glue), verified by SHA-256 at build time, adapter implementing the interface, custom file access over a `ByteSource`-like `read(offset, length)` callback, password support.
-- `crates/laminapdf-render-wasm` (edge) + `packages/render-hayro`: wasm-bindgen + tsify build of the hayro adapter, `init()` like `@laminapdf/pdf`, built by `cargo xtask wasm`.
+- `crates/lamina-render-wasm` (edge) + `packages/render-hayro`: wasm-bindgen + tsify build of the hayro adapter, `init()` like `@laminapdf/pdf`, built by `cargo xtask wasm`.
 - Size budgets for both `.wasm` files in CI; licence notices shipped in each package.
 
 **Out of scope** (and which todo covers it)
@@ -52,11 +52,11 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@laminap
   - [x] `src/adapter.ts`: `openDocument(source, { password })` using `FPDF_LoadCustomDocument` with a block reader over the source (no full copy for `File` inputs), `render()` into a PDFium bitmap → copy/view into `Uint8ClampedArray` → caller wraps as `ImageData`; free bitmaps deterministically; map errors (`FPDF_ERR_PASSWORD` → `wrong-password`, etc.).
   - [x] Honour `AbortSignal` between steps (PDFium render is synchronous; check before and after, and support progressive render if the build exposes `FPDF_RenderPageBitmap_Start`).
   - [x] `LICENSES/` and `THIRD_PARTY_NOTICES.md` for PDFium and its bundled libraries.
-- [x] `crates/laminapdf-render-wasm` + `packages/render-hayro`: wasm-bindgen exports `open(bytes, password)`, `pageCount`, `pageSize`, `render(req) -> Uint8ClampedArray`; tsify types; TS wrapper implements the same interface; built with the `wasm-release` profile and `wasm-opt -Oz` via `cargo xtask wasm`.
+- [x] `crates/lamina-render-wasm` + `packages/render-hayro`: wasm-bindgen exports `open(bytes, password)`, `pageCount`, `pageSize`, `render(req) -> Uint8ClampedArray`; tsify types; TS wrapper implements the same interface; built with the `wasm-release` profile and `wasm-opt -Oz` via `cargo xtask wasm`.
 - [x] Size budgets: add both `.wasm` gz sizes to the B6 size-budget check (PDFium budget = measured C1b size + 5 %; hayro budget per ADR 0016 measurements).
 - [x] Tests (Vitest browser mode with Playwright, Chromium/Firefox/WebKit): render page 1 of `fixtures/corpus/hello.pdf` and `imaging-demo.pdf` with each adapter and compare against C2b's PNG goldens with the same perceptual threshold; wrong password → `wrong-password`; aborted request → rejects with `AbortError` and frees memory; 50 sequential renders do not grow WASM memory beyond a fixed bound.
 - [x] `cargo xtask check ts` runs the new packages' typecheck, Biome and tests; npm licence check passes.
-- [x] READMEs for the three packages (`render`, `render-pdfium`, `render-hayro`); update `CLAUDE.md` layout (`packages/render*`, `crates/laminapdf-render-wasm`).
+- [x] READMEs for the three packages (`render`, `render-pdfium`, `render-hayro`); update `CLAUDE.md` layout (`packages/render*`, `crates/lamina-render-wasm`).
 
 ## Acceptance criteria
 
@@ -106,7 +106,7 @@ Package READMEs; `CLAUDE.md`; tick "Create `packages/render-pdfium`… and `pack
   - **The build:** `@embedpdf/pdfium` 2.15.1, pinned and fetched through npm, not vendored. Its `pdfium.wasm` SHA-256 is checked before every build, typecheck and test, and the verifier is unit-tested.
   - **Rendering:** custom file access over the source, a form-fill environment per document, and the native adapter's two render paths.
   - **Notices:** `THIRD_PARTY_NOTICES.md`, from EmbedPDF's build in `embedpdf/runtime` (no XFA, V8 or Skia).
-- **`crates/laminapdf-render-wasm` and [`packages/render-hayro`](../../../packages/render-hayro/README.md):** a flat wasm-bindgen surface over `HayroBackend`, built by `cargo xtask wasm` as `lamina_render_hayro` into `@lamina/wasm`.
+- **`crates/lamina-render-wasm` and [`packages/render-hayro`](../../../packages/render-hayro/README.md):** a flat wasm-bindgen surface over `HayroBackend`, built by `cargo xtask wasm` as `lamina_render_hayro` into `@lamina/wasm`.
 - **Results:** both adapters pass the contract in Node and in all three browsers, including C2b's goldens: PDFium-WASM at SSIM ≥ 0.98 against the native `chromium/7881` goldens, hayro-WASM at ≥ 0.99.
 - **Sizes and budgets:**
 

@@ -47,7 +47,7 @@ The architecture research checked the 2026 state of each option ([report: reposi
 
 4. **Desktop links the crates natively.** `apps/desktop/src-tauri` depends on the library crates by path; it does not use WASM. Tauri commands are app code, not a binding crate (ADR 0008).
 
-5. **Mobile: UniFFI, later.** When mobile is in scope, a `crates/lamina-ffi` edge crate exposes the same façade to Swift and Kotlin through UniFFI (pinned version). Not built now. See [ADR 0029](0029-mobile-bindings-and-packaging.md) for the pin, packaging and binding rules (this decision is unchanged).
+5. **Mobile: UniFFI, later.** When mobile is in scope, a `crates/laminapdf-ffi` edge crate exposes the same façade to Swift and Kotlin through UniFFI (pinned version). Not built now. See [ADR 0029](0029-mobile-bindings-and-packaging.md) for the pin, packaging and binding rules (this decision is unchanged).
 
 6. **Deferred:** **napi-rs** (native Node addon) until a measured Node use case needs more than WASM gives; **Component Model / jco** until browser and workerd support is usable, re-evaluated in 2027. Python (PyO3/maturin or UniFFI's Python output), recommended early by [ch. 05 §8.6](../research/pdf/05-creating-pdfs-from-code.md#86-recommendation), gets its own ADR when scheduled; it will wrap the same façade.
 

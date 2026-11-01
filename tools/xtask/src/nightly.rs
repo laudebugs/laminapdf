@@ -25,7 +25,7 @@ const REGRESSION_RATIO: f64 = 1.10;
 const BENCHES: [(&str, &str); 3] = [
     ("laminapdf-cos", "read"),
     ("laminapdf-save", "save"),
-    ("lamina", "report"),
+    ("laminapdf", "report"),
 ];
 
 /// The pages per file the nightly render diff renders (`--pages`; nightly.yml passes the same).

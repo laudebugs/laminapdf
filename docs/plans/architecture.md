@@ -20,11 +20,11 @@ All three share one engine, so each of the ~180 operations in the [feature inven
 ```
    apps/web (Cloudflare)        apps/desktop (Tauri 2)          packages
    React chrome +               same UI packages +              @laminapdf/sdk (npm)
-   framework-free viewer        native menus, updater           lamina (crates.io)
+   framework-free viewer        native menus, updater           laminapdf (crates.io)
         │ typed RPC                  │ Channel / lamina://            │ direct calls
         ▼ (Web Worker)               ▼ (native, sandboxed process)    ▼ (WASM or native)
    ┌──────────────────────── lamina core (Rust, bytes in / bytes out) ───────────────────────┐
-   │ crates: laminapdf-syntax · -cos · -model · -ops · -save · -build · -text (façade: lamina)   │
+   │ crates: laminapdf-syntax · -cos · -model · -ops · -save · -build · -text (façade: laminapdf)   │
    └───────────────────────────────┬─────────────────────────────────────────────────────────┘
                                    ▼
         laminapdf-render: RenderBackend trait → PDFium (default) · hayro (CI oracle → future default)

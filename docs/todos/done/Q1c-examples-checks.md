@@ -22,7 +22,7 @@ The owner asked for a check that keeps examples maintainable while we write them
 
 - The [examples guideline](../../guidelines/examples.md): the rules and the table of checks.
 - [Quality plan §2.2](../../plans/quality.md#22-code-examples): what the examples look like today.
-- `apps/docs/src/components/Snippet.astro` (the glob of files a page may show), `packages/sdk/examples/`, `crates/laminapdf/examples/`, `packages/sdk/biome.json` (already restricts Node modules in examples).
+- `apps/docs/src/components/Snippet.astro` (the glob of files a page may show), `packages/sdk/examples/`, `crates/lamina/examples/`, `packages/sdk/biome.json` (already restricts Node modules in examples).
 - Biome 2.6.3 (the `pnpm-workspace.yaml` catalog): `noRestrictedImports`, `noNonNullAssertion`, `noExplicitAny`, `noExcessiveCognitiveComplexity`, `noExcessiveLinesPerFunction`; confirm each with `biome explain`.
 
 ## Scope
@@ -38,7 +38,7 @@ The owner asked for a check that keeps examples maintainable while we write them
   - no test scaffolding (`lamina-ex-`, fixed `D:20…` dates);
   - files ≤ 100 lines.
 - A Biome override for `packages/sdk/examples/**` in `check ts`: `noRestrictedImports` (relative paths out of the example's folder, `**/src/**`, `**/test/**`, `**/fixtures/**`), `noNonNullAssertion` and `noExplicitAny` as errors, cognitive complexity ≤ 10, function length ≤ 40.
-- `cargo xtask clippy-examples` in `check rust`: clippy on `crates/laminapdf/examples/` with `CLIPPY_CONF_DIR=tools/xtask/clippy-examples` (`too-many-lines-threshold = 40`) and `-D clippy::let_underscore_must_use`.
+- `cargo xtask clippy-examples` in `check rust`: clippy on `crates/lamina/examples/` with `CLIPPY_CONF_DIR=tools/xtask/clippy-examples` (`too-many-lines-threshold = 40`) and `-D clippy::let_underscore_must_use`.
 - Strict on examples changed since the merge base with `main`; warnings elsewhere; an `--all-strict` flag for Q1l.
 
 **Out of scope** (and which todo covers it)

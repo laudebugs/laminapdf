@@ -34,7 +34,7 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 **In scope**
 
 - `docs/plans/mobile-sdk.md` following the shape of the other plans (goal, scope and non-goals, users, requirements, design summary, decisions to record, rounds, risks, open questions, to-dos), covering:
-  - **Rust primitives** the SDKs sit on, as additions to the façade and `lamina-ffi`: `page_sizes()` at open; `render_tile(page, scale, rect, out, cancel)` into a caller-owned RGBA buffer; `trim(level)`; text and search as streams; annotation and form ops through the op log; incremental save.
+  - **Rust primitives** the SDKs sit on, as additions to the façade and `laminapdf-ffi`: `page_sizes()` at open; `render_tile(page, scale, rect, out, cancel)` into a caller-owned RGBA buffer; `trim(level)`; text and search as streams; annotation and form ops through the op log; incremental save.
   - **Views:** SwiftUI `LaminaView(document:state:)` with an `@Observable` state (page, zoom, selection, tool) and `.laminaTool`, `.onLaminaSave` modifiers; Compose `LaminaViewer(document, state, tool, formFillingEnabled)` with `rememberLaminaDocument` and `rememberLaminaViewerState`; headless use without views.
   - **Rendering:** low-resolution whole page first, then visible tiles on background threads; off-screen jobs cancelled; a page-size table so 1,000+ page lists lay out without rendering; Telephoto-style subsampling on Compose; CLI parity test (`lamina render --rect … --format rgba`) against device renders.
   - **Memory:** no decoded bitmaps kept in Rust by default; the platform owns pixel buffers and caches sized from the live budget (`os_proc_available_memory()` on iOS); `trim(level)` wired to `didReceiveMemoryWarningNotification` and `onTrimMemory`; object caches bounded by `Limits`.
@@ -45,7 +45,7 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
   - **Packaging:** SPM only (binary XCFramework target + source wrapper target); Maven Central `lamina-core` and `lamina-compose` AARs; ABIs and 16 KB alignment per ADR 0029; size budgets per ABI; minimum OS versions; sample apps.
   - **Render backend on mobile:** PDFium vs hayro per ADR 0004's per-surface decision and C1a/C2b measurements.
   - **Competitive bar:** PDFKit, androidx.pdf, Nutrient; what lamina offers that they do not (identical behaviour on both platforms, tolerance, incremental save, undo, signing, redaction, generation, a non-experimental Compose API).
-- **Rounds and todos:** split the plan into rounds, then write one todo file per PR in `docs/todos/ready/` (template format, Depends on links, Status `ready`). Expected rounds (recommendation, adjust in the PR): product `crates/lamina-ffi` and CI; render primitives and tiles; viewer core on each platform; text, search and accessibility; annotations and ink; forms; packaging and release.
+- **Rounds and todos:** split the plan into rounds, then write one todo file per PR in `docs/todos/ready/` (template format, Depends on links, Status `ready`). Expected rounds (recommendation, adjust in the PR): product `crates/laminapdf-ffi` and CI; render primitives and tiles; viewer core on each platform; text, search and accessibility; annotations and ink; forms; packaging and release.
 - **Todo IDs.** Two options; recommend one in the plan and decide in the PR:
   1. Continue the L series (`L7a`, `L7b`, … `L12x`), keeping mobile under the shareable-libraries umbrella.
   2. A new letter for a mobile round series. **Recommendation:** a new letter, because the SDK work will outgrow this plan; avoid `M`, which the board already uses for milestones (M1–M9). Candidate: `S` (SDK) or `N` (native), checked against the board and `cargo xtask todos` before use.
@@ -53,7 +53,7 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 
 **Out of scope** (and which todo covers it)
 
-- Any code, including the product `crates/lamina-ffi`: the first todo of the new plan.
+- Any code, including the product `crates/laminapdf-ffi`: the first todo of the new plan.
 - React Native, Flutter and Kotlin Multiplatform bindings: listed as later options with the ubrn/UniFFI pin constraint from ADR 0029.
 - Desktop and web viewers: web plan ([C3b](../done/C3b-viewer-virtualiser-and-zoom.md)) and desktop plan.
 

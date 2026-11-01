@@ -16,7 +16,7 @@
 
 ## Goal
 
-Decide the generation strategy with measurements: depend on krilla, or build `laminapdf-build` over `laminapdf-cos` reusing `pdf-writer`, `subsetter`, `skrifa` and HarfRust.
+Decide the generation strategy with measurements: depend on krilla, or build `lamina-build` over `lamina-cos` reusing `pdf-writer`, `subsetter`, `skrifa` and HarfRust.
 
 ## Context
 
@@ -27,7 +27,7 @@ Decide the generation strategy with measurements: depend on krilla, or build `la
 
 **In scope**
 
-- `spikes/krilla-fit/` (outside both workspaces): experiment A (krilla as-is, opened and incrementally edited by laminapdf-cos), B1 (copy krilla pages into an existing graph, with renumbering and catalog-conflict reporting; tagging dropped), B2 (pdf-writer chunk in lamina's numbering), C (≈ 400-line lamina-native builder with subset Type 0 font, `/W`, ToUnicode, PNG + SMask, JPEG), WASM size probe.
+- `spikes/krilla-fit/` (outside both workspaces): experiment A (krilla as-is, opened and incrementally edited by lamina-cos), B1 (copy krilla pages into an existing graph, with renumbering and catalog-conflict reporting; tagging dropped), B2 (pdf-writer chunk in lamina's numbering), C (≈ 400-line lamina-native builder with subset Type 0 font, `/W`, ToUnicode, PNG + SMask, JPEG), WASM size probe.
 - Licence check of krilla's tree against `deny.toml`.
 
 **Out of scope**

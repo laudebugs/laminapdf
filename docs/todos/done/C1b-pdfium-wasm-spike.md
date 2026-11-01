@@ -1,4 +1,4 @@
-# C1b — `pdfium-wasm` spike: PDFium-WASM next to `laminapdf-wasm` in one worker
+# C1b — `pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker
 
 | Field | Value |
 | --- | --- |
@@ -8,16 +8,16 @@
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [C1a](./C1a-hayro-parity-spike.md) |
 | Blocks | [C2a](./C2a-render-adrs.md) |
-| Dependency notes | Library **B6** (`laminapdf-wasm` + `@lamina/pdf`; [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk)) — and through it B3 (`laminapdf-save` incremental save); [C1a](../done/C1a-hayro-parity-spike.md) (same machine and corpus; the joint recommendation builds on its numbers) |
+| Dependency notes | Library **B6** (`lamina-wasm` + `@lamina/pdf`; [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk)) — and through it B3 (`lamina-save` incremental save); [C1a](../done/C1a-hayro-parity-spike.md) (same machine and corpus; the joint recommendation builds on its numbers) |
 | ADRs | Informs ADR 0004 (render backend) and ADR 0009 (worker topology, single- vs multi-threaded WASM). Must follow [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md) §2–3 (`ByteSource`, overlay, incremental save), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/c1b-pdfium-wasm` |
-| PR title | `spike(pdfium-wasm): measure pdfium-wasm beside laminapdf-wasm in one web worker` |
+| PR title | `spike(pdfium-wasm): measure pdfium-wasm beside lamina-wasm in one web worker` |
 | Size | M (200–600 lines of spike TS + README) |
 | PR | [#102](https://github.com/laudebugs/lamina/pull/102) |
 
 ## Goal
 
-Prove, in a real browser worker, that PDFium-WASM and `laminapdf-wasm` can share one Web Worker, and measure what that costs: download size (raw/gzip/brotli), instantiate time, peak memory, render time per page, and — the [two-parsers](../../research/architecture/app-and-package-architecture.md#pdfium-ships-now-hayro-is-the-destination-and-a-trait-decides) question — how long PDFium takes to reload a document after `laminapdf-save` appends an incremental update. Together with [C1a](../done/C1a-hayro-parity-spike.md) the README recommends the defaults ADR 0004 records (which PDFium build, how it's loaded, single- vs multi-threaded, reload strategy) and gives ADR 0009 its worker-topology facts.
+Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share one Web Worker, and measure what that costs: download size (raw/gzip/brotli), instantiate time, peak memory, render time per page, and — the [two-parsers](../../research/architecture/app-and-package-architecture.md#pdfium-ships-now-hayro-is-the-destination-and-a-trait-decides) question — how long PDFium takes to reload a document after `lamina-save` appends an incremental update. Together with [C1a](../done/C1a-hayro-parity-spike.md) the README recommends the defaults ADR 0004 records (which PDFium build, how it's loaded, single- vs multi-threaded, reload strategy) and gives ADR 0009 its worker-topology facts.
 
 ## Context
 
@@ -36,7 +36,7 @@ Prove, in a real browser worker, that PDFium-WASM and `laminapdf-wasm` can share
 
 - `spikes/pdfium-wasm/`: a standalone Vite (or plain esbuild) page + module worker, its own `package.json` and lockfile, outside the pnpm workspace.
 - Candidate PDFium builds: `@embedpdf/pdfium` (prebuilt, MIT wrapper) and, if time allows, a self-built pinned PDFium WASM (emscripten) to compare size; single-threaded only, plus a note on what a threaded build would need (COOP/COEP).
-- `laminapdf-wasm` / `@lamina/pdf` loaded in the same worker from the local B6 build (path or `pnpm pack` tarball; packages are unpublished).
+- `lamina-wasm` / `@lamina/pdf` loaded in the same worker from the local B6 build (path or `pnpm pack` tarball; packages are unpublished).
 - Measurements on 3 reference files: the 10-page ~1 MB text PDF from the §4 targets, a 1,000-page text PDF (generated with `@lamina/pdf`'s builder), and an image-heavy scan (~100 MB) — plus the C1a corpus sample for render time.
 - Reload after incremental save: open in both engines → apply a proving op (`SetInfo` or `RotatePage` from B3) in lamina → incremental save via `WriteSink` → hand the new bytes to PDFium → re-render the touched page; compare full reload vs any partial path PDFium offers; measure with 1 MB, 50 MB and 500 MB inputs (or as large as memory allows).
 - Browsers: Chromium, Firefox and WebKit via Playwright, on the C1a machine.
@@ -67,7 +67,7 @@ Prove, in a real browser worker, that PDFium-WASM and `laminapdf-wasm` can share
 
 ## Acceptance criteria
 
-- [x] One worker loads both PDFium-WASM and `laminapdf-wasm` and renders page 1 of all three reference files in Chromium, Firefox and WebKit (Playwright run committed as `tests/bench.spec.mjs`, passing).
+- [x] One worker loads both PDFium-WASM and `lamina-wasm` and renders page 1 of all three reference files in Chromium, Firefox and WebKit (Playwright run committed as `tests/bench.spec.mjs`, passing).
 - [x] README reports, on the same machine as C1a: bundle sizes (raw/gz/br) for each module, instantiate time, first-page-visible time for the 10-page 1 MB file (target context: ≤ 700 ms warm), per-page render median/p95, peak memory for the 1,000-page file scrolled through, and the reload-after-incremental-save timings for at least three input sizes.
 - [x] README compares at least two input strategies by peak memory.
 - [x] README states licences of every shipped component and confirms no GPL/AGPL code.

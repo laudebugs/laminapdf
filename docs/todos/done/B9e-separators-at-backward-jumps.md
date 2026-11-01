@@ -20,7 +20,7 @@ Text drawn out of order on one baseline comes out glued: [U2b](../done/U2b-readi
 
 ## Context
 
-- `crates/laminapdf-text/src/extract/runs.rs`: `join` adds a space only when the pen jumps forward over a quarter of the size; right-to-left lines are ordered by position in `bidi_line` and are not affected.
+- `crates/lamina-text/src/extract/runs.rs`: `join` adds a space only when the pen jumps forward over a quarter of the size; right-to-left lines are ordered by position in `bidi_line` and are not affected.
 - [U2b](../done/U2b-reading-order-ground-truth.md)'s corpus and ratchet (`fixtures/reading-order/threshold.json`, mean 0.787 at the start).
 
 ## Scope
@@ -50,11 +50,11 @@ None.
 
 ## Tests
 
-`crates/laminapdf-text/tests/extract_runs.rs`; `crates/laminapdf/tests/reading_order.rs` (ratchet).
+`crates/lamina-text/tests/extract_runs.rs`; `crates/lamina/tests/reading_order.rs` (ratchet).
 
 ## Docs to update
 
-- [x] `fixtures/README.md` (the first scores' note on `table-reversed`), the `laminapdf-text` README (`lines()`)
+- [x] `fixtures/README.md` (the first scores' note on `table-reversed`), the `lamina-text` README (`lines()`)
 
 ## Risks and open questions
 

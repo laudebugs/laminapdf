@@ -22,7 +22,7 @@ UniFFI is at **0.32.2 (crates.io, 2026-09-23)**; 0.32.0 (2026-06-30) added `#[un
 - Bitwarden: `bitwarden_uniffi` (mobile, UniFFI `Client` wrapper) and `bitwarden_wasm_internal` (web, wasm-bindgen `BitwardenClient`) are **separate leaf crates**, both over `bitwarden_pm` ("meant for the final application crates") — [bitwarden_uniffi src](https://sdk-api-docs.bitwarden.com/src/bitwarden_uniffi/lib.rs.html), [bitwarden_wasm_internal client.rs](https://sdk-api-docs.bitwarden.com/src/bitwarden_wasm_internal/client.rs.html), [bitwarden_pm](https://sdk-api-docs.bitwarden.com/bitwarden_pm/index.html). `bitwarden_core` exposes `uniffi` and `wasm` Cargo features — [docs.rs bitwarden-core](https://docs.rs/bitwarden-core). They have a `bitwarden_ffi_macro` crate — [bitwarden_ffi_macro](https://sdk-api-docs.bitwarden.com/bitwarden_ffi_macro/all.html), and a shared `bitwarden_error` crate — [bitwarden_error src](https://sdk-api-docs.bitwarden.com/src/bitwarden_error/lib.rs.html). A PR notes UniFFI and wasm-bindgen can't handle generics, so they added a non-generic wrapper struct — [sdk-internal PR #488](https://github.com/bitwarden/sdk-internal/pull/488).
 
 ### Inferences
-- **Pin UniFFI to 0.31.x** if lamina wants ubrn (React Native / `wasm2`) soon, or accept that Swift/Kotlin on 0.32 and ubrn on 0.31 can't share one `lamina-ffi` build. 0.32's zero-copy `&[u8]` arguments matter for PDF input (no copy of a 50 MB file into a `Vec<u8>`), so this is a real trade-off. Re-check ubrn before Round C.
+- **Pin UniFFI to 0.31.x** if lamina wants ubrn (React Native / `wasm2`) soon, or accept that Swift/Kotlin on 0.32 and ubrn on 0.31 can't share one `laminapdf-ffi` build. 0.32's zero-copy `&[u8]` arguments matter for PDF input (no copy of a 50 MB file into a `Vec<u8>`), so this is a real trade-off. Re-check ubrn before Round C.
 - UniFFI's `&self` + `Send + Sync` rule shapes the façade even for wasm: designing `laminapdf` handles as `Arc<Inner>` with `Mutex`/`RwLock` (or `parking_lot`) inner state works for both. On wasm32 without threads a `Mutex` costs little; `RefCell` would not compile for UniFFI.
 - Cancellation must be **in lamina's API** (a token object passed in, or a `cancel()` method on a job handle), because UniFFI doesn't map Swift `Task.cancel()`/Kotlin `Job.cancel()` into Rust.
 - **[prior knowledge]** UniFFI error enums: `#[derive(uniffi::Error)]` on a `thiserror` enum becomes a Swift `Error` enum / Kotlin exception subclass; `#[uniffi(flat_error)]` sends only the `Display` string. Callback interfaces (`#[uniffi::export(callback_interface)]` or `with_foreign`) let Swift/Kotlin implement Rust traits; Mozilla application-services uses them widely. Swift objects free on `deinit`; Kotlin objects implement `AutoCloseable` with `.destroy()`/`.close()` plus a `Cleaner` fallback. Not re-verified this session.
@@ -82,7 +82,7 @@ impl WasmDocument {
     pub fn save(&self, c: &WasmCancel) -> Result<Vec<u8>, JsError> { self.0.save(&c.0).map_err(to_js) } // → Uint8Array
 }
 
-// crates/lamina-ffi (edge): UniFFI objects are Arc'd; &self only
+// crates/laminapdf-ffi (edge): UniFFI objects are Arc'd; &self only
 #[derive(uniffi::Object)] pub struct FfiDocument(laminapdf::Document);
 #[uniffi::export]
 impl FfiDocument {

@@ -46,7 +46,7 @@ lamina/
 
 - **MUST** keep one Cargo workspace at the root with a *virtual manifest* (a `[workspace]` table and no `[package]`). Because a virtual manifest can't infer the resolver from an edition, it **MUST** set `resolver = "3"` ([Cargo: workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)).
 - **MUST** keep one pnpm workspace at the root (`pnpm-workspace.yaml`) and one lockfile per ecosystem (`Cargo.lock`, `pnpm-lock.yaml`), both committed.
-- **MUST** put Rust crates directly under `crates/`, with no nesting. The directory name is the crate name, including the `lamina-` prefix.
+- **MUST** put Rust crates directly under `crates/`, with no nesting. The directory name is the crate name, including the `laminapdf-` prefix.
 - **MUST** put TypeScript libraries under `packages/` and deployables under `apps/`. Nothing may depend on an app.
 - **MUST NOT** nest one package inside another (for example `packages/a/b/package.json`). To group packages, use a glob such as `packages/group/*` and leave the group folder without a `package.json` ([Turborepo: structuring a repository](https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository)).
 - **MUST** exclude `spikes/` from both workspaces, and `fuzz/` from the Cargo workspace (`exclude = ["spikes", "fuzz"]` in `Cargo.toml`, and no glob that matches it in `pnpm-workspace.yaml`). Otherwise Cargo treats a spike's `Cargo.toml` as a stray member of the root workspace and refuses to build it.
@@ -67,11 +67,11 @@ apps/web ─┐               apps/desktop (Tauri)   crates/laminapdf-cli    ←
           ▼                       └──────────┬──────────┘
    packages/* (@laminapdf/…)                 │ depend on library crates only
           │ uses build output of             ▼
-          ▼                    crates/laminapdf (façade), lamina-ffi …  ← libraries; bindings (ffi, wasm) are edges
+          ▼                    crates/laminapdf (façade), laminapdf-ffi …  ← libraries; bindings (ffi, wasm) are edges
    crates/laminapdf-wasm …                      │
           └──────────────┬───────────────────┘
                          ▼
-          crates/lamina-core, laminapdf-syntax …                        ← pure core: bytes in, bytes out
+          crates/laminapdf-core, laminapdf-syntax …                        ← pure core: bytes in, bytes out
 ```
 
 Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-tauri`, and bin crates such as `laminapdf-cli`) sit at the top: they depend on library crates (a façade such as `laminapdf`, core crates, or a binding they need) and nothing depends on them. A bin crate is never a dependency; `laminapdf-cli` is a sibling consumer of the same libraries.
@@ -89,7 +89,7 @@ Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-taur
 
 | Thing | Convention | Example |
 | --- | --- | --- |
-| Rust crate (package name and directory) | `kebab-case`, prefixed `lamina-` | `crates/lamina-core` → `use lamina_core::…` |
+| Rust crate (package name and directory) | `kebab-case`, prefixed `laminapdf-` | `crates/laminapdf-core` → `use laminapdf_core::…` |
 | Rust module/file | `snake_case` | `xref_stream.rs` |
 | Rust binaries, examples, integration test files | `kebab-case` for bins/examples; `snake_case.rs` for test files | `src/bin/lamina-dump.rs`, `tests/round_trip.rs` |
 | Cargo feature | short noun, no `use-`/`with-`/`no-` | `std`, `render`, `pdfium` |
@@ -197,7 +197,7 @@ fixtures/
 Split when at least one of these holds:
 
 1. **Different dependencies.** A heavy or optional dependency (a renderer, a crypto stack) shouldn't be compiled by every user. Use a separate crate, or a feature flag if the code is small.
-2. **Different platform.** Edge code (bindings such as `laminapdf-wasm` or `lamina-ffi`) is always separate from the pure core. The Tauri crate is not an edge crate but an app: it lives under `apps/desktop/src-tauri`, and its platform code (Tauri commands) stays there, on top of the library crates.
+2. **Different platform.** Edge code (bindings such as `laminapdf-wasm` or `laminapdf-ffi`) is always separate from the pure core. The Tauri crate is not an edge crate but an app: it lives under `apps/desktop/src-tauri`, and its platform code (Tauri commands) stays there, on top of the library crates.
 3. **Different stability or audience.** A crate you publish with semver guarantees is split from internal helpers (`publish = false`).
 4. **Build time.** A crate is the unit of parallel and incremental compilation. Split a big crate along a clean seam when profiling (`cargo build --timings`) shows it's the bottleneck.
 5. **A real, acyclic boundary.** The lower part makes sense on its own and has its own tests (for example syntax → model → operations).

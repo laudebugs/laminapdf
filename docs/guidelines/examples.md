@@ -24,7 +24,7 @@ An example is code a reader will paste into their own app, so it must be code we
   - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`;
   - in Rust, `laminapdf::…`.
 
-  It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from `lamina_<crate>` directly.
+  It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from `laminapdf_<crate>` directly.
 - **MUST:** an example contains no test scaffolding. Fixed file IDs, dates and producers are parameters, and the tests pass them in. Checks of the output belong in the tests.
 - **MUST:** a TypeScript example frees what it creates with `using`; documents and builders implement `Symbol.dispose`.
 - **MUST:** layout numbers have names (`MARGIN`, `ROW_HEIGHT`) or come from the API (the page width comes from the page size).

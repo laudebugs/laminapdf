@@ -28,8 +28,8 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 **In scope**
 
 - `Standard14` enum (Helvetica, -Bold, -Oblique, -BoldOblique, Times-Roman, -Bold, -Italic, -BoldItalic, Courier ×4, Symbol, ZapfDingbats); `Font::standard(Standard14)`.
-- Generated Rust tables from the AFM files (widths per glyph name, kerning pairs optional, ascent/descent/cap height/bbox) via a generator in `tools/` (not a build script), output committed under `crates/laminapdf-text/src/std14/generated/` with a header naming the source and licence.
-- Encoding tables (code → glyph name) and AGL (glyph name → Unicode) as generated tables shared with extraction; PDFDocEncoding is not generated here but taken from `laminapdf_syntax::text` ([B2c](../done/B2c-lamina-model-corpus-fuzz.md)).
+- Generated Rust tables from the AFM files (widths per glyph name, kerning pairs optional, ascent/descent/cap height/bbox) via a generator in `tools/` (not a build script), output committed under `crates/lamina-text/src/std14/generated/` with a header naming the source and licence.
+- Encoding tables (code → glyph name) and AGL (glyph name → Unicode) as generated tables shared with extraction; PDFDocEncoding is not generated here but taken from `lamina_syntax::text` ([B2c](../done/B2c-lamina-model-corpus-fuzz.md)).
 - Simple-font writer: `/Type /Font /Subtype /Type1 /BaseFont … /Encoding /WinAnsiEncoding` (Symbol/ZapfDingbats use built-in), `/FirstChar`, `/LastChar`, `/Widths` (PDF 2.0 requires widths for standard 14 too); text encoding to WinAnsi codes, unencodable characters → `missing-glyph`.
 - `Font::requires_embedding() == false` flag consulted by profiles later; `Font::is_standard14()`.
 
@@ -44,7 +44,7 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 - [x] Load `/rust-best-practices`; read 03 §3.1, §4.1, Annex D
 - [x] Fetch the AFM files and AGL into `tools/std14-gen/data/` with SHA-256 and licence notes; write the generator (`cargo run -p std14-gen`, a workspace tool crate; `-- --check` verifies)
 - [x] Commit generated tables; add a test that regenerating produces no diff (like goldens): `committed_tables_are_current` in `tools/std14-gen` (compares, never writes)
-- [x] `std14/mod.rs` (`Standard14`, metrics lookup), `encoding/mod.rs`, `agl.rs`; `encoding/pdfdoc.rs` only adapts the PDFDocEncoding table in `laminapdf_syntax::text` (added by [B2c](../done/B2c-lamina-model-corpus-fuzz.md)) to code → glyph name via the AGL, so the workspace keeps one PDFDocEncoding table. *Deviation:* one `Encoding` enum over generated tables (`std14/generated/encodings.rs`) instead of a file per encoding
+- [x] `std14/mod.rs` (`Standard14`, metrics lookup), `encoding/mod.rs`, `agl.rs`; `encoding/pdfdoc.rs` only adapts the PDFDocEncoding table in `lamina_syntax::text` (added by [B2c](../done/B2c-lamina-model-corpus-fuzz.md)) to code → glyph name via the AGL, so the workspace keeps one PDFDocEncoding table. *Deviation:* one `Encoding` enum over generated tables (`std14/generated/encodings.rs`) instead of a file per encoding
 - [x] Simple-font dictionary writer and text encoding (`simple/mod.rs`), plus `/Differences` for Latin glyphs outside WinAnsi (see Outcome)
 - [x] Tests below
 
@@ -63,7 +63,7 @@ None.
 ## Tests
 
 - Unit tests for encodings, per encoding (WinAnsi, Standard, Symbol built-in, ZapfDingbats built-in): every **defined** code maps to a glyph name and the name maps back to that code (for names with one code) or to the canonical one; duplicate codes map to the same glyph (WinAnsi 040/240 → `space`, 055/255 → `hyphen`; the canonical code for encoding is the lower one); every undefined code has no glyph name and nothing encodes to it; name ↔ Unicode via the AGL for every defined name.
-- `crates/laminapdf-text/tests/std14.rs`; golden `fixtures/golden/text-std14.pdf` (named `text-*` so `text_facts.py` and the extraction tests cover it).
+- `crates/lamina-text/tests/std14.rs`; golden `fixtures/golden/text-std14.pdf` (named `text-*` so `text_facts.py` and the extraction tests cover it).
 
 ## Docs to update
 
@@ -86,7 +86,7 @@ None.
 ## Outcome
 
 - **Data** (`tools/std14-gen/data/`, provenance in its README): Adobe's `Core14_AFMs.zip` (the 14 AFM files + `MustRead.html`, unmodified, CRLF kept), fetched from the Internet Archive's copy of Adobe's former URL; its terms allow use, copying and distribution with or without modification provided the copyright notices are kept, the AFMs travel with `MustRead.html` and modifications are noted, which the generated `metrics.rs` does. The Adobe Glyph List and ITC Zapf Dingbats Glyph List (BSD-3-Clause) at a pinned commit. `latin-encodings.txt`: Annex D Table D.2's STD/MAC/WIN columns, written for lamina.
-- **Generated** (`crates/laminapdf-text/src/std14/generated/`, about 200 KB of source, most of it the 4,281-entry AGL): metrics (one sorted glyph-name table for the 12 Latin fonts, which share the 315-glyph set, widths per font), five encoding tables, Unicode → glyph tables, the two glyph lists. Kerning pairs are not bundled (optional in the scope).
+- **Generated** (`crates/lamina-text/src/std14/generated/`, about 200 KB of source, most of it the 4,281-entry AGL): metrics (one sorted glyph-name table for the 12 Latin fonts, which share the 315-glyph set, widths per font), five encoding tables, Unicode → glyph tables, the two glyph lists. Kerning pairs are not bundled (optional in the scope).
 - **Beyond the scope**: Latin glyphs outside WinAnsi (`Ł`, `ş`, `−`, `ﬁ`) are reachable through `/Differences` on the 37 codes WinAnsi leaves undefined, assigned in order of first use; past that, the new error `encoding-full` (`limit`). `<name>greek` aliases let `Δ Ω μ` reach Symbol's `Delta`/`Omega`/`mu` (the AGL maps those to U+2206, U+2126, U+00B5); U+00A0 and U+00AD map to `space` and `hyphen`.
 - **Findings**: without a ToUnicode CMap pypdf 6.21 extracts code 32 of Symbol and ZapfDingbats as U+00A0; since the review every simple font gets a one-byte ToUnicode CMap, so the golden's symbolic lines keep their spaces.
 - **Review (#54, 28 findings)**: `use_glyph` returns a `GlyphCode` (one byte for simple fonts); standard 14 glyph IDs are name index + 1 (0 is `.notdef`); ToUnicode and `tounicode-conflict` for simple fonts; `FontRegistry::usage` returns `FontUsage`; Symbol's Greek letters read back as Greek; Ț ț map to `Tcommaaccent`/`tcommaaccent`; `encoding-full` reports `free`; `MacExpertEncoding` is `UnsupportedEncoding::MacExpert`; `EmbeddedFont::embedded`; `Font::is_standard14` dropped for `standard14()`; generator hash-checks every input, rejects duplicate codes and emits reverse code tables.

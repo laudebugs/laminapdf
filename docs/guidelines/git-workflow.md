@@ -64,7 +64,7 @@ The [todo board](../todos/README.md) is the work queue. A todo is one pull reque
 
 - **MUST:** follow [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): summary`.
   - Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `chore`, `spike`.
-  - Scope: the crate, package, app or doc area, without the `lamina-`/`@laminapdf/` prefix: `feat(core): …`, `fix(wasm): …`, `docs(guidelines): …`.
+  - Scope: the crate, package, app or doc area, without the `laminapdf-`/`@laminapdf/` prefix: `feat(core): …`, `fix(wasm): …`, `docs(guidelines): …`.
   - Summary: imperative mood, lowercase, no trailing period, about 72 characters at most.
   - Breaking changes: `feat(core)!: …` and/or a `BREAKING CHANGE:` footer.
 - **SHOULD:** each commit builds and passes tests. The body explains *why*, and links issues (`Refs #42`, `Fixes #42`).

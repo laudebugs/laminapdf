@@ -59,21 +59,21 @@ pub(crate) fn renames(root: &Path, merge_base: &str) -> Result<BTreeMap<String, 
     Ok(parse_renames(&diff))
 }
 
-/// The renames in `git diff --name-status -z` output: `R<score>`, old path, new path, each
-/// ended by a NUL.
+/// The renames in `git diff --name-status --diff-filter=R -z` output: each is `R<score>`, the old
+/// path and the new one, each ended by a NUL.
 fn parse_renames(name_status: &str) -> BTreeMap<String, String> {
-    let mut fields = name_status.split('\0').filter(|field| !field.is_empty());
-    let mut renames = BTreeMap::new();
-    while let Some(status) = fields.next() {
-        let paths = if status.starts_with(['R', 'C']) { 2 } else { 1 };
-        let (Some(old), new) = (fields.next(), if paths == 2 { fields.next() } else { None }) else {
-            break;
-        };
-        if let (true, Some(new)) = (status.starts_with('R'), new) {
-            renames.insert(old.to_owned(), new.to_owned());
-        }
-    }
-    renames
+    let fields: Vec<&str> = name_status.split('\0').filter(|field| !field.is_empty()).collect();
+    fields
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .map(|[_, old, new]| ((*old).to_owned(), (*new).to_owned()))
+        .collect()
+}
+
+/// The text of `path` at revision `rev`.
+pub(crate) fn at_revision(root: &Path, rev: &str, path: &str) -> Result<String> {
+    git(root, &["show", &format!("{rev}:{path}")])
 }
 
 /// True when any path is outside the docs allowlist. No paths at all is docs-only.
@@ -114,18 +114,6 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn parse_renames_should_map_each_old_path_to_its_new_one() {
-        let renames = super::parse_renames("R100\0crates/a/x.rs\0crates/b/x.rs\0M\0README.md\0R087\0a.md\0b.md\0");
-        assert_eq!(
-            renames.into_iter().collect::<Vec<_>>(),
-            [
-                ("a.md".to_owned(), "b.md".to_owned()),
-                ("crates/a/x.rs".to_owned(), "crates/b/x.rs".to_owned())
-            ]
-        );
-    }
-
     use super::{is_docs, pick_base, touches_code};
 
     /// One example per allowlist pattern.
@@ -219,5 +207,17 @@ mod tests {
     #[test]
     fn an_empty_change_is_not_code() {
         assert!(!touches_code(&[]));
+    }
+
+    #[test]
+    fn parse_renames_should_map_each_old_path_to_its_new_one() {
+        let renames = super::parse_renames("R100\0crates/a/x.rs\0crates/b/x.rs\0R087\0a.md\0b.md\0");
+        assert_eq!(
+            renames.into_iter().collect::<Vec<_>>(),
+            [
+                ("a.md".to_owned(), "b.md".to_owned()),
+                ("crates/a/x.rs".to_owned(), "crates/b/x.rs".to_owned())
+            ]
+        );
     }
 }

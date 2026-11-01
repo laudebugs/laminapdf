@@ -352,6 +352,15 @@ mod tests {
     }
 
     #[test]
+    fn follow_renames_should_move_an_entry_to_its_new_path() {
+        let mut baseline = Baseline::default();
+        baseline.modules.insert("crates/a/src/big.rs".to_owned(), 900);
+        let moved = [("crates/a/src/big.rs".to_owned(), "crates/b/src/big.rs".to_owned())].into();
+        let modules: Vec<_> = baseline.follow_renames(&moved).modules.into_iter().collect();
+        assert_eq!(modules, [("crates/b/src/big.rs".to_owned(), 900)]);
+    }
+
+    #[test]
     fn a_new_baseline_entry_should_fail_against_the_merge_base() {
         let messages = shrink_messages("[modules]\n\"a.rs\" = 900\n", "");
         assert!(messages.len() == 1 && messages[0].contains("joins the baseline"));

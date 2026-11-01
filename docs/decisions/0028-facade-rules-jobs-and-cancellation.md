@@ -5,7 +5,7 @@
 
 ## Context
 
-[ADR 0002 §3](0002-binding-strategy.md) requires a handle-based façade in the `laminapdf` crate, designed once and wrapped by `laminapdf-wasm` (wasm-bindgen + tsify), Tauri commands and, later, `lamina-ffi` (UniFFI). It names the principles (owned types, opaque handles, bytes in and out, no lifetimes or generics) but not the rules. B5c will write the façade, so the rules have to exist first. Fixing them after `@laminapdf/sdk` ships would break its API ([report: design the façade to the stricter binding now](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)).
+[ADR 0002 §3](0002-binding-strategy.md) requires a handle-based façade in the `laminapdf` crate, designed once and wrapped by `laminapdf-wasm` (wasm-bindgen + tsify), Tauri commands and, later, `laminapdf-ffi` (UniFFI). It names the principles (owned types, opaque handles, bytes in and out, no lifetimes or generics) but not the rules. B5c will write the façade, so the rules have to exist first. Fixing them after `@laminapdf/sdk` ships would break its API ([report: design the façade to the stricter binding now](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)).
 
 Constraints from the binding tools:
 
@@ -28,7 +28,7 @@ The `laminapdf` façade is a core crate whose public API each binding wraps one-
 | # | Rule | Why (constraint) |
 | --- | --- | --- |
 | F1 | **No lifetimes in façade signatures.** No `Page<'d>`, no borrowed returns. Sub-objects are addressed by value: `doc.page_info(index)`, `doc.page_by_id(&PageId)`. Methods return owned data | Neither binding can return a borrow. UniFFI objects are `Arc`s, and wasm-bindgen classes own their Rust value |
-| F2 | **Handles with a back-pointer live in the edge crates.** `PageRef { doc, page: PageId }` is built in `laminapdf-wasm`/`lamina-ffi` from the edge's shared document pointer (§2) and resolves its index lazily. It holds the `PageId`, not the index, so moving pages doesn't retarget it ([ADR 0005 §5](0005-document-model.md#5-laminaids)) | The core can't share ownership of a `!Sync` document across threads without a lock (§2). An edge handle can |
+| F2 | **Handles with a back-pointer live in the edge crates.** `PageRef { doc, page: PageId }` is built in `laminapdf-wasm`/`laminapdf-ffi` from the edge's shared document pointer (§2) and resolves its index lazily. It holds the `PageId`, not the index, so moving pages doesn't retarget it ([ADR 0005 §5](0005-document-model.md#5-laminaids)) | The core can't share ownership of a `!Sync` document across threads without a lock (§2). An edge handle can |
 | F3 | **No generics, `impl Trait` or closures in bound signatures.** Constructors are monomorphised: `open_bytes(Vec<u8>, OpenOptions)`; `open_source(Arc<dyn ByteSource>, OpenOptions)` is for edge crates, which wrap a host-specific source (L2c's `SparseSource`) behind a concrete constructor. Rust-only conveniences (`Job` helpers, generic `Step<T>`) are allowed if every bound type has a concrete form | wasm-bindgen exports can't be generic; UniFFI has no generics (Bitwarden had to add non-generic wrappers, [PR #488](https://github.com/bitwarden/sdk-internal/pull/488)) |
 | F4 | **Reads take `&self`; changes take `&mut self` on the façade.** The edge decides how `&mut` is reached (§2). The façade never uses interior mutability to fake `&self` | UniFFI forbids `&mut self` on *objects*. The edge object takes `&self` and locks. The core keeps Rust's borrow rules instead of a hidden lock |
 | F5 | **Plain owned data across the boundary**: records of `String`, `bool`, integers, `f64`, `Vec`, `Option` and other records. Counts and indices are `u32`. A `u64` is used only where the range is needed (byte offsets) and is a number in serde/tsify records | Maps to tsify records and `uniffi::Record`. A `u64` in a wasm-bindgen signature becomes `BigInt` |
@@ -48,14 +48,14 @@ The edge wrappers are mechanical. B5c or L6a may generate them with a `macro_rul
 
 | Edge | Wrapper | Why |
 | --- | --- | --- |
-| `lamina-ffi` (UniFFI) | `struct FfiDocument(Mutex<laminapdf::Document>)`, `Arc`'d by UniFFI; `&self` methods lock | `Mutex<T>` is `Send + Sync` when `T: Send`, which is exactly what ADR 0005 §7 provides |
+| `laminapdf-ffi` (UniFFI) | `struct FfiDocument(Mutex<laminapdf::Document>)`, `Arc`'d by UniFFI; `&self` methods lock | `Mutex<T>` is `Send + Sync` when `T: Send`, which is exactly what ADR 0005 §7 provides |
 | `laminapdf-wasm` | `Rc<RefCell<laminapdf::Document>>` | wasm32 without threads; wasm-bindgen classes need no `Send`. `RefCell` double borrows can't happen with no re-entrancy |
 | Desktop (Tauri, app code) | `Mutex<laminapdf::Document>` in managed state, work in `spawn_blocking` | Tauri state must be `Send + Sync` |
 | CLI | The document by value | One thread per document (`--jobs` opens one document per worker) |
 
 Compile-time tests (B5c, L6a) assert `laminapdf::Document: Send`, `laminapdf::Document: !Sync` and `FfiDocument: Send + Sync`.
 
-A poisoned `Mutex` (a panic while locked, caught under unwind) means the document is in an unknown state. `lamina-ffi` reports it as an `internal` error (code added by L6a in `codes.json`), and the caller reopens. An edge lock serialises all calls on one document. That is UniFFI's model anyway, and parallelism comes from one document per thread over a shared `Arc<dyn ByteSource>` (ADR 0005 §7). B5c and L6a measure it once real workloads exist. If a measured case needs concurrent reads of one document, the remedy is an amendment of ADR 0005 §7 to a `Sync` core, not a lock added quietly.
+A poisoned `Mutex` (a panic while locked, caught under unwind) means the document is in an unknown state. `laminapdf-ffi` reports it as an `internal` error (code added by L6a in `codes.json`), and the caller reopens. An edge lock serialises all calls on one document. That is UniFFI's model anyway, and parallelism comes from one document per thread over a shared `Arc<dyn ByteSource>` (ADR 0005 §7). B5c and L6a measure it once real workloads exist. If a measured case needs concurrent reads of one document, the remedy is an amendment of ADR 0005 §7 to a `Sync` core, not a lock added quietly.
 
 ### 3. Jobs
 

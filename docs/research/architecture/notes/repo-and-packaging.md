@@ -46,7 +46,7 @@ The common convention is `crates/` (Rust), `packages/` (published npm packages),
   crates/laminapdf-core, laminapdf-render, laminapdf-*      # pure Rust, no JS deps
   crates/laminapdf-wasm                                # wasm-bindgen facade (cdylib) -> packages/laminapdf-wasm/dist
   crates/lamina-napi (optional)                     # napi-rs facade
-  crates/lamina-ffi (optional)                      # UniFFI facade for mobile
+  crates/laminapdf-ffi (optional)                      # UniFFI facade for mobile
   packages/lamina (TS API, depends on laminapdf-wasm via workspace:*)
   packages/laminapdf-wasm (generated glue + .wasm; committed only as build output, gitignored)
   apps/web (Cloudflare), apps/desktop (Tauri; src-tauri depends on crates/* by path)
@@ -135,7 +135,7 @@ Both registries support OIDC trusted publishing from GitHub Actions. npm reached
 ### Inferences
 - For Lamina:
   - Use Changesets for the npm packages and release-plz for the crates. Both open "release PRs" and publish on merge through OIDC with no stored secrets.
-  - Alternatively, use one unified version (lockstep) driven by Changesets, with a script that syncs `Cargo.toml` versions. This is simpler when `@laminapdf/wasm` is tightly coupled to `lamina-core`.
+  - Alternatively, use one unified version (lockstep) driven by Changesets, with a script that syncs `Cargo.toml` versions. This is simpler when `@laminapdf/wasm` is tightly coupled to `laminapdf-core`.
 - Reserve the crate names and npm scope early with a manual first publish, then switch each crate to "trusted publishing only".
 - Use GitHub environments (`release`) with required reviewers as the human gate. Note the crates.io trigger restrictions.
 - For signing: npm provenance (Sigstore) plus GitHub artifact attestations (`actions/attest-build-provenance`) for desktop binaries and `.wasm`. Tauri updater signing is separate (see §6).

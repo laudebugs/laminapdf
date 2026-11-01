@@ -16,7 +16,7 @@
 
 ## Goal
 
-Publish usable documentation for `laminapdf` and `@lamina/pdf` before the first tag: a Starlight site in `apps/docs` with a quick start per runtime, guides for every M1 feature, TypeDoc API reference for the TS package, links to rustdoc, and runnable examples — deployed to Workers static assets with a preview URL on every PR that touches it.
+Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag: a Starlight site in `apps/docs` with a quick start per runtime, guides for every M1 feature, TypeDoc API reference for the TS package, links to rustdoc, and runnable examples — deployed to Workers static assets with a preview URL on every PR that touches it.
 
 ## Context
 

@@ -171,7 +171,7 @@ fn load_base(root: &Path) -> Base {
         return Base::Unknown;
     };
     let merge_base = merge_base.trim();
-    let at_base = |path: &str| git(root, &["show", &format!("{merge_base}:{path}")]).ok();
+    let at_base = |path: &str| crate::changes::at_revision(root, merge_base, path).ok();
     // A base file that doesn't parse (a later schema change) can't be compared, like a missing
     // merge base: a warning, not a failure that only `--admin` could get past.
     let (Ok(baseline), Ok(allowed)) = (
@@ -181,7 +181,9 @@ fn load_base(root: &Path) -> Base {
         return Base::Unknown;
     };
     // A module moved since the merge base keeps its entry: compare it under its new path.
-    let moved = crate::changes::renames(root, merge_base).unwrap_or_default();
+    let Ok(moved) = crate::changes::renames(root, merge_base) else {
+        return Base::Unknown;
+    };
     let baseline = baseline.map(|baseline: Baseline| baseline.follow_renames(&moved));
     Base::Records { baseline, allowed }
 }

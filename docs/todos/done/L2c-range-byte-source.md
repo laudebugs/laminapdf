@@ -36,13 +36,13 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 
 **In scope**
 
-- **Edge (`crates/laminapdf-source`, layer `edge`):** a `SparseSource` that implements `ByteSource` over chunks the shell supplies. It lives at the edge, not in `laminapdf-cos`, because `supply` runs after `Document::open` has shared the source, so the chunk map needs a lock, and ADR 0005 §7 forbids locks and caches in core (§2 also keeps range caches out of core). The pure parts (`SparseSource`, the retry helper) compile for wasm32; file and mmap sources sit behind a `native` feature.
+- **Edge (`crates/lamina-source`, layer `edge`):** a `SparseSource` that implements `ByteSource` over chunks the shell supplies. It lives at the edge, not in `lamina-cos`, because `supply` runs after `Document::open` has shared the source, so the chunk map needs a lock, and ADR 0005 §7 forbids locks and caches in core (§2 also keeps range caches out of core). The pure parts (`SparseSource`, the retry helper) compile for wasm32; file and mmap sources sit behind a `native` feature.
   - API: `new(len)`, `supply(offset, bytes)`, `missing(ranges)`.
   - `read_at` returns `SourceError::Pending` for any gap.
   - Chunks are stored as `Arc<[u8]>`, merged when adjacent, and bounded by a byte budget.
   - No I/O, clocks or threads; `Send + Sync`.
 - **Retry helper (same edge crate):** `open_with(source, opts, fetch: impl FnMut(&[Range]) -> Result<…>)`, a synchronous loop that calls the shell's fetch closure on `DataPending` and retries. Native shells and the wasm edge then don't each re-implement the loop.
-- **wasm edge (`laminapdf-wasm`):** expose `SparseSource` (`supply` takes a `Uint8Array`), and surface `DataPending` as a `LaminaError` with `ranges: { offset, length }[]`.
+- **wasm edge (`lamina-wasm`):** expose `SparseSource` (`supply` takes a `Uint8Array`), and surface `DataPending` as a `LaminaError` with `ranges: { offset, length }[]`.
 - **TypeScript (`packages/sdk`):**
   - A `RangeSource` interface `{ size, read(offset, length, { signal }) => Promise<Uint8Array> }`, matching C3a's.
   - Adapters: `httpRangeSource(url, { headers?, credentials?, signal?, blockSize? })` and `callbackSource(size, read)`.
@@ -55,7 +55,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - `await Document.openRange(source, opts)` runs the fetch-and-retry loop.
   - `await doc.ensure(fn)` runs a sync call and, on `data-pending`, fetches the ranges and retries, so lazy calls after open work.
   - The worker client ([L2a](../done/L2a-worker-client.md)), if merged, runs the same loop inside the worker, so remote handles stay plain async.
-- **Native edge crate** `crates/laminapdf-source` (layer `edge`):
+- **Native edge crate** `crates/lamina-source` (layer `edge`):
   - `FileSource`: positioned reads (`FileExt::read_at` / `seek_read`), no `unsafe`. A short read after truncation becomes `SourceError`, not a crash.
   - `MmapSource` behind an `mmap` feature (`memmap2`, licence-checked) with a `// SAFETY:` note and the documented `SIGBUS` risk. `as_slice` returns the mapping.
 - Bytes fetched are bounded: no adapter fetches more than the ranges asked for, plus block alignment and a configurable readahead.
@@ -71,17 +71,17 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 
 ## Tasks
 
-- [x] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md). Re-read ADR 0005 §2 and B2d's `source.rs` on `main`. `laminapdf-cos` stays core: no fs, net, clocks or threads (`cargo xtask portability`)
-- [x] `crates/laminapdf-source/src/sparse.rs`:
+- [x] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md). Re-read ADR 0005 §2 and B2d's `source.rs` on `main`. `lamina-cos` stays core: no fs, net, clocks or threads (`cargo xtask portability`)
+- [x] `crates/lamina-source/src/sparse.rs`:
   - [x] `SparseSource` (interval map of supplied chunks, merge, byte budget)
   - [x] Unit tests for gaps, overlaps, out-of-range supply and the budget
 - [x] `open_with` retry helper:
   - [x] Stop when a retry asks for the same ranges again (no progress)
   - [x] Cap the rounds via `Limits` or an option, failing with a coded error (`data-pending` with the last ranges)
-- [x] `laminapdf-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
+- [x] `lamina-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
 - [x] `packages/sdk/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
 - [x] Add codes `source-changed` and `range-unsupported` (if a warning is wanted for the 200 fallback) to `fixtures/codes.json` and regenerate (added `source-changed`, `fetch-failed` and the binding code `source-budget-exceeded`; no warning for the `200` fallback, which is a supported mode)
-- [x] `crates/laminapdf-source` (edge):
+- [x] `crates/lamina-source` (edge):
   - [x] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`
   - [x] `FileSource`; `MmapSource` behind `mmap`
   - [x] `cargo deny` passes
@@ -96,7 +96,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 - [x] TS: a server that ignores `Range` (answers `200`) still opens the file with one full download; a server whose `ETag` changes mid-read fails with `source-changed`; aborting the signal rejects and leaves no request running
 - [x] TS: a lazy call (`doc.page(n)`) on a range document that needs more data works through `doc.ensure`, and throws `data-pending` with ranges when called bare
 - [x] Rust: `FileSource` over each corpus file equals a `Vec<u8>` open; truncating the file mid-read gives a `SourceError`, not a panic. `MmapSource` passes the same parity test
-- [x] `cargo xtask portability` still passes; `laminapdf-source` is the only crate with fs or `unsafe` code added
+- [x] `cargo xtask portability` still passes; `lamina-source` is the only crate with fs or `unsafe` code added
 
 ## Post-merge checks
 
@@ -104,15 +104,15 @@ None.
 
 ## Tests
 
-- `crates/laminapdf-source/tests/sparse_source.rs`: corpus parity, bytes-supplied accounting, no-progress and round-cap failures.
-- `crates/laminapdf-source/tests/`: `FileSource` and `MmapSource` parity; truncation (create a temp copy in the test, truncate it, read).
+- `crates/lamina-source/tests/sparse_source.rs`: corpus parity, bytes-supplied accounting, no-progress and round-cap failures.
+- `crates/lamina-source/tests/`: `FileSource` and `MmapSource` parity; truncation (create a temp copy in the test, truncate it, read).
 - `packages/sdk/test/source/*.test.ts`: a tiny local HTTP server in the test harness (range support on/off, wrong `Content-Range`, changing `ETag`, slow responses for abort); `callbackSource`; `doc.ensure`. Fixtures: `fixtures/corpus`, plus a large file generated in the test.
 
 ## Docs to update
 
 - [x] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the range `ByteSource` to-do
-- [x] `crates/laminapdf-source/README.md` (sparse sources, `open_with`, native sources), `packages/sdk/README.md` (remote and large files)
-- [x] `CLAUDE.md` (layout: `crates/laminapdf-source`; reading API paragraph mentions range sources)
+- [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/sdk/README.md` (remote and large files)
+- [x] `CLAUDE.md` (layout: `crates/lamina-source`; reading API paragraph mentions range sources)
 - [x] ADR 0005 §2: implementation note naming `SparseSource` and the edge crate
 - [x] [C4c](../ready/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it
 
@@ -122,7 +122,7 @@ None.
 - **mmap at all?** [D2b](../ready/D2b-engine-process.md) avoids it in the desktop main process because of `SIGBUS`. Recommendation: ship `FileSource` as the default and `MmapSource` only behind a feature, documented as unsafe if the file changes. Drop it if no consumer wants it.
 - **Round trips:** non-linearized files need the tail, then the xref, then objects, so latency adds up. Recommendation: let B2d's `DataPending` return several ranges at once, add readahead in the adapter, and measure rounds per corpus file (ratio only, no wall clock, per ADR 0018).
 - **CORS and compression** on third-party hosts are outside lamina's control. Document them, and fail with clear codes.
-- **Crate name** `laminapdf-source` vs `lamina-io`: decide in the PR. Check [code organisation §11](../../guidelines/code-organization.md#11-when-to-split-a-crate-or-package-and-when-not-to) before adding a crate.
+- **Crate name** `lamina-source` vs `lamina-io`: decide in the PR. Check [code organisation §11](../../guidelines/code-organization.md#11-when-to-split-a-crate-or-package-and-when-not-to) before adding a crate.
 
 ## Definition of done
 

@@ -55,7 +55,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | --- | --- | --- | --- |
 | A1 | [Foundation ADRs 0001, 0002, 0015, 0019](done/A1-foundation-adrs.md) | done | — |
 | A2 | [Monorepo skeleton, `cargo xtask`, licence checks and CI fast lane](done/A2-monorepo-skeleton.md) | done | [A1](done/A1-foundation-adrs.md) |
-| A3 | [Port the spike reader/writer into `laminapdf-syntax` and `laminapdf-cos`](done/A3-port-spike-core.md) | done | [A2](done/A2-monorepo-skeleton.md) |
+| A3 | [Port the spike reader/writer into `lamina-syntax` and `lamina-cos`](done/A3-port-spike-core.md) | done | [A2](done/A2-monorepo-skeleton.md) |
 
 ## Library — Round B
 
@@ -65,20 +65,20 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | B1b | [`krilla-fit` spike: can krilla generate into lamina's object graph?](done/B1b-krilla-fit-spike.md) | done | [A3](done/A3-port-spike-core.md) |
 | B2a | [`Limits`, warning codes, strict mode and the owned `Document`](done/B2a-limits-owned-document.md) | done | [B1a](done/B1a-round-b-adrs.md) |
 | B2b | [Standard security handler decryption (read only)](done/B2b-standard-security-decryption.md) | done | [B2a](done/B2a-limits-owned-document.md) |
-| B2c | [`laminapdf-model` views and IDs, corpus facts, pypdf differential and fuzz targets](done/B2c-lamina-model-corpus-fuzz.md) | done | [B2a](done/B2a-limits-owned-document.md) |
+| B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](done/B2c-lamina-model-corpus-fuzz.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B2d | [Windowed reading for sources without `as_slice`](done/B2d-windowed-reading.md) | done | [B2a](done/B2a-limits-owned-document.md) |
-| B3a | [COS overlay and `laminapdf-ops`: `Op`, `transact`, savepoints, undo/redo](done/B3a-overlay-and-ops.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
-| B3b | [`laminapdf-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](done/B3b-lamina-save-writers.md) | done | [B3a](done/B3a-overlay-and-ops.md) |
+| B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](done/B3a-overlay-and-ops.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
+| B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](done/B3b-lamina-save-writers.md) | done | [B3a](done/B3a-overlay-and-ops.md) |
 | B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](done/B3c-save-planner-and-roundtrip.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
-| B4a | [`laminapdf-text`: font loading, subsetting and Type 0 embedding with ToUnicode](done/B4a-font-loading-and-subsetting.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
+| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](done/B4a-font-loading-and-subsetting.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
 | B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](done/B4b-shaping-bidi-line-breaking.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](done/B4c-standard-14-and-simple-fonts.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md) |
 | B4d | [One CID per (glyph, text): exact extraction of shaped text in every script](done/B4d-tounicode-per-text-cids.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md) |
-| B5a | [`laminapdf-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
+| B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](done/B5b-builder-text-and-document-features.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
-| B5c | [The `laminapdf` façade crate, Rust examples, and byte and render goldens](done/B5c-lamina-facade-and-examples.md) | done | [B5b](done/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
+| B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](done/B5c-lamina-facade-and-examples.md) | done | [B5b](done/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
 | B5d | [Generation performance: a 100-page text report within 500 ms](done/B5d-text-report-generation-performance.md) | done | [B6b](done/B6b-lamina-pdf-package.md) |
-| B6a | [`laminapdf-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](done/B6a-lamina-wasm-and-adr-0016.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md) |
+| B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](done/B6a-lamina-wasm-and-adr-0016.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](done/B6b-lamina-pdf-package.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6a](done/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](done/B6c-runtime-matrix.md) | done | [B6b](done/B6b-lamina-pdf-package.md) |
 | B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](done/B7a-docs-site.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md) |
@@ -86,8 +86,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | B7c | [The docs site at `docs.laminapdf.com`, and the domain filled in everywhere](done/B7c-docs-custom-domain.md) | done | [B7a](done/B7a-docs-site.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](done/B8a-structure-tree.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](done/B8b-conformance-profiles-and-verapdf.md) | done | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
-| B9a | [ADR 0023 and `laminapdf-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
-| B9b | [Text extraction in `laminapdf-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](done/B9b-text-extraction-core.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
+| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
+| B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](done/B9b-text-extraction-core.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](done/B9c-text-extraction-bindings-and-differential.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md), [B9d](done/B9d-text-runs-quads-and-page-text.md) |
 | B9d | [Text extraction: glyph quads, runs with `ActualText` and MCIDs, `page.text()`](done/B9d-text-runs-quads-and-page-text.md) | done | [B9b](done/B9b-text-extraction-core.md) |
 | B9e | [Text extraction: a separator where the pen jumps back on a line](done/B9e-separators-at-backward-jumps.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md), [U2b](done/U2b-reading-order-ground-truth.md) |
@@ -119,9 +119,9 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](done/C1a-hayro-parity-spike.md) | done | — |
-| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `laminapdf-wasm` in one worker](done/C1b-pdfium-wasm-spike.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
+| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](done/C1b-pdfium-wasm-spike.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
 | C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](done/C2a-render-adrs.md) | done | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
-| C2b | [`crates/laminapdf-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](done/C2b-lamina-render-crate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
+| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](done/C2b-lamina-render-crate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
 | C2c | [`@laminapdf/render-pdfium` and `@laminapdf/render-hayro`: the web render adapters](done/C2c-render-packages.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [C2b](done/C2b-lamina-render-crate.md) |
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |

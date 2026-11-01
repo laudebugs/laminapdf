@@ -147,7 +147,7 @@ fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
 const GOLDEN_CRATES: [&str; 3] = ["laminapdf-build", "laminapdf-save", "laminapdf-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
-/// source (`--update` writes them in place and prints the list), the `lamina` examples' into
+/// source (`--update` writes them in place and prints the list), the `laminapdf` examples' into
 /// `fixtures/golden/examples/` and the reading-order corpus into `fixtures/reading-order/`; without `--update`, checks that regenerating them changes
 /// nothing.
 pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {

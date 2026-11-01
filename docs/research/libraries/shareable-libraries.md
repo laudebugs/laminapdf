@@ -63,7 +63,7 @@ $ lamina fill form.pdf --data '{"name":"Jane","agreed":true}' -o filled.pdf --js
 
 ### Design the façade to the stricter binding now
 
-ADR 0002 already requires a handle-based façade designed once, with UniFFI "later" in `lamina-ffi`. The 2026 evidence argues for applying UniFFI's rules to the façade **now**, while B5c is still unwritten, even if the binding comes later. **UniFFI objects live in an `Arc`, methods take `&self` only, `&mut self` is disallowed, and the implementation must be `Send + Sync`** ([UniFFI manual: interfaces](https://github.com/mozilla/uniffi-rs/blob/main/docs/manual/src/types/interfaces.md)). wasm-bindgen classes have no such constraint, so a façade written only for wasm would need reshaping later. No surveyed project gets both bindings from one attribute set. Bitwarden and Matrix share a core whose data types carry feature-gated derives, and put handles and methods in **separate thin leaf crates per binding** ([bitwarden_uniffi](https://sdk-api-docs.bitwarden.com/bitwarden_uniffi/index.html), [matrix-rust-sdk bindings](https://github.com/matrix-org/matrix-rust-sdk/tree/main/bindings)). Bitwarden also found that neither generator handles generics and added non-generic wrappers ([PR #488](https://github.com/bitwarden/sdk-internal/pull/488)). That matches ADR 0002 §3, which already rules out generics at the boundary.
+ADR 0002 already requires a handle-based façade designed once, with UniFFI "later" in `laminapdf-ffi`. The 2026 evidence argues for applying UniFFI's rules to the façade **now**, while B5c is still unwritten, even if the binding comes later. **UniFFI objects live in an `Arc`, methods take `&self` only, `&mut self` is disallowed, and the implementation must be `Send + Sync`** ([UniFFI manual: interfaces](https://github.com/mozilla/uniffi-rs/blob/main/docs/manual/src/types/interfaces.md)). wasm-bindgen classes have no such constraint, so a façade written only for wasm would need reshaping later. No surveyed project gets both bindings from one attribute set. Bitwarden and Matrix share a core whose data types carry feature-gated derives, and put handles and methods in **separate thin leaf crates per binding** ([bitwarden_uniffi](https://sdk-api-docs.bitwarden.com/bitwarden_uniffi/index.html), [matrix-rust-sdk bindings](https://github.com/matrix-org/matrix-rust-sdk/tree/main/bindings)). Bitwarden also found that neither generator handles generics and added non-generic wrappers ([PR #488](https://github.com/bitwarden/sdk-internal/pull/488)). That matches ADR 0002 §3, which already rules out generics at the boundary.
 
 The UniFFI version is a real trade-off. **UniFFI 0.32.2 (September 2026) adds zero-copy `&[u8]` arguments into Rust**, though not in async functions ([CHANGELOG](https://github.com/mozilla/uniffi-rs/blob/main/CHANGELOG.md)). That matters when a 50 MB PDF crosses the boundary. But uniffi-bindgen-react-native, the route to React Native, is pinned to `=0.31` and "doesn't yet support UniFFI 0.32" ([ubrn releases](https://github.com/jhugman/uniffi-bindgen-react-native/releases)). ADR 0002 already says to pin UniFFI and upgrade deliberately. The open choice is which version to pin at.
 
@@ -94,7 +94,7 @@ impl WasmDocument {
     #[wasm_bindgen(js_name = pageInfo)] pub fn page_info(&self, i: u32) -> Result<laminapdf::PageInfo, JsError> { … }
 }
 
-// crates/lamina-ffi (edge)
+// crates/laminapdf-ffi (edge)
 #[derive(uniffi::Object)] pub struct FfiDocument(laminapdf::Document);
 #[uniffi::export] impl FfiDocument {
     #[uniffi::constructor] pub fn open(bytes: Vec<u8>, opts: OpenOptions) -> Result<Arc<Self>, LaminaError> { … }
@@ -259,7 +259,7 @@ UniFFI maps Rust `async fn` to Swift `async` and Kotlin `suspend` ([futures.md](
 
 ### Packaging: SPM only, AARs on Maven Central
 
-**CocoaPods trunk becomes read-only on 2 December 2026** ([CocoaPods blog](https://blog.cocoapods.org/CocoaPods-Specs-Repo/)). iOS distribution should be a Swift package with a binary XCFramework target plus a source target holding the idiomatic wrapper. `cargo-swift` 0.11.1 automates this ([crates.io](https://crates.io/crates/cargo-swift)). Android gets a `lamina-core` AAR (JNI `.so` for arm64-v8a and x86_64, 16 KB-aligned) and a `lamina-compose` AAR. The Compose path in androidx.pdf already needs AGP 9.2 and compileSdk 37 ([release notes](https://developer.android.com/jetpack/androidx/releases/pdf)), a sign of how quickly Android toolchain floors move. React Native is reachable through ubrn, subject to its UniFFI pin.
+**CocoaPods trunk becomes read-only on 2 December 2026** ([CocoaPods blog](https://blog.cocoapods.org/CocoaPods-Specs-Repo/)). iOS distribution should be a Swift package with a binary XCFramework target plus a source target holding the idiomatic wrapper. `cargo-swift` 0.11.1 automates this ([crates.io](https://crates.io/crates/cargo-swift)). Android gets a `laminapdf-core` AAR (JNI `.so` for arm64-v8a and x86_64, 16 KB-aligned) and a `lamina-compose` AAR. The Compose path in androidx.pdf already needs AGP 9.2 and compileSdk 37 ([release notes](https://developer.android.com/jetpack/androidx/releases/pdf)), a sign of how quickly Android toolchain floors move. React Native is reachable through ubrn, subject to its UniFFI pin.
 
 **Recommendation: drop-in viewers and headless use**
 

@@ -12,7 +12,7 @@
 | Branch | `refactor/p0b-rename-crates-laminapdf` |
 | PR title | `refactor: rename the crates laminapdf-* and the façade laminapdf` |
 | Size | XL in lines, but a mechanical rename (≈ 750 files, almost every change a name or a path) |
-| PR | — |
+| PR | [#178](https://github.com/laudebugs/laminapdf/pull/178) |
 
 ## Goal
 
@@ -39,7 +39,7 @@ Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an
 - The `@laminapdf/wasm` module files (`lamina_base`, `lamina_text`, `lamina_extract`, `lamina_render_hayro`): npm file names, not crates.
 - Text written into PDFs and fixtures (producers, creators, document IDs such as `lamina-build-B5a`), so every golden stays byte-identical.
 - The frozen spikes' own crate names (`lamina-ffi`, `lamina-pdf-basics`, …); their dependencies on the workspace crates are updated.
-- Generated changelogs (`CHANGELOG.md`).
+- Generated changelogs (`CHANGELOG.md`), and done todos and their board titles, which keep the names they were written under, as in [P0](P0-npm-scope-laminapdf.md); only their links follow the rename.
 
 ## Tasks
 
@@ -47,17 +47,18 @@ Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an
 - [x] Keep producer, creator and ID strings and the wasm module names
 - [x] Regenerate what is generated (`cargo xtask gen codes`) and format
 - [x] Follow renames in the maintainability baseline comparison, with a unit test
+- [x] Let the ratcheting checks (docs-prose, docs-snippets, clippy-examples, biome-examples) skip a file whose only change is the rename, so the examples' existing problems stay warnings until Q1d and Q1f (the owner's choice)
 - [x] Record the decision in ADR 0015, architecture §8 Q3, P0 and P1
 
 ## Acceptance criteria
 
 - [ ] `cargo metadata` lists only `laminapdf` and `laminapdf-*` crates under `crates/`, and `git grep` finds no `lamina-<crate>` or `lamina_<crate>` outside the out-of-scope list
-- [ ] Every golden and fixture is unchanged byte for byte
+- [ ] Every PDF golden and every checksummed input is unchanged byte for byte; a text fixture changes only where it names a renamed path (the reading-order corpus's `method`, which names its generator)
 - [ ] CI green
 
 ## Post-merge checks
 
-None.
+- [ ] Once no open branch predates the rename, remove `RENAMED` and `renamed_only` from `tools/xtask/src/reports.rs`, so the ratchet treats every change alike again.
 
 ## Tests
 

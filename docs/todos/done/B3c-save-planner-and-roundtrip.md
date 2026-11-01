@@ -23,7 +23,7 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 - [ADR 0007 §1–§4](../../decisions/0007-save-planner.md#1-api-laminapdf-save): `plan()`, `constraint()`, `mode()`, `would_invalidate()`; `SaveConstraint { signatures, doc_mdp, rewrite_reasons, violations }`; `kind()` (`Free`, `AppendOnly`, `RequiresRewrite`, `Conflict`); mode table; `SaveError::WouldInvalidateSignatures`, `RequiresRewrite`; `invalidate_signatures` override removing `/V` and `/Perms` entries; `would_violate(&op)`; canonical order.
 - [Research 04 §8](../../research/pdf/04-interactive-security.md#8-digital-signatures-128): signature dictionaries, `/ByteRange`/`/Contents`, DocMDP `/P` 1–3, FieldMDP, `/Lock`, UR3, DocTimeStamp.
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) tier 7; [§2](../../decisions/0018-test-strategy.md#2-ci-lanes) full lane "round-trip with qpdf".
-- `laminapdf-save` from [B3b](../done/B3b-lamina-save-writers.md), `laminapdf-ops` from [B3a](../done/B3a-overlay-and-ops.md).
+- `lamina-save` from [B3b](../done/B3b-lamina-save-writers.md), `lamina-ops` from [B3a](../done/B3a-overlay-and-ops.md).
 
 ## Scope
 
@@ -48,8 +48,8 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read ADR 0007 §1–4 and 04 §8
-- [x] `crates/laminapdf-save/src/planner.rs`, `constraint.rs`, `detect.rs` (signatures, DocMDP, FieldMDP, UR3), `resolve.rs` (mode table)
-- [x] `Document::save`/`plan` in the façade order (laminapdf-save depends on laminapdf-ops/model); remove B3b's temporary `save_incremental`/`save_full` from the public API
+- [x] `crates/lamina-save/src/planner.rs`, `constraint.rs`, `detect.rs` (signatures, DocMDP, FieldMDP, UR3), `resolve.rs` (mode table)
+- [x] `Document::save`/`plan` in the façade order (lamina-save depends on lamina-ops/model); remove B3b's temporary `save_incremental`/`save_full` from the public API
 - [x] Override: strip `/V` of invalidated signature fields and matching `/Perms` keys via overlay changes made by the planner (not by ops), reported in `SaveReport::invalidated`
 - [x] `would_violate(&op)` helper for the editor
 - [x] Encrypted base: `RewriteReason::EncryptedBase` detection from the base trailer; `SaveError::EncryptedBase` (+ code) for every mode unless `remove_encryption`; the removal path in `FullWriter` (decrypted objects, `/Encrypt` and the encryption dictionary dropped, `/ID` kept per ADR 0007 §5); `SaveReport::encryption_removed`
@@ -76,14 +76,14 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 
 ## Tests
 
-- `crates/laminapdf-save/tests/{planner,constraint,override,undo_bytes,encrypted_base}.rs` (`encrypted_base.rs` over `fixtures/corpus/enc.pdf` and `fixtures/encrypted/`: refusal per mode, removal path, signed + encrypted conflict).
+- `crates/lamina-save/tests/{planner,constraint,override,undo_bytes,encrypted_base}.rs` (`encrypted_base.rs` over `fixtures/corpus/enc.pdf` and `fixtures/encrypted/`: refusal per mode, removal path, signed + encrypted conflict).
 - Round-trip suite via `cargo xtask roundtrip` (full lane; needs Node, Python, qpdf).
 - Fuzz targets as above; regressions to `fixtures/regressions/`.
 
 ## Docs to update
 
 - [x] [pdf-library §10 B3](../../plans/pdf-library.md#10-to-dos): tick `SaveConstraint` detection, proving ops, round-trip
-- [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick `laminapdf-save`
+- [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick `lamina-save`
 - [x] `CLAUDE.md` (`cargo xtask roundtrip`, tool needs), `fixtures/README.md`, `fixtures/codes.json` (`encrypted-base`)
 - [x] ADR 0007 implementation note: an encrypted base without encryption on write refuses every mode unless `remove_encryption` (the §3 table's `RequiresRewrite` → `FullRewrite` applies only with it); `keep_encryption` arrives with E11b
 
@@ -106,13 +106,13 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 
 Recorded in [ADR 0007 §9](../../decisions/0007-save-planner.md#9-implementation-notes-b3c). Where the work differs from the text above:
 
-- **`Document::save`/`plan` are `Save` trait methods** (`laminapdf_ops::Document` is defined below `laminapdf-save`): `plan(&options)`, `save(&mut sink, &options)` and `save_and_rebase(sink, &options)` (a `ReadableSink`, replacing `save_full_and_rebase`). No `doc.write(plan, sink)`: `save` plans again, so a plan can't go stale.
-- **`tampered.pdf` is not a repaired base.** Its changed byte is inside the signed range and the file opens without repair, so it is `AppendOnly` like `signed.pdf` (Auto/Incremental round-trip, a requested full rewrite is refused). The `Conflict` case is `tampered.pdf` with its newest catalog damaged as well (byte 590, the mutation `laminapdf-cos`'s `policy.rs` already uses), built in memory by the tests and the round-trip suite: it repairs to the older, unsigned catalog, the planner finds the signature by scanning the repaired file's objects and reports `RepairedBase`, and the refusals and the override behave as specified.
+- **`Document::save`/`plan` are `Save` trait methods** (`lamina_ops::Document` is defined below `lamina-save`): `plan(&options)`, `save(&mut sink, &options)` and `save_and_rebase(sink, &options)` (a `ReadableSink`, replacing `save_full_and_rebase`). No `doc.write(plan, sink)`: `save` plans again, so a plan can't go stale.
+- **`tampered.pdf` is not a repaired base.** Its changed byte is inside the signed range and the file opens without repair, so it is `AppendOnly` like `signed.pdf` (Auto/Incremental round-trip, a requested full rewrite is refused). The `Conflict` case is `tampered.pdf` with its newest catalog damaged as well (byte 590, the mutation `lamina-cos`'s `policy.rs` already uses), built in memory by the tests and the round-trip suite: it repairs to the older, unsigned catalog, the planner finds the signature by scanning the repaired file's objects and reports `RepairedBase`, and the refusals and the override behave as specified.
 - **Override mechanics:** the writers write the planner's changes (no `/V` on the invalidated fields, their `/Perms` entries gone; direct fields and a direct `/Perms` edited in their containing object) over the document's values; the document changes only through the rebase onto the output. An overridden incremental save also invalidates every signature that restricts changes.
 - **Detection by scanning** runs only for a repaired base (every object loaded), not for every save.
 - **An unchanged document saves incrementally** in `Auto` and `Incremental` whatever its rewrite reasons (the base bytes unchanged break nothing); a document without base bytes has `RewriteReason::NoBase`.
 - **Violations err on the side of reporting:** the classes of every transaction since the last rebase (undo and redo add theirs), cleared only when the overlay is empty again; unknown when a model document is wrapped while dirty. FieldMDP: op classes don't name fields yet, so any form change counts against every lock that may cover a field. Unreadable parts of the form make the signatures unknown (counted as signed), and an unreadable DocMDP permission is taken as `/P 1`.
-- **`SignatureInfo`** also has `value` (the signature dictionary) and `covers` (the end of its `/ByteRange`); `revision` counts the `/Prev` chain's xref sections that start before it (`laminapdf_cos::Document::xref_section_offsets`, added for this). The UR3 kind is `SignatureKind::UsageRights`.
+- **`SignatureInfo`** also has `value` (the signature dictionary) and `covers` (the end of its `/ByteRange`); `revision` counts the `/Prev` chain's xref sections that start before it (`lamina_cos::Document::xref_section_offsets`, added for this). The UR3 kind is `SignatureKind::UsageRights`.
 - **Signed fixtures:** also `locked.pdf` (FieldMDP `/Lock`) and `signed-encrypted.pdf` (the encrypted + signed `Conflict`). Not byte-reproducible (fresh throwaway keys each run, never committed). No signed file from an external corpus was added.
 - **pdf.js** is not in the pnpm workspace: `tools/roundtrip/package.json` pins `pdfjs-dist` 6.4.299 and `cargo xtask roundtrip` installs it with npm (no lockfile; `$LAMINA_PDFJS` overrides). **PDFium** reads no `/Title` from a direct `/Info` dictionary (`text-example.pdf`): `pdfium.py` accepts a missing title when PDFium reads none from the source either. qpdf isn't pinned in `doctor.rs`; every tool's version is recorded in `target/xtask/roundtrip/versions.json`.
 - **Error codes:** `would-invalidate-signatures` (kind `security`) and `requires-rewrite` (kind `state`) in `fixtures/codes.json` (`saveErrors`) with pages in [`docs/errors/`](../../errors/README.md) ([ADR 0026](../../decisions/0026-error-and-diagnostic-contract.md) §6); `SaveError::EncryptedBase` reuses `encrypted-base` (already listed), whose page now says every mode is refused without `remove_encryption`.

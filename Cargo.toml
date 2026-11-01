@@ -22,7 +22,7 @@ repository = "https://github.com/laudebugs/lamina"
 publish = false
 
 [workspace.dependencies]
-# Internal crates are added here as `lamina-x = { path = "crates/lamina-x" }`; `cargo xtask version sync`
+# Internal crates are added here as `laminapdf-x = { path = "crates/laminapdf-x" }`; `cargo xtask version sync`
 # gives each the workspace version (ADR 0017).
 # No default features: `saslprep` (R5/R6 passwords, ~130 KB of Unicode tables in WASM) is asked
 # for by the crates and builds that want it (laminapdf-cos and the façade by default; ADR 0016 §5).

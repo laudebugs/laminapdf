@@ -54,7 +54,7 @@ None.
 
 ## Tests
 
-- `crates/laminapdf-text/tests/extraction.rs` with the new facts; unit tests for (glyph, text) CIDs and `/CIDToGIDMap`.
+- `crates/lamina-text/tests/extraction.rs` with the new facts; unit tests for (glyph, text) CIDs and `/CIDToGIDMap`.
 
 ## Docs to update
 
