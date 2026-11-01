@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fromRoot } from "@laminapdf/test-utils/root";
 import { build, createServer, type InlineConfig } from "vite";
 import { afterAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
@@ -33,7 +34,7 @@ describe("Vite", () => {
     try {
       await server.listen();
       const main = await server.transformRequest("/main.ts");
-      const glue = fileURLToPath(new URL("../../wasm/dist/lamina_base.wasm", import.meta.url));
+      const glue = fileURLToPath(fromRoot("packages/wasm/dist/lamina_base.wasm"));
       const url = server.resolvedUrls?.local[0] ?? "";
       const wasm = await fetch(new URL(`/@fs${glue}`, url));
       expect([

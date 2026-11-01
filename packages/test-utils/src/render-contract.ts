@@ -3,7 +3,7 @@
 // lamina reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
 // AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), C2b's
 // render goldens of the same backend.
-import { beforeAll, describe, expect, it } from "vitest";
+
 import {
   bytesSource,
   isRenderError,
@@ -11,14 +11,17 @@ import {
   type RenderDocument,
   type RenderedTile,
   type RenderSource,
-} from "../src/index.js";
+} from "@laminapdf/render";
+import { beforeAll, describe, expect, it } from "vitest";
 
+/** A decoded PNG: straight-alpha RGBA rows, as a backend renders them. */
 export interface Decoded {
   readonly width: number;
   readonly height: number;
   readonly pixels: Uint8ClampedArray;
 }
 
+/** What a backend's test file passes to {@link renderContract}. */
 export interface ContractOptions {
   /** A fresh backend (its module initialised). */
   readonly backend: () => Promise<RenderBackend>;

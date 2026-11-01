@@ -2,8 +2,8 @@
 // The goldens are native PDFium (pdfium-binaries chromium/7881); this is EmbedPDF's WASM build of
 // a different revision, so the bar is lower than the native test's 0.99 against itself.
 import wasmUrl from "@embedpdf/pdfium/pdfium.wasm?url";
-import { decodePng, fetcher } from "../../../render/test/browser-harness.js";
-import { renderContract } from "../../../render/test/contract.js";
+import { decodePng, fetcher } from "@laminapdf/test-utils/browser-harness";
+import { renderContract } from "@laminapdf/test-utils/render-contract";
 import { initPdfium, type PdfiumBackend } from "../../src/index.js";
 
 const urls = import.meta.glob<string>(
