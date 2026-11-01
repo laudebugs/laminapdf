@@ -152,7 +152,7 @@ pub(super) fn duplicate_types(tree: &Tree) -> Vec<Problem> {
 }
 
 /// The crate a library or binary source belongs to: `crates/<crate>/src/…`.
-fn crate_of(path: &str) -> Option<&str> {
+pub(super) fn crate_of(path: &str) -> Option<&str> {
     let rest = path.strip_prefix("crates/")?;
     let (krate, inside) = rest.split_once('/')?;
     inside.starts_with("src/").then_some(krate)

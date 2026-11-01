@@ -5,7 +5,6 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_syntax::{DecodeBudget, Dict, Limits, Object, Parser, Token, filters};
 
-use super::must_propagate;
 use super::window::{Reach, parse_syntax_at, read_indirect, rfind_input};
 use crate::error::{Error, Result};
 use crate::source::Source;
@@ -142,7 +141,7 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
                         }
                     }
                 }
-                Err(e) if must_propagate(&e) => return Err(e),
+                Err(e) if e.must_propagate() => return Err(e),
                 Err(_) => table.ignored_xref_streams.push(u64::try_from(stm).unwrap_or(u64::MAX)),
             }
         }

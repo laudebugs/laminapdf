@@ -17,7 +17,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use laminapdf_cos::{Document, Error, Result, Warning};
+use laminapdf_cos::{Document, Result, Warning, absent_if_malformed};
 use laminapdf_syntax::{Dict, Object};
 use skrifa::{FontRef, MetadataProvider};
 
@@ -132,17 +132,8 @@ pub(crate) struct Issues {
     pub(crate) cmap: bool,
 }
 
-/// Errors that end extraction instead of reading as an absent entry: hard limits, strict mode
-/// and data not yet available from a lazy source.
-fn fatal(error: &Error) -> bool {
-    matches!(
-        error,
-        Error::LimitExceeded { .. } | Error::Strict { .. } | Error::DataPending { .. }
-    )
-}
-
-/// Reads entries, resolving references; a broken reference reads as absent, a hard limit is
-/// an error.
+/// Reads entries, resolving references; a malformed object reads as absent and is noted, and
+/// any other error ends the load ([`absent_if_malformed`]).
 struct Reader<'d> {
     doc: &'d Document,
     issues: Issues,
@@ -151,14 +142,9 @@ struct Reader<'d> {
 impl Reader<'_> {
     fn get(&mut self, dict: &Dict, key: &str) -> Result<Option<Arc<Object>>> {
         let Some(value) = dict.get(key) else { return Ok(None) };
-        match self.doc.deref(value) {
-            Ok(resolved) => Ok(Some(resolved.into_arc())),
-            Err(error) if fatal(&error) => Err(error),
-            Err(_) => {
-                self.issues.font = true;
-                Ok(None)
-            }
-        }
+        let resolved = absent_if_malformed(self.doc.deref(value))?;
+        self.issues.font |= resolved.is_none();
+        Ok(resolved.map(laminapdf_cos::Resolved::into_arc))
     }
 
     fn dict(&mut self, dict: &Dict, key: &str) -> Result<Option<Dict>> {
@@ -178,14 +164,9 @@ impl Reader<'_> {
         let Object::Stream(stream) = object else {
             return Ok(None);
         };
-        match self.doc.decode_stream(stream) {
-            Ok(bytes) => Ok(Some(bytes)),
-            Err(error) if fatal(&error) => Err(error),
-            Err(_) => {
-                self.issues.font = true;
-                Ok(None)
-            }
-        }
+        let bytes = absent_if_malformed(self.doc.decode_stream(stream))?;
+        self.issues.font |= bytes.is_none();
+        Ok(bytes)
     }
 
     /// The numbers of an array (non-numbers dropped, and noted; a fatal error while
@@ -197,11 +178,7 @@ impl Reader<'_> {
         };
         let mut out = Vec::with_capacity(items.len());
         for item in items {
-            let value = match self.doc.deref(item) {
-                Ok(resolved) => resolved.as_f64(),
-                Err(error) if fatal(&error) => return Err(error),
-                Err(_) => None,
-            };
+            let value = absent_if_malformed(self.doc.deref(item))?.and_then(|resolved| resolved.as_f64());
             match value {
                 Some(n) if n.is_finite() => out.push(n),
                 _ => self.issues.font = true,
@@ -714,11 +691,7 @@ fn descendant(reader: &mut Reader<'_>, dict: &Dict) -> Result<Option<Dict>> {
     let Some(first) = list.as_array().and_then(<[Object]>::first) else {
         return Ok(None);
     };
-    match reader.doc.deref(first) {
-        Ok(object) => Ok(object.as_dict().cloned()),
-        Err(error) if fatal(&error) => Err(error),
-        Err(_) => Ok(None),
-    }
+    Ok(absent_if_malformed(reader.doc.deref(first))?.and_then(|object| object.as_dict().cloned()))
 }
 
 /// A font's ascent and descent in thousandths of text space, for glyph boxes: Type 3's
@@ -861,10 +834,9 @@ fn cid_widths<T: Copy>(
     while let Some(first) = int(items.get(i)) {
         if let Some(list @ (Object::Array(_) | Object::Ref(_))) = items.get(i + 1) {
             // `c [v …]`: a run of values from `c`.
-            let list = match reader.doc.deref(list) {
-                Ok(resolved) => reader.numbers(&resolved)?,
-                Err(error) if fatal(&error) => return Err(error),
-                Err(_) => Vec::new(),
+            let list = match absent_if_malformed(reader.doc.deref(list))? {
+                Some(resolved) => reader.numbers(&resolved)?,
+                None => Vec::new(),
             };
             let values: Vec<T> = list.chunks_exact(width).filter_map(&value).collect();
             if let Some(count) = u32::try_from(values.len()).ok().filter(|n| *n > 0) {
