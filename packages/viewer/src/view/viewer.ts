@@ -10,7 +10,7 @@ import { BitmapCache, DEFAULT_CACHE_BYTES } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
-import { type OpenedDocument, type Priority, renderKey } from "../protocol.js";
+import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
 import { lowScale, tilesFor } from "../render/tiles.js";
 import {
   contentPosition,
@@ -40,7 +40,7 @@ export interface ViewState {
   readonly visibleRange: { readonly first: number; readonly last: number };
 }
 
-/** Counters for tests and the perf harness. */
+/** Counters for the perf harness, and for checking the viewer's guarantees in production. */
 export interface RenderStats {
   readonly mounted: number;
   readonly peakMounted: number;
@@ -113,6 +113,22 @@ interface Frame {
   readonly height: number;
 }
 
+/** One running pass: what it paints, and how to tell it has gone stale. */
+interface Pass {
+  readonly view: PageView;
+  readonly layout: PageLayout;
+  readonly priority: PaintPriority;
+  readonly signal: AbortSignal;
+  /** False once the page was unmounted, aborted or re-laid-out: its results are dropped. */
+  readonly live: () => boolean;
+}
+
+/** A bitmap a pass holds, and whether it owns it (the cache didn't keep it, so it closes it). */
+interface Held {
+  readonly bitmap: ImageBitmap;
+  readonly owned: boolean;
+}
+
 interface PageView {
   readonly index: number;
   readonly shell: HTMLDivElement;
@@ -120,18 +136,25 @@ interface PageView {
   canvas: HTMLCanvasElement | undefined;
   controller: AbortController;
   state: PageRenderState;
-  /** The layout scale the canvas was last painted for (0: never). */
-  paintedScale: number;
-  /** The sharp tiles drawn at `paintedScale`, by `renderKey`. */
+  /** The geometry (scale and rotation, `geometryOf`) the canvas was last painted for ("": never). */
+  painted: string;
+  /** The sharp tiles drawn at `painted`, by `renderKey`. */
   readonly tiles: Set<string>;
   /** A pass is in flight: the next frame waits for it rather than send duplicates. */
   busy: boolean;
+  /** No canvas was free: the page waits until one is released rather than retry every frame. */
+  waiting: boolean;
   /** Bumped by an abort: an older pass's results are dropped. */
   pass: number;
 }
 
 function isAbort(e: unknown): boolean {
   return e instanceof DOMException && e.name === "AbortError";
+}
+
+/** What a painted canvas depends on: a zoom or a rotation makes it stale. */
+function geometryOf(layout: PageLayout): string {
+  return `${layout.scale}:${layout.rotation}`;
 }
 
 /** A closed ImageBitmap has no size: one the cache evicted while a pass held it. */
@@ -447,34 +470,53 @@ export class Viewer {
       width: this.#root.clientWidth,
       height: this.#root.clientHeight,
     };
-    const { top, height, width } = frame;
-    const visible = layout.rangeIn(top, top + height);
+    const visible = layout.rangeIn(frame.top, frame.top + frame.height);
     const [first, last] = this.#mountRange(frame);
-    const current = layout.pageAt(top + height / 2);
-    // Writes: unmount what left, mount what came, position all.
+    // Writes.
+    this.#placeShells(frame, first, last);
+    this.#setState({
+      currentPage: layout.pageAt(frame.top + frame.height / 2),
+      scrollTop: frame.top,
+      visibleRange: visible,
+    });
+    // Renders: nothing while a zoom gesture is under way.
+    if (this.#settling === undefined) this.#paintRange(frame, visible, first, last);
+    this.#emit("renderstats", this.stats());
+  }
+
+  /** Unmounts the shells outside `first..last`, mounts the missing ones and positions them all. */
+  #placeShells(frame: Frame, first: number, last: number): void {
+    const { layout, width } = frame;
     for (const [i, view] of this.#pages) if (i < first || i > last) this.#unmount(view);
     for (let i = first; i <= last; i++) {
       const view = this.#pages.get(i) ?? this.#mount(i);
       const w = layout.widths[i] as number;
       const h = layout.heights[i] as number;
       const s = view.shell.style;
-      const before = s.width;
+      const resized = s.width !== `${w}px`;
       s.top = `${layout.offsetOf(i)}px`;
       s.left = `${layout.leftOf(i, width)}px`;
       s.width = `${w}px`;
       s.height = `${h}px`;
-      if (before !== s.width) {
-        for (const layer of this.#layers) layer.onZoom?.(i, this.#slot(view, layer.name), { width: w, height: h });
-      }
+      if (resized) this.#notifyResize(view, w, h);
     }
     if (this.#pages.size > this.#peakMounted) this.#peakMounted = this.#pages.size;
-    this.#setState({ currentPage: current, scrollTop: top, visibleRange: visible });
-    // Renders: visible pages first, then the margin; nothing while a zoom gesture is under way.
-    if (this.#settling === undefined) {
-      for (let i = visible.first; i <= visible.last; i++) this.#paint(i, "visible", frame);
-      for (let i = first; i <= last; i++) if (i < visible.first || i > visible.last) this.#paint(i, "prefetch", frame);
-    }
-    this.#emit("renderstats", this.stats());
+  }
+
+  #notifyResize(view: PageView, width: number, height: number): void {
+    for (const layer of this.#layers) layer.onZoom?.(view.index, this.#slot(view, layer.name), { width, height });
+  }
+
+  /** Starts the passes: visible pages first, then the margin. */
+  #paintRange(
+    frame: Frame,
+    visible: { readonly first: number; readonly last: number },
+    first: number,
+    last: number,
+  ): void {
+    for (let i = visible.first; i <= visible.last; i++) this.#paint(i, "visible", frame);
+    for (let i = first; i < visible.first; i++) this.#paint(i, "prefetch", frame);
+    for (let i = visible.last + 1; i <= last; i++) this.#paint(i, "prefetch", frame);
   }
 
   #mount(index: number): PageView {
@@ -490,9 +532,10 @@ export class Viewer {
       canvas: undefined,
       controller: new AbortController(),
       state: "placeholder",
-      paintedScale: 0,
+      painted: "",
       tiles: new Set(),
       busy: false,
+      waiting: false,
       pass: 0,
     };
     for (const name of SLOTS) this.#slot(view, name);
@@ -537,9 +580,12 @@ export class Viewer {
   #releaseCanvas(view: PageView): void {
     if (view.canvas !== undefined) this.#pool.release(view.canvas);
     view.canvas = undefined;
-    view.paintedScale = 0;
+    view.painted = "";
     view.tiles.clear();
     if (view.state !== "error") view.state = "placeholder";
+    // A canvas is free again: pages that waited for one try now.
+    for (const other of this.#pages.values()) other.waiting = false;
+    this.#schedule();
   }
 
   /** The sharp tiles of page `index` in view in `frame`, with their render requests and keys. */
@@ -561,9 +607,11 @@ export class Viewer {
   /** Starts page `index`'s pass if it isn't busy and its canvas isn't done for `frame` yet. */
   #paint(index: number, priority: PaintPriority, frame: Frame): void {
     const view = this.#pages.get(index);
-    if (view === undefined || this.#document === undefined || view.busy || view.state === "error") return;
+    if (view === undefined || this.#document === undefined || view.busy || view.waiting || view.state === "error") {
+      return;
+    }
     const { layout } = frame;
-    if (view.paintedScale === layout.scale) {
+    if (view.painted === geometryOf(layout)) {
       if (priority === "prefetch") return;
       const canvas = view.canvas;
       const ratio = canvas === undefined ? 0 : canvas.width / (layout.widths[index] as number);
@@ -598,49 +646,81 @@ export class Viewer {
       });
   }
 
+  /** One pass: the blurry whole page when the canvas shows another geometry, then the sharp tiles in view. */
   async #pass(view: PageView, pass: number, priority: PaintPriority, frame: Frame): Promise<void> {
     const { index } = view;
     const { layout } = frame;
-    const signal = view.controller.signal;
-    const live = () => pass === view.pass && this.#pages.get(index) === view && this.#layout === layout;
+    const pass_: Pass = {
+      view,
+      layout,
+      priority,
+      signal: view.controller.signal,
+      live: () => pass === view.pass && this.#pages.get(index) === view && this.#layout === layout,
+    };
+    if (view.painted !== geometryOf(layout) && !(await this.#paintLow(pass_))) return;
+    if (priority === "prefetch") return;
+    await this.#paintTiles(pass_, frame);
+  }
+
+  /** The blurry pass: resizes the canvas and stretches a low-resolution page over it. */
+  async #paintLow(pass: Pass): Promise<boolean> {
+    const { view, layout, priority, signal, live } = pass;
+    const { index } = view;
+    const dpr = this.#dpr();
     const cssW = layout.widths[index] as number;
     const cssH = layout.heights[index] as number;
-    const dpr = this.#dpr();
-    const documentId = this.#document?.id ?? 0;
-    // The blurry pass, when the canvas doesn't show this scale yet.
-    if (view.paintedScale !== layout.scale) {
-      const shown = rotated(this.#sizes[index] as PageSize, layout.rotation);
-      const request = { page: index, scale: lowScale(layout.scale * dpr, shown.width), rotation: layout.rotation };
-      const low = await this.#bitmap(request, renderKey(request, documentId), priority, signal);
-      if (!live()) return this.#drop(low);
-      const canvas = view.canvas ?? this.#attachCanvas(view, priority);
-      if (canvas === undefined) return this.#drop(low, false);
-      const { width, height } = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
-      // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
-      canvas.width = width;
-      canvas.height = height;
-      this.#draw(view, low.bitmap, 0, 0, width, height);
-      this.#release(low);
-      view.paintedScale = layout.scale;
-      view.tiles.clear();
-      view.state = "low";
-      // The old scale's bitmaps are useless now: free them at once rather than at the budget.
-      // A render key's third field is the request's scale (renderKey).
-      const keep = new Set([request.scale, layout.scale * (width / cssW)]);
-      this.#cache.prune(index, (key) => keep.has((JSON.parse(key) as unknown[])[2] as number));
-      this.#emit("renderstats", this.stats());
+    const shown = rotated(this.#sizes[index] as PageSize, layout.rotation);
+    const request = { page: index, scale: lowScale(layout.scale * dpr, shown.width), rotation: layout.rotation };
+    const low = await this.#bitmap(request, renderKey(request, this.#document?.id ?? 0), priority, signal);
+    if (!live()) {
+      this.#drop(low);
+      return false;
     }
-    if (priority === "prefetch") return;
-    // Sharp tiles over the part in view, at the canvas's own pixel ratio (the pool may cap it).
+    const canvas = view.canvas ?? this.#attachCanvas(view, priority);
+    if (canvas === undefined) {
+      view.waiting = true;
+      this.#drop(low, false);
+      return false;
+    }
+    const { width, height } = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
+    // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
+    canvas.width = width;
+    canvas.height = height;
+    const drawn = this.#draw(view, low.bitmap, 0, 0, width, height);
+    this.#release(low);
+    // Not drawn (evicted meanwhile): the canvas stays unpainted, and the next frame tries again.
+    if (!drawn) return false;
+    view.painted = geometryOf(layout);
+    view.tiles.clear();
+    view.state = "low";
+    this.#pruneOtherGeometries(index, layout, new Set([request.scale, layout.scale * (width / cssW)]));
+    this.#emit("renderstats", this.stats());
+    return true;
+  }
+
+  /** Frees page `index`'s bitmaps of other scales or rotations at once, rather than at the budget. */
+  #pruneOtherGeometries(index: number, layout: PageLayout, scales: ReadonlySet<number>): void {
+    this.#cache.prune(index, (key) => {
+      const { scale, rotation } = renderKeyFields(key);
+      return scales.has(scale) && rotation === layout.rotation;
+    });
+  }
+
+  /** Sharp tiles over the part in view, at the canvas's own pixel ratio (the pool may cap it). */
+  async #paintTiles(pass: Pass, frame: Frame): Promise<void> {
+    const { view, layout, priority, signal, live } = pass;
     const canvas = view.canvas;
     if (canvas === undefined) return;
-    for (const tile of this.#tilesInView(index, frame, canvas.width / cssW)) {
+    for (const tile of this.#tilesInView(view.index, frame, canvas.width / (layout.widths[view.index] as number))) {
       if (view.tiles.has(tile.key)) continue;
       const got = await this.#bitmap(tile.request, tile.key, priority, signal);
-      if (!live()) return this.#drop(got);
-      this.#draw(view, got.bitmap, tile.clip.x, tile.clip.y);
+      if (!live()) {
+        this.#drop(got);
+        return;
+      }
+      const drawn = this.#draw(view, got.bitmap, tile.clip.x, tile.clip.y);
       this.#release(got);
-      view.tiles.add(tile.key);
+      if (drawn) view.tiles.add(tile.key);
     }
   }
 
@@ -654,7 +734,7 @@ export class Viewer {
     key: string,
     priority: PaintPriority,
     signal: AbortSignal,
-  ): Promise<{ bitmap: ImageBitmap; owned: boolean }> {
+  ): Promise<Held> {
     const cached = this.#cache.get(key);
     if (cached !== undefined && !isClosed(cached)) return { bitmap: cached, owned: false };
     const { bitmap } = await this.#client.render(request, { priority, signal });
@@ -663,43 +743,50 @@ export class Viewer {
   }
 
   /** A result that arrived too late: counted, and closed if nobody else holds it. */
-  #drop(got: { bitmap: ImageBitmap; owned: boolean }, late = true): void {
+  #drop(got: Held, late = true): void {
     if (late) this.#dropped++;
     this.#release(got);
   }
 
-  #release(got: { bitmap: ImageBitmap; owned: boolean }): void {
+  #release(got: Held): void {
     if (got.owned) got.bitmap.close();
   }
 
   /** The one place pixels reach a canvas: it counts a draw onto a shell out of the DOM. */
-  #draw(view: PageView, bitmap: ImageBitmap, x: number, y: number, width?: number, height?: number): void {
+  #draw(view: PageView, bitmap: ImageBitmap, x: number, y: number, width?: number, height?: number): boolean {
     const ctx = view.canvas?.getContext("2d");
-    if (ctx === undefined || ctx === null || isClosed(bitmap)) return;
+    // A bitmap another pass's cache write evicted (closed) after it was fetched: not drawn.
+    if (ctx === undefined || ctx === null || isClosed(bitmap)) return false;
     if (!view.shell.isConnected) this.#drawsOnUnmounted++;
     if (width === undefined || height === undefined) ctx.drawImage(bitmap, x, y);
     else ctx.drawImage(bitmap, x, y, width, height);
+    return true;
   }
 
   /**
    * A canvas for `view` from the pool. When the pool is empty, a visible page takes the canvas of
    * the margin page farthest from the current one, so visible pages never wait on prefetched ones.
    */
+  /** The margin page with a canvas farthest from the current page, if any. */
+  #farthestMarginCanvas(): PageView | undefined {
+    const { first, last } = this.#state.visibleRange;
+    const current = this.#state.currentPage;
+    let victim: PageView | undefined;
+    for (const other of this.#pages.values()) {
+      const inView = other.index >= first && other.index <= last;
+      if (other.canvas === undefined || inView) continue;
+      if (victim === undefined || Math.abs(other.index - current) > Math.abs(victim.index - current)) victim = other;
+    }
+    return victim;
+  }
+
   #attachCanvas(view: PageView, priority: PaintPriority): HTMLCanvasElement | undefined {
     let canvas = this.#pool.acquire();
-    if (canvas === undefined && priority === "visible") {
-      const { first, last } = this.#state.visibleRange;
-      const current = this.#state.currentPage;
-      let victim: PageView | undefined;
-      for (const other of this.#pages.values()) {
-        if (other.canvas === undefined || (other.index >= first && other.index <= last)) continue;
-        if (victim === undefined || Math.abs(other.index - current) > Math.abs(victim.index - current)) victim = other;
-      }
-      if (victim !== undefined) {
-        this.#abort(victim);
-        this.#releaseCanvas(victim);
-        canvas = this.#pool.acquire();
-      }
+    const victim = canvas === undefined && priority === "visible" ? this.#farthestMarginCanvas() : undefined;
+    if (victim !== undefined) {
+      this.#abort(victim);
+      this.#releaseCanvas(victim);
+      canvas = this.#pool.acquire();
     }
     if (canvas === undefined) return undefined;
     canvas.className = "lamina-page-canvas";

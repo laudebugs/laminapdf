@@ -2,7 +2,7 @@
 // size in points (ADR 0027: `/Rotate` applied) times the zoom, turned by the view rotation, with a
 // gap between pages. Offsets are prefix sums, so finding the page at a scroll position is a binary
 // search and a zoom or rotation change costs one O(n) pass. No DOM: the view reads it.
-import type { ViewRotation } from "@laminapdf/render";
+import { isQuarterTurn, type ViewRotation } from "@laminapdf/render";
 
 /** A page's displayed size in points. */
 export interface PageSize {
@@ -18,7 +18,7 @@ export const CSS_PX_PER_PT = 96 / 72;
 
 /** `size` as displayed after a view rotation: width and height swap at 90° and 270°. */
 export function rotated(size: PageSize, rotation: Rotation): PageSize {
-  return rotation === 90 || rotation === 270 ? { width: size.height, height: size.width } : size;
+  return isQuarterTurn(rotation) ? { width: size.height, height: size.width } : size;
 }
 
 /** Whether `value` is a view rotation (0, 90, 180 or 270). */

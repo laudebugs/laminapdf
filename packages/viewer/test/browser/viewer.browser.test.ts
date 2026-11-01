@@ -101,7 +101,8 @@ describe("virtualisation", () => {
     expect(v.stats().peakCanvases).toBeLessThanOrEqual(v.stats().maxCanvases);
     expect(v.stats().drawsOnUnmounted).toBe(0);
     v.destroy();
-  });
+    // About 1,700 frames of scrolling, each rendering: longer than the suite's default on a busy machine.
+  }, 180_000);
 
   it("never paints a cancelled render while scrolling fast past 200 pages", async () => {
     const v = await opened();
@@ -120,10 +121,17 @@ describe("virtualisation", () => {
     const v = await opened({ zoom: 400 });
     v.goToPage(3);
     await until(() => v.stats().pages[3] === "sharp");
+    const states: string[] = [];
+    v.on("renderstats", (s) => {
+      const state = s.pages[3];
+      if (state !== undefined && states.at(-1) !== state) states.push(state);
+    });
     v.element.scrollTop += v.element.clientHeight * 1.5;
     await frames(2);
     expect(v.getState().visibleRange.first).toBe(3);
     await until(() => v.stats().pages[3] === "sharp");
+    // The newly revealed part had to be drawn: the page went back to `low`, then sharp again.
+    expect(states).toEqual(["low", "sharp"]);
     v.destroy();
   });
 
@@ -171,6 +179,30 @@ describe("zoom", () => {
         expect(Math.abs((at?.x ?? 0) - cursor.x)).toBeLessThanOrEqual(1);
     }
     expect(Math.round(v.getState().percent)).toBe(50);
+    v.destroy();
+  });
+
+  it("repaints in the new orientation when the view rotates at the same zoom", async () => {
+    const v = await opened({ zoom: "actual-size" });
+    await until(() => v.stats().pages[0] === "sharp");
+    const canvas = () => v.element.querySelector<HTMLCanvasElement>('.lamina-page[data-page-index="0"] canvas');
+    const portrait = canvas()?.width ?? 0;
+    v.rotate(90);
+    await until(() => v.stats().pages[0] === "sharp" && (canvas()?.width ?? 0) !== portrait);
+    // Page 0 is letter portrait: turned, the canvas is as wide as the page was tall.
+    const turned = canvas();
+    expect((turned?.width ?? 0) > (turned?.height ?? 0)).toBe(true);
+    v.destroy();
+  });
+
+  it("doesn't spin through frames for pages the pool can't give a canvas", async () => {
+    const v = await opened({ zoom: 10, pool: { max: 2 } });
+    await frames(30);
+    let stats = 0;
+    v.on("renderstats", () => stats++);
+    await frames(30);
+    // With nothing changing, frames stop: no endless pass-and-reschedule loop.
+    expect(stats).toBeLessThan(5);
     v.destroy();
   });
 
