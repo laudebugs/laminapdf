@@ -121,7 +121,9 @@ describe("virtualisation", () => {
     const v = await opened({ zoom: 400 });
     v.goToPage(3);
     await until(() => v.stats().pages[3] === "sharp");
-    const states: string[] = [];
+    // Starts from the state the page is in, so a stats event that repeats it before the scroll
+    // lands (Firefox sends one) isn't counted as a change.
+    const states: string[] = ["sharp"];
     v.on("renderstats", (s) => {
       const state = s.pages[3];
       if (state !== undefined && states.at(-1) !== state) states.push(state);
@@ -131,7 +133,7 @@ describe("virtualisation", () => {
     expect(v.getState().visibleRange.first).toBe(3);
     await until(() => v.stats().pages[3] === "sharp");
     // The newly revealed part had to be drawn: the page went back to `low`, then sharp again.
-    expect(states).toEqual(["low", "sharp"]);
+    expect(states).toEqual(["sharp", "low", "sharp"]);
     v.destroy();
   });
 
