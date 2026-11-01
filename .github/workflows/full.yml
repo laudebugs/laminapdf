@@ -443,9 +443,10 @@ jobs:
           if-no-files-found: ignore
 
   # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with `code`
-  # exactly "true" or "false"; then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
-  # cancellation, or skip of a suite that should have run fails it. The one allowed skip on a
-  # code change is `check-linux` while `changes`' `linux` output is 'false'.
+  # exactly "true" or "false"; then every suite must have succeeded (code) or been skipped
+  # (docs-only). Any failure, cancellation, or skip of a suite that should have run fails it.
+  # The one allowed skip on a code change is `check-linux` while `changes`' `linux` output is
+  # 'false'.
   gate:
     name: gate
     if: always()
