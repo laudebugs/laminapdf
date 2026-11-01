@@ -743,9 +743,17 @@ export class Builder {
   }
 
   /**
-   * Attaches a file: `name`, its bytes and its MIME type (`text/xml`), with how it relates to
-   * the document. PDF/A-3b's associated files, such as an e-invoice's XML; the same name again
-   * replaces the file. PDF/A-2b and PDF/A-2u refuse attachments at {@link Builder.finish}.
+   * Attaches a file: PDF/A-3b's associated files, such as an e-invoice's XML. The same name
+   * again replaces the file. PDF/A-2b and PDF/A-2u refuse attachments at {@link Builder.finish},
+   * and every PDF/A profile refuses one without a MIME type there.
+   *
+   * @param name - the file name viewers show.
+   * @param bytes - the file's contents.
+   * @param mime - its MIME type, such as `text/xml`.
+   * @param options - how the file relates to the document (`relationship`, default
+   *   `unspecified`), its `description` and `modDate`.
+   * @throws {@link LaminaError} `invalid-argument` for a `modDate` that isn't a PDF date,
+   *   `unknown-option` for an unknown key, `builder-finished` after {@link Builder.finish}.
    */
   attach(name: string, bytes: Uint8Array, mime: string, options?: AttachmentOptions): this {
     guard(() => this.#builder.attach(name, bytes, mime, options));
@@ -765,11 +773,8 @@ export class Builder {
    * @returns the new document (unsaved; its save is a full rewrite).
    * @throws {@link LaminaError} `page-index-out-of-range`, `unknown-destination`,
    *   `invalid-page-labels`, `invalid-geometry`, `subset-failed`, `builder-finished`; under a
-   *   profile (`profiles` in the options), the first rule the document breaks:
-   *   `missing-title`, `missing-lang`, `untagged-content`, `missing-alt-text`,
-   *   `heading-level-skipped`, `invalid-structure-nesting`, `link-without-structure`,
-   *   `link-without-contents`, `font-not-embedded`, `glyph-without-unicode`,
-   *   `device-color-without-output-intent`, `embedded-file-forbidden`, `profile-version-conflict`.
+   *   profile (`profiles` in the options), the first rule the document breaks, with that rule's
+   *   code (the error reference lists them, from `profile-version-conflict` on).
    */
   finish(): Document {
     const builder = this.#builder;

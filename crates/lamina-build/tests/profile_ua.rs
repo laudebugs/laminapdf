@@ -13,21 +13,13 @@
 mod common;
 
 use common::b5b::font;
-use common::{reopen, save};
+use common::{at, rect, reopen, save};
 use lamina_build::{
     ArtifactKind, BuildOptions, Builder, ContentKind, Error, FillRule, LinkTarget, Metadata, PageSize, PdfVersion,
     Profile, Standard14, Tag, TagKind,
 };
 use lamina_cos::Object;
-use lamina_model::{PointPt, Pt, RectPt};
-
-fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
-    RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
-}
-
-fn at(x: f64, y: f64) -> PointPt {
-    PointPt::from_points(x, y)
-}
+use lamina_model::Pt;
 
 fn options() -> BuildOptions {
     BuildOptions::default().with_id([3; 16]).with_profile(Profile::PdfUa1)
@@ -105,6 +97,27 @@ mod rules {
             })
         });
         assert_eq!(finish_error(b), Error::MissingAltText { page: 0 });
+    }
+
+    /// Matterhorn 17-002: a `Formula` without alternate text, whatever role it maps to.
+    #[test]
+    fn a_formula_without_alt_text_fails_with_missing_alt_text() {
+        let b = ua(|s, f| {
+            let _ = s
+                .text("E = mc²", f, Pt::new(12.0), at(56.0, 80.0))?
+                .tag(Tag::custom("Formula", TagKind::Span));
+            Ok(())
+        });
+        assert_eq!(finish_error(b), Error::MissingAltText { page: 0 });
+    }
+
+    #[test]
+    fn an_error_on_a_page_carries_its_page_index() {
+        let b = ua(|s, f| {
+            let _ = s.text("Detail", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::H2);
+            Ok(())
+        });
+        assert_eq!(finish_error(b).location().page_index, Some(0));
     }
 
     #[test]
@@ -203,6 +216,52 @@ mod rules {
                 previous: 1
             }
         );
+    }
+
+    /// Matterhorn 14-006: two unnumbered `H` headings in one parent.
+    #[test]
+    fn two_h_headings_in_one_parent_fail_with_unnumbered_heading_misused() {
+        let b = ua(|s, f| {
+            let _ = s
+                .text("One", f, Pt::new(12.0), at(56.0, 80.0))?
+                .tag(Tag::custom("H", TagKind::H1));
+            let _ = s
+                .text("Two", f, Pt::new(12.0), at(56.0, 100.0))?
+                .tag(Tag::custom("H", TagKind::H1));
+            Ok(())
+        });
+        assert_eq!(finish_error(b), Error::UnnumberedHeadingMisused { page: 0 });
+    }
+
+    /// Matterhorn 14-007: `H` and numbered headings in one document.
+    #[test]
+    fn an_h_heading_beside_numbered_headings_fails_with_unnumbered_heading_misused() {
+        let b = ua(|s, f| {
+            let _ = s.text("Title", f, Pt::new(20.0), at(56.0, 80.0))?.tag(TagKind::H1);
+            s.tag(TagKind::Sect, |s| {
+                let _ = s
+                    .text("Part", f, Pt::new(12.0), at(56.0, 100.0))?
+                    .tag(Tag::custom("H", TagKind::H2));
+                Ok(())
+            })
+        });
+        assert_eq!(finish_error(b), Error::UnnumberedHeadingMisused { page: 0 });
+    }
+
+    #[test]
+    fn one_h_heading_per_section_builds() {
+        let b = ua(|s, f| {
+            for y in [80.0, 120.0] {
+                s.tag(TagKind::Sect, |s| {
+                    let _ = s
+                        .text("Part", f, Pt::new(12.0), at(56.0, y))?
+                        .tag(Tag::custom("H", TagKind::H1));
+                    paragraph(s, f)
+                })?;
+            }
+            Ok(())
+        });
+        assert!(b.finish().is_ok());
     }
 
     #[test]
@@ -455,6 +514,64 @@ mod output {
         let b = ua(|s, f| s.tag(Tag::custom("Div", TagKind::Part), |s| paragraph(s, f)));
         let doc = reopen(&save(b.finish().unwrap()));
         assert!(doc.structure().unwrap().unwrap().role_map.is_empty());
+    }
+
+    /// The `/ID` of each `Note` element under `e`, in structure order.
+    fn note_ids(doc: &lamina_model::Document, e: &lamina_model::StructElem, out: &mut Vec<Vec<u8>>) {
+        if e.kind == b"Note" {
+            let Object::Dict(d) = &*doc.resolve(e.object.unwrap()).unwrap() else {
+                panic!("not a dictionary")
+            };
+            let Some(Object::String(id)) = d.get("ID") else {
+                panic!("no /ID")
+            };
+            out.push(id.bytes.clone());
+        }
+        e.children().for_each(|c| note_ids(doc, c, out));
+    }
+
+    /// The keys of the structure tree's `IDTree`.
+    fn id_tree_keys(doc: &lamina_model::Document) -> Vec<Vec<u8>> {
+        let root = doc
+            .catalog()
+            .unwrap()
+            .get("StructTreeRoot")
+            .and_then(Object::as_ref)
+            .unwrap();
+        let Object::Dict(root) = &*doc.resolve(root).unwrap() else {
+            panic!("not a dictionary")
+        };
+        let tree = root.get("IDTree").and_then(Object::as_dict).unwrap();
+        let Some(Object::Array(names)) = tree.get("Names") else {
+            panic!("no /Names")
+        };
+        names
+            .iter()
+            .step_by(2)
+            .map(|k| match k {
+                Object::String(s) => s.bytes.clone(),
+                _ => panic!("not a string"),
+            })
+            .collect()
+    }
+
+    /// Matterhorn 19-003, 19-004: every `Note` has an `/ID`, unique in the document, and the
+    /// `IDTree` maps it.
+    #[test]
+    fn every_note_has_a_unique_id_in_the_id_tree() {
+        let b = ua(|s, f| {
+            for y in [80.0, 100.0] {
+                let _ = s.text("A note", f, Pt::new(9.0), at(56.0, y))?.tag(TagKind::Note);
+            }
+            Ok(())
+        });
+        let doc = reopen(&save(b.finish().unwrap()));
+        let mut ids = Vec::new();
+        for root in &doc.structure().unwrap().unwrap().roots {
+            note_ids(&doc, root, &mut ids);
+        }
+        let expected = vec![b"Note1".to_vec(), b"Note2".to_vec()];
+        assert_eq!((ids, id_tree_keys(&doc)), (expected.clone(), expected));
     }
 
     #[test]

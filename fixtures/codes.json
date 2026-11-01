@@ -746,6 +746,13 @@
       "since": "0.2.0"
     },
     {
+      "code": "unnumbered-heading-misused",
+      "kind": "usage",
+      "summary": "an unnumbered H heading shares its parent with another H, or the document also uses H1-H6, which PDF/UA-1 forbids",
+      "hint": "use numbered headings (H1, H2, ...) throughout, or one H per section",
+      "since": "0.2.0"
+    },
+    {
       "code": "invalid-structure-nesting",
       "kind": "usage",
       "summary": "a table or list element sits in a parent its type doesn't allow (a TD outside a TR, a P directly in a Table)",
@@ -792,6 +799,13 @@
       "kind": "usage",
       "summary": "PDF/A-2 doesn't allow attached files that aren't PDF/A themselves",
       "hint": "choose PDF/A-3b, which allows attached files of any kind",
+      "since": "0.2.0"
+    },
+    {
+      "code": "embedded-file-without-mime-type",
+      "kind": "usage",
+      "summary": "an attached file has no MIME type, which every PDF/A profile requires",
+      "hint": "pass the file's MIME type, such as text/xml or application/octet-stream",
       "since": "0.2.0"
     }
   ],

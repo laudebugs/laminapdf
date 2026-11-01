@@ -12,21 +12,13 @@
 mod common;
 
 use common::b5b::font;
-use common::{fixture, reopen, save};
+use common::{at, fixture, rect, reopen, save};
 use lamina_build::{
     Attachment, BuildOptions, Builder, Color, Error, FillRule, IccProfile, Image, Metadata, PageSize, PdfVersion,
     Profile, Standard14,
 };
 use lamina_cos::{Dict, Object};
-use lamina_model::{PointPt, Pt, RectPt};
-
-fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
-    RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
-}
-
-fn at(x: f64, y: f64) -> PointPt {
-    PointPt::from_points(x, y)
-}
+use lamina_model::Pt;
 
 fn options(profile: Profile) -> BuildOptions {
     BuildOptions::default()
@@ -194,6 +186,27 @@ mod rules {
             b.attach(Attachment::new("data.csv", b"a,b\n".to_vec(), "text/csv"));
             assert_eq!(b.finish().unwrap_err(), Error::EmbeddedFileForbidden { profile });
         }
+    }
+
+    /// ISO 19005-3 §6.8: every embedded file has a MIME type (`/Subtype`).
+    #[test]
+    fn an_attachment_without_a_mime_type_fails_with_embedded_file_without_mime_type() {
+        let mut b = Builder::new(options(Profile::PdfA3b));
+        b.attach(Attachment::new("data.bin", vec![1, 2, 3], ""));
+        assert_eq!(
+            b.finish().unwrap_err(),
+            Error::EmbeddedFileWithoutMimeType {
+                profile: Profile::PdfA3b,
+                name: "data.bin".into()
+            }
+        );
+    }
+
+    #[test]
+    fn an_attachment_without_a_mime_type_builds_without_a_profile() {
+        let mut b = Builder::new(BuildOptions::default());
+        b.attach(Attachment::new("data.bin", vec![1, 2, 3], ""));
+        assert!(b.finish().is_ok());
     }
 
     /// veraPDF 6.1.2-1: PDF/A-2 and -3 files are PDF 1.x.

@@ -81,6 +81,7 @@ export type ErrorCode =
   | "missing-alt-text"
   | "untagged-content"
   | "heading-level-skipped"
+  | "unnumbered-heading-misused"
   | "invalid-structure-nesting"
   | "link-without-structure"
   | "link-without-contents"
@@ -88,6 +89,7 @@ export type ErrorCode =
   | "glyph-without-unicode"
   | "device-color-without-output-intent"
   | "embedded-file-forbidden"
+  | "embedded-file-without-mime-type"
   | "render-too-large"
   | "render-failed"
   | "render-backend-unavailable"
@@ -231,6 +233,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "missing-alt-text",
   "untagged-content",
   "heading-level-skipped",
+  "unnumbered-heading-misused",
   "invalid-structure-nesting",
   "link-without-structure",
   "link-without-contents",
@@ -238,6 +241,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "glyph-without-unicode",
   "device-color-without-output-intent",
   "embedded-file-forbidden",
+  "embedded-file-without-mime-type",
   "render-too-large",
   "render-failed",
   "render-backend-unavailable",
@@ -404,6 +408,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "missing-alt-text": "usage",
   "untagged-content": "usage",
   "heading-level-skipped": "usage",
+  "unnumbered-heading-misused": "usage",
   "invalid-structure-nesting": "usage",
   "link-without-structure": "usage",
   "link-without-contents": "usage",
@@ -411,6 +416,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "glyph-without-unicode": "usage",
   "device-color-without-output-intent": "usage",
   "embedded-file-forbidden": "usage",
+  "embedded-file-without-mime-type": "usage",
   "render-too-large": "limit",
   "render-failed": "input",
   "render-backend-unavailable": "io",
@@ -537,6 +543,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "missing-alt-text": "give the figure a description with Tag::with_alt or Surface::figure's alt, or draw decoration as an artifact",
   "untagged-content": "draw it inside Surface::tag (real content) or Surface::artifact (decoration)",
   "heading-level-skipped": "start with H1 and go down one level at a time",
+  "unnumbered-heading-misused": "use numbered headings (H1, H2, ...) throughout, or one H per section",
   "invalid-structure-nesting": "nest tables as Table > TR > TH/TD and lists as L > LI > Lbl/LBody",
   "link-without-structure": "draw links outside artifacts, so the builder gives each one a Link element",
   "link-without-contents": "pass a description as the link's contents",
@@ -544,6 +551,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "glyph-without-unicode": "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
   "device-color-without-output-intent": "use RGB or gray colours, or a CMYK colour with an ICC profile (Color::icc)",
   "embedded-file-forbidden": "choose PDF/A-3b, which allows attached files of any kind",
+  "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",
   "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
   "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
   "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDFIUM_DIR to the folder holding the PDFium library",

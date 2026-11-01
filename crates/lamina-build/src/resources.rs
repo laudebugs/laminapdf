@@ -106,7 +106,7 @@ impl PageResources {
     }
 
     /// Notes a `DeviceCMYK` colour.
-    pub(crate) fn uses_cmyk(&mut self) {
+    pub(crate) fn note_device_cmyk(&mut self) {
         self.device_cmyk = true;
     }
 

@@ -12,8 +12,21 @@ use lamina::{
 };
 
 const MARGIN: f64 = 56.0;
+/// The page's right edge, less the margin: where the rule under the items ends.
+const RIGHT: f64 = PageSize::A4.width.get() - MARGIN;
 const AMOUNTS: f64 = 460.0;
 const ROW: f64 = 22.0;
+const TITLE_BASELINE: f64 = 80.0;
+const FIRST_ROW: f64 = 130.0;
+/// How far above the next row's baseline the rule sits, and how far below it the total and
+/// the note are.
+const RULE_RISE: f64 = 7.0;
+const TOTAL_DROP: f64 = 18.0;
+const NOTE_DROP: f64 = 68.0;
+/// How far left of the amounts column the total starts, to fit its "Total" label.
+const TOTAL_INDENT: f64 = 40.0;
+const TITLE: Pt = Pt::new(24.0);
+const TOTAL: Pt = Pt::new(14.0);
 const BODY: Pt = Pt::new(11.0);
 const ITEMS: [(&str, u32, f64); 3] = [("Sprockets", 12, 1.25), ("Gadget", 1, 79.90), ("Delivery", 1, 4.50)];
 
@@ -62,30 +75,22 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
 
 fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {
     let at = PointPt::from_points;
-    drop(s.text("Invoice 42", font, Pt::new(24.0), at(MARGIN, 80.0))?);
-    let mut y = 130.0;
+    drop(s.text("Invoice 42", font, TITLE, at(MARGIN, TITLE_BASELINE))?);
+    let mut y = FIRST_ROW;
     for (item, qty, price) in ITEMS {
         drop(s.text(&format!("{qty} × {item}"), font, BODY, at(MARGIN, y))?);
         let amount = f64::from(qty) * price;
         drop(s.text(&format!("€ {amount:.2}"), font, BODY, at(AMOUNTS, y))?);
         y += ROW;
     }
-    let rule = y - 7.0;
+    let rule = y - RULE_RISE;
     s.stroke_color(Color::gray(0.5))
-        .path(|p| _ = p.move_to(at(MARGIN, rule)).line_to(at(539.0, rule)))
+        .path(|p| _ = p.move_to(at(MARGIN, rule)).line_to(at(RIGHT, rule)))
         .stroke(&StrokeStyle::default());
-    drop(s.text(
-        &format!("Total € {:.2}", total()),
-        font,
-        Pt::new(14.0),
-        at(AMOUNTS - 40.0, y + 18.0),
-    )?);
-    let note = s.text(
-        "The invoice is attached as invoice-42.xml.",
-        font,
-        BODY,
-        at(MARGIN, y + 68.0),
-    )?;
+    let total_at = at(AMOUNTS - TOTAL_INDENT, y + TOTAL_DROP);
+    drop(s.text(&format!("Total € {:.2}", total()), font, TOTAL, total_at)?);
+    let note = "The invoice is attached as invoice-42.xml.";
+    let note = s.text(note, font, BODY, at(MARGIN, y + NOTE_DROP))?;
     let online = LinkTarget::Uri("https://example.com/invoices/42".into());
     drop(note.link(online, Some("Invoice 42 online".into())));
     Ok(())

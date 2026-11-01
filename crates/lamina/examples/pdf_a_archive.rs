@@ -12,6 +12,16 @@ use lamina::{
 };
 
 const MARGIN: f64 = 56.0;
+const BAND_HEIGHT: f64 = 70.0;
+const TITLE_AT: PointPt = PointPt::from_points(MARGIN, 110.0);
+/// The top of the letter's text and of the photo beside it, and the height of both.
+const BLOCK_TOP: f64 = 130.0;
+const BLOCK_HEIGHT: f64 = 120.0;
+const LETTER_WIDTH: f64 = 300.0;
+const PHOTO_LEFT: f64 = 380.0;
+const PHOTO_WIDTH: f64 = 160.0;
+const FOOTER_AT: PointPt = PointPt::from_points(MARGIN, 300.0);
+const TITLE: Pt = Pt::new(22.0);
 const BODY: Pt = Pt::new(11.0);
 const BAND_OPACITY: f64 = 0.35;
 const PHOTO_ALT: &str = "A photograph of the sprockets, packed in a box";
@@ -70,24 +80,21 @@ fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildEr
         s.save()
             .opacity(BAND_OPACITY, 1.0)
             .fill_color(Color::rgb(0.12, 0.47, 0.78));
-        s.path(|p| _ = p.rect(rect(0.0, 0.0, width, 70.0)))
+        s.path(|p| _ = p.rect(rect(0.0, 0.0, width, BAND_HEIGHT)))
             .fill(FillRule::NonZero);
         s.restore();
         Ok(())
     })?;
-    let title = PointPt::from_points(MARGIN, 110.0);
     s.tag(TagKind::H1, |s| {
-        s.text("Order confirmation 42", font, Pt::new(22.0), title).map(drop)
+        s.text("Order confirmation 42", font, TITLE, TITLE_AT).map(drop)
     })?;
-    let body = rect(MARGIN, 130.0, 300.0, 120.0);
+    let body = rect(MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT);
     s.tag(TagKind::P, |s| {
         s.text_box(LETTER, font, BODY, body, &TextBoxOptions::default())
             .map(drop)
     })?;
-    s.figure(photo, rect(380.0, 130.0, 160.0, 120.0), Some(PHOTO_ALT));
-    let footer = PointPt::from_points(MARGIN, 300.0);
-    s.tag(TagKind::P, |s| {
-        s.text("Acme Widgets Ltd, 1 Example Street, London", font, BODY, footer)
-            .map(drop)
-    })
+    let beside = rect(PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT);
+    s.figure(photo, beside, Some(PHOTO_ALT));
+    let footer = "Acme Widgets Ltd, 1 Example Street, London";
+    s.tag(TagKind::P, |s| s.text(footer, font, BODY, FOOTER_AT).map(drop))
 }

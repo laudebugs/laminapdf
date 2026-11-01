@@ -120,6 +120,12 @@ impl Conformance {
         !self.ua && self.pdfa.is_none()
     }
 
+    /// The profile an error names when a rule belongs to every profile chosen (the PDF
+    /// version, embedded fonts): the PDF/A one, the stricter about both, else PDF/UA-1.
+    pub(crate) fn primary(self) -> Option<Profile> {
+        self.pdfa.map(PdfA::profile).or(self.ua.then_some(Profile::PdfUa1))
+    }
+
     /// The profile that needs every glyph mapped to Unicode (PDF/A-2u §6.2.11.7.2, PDF/UA-1
     /// §7.21.7), PDF/A-2u first; `None` when no profile does.
     #[cfg(feature = "text")]
@@ -140,6 +146,12 @@ mod tests {
     fn a_second_pdfa_profile_replaces_the_first() {
         let c = Conformance::default().with(Profile::PdfA2b).with(Profile::PdfA3b);
         assert_eq!(c.profiles().collect::<Vec<_>>(), [Profile::PdfA3b]);
+    }
+
+    #[test]
+    fn the_pdfa_profile_is_named_before_ua() {
+        let c = Conformance::default().with(Profile::PdfUa1).with(Profile::PdfA2u);
+        assert_eq!(c.primary(), Some(Profile::PdfA2u));
     }
 
     #[test]

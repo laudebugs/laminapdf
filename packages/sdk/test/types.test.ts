@@ -84,6 +84,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "missing-alt-text":
     case "untagged-content":
     case "heading-level-skipped":
+    case "unnumbered-heading-misused":
     case "invalid-structure-nesting":
     case "link-without-structure":
     case "link-without-contents":
@@ -91,6 +92,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "glyph-without-unicode":
     case "device-color-without-output-intent":
     case "embedded-file-forbidden":
+    case "embedded-file-without-mime-type":
     case "invalid-argument":
     case "unknown-option":
     case "worker-version-mismatch":

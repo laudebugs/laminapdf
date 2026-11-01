@@ -7,10 +7,14 @@
 //! Matterhorn Protocol 1.1 failure conditions for PDF/UA-1 and the ISO 19005-2 clauses (as
 //! veraPDF's rule IDs number them) for PDF/A.
 
+use std::collections::BTreeMap;
+
 use crate::annot::link::PendingLink;
+use crate::attach::Attachment;
 use crate::error::{Error, Result};
-use crate::profile::{Conformance, PdfA, Profile};
+use crate::profile::{Conformance, PdfA};
 use crate::tag::elem::ElemInfo;
+use crate::tag::rolemap::heading_level;
 use crate::tag::{ContentKind, TagDiagnostic};
 
 /// What the checks read from the build.
@@ -26,7 +30,8 @@ pub(crate) struct Inputs<'a> {
     pub(crate) links: &'a [PendingLink],
     /// The first page drawing with `DeviceCMYK`.
     pub(crate) device_cmyk: Option<u32>,
-    pub(crate) attachments: usize,
+    /// The attached files, by name.
+    pub(crate) attachments: &'a BTreeMap<String, Attachment>,
 }
 
 /// Runs every rule of the build's profiles (fonts are checked by [`fonts`]).
@@ -35,7 +40,7 @@ pub(crate) fn check(inputs: &Inputs<'_>) -> Result<()> {
     if inputs.version > (1, 7) {
         // PDF/UA-1 and PDF/A-2/3 are built on ISO 32000-1 (PDF 1.7); veraPDF 6.1.2-1 checks
         // the header.
-        if let Some(profile) = c.pdfa.map(PdfA::profile).or(c.ua.then_some(Profile::PdfUa1)) {
+        if let Some(profile) = c.primary() {
             return Err(Error::ProfileVersionConflict { profile });
         }
     }
@@ -87,21 +92,25 @@ fn ua1(inputs: &Inputs<'_>) -> Result<()> {
     Ok(())
 }
 
-/// The level of a numbered heading (`H1` → 1), `None` for anything else.
-fn heading_level(kind: &str) -> Option<u32> {
-    let digits = kind.strip_prefix('H')?;
-    if digits.is_empty() || digits.starts_with('0') {
-        return None;
-    }
-    digits.parse().ok()
-}
-
-/// Matterhorn 14-002 and 14-003 (ISO 14289-1 §7.4.2): the first numbered heading is `H1`, and
-/// no level is skipped going down.
+/// The heading rules of ISO 14289-1 §7.4: the first numbered heading is `H1` and no level is
+/// skipped going down (Matterhorn 14-002, 14-003); an unnumbered `H` is never beside another
+/// `H` in one parent (14-006), nor in a document with numbered headings (14-007).
 fn headings(elements: &[ElemInfo]) -> Result<()> {
     let mut previous = 0;
+    // The parents of the `H`s so far (`None`: the `Document` element).
+    let mut unnumbered: Vec<Option<usize>> = Vec::new();
     for e in elements {
+        if e.kind == "H" {
+            if previous > 0 || unnumbered.contains(&e.parent_index) {
+                return Err(Error::UnnumberedHeadingMisused { page: e.page });
+            }
+            unnumbered.push(e.parent_index);
+            continue;
+        }
         let Some(level) = heading_level(&e.kind) else { continue };
+        if !unnumbered.is_empty() {
+            return Err(Error::UnnumberedHeadingMisused { page: e.page });
+        }
         if level > previous + 1 {
             return Err(Error::HeadingLevelSkipped {
                 page: e.page,
@@ -114,31 +123,35 @@ fn headings(elements: &[ElemInfo]) -> Result<()> {
     Ok(())
 }
 
-/// The parents each table and list element may have, and the children each table and list
-/// container may have (ISO 32000-1 Tables 336 and 337; Matterhorn 09-004 and 09-005; veraPDF
-/// 7.2-3 to 7.2-20).
+/// Each table and list container and the children it may have (ISO 32000-1 Tables 336 and
+/// 337; Matterhorn 09-004 and 09-005; veraPDF 7.2-3 to 7.2-20).
+const CHILDREN: [(&str, &[&str]); 7] = [
+    ("Table", &["TR", "THead", "TBody", "TFoot", "Caption"]),
+    ("THead", &["TR"]),
+    ("TBody", &["TR"]),
+    ("TFoot", &["TR"]),
+    ("TR", &["TH", "TD"]),
+    ("L", &["L", "LI", "Caption"]),
+    ("LI", &["Lbl", "LBody"]),
+];
+
+/// The children in [`CHILDREN`] that may also stand anywhere else: a `Caption` belongs to a
+/// figure too, a list in any block, a `Lbl` in a caption.
+const ANYWHERE: [&str; 3] = ["Caption", "L", "Lbl"];
+
+/// Whether `kind` may be a child of `parent`: a container takes only its children, and a
+/// container's child (other than [`ANYWHERE`]'s) stands only in a container.
+fn nests(kind: &str, parent: &str) -> bool {
+    if let Some((_, kids)) = CHILDREN.iter().find(|(p, _)| *p == parent) {
+        return kids.contains(&kind);
+    }
+    ANYWHERE.contains(&kind) || !CHILDREN.iter().any(|(_, kids)| kids.contains(&kind))
+}
+
 fn nesting(elements: &[ElemInfo]) -> Result<()> {
-    const ROW_GROUPS: [&str; 4] = ["Table", "THead", "TBody", "TFoot"];
     for e in elements {
         let parent = e.parent.as_deref().unwrap_or("Document");
-        let child_ok = match e.kind.as_str() {
-            "TR" => ROW_GROUPS.contains(&parent),
-            "TH" | "TD" => parent == "TR",
-            "THead" | "TBody" | "TFoot" => parent == "Table",
-            "LI" => parent == "L",
-            "LBody" => parent == "LI",
-            _ => true,
-        };
-        let kind = e.kind.as_str();
-        let parent_ok = match parent {
-            "Table" => matches!(kind, "TR" | "THead" | "TBody" | "TFoot" | "Caption"),
-            "THead" | "TBody" | "TFoot" => kind == "TR",
-            "TR" => matches!(kind, "TH" | "TD"),
-            "L" => matches!(kind, "L" | "LI" | "Caption"),
-            "LI" => matches!(kind, "Lbl" | "LBody"),
-            _ => true,
-        };
-        if !(child_ok && parent_ok) {
+        if !nests(&e.kind, parent) {
             return Err(Error::InvalidStructureNesting {
                 page: e.page,
                 kind: e.kind.clone(),
@@ -161,10 +174,18 @@ fn pdfa_rules(pdfa: PdfA, inputs: &Inputs<'_>) -> Result<()> {
     if let Some(page) = inputs.device_cmyk {
         return Err(Error::DeviceColorWithoutOutputIntent { page });
     }
-    // ISO 19005-2 §6.8 (veraPDF 6.8-5): embedded files must themselves be PDF/A.
-    if inputs.attachments > 0 && pdfa != PdfA::A3b {
+    // ISO 19005-2 §6.8 (veraPDF 6.8-5): embedded files must themselves be PDF/A, which
+    // lamina can't check, so PDF/A-2 takes none.
+    if !inputs.attachments.is_empty() && pdfa != PdfA::A3b {
         return Err(Error::EmbeddedFileForbidden {
             profile: pdfa.profile(),
+        });
+    }
+    // ISO 19005-3 §6.8: every embedded file has a MIME type (`/Subtype`).
+    if let Some(file) = inputs.attachments.values().find(|f| f.mime().is_empty()) {
+        return Err(Error::EmbeddedFileWithoutMimeType {
+            profile: pdfa.profile(),
+            name: file.name().to_owned(),
         });
     }
     Ok(())
@@ -182,12 +203,7 @@ pub(crate) fn fonts(
 ) -> Result<()> {
     use lamina_text::FontUsage;
 
-    // PDF/A is named first: it is the stricter of the two about fonts.
-    let Some(profile) = conformance
-        .pdfa
-        .map(PdfA::profile)
-        .or(conformance.ua.then_some(Profile::PdfUa1))
-    else {
+    let Some(profile) = conformance.primary() else {
         return Ok(());
     };
     let unicode = conformance.unicode_profile();

@@ -1,9 +1,24 @@
 // A PDF/A-3b invoice that carries the same invoice as XML, attached for software to read.
-import { Builder, Font, type Surface } from "@laminapdf/sdk";
+import { Builder, Font, PAGE_SIZES, type Surface } from "@laminapdf/sdk";
 
 const MARGIN = 56;
+/** The page's right edge, less the margin: where the rule under the items ends. */
+const RIGHT = PAGE_SIZES.A4[0] - MARGIN;
 const AMOUNTS = 460;
 const ROW = 22;
+const TITLE_BASELINE = 80;
+const FIRST_ROW = 130;
+/**
+ * How far above the next row's baseline the rule sits, and how far below it the total and
+ * the note are.
+ */
+const RULE_RISE = 7;
+const TOTAL_DROP = 18;
+const NOTE_DROP = 68;
+/** How far left of the amounts column the total starts, to fit its "Total" label. */
+const TOTAL_INDENT = 40;
+const TITLE = 24;
+const TOTAL = 14;
 const BODY = 11;
 const ITEMS = [
   ["Sprockets", 12, 1.25],
@@ -46,22 +61,22 @@ export function pdfA3InvoiceWithXml(notoSans: Uint8Array): Uint8Array {
 }
 
 function draw(s: Surface, font: Font): void {
-  s.text("Invoice 42", { font, size: 24, at: [MARGIN, 80] });
-  let y = 130;
+  s.text("Invoice 42", { font, size: TITLE, at: [MARGIN, TITLE_BASELINE] });
+  let y = FIRST_ROW;
   for (const [item, qty, price] of ITEMS) {
     s.text(`${qty} × ${item}`, { font, size: BODY, at: [MARGIN, y] });
     s.text(`€ ${(qty * price).toFixed(2)}`, { font, size: BODY, at: [AMOUNTS, y] });
     y += ROW;
   }
-  const rule = y - 7;
+  const rule = y - RULE_RISE;
   s.strokeColor([0.5])
-    .path((p) => p.moveTo(MARGIN, rule).lineTo(539, rule))
+    .path((p) => p.moveTo(MARGIN, rule).lineTo(RIGHT, rule))
     .stroke();
-  s.text(`Total € ${total().toFixed(2)}`, { font, size: 14, at: [AMOUNTS - 40, y + 18] });
+  s.text(`Total € ${total().toFixed(2)}`, { font, size: TOTAL, at: [AMOUNTS - TOTAL_INDENT, y + TOTAL_DROP] });
   s.text("The invoice is attached as invoice-42.xml.", {
     font,
     size: BODY,
-    at: [MARGIN, y + 68],
+    at: [MARGIN, y + NOTE_DROP],
     link: { target: { type: "uri", uri: "https://example.com/invoices/42" }, contents: "Invoice 42 online" },
   });
 }

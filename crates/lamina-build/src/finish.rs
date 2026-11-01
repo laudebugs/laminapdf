@@ -166,7 +166,7 @@ fn check_profiles(options: &BuildOptions, state: &BuildState, features: &DocFeat
         elements: state.tag.infos(),
         links: &state.links,
         device_cmyk: state.device_cmyk,
-        attachments: features.attachments.len(),
+        attachments: &features.attachments,
     })?;
     #[cfg(feature = "text")]
     checks::fonts(conformance, &state.fonts, &state.font_keys)?;

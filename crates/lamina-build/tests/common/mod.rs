@@ -52,6 +52,17 @@ pub fn reopen(bytes: &[u8]) -> lamina_model::Document {
     lamina_model::Document::open(bytes.to_vec(), OpenOptions::default()).unwrap()
 }
 
+/// A rectangle in page space, from its top-left corner and size in points.
+pub fn rect(x: f64, y: f64, w: f64, h: f64) -> lamina_model::RectPt {
+    use lamina_model::Pt;
+    lamina_model::RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
+}
+
+/// A point in page space, in points.
+pub fn at(x: f64, y: f64) -> lamina_model::PointPt {
+    lamina_model::PointPt::from_points(x, y)
+}
+
 /// A painted path: its points in default user space (the CTM applied) and how it was painted.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Painted {

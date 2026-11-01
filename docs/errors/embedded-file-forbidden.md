@@ -9,7 +9,7 @@
 
 ## Why
 
-PDF/A is the standard for archival PDF (ISO 19005). PDF/A-2 allows only attached files that are themselves PDF/A (ISO 19005-2 §6.8), and lamina can't check what an attachment is. PDF/A-3 (ISO 19005-3) allows files of any kind, provided they are associated with the document, which `Builder::attach` does.
+PDF/A is the standard for archival PDF (ISO 19005). PDF/A-2 allows only attached files that are themselves PDF/A (ISO 19005-2 §6.8), and lamina can't check what an attachment is, so it rejects every attachment under PDF/A-2 on purpose, PDF/A ones included. PDF/A-3 (ISO 19005-3) allows files of any kind, provided they are associated with the document, which `Builder::attach` does.
 
 ## How to fix
 

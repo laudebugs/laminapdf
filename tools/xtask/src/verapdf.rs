@@ -295,6 +295,29 @@ pub(crate) fn summary(verdicts: &[Verdict], skipped: &[String]) -> String {
     s
 }
 
+/// The profiles each lamina example that claims one must claim, by file name, as
+/// [`flavours`] spells them. An example that lost its identification would otherwise be
+/// skipped rather than fail.
+const EXPECTED: [(&str, &[&str]); 4] = [
+    ("pdf_a3_invoice_with_xml.pdf", &["3b"]),
+    ("pdf_a_archive-2b.pdf", &["2b"]),
+    ("pdf_a_archive-2u.pdf", &["2u", "ua1"]),
+    ("pdf_ua_report.pdf", &["ua1"]),
+];
+
+/// Each example of [`EXPECTED`] that is missing from `claims` (file name and flavours) or
+/// claims other profiles, described.
+fn unexpected_claims(claims: &[(String, Vec<String>)]) -> Vec<String> {
+    EXPECTED
+        .iter()
+        .filter_map(|(name, want)| match claims.iter().find(|(file, _)| file == name) {
+            None => Some(format!("{name} is missing")),
+            Some((_, got)) if got != want => Some(format!("{name} claims {got:?}, expected {want:?}")),
+            Some(_) => None,
+        })
+        .collect()
+}
+
 /// The PDFs in `dir`, sorted.
 fn pdfs_in(dir: &Path) -> Result<Vec<PathBuf>> {
     let mut files: Vec<PathBuf> = fs::read_dir(dir)
@@ -322,16 +345,24 @@ pub(crate) fn run(ws: &Workspace, dir: Option<&str>) -> Result<()> {
     // Files grouped by flavour, in a fixed order.
     let mut by_flavour: std::collections::BTreeMap<String, Vec<PathBuf>> = std::collections::BTreeMap::new();
     let mut skipped = Vec::new();
+    let mut claims = Vec::new();
     for file in &files {
         let claimed = flavours(&fs::read(file).with_context(|| format!("reading {}", file.display()))?);
         let name = file
             .file_name()
             .map_or_else(String::new, |f| f.to_string_lossy().into_owned());
         if claimed.is_empty() {
-            skipped.push(name);
+            skipped.push(name.clone());
         }
-        for flavour in claimed {
-            by_flavour.entry(flavour).or_default().push(file.clone());
+        for flavour in &claimed {
+            by_flavour.entry(flavour.clone()).or_default().push(file.clone());
+        }
+        claims.push((name, claimed));
+    }
+    if dir.is_none() {
+        let wrong = unexpected_claims(&claims);
+        if !wrong.is_empty() {
+            bail!("the examples' profiles changed: {}", wrong.join("; "));
         }
     }
     if by_flavour.is_empty() {
@@ -430,6 +461,35 @@ mod tests {
         let v = parse_report(REPORT, "ua1").unwrap();
         let s = summary(&v, &["hello.pdf".to_owned()]);
         assert!(s.contains("| `b.pdf` | ua1 | **fail** (7.1-10, 5-1) | 104 | 2 |") && s.contains("hello.pdf"));
+    }
+
+    fn claims(of: &[(&str, &[&str])]) -> Vec<(String, Vec<String>)> {
+        of.iter()
+            .map(|(n, f)| ((*n).to_owned(), f.iter().map(|s| (*s).to_owned()).collect()))
+            .collect()
+    }
+
+    #[test]
+    fn the_examples_claim_their_expected_profiles() {
+        assert_eq!(unexpected_claims(&claims(&EXPECTED)), Vec::<String>::new());
+    }
+
+    #[test]
+    fn an_example_that_lost_its_identification_is_reported() {
+        let mut lost = EXPECTED;
+        lost[3] = ("pdf_ua_report.pdf", &[]);
+        assert_eq!(
+            unexpected_claims(&claims(&lost)),
+            [r#"pdf_ua_report.pdf claims [], expected ["ua1"]"#]
+        );
+    }
+
+    #[test]
+    fn a_missing_example_is_reported() {
+        assert_eq!(
+            unexpected_claims(&claims(&EXPECTED[1..])),
+            ["pdf_a3_invoice_with_xml.pdf is missing"]
+        );
     }
 
     #[test]

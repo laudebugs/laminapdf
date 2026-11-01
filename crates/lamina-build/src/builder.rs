@@ -497,13 +497,10 @@ impl Builder {
     /// [`Error::InvalidGeometry`](crate::Error::InvalidGeometry) for a destination coordinate
     /// that isn't finite; [`Error::Text`](crate::Error::Text) when subsetting a font fails;
     /// [`Error::Cos`](crate::Error::Cos) when object numbers run out. Under a [`Profile`], the
-    /// first rule the document breaks, checked before anything is written: PDF/UA-1's
-    /// `missing-title`, `missing-lang`, `untagged-content`, `missing-alt-text`,
-    /// `heading-level-skipped`, `invalid-structure-nesting`, `link-without-structure`,
-    /// `link-without-contents`, `glyph-without-unicode`; PDF/A's
-    /// `device-color-without-output-intent`, `embedded-file-forbidden` (PDF/A-2),
-    /// `glyph-without-unicode` (PDF/A-2u); both's `font-not-embedded` (a standard 14 font) and
-    /// `profile-version-conflict` (PDF 2.0).
+    /// first rule the document breaks, checked before anything is written: one of the
+    /// profile variants of [`Error`](crate::Error), from
+    /// [`Error::ProfileVersionConflict`](crate::Error::ProfileVersionConflict) on (each code's
+    /// page in `docs/errors/` names its profile and rule).
     pub fn finish(self) -> Result<lamina_ops::Document> {
         self.finish_inner().map(|(doc, _)| doc)
     }

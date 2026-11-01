@@ -131,8 +131,8 @@ pub enum Error {
     /// PDF/UA-1 needs the document's natural language ([`Builder::lang`](crate::Builder::lang)).
     #[error("the document has no language, which PDF/UA-1 requires")]
     MissingLang,
-    /// A `Figure` without alternate text (`/Alt` or `/ActualText`) under PDF/UA-1.
-    #[error("a figure on page {page} has no alternate text, which PDF/UA-1 requires")]
+    /// A `Figure` or `Formula` without alternate text (`/Alt` or `/ActualText`) under PDF/UA-1.
+    #[error("a figure or formula on page {page} has no alternate text, which PDF/UA-1 requires")]
     MissingAltText {
         /// The page's index (0-based).
         page: u32,
@@ -157,6 +157,15 @@ pub enum Error {
         level: u32,
         /// The level of the heading before it (0: none before it).
         previous: u32,
+    },
+    /// An unnumbered `H` heading misused under PDF/UA-1: a second `H` in the same parent, or
+    /// `H` in a document that also uses numbered headings (`H1`, `H2`, …).
+    #[error(
+        "an H heading on page {page} shares its parent with another H, or the document also uses numbered headings"
+    )]
+    UnnumberedHeadingMisused {
+        /// The page's index (0-based).
+        page: u32,
     },
     /// A table or list element in a place ISO 32000-1 Tables 336 and 337 don't allow, under
     /// PDF/UA-1 (a `TD` outside a `TR`, a `P` directly in a `Table` or an `L`).
@@ -218,6 +227,15 @@ pub enum Error {
         /// The profile.
         profile: Profile,
     },
+    /// An attached file without a MIME type under PDF/A, which needs one for every embedded
+    /// file (`/Subtype`).
+    #[error("an attached file has no MIME type, which {} requires", .profile.as_str())]
+    EmbeddedFileWithoutMimeType {
+        /// The profile.
+        profile: Profile,
+        /// The file's name (**untrusted**: caller text).
+        name: String,
+    },
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
     #[cfg(feature = "text")]
     #[error(transparent)]
@@ -249,6 +267,7 @@ impl Error {
         "missing-alt-text",
         "untagged-content",
         "heading-level-skipped",
+        "unnumbered-heading-misused",
         "invalid-structure-nesting",
         "link-without-structure",
         "link-without-contents",
@@ -256,6 +275,7 @@ impl Error {
         "glyph-without-unicode",
         "device-color-without-output-intent",
         "embedded-file-forbidden",
+        "embedded-file-without-mime-type",
     ];
 
     /// A stable kebab-case code for this error.
@@ -280,6 +300,7 @@ impl Error {
             Self::MissingAltText { .. } => "missing-alt-text",
             Self::UntaggedContent { .. } => "untagged-content",
             Self::HeadingLevelSkipped { .. } => "heading-level-skipped",
+            Self::UnnumberedHeadingMisused { .. } => "unnumbered-heading-misused",
             Self::InvalidStructureNesting { .. } => "invalid-structure-nesting",
             Self::LinkWithoutStructure { .. } => "link-without-structure",
             Self::LinkWithoutContents { .. } => "link-without-contents",
@@ -287,6 +308,7 @@ impl Error {
             Self::GlyphWithoutUnicode { .. } => "glyph-without-unicode",
             Self::DeviceColorWithoutOutputIntent { .. } => "device-color-without-output-intent",
             Self::EmbeddedFileForbidden { .. } => "embedded-file-forbidden",
+            Self::EmbeddedFileWithoutMimeType { .. } => "embedded-file-without-mime-type",
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
@@ -321,24 +343,38 @@ impl Error {
             | Self::MissingAltText { .. }
             | Self::UntaggedContent { .. }
             | Self::HeadingLevelSkipped { .. }
+            | Self::UnnumberedHeadingMisused { .. }
             | Self::InvalidStructureNesting { .. }
             | Self::LinkWithoutStructure { .. }
             | Self::LinkWithoutContents { .. }
             | Self::FontNotEmbedded { .. }
             | Self::GlyphWithoutUnicode { .. }
             | Self::DeviceColorWithoutOutputIntent { .. }
-            | Self::EmbeddedFileForbidden { .. } => ErrorKind::Usage,
+            | Self::EmbeddedFileForbidden { .. }
+            | Self::EmbeddedFileWithoutMimeType { .. } => ErrorKind::Usage,
         }
     }
 
-    /// Where the error was found (ADR 0026 §1.1): a COS or text error's position; the builder's own
-    /// errors are about the caller's inputs, which have no position in a document.
+    /// Where the error was found (ADR 0026 §1.1): a COS or text error's position; the page of
+    /// a profile rule broken on one page; no position for the builder's other errors, which
+    /// are about the caller's inputs.
     #[must_use]
     pub fn location(&self) -> Location {
-        match self {
-            Self::Cos(e) => e.location(),
+        match *self {
+            Self::Cos(ref e) => e.location(),
             #[cfg(feature = "text")]
-            Self::Text(e) => e.location(),
+            Self::Text(ref e) => e.location(),
+            Self::MissingAltText { page }
+            | Self::UntaggedContent { page, .. }
+            | Self::HeadingLevelSkipped { page, .. }
+            | Self::UnnumberedHeadingMisused { page }
+            | Self::InvalidStructureNesting { page, .. }
+            | Self::LinkWithoutStructure { page, .. }
+            | Self::LinkWithoutContents { page }
+            | Self::DeviceColorWithoutOutputIntent { page } => Location {
+                page_index: Some(u64::from(page)),
+                ..Location::NONE
+            },
             Self::InvalidImage { .. }
             | Self::UnsupportedImage { .. }
             | Self::ImageTooLarge { .. }
@@ -354,16 +390,10 @@ impl Error {
             | Self::ProfileVersionConflict { .. }
             | Self::MissingTitle
             | Self::MissingLang
-            | Self::MissingAltText { .. }
-            | Self::UntaggedContent { .. }
-            | Self::HeadingLevelSkipped { .. }
-            | Self::InvalidStructureNesting { .. }
-            | Self::LinkWithoutStructure { .. }
-            | Self::LinkWithoutContents { .. }
             | Self::FontNotEmbedded { .. }
             | Self::GlyphWithoutUnicode { .. }
-            | Self::DeviceColorWithoutOutputIntent { .. }
-            | Self::EmbeddedFileForbidden { .. } => Location::NONE,
+            | Self::EmbeddedFileForbidden { .. }
+            | Self::EmbeddedFileWithoutMimeType { .. } => Location::NONE,
         }
     }
 }
@@ -412,6 +442,7 @@ mod tests {
                 level: 3,
                 previous: 1,
             },
+            Error::UnnumberedHeadingMisused { page: 0 },
             Error::InvalidStructureNesting {
                 page: 0,
                 kind: String::new(),
@@ -432,6 +463,10 @@ mod tests {
             Error::EmbeddedFileForbidden {
                 profile: Profile::PdfA2b,
             },
+            Error::EmbeddedFileWithoutMimeType {
+                profile: Profile::PdfA3b,
+                name: String::new(),
+            },
         ]
     }
 
@@ -443,6 +478,31 @@ mod tests {
     #[test]
     fn every_variant_has_the_kind_codes_json_lists() {
         codes::assert_kinds_match(errors().iter().map(|e| (e.code(), e.kind().as_str())));
+    }
+
+    #[test]
+    fn an_error_found_on_a_page_names_the_page_index() {
+        let e = Error::LinkWithoutContents { page: 2 };
+        assert_eq!(e.location().page_index, Some(2));
+    }
+
+    #[test]
+    fn every_error_with_a_page_has_its_page_index() {
+        let pages: Vec<Option<u64>> = errors()
+            .iter()
+            .filter(|e| e.to_string().contains("page 0"))
+            .map(|e| e.location().page_index)
+            .collect();
+        assert!(pages.len() == 8 && pages.iter().all(|p| *p == Some(0)), "{pages:?}");
+    }
+
+    #[test]
+    fn the_message_never_contains_the_attachment_name() {
+        let e = Error::EmbeddedFileWithoutMimeType {
+            profile: Profile::PdfA3b,
+            name: "IgnorePreviousInstructions".into(),
+        };
+        assert!(!e.to_string().contains("Ignore"));
     }
 
     #[test]

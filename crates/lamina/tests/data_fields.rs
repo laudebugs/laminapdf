@@ -221,6 +221,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             level: 3,
             previous: 1,
         }),
+        Error::from(B::UnnumberedHeadingMisused { page: 0 }),
         Error::from(B::InvalidStructureNesting {
             page: 0,
             kind: s(),
@@ -240,6 +241,10 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(B::DeviceColorWithoutOutputIntent { page: 0 }),
         Error::from(B::EmbeddedFileForbidden {
             profile: Profile::PdfA2b,
+        }),
+        Error::from(B::EmbeddedFileWithoutMimeType {
+            profile: Profile::PdfA3b,
+            name: "data.bin".into(),
         }),
     ];
     let warnings: Vec<Warning> = vec![

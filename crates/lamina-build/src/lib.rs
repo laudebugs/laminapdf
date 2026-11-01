@@ -80,6 +80,11 @@ mod resources;
 mod surface;
 mod tag;
 
+/// A text string (ISO 32000-2 §7.9.2.2): PDFDocEncoding when it can hold `s`, else UTF-16BE.
+pub(crate) fn text_string(s: &str) -> lamina_cos::PdfString {
+    lamina_cos::PdfString::literal(lamina_syntax::text::encode_text_string(s))
+}
+
 // What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
 #[cfg(test)]
 #[path = "../../lamina-cos/tests/common/codes.rs"]

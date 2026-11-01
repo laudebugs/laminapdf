@@ -311,10 +311,12 @@ impl Tag {
         self.scope
     }
 
-    /// Whether the element is a figure without an alternate description (`/Alt` or
-    /// `/ActualText`), which PDF/UA rejects.
+    /// Whether the element is a figure or a formula without an alternate description (`/Alt`
+    /// or `/ActualText`), which PDF/UA rejects (Matterhorn 13-004, 17-002). A custom name
+    /// `Formula` is the standard type whatever its role, so it needs one too.
     pub(crate) fn lacks_alt(&self) -> bool {
-        self.kind == TagKind::Figure && self.alt.is_none() && self.actual_text.is_none()
+        let described = self.kind == TagKind::Figure || self.name() == "Formula";
+        described && self.alt.is_none() && self.actual_text.is_none()
     }
 }
 
@@ -372,7 +374,7 @@ pub enum TagDiagnostic {
         /// How many times.
         count: usize,
     },
-    /// A `Figure` on page `page` without `/Alt` or `/ActualText`.
+    /// A `Figure` or `Formula` on page `page` without `/Alt` or `/ActualText`.
     MissingAlt {
         /// The page's index.
         page: u32,
@@ -392,6 +394,11 @@ mod tests {
     fn a_custom_name_that_is_a_standard_type_is_that_type() {
         let tag = Tag::custom("H2", TagKind::P);
         assert_eq!((tag.kind(), tag.custom_name()), (TagKind::H2, None));
+    }
+
+    #[test]
+    fn a_formula_needs_alternate_text_whatever_its_role() {
+        assert!(Tag::custom("Formula", TagKind::Span).lacks_alt());
     }
 
     #[test]

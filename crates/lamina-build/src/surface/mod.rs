@@ -921,7 +921,7 @@ impl Writer {
         }
         *current = Some(color.clone());
         if matches!(color, Color::Cmyk(..)) {
-            resources.uses_cmyk();
+            resources.note_device_cmyk();
         }
         let c = &mut self.content;
         match (color, fill) {

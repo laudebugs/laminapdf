@@ -8,9 +8,9 @@ use std::collections::BTreeMap;
 
 use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
 use lamina_model::PdfDate;
-use lamina_syntax::text::encode_text_string;
 
 use crate::error::Result;
+use crate::text_string;
 
 /// How an attached file relates to the document (`/AFRelationship`, ISO 32000-2 Table 43).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -125,10 +125,6 @@ impl Attachment {
     }
 }
 
-fn text(s: &str) -> PdfString {
-    PdfString::literal(encode_text_string(s))
-}
-
 /// Writes every attachment and returns the `/EmbeddedFiles` name tree (one leaf, sorted by
 /// name) and the file specifications for the catalog's `/AF`.
 pub(crate) fn write(
@@ -156,15 +152,15 @@ pub(crate) fn write(
         ef.insert("UF", data);
         let mut spec = Dict::new();
         spec.insert("Type", Name::from("Filespec"));
-        spec.insert("F", text(name));
-        spec.insert("UF", text(name));
+        spec.insert("F", text_string(name));
+        spec.insert("UF", text_string(name));
         spec.insert("EF", ef);
         if let Some(desc) = &file.description {
-            spec.insert("Desc", text(desc));
+            spec.insert("Desc", text_string(desc));
         }
         spec.insert("AFRelationship", Name::from(file.relationship.as_str()));
         let spec = cos.create(Object::Dict(spec))?;
-        names.push(Object::String(text(name)));
+        names.push(Object::String(text_string(name)));
         names.push(Object::Ref(spec));
         specs.push(spec);
     }

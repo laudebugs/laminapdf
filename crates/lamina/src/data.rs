@@ -191,8 +191,12 @@ fn build(e: &lamina_build::Error) -> Data {
         E::ProfileVersionConflict { profile } | E::EmbeddedFileForbidden { profile } => {
             data([("profile", json!(profile.as_str()))])
         }
-        E::MissingAltText { page } | E::LinkWithoutContents { page } | E::DeviceColorWithoutOutputIntent { page } => {
-            data([("page", json!(page))])
+        E::MissingAltText { page }
+        | E::UnnumberedHeadingMisused { page }
+        | E::LinkWithoutContents { page }
+        | E::DeviceColorWithoutOutputIntent { page } => data([("page", json!(page))]),
+        E::EmbeddedFileWithoutMimeType { profile, name } => {
+            data([("profile", json!(profile.as_str())), ("name", json!(name))])
         }
         E::UntaggedContent { page, content, count } => data([
             ("page", json!(page)),

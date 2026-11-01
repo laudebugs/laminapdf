@@ -149,6 +149,7 @@ A PR that adds a code adds:
 | [`missing-alt-text`](missing-alt-text.md) | `usage` | a Figure has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires |
 | [`untagged-content`](untagged-content.md) | `usage` | content was drawn outside every structure element and artifact, which PDF/UA-1 forbids |
 | [`heading-level-skipped`](heading-level-skipped.md) | `usage` | a heading skips a level (the first is not H1, or an H3 follows an H1), which PDF/UA-1 forbids |
+| [`unnumbered-heading-misused`](unnumbered-heading-misused.md) | `usage` | an unnumbered H heading shares its parent with another H, or the document also uses H1-H6, which PDF/UA-1 forbids |
 | [`invalid-structure-nesting`](invalid-structure-nesting.md) | `usage` | a table or list element sits in a parent its type doesn't allow (a TD outside a TR, a P directly in a Table) |
 | [`link-without-structure`](link-without-structure.md) | `usage` | a link annotation has no Link structure element (it was drawn inside an artifact), which PDF/UA-1 forbids |
 | [`link-without-contents`](link-without-contents.md) | `usage` | a link annotation has no description (/Contents), which PDF/UA-1 requires |
@@ -156,6 +157,7 @@ A PR that adds a code adds:
 | [`glyph-without-unicode`](glyph-without-unicode.md) | `usage` | a glyph was drawn without a Unicode value, which PDF/A-2u and PDF/UA-1 forbid |
 | [`device-color-without-output-intent`](device-color-without-output-intent.md) | `usage` | a DeviceCMYK colour or image was used, but the PDF/A output intent is sRGB |
 | [`embedded-file-forbidden`](embedded-file-forbidden.md) | `usage` | PDF/A-2 doesn't allow attached files that aren't PDF/A themselves |
+| [`embedded-file-without-mime-type`](embedded-file-without-mime-type.md) | `usage` | an attached file has no MIME type, which every PDF/A profile requires |
 
 ## Render errors (`lamina-render`)
 

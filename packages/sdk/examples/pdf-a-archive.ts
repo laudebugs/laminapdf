@@ -2,6 +2,16 @@
 import { Builder, Font, Image, PAGE_SIZES, type Profile, type Surface } from "@laminapdf/sdk";
 
 const MARGIN = 56;
+const BAND_HEIGHT = 70;
+const TITLE_BASELINE = 110;
+/** The top of the letter's text and of the photo beside it, and the height of both. */
+const BLOCK_TOP = 130;
+const BLOCK_HEIGHT = 120;
+const LETTER_WIDTH = 300;
+const PHOTO_LEFT = 380;
+const PHOTO_WIDTH = 160;
+const FOOTER_BASELINE = 300;
+const TITLE = 22;
 const BODY = 11;
 const BAND_OPACITY = 0.35;
 const PHOTO_ALT = "A photograph of the sprockets, packed in a box";
@@ -40,11 +50,13 @@ function draw(s: Surface, font: Font, photo: Image): void {
   const [width] = PAGE_SIZES.A4;
   s.artifact("layout", (s) => {
     s.save().opacity(BAND_OPACITY, 1).fillColor([0.12, 0.47, 0.78]);
-    s.path((p) => p.rect([0, 0, width, 70])).fill();
+    s.path((p) => p.rect([0, 0, width, BAND_HEIGHT])).fill();
     s.restore();
   });
-  s.tag("H1", (s) => s.text("Order confirmation 42", { font, size: 22, at: [MARGIN, 110] }));
-  s.tag("P", (s) => s.textBox(LETTER, { font, size: BODY, box: [MARGIN, 130, 300, 120] }));
-  s.image(photo, [380, 130, 160, 120], PHOTO_ALT);
-  s.tag("P", (s) => s.text("Acme Widgets Ltd, 1 Example Street, London", { font, size: BODY, at: [MARGIN, 300] }));
+  s.tag("H1", (s) => s.text("Order confirmation 42", { font, size: TITLE, at: [MARGIN, TITLE_BASELINE] }));
+  s.tag("P", (s) => s.textBox(LETTER, { font, size: BODY, box: [MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT] }));
+  s.image(photo, [PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT], PHOTO_ALT);
+  s.tag("P", (s) =>
+    s.text("Acme Widgets Ltd, 1 Example Street, London", { font, size: BODY, at: [MARGIN, FOOTER_BASELINE] }),
+  );
 }
