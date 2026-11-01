@@ -71,8 +71,7 @@ What could go wrong, what's unknown, what to decide during the work (and who dec
 
 ## Definition of done
 
-- [ ] Claimed: the work PR was opened with a first commit that moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated, board regenerated) before the work
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [ ] The change follows the guidelines that apply to it: [maintainability](../guidelines/maintainability.md) for code, [docs writing](../guidelines/docs-writing.md) and [examples](../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
