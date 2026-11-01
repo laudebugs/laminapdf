@@ -235,7 +235,7 @@ The product will self-host these fonts (no third-party requests: principle 7); t
 
 | Name | Family | Size / line height / weight | Usage |
 | --- | --- | --- | --- |
-| Site display **(proposed)** | Newsreader | 48 / 1.1 / 400 (section headings 30–34 / 400) | Docs-site pages: pricing, benchmark, download |
+| Site display **(proposed)** | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 650) | Docs-site pages: pricing, benchmark, download. The docs site uses Source Sans 3 for every piece of text ([quality plan §5](../../plans/quality.md#5-the-font), owner, 2026-10-31); the apps keep Newsreader for titles |
 | Display | Newsreader | 40 / 44 / 400 | Empty states, home screen heading |
 | Page heading **(proposed)** | Newsreader | 28 / 34 / 500 | `h1` of settings and list pages (Account, Cloud files, Telemetry) |
 | Title | Newsreader | 20 / 24–26 / 500 | Inspector title, sheet title, dialog title |
@@ -1097,7 +1097,7 @@ Drawn over the page (layer 1, §4) and `aria-hidden` unless stated. Every overla
 
 ### 7.39 Site and product pages (proposed)
 
-- **Docs-site header:** 64 px, max 1120 px: wordmark Newsreader 24/500, the one site nav for every docs-site page (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app”. The download page uses a 56 px variant with a Newsreader 22 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
+- **Docs-site header:** 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every docs-site page (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app”. The download page uses a 56 px variant with a Source Sans 3 22 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
 - **Large primary link:** 40 px primary button styling on an `<a>`, with the Download icon (“Download for macOS”).
 - **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (docs site): `surface`, padding 28, name 26, price 40 Newsreader.
 
