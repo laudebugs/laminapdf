@@ -16,12 +16,6 @@ pub(crate) fn job_id(line: &str) -> Option<&str> {
     key.strip_suffix(':').map(str::trim)
 }
 
-/// The job ids of a workflow, in order.
-fn job_ids(workflow: &str) -> Vec<&str> {
-    let jobs = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
-    jobs.lines().filter_map(job_id).collect()
-}
-
 /// Every job of `workflow` with its own lines (the `<id>:` line left out), in order.
 pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
     let body = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
@@ -36,14 +30,17 @@ pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
     jobs
 }
 
+/// The job ids of a workflow, in order.
+fn job_ids(workflow: &str) -> Vec<&str> {
+    jobs(workflow).into_iter().map(|(id, _)| id).collect()
+}
+
 /// The ids in `job`'s one-line `needs: [a, b]`, read only from that job's own lines.
 fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
-    let jobs = workflow.split("\njobs:\n").nth(1).unwrap_or_default();
-    jobs.lines()
-        .skip_while(|l| job_id(l) != Some(job))
-        .skip(1)
-        .take_while(|l| job_id(l).is_none())
-        .find_map(|l| l.trim().strip_prefix("needs: ["))
+    jobs(workflow)
+        .into_iter()
+        .find(|(id, _)| *id == job)
+        .and_then(|(_, lines)| lines.into_iter().find_map(|l| l.trim().strip_prefix("needs: [")))
         .and_then(|l| l.strip_suffix(']'))
         .map(|l| l.split(',').map(str::trim).collect())
         .unwrap_or_default()

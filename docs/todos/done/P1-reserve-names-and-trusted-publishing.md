@@ -16,7 +16,7 @@
 
 ## Goal
 
-Set up publishing so a `v<version>` tag publishes the library safely, with no long-lived crates.io token: reserve `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), record the publishing policy in ADR 0017, and add the release lane's publish jobs, without publishing a release yet (that is [P2](../ready/P2-first-registry-prerelease.md)). The owner decided on 2026-11-01 to publish while the repository stays private, which rules out npm provenance, GitHub artifact attestations and a required reviewer for now, and npm's trusted publishing doesn't accept the self-hosted runners.
+Set up publishing so a `v<version>` tag publishes the library safely, with no long-lived crates.io token. That means reserving `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), recording the publishing policy in ADR 0017 and adding the release lane's publish jobs. No release is published yet: that is [P2](../ready/P2-first-registry-prerelease.md). The owner decided on 2026-11-01 to publish while the repository stays private, which rules out npm provenance, GitHub artifact attestations and a required reviewer for now, and npm's trusted publishing doesn't accept the self-hosted runners.
 
 ## Context
 
@@ -82,7 +82,7 @@ Unit tests of the publish arguments, dist-tags, tarball names, release notes and
 
 ## Definition of done
 
-- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: the work PR (#181), opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (the claim rule since 2026-11-01)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [x] CI green

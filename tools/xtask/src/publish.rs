@@ -31,7 +31,8 @@ use crate::workspace::Workspace;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Registry {
     Crates,
-    /// Pack and stage (`NpmPack` then `NpmStage`).
+    /// Pack and stage (`NpmPack` then `NpmStage`), for a local run; the workflow runs the two
+    /// steps apart so the token never reaches the build.
     Npm,
     /// Build and pack the fixed group, needing no token.
     NpmPack,
@@ -99,6 +100,11 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
                 args.extend(["--exclude".to_owned(), name.to_owned()]);
             }
         }
+    }
+    let excluded = args.iter().filter(|a| *a == "--exclude").count();
+    if excluded == ws.publishable_crates().count() {
+        println!("every crate is on crates.io at {version} already: nothing to publish");
+        return Ok(());
     }
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     ws.cargo(&args)

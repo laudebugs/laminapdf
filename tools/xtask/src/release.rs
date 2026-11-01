@@ -397,6 +397,17 @@ mod tests {
                     .all(|l| l.contains(ON_TAG)),
                 "{job} tests ref_type without event_name: a dispatch on a tag would publish"
             );
+            let job_level: Vec<&str> = code
+                .iter()
+                .copied()
+                .take_while(|l| !l.starts_with("    steps:"))
+                .collect();
+            assert!(
+                !job_level
+                    .iter()
+                    .any(|l| l.contains("secrets.") || l.contains("CARGO_REGISTRY_TOKEN")),
+                "{job}: a secret set for the whole job reaches every step"
+            );
             for step in steps(lines) {
                 let step_text = step.join("\n");
                 let gated_by_if = step.iter().any(|l| l.trim() == format!("if: {ON_TAG}"));
@@ -416,6 +427,12 @@ mod tests {
                     assert!(
                         gated_by_if || dry_run_unless_tag,
                         "{job}: a step publishes without the tag-push gate:\n{step_text}"
+                    );
+                }
+                if step_text.contains("xtask publish npm-pack") {
+                    assert!(
+                        !step_text.contains("NPM_TOKEN"),
+                        "{job}: npm-pack must build and pack without the token"
                     );
                 }
                 if step_text.contains("secrets.NPM_TOKEN") {
