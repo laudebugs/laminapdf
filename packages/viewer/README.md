@@ -102,7 +102,7 @@ The viewer is the web client of [ADR 0009](../../docs/decisions/0009-web-client-
 │  AbortError on abort        │ result / event │   │   openDocument → SDK Document +       │
 │ @laminapdf/sdk/worker client   │  (transferred  │   │                  RenderDocument       │
 │  request() · onDiscard      │   ImageBitmap) │   │   render → backend → ImageBitmap      │
-└────────────────────────────┘                 │   └─ the SDK's own methods (open, …)    │
+└────────────────────────────┘                 │   └─ the SDK's own methods (open, …)      │
                                                └──────────────────────────────────────────┘
 ```
 

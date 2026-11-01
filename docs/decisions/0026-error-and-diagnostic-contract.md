@@ -2,7 +2,7 @@
 
 - Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
-- Amended 2026-11-01 (owner): the schema ID is `laminapdf.error/1`, the TypeScript class `LaminaPdfError` and the planned Swift and Kotlin error `LaminaPdfError` ([P0c](../todos/done/P0c-lamina-pdf-names.md), ADR 0015). Nothing was published under the old names.
+- Amended 2026-11-01 (owner): the schema ID is `laminapdf.error/1`, and the error type is `LaminaPdfError` in TypeScript and in the planned Swift and Kotlin bindings ([P0c](../todos/done/P0c-lamina-pdf-names.md), ADR 0015). Nothing was published under the old names.
 
 ## Context
 

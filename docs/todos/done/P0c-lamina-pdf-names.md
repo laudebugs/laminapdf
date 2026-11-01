@@ -29,7 +29,8 @@ Give the product one name, Lamina PDF, and make every public name follow it befo
 
 - The product name in what readers see: the docs site, the READMEs, `docs/errors`, the guidelines and `CLAUDE.md`: lamina → Lamina PDF.
 - `@laminapdf/wasm`'s modules: `lamina_base`, `lamina_text`, `lamina_extract`, `lamina_render_hayro` → `lamina_pdf_base`, `lamina_pdf_text`, `lamina_pdf_extract`, `lamina_pdf_render_hayro`.
-- Type names in every language: `LaminaError` → `LaminaPdfError`, `LaminaWarning` → `LaminaPdfWarning` and `isLaminaError` → `isLaminaPdfError` in TypeScript; `LaminaId` → `LaminaPdfId` in Rust (and xtask's `LaminaSkips`); the planned Swift and Kotlin names (`LaminaView` → `LaminaPdfView`, …). The owner added Rust on 2026-11-01, during review.
+- TypeScript names: `LaminaError` → `LaminaPdfError`, `LaminaWarning` → `LaminaPdfWarning`, `isLaminaError` → `isLaminaPdfError`.
+- Rust types and the planned Swift and Kotlin names, which the owner added during review: `LaminaId` → `LaminaPdfId`, `LaminaView` → `LaminaPdfView`, ….
 - Cloudflare resources: the docs Worker `lamina-docs` → `lamina-pdf-docs`, and the planned Workers and R2 buckets (`lamina-web`, `lamina-web-staging`, `lamina-releases`, `lamina-staging`, `lamina-nightly`, `lamina-symbols`) → `lamina-pdf-*`. Also added during review.
 - Schema IDs: `lamina.error/1` → `laminapdf.error/1`, and every other `lamina.<name>/<n>`.
 - Environment variables: `LAMINA_*` → `LAMINA_PDF_*`.
@@ -48,15 +49,16 @@ Give the product one name, Lamina PDF, and make every public name follow it befo
 - [x] Rename the public names listed above (a token-exact script), keeping PDF and fixture text
 - [x] Regenerate what is generated (codes, schemas, explain pages) and format
 - [x] Teach the ratchet's rename exemption the new names
+- [x] The owner's additions during review: Rust, Swift and Kotlin type names, and the Cloudflare names (with the Worker renamed in place at merge)
 - [x] A changeset for the npm packages (renamed exports and files)
 - [x] Record the decision in ADR 0015 and ADR 0026
 
 ## Acceptance criteria
 
-- [ ] `git grep` finds none of the old names outside the out-of-scope list
-- [ ] Every PDF golden and checksummed input is unchanged byte for byte
-- [ ] The docs site calls the product Lamina PDF, and its build passes
-- [ ] CI green
+- [x] `git grep` finds none of the old names outside the out-of-scope list
+- [x] Every PDF golden and checksummed input is unchanged byte for byte
+- [x] The docs site calls the product Lamina PDF, and its build passes
+- [x] CI green
 
 ## Post-merge checks
 
@@ -79,7 +81,7 @@ The existing suites, unchanged apart from the names; the error-contract tests ch
 ## Definition of done
 
 - [x] Claimed: the work PR, opened from a fresh worktree, added this file in `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
