@@ -32,7 +32,7 @@ This todo rewrites the "Read and edit" and "Production" guides to the [docs-writ
 
 **Out of scope** (and which todo covers it)
 
-- The create guides ([Q1i](./Q1i-guides-create.md)).
+- The create guides ([Q1i](../ongoing/Q1i-guides-create.md)).
 
 ## Tasks
 

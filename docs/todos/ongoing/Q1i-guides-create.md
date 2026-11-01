@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1h](../done/Q1h-docs-story.md) |
-| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
+| Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1i-guides-create` |
 | PR title | `docs(site): plain-English guides for creating PDFs` |
 | Size | M |
-| PR | — |
+| PR | (this PR) |
 
 ## Goal
 
@@ -32,11 +32,11 @@ This todo rewrites the "Create PDFs" guides to the [docs-writing guideline](../.
 
 **Out of scope** (and which todo covers it)
 
-- The read-and-edit guides ([Q1m](./Q1m-guides-read-and-edit.md)).
+- The read-and-edit guides ([Q1m](../ready/Q1m-guides-read-and-edit.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim it: this PR's first commit moved the todo to `ongoing/` (the claim rule changed on 2026-11-01).
 - [ ] Rewrite one page at a time with `/writing`; keep every fact, moving spec detail into Details.
 - [ ] Run `docs-prose` on each page and fix what it reports.
 - [ ] Run `/writing-review` on the changed pages after opening the PR; fix the findings.
