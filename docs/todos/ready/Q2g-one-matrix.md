@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
+| Depends on | [Q2a](../ongoing/Q2a-maintainability-checks-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2g-one-matrix` |
@@ -27,7 +27,7 @@
 **In scope**
 
 - One `Matrix` with composition methods whose names say the order (for example `then` and `pre_concat`); one `FillRule`, `Dash` and `Color`; re-exports where the façade shows them; the raw arrays replaced.
-- The duplicate-name allow-list from [Q2a](./Q2a-maintainability-checks-rust.md) loses these entries.
+- The duplicate-name allow-list from [Q2a](../ongoing/Q2a-maintainability-checks-rust.md) loses these entries.
 
 **Out of scope** (and which todo covers it)
 

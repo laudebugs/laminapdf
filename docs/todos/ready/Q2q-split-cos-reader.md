@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md), [Q2e](./Q2e-error-policy-consolidation.md) |
+| Depends on | [Q2a](../ongoing/Q2a-maintainability-checks-rust.md), [Q2e](./Q2e-error-policy-consolidation.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2q-split-cos-reader` |

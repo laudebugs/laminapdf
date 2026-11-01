@@ -256,7 +256,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [Q2a](../todos/ready/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
+| [Q2a](../todos/ongoing/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
 | [Q2b](../todos/done/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
 | [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures` for the core crates' test helpers | M | Q2a |
 | [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on lamina-save's helpers | M | Q2c |
