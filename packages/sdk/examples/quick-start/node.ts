@@ -1,4 +1,4 @@
-// Builds a one-page PDF that says "Hello, world!" and writes it to hello.pdf, in Node 24.
+// Builds a one-page PDF that says "Hello, world!" and writes it to hello.pdf, in Node.
 import { writeFile } from "node:fs/promises";
 import { Builder, type BuilderOptions, Font, init } from "@laminapdf/sdk";
 
@@ -26,5 +26,5 @@ export async function hello(
   await save(doc.save());
 }
 
-// `node hello.ts` runs it; imported, it only exports `hello`.
+// `node hello.ts` runs it (Node 24.2 or newer); imported, it only exports `hello`.
 if (import.meta.main) await hello();

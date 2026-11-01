@@ -17,7 +17,7 @@ Import `hello` from your page's script and call it when your user asks for the f
 
 lamina's tests bundle this app with Vite, run it in Chromium, Firefox and WebKit, and check that it builds the reference PDF byte for byte.
 
-- **Two modules, loaded on demand.** `init()` loads the base module (open, edit, save, vector pages). `loadText()` (or `init({ text: true })`, as the app does) adds fonts and text. A page that never draws text never downloads the text module.
+- **Modules on demand:** a page that never draws text never downloads the text module; see [three modules in JavaScript](/concepts/how-lamina-thinks/#three-modules-in-javascript).
 - **Vite:** exclude the package from dependency pre-bundling (`optimizeDeps.exclude: ["@laminapdf/sdk"]` in `vite.config.ts`), so the `.wasm` files stay next to the JavaScript that loads them.
 - **Content Security Policy:** compiling WebAssembly needs `script-src 'wasm-unsafe-eval'`. Nothing else is needed.
 

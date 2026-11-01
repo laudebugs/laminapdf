@@ -178,7 +178,7 @@ Concepts
   Pages and coordinates           points, top-left origin, y down, 0-based page index
   Errors and warnings
 Create PDFs
-  Text and fonts · Shapes, colour and images · Links, outlines and metadata
+  Text and fonts · Shapes, colour and images · Links, outlines and metadata · Accessible PDFs · Archival PDFs
 Read and edit PDFs
   Edit a PDF                (transactions, undo)
   Save a PDF                (modes, signatures)
@@ -245,7 +245,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1e](../todos/done/Q1e-quick-start-apps.md) | Runnable quick-start apps for every runtime | M | Q1c |
 | [Q1f](../todos/ready/Q1f-examples-readable.md) | Examples readers can copy | M | Q1c, Q1d |
 | [Q1g](../todos/ready/Q1g-worker-examples.md) | Worker examples that work outside this repository | S | Q1c |
-| [Q1h](../todos/ongoing/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |
+| [Q1h](../todos/done/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |
 | [Q1i](../todos/ready/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
 | [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
 | [Q1k](../todos/done/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
@@ -291,7 +291,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 ## 8. Open questions
 
 1. **Newsreader in the app.** Does the product app keep Newsreader for titles (design language §3), or follow the docs site to Source Sans 3 only? The plan assumes it keeps Newsreader.
-2. **The site's home page.** Does the overview become a Starlight splash page with two actions ("Your first PDF", "Recipes")? Recommended; Q1h decides it.
+2. **The site's home page.** Decided in Q1h: a Starlight splash page with two actions, "Your first PDF" and "See the examples" (Recipes, once Q1j writes them).
 
 ## 9. To-dos
 

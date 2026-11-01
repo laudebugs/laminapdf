@@ -1,0 +1,47 @@
+---
+title: How lamina thinks about a PDF
+description: Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+The rest of the docs build on six ideas. The first two follow from one choice: lamina treats a PDF as bytes, which you give it and it gives back.
+
+## Bytes in, bytes out
+
+lamina's core never touches the file system or the network, and it never reads the clock. Your app reads the file, hands lamina the bytes and stores whatever comes back. The only fetches are the ones you ask for, such as opening a remote file by range requests. That's why the same code runs in a browser, on a server and inside a Cloudflare Worker.
+
+## Same input, same bytes
+
+Because lamina reads no clock, you pass in dates and file IDs yourself. It then writes the same bytes for the same input, on every run and every platform, so you can test, cache and compare its output byte for byte.
+
+## The file you opened never changes
+
+When you open a document, lamina keeps its bytes exactly as they were. Every edit goes into an [overlay](/reference/glossary/#overlay) on top of them. Reading the document reads the overlay first, so you see your edits; undo and redo move through them.
+
+## Two ways to save
+
+A save writes the overlay out in one of two ways:
+
+- **[Incremental save](/reference/glossary/#incremental-save):** the original bytes, unchanged, followed by a new revision that holds your edits. Signatures over the original stay valid.
+- **[Full rewrite](/reference/glossary/#full-rewrite):** the whole file written again, smaller and tidier, but no longer the original bytes.
+
+The default, `auto`, saves incrementally when it can. A signed file saves only incrementally, and a save fails if your edits break its signatures, unless you pass `invalidateSignatures: true`. [Open, edit and save](/guides/open-edit-and-save/) has the details.
+
+This example builds a document, opens its bytes, changes the title and saves incrementally. The saved file starts with the original bytes:
+
+<Snippet file="packages/sdk/examples/generate-then-edit.ts" />
+
+## You free what you create
+
+In JavaScript, documents and builders live in WebAssembly memory. The garbage collector frees them eventually, but late, so free each one when you're done: `using doc = …` frees it at the end of the block, and `doc.free()` frees it at once. A short script can skip this, but a long-running server shouldn't.
+
+## Three modules in JavaScript
+
+In JavaScript, lamina is WebAssembly, split into three modules so a page downloads only what it uses:
+
+- **Base:** open, read, edit and save; vector and image pages.
+- **Extract:** everything in base, plus text extraction.
+- **Text:** everything in base, plus fonts, shaped text and extraction.
+
+`init()` loads the base module, and `init({ text: true })` or `init({ extract: true })` loads one of the others. Call `loadText()` or `loadExtract()` to add a module later, when a page first needs it. Rust has one crate, with features instead.

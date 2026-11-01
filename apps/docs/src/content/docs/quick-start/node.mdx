@@ -13,7 +13,7 @@ This app builds one A4 page that says "Hello, world!" and writes it to `hello.pd
 
 <Snippet file="packages/sdk/examples/quick-start/node.ts" />
 
-Save it as `hello.ts` in a project with `@laminapdf/sdk` [installed](/install/), and run it with Node 24, which runs TypeScript files as they are:
+Save it as `hello.ts` in a project with `@laminapdf/sdk` [installed](/install/), and run it with Node 24.2 or newer, which runs TypeScript files as they are:
 
 ```sh
 node hello.ts
@@ -21,6 +21,6 @@ node hello.ts
 
 Node 22 can't parse the `using` that frees the builder and the document, so compile the app with `tsc` first there. lamina's tests run this app in Node 22 (compiled), 24 and 26 and check that it builds the reference PDF byte for byte.
 
-A long-running server should free documents the same way (or call `doc.free()`), so it doesn't wait for the garbage collector to release WebAssembly memory.
+A long-running server should free documents the same way; [how lamina thinks about a PDF](/concepts/how-lamina-thinks/#you-free-what-you-create) explains why.
 
 Next: draw text with [fonts](/guides/fonts-and-text/), or [open and edit](/guides/open-edit-and-save/) a file.
