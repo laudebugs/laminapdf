@@ -1,8 +1,6 @@
 ---
 title: Archival PDFs
 description: Build PDF/A-2b, PDF/A-2u and PDF/A-3b documents that look the same in years to come, and attach files such as an e-invoice's XML.
-sidebar:
-  order: 10
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
@@ -12,11 +10,11 @@ This guide builds PDF/A documents, which you need when a file must stay readable
 
 ## What PDF/A asks for
 
-PDF/A (ISO 19005) is the archival subset of PDF. A PDF/A file carries everything it needs to be displayed: its fonts are embedded, its colours are defined, and nothing depends on the viewer, the network or a password. lamina writes three PDF/A profiles:
+PDF/A is the archival subset of PDF. A PDF/A file carries everything it needs to be displayed: its fonts are embedded, its colours are defined, and nothing depends on the viewer, the network or a password. lamina writes three PDF/A profiles:
 
-- **PDF/A-2b** ("basic", ISO 19005-2): the document looks the same everywhere.
+- **PDF/A-2b** ("basic"): the document looks the same everywhere.
 - **PDF/A-2u** ("Unicode"): PDF/A-2b, and every glyph maps to Unicode, so the text can be searched and copied.
-- **PDF/A-3b** (ISO 19005-3): PDF/A-2b that may carry attached files of any kind.
+- **PDF/A-3b:** PDF/A-2b that may carry attached files of any kind.
 
 Choose one with the `profiles` option (`BuildOptions::with_profile` in Rust). The builder then writes two things the standard asks for. It writes the PDF/A identification in the document's XMP metadata, the XML packet in the file that describes it. That packet always agrees with the Info dictionary, the older list of the same facts (title, author, dates) that PDF readers also show.
 
@@ -71,4 +69,8 @@ PDF/A-3 lets a document carry other files, provided each one is associated with 
 
 Every example on this site that claims a PDF/A profile is validated each night with veraPDF, the open-source PDF/A and PDF/UA validator the PDF Association backs.
 
-Next: make the same documents accessible too, in [Accessible PDFs](/guides/accessible-pdfs/).
+:::note[Details]
+PDF/A is ISO 19005: PDF/A-2 is part 2 and PDF/A-3 part 3. PDF/A-2, PDF/A-3 and PDF/UA-1 all build on PDF 1.7, which is why a PDF 2.0 document can't claim any of them.
+:::
+
+Next: open a PDF, edit it and save it again, in [Open, edit and save](/guides/open-edit-and-save/).

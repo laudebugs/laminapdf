@@ -1,19 +1,30 @@
 ---
 title: Links, outlines and metadata
-description: URI, page and named links, destinations, the outline, page labels, viewer preferences and metadata.
-sidebar:
-  order: 3
+description: Add links, named destinations, an outline, page labels, viewer preferences and metadata to a document.
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-- **Links:** `surface.link(rect, target, contents)`, where the target is `{ type: "uri" }`, `{ type: "page", index }` or `{ type: "named", name }`. A text run takes a `link` option too. Targets are checked when the builder finishes: `page-index-out-of-range` and `unknown-destination`.
-- **Named destinations:** `builder.destination(name, index)`.
-- **Outline:** `builder.outline([...])`, with nested entries, colour, bold, italic and `open`.
-- **Page labels:** `builder.pageLabels([{ start, style }])`. Here, roman numerals for the front matter, then decimal from page 3.
-- **Viewer preferences:** for example `pageMode: "outlines"`, which opens the file with the outline showing.
-- **Metadata:** `builder.metadata({ title, author, … })` writes the Info dictionary and an XMP packet from the same values ([Open, edit and save](/guides/open-edit-and-save/) uses it).
+You'll make a document readers can find their way around: links between pages and to the web, an outline (the bookmarks panel), page numbers that read i, ii, 1, 2, and a title. You need this for any document longer than a page or two.
+
+## Link to a page or the web
+
+`surface.link(rect, target, contents)` makes a clickable area. The target is a web address (`{ type: "uri" }`), a page (`{ type: "page", index }`) or a named destination (`{ type: "named", name }`). A text run takes a `link` option too. The builder checks every target when it finishes: a missing page fails with `page-index-out-of-range`, and a missing name with `unknown-destination`.
+
+`builder.destination(name, index)` names a page, so links can point to it by name.
+
+## Add an outline and page labels
+
+- **Outline:** `builder.outline([...])` builds the bookmarks a viewer shows beside the pages, with nested entries, colour, bold, italic and `open` (an entry shown expanded).
+- **Page labels:** `builder.pageLabels([{ start, style }])` sets the page numbers a viewer shows. The example below uses roman numerals for the front matter, then decimal from page 3.
+- **Viewer preferences:** for example, `pageMode: "outlines"` opens the file with the outline showing.
+
+## Set the metadata
+
+`builder.metadata({ title, author, … })` sets the document's title, author and the rest (see Details).
+
+This example builds four pages that link to each other and to the web, with an outline, page labels and the outline shown on open. It draws its labels as text, so it needs the text module. It sets no metadata ([Open, edit and save](/guides/open-edit-and-save/) does). The example:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
@@ -25,3 +36,9 @@ import Snippet from "../../../components/Snippet.astro";
 </Tabs>
 
 [See the output](/examples/#links-and-outlines).
+
+:::note[Details]
+The metadata goes into two places: an XMP packet, the XML that describes the file, and the Info dictionary, the older list of the same facts. lamina writes both from the same values, so they always agree.
+:::
+
+Next: [accessible PDFs](/guides/accessible-pdfs/).

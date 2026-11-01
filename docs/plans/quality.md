@@ -246,7 +246,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1f](../todos/ready/Q1f-examples-readable.md) | Examples readers can copy | M | Q1c, Q1d |
 | [Q1g](../todos/ready/Q1g-worker-examples.md) | Worker examples that work outside this repository | S | Q1c |
 | [Q1h](../todos/done/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |
-| [Q1i](../todos/ready/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
+| [Q1i](../todos/done/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
 | [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
 | [Q1k](../todos/done/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
 | [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
@@ -300,7 +300,8 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1a: one sans-serif font on the docs site
 - [x] Q1b, Q1c: the docs-prose and examples checks
 - [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples
-- [ ] Q1h, Q1i, Q1m, Q1j: the story, plain-English guides, recipes and troubleshooting
+- [x] Q1h, Q1i: the story and the create-PDF guides
+- [ ] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)

@@ -36,6 +36,8 @@ mod verapdf;
 mod verify_install;
 mod version;
 mod wasm;
+#[cfg(test)]
+mod workflows;
 mod workspace;
 
 use std::env;

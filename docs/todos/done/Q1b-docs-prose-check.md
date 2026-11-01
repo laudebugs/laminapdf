@@ -44,7 +44,7 @@ The [docs-writing guideline](../../guidelines/docs-writing.md) (written with the
 
 **Out of scope** (and which todo covers it)
 
-- Fixing the text it reports ([Q1i](../ready/Q1i-guides-create.md), [Q1k](../done/Q1k-internal-ids-out-of-reader-text.md) and the other rewrites).
+- Fixing the text it reports ([Q1i](../done/Q1i-guides-create.md), [Q1k](../done/Q1k-internal-ids-out-of-reader-text.md) and the other rewrites).
 - Checks on example code ([Q1c](../done/Q1c-examples-checks.md)).
 
 ## Tasks
