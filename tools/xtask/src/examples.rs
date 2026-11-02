@@ -1,7 +1,8 @@
 //! `cargo xtask examples`: writes every example of the `laminapdf` façade crate into
 //! `target/examples-out/` (through its test, which passes the fixed options), compares each
-//! output byte for byte with its golden in `fixtures/golden/examples/` and runs `qpdf --check` on it (the full lane). `cargo xtask
-//! golden --update` writes the goldens with the same runner ([`run_all`]).
+//! output byte for byte with its golden in `fixtures/golden/examples/` and runs `qpdf --check`
+//! on it (the full lane). `cargo xtask golden --update` writes the goldens with the same runner
+//! ([`run_all`]).
 
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -115,7 +115,7 @@ export const REPORT_INPUTS = [NOTO, "fixtures/fonts/NotoSansSC-Regular.otf"] as 
  * hash with `pnpm --dir packages/sdk exec vitest run -c vitest.node.config.ts --project measure`
  * (the failure shows it) and update it here.
  */
-export const REPORT_SHA256 = "fcf0579526a631fe375d3966c805d5b8e6b262e178f506a0958b8bc00f611601";
+export const REPORT_SHA256 = "09325fa371a5223ee82fe868bf66ecd6e3beb3d3e71ffddb4bd4406909b06516";
 
 /** The 100-page report. Needs `init({ text: true })`. */
 function buildReport(inputs: Inputs): Uint8Array {

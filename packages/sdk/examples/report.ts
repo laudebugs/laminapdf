@@ -1,13 +1,14 @@
 // A 100-page report with two embedded fonts. Each page has a heading, a paragraph broken into a
 // box, a line of Chinese, a table of products with rules between the rows, and a page number.
-import { Builder, type BuilderOptions, Font, type Rect, type Surface } from "@laminapdf/sdk";
+import { Builder, type BuilderOptions, Font, PAGE_SIZES, type Rect, type Surface } from "@laminapdf/sdk";
 
 /** The number of pages. */
 export const REPORT_PAGES = 100;
 const PRODUCTS = 20;
 const PRICE = 12.5;
+const [PAGE_WIDTH] = PAGE_SIZES.A4;
 const MARGIN = 56;
-const RIGHT_EDGE = 539;
+const RIGHT_EDGE = PAGE_WIDTH - MARGIN;
 const HEADING_AT = [MARGIN, 72] as const;
 const PARAGRAPH_BOX = [MARGIN, 88, RIGHT_EDGE - MARGIN, 60] as const;
 const CHINESE_AT = [MARGIN, 166] as const;

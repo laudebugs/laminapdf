@@ -75,6 +75,8 @@ const fn suite_hash(suite: &str) -> &str {
 }
 
 const PAGES: u32 = 100;
+/// The A4 page width less the 56-point margin: the right edge of the text and the rules.
+const RIGHT_EDGE: f64 = PageSize::A4.width.get() - 56.0;
 
 const PARAGRAPH: &str = "Quarterly figures for every region follow. Each table lists the units shipped, the revenue \
                          and the change against the previous quarter; totals are at the end of the report.";
@@ -115,7 +117,7 @@ fn report() -> Vec<u8> {
             PARAGRAPH,
             &font,
             Pt::new(11.0),
-            rect(56.0, 88.0, 483.0, 60.0),
+            rect(56.0, 88.0, RIGHT_EDGE - 56.0, 60.0),
             &TextBoxOptions::default(),
         )
         .unwrap();
@@ -144,13 +146,13 @@ fn report() -> Vec<u8> {
                 &format!("€ {euros:.2}"),
                 &font,
                 Pt::new(10.0),
-                rect(400.0, y - 11.0, 139.0, 14.0),
+                rect(400.0, y - 11.0, RIGHT_EDGE - 400.0, 14.0),
                 &end,
             )
             .unwrap();
             s.stroke_color(Color::gray(0.8))
                 .path(|p| {
-                    p.move_to(at(56.0, y + 7.0)).line_to(at(539.0, y + 7.0));
+                    p.move_to(at(56.0, y + 7.0)).line_to(at(RIGHT_EDGE, y + 7.0));
                 })
                 .stroke(&hairline);
         }

@@ -10,7 +10,8 @@ const ITEMS: readonly (readonly [item: string, qty: number, price: number])[] = 
   ["Delivery", 1, 4.5],
 ];
 const ADDRESS = "Acme Widgets Ltd · 1 Example Street · London";
-const [PAGE_WIDTH] = PAGE_SIZES.A4;
+const PAGE = "A4";
+const [PAGE_WIDTH] = PAGE_SIZES[PAGE];
 const MARGIN = 56;
 const RIGHT_EDGE = PAGE_WIDTH - MARGIN;
 const TITLE_AT = [MARGIN, 80] as const;
@@ -40,7 +41,7 @@ export function invoice(fontBytes: Uint8Array, options: BuilderOptions = {}): Ui
   // Registered up front, in this order, so the embedded font is the document's first.
   b.font(font);
   b.font(bold);
-  const page = b.page("A4");
+  const page = b.page(PAGE);
   const s = page.surface();
   s.text("Invoice 42", { font: bold, size: TITLE, at: TITLE_AT, tag: "H1" });
   s.text(ADDRESS, { font, size: BODY, at: ADDRESS_AT, tag: "P" });
@@ -59,12 +60,15 @@ function items(s: Surface, font: Font): void {
   s.tag("Table", (s) => {
     ITEMS.forEach(([item, qty, price], row) => {
       const y = rowBaseline(row);
-      const cells = [String(qty), `€ ${(qty * price).toFixed(2)}`];
+      const cells = [
+        [String(qty), COLUMNS[0]],
+        [`€ ${(qty * price).toFixed(2)}`, COLUMNS[1]],
+      ] as const;
       s.tag("TR", (s) => {
         s.text(item, { font, size: BODY, at: [MARGIN, y], tag: "TD" });
-        COLUMNS.forEach((column, i) => {
-          s.textBox(cells[i] ?? "", { font, size: BODY, box: cell(column, y), align: "end", tag: "TD" });
-        });
+        for (const [text, column] of cells) {
+          s.textBox(text, { font, size: BODY, box: cell(column, y), align: "end", tag: "TD" });
+        }
       });
     });
   });
