@@ -35,9 +35,9 @@ Eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `r
 ## Tasks
 
 - [x] Claim by opening the work PR (#191) from a fresh worktree off `main`.
-- [x] Remove the overrides and list what still fails. Six functions did: PDFium's `render` (39), the worker's `execute` (25), the HTTP test server's `send` in `test/source.test.ts` (23), `planTile` (21), `httpRangeSource`'s `fetchRange` (21) and `httpRangeSource` itself (16, and 103 lines). `PdfiumDocument.open`, hayro's `fill`, `WorkerClient.call` and the worker's `openUrl` option splitting were already under the limits when this PR started (Q2n split the first two).
+- [x] Remove the overrides and list what still fails. Six functions still failed: PDFium's `render` (39), the worker's `execute` (25), the HTTP test server's `send` in `test/source.test.ts` (23), `planTile` (21), `httpRangeSource`'s `fetchRange` (21) and `httpRangeSource` itself (16, and 103 lines). `PdfiumDocument.open`, hayro's `fill`, `WorkerClient.call` and the worker's `openUrl` option splitting were already under the limits when this PR started (Q2n split the first two).
 - [x] Split one function per commit, running its package's suite after each (Node; the worker's browser tests in Chromium).
-- [x] Remove each package's override once its functions are split (the SDK's three files in one commit, after the last of them); no package's `biome.json` turns the rules off for its source files, and `@laminapdf/test-utils`'s length exemption is explained in [typescript.md](../../guidelines/typescript.md#lint-format-test).
+- [x] Remove each package's override once its functions are split (the SDK's three files in one commit, after the last of them). Outside test code no override is left; `@laminapdf/test-utils`'s length exemption is explained in [typescript.md](../../guidelines/typescript.md#lint-format-test).
 
 ## Acceptance criteria
 
@@ -64,6 +64,6 @@ None.
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
