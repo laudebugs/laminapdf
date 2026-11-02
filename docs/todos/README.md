@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 211 ready · 79 done** (290 total).
+**1 ongoing · 210 ready · 79 done** (290 total).
 
 ## Can start now
 
@@ -30,7 +30,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q2c](ready/Q2c-test-fixtures-crate.md): `laminapdf-test-fixtures` for the core crates' test helpers
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
-- [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
 - [Q2i](ready/Q2i-one-lexer-one-png-filter.md): One PDF lexer and one PNG row filter
 - [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated
 - [Q2p](ready/Q2p-ts-complexity-splits.md): Split the TypeScript functions over the complexity limit
@@ -44,7 +43,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [Q2h](ongoing/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
 
 ## Architecture — Round A
 
@@ -358,7 +357,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](done/Q2e-error-policy-consolidation.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](done/Q2f-page-attributes-one-owner.md) | done | — |
 | Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
-| Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](ready/Q2h-text-writers-dedup.md) | ready | — |
+| Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](ongoing/Q2h-text-writers-dedup.md) | ongoing | — |
 | Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2j | [One error object at every Rust boundary](done/Q2j-boundary-errors-rust.md) | done | — |
 | Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](done/Q2k-boundary-errors-ts.md) | done | [Q2j](done/Q2j-boundary-errors-rust.md) |
@@ -368,7 +367,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](done/Q2o-ts-hygiene.md) | done | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |
-| Q2r | [Split the large xtask, builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](ready/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
+| Q2r | [Split the large xtask, builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](ongoing/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |

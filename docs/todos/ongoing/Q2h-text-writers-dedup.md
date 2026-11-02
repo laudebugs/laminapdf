@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2r](./Q2r-split-surface-modules.md) |
+| Blocks | [Q2r](../ready/Q2r-split-surface-modules.md) |
 | ADRs | None |
 | Branch | `fix/q2h-text-writers-dedup` |
 | PR title | `fix(text): one ToUnicode writer and one FontDescriptor builder` |
@@ -30,11 +30,11 @@ laminapdf-text has two ToUnicode CMap writers that have drifted: the simple-font
 
 **Out of scope** (and which todo covers it)
 
-- The lexer and PNG filter ([Q2i](./Q2i-one-lexer-one-png-filter.md)).
+- The lexer and PNG filter ([Q2i](../ready/Q2i-one-lexer-one-png-filter.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claimed by opening the work PR from a fresh worktree off `main`.
 - [ ] Write a test for a 257-unit text ending in an astral character and watch the simple-font writer split it.
 - [ ] Merge the writers behind `Codespace`; migrate both callers.
 - [ ] Merge the descriptor builders; document `CapHeight`.
