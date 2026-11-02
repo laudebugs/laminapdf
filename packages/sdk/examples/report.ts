@@ -20,7 +20,7 @@ const PARAGRAPH =
  * @param notoSans - `fixtures/fonts/NotoSans-Regular.ttf`.
  * @param notoSansSC - `fixtures/fonts/NotoSansSC-Regular.otf`.
  */
-export function report(notoSans: Uint8Array, notoSansSC: Uint8Array): Uint8Array {
+export function report(notoSans: Uint8Array, notoSansSC: Uint8Array): Uint8Array<ArrayBuffer> {
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-report"),
     producer: "lamina examples",

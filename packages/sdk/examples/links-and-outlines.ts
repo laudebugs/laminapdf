@@ -6,7 +6,7 @@ import { Builder, Font, type Rect } from "@laminapdf/sdk";
 const TITLES = ["Title page", "Contents", "Chapter 1", "Chapter 2"] as const;
 
 /** The document's bytes. Needs `init({ text: true })`. */
-export function linksAndOutlines(): Uint8Array {
+export function linksAndOutlines(): Uint8Array<ArrayBuffer> {
   const row = (y: number): Rect => [36, y - 15, 220, 20];
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-links!"),

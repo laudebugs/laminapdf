@@ -22,7 +22,7 @@ export const SCRIPTS: readonly (readonly [line: string, paragraph: string, direc
  * @param fonts - Noto Sans, Noto Sans Arabic, Devanagari, Hebrew and SC (`fixtures/fonts/`), in
  *   the order of {@link SCRIPTS}.
  */
-export function multilingual(fonts: readonly Uint8Array[]): Uint8Array {
+export function multilingual(fonts: readonly Uint8Array[]): Uint8Array<ArrayBuffer> {
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-multil"),
     producer: "lamina examples",

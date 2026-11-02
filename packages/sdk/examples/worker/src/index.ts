@@ -14,7 +14,7 @@ const MAX_NAME = 100;
  * A one-page letter to `name`, in a standard 14 font (nothing embedded, so only the characters
  * of its Latin character set: anything else throws `missing-glyph`).
  */
-function letter(name: string): Uint8Array {
+function letter(name: string): Uint8Array<ArrayBuffer> {
   const b = new Builder({ producer: "lamina Worker example" });
   try {
     const page = b.page("A4");
@@ -29,7 +29,7 @@ function letter(name: string): Uint8Array {
 }
 
 /** Finishes `b`, saves the document and frees it (the bytes are a copy in JS memory). */
-function saveAndFree(b: Builder): Uint8Array {
+function saveAndFree(b: Builder): Uint8Array<ArrayBuffer> {
   const doc = b.finish();
   try {
     return doc.save();
@@ -38,8 +38,8 @@ function saveAndFree(b: Builder): Uint8Array {
   }
 }
 
-const pdf = (bytes: Uint8Array): Response =>
-  new Response(bytes as Uint8Array<ArrayBuffer>, { headers: { "content-type": "application/pdf" } });
+const pdf = (bytes: Uint8Array<ArrayBuffer>): Response =>
+  new Response(bytes, { headers: { "content-type": "application/pdf" } });
 
 /** Whether `e` is an error the name caused (see the `/` route). */
 function isNameError(e: unknown): e is LaminaPdfError {

@@ -15,7 +15,7 @@ const ITEMS: readonly (readonly [item: string, qty: number, price: number])[] = 
  *
  * @param notoSans - `fixtures/fonts/NotoSans-Regular.ttf` (the caller reads files; the package doesn't).
  */
-export function invoice(notoSans: Uint8Array): Uint8Array {
+export function invoice(notoSans: Uint8Array): Uint8Array<ArrayBuffer> {
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-invoic"),
     producer: "lamina examples",

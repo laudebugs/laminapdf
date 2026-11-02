@@ -4,7 +4,7 @@
 import { Builder, Document, Font } from "@laminapdf/sdk";
 
 /** The document's bytes: the generated file followed by the edit's revision. Needs `init({ text: true })`. */
-export function generateThenEdit(): Uint8Array {
+export function generateThenEdit(): Uint8Array<ArrayBuffer> {
   // 1. Generate and save (a new document is always a full rewrite).
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-edit!!"),

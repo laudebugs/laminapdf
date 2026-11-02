@@ -208,7 +208,7 @@ impl WasmDocument {
     ///
     /// # Errors
     /// The save's errors (`would-invalidate-signatures`, `requires-rewrite`, …).
-    #[wasm_bindgen(unchecked_return_type = "{ bytes: Uint8Array; report: SaveReportJs }")]
+    #[wasm_bindgen(unchecked_return_type = "{ bytes: Uint8Array<ArrayBuffer>; report: SaveReportJs }")]
     pub fn save(
         &mut self,
         #[wasm_bindgen(unchecked_param_type = "SaveOptionsInit | undefined")] options: &JsValue,
@@ -323,7 +323,7 @@ impl WasmSaveJob {
     /// # Errors
     /// `cancelled`, `document-changed`, `job-finished`, or the save's own errors.
     #[wasm_bindgen(
-        unchecked_return_type = "({ state: \"progress\" } & ProgressJs) | { state: \"done\"; bytes: Uint8Array; report: SaveReportJs }"
+        unchecked_return_type = "({ state: \"progress\" } & ProgressJs) | { state: \"done\"; bytes: Uint8Array<ArrayBuffer>; report: SaveReportJs }"
     )]
     pub fn step(&mut self, budget: u32) -> JsResult<JsValue> {
         let step = self

@@ -44,7 +44,7 @@ function invoiceXml(): string {
  *
  * @param notoSans - the bytes of the Noto Sans font file.
  */
-export function pdfA3InvoiceWithXml(notoSans: Uint8Array): Uint8Array {
+export function pdfA3InvoiceWithXml(notoSans: Uint8Array): Uint8Array<ArrayBuffer> {
   using b = new Builder({ profiles: ["PDF/A-3b"] });
   b.metadata({ title: "Invoice 42", author: "Acme Widgets Ltd" });
   const font = Font.fromBytes(notoSans);

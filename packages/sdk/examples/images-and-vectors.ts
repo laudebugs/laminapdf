@@ -20,7 +20,7 @@ function gradient(): Uint8Array {
  *
  * @param photo - `fixtures/images/photo-rgb.jpg`.
  */
-export function imagesAndVectors(photo: Uint8Array): Uint8Array {
+export function imagesAndVectors(photo: Uint8Array): Uint8Array<ArrayBuffer> {
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-vector"),
     producer: "lamina examples",

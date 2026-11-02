@@ -3,7 +3,7 @@
 import { Builder, Font } from "@laminapdf/sdk";
 
 /** The document's bytes: the same on every run and every platform. Needs `init({ text: true })`. */
-export function hello(): Uint8Array {
+export function hello(): Uint8Array<ArrayBuffer> {
   // Everything that would come from the environment (file ID, dates) is given.
   const b = new Builder({
     id: new TextEncoder().encode("lamina-ex-hello!"),
