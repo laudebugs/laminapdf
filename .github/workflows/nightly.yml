@@ -157,10 +157,16 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      # pdftotext is the runner's Homebrew poppler. A runner without one gets it here (never an
+      # upgrade): with pdf.js alone, every page where only pdftotext agrees with lamina fails, as
+      # 37 did on 2026-11-02 (issue #169). The pin itself is checked by xtask below.
+      - name: Install poppler if the runner has none
+        if: ${{ !cancelled() }}
+        run: command -v pdftotext >/dev/null || brew install poppler
       # Page text (todo B9f) runs even when the structural differential failed, so one night
-      # reports both. pdftotext is the runner's own Homebrew poppler (nothing is downloaded): at
-      # the version doctor.rs pins it takes part, otherwise xtask warns and compares with pdf.js
-      # only, so a brew upgrade doesn't fail the night. Agreement per source goes to the summary.
+      # reports both. At the poppler version doctor.rs pins, pdftotext takes part; at another,
+      # xtask warns and compares with pdf.js only, so a brew upgrade doesn't fail the night.
+      # Agreement per source goes to the summary.
       - name: Text differential
         if: ${{ !cancelled() }}
         run: cargo xtask differential --live --text ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
@@ -273,7 +279,10 @@ jobs:
 
   bench:
     name: Benchmarks
-    # History compares within one runner label (`--runner`), recorded in every record.
+    # History compares within one runner label (`--runner`), recorded in every record. The label
+    # is the machine: the runner's name without its number (lamina-self-hosted-runner-3 →
+    # macos-arm64/lamina-self-hosted-runner), since a baseline mixing two Macs flags noise as
+    # regressions (issue #170). Runners on one Mac still share it, and so does their load.
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 60
     # Pushes the history to the bench-data branch (main only).
@@ -304,7 +313,7 @@ jobs:
       # Compares with the median of the last 5 records on this runner; regression=true when a
       # benchmark is over 10% slower. Never fails the job for a regression.
       - id: bench
-        run: cargo xtask bench --history "$HISTORY" --runner self-hosted-macos-arm64 ${{ env.RECORD == 'true' && '--record' || '' }}
+        run: cargo xtask bench --history "$HISTORY" --runner "macos-arm64/${RUNNER_NAME%-*}" ${{ env.RECORD == 'true' && '--record' || '' }}
       - name: Push the benchmark history
         if: ${{ env.RECORD == 'true' }}
         uses: ./.github/actions/bench-history
@@ -364,7 +373,7 @@ jobs:
       - name: Every runtime (recording on main)
         run: |
           if [ "$RECORD" = true ]; then
-            cargo xtask pdf-runtimes --history "$HISTORY" --runner self-hosted-macos-arm64 --record
+            cargo xtask pdf-runtimes --history "$HISTORY" --runner "macos-arm64/${RUNNER_NAME%-*}" --record
           else
             cargo xtask pdf-runtimes
           fi
@@ -456,7 +465,7 @@ jobs:
         run: >-
           cargo xtask render-diff --corpus external --pages 20
           ${RENDER_DIFF_SAMPLE:+--sample "$RENDER_DIFF_SAMPLE"}
-          --history "$HISTORY" --runner self-hosted-macos-arm64
+          --history "$HISTORY" --runner "macos-arm64/${RUNNER_NAME%-*}"
           ${{ env.RECORD == 'true' && '--record' || '' }}
       - name: Push the benchmark history
         if: ${{ env.RECORD == 'true' }}

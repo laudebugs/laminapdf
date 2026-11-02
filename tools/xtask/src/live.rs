@@ -1300,6 +1300,34 @@ mod tests {
             .collect()
     }
 
+    /// The version a `pypdf==` line or a `PINNED = "…"` line names.
+    fn pypdf_pin(text: &str, prefix: &str) -> Option<String> {
+        let line = text.lines().find(|l| l.starts_with(prefix))?;
+        Some(line.trim_start_matches(prefix).trim().trim_matches('"').to_owned())
+    }
+
+    /// The live differential installs tools/differential's pypdf, but its reader refuses any
+    /// version but corpus-facts' `PINNED` (the PR lane's facts): a bump of one alone makes every
+    /// pypdf file crash, as Dependabot's #115 did.
+    #[test]
+    fn live_differential_should_install_the_pypdf_its_reader_accepts() {
+        let differential = pypdf_pin(include_str!("../../differential/requirements.txt"), "pypdf==");
+        let corpus = pypdf_pin(include_str!("../../corpus-facts/requirements.txt"), "pypdf==");
+        let reader = pypdf_pin(include_str!("../../corpus-facts/facts.py"), "PINNED = ");
+        assert!(
+            differential.is_some(),
+            "tools/differential/requirements.txt pins no pypdf"
+        );
+        assert_eq!(
+            differential, corpus,
+            "tools/differential and tools/corpus-facts pin different pypdf"
+        );
+        assert_eq!(
+            corpus, reader,
+            "tools/corpus-facts/requirements.txt and facts.py's PINNED differ"
+        );
+    }
+
     #[test]
     fn compare_should_fail_when_every_tool_disagrees() {
         let lamina = report("lamina", true, &json!({"a.pdf": opened(2)}));
