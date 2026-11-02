@@ -7,7 +7,7 @@ use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString};
 use laminapdf_model::{PageFrame, PointPt, Pt, RectPt};
 
 use crate::error::{Error, Result};
-use crate::page::{number, rect_object};
+use crate::page::rect_object;
 
 /// How a destination shows its page (Table 149). Positions are page space ([ADR 0027]):
 /// points from the page's displayed top-left; `None` leaves that coordinate as the viewer
@@ -94,7 +94,7 @@ pub(crate) fn uri_action(uri: &str) -> Dict {
 }
 
 fn optional(v: Option<f64>) -> Object {
-    v.map_or(Object::Null, number)
+    v.map_or(Object::Null, Object::number)
 }
 
 /// An explicit destination array for `page` (§12.3.2.2), its coordinates in the page's user

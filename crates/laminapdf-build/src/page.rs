@@ -332,20 +332,7 @@ pub(crate) fn count_i64(n: usize) -> i64 {
 
 /// `[x0 y0 x1 y1]`, integers where exact.
 pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
-    Object::Array(r.to_array().iter().map(|v| number(*v)).collect())
-}
-
-/// An integer object when `v` is integral (`612`, not `612.0`), else a real.
-pub(crate) fn number(v: f64) -> Object {
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "only integral values well inside i64 get here"
-    )]
-    if v.fract() == 0.0 && v.abs() < 1e15 {
-        Object::Integer(v as i64)
-    } else {
-        Object::Real(v)
-    }
+    Object::Array(r.to_array().iter().map(|&v| Object::number(v)).collect())
 }
 
 #[cfg(test)]
@@ -366,10 +353,5 @@ mod tests {
             PageSize::LETTER.landscape(),
             PageSize::new(Pt::new(792.0), Pt::new(612.0))
         );
-    }
-
-    #[test]
-    fn number_writes_integral_values_as_integers() {
-        assert_eq!((number(612.0), number(0.5)), (Object::Integer(612), Object::Real(0.5)));
     }
 }

@@ -92,6 +92,7 @@
 
 pub mod agl;
 mod bidi;
+mod descriptor;
 mod embed;
 mod encoding;
 mod error;
@@ -105,6 +106,7 @@ mod pdfpos;
 mod shape;
 mod simple;
 mod std14;
+mod tounicode;
 mod usage;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
