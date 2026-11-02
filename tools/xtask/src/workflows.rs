@@ -1,6 +1,8 @@
 //! Tests that keep the two required checks complete (todo X7): every job of ci.yml is in
 //! `fast-gate`'s `needs`, and every job of full.yml is in `gate`'s. A job left out of them
-//! would not block a merge when it fails.
+//! would not block a merge when it fails. In nightly.yml, `report` needs every job (else that
+//! job's failure opens no issue), and `bench` waits for every job that doesn't depend on it,
+//! so the benchmarks never share the Mac with the rest of the lane.
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs are
 //! two-space-indented keys under `jobs:`, and a gate lists its `needs` on one line. A gate whose
@@ -61,6 +63,7 @@ mod tests {
 
     const CI: &str = include_str!("../../../.github/workflows/ci.yml");
     const FULL: &str = include_str!("../../../.github/workflows/full.yml");
+    const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -70,6 +73,35 @@ mod tests {
     #[test]
     fn gate_should_need_every_full_lane_job() {
         assert_eq!(missing_from(FULL, "gate"), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn nightly_report_should_need_every_nightly_job() {
+        assert_eq!(missing_from(NIGHTLY, "report"), Vec::<&str>::new());
+    }
+
+    /// Every job but those that run after `bench` (`pdf-runtimes`, `report`) or only on request
+    /// (`forced-failure`).
+    #[test]
+    fn nightly_bench_should_wait_for_every_other_measuring_job() {
+        let after = ["bench", "pdf-runtimes", "report", "forced-failure"];
+        let missing: Vec<&str> = missing_from(NIGHTLY, "bench")
+            .into_iter()
+            .filter(|id| !after.contains(id))
+            .collect();
+        assert_eq!(missing, Vec::<&str>::new());
+    }
+
+    /// A job that hits its `timeout-minutes` ends `cancelled`, and fails the run like a failure.
+    #[test]
+    fn nightly_report_should_treat_a_timed_out_job_as_a_failure() {
+        let (_, lines) = jobs(NIGHTLY)
+            .into_iter()
+            .find(|(id, _)| *id == "report")
+            .unwrap_or_default();
+        let job = lines.join("\n");
+        assert!(job.contains("contains(needs.*.result, 'cancelled')"), "{job}");
+        assert!(job.contains("!cancelled() &&"), "{job}");
     }
 
     #[test]
