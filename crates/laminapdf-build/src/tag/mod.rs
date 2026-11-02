@@ -157,6 +157,13 @@ pub enum TableScope {
 }
 
 impl TableScope {
+    /// Every table scope, in declaration order.
+    pub const ALL: [Self; 3] = [
+        Self::Row,
+        Self::Column,
+        Self::Both,
+    ];
+
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::Row => "Row",

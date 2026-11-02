@@ -17,6 +17,14 @@ pub enum FillRule {
     EvenOdd,
 }
 
+impl FillRule {
+    /// Every fill rule, in declaration order.
+    pub const ALL: [Self; 2] = [
+        Self::NonZero,
+        Self::EvenOdd,
+    ];
+}
+
 /// One path segment, in page space.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum Segment {

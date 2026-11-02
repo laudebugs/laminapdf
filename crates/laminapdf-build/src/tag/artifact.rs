@@ -20,6 +20,14 @@ pub enum ArtifactKind {
 }
 
 impl ArtifactKind {
+    /// Every artifact kind, in declaration order.
+    pub const ALL: [Self; 4] = [
+        Self::Layout,
+        Self::Page,
+        Self::Pagination,
+        Self::Background,
+    ];
+
     /// The kind named `name` (`"Layout"`, `"Page"`, `"Pagination"`, `"Background"`).
     #[must_use]
     pub fn from_name(name: &str) -> Option<Self> {
