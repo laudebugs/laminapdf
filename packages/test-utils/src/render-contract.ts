@@ -36,6 +36,17 @@ export interface ContractOptions {
 /** Files whose page 1 is compared with the goldens. */
 const GOLDEN_FILES = ["hello.pdf", "imaging-demo.pdf"];
 
+/** `e` is `data-pending` with ranges sorted and merged: none overlaps or touches the next. */
+function expectMergedPending(e: unknown): void {
+  expect(isRenderError(e, "data-pending")).toBe(true);
+  const ranges = (e as { ranges?: (readonly [number, number])[] }).ranges ?? [];
+  expect(ranges.length).toBeGreaterThan(0);
+  for (let i = 1; i < ranges.length; i++) {
+    const [o0 = 0, l0 = 0] = ranges[i - 1] ?? [];
+    expect((ranges[i]?.[0] ?? 0) > o0 + l0).toBe(true);
+  }
+}
+
 function thrown(f: () => unknown): unknown {
   try {
     f();
@@ -252,14 +263,14 @@ export function renderContract(options: ContractOptions): void {
           doc.close();
         }
       });
-      expect(isRenderError(e, "data-pending")).toBe(true);
-      const ranges = (e as { ranges?: (readonly [number, number])[] }).ranges ?? [];
-      expect(ranges.length).toBeGreaterThan(0);
-      // Sorted and merged: no range overlaps or touches the next.
-      for (let i = 1; i < ranges.length; i++) {
-        const [o0 = 0, l0 = 0] = ranges[i - 1] ?? [];
-        expect((ranges[i]?.[0] ?? 0) > o0 + l0).toBe(true);
-      }
+      expectMergedPending(e);
+    });
+
+    it("merges the missing reads of a source that has nothing yet into separate, non-touching ranges", () => {
+      // 256 KiB, more than one 64 KiB read: hayro reads it in chunks, PDFium block by block.
+      const empty: RenderSource = { size: 256 * 1024, readSync: () => undefined };
+      const e = thrown(() => backend.open(empty).close());
+      expectMergedPending(e);
     });
 
     it("checks an aborted signal before whether the document is closed", async () => {

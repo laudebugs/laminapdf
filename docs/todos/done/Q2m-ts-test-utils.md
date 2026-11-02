@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2n](../ongoing/Q2n-render-adapter-shared.md) |
+| Blocks | [Q2n](./Q2n-render-adapter-shared.md) |
 | ADRs | None |
 | Branch | `refactor/q2m-ts-test-utils` |
 | PR title | `refactor(test): @laminapdf/test-utils for shared TS test helpers` |
@@ -30,7 +30,7 @@ The render adapters import `../render/test/{contract,browser-harness,browser-con
 
 **Out of scope** (and which todo covers it)
 
-- Render adapter helpers ([Q2n](../ongoing/Q2n-render-adapter-shared.md)).
+- Render adapter helpers ([Q2n](../done/Q2n-render-adapter-shared.md)).
 
 ## Tasks
 

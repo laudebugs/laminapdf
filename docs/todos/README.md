@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 213 ready · 76 done** (290 total).
+**0 ongoing · 213 ready · 77 done** (290 total).
 
 ## Can start now
 
@@ -46,7 +46,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [Q2n](ongoing/Q2n-render-adapter-shared.md): Shared code for the render adapters
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -366,7 +366,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](done/Q2k-boundary-errors-ts.md) | done | [Q2j](done/Q2j-boundary-errors-rust.md) |
 | Q2l | [Lists that cross the WASM boundary are generated](ready/Q2l-boundary-lists-generated.md) | ready | — |
 | Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](done/Q2m-ts-test-utils.md) | done | — |
-| Q2n | [Shared code for the render adapters](ongoing/Q2n-render-adapter-shared.md) | ongoing | [Q2m](done/Q2m-ts-test-utils.md) |
+| Q2n | [Shared code for the render adapters](done/Q2n-render-adapter-shared.md) | done | [Q2m](done/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](done/Q2o-ts-hygiene.md) | done | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |

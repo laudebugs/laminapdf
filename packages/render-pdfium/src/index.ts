@@ -10,10 +10,13 @@
 // PDFium is synchronous: the AbortSignal is checked before and after the engine call.
 import { init, type WrappedPdfiumModule } from "@embedpdf/pdfium";
 import {
+  checkOpen,
+  checkPageIndex,
   flagsOf,
-  isRenderError,
   limitsOf,
+  MAX_WASM_INPUT,
   pageToTile,
+  pendingError,
   planTile,
   type RenderBackend,
   type RenderDocument,
@@ -24,8 +27,11 @@ import {
   type RenderPage,
   type RenderRequest,
   type RenderSource,
+  readFailure,
+  readRange,
   type TilePlan,
   throwIfAborted,
+  type WasmSource,
   WHITE,
 } from "@laminapdf/render";
 
@@ -42,15 +48,14 @@ const FPDF_PRINTING = 0x800;
 const FPDFBITMAP_BGRA = 4;
 const FPDF_ERR_PASSWORD = 4;
 
-/** Where the `.wasm` comes from: the app controls caching and lazy loading (ADR 0009 §2). */
-export type PdfiumWasm = URL | string | Response | ArrayBuffer | Uint8Array<ArrayBuffer> | WebAssembly.Module;
-
-async function instantiate(wasm: PdfiumWasm, imports: WebAssembly.Imports): Promise<WebAssembly.Instance> {
+/** A compiled module, or a URL or `Response` to fetch: the forms the glue can't take as `wasmBinary`. */
+async function instantiate(
+  wasm: Exclude<WasmSource, ArrayBuffer | ArrayBufferView<ArrayBuffer>>,
+  imports: WebAssembly.Imports,
+): Promise<WebAssembly.Instance> {
   if (wasm instanceof WebAssembly.Module) return WebAssembly.instantiate(wasm, imports);
-  if (wasm instanceof ArrayBuffer || ArrayBuffer.isView(wasm)) {
-    return (await WebAssembly.instantiate(wasm, imports)).instance;
-  }
-  const response = wasm instanceof Response ? wasm : await fetch(wasm);
+  const awaited = await wasm;
+  const response = awaited instanceof Response ? awaited : await fetch(awaited);
   if (!response.ok) throw new RenderError("render-backend-unavailable", `pdfium.wasm: HTTP ${response.status}`);
   // Streaming compile needs `application/wasm`; fall back to the bytes otherwise.
   if (response.headers.get("content-type")?.startsWith("application/wasm")) {
@@ -64,21 +69,23 @@ async function instantiate(wasm: PdfiumWasm, imports: WebAssembly.Imports): Prom
  *
  * @throws RenderError `render-backend-unavailable` when the module can't be fetched or compiled.
  */
-export async function initPdfium(wasm: PdfiumWasm): Promise<PdfiumBackend> {
+export async function initPdfium(wasm: WasmSource): Promise<PdfiumBackend> {
   let fail: (e: unknown) => void = () => {};
   const failed = new Promise<never>((_, reject) => {
     fail = reject;
   });
+  // Bytes go to the glue's own `wasmBinary`; the other forms through its instantiate hook.
+  const overrides =
+    wasm instanceof ArrayBuffer || ArrayBuffer.isView(wasm)
+      ? { wasmBinary: wasm }
+      : {
+          instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
+            instantiate(wasm, imports).then(done, fail);
+            return {};
+          },
+        };
   try {
-    const pdfium = await Promise.race([
-      failed,
-      init({
-        instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
-          instantiate(wasm, imports).then(done, fail);
-          return {};
-        },
-      } as never),
-    ]);
+    const pdfium = await Promise.race([failed, init(overrides as never)]);
     pdfium.PDFiumExt_Init();
     return new PdfiumBackend(pdfium);
   } catch (e) {
@@ -124,20 +131,6 @@ function refusal(reads: Reads): RenderError | undefined {
   return reads.pending.length > 0 ? pendingError(reads.pending) : undefined;
 }
 
-/** `data-pending` with `pending` sorted and merged (PDFium may ask for one window many times). */
-function pendingError(pending: readonly (readonly [number, number])[]): RenderError {
-  const merged: [number, number][] = [];
-  for (const [offset, length] of [...pending].sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
-    const last = merged.at(-1);
-    if (last !== undefined && offset <= last[0] + last[1]) {
-      last[1] = Math.max(last[1], offset + length - last[0]);
-    } else {
-      merged.push([offset, length]);
-    }
-  }
-  return new RenderError("data-pending", `${merged.length} byte range(s) of the input are not available yet`, merged);
-}
-
 class PdfiumDocument implements RenderDocument {
   readonly pageCount: number;
   readonly #p: Pdfium;
@@ -168,7 +161,7 @@ class PdfiumDocument implements RenderDocument {
   }
 
   static open(p: Pdfium, source: RenderSource, options: RenderOpenOptions): PdfiumDocument {
-    if (source.size > 0xffff_ffff) {
+    if (source.size > MAX_WASM_INPUT) {
       throw new RenderError("render-too-large", "custom file access on wasm32 is limited to 4 GiB of input");
     }
     const reads: Reads = { pending: [], failure: undefined };
@@ -180,21 +173,15 @@ class PdfiumDocument implements RenderDocument {
       const at = position >>> 0;
       const length = size >>> 0;
       try {
-        const bytes = source.readSync(at, length);
+        const bytes = readRange(source, at, length);
         if (bytes === undefined) {
           reads.pending.push([at, length]);
-          return 0;
-        }
-        if (bytes.length !== length) {
-          reads.failure ??= new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
           return 0;
         }
         new Uint8Array(heap(p).buffer, buf, length).set(bytes);
         return 1;
       } catch (e) {
-        reads.failure ??= isRenderError(e)
-          ? e
-          : new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
+        reads.failure ??= readFailure(at, length, e);
         return 0;
       }
     }, "iiiii");
@@ -242,7 +229,7 @@ class PdfiumDocument implements RenderDocument {
   }
 
   #live(): number {
-    if (this.#doc === 0) throw new RenderError("disposed", "the document was closed");
+    checkOpen(this.#doc !== 0);
     return this.#doc;
   }
 
@@ -266,12 +253,7 @@ class PdfiumDocument implements RenderDocument {
 
   #withPage<T>(index: number, f: (page: number) => T): T {
     const doc = this.#live();
-    if (!Number.isInteger(index) || index < 0 || index >= this.pageCount) {
-      throw new RenderError(
-        "page-index-out-of-range",
-        `page index ${index} is out of range for a document of ${this.pageCount} pages`,
-      );
-    }
+    checkPageIndex(index, this.pageCount);
     const p = this.#p;
     const page = p.FPDF_LoadPage(doc, index);
     if (page === 0) throw new RenderError("render-failed", "the pdfium backend could not load the page");

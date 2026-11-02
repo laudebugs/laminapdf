@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2n` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2m](../done/Q2m-ts-test-utils.md) |
+| Depends on | [Q2m](./Q2m-ts-test-utils.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2n-render-adapter-shared` |
 | PR title | `refactor(render): shared adapter helpers, one WasmSource type, memory() on RenderBackend` |
 | Size | M |
-| PR | — |
+| PR | [#185](https://github.com/laudebugs/laminapdf/pull/185) |
 
 ## Goal
 
@@ -35,15 +35,15 @@ The hayro and PDFium adapters repeat the page-index check, the "bytes could not 
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Add a contract case for merged pending ranges; watch hayro fail it.
-- [ ] Move each helper into `@laminapdf/render` and switch both adapters.
-- [ ] Add `WasmSource` and `memory()`; switch the viewer.
-- [ ] Run the contract suite in Node and the three browsers.
+- [x] Claim by opening the work PR (#185) from a fresh worktree off `main`.
+- [x] Add a contract case for merged pending ranges; watch hayro fail it (it reported four touching 64 KiB chunks).
+- [x] Move each helper into `@laminapdf/render` (`checkPageIndex`, `checkOpen`, `readRange`, `readFailure`, `mergeRanges`, `pendingError`, `MAX_WASM_INPUT`) and switch both adapters.
+- [x] Add `WasmSource` (and `CloneableWasmSource`, what a worker can be sent) and `memory()`; switch the viewer. PDFium hands bytes to the glue's `wasmBinary`.
+- [x] Run the contract suite in Node and the three browsers.
 
 ## Acceptance criteria
 
-- [ ] Both adapters pass the shared contract, including merged ranges.
+- [x] Both adapters pass the shared contract, including merged ranges.
 
 ## Post-merge checks
 
@@ -63,8 +63,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: the work PR (#185), opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green

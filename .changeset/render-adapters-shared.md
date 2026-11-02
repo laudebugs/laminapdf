@@ -1,0 +1,8 @@
+---
+"@laminapdf/render": minor
+"@laminapdf/render-hayro": minor
+"@laminapdf/render-pdfium": minor
+"@laminapdf/viewer": patch
+---
+
+`@laminapdf/render` has one `WasmSource` type for where an engine's `.wasm` comes from (a URL, a `Response` or a promise of one, the bytes or a compiled module), and `CloneableWasmSource` for what a worker can be sent. `initPdfium` and `initHayro` both take it; `@laminapdf/render-pdfium`'s own `PdfiumWasm` type is gone. `RenderBackend` declares `memory()`, which both backends already had. The adapters share the page-index check, the read handling and the pending-range merging, so hayro now reports adjacent missing reads as one range, as PDFium did.
