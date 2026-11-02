@@ -31,7 +31,7 @@
 # runs them all with short budgets.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Nightly
-# The run's title says whether it ran the full lane, for the release guard (ADR 0018 §2,
+# The run's title says whether it was a full nightly, for the release guard (ADR 0018 §2,
 # `cargo xtask release-guard`): it accepts a scheduled run, or a dispatched one titled
 # "Nightly (full budgets)", which only a dispatch with every input at its default gets.
 # `release.rs` checks this expression; GitHub ignores run-name under workflow_call.
