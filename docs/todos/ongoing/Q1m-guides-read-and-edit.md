@@ -3,13 +3,13 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1m` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1h](../done/Q1h-docs-story.md) |
-| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
+| Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
-| Branch | `docs/q1m-guides-read-and-edit` |
+| Branch | `docs/q1m-read-edit-guides` |
 | PR title | `docs(site): plain-English guides for reading and editing PDFs` |
 | Size | M |
 | PR | — |
@@ -36,7 +36,7 @@ This todo rewrites the "Read and edit" and "Production" guides to the [docs-writ
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim by opening the work PR from a fresh worktree off the updated `main`.
 - [ ] Split and rename the pages; add redirects; update the sidebar.
 - [ ] Rewrite each page with `/writing`, keeping every fact.
 - [ ] Correct the password sentence against `crypt/mod.rs`.
@@ -66,8 +66,7 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
