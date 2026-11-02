@@ -7,7 +7,7 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [P0](./P0-npm-scope-laminapdf.md), [P0b](./P0b-crate-names-laminapdf.md), [P0c](./P0c-lamina-pdf-names.md) |
-| Blocks | [L4d](../ready/L4d-cli-distribution.md), [P2](../ongoing/P2-first-registry-prerelease.md) |
+| Blocks | [L4d](../ready/L4d-cli-distribution.md), [P2](./P2-first-registry-prerelease.md) |
 | ADRs | Completes **0017** (publishing part: OIDC trusted publishing, provenance, attestations); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM), [0002](../../decisions/0002-binding-strategy.md) (`@laminapdf/wasm` packaging) |
 | Branch | `build/p1-trusted-publishing` |
 | PR title | `build: reserve names and set up OIDC trusted publishing with provenance and attestations` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Set up publishing so a `v<version>` tag publishes the library safely, with no long-lived crates.io token. That means reserving `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), recording the publishing policy in ADR 0017 and adding the release lane's publish jobs. No release is published yet: that is [P2](../ongoing/P2-first-registry-prerelease.md). The owner decided on 2026-11-01 to publish while the repository stays private, which rules out npm provenance, GitHub artifact attestations and a required reviewer for now, and npm's trusted publishing doesn't accept the self-hosted runners.
+Set up publishing so a `v<version>` tag publishes the library safely, with no long-lived crates.io token. That means reserving `laminapdf` and the `laminapdf-*` crate names on crates.io and the `@laminapdf` scope on npm (chosen 2026-10-31, architecture §8 Q3, [P0](../done/P0-npm-scope-laminapdf.md)), recording the publishing policy in ADR 0017 and adding the release lane's publish jobs. No release is published yet: that is [P2](../done/P2-first-registry-prerelease.md). The owner decided on 2026-11-01 to publish while the repository stays private, which rules out npm provenance, GitHub artifact attestations and a required reviewer for now, and npm's trusted publishing doesn't accept the self-hosted runners.
 
 ## Context
 
@@ -38,7 +38,7 @@ Set up publishing so a `v<version>` tag publishes the library safely, with no lo
 
 **Out of scope** (and which todo covers it)
 
-- Publishing the first pre-release, public stability policy, cargo-semver-checks, the MSRV policy for published crates (rust.md's N-2): [P2](../ongoing/P2-first-registry-prerelease.md).
+- Publishing the first pre-release, public stability policy, cargo-semver-checks, the MSRV policy for published crates (rust.md's N-2): [P2](../done/P2-first-registry-prerelease.md).
 - npm provenance, artifact attestations and a `release` environment: once the repository is public (ADR 0017 §7).
 - A Changesets action that opens the version PR: the version PR stays `pnpm changeset version` and `cargo xtask version sync` by hand (ADR 0017 §2).
 - Desktop app signing and release: desktop D6.

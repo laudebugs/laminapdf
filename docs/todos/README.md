@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 214 ready · 76 done** (291 total).
+**0 ongoing · 214 ready · 77 done** (291 total).
 
 ## Can start now
 
@@ -25,6 +25,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
+- [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q1m](ready/Q1m-guides-read-and-edit.md): Plain-English guides: reading and editing PDFs
@@ -46,7 +47,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [P2](ongoing/P2-first-registry-prerelease.md): First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -334,8 +335,8 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | P0b | [Rename the crates `laminapdf-*` and the façade `laminapdf`](done/P0b-crate-names-laminapdf.md) | done | [P0](done/P0-npm-scope-laminapdf.md) |
 | P0c | [Call the product Lamina PDF and rename its public names to match](done/P0c-lamina-pdf-names.md) | done | [P0b](done/P0b-crate-names-laminapdf.md) |
 | P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](done/P1-reserve-names-and-trusted-publishing.md) | done | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md), [P0b](done/P0b-crate-names-laminapdf.md), [P0c](done/P0c-lamina-pdf-names.md) |
-| P2 | [First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2](ongoing/P2-first-registry-prerelease.md) | ongoing | [P1](done/P1-reserve-names-and-trusted-publishing.md) |
-| P3 | [Registry checks after the first release: installs, semver, docs](ready/P3-registry-checks.md) | ready | [P2](ongoing/P2-first-registry-prerelease.md) |
+| P2 | [First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2](done/P2-first-registry-prerelease.md) | done | [P1](done/P1-reserve-names-and-trusted-publishing.md) |
+| P3 | [Registry checks after the first release: installs, semver, docs](ready/P3-registry-checks.md) | ready | [P2](done/P2-first-registry-prerelease.md) |
 
 ## Docs and code quality — Round Q
 

@@ -736,18 +736,6 @@ fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn root_changelog_should_list_an_entry_once_under_its_highest_bump() {
-        let render = "# @laminapdf/render\n\n## 0.2.0\n\n### Minor Changes\n\n- abc: one change\n";
-        let sdk = "# @laminapdf/sdk\n\n## 0.2.0\n\n### Patch Changes\n\n- abc: one change\n- def: a fix\n";
-        let out = root_changelog(&[("@laminapdf/render", render), ("@laminapdf/sdk", sdk)]).unwrap();
-        assert_eq!(out.matches("- abc: one change").count(), 1, "{out}");
-        let minor = out.find("### Minor Changes").unwrap();
-        let patch = out.find("### Patch Changes").unwrap();
-        let abc = out.find("- abc").unwrap();
-        assert!(minor < abc && abc < patch && out.contains("- def: a fix"), "{out}");
-    }
-
     use std::collections::BTreeSet;
 
     use super::{
@@ -1245,5 +1233,17 @@ version = \"0.0.0\"
                 None
             ]
         );
+    }
+
+    #[test]
+    fn root_changelog_should_list_an_entry_once_under_its_highest_bump() {
+        let render = "# @laminapdf/render\n\n## 0.2.0\n\n### Minor Changes\n\n- abc: one change\n";
+        let sdk = "# @laminapdf/sdk\n\n## 0.2.0\n\n### Patch Changes\n\n- abc: one change\n- def: a fix\n";
+        let out = root_changelog(&[("@laminapdf/render", render), ("@laminapdf/sdk", sdk)]).unwrap();
+        assert_eq!(out.matches("- abc: one change").count(), 1, "{out}");
+        let minor = out.find("### Minor Changes").unwrap();
+        let patch = out.find("### Patch Changes").unwrap();
+        let abc = out.find("- abc").unwrap();
+        assert!(minor < abc && abc < patch && out.contains("- def: a fix"), "{out}");
     }
 }

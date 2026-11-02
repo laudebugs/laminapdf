@@ -34,7 +34,7 @@ The release preparation is therefore `pnpm changeset version`, then `cargo xtask
 
 - Versions follow [SemVer 2.0](https://semver.org/spec/v2.0.0.html) with Cargo's reading of `0.x`: while the major version is 0, a **breaking change bumps the minor** version (`0.1 → 0.2`), and features and fixes bump the patch (`0.1.0 → 0.1.1`). In Changesets terms: `minor` for a breaking change, `patch` for everything else, and never `major` before the owner decides on 1.0.
 - **Pre-releases** use the `alpha` identifier, numbered from 0: `0.1.0-alpha.0`, `0.1.0-alpha.1`, … Changesets' pre mode (`pnpm changeset pre enter alpha`, recorded in `.changeset/pre.json`; consumed changesets move to `.changeset/pre/`) produces them; `pnpm changeset pre exit` ends it before `0.1.0`. Cargo and npm both order `0.1.0-alpha.1` below `0.1.0`; the internal dependencies name the exact version anyway (`version sync`, and `pnpm pack` turns `workspace:*` into it).
-- What `0.x` promises beyond SemVer (error and warning codes, op JSON versions) is in the [stability policy](../stability-policy.md), in force since the first registry release, `0.2.0-alpha.1` ([P2](../todos/ongoing/P2-first-registry-prerelease.md)).
+- What `0.x` promises beyond SemVer (error and warning codes, op JSON versions) is in the [stability policy](../stability-policy.md), in force since the first registry release, `0.2.0-alpha.1` ([P2](../todos/done/P2-first-registry-prerelease.md)).
 
 ### 4. Changelog
 

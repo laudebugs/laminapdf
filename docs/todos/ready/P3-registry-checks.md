@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing |
-| Depends on | [P2](../ongoing/P2-first-registry-prerelease.md) |
+| Depends on | [P2](../done/P2-first-registry-prerelease.md) |
 | Blocks | None |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §6–§7, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p3-registry-checks` |
@@ -16,11 +16,11 @@
 
 ## Goal
 
-Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../ongoing/P2-first-registry-prerelease.md)), check the published packages the way users meet them, and keep every later release honest about breaking changes: install from the registries in every runtime, run semver checks on every PR against the published version, and switch the docs site from checkout installs to registry installs.
+Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../done/P2-first-registry-prerelease.md)), check the published packages the way users meet them: install them from the registries in every runtime. Semver checks on every PR, against the published version, then keep later releases honest about breaking changes. The docs site switches from checkout installs to registry installs.
 
 ## Context
 
-- [P2](../ongoing/P2-first-registry-prerelease.md)'s out-of-scope list, which this todo was split from on 2026-11-01.
+- [P2](../done/P2-first-registry-prerelease.md)'s out-of-scope list, which this todo was split from on 2026-11-01.
 - [pdf-library §8 risks](../../plans/pdf-library.md#8-risks): cargo-semver-checks from 0.2.
 - `cargo xtask verify-install` (B7b) installs the packed tarballs and path or git dependencies today.
 

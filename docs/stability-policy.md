@@ -1,13 +1,13 @@
 # Stability policy
 
-What Lamina PDF promises from one version to the next, in force from the first registry release, `0.2.0-alpha.1`. Versioning itself is [ADR 0017](decisions/0017-versioning-and-release.md).
+This policy says what Lamina PDF promises from one version to the next. It is in force from the first registry release, `0.2.0-alpha.1`. Versioning itself is [ADR 0017](decisions/0017-versioning-and-release.md).
 
 Lamina PDF is one library with one version: every crate and the npm packages `@laminapdf/wasm`, `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro`, `@laminapdf/render-pdfium` and `@laminapdf/viewer` move together (lockstep). The version is `0.x`, currently `0.2.0-alpha.1`.
 
 ## What a version number tells you
 
 - **`0.x` follows SemVer as Cargo reads it.** A breaking change bumps the minor version (`0.1 → 0.2`); features and fixes bump the patch (`0.1.0 → 0.1.1`). An upgrade within one `0.x` line never needs a code change.
-- **Pre-releases (`-alpha.N`) promise nothing between each other.** Anything can change from `0.2.0-alpha.1` to `0.2.0-alpha.2`. Pin the exact version while you try an alpha: `npm install @laminapdf/sdk@0.2.0-alpha.1` and `laminapdf = "=0.2.0-alpha.1"` in `Cargo.toml`. Until there is a stable version, npm's `latest` tag also points at the newest alpha (npm gives a package's first version that tag), so a plain `npm install @laminapdf/sdk` gets an alpha too; the `alpha` tag always names the newest one.
+- **Pre-releases (`-alpha.N`) promise nothing between each other.** Anything can change from `0.2.0-alpha.1` to `0.2.0-alpha.2`. Pin the exact version while you try an alpha: `npm install @laminapdf/sdk@0.2.0-alpha.1` and `laminapdf = "=0.2.0-alpha.1"` in `Cargo.toml`. npm gives a package's first version the `latest` tag, so a plain `npm install @laminapdf/sdk` gets `0.2.0-alpha.1` until a stable version takes the tag. Later alphas move only the `alpha` tag, which always names the newest one.
 - **Breaking** means: a public Rust item removed, renamed or changed in a way that stops existing code compiling or changes its documented behaviour; the same for the TypeScript API's exports and types; a raised minimum Rust version (MSRV), Node version or `compatibility_date`; a new `ErrorKind` (callers match on the nine kinds exhaustively); or output bytes that differ for the same input and options (outputs are byte-deterministic, and tests compare them byte for byte).
 - **Not breaking:** new items, new optional options and fields, new error and warning codes (see below), documentation, performance, and fixes that make output conform to ISO 32000 where it did not (listed in the changelog).
 
