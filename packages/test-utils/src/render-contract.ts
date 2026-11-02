@@ -266,7 +266,7 @@ export function renderContract(options: ContractOptions): void {
       expectMergedPending(e);
     });
 
-    it("merges the missing reads of a source that has nothing yet into separate, non-touching ranges", () => {
+    it("reports the missing reads of a source that has nothing yet as sorted, non-touching ranges", () => {
       // 256 KiB, more than one 64 KiB read: hayro reads it in chunks, PDFium block by block.
       const empty: RenderSource = { size: 256 * 1024, readSync: () => undefined };
       const e = thrown(() => backend.open(empty).close());

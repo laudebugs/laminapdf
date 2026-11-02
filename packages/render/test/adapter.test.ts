@@ -1,6 +1,7 @@
-// The helpers both web adapters share (todo Q2n): page index, open document, reads and pending ranges.
+// The helpers both web adapters share: page index, open document, input size, reads and pending ranges.
 import { describe, expect, it } from "vitest";
 import {
+  checkInputSize,
   checkOpen,
   checkPageIndex,
   isRenderError,
@@ -42,6 +43,18 @@ describe("checkOpen", () => {
       isRenderError(
         thrown(() => checkOpen(false)),
         "disposed",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("checkInputSize", () => {
+  it("throws render-too-large over the limit only", () => {
+    expect(() => checkInputSize(10, 10)).not.toThrow();
+    expect(
+      isRenderError(
+        thrown(() => checkInputSize(11, 10)),
+        "render-too-large",
       ),
     ).toBe(true);
   });

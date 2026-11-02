@@ -29,7 +29,7 @@ let open: Open | undefined;
 let nextDocument = 1;
 
 /** PDFium needs its `.wasm` from the app (hayro finds its own). */
-function pdfium(wasm: CloneableWasmSource | undefined): Promise<RenderBackend> {
+function loadPdfium(wasm: CloneableWasmSource | undefined): Promise<RenderBackend> {
   if (wasm === undefined) {
     return Promise.reject(
       new RenderError("render-backend-unavailable", "PDFium needs its .wasm: pass BackendInit.wasm"),
@@ -42,7 +42,7 @@ function pdfium(wasm: CloneableWasmSource | undefined): Promise<RenderBackend> {
 export async function initBackend(init: BackendInit): Promise<{ name: string; version: string }> {
   let pending = loading.get(init.backend);
   if (pending === undefined) {
-    pending = init.backend === "hayro" ? initHayro(init.wasm) : pdfium(init.wasm);
+    pending = init.backend === "hayro" ? initHayro(init.wasm) : loadPdfium(init.wasm);
     loading.set(init.backend, pending);
     pending.catch(() => loading.delete(init.backend));
   }

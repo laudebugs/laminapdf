@@ -10,6 +10,7 @@
 // PDFium is synchronous: the AbortSignal is checked before and after the engine call.
 import { init, type WrappedPdfiumModule } from "@embedpdf/pdfium";
 import {
+  checkInputSize,
   checkOpen,
   checkPageIndex,
   flagsOf,
@@ -48,7 +49,13 @@ const FPDF_PRINTING = 0x800;
 const FPDFBITMAP_BGRA = 4;
 const FPDF_ERR_PASSWORD = 4;
 
-/** A compiled module, or a URL or `Response` to fetch: the forms the glue can't take as `wasmBinary`. */
+/** `wasm`'s bytes as a Uint8Array over the same memory, when it is an ArrayBuffer or any view. */
+function asBytes(wasm: WasmSource): Uint8Array | undefined {
+  if (wasm instanceof ArrayBuffer) return new Uint8Array(wasm);
+  return ArrayBuffer.isView(wasm) ? new Uint8Array(wasm.buffer, wasm.byteOffset, wasm.byteLength) : undefined;
+}
+
+/** A module, or a URL or `Response` to fetch: the forms that aren't bytes. */
 async function instantiate(
   wasm: Exclude<WasmSource, ArrayBuffer | ArrayBufferView<ArrayBuffer>>,
   imports: WebAssembly.Imports,
@@ -74,10 +81,12 @@ export async function initPdfium(wasm: WasmSource): Promise<PdfiumBackend> {
   const failed = new Promise<never>((_, reject) => {
     fail = reject;
   });
-  // Bytes go to the glue's own `wasmBinary`; the other forms through its instantiate hook.
+  // Bytes go to the glue's own `wasmBinary` as a Uint8Array over the same memory (it reads it with
+  // `new Uint8Array(…)`, wrong for other views); a module, a URL or a Response through its hook.
+  const bytes = asBytes(wasm);
   const overrides =
-    wasm instanceof ArrayBuffer || ArrayBuffer.isView(wasm)
-      ? { wasmBinary: wasm }
+    bytes !== undefined
+      ? { wasmBinary: bytes }
       : {
           instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
             instantiate(wasm, imports).then(done, fail);
@@ -161,9 +170,9 @@ class PdfiumDocument implements RenderDocument {
   }
 
   static open(p: Pdfium, source: RenderSource, options: RenderOpenOptions): PdfiumDocument {
-    if (source.size > MAX_WASM_INPUT) {
-      throw new RenderError("render-too-large", "custom file access on wasm32 is limited to 4 GiB of input");
-    }
+    // PDFium reads block by block, so only wasm32's custom file access (32-bit sizes) bounds the
+    // input; `maxInputBytes` is for engines that read the whole file (ADR 0004).
+    checkInputSize(source.size, MAX_WASM_INPUT);
     const reads: Reads = { pending: [], failure: undefined };
     const { malloc, free } = p.pdfium.wasmExports;
     // FPDF_FILEACCESS.m_GetBlock(param, position, pBuf, size): 1 on success, 0 on failure. It

@@ -7,6 +7,7 @@
 
 import {
   type ByteRange,
+  checkInputSize,
   checkOpen,
   checkPageIndex,
   flagsOf,
@@ -49,9 +50,9 @@ let memory: WebAssembly.Memory | undefined;
  */
 export async function initHayro(wasm?: WasmSource): Promise<HayroBackend> {
   try {
-    // The glue fetches a URL or string itself and takes the other forms as they are; a promise of
-    // a Response is awaited first, since the glue checks for a URL before awaiting.
-    const input = wasm === undefined ? undefined : { module_or_path: (await wasm) as InitInput };
+    // The glue fetches a URL or string itself and awaits the other forms (a promise of a Response
+    // included); `Promise.resolve` around a string would hide it from that check.
+    const input = wasm === undefined ? undefined : { module_or_path: wasm as InitInput | Promise<InitInput> };
     const output = await initGlue(input);
     memory = output.memory;
   } catch {
@@ -136,13 +137,8 @@ export class HayroBackend implements RenderBackend {
  * copy in JS), or `data-pending` with every range the source lacks.
  */
 function fill(source: RenderSource, limits: RenderLimits): InputBuffer {
-  const most = Math.min(limits.maxInputBytes, MAX_WASM_INPUT);
-  if (source.size > most) {
-    throw new RenderError(
-      "render-too-large",
-      `the input is ${source.size} bytes, over the render limit of ${most} bytes`,
-    );
-  }
+  // hayro reads the whole file, so `maxInputBytes` bounds it too (ADR 0004).
+  checkInputSize(source.size, Math.min(limits.maxInputBytes, MAX_WASM_INPUT));
   const input = new InputBuffer(source.size);
   const pending: [number, number][] = [];
   try {

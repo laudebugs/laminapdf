@@ -382,8 +382,18 @@ export type WasmSource =
 /** The {@link WasmSource} forms that `postMessage` can send to a worker. */
 export type CloneableWasmSource = string | ArrayBuffer | ArrayBufferView<ArrayBuffer> | WebAssembly.Module;
 
+// For the adapters (@laminapdf/render-hayro, @laminapdf/render-pdfium): what both share, so they
+// check pages, reads and sizes the same way. Apps don't need these.
+
 /** The most input bytes a wasm32 engine can address: its file access and buffers take 32-bit sizes. */
 export const MAX_WASM_INPUT = 0xffff_ffff;
+
+/** Throws `render-too-large` when an input of `size` bytes is over `most`. */
+export function checkInputSize(size: number, most: number): void {
+  if (size > most) {
+    throw new RenderError("render-too-large", `the input is ${size} bytes, over the render limit of ${most} bytes`);
+  }
+}
 
 /** Throws `page-index-out-of-range` unless `index` is a page of a `pageCount`-page document. */
 export function checkPageIndex(index: number, pageCount: number): void {
