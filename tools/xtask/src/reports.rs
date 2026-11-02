@@ -220,16 +220,10 @@ impl Ratchet {
 fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeSet<String>> {
     let base = default_base(root);
     let changed = git(root, &["merge-base", base, "HEAD"]).and_then(|merge_base| {
-        let merge_base = merge_base.trim();
-        let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base])?;
-        let old_paths: BTreeMap<String, String> = crate::changes::renames(root, merge_base)?
-            .into_iter()
-            .map(|(old, new)| (new, old))
-            .collect();
+        let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base.trim()])?;
         Ok(diff
             .split('\0')
             .filter(|path| !path.is_empty())
-            .filter(|path| !renamed_only(root, merge_base, path, old_paths.get(*path).map(String::as_str)))
             .map(str::to_owned)
             .chain(untracked.iter().cloned())
             .collect())
@@ -250,46 +244,6 @@ fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeS
     }
 }
 
-/// Names the repository renamed everywhere at once (new, old), applied in order to text without
-/// whitespace: the product's "Lamina PDF" (whose old word was "lamina" or "Lamina"), the
-/// `LaminaPdf` types, the `LAMINA_PDF_` variables, the `lamina_pdf_` modules and the `lamina-pdf-`
-/// Cloudflare names (todo P0c), then `laminapdf` (the crates, P0b; also `laminapdf.error/1`).
-/// P0b's post-merge check removes this exemption once no open branch predates the renames.
-const RENAMED: [(&str, &str); 6] = [
-    ("LaminaPDF", "lamina"),
-    ("LaminaPdf", "Lamina"),
-    ("LAMINA_PDF_", "LAMINA_"),
-    ("lamina_pdf_", "lamina_"),
-    ("lamina-pdf-", "lamina-"),
-    ("laminapdf", "lamina"),
-];
-
-/// Whether `path`'s only change since `merge_base` is one of the [`RENAMED`] names and the
-/// line breaks that came with it (its old path, if it moved, is `old_path`). Such a file isn't
-/// changed for the ratchet, so a rename across the repository doesn't make every file it touches
-/// strict at once.
-fn renamed_only(root: &Path, merge_base: &str, path: &str, old_path: Option<&str>) -> bool {
-    let Ok(now) = std::fs::read_to_string(root.join(path)) else {
-        return false;
-    };
-    let squeezed: String = now.split_whitespace().collect();
-    if !RENAMED.iter().any(|(new, _)| squeezed.contains(new)) {
-        return false;
-    }
-    crate::changes::at_revision(root, merge_base, old_path.unwrap_or(path))
-        .is_ok_and(|before| without_renames(&before) == without_renames(&now))
-}
-
-/// `text` without whitespace and with each [`RENAMED`] name in its old form. The product word is
-/// the one case-insensitive part: "Lamina PDF" replaced both "lamina" and "Lamina".
-fn without_renames(text: &str) -> String {
-    let squeezed: String = text.split_whitespace().collect();
-    RENAMED
-        .iter()
-        .fold(squeezed, |text, (new, old)| text.replace(new, old))
-        .replace("Lamina", "lamina")
-}
-
 /// Untracked files that git doesn't ignore.
 fn untracked_files(root: &Path) -> Result<Vec<String>> {
     let listing = git(root, &["ls-files", "--others", "--exclude-standard", "-z"])?;
@@ -303,29 +257,6 @@ fn untracked_files(root: &Path) -> Result<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn without_renames_should_match_a_file_whose_only_change_is_a_rename() {
-        let before = "use lamina::Document;\nfn main() { lamina_cos::open(); }\n";
-        let after = "use laminapdf::Document;\nfn main() {\n    laminapdf_cos::open();\n}\n";
-        assert_eq!(without_renames(before), without_renames(after));
-        assert_ne!(without_renames(before), without_renames("use laminapdf::Builder;\n"));
-    }
-
-    #[test]
-    fn without_renames_should_match_the_lamina_pdf_names() {
-        let before = "// lamina's errors are LaminaError (lamina.error/1), in lamina_base.wasm; LAMINA_PYTHON;\n\
-                      // Lamina reads LaminaId on lamina-docs\n";
-        let after = "// Lamina PDF's errors are LaminaPdfError (laminapdf.error/1), in lamina_pdf_base.wasm;\n\
-                     LAMINA_PDF_PYTHON;\n// Lamina\nPDF reads LaminaPdfId on lamina-pdf-docs\n";
-        assert_eq!(without_renames(before), without_renames(after));
-    }
-
-    #[test]
-    fn without_renames_should_still_see_a_change_of_case() {
-        assert_ne!(without_renames("let x = Foo;"), without_renames("let x = foo;"));
-        assert_ne!(without_renames("PdfError"), without_renames("pdferror"));
-    }
 
     fn flags(list: &[&str]) -> Vec<String> {
         list.iter().map(|flag| (*flag).to_owned()).collect()
