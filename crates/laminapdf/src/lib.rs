@@ -41,7 +41,7 @@
 //! // Later: open the bytes, edit with ops (undoable, serialisable), save incrementally.
 //! let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
 //! assert_eq!((doc.page_count()?, doc.page_info(0)?.width.round()), (1, 595.0));
-//! doc.apply(vec![Op::from(SetInfo::new(InfoPatch::new().subject(Some("Paid")), None))])?;
+//! doc.apply(vec![Op::from(SetInfo::patch(InfoPatch::new().subject(Some("Paid"))))])?;
 //! let options = SaveOptions::new().with_mode(SaveMode::Incremental);
 //! let updated = doc.save(&options)?;
 //! assert_eq!(doc.info()?.subject.as_deref(), Some("Paid"));

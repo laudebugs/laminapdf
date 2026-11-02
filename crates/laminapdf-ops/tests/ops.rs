@@ -9,7 +9,7 @@ use laminapdf_model::{PageId, PdfDate, Rotation};
 use laminapdf_ops::{Error, Field, InfoPatch, ModificationClass, Op, Origin, RotatePage, SetInfo};
 
 fn set_info(patch: InfoPatch) -> Op {
-    SetInfo::new(patch, None).into()
+    SetInfo::patch(patch).into()
 }
 
 fn info_dict(doc: &laminapdf_ops::Document) -> laminapdf_cos::Dict {
@@ -429,7 +429,7 @@ mod transactions {
         let before = snapshot(&doc);
         let unknown: PageId = "p99.0".parse().unwrap();
         let result = doc.transact(Origin::Local, |tx| {
-            tx.apply(SetInfo::new(InfoPatch::new().title(Some("Changed")), None))?;
+            tx.apply(SetInfo::patch(InfoPatch::new().title(Some("Changed"))))?;
             tx.apply(RotatePage::new(
                 page_ids(tx.document()).get(1).unwrap().clone(),
                 Rotation::None,
@@ -471,7 +471,7 @@ mod transactions {
         let op = rotate_first(&doc, Rotation::Half);
         let unknown: PageId = "p99.0".parse().unwrap();
         doc.transact(Origin::Local, |tx| {
-            tx.apply(SetInfo::new(InfoPatch::new().title(Some("Kept")), None))?;
+            tx.apply(SetInfo::patch(InfoPatch::new().title(Some("Kept"))))?;
             let inner = tx.savepoint(|tx| {
                 tx.apply(op)?;
                 tx.apply(RotatePage::new(unknown, Rotation::None))

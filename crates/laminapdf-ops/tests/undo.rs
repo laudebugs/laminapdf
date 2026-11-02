@@ -14,7 +14,7 @@ fn remote() -> Origin {
 fn set_title_and_author(doc: &mut laminapdf_ops::Document, title: &str, author: &str) {
     doc.apply_all(
         Origin::Local,
-        [SetInfo::new(InfoPatch::new().title(Some(title)).author(Some(author)), None).into()],
+        [SetInfo::patch(InfoPatch::new().title(Some(title)).author(Some(author))).into()],
     )
     .unwrap();
 }
@@ -49,11 +49,8 @@ mod undo {
     #[test]
     fn of_a_removed_key_restores_the_key_order() {
         let mut doc = inherited_rotate();
-        doc.apply_all(
-            Origin::Local,
-            [SetInfo::new(InfoPatch::new().author(None), None).into()],
-        )
-        .unwrap();
+        doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().author(None)).into()])
+            .unwrap();
         doc.undo().unwrap();
         assert!(!doc.is_dirty());
     }
@@ -207,11 +204,8 @@ mod redo {
         let mut doc = corpus("outline.pdf");
         set_title(&mut doc, Origin::Local, Some("One"));
         doc.undo().unwrap();
-        doc.apply_all(
-            remote(),
-            [SetInfo::new(InfoPatch::new().subject(Some("S")), None).into()],
-        )
-        .unwrap();
+        doc.apply_all(remote(), [SetInfo::patch(InfoPatch::new().subject(Some("S"))).into()])
+            .unwrap();
         assert!(doc.history().can_redo());
     }
 
@@ -227,7 +221,7 @@ mod coalescing {
 
     fn type_title(doc: &mut laminapdf_ops::Document, key: &str, title: &str) {
         doc.transact_coalescing(key, |tx| {
-            tx.apply(SetInfo::new(InfoPatch::new().title(Some(title)), None))?;
+            tx.apply(SetInfo::patch(InfoPatch::new().title(Some(title))))?;
             Ok(())
         })
         .unwrap();
@@ -276,7 +270,7 @@ mod review_fixes {
 
     fn coalesce(doc: &mut laminapdf_ops::Document, key: &str, patch: InfoPatch) {
         doc.transact_coalescing(key, |tx| {
-            tx.apply(SetInfo::new(patch, None))?;
+            tx.apply(SetInfo::patch(patch))?;
             Ok(())
         })
         .unwrap();
@@ -298,14 +292,11 @@ mod review_fixes {
         coalesce(&mut doc, "k", InfoPatch::new().title(Some("A")));
         doc.apply_all(
             Origin::Local,
-            [SetInfo::new(InfoPatch::new().author(Some("X")), None).into()],
+            [SetInfo::patch(InfoPatch::new().author(Some("X"))).into()],
         )
         .unwrap();
-        doc.apply_all(
-            remote(),
-            [SetInfo::new(InfoPatch::new().author(Some("R")), None).into()],
-        )
-        .unwrap();
+        doc.apply_all(remote(), [SetInfo::patch(InfoPatch::new().author(Some("R"))).into()])
+            .unwrap();
         doc.undo().unwrap();
         coalesce(&mut doc, "k", InfoPatch::new().title(Some("B")));
         assert_eq!(doc.history().undo_len(), 2);
@@ -336,7 +327,7 @@ mod review_fixes {
         let mut doc = corpus("outline.pdf");
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let _ = doc.transact(Origin::Local, |tx| -> laminapdf_ops::Result<()> {
-                tx.apply(SetInfo::new(InfoPatch::new().title(Some("Half")), None))?;
+                tx.apply(SetInfo::patch(InfoPatch::new().title(Some("Half"))))?;
                 panic!("host code panicked");
             });
         }));
@@ -349,11 +340,8 @@ mod review_fixes {
     #[test]
     fn key_by_key_undo_puts_a_removed_key_back_in_place() {
         let mut doc = inherited_rotate();
-        doc.apply_all(
-            Origin::Local,
-            [SetInfo::new(InfoPatch::new().author(None), None).into()],
-        )
-        .unwrap();
+        doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().author(None)).into()])
+            .unwrap();
         set_title(&mut doc, remote(), Some("Remote"));
         doc.undo().unwrap();
         let info = doc.trailer().get("Info").unwrap();

@@ -28,7 +28,7 @@ use crate::resolve::resolve;
 /// # let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
 ///
 /// let mut doc = Document::open(bytes, Default::default())?;
-/// doc.apply_all(Origin::Local, [SetInfo::new(InfoPatch::new().title(Some("Report")), None).into()])?;
+/// doc.apply_all(Origin::Local, [SetInfo::patch(InfoPatch::new().title(Some("Report"))).into()])?;
 ///
 /// let planner = SavePlanner::new(&doc)?;
 /// assert_eq!(planner.constraint().kind(), ConstraintKind::Free);

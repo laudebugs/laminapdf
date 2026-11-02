@@ -150,7 +150,7 @@ pub fn free_list_base() -> Vec<u8> {
 pub fn set_title(doc: &mut Document, title: &str) {
     doc.apply_all(
         Origin::Local,
-        [SetInfo::new(InfoPatch::new().title(Some(title)), None).into()],
+        [SetInfo::patch(InfoPatch::new().title(Some(title))).into()],
     )
     .unwrap();
 }

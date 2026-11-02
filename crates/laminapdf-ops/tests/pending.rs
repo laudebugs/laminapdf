@@ -53,9 +53,8 @@ fn a_failed_savepoint_adds_nothing() {
             tx.apply(laminapdf_ops::RotatePage::new(page.clone(), Rotation::Half))?;
             Err::<(), _>(Error::NoTransaction)
         });
-        tx.apply(laminapdf_ops::SetInfo::new(
+        tx.apply(laminapdf_ops::SetInfo::patch(
             laminapdf_ops::InfoPatch::new().title(Some("A")),
-            None,
         ))?;
         Ok(())
     })

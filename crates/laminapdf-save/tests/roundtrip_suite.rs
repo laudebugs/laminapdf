@@ -137,7 +137,7 @@ fn built_text_links_outlines_labels_and_xmp_survive_a_save() {
             let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
             doc.apply_all(
                 Origin::Local,
-                [SetInfo::new(InfoPatch::new().title(Some("edited")), None).into()],
+                [SetInfo::patch(InfoPatch::new().title(Some("edited"))).into()],
             )
             .unwrap();
             let mut out = Vec::new();

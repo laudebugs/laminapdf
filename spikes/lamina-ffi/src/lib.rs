@@ -428,7 +428,7 @@ impl FfiDocument {
             FfiInfoKey::Creator => InfoPatch::new().creator(v),
             FfiInfoKey::Producer => InfoPatch::new().producer(v),
         };
-        let _ = self.lock()?.apply(vec![Op::from(SetInfo::new(patch, None))])?;
+        let _ = self.lock()?.apply(vec![Op::from(SetInfo::patch(patch))])?;
         Ok(())
     }
 
@@ -769,9 +769,8 @@ mod tests {
         // The same edit through the façade directly gives the same bytes.
         let mut direct = Document::open_bytes(HELLO.to_vec(), OpenOptions::default()).map_err(FfiError::from)?;
         let _ = direct
-            .apply(vec![Op::from(SetInfo::new(
+            .apply(vec![Op::from(SetInfo::patch(
                 InfoPatch::new().title(Some("From the FFI")),
-                None,
             ))])
             .map_err(FfiError::from)?;
         let expected = direct

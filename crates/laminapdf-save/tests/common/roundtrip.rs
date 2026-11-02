@@ -204,7 +204,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
             .author(author)
             .subject(subject)
             .keywords(keywords);
-        SetInfo::new(patch, None).into()
+        SetInfo::patch(patch).into()
     } else {
         let page = doc.pages().unwrap().get(0).unwrap().id().clone();
         RotatePage::new(page, rotation).into()

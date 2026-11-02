@@ -23,7 +23,7 @@ fn hello() -> Document {
 }
 
 fn set_title(title: &str) -> Op {
-    Op::from(SetInfo::new(InfoPatch::new().title(Some(title)), None))
+    Op::from(SetInfo::patch(InfoPatch::new().title(Some(title))))
 }
 
 /// Steps `job` with `budget` until it finishes, returning the result and the number of steps.

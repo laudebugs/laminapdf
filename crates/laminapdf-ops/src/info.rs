@@ -162,6 +162,19 @@ impl SetInfo {
         Self { patch, at }
     }
 
+    /// The op that applies `patch` and leaves `/ModDate` as it is.
+    ///
+    /// ```
+    /// use laminapdf_ops::{InfoPatch, SetInfo};
+    ///
+    /// let op = SetInfo::patch(InfoPatch::new().title(Some("Final report")));
+    /// assert_eq!(op.at, None);
+    /// ```
+    #[must_use]
+    pub const fn patch(patch: InfoPatch) -> Self {
+        Self { patch, at: None }
+    }
+
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Vec<PageId>> {
         let mut cos = doc.cos_mut().edit();
         // The current Info dictionary: shared with the overlay or base when indirect (a

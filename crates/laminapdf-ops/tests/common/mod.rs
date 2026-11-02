@@ -67,7 +67,7 @@ pub fn author(doc: &laminapdf_model::Document) -> Option<String> {
 }
 
 pub fn set_title(doc: &mut Document, origin: Origin, title: Option<&str>) {
-    doc.apply_all(origin, [SetInfo::new(InfoPatch::new().title(title), None).into()])
+    doc.apply_all(origin, [SetInfo::patch(InfoPatch::new().title(title)).into()])
         .unwrap();
 }
 
