@@ -359,6 +359,15 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         part(&format!("fuzz {target}"), harness::fuzz(ws, &task));
     }
     part("scaling", scaling(ws));
+    let render_args = render_diff::Args {
+        pages: Some(RENDER_DIFF_PAGES),
+        sample: quick.then_some(100),
+        ..render_diff::Args::default()
+    };
+    part("render-diff", render_diff::run(ws, &render_args));
+    part("verapdf", crate::verapdf::run(ws, None));
+    part("docs-links --external", docs_links::external::run(&ws.root, false));
+    // Last, as in the workflow: timings taken after the heavy parts have finished.
     let bench_args = BenchArgs {
         quick,
         ..BenchArgs::default()
@@ -368,14 +377,6 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         "pdf-runtimes",
         crate::wasm(ws).and_then(|()| pdf_runtimes::run(ws, &pdf_runtimes::Args::default())),
     );
-    let render_args = render_diff::Args {
-        pages: Some(RENDER_DIFF_PAGES),
-        sample: quick.then_some(100),
-        ..render_diff::Args::default()
-    };
-    part("render-diff", render_diff::run(ws, &render_args));
-    part("verapdf", crate::verapdf::run(ws, None));
-    part("docs-links --external", docs_links::external::run(&ws.root, false));
     if failed.is_empty() {
         step("Nightly lane passed");
         Ok(())
