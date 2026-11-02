@@ -40,7 +40,7 @@ Version the library as one lockstep release and prove it installs outside the re
 **Out of scope** (and which todo covers it)
 
 - Name reservation, OIDC trusted publishing, provenance, attestations, release workflow publish job: [P1](../done/P1-reserve-names-and-trusted-publishing.md).
-- First registry pre-release, public stability policy, cargo-semver-checks against the registry: [P2](../ready/P2-first-registry-prerelease.md).
+- First registry pre-release, public stability policy, cargo-semver-checks against the registry: [P2](../done/P2-first-registry-prerelease.md).
 
 ## Tasks
 
