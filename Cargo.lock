@@ -1073,7 +1073,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "boon",
  "criterion",
@@ -1092,7 +1092,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
@@ -1111,7 +1111,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -1123,7 +1123,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "criterion",
  "laminapdf-save",
@@ -1135,7 +1135,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-save",
@@ -1147,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "boon",
  "hayro",
@@ -1175,7 +1175,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-pdfium"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf",
  "laminapdf-render",
@@ -1186,7 +1186,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-wasm"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "js-sys",
  "laminapdf-render",
@@ -1195,7 +1195,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "criterion",
  "laminapdf-cos",
@@ -1210,7 +1210,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-source"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf",
  "laminapdf-cos",
@@ -1221,7 +1221,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "aes",
  "md-5",
@@ -1235,7 +1235,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "harfrust",
  "icu_properties",
@@ -1256,7 +1256,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-wasm"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "js-sys",
  "laminapdf",
@@ -1923,7 +1923,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "std14-gen"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "anyhow",
  "sha2",
@@ -2476,7 +2476,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 dependencies = [
  "anyhow",
  "boon",

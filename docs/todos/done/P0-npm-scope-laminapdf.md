@@ -38,7 +38,7 @@ The owner decided (2026-10-31) that lamina's npm packages are published under th
 
 **Out of scope** (and which todo covers it)
 
-- Reserving the scope and publishing → [P1](../done/P1-reserve-names-and-trusted-publishing.md), [P2](../ready/P2-first-registry-prerelease.md).
+- Reserving the scope and publishing → [P1](../done/P1-reserve-names-and-trusted-publishing.md), [P2](../done/P2-first-registry-prerelease.md).
 - Crate names (`lamina-*`), the Rust façade `lamina` and the product name: unchanged (the crates became `laminapdf-*` later, in [P0b](P0b-crate-names-laminapdf.md)).
 - History: done todos keep the name they were written under (links into renamed anchors are fixed), and so do their titles on the generated board. The frozen spikes `pdfium-wasm`, `krilla-fit` and `hayro-parity` keep it too: `pdfium-wasm`'s lockfile pins the old tarballs, and it is re-run only with a rename of its own.
 

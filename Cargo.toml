@@ -12,11 +12,11 @@ members = ["crates/*", "tools/xtask", "tools/std14-gen"]
 exclude = ["spikes", "fuzz", "tools/render"]
 
 [workspace.package]
-version = "0.2.0-alpha.0"
+version = "0.2.0-alpha.1"
 edition = "2024"
-# MSRV policy (rust.md): while nothing is published, the MSRV tracks the pinned toolchain in
-# rust-toolchain.toml. Before the first public release we move to N-2. CI's `msrv-and-spike` job checks it.
-rust-version = "1.99"
+# MSRV policy (rust.md): N-2, at least two stable releases behind the pinned toolchain in
+# rust-toolchain.toml (1.99), since the first registry release. CI's `msrv-and-spike` job checks it.
+rust-version = "1.97"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/laudebugs/laminapdf"
 homepage = "https://laminapdf.com"
@@ -27,20 +27,20 @@ publish = false
 # gives each the workspace version (ADR 0017).
 # No default features: `saslprep` (R5/R6 passwords, ~130 KB of Unicode tables in WASM) is asked
 # for by the crates and builds that want it (laminapdf-cos and the façade by default; ADR 0016 §5).
-laminapdf-syntax = { version = "0.2.0-alpha.0", path = "crates/laminapdf-syntax", default-features = false }
-laminapdf-cos = { version = "0.2.0-alpha.0", path = "crates/laminapdf-cos", default-features = false }
-laminapdf-model = { version = "0.2.0-alpha.0", path = "crates/laminapdf-model" }
-laminapdf-ops = { version = "0.2.0-alpha.0", path = "crates/laminapdf-ops" }
-laminapdf-source = { version = "0.2.0-alpha.0", path = "crates/laminapdf-source" }
-laminapdf-save = { version = "0.2.0-alpha.0", path = "crates/laminapdf-save" }
-laminapdf-content = { version = "0.2.0-alpha.0", path = "crates/laminapdf-content" }
-laminapdf-text = { version = "0.2.0-alpha.0", path = "crates/laminapdf-text" }
+laminapdf-syntax = { version = "0.2.0-alpha.1", path = "crates/laminapdf-syntax", default-features = false }
+laminapdf-cos = { version = "0.2.0-alpha.1", path = "crates/laminapdf-cos", default-features = false }
+laminapdf-model = { version = "0.2.0-alpha.1", path = "crates/laminapdf-model" }
+laminapdf-ops = { version = "0.2.0-alpha.1", path = "crates/laminapdf-ops" }
+laminapdf-source = { version = "0.2.0-alpha.1", path = "crates/laminapdf-source" }
+laminapdf-save = { version = "0.2.0-alpha.1", path = "crates/laminapdf-save" }
+laminapdf-content = { version = "0.2.0-alpha.1", path = "crates/laminapdf-content" }
+laminapdf-text = { version = "0.2.0-alpha.1", path = "crates/laminapdf-text" }
 # No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
-laminapdf-build = { version = "0.2.0-alpha.0", path = "crates/laminapdf-build", default-features = false }
-laminapdf = { version = "0.2.0-alpha.0", path = "crates/laminapdf", default-features = false }
-laminapdf-render = { version = "0.2.0-alpha.0", path = "crates/laminapdf-render" }
-laminapdf-render-pdfium = { version = "0.2.0-alpha.0", path = "crates/laminapdf-render-pdfium" }
-laminapdf-render-wasm = { version = "0.2.0-alpha.0", path = "crates/laminapdf-render-wasm" }
+laminapdf-build = { version = "0.2.0-alpha.1", path = "crates/laminapdf-build", default-features = false }
+laminapdf = { version = "0.2.0-alpha.1", path = "crates/laminapdf", default-features = false }
+laminapdf-render = { version = "0.2.0-alpha.1", path = "crates/laminapdf-render" }
+laminapdf-render-pdfium = { version = "0.2.0-alpha.1", path = "crates/laminapdf-render-pdfium" }
+laminapdf-render-wasm = { version = "0.2.0-alpha.1", path = "crates/laminapdf-render-wasm" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
