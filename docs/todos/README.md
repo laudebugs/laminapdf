@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 213 ready · 77 done** (290 total).
+**0 ongoing · 211 ready · 79 done** (290 total).
 
 ## Can start now
 
@@ -28,13 +28,11 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [P2](ready/P2-first-registry-prerelease.md): First registry pre-release, public stability policy and changelog, cargo-semver-checks
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
-- [Q1m](ready/Q1m-guides-read-and-edit.md): Plain-English guides: reading and editing PDFs
 - [Q2c](ready/Q2c-test-fixtures-crate.md): `laminapdf-test-fixtures` for the core crates' test helpers
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
 - [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
 - [Q2i](ready/Q2i-one-lexer-one-png-filter.md): One PDF lexer and one PNG row filter
 - [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated
-- [Q2n](ready/Q2n-render-adapter-shared.md): Shared code for the render adapters
 - [Q2p](ready/Q2p-ts-complexity-splits.md): Split the TypeScript functions over the complexity limit
 - [Q2q](ready/Q2q-split-cos-reader.md): Split the COS reader module
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
@@ -351,8 +349,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q1i | [Plain-English guides: creating PDFs](done/Q1i-guides-create.md) | done | [Q1h](done/Q1h-docs-story.md) |
 | Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](done/Q1h-docs-story.md) |
 | Q1k | [Internal IDs out of error pages and READMEs](done/Q1k-internal-ids-out-of-reader-text.md) | done | [Q1b](done/Q1b-docs-prose-check.md) |
-| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](done/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](ready/Q1m-guides-read-and-edit.md) |
-| Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](done/Q1h-docs-story.md) |
+| Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1i](done/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](done/Q1m-guides-read-and-edit.md) |
+| Q1m | [Plain-English guides: reading and editing PDFs](done/Q1m-guides-read-and-edit.md) | done | [Q1h](done/Q1h-docs-story.md) |
 | Q2a | [`check maintainability` for Rust: module budget and new lints](done/Q2a-maintainability-checks-rust.md) | done | — |
 | Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](done/Q2b-ts-lint-rules.md) | done | — |
 | Q2c | [`laminapdf-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
@@ -366,7 +364,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](done/Q2k-boundary-errors-ts.md) | done | [Q2j](done/Q2j-boundary-errors-rust.md) |
 | Q2l | [Lists that cross the WASM boundary are generated](ready/Q2l-boundary-lists-generated.md) | ready | — |
 | Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](done/Q2m-ts-test-utils.md) | done | — |
-| Q2n | [Shared code for the render adapters](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](done/Q2m-ts-test-utils.md) |
+| Q2n | [Shared code for the render adapters](done/Q2n-render-adapter-shared.md) | done | [Q2m](done/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](done/Q2o-ts-hygiene.md) | done | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](ready/Q2p-ts-complexity-splits.md) | ready | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |

@@ -45,7 +45,13 @@ export default defineConfig({
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
   // Moved pages keep their old URLs (static redirects; Workers static assets ignore _redirects).
-  redirects: { "/guides/errors-and-warnings/": "/concepts/errors-and-warnings/" },
+  redirects: {
+    "/guides/errors-and-warnings/": "/concepts/errors-and-warnings/",
+    "/guides/open-edit-and-save/": "/guides/edit-a-pdf/",
+    "/guides/encrypted-files/": "/guides/password-protected-files/",
+    "/guides/limits/": "/guides/untrusted-files/",
+    "/guides/off-the-main-thread/": "/guides/keep-the-page-responsive/",
+  },
   integrations: [
     starlight({
       title: "Lamina PDF",
@@ -111,14 +117,15 @@ export default defineConfig({
         {
           label: "Read and edit PDFs",
           items: [
-            { label: "Open, edit and save", slug: "guides/open-edit-and-save" },
-            { label: "Open password-protected files", slug: "guides/encrypted-files" },
-            { label: "Open files you don't trust", slug: "guides/limits" },
+            { label: "Edit a PDF", slug: "guides/edit-a-pdf" },
+            { label: "Save a PDF", slug: "guides/save-a-pdf" },
+            { label: "Open password-protected files", slug: "guides/password-protected-files" },
+            { label: "Open files you don't trust", slug: "guides/untrusted-files" },
           ],
         },
         {
           label: "Production",
-          items: [{ label: "Keep the page responsive", slug: "guides/off-the-main-thread" }],
+          items: [{ label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" }],
         },
         { label: "Examples", link: "/examples/" },
         {

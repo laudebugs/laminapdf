@@ -250,7 +250,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
 | [Q1k](../todos/done/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
 | [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
-| [Q1m](../todos/ready/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
+| [Q1m](../todos/done/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 
 ### Q2: code quality and reuse
 
@@ -269,7 +269,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2k](../todos/done/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
 | [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
 | [Q2m](../todos/done/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
-| [Q2n](../todos/ready/Q2n-render-adapter-shared.md) | Shared code for the render adapters | M | Q2m |
+| [Q2n](../todos/done/Q2n-render-adapter-shared.md) | Shared code for the render adapters | M | Q2m |
 | [Q2o](../todos/done/Q2o-ts-hygiene.md) | TypeScript hygiene: no test hooks in shipped code | M | Q2u |
 | [Q2p](../todos/ready/Q2p-ts-complexity-splits.md) | Split the TypeScript functions over the complexity limit | M | Q2b |
 | [Q2q](../todos/ready/Q2q-split-cos-reader.md) | Split the COS reader module | M | Q2a, Q2e |
@@ -301,11 +301,11 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1b, Q1c: the docs-prose and examples checks
 - [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples
 - [x] Q1h, Q1i: the story and the create-PDF guides
-- [ ] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting
+- [ ] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting ([Q1m](../todos/done/Q1m-guides-read-and-edit.md), the read-and-edit guides, is done)
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code, are done)
-- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, and [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, are done)
+- [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, and [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, are done)
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history
