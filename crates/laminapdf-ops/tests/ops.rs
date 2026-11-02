@@ -238,6 +238,26 @@ mod rotate_page {
     }
 
     #[test]
+    fn writes_nothing_when_an_own_null_inherits_the_rotation() {
+        let mut doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 /Rotate 90 /MediaBox [0 0 100 100] >>",
+                "<< /Type /Page /Parent 2 0 R /Rotate null >>",
+            ],
+            "",
+        ));
+        let first = page_ids(&doc).first().unwrap().clone();
+        let ((), applied) = doc
+            .transact(Origin::Local, |tx| {
+                tx.apply(RotatePage::new(first, Rotation::Clockwise90))?;
+                Ok(())
+            })
+            .unwrap();
+        assert!(!doc.is_dirty() && applied.touched_pages.is_empty());
+    }
+
+    #[test]
     fn replaces_an_own_value_in_place() {
         let mut doc = inherited_rotate();
         let third = page_ids(&doc).get(2).unwrap().clone();

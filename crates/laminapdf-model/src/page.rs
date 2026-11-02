@@ -314,7 +314,7 @@ impl<'p> Page<'p> {
         let Some(value) = self.cos.inherited.rotate.as_deref() else {
             return Ok(Some(Rotation::None));
         };
-        Ok(self.doc().read(value)?.and_then(|v| Rotation::from_object(&v)))
+        self.doc().read_rotate(value)
     }
 
     fn read_rotate(&self) -> Result<Rotation> {
