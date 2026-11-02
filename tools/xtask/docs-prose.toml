@@ -43,7 +43,7 @@ glossary = [
 # Acronyms in capitals and words containing digits are always allowed.
 proper_nouns = [
   "Acrobat", "Adobe", "Android", "Arabic", "Astro", "Bun", "Chrome", "Chromium", "Cloudflare",
-  "Deno", "Firefox", "Hebrew", "HarfRust", "Hindi", "I", "JavaScript", "Latin", "Linux", "Markdown",
+  "Deno", "Firefox", "Hebrew", "HarfRust", "Hindi", "I", "JavaScript", "Lamina", "Latin", "Linux", "Markdown",
   "Node", "OpenType", "Paper", "PDFium", "Rust", "Safari", "Sans", "Source", "Starlight", "Tauri",
   "TrueType", "TypeScript", "TypeDoc", "Unicode", "Vite", "Web", "WebAssembly", "WebKit", "Windows",
   "Worker", "Workers", "Wrangler", "Xcode", "macOS", "iOS",

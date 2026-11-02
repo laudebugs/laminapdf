@@ -26,7 +26,7 @@ A save writes the overlay out in one of two ways:
 - **[Incremental save](/reference/glossary/#incremental-save):** the original bytes, unchanged, followed by a new revision that holds your edits. Signatures over the original stay valid.
 - **[Full rewrite](/reference/glossary/#full-rewrite):** the whole file written again, smaller and tidier, but no longer the original bytes.
 
-The default, `auto`, saves incrementally when it can. A signed file saves only incrementally, and a save fails if your edits break its signatures, unless you pass `invalidateSignatures: true`. [Open, edit and save](/guides/open-edit-and-save/) has the details.
+The default, `auto`, saves incrementally when it can. A signed file saves only incrementally, and a save fails if your edits break its signatures, unless you pass `invalidateSignatures: true`. [Save a PDF](/guides/save-a-pdf/) has the details.
 
 This example builds a document, opens its bytes, changes the title and saves incrementally. The saved file starts with the original bytes:
 

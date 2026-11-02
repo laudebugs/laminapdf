@@ -250,7 +250,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1j](../todos/ready/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
 | [Q1k](../todos/done/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
 | [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
-| [Q1m](../todos/ready/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
+| [Q1m](../todos/done/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 
 ### Q2: code quality and reuse
 
@@ -301,7 +301,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1b, Q1c: the docs-prose and examples checks
 - [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples
 - [x] Q1h, Q1i: the story and the create-PDF guides
-- [ ] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting
+- [ ] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting ([Q1m](../todos/done/Q1m-guides-read-and-edit.md), the read-and-edit guides, is done)
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)

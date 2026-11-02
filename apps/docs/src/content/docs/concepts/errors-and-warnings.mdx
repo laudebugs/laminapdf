@@ -1,23 +1,31 @@
 ---
 title: Errors and warnings
-description: One coded error shape on every surface, and warnings for what was repaired.
-sidebar:
-  order: 6
+description: One coded error shape on every surface, and warnings for what Lamina PDF repaired.
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-Lamina PDF reports problems in two ways:
+Real PDFs are often damaged, so Lamina PDF separates a call that failed from one that worked around a problem. An error stops the call. A warning lets it finish and tells you what was repaired, dropped or approximated. Both carry a stable code your program can branch on.
 
-- **An error** stops the call. In TypeScript it's a `LaminaPdfError`. In Rust it's `laminapdf::Error`.
-- **A warning** means the call went ahead, but something in the file was repaired, dropped or approximated: `doc.warnings` in TypeScript, `doc.warnings()` in Rust.
+## Errors stop the call
 
-Both have the same fields on every surface: `code`, `kind` (`input`, `limit`, `usage`, `state`, `io`, …), `message`, `hint`, `location`, `data` and `docsUrl`. `toJSON()` gives the same object in TypeScript as `serde` does in Rust.
+In TypeScript an error is a `LaminaPdfError`, and in Rust it's a `laminapdf::Error`. Branch on its `code`, never on its `message`: `isLaminaPdfError(e, "wrong-password")` checks the code and narrows the type in one step.
 
-- **Branch on `code`**, never on `message`. `isLaminaPdfError(e, "wrong-password")` narrows the type.
-- **`kind` sorts errors by who can fix them.** For example, a server returns a 4xx for `input` and `limit` and a 5xx for the rest. The [Cloudflare Workers quick start](/quick-start/workers/) does exactly that.
-- **Text from the document is untrusted.** It's never in `message` or `hint`. It goes only in `data`.
+## Warnings say what was repaired
+
+A warning means the call went ahead, but Lamina PDF had to repair, drop or approximate something in the file. Read them with `doc.warnings` in TypeScript or `doc.warnings()` in Rust. Show them to the user when the difference matters, such as a page that may not look the way its author intended.
+
+## Every surface has the same fields
+
+Errors and warnings have the same fields in TypeScript and Rust: `code`, `kind`, `message`, `hint`, `location`, `data` and `docsUrl`. `toJSON()` in TypeScript gives the same object as `serde` does in Rust, so a server and a browser can pass them to each other unchanged.
+
+- **`kind` sorts errors by who can fix them**, such as `input`, `limit`, `usage`, `state` or `io`. For example, a server returns a 4xx status for `input` and `limit` and a 5xx for the rest, as the [Cloudflare Workers quick start](/quick-start/workers/) does.
+- **Text from the document is untrusted**, so it never appears in `message` or `hint`. It goes only in `data`, where you can escape it before you show it.
+
+This example opens someone else's file and returns the error's code and hint as a value, instead of letting the error escape:
 
 <Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
-Every code, with its kind, summary and hint, is listed in the [code reference](/reference/codes/), which is generated from `fixtures/codes.json`.
+The [error and warning codes](/reference/codes/) list every code with its kind, a summary and a hint.
+
+Next: make a PDF with [text and fonts](/guides/fonts-and-text/).
