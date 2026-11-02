@@ -12,7 +12,7 @@
 | Branch | `refactor/q2p-ts-complexity-splits` |
 | PR title | `refactor(ts): split the eight functions over the complexity limit` |
 | Size | M |
-| PR | — |
+| PR | [#191](https://github.com/laudebugs/laminapdf/pull/191) |
 
 ## Goal
 
