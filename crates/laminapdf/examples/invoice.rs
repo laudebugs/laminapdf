@@ -38,7 +38,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
 /// The invoice, drawn and not yet finished (its tests read the tagging diagnostics).
 pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
     let at = PointPt::from_points;
-    let options = BuildOptions::default()
+    let options = BuildOptions::new()
         .with_id(*b"lamina-ex-invoic")
         .with_producer("lamina examples")
         .with_creation_date("D:20261030120000Z".parse()?)
@@ -68,7 +68,7 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
         at(56.0, 100.0),
     )?
     .tag(TagKind::P);
-    let right = TextBoxOptions::default().with_align(Alignment::End);
+    let right = TextBoxOptions::new().with_align(Alignment::End);
     let hairline = StrokeStyle {
         width: Pt::new(0.5),
         ..StrokeStyle::default()

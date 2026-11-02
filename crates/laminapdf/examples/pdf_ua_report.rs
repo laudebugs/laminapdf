@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut b = Builder::new(BuildOptions::default().with_profile(Profile::PdfUa1));
+    let mut b = Builder::new(BuildOptions::new().with_profile(Profile::PdfUa1));
     b.metadata(Metadata::default().with_title("Annual sales report 2026"));
     b.lang("en-GB");
     let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;

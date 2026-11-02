@@ -10,7 +10,7 @@
 //! };
 //!
 //! let at = PointPt::from_points;
-//! let mut b = Builder::new(BuildOptions::default().with_id(*b"invoice-0000-042"));
+//! let mut b = Builder::new(BuildOptions::new().with_id(*b"invoice-0000-042"));
 //! let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;
 //! let bold = b.standard_font(Standard14::HelveticaBold)?;
 //! let mut page = b.page(PageSize::A4);
@@ -39,7 +39,7 @@
 //! let bytes = doc.save(&SaveOptions::new())?.bytes;
 //!
 //! // Later: open the bytes, edit with ops (undoable, serialisable), save incrementally.
-//! let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+//! let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
 //! assert_eq!((doc.page_count()?, doc.page_info(0)?.width.round()), (1, 595.0));
 //! doc.apply(vec![Op::from(SetInfo::new(InfoPatch::new().subject(Some("Paid")), None))])?;
 //! let options = SaveOptions::new().with_mode(SaveMode::Incremental);

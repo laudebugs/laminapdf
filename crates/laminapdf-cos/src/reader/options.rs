@@ -25,6 +25,12 @@ pub struct OpenOptions {
 }
 
 impl OpenOptions {
+    /// The defaults, as [`OpenOptions::default`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Sets the resource [`Limits`] (default: [`Limits::default`]).
     #[must_use]
     pub const fn with_limits(mut self, limits: Limits) -> Self {

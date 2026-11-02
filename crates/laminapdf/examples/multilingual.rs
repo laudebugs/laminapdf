@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 /// The document's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
-    let options = BuildOptions::default()
+    let options = BuildOptions::new()
         .with_id(*b"lamina-ex-multil")
         .with_producer("lamina examples")
         .with_creation_date("D:20261030120000Z".parse()?);
@@ -72,7 +72,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
         let y = 80.0 + 140.0 * f64::from(row);
         s.text(line, font, Pt::new(16.0), PointPt::from_points(56.0, y))?;
         // A narrow box breaks the paragraph into lines; right-to-left paragraphs start at the right.
-        let options = TextBoxOptions::default()
+        let options = TextBoxOptions::new()
             .with_direction(*direction)
             .with_align(Alignment::Start);
         let area = RectPt::from_points(56.0, y + 14.0, 220.0, 100.0);

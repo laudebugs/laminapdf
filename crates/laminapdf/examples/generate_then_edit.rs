@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The document's bytes: the generated file followed by the edit's revision.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     // 1. Generate and save (a new document is always a full rewrite).
-    let options = BuildOptions::default()
+    let options = BuildOptions::new()
         .with_id(*b"lamina-ex-edit!!")
         .with_producer("lamina examples")
         .with_creation_date("D:20261030120000Z".parse()?);
@@ -42,7 +42,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let generated = b.finish()?.save(&SaveOptions::new())?.bytes;
 
     // 2. Open the bytes and edit them with an op: one transaction, which `undo` could revert.
-    let mut doc = Document::open_bytes(generated.clone(), OpenOptions::default())?;
+    let mut doc = Document::open_bytes(generated.clone(), OpenOptions::new())?;
     let patch = InfoPatch::new()
         .title(Some("Final report"))
         .author(Some("Ada Lovelace"));

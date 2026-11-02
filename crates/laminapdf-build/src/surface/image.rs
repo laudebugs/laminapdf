@@ -71,6 +71,12 @@ pub struct PngOptions {
 }
 
 impl PngOptions {
+    /// The defaults, as [`PngOptions::default`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// With [`PngOptions::downconvert_16`] set.
     #[must_use]
     pub const fn with_downconvert_16(mut self, on: bool) -> Self {

@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The document's bytes: the same on every run and every platform.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     // Everything that would come from the environment (file ID, dates) is given.
-    let options = BuildOptions::default()
+    let options = BuildOptions::new()
         .with_id(*b"lamina-ex-hello!")
         .with_producer("lamina examples")
         .with_creation_date("D:20261030120000Z".parse()?);

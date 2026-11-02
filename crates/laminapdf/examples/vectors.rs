@@ -31,7 +31,7 @@ fn gradient() -> Vec<u8> {
 /// The document's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let at = PointPt::from_points;
-    let options = BuildOptions::default()
+    let options = BuildOptions::new()
         .with_id(*b"lamina-ex-vector")
         .with_producer("lamina examples")
         .with_creation_date("D:20261030120000Z".parse()?);

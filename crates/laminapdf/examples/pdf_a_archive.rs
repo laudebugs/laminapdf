@@ -48,8 +48,8 @@ pub(crate) enum Level {
 /// The letter's bytes.
 pub(crate) fn build(level: Level) -> Result<Vec<u8>, Box<dyn Error>> {
     let options = match level {
-        Level::A2b => BuildOptions::default().with_profile(Profile::PdfA2b),
-        Level::A2u => BuildOptions::default()
+        Level::A2b => BuildOptions::new().with_profile(Profile::PdfA2b),
+        Level::A2u => BuildOptions::new()
             .with_profile(Profile::PdfA2u)
             .with_profile(Profile::PdfUa1),
     };
@@ -86,8 +86,7 @@ fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildEr
     })?;
     let body = RectPt::from_points(MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT);
     s.tag(TagKind::P, |s| {
-        s.text_box(LETTER, font, BODY, body, &TextBoxOptions::default())
-            .map(drop)
+        s.text_box(LETTER, font, BODY, body, &TextBoxOptions::new()).map(drop)
     })?;
     let beside = RectPt::from_points(PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT);
     s.figure(photo, beside, Some(PHOTO_ALT));

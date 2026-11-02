@@ -55,7 +55,7 @@ fn invoice_xml() -> Result<String, std::fmt::Error> {
 
 /// The invoice's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut b = Builder::new(BuildOptions::default().with_profile(Profile::PdfA3b));
+    let mut b = Builder::new(BuildOptions::new().with_profile(Profile::PdfA3b));
     b.metadata(
         Metadata::default()
             .with_title("Invoice 42")

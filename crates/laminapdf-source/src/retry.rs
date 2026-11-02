@@ -35,6 +35,12 @@ impl Default for RetryOptions {
 }
 
 impl RetryOptions {
+    /// The defaults, as [`RetryOptions::default`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Sets [`RetryOptions::max_rounds`].
     #[must_use]
     pub fn with_max_rounds(mut self, rounds: u32) -> Self {
