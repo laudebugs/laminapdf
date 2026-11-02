@@ -68,10 +68,6 @@ prefix = "https://openai.com/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
-prefix = "https://pdfium.googlesource.com/"
-reason = "the same Gitiles servers as chromium.googlesource.com: passed only on a retry on 2026-11-02 (rate limit under the nightly's request volume)"
-
-[[allow]]
 prefix = "https://press.rebus.community/"
 reason = "answers 403 to non-browser clients (bot protection)"
 

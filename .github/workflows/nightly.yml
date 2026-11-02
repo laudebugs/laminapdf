@@ -292,11 +292,11 @@ jobs:
     # macos-arm64/lamina-self-hosted-runner), since a baseline mixing two Macs flags noise as
     # regressions (issue #170). Runners on one Mac share the label, and their timings share
     # that Mac's load.
-    # So the benchmarks start only after every other job of this run has ended, whatever its
-    # result: run beside nine fuzz targets and the render diff, they measured the Mac's load
-    # (issue #170: +303% and +605% on the report benchmarks). PR lanes can still share the Mac.
-    # `tools/xtask/src/workflows.rs` checks that this list names every other job.
-    needs: [differential, fuzz, scaling, links, render-diff, verapdf]
+    # The benchmarks start only after every job that doesn't depend on them has ended, whatever
+    # its result. Beside nine fuzz targets and the render diff they also measured that load,
+    # likely part of issue #170's +303% and +605% on the report benchmarks. PR lanes can still
+    # share the Mac. `tools/xtask/src/workflows.rs` checks that this list stays complete.
+    needs: [differential, fuzz, scaling, links, render-diff, verapdf, forced-failure]
     if: ${{ !cancelled() }}
     runs-on: [self-hosted, macOS, ARM64]
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
@@ -601,8 +601,12 @@ jobs:
               gh issue create --title "$1" --label nightly --body-file "$2"
             fi
           }
-          failed=$(jq -r 'to_entries | map(select(.value.result == "failure") | .key) | join(", ")' <<< "$NEEDS")
-          timed_out=$(jq -r 'to_entries | map(select(.value.result == "cancelled") | .key) | join(", ")' <<< "$NEEDS")
+          jobs_with() { # result: the ids of the jobs that ended with it, comma-separated
+            jq -r --arg result "$1" 'to_entries | map(select(.value.result == $result) | .key) | join(", ")' <<< "$NEEDS"
+          }
+          failed=$(jobs_with failure)
+          # A timeout ends a job `cancelled`; so does a job cancelled on its own.
+          timed_out=$(jobs_with cancelled)
           # One section of the links report (`### <title>…` up to the next heading), at most 30 rows.
           links_section() { # title-prefix report
             table=$(sed -n "/^### $1/,/^### /p" "$2" | sed '1!{ /^### /d; }' | sed '/^$/d')
@@ -625,8 +629,8 @@ jobs:
               fi
               echo
               [ -n "$failed" ] && echo "Failed jobs: **$failed**."
-              # A job that ran no step at all landed on a hung runner, so a re-run usually passes.
-              [ -n "$timed_out" ] && echo "Timed out: **$timed_out**. If the job's log shows no step, it landed on a hung runner: re-run it with \`gh run rerun $GITHUB_RUN_ID --failed\` and report the runner to its owner."
+              # A job that ran no step landed on a hung runner, so a re-run usually passes.
+              [ -n "$timed_out" ] && echo "Timed out or cancelled: **$timed_out**. If the job's log shows no step, it landed on a hung runner: re-run it with \`gh run rerun $GITHUB_RUN_ID --failed\` and report the runner to its owner."
               [ "$FLAKY" = "true" ] && echo "The scaling tests failed once and passed on retry: **flaky** (ADR 0018 §4)."
               [ "$LINKS_FLAKY" = "true" ] && echo "Some external links failed once and passed on retry: **flaky** (ADR 0018 §4)."
               report=artefacts/differential-report/report.json

@@ -1,13 +1,13 @@
-//! Tests that keep the two required checks complete (todo X7): every job of ci.yml is in
-//! `fast-gate`'s `needs`, and every job of full.yml is in `gate`'s. A job left out of them
-//! would not block a merge when it fails. In nightly.yml, `report` needs every job (else that
-//! job's failure opens no issue), and `bench` waits for every job that doesn't depend on it,
-//! so the benchmarks never share the Mac with the rest of the lane.
+//! Tests of the workflows' job graphs. The two required checks stay complete (todo X7): every
+//! job of ci.yml is in `fast-gate`'s `needs`, and every job of full.yml is in `gate`'s, since a
+//! job left out of them would not block a merge when it fails. In nightly.yml, `report` needs
+//! every job (else that job's failure opens no issue) and `bench` needs every job that doesn't
+//! depend on it (why: the comment on nightly.yml's `bench` job).
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs are
-//! two-space-indented keys under `jobs:`, and a gate lists its `needs` on one line. A gate whose
-//! `needs` is written any other way reads as empty, so every job is reported missing. The
-//! module is compiled only for tests (`main.rs`).
+//! two-space-indented keys under `jobs:`, and a job lists its `needs` on one line, as `[a, b]`
+//! or a single id. A gate whose `needs` is written any other way reads as empty, so every job is
+//! reported missing. The module is compiled only for tests (`main.rs`).
 
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
 pub(crate) fn job_id(line: &str) -> Option<&str> {
@@ -37,15 +37,35 @@ fn job_ids(workflow: &str) -> Vec<&str> {
     jobs(workflow).into_iter().map(|(id, _)| id).collect()
 }
 
-/// The ids in `job`'s one-line `needs: [a, b]`, read only from that job's own lines.
+/// The ids in `job`'s one-line `needs: [a, b]` or `needs: a`, read only from that job's own lines.
 fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
     jobs(workflow)
         .into_iter()
         .find(|(id, _)| *id == job)
-        .and_then(|(_, lines)| lines.into_iter().find_map(|l| l.trim().strip_prefix("needs: [")))
-        .and_then(|l| l.strip_suffix(']'))
-        .map(|l| l.split(',').map(str::trim).collect())
+        .and_then(|(_, lines)| lines.into_iter().find_map(|l| l.trim().strip_prefix("needs: ")))
+        .map(|l| {
+            let list = l.strip_prefix('[').and_then(|l| l.strip_suffix(']')).unwrap_or(l);
+            list.split(',').map(str::trim).collect()
+        })
         .unwrap_or_default()
+}
+
+/// The jobs of `workflow` that need `job`, directly or through another job.
+fn dependents<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
+    let ids = job_ids(workflow);
+    let mut found: Vec<&str> = Vec::new();
+    let mut grew = true;
+    while grew {
+        grew = false;
+        for id in &ids {
+            let after = needs(workflow, id).iter().any(|n| *n == job || found.contains(n));
+            if *id != job && !found.contains(id) && after {
+                found.push(id);
+                grew = true;
+            }
+        }
+    }
+    found
 }
 
 /// The jobs of `workflow` missing from `gate`'s `needs`.
@@ -80,11 +100,10 @@ mod tests {
         assert_eq!(missing_from(NIGHTLY, "report"), Vec::<&str>::new());
     }
 
-    /// Every job but those that run after `bench` (`pdf-runtimes`, `report`) or only on request
-    /// (`forced-failure`).
+    /// `bench` needs every job but those that need it (`pdf-runtimes`, `report`).
     #[test]
-    fn nightly_bench_should_wait_for_every_other_measuring_job() {
-        let after = ["bench", "pdf-runtimes", "report", "forced-failure"];
+    fn nightly_bench_should_need_every_job_that_does_not_depend_on_it() {
+        let after = dependents(NIGHTLY, "bench");
         let missing: Vec<&str> = missing_from(NIGHTLY, "bench")
             .into_iter()
             .filter(|id| !after.contains(id))
@@ -92,16 +111,43 @@ mod tests {
         assert_eq!(missing, Vec::<&str>::new());
     }
 
-    /// A job that hits its `timeout-minutes` ends `cancelled`, and fails the run like a failure.
+    /// A job that hits its `timeout-minutes` ends `cancelled` but still fails the run, so
+    /// `report` must count `cancelled` results too, and skip only a run someone cancelled.
     #[test]
     fn nightly_report_should_treat_a_timed_out_job_as_a_failure() {
-        let (_, lines) = jobs(NIGHTLY)
+        let lines = jobs(NIGHTLY)
             .into_iter()
             .find(|(id, _)| *id == "report")
+            .map(|(_, lines)| lines)
             .unwrap_or_default();
-        let job = lines.join("\n");
-        assert!(job.contains("contains(needs.*.result, 'cancelled')"), "{job}");
-        assert!(job.contains("!cancelled() &&"), "{job}");
+        assert!(!lines.is_empty(), "nightly.yml has no `report` job");
+        let condition: String = lines
+            .iter()
+            .skip_while(|l| !l.trim_start().starts_with("if:"))
+            .take_while(|l| !l.trim_start().starts_with("runs-on:"))
+            .flat_map(|l| l.split_whitespace())
+            .collect::<Vec<_>>()
+            .join(" ");
+        for part in [
+            "!cancelled()",
+            "contains(needs.*.result, 'failure')",
+            "contains(needs.*.result, 'cancelled')",
+        ] {
+            assert!(condition.contains(part), "report's `if` lacks {part}: {condition}");
+        }
+    }
+
+    #[test]
+    fn needs_should_read_a_single_job_id() {
+        let workflow = "on:\n  push:\njobs:\n  a:\n    run: x\n  b:\n    needs: a\n";
+        assert_eq!(needs(workflow, "b"), ["a"]);
+    }
+
+    #[test]
+    fn dependents_should_follow_needs_through_other_jobs() {
+        let workflow =
+            "on:\n  push:\njobs:\n  a:\n    run: x\n  b:\n    needs: a\n  c:\n    needs: [b]\n  d:\n    run: y\n";
+        assert_eq!(dependents(workflow, "a"), ["b", "c"]);
     }
 
     #[test]
