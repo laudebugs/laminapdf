@@ -14,7 +14,7 @@ The external readers of the nightly lane's live differential ([ADR 0018](../../d
 | Text tool | Runner | Version pinned in |
 | --- | --- | --- |
 | pdf.js | `text.mjs --facts pdfjs` | `package.json` + `pnpm-lock.yaml` |
-| pdftotext | `text.mjs --facts pdftotext` (poppler) | `tools/xtask/src/doctor.rs` (`POPPLER_VERSION`; the runner's Homebrew poppler, left out with a warning when it differs) |
+| pdftotext | `text.mjs --facts pdftotext` (poppler) | `tools/xtask/src/doctor.rs` (`POPPLER_VERSION`; the runner's Homebrew poppler, installed by the nightly when the runner has none, left out with a warning when its version differs, which fails the pages only pdftotext agrees with) |
 
 xtask runs lamina and the tools at once, each over chunks of 200 inputs, one process per chunk with a 20-minute limit (`tools/xtask/src/runner.rs`). A chunk that crashes, hangs or reports different files is rerun one file per process with a 2-minute limit, so a bad file becomes a `timeout` or `crash` entry (skipped for a tool, a failure for lamina) instead of stopping the run; a reader whose every file in a chunk crashes is reported broken and fails the run after the report is written. Inside a process, the runners also give up on a file after 60 s where they can (Python's `SIGALRM`, a timer in pdf.js), which native code and synchronous parsing can ignore. Each reader's output goes to `target/nightly/differential/<reader>.log`. Inputs are data: they are only read, never executed.
 

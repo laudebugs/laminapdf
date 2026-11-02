@@ -4,6 +4,6 @@
 # pypdfium2 (PDFium bindings with a bundled PDFium build): Apache-2.0 OR BSD-3-Clause, PDFium BSD-3-Clause.
 # pypdf matches tools/corpus-facts/requirements.txt: the PR lane's precomputed facts and the
 # nightly lane's live ones come from the same version.
-pypdf==6.21.4
+pypdf==6.21.3
 cryptography==50.0.2
 pypdfium2==5.14.0
