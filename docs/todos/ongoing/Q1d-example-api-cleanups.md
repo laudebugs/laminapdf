@@ -12,7 +12,7 @@
 | Branch | `feat/q1d-example-api-cleanups` |
 | PR title | `feat(api): small API fixes that make the examples read cleanly` |
 | Size | S |
-| PR | — |
+| PR | [#192](https://github.com/laudebugs/laminapdf/pull/192) |
 
 ## Goal
 
