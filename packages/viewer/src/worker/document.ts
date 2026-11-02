@@ -2,7 +2,13 @@
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
 
-import { bytesSource, type RenderBackend, type RenderDocument, RenderError } from "@laminapdf/render";
+import {
+  bytesSource,
+  type CloneableWasmSource,
+  type RenderBackend,
+  type RenderDocument,
+  RenderError,
+} from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
 import { Document, isLaminaPdfError } from "@laminapdf/sdk";
@@ -22,11 +28,21 @@ interface Open {
 let open: Open | undefined;
 let nextDocument = 1;
 
+/** PDFium needs its `.wasm` from the app (hayro finds its own). */
+function loadPdfium(wasm: CloneableWasmSource | undefined): Promise<RenderBackend> {
+  if (wasm === undefined) {
+    return Promise.reject(
+      new RenderError("render-backend-unavailable", "PDFium needs its .wasm: pass BackendInit.wasm"),
+    );
+  }
+  return initPdfium(wasm);
+}
+
 /** Loads the backend (the client asks as soon as the worker starts, before a file is chosen). */
 export async function initBackend(init: BackendInit): Promise<{ name: string; version: string }> {
   let pending = loading.get(init.backend);
   if (pending === undefined) {
-    pending = init.backend === "hayro" ? initHayro(init.wasm as never) : initPdfium(init.wasm as never);
+    pending = init.backend === "hayro" ? initHayro(init.wasm) : loadPdfium(init.wasm);
     loading.set(init.backend, pending);
     pending.catch(() => loading.delete(init.backend));
   }

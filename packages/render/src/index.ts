@@ -151,6 +151,8 @@ export interface RenderDocument extends Disposable {
 export interface RenderBackend {
   readonly name: "pdfium" | "hayro";
   readonly version: string;
+  /** The size of the engine's WebAssembly memory, in bytes (it only grows). */
+  memory(): number;
   /** @throws RenderError `password-required`, `wrong-password`, `data-pending`, `render-failed`. */
   open(source: RenderSource, options?: RenderOpenOptions): RenderDocument;
 }
@@ -361,4 +363,94 @@ export function pageToTile(plan: TilePlan, page: RenderPage, rotation: ViewRotat
 /** Throws the `AbortError` a cancelled render throws, if `signal` is aborted. */
 export function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw new DOMException("the render was aborted", "AbortError");
+}
+
+/**
+ * Where an engine's `.wasm` comes from: a URL (or URL string) to fetch, a `Response` (or a
+ * promise of one), the bytes, or a compiled `WebAssembly.Module`. The app controls caching and
+ * lazy loading (ADR 0009 §2).
+ */
+export type WasmSource =
+  | URL
+  | string
+  | Response
+  | PromiseLike<Response>
+  | ArrayBuffer
+  | ArrayBufferView<ArrayBuffer>
+  | WebAssembly.Module;
+
+/** The {@link WasmSource} forms that `postMessage` can send to a worker. */
+export type CloneableWasmSource = string | ArrayBuffer | ArrayBufferView<ArrayBuffer> | WebAssembly.Module;
+
+// For the adapters (@laminapdf/render-hayro, @laminapdf/render-pdfium): what both share, so they
+// check pages, reads and sizes the same way. Apps don't need these.
+
+/** The most input bytes a wasm32 engine can address: its file access and buffers take 32-bit sizes. */
+export const MAX_WASM_INPUT = 0xffff_ffff;
+
+/** Throws `render-too-large` when an input of `size` bytes is over `most`. */
+export function checkInputSize(size: number, most: number): void {
+  if (size > most) {
+    throw new RenderError("render-too-large", `the input is ${size} bytes, over the render limit of ${most} bytes`);
+  }
+}
+
+/** Throws `page-index-out-of-range` unless `index` is a page of a `pageCount`-page document. */
+export function checkPageIndex(index: number, pageCount: number): void {
+  if (!Number.isInteger(index) || index < 0 || index >= pageCount) {
+    throw new RenderError(
+      "page-index-out-of-range",
+      `page index ${index} is out of range for a document of ${pageCount} pages`,
+    );
+  }
+}
+
+/** Throws `disposed` once the document is closed. */
+export function checkOpen(open: boolean): asserts open {
+  if (!open) throw new RenderError("disposed", "the document was closed");
+}
+
+/** The error of a failed read: the source's own RenderError, else `source`. */
+export function readFailure(offset: number, length: number, cause?: unknown): RenderError {
+  return isRenderError(cause)
+    ? cause
+    : new RenderError("source", `bytes ${offset}..+${length} of the input could not be read`);
+}
+
+/**
+ * Reads `length` bytes at `offset` from `source`: the bytes, or `undefined` while they haven't
+ * arrived.
+ *
+ * @throws RenderError `source` when the source throws or returns fewer bytes, or the source's own
+ * RenderError.
+ */
+export function readRange(source: RenderSource, offset: number, length: number): Uint8Array | undefined {
+  let bytes: Uint8Array | undefined;
+  try {
+    bytes = source.readSync(offset, length);
+  } catch (e) {
+    throw readFailure(offset, length, e);
+  }
+  if (bytes !== undefined && bytes.length !== length) throw readFailure(offset, length);
+  return bytes;
+}
+
+/** `ranges` sorted, with overlapping and touching ones merged (an engine may ask for one window many times). */
+export function mergeRanges(ranges: readonly ByteRange[]): [offset: number, length: number][] {
+  const merged: [number, number][] = [];
+  for (const [offset, length] of [...ranges].sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
+    const last = merged.at(-1);
+    if (last !== undefined && offset <= last[0] + last[1]) {
+      last[1] = Math.max(last[1], offset + length - last[0]);
+    } else {
+      merged.push([offset, length]);
+    }
+  }
+  return merged;
+}
+
+/** `data-pending` with the missing `ranges`, merged. */
+export function pendingError(ranges: readonly ByteRange[]): RenderError {
+  const merged = mergeRanges(ranges);
+  return new RenderError("data-pending", `${merged.length} byte range(s) of the input are not available yet`, merged);
 }

@@ -32,7 +32,7 @@ This todo rewrites the "Create PDFs" guides to the [docs-writing guideline](../.
 
 **Out of scope** (and which todo covers it)
 
-- The read-and-edit guides ([Q1m](../ready/Q1m-guides-read-and-edit.md)).
+- The read-and-edit guides ([Q1m](./Q1m-guides-read-and-edit.md)).
 
 ## Tasks
 
