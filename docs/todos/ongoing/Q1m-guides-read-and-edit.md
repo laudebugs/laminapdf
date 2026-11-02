@@ -12,7 +12,7 @@
 | Branch | `docs/q1m-read-edit-guides` |
 | PR title | `docs(site): plain-English guides for reading and editing PDFs` |
 | Size | M |
-| PR | — |
+| PR | [#182](https://github.com/laudebugs/laminapdf/pull/182) |
 
 ## Goal
 
