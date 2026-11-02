@@ -4,7 +4,8 @@
 //! It packs `@laminapdf/wasm` and `@laminapdf/sdk` with `pnpm pack`, then builds temporary projects in
 //! the system temp directory, outside the repository, whose only lamina dependencies are those
 //! tarballs or the `laminapdf` crate, and runs the quick start (`packages/sdk/examples/hello.ts`,
-//! `crates/laminapdf/examples/hello.rs`, copied in) in each runtime:
+//! `crates/laminapdf/examples/hello.rs`, copied in, called with the golden's file ID, producer and
+//! creation date) in each runtime:
 //!
 //! - `node`: every `--node <binary>` (default: `node` on `PATH`; Node ≥ 22.18 runs `.ts` files);
 //! - `deno`, `bun`: the repository's pinned binaries (dev dependencies of `@laminapdf/sdk`);
@@ -36,7 +37,11 @@ const RUNTIMES: [&str; 6] = ["node", "deno", "bun", "chromium", "workerd", "rust
 const GOLDEN: &str = "fixtures/golden/examples/hello.pdf";
 /// The quick starts copied into the projects.
 const HELLO_TS: &str = "packages/sdk/examples/hello.ts";
+/// The golden's file ID, producer and creation date, which the TypeScript quick start takes as options.
+const HELLO_OPTIONS_TS: &str = "packages/sdk/test/suite/hello-options.ts";
 const HELLO_RS: &str = "crates/laminapdf/examples/hello.rs";
+/// The façade crate the Rust projects depend on (its `[package] name`, which a test checks).
+const FACADE_CRATE: &str = "laminapdf";
 /// The package whose dev dependencies provide deno, bun, vite, Playwright and wrangler.
 const TOOLS_PACKAGE: &str = "packages/sdk";
 /// The line a JavaScript check prints (`report.ts`).
@@ -52,6 +57,8 @@ const CHROMIUM_RUNNER: &str = include_str!("verify_install/vite/chromium.mjs");
 const WORKER_INDEX: &str = include_str!("verify_install/worker/index.ts");
 const WRANGLER_TOML: &str = include_str!("verify_install/worker/wrangler.toml");
 const WORKERD_RUNNER: &str = include_str!("verify_install/worker/workerd.mjs");
+/// The Rust project's `main`: the quick start's `build` with the golden's options.
+const RUST_MAIN: &str = include_str!("verify_install/rust/main.rs.in");
 
 const USAGE: &str = "usage: cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… \
                      [--node <binary>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep]";
@@ -338,8 +345,11 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
         &(serde_json::to_string_pretty(&package)? + "\n"),
     )?;
     let hello = fs::read_to_string(ws.root.join(HELLO_TS)).with_context(|| format!("reading {HELLO_TS}"))?;
+    let hello_options =
+        fs::read_to_string(ws.root.join(HELLO_OPTIONS_TS)).with_context(|| format!("reading {HELLO_OPTIONS_TS}"))?;
     for dir in [js.clone(), js.join("vite"), js.join("worker/src")] {
         write(&dir.join("hello.ts"), &hello)?;
+        write(&dir.join("hello-options.ts"), &hello_options)?;
         write(&dir.join("report.ts"), REPORT_TS)?;
     }
     write(&js.join("main.ts"), MAIN_TS)?;
@@ -481,7 +491,10 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
         git_stdout(&ws.root, &["rev-parse", "--path-format=absolute", "--git-common-dir"])
             .map(|dir| format!("file://{dir}"))
     });
-    let path_dep = format!("{{ path = {:?} }}", ws.root.join("crates/laminapdf").to_string_lossy());
+    let path_dep = format!(
+        "{{ path = {:?} }}",
+        ws.root.join("crates").join(FACADE_CRATE).to_string_lossy()
+    );
     let spec = git_spec(&ws.root, &git_ref);
     let (kind, value) = spec.as_ref().map_or(("rev", git_ref.clone()), |(k, v)| (*k, v.clone()));
     let mut outcomes = vec![Outcome {
@@ -510,17 +523,12 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
 
 fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golden: &str) -> Result<String> {
     let dir = work.join(name);
-    let manifest = format!(
-        "# cargo xtask verify-install: the Rust quick start (crates/laminapdf/examples/hello.rs) outside the\n\
-         # repository. An empty [workspace]: this project is its own workspace.\n\
-         [package]\nname = \"lamina-verify-{name}\"\nversion = \"0.0.0\"\nedition = \"2024\"\npublish = false\n\n\
-         [dependencies]\nlamina = {dependency}\n\n[workspace]\n"
-    );
-    write(&dir.join("Cargo.toml"), &manifest)?;
+    write(&dir.join("Cargo.toml"), &rust_manifest(name, dependency))?;
     write(
-        &dir.join("src/main.rs"),
+        &dir.join("src/hello.rs"),
         &fs::read_to_string(ws.root.join(HELLO_RS)).with_context(|| format!("reading {HELLO_RS}"))?,
     )?;
+    write(&dir.join("src/main.rs"), RUST_MAIN)?;
     // The repository's lockfile, so the third-party crates are the versions CI tests (Cargo
     // drops the entries this project doesn't use).
     fs::copy(ws.root.join("Cargo.lock"), dir.join("Cargo.lock")).context("copying Cargo.lock")?;
@@ -551,12 +559,49 @@ fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golde
     Ok(format!("{} bytes, identical to {GOLDEN}", bytes.len()))
 }
 
+/// The `Cargo.toml` of a Rust project: the façade crate under its own name, as a user writes it.
+fn rust_manifest(name: &str, dependency: &str) -> String {
+    format!(
+        "# cargo xtask verify-install: the Rust quick start ({HELLO_RS}) outside the\n\
+         # repository. An empty [workspace]: this project is its own workspace.\n\
+         [package]\nname = \"lamina-verify-{name}\"\nversion = \"0.0.0\"\nedition = \"2024\"\npublish = false\n\n\
+         [dependencies]\n{FACADE_CRATE} = {dependency}\n\n[workspace]\n"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
-    use super::{Args, check_line, git_spec, parse_args};
+    use super::{Args, FACADE_CRATE, check_line, git_spec, parse_args, rust_manifest};
     use crate::util::git_stdout;
+
+    #[test]
+    fn rust_main_should_use_the_options_the_hello_golden_was_written_with() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let read = |path: &str| std::fs::read_to_string(root.join(path)).unwrap();
+        let examples = read("crates/laminapdf/tests/examples.rs");
+        let options_ts = read(super::HELLO_OPTIONS_TS);
+        for value in ["lamina-ex-hello!", "lamina examples", "D:20261030120000Z"] {
+            let quoted = format!("\"{value}\"");
+            assert!(super::RUST_MAIN.contains(&quoted), "main.rs.in lacks {quoted}");
+            assert!(examples.contains(&quoted), "tests/examples.rs lacks {quoted}");
+            assert!(options_ts.contains(&quoted), "hello-options.ts lacks {quoted}");
+        }
+    }
+
+    #[test]
+    fn rust_manifest_should_depend_on_the_facade_by_its_package_name() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let crate_manifest =
+            std::fs::read_to_string(root.join("crates").join(FACADE_CRATE).join("Cargo.toml")).unwrap();
+        let package: toml::Table = toml::from_str(&crate_manifest).unwrap();
+        assert_eq!(package["package"]["name"].as_str(), Some(FACADE_CRATE));
+
+        let manifest: toml::Table = toml::from_str(&rust_manifest("rust-path", "{ path = \"x\" }")).unwrap();
+        let deps = manifest["dependencies"].as_table().unwrap();
+        assert_eq!(deps.keys().collect::<Vec<_>>(), vec![FACADE_CRATE]);
+    }
 
     fn args(list: &[&str]) -> Args {
         parse_args(&list.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>()).unwrap()

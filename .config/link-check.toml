@@ -72,12 +72,16 @@ prefix = "https://openai.com/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
-prefix = "https://pdfa.org/resource/arlington-pdf-model/"
-reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 nightly and answered 200 when re-checked that day. The prefix is the whole page URL, so the host's other links stay checked"
+prefix = "https://pdfa.org/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection): every pdfa.org link failed the 2026-11-02 release run (v0.2.0-alpha.1), after one page failed that day's nightly and answered 200 when re-checked"
 
 [[allow]]
 prefix = "https://press.rebus.community/"
 reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://searchengineland.com/llms-txt-proposed-standard-453676"
+reason = "answers 403 to automated clients from some networks (bot protection); it failed the 2026-11-02 release run. The prefix is the whole page URL, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://slack-chats.kotlinlang.org/"
@@ -94,6 +98,10 @@ reason = "answers 403 to non-browser clients (bot protection)"
 [[allow]]
 prefix = "https://www.americanbar.org/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.ansi.org/standards-news/member-updates/4-1-26-the-pdf-association-sets-the-ai-record-straight-with-faq-resource"
+reason = "answers 403 to automated clients from some networks (bot protection); it failed the 2026-11-02 release run. The prefix is the whole page URL, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://www.brainbound.blog/"
@@ -118,6 +126,10 @@ reason = "answers 403 to automated clients from some networks (Vercel bot protec
 [[allow]]
 prefix = "https://www.npmjs.com/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.pdfa.org/"
+reason = "pdfa.org's www host, behind the same bot protection (see https://pdfa.org/ above); its links failed the 2026-11-02 release run with 403"
 
 [[allow]]
 prefix = "https://www.publicsector.shidirect.com/"
