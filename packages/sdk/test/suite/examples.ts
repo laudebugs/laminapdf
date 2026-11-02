@@ -38,7 +38,7 @@ const SCRIPT_FONTS = [
 ] as const;
 const PHOTO = "fixtures/images/photo-rgb.jpg";
 /** The modification date generate-then-edit records, fixed like the options. */
-export const EDITED_AT = "D:20261030130000Z";
+const EDITED_AT = "D:20261030130000Z";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
