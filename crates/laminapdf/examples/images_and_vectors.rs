@@ -1,10 +1,11 @@
 //! Images and vector graphics on one A4 page.
 //!
-//! Shapes, a dashed Bézier curve, gray, RGB, CMYK and hex colour, transparency with a blend
-//! mode, a JPEG clipped to an ellipse, and a rotated RGBA image with a soft mask.
+//! It draws shapes and a dashed Bézier curve in gray, RGB, CMYK and hex colour, overlaps two
+//! translucent discs with a blend mode, clips a JPEG to an ellipse and rotates an RGBA image
+//! with a soft mask.
 //!
 //! ```sh
-//! cargo run -p laminapdf --example images_and_vectors -- photo.jpg [out-dir]   # writes <out-dir>/images_and_vectors.pdf
+//! cargo run -p laminapdf --example images_and_vectors -- photo.jpg [out-dir]   # writes images_and_vectors.pdf
 //! ```
 
 use std::error::Error;

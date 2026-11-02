@@ -1,5 +1,5 @@
 // Open bytes from someone else: an optional password, tighter limits than the defaults, and the
-// outcome as a value rather than an exception. It writes nothing; it reports what it found.
+// outcome as a value rather than an exception. The example writes nothing: it returns what it found.
 import { Document, isLaminaPdfError } from "@laminapdf/sdk";
 
 const MiB = 1024 * 1024;

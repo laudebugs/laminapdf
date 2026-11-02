@@ -9,7 +9,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 Each example exists twice, in Rust and in TypeScript, and both write exactly the same bytes. Every change to Lamina PDF is tested for that in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. The source below is the tested code, and each PDF link is the file it writes.
 
-To run one yourself from a checkout of Lamina PDF, use `cargo run -p laminapdf --example <name>`, followed by the font or image files it needs if its header lists any. It writes the PDF to `target/examples-out/`. The PDFs linked below were built with a fixed file ID and creation date, so the same code always writes them byte for byte.
+From a checkout of Lamina PDF, run `cargo run -p laminapdf --example <name>` with the font or image files its header names. It writes the PDF to `target/examples-out/`. The tests build the PDFs linked below with a fixed file ID and creation date, so they come out byte for byte the same on every run.
 
 ## hello
 

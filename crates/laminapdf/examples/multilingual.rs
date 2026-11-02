@@ -1,11 +1,11 @@
 //! Five scripts on one page, each as a single line and as a wrapped paragraph.
 //!
-//! Latin, Arabic and Hebrew (right to left), Devanagari and simplified Chinese, each shaped
-//! and bidi-resolved, with the paragraphs wrapped in text boxes. Each script needs a font that
-//! covers it, such as the Noto fonts (OFL).
+//! The scripts are Latin, Arabic and Hebrew (right to left), Devanagari and simplified Chinese;
+//! each is shaped and bidi-resolved, and each paragraph wraps in a text box. Each script needs a
+//! font that covers it, such as the Noto fonts (OFL).
 //!
 //! ```sh
-//! cargo run -p laminapdf --example multilingual -- latin.ttf arabic.ttf devanagari.ttf hebrew.ttf chinese.otf [out-dir]
+//! cargo run -p laminapdf --example multilingual -- latin.ttf arabic.ttf devanagari.ttf hebrew.ttf chinese.otf
 //! ```
 
 use std::error::Error;

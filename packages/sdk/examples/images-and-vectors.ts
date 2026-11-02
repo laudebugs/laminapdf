@@ -1,6 +1,6 @@
-// Images and vector graphics on one A4 page. Shapes, a dashed Bézier curve, gray, RGB, CMYK and
-// hex colour, transparency with a blend mode, a JPEG clipped to an ellipse, and a rotated RGBA
-// image with a soft mask. Needs only the base module.
+// Images and vector graphics on one A4 page. It draws shapes and a dashed Bézier curve in gray,
+// RGB, CMYK and hex colour, overlaps two translucent discs with a blend mode, clips a JPEG to an
+// ellipse and rotates an RGBA image with a soft mask. Needs only the base module.
 import { Builder, type BuilderOptions, Image, Matrix, type Surface } from "@laminapdf/sdk";
 
 /** The RGBA gradient's side, in pixels. */

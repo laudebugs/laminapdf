@@ -1,6 +1,7 @@
-// Five scripts on one page, each as a single line and as a wrapped paragraph. Latin, Arabic and
-// Hebrew (right to left), Devanagari and simplified Chinese, each shaped and bidi-resolved. Each
-// script needs a font that covers it, such as the Noto fonts (OFL).
+// Five scripts on one page, each as a single line and as a wrapped paragraph. The scripts are
+// Latin, Arabic and Hebrew (right to left), Devanagari and simplified Chinese; each is shaped and
+// bidi-resolved, and each paragraph wraps in a text box. Each script needs a font that covers it,
+// such as the Noto fonts (OFL).
 import { Builder, type BuilderOptions, type Direction, Font } from "@laminapdf/sdk";
 
 /** Each script's line, its paragraph and the paragraph's direction, in the order of the fonts. */
