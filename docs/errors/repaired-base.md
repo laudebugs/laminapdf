@@ -18,7 +18,7 @@ Save with a full rewrite instead.
 ## Example
 
 ```rust
-let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::default())?; // warns xref-repaired
+let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::new())?; // warns xref-repaired
 let err = doc.save(&SaveOptions::default().with_mode(SaveMode::Incremental));
 // repaired-base; SaveMode::Auto (the default) writes a full rewrite instead
 ```

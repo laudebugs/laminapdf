@@ -23,7 +23,7 @@ pub(crate) struct Instance;
 /// Every method takes and returns owned data: pages are addressed by 0-based `index` or by
 /// [`PageId`], never by a borrowed view (F1); reads take `&self` and changes `&mut self`
 /// (F4); long work is a job ([`Document::save_job`]) with a run-to-completion form that takes
-/// a [`CancelToken`] ([`Document::save_with`], F10). Rust callers who want borrowed views
+/// a [`CancelToken`] ([`Document::save_with`], F10); [`Document::save`] is that form without one. Rust callers who want borrowed views
 /// (`laminapdf_model::Page`) use [`Document::ops`].
 ///
 /// **Threads.** `Send` but not `Sync` ([ADR 0005] §7, [ADR 0028] §2): move it to another

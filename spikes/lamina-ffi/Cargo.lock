@@ -546,17 +546,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina-ffi"
-version = "0.0.0"
-dependencies = [
- "laminapdf",
- "serde_json",
- "sha2",
- "thiserror",
- "uniffi",
-]
-
-[[package]]
 name = "laminapdf"
 version = "0.2.0-alpha.1"
 dependencies = [
@@ -602,6 +591,17 @@ version = "0.2.0-alpha.1"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
+]
+
+[[package]]
+name = "lamina-ffi"
+version = "0.0.0"
+dependencies = [
+ "laminapdf",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "uniffi",
 ]
 
 [[package]]

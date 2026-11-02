@@ -49,6 +49,13 @@ const SCRIPT_FONTS: [&str; 5] = [
     "fonts/NotoSansSC-Regular.otf",
 ];
 const PHOTO: &str = "images/photo-rgb.jpg";
+/// Each example's fixed file ID (`/ID[0]`, 16 bytes).
+const HELLO_ID: &[u8; 16] = b"lamina-ex-hello!";
+const INVOICE_ID: &[u8; 16] = b"lamina-ex-invoic";
+const MULTILINGUAL_ID: &[u8; 16] = b"lamina-ex-multil";
+const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
+const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
+const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -73,21 +80,17 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
 const EXAMPLES: [(&str, Build); 10] = [
-    ("hello", || hello::build(options(b"lamina-ex-hello!")?)),
-    ("invoice", || {
-        invoice::build(options(b"lamina-ex-invoic")?, fixture(NOTO))
-    }),
+    ("hello", || hello::build(options(HELLO_ID)?)),
+    ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
-        multilingual::build(options(b"lamina-ex-multil")?, SCRIPT_FONTS.map(fixture).to_vec())
+        multilingual::build(options(MULTILINGUAL_ID)?, SCRIPT_FONTS.map(fixture).to_vec())
     }),
     ("images_and_vectors", || {
-        images_and_vectors::build(options(b"lamina-ex-vector")?, fixture(PHOTO))
+        images_and_vectors::build(options(IMAGES_AND_VECTORS_ID)?, fixture(PHOTO))
     }),
-    ("links_and_outlines", || {
-        links_and_outlines::build(options(b"lamina-ex-links!")?)
-    }),
+    ("links_and_outlines", || links_and_outlines::build(options(LINKS_ID)?)),
     ("generate_then_edit", || {
-        generate_then_edit::build(options(b"lamina-ex-edit!!")?, Some(EDITED.parse()?))
+        generate_then_edit::build(options(EDIT_ID)?, Some(EDITED.parse()?))
     }),
     ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
     ("pdf_a_archive-2b", || {
@@ -132,9 +135,8 @@ fn every_example_gives_the_same_bytes_twice() {
 #[test]
 fn every_example_reopens_without_warnings() {
     for (name, build) in EXAMPLES {
-        let doc =
-            laminapdf::Document::open_bytes(build().unwrap(), laminapdf::OpenOptions::default().with_strict(true))
-                .unwrap_or_else(|e| panic!("{name}: {e}"));
+        let doc = laminapdf::Document::open_bytes(build().unwrap(), laminapdf::OpenOptions::new().with_strict(true))
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
         assert!(doc.page_count().unwrap() > 0, "{name}");
         assert_eq!(doc.warnings().remaining(), 0, "{name}");
     }
@@ -142,16 +144,21 @@ fn every_example_reopens_without_warnings() {
 
 #[test]
 fn the_tagged_invoice_leaves_nothing_untagged() {
-    let mut b = Builder::new(options(b"lamina-ex-invoic").unwrap().with_tagged(true));
+    let mut b = Builder::new(options(INVOICE_ID).unwrap().with_tagged(true));
     invoice::draw(&mut b, fixture(NOTO)).unwrap();
     assert_eq!(b.tagging_diagnostics(), []);
 }
 
 #[test]
 fn generate_then_edit_appends_the_edit_to_the_generated_file() {
-    let generated = generate_then_edit::generate(options(b"lamina-ex-edit!!").unwrap()).unwrap();
-    let edited = generate_then_edit::build(options(b"lamina-ex-edit!!").unwrap(), None).unwrap();
+    let generated = generate_then_edit::generate(options(EDIT_ID).unwrap()).unwrap();
+    let edited = generate_then_edit::build(options(EDIT_ID).unwrap(), None).unwrap();
     assert!(edited.starts_with(&generated) && edited.len() > generated.len());
+}
+
+#[test]
+fn generate_then_edit_retitles_the_document() {
+    let edited = generate_then_edit::build(options(EDIT_ID).unwrap(), None).unwrap();
     let doc = laminapdf::Document::open_bytes(edited, laminapdf::OpenOptions::new()).unwrap();
     assert_eq!(doc.info().unwrap().title.as_deref(), Some("Final report"));
 }

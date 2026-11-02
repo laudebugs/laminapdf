@@ -423,12 +423,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rect_from_points_matches_from_xywh_and_normalises_negative_sizes() {
+    fn rect_from_points_is_from_xywh_in_points() {
         let pt = Pt::new;
         assert_eq!(
             RectPt::from_points(10.0, 20.0, 30.0, 40.0),
             RectPt::from_xywh(pt(10.0), pt(20.0), pt(30.0), pt(40.0))
         );
+    }
+
+    #[test]
+    fn rect_from_points_with_negative_sizes_extends_left_and_up() {
+        let pt = Pt::new;
         assert_eq!(
             RectPt::from_points(10.0, 20.0, -5.0, -5.0),
             RectPt::new(pt(5.0), pt(15.0), pt(10.0), pt(20.0))

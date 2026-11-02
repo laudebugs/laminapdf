@@ -59,11 +59,6 @@ pub(crate) fn build(options: BuildOptions) -> Result<Vec<u8>, Box<dyn Error>> {
     Ok(doc.save(&SaveOptions::new())?.bytes)
 }
 
-/// Where a link's text starts: the left margin, on `baseline`.
-fn link_at(baseline: f64) -> PointPt {
-    PointPt::from_points(MARGIN, baseline)
-}
-
 /// The title page's links: to a website, to a page, and to a named destination.
 fn title_page_links(s: &mut Surface, font: &FontHandle) -> Result<(), Box<dyn Error>> {
     let site = LinkTarget::Uri("https://example.com/".into());
@@ -73,7 +68,7 @@ fn title_page_links(s: &mut Surface, font: &FontHandle) -> Result<(), Box<dyn Er
         ("Go to chapter 2 (named)", LinkTarget::Named("chapter-2".into()), None),
     ];
     for ((label, target, contents), baseline) in links.into_iter().zip(LINK_BASELINES) {
-        s.text(label, font, LINK_SIZE, link_at(baseline))?;
+        s.text(label, font, LINK_SIZE, PointPt::from_points(MARGIN, baseline))?;
         let area = RectPt::from_points(MARGIN, baseline - LINK_RISE, LINK_WIDTH, LINK_HEIGHT);
         s.link(area, target, contents.map(String::from));
     }

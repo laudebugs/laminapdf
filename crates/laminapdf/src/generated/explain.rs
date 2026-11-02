@@ -37,7 +37,7 @@ offset 1,212  %PDF-1.7
               1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
 ```
 
-Lamina PDF looks for `%PDF-` in the first 1,024 bytes only. Here it starts at byte 1,212, so `Document::open_bytes` warns `missing-header` and reads the objects anyway. With `OpenOptions::default().with_strict(true)` the same open fails with [`strict`](strict.md).
+Lamina PDF looks for `%PDF-` in the first 1,024 bytes only. Here it starts at byte 1,212, so `Document::open_bytes` warns `missing-header` and reads the objects anyway. With `OpenOptions::new().with_strict(true)` the same open fails with [`strict`](strict.md).
 
 ## Data fields
 
@@ -403,7 +403,7 @@ A damaged file raising 50,000 repairs with the default `max_warnings`: the first
 
 ```rust
 let limits = laminapdf::Limits::default().with_max_warnings(100_000);
-let doc = laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::default().with_limits(limits))?;
+let doc = laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::new().with_limits(limits))?;
 ```
 
 ## Data fields
@@ -1244,7 +1244,7 @@ Raise the named limit only if you trust the input.
 ## Example
 
 ```rust
-let options = OpenOptions::default().with_limits(Limits::new().with_max_nesting_depth(1));
+let options = OpenOptions::new().with_limits(Limits::new().with_max_nesting_depth(1));
 let doc = Document::open_bytes(bytes, options)?;
 let err = doc.page_count().unwrap_err();
 // { "code": "limit-exceeded", "kind": "limit", "data": { "limit": "max_nesting_depth" },
@@ -1283,7 +1283,7 @@ Open without strict mode, or fix the file.
 ## Example
 
 ```rust
-let options = OpenOptions::default().with_strict(true);
+let options = OpenOptions::new().with_strict(true);
 let err = Document::open_bytes(bytes_with_a_broken_xref, options).unwrap_err();
 // { "code": "strict", "data": { "warning": "xref-repaired" }, … }
 ```
@@ -1455,7 +1455,7 @@ Save with a full rewrite instead.
 ## Example
 
 ```rust
-let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::default())?; // warns xref-repaired
+let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::new())?; // warns xref-repaired
 let err = doc.save(&SaveOptions::default().with_mode(SaveMode::Incremental));
 // repaired-base; SaveMode::Auto (the default) writes a full rewrite instead
 ```
@@ -1787,7 +1787,7 @@ Use a `PageId` from this document.
 ## Example
 
 ```rust
-let other = Document::open_bytes(other_bytes, OpenOptions::default())?;
+let other = Document::open_bytes(other_bytes, OpenOptions::new())?;
 let id = other.page_info(0)?.id;
 doc.apply(vec![Op::from(RotatePage::new(id, Rotation::Clockwise90))]); // unknown-page
 ```

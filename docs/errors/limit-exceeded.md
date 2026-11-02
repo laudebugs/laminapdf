@@ -18,7 +18,7 @@ Raise the named limit only if you trust the input.
 ## Example
 
 ```rust
-let options = OpenOptions::default().with_limits(Limits::new().with_max_nesting_depth(1));
+let options = OpenOptions::new().with_limits(Limits::new().with_max_nesting_depth(1));
 let doc = Document::open_bytes(bytes, options)?;
 let err = doc.page_count().unwrap_err();
 // { "code": "limit-exceeded", "kind": "limit", "data": { "limit": "max_nesting_depth" },
