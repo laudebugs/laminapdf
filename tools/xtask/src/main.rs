@@ -219,9 +219,9 @@ tasks:
                     dependency on lamina (default ref: HEAD; default URL: this clone); each
                     output must equal fixtures/golden/examples/hello.pdf (needs `wasm` first)
   release-guard [--run <id>] [--commit <rev>]
-                    fail unless the latest completed scheduled nightly.yml run on main (or run
-                    <id>) succeeded on <rev> (default HEAD) or an ancestor (gh; the release
-                    lane's first job)
+                    fail unless the latest completed full nightly.yml run on main, or run
+                    <id>, succeeded on <rev> (default HEAD) or an ancestor; full: scheduled, or
+                    dispatched with every input at its default (gh; the release lane's first job)
   ci                check + wasm + size: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
