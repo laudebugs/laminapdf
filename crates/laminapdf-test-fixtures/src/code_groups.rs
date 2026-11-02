@@ -1,7 +1,7 @@
 //! Which top-level keys of `fixtures/codes.json` are groups of codes, and which of them list
-//! warnings or exist only in TypeScript. One definition, included with `#[path]` by
-//! `tests/common/codes.rs` (the crates' code tests) and `tools/xtask/src/codegen.rs` (`cargo
-//! xtask gen codes`, which generates every surface's tables from `codes.json`).
+//! warnings or exist only in TypeScript. One definition for the crates' code tests
+//! ([`crate::codes`]) and `cargo xtask gen codes`, which generates every surface's tables
+//! from `codes.json`.
 
 /// Top-level keys of `codes.json` that are not groups of codes.
 pub const NOT_CODE_GROUPS: [&str; 3] = ["version", "docsUrl", "limits"];

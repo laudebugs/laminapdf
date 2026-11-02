@@ -85,10 +85,9 @@ pub(crate) fn text_string(s: &str) -> laminapdf_cos::PdfString {
     laminapdf_cos::PdfString::literal(laminapdf_syntax::text::encode_text_string(s))
 }
 
-// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+// What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
-#[path = "../../laminapdf-cos/tests/common/codes.rs"]
-mod test_codes;
+use laminapdf_test_fixtures::codes as test_codes;
 
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};

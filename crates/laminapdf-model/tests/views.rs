@@ -10,7 +10,7 @@
 
 mod common;
 
-use common::{classic, fixture, open};
+use common::{classic_with_root, fixture, open};
 use laminapdf_cos::ObjRef;
 use laminapdf_model::{
     ActionKind, Document, Error, LabelStyle, OpenOptions, PageId, PointPt, Pt, Rotation, UserSpacePoint, UserSpaceRect,
@@ -27,7 +27,7 @@ fn codes(doc: &Document) -> Vec<&'static str> {
 
 /// A one-page file whose page dictionary has `page_extra` (pages: object 2, page: 3).
 fn one_page(page_extra: &str) -> Document {
-    open(&classic(
+    open(&classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 612 792] >>",
@@ -43,7 +43,7 @@ mod frame {
 
     /// A one-page file without any box (pages: object 2, page: 3).
     fn boxless(page_extra: &str) -> Document {
-        open(&classic(
+        open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -90,7 +90,7 @@ mod frame {
 
     #[test]
     fn the_letter_fallback_is_an_error_in_strict_mode() {
-        let bytes = classic(
+        let bytes = classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -175,7 +175,7 @@ mod pages {
 
     #[test]
     fn a_malformed_box_is_an_error_in_strict_mode() {
-        let bytes = classic(
+        let bytes = classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -279,7 +279,7 @@ mod pages {
 
     #[test]
     fn malformed_boxes_on_two_direct_pages_are_both_reported() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [<< /Type /Page /MediaBox [1] >> << /Type /Page /MediaBox [2] >>] /Count 2 >>",
@@ -295,7 +295,7 @@ mod pages {
 
     #[test]
     fn a_stale_box_element_is_an_error_in_strict_mode() {
-        let bytes = classic(
+        let bytes = classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -332,7 +332,7 @@ mod pages {
 
     #[test]
     fn strict_trim_box_reports_the_trim_box_itself() {
-        let bytes = classic(
+        let bytes = classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -422,7 +422,7 @@ mod labels {
     }
 
     fn labelled(nums: &str) -> Document {
-        open(&classic(
+        open(&classic_with_root(
             &[
                 &format!("<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [{nums}] >> >>"),
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -465,7 +465,7 @@ mod labels {
 
     #[test]
     fn st_and_letters_combine() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [0 << /S /A /St 26 >>] >> >>",
                 "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
@@ -610,7 +610,7 @@ mod outline {
 
     #[test]
     fn an_unknown_name_keeps_the_name_unresolved() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -628,7 +628,7 @@ mod outline {
 
     #[test]
     fn a_remote_page_number_keeps_the_raw_array() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -645,7 +645,7 @@ mod outline {
     }
 
     fn with_outline(item: &str, catalog_extra: &str) -> Document {
-        open(&classic(
+        open(&classic_with_root(
             &[
                 &format!("<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R {catalog_extra} >>"),
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -683,7 +683,7 @@ mod outline {
 
     #[test]
     fn a_malformed_outlines_entry_is_reported() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Outlines (junk) >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -714,7 +714,7 @@ mod outline {
 
     #[test]
     fn a_cycle_stops_each_looping_branch_with_a_warning() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -735,7 +735,7 @@ mod outline {
 
     #[test]
     fn a_non_dictionary_item_is_skipped_with_a_warning() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -754,7 +754,7 @@ mod outline {
 
     #[test]
     fn direct_items_get_path_ids() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -813,7 +813,7 @@ mod info {
 
     #[test]
     fn two_invalid_dates_are_both_reported() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [] /Count 0 >>",
@@ -830,7 +830,7 @@ mod info {
 
     #[test]
     fn an_info_that_is_not_a_dictionary_is_none_with_a_warning() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [] /Count 0 >>",
@@ -855,7 +855,7 @@ mod trees {
     use super::*;
 
     fn names_doc(tree: &str) -> Document {
-        open(&classic(
+        open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 4 0 R >> >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -935,7 +935,7 @@ mod trees {
 
     #[test]
     fn a_malformed_names_dictionary_is_reported() {
-        let doc = open(&classic(
+        let doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /Names (junk) >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

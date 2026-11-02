@@ -1,6 +1,6 @@
-//! Shared helpers for the integration tests: fixture loading, a seeded PRNG and hand-built
-//! files. The writer is `laminapdf-save`'s (a dev-dependency); the content builder moved to
-//! `laminapdf-build`'s tests.
+//! Shared helpers for the integration tests: opening documents, a windowed source and files
+//! built with `laminapdf-save`'s writer (a dev-dependency). Fixtures, hand-built classic files
+//! and the PRNG come from `laminapdf-test-fixtures`.
 #![allow(
     dead_code,
     unused_imports,
@@ -14,10 +14,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
-pub mod classic;
-pub mod codes;
-
-use std::path::{Path, PathBuf};
+pub use laminapdf_test_fixtures::{Rng, classic, codes, corpus, fixture, fixtures_dir, read_at, stream_body};
 
 use laminapdf_cos::{ByteSource, Dict, Document, ObjRef, Object, OpenOptions, Result, SourceError};
 use laminapdf_save::{Writer, XrefEol, incremental_update};
@@ -31,10 +28,7 @@ impl ByteSource for NoSlice {
     }
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> std::result::Result<usize, SourceError> {
-        let tail = self.0.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len());
-        buf[..n].copy_from_slice(&tail[..n]);
-        Ok(n)
+        Ok(read_at(&self.0, offset, buf))
     }
 }
 
@@ -53,55 +47,8 @@ pub fn update(base: &[u8], changes: &[(ObjRef, Object)], eol: XrefEol) -> Result
     incremental_update(&open(base)?, changes, eol)
 }
 
-/// The repository's shared `fixtures/` directory (docs/guidelines/code-organization.md §6).
-pub fn fixtures_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
-
-pub fn fixture(rel: &str) -> Vec<u8> {
-    let path = fixtures_dir().join(rel);
-    std::fs::read(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()))
-}
-
-/// Every `corpus/*.pdf` as `(file name, bytes)`, sorted by name.
-pub fn corpus() -> Vec<(String, Vec<u8>)> {
-    let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(fixtures_dir().join("corpus"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .filter(|p| p.extension().is_some_and(|x| x == "pdf"))
-        .map(|p| {
-            (
-                p.file_name().unwrap().to_string_lossy().into_owned(),
-                std::fs::read(&p).unwrap(),
-            )
-        })
-        .collect();
-    files.sort();
-    files
-}
-
 pub fn expected() -> serde_json::Value {
-    serde_json::from_slice(&fixture("corpus/expected.json")).unwrap()
-}
-
-/// xorshift64*: deterministic, so failures are reproducible (the TS twin uses a seeded PRNG too).
-pub struct Rng(u64);
-
-impl Rng {
-    pub fn new(seed: u64) -> Self {
-        Self(seed.max(1))
-    }
-
-    pub fn next_u64(&mut self) -> u64 {
-        self.0 ^= self.0 >> 12;
-        self.0 ^= self.0 << 25;
-        self.0 ^= self.0 >> 27;
-        self.0.wrapping_mul(0x2545_F491_4F6C_DD1D)
-    }
-
-    pub fn below(&mut self, n: usize) -> usize {
-        usize::try_from(self.next_u64() % u64::try_from(n.max(1)).unwrap()).unwrap()
-    }
+    laminapdf_test_fixtures::json("corpus/expected.json")
 }
 
 /// Drives every read path on an opened document; returns the number of errors seen.
@@ -123,8 +70,6 @@ pub fn exercise(doc: &Document) -> usize {
     }
     errors
 }
-
-pub use classic::{classic, stream_body};
 
 /// A classic file with `page_count` pages, all sharing one indirect `/Resources` (the
 /// `reader_cache` scaling test and the `read` benchmarks).

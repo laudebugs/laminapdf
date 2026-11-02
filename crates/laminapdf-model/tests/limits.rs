@@ -11,7 +11,7 @@
 
 mod common;
 
-use common::{classic, outline_titles};
+use common::{classic_with_root, outline_titles};
 use laminapdf_model::{Document, Error, Limits, OpenOptions, Warning};
 
 const DEPTH: usize = 3;
@@ -45,7 +45,7 @@ fn nested_outline(levels: usize) -> Vec<u8> {
         objects.push(format!("<< /Title (level {}) {child} >>", level + 1));
     }
     let refs: Vec<&str> = objects.iter().map(String::as_str).collect();
-    classic(&refs, "")
+    classic_with_root(&refs, "")
 }
 
 /// A name tree whose only entry sits `depth` kids below the root (objects 4..).
@@ -60,7 +60,7 @@ fn nested_name_tree(depth: usize) -> Vec<u8> {
     }
     objects.push("<< /Names [(deep) 42] >>".to_owned());
     let refs: Vec<&str> = objects.iter().map(String::as_str).collect();
-    classic(&refs, "")
+    classic_with_root(&refs, "")
 }
 
 /// Page labels whose only range sits `depth` kids below the number tree's root.
@@ -75,7 +75,7 @@ fn nested_labels(depth: usize) -> Vec<u8> {
     }
     objects.push("<< /Nums [0 << /S /R >>] >>".to_owned());
     let refs: Vec<&str> = objects.iter().map(String::as_str).collect();
-    classic(&refs, "")
+    classic_with_root(&refs, "")
 }
 
 mod outline {
@@ -174,6 +174,6 @@ fn a_long_outline_chain_is_read_iteratively() {
         objects.push(format!("<< /Title (i) {next} >>"));
     }
     let refs: Vec<&str> = objects.iter().map(String::as_str).collect();
-    let doc = Document::open(classic(&refs, ""), OpenOptions::default()).unwrap();
+    let doc = Document::open(classic_with_root(&refs, ""), OpenOptions::default()).unwrap();
     assert_eq!(doc.outline().unwrap().len(), n);
 }

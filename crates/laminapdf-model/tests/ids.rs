@@ -10,7 +10,7 @@
 
 mod common;
 
-use common::{classic, corpus, fixture, open};
+use common::{classic_with_root, corpus, fixture, open};
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{Document, Kind, LaminaPdfId};
 use laminapdf_save::{XrefEol, incremental_update};
@@ -80,7 +80,7 @@ fn doc_text(doc: &Document, page: &laminapdf_model::Page<'_>) -> Vec<u8> {
 
 /// Pages: object 2 holds a direct page dictionary as its second kid.
 fn with_direct_page() -> Vec<u8> {
-    classic(
+    classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R << /Type /Page /MediaBox [0 0 100 100] >>] /Count 2 >>",
@@ -105,7 +105,7 @@ fn a_path_id_is_stable_for_the_same_bytes() {
 
 #[test]
 fn a_nested_direct_node_extends_the_path() {
-    let doc = open(&classic(
+    let doc = open(&classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [<< /Type /Pages /Kids [3 0 R << /Type /Page >>] >>] /Count 2 >>",
@@ -120,7 +120,7 @@ fn a_nested_direct_node_extends_the_path() {
 
 #[test]
 fn a_direct_page_tree_root_is_anchored_at_the_catalog() {
-    let doc = open(&classic(
+    let doc = open(&classic_with_root(
         &["<< /Type /Catalog /Pages << /Type /Pages /Kids [<< /Type /Page >>] /Count 1 >> >>"],
         "",
     ))
@@ -166,7 +166,7 @@ fn existing_ids_are_not_allocated_however_often_they_are_read() {
 
 #[test]
 fn new_numbers_start_above_the_trailer_size() {
-    let bytes = String::from_utf8(classic(
+    let bytes = String::from_utf8(classic_with_root(
         &["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [] >>"],
         "",
     ))
@@ -178,7 +178,7 @@ fn new_numbers_start_above_the_trailer_size() {
 
 #[test]
 fn allocation_stops_at_the_documents_max_object_number() {
-    let bytes = classic(
+    let bytes = classic_with_root(
         &["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [] >>"],
         "",
     );
@@ -189,7 +189,7 @@ fn allocation_stops_at_the_documents_max_object_number() {
 
 #[test]
 fn a_direct_kid_of_an_indirect_kids_array_is_anchored_at_the_array() {
-    let doc = open(&classic(
+    let doc = open(&classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids 3 0 R /Count 1 >>",
@@ -204,7 +204,7 @@ fn a_direct_kid_of_an_indirect_kids_array_is_anchored_at_the_array() {
 
 #[test]
 fn outline_items_under_a_direct_root_are_anchored_at_the_trailer() {
-    let bytes = String::from_utf8(classic(&["<< /Type /Pages /Kids [] /Count 0 >>"], ""))
+    let bytes = String::from_utf8(classic_with_root(&["<< /Type /Pages /Kids [] /Count 0 >>"], ""))
         .unwrap()
         .replace(
             "/Root 1 0 R",

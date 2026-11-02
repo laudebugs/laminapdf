@@ -32,6 +32,7 @@ tsify = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }
 
 [dev-dependencies]
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts; unit tests in `src/`

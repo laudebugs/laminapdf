@@ -51,8 +51,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     RenderLimits), straight-RGBA tiles, RenderError; the hayro adapter (feature `hayro`)
 │   ├── laminapdf-render-pdfium/  # edge: the PDFium adapter (pdfium-render, bound at runtime to pdfium-binaries chromium/7881;
 │   │                    #     tests and render goldens #[ignore]d: `cargo xtask render-golden` runs them)
-│   └── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
+│   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
+│   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers crates share (fixtures_dir, fixture, corpus,
+│                        #     json, classic/classic_with_root/stream_body, Rng, read_at, the codes.json loader); no Lamina
+│                        #     PDF dependencies, a path-only dev-dependency (Q2c); xtask uses its codes.json group rules
 ├── packages/wasm/       # @laminapdf/wasm: committed package.json + size-budgets.json, generated dist/
 │                        #   (lamina_pdf_base / lamina_pdf_text / lamina_pdf_extract / lamina_pdf_render_hayro .js, .d.ts, .wasm),
 │                        #   test/smoke.test.ts (Vitest, Node)
@@ -173,7 +176,9 @@ cargo xtask check rust       # fmt --check, maintainability, portability, clippy
 cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust rules, no build: ≤ 800 non-test lines per module
                              #   and no new size-lint #[expect] (tools/xtask/maintainability-baseline.toml), no pub type name in
                              #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink;
-                             #   no `matches!` or `Err(…)` or-pattern on LimitExceeded or DataPending outside laminapdf_cos::error
+                             #   no `matches!` or `Err(…)` or-pattern on LimitExceeded or DataPending outside laminapdf_cos::error;
+                             #   no copied test helper (`fn fixtures_dir`, `fn classic`) or cross-crate `#[path]` outside
+                             #   laminapdf-test-fixtures (baseline `test-helpers`)
 cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences
@@ -309,7 +314,7 @@ Rendering (ADR 0004; `laminapdf-render`, C2b): `RenderBackend::open(Arc<dyn Byte
 
 Web rendering (ADR 0004, 0009; C2c): `@laminapdf/render-pdfium`'s `await initPdfium(wasm)` (URL, `Response`, bytes or `WebAssembly.Module`; `PDFiumExt_Init`) and `@laminapdf/render-hayro`'s `await initHayro(wasm?)` return a `RenderBackend` (`name`, `version`, `memory()`); `open(source: RenderSource, { password, limits })` (`RenderSource` is `{ size, readSync(offset, length) }`, `undefined` = not there yet → `data-pending` with `ranges`; `bytesSource(bytes)`) → `RenderDocument` (`pageCount`, `page(i)`, `plan(req)` → `TilePlan`, `render(req, { signal })` → `{ width, height, pixels: Uint8ClampedArray }` straight RGBA, `close()`/`using`); requests are `{ page, scale, clip?, rotation?, flags?, background? }` (white by default, `null` transparent); `RenderError` with `isRenderError` (structural); an aborted signal throws `AbortError`, a closed document `disposed`. PDFium: custom file access over the source, a form-fill environment per document, widgets via `FPDF_RenderPageBitmap` + `FPDF_FFLDraw` at the shifted whole-page size, without widgets `FPDF_RenderPageBitmapWithMatrix` with `pageToTile`. hayro reads the whole source first and uses the Rust planner. `cargo xtask wasm` builds `lamina_pdf_render_hayro` and runs `@laminapdf/render-hayro`'s Node contract; `cargo xtask pdf-runtimes chromium|firefox|webkit` also runs both adapters' browser contract with C2b's goldens (PDFium SSIM ≥ 0.98 against the native goldens, hayro ≥ 0.99); `cargo xtask size` checks `render_hayro` and `thirdParty.pdfium` (`pdfium.wasm` from node_modules).
 
-Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.
+Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.
 
 Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks, in the fast lane's `msrv-and-spike` job.
 

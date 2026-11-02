@@ -1,6 +1,6 @@
 //! Content-stream builder (ISO 32000-1 §8–9 operators), ported from the `pdf-basics` spike as
 //! test support for the frozen `hello`/`imaging-demo` goldens (`legacy.rs`) and
-//! `laminapdf-save`'s raw-writer tests. `laminapdf-build` itself writes content with
+//! this crate's raw-writer tests. `laminapdf-build` itself writes content with
 //! `pdf_writer::Content` (ADR 0005 §6); this builder stays only because those goldens need
 //! its exact formatting (`%` comments, fixed decimals, operators grouped on one line).
 //!

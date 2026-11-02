@@ -24,6 +24,8 @@ pub(crate) struct Source {
     pub(crate) test_modules: Vec<TestModule>,
     /// Where each line of [`Source::code`] starts ([`lines::starts`]).
     starts: Vec<usize>,
+    /// Every `#[path = "…"]` attribute: its byte offset and value (masking hides values in `code`).
+    pub(crate) paths: Vec<(usize, String)>,
 }
 
 /// A module declared out of line by `#[cfg(test)] mod name;`, with the file its `#[path]`
@@ -67,12 +69,22 @@ impl Source {
         let code = mask(text);
         let starts = lines::starts(&code);
         let has_code = code.split('\n').map(|line| !line.trim().is_empty()).collect();
+        let paths = attributes(&code)
+            .iter()
+            .filter(|a| !a.inner && a.content.split('=').next().is_some_and(|key| key.trim() == "path"))
+            .filter_map(|a| {
+                let raw = text.get(a.start..a.end)?;
+                let value = raw.get(raw.find('"')? + 1..raw.rfind('"')?)?;
+                Some((a.start, value.to_owned()))
+            })
+            .collect();
         let mut source = Self {
             test: vec![false; starts.len()],
             code,
             has_code,
             test_modules: Vec::new(),
             starts,
+            paths,
         };
         source.mark_test_items(text);
         source

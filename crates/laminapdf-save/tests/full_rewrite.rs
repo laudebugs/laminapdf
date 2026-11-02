@@ -68,7 +68,7 @@ fn earlier_revisions_disappear() {
 
 /// Object 1 unused, catalog 2, pages 3 with pages 4 and 5: compacting moves every number.
 fn shifted() -> Vec<u8> {
-    common::save::classic(
+    common::classic_with_root(
         &[
             "(orphan)",
             "<< /Type /Catalog /Pages 3 0 R >>",
@@ -114,7 +114,7 @@ fn compact_returns_a_complete_map_and_page_ids_follow_it() {
 #[test]
 fn compact_closes_gaps() {
     // Object 1 unused: the catalog is 2, pages 3, page 4.
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "(orphan)",
             "<< /Type /Catalog /Pages 3 0 R >>",
@@ -169,7 +169,7 @@ fn object_streams_raise_the_header_to_1_5() {
 
 #[test]
 fn dangling_and_stale_references_are_written_as_null() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /Missing 99 0 R /Stale 3 1 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -273,7 +273,7 @@ fn the_report_names_the_mode_and_size() {
 
 #[test]
 fn a_streams_indirect_length_is_written_directly() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -308,7 +308,7 @@ impl ReplaceRoot for Vec<u8> {
 
 #[test]
 fn objects_with_a_reference_value_are_kept() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /Alias 4 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -354,7 +354,7 @@ fn keep_frees_unwritten_base_objects_with_the_next_generation() {
 
 #[test]
 fn an_object_that_cannot_be_loaded_fails_the_rewrite() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /Broken 4 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -371,7 +371,7 @@ fn an_object_that_cannot_be_loaded_fails_the_rewrite() {
 
 #[test]
 fn a_nested_length_reference_is_kept() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /Extra << /Length 4 0 R >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -394,7 +394,7 @@ fn a_nested_length_reference_is_kept() {
 
 #[test]
 fn an_indirect_trailer_id_is_not_written_as_an_orphan() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -415,7 +415,7 @@ fn an_indirect_trailer_id_is_not_written_as_an_orphan() {
 
 #[test]
 fn indirect_id_elements_are_kept() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -433,7 +433,7 @@ fn indirect_id_elements_are_kept() {
 
 #[test]
 fn nesting_exactly_at_the_limit_is_accepted_like_the_reader_does() {
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /A [[1]] >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

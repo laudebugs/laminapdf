@@ -32,6 +32,7 @@ thiserror = { workspace = true }
 unicode-bidi = { workspace = true }
 
 [dev-dependencies]
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
 laminapdf-save = { path = "../laminapdf-save" }

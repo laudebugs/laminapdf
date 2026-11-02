@@ -8,6 +8,7 @@
 //! grows against the merge base with `main`; it warns when the allow-list grows.
 
 mod budget;
+mod helpers;
 mod names;
 mod policy;
 mod source;
@@ -44,7 +45,7 @@ struct Check {
 }
 
 /// Every check, in the order they run. A new check is one entry here.
-const CHECKS: [Check; 7] = [
+const CHECKS: [Check; 8] = [
     Check {
         name: "module-budget",
         run: budget::module_budget,
@@ -72,6 +73,10 @@ const CHECKS: [Check; 7] = [
     Check {
         name: "error-policy",
         run: policy::error_policy_tests,
+    },
+    Check {
+        name: "test-helpers",
+        run: helpers::test_helper_copies,
     },
 ];
 

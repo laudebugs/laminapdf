@@ -171,7 +171,7 @@ const SIG: &str = "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >>";
 /// A catalog with a direct `/AcroForm` whose `/Fields` holds a direct signed field, and a
 /// direct `/Perms` certifying the same signature dictionary (object 4).
 fn direct_certified() -> Vec<u8> {
-    common::save::classic(
+    common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [<< /FT /Sig /T (C) /V 4 0 R >>] >> /Perms << /DocMDP 4 0 R >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -197,7 +197,7 @@ fn an_overridden_incremental_save_also_invalidates_every_restricting_signature()
     // Field 5 is an approval signature with a FieldMDP lock; field 6 a P2 certification.
     // `SetInfo` violates only the certification, but removing its value changes a locked
     // document, so the lock's signature breaks too.
-    let bytes = common::save::classic(
+    let bytes = common::classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms << /DocMDP 8 0 R >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

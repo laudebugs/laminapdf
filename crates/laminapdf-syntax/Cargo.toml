@@ -42,5 +42,6 @@ serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Reads fixtures/codes.json in the kind test.
 serde_json = { workspace = true }

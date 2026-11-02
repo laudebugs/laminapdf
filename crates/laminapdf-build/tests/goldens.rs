@@ -46,11 +46,3 @@ fn every_golden_opens_and_interprets_without_warnings() {
         assert_eq!((codes, content), (vec![], vec![]), "{name}");
     }
 }
-
-#[test]
-fn imaging_demo_content_matches_the_fixture_stream() {
-    let golden = fixture("golden/imaging-demo.pdf");
-    let doc = laminapdf_cos::Document::open(golden, laminapdf_cos::OpenOptions::default()).unwrap();
-    let page = doc.pages().unwrap().remove(0);
-    assert_eq!(doc.page_content(&page).unwrap(), common::legacy::imaging_demo_content());
-}

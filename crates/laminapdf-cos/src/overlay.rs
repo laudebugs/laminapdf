@@ -573,7 +573,7 @@ mod tests {
     use super::*;
     use crate::OpenOptions;
 
-    use crate::test_files::classic;
+    use laminapdf_test_fixtures::classic;
 
     /// Catalog 1, pages 2, one page 3 (`/Rotate 90`), Info 4; `/Size 5`.
     fn doc_with(limits: Option<crate::Limits>) -> Document {

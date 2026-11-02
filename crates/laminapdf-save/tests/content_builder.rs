@@ -1,4 +1,5 @@
-//! The content-stream builder used by the golden tests (test support in `common/content.rs`):
+//! The spike's content-stream builder behind the frozen goldens (test support in
+//! `common/content.rs`):
 //! number formatting, operator grouping and escaping.
 
 mod common;

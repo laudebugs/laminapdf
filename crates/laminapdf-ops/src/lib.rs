@@ -81,10 +81,9 @@ mod record;
 mod rotate;
 mod tx;
 mod wire;
-// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+// What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
-#[path = "../../laminapdf-cos/tests/common/codes.rs"]
-mod test_codes;
+use laminapdf_test_fixtures::codes as test_codes;
 
 pub use blob::{BlobId, ParseBlobIdError};
 pub use class::ModificationClass;

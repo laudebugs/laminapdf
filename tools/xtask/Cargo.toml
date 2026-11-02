@@ -9,6 +9,8 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+# The codes.json group rules, shared with the crates' code tests.
+laminapdf-test-fixtures = { path = "../../crates/laminapdf-test-fixtures" }
 anyhow = { workspace = true }
 boon = { workspace = true }
 brotli = { workspace = true }
