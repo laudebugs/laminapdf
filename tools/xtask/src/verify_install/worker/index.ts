@@ -2,12 +2,13 @@
 // condition: the `.wasm` files bundled as modules) that answers every request with the check line.
 import { init } from "@laminapdf/sdk";
 import { hello } from "./hello.ts";
+import { HELLO_OPTIONS } from "./hello-options.ts";
 import { report } from "./report.ts";
 
 // A default export because that is how a Worker module exposes its handlers.
 export default {
   async fetch(): Promise<Response> {
     await init({ text: true });
-    return new Response(await report(hello()));
+    return new Response(await report(hello(HELLO_OPTIONS)));
   },
 };

@@ -1,0 +1,22 @@
+// `cargo xtask verify-install` in Rust: the quick start (hello.rs, copied from
+// crates/laminapdf/examples/) built against the laminapdf crate, with the file ID, producer and
+// creation date its golden was written with (crates/laminapdf/tests/examples.rs).
+
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+mod hello;
+
+use std::error::Error;
+use std::path::PathBuf;
+
+use laminapdf::BuildOptions;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let out = PathBuf::from(std::env::args().nth(1).ok_or("usage: <out-dir>")?);
+    std::fs::create_dir_all(&out)?;
+    let options = BuildOptions::new()
+        .with_id(*b"lamina-ex-hello!")
+        .with_producer("lamina examples")
+        .with_creation_date("D:20261030120000Z".parse()?);
+    std::fs::write(out.join("hello.pdf"), hello::build(options)?)?;
+    Ok(())
+}
