@@ -32,7 +32,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Graphics types ([Q2g](./Q2g-one-matrix.md)).
+- Graphics types ([Q2g](../ready/Q2g-one-matrix.md)).
 
 ## Tasks
 
