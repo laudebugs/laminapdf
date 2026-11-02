@@ -244,9 +244,13 @@ pub enum Object {
 }
 
 impl Object {
-    /// `v` as a number: an integer when it is integral (`612`, not `612.0`), else a real.
+    /// `v` as a number: an integer when it is integral and below 10¹⁵ in magnitude (`612`,
+    /// not `612.0`), else a real. PDF has no NaN or infinity, so a non-finite `v` is 0.
     #[must_use]
     pub fn number(v: f64) -> Self {
+        if !v.is_finite() {
+            return Self::Integer(0);
+        }
         #[expect(
             clippy::cast_possible_truncation,
             reason = "only integral values well inside i64 get here"
@@ -258,10 +262,11 @@ impl Object {
         }
     }
 
-    /// `v` rounded to `decimals` decimal places, then written as [`Object::number`] writes it.
+    /// `v` rounded to `decimals` decimal places (at most 15; more count as 15), then written
+    /// as [`Object::number`] writes it: `rounded(v, 0)` is the nearest integer.
     #[must_use]
-    pub fn rounded(v: f64, decimals: i32) -> Self {
-        let scale = 10f64.powi(decimals);
+    pub fn rounded(v: f64, decimals: u8) -> Self {
+        let scale = 10f64.powi(i32::from(decimals.min(15)));
         Self::number((v * scale).round() / scale)
     }
 
@@ -476,6 +481,22 @@ mod tests {
         assert_eq!(
             (Object::number(612.0), Object::number(0.5), Object::number(-3.0)),
             (Object::Integer(612), Object::Real(0.5), Object::Integer(-3))
+        );
+    }
+
+    #[test]
+    fn number_writes_a_non_finite_value_as_zero() {
+        assert_eq!(
+            [f64::NAN, f64::INFINITY].map(Object::number),
+            [Object::Integer(0), Object::Integer(0)]
+        );
+    }
+
+    #[test]
+    fn rounded_to_no_decimals_is_the_nearest_integer() {
+        assert_eq!(
+            (Object::rounded(95.5, 0), Object::rounded(-292.6, 0)),
+            (Object::Integer(96), Object::Integer(-293))
         );
     }
 

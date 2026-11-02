@@ -3,13 +3,16 @@
 //! for simple fonts.
 //!
 //! Two-byte maps turn runs of consecutive codes whose texts are single consecutive UTF-16
-//! code units into `bfrange` entries, everything else into `bfchar` entries; a range never
+//! code units into `bfrange` entries, everything else into `bfchar` entries. A range never
 //! crosses a first-byte boundary of the source codes, and the last destination byte never
 //! passes 0xFF. One-byte maps hold at most 256 codes and use `bfchar` entries only, so a
 //! standard 14 font's map lists each character. Each `begin…end` block holds at most 100
-//! entries. Destinations are UTF-16BE, with surrogate pairs outside the BMP, capped at 512
-//! bytes without splitting a pair; an empty text is `<code> <>` (the code stands for no
-//! text, such as the second glyph of a cluster whose first carries the text, B4b).
+//! entries.
+//!
+//! Destinations are UTF-16BE; a character outside the BMP becomes a surrogate pair. A
+//! destination stops at 512 bytes without splitting a pair. An empty text is `<code> <>`,
+//! for a code that stands for no text, such as the second glyph of a cluster whose first
+//! carries the text (B4b).
 
 use std::fmt::Write as _;
 
@@ -46,6 +49,7 @@ pub(crate) enum Codespace {
 impl Codespace {
     /// `code` in hex, as wide as the codespace.
     fn hex(self, code: u16) -> String {
+        debug_assert!(self == Self::TwoByte || code <= 0xFF, "a one-byte code above 0xFF");
         match self {
             Self::OneByte => format!("{code:02X}"),
             Self::TwoByte => format!("{code:04X}"),
@@ -134,8 +138,8 @@ pub(crate) fn to_unicode_cmap<'a>(codespace: Codespace, entries: impl IntoIterat
 }
 
 /// Whether `code` → `unit` continues the run of `len` codes from `lo` → `first`: the next code
-/// with the same first byte, and the next unit with the same high byte (only the last byte of
-/// the destination is incremented, and it must stay ≤ 0xFF).
+/// with the same first byte, and the next unit with the same high byte that is not a
+/// surrogate (a range increments only the destination's last byte, which must stay ≤ 0xFF).
 fn extends(lo: u16, first: u16, len: u16, code: u16, unit: u16) -> bool {
     let Some(next_code) = lo.checked_add(len) else {
         return false;
@@ -174,8 +178,6 @@ fn hex(units: &[u16]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use super::*;
 
     fn cmap_in(codespace: Codespace, entries: &[(u16, &str)]) -> String {
@@ -247,13 +249,8 @@ mod tests {
     #[test]
     fn blocks_hold_at_most_100_entries() {
         // Every other code, so none form a range: 250 bfchar entries in 3 blocks.
-        let entries: Vec<(u16, String)> = (0..250u16).map(|i| (i * 2, "x".to_owned())).collect();
-        let map: BTreeMap<u16, String> = entries.into_iter().collect();
-        let text = String::from_utf8(to_unicode_cmap(
-            Codespace::TwoByte,
-            map.iter().map(|(&c, t)| (c, t.as_str())),
-        ))
-        .unwrap();
+        let entries: Vec<(u16, &str)> = (0..250u16).map(|i| (i * 2, "x")).collect();
+        let text = cmap_in(Codespace::TwoByte, &entries);
         let counts: Vec<&str> = text
             .lines()
             .filter(|l| l.ends_with("beginbfchar"))
@@ -265,15 +262,11 @@ mod tests {
     #[test]
     fn ranges_are_split_into_blocks_of_100() {
         // 101 two-code ranges separated by gaps.
-        let map = (0..101u16)
-            .flat_map(|i| [(i * 3, "a".to_owned()), (i * 3 + 1, "b".to_owned())])
+        let entries: Vec<(u16, &str)> = (0..101u16)
+            .flat_map(|i| [(i * 3, "a"), (i * 3 + 1, "b")])
             .filter(|(c, _)| c >> 8 == (c | 1) >> 8)
-            .collect::<BTreeMap<_, _>>();
-        let text = String::from_utf8(to_unicode_cmap(
-            Codespace::TwoByte,
-            map.iter().map(|(&c, t)| (c, t.as_str())),
-        ))
-        .unwrap();
+            .collect();
+        let text = cmap_in(Codespace::TwoByte, &entries);
         assert!(
             text.lines()
                 .filter(|l| l.ends_with("beginbfrange") || l.ends_with("beginbfchar"))
@@ -298,10 +291,20 @@ mod tests {
     }
 
     #[test]
-    fn the_codespace_matches_the_code_length() {
-        let (one, two) = (cmap_in(Codespace::OneByte, &[]), cmap_in(Codespace::TwoByte, &[]));
-        assert!(
-            one.contains("begincodespacerange\n<00> <FF>\n") && two.contains("begincodespacerange\n<0000> <FFFF>\n")
+    fn a_one_byte_codespace_is_00_to_ff() {
+        assert!(cmap_in(Codespace::OneByte, &[]).contains("begincodespacerange\n<00> <FF>\n"));
+    }
+
+    #[test]
+    fn a_two_byte_codespace_is_0000_to_ffff() {
+        assert!(cmap_in(Codespace::TwoByte, &[]).contains("begincodespacerange\n<0000> <FFFF>\n"));
+    }
+
+    #[test]
+    fn a_one_byte_empty_text_maps_to_nothing() {
+        assert_eq!(
+            body_in(Codespace::OneByte, &[(0x41, "")]),
+            "1 beginbfchar\n<41> <>\nendbfchar\n"
         );
     }
 

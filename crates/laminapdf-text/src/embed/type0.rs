@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
 
-use super::subset::{Kind, Milli, Program, round_i64};
+use super::subset::{Kind, Milli, Program};
 use crate::descriptor::descriptor;
 use crate::error::Result;
 use crate::font::Font;
@@ -185,7 +185,7 @@ fn width_object(w: Milli) -> Object {
 /// font): `10 + 220 (weight − 50) / 900`, about 96 at 400 and 218 at 900.
 fn stem_v(weight: u16) -> Object {
     let w = f64::from(weight);
-    Object::Integer(round_i64(10.0 + 220.0 * (w - 50.0) / 900.0).max(0))
+    Object::rounded((10.0 + 220.0 * (w - 50.0) / 900.0).max(0.0), 0)
 }
 
 #[cfg(test)]
