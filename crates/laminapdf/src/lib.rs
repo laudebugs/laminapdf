@@ -15,11 +15,11 @@
 //! let bold = b.standard_font(Standard14::HelveticaBold)?;
 //! let mut page = b.page(PageSize::A4);
 //! let s = page.surface(); // page space: points from the top-left, y down; `at.y` is the baseline
-//! let _ = s.text("Invoice 42", &bold, Pt::new(24.0), at(56.0, 80.0))?;
+//! s.text("Invoice 42", &bold, Pt::new(24.0), at(56.0, 80.0))?;
 //! for (row, (item, amount)) in [("Widgets × 3", "€ 36.00"), ("Delivery", "€ 4.50")].iter().enumerate() {
 //!     let y = 140.0 + 24.0 * row as f64;
-//!     let _ = s.text(item, &font, Pt::new(11.0), at(56.0, y))?;
-//!     let _ = s.text(amount, &font, Pt::new(11.0), at(460.0, y))?;
+//!     s.text(item, &font, Pt::new(11.0), at(56.0, y))?;
+//!     s.text(amount, &font, Pt::new(11.0), at(460.0, y))?;
 //! }
 //! s.stroke_color(Color::gray(0.6))
 //!     .path(|p| {
@@ -31,7 +31,7 @@
 //!         p.rect(RectPt::from_xywh(Pt::new(0.0), Pt::new(0.0), Pt::new(595.0), Pt::new(12.0)));
 //!     })
 //!     .fill(FillRule::NonZero);
-//! let _ = s
+//! s
 //!     .text("Pay online", &font, Pt::new(11.0), at(56.0, 230.0))?
 //!     .link(LinkTarget::Uri("https://example.com/pay/42".into()), None);
 //! page.finish()?;

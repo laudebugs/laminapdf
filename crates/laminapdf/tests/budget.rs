@@ -23,8 +23,7 @@ fn large(pages: u32) -> Document {
     let font = b.standard_font(Standard14::Helvetica).unwrap();
     for i in 0..pages {
         let mut page = b.page(PageSize::A4);
-        let _ = page
-            .surface()
+        page.surface()
             .text(
                 &format!("Page {i}"),
                 &font,

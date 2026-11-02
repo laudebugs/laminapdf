@@ -63,17 +63,15 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
             .fill_color(Color::gray(0.0));
         Ok(())
     })?;
-    let _ = s
-        .text("Invoice 42", &bold, Pt::new(24.0), at(56.0, 80.0))?
+    s.text("Invoice 42", &bold, Pt::new(24.0), at(56.0, 80.0))?
         .tag(TagKind::H1);
-    let _ = s
-        .text(
-            "Acme Widgets Ltd · 1 Example Street · London",
-            &font,
-            Pt::new(10.0),
-            at(56.0, 100.0),
-        )?
-        .tag(TagKind::P);
+    s.text(
+        "Acme Widgets Ltd · 1 Example Street · London",
+        &font,
+        Pt::new(10.0),
+        at(56.0, 100.0),
+    )?
+    .tag(TagKind::P);
     let right = TextBoxOptions::default().with_align(Alignment::End);
     let hairline = StrokeStyle {
         width: Pt::new(0.5),
@@ -91,7 +89,7 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
             let amount = f64::from(qty) * price;
             total += amount;
             s.tag(TagKind::TR, |s| {
-                let _ = s.text(item, &font, Pt::new(11.0), at(56.0, y))?.tag(TagKind::TD);
+                s.text(item, &font, Pt::new(11.0), at(56.0, y))?.tag(TagKind::TD);
                 cell(s, &qty.to_string(), rect(330.0, y - 12.0, 40.0, 16.0))?;
                 cell(s, &format!("€ {amount:.2}"), rect(439.0, y - 12.0, 100.0, 16.0))?;
                 s.artifact(ArtifactKind::Layout, |s| {
@@ -116,19 +114,18 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
         )
         .map(|_| ())
     })?;
-    let _ = s
-        .text(
-            "Pay online at example.com/pay/42",
-            &font,
-            Pt::new(11.0),
-            at(56.0, 320.0),
-        )?
-        .fill(Color::rgb(0.12, 0.47, 0.78))
-        .link(
-            LinkTarget::Uri("https://example.com/pay/42".into()),
-            Some("Pay invoice 42 online".into()),
-        )
-        .tag(TagKind::P);
+    s.text(
+        "Pay online at example.com/pay/42",
+        &font,
+        Pt::new(11.0),
+        at(56.0, 320.0),
+    )?
+    .fill(Color::rgb(0.12, 0.47, 0.78))
+    .link(
+        LinkTarget::Uri("https://example.com/pay/42".into()),
+        Some("Pay invoice 42 online".into()),
+    )
+    .tag(TagKind::P);
     page.finish()?;
     b.metadata(
         Metadata::default()

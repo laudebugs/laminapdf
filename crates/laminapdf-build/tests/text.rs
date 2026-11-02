@@ -33,8 +33,7 @@ fn one_run(
     let f = font(&mut b);
     let mut page = b.page(PageSize::A4);
     page.rotate(rotate);
-    let _ = page
-        .surface()
+    page.surface()
         .text(text, &f, Pt::new(12.0), PointPt::from_points(72.0, 100.0))
         .unwrap();
     page.finish().unwrap();
@@ -152,12 +151,10 @@ fn render_modes_are_written_once_and_reset() {
     let f = b.standard_font(Standard14::Helvetica).unwrap();
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
-    let _ = s
-        .text("hidden", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
+    s.text("hidden", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap()
         .render_mode(TextRenderMode::Invisible);
-    let _ = s
-        .text("shown", &f, Pt::new(12.0), PointPt::from_points(72.0, 92.0))
+    s.text("shown", &f, Pt::new(12.0), PointPt::from_points(72.0, 92.0))
         .unwrap();
     page.finish().unwrap();
     let doc = reopen(&save(b.finish().unwrap()));
@@ -171,8 +168,7 @@ fn office(features: &[&str]) -> (Vec<u8>, Vec<String>) {
     let f = b.font(b5b::font("NotoSans-Regular.ttf")).unwrap();
     let mut page = b.page(PageSize::A4);
     let features: Vec<Feature> = features.iter().map(|f| f.parse().unwrap()).collect();
-    let _ = page
-        .surface()
+    page.surface()
         .text("office", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap()
         .features(&features)
@@ -238,8 +234,7 @@ fn a_font_from_another_builder_is_unknown_font() {
     let foreign = other.standard_font(Standard14::Helvetica).unwrap();
     let mut b = Builder::new(BuildOptions::default());
     let mut page = b.page(PageSize::A4);
-    let _ = page
-        .surface()
+    page.surface()
         .text("x", &foreign, Pt::new(12.0), PointPt::from_points(1.0, 20.0))
         .unwrap();
     assert_eq!(page.finish().unwrap_err().code(), "unknown-font");
@@ -250,8 +245,7 @@ fn at_1_4(font: &str, text: &str) -> (String, Option<Vec<u8>>) {
     let mut b = Builder::new(BuildOptions::default().with_version(PdfVersion::V1_4));
     let f = b.font(b5b::font(font)).unwrap();
     let mut page = b.page(PageSize::A4);
-    let _ = page
-        .surface()
+    page.surface()
         .text(text, &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap();
     page.finish().unwrap();
@@ -317,11 +311,9 @@ fn a_failed_page_leaves_no_font_behind() {
     let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
-    let _ = s
-        .text("recorded", &helvetica, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
+    s.text("recorded", &helvetica, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap();
-    let _ = s
-        .text("refused", &foreign, Pt::new(12.0), PointPt::from_points(72.0, 92.0))
+    s.text("refused", &foreign, Pt::new(12.0), PointPt::from_points(72.0, 92.0))
         .unwrap();
     assert_eq!(page.finish().unwrap_err().code(), "unknown-font");
     b.page(PageSize::A4).finish().unwrap();

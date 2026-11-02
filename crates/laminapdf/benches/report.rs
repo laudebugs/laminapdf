@@ -104,14 +104,13 @@ fn report() -> Vec<u8> {
     for n in 1..=PAGES {
         let mut page = b.page(PageSize::A4);
         let s = page.surface();
-        let _ = s
-            .text(
-                &format!("Region {n}: quarterly report"),
-                &font,
-                Pt::new(20.0),
-                at(56.0, 72.0),
-            )
-            .unwrap();
+        s.text(
+            &format!("Region {n}: quarterly report"),
+            &font,
+            Pt::new(20.0),
+            at(56.0, 72.0),
+        )
+        .unwrap();
         s.text_box(
             PARAGRAPH,
             &font,
@@ -120,19 +119,17 @@ fn report() -> Vec<u8> {
             &TextBoxOptions::default(),
         )
         .unwrap();
-        let _ = s
-            .text(
-                "你好世界，这是中文字体子集测试。",
-                &chinese,
-                Pt::new(11.0),
-                at(56.0, 166.0),
-            )
-            .unwrap();
+        s.text(
+            "你好世界，这是中文字体子集测试。",
+            &chinese,
+            Pt::new(11.0),
+            at(56.0, 166.0),
+        )
+        .unwrap();
         for row in 0..20_u32 {
             let y = 200.0 + 24.0 * f64::from(row);
             let units = (n * 37 + row * 11) % 500;
-            let _ = s
-                .text(&format!("Product {}", row + 1), &font, Pt::new(10.0), at(56.0, y))
+            s.text(&format!("Product {}", row + 1), &font, Pt::new(10.0), at(56.0, y))
                 .unwrap();
             s.text_box(
                 &units.to_string(),
@@ -157,8 +154,7 @@ fn report() -> Vec<u8> {
                 })
                 .stroke(&hairline);
         }
-        let _ = s
-            .text(&format!("Page {n} of {PAGES}"), &font, Pt::new(9.0), at(56.0, 800.0))
+        s.text(&format!("Page {n} of {PAGES}"), &font, Pt::new(9.0), at(56.0, 800.0))
             .unwrap();
         page.finish().unwrap();
     }
@@ -186,14 +182,13 @@ fn text_boxes() -> Vec<u8> {
     for n in 1..=PAGES {
         let mut page = b.page(PageSize::A4);
         let s = page.surface();
-        let _ = s
-            .text(
-                &format!("Section {n}"),
-                &bold,
-                Pt::new(18.0),
-                PointPt::from_points(56.0, 72.0),
-            )
-            .unwrap();
+        s.text(
+            &format!("Section {n}"),
+            &bold,
+            Pt::new(18.0),
+            PointPt::from_points(56.0, 72.0),
+        )
+        .unwrap();
         for k in 0..6_u32 {
             let y = 96.0 + 110.0 * f64::from(k);
             s.text_box(SENTENCES, &font, Pt::new(11.0), rect(56.0, y, 483.0, 100.0), &options)

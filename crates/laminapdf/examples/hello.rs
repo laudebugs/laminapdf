@@ -27,7 +27,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let helvetica = b.standard_font(Standard14::Helvetica)?;
     let mut page = b.page(PageSize::A4);
     // Page space: points from the top-left corner, y down; `y` is the text's baseline.
-    let _ = page.surface().text(
+    page.surface().text(
         "Hello, world!",
         &helvetica,
         Pt::new(24.0),

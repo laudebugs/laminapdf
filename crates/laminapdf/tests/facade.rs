@@ -475,22 +475,20 @@ mod state {
         let mut page = b.page(laminapdf::PageSize::A4);
         let s = page.surface();
         // A CFF font has one CID per glyph: the `fi` ligature reached from two texts.
-        let _ = s
-            .text(
-                "fine",
-                &font,
-                laminapdf::Pt::new(12.0),
-                laminapdf::PointPt::from_points(72.0, 72.0),
-            )
-            .unwrap();
-        let _ = s
-            .text(
-                "\u{FB01}ne",
-                &font,
-                laminapdf::Pt::new(12.0),
-                laminapdf::PointPt::from_points(72.0, 96.0),
-            )
-            .unwrap();
+        s.text(
+            "fine",
+            &font,
+            laminapdf::Pt::new(12.0),
+            laminapdf::PointPt::from_points(72.0, 72.0),
+        )
+        .unwrap();
+        s.text(
+            "\u{FB01}ne",
+            &font,
+            laminapdf::Pt::new(12.0),
+            laminapdf::PointPt::from_points(72.0, 96.0),
+        )
+        .unwrap();
         page.finish().unwrap();
         let doc = b.finish().unwrap();
         let codes: Vec<&str> = doc

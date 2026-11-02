@@ -31,7 +31,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let mut b = Builder::new(options);
     let helvetica = b.standard_font(Standard14::Helvetica)?;
     let mut page = b.page(PageSize::A4);
-    let _ = page.surface().text(
+    page.surface().text(
         "Draft report",
         &helvetica,
         Pt::new(20.0),

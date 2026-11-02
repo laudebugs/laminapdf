@@ -75,12 +75,12 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
 
 fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {
     let at = PointPt::from_points;
-    drop(s.text("Invoice 42", font, TITLE, at(MARGIN, TITLE_BASELINE))?);
+    s.text("Invoice 42", font, TITLE, at(MARGIN, TITLE_BASELINE))?;
     let mut y = FIRST_ROW;
     for (item, qty, price) in ITEMS {
-        drop(s.text(&format!("{qty} × {item}"), font, BODY, at(MARGIN, y))?);
+        s.text(&format!("{qty} × {item}"), font, BODY, at(MARGIN, y))?;
         let amount = f64::from(qty) * price;
-        drop(s.text(&format!("€ {amount:.2}"), font, BODY, at(AMOUNTS, y))?);
+        s.text(&format!("€ {amount:.2}"), font, BODY, at(AMOUNTS, y))?;
         y += ROW;
     }
     let rule = y - RULE_RISE;
@@ -88,10 +88,10 @@ fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {
         .path(|p| _ = p.move_to(at(MARGIN, rule)).line_to(at(RIGHT, rule)))
         .stroke(&StrokeStyle::default());
     let total_at = at(AMOUNTS - TOTAL_INDENT, y + TOTAL_DROP);
-    drop(s.text(&format!("Total € {:.2}", total()), font, TOTAL, total_at)?);
+    s.text(&format!("Total € {:.2}", total()), font, TOTAL, total_at)?;
     let note = "The invoice is attached as invoice-42.xml.";
     let note = s.text(note, font, BODY, at(MARGIN, y + NOTE_DROP))?;
     let online = LinkTarget::Uri("https://example.com/invoices/42".into());
-    drop(note.link(online, Some("Invoice 42 online".into())));
+    note.link(online, Some("Invoice 42 online".into()));
     Ok(())
 }

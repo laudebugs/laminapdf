@@ -37,21 +37,20 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     for (index, title) in (0_u32..).zip(TITLES) {
         let mut page = b.page(PageSize::A5);
         let s = page.surface();
-        let _ = s.text(title, &helvetica, Pt::new(18.0), at(36.0, 60.0))?;
+        s.text(title, &helvetica, Pt::new(18.0), at(36.0, 60.0))?;
         if index == 0 {
-            let _ = s.text("Visit example.com", &helvetica, Pt::new(12.0), at(36.0, 100.0))?;
+            s.text("Visit example.com", &helvetica, Pt::new(12.0), at(36.0, 100.0))?;
             s.link(
                 row(100.0),
                 LinkTarget::Uri("https://example.com/".into()),
                 Some("Example".into()),
             );
-            let _ = s.text("Go to chapter 1", &helvetica, Pt::new(12.0), at(36.0, 125.0))?;
+            s.text("Go to chapter 1", &helvetica, Pt::new(12.0), at(36.0, 125.0))?;
             s.link(row(125.0), LinkTarget::page(2), None);
-            let _ = s.text("Go to chapter 2 (named)", &helvetica, Pt::new(12.0), at(36.0, 150.0))?;
+            s.text("Go to chapter 2 (named)", &helvetica, Pt::new(12.0), at(36.0, 150.0))?;
             s.link(row(150.0), LinkTarget::Named("chapter-2".into()), None);
         } else {
-            let _ = s
-                .text("Back to the title page", &helvetica, Pt::new(12.0), at(36.0, 100.0))?
+            s.text("Back to the title page", &helvetica, Pt::new(12.0), at(36.0, 100.0))?
                 .fill(Color::rgb(0.0, 0.2, 0.8))
                 .link(LinkTarget::page(0), Some("Title page".into()));
         }

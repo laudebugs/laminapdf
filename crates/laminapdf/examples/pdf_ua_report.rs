@@ -61,7 +61,7 @@ fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {
     let link = LinkTarget::Uri("https://example.com/accounts".into());
     s.tag(TagKind::P, |s| {
         let text = s.text("The full accounts", font, BODY, LINK_AT)?;
-        drop(text.fill(BLUE).link(link, Some("The full 2026 accounts".into())));
+        text.fill(BLUE).link(link, Some("The full 2026 accounts".into()));
         Ok(())
     })
 }

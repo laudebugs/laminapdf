@@ -73,25 +73,21 @@ pub fn text_latin_drawn() -> (Vec<u8>, Vec<Vec<String>>) {
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
     let size = Pt::new(12.0);
-    let _ = s.text(LATIN_RUNS[0], &noto, size, at(56.0, 72.0)).unwrap();
-    let _ = s
-        .text(LATIN_RUNS[1], &noto, size, at(56.0, 92.0))
+    s.text(LATIN_RUNS[0], &noto, size, at(56.0, 72.0)).unwrap();
+    s.text(LATIN_RUNS[1], &noto, size, at(56.0, 92.0))
         .unwrap()
         .fill(Color::rgb(0.1, 0.3, 0.7));
-    let _ = s
-        .text(LATIN_RUNS[2], &noto, size, at(56.0, 112.0))
+    s.text(LATIN_RUNS[2], &noto, size, at(56.0, 112.0))
         .unwrap()
         .features(&["liga=0".parse::<Feature>().unwrap()])
         .unwrap();
-    let _ = s.text(LATIN_RUNS[3], &helvetica, size, at(56.0, 132.0)).unwrap();
-    let _ = s.text(LATIN_RUNS[4], &times, size, at(56.0, 152.0)).unwrap();
+    s.text(LATIN_RUNS[3], &helvetica, size, at(56.0, 132.0)).unwrap();
+    s.text(LATIN_RUNS[4], &times, size, at(56.0, 152.0)).unwrap();
     // An invisible run (OCR-style text layer) right below the others, and a stroked one.
-    let _ = s
-        .text("Invisible but extractable", &noto, size, at(56.0, 172.0))
+    s.text("Invisible but extractable", &noto, size, at(56.0, 172.0))
         .unwrap()
         .render_mode(TextRenderMode::Invisible);
-    let _ = s
-        .stroke_color(Color::gray(0.2))
+    s.stroke_color(Color::gray(0.2))
         .text("Outlined", &helvetica, Pt::new(24.0), at(56.0, 204.0))
         .unwrap()
         .render_mode(TextRenderMode::Stroke);
@@ -166,7 +162,7 @@ pub fn text_multiscript_drawn() -> (Vec<u8>, Vec<Vec<String>>) {
     let s = page.surface();
     for (i, ((_, text), f)) in SCRIPTS.iter().zip(&fonts).enumerate() {
         let y = 72.0 + 28.0 * f64::from(u32::try_from(i).unwrap());
-        let _ = s.text(text, f, Pt::new(14.0), at(56.0, y)).unwrap();
+        s.text(text, f, Pt::new(14.0), at(56.0, y)).unwrap();
     }
     page.finish().unwrap();
     let mut page = b.page(PageSize::A4);
@@ -222,15 +218,14 @@ pub fn links_and_outlines() -> Vec<u8> {
     for (i, title) in titles.iter().enumerate() {
         let mut page = b.page(PageSize::A5);
         let s = page.surface();
-        let _ = s.text(title, &helvetica, Pt::new(18.0), at(36.0, 60.0)).unwrap();
+        s.text(title, &helvetica, Pt::new(18.0), at(36.0, 60.0)).unwrap();
         if i == 0 {
             s.link(
                 rect(36.0, 80.0, 200.0, 20.0),
                 LinkTarget::Uri(URI.into()),
                 Some("Example".into()),
             );
-            let _ = s
-                .text("Visit example.com", &helvetica, Pt::new(12.0), at(36.0, 95.0))
+            s.text("Visit example.com", &helvetica, Pt::new(12.0), at(36.0, 95.0))
                 .unwrap();
             s.link(
                 rect(36.0, 110.0, 200.0, 20.0),
@@ -240,19 +235,16 @@ pub fn links_and_outlines() -> Vec<u8> {
                 },
                 None,
             );
-            let _ = s
-                .text("Go to chapter 1", &helvetica, Pt::new(12.0), at(36.0, 125.0))
+            s.text("Go to chapter 1", &helvetica, Pt::new(12.0), at(36.0, 125.0))
                 .unwrap();
             s.link(
                 rect(36.0, 140.0, 200.0, 20.0),
                 LinkTarget::Named("chapter-2".into()),
                 None,
             );
-            let _ = s
-                .text("Go to chapter 2 (named)", &helvetica, Pt::new(12.0), at(36.0, 155.0))
+            s.text("Go to chapter 2 (named)", &helvetica, Pt::new(12.0), at(36.0, 155.0))
                 .unwrap();
-            let _ = s
-                .text("Contents (a linked run)", &helvetica, Pt::new(12.0), at(36.0, 185.0))
+            s.text("Contents (a linked run)", &helvetica, Pt::new(12.0), at(36.0, 185.0))
                 .unwrap()
                 .fill(Color::rgb(0.0, 0.2, 0.8))
                 .link(LinkTarget::page(1), Some("Contents".into()));
@@ -300,8 +292,7 @@ pub fn metadata() -> Vec<u8> {
     let mut b = Builder::new(options(b"lamina-build-xmp"));
     let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
     let mut page = b.page(PageSize::A5);
-    let _ = page
-        .surface()
+    page.surface()
         .text("Metadata", &helvetica, Pt::new(18.0), at(36.0, 60.0))
         .unwrap();
     page.finish().unwrap();

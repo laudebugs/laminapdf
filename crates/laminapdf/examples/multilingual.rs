@@ -71,7 +71,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let s = page.surface();
     for (row, ((_, line, paragraph, direction), font)) in (0_u32..).zip(SCRIPTS.iter().zip(&fonts)) {
         let y = 80.0 + 140.0 * f64::from(row);
-        let _ = s.text(line, font, Pt::new(16.0), PointPt::from_points(56.0, y))?;
+        s.text(line, font, Pt::new(16.0), PointPt::from_points(56.0, y))?;
         // A narrow box breaks the paragraph into lines; right-to-left paragraphs start at the right.
         let options = TextBoxOptions::default()
             .with_direction(*direction)

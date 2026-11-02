@@ -619,7 +619,7 @@ impl Surface {
                 }
             })
             .collect();
-        let _ = self.push_text(spec, PointPt::new(rect.x0, Pt::new(first)), leading, lines);
+        self.push_text(spec, PointPt::new(rect.x0, Pt::new(first)), leading, lines);
         Ok(TextLayout { lines: boxes, overflow })
     }
 
