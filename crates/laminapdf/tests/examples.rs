@@ -165,11 +165,13 @@ fn generate_then_edit_retitles_the_document() {
 
 /// Writes every example's document into `$LAMINA_PDF_EXAMPLES_OUT`, for `cargo xtask examples`
 /// (which compares them with the goldens and runs `qpdf --check`) and `cargo xtask golden
-/// --update`.
+/// --update`. Without the variable it does nothing: the nightly scaling job runs every ignored test.
 #[test]
 #[ignore = "run by cargo xtask examples and cargo xtask golden --update"]
 fn write_every_example() {
-    let out = std::env::var_os("LAMINA_PDF_EXAMPLES_OUT").expect("LAMINA_PDF_EXAMPLES_OUT is the output folder");
+    let Some(out) = std::env::var_os("LAMINA_PDF_EXAMPLES_OUT") else {
+        return;
+    };
     std::fs::create_dir_all(&out).unwrap();
     for (name, build) in EXAMPLES {
         std::fs::write(Path::new(&out).join(format!("{name}.pdf")), build().unwrap()).unwrap();
