@@ -4,7 +4,7 @@
 // holds what both sides agree on: the method map (params and results), the priorities and the
 // coalescing key.
 
-import { flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
+import { type CloneableWasmSource, flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
 import type { Limits, PageInfo } from "@laminapdf/sdk";
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
@@ -14,7 +14,7 @@ export type BackendName = "pdfium" | "hayro";
 export interface BackendInit {
   readonly backend: BackendName;
   /** The engine's `.wasm`: required for PDFium (its URL from your bundler); hayro finds its own. */
-  readonly wasm?: string | ArrayBuffer | Uint8Array | WebAssembly.Module;
+  readonly wasm?: CloneableWasmSource;
 }
 
 /** What a document is opened from: sent to the worker, which reads it there. */

@@ -7,10 +7,14 @@
 
 import {
   type ByteRange,
+  checkInputSize,
+  checkOpen,
+  checkPageIndex,
   flagsOf,
-  isRenderError,
   isRenderErrorCode,
   limitsOf,
+  MAX_WASM_INPUT,
+  pendingError,
   planTile,
   type RenderBackend,
   type RenderDocument,
@@ -22,8 +26,10 @@ import {
   type RenderPage,
   type RenderRequest,
   type RenderSource,
+  readRange,
   type TilePlan,
   throwIfAborted,
+  type WasmSource,
   WHITE,
 } from "@laminapdf/render";
 import initGlue, { HayroDocument, type InitInput, InputBuffer } from "@laminapdf/wasm/render-hayro";
@@ -42,9 +48,12 @@ let memory: WebAssembly.Memory | undefined;
  *
  * @throws RenderError `render-backend-unavailable` when the module can't be loaded.
  */
-export async function initHayro(wasm?: InitInput | Promise<InitInput>): Promise<HayroBackend> {
+export async function initHayro(wasm?: WasmSource): Promise<HayroBackend> {
   try {
-    const output = await initGlue(wasm === undefined ? undefined : { module_or_path: wasm });
+    // The glue fetches a URL or string itself and awaits the other forms (a promise of a Response
+    // included); `Promise.resolve` around a string would hide it from that check.
+    const input = wasm === undefined ? undefined : { module_or_path: wasm as InitInput | Promise<InitInput> };
+    const output = await initGlue(input);
     memory = output.memory;
   } catch {
     throw new RenderError("render-backend-unavailable", "the hayro module could not be loaded");
@@ -128,30 +137,16 @@ export class HayroBackend implements RenderBackend {
  * copy in JS), or `data-pending` with every range the source lacks.
  */
 function fill(source: RenderSource, limits: RenderLimits): InputBuffer {
-  if (source.size > limits.maxInputBytes || source.size > 0xffff_ffff) {
-    throw new RenderError(
-      "render-too-large",
-      `the input is ${source.size} bytes, over the render limit of ${Math.min(limits.maxInputBytes, 0xffff_ffff)} bytes`,
-    );
-  }
+  // hayro reads the whole file, so `maxInputBytes` bounds it too (ADR 0004).
+  checkInputSize(source.size, Math.min(limits.maxInputBytes, MAX_WASM_INPUT));
   const input = new InputBuffer(source.size);
   const pending: [number, number][] = [];
   try {
     for (let at = 0; at < source.size; at += CHUNK) {
       const length = Math.min(CHUNK, source.size - at);
-      let chunk: Uint8Array | undefined;
-      try {
-        chunk = source.readSync(at, length);
-      } catch (e) {
-        // As PDFium's adapter: a throwing source is a failed read (or its own RenderError).
-        throw isRenderError(e)
-          ? e
-          : new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
-      }
+      const chunk = readRange(source, at, length);
       if (chunk === undefined) pending.push([at, length]);
-      else if (chunk.length !== length) {
-        throw new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
-      } else if (pending.length === 0) input.write(at, chunk);
+      else if (pending.length === 0) input.write(at, chunk);
     }
   } catch (e) {
     input.free();
@@ -159,11 +154,7 @@ function fill(source: RenderSource, limits: RenderLimits): InputBuffer {
   }
   if (pending.length > 0) {
     input.free();
-    throw new RenderError(
-      "data-pending",
-      `${pending.length} byte range(s) of the input are not available yet`,
-      pending,
-    );
+    throw pendingError(pending);
   }
   return input;
 }
@@ -194,19 +185,15 @@ class HayroRenderDocument implements RenderDocument {
   }
 
   #live(): HayroDocument {
-    if (this.#doc === undefined) throw new RenderError("disposed", "the document was closed");
+    const doc = this.#doc;
+    checkOpen(doc !== undefined);
     healthy();
-    return this.#doc;
+    return doc;
   }
 
   page(index: number): RenderPage {
     const doc = this.#live();
-    if (!Number.isInteger(index) || index < 0 || index >= this.pageCount) {
-      throw new RenderError(
-        "page-index-out-of-range",
-        `page index ${index} is out of range for a document of ${this.pageCount} pages`,
-      );
-    }
+    checkPageIndex(index, this.pageCount);
     const cached = this.#pages.get(index);
     if (cached !== undefined) return cached;
     try {
