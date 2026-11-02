@@ -263,7 +263,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -271,7 +271,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 dependencies = [
  "miniz_oxide 0.9.1",
  "thiserror",
