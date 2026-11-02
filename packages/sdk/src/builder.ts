@@ -7,6 +7,18 @@ import { defined } from "./defined.js";
 import { Document } from "./document.js";
 import { didYouMean, guard, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
+import {
+  ARTIFACT_KINDS,
+  type ArtifactKind,
+  type BlendMode,
+  type FillRule,
+  type LineCap,
+  type LineJoin,
+  TABLE_SCOPES,
+  TAG_NAMES,
+  type TableScope,
+  type TagName,
+} from "./generated/builder-enums.js";
 import { type BaseGlue, readingModule, type TextGlue, textModule } from "./init.js";
 import type { Transform } from "./matrix.js";
 import { type PathBuilder, PathEncoder } from "./path.js";
@@ -65,9 +77,9 @@ export interface StrokeStyle {
   /** Line width in points (default 1). */
   readonly width?: number;
   /** Line ends (default `butt`). */
-  readonly cap?: "butt" | "round" | "square";
+  readonly cap?: LineCap;
   /** Corners (default `miter`). */
-  readonly join?: "miter" | "round" | "bevel";
+  readonly join?: LineJoin;
   /** Miter limit (default 10). */
   readonly miterLimit?: number;
   /** Dash pattern in points (default: solid). */
@@ -76,70 +88,20 @@ export interface StrokeStyle {
   readonly dashPhase?: number;
 }
 
-/** How a filled or clipped path decides what is inside. */
-export type FillRule = "nonZero" | "evenOdd";
+export type {
+  ArtifactKind,
+  BlendMode,
+  FillRule,
+  LineCap,
+  LineJoin,
+  TableScope,
+  TagName,
+} from "./generated/builder-enums.js";
+export { TAG_NAMES } from "./generated/builder-enums.js";
 
-/** Blend modes (`/BM`), camelCase. */
-export type BlendMode =
-  | "normal"
-  | "multiply"
-  | "screen"
-  | "overlay"
-  | "darken"
-  | "lighten"
-  | "colorDodge"
-  | "colorBurn"
-  | "hardLight"
-  | "softLight"
-  | "difference"
-  | "exclusion"
-  | "hue"
-  | "saturation"
-  | "color"
-  | "luminosity";
-
-/**
- * The standard structure types (ISO 32000-1 §14.8.4), in the order of laminapdf-build's
- * `TagKind::ALL` (the module takes their index).
- */
-export const TAG_NAMES = [
-  "Document",
-  "Part",
-  "Sect",
-  "H1",
-  "H2",
-  "H3",
-  "H4",
-  "H5",
-  "H6",
-  "P",
-  "L",
-  "LI",
-  "Lbl",
-  "LBody",
-  "Table",
-  "TR",
-  "TH",
-  "TD",
-  "Figure",
-  "Caption",
-  "Link",
-  "Span",
-  "Quote",
-  "Note",
-  "Code",
-] as const;
-
-/** A standard structure type. */
-export type TagName = (typeof TAG_NAMES)[number];
-
-const ARTIFACT_KINDS = ["layout", "page", "pagination", "background"] as const;
-const SCOPES = ["row", "column", "both"] as const;
-
-/** The index of `name` in `names`, else `invalid-argument` with the closest names. */
-function indexOf(names: readonly string[], name: string, argument: string, detail: string): number {
-  const i = names.indexOf(name);
-  if (i >= 0) return i;
+/** `name` when `names` has it, else `invalid-argument` with the closest names. */
+function checked(names: readonly string[], name: string, argument: string, detail: string): string {
+  if (names.includes(name)) return name;
   throw packageError("invalid-argument", detail, { didYouMean: didYouMean(name, names), data: { argument, detail } });
 }
 
@@ -158,14 +120,11 @@ export interface TagSpec {
   /** `/E`: the expansion of an abbreviation. */
   readonly expansion?: string;
   /** `/Scope` of a `TH`. */
-  readonly scope?: "row" | "column" | "both";
+  readonly scope?: TableScope;
 }
 
 /** A structure element: a type, or a type with attributes. */
 export type Tag = TagName | TagSpec;
-
-/** What kind of artifact (content outside the logical structure). */
-export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
 
 /** Options of {@link Surface.text}. */
 export interface TextOptions {
@@ -442,20 +401,19 @@ export class Surface {
    * content outside the structure tree.
    */
   artifact(kind: ArtifactKind, draw: (s: this) => void): this {
-    const index = indexOf(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");
-    guard(() => this.#page.get().beginArtifact(index));
+    const name = checked(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");
+    guard(() => this.#page.get().beginArtifact(name));
     this.#within(draw);
     return this;
   }
 
   #begin(tag: Tag): void {
     const t: TagSpec = typeof tag === "string" ? { type: tag } : tag;
-    const standard = TAG_NAMES.indexOf(t.type as TagName);
-    const custom = standard < 0 && t.role !== undefined;
+    const custom = !(TAG_NAMES as readonly string[]).includes(t.type) && t.role !== undefined;
     const kind = custom
-      ? indexOf(TAG_NAMES, t.role ?? "", "role", "not a standard structure type")
-      : indexOf(TAG_NAMES, t.type, "type", "not a standard structure type (give a custom type a role)");
-    const scope = t.scope === undefined ? 0 : indexOf(SCOPES, t.scope, "scope", "not a table scope") + 1;
+      ? checked(TAG_NAMES, t.role ?? "", "role", "not a standard structure type")
+      : checked(TAG_NAMES, t.type, "type", "not a standard structure type (give a custom type a role)");
+    const scope = t.scope === undefined ? undefined : checked(TABLE_SCOPES, t.scope, "scope", "not a table scope");
     guard(() =>
       this.#page.get().beginTag(kind, custom ? t.type : undefined, t.alt, t.actualText, t.lang, t.expansion, scope),
     );

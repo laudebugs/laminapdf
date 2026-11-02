@@ -33,9 +33,9 @@ import {
   WHITE,
 } from "@laminapdf/render";
 import initGlue, { HayroDocument, type InitInput, InputBuffer } from "@laminapdf/wasm/render-hayro";
+import { HAYRO_VERSION } from "./generated/version.js";
 
-/** The pinned hayro version (the workspace's `=0.8.0`). */
-export const HAYRO_VERSION = "0.8.0";
+export { HAYRO_VERSION } from "./generated/version.js";
 
 /** Reads per call, as laminapdf-cos reads windows. */
 const CHUNK = 64 * 1024;

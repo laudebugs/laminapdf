@@ -108,51 +108,57 @@ class FileServer {
   }
 
   #handle(req: IncomingMessage, res: ServerResponse): void {
-    const size = this.bytes.length;
-    const header = req.headers.range;
-    const entry: Logged = { range: header, status: 0, start: 0, end: 0, closed: false };
+    const entry: Logged = { range: req.headers.range, status: 0, start: 0, end: 0, closed: false };
     this.log.push(entry);
     req.on("close", () => {
       entry.closed = true;
     });
-    const send = () => {
-      if (res.destroyed) return;
-      if (this.etag !== undefined) res.setHeader("ETag", this.etag);
-      if (this.lastModified !== undefined) res.setHeader("Last-Modified", this.lastModified);
-      res.setHeader("Accept-Ranges", "bytes");
-      const ifRange = req.headers["if-range"];
-      const m = header === undefined ? null : /^bytes=(\d*)-(\d*)$/.exec(header);
-      const later = this.rangesOnlyFirst && this.log.length > 1;
-      if (size === 0 && m !== null) {
-        entry.status = 416;
-        res.writeHead(416, { "Content-Range": "bytes */0" });
-        res.end();
-        return;
-      }
-      const current = this.etag ?? this.lastModified;
-      if (!this.ranges || later || m === null || (ifRange !== undefined && ifRange !== current)) {
-        entry.status = 200;
-        entry.end = size;
-        res.writeHead(200, { "Content-Length": size });
-        res.end(this.bytes);
-        return;
-      }
-      let start: number;
-      let end: number;
-      if (m[1] === "") {
-        start = Math.max(0, size - Number(m[2]));
-        end = size;
-      } else {
-        start = Number(m[1]);
-        end = m[2] === "" ? size : Math.min(size, Number(m[2]) + 1);
-      }
-      Object.assign(entry, { status: 206, start, end });
-      res.writeHead(206, { "Content-Range": `bytes ${start}-${end - 1}/${size}`, "Content-Length": end - start });
-      res.end(this.bytes.subarray(start, end));
-    };
+    // The size the request saw on arrival, as a server would answer it; the bytes are read when it is sent.
+    const size = this.bytes.length;
+    const send = () => this.#send(req, res, entry, size);
     if (this.delayMs > 0) setTimeout(send, this.delayMs);
     else send();
   }
+
+  #send(req: IncomingMessage, res: ServerResponse, entry: Logged, size: number): void {
+    if (res.destroyed) return;
+    if (this.etag !== undefined) res.setHeader("ETag", this.etag);
+    if (this.lastModified !== undefined) res.setHeader("Last-Modified", this.lastModified);
+    res.setHeader("Accept-Ranges", "bytes");
+    const header = entry.range;
+    const m = header === undefined ? null : /^bytes=(\d*)-(\d*)$/.exec(header);
+    if (size === 0 && m !== null) {
+      entry.status = 416;
+      res.writeHead(416, { "Content-Range": "bytes */0" });
+      res.end();
+      return;
+    }
+    if (m === null || this.#sendsWhole(req.headers["if-range"])) {
+      entry.status = 200;
+      entry.end = size;
+      res.writeHead(200, { "Content-Length": size });
+      res.end(this.bytes);
+      return;
+    }
+    const { start, end } = byteRange(m, size);
+    Object.assign(entry, { status: 206, start, end });
+    res.writeHead(206, { "Content-Range": `bytes ${start}-${end - 1}/${size}`, "Content-Length": end - start });
+    res.end(this.bytes.subarray(start, end));
+  }
+
+  /** Whether this request gets the whole file: no ranges, only the first ranged, or If-Range stale. */
+  #sendsWhole(ifRange: string | string[] | undefined): boolean {
+    const later = this.rangesOnlyFirst && this.log.length > 1;
+    const current = this.etag ?? this.lastModified;
+    return !this.ranges || later || (ifRange !== undefined && ifRange !== current);
+  }
+}
+
+/** The bytes `bytes=start-end` or `bytes=-suffix` asks for, as `start..end` (end exclusive). */
+function byteRange(m: RegExpExecArray, size: number): { start: number; end: number } {
+  if (m[1] === "") return { start: Math.max(0, size - Number(m[2])), end: size };
+  const start = Number(m[1]);
+  return { start, end: m[2] === "" ? size : Math.min(size, Number(m[2]) + 1) };
 }
 
 const server = new FileServer();

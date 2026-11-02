@@ -218,18 +218,31 @@ fn page_text_crosses_as_a_struct_of_arrays() {
 }
 
 #[wasm_bindgen_test]
-fn a_tag_scope_out_of_range_is_an_invalid_argument() {
+fn an_unknown_tag_scope_is_an_invalid_argument() {
     let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let mut page = builder.page(100.0, 100.0);
-    // 16 is `TH`; scopes are 0 (none) to 3 (both).
-    let error = page.begin_tag(16, None, None, None, None, None, 4).err().unwrap();
+    let error = page
+        .begin_tag("TH", None, None, None, None, None, Some("rows".to_owned()))
+        .err()
+        .unwrap();
     assert_eq!(string(&error, "code").as_deref(), Some("invalid-argument"));
 }
 
 #[wasm_bindgen_test]
-fn a_tag_kind_out_of_range_is_an_invalid_argument() {
+fn an_unknown_tag_kind_is_an_invalid_argument() {
     let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let mut page = builder.page(100.0, 100.0);
-    let error = page.begin_tag(25, None, None, None, None, None, 0).err().unwrap();
+    let error = page
+        .begin_tag("Heading", None, None, None, None, None, None)
+        .err()
+        .unwrap();
+    assert_eq!(string(&error, "code").as_deref(), Some("invalid-argument"));
+}
+
+#[wasm_bindgen_test]
+fn an_unknown_artifact_kind_is_an_invalid_argument() {
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let mut page = builder.page(100.0, 100.0);
+    let error = page.begin_artifact("footer").err().unwrap();
     assert_eq!(string(&error, "code").as_deref(), Some("invalid-argument"));
 }
