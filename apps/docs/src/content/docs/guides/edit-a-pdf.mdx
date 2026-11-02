@@ -21,11 +21,11 @@ This example generates a draft report, opens its bytes and retitles it in one tr
 
 [See the output](/examples/#generate-then-edit).
 
-Your edits live beside the bytes you opened and never change them. Nothing reaches a file until you save, so a mistake costs nothing until then. [How Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/) explains why it works this way.
+Your edits live beside the bytes you opened and never change them. Nothing reaches a file until you save. [How Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/) explains why it works this way.
 
 ## Group edits into a transaction
 
-`doc.transact(tx => …)` collects edits, such as `setInfo` and `rotatePage`, and applies them together when the callback returns. If the callback throws, none of them apply. The callback is synchronous. Editing or saving the same document inside it fails with `nested-transaction`.
+`doc.transact(tx => …)` collects edits, such as `setInfo` and `rotatePage`, and applies them together when the callback returns. If the callback throws, none of them apply. The callback is synchronous, and editing or saving the same document inside it fails with `nested-transaction`.
 
 ## Undo and redo
 

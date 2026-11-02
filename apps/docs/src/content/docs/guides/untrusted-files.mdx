@@ -7,13 +7,13 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll open uploads with caps on how much an untrusted file can make Lamina PDF decode, read or draw. You need this on any server or page that opens PDFs from strangers, because a small file can ask for gigabytes of work.
 
-This example opens uploads with tighter limits than the defaults: at most 16 MiB from one stream and 64 MiB in all:
+This example opens uploads with tighter limits than the defaults: at most 16 MiB decoded from one stream and 64 MiB in all:
 
 <Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
-## Why a small file needs limits
+## Set only the limits you need
 
-A small PDF can ask for a lot of work: a stream that inflates to gigabytes, a page tree thousands of levels deep, drawings nested inside drawings. Lamina PDF keeps every file within the `limits` you pass when you open it. Every limit has a safe default, so you set only the ones you want to change.
+That work takes many forms: a stream that inflates to gigabytes, a page tree thousands of levels deep, drawings nested inside drawings. Lamina PDF keeps every file within the `limits` you pass when you open it. Every limit has a safe default, so you set only the ones you want to change.
 
 ## Hard and soft limits
 

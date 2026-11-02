@@ -15,7 +15,7 @@ You'll run Lamina PDF in a Web Worker, so opening or saving a large file never f
 
 Getters become methods: `await doc.pageCount()`. `doc.page(i)` returns a remote page, and `page.text()` returns a `PageText`, once you've called `client.loadExtract()`.
 
-Three things stay on your side of the Web Worker:
+The Web Worker leaves out three things:
 
 - **`transact`:** its callback can't cross to the Web Worker, so pass the edits to `apply(ops)` instead.
 - **`saveJob`:** the Web Worker's `save` already works in steps.
