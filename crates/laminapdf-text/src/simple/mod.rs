@@ -8,17 +8,17 @@
 //! "Łódź" works in Helvetica. Symbol and `ZapfDingbats` use their built-in encodings, which
 //! reach every glyph Lamina PDF maps text to.
 
-mod tounicode;
-
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 
+use crate::descriptor::descriptor;
 use crate::embed::Encoded;
 use crate::encoding::Encoding;
 use crate::error::{Error, Result, Warning};
 use crate::font::{Font, GlyphId};
 use crate::std14::Standard14;
+use crate::tounicode::{Codespace, to_unicode_cmap};
 
 /// The codes a font's base encoding leaves undefined, which `/Differences` may assign: the
 /// high ones first, then the control codes (code 0 is never used).
@@ -179,29 +179,16 @@ impl SimpleUse {
     pub(crate) fn write(&self, cos: &mut CosMut<'_>, font: &Font, object: ObjRef) -> Result<()> {
         let info = font.info();
         let base_font = Name::from(self.font.base_font());
-        let round = |v: f32| Object::Integer(crate::embed::round_i64(f64::from(v)));
-
-        let mut descriptor = Dict::new();
-        descriptor.insert("Type", Name::from("FontDescriptor"));
-        descriptor.insert("FontName", base_font.clone());
-        descriptor.insert("Flags", i64::from(info.flags));
-        descriptor.insert("FontBBox", Object::Array(info.bbox.iter().map(|&v| round(v)).collect()));
-        descriptor.insert("ItalicAngle", crate::embed::real(f64::from(info.italic_angle)));
-        descriptor.insert("Ascent", round(info.ascent));
-        descriptor.insert("Descent", round(info.descent));
-        // §9.8.1 Table 120: CapHeight is required for fonts with Latin characters.
-        if let Some(cap_height) = info.cap_height {
-            descriptor.insert("CapHeight", round(cap_height));
-        }
-        if let Some(x_height) = info.x_height {
-            descriptor.insert("XHeight", round(x_height));
-        }
+        let mut descriptor = descriptor(info, base_font.clone(), None);
         let metrics = self.font.metrics();
         descriptor.insert("StemV", i64::from(metrics.std_vw));
         descriptor.insert("StemH", i64::from(metrics.std_hw));
         let descriptor = cos.create(Object::Dict(descriptor))?;
 
-        let cmap = tounicode::one_byte_cmap(&self.text);
+        let cmap = to_unicode_cmap(
+            Codespace::OneByte,
+            self.text.iter().map(|(&c, t)| (u16::from(c), t.as_str())),
+        );
         let to_unicode = cos.create(Object::Stream(Stream::flate(Dict::new(), &cmap)))?;
 
         // A font no text was drawn with still needs a valid range: the space.

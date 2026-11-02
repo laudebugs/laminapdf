@@ -275,7 +275,7 @@ pub(crate) fn milli(units: f64, upem: u16) -> i64 {
     round_i64(units * 1_000_000.0 / f64::from(upem.max(1)))
 }
 
-pub(crate) fn round_i64(v: f64) -> i64 {
+fn round_i64(v: f64) -> i64 {
     if !v.is_finite() {
         return 0;
     }

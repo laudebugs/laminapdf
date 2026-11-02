@@ -263,7 +263,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2e](../todos/done/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
 | [Q2f](../todos/done/Q2f-page-attributes-one-owner.md) | One reader of page attributes and one rotation type (fixes `/Rotate 90.0`) | M | — |
 | [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
-| [Q2h](../todos/ready/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
+| [Q2h](../todos/done/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
 | [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
 | [Q2j](../todos/done/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
 | [Q2k](../todos/done/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
@@ -305,7 +305,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1k: internal IDs out of reader text
 - [ ] Q1l: the docs checks are strict everywhere
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
-- [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code, are done)
+- [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2h](../todos/done/Q2h-text-writers-dedup.md), surrogate pairs kept whole in ToUnicode, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code, are done)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, and [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, are done)
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history

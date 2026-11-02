@@ -244,6 +244,36 @@ pub enum Object {
 }
 
 impl Object {
+    /// `v` as a number: an integer when it is integral and below 10¹⁵ in magnitude (`612`,
+    /// not `612.0`), else a real. PDF has no NaN or infinity, so a non-finite `v` is 0.
+    #[must_use]
+    pub fn number(v: f64) -> Self {
+        if !v.is_finite() {
+            return Self::Integer(0);
+        }
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "only integral values well inside i64 get here"
+        )]
+        if v.fract() == 0.0 && v.abs() < 1e15 {
+            Self::Integer(v as i64)
+        } else {
+            Self::Real(v)
+        }
+    }
+
+    /// `v` rounded to `decimals` decimal places (at most 15; more count as 15), then written
+    /// as [`Object::number`] writes it: `rounded(v, 0)` is the nearest integer.
+    #[must_use]
+    pub fn rounded(v: f64, decimals: u8) -> Self {
+        // Past 10¹⁵ every f64 is already whole, and scaling it could overflow to infinity.
+        if v.abs() >= 1e15 {
+            return Self::number(v);
+        }
+        let scale = 10f64.powi(i32::from(decimals.min(15)));
+        Self::number((v * scale).round() / scale)
+    }
+
     /// A name object.
     #[must_use]
     pub fn name(s: &str) -> Self {
@@ -448,6 +478,47 @@ mod tests {
 
     fn ser(o: &Object) -> String {
         String::from_utf8_lossy(&o.to_bytes()).into_owned()
+    }
+
+    #[test]
+    fn number_writes_integral_values_as_integers() {
+        assert_eq!(
+            (Object::number(612.0), Object::number(0.5), Object::number(-3.0)),
+            (Object::Integer(612), Object::Real(0.5), Object::Integer(-3))
+        );
+    }
+
+    #[test]
+    fn number_writes_a_non_finite_value_as_zero() {
+        assert_eq!(
+            [f64::NAN, f64::INFINITY].map(Object::number),
+            [Object::Integer(0), Object::Integer(0)]
+        );
+    }
+
+    #[test]
+    fn rounded_leaves_a_huge_value_as_it_is() {
+        assert_eq!(Object::rounded(1e300, 15), Object::Real(1e300));
+    }
+
+    #[test]
+    fn rounded_to_no_decimals_is_the_nearest_integer() {
+        assert_eq!(
+            (Object::rounded(95.5, 0), Object::rounded(-292.6, 0)),
+            (Object::Integer(96), Object::Integer(-293))
+        );
+    }
+
+    #[test]
+    fn rounded_rounds_then_writes_a_whole_result_as_an_integer() {
+        assert_eq!(
+            (
+                Object::rounded(-12.004, 2),
+                Object::rounded(-12.345, 2),
+                Object::rounded(600.098, 3)
+            ),
+            (Object::Integer(-12), Object::Real(-12.35), Object::Real(600.098))
+        );
     }
 
     #[test]
