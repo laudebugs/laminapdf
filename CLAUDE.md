@@ -276,7 +276,8 @@ cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin
                              #   --local; Rust binaries with path and git deps on Lamina PDF, git default HEAD of this clone);
                              #   each output must equal fixtures/golden/examples/hello.pdf
 cargo xtask release-guard [--run <id>] [--commit <rev>]  # fail unless the latest completed full nightly.yml run on main, or run <id>, succeeded on <rev>
-                             #   (full: scheduled, or dispatched with every input at its default, titled "Nightly (full budgets)") (default HEAD) or an ancestor (gh, git merge-base)
+                             #   (default HEAD) or an ancestor (gh, git merge-base); full: scheduled, or dispatched with every
+                             #   input at its default, titled "Nightly (full budgets)"
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys)
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools

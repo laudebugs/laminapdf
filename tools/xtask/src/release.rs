@@ -2,8 +2,8 @@
 //! nightly lane is red (ADR 0018 §2: "a nightly failure … blocks the next release"; ADR 0017).
 //!
 //! It asks GitHub (`gh`, authenticated by `GH_TOKEN` in Actions) for the latest completed run of
-//! `nightly.yml` on `main` that ran the full lane: a **scheduled** run, or a **dispatched** one
-//! whose inputs were all left at their defaults, which nightly.yml's `run-name` titles
+//! `nightly.yml` on `main` that was a full nightly: a **scheduled** run, or a **dispatched** one
+//! with every input at its default, which nightly.yml's `run-name` titles
 //! [`FULL_DISPATCH_TITLE`]. A dispatch with a shorter fuzz budget or a sampled differential is
 //! titled otherwise and doesn't count. The guard passes only when that run succeeded on the
 //! release commit or one of its ancestors (`git merge-base --is-ancestor`; the release lane checks
@@ -354,14 +354,20 @@ mod tests {
     }
 
     /// Every `workflow_dispatch` input of nightly.yml with its default: `(name, default)`, read
-    /// from the lines under `inputs:` (six-space-indented names, eight-space `default:` lines).
+    /// from the lines under `inputs:` up to the next key indented four spaces or fewer: names are
+    /// six-space-indented keys, and a deeper `default:` line belongs to the name above it; blank
+    /// and comment lines are skipped. Quotes around a default are removed.
     fn dispatch_inputs(workflow: &str) -> Vec<(&str, &str)> {
         let block = workflow
             .split("\n  workflow_dispatch:\n    inputs:\n")
             .nth(1)
             .unwrap_or_default();
         let mut inputs: Vec<(&str, &str)> = Vec::new();
-        for line in block.lines().take_while(|l| l.starts_with("      ")) {
+        let lines = block
+            .lines()
+            .filter(|l| !l.trim().is_empty() && !l.trim_start().starts_with('#'))
+            .take_while(|l| l.starts_with("      "));
+        for line in lines {
             if let Some(name) = line.strip_prefix("      ").and_then(|l| l.strip_suffix(':')) {
                 if !name.starts_with(' ') {
                     inputs.push((name, ""));
@@ -369,7 +375,7 @@ mod tests {
             } else if let Some(value) = line.trim().strip_prefix("default: ")
                 && let Some(last) = inputs.last_mut()
             {
-                last.1 = value.trim_matches('"');
+                last.1 = value.trim_matches(|c| c == '"' || c == '\'');
             }
         }
         inputs
@@ -392,6 +398,7 @@ mod tests {
             .iter()
             .map(|(name, default)| match *default {
                 "false" => format!("!inputs.{name}"),
+                "true" => format!("inputs.{name}"),
                 value => format!("inputs.{name} == '{value}'"),
             })
             .collect();
