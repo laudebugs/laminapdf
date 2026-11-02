@@ -1,7 +1,7 @@
 //! Shared helpers for `laminapdf-build`'s tests: fixture loading, saving and reopening, a
 //! `laminapdf-content` visitor that records what a page draws (in user space), small PNG inputs,
-//! the golden samples (`samples`: the builder's; `legacy`: the frozen `hello` and
-//! `imaging-demo`) and the spike's content builder (`content`, which `legacy` needs).
+//! and the golden samples (`samples`). The frozen `hello` and `imaging-demo` goldens are
+//! `laminapdf-save`'s.
 #![allow(
     dead_code,
     unreachable_pub,
@@ -17,8 +17,6 @@
 )]
 
 pub mod b5b;
-pub mod content;
-pub mod legacy;
 pub mod reading_order;
 pub mod samples;
 pub mod tagged;

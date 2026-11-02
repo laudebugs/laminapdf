@@ -103,7 +103,7 @@ pub(crate) fn fill_hint(template: &str, limit: Option<&'static str>) -> Option<S
 #[cfg(test)]
 mod tests {
     use super::{ErrorCode, WarningCode, fill_hint};
-    use crate::test_codes::code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS};
+    use laminapdf_test_fixtures::code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS};
 
     #[test]
     fn from_code_should_round_trip_every_code() {

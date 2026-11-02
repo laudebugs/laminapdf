@@ -1,6 +1,5 @@
-//! SPEC case 1: the incremental-update fixture and the overlay writers' goldens (B3b), byte for
-//! byte. `hello.pdf` and `imaging-demo.pdf` themselves are checked by `laminapdf-build`'s
-//! `goldens.rs`.
+//! SPEC case 1: the frozen `hello.pdf` and `imaging-demo.pdf`, the incremental-update fixture
+//! and the overlay writers' goldens (B3b), byte for byte.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -15,6 +14,24 @@ use common::samples;
 use common::update;
 use laminapdf_cos::{Dict, ObjRef, Stream};
 use laminapdf_save::XrefEol;
+
+#[test]
+fn the_frozen_goldens_are_rebuilt_byte_for_byte() {
+    assert_eq!(
+        (
+            common::legacy::hello().unwrap(),
+            common::legacy::imaging_demo().unwrap()
+        ),
+        (fixture("golden/hello.pdf"), fixture("golden/imaging-demo.pdf"))
+    );
+}
+
+#[test]
+fn imaging_demo_content_matches_the_fixture_stream() {
+    let doc = common::open(&fixture("golden/imaging-demo.pdf")).unwrap();
+    let page = doc.pages().unwrap().remove(0);
+    assert_eq!(doc.page_content(&page).unwrap(), common::legacy::imaging_demo_content());
+}
 
 #[test]
 fn incremental_update_of_hello_reproduces_corpus_fixture_byte_for_byte() {

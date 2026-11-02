@@ -7,15 +7,13 @@ use laminapdf_build::{
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
-use super::{b5b, fixture, legacy, png, rgba_gradient, save, tagged};
+use super::{b5b, fixture, png, rgba_gradient, save, tagged};
 
 /// The code that builds one golden.
 pub type Build = fn() -> Vec<u8>;
 
 /// Every golden: its file name under `fixtures/golden/` and the code that builds it.
-pub const GOLDENS: [(&str, Build); 9] = [
-    ("hello.pdf", || legacy::hello().unwrap()),
-    ("imaging-demo.pdf", || legacy::imaging_demo().unwrap()),
+pub const GOLDENS: [(&str, Build); 7] = [
     ("vectors.pdf", vectors),
     ("images.pdf", images),
     ("build-text-latin.pdf", b5b::text_latin),

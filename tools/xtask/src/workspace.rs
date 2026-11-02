@@ -4,11 +4,13 @@
 //!
 //! ```toml
 //! [package.metadata.laminapdf]
-//! layer = "core"   # "core" | "edge" | "app"
+//! layer = "core"   # "core" | "edge" | "app" | "dev"
 //! wasm = true      # optional, edge crates only: also lint/build for wasm32 (core crates always are)
 //! ```
 //!
 //! Core crates are bytes in, bytes out (docs/guidelines/code-organization.md §2), and xtask enforces it.
+//! Dev crates (`laminapdf-test-fixtures`) hold test helpers: only tests and tools use them
+//! (crates as dev-dependencies, xtask for the `codes.json` rules), and they are never published.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs;
@@ -79,6 +81,7 @@ enum Layer {
     Core,
     Edge,
     App,
+    Dev,
 }
 
 /// The repository root and its crates.
@@ -220,22 +223,27 @@ impl Crate {
             Some("core") => Layer::Core,
             Some("edge") => Layer::Edge,
             Some("app") => Layer::App,
+            Some("dev") => Layer::Dev,
             other => {
                 bail!(
-                    "{name}: [package.metadata.laminapdf] layer must be \"core\", \"edge\" or \"app\" (found {other:?})"
+                    "{name}: [package.metadata.laminapdf] layer must be \"core\", \"edge\", \"app\" or \"dev\" (found {other:?})"
                 )
             }
         };
+        // cargo metadata: `publish` is null for any registry, `[]` for `publish = false`.
+        let publishable = package
+            .get("publish")
+            .is_none_or(|p| p.as_array().is_none_or(|r| !r.is_empty()));
+        if layer == Layer::Dev && publishable {
+            bail!("{name}: a dev crate holds test helpers and must set `publish = false`");
+        }
         Ok(Self {
             name,
             dir: dir.to_path_buf(),
             wasm: layer == Layer::Edge
                 && package.pointer("/metadata/laminapdf/wasm").and_then(Value::as_bool) == Some(true),
             layer,
-            // cargo metadata: `publish` is null for any registry, `[]` for `publish = false`.
-            publishable: package
-                .get("publish")
-                .is_none_or(|p| p.as_array().is_none_or(|r| !r.is_empty())),
+            publishable,
         })
     }
 }
@@ -497,7 +505,9 @@ mod tests {
 
     use std::path::Path;
 
-    use super::{Node, edge_only_paths, forbidden_api, forbids_unsafe_at_crate_root, parse_tree, target_directory};
+    use super::{
+        Crate, Node, edge_only_paths, forbidden_api, forbids_unsafe_at_crate_root, parse_tree, target_directory,
+    };
 
     #[test]
     fn parse_tree_links_each_line_to_the_line_above_it_one_level_up() {
@@ -507,6 +517,14 @@ mod tests {
             (root.as_str(), edge_only_paths(&graph, &root)),
             ("core v0.0.0", vec!["core → helper → getrandom".to_owned()])
         );
+    }
+
+    #[test]
+    fn a_dev_crate_should_need_publish_false() {
+        let package = |publish: serde_json::Value| serde_json::json!({ "name": "t", "publish": publish, "metadata": { "laminapdf": { "layer": "dev" } } });
+        let dir = Path::new("crates/t");
+        assert!(Crate::from_metadata(&package(serde_json::json!([])), dir).is_ok());
+        assert!(Crate::from_metadata(&package(serde_json::Value::Null), dir).is_err());
     }
 
     #[test]

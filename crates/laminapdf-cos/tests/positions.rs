@@ -14,7 +14,7 @@ mod common;
 use std::sync::Arc;
 
 use common::NoSlice;
-use common::classic::{classic, stream_body};
+use common::{classic, stream_body};
 use laminapdf_cos::{ByteSource, Document, Error, ErrorKind, Limit, Limits, Location, ObjRef, OpenOptions, Position};
 
 fn limits() -> OpenOptions {

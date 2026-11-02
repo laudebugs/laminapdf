@@ -42,5 +42,8 @@ serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+# The test helpers every crate shares, by path only so `cargo publish` drops it
+# (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Reads fixtures/codes.json in the kind test.
 serde_json = { workspace = true }

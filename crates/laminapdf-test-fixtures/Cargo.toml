@@ -1,0 +1,20 @@
+[package]
+name = "laminapdf-test-fixtures"
+description = "Test helpers shared by Lamina PDF's crates: the fixtures directory, hand-built classic files, a seeded PRNG, a byte-slice read for ByteSource fakes and the codes.json loader. Dev-only, never published."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# Read by `cargo xtask`: a dev crate, used only by tests (as a dev-dependency) and by xtask. It
+# depends on no Lamina PDF crate, so any crate's unit tests can use it without a dependency cycle.
+[package.metadata.laminapdf]
+layer = "dev"
+
+[dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

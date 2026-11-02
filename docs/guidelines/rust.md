@@ -101,7 +101,7 @@ too-many-lines-threshold = 100
 
 ## Tests
 
-- **MUST:** unit tests sit in `#[cfg(test)] mod tests` at the bottom of the file. Integration tests in `tests/<topic>.rs` use the public API only. Shared helpers go in `tests/common/mod.rs`.
+- **MUST:** unit tests sit in `#[cfg(test)] mod tests` at the bottom of the file. Integration tests in `tests/<topic>.rs` use the public API only. A crate's own shared helpers go in `tests/common/mod.rs`; helpers several crates need live in `laminapdf-test-fixtures` ([`code-organization.md` §6](code-organization.md#6-tests-and-fixtures)).
 - **MUST:** test names read as behavior. Group them by the unit under test: `mod parse_object { #[test] fn rejects_nesting_deeper_than_max_depth() … }` or `open_should_repair_when_xref_offset_is_wrong`. No `test_` prefixes, no `happy_path`.
 - **SHOULD:** check one behavior per test. Use [`rstest`](https://docs.rs/rstest) cases for tables of inputs and [`insta`](https://insta.rs) for snapshotting large text or `Debug` output (never for byte-exact PDFs; those are golden files in `fixtures/golden/`, rewritten only by an explicit regenerate command, see [`code-organization.md` §6](code-organization.md#6-tests-and-fixtures)).
 - **MUST:** every public example in docs is a doc test that compiles and runs (`?` with a hidden `# Ok::<(), Error>(())`, C-QUESTION-MARK).

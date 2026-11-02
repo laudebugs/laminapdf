@@ -10,8 +10,9 @@
 
 mod common;
 
+use common::classic_with_root;
 use common::fixture;
-use common::save::{classic, corpus_doc, editable, rotate, set_title, tampered_and_repaired};
+use common::save::{corpus_doc, editable, rotate, set_title, tampered_and_repaired};
 use laminapdf_model::Rotation;
 use laminapdf_ops::{Document, ModificationClass};
 use laminapdf_save::{ConstraintKind, DocMdpPermission, Restriction, RewriteReason, SavePlanner, SignatureKind};
@@ -234,7 +235,7 @@ fn undoing_back_to_the_base_clears_the_violation() {
 
 /// Catalog 1 with `/Perms` 6, pages 2, page 3, form 4 with field 5, signature 7.
 fn hand_signed(field: &str, sig: &str, perms: &str) -> Vec<u8> {
-    classic(
+    classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms 6 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -323,7 +324,7 @@ const SIG: &str = "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >>";
 #[test]
 fn a_direct_perms_docmdp_signature_is_a_certification() {
     // No field and no reference: `/Perms /DocMDP` holds the signature dictionary itself.
-    let bytes = classic(
+    let bytes = classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /Perms << /DocMDP << /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >> >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -348,7 +349,7 @@ fn a_direct_perms_docmdp_signature_is_a_certification() {
 
 #[test]
 fn a_direct_field_value_matching_a_direct_perms_entry_is_one_certification() {
-    let bytes = classic(
+    let bytes = classic_with_root(
         &[
             &format!(
                 "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [<< /FT /Sig /T (C) /V {SIG} >>] >> /Perms << /DocMDP {SIG} >> >>"
@@ -405,7 +406,7 @@ fn a_full_rewrite_with_unknown_signatures_is_refused() {
 
 #[test]
 fn a_repaired_files_untyped_signature_dictionary_is_found() {
-    let mut bytes = classic(
+    let mut bytes = classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",

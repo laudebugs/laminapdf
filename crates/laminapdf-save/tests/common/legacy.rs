@@ -3,10 +3,9 @@
 //!
 //! These two goldens are the frozen outputs of the Python examples in research chapters 01 and
 //! 02 (via the `pdf-basics` spike): a hand-wrapped page dictionary, `%` comments and fixed
-//! decimals in the content, a classic xref without `/ID`. The builder (`Builder`) writes its
-//! own layout and `pdf_writer::Content`, so it can't reproduce them byte for byte; they are
-//! generated here, in `laminapdf-build`'s golden example, and `laminapdf-save`'s tests include this
-//! file (by `#[path]`) for the documents they edit.
+//! decimals in the content, a classic xref without `/ID`. `laminapdf-build`'s `Builder` writes
+//! its own layout and `pdf_writer::Content`, so it can't reproduce them byte for byte; this
+//! crate's golden example generates them, and its tests edit them.
 
 use laminapdf_cos::{Dict, ObjRef, Object, Result, Stream};
 use laminapdf_save::{Writer, XrefEol};

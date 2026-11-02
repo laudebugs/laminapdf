@@ -3,7 +3,7 @@
 
 mod common;
 
-use common::{classic, corpus, inherited_rotate, open, page_ids, rotations, snapshot, title};
+use common::{classic_with_root, corpus, inherited_rotate, open, page_ids, rotations, snapshot, title};
 use laminapdf_cos::{Object, OverlayEntry};
 use laminapdf_model::{PageId, PdfDate, Rotation};
 use laminapdf_ops::{Error, Field, InfoPatch, ModificationClass, Op, Origin, RotatePage, SetInfo};
@@ -180,7 +180,7 @@ mod rotate_page {
     /// Two pages inheriting `/Rotate 90.0` (an integral real): the first one's `/Parent`
     /// leads to the root, the second has none, so it is found by the page-tree walk.
     fn real_rotate() -> laminapdf_ops::Document {
-        open(&classic(
+        open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /Rotate 90.0 /MediaBox [0 0 100 100] >>",
@@ -219,7 +219,7 @@ mod rotate_page {
 
     #[test]
     fn writes_nothing_when_an_own_integral_real_already_states_the_rotation() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] >>",
@@ -239,7 +239,7 @@ mod rotate_page {
 
     #[test]
     fn writes_nothing_when_an_own_null_inherits_the_rotation() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 /Rotate 90 /MediaBox [0 0 100 100] >>",
@@ -290,7 +290,7 @@ mod rotate_page {
 
     #[test]
     fn a_direct_page_is_refused() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [<< /Type /Page >>] /Count 1 >>",
@@ -319,7 +319,7 @@ mod review_fixes {
 
     #[test]
     fn rotate_page_fixes_an_invalid_rotate_in_strict_mode() {
-        let bytes = classic(
+        let bytes = classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -337,7 +337,7 @@ mod review_fixes {
 
     #[test]
     fn rotate_page_does_not_warn_about_the_value_it_replaces() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -366,7 +366,7 @@ mod review_fixes {
 
     #[test]
     fn rotate_page_refuses_a_page_object_outside_the_tree() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -384,7 +384,7 @@ mod review_fixes {
 
     #[test]
     fn rotate_page_finds_a_page_whose_parent_entry_is_wrong() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -400,7 +400,7 @@ mod review_fixes {
 
     #[test]
     fn set_info_replaces_an_info_object_that_does_not_parse() {
-        let mut doc = open(&classic(
+        let mut doc = open(&classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R >>",
                 "<< /Type /Pages /Kids [] /Count 0 >>",

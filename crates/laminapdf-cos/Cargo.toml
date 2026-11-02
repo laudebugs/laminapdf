@@ -29,6 +29,8 @@ thiserror = { workspace = true }
 [dev-dependencies]
 # Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
+# The test helpers every crate shares (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 criterion = { workspace = true }
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts: the integration
 # tests link the one library `laminapdf-save` links; unit tests in `src/` must not use it.

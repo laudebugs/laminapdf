@@ -13,7 +13,7 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{classic, open, open_with, stream_body};
+use common::{classic, open, open_with, read_at, stream_body};
 use laminapdf_cos::{
     ByteSource, Document, Error, Limit, Limits, ObjRef, OpenOptions, Position, Source, SourceError, Warning,
 };
@@ -217,9 +217,7 @@ impl ByteSource for Counted {
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
         self.reads.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let tail = self.data.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len());
-        buf[..n].copy_from_slice(&tail[..n]);
+        let n = read_at(&self.data, offset, buf);
         Ok(n)
     }
 }
@@ -234,9 +232,7 @@ impl ByteSource for Liar {
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
         let data: &[u8] = b"%PDF-1.7\n";
-        let tail = data.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len());
-        buf[..n].copy_from_slice(&tail[..n]);
+        let n = read_at(data, offset, buf);
         Ok(n)
     }
 }

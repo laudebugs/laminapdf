@@ -108,10 +108,9 @@ mod simple;
 mod std14;
 mod tounicode;
 mod usage;
-// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+// What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
-#[path = "../../laminapdf-cos/tests/common/codes.rs"]
-mod test_codes;
+use laminapdf_test_fixtures::codes as test_codes;
 #[cfg(test)]
 mod test_fonts;
 

@@ -26,6 +26,9 @@ sha2 = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+# The test helpers every crate shares, by path only so `cargo publish` drops it
+# (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 criterion = { workspace = true }
 proptest = { workspace = true }
 serde_json = { workspace = true }

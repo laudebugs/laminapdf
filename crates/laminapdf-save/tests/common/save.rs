@@ -11,7 +11,7 @@ use laminapdf_save::{
     ReadableSink, Result as SaveResult, Save, SaveMode, SaveOptions, SaveReport, SinkError, WriteSink,
 };
 
-use super::fixture;
+use super::{classic_with_root, fixture};
 
 /// B3b's save names over [`Save`] with an explicit mode, so the writer tests keep naming the
 /// writer they exercise.
@@ -67,21 +67,13 @@ pub fn corpus_doc(name: &str) -> Document {
     editable(&fixture(&format!("corpus/{name}")))
 }
 
-/// A classic file around object bodies numbered `1..`, with `/Size` and `/Root 1 0 R` added
-/// to `trailer_extra` (over the shared [`super::classic::classic`]).
-pub fn classic(objects: &[&str], trailer_extra: &str) -> Vec<u8> {
-    let bodies: Vec<&[u8]> = objects.iter().map(|o| o.as_bytes()).collect();
-    let trailer = format!("<< /Size {} /Root 1 0 R {trailer_extra} >>", objects.len() + 1);
-    super::classic::classic(&bodies, &trailer)
-}
-
 /// The `/ID` used by [`two_pages`].
 pub const ID0: &str = "00112233445566778899AABBCCDDEEFF";
 
 /// Catalog 1, pages 2 with pages 3 and 4, Info 5, an orphan object 6 nothing references,
 /// and an `/ID`.
 pub fn two_pages() -> Vec<u8> {
-    classic(
+    classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 200 200] >>",
@@ -247,12 +239,7 @@ impl ByteSource for Windowed {
                 len: u64::try_from(buf.len()).unwrap(),
             });
         }
-        let tail = self.data.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len());
-        if let (Some(dst), Some(src)) = (buf.get_mut(..n), tail.get(..n)) {
-            dst.copy_from_slice(src);
-        }
-        Ok(n)
+        Ok(laminapdf_test_fixtures::read_at(&self.data, offset, buf))
     }
 }
 

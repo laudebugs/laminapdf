@@ -104,15 +104,9 @@ mod overlay;
 mod reader;
 mod scan;
 mod source;
-// Hand-built files, shared with the integration tests (unit tests can't use `laminapdf-save`'s
-// writer: through the dev-dependency they would see a second copy of this crate).
-#[cfg(test)]
-#[path = "../tests/common/classic.rs"]
-mod test_files;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
-#[path = "../tests/common/codes.rs"]
-mod test_codes;
+use laminapdf_test_fixtures::codes as test_codes;
 
 pub use error::{Error, Result, absent_if_malformed, tolerant};
 pub use laminapdf_syntax::crypt::{Cipher, PasswordKind, Permissions};

@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use laminapdf_cos::{ByteSource, Dict, Document, Error, ObjRef, Object, OpenOptions, SourceError, Stream};
 use laminapdf_save::Writer;
+use laminapdf_test_fixtures::read_at;
 
 const WINDOW: usize = 64 * 1024;
 
@@ -43,9 +44,7 @@ impl ByteSource for Counted {
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
         self.calls.fetch_add(1, Ordering::Relaxed);
-        let tail = self.data.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len());
-        buf[..n].copy_from_slice(&tail[..n]);
+        let n = read_at(&self.data, offset, buf);
         self.bytes.fetch_add(u64::try_from(n).unwrap(), Ordering::Relaxed);
         Ok(n)
     }
@@ -100,8 +99,7 @@ impl ByteSource for Fetching {
                 len: u64::try_from(n).unwrap(),
             });
         }
-        buf[..n].copy_from_slice(&self.data[start..start + n]);
-        Ok(n)
+        Ok(read_at(&self.data, offset, &mut buf[..n]))
     }
 }
 

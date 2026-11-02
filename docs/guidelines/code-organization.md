@@ -142,7 +142,7 @@ Tolerant reading **MUST** be a written policy. Recoverable problems become *warn
 crates/laminapdf-core/
 ├── src/parser.rs          # unit tests at the bottom: #[cfg(test)] mod tests { … }
 ├── tests/                 # integration tests: public API only, one file per topic
-│   ├── common/mod.rs      #   shared helpers (fixture loading)
+│   ├── common/mod.rs      #   this crate's helpers; shared ones come from laminapdf-test-fixtures
 │   ├── corpus.rs
 │   └── round_trip.rs
 └── benches/
@@ -159,6 +159,7 @@ fixtures/
 - **MUST:** Rust unit tests sit in the same file in `#[cfg(test)] mod tests`. Integration tests in `tests/` use only the public API ([Cargo: package layout](https://doc.rust-lang.org/cargo/guide/project-layout.html)). Public-API examples are doc tests.
 - **MUST:** TS unit tests are colocated (`foo.test.ts` next to `foo.ts`). Integration tests live in `test/`. Vitest is the runner.
 - **MUST:** a test name says what behavior it checks, not which bug it fixes: `open_should_repair_when_xref_offset_is_wrong`, `it("repairs a file whose xref offset is wrong")`. Regression tests link the issue in a comment.
+- **MUST:** a Rust test helper that more than one crate needs lives in `crates/laminapdf-test-fixtures`: the `fixtures/` directory and its files, hand-built classic files, a seeded PRNG, the byte-slice read of a `ByteSource` fake and the `codes.json` loader. That crate depends on no Lamina PDF crate and isn't published. Crates take it as a path-only dev-dependency, so even their unit tests can use it, and xtask uses its `codes.json` rules. A helper that needs a crate's own types stays in that crate's `tests/common/`. No crate includes another crate's file with `#[path]`; `fuzz/`, its own workspace, is the exception, since its targets share their entry points with the crates' regression tests. `cargo xtask check maintainability` checks for copied helpers and for cross-crate `#[path]`.
 - **MUST:** shared fixtures live in root `fixtures/` and are read by path relative to the repo root (resolved once in a helper). They are never copied into a package. Each file's provenance and licence are recorded in `fixtures/README.md`. PDF corpora often contain third-party content, so a file without a known licence isn't committed.
 - **MUST:** golden files are updated only by an explicit command and the diff is reviewed like code. Byte-exact PDF goldens in `fixtures/golden/` are rewritten only by a regenerate command (for example `UPDATE_GOLDEN=1 cargo test` or a `cargo xtask golden` subcommand). Snapshot tools are for text and `Debug` snapshots only: `cargo insta review` (Rust) and `vitest -u` (TS), never for PDF bytes. A test never rewrites its own golden file silently.
 - **SHOULD:** behavior that both implementations or bindings expose is tested against the *same* fixture and expectation file, as in the spike (`corpus/expected.json`).
@@ -207,7 +208,7 @@ Don't split:
 - just to organize files. Modules do that, with privacy and no publishing overhead.
 - when the two halves share many internal types or must always change together. That's one crate with a `pub(crate)` boundary.
 - pre-emptively. Merging crates later is easy. Undoing a premature public crate after a release isn't. *Rule of three:* wait for a second real consumer.
-- into `utils`/`common` grab-bags. Put a helper where it is used, or give it a name that says what it does.
+- into `utils`/`common` grab-bags. Put a helper where it is used, or give it a name that says what it does. `laminapdf-test-fixtures` isn't one: the tests of eight crates and xtask use it today, and its name says what it holds (§6).
 
 ## 12. Spikes vs product code
 

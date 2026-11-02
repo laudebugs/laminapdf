@@ -17,7 +17,7 @@ use std::fmt::Debug;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use common::{corpus, fixture, fixtures_dir};
+use common::{corpus, fixture, fixtures_dir, read_at};
 use laminapdf_cos::{
     ByteSource, Dict, Document, Error, Limit, Limits, ObjRef, Object, OpenOptions, PdfString, Source, SourceError,
     Stream,
@@ -56,9 +56,8 @@ impl ByteSource for Chunked {
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
         self.calls.fetch_add(1, Ordering::Relaxed);
-        let tail = self.data.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len()).min(self.max);
-        buf[..n].copy_from_slice(&tail[..n]);
+        let cap = buf.len().min(self.max);
+        let n = read_at(&self.data, offset, &mut buf[..cap]);
         self.bytes.fetch_add(u64::try_from(n).unwrap(), Ordering::Relaxed);
         Ok(n)
     }
@@ -228,8 +227,7 @@ impl ByteSource for Fetching {
                 len: u64::try_from(n).unwrap(),
             });
         }
-        buf[..n].copy_from_slice(&self.data[start..start + n]);
-        Ok(n)
+        Ok(read_at(&self.data, offset, &mut buf[..n]))
     }
 }
 

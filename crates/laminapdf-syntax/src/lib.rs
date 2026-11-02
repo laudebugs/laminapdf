@@ -53,10 +53,9 @@ mod parser;
 mod record;
 mod rotation;
 pub mod text;
-// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+// What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
-#[path = "../../laminapdf-cos/tests/common/codes.rs"]
-mod test_codes;
+use laminapdf_test_fixtures::codes as test_codes;
 
 pub use cancel::CancelToken;
 pub use diagnostic::{ErrorKind, Location, Position};

@@ -72,10 +72,9 @@ mod planner;
 mod resolve;
 mod sink;
 mod xref;
-// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+// What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
-#[path = "../../laminapdf-cos/tests/common/codes.rs"]
-mod test_codes;
+use laminapdf_test_fixtures::codes as test_codes;
 
 pub use constraint::{
     ConstraintKind, DocMdp, DocMdpPermission, Restriction, RewriteReason, SaveConstraint, SignatureInfo, SignatureKind,

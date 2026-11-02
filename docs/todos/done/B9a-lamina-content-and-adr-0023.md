@@ -25,7 +25,7 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 - ISO 32000-2 §7.8 (content streams), §8.2–8.4 (graphics state), §9.3–9.4 (text state/objects), §14.6 (marked content), Annex A (operator summary).
 - [ADR 0003 §3](../../decisions/0003-reader-tolerance-and-limits.md#3-limits) (`max_content_operators` 10,000,000; `max_xobject_depth` 32; "a fuel counter … may come back with content-stream interpretation (ADR 0023)").
 - [pdf-library §5](../../plans/pdf-library.md#5-design-summary) and [full-editor §6](../../plans/full-editor.md#6-design-summary) (E2/E7 extend this crate).
-- Existing test-only content code: [`crates/lamina-cos/tests/content.rs`](../../../crates/laminapdf-build/tests/content.rs) (now in `lamina-build`, B5a).
+- Existing test-only content code: [`crates/lamina-cos/tests/content.rs`](../../../crates/laminapdf-save/tests/content_builder.rs) (moved to `lamina-build` by B5a, now `laminapdf-save/tests/content_builder.rs` after Q2c).
 
 ## Scope
 

@@ -5,7 +5,7 @@
 //! lowered or removed, so the improvement can't be undone unnoticed. Against the merge base with
 //! `main`, no entry may be added or raised.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 
@@ -34,6 +34,10 @@ pub(super) struct Baseline {
     /// Path → lines of non-test code, for each module over the budget.
     #[serde(default)]
     modules: BTreeMap<String, usize>,
+    /// Files that still copy a shared test helper or `#[path]` another crate's file
+    /// ([`super::helpers`]); `None` in a baseline from before the list existed.
+    #[serde(default)]
+    pub(super) test_helpers: Option<BTreeSet<String>>,
 }
 
 impl Baseline {
@@ -44,6 +48,12 @@ impl Baseline {
             .into_iter()
             .map(|(path, count)| (moved.get(&path).cloned().unwrap_or(path), count))
             .collect();
+        self.test_helpers = self.test_helpers.map(|files| {
+            files
+                .into_iter()
+                .map(|path| moved.get(&path).cloned().unwrap_or(path))
+                .collect()
+        });
         self
     }
 }
