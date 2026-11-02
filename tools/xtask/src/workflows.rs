@@ -6,7 +6,7 @@
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs are
 //! two-space-indented keys under `jobs:`, and a job lists its `needs` on one line, as `[a, b]`
-//! or a single id. A gate whose `needs` is written any other way reads as empty, so every job is
+//! or a single id, a trailing comment allowed. A gate whose `needs` is written any other way reads as empty, so every job is
 //! reported missing. The module is compiled only for tests (`main.rs`).
 
 /// The `<id>` of a two-space-indented `<id>:` line (a trailing comment allowed), else `None`.
@@ -44,6 +44,7 @@ fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
         .find(|(id, _)| *id == job)
         .and_then(|(_, lines)| lines.into_iter().find_map(|l| l.trim().strip_prefix("needs: ")))
         .map(|l| {
+            let l = l.split(" #").next().unwrap_or_default().trim_end();
             let list = l.strip_prefix('[').and_then(|l| l.strip_suffix(']')).unwrap_or(l);
             list.split(',').map(str::trim).collect()
         })
@@ -141,6 +142,14 @@ mod tests {
     fn needs_should_read_a_single_job_id() {
         let workflow = "on:\n  push:\njobs:\n  a:\n    run: x\n  b:\n    needs: a\n";
         assert_eq!(needs(workflow, "b"), ["a"]);
+    }
+
+    #[test]
+    fn needs_should_ignore_a_trailing_comment() {
+        let workflow =
+            "on:\n  push:\njobs:\n  a:\n    run: x\n  b:\n    needs: a # why\n  c:\n    needs: [a, b] # why\n";
+        assert_eq!(needs(workflow, "b"), ["a"]);
+        assert_eq!(needs(workflow, "c"), ["a", "b"]);
     }
 
     #[test]
