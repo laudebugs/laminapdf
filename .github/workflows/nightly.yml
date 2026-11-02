@@ -157,16 +157,23 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
-      # pdftotext is the runner's Homebrew poppler. A runner without one gets it here (never an
-      # upgrade): with pdf.js alone, every page where only pdftotext agrees with lamina fails, as
-      # 37 did on 2026-11-02 (issue #169). The pin itself is checked by xtask below.
+      # pdftotext is the runner's Homebrew poppler. A runner without one gets it here: with
+      # pdf.js alone, every page where only pdftotext agrees with Lamina PDF fails, as 37 did on
+      # 2026-11-02 (issue #169). No auto-update and no upgrades of installed formulae (harfbuzz's
+      # hb-shape is pinned too); this is the one change the nightly makes to a runner, release
+      # lane included. It prints the version; xtask warns when it isn't doctor.rs's pin.
       - name: Install poppler if the runner has none
         if: ${{ !cancelled() }}
-        run: command -v pdftotext >/dev/null || brew install poppler
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_UPGRADE: "1"
+        run: |
+          command -v pdftotext >/dev/null || brew install poppler
+          pdftotext -v 2>&1 | head -1
       # Page text (todo B9f) runs even when the structural differential failed, so one night
       # reports both. At the poppler version doctor.rs pins, pdftotext takes part; at another,
-      # xtask warns and compares with pdf.js only, so a brew upgrade doesn't fail the night.
-      # Agreement per source goes to the summary.
+      # xtask warns and compares with pdf.js only, and pages where only pdftotext would agree
+      # then fail: keep the runners' poppler at the pin. Agreement per source goes to the summary.
       - name: Text differential
         if: ${{ !cancelled() }}
         run: cargo xtask differential --live --text ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
@@ -282,7 +289,8 @@ jobs:
     # History compares within one runner label (`--runner`), recorded in every record. The label
     # is the machine: the runner's name without its number (lamina-self-hosted-runner-3 →
     # macos-arm64/lamina-self-hosted-runner), since a baseline mixing two Macs flags noise as
-    # regressions (issue #170). Runners on one Mac still share it, and so does their load.
+    # regressions (issue #170). Runners on one Mac share the label, and their timings share
+    # that Mac's load.
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 60
     # Pushes the history to the bench-data branch (main only).

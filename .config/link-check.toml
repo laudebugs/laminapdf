@@ -13,7 +13,7 @@ reason = "the repository is private: its PRs, issues and runs answer 404 without
 
 [[allow]]
 prefix = "https://github.com/laudebugs/lamina/"
-reason = "the repository's name before 2026-11-01 (GitHub redirects it), in links written before the rename; private like the new name: 404 without a login"
+reason = "the repository's name before the 2026-11-01 rename, still in older links; like the new name, it answers 404 without a login (GitHub redirects it)"
 
 [[allow]]
 prefix = "https://app.semanticdiff.com/"
@@ -25,7 +25,7 @@ reason = "stalls non-browser clients until they time out, over HTTP/1.1 and HTTP
 
 [[allow]]
 prefix = "https://chromium.googlesource.com/"
-reason = "answers 503 or times out under the nightly's request volume, then passes on another night (rate limit): flaky or dead on 2026-11-01 and 2026-11-02"
+reason = "answered 503, or passed only on a retry, on 2026-11-01 and 2026-11-02 (rate limit under the nightly's request volume)"
 
 [[allow]]
 prefix = "https://deepwiki.com/"
@@ -37,7 +37,7 @@ reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://docs.unstructured.io/"
-reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from other runners"
+reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
 
 [[allow]]
 prefix = "https://fourweekmba.com/"
@@ -53,7 +53,7 @@ reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://huggingface.co/"
-reason = "answers 403 to automated clients from some networks (rate limit or bot protection); 200 from a browser and from other runners"
+reason = "answers 403 to automated clients from some networks (rate limit or bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
 
 [[allow]]
 prefix = "https://mcpplaygroundonline.com/"
@@ -93,15 +93,11 @@ reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://www.eesel.ai/"
-reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from other runners"
+reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
 
 [[allow]]
 prefix = "https://www.g2.com/"
 reason = "answers 403 to non-browser clients (bot protection)"
-
-[[allow]]
-prefix = "https://www.huggingface.co/"
-reason = "answers 403 to automated clients from some networks (rate limit or bot protection); 200 from a browser and from other runners"
 
 [[allow]]
 prefix = "https://www.iso.org/"
@@ -109,7 +105,7 @@ reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://www.llamaindex.ai/"
-reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from other runners"
+reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
 
 [[allow]]
 prefix = "https://www.npmjs.com/"

@@ -1302,8 +1302,8 @@ mod tests {
 
     /// The version a `pypdf==` line or a `PINNED = "…"` line names.
     fn pypdf_pin(text: &str, prefix: &str) -> Option<String> {
-        let line = text.lines().find(|l| l.starts_with(prefix))?;
-        Some(line.trim_start_matches(prefix).trim().trim_matches('"').to_owned())
+        let rest = text.lines().find_map(|l| l.trim().strip_prefix(prefix))?;
+        Some(rest.trim().trim_matches('"').to_owned())
     }
 
     /// The live differential installs tools/differential's pypdf, but its reader refuses any
