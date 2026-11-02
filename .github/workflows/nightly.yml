@@ -10,9 +10,9 @@
 #                 and uploaded (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
 #   scaling       release-mode #[ignore]d tests, one retry that only reports flakiness
 #                 (`cargo xtask scaling`)
-#   bench         criterion benchmarks with history on the `bench-data` branch, after every other
-#                 job so they don't share the Mac with them; a regression over 10% opens an issue,
-#                 never fails the run (`cargo xtask bench`)
+#   bench         criterion benchmarks with history on the `bench-data` branch, after every job
+#                 that doesn't depend on them, so they don't share the Mac with those; a regression
+#                 over 10% opens an issue, never fails the run (`cargo xtask bench`)
 #   pdf-runtimes  @laminapdf/sdk's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
 #                 workerd, its timings and WebAssembly memory recorded in the benchmark history
 #                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
@@ -546,8 +546,8 @@ jobs:
     needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result),
     # nor for a run someone cancelled. A job that hit its timeout-minutes ends `cancelled`, not
-    # `failure`, and fails the run as surely: 2026-11-02's Benchmarks job landed on a hung
-    # runner, timed out with no step run, and blocked the release without naming a job.
+    # `failure`, but fails the run all the same: 2026-11-02's Benchmarks job landed on a hung
+    # runner, timed out with no step run and blocked the release, and the issue named no job.
     if: >-
       ${{ !cancelled() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
       || contains(needs.*.result, 'cancelled')
@@ -625,7 +625,7 @@ jobs:
               if [ -n "$failed$timed_out" ]; then
                 echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) failed. It blocks the next release (ADR 0018 §2)."
               else
-                echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) passed, with the flaky results below. They don't block the release; fix them or, for a host that refuses bots, allowlist it (ADR 0018 §4)."
+                echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) passed, with the flaky results below. They don't block the release. Fix them; for a link whose host refuses bots, add the host to \`.config/link-check.toml\` (ADR 0018 §4)."
               fi
               echo
               [ -n "$failed" ] && echo "Failed jobs: **$failed**."
