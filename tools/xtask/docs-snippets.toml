@@ -18,7 +18,7 @@ rust = "crates/laminapdf/examples/multilingual.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/images-and-vectors.ts"
-rust = "crates/laminapdf/examples/vectors.rs"
+rust = "crates/laminapdf/examples/images_and_vectors.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/links-and-outlines.ts"

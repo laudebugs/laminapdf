@@ -1,11 +1,12 @@
-// What a quick start's environment would supply (file ID, producer, date), fixed so its bytes are
-// the hello golden's. Its own module, so the Vite bundle imports it without the whole suite. It
-// repeats examples/hello.ts's values until that example takes them as a parameter (todo Q1f).
+// What an app's environment would supply to the examples (file ID, producer, creation date),
+// fixed so their bytes are the goldens'. Its own module, so the Vite bundle imports it without the
+// whole suite. `crates/laminapdf/tests/examples.rs` passes the same values to the Rust examples.
 import type { BuilderOptions } from "@laminapdf/sdk";
 
+/** An example's fixed options: `id` (16 ASCII bytes), the examples' producer and creation date. */
+export function exampleOptions(id: string): BuilderOptions {
+  return { id: new TextEncoder().encode(id), producer: "lamina examples", creationDate: "D:20261030120000Z" };
+}
+
 /** The hello golden's file ID, producer and creation date. */
-export const HELLO_OPTIONS: BuilderOptions = {
-  id: new TextEncoder().encode("lamina-ex-hello!"),
-  producer: "lamina examples",
-  creationDate: "D:20261030120000Z",
-};
+export const HELLO_OPTIONS: BuilderOptions = exampleOptions("lamina-ex-hello!");

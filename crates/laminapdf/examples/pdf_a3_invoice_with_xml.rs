@@ -1,6 +1,6 @@
 //! A PDF/A-3b invoice that carries the same invoice as XML, attached for software to read.
 //!
-//! Run it with `cargo run -p laminapdf --example pdf_a3_invoice_with_xml -- [out-dir]`.
+//! Run it with `cargo run -p laminapdf --example pdf_a3_invoice_with_xml -- <font.ttf> [out-dir]`.
 
 use std::error::Error;
 use std::fmt::Write as _;
@@ -31,10 +31,11 @@ const BODY: Pt = Pt::new(11.0);
 const ITEMS: [(&str, u32, f64); 3] = [("Sprockets", 12, 1.25), ("Gadget", 1, 79.90), ("Delivery", 1, 4.50)];
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let out = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| "target/examples-out".into()));
+    let mut args = std::env::args().skip(1);
+    let font = std::fs::read(args.next().ok_or("arguments: <font.ttf> [out-dir]")?)?;
+    let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
     std::fs::create_dir_all(&out)?;
-    std::fs::write(out.join("pdf_a3_invoice_with_xml.pdf"), build()?)?;
-    Ok(())
+    Ok(std::fs::write(out.join("pdf_a3_invoice_with_xml.pdf"), build(font)?)?)
 }
 
 /// The invoice's total.
@@ -53,15 +54,15 @@ fn invoice_xml() -> Result<String, std::fmt::Error> {
     Ok(xml)
 }
 
-/// The invoice's bytes.
-pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
+/// The invoice's bytes, in `font` (a TrueType or OpenType file).
+pub(crate) fn build(font: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut b = Builder::new(BuildOptions::new().with_profile(Profile::PdfA3b));
     b.metadata(
         Metadata::default()
             .with_title("Invoice 42")
             .with_author("Acme Widgets Ltd"),
     );
-    let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;
+    let font = b.font_bytes(font)?;
     let mut page = b.page(PageSize::A4);
     draw(page.surface(), &font)?;
     page.finish()?;

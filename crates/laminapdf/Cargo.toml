@@ -77,7 +77,7 @@ name = "multilingual"
 required-features = ["text"]
 
 [[example]]
-name = "vectors"
+name = "images_and_vectors"
 required-features = ["text"]
 
 [[example]]

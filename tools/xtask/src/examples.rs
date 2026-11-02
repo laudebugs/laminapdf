@@ -1,5 +1,5 @@
-//! `cargo xtask examples` (todo B5c): runs every example of the `laminapdf` façade crate into
-//! `target/examples-out/`, compares each output byte for byte with its golden in
+//! `cargo xtask examples` (todo B5c): writes every example of the `laminapdf` façade crate into
+//! `target/examples-out/` (through its test, which passes the fixed options), compares each output byte for byte with its golden in
 //! `fixtures/golden/examples/` and runs `qpdf --check` on it (the full lane). `cargo xtask
 //! golden --update` writes the goldens with the same runner ([`run_all`]).
 
@@ -37,27 +37,30 @@ pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
 /// Where `cargo xtask examples` writes the outputs.
 pub(crate) const OUT_DIR: &str = "target/examples-out";
 
-/// Runs every example into `out` (created if needed) and returns the files written.
+/// Writes every example's document into `out` (created if needed) and returns the files
+/// written. The examples take their file ID, producer, dates and input files as parameters, so
+/// the documents come from `crates/laminapdf/tests/examples.rs`, which passes the fixed values
+/// (its ignored `write_every_example`), not from running each example's `main`.
 pub(crate) fn run_all(ws: &Workspace, out: &Path) -> Result<Vec<PathBuf>> {
     fs::create_dir_all(out).with_context(|| format!("creating {}", out.display()))?;
     let out_arg = out.to_string_lossy().into_owned();
-    // One build for all of them, then each example on its own.
-    ws.cargo(&["build", "--locked", "-q", "-p", "laminapdf", "--examples"])?;
+    let args = [
+        "test",
+        "--locked",
+        "-q",
+        "-p",
+        "laminapdf",
+        "--test",
+        "examples",
+        "--",
+        "--ignored",
+        "--exact",
+        "write_every_example",
+    ];
+    crate::run_env(&ws.root, "cargo", &args, &[("LAMINA_PDF_EXAMPLES_OUT", &out_arg)])?;
     let mut files = Vec::new();
     for name in names(&ws.root)? {
-        let name = name.as_str();
-        ws.cargo(&[
-            "run",
-            "--locked",
-            "-q",
-            "-p",
-            "laminapdf",
-            "--example",
-            name,
-            "--",
-            &out_arg,
-        ])?;
-        let written = outputs_of(out, name)?;
+        let written = outputs_of(out, &name)?;
         if written.is_empty() {
             bail!(
                 "example {name} wrote no {name}.pdf or {name}-<variant>.pdf in {}",

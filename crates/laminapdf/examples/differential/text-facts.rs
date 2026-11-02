@@ -33,7 +33,7 @@ const REPAIRED: &str = "xref-repaired";
 
 /// Lamina PDF's text facts about one file.
 fn facts(bytes: Vec<u8>) -> Value {
-    let doc = match Document::open_bytes(bytes, OpenOptions::new()) {
+    let doc = match Document::open_bytes(bytes, OpenOptions::default()) {
         Ok(doc) => doc,
         Err(e) => return json!({"outcome": "failed", "error": e.error_code().as_str(), "pages": null}),
     };

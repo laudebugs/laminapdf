@@ -1,7 +1,9 @@
-//! ADR 0018 tier 3 for the façade's examples: each example's document is byte-identical to
-//! its golden in `fixtures/golden/examples/` and to a second run (ADR 0001 determinism).
-//! `cargo xtask golden --update` (or `cargo xtask examples`) regenerates the goldens by running
-//! the examples; this test only compares.
+//! ADR 0018 tier 3 for the façade's examples: each example's document, built with the fixed
+//! file ID, producer and dates below, is byte-identical to its golden in
+//! `fixtures/golden/examples/` and to a second run (ADR 0001 determinism). The examples take
+//! these values and their input files as parameters, so the fixed values live here.
+//! `cargo xtask golden --update` and `cargo xtask examples` write the outputs through
+//! `write_every_example`; the other tests only compare.
 #![expect(clippy::panic, reason = "test helper: a panic is a test failure")]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -10,6 +12,9 @@ mod generate_then_edit;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/hello.rs"]
 mod hello;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/images_and_vectors.rs"]
+mod images_and_vectors;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/invoice.rs"]
 mod invoice;
@@ -28,27 +33,72 @@ mod pdf_a_archive;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/pdf_ua_report.rs"]
 mod pdf_ua_report;
-#[expect(dead_code, reason = "the example's own `main` is not used here")]
-#[path = "../examples/vectors.rs"]
-mod vectors;
 
+use std::error::Error;
 use std::path::Path;
 
-type Build = fn() -> Result<Vec<u8>, Box<dyn std::error::Error>>;
+use laminapdf::{BuildOptions, Builder};
+use pdf_a_archive::Level;
+
+const NOTO: &str = "fonts/NotoSans-Regular.ttf";
+const SCRIPT_FONTS: [&str; 5] = [
+    NOTO,
+    "fonts/NotoSansArabic-Regular.ttf",
+    "fonts/NotoSansDevanagari-Regular.ttf",
+    "fonts/NotoSansHebrew-Regular.ttf",
+    "fonts/NotoSansSC-Regular.otf",
+];
+const PHOTO: &str = "images/photo-rgb.jpg";
+const PRODUCER: &str = "lamina examples";
+const CREATED: &str = "D:20261030120000Z";
+const EDITED: &str = "D:20261030130000Z";
+
+/// What a reader's environment would supply, fixed so the output never changes: the file ID,
+/// the producer and the creation date.
+fn options(id: &[u8; 16]) -> Result<BuildOptions, Box<dyn Error>> {
+    Ok(BuildOptions::new()
+        .with_id(*id)
+        .with_producer(PRODUCER)
+        .with_creation_date(CREATED.parse()?))
+}
+
+/// A file from `fixtures/`.
+fn fixture(path: &str) -> Vec<u8> {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(path);
+    std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
 const EXAMPLES: [(&str, Build); 10] = [
-    ("hello", hello::build),
-    ("invoice", invoice::build),
-    ("multilingual", multilingual::build),
-    ("vectors", vectors::build),
-    ("links_and_outlines", links_and_outlines::build),
-    ("generate_then_edit", generate_then_edit::build),
-    ("pdf_ua_report", pdf_ua_report::build),
-    ("pdf_a_archive-2b", || pdf_a_archive::build(pdf_a_archive::Level::A2b)),
-    ("pdf_a_archive-2u", || pdf_a_archive::build(pdf_a_archive::Level::A2u)),
-    ("pdf_a3_invoice_with_xml", pdf_a3_invoice_with_xml::build),
+    ("hello", || hello::build(options(b"lamina-ex-hello!")?)),
+    ("invoice", || {
+        invoice::build(options(b"lamina-ex-invoic")?, fixture(NOTO))
+    }),
+    ("multilingual", || {
+        multilingual::build(options(b"lamina-ex-multil")?, SCRIPT_FONTS.map(fixture).to_vec())
+    }),
+    ("images_and_vectors", || {
+        images_and_vectors::build(options(b"lamina-ex-vector")?, fixture(PHOTO))
+    }),
+    ("links_and_outlines", || {
+        links_and_outlines::build(options(b"lamina-ex-links!")?)
+    }),
+    ("generate_then_edit", || {
+        generate_then_edit::build(options(b"lamina-ex-edit!!")?, Some(EDITED.parse()?))
+    }),
+    ("pdf_ua_report", || pdf_ua_report::build(fixture(NOTO))),
+    ("pdf_a_archive-2b", || {
+        pdf_a_archive::build(Level::A2b, fixture(NOTO), fixture(PHOTO))
+    }),
+    ("pdf_a_archive-2u", || {
+        pdf_a_archive::build(Level::A2u, fixture(NOTO), fixture(PHOTO))
+    }),
+    ("pdf_a3_invoice_with_xml", || {
+        pdf_a3_invoice_with_xml::build(fixture(NOTO))
+    }),
 ];
 
 fn golden(name: &str) -> Vec<u8> {
@@ -92,7 +142,31 @@ fn every_example_reopens_without_warnings() {
 
 #[test]
 fn the_tagged_invoice_leaves_nothing_untagged() {
-    assert_eq!(invoice::builder().unwrap().tagging_diagnostics(), []);
+    let mut b = Builder::new(options(b"lamina-ex-invoic").unwrap().with_tagged(true));
+    invoice::draw(&mut b, fixture(NOTO)).unwrap();
+    assert_eq!(b.tagging_diagnostics(), []);
+}
+
+#[test]
+fn generate_then_edit_appends_the_edit_to_the_generated_file() {
+    let generated = generate_then_edit::generate(options(b"lamina-ex-edit!!").unwrap()).unwrap();
+    let edited = generate_then_edit::build(options(b"lamina-ex-edit!!").unwrap(), None).unwrap();
+    assert!(edited.starts_with(&generated) && edited.len() > generated.len());
+    let doc = laminapdf::Document::open_bytes(edited, laminapdf::OpenOptions::new()).unwrap();
+    assert_eq!(doc.info().unwrap().title.as_deref(), Some("Final report"));
+}
+
+/// Writes every example's document into `$LAMINA_PDF_EXAMPLES_OUT`, for `cargo xtask examples`
+/// (which compares them with the goldens and runs `qpdf --check`) and `cargo xtask golden
+/// --update`.
+#[test]
+#[ignore = "run by cargo xtask examples and cargo xtask golden --update"]
+fn write_every_example() {
+    let out = std::env::var_os("LAMINA_PDF_EXAMPLES_OUT").expect("LAMINA_PDF_EXAMPLES_OUT is the output folder");
+    std::fs::create_dir_all(&out).unwrap();
+    for (name, build) in EXAMPLES {
+        std::fs::write(Path::new(&out).join(format!("{name}.pdf")), build().unwrap()).unwrap();
+    }
 }
 
 #[test]

@@ -39,11 +39,11 @@ Edges should still adapt the next budget from the time the last step took (ADR 0
 
 ## Examples and goldens
 
-`examples/`: `hello`, `invoice`, `multilingual` (Latin, Arabic, Devanagari, Hebrew, CJK), `vectors` (paths, colour, opacity, blend, clip, images), `links_and_outlines`, `generate_then_edit` (build → save → open → `SetInfo` → incremental save). Fonts and images come from `fixtures/` as bytes (`include_bytes!`); the library never reads files.
+`examples/`: `hello`, `invoice`, `multilingual` (Latin, Arabic, Devanagari, Hebrew, CJK), `images_and_vectors` (paths, colour, opacity, blend, clip, images), `links_and_outlines`, `generate_then_edit` (build → save → open → `SetInfo` → incremental save), `pdf_ua_report`, `pdf_a_archive`, `pdf_a3_invoice_with_xml`. Each takes its `BuildOptions` and its fonts and images as parameters, and its `main` reads them from the command line; the library never reads files. `tests/examples.rs` passes the fixed file IDs, dates and `fixtures/` files that make the goldens.
 
 ```sh
-cargo run -p laminapdf --example invoice -- target/examples-out   # writes target/examples-out/invoice.pdf
-cargo xtask examples                  # every example: byte-compare with fixtures/golden/examples/, qpdf --check
+cargo run -p laminapdf --example invoice -- fixtures/fonts/NotoSans-Regular.ttf   # writes target/examples-out/invoice.pdf
+cargo xtask examples                  # every example (built by tests/examples.rs): byte-compare with fixtures/golden/examples/, qpdf --check
 cargo xtask golden --update           # rewrite the byte goldens (with every other golden)
 cargo xtask render-golden [--update]  # PDFium + hayro renders vs fixtures/render-golden/ (see its README)
 ```
