@@ -49,15 +49,26 @@ const FPDF_PRINTING = 0x800;
 const FPDFBITMAP_BGRA = 4;
 const FPDF_ERR_PASSWORD = 4;
 
-/** `wasm`'s bytes as a Uint8Array over the same memory, when it is an ArrayBuffer or any view. */
-function asBytes(wasm: WasmSource): Uint8Array | undefined {
-  if (wasm instanceof ArrayBuffer) return new Uint8Array(wasm);
-  return ArrayBuffer.isView(wasm) ? new Uint8Array(wasm.buffer, wasm.byteOffset, wasm.byteLength) : undefined;
+type WasmBytes = ArrayBuffer | ArrayBufferView<ArrayBuffer>;
+
+/** Whether `wasm` is the module's bytes: an ArrayBuffer or any view of one. */
+function isBytes(wasm: WasmSource): wasm is WasmBytes {
+  return wasm instanceof ArrayBuffer || ArrayBuffer.isView(wasm);
 }
 
-/** A module, or a URL or `Response` to fetch: the forms that aren't bytes. */
+/** `wasm`'s bytes as a Uint8Array over the same memory. */
+function asUint8Array(wasm: WasmBytes): Uint8Array {
+  return wasm instanceof ArrayBuffer
+    ? new Uint8Array(wasm)
+    : new Uint8Array(wasm.buffer, wasm.byteOffset, wasm.byteLength);
+}
+
+/**
+ * A module, or a URL or `Response` to fetch. `isBytes` is the check that keeps bytes out:
+ * `WebAssembly.Module` is an empty interface, so this parameter's type alone would accept them.
+ */
 async function instantiate(
-  wasm: Exclude<WasmSource, ArrayBuffer | ArrayBufferView<ArrayBuffer>>,
+  wasm: Exclude<WasmSource, WasmBytes>,
   imports: WebAssembly.Imports,
 ): Promise<WebAssembly.Instance> {
   if (wasm instanceof WebAssembly.Module) return WebAssembly.instantiate(wasm, imports);
@@ -83,16 +94,14 @@ export async function initPdfium(wasm: WasmSource): Promise<PdfiumBackend> {
   });
   // Bytes go to the glue's own `wasmBinary` as a Uint8Array over the same memory (it reads it with
   // `new Uint8Array(…)`, wrong for other views); a module, a URL or a Response through its hook.
-  const bytes = asBytes(wasm);
-  const overrides =
-    bytes !== undefined
-      ? { wasmBinary: bytes }
-      : {
-          instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
-            instantiate(wasm, imports).then(done, fail);
-            return {};
-          },
-        };
+  const overrides = isBytes(wasm)
+    ? { wasmBinary: asUint8Array(wasm) }
+    : {
+        instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
+          instantiate(wasm, imports).then(done, fail);
+          return {};
+        },
+      };
   try {
     const pdfium = await Promise.race([failed, init(overrides as never)]);
     pdfium.PDFiumExt_Init();
