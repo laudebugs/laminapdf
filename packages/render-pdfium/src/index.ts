@@ -161,37 +161,6 @@ function renderFlagsOf(flags: RenderFlags): number {
   );
 }
 
-/** Fills the whole bitmap with the background, or with transparent black when it is `null`. */
-function fillBackground(p: Pdfium, bitmap: number, plan: TilePlan, background: Rgba8 | null): void {
-  // FillRect takes 0xAARRGGBB into BGRA memory; with R and B swapped it lands as RGBA, the
-  // order the reversed-byte-order render writes.
-  const c = background ?? { r: 0, g: 0, b: 0, a: 0 };
-  const color = ((c.a << 24) | (c.b << 16) | (c.g << 8) | c.r) >>> 0;
-  p.FPDFBitmap_FillRect(bitmap, 0, 0, plan.tile.width, plan.tile.height, color);
-}
-
-/** Draws only the tile, through `matrix` (pageToTile's) and a clip of the whole bitmap. */
-function drawWithMatrix(
-  p: Pdfium,
-  bitmap: number,
-  page: number,
-  matrix: readonly number[],
-  plan: TilePlan,
-  renderFlags: number,
-): void {
-  const { malloc, free } = p.pdfium.wasmExports;
-  // FS_MATRIX (6 floats) then FS_RECTF (left, top, right, bottom).
-  const scratch = malloc(40);
-  if (scratch === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate memory");
-  try {
-    const floats = new Float32Array(heap(p).buffer, scratch, 10);
-    floats.set([...matrix, 0, 0, plan.tile.width, plan.tile.height]);
-    p.FPDF_RenderPageBitmapWithMatrix(bitmap, page, scratch, scratch + 24, renderFlags);
-  } finally {
-    free(scratch);
-  }
-}
-
 class PdfiumDocument implements RenderDocument {
   readonly pageCount: number;
   readonly #p: Pdfium;
@@ -370,7 +339,7 @@ class PdfiumDocument implements RenderDocument {
     const bitmap = p.FPDFBitmap_CreateEx(width, height, FPDFBITMAP_BGRA, buffer, width * 4);
     try {
       if (bitmap === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
-      fillBackground(p, bitmap, plan, request.background === undefined ? WHITE : request.background);
+      this.#fillBackground(bitmap, plan, request.background === undefined ? WHITE : request.background);
       this.#draw(bitmap, page, plan, info, request);
       const pixels = new Uint8ClampedArray(plan.byteLength);
       pixels.set(new Uint8Array(heap(p).buffer, buffer, plan.byteLength));
@@ -392,7 +361,7 @@ class PdfiumDocument implements RenderDocument {
     if (flags.annotations && flags.formWidgets) {
       this.#drawWithWidgets(bitmap, page, plan, rotation / 90, renderFlags);
     } else {
-      drawWithMatrix(this.#p, bitmap, page, pageToTile(plan, info, rotation), plan, renderFlags);
+      this.#drawWithMatrix(bitmap, page, pageToTile(plan, info, rotation), plan, renderFlags);
     }
   }
 
@@ -402,6 +371,31 @@ class PdfiumDocument implements RenderDocument {
     p.FPDF_RenderPageBitmap(bitmap, page, x, y, plan.pageWidth, plan.pageHeight, rotate, renderFlags);
     if (this.#form !== 0) {
       p.FPDF_FFLDraw(this.#form, bitmap, page, x, y, plan.pageWidth, plan.pageHeight, rotate, renderFlags);
+    }
+  }
+
+  /** Fills the whole bitmap with the background, or with transparent black when it is `null`. */
+  #fillBackground(bitmap: number, plan: TilePlan, background: Rgba8 | null): void {
+    // FillRect takes 0xAARRGGBB into BGRA memory; with R and B swapped it lands as RGBA, the
+    // order the reversed-byte-order render writes.
+    const c = background ?? { r: 0, g: 0, b: 0, a: 0 };
+    const color = ((c.a << 24) | (c.b << 16) | (c.g << 8) | c.r) >>> 0;
+    this.#p.FPDFBitmap_FillRect(bitmap, 0, 0, plan.tile.width, plan.tile.height, color);
+  }
+
+  /** Draws only the tile, through `matrix` (pageToTile's) and a clip of the whole bitmap. */
+  #drawWithMatrix(bitmap: number, page: number, matrix: readonly number[], plan: TilePlan, renderFlags: number): void {
+    const p = this.#p;
+    const { malloc, free } = p.pdfium.wasmExports;
+    // FS_MATRIX (6 floats) then FS_RECTF (left, top, right, bottom).
+    const scratch = malloc(40);
+    if (scratch === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate memory");
+    try {
+      const floats = new Float32Array(heap(p).buffer, scratch, 10);
+      floats.set([...matrix, 0, 0, plan.tile.width, plan.tile.height]);
+      p.FPDF_RenderPageBitmapWithMatrix(bitmap, page, scratch, scratch + 24, renderFlags);
+    } finally {
+      free(scratch);
     }
   }
 

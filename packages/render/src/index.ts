@@ -281,11 +281,7 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
   checkScale(request.scale);
   checkPage(page);
   checkBackground(request.background);
-  const rotation = request.rotation ?? 0;
-  if (![0, 90, 180, 270].includes(rotation)) {
-    throw new RenderError("invalid-argument", "invalid render request: rotation must be 0, 90, 180 or 270");
-  }
-  const quarter = isQuarterTurn(rotation);
+  const quarter = isQuarterTurn(checkRotation(request.rotation ?? 0));
   const pageWidth = wholePixels(quarter ? page.height : page.width, request.scale);
   const pageHeight = wholePixels(quarter ? page.width : page.height, request.scale);
   const tile = request.clip ?? { x: 0, y: 0, width: pageWidth, height: pageHeight };
@@ -299,6 +295,13 @@ function checkScale(scale: number): void {
   if (!Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) {
     throw new RenderError("invalid-argument", "invalid render request: scale must be finite and positive");
   }
+}
+
+function checkRotation(rotation: ViewRotation): ViewRotation {
+  if (![0, 90, 180, 270].includes(rotation)) {
+    throw new RenderError("invalid-argument", "invalid render request: rotation must be 0, 90, 180 or 270");
+  }
+  return rotation;
 }
 
 function checkPage(page: RenderPage): void {

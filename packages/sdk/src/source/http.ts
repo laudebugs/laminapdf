@@ -59,7 +59,7 @@ function changed() {
 export async function httpRangeSource(url: string | URL, options: HttpRangeOptions = {}): Promise<RangeSource> {
   // A whole number of bytes, at least 1 (a fraction would make a malformed Range header).
   const tail = Number.isFinite(options.tail) ? Math.max(1, Math.floor(options.tail ?? 0)) : 65_536;
-  const request = requester(url, options);
+  const request = rangeRequester(url, options);
   const first = await request(`bytes=-${tail}`, options.signal);
   if (first.status === 200) {
     // No range support: this response is the whole file.
@@ -84,10 +84,16 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
   };
 }
 
-/** Sends one ranged request, with `If-Range` when given. */
-type Request = (range: string, signal: AbortSignal | undefined, ifRange?: string) => Promise<Response>;
+/** Cancels `res`'s body (nothing will read it) and rejects with `error`. */
+async function discard(res: Response, error: Error): Promise<never> {
+  await res.body?.cancel();
+  throw error;
+}
 
-function requester(url: string | URL, options: HttpRangeOptions): Request {
+/** Sends one ranged request, with `If-Range` when given. */
+type RangeRequest = (range: string, signal: AbortSignal | undefined, ifRange?: string) => Promise<Response>;
+
+function rangeRequester(url: string | URL, options: HttpRangeOptions): RangeRequest {
   const doFetch = options.fetch ?? fetch;
   return async (range, signal, ifRange) => {
     const headers = new Headers(options.headers);
@@ -118,13 +124,11 @@ interface Probe {
 /** Checks the first answer is a `206` with the file's last bytes, and reads them. */
 async function readProbe(first: Response): Promise<Probe> {
   if (first.status !== 206) {
-    await first.body?.cancel();
-    throw failed("status", first.status);
+    return discard(first, failed("status", first.status));
   }
   const range = contentRange(first.headers.get("Content-Range"));
   if (range === undefined || range.end !== range.size - 1) {
-    await first.body?.cancel();
-    throw failed("content-range", 206);
+    return discard(first, failed("content-range", 206));
   }
   const tailBytes = new Uint8Array(await first.arrayBuffer());
   if (tailBytes.length !== range.size - range.start) throw failed("content-range", 206);
@@ -139,7 +143,7 @@ async function readProbe(first: Response): Promise<Probe> {
 
 /** The reads after the probe: from its tail, by ranged requests, or from one whole download. */
 class RangedFile {
-  readonly #request: Request;
+  readonly #request: RangeRequest;
   readonly #probe: Probe;
   // If-Range needs a strong ETag, else a Last-Modified date; a weak ETag is only compared.
   readonly #ifRange: string | undefined;
@@ -147,7 +151,7 @@ class RangedFile {
   // every read (reads already in flight cancel their own bodies and wait for it).
   #whole: Promise<Uint8Array> | undefined;
 
-  constructor(request: Request, probe: Probe) {
+  constructor(request: RangeRequest, probe: Probe) {
     this.#request = request;
     this.#probe = probe;
     const { etag, lastModified } = probe;
@@ -184,8 +188,7 @@ class RangedFile {
     if (this.#whole !== undefined) return (await this.#whole).slice(offset, end);
     const res = await this.#request(`bytes=${offset}-${end - 1}`, signal, this.#ifRange);
     if (this.#differs(res)) {
-      await res.body?.cancel();
-      throw changed();
+      return discard(res, changed());
     }
     if (res.status === 200) return this.#fromWhole(res, offset, end);
     return this.#fromPartial(res, offset, end);
@@ -194,8 +197,7 @@ class RangedFile {
   /** The server ignored Range (or If-Range found the file changed and sent it whole). */
   async #fromWhole(res: Response, offset: number, end: number): Promise<Uint8Array> {
     if (this.#probe.etag !== undefined && res.headers.get("ETag") === null) {
-      await res.body?.cancel();
-      throw changed();
+      return discard(res, changed());
     }
     let whole = this.#whole;
     if (whole === undefined) whole = this.#download(res);
@@ -221,17 +223,14 @@ class RangedFile {
   /** A `206` with exactly the bytes asked for, from the same file. */
   async #fromPartial(res: Response, offset: number, end: number): Promise<Uint8Array> {
     if (res.status !== 206) {
-      await res.body?.cancel();
-      throw failed("status", res.status);
+      return discard(res, failed("status", res.status));
     }
     const got = contentRange(res.headers.get("Content-Range"));
     if (got !== undefined && got.size !== this.#probe.size) {
-      await res.body?.cancel();
-      throw changed();
+      return discard(res, changed());
     }
     if (got === undefined || got.start !== offset || got.end !== end - 1) {
-      await res.body?.cancel();
-      throw failed("content-range", 206);
+      return discard(res, failed("content-range", 206));
     }
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (bytes.length !== end - offset) throw failed("content-range", 206);

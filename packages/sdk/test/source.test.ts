@@ -113,18 +113,19 @@ class FileServer {
     req.on("close", () => {
       entry.closed = true;
     });
-    const send = () => this.#send(req, res, entry);
+    // The size the request saw on arrival, as a server would answer it; the bytes are read when it is sent.
+    const size = this.bytes.length;
+    const send = () => this.#send(req, res, entry, size);
     if (this.delayMs > 0) setTimeout(send, this.delayMs);
     else send();
   }
 
-  #send(req: IncomingMessage, res: ServerResponse, entry: Logged): void {
+  #send(req: IncomingMessage, res: ServerResponse, entry: Logged, size: number): void {
     if (res.destroyed) return;
     if (this.etag !== undefined) res.setHeader("ETag", this.etag);
     if (this.lastModified !== undefined) res.setHeader("Last-Modified", this.lastModified);
     res.setHeader("Accept-Ranges", "bytes");
-    const size = this.bytes.length;
-    const header = req.headers.range;
+    const header = entry.range;
     const m = header === undefined ? null : /^bytes=(\d*)-(\d*)$/.exec(header);
     if (size === 0 && m !== null) {
       entry.status = 416;
