@@ -72,7 +72,7 @@ The existing suites, unchanged; they prove the rename kept behaviour and output.
 ## Risks and open questions
 
 - Every open Rust branch conflicts with the rename; the other agents hold new Rust work until it lands.
-- The examples checks (`docs-snippets`, `clippy-examples`, `biome-examples`) are strict on changed files, and the rename changes every example. Their existing problems belong to [Q1d](../ready/Q1d-example-api-cleanups.md) and [Q1f](../ready/Q1f-examples-readable.md), so the ratchet skips rename-only files until the post-merge check removes that exemption.
+- The examples checks (`docs-snippets`, `clippy-examples`, `biome-examples`) are strict on changed files, and the rename changes every example. Their existing problems belong to [Q1d](../ongoing/Q1d-example-api-cleanups.md) and [Q1f](../ready/Q1f-examples-readable.md), so the ratchet skips rename-only files until the post-merge check removes that exemption.
 
 ## Definition of done
 

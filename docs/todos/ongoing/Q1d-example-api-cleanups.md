@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1f](./Q1f-examples-readable.md) |
+| Blocks | [Q1f](../ready/Q1f-examples-readable.md) |
 | ADRs | Follows 0028; may amend it for `save` |
 | Branch | `feat/q1d-example-api-cleanups` |
 | PR title | `feat(api): small API fixes that make the examples read cleanly` |

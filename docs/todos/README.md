@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 209 ready · 82 done** (291 total).
+**1 ongoing · 208 ready · 82 done** (291 total).
 
 ## Can start now
 
@@ -26,7 +26,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
-- [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q2d](ready/Q2d-one-serialiser.md): One PDF serialiser: the test `Writer` built on laminapdf-save's helpers
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
@@ -44,7 +43,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [Q1d](ongoing/Q1d-example-api-cleanups.md): API fixes the examples need
 
 ## Architecture — Round A
 
@@ -342,9 +341,9 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q1a | [One sans-serif font on the docs site (Source Sans 3)](done/Q1a-docs-font-source-sans.md) | done | — |
 | Q1b | [The `docs-prose` check for reader-facing text](done/Q1b-docs-prose-check.md) | done | — |
 | Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](done/Q1c-examples-checks.md) | done | — |
-| Q1d | [API fixes the examples need](ready/Q1d-example-api-cleanups.md) | ready | — |
+| Q1d | [API fixes the examples need](ongoing/Q1d-example-api-cleanups.md) | ongoing | — |
 | Q1e | [Runnable quick-start apps for every runtime](done/Q1e-quick-start-apps.md) | done | [Q1c](done/Q1c-examples-checks.md) |
-| Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](done/Q1c-examples-checks.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
+| Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](done/Q1c-examples-checks.md), [Q1d](ongoing/Q1d-example-api-cleanups.md) |
 | Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](done/Q1c-examples-checks.md) |
 | Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](done/Q1h-docs-story.md) | done | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](done/Q1e-quick-start-apps.md) |
 | Q1i | [Plain-English guides: creating PDFs](done/Q1i-guides-create.md) | done | [Q1h](done/Q1h-docs-story.md) |

@@ -26,7 +26,7 @@ The Cloudflare Worker example imports fonts from `../../../../../fixtures/`, and
 
 **In scope**
 
-- Cloudflare Worker example: fonts from its own folder (copied by the test setup), no repository-relative imports, no cast (after [Q1d](./Q1d-example-api-cleanups.md); keep it with a comment if Q1d hasn't landed).
+- Cloudflare Worker example: fonts from its own folder (copied by the test setup), no repository-relative imports, no cast (after [Q1d](../ongoing/Q1d-example-api-cleanups.md); keep it with a comment if Q1d hasn't landed).
 - `worker-client.ts`: `(bytes, { onProgress, signal })` returning `Uint8Array`; its browser test supplies the callbacks and counts the calls.
 
 **Out of scope** (and which todo covers it)
