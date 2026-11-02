@@ -24,6 +24,10 @@ prefix = "https://business.adobe.com/"
 reason = "stalls non-browser clients until they time out, over HTTP/1.1 and HTTP/2 (bot protection)"
 
 [[allow]]
+prefix = "https://cacm.acm.org/research/the-semantic-reader-project"
+reason = "answered 403 (Cloudflare) to m16-runner-3 on 2026-11-02 and 200 to the same request re-checked that day; only this page, so the rest of the host stays checked"
+
+[[allow]]
 prefix = "https://chromium.googlesource.com/"
 reason = "answered 503, or passed only on a retry, on 2026-11-01 and 2026-11-02 (rate limit under the nightly's request volume)"
 
@@ -66,6 +70,10 @@ reason = "answers 403 to non-browser clients (bot protection)"
 [[allow]]
 prefix = "https://openai.com/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://pdfa.org/resource/arlington-pdf-model/"
+reason = "answered 403 (Cloudflare) to m16-runner-3 on 2026-11-02 and 200 to the same request re-checked that day; only this page, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://press.rebus.community/"
