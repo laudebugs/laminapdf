@@ -28,7 +28,7 @@ Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../ongoing/P2-first-registry-
 
 **In scope**
 
-- `cargo xtask verify-install --from-registry`: the quick start from crates.io and npm (the `alpha` tag) in Node 22/24/26, Deno, Bun, Chromium (a Vite app), workerd and a Rust binary, byte-identical to `fixtures/golden/examples/hello.pdf`; a release-lane job after the publish jobs.
+- `cargo xtask verify-install --from-registry`: the quick start from crates.io and npm (the `alpha` tag; the real registries, since `0.2.0-alpha.1` is published first, so the stand-in registries the original P2 planned, Verdaccio and a local Cargo registry, are no longer needed to prove the harness) in Node 22/24/26, Deno, Bun, Chromium (a Vite app), workerd and a Rust binary, byte-identical to `fixtures/golden/examples/hello.pdf`; a release-lane job after the publish jobs.
 - `cargo-semver-checks` in the fast lane against the latest published version of each public crate (pinned in `doctor.rs`), and a TypeScript API report (`api-extractor` or similar) diffed against the published `@laminapdf/sdk`.
 - The docs site: install pages, quick starts and Your first PDF install from the registries; the stability policy as a page; the changelog linked.
 - `README.md`: the status line and registry badges; docs.rs builds checked.
@@ -42,7 +42,7 @@ Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../ongoing/P2-first-registry-
 - [ ] `verify-install --from-registry` and its release-lane job
 - [ ] The cargo-semver-checks job and the TypeScript API diff
 - [ ] The docs site's install pages, quick starts and stability page; README
-- [ ] Tick architecture's "Publish the first pre-release" and "Publish the stability policy… cargo-semver-checks"
+- [ ] Tick architecture's "Publish the first pre-release" and "Publish the stability policy… cargo-semver-checks", and pdf-library §10 B7's "Later, when the owner decides: publish…"
 
 ## Acceptance criteria
 

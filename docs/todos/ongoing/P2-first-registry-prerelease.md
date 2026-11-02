@@ -46,7 +46,7 @@ Publish Lamina PDF for the first time: `0.2.0-alpha.1` of the twelve public crat
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask version sync --check` passes at `0.2.0-alpha.1`, and `cargo publish --workspace --dry-run` packages every public crate at it
+- [ ] `cargo xtask version sync --check` passes at `0.2.0-alpha.1`; `cargo xtask publish crates --dry-run` packages every public crate at it, and `publish npm-pack` and `npm-stage --dry-run` pack and dry-run-stage every npm package
 - [ ] The `msrv-and-spike` job builds the workspace on 1.97
 - [ ] CI green
 
