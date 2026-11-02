@@ -266,6 +266,10 @@ impl Object {
     /// as [`Object::number`] writes it: `rounded(v, 0)` is the nearest integer.
     #[must_use]
     pub fn rounded(v: f64, decimals: u8) -> Self {
+        // Past 10¹⁵ every f64 is already whole, and scaling it could overflow to infinity.
+        if v.abs() >= 1e15 {
+            return Self::number(v);
+        }
         let scale = 10f64.powi(i32::from(decimals.min(15)));
         Self::number((v * scale).round() / scale)
     }
@@ -490,6 +494,11 @@ mod tests {
             [f64::NAN, f64::INFINITY].map(Object::number),
             [Object::Integer(0), Object::Integer(0)]
         );
+    }
+
+    #[test]
+    fn rounded_leaves_a_huge_value_as_it_is() {
+        assert_eq!(Object::rounded(1e300, 15), Object::Real(1e300));
     }
 
     #[test]
