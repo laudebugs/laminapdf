@@ -1,84 +1,80 @@
-# P2 — First registry pre-release, public stability policy and changelog, cargo-semver-checks
+# P2 — First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2
 
 | Field | Value |
 | --- | --- |
 | ID | `P2` |
 | Status | `ongoing` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
-| Round / milestone | Publishing (deferred) |
+| Round / milestone | Publishing |
 | Depends on | [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
-| Blocks | None |
-| ADRs | Follows 0017 (complete after [P1](../done/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
+| Blocks | [P3](../ready/P3-registry-checks.md) |
+| ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §2 and §7, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p2-first-prerelease` |
-| PR title | `build: publish the first pre-release and enable cargo-semver-checks` |
-| Size | S–M (≈ 150–400 lines: docs, CI job, changeset) |
-| PR | — |
+| PR title | `build: release 0.2.0-alpha.1, the first registry pre-release` |
+| Size | S in hand-written lines (the version PR bumps every manifest and lockfile) |
+| PR | [#184](https://github.com/laudebugs/laminapdf/pull/184) |
 
 ## Goal
 
-Publish lamina for the first time: a `0.x` pre-release of every public crate on crates.io and `@laminapdf/wasm` + `@laminapdf/sdk` on npm through the [P1](../done/P1-reserve-names-and-trusted-publishing.md) workflow, verify installation and the quick start from the registries in each runtime, publish the stability policy and changelog, and from then on check every PR for semver breaks against the published version.
+Publish Lamina PDF for the first time: `0.2.0-alpha.1` of the twelve public crates on crates.io and the six `@laminapdf` packages on npm, through the release lane [P1](../done/P1-reserve-names-and-trusted-publishing.md) built. This PR is the version PR (ADR 0017 §2) and makes the promises that come with a registry release: the stability policy is in force and the crates' MSRV follows N-2. After it merges, the owner tags `v0.2.0-alpha.1` and approves the staged npm versions. What can only be checked against a published version (registry installs, semver checks, the docs site's install pages) is [P3](../ready/P3-registry-checks.md).
 
 ## Context
 
-- [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) and [§8 risks](../../plans/pdf-library.md#8-risks) ("cargo-semver-checks from 0.2").
-- `docs/stability-policy.md` and `CHANGELOG.md` drafts from [B7b](../done/B7b-versioning-and-0-1-0-alpha.md).
-- [Repo and packaging notes §5](../../research/architecture/notes/repo-and-packaging.md#5-versioning-and-release-changesets-release-plz-cargo-release-semver-checks-provenance-trusted-publishing).
+- The owner's decisions of 2026-11-01: publish; version `0.2.0-alpha.1` (the pending changesets in alpha pre mode); the stability policy as drafted.
+- [`docs/stability-policy.md`](../../stability-policy.md) and [`CHANGELOG.md`](../../../CHANGELOG.md), drafted in [B7b](../done/B7b-versioning-and-0-1-0-alpha.md).
+- [rust.md: MSRV](../../guidelines/rust.md#toolchain-edition-msrv): N-2 before the first public release.
 
 ## Scope
 
 **In scope**
 
-- Version PR for the chosen pre-release (likely the current `0.2.0-alpha.N` if [B8b](../done/B8b-conformance-profiles-and-verapdf.md) is merged, else `0.1.0-alpha.N`); publish via the release workflow.
-- Registry install verification: extend `cargo xtask verify-install --from-registry` (npm + crates.io) for Node, Deno, Bun, a Vite browser app, workerd and a Rust binary; run in the release lane after publish.
-- Publish `docs/stability-policy.md` on the docs site; link the changelog; README badges.
-- `cargo-semver-checks` job in the fast lane against the latest published version for public crates (pinned in `doctor.rs`); for TS, `attw` + an API report (`api-extractor` or similar) diffed against the published package.
-- Docs site install pages switched from tarballs/path deps to registry installs; docs.rs builds verified.
-- The published crates' MSRV: move `rust-version` from the pinned toolchain to [rust.md](../../guidelines/rust.md)'s N-2 policy, checked by the `msrv-and-spike` job, and the root `CHANGELOG.md`'s "nothing is published" line (`cargo xtask version sync`'s template).
+- The version PR: `pnpm changeset version` and `cargo xtask version sync` (every manifest, lockfile and changelog at `0.2.0-alpha.1`); the root changelog's preamble no longer says nothing is published, and names `@laminapdf/viewer`.
+- `rust-version = "1.97"` (N-2 of the pinned 1.99): the workspace builds on 1.97 and no dependency needs newer (hayro's 1.92 is the highest); rust.md's N-2 becomes a rule.
+- The stability policy in force: no longer a draft, the current names, how to install an alpha, the MSRV rule.
 
-**Out of scope**
+**Out of scope** (and which todo covers it)
 
-- Python/UniFFI bindings (pdf-library §9 Q5).
+- `verify-install --from-registry`, cargo-semver-checks and a TypeScript API diff against the published version, the docs site's install pages and stability page, README badges, docs.rs: [P3](../ready/P3-registry-checks.md).
+- npm provenance and attestations: once the repository is public (ADR 0017 §7).
 
 ## Tasks
 
-- [ ] Owner approval of the version and the stability policy wording
-- [ ] Changeset + version PR; merge; the owner tags `v<version>`; the release lane publishes the crates and stages the npm packages, and the owner approves each staged version on npmjs.com
-- [ ] `verify-install --from-registry`; release-lane job
-- [ ] Stability policy and changelog on the docs site; README updates
-- [ ] cargo-semver-checks and TS API diff jobs
+- [x] The owner's approval of the version and the stability policy
+- [x] `pnpm changeset version`, `cargo xtask version sync`; the changelog preamble
+- [x] MSRV 1.97, checked on 1.97 with every feature
+- [x] The stability policy in force
 
 ## Acceptance criteria
 
-- [ ] The release workflow's publish steps pass a dry run on the branch (`cargo publish --dry-run` for every crate in dependency order; `pnpm publish --dry-run` for each package), with provenance and attestation settings present
-- [ ] `cargo xtask verify-install --from-registry` exists and passes on the branch against local stand-in registries (Verdaccio for npm, a local Cargo alternative registry) populated from this PR's packages, proving the harness before the real publish
-- [ ] cargo-semver-checks runs on PRs and fails a deliberate breaking change in a test branch; the TS API diff job fails a deliberate change the same way
+- [ ] `cargo xtask version sync --check` passes at `0.2.0-alpha.1`, and `cargo publish --workspace --dry-run` packages every public crate at it
+- [ ] The `msrv-and-spike` job builds the workspace on 1.97
+- [ ] CI green
 
 ## Post-merge checks
 
-- [ ] The release workflow published the version: packages are on crates.io and npm with provenance (npm shows the provenance badge) and attestations on the GitHub release
-- [ ] Clean installs from the registries run the quick start in Node 22/24/26, Deno, Bun, Chromium (Vite), workerd and native Rust (`verify-install --from-registry` in the release lane)
-- [ ] docs.rs builds the crates
-- [ ] The docs site's install pages show registry installs (production deploy)
+- [ ] A scheduled nightly on `main` passes, so the release guard lets the lane run (the 2026-11-01 one failed on the runner)
+- [ ] The owner tags `v0.2.0-alpha.1` on the merge commit; the release lane passes, publishes the crates, stages the npm packages and creates the GitHub release
+- [ ] The owner approves the six staged npm versions on npmjs.com, dependencies first (`@laminapdf/wasm`, then `sdk`, `render`, `render-hayro`, `render-pdfium`, `viewer`)
+- [ ] `cargo add laminapdf@0.2.0-alpha.1` and `npm install @laminapdf/sdk@alpha` work in a clean project
 
 ## Tests
 
-Release-lane install verification; semver-check job.
+The existing suites at the new version; the MSRV job on 1.97; the publish dry runs.
 
 ## Docs to update
 
-- [ ] [architecture: Publishing (later)](../../plans/architecture.md#publishing-later): tick "Publish the first pre-release…" and "Publish the stability policy… cargo-semver-checks"
-- [ ] [pdf-library §10 B7](../../plans/pdf-library.md#10-to-dos): tick "Later, when the owner decides: publish…"
-- [ ] `README.md`, docs site install pages, `CLAUDE.md`
+- [x] [`docs/stability-policy.md`](../../stability-policy.md), [rust.md](../../guidelines/rust.md), the changelog preamble
+- [ ] [architecture: Publishing (later)](../../plans/architecture.md#publishing-later): tick "Publish the first pre-release" once it is out (P3)
 
 ## Risks and open questions
 
-- **Blocked on the owner.**
-- Once published, error/warning codes and op JSON are public contracts (ADR 0003, 0006); the stability policy must say so.
+- The release lane needs a green scheduled nightly and free disk on the runners.
+- Once published, error and warning codes and the op JSON are public contracts (ADR 0003, 0006); the stability policy says so.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] Claimed: the work PR (#184), opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit
+- [ ] The change follows the guidelines that apply to it
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
