@@ -50,6 +50,7 @@ export default defineConfig({
     "/guides/open-edit-and-save/": "/guides/edit-a-pdf/",
     "/guides/encrypted-files/": "/guides/password-protected-files/",
     "/guides/limits/": "/guides/untrusted-files/",
+    "/guides/off-the-main-thread/": "/guides/keep-the-page-responsive/",
   },
   integrations: [
     starlight({
@@ -124,7 +125,7 @@ export default defineConfig({
         },
         {
           label: "Production",
-          items: [{ label: "Keep the page responsive", slug: "guides/off-the-main-thread" }],
+          items: [{ label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" }],
         },
         { label: "Examples", link: "/examples/" },
         {

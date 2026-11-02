@@ -17,7 +17,7 @@ preview_urls = true
 directory = "./dist"
 # Unknown paths get the site's 404 page with a 404 status.
 not_found_handling = "404-page"
-# Answer /guides/limits without its trailing slash too (Astro writes /guides/limits/index.html).
+# Answer /guides/save-a-pdf without its trailing slash too (Astro writes /guides/save-a-pdf/index.html).
 html_handling = "auto-trailing-slash"
 
 # No Worker code runs, so there are no Worker logs to keep (ADR 0011 §5).
