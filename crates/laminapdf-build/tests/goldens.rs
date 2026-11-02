@@ -1,6 +1,7 @@
 //! ADR 0018 tier 3: every golden `laminapdf-build` owns is rebuilt byte for byte and twice the
-//! same, and those and the frozen `hello.pdf` and `imaging-demo.pdf` read back cleanly: Lamina PDF's reader and model open it without warnings and
-//! `laminapdf-content` interprets every page without content warnings.
+//! same. Those goldens and the frozen `hello.pdf` and `imaging-demo.pdf` read back cleanly:
+//! Lamina PDF's reader and model open them without warnings, and `laminapdf-content`
+//! interprets every page without content warnings.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
