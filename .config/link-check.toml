@@ -25,7 +25,7 @@ reason = "stalls non-browser clients until they time out, over HTTP/1.1 and HTTP
 
 [[allow]]
 prefix = "https://cacm.acm.org/research/the-semantic-reader-project"
-reason = "answered 403 (Cloudflare) to m16-runner-3 on 2026-11-02 and 200 to the same request re-checked that day; only this page, so the rest of the host stays checked"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 nightly and answered 200 when re-checked that day. The prefix is the whole page URL, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://chromium.googlesource.com/"
@@ -73,7 +73,7 @@ reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot pr
 
 [[allow]]
 prefix = "https://pdfa.org/resource/arlington-pdf-model/"
-reason = "answered 403 (Cloudflare) to m16-runner-3 on 2026-11-02 and 200 to the same request re-checked that day; only this page, so the host's other links stay checked"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 nightly and answered 200 when re-checked that day. The prefix is the whole page URL, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://press.rebus.community/"
