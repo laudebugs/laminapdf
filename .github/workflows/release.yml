@@ -4,8 +4,8 @@
 # a `workflow_dispatch` run, even on a tag, does the same with `--dry-run`, so it uploads and
 # stages nothing and creates no release.
 #
-#   guard           refuses to go on unless the latest completed scheduled nightly.yml run on main
-#                   succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
+#   guard           refuses to go on unless the latest completed full nightly.yml run on main
+#                   (scheduled, or dispatched with default inputs) succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
 #                   (`cargo xtask version check-tag`)
 #   fast            the fast lane: `cargo xtask check` (with `version sync --check`) and `size`,
 #                   over `cargo xtask wasm` (which runs publint and attw on @laminapdf/sdk)
@@ -118,7 +118,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
-      - name: Refuse unless the latest scheduled nightly on main is green on an ancestor
+      - name: Refuse unless the latest full nightly on main is green on an ancestor
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
