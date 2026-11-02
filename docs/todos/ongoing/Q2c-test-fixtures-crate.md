@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
-| Blocks | [Q2d](./Q2d-one-serialiser.md), [Q2x](./Q2x-test-fixtures-migration.md) |
+| Blocks | [Q2d](../ready/Q2d-one-serialiser.md), [Q2x](../ready/Q2x-test-fixtures-migration.md) |
 | ADRs | None |
 | Branch | `refactor/q2c-test-fixtures-crate` |
 | PR title | `refactor(tests): laminapdf-test-fixtures for shared Rust test helpers (core crates)` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Rust test helpers are copied across crates and linked by 35 `#[path = "../../other-crate/…"]` includes. This todo creates an unpublished, dev-only `crates/laminapdf-test-fixtures` with no lamina dependencies, so `laminapdf-cos`'s own unit tests can use it too. It moves the shared helpers there and migrates laminapdf-cos, laminapdf-model, laminapdf-save and laminapdf-ops. [Q2x](./Q2x-test-fixtures-migration.md) migrates the rest.
+Rust test helpers are copied across crates and linked by 35 `#[path = "../../other-crate/…"]` includes. This todo creates an unpublished, dev-only `crates/laminapdf-test-fixtures` with no lamina dependencies, so `laminapdf-cos`'s own unit tests can use it too. It moves the shared helpers there and migrates laminapdf-cos, laminapdf-model, laminapdf-save and laminapdf-ops. [Q2x](../ready/Q2x-test-fixtures-migration.md) migrates the rest.
 
 ## Context
 
@@ -36,11 +36,11 @@ Rust test helpers are copied across crates and linked by 35 `#[path = "../../oth
 
 **Out of scope** (and which todo covers it)
 
-- The other crates ([Q2x](./Q2x-test-fixtures-migration.md)); the test `Writer` ([Q2d](./Q2d-one-serialiser.md)).
+- The other crates ([Q2x](../ready/Q2x-test-fixtures-migration.md)); the test `Writer` ([Q2d](../ready/Q2d-one-serialiser.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claimed by opening the work PR from a fresh worktree off `main`.
 - [ ] Create the crate and its layer; move the helpers with their tests.
 - [ ] Migrate laminapdf-cos (unit and integration tests), then laminapdf-model, laminapdf-save and laminapdf-ops, running each crate's tests after each.
 - [ ] Delete the copies and `#[path]` includes in those crates.

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2c](./Q2c-test-fixtures-crate.md) |
+| Depends on | [Q2c](../ongoing/Q2c-test-fixtures-crate.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2d-one-serialiser` |
@@ -32,7 +32,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Other test helpers ([Q2c](./Q2c-test-fixtures-crate.md), [Q2x](./Q2x-test-fixtures-migration.md)).
+- Other test helpers ([Q2c](../ongoing/Q2c-test-fixtures-crate.md), [Q2x](./Q2x-test-fixtures-migration.md)).
 
 ## Tasks
 
