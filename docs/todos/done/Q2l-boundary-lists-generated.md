@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2l` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -34,15 +34,17 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Add `ALL` constants where a Rust enum lacks one.
-- [ ] Extend the generator; generate both files; commit them with the `@generated` header.
-- [ ] Switch the index-encoded values to strings on both sides; update `@laminapdf/sdk` and laminapdf-wasm together.
-- [ ] Delete the hand lists and the source-scraping test; add `--check` to `check docs`.
+- [x] Claim by opening the work PR (#195) from a fresh worktree off `main`.
+- [x] Add `ALL` to `FillRule`, `LineCap`, `LineJoin`, `BlendMode`, `ArtifactKind` and `TableScope` (`TagKind` had one); a laminapdf-wasm unit test checks each name table names every variant once.
+- [x] Extend the generator: `cargo xtask gen codes` also writes `packages/render/src/generated/codes.ts` from `fixtures/codes.json`, and the new `cargo xtask gen boundary` reads laminapdf-wasm's name tables and `TagKind::as_str` from the source (no build) and writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render-hayro/src/generated/version.ts` (`HAYRO_VERSION` from the workspace's hayro pin). Each file carries the `@generated` header.
+- [x] Send structure types, table scopes and artifact kinds as names: `beginTag` and `beginArtifact` take strings, and `@laminapdf/sdk` changes with them. Fill rules, caps, joins and blend modes already travelled as names.
+- [x] Delete the hand lists (in `@laminapdf/sdk`'s builder, `@laminapdf/render`'s code tables and its `test/codes.test.ts`) and laminapdf-build's test that scraped `builder.ts`; `check docs` runs `gen boundary --check` beside `gen codes --check`.
+
+The name tables stay in laminapdf-wasm's `src/build_dto.rs`, their one home, so that file doesn't shrink as [Q2r](../ready/Q2r-split-surface-modules.md) expected: it loses the index decoding and gains the two new tables and their test (849 → 866 lines).
 
 ## Acceptance criteria
 
-- [ ] No hand-kept boundary list remains; `gen --check` fails if one drifts.
+- [x] No hand-kept boundary list remains; `gen --check` fails if one drifts.
 
 ## Post-merge checks
 
@@ -62,9 +64,9 @@ Changing indices to strings changes the WASM call signatures: change `@laminapdf
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
