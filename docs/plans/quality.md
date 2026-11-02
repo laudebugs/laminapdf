@@ -267,7 +267,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
 | [Q2j](../todos/done/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
 | [Q2k](../todos/done/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
-| [Q2l](../todos/ready/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
+| [Q2l](../todos/ongoing/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
 | [Q2m](../todos/done/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
 | [Q2n](../todos/done/Q2n-render-adapter-shared.md) | Shared code for the render adapters | M | Q2m |
 | [Q2o](../todos/done/Q2o-ts-hygiene.md) | TypeScript hygiene: no test hooks in shipped code | M | Q2u |
