@@ -12,6 +12,6 @@ size-expects = 13
 # and #[cfg(test)] items don't count). The splits in the quality plan's §6 clear them.
 [modules]
 "crates/laminapdf-content/src/interp.rs" = 823
-"crates/laminapdf-cos/src/reader/mod.rs" = 1054
+"crates/laminapdf-cos/src/reader/mod.rs" = 1024
 "tools/xtask/src/live.rs" = 1115
 "tools/xtask/src/render_diff.rs" = 923

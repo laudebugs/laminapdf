@@ -10,7 +10,7 @@ mod common;
 
 use common::open;
 use common::{corpus, expected, fixture};
-use laminapdf_cos::{Document, ObjRef};
+use laminapdf_cos::{Document, ObjRef, Object};
 use serde_json::Value;
 
 /// Runs `check` on every corpus file, collecting all mismatches into one readable failure.
@@ -59,21 +59,6 @@ fn page_count_matches_expected() {
 #[test]
 fn encrypted_flag_matches_expected() {
     for_each_file(|_, doc, facts| mismatch("encrypted", &Some(doc.is_encrypted()), &facts["encrypted"].as_bool()));
-}
-
-#[test]
-fn first_page_mediabox_matches_expected() {
-    for_each_file(|_, doc, facts| {
-        let ours = doc
-            .pages()
-            .ok()
-            .and_then(|p| p.first().and_then(|p| p.media_box))
-            .map(|b| b.to_vec());
-        let theirs = facts["first_page_mediabox"]
-            .as_array()
-            .map(|a| a.iter().filter_map(Value::as_f64).collect());
-        mismatch("first_page_mediabox", &ours, &theirs)
-    });
 }
 
 #[test]
@@ -177,5 +162,11 @@ fn fpdf2_page_inherits_mediabox_from_pages_node() {
     let bytes = fixture("corpus/fpdf2.pdf");
     let doc = open(&bytes).unwrap();
     let page = doc.pages().unwrap().remove(0);
-    assert!(!page.dict.contains_key("MediaBox") && page.media_box == Some([0.0, 0.0, 612.0, 792.0]));
+    let inherited = page
+        .inherited
+        .media_box
+        .as_deref()
+        .and_then(Object::as_array)
+        .map(|a| a.iter().filter_map(Object::as_f64).collect::<Vec<_>>());
+    assert!(!page.dict.contains_key("MediaBox") && inherited == Some(vec![0.0, 0.0, 612.0, 792.0]));
 }

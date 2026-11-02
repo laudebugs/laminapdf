@@ -108,13 +108,6 @@ mod page_attributes {
     }
 
     #[test]
-    fn a_stale_media_box_element_is_a_strict_error() {
-        let bytes = one_page_file(b"<< /Type /Page /MediaBox [0 0 4 1 R 10] >>", &[b"10"]);
-        let doc = open_with(&bytes, strict()).unwrap();
-        assert_eq!(strict_warning(doc.pages()).code(), "stale-generation");
-    }
-
-    #[test]
     fn a_stale_resources_reference_is_a_strict_error() {
         let bytes = one_page_file(b"<< /Type /Page /Resources 4 1 R >>", &[b"<< >>"]);
         let doc = open_with(&bytes, strict()).unwrap();
@@ -157,10 +150,13 @@ mod page_attributes {
     }
 
     #[test]
-    fn a_malformed_media_box_object_still_reads_as_absent() {
+    fn a_malformed_media_box_object_leaves_the_page_walk_unharmed() {
         let bytes = one_page_file(b"<< /Type /Page /MediaBox 4 0 R >>", &[b"[0 0 ]]"]);
         let pages = open(&bytes).unwrap().pages().unwrap();
-        assert_eq!(pages[0].media_box, None);
+        assert_eq!(
+            pages[0].inherited.media_box.as_deref(),
+            Some(&laminapdf_cos::Object::Ref(ObjRef::new(4, 0)))
+        );
     }
 
     #[test]

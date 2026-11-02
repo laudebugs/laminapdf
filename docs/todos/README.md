@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 213 ready · 77 done** (290 total).
+**0 ongoing · 211 ready · 79 done** (290 total).
 
 ## Can start now
 
@@ -29,7 +29,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q2c](ready/Q2c-test-fixtures-crate.md): `laminapdf-test-fixtures` for the core crates' test helpers
-- [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
 - [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
 - [Q2i](ready/Q2i-one-lexer-one-png-filter.md): One PDF lexer and one PNG row filter
@@ -357,7 +356,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2c | [`laminapdf-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2d | [One PDF serialiser: the test `Writer` built on laminapdf-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](done/Q2e-error-policy-consolidation.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
-| Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](ready/Q2f-page-attributes-one-owner.md) | ready | — |
+| Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](done/Q2f-page-attributes-one-owner.md) | done | — |
 | Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](ready/Q2h-text-writers-dedup.md) | ready | — |
 | Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |

@@ -294,6 +294,43 @@ mod pages {
     }
 
     #[test]
+    fn a_stale_box_element_is_an_error_in_strict_mode() {
+        let bytes = classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 4 1 R 10] >>",
+                "10",
+            ],
+            "",
+        );
+        let doc = Document::open(bytes, OpenOptions::default().with_strict(true)).unwrap();
+        let err = doc.pages().unwrap().get(0).unwrap().media_box().unwrap_err();
+        assert_eq!(err.code(), "strict");
+    }
+
+    #[test]
+    fn an_integral_real_rotate_reads_as_its_rotation() {
+        let doc = one_page("/Rotate -90.0");
+        let pages = doc.pages().unwrap();
+        let page = pages.get(0).unwrap();
+        assert_eq!(
+            (page.rotate().unwrap(), page.rotate_quietly().unwrap(), codes(&doc)),
+            (Rotation::Clockwise270, Rotation::Clockwise270, vec![])
+        );
+    }
+
+    #[test]
+    fn rotate_quietly_reads_an_invalid_rotate_as_none_without_a_warning() {
+        let doc = one_page("/Rotate 45");
+        let pages = doc.pages().unwrap();
+        assert_eq!(
+            (pages.get(0).unwrap().rotate_quietly().unwrap(), codes(&doc)),
+            (Rotation::None, vec![])
+        );
+    }
+
+    #[test]
     fn strict_trim_box_reports_the_trim_box_itself() {
         let bytes = classic(
             &[

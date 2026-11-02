@@ -17,7 +17,7 @@ use std::sync::Arc;
 use common::{fixture, open, pdfium, render};
 use laminapdf_render::{
     ByteSource, CancelToken, PixelRect, RenderBackend, RenderError, RenderFlags, RenderOpenOptions, RenderRequest,
-    SourceError, ViewRotation,
+    Rotation, SourceError,
 };
 
 mod errors {
@@ -174,7 +174,7 @@ mod geometry {
         let up = render(doc.as_ref(), &RenderRequest::page(0, SCALE)).unwrap();
         let turned = render(
             doc.as_ref(),
-            &RenderRequest::page(0, SCALE).with_rotation(ViewRotation::Clockwise90),
+            &RenderRequest::page(0, SCALE).with_rotation(Rotation::Clockwise90),
         )
         .unwrap();
         assert_eq!((turned.width, turned.height), (up.height, up.width));
@@ -221,7 +221,13 @@ mod geometry {
                         info.width,
                         info.height
                     );
-                    assert_eq!(page.rotate, info.rotation, "{} {file} page {}", backend.name(), i + 1);
+                    assert_eq!(
+                        page.rotate.degrees(),
+                        info.rotation,
+                        "{} {file} page {}",
+                        backend.name(),
+                        i + 1
+                    );
                 }
             }
         }
@@ -238,10 +244,10 @@ mod geometry {
             ..RenderFlags::default()
         };
         for rotation in [
-            ViewRotation::None,
-            ViewRotation::Clockwise90,
-            ViewRotation::Half,
-            ViewRotation::Clockwise270,
+            Rotation::None,
+            Rotation::Clockwise90,
+            Rotation::Half,
+            Rotation::Clockwise270,
         ] {
             let base = RenderRequest::page(0, 2.0).with_rotation(rotation);
             let with = render(doc.as_ref(), &base).unwrap();

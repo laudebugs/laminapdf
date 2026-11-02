@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use hayro::hayro_interpret::InterpreterSettings;
 use hayro::hayro_interpret::util::TransformExt as _;
-use hayro::hayro_syntax::page::Rotation;
+use hayro::hayro_syntax::page::Rotation as HayroRotation;
 use hayro::hayro_syntax::{Pdf, PdfData};
 use hayro::kurbo::Affine;
 use hayro::vello_cpu::color::AlphaColor;
@@ -29,6 +29,7 @@ use hayro::vello_cpu::{Pixmap, RasterizerSettings, RenderContext, Resources, Tar
 use hayro::{RenderCache, RenderSettings};
 use laminapdf_cos::ByteSource;
 use laminapdf_syntax::CancelToken;
+use laminapdf_syntax::Rotation;
 
 use crate::backend::{RenderBackend, RenderDocument};
 use crate::error::RenderError;
@@ -210,10 +211,10 @@ fn geometry(page: &hayro::hayro_syntax::page::Page<'_>) -> RenderPage {
         width,
         height,
         rotate: match page.rotation() {
-            Rotation::None => 0,
-            Rotation::Horizontal => 90,
-            Rotation::Flipped => 180,
-            Rotation::FlippedHorizontal => 270,
+            HayroRotation::None => Rotation::None,
+            HayroRotation::Horizontal => Rotation::Clockwise90,
+            HayroRotation::Flipped => Rotation::Half,
+            HayroRotation::FlippedHorizontal => Rotation::Clockwise270,
         },
     }
 }

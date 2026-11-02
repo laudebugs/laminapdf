@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use laminapdf_render::{
     ByteSource, CancelToken, HayroBackend, PixelRect, RenderBackend, RenderDocument, RenderError, RenderOpenOptions,
-    RenderRequest, ViewRotation,
+    RenderRequest, Rotation,
 };
 
 fn fixture(path: &str) -> Vec<u8> {
@@ -153,7 +153,7 @@ mod geometry {
         let (w, h, upright) = render(doc.as_ref(), &RenderRequest::page(0, SCALE));
         let (rw, rh, turned) = render(
             doc.as_ref(),
-            &RenderRequest::page(0, SCALE).with_rotation(ViewRotation::Clockwise90),
+            &RenderRequest::page(0, SCALE).with_rotation(Rotation::Clockwise90),
         );
         assert_eq!((rw, rh), (h, w));
         // Clockwise: the upright pixel (x, y) lands at (h - 1 - y, x).

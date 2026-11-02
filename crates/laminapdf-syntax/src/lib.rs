@@ -27,6 +27,8 @@
 //!   kind, hint and `docsUrl` (generated from `fixtures/codes.json`); and, with the `json`
 //!   feature, `Diagnostic`, the §1 object every boundary serialises.
 //! * [`Limits`]: the resource limits of ADR 0003, shared by every layer that reads input.
+//! * [`Rotation`]: a rotation by a multiple of 90°, read from `/Rotate` values and shared by
+//!   the page model and the renderers.
 //! * [`text`]: text strings (`PDFDocEncoding`, UTF-16BE, UTF-8) and the `PDFDocEncoding` table.
 //!
 //! The file structure (cross-reference tables, object streams, repair, the page tree) and the
@@ -49,6 +51,7 @@ mod object;
 mod parser;
 #[cfg(feature = "json")]
 mod record;
+mod rotation;
 pub mod text;
 // What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
 #[cfg(test)]
@@ -68,3 +71,4 @@ pub use parser::{
 };
 #[cfg(feature = "json")]
 pub use record::Diagnostic;
+pub use rotation::Rotation;

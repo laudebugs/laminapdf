@@ -3,7 +3,7 @@
 The render backend contract of [ADR 0004](../../docs/decisions/0004-render-backend.md). Every Lamina PDF surface draws pages through two object-safe traits:
 
 - **`RenderBackend`** opens documents from the same `ByteSource` Lamina PDF reads.
-- **`RenderDocument`** reports page sizes and renders **tiles**: a rectangle of a page at a scale, with a view rotation, flags and a background. The output goes into a caller-supplied buffer in straight-alpha RGBA8, rows packed at `width × 4`.
+- **`RenderDocument`** reports page sizes and renders **tiles**: a rectangle of a page at a scale, with a view rotation, flags and a background. View rotations and a page's own `/Rotate` share one type, `Rotation`, re-exported from `laminapdf-syntax`. The output goes into a caller-supplied buffer in straight-alpha RGBA8, rows packed at `width × 4`.
 
 A renderer only produces pixels. Text, glyph quads, structure, annotation and form geometry, links and outlines come from Lamina PDF's model, never from a renderer.
 
