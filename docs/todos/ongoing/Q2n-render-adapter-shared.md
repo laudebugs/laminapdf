@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2n` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2m](../done/Q2m-ts-test-utils.md) |
@@ -31,7 +31,7 @@ The hayro and PDFium adapters repeat the page-index check, the "bytes could not 
 
 **Out of scope** (and which todo covers it)
 
-- Splitting PDFium's `render` closure ([Q2p](./Q2p-ts-complexity-splits.md)).
+- Splitting PDFium's `render` closure ([Q2p](../ready/Q2p-ts-complexity-splits.md)).
 
 ## Tasks
 
