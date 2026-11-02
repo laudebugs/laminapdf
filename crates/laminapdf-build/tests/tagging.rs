@@ -869,18 +869,3 @@ mod external {
         );
     }
 }
-
-/// `@laminapdf/sdk` passes structure types to the WASM module by their index in `TagKind::ALL`.
-#[test]
-fn the_ts_tag_names_are_tag_kind_all_in_order() {
-    let source = String::from_utf8(fixture("../packages/sdk/src/builder.ts")).unwrap();
-    let start = source.find("export const TAG_NAMES = [").unwrap();
-    let end = start + source[start..].find("] as const;").unwrap();
-    let names: Vec<&str> = source[start..end]
-        .lines()
-        .skip(1)
-        .map(|l| l.trim().trim_end_matches(',').trim_matches('"'))
-        .collect();
-    let kinds: Vec<&str> = TagKind::ALL.iter().map(|k| k.as_str()).collect();
-    assert_eq!(names, kinds);
-}

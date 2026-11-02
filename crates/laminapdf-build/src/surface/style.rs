@@ -15,6 +15,11 @@ pub enum LineCap {
     Square,
 }
 
+impl LineCap {
+    /// Every line cap, in declaration order.
+    pub const ALL: [Self; 3] = [Self::Butt, Self::Round, Self::Square];
+}
+
 /// How corners are drawn (§8.4.3.4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
@@ -26,6 +31,11 @@ pub enum LineJoin {
     Round,
     /// Bevelled corners (2).
     Bevel,
+}
+
+impl LineJoin {
+    /// Every line join, in declaration order.
+    pub const ALL: [Self; 3] = [Self::Miter, Self::Round, Self::Bevel];
 }
 
 /// A dash pattern (§8.4.3.6): alternating dash and gap lengths, and how far into the pattern
@@ -143,6 +153,26 @@ pub enum BlendMode {
 }
 
 impl BlendMode {
+    /// Every blend mode, in declaration order.
+    pub const ALL: [Self; 16] = [
+        Self::Normal,
+        Self::Multiply,
+        Self::Screen,
+        Self::Overlay,
+        Self::Darken,
+        Self::Lighten,
+        Self::ColorDodge,
+        Self::ColorBurn,
+        Self::HardLight,
+        Self::SoftLight,
+        Self::Difference,
+        Self::Exclusion,
+        Self::Hue,
+        Self::Saturation,
+        Self::Color,
+        Self::Luminosity,
+    ];
+
     /// The PDF name (`/BM`).
     #[must_use]
     pub const fn pdf_name(self) -> &'static str {
@@ -170,6 +200,58 @@ impl BlendMode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
+    #[test]
+    fn all_should_list_every_line_cap_once_in_declaration_order() {
+        let index = |v: LineCap| match v {
+            LineCap::Butt => 0,
+            LineCap::Round => 1,
+            LineCap::Square => 2,
+        };
+        assert!(LineCap::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
+    }
+
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
+    #[test]
+    fn all_should_list_every_line_join_once_in_declaration_order() {
+        let index = |v: LineJoin| match v {
+            LineJoin::Miter => 0,
+            LineJoin::Round => 1,
+            LineJoin::Bevel => 2,
+        };
+        assert!(LineJoin::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
+    }
+
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
+    #[test]
+    fn all_should_list_every_blend_mode_once_in_declaration_order() {
+        let index = |v: BlendMode| match v {
+            BlendMode::Normal => 0,
+            BlendMode::Multiply => 1,
+            BlendMode::Screen => 2,
+            BlendMode::Overlay => 3,
+            BlendMode::Darken => 4,
+            BlendMode::Lighten => 5,
+            BlendMode::ColorDodge => 6,
+            BlendMode::ColorBurn => 7,
+            BlendMode::HardLight => 8,
+            BlendMode::SoftLight => 9,
+            BlendMode::Difference => 10,
+            BlendMode::Exclusion => 11,
+            BlendMode::Hue => 12,
+            BlendMode::Saturation => 13,
+            BlendMode::Color => 14,
+            BlendMode::Luminosity => 15,
+        };
+        assert_eq!(
+            BlendMode::ALL.map(index),
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        );
+    }
 
     fn dashed(array: &[f64]) -> StrokeStyle {
         StrokeStyle {

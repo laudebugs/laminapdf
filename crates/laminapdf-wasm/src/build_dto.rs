@@ -162,15 +162,19 @@ pub(crate) fn pick<T: Copy>(argument: &'static str, name: &str, known: &[(&str, 
     })
 }
 
-/// A structure element from `@laminapdf/sdk`, which checks the names: `kind` indexes
-/// [`TagKind::ALL`] (a custom type's role when `custom` names it), `scope` is 0 (none), 1 (row),
-/// 2 (column) or 3 (both). Indices keep the type names and their suggestions out of the module.
+/// A structure element from `@laminapdf/sdk`: `kind` is a standard structure type's name
+/// ([`TagKind::as_str`]; a custom type's role when `custom` names it), `scope` a
+/// [`TABLE_SCOPES`] name.
 ///
 /// # Errors
-/// `invalid-argument` for a `kind` or `scope` out of range.
-pub(crate) fn tag(kind: u8, custom: Option<String>, attributes: [Option<String>; 4], scope: u8) -> JsResult<Tag> {
-    let out_of_range = || invalid_argument("kind", "not a structure type index".to_owned(), Vec::new());
-    let kind = *TagKind::ALL.get(usize::from(kind)).ok_or_else(out_of_range)?;
+/// `invalid-argument` for an unknown `kind` or `scope`.
+pub(crate) fn tag(
+    kind: &str,
+    custom: Option<String>,
+    attributes: [Option<String>; 4],
+    scope: Option<String>,
+) -> JsResult<Tag> {
+    let kind = pick("kind", kind, &TagKind::ALL.map(|k| (k.as_str(), k)))?;
     let mut tag = match custom {
         Some(name) => Tag::custom(name, kind),
         None => Tag::new(kind),
@@ -188,36 +192,30 @@ pub(crate) fn tag(kind: u8, custom: Option<String>, attributes: [Option<String>;
     if let Some(expansion) = expansion {
         tag = tag.with_expansion(expansion);
     }
-    let scope = match scope {
-        0 => return Ok(tag),
-        1 => TableScope::Row,
-        2 => TableScope::Column,
-        3 => TableScope::Both,
-        _ => {
-            return Err(invalid_argument(
-                "scope",
-                "not a table scope index".to_owned(),
-                Vec::new(),
-            ));
-        }
-    };
-    Ok(tag.with_scope(scope))
-}
-
-/// An artifact kind by index (`layout`, `page`, `pagination`, `background`).
-pub(crate) fn artifact_kind(kind: u8) -> JsResult<ArtifactKind> {
-    match kind {
-        0 => Ok(ArtifactKind::Layout),
-        1 => Ok(ArtifactKind::Page),
-        2 => Ok(ArtifactKind::Pagination),
-        3 => Ok(ArtifactKind::Background),
-        _ => Err(invalid_argument(
-            "kind",
-            "not an artifact kind index".to_owned(),
-            Vec::new(),
-        )),
+    match scope {
+        Some(scope) => Ok(tag.with_scope(pick("scope", &scope, &TABLE_SCOPES)?)),
+        None => Ok(tag),
     }
 }
+
+// The name tables below are the one list of these names: `cargo xtask gen boundary` reads them
+// (and `TagKind::as_str`) from the source and writes @laminapdf/sdk's
+// src/generated/builder-enums.ts, so keep each a `[("name", Type::Variant), …]` literal.
+
+/// Artifact kinds by name.
+pub(crate) const ARTIFACT_KINDS: [(&str, ArtifactKind); 4] = [
+    ("layout", ArtifactKind::Layout),
+    ("page", ArtifactKind::Page),
+    ("pagination", ArtifactKind::Pagination),
+    ("background", ArtifactKind::Background),
+];
+
+/// Table scopes (a `TH`'s `/Scope`) by name.
+pub(crate) const TABLE_SCOPES: [(&str, TableScope); 3] = [
+    ("row", TableScope::Row),
+    ("column", TableScope::Column),
+    ("both", TableScope::Both),
+];
 
 /// Fill rules by name.
 pub(crate) const FILL_RULES: [(&str, FillRule); 2] = [("nonZero", FillRule::NonZero), ("evenOdd", FillRule::EvenOdd)];
@@ -824,7 +822,26 @@ mod tests {
     use serde::Deserialize as _;
     use serde::de::IntoDeserializer as _;
 
-    use super::{Profile, ProfileInit, parse_id};
+    use laminapdf::{ArtifactKind, BlendMode, FillRule, LineCap, LineJoin, TableScope};
+
+    use super::{
+        ARTIFACT_KINDS, BLEND_MODES, FILL_RULES, LINE_CAPS, LINE_JOINS, Profile, ProfileInit, TABLE_SCOPES, parse_id,
+    };
+
+    /// Whether `table` names each value of `all` exactly once.
+    fn names_each<T: PartialEq + Copy>(table: &[(&str, T)], all: &[T]) -> bool {
+        table.len() == all.len() && all.iter().all(|v| table.iter().filter(|(_, t)| t == v).count() == 1)
+    }
+
+    #[test]
+    fn every_boundary_table_should_name_each_variant_once() {
+        assert!(names_each(&FILL_RULES, &FillRule::ALL));
+        assert!(names_each(&LINE_CAPS, &LineCap::ALL));
+        assert!(names_each(&LINE_JOINS, &LineJoin::ALL));
+        assert!(names_each(&BLEND_MODES, &BlendMode::ALL));
+        assert!(names_each(&ARTIFACT_KINDS, &ArtifactKind::ALL));
+        assert!(names_each(&TABLE_SCOPES, &TableScope::ALL));
+    }
 
     /// The profile names TypeScript sees are the Rust `Profile::as_str` names.
     #[test]

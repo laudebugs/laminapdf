@@ -22,7 +22,7 @@ It also splits four files that are long but, once tests are excluded, within the
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `tools/xtask/maintainability-baseline.toml`; the files above; `laminapdf-wasm/src/build_dto.rs`, which [Q2l](./Q2l-boundary-lists-generated.md) shrinks.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `tools/xtask/maintainability-baseline.toml`; the files above; `laminapdf-wasm/src/build_dto.rs`, which [Q2l](../done/Q2l-boundary-lists-generated.md) shrinks.
 
 ## Scope
 

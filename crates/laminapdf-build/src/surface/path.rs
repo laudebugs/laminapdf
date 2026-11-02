@@ -17,6 +17,11 @@ pub enum FillRule {
     EvenOdd,
 }
 
+impl FillRule {
+    /// Every fill rule, in declaration order.
+    pub const ALL: [Self; 2] = [Self::NonZero, Self::EvenOdd];
+}
+
 /// One path segment, in page space.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum Segment {
@@ -268,6 +273,17 @@ impl Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
+    #[test]
+    fn all_should_list_every_fill_rule_once_in_declaration_order() {
+        let index = |v: FillRule| match v {
+            FillRule::NonZero => 0,
+            FillRule::EvenOdd => 1,
+        };
+        assert!(FillRule::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
+    }
 
     fn pt(x: f64, y: f64) -> PointPt {
         PointPt::from_points(x, y)
