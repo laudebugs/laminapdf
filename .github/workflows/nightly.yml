@@ -10,8 +10,9 @@
 #                 and uploaded (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
 #   scaling       release-mode #[ignore]d tests, one retry that only reports flakiness
 #                 (`cargo xtask scaling`)
-#   bench         criterion benchmarks with history on the `bench-data` branch; a regression over
-#                 10% opens an issue, never fails the run (`cargo xtask bench`)
+#   bench         criterion benchmarks with history on the `bench-data` branch, after every job
+#                 that doesn't depend on them, so they don't share the Mac with those; a regression
+#                 over 10% opens an issue, never fails the run (`cargo xtask bench`)
 #   pdf-runtimes  @laminapdf/sdk's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
 #                 workerd, its timings and WebAssembly memory recorded in the benchmark history
 #                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
@@ -299,8 +300,16 @@ jobs:
     # macos-arm64/lamina-self-hosted-runner), since a baseline mixing two Macs flags noise as
     # regressions (issue #170). Runners on one Mac share the label, and their timings share
     # that Mac's load.
+    # The benchmarks start only after every job that doesn't depend on them has ended, whatever
+    # its result. Beside nine fuzz targets and the render diff they also measured that load,
+    # likely part of issue #170's +303% and +605% on the report benchmarks. PR lanes can still
+    # share the Mac. `tools/xtask/src/workflows.rs` checks that this list stays complete.
+    needs: [differential, fuzz, scaling, links, render-diff, verapdf, forced-failure]
+    if: ${{ !cancelled() }}
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 60
+    # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
+    # timeout, so a short one wastes less of the night.
+    timeout-minutes: 30
     # Pushes the history to the bench-data branch (main only).
     permissions:
       contents: write
@@ -535,16 +544,21 @@ jobs:
           exit 1
 
   # Opens or comments on one issue per kind and ref (labelled `nightly`): "Nightly lane failing
-  # on <ref>" for a failed job or a flaky scaling test, "Nightly benchmark regression on <ref>"
-  # for a >10% regression, "Nightly render-diff regression on <ref>" for a pass rate more than
-  # 2 points below the last point (`cargo xtask render-diff --dry-run` prints that issue locally). The ref in the title keeps a branch or tag run from appending to
-  # main's issue (and main's runs from reusing an issue a test run opened).
+  # on <ref>" for a failed or timed-out job, a flaky scaling test or a flaky link, "Nightly
+  # benchmark regression on <ref>" for a >10% regression, "Nightly render-diff regression on
+  # <ref>" for a pass rate more than 2 points below the last point (`cargo xtask render-diff
+  # --dry-run` prints that issue locally). The ref in the title keeps a branch or tag run from
+  # appending to main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
     needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, forced-failure]
-    # Never for a caller that passed `record: false` (the release lane fails on its own result).
+    # Never for a caller that passed `record: false` (the release lane fails on its own result),
+    # nor for a run someone cancelled. A job that hit its timeout-minutes ends `cancelled`, not
+    # `failure`, but fails the run all the same: 2026-11-02's Benchmarks job landed on a hung
+    # runner, timed out with no step run and blocked the release, and the issue named no job.
     if: >-
-      ${{ always() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
+      ${{ !cancelled() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
+      || contains(needs.*.result, 'cancelled')
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
       || needs.bench.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -595,7 +609,12 @@ jobs:
               gh issue create --title "$1" --label nightly --body-file "$2"
             fi
           }
-          failed=$(jq -r 'to_entries | map(select(.value.result == "failure") | .key) | join(", ")' <<< "$NEEDS")
+          jobs_with() { # result: the ids of the jobs that ended with it, comma-separated
+            jq -r --arg result "$1" 'to_entries | map(select(.value.result == $result) | .key) | join(", ")' <<< "$NEEDS"
+          }
+          failed=$(jobs_with failure)
+          # A timeout ends a job `cancelled`; so does a job cancelled on its own.
+          timed_out=$(jobs_with cancelled)
           # One section of the links report (`### <title>…` up to the next heading), at most 30 rows.
           links_section() { # title-prefix report
             table=$(sed -n "/^### $1/,/^### /p" "$2" | sed '1!{ /^### /d; }' | sed '/^$/d')
@@ -607,11 +626,19 @@ jobs:
               echo "… and $((rows - 30)) more (full report in the run's artefacts)."
             fi
           }
-          if [ -n "$failed" ] || [ "$FLAKY" = "true" ] || [ "$LINKS_FLAKY" = "true" ]; then
+          if [ -n "$failed$timed_out" ] || [ "$FLAKY" = "true" ] || [ "$LINKS_FLAKY" = "true" ]; then
             {
-              echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) failed. It blocks the next release (ADR 0018 §2)."
+              # A flaky result passed on its retry: it doesn't fail the run, so it doesn't block
+              # the release, but it is still reported (ADR 0018 §4).
+              if [ -n "$failed$timed_out" ]; then
+                echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) failed. It blocks the next release (ADR 0018 §2)."
+              else
+                echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) passed, with the flaky results below. They don't block the release. Fix them; for a link whose host refuses bots, add the host to \`.config/link-check.toml\` (ADR 0018 §4)."
+              fi
               echo
               [ -n "$failed" ] && echo "Failed jobs: **$failed**."
+              # A job that ran no step landed on a hung runner, so a re-run usually passes.
+              [ -n "$timed_out" ] && echo "Timed out or cancelled: **$timed_out**. If the job's log shows no step, it landed on a hung runner: re-run it with \`gh run rerun $GITHUB_RUN_ID --failed\` and report the runner to its owner."
               [ "$FLAKY" = "true" ] && echo "The scaling tests failed once and passed on retry: **flaky** (ADR 0018 §4)."
               [ "$LINKS_FLAKY" = "true" ] && echo "Some external links failed once and passed on retry: **flaky** (ADR 0018 §4)."
               report=artefacts/differential-report/report.json
