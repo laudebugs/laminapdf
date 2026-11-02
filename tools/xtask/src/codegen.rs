@@ -14,6 +14,8 @@
 //!   the codes the TS layer raises itself;
 //! - `packages/sdk/src/generated/explain.ts`: every page's text, for the `@laminapdf/sdk/explain`
 //!   subpath only;
+//! - `packages/render/src/generated/codes.ts`: the render backends' codes, kinds and docs URL
+//!   ([`render`]);
 //! - the JSON Schema `laminapdf.error/1` of the ADR 0026 §1 object, in `packages/sdk/schemas/` and
 //!   `crates/laminapdf/schemas/`;
 //! - the code tables of `docs/errors/README.md` (below its marker line), which `--md` prints.
@@ -30,6 +32,8 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
 use crate::workspace::Workspace;
+
+mod render;
 
 use laminapdf_test_fixtures::code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS, is_warning_group};
 
@@ -170,6 +174,7 @@ fn render_all(root: &Path) -> Result<Vec<(String, String)>> {
         (RUST_EXPLAIN.to_owned(), render_rust_explain(&pages)),
         (TS.to_owned(), render_ts(&codes)),
         (TS_EXPLAIN.to_owned(), render_ts_explain(&pages)),
+        (render::TS.to_owned(), render::render_ts(&codes)?),
         (ERRORS_README.to_owned(), render_readme(&readme, &codes)?),
     ];
     out.extend(SCHEMAS.iter().map(|path| ((*path).to_owned(), schema.clone())));

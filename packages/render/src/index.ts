@@ -2,6 +2,7 @@
 // (@laminapdf/render-pdfium, @laminapdf/render-hayro), the tile planner they share, and RenderError.
 // It mirrors laminapdf-render's Rust trait: bounded tiles of a page at a scale, straight-alpha RGBA8
 // rows of width × 4 bytes, validated once by planTile so both adapters agree on sizes.
+import { DOCS_URL, KINDS, type RenderErrorCode, type RenderErrorKind } from "./generated/codes.js";
 
 /**
  * The bytes of a document, read synchronously (PDFium's file access can't await). A read
@@ -157,43 +158,10 @@ export interface RenderBackend {
   open(source: RenderSource, options?: RenderOpenOptions): RenderDocument;
 }
 
-/**
- * The codes a render backend throws (ADR 0026). They are defined in `fixtures/codes.json`
- * (`renderErrors` and the groups whose codes it reuses); test/codes.test.ts checks this union
- * and its kinds against that file, so a drift fails the tests.
- */
-export type RenderErrorCode =
-  | "render-too-large"
-  | "render-failed"
-  | "render-backend-unavailable"
-  | "invalid-argument"
-  | "page-index-out-of-range"
-  | "password-required"
-  | "wrong-password"
-  | "data-pending"
-  | "source"
-  | "cancelled"
-  | "disposed";
-
-/** What kind of failure a render code is (the ADR 0026 kinds its codes use). */
-export type RenderErrorKind = "limit" | "input" | "io" | "usage" | "security" | "state" | "cancelled";
+export type { RenderErrorCode, RenderErrorKind } from "./generated/codes.js";
 
 /** A byte range of the input: its first byte and its length. */
 export type ByteRange = readonly [offset: number, length: number];
-
-const KINDS: Record<RenderErrorCode, RenderErrorKind> = {
-  "render-too-large": "limit",
-  "render-failed": "input",
-  "render-backend-unavailable": "io",
-  "invalid-argument": "usage",
-  "page-index-out-of-range": "usage",
-  "password-required": "security",
-  "wrong-password": "security",
-  "data-pending": "state",
-  source: "io",
-  cancelled: "cancelled",
-  disposed: "state",
-};
 
 /** A render backend's error, in the ADR 0026 contract. Messages carry no document text. */
 export class RenderError extends Error {
@@ -226,13 +194,6 @@ export class RenderError extends Error {
     };
   }
 }
-
-/**
- * Where each code's page is (ADR 0026 §6), as `fixtures/codes.json`'s `docsUrl` says;
- * test/codes.test.ts checks that `toDiagnostic()`'s URLs agree. Hand-copied, like KINDS, until
- * this package's code tables are generated.
- */
-const DOCS_URL = { base: "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/", suffix: ".md" } as const;
 
 /** A RenderError as the ADR 0026 §1 object (see {@link RenderError.toDiagnostic}). */
 export interface RenderDiagnostic {
