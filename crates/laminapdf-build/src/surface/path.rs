@@ -19,10 +19,7 @@ pub enum FillRule {
 
 impl FillRule {
     /// Every fill rule, in declaration order.
-    pub const ALL: [Self; 2] = [
-        Self::NonZero,
-        Self::EvenOdd,
-    ];
+    pub const ALL: [Self; 2] = [Self::NonZero, Self::EvenOdd];
 }
 
 /// One path segment, in page space.
@@ -276,6 +273,17 @@ impl Matrix {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
+    /// place in `ALL`.
+    #[test]
+    fn all_should_list_every_fill_rule_once_in_declaration_order() {
+        let index = |v: FillRule| match v {
+            FillRule::NonZero => 0,
+            FillRule::EvenOdd => 1,
+        };
+        assert_eq!(FillRule::ALL.map(index), [0, 1]);
+    }
 
     fn pt(x: f64, y: f64) -> PointPt {
         PointPt::from_points(x, y)

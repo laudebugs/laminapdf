@@ -1,12 +1,13 @@
 //! `packages/render/src/generated/codes.ts`: the codes `@laminapdf/render`'s backends throw,
-//! their kinds and the docs URL of ADR 0026 §6, from `fixtures/codes.json` (Q2l). The package
-//! keeps no copy of these tables.
+//! their kinds and the docs URL of ADR 0026 §6, from `fixtures/codes.json` and the codes
+//! laminapdf-render's `RenderError::error_code` returns (Q2l). The package keeps no copy of these
+//! tables.
 
 use std::fmt::Write as _;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 
-use super::{Codes, quoted, ts_union};
+use super::{Codes, quoted, ts_union, variant};
 
 /// The output.
 pub(super) const TS: &str = "packages/render/src/generated/codes.ts";
@@ -14,30 +15,67 @@ pub(super) const TS: &str = "packages/render/src/generated/codes.ts";
 /// The group whose codes are the render backends' own.
 const GROUP: &str = "renderErrors";
 
-/// Codes of other groups a render backend throws too, in the order the union lists them after
-/// [`GROUP`]'s: laminapdf-render's `RenderError` reuses them, and the web adapters throw the same.
-const REUSED: [&str; 8] = [
-    "invalid-argument",
-    "page-index-out-of-range",
-    "password-required",
-    "wrong-password",
-    "data-pending",
-    "source",
-    "cancelled",
-    "disposed",
-];
+/// The Rust source whose `RenderError::error_code` names every code laminapdf-render throws.
+pub(super) const RUST_ERRORS: &str = "crates/laminapdf-render/src/error.rs";
 
-/// The TS module: `RenderErrorCode`, `RenderErrorKind`, `KINDS` and `DOCS_URL`.
-pub(super) fn render_ts(codes: &Codes) -> Result<String> {
+/// Codes only the web adapters throw (a closed `RenderDocument`; in Rust, dropping closes).
+const WEB_ONLY: [&str; 1] = ["disposed"];
+
+/// The `ErrorCode::X` variants `RenderError::error_code` returns, in order, each once.
+fn rust_codes(source: &str) -> Result<Vec<&str>> {
+    let start = source
+        .find("pub const fn error_code(&self) -> ErrorCode {")
+        .with_context(|| format!("{RUST_ERRORS}: no RenderError::error_code"))?;
+    let mut variants = Vec::new();
+    for line in source[start..].lines().skip(1).take_while(|l| l.trim() != "}") {
+        if line.trim_start().starts_with("//") {
+            continue;
+        }
+        for (at, _) in line.match_indices("ErrorCode::") {
+            let rest = &line[at + "ErrorCode::".len()..];
+            let variant = rest
+                .split(|c: char| !c.is_ascii_alphanumeric())
+                .next()
+                .unwrap_or_default();
+            if !variant.is_empty() && !variants.contains(&variant) {
+                variants.push(variant);
+            }
+        }
+    }
+    if variants.is_empty() {
+        bail!("{RUST_ERRORS}: RenderError::error_code names no ErrorCode");
+    }
+    Ok(variants)
+}
+
+/// The TS module: `RenderErrorCode`, `RenderErrorKind`, `KINDS` and `DOCS_URL`. The codes are
+/// [`GROUP`]'s, then the other codes `rust_errors` (laminapdf-render's `error.rs`) maps a
+/// variant to, then [`WEB_ONLY`].
+pub(super) fn render_ts(codes: &Codes, rust_errors: &str) -> Result<String> {
     let mut rows: Vec<(&str, &str)> = codes
         .entries
         .iter()
         .filter(|e| e.group == GROUP)
         .map(|e| (e.code.as_str(), e.kind.as_str()))
         .collect();
-    for code in REUSED {
+    let reused = rust_codes(rust_errors)?
+        .into_iter()
+        .map(|v| {
+            codes
+                .entries
+                .iter()
+                .find(|e| variant(&e.code) == v)
+                .with_context(|| format!("{RUST_ERRORS}: ErrorCode::{v} is no code of fixtures/codes.json"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    for e in reused {
+        if !rows.iter().any(|(c, _)| *c == e.code) {
+            rows.push((e.code.as_str(), e.kind.as_str()));
+        }
+    }
+    for code in WEB_ONLY {
         let Some(e) = codes.entries.iter().find(|e| e.code == code) else {
-            bail!("{code}: a render backend throws it, but fixtures/codes.json has no such code");
+            bail!("{code}: the web adapters throw it, but fixtures/codes.json has no such code");
         };
         rows.push((code, e.kind.as_str()));
     }

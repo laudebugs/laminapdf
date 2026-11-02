@@ -33,6 +33,7 @@ use serde_json::{Value, json};
 
 use crate::workspace::Workspace;
 
+pub(crate) mod boundary;
 mod render;
 
 use laminapdf_test_fixtures::code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS, is_warning_group};
@@ -120,6 +121,12 @@ struct Codes {
 /// `cargo xtask gen codes [--check]`.
 pub(crate) fn codes(ws: &Workspace, check: bool) -> Result<()> {
     let outputs = render_all(&ws.root)?;
+    write_outputs(ws, &outputs, check, "gen codes", CODES)
+}
+
+/// Writes each stale output, or with `check` fails naming them: what both generators do once
+/// they have rendered their files in memory from `source`.
+fn write_outputs(ws: &Workspace, outputs: &[(String, String)], check: bool, command: &str, source: &str) -> Result<()> {
     let stale: Vec<&str> = outputs
         .iter()
         .filter(|(path, text)| fs::read_to_string(ws.root.join(path)).ok().as_deref() != Some(text.as_str()))
@@ -128,14 +135,16 @@ pub(crate) fn codes(ws: &Workspace, check: bool) -> Result<()> {
     if check {
         if !stale.is_empty() {
             bail!(
-                "generated from {CODES} and stale: {}\nrun `cargo xtask gen codes`",
+                "generated from {source} and stale: {}\nrun `cargo xtask {command}`",
                 stale.join(", ")
             );
         }
-        crate::step("gen codes --check: every file generated from fixtures/codes.json is up to date");
+        crate::step(&format!(
+            "{command} --check: every file generated from {source} is up to date"
+        ));
         return Ok(());
     }
-    for (path, text) in &outputs {
+    for (path, text) in outputs {
         if stale.contains(&path.as_str()) {
             let full = ws.root.join(path);
             if let Some(dir) = full.parent() {
@@ -146,7 +155,7 @@ pub(crate) fn codes(ws: &Workspace, check: bool) -> Result<()> {
         }
     }
     if stale.is_empty() {
-        println!("every file generated from {CODES} is up to date");
+        println!("every file generated from {source} is up to date");
     }
     Ok(())
 }
@@ -174,11 +183,18 @@ fn render_all(root: &Path) -> Result<Vec<(String, String)>> {
         (RUST_EXPLAIN.to_owned(), render_rust_explain(&pages)),
         (TS.to_owned(), render_ts(&codes)),
         (TS_EXPLAIN.to_owned(), render_ts_explain(&pages)),
-        (render::TS.to_owned(), render::render_ts(&codes)?),
+        (
+            render::TS.to_owned(),
+            render::render_ts(&codes, &read_text(root, render::RUST_ERRORS)?)?,
+        ),
         (ERRORS_README.to_owned(), render_readme(&readme, &codes)?),
     ];
     out.extend(SCHEMAS.iter().map(|path| ((*path).to_owned(), schema.clone())));
     Ok(out)
+}
+
+fn read_text(root: &Path, path: &str) -> Result<String> {
+    fs::read_to_string(root.join(path)).with_context(|| format!("reading {path}"))
 }
 
 /// Reads `codes.json`, validates it against its schema and checks what a schema can't say:

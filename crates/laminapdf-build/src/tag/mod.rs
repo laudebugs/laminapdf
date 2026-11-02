@@ -158,11 +158,7 @@ pub enum TableScope {
 
 impl TableScope {
     /// Every table scope, in declaration order.
-    pub const ALL: [Self; 3] = [
-        Self::Row,
-        Self::Column,
-        Self::Both,
-    ];
+    pub const ALL: [Self; 3] = [Self::Row, Self::Column, Self::Both];
 
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
@@ -391,6 +387,57 @@ pub enum TagDiagnostic {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
+    /// place in `ALL`.
+    #[test]
+    fn all_should_list_every_table_scope_once_in_declaration_order() {
+        let index = |v: TableScope| match v {
+            TableScope::Row => 0,
+            TableScope::Column => 1,
+            TableScope::Both => 2,
+        };
+        assert_eq!(TableScope::ALL.map(index), [0, 1, 2]);
+    }
+
+    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
+    /// place in `ALL`.
+    #[test]
+    fn all_should_list_every_tag_kind_once_in_declaration_order() {
+        let index = |v: TagKind| match v {
+            TagKind::Document => 0,
+            TagKind::Part => 1,
+            TagKind::Sect => 2,
+            TagKind::H1 => 3,
+            TagKind::H2 => 4,
+            TagKind::H3 => 5,
+            TagKind::H4 => 6,
+            TagKind::H5 => 7,
+            TagKind::H6 => 8,
+            TagKind::P => 9,
+            TagKind::L => 10,
+            TagKind::LI => 11,
+            TagKind::Lbl => 12,
+            TagKind::LBody => 13,
+            TagKind::Table => 14,
+            TagKind::TR => 15,
+            TagKind::TH => 16,
+            TagKind::TD => 17,
+            TagKind::Figure => 18,
+            TagKind::Caption => 19,
+            TagKind::Link => 20,
+            TagKind::Span => 21,
+            TagKind::Quote => 22,
+            TagKind::Note => 23,
+            TagKind::Code => 24,
+        };
+        assert_eq!(
+            TagKind::ALL.map(index),
+            [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+            ]
+        );
+    }
 
     #[test]
     fn every_kind_is_found_by_its_name() {

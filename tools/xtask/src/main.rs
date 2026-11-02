@@ -3,7 +3,6 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
-mod boundary;
 mod capabilities;
 mod changes;
 mod codegen;
@@ -280,8 +279,8 @@ fn main() -> Result<()> {
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
         ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
         ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
-        ("gen", [what]) if what == "boundary" => boundary::generate(&ws, false),
-        ("gen", [what, flag]) if what == "boundary" && flag == "--check" => boundary::generate(&ws, true),
+        ("gen", [what]) if what == "boundary" => codegen::boundary::generate(&ws, false),
+        ("gen", [what, flag]) if what == "boundary" && flag == "--check" => codegen::boundary::generate(&ws, true),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => {
@@ -407,7 +406,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
     codegen::codes(ws, true)?;
-    boundary::generate(ws, true)?;
+    codegen::boundary::generate(ws, true)?;
     version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())

@@ -21,12 +21,7 @@ pub enum ArtifactKind {
 
 impl ArtifactKind {
     /// Every artifact kind, in declaration order.
-    pub const ALL: [Self; 4] = [
-        Self::Layout,
-        Self::Page,
-        Self::Pagination,
-        Self::Background,
-    ];
+    pub const ALL: [Self; 4] = [Self::Layout, Self::Page, Self::Pagination, Self::Background];
 
     /// The kind named `name` (`"Layout"`, `"Page"`, `"Pagination"`, `"Background"`).
     #[must_use]
@@ -58,5 +53,23 @@ pub(crate) fn begin(content: &mut Content, kind: ArtifactKind, page_box: [f32; 4
     if kind == ArtifactKind::Background {
         let [x0, y0, x1, y1] = page_box;
         artifact.bounding_box(Rect::new(x0, y0, x1, y1));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
+    /// place in `ALL`.
+    #[test]
+    fn all_should_list_every_artifact_kind_once_in_declaration_order() {
+        let index = |v: ArtifactKind| match v {
+            ArtifactKind::Layout => 0,
+            ArtifactKind::Page => 1,
+            ArtifactKind::Pagination => 2,
+            ArtifactKind::Background => 3,
+        };
+        assert_eq!(ArtifactKind::ALL.map(index), [0, 1, 2, 3]);
     }
 }
