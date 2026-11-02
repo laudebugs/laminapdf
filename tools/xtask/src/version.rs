@@ -57,8 +57,9 @@ const CHANGELOG_HEADER: &str = "# Changelog\n\n\
 writes (`pnpm changeset version`); edit the changesets, not this file. -->\n\n\
 Lamina PDF is versioned in lockstep (ADR 0017): every crate and every npm package (`@laminapdf/wasm`, \
 `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro`, `@laminapdf/render-pdfium`, \
-`@laminapdf/viewer`) share one version, so these entries cover all of them. Versions from 0.2.0-alpha.1 on are \
-published to crates.io and npm; earlier ones were only tagged.\n";
+`@laminapdf/viewer`) share one version, so these entries cover all of them. Versions from 0.2.0-alpha.2 on are \
+published to crates.io and npm; earlier ones were only tagged (0.2.0-alpha.1's release run failed its checks, \
+so nothing was published from it).\n";
 
 /// What `cargo xtask version …` was asked to do.
 #[derive(Debug, PartialEq, Eq)]

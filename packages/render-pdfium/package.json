@@ -1,6 +1,6 @@
 {
   "name": "@laminapdf/render-pdfium",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "ADR 0004's default web renderer: the pinned PDFium-WASM build (@embedpdf/pdfium 2.15.1, SHA-256 checked) behind @laminapdf/render's RenderBackend interface, for the document worker.",
   "license": "MIT OR Apache-2.0",
   "homepage": "https://laminapdf.com",

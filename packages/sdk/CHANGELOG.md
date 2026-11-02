@@ -1,5 +1,18 @@
 # @laminapdf/sdk
 
+## 0.2.0-alpha.2
+
+### Minor Changes
+
+- 2107764: `Document::save` no longer takes a `CancelToken`. To stop a save from another thread, call `save_with(&options, &cancel)` instead. In TypeScript, `save()`, `saveWithReport()` and `SaveJob.step()` now return `Uint8Array<ArrayBuffer>`, which `Response` and `Blob` accept without a cast. Smaller additions: `RectPt::from_points(x, y, width, height)`, `SetInfo::patch(patch)` for an edit that records no `/ModDate`, and `new()` on `BuildOptions`, `OpenOptions`, `PngOptions`, `RetryOptions` and `TextBoxOptions`. You can now ignore the run that `Surface::text` returns: the text is drawn either way.
+
+### Patch Changes
+
+- 32a4963: The WASM module's `beginTag` and `beginArtifact` now take a structure type, table scope and artifact kind by name instead of by index, which breaks code that calls the module directly; `@laminapdf/sdk` already calls them that way. `@laminapdf/sdk` also exports the `LineCap`, `LineJoin` and `TableScope` types that `StrokeStyle` and `TagSpec` use, and `laminapdf-build`'s `FillRule`, `LineCap`, `LineJoin`, `BlendMode`, `ArtifactKind` and `TableScope` gain an `ALL` list of their variants.
+- a59a32a: Text copied from a standard 14 font no longer loses half of its last character when that text runs past 256 UTF-16 units and ends with a character outside the BMP, such as an emoji. Symbol and ZapfDingbats now write a `/CapHeight`, as every other font does, and `laminapdf-syntax` adds `Object::number` and `Object::rounded`.
+- Updated dependencies [32a4963]
+  - @laminapdf/wasm@0.2.0-alpha.2
+
 ## 0.2.0-alpha.1
 
 ### Minor Changes

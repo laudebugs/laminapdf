@@ -1,5 +1,13 @@
 # @laminapdf/render-hayro
 
+## 0.2.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [32a4963]
+  - @laminapdf/wasm@0.2.0-alpha.2
+  - @laminapdf/render@0.2.0-alpha.2
+
 ## 0.2.0-alpha.1
 
 ### Minor Changes

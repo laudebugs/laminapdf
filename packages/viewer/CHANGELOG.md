@@ -1,5 +1,17 @@
 # @laminapdf/viewer
 
+## 0.2.0-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [32a4963]
+- Updated dependencies [2107764]
+- Updated dependencies [a59a32a]
+  - @laminapdf/sdk@0.2.0-alpha.2
+  - @laminapdf/render-hayro@0.2.0-alpha.2
+  - @laminapdf/render@0.2.0-alpha.2
+  - @laminapdf/render-pdfium@0.2.0-alpha.2
+
 ## 0.2.0-alpha.1
 
 ### Minor Changes
