@@ -7,16 +7,12 @@
 pub(crate) mod subset;
 
 pub(crate) use subset::milli;
-mod tounicode;
 mod type0;
 
 use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use laminapdf_cos::{CosMut, Document, ObjRef};
-
-pub(crate) use subset::round_i64;
-pub(crate) use type0::real;
 
 use crate::error::{Error, Result, Warning};
 use crate::font::{Font, GlyphId};

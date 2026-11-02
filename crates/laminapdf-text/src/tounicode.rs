@@ -1,16 +1,20 @@
-//! The ToUnicode CMap (ISO 32000-2 §9.10.3; Adobe TN #5411, TN #5014; research 03 §5.2).
+//! The ToUnicode CMap of every font Lamina PDF writes (ISO 32000-2 §9.10.3; Adobe TN #5411,
+//! TN #5014; research 03 §5.2): two-byte codes for Type 0 fonts (Identity-H), one-byte codes
+//! for simple fonts.
 //!
-//! Codes are two bytes (Identity-H). Runs of consecutive codes whose texts are single
-//! consecutive UTF-16 code units become `bfrange` entries, everything else `bfchar` entries.
-//! Each `begin…end` block holds at most 100 entries, a range never crosses a first-byte
-//! boundary of the source codes, and the last destination byte never passes 0xFF.
-//! Destinations are UTF-16BE, with surrogate pairs outside the BMP.
+//! Two-byte maps turn runs of consecutive codes whose texts are single consecutive UTF-16
+//! code units into `bfrange` entries, everything else into `bfchar` entries; a range never
+//! crosses a first-byte boundary of the source codes, and the last destination byte never
+//! passes 0xFF. One-byte maps hold at most 256 codes and use `bfchar` entries only, so a
+//! standard 14 font's map lists each character. Each `begin…end` block holds at most 100
+//! entries. Destinations are UTF-16BE, with surrogate pairs outside the BMP, capped at 512
+//! bytes without splitting a pair; an empty text is `<code> <>` (the code stands for no
+//! text, such as the second glyph of a cluster whose first carries the text, B4b).
 
-use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 /// The most entries a `beginbfchar` or `beginbfrange` block may hold (TN #5411 §1.4.1).
-pub(crate) const MAX_BLOCK: usize = 100;
+const MAX_BLOCK: usize = 100;
 
 /// The longest destination string, in UTF-16 code units (512 bytes, §9.10.3).
 const MAX_DEST_UNITS: usize = 256;
@@ -21,14 +25,40 @@ begincmap\n\
 /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n\
 /CMapName /Adobe-Identity-UCS def\n\
 /CMapType 2 def\n\
-1 begincodespacerange\n\
-<0000> <FFFF>\n\
-endcodespacerange\n";
+1 begincodespacerange\n";
+
+const CODESPACE_END: &str = "endcodespacerange\n";
 
 const FOOTER: &str = "endcmap\n\
 CMapName currentdict /CMap defineresource pop\n\
 end\n\
 end\n";
+
+/// How long the font's codes are.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Codespace {
+    /// One byte, `<00>` to `<FF>`: simple fonts.
+    OneByte,
+    /// Two bytes, `<0000>` to `<FFFF>`: Type 0 fonts with Identity-H.
+    TwoByte,
+}
+
+impl Codespace {
+    /// `code` in hex, as wide as the codespace.
+    fn hex(self, code: u16) -> String {
+        match self {
+            Self::OneByte => format!("{code:02X}"),
+            Self::TwoByte => format!("{code:04X}"),
+        }
+    }
+
+    fn range(self) -> &'static str {
+        match self {
+            Self::OneByte => "<00> <FF>\n",
+            Self::TwoByte => "<0000> <FFFF>\n",
+        }
+    }
+}
 
 /// One `bfrange` entry: `lo..=hi` map to `first`, `first + 1`, … (one UTF-16 unit each).
 #[derive(Debug, PartialEq, Eq)]
@@ -38,9 +68,9 @@ struct Range {
     first: u16,
 }
 
-/// Writes the CMap for `map` (code → text). An empty text becomes `<code> <>`: the code stands
-/// for no text (the second glyph of a cluster whose first carries the text, B4b).
-pub(crate) fn to_unicode_cmap(map: &BTreeMap<u16, String>) -> Vec<u8> {
+/// Writes the CMap for `entries` (code → text, in increasing code order; a one-byte map's
+/// codes are at most 0xFF).
+pub(crate) fn to_unicode_cmap<'a>(codespace: Codespace, entries: impl IntoIterator<Item = (u16, &'a str)>) -> Vec<u8> {
     let mut chars: Vec<(u16, Vec<u16>)> = Vec::new();
     let mut ranges: Vec<Range> = Vec::new();
     // The open run of single-unit destinations, as (first code, first unit, length).
@@ -58,9 +88,16 @@ pub(crate) fn to_unicode_cmap(map: &BTreeMap<u16, String>) -> Vec<u8> {
             }
         }
     };
-    for (&code, text) in map {
+    for (code, text) in entries {
         let units = utf16_capped(text);
-        let [unit] = *units.as_slice() else {
+        let single = match codespace {
+            Codespace::OneByte => None,
+            Codespace::TwoByte => match *units.as_slice() {
+                [unit] => Some(unit),
+                _ => None,
+            },
+        };
+        let Some(unit) = single else {
             close(run.take(), &mut chars, &mut ranges);
             chars.push((code, units));
             continue;
@@ -76,10 +113,12 @@ pub(crate) fn to_unicode_cmap(map: &BTreeMap<u16, String>) -> Vec<u8> {
     close(run, &mut chars, &mut ranges);
 
     let mut out = String::from(HEADER);
+    out.push_str(codespace.range());
+    out.push_str(CODESPACE_END);
     for block in chars.chunks(MAX_BLOCK) {
         let _ = writeln!(out, "{} beginbfchar", block.len());
-        for (code, units) in block {
-            let _ = writeln!(out, "<{code:04X}> <{}>", hex(units));
+        for &(code, ref units) in block {
+            let _ = writeln!(out, "<{}> <{}>", codespace.hex(code), hex(units));
         }
         out.push_str("endbfchar\n");
     }
@@ -135,16 +174,23 @@ fn hex(units: &[u16]) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
 
-    fn cmap(entries: &[(u16, &str)]) -> String {
-        let map = entries.iter().map(|&(c, t)| (c, t.to_owned())).collect();
-        String::from_utf8(to_unicode_cmap(&map)).unwrap()
+    fn cmap_in(codespace: Codespace, entries: &[(u16, &str)]) -> String {
+        String::from_utf8(to_unicode_cmap(codespace, entries.iter().copied())).unwrap()
     }
 
+    /// The two-byte CMap's entries, without the header and footer.
     fn body(entries: &[(u16, &str)]) -> String {
-        let full = cmap(entries);
-        full.strip_prefix(HEADER)
+        body_in(Codespace::TwoByte, entries)
+    }
+
+    fn body_in(codespace: Codespace, entries: &[(u16, &str)]) -> String {
+        let full = cmap_in(codespace, entries);
+        let prefix = format!("{HEADER}{}{CODESPACE_END}", codespace.range());
+        full.strip_prefix(&prefix)
             .unwrap()
             .strip_suffix(FOOTER)
             .unwrap()
@@ -202,8 +248,12 @@ mod tests {
     fn blocks_hold_at_most_100_entries() {
         // Every other code, so none form a range: 250 bfchar entries in 3 blocks.
         let entries: Vec<(u16, String)> = (0..250u16).map(|i| (i * 2, "x".to_owned())).collect();
-        let map = entries.into_iter().collect();
-        let text = String::from_utf8(to_unicode_cmap(&map)).unwrap();
+        let map: BTreeMap<u16, String> = entries.into_iter().collect();
+        let text = String::from_utf8(to_unicode_cmap(
+            Codespace::TwoByte,
+            map.iter().map(|(&c, t)| (c, t.as_str())),
+        ))
+        .unwrap();
         let counts: Vec<&str> = text
             .lines()
             .filter(|l| l.ends_with("beginbfchar"))
@@ -219,11 +269,48 @@ mod tests {
             .flat_map(|i| [(i * 3, "a".to_owned()), (i * 3 + 1, "b".to_owned())])
             .filter(|(c, _)| c >> 8 == (c | 1) >> 8)
             .collect::<BTreeMap<_, _>>();
-        let text = String::from_utf8(to_unicode_cmap(&map)).unwrap();
+        let text = String::from_utf8(to_unicode_cmap(
+            Codespace::TwoByte,
+            map.iter().map(|(&c, t)| (c, t.as_str())),
+        ))
+        .unwrap();
         assert!(
             text.lines()
                 .filter(|l| l.ends_with("beginbfrange") || l.ends_with("beginbfchar"))
                 .all(|l| l.split(' ').next().unwrap().parse::<usize>().unwrap() <= MAX_BLOCK)
+        );
+    }
+
+    #[test]
+    fn one_byte_codes_are_bfchar_entries_only() {
+        assert_eq!(
+            body_in(Codespace::OneByte, &[(0x41, "A"), (0x42, "B"), (0x81, "\u{1F600}")]),
+            "3 beginbfchar\n<41> <0041>\n<42> <0042>\n<81> <D83DDE00>\nendbfchar\n"
+        );
+    }
+
+    #[test]
+    fn a_full_one_byte_map_is_split_into_blocks_of_100() {
+        let entries: Vec<(u16, &str)> = (0..=0xFF).map(|c| (c, "x")).collect();
+        let cmap = cmap_in(Codespace::OneByte, &entries);
+        let blocks: Vec<&str> = cmap.lines().filter(|l| l.ends_with("beginbfchar")).collect();
+        assert_eq!(blocks, ["100 beginbfchar", "100 beginbfchar", "56 beginbfchar"]);
+    }
+
+    #[test]
+    fn the_codespace_matches_the_code_length() {
+        let (one, two) = (cmap_in(Codespace::OneByte, &[]), cmap_in(Codespace::TwoByte, &[]));
+        assert!(
+            one.contains("begincodespacerange\n<00> <FF>\n") && two.contains("begincodespacerange\n<0000> <FFFF>\n")
+        );
+    }
+
+    #[test]
+    fn a_one_byte_map_keeps_a_surrogate_pair_whole_at_the_cap() {
+        let text = format!("{}\u{1F600}", "a".repeat(255));
+        assert_eq!(
+            body_in(Codespace::OneByte, &[(0x41, &text)]),
+            format!("1 beginbfchar\n<41> <{}>\nendbfchar\n", "0061".repeat(255))
         );
     }
 

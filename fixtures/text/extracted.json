@@ -77,7 +77,7 @@
       ]
     },
     "text-std14.pdf": {
-      "sha256": "2c690120e09bf0d2c0e139efab093eed5e786d4ea34fbf5d86a307070f92006d",
+      "sha256": "6930a49875073b61383476c515085ec93a822095acc30946fd6701573166657f",
       "pypdf": [
         "Courier: Hello, world! 0123456789",
         "Courier-Bold: {braces} [brackets] <angles>",

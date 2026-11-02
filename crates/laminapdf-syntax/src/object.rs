@@ -244,6 +244,27 @@ pub enum Object {
 }
 
 impl Object {
+    /// `v` as a number: an integer when it is integral (`612`, not `612.0`), else a real.
+    #[must_use]
+    pub fn number(v: f64) -> Self {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "only integral values well inside i64 get here"
+        )]
+        if v.fract() == 0.0 && v.abs() < 1e15 {
+            Self::Integer(v as i64)
+        } else {
+            Self::Real(v)
+        }
+    }
+
+    /// `v` rounded to `decimals` decimal places, then written as [`Object::number`] writes it.
+    #[must_use]
+    pub fn rounded(v: f64, decimals: i32) -> Self {
+        let scale = 10f64.powi(decimals);
+        Self::number((v * scale).round() / scale)
+    }
+
     /// A name object.
     #[must_use]
     pub fn name(s: &str) -> Self {
@@ -448,6 +469,26 @@ mod tests {
 
     fn ser(o: &Object) -> String {
         String::from_utf8_lossy(&o.to_bytes()).into_owned()
+    }
+
+    #[test]
+    fn number_writes_integral_values_as_integers() {
+        assert_eq!(
+            (Object::number(612.0), Object::number(0.5), Object::number(-3.0)),
+            (Object::Integer(612), Object::Real(0.5), Object::Integer(-3))
+        );
+    }
+
+    #[test]
+    fn rounded_rounds_then_writes_a_whole_result_as_an_integer() {
+        assert_eq!(
+            (
+                Object::rounded(-12.004, 2),
+                Object::rounded(-12.345, 2),
+                Object::rounded(600.098, 3)
+            ),
+            (Object::Integer(-12), Object::Real(-12.35), Object::Real(600.098))
+        );
     }
 
     #[test]

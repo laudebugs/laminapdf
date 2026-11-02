@@ -6,8 +6,10 @@ use std::collections::BTreeMap;
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
 
 use super::subset::{Kind, Milli, Program, round_i64};
+use crate::descriptor::descriptor;
 use crate::error::Result;
 use crate::font::Font;
+use crate::tounicode::{Codespace, to_unicode_cmap};
 use crate::usage::FontUse;
 
 /// A run of at least this many consecutive CIDs with equal widths is written as
@@ -36,8 +38,6 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
         type0,
     } = *objects;
     let info = font.info();
-    let scale = 1000.0 / f64::from(info.units_per_em);
-    let units = |v: f32| Object::Integer(round_i64(f64::from(v) * scale));
     let base_font = Name::from(base_font);
 
     let mut file_dict = Dict::new();
@@ -59,24 +59,7 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
     };
     let file = cos.create(Object::Stream(Stream::flate(file_dict, program.data())))?;
 
-    let mut descriptor = Dict::new();
-    descriptor.insert("Type", Name::from("FontDescriptor"));
-    descriptor.insert("FontName", base_font.clone());
-    descriptor.insert("Flags", i64::from(info.flags));
-    // An instance's bbox comes from its instanced outlines (already in thousandths of an em):
-    // `head` is not varied.
-    let bbox: Vec<Object> = match program.bbox {
-        Some(b) => b.iter().map(|&v| Object::Integer(round_i64(f64::from(v)))).collect(),
-        None => info.bbox.iter().map(|&v| units(v)).collect(),
-    };
-    descriptor.insert("FontBBox", Object::Array(bbox));
-    descriptor.insert("ItalicAngle", real(f64::from(info.italic_angle)));
-    descriptor.insert("Ascent", units(info.ascent));
-    descriptor.insert("Descent", units(info.descent));
-    descriptor.insert("CapHeight", units(info.cap_height.unwrap_or(info.ascent)));
-    if let Some(x_height) = info.x_height {
-        descriptor.insert("XHeight", units(x_height));
-    }
+    let mut descriptor = descriptor(info, base_font.clone(), program.bbox);
     descriptor.insert("StemV", stem_v(info.weight));
     descriptor.insert(file_key, file);
     let descriptor = cos.create(Object::Dict(descriptor))?;
@@ -121,7 +104,7 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
     }
     let cid_font = cos.create(Object::Dict(cid_font))?;
 
-    let cmap = super::tounicode::to_unicode_cmap(usage.text());
+    let cmap = to_unicode_cmap(Codespace::TwoByte, usage.text().iter().map(|(&c, t)| (c, t.as_str())));
     let to_unicode = cos.create(Object::Stream(Stream::flate(Dict::new(), &cmap)))?;
 
     let mut dict = Dict::new();
@@ -193,25 +176,8 @@ fn flush(array: &mut Option<(u16, Vec<Object>)>, out: &mut Vec<Object>) {
 /// A width in thousandths as a PDF number: an integer when whole, else a real with three
 /// decimals.
 fn width_object(w: Milli) -> Object {
-    if w % 1000 == 0 {
-        Object::Integer(w / 1000)
-    } else {
-        #[expect(clippy::cast_precision_loss, reason = "widths are far below 2^52")]
-        let value = w as f64 / 1000.0;
-        Object::Real(value)
-    }
-}
-
-/// A real rounded to two decimals (an integer when whole).
-pub(crate) fn real(v: f64) -> Object {
-    let hundredths = round_i64(v * 100.0);
-    if hundredths % 100 == 0 {
-        Object::Integer(hundredths / 100)
-    } else {
-        #[expect(clippy::cast_precision_loss, reason = "small values")]
-        let value = hundredths as f64 / 100.0;
-        Object::Real(value)
-    }
+    #[expect(clippy::cast_precision_loss, reason = "widths are far below 2^52")]
+    Object::number(w as f64 / 1000.0)
 }
 
 /// `StemV` estimated from the weight class (fonts don't record stem widths in a table PDF
