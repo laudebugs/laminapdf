@@ -11,8 +11,7 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    Alignment, BuildOptions, Builder, CancelToken, Direction, PageSize, PointPt, Pt, RectPt, SaveOptions,
-    TextBoxOptions,
+    Alignment, BuildOptions, Builder, Direction, PageSize, PointPt, Pt, RectPt, SaveOptions, TextBoxOptions,
 };
 
 /// Each script's font, its line, its paragraph and the paragraph's direction.
@@ -81,5 +80,5 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     }
     page.finish()?;
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }

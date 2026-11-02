@@ -7,8 +7,8 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use laminapdf::{
-    AfRelationship, Attachment, BuildError, BuildOptions, Builder, CancelToken, Color, FontHandle, LinkTarget,
-    Metadata, PageSize, PointPt, Profile, Pt, SaveOptions, StrokeStyle, Surface,
+    AfRelationship, Attachment, BuildError, BuildOptions, Builder, Color, FontHandle, LinkTarget, Metadata, PageSize,
+    PointPt, Profile, Pt, SaveOptions, StrokeStyle, Surface,
 };
 
 const MARGIN: f64 = 56.0;
@@ -70,7 +70,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
         .with_description("Invoice 42 as XML");
     b.attach(xml);
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }
 
 fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {

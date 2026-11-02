@@ -36,14 +36,14 @@
 //!     .link(LinkTarget::Uri("https://example.com/pay/42".into()), None);
 //! page.finish()?;
 //! let mut doc = b.finish()?; // a Document, not bytes
-//! let bytes = doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes;
+//! let bytes = doc.save(&SaveOptions::new())?.bytes;
 //!
 //! // Later: open the bytes, edit with ops (undoable, serialisable), save incrementally.
 //! let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
 //! assert_eq!((doc.page_count()?, doc.page_info(0)?.width.round()), (1, 595.0));
 //! doc.apply(vec![Op::from(SetInfo::new(InfoPatch::new().subject(Some("Paid")), None))])?;
 //! let options = SaveOptions::new().with_mode(SaveMode::Incremental);
-//! let updated = doc.save(&options, &CancelToken::new())?;
+//! let updated = doc.save(&options)?;
 //! assert_eq!(doc.info()?.subject.as_deref(), Some("Paid"));
 //! assert!(updated.bytes.len() > updated.report.append_offset().unwrap_or(0) as usize);
 //! # }

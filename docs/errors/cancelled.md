@@ -20,7 +20,7 @@ Nothing: this is the outcome that was asked for. The job is finished, a cancelle
 ```rust
 let cancel = laminapdf::CancelToken::new();
 cancel.cancel();
-let err = doc.save(&laminapdf::SaveOptions::new(), &cancel).unwrap_err();
+let err = doc.save_with(&laminapdf::SaveOptions::new(), &cancel).unwrap_err();
 assert_eq!(err.code(), "cancelled");
 ```
 

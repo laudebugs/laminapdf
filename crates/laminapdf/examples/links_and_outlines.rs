@@ -10,8 +10,8 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    BuildOptions, Builder, CancelToken, Color, Fit, LabelStyle, LinkTarget, OutlineEntry, PageLabel, PageMode,
-    PageSize, PointPt, Pt, RectPt, SaveOptions, Standard14, ViewerPreferences,
+    BuildOptions, Builder, Color, Fit, LabelStyle, LinkTarget, OutlineEntry, PageLabel, PageMode, PageSize, PointPt,
+    Pt, RectPt, SaveOptions, Standard14, ViewerPreferences,
 };
 
 const TITLES: [&str; 4] = ["Title page", "Contents", "Chapter 1", "Chapter 2"];
@@ -71,5 +71,5 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     ])
     .viewer_preferences(ViewerPreferences::default().with_page_mode(PageMode::Outlines));
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }

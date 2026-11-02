@@ -11,8 +11,8 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    Alignment, ArtifactKind, BuildOptions, Builder, CancelToken, Color, FillRule, LinkTarget, Metadata, PageSize,
-    PointPt, Pt, RectPt, SaveOptions, Standard14, StrokeStyle, Surface, TagKind, TextBoxOptions,
+    Alignment, ArtifactKind, BuildOptions, Builder, Color, FillRule, LinkTarget, Metadata, PageSize, PointPt, Pt,
+    RectPt, SaveOptions, Standard14, StrokeStyle, Surface, TagKind, TextBoxOptions,
 };
 
 const ITEMS: [(&str, u32, f64); 4] = [
@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The document's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = builder()?.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }
 
 /// The invoice, drawn and not yet finished (its tests read the tagging diagnostics).

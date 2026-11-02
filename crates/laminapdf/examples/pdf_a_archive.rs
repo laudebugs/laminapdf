@@ -7,8 +7,8 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    ArtifactKind, BuildError, BuildOptions, Builder, CancelToken, Color, FillRule, FontHandle, Image, Metadata,
-    PageSize, PointPt, Profile, Pt, RectPt, SaveOptions, Surface, TagKind, TextBoxOptions,
+    ArtifactKind, BuildError, BuildOptions, Builder, Color, FillRule, FontHandle, Image, Metadata, PageSize, PointPt,
+    Profile, Pt, RectPt, SaveOptions, Surface, TagKind, TextBoxOptions,
 };
 
 const MARGIN: f64 = 56.0;
@@ -66,7 +66,7 @@ pub(crate) fn build(level: Level) -> Result<Vec<u8>, Box<dyn Error>> {
     draw(page.surface(), &font, &photo)?;
     page.finish()?;
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }
 
 fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildError> {

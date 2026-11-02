@@ -463,7 +463,7 @@ impl FfiDocument {
     /// # Errors
     /// `cancelled`, `requires-rewrite`, `would-invalidate-signatures`, `encrypted-base`, …
     pub fn save(&self, options: FfiSaveOptions, cancel: Arc<FfiCancelToken>) -> FfiResult<FfiSaved> {
-        Ok(saved(self.lock()?.save(&save_options(options), &cancel.token)?))
+        Ok(saved(self.lock()?.save_with(&save_options(options), &cancel.token)?))
     }
 
     /// A save as a resumable job (ADR 0028 §3): step it with a budget, cancel it from any
@@ -775,10 +775,7 @@ mod tests {
             ))])
             .map_err(FfiError::from)?;
         let expected = direct
-            .save(
-                &SaveOptions::new().with_mode(SaveMode::Incremental),
-                &CancelToken::new(),
-            )
+            .save(&SaveOptions::new().with_mode(SaveMode::Incremental))
             .map_err(FfiError::from)?;
         assert_eq!(out.bytes, expected.bytes);
         // The Kotlin and Swift tests assert the same hash (SCENARIO_SHA256 / scenarioSHA256).

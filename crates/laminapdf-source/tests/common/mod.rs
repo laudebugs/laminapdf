@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-use laminapdf::{CancelToken, Document, SaveMode, SaveOptions};
+use laminapdf::{Document, SaveMode, SaveOptions};
 use laminapdf_cos::{Dict, ObjRef, Object, Stream};
 use laminapdf_save::Writer;
 
@@ -126,7 +126,7 @@ pub fn facts(doc: &mut Document, step: &mut impl Step) -> Vec<String> {
         show(&step.run(&mut || doc.info())),
     ];
     let options = SaveOptions::new().with_mode(SaveMode::FullRewrite);
-    let saved = step.run(&mut || doc.save(&options, &CancelToken::new()).map(|s| s.bytes));
+    let saved = step.run(&mut || doc.save(&options).map(|s| s.bytes));
     out.push(show(&saved.map(|b| (b.len(), b))));
     out.push(show(&doc.warnings().next_batch(u32::MAX)));
     out

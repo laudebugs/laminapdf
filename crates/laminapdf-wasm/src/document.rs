@@ -217,7 +217,7 @@ impl WasmDocument {
         let out = self
             .doc
             .borrow_mut()
-            .save(&options.to_options(), &laminapdf::CancelToken::new())
+            .save(&options.to_options())
             .map_err(|e| lamina_error(&e))?;
         saved(&out)
     }

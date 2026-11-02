@@ -3,8 +3,8 @@
 use std::error::Error;
 
 use laminapdf::{
-    ArtifactKind, BuildError, BuildOptions, Builder, CancelToken, Color, FillRule, FontHandle, LinkTarget, Metadata,
-    PageSize, PointPt, Profile, Pt, RectPt, SaveOptions, Surface, TableScope, Tag, TagKind,
+    ArtifactKind, BuildError, BuildOptions, Builder, Color, FillRule, FontHandle, LinkTarget, Metadata, PageSize,
+    PointPt, Profile, Pt, RectPt, SaveOptions, Surface, TableScope, Tag, TagKind,
 };
 
 const MARGIN: f64 = 56.0;
@@ -39,7 +39,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let mut page = b.page(PageSize::A4);
     draw(page.surface(), &font)?;
     page.finish()?;
-    Ok(b.finish()?.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(b.finish()?.save(&SaveOptions::new())?.bytes)
 }
 
 /// One line of text with its baseline at `y`, as the structure element `tag`, sized by it.

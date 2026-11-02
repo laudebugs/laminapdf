@@ -84,7 +84,7 @@ mod save_job {
         let mut job = stepped.save_job(&options);
         let (by_steps, steps) = run(&mut job, &mut stepped, Budget::units(1));
         let mut whole = rotated();
-        let at_once = whole.save(&options, &CancelToken::new()).unwrap();
+        let at_once = whole.save(&options).unwrap();
         assert_eq!((by_steps.bytes == at_once.bytes, steps > 2), (true, true));
     }
 
@@ -117,7 +117,7 @@ mod save_job {
         let mut doc = rotated();
         let cancel = CancelToken::new();
         cancel.cancel();
-        let err = doc.save(&SaveOptions::new(), &cancel).unwrap_err();
+        let err = doc.save_with(&SaveOptions::new(), &cancel).unwrap_err();
         assert_eq!((err.code(), doc.has_unsaved_changes()), ("cancelled", true));
     }
 
@@ -185,7 +185,7 @@ mod save_job {
     fn a_save_moves_the_revision_so_an_older_job_is_stale() {
         let mut doc = rotated();
         let mut stale = doc.save_job(&SaveOptions::new());
-        doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap();
+        doc.save(&SaveOptions::new()).unwrap();
         assert_eq!(
             stale.step(&mut doc, Budget::UNLIMITED).unwrap_err(),
             Error::DocumentChanged
@@ -195,12 +195,7 @@ mod save_job {
     #[test]
     fn a_full_rewrite_rebases_onto_its_output() {
         let mut doc = rotated();
-        let saved = doc
-            .save(
-                &SaveOptions::new().with_mode(SaveMode::FullRewrite),
-                &CancelToken::new(),
-            )
-            .unwrap();
+        let saved = doc.save(&SaveOptions::new().with_mode(SaveMode::FullRewrite)).unwrap();
         let reopened = Document::open_bytes(saved.bytes, OpenOptions::default()).unwrap();
         assert_eq!(
             (doc.has_unsaved_changes(), reopened.page_info(0).unwrap().rotation),
@@ -212,12 +207,7 @@ mod save_job {
     fn an_incremental_save_appends_to_the_input() {
         let mut doc = hello();
         doc.apply(vec![set_title("Appended")]).unwrap();
-        let saved = doc
-            .save(
-                &SaveOptions::new().with_mode(SaveMode::Incremental),
-                &CancelToken::new(),
-            )
-            .unwrap();
+        let saved = doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental)).unwrap();
         assert!(saved.bytes.starts_with(&fixture("corpus/hello.pdf")));
     }
 }
@@ -414,7 +404,7 @@ mod state {
     fn a_built_document_has_unsaved_changes_until_saved() {
         let mut doc = built();
         let before = doc.has_unsaved_changes();
-        doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap();
+        doc.save(&SaveOptions::new()).unwrap();
         assert_eq!((before, doc.has_unsaved_changes()), (true, false));
     }
 

@@ -13,8 +13,8 @@
 use std::time::Instant;
 
 use laminapdf::{
-    Budget, BuildOptions, Builder, CancelToken, Document, OpenOptions, PageSize, Phase, PointPt, Pt, SaveMode,
-    SaveOptions, Standard14, Step,
+    Budget, BuildOptions, Builder, Document, OpenOptions, PageSize, Phase, PointPt, Pt, SaveMode, SaveOptions,
+    Standard14, Step,
 };
 
 /// A document of `pages` pages with a line of text each, saved and reopened.
@@ -36,10 +36,7 @@ fn large(pages: u32) -> Document {
     let bytes = b
         .finish()
         .unwrap()
-        .save(
-            &SaveOptions::new().with_mode(SaveMode::FullRewrite),
-            &CancelToken::new(),
-        )
+        .save(&SaveOptions::new().with_mode(SaveMode::FullRewrite))
         .unwrap()
         .bytes;
     Document::open_bytes(bytes, OpenOptions::default()).unwrap()

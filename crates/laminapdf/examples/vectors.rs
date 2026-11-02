@@ -10,8 +10,8 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    BlendMode, BuildOptions, Builder, CancelToken, Color, Dash, FillRule, Image, LineCap, Matrix, PageSize, PointPt,
-    Pt, RectPt, SaveOptions, StrokeStyle,
+    BlendMode, BuildOptions, Builder, Color, Dash, FillRule, Image, LineCap, Matrix, PageSize, PointPt, Pt, RectPt,
+    SaveOptions, StrokeStyle,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -91,5 +91,5 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
         .restore();
     page.finish()?;
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }

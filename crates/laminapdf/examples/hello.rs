@@ -7,7 +7,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use laminapdf::{BuildOptions, Builder, CancelToken, PageSize, PointPt, Pt, SaveOptions, Standard14};
+use laminapdf::{BuildOptions, Builder, PageSize, PointPt, Pt, SaveOptions, Standard14};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let out = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| "target/examples-out".into()));
@@ -35,5 +35,5 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     )?;
     page.finish()?;
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }

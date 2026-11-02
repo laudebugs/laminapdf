@@ -1456,7 +1456,7 @@ Save with a full rewrite instead.
 
 ```rust
 let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::default())?; // warns xref-repaired
-let err = doc.save(&SaveOptions::default().with_mode(SaveMode::Incremental), &CancelToken::new());
+let err = doc.save(&SaveOptions::default().with_mode(SaveMode::Incremental));
 // repaired-base; SaveMode::Auto (the default) writes a full rewrite instead
 ```
 
@@ -1484,8 +1484,8 @@ Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full 
 ## Example
 
 ```rust
-let err = doc.save(&SaveOptions::default(), &CancelToken::new()).unwrap_err(); // encrypted-base
-let saved = doc.save(&SaveOptions::default().with_remove_encryption(true), &CancelToken::new())?;
+let err = doc.save(&SaveOptions::default()).unwrap_err(); // encrypted-base
+let saved = doc.save(&SaveOptions::default().with_remove_encryption(true))?;
 ```
 
 ## Data fields
@@ -2000,7 +2000,7 @@ Retry `rebase` with the output the error carries (`saved.source()`; in the `lami
 ## Example
 
 ```rust
-match doc.save(&options, &cancel) {
+match doc.save_with(&options, &cancel) {
     Err(e) if e.code() == "not-rebased" => doc.rebase(e.saved_output().unwrap())?,
     other => { other?; }
 }
@@ -3536,7 +3536,7 @@ Nothing: this is the outcome that was asked for. The job is finished, a cancelle
 ```rust
 let cancel = laminapdf::CancelToken::new();
 cancel.cancel();
-let err = doc.save(&laminapdf::SaveOptions::new(), &cancel).unwrap_err();
+let err = doc.save_with(&laminapdf::SaveOptions::new(), &cancel).unwrap_err();
 assert_eq!(err.code(), "cancelled");
 ```
 

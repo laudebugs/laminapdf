@@ -33,8 +33,8 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use laminapdf::{
-    Alignment, BuildOptions, Builder, CancelToken, Color, Metadata, PageSize, PointPt, Pt, RectPt, SaveOptions,
-    Standard14, StrokeStyle, TextBoxOptions,
+    Alignment, BuildOptions, Builder, Color, Metadata, PageSize, PointPt, Pt, RectPt, SaveOptions, Standard14,
+    StrokeStyle, TextBoxOptions,
 };
 use sha2::{Digest, Sha256};
 
@@ -165,7 +165,7 @@ fn report() -> Vec<u8> {
     )
     .lang("en-GB");
     let mut doc = b.finish().unwrap();
-    doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap().bytes
+    doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
 const SENTENCES: &str = "The quarter closed with steady growth across every region we track. Shipments rose in \
@@ -197,7 +197,7 @@ fn text_boxes() -> Vec<u8> {
         page.finish().unwrap();
     }
     let mut doc = b.finish().unwrap();
-    doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap().bytes
+    doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
 fn hex(bytes: &[u8]) -> String {
