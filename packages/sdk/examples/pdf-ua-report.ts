@@ -29,7 +29,7 @@ const CHART_ALT = "Bar chart of sales by quarter: 120, 135, 160 and 150 thousand
  *
  * @param notoSans - the bytes of the Noto Sans font file.
  */
-export function pdfUaReport(notoSans: Uint8Array): Uint8Array {
+export function pdfUaReport(notoSans: Uint8Array): Uint8Array<ArrayBuffer> {
   using b = new Builder({ profiles: ["PDF/UA-1"] });
   b.metadata({ title: "Annual sales report 2026" });
   b.lang("en-GB");

@@ -23,8 +23,8 @@ pub(crate) struct Instance;
 /// Every method takes and returns owned data: pages are addressed by 0-based `index` or by
 /// [`PageId`], never by a borrowed view (F1); reads take `&self` and changes `&mut self`
 /// (F4); long work is a job ([`Document::save_job`]) with a run-to-completion form that takes
-/// a [`CancelToken`] ([`Document::save`], F10). Rust callers who want borrowed views
-/// (`laminapdf_model::Page`) use [`Document::ops`].
+/// a [`CancelToken`] ([`Document::save_with`], F10); [`Document::save`] is that form without
+/// one. Rust callers who want borrowed views (`laminapdf_model::Page`) use [`Document::ops`].
 ///
 /// **Threads.** `Send` but not `Sync` ([ADR 0005] §7, [ADR 0028] §2): move it to another
 /// thread, or share it behind the lock of the edge that needs one (`Mutex` for `UniFFI` and
@@ -341,15 +341,23 @@ impl Document {
         Ok(outcome)
     }
 
-    /// Saves the document and rebases it onto the output, running to completion (F10): the
-    /// same work as stepping [`Document::save_job`] with [`Budget::UNLIMITED`], stopped by
-    /// `cancel` at the same points.
+    /// Saves the document and rebases it onto the output, running to completion: the same
+    /// work as stepping [`Document::save_job`] with [`Budget::UNLIMITED`]. To stop it from
+    /// another thread, use [`Document::save_with`].
     ///
     /// [`Budget::UNLIMITED`]: crate::Budget::UNLIMITED
     ///
     /// # Errors
+    /// As [`SaveJob::step`], except `cancelled`.
+    pub fn save(&mut self, options: &SaveOptions) -> Result<Saved> {
+        self.save_with(options, &CancelToken::new())
+    }
+
+    /// As [`Document::save`], stopped by `cancel` at the same points as a [`SaveJob`] (F10).
+    ///
+    /// # Errors
     /// As [`SaveJob::step`].
-    pub fn save(&mut self, options: &SaveOptions, cancel: &CancelToken) -> Result<Saved> {
+    pub fn save_with(&mut self, options: &SaveOptions, cancel: &CancelToken) -> Result<Saved> {
         let mut job = SaveJob::new(self, *options, cancel.clone());
         loop {
             if let crate::Step::Done(saved) = job.step(self, crate::Budget::UNLIMITED)? {

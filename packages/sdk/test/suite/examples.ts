@@ -14,7 +14,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
-import { HELLO_OPTIONS } from "./hello-options.js";
+import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
 export type Inputs = Readonly<Record<string, Uint8Array>>;
@@ -37,6 +37,8 @@ const SCRIPT_FONTS = [
   "fixtures/fonts/NotoSansSC-Regular.otf",
 ] as const;
 const PHOTO = "fixtures/images/photo-rgb.jpg";
+/** The modification date generate-then-edit records, fixed like the options. */
+const EDITED_AT = "D:20261030130000Z";
 
 /** An input the runner was asked for (`input` says which), else an error naming it. */
 function input(inputs: Inputs, path: string): Uint8Array {
@@ -47,22 +49,41 @@ function input(inputs: Inputs, path: string): Uint8Array {
 
 /** The TS examples with Rust goldens (`fixtures/golden/examples/`, ADR 0018 §5). */
 export const EXAMPLES: readonly Example[] = [
-  { name: "hello", golden: "hello", inputs: [], build: () => hello() },
-  { name: "invoice", golden: "invoice", inputs: [NOTO], build: (i) => invoice(input(i, NOTO)) },
+  { name: "hello", golden: "hello", inputs: [], build: () => hello(HELLO_OPTIONS) },
+  {
+    name: "invoice",
+    golden: "invoice",
+    inputs: [NOTO],
+    build: (i) => invoice(input(i, NOTO), exampleOptions("lamina-ex-invoic")),
+  },
   {
     name: "multilingual",
     golden: "multilingual",
     inputs: SCRIPT_FONTS,
-    build: (i) => multilingual(SCRIPT_FONTS.map((f) => input(i, f))),
+    build: (i) =>
+      multilingual(
+        SCRIPT_FONTS.map((f) => input(i, f)),
+        exampleOptions("lamina-ex-multil"),
+      ),
   },
   {
     name: "images-and-vectors",
-    golden: "vectors",
+    golden: "images_and_vectors",
     inputs: [PHOTO],
-    build: (i) => imagesAndVectors(input(i, PHOTO)),
+    build: (i) => imagesAndVectors(input(i, PHOTO), exampleOptions("lamina-ex-vector")),
   },
-  { name: "links-and-outlines", golden: "links_and_outlines", inputs: [], build: () => linksAndOutlines() },
-  { name: "generate-then-edit", golden: "generate_then_edit", inputs: [], build: () => generateThenEdit() },
+  {
+    name: "links-and-outlines",
+    golden: "links_and_outlines",
+    inputs: [],
+    build: () => linksAndOutlines(exampleOptions("lamina-ex-links!")),
+  },
+  {
+    name: "generate-then-edit",
+    golden: "generate_then_edit",
+    inputs: [],
+    build: () => generateThenEdit(exampleOptions("lamina-ex-edit!!"), EDITED_AT),
+  },
   { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
   {
     name: "pdf-a-archive-2b",
@@ -94,11 +115,11 @@ export const REPORT_INPUTS = [NOTO, "fixtures/fonts/NotoSansSC-Regular.otf"] as 
  * hash with `pnpm --dir packages/sdk exec vitest run -c vitest.node.config.ts --project measure`
  * (the failure shows it) and update it here.
  */
-export const REPORT_SHA256 = "fcf0579526a631fe375d3966c805d5b8e6b262e178f506a0958b8bc00f611601";
+export const REPORT_SHA256 = "09325fa371a5223ee82fe868bf66ecd6e3beb3d3e71ffddb4bd4406909b06516";
 
 /** The 100-page report. Needs `init({ text: true })`. */
 function buildReport(inputs: Inputs): Uint8Array {
-  return report(input(inputs, REPORT_INPUTS[0]), input(inputs, REPORT_INPUTS[1]));
+  return report(input(inputs, REPORT_INPUTS[0]), input(inputs, REPORT_INPUTS[1]), exampleOptions("lamina-ex-report"));
 }
 
 /** An example's golden, by path from the repository root. */
@@ -250,9 +271,9 @@ export async function measure(
     await settle();
     return performance.now() - start;
   };
-  const first = await time(hello);
+  const first = await time(() => hello(HELLO_OPTIONS));
   const hellos: number[] = [];
-  for (let i = 0; i < 20; i++) hellos.push(await time(hello));
+  for (let i = 0; i < 20; i++) hellos.push(await time(() => hello(HELLO_OPTIONS)));
   // report() returns a JS copy of the saved bytes and frees its document, so the last run's
   // bytes stay valid for the hash check.
   let bytes: Uint8Array = new Uint8Array();

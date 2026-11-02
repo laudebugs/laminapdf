@@ -380,12 +380,15 @@ impl TextCommand {
 /// # Ok::<(), laminapdf_build::Error>(())
 /// ```
 #[derive(Debug)]
-#[must_use = "the text is drawn either way; the handle only changes how"]
 pub struct TextRun<'s> {
     surface: &'s mut Surface,
     index: usize,
 }
 
+#[expect(
+    clippy::return_self_not_must_use,
+    reason = "each method changes the drawn text in place; the returned handle only allows chaining"
+)]
 impl<'s> TextRun<'s> {
     pub(crate) fn new(surface: &'s mut Surface, index: usize) -> Self {
         Self { surface, index }

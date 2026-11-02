@@ -18,7 +18,7 @@ Retry `rebase` with the output the error carries (`saved.source()`; in the `lami
 ## Example
 
 ```rust
-match doc.save(&options, &cancel) {
+match doc.save_with(&options, &cancel) {
     Err(e) if e.code() == "not-rebased" => doc.rebase(e.saved_output().unwrap())?,
     other => { other?; }
 }

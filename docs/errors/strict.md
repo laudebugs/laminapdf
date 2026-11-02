@@ -18,7 +18,7 @@ Open without strict mode, or fix the file.
 ## Example
 
 ```rust
-let options = OpenOptions::default().with_strict(true);
+let options = OpenOptions::new().with_strict(true);
 let err = Document::open_bytes(bytes_with_a_broken_xref, options).unwrap_err();
 // { "code": "strict", "data": { "warning": "xref-repaired" }, … }
 ```

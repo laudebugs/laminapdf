@@ -46,7 +46,7 @@ fn ua_with(
 }
 
 fn paragraph(s: &mut laminapdf_build::Surface, f: &laminapdf_build::Font) -> laminapdf_build::Result<()> {
-    let _ = s.text("Hello", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::P);
+    s.text("Hello", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::P);
     Ok(())
 }
 
@@ -105,8 +105,7 @@ mod rules {
     #[test]
     fn a_formula_without_alt_text_fails_with_missing_alt_text() {
         let b = ua(|s, f| {
-            let _ = s
-                .text("E = mc²", f, Pt::new(12.0), at(56.0, 80.0))?
+            s.text("E = mc²", f, Pt::new(12.0), at(56.0, 80.0))?
                 .tag(Tag::custom("Formula", TagKind::Span));
             Ok(())
         });
@@ -116,7 +115,7 @@ mod rules {
     #[test]
     fn an_error_on_a_page_carries_its_page_index() {
         let b = ua(|s, f| {
-            let _ = s.text("Detail", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::H2);
+            s.text("Detail", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::H2);
             Ok(())
         });
         assert_eq!(finish_error(b).location().page_index, Some(0));
@@ -189,8 +188,8 @@ mod rules {
     #[test]
     fn a_first_heading_below_h1_fails_with_heading_level_skipped() {
         let b = ua(|s, f| {
-            s.text("Intro", f, Pt::new(14.0), at(56.0, 80.0))
-                .map(|r| drop(r.tag(TagKind::H2)))
+            s.text("Intro", f, Pt::new(14.0), at(56.0, 80.0))?.tag(TagKind::H2);
+            Ok(())
         });
         assert_eq!(
             finish_error(b),
@@ -206,8 +205,8 @@ mod rules {
     #[test]
     fn a_skipped_heading_level_fails_with_heading_level_skipped() {
         let b = ua(|s, f| {
-            let _ = s.text("Title", f, Pt::new(20.0), at(56.0, 80.0))?.tag(TagKind::H1);
-            let _ = s.text("Detail", f, Pt::new(12.0), at(56.0, 120.0))?.tag(TagKind::H3);
+            s.text("Title", f, Pt::new(20.0), at(56.0, 80.0))?.tag(TagKind::H1);
+            s.text("Detail", f, Pt::new(12.0), at(56.0, 120.0))?.tag(TagKind::H3);
             Ok(())
         });
         assert_eq!(
@@ -224,11 +223,9 @@ mod rules {
     #[test]
     fn two_h_headings_in_one_parent_fail_with_unnumbered_heading_misused() {
         let b = ua(|s, f| {
-            let _ = s
-                .text("One", f, Pt::new(12.0), at(56.0, 80.0))?
+            s.text("One", f, Pt::new(12.0), at(56.0, 80.0))?
                 .tag(Tag::custom("H", TagKind::H1));
-            let _ = s
-                .text("Two", f, Pt::new(12.0), at(56.0, 100.0))?
+            s.text("Two", f, Pt::new(12.0), at(56.0, 100.0))?
                 .tag(Tag::custom("H", TagKind::H1));
             Ok(())
         });
@@ -239,10 +236,9 @@ mod rules {
     #[test]
     fn an_h_heading_beside_numbered_headings_fails_with_unnumbered_heading_misused() {
         let b = ua(|s, f| {
-            let _ = s.text("Title", f, Pt::new(20.0), at(56.0, 80.0))?.tag(TagKind::H1);
+            s.text("Title", f, Pt::new(20.0), at(56.0, 80.0))?.tag(TagKind::H1);
             s.tag(TagKind::Sect, |s| {
-                let _ = s
-                    .text("Part", f, Pt::new(12.0), at(56.0, 100.0))?
+                s.text("Part", f, Pt::new(12.0), at(56.0, 100.0))?
                     .tag(Tag::custom("H", TagKind::H2));
                 Ok(())
             })
@@ -255,8 +251,7 @@ mod rules {
         let b = ua(|s, f| {
             for y in [80.0, 120.0] {
                 s.tag(TagKind::Sect, |s| {
-                    let _ = s
-                        .text("Part", f, Pt::new(12.0), at(56.0, y))?
+                    s.text("Part", f, Pt::new(12.0), at(56.0, y))?
                         .tag(Tag::custom("H", TagKind::H1));
                     paragraph(s, f)
                 })?;
@@ -274,7 +269,7 @@ mod rules {
                 .enumerate()
             {
                 let y = 80.0 + 20.0 * f64::from(u8::try_from(i).unwrap());
-                let _ = s.text("Heading", f, Pt::new(12.0), at(56.0, y))?.tag(kind);
+                s.text("Heading", f, Pt::new(12.0), at(56.0, y))?.tag(kind);
             }
             Ok(())
         });
@@ -286,7 +281,7 @@ mod rules {
     fn a_cell_directly_in_a_table_fails_with_invalid_structure_nesting() {
         let b = ua(|s, f| {
             s.tag(TagKind::Table, |s| {
-                let _ = s.text("Cell", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::TD);
+                s.text("Cell", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::TD);
                 Ok(())
             })
         });
@@ -306,7 +301,7 @@ mod rules {
         let b = ua(|s, f| {
             s.tag(TagKind::L, |s| {
                 s.tag(TagKind::LI, |s| {
-                    let _ = s.text("Item", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::P);
+                    s.text("Item", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::P);
                     Ok(())
                 })
             })
@@ -327,7 +322,7 @@ mod rules {
             s.tag(TagKind::Table, |s| {
                 s.tag(Tag::custom("TBody", TagKind::Part), |s| {
                     s.tag(TagKind::TR, |s| {
-                        let _ = s.text("Cell", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::TD);
+                        s.text("Cell", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::TD);
                         Ok(())
                     })
                 })
@@ -375,8 +370,7 @@ mod rules {
         b.metadata(Metadata::default().with_title("A report")).lang("en-GB");
         let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
         let mut page = b.page(PageSize::A4);
-        let _ = page
-            .surface()
+        page.surface()
             .text("Hello", &helvetica, Pt::new(12.0), at(56.0, 80.0))
             .unwrap()
             .tag(TagKind::P);
@@ -405,8 +399,7 @@ mod rules {
         b.metadata(Metadata::default().with_title("A report")).lang("ar");
         let f = b.font(font("NotoSansArabic-Regular.ttf")).unwrap();
         let mut page = b.page(PageSize::A4);
-        let _ = page
-            .surface()
+        page.surface()
             .text("بالعالم", &f, Pt::new(12.0), at(56.0, 80.0))
             .unwrap()
             .tag(TagKind::P);
@@ -498,8 +491,7 @@ mod output {
     #[test]
     fn a_page_with_a_link_orders_its_annotations_by_structure() {
         let b = ua(|s, f| {
-            let _ = s
-                .text("Example", f, Pt::new(12.0), at(56.0, 80.0))?
+            s.text("Example", f, Pt::new(12.0), at(56.0, 80.0))?
                 .link(LinkTarget::Uri("https://example.com".into()), Some("Example".into()))
                 .tag(TagKind::P);
             Ok(())
@@ -563,7 +555,7 @@ mod output {
     fn every_note_has_a_unique_id_in_the_id_tree() {
         let b = ua(|s, f| {
             for y in [80.0, 100.0] {
-                let _ = s.text("A note", f, Pt::new(9.0), at(56.0, y))?.tag(TagKind::Note);
+                s.text("A note", f, Pt::new(9.0), at(56.0, y))?.tag(TagKind::Note);
             }
             Ok(())
         });

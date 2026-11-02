@@ -10,16 +10,16 @@
 //! };
 //!
 //! let at = PointPt::from_points;
-//! let mut b = Builder::new(BuildOptions::default().with_id(*b"invoice-0000-042"));
+//! let mut b = Builder::new(BuildOptions::new().with_id(*b"invoice-0000-042"));
 //! let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;
 //! let bold = b.standard_font(Standard14::HelveticaBold)?;
 //! let mut page = b.page(PageSize::A4);
 //! let s = page.surface(); // page space: points from the top-left, y down; `at.y` is the baseline
-//! let _ = s.text("Invoice 42", &bold, Pt::new(24.0), at(56.0, 80.0))?;
+//! s.text("Invoice 42", &bold, Pt::new(24.0), at(56.0, 80.0))?;
 //! for (row, (item, amount)) in [("Widgets × 3", "€ 36.00"), ("Delivery", "€ 4.50")].iter().enumerate() {
 //!     let y = 140.0 + 24.0 * row as f64;
-//!     let _ = s.text(item, &font, Pt::new(11.0), at(56.0, y))?;
-//!     let _ = s.text(amount, &font, Pt::new(11.0), at(460.0, y))?;
+//!     s.text(item, &font, Pt::new(11.0), at(56.0, y))?;
+//!     s.text(amount, &font, Pt::new(11.0), at(460.0, y))?;
 //! }
 //! s.stroke_color(Color::gray(0.6))
 //!     .path(|p| {
@@ -31,19 +31,19 @@
 //!         p.rect(RectPt::from_xywh(Pt::new(0.0), Pt::new(0.0), Pt::new(595.0), Pt::new(12.0)));
 //!     })
 //!     .fill(FillRule::NonZero);
-//! let _ = s
+//! s
 //!     .text("Pay online", &font, Pt::new(11.0), at(56.0, 230.0))?
 //!     .link(LinkTarget::Uri("https://example.com/pay/42".into()), None);
 //! page.finish()?;
 //! let mut doc = b.finish()?; // a Document, not bytes
-//! let bytes = doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes;
+//! let bytes = doc.save(&SaveOptions::new())?.bytes;
 //!
 //! // Later: open the bytes, edit with ops (undoable, serialisable), save incrementally.
-//! let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+//! let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
 //! assert_eq!((doc.page_count()?, doc.page_info(0)?.width.round()), (1, 595.0));
-//! doc.apply(vec![Op::from(SetInfo::new(InfoPatch::new().subject(Some("Paid")), None))])?;
+//! doc.apply(vec![Op::from(SetInfo::patch(InfoPatch::new().subject(Some("Paid"))))])?;
 //! let options = SaveOptions::new().with_mode(SaveMode::Incremental);
-//! let updated = doc.save(&options, &CancelToken::new())?;
+//! let updated = doc.save(&options)?;
 //! assert_eq!(doc.info()?.subject.as_deref(), Some("Paid"));
 //! assert!(updated.bytes.len() > updated.report.append_offset().unwrap_or(0) as usize);
 //! # }

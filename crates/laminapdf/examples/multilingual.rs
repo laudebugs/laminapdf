@@ -1,85 +1,94 @@
-//! Five scripts on one page: Latin, Arabic and Hebrew (right to left), Devanagari and
-//! simplified Chinese, each shaped with HarfRust and bidi-resolved, as single lines and as
-//! wrapped paragraphs in text boxes. Fonts are Noto subsets from `fixtures/fonts/` (OFL),
-//! passed as bytes.
+//! Five scripts on one page, each as a single line and as a wrapped paragraph.
+//!
+//! The scripts are Latin, Arabic and Hebrew (right to left), Devanagari and simplified Chinese;
+//! each is shaped and bidi-resolved, and each paragraph wraps in a text box. Each script needs a
+//! font that covers it, such as the Noto fonts (OFL).
 //!
 //! ```sh
-//! cargo run -p laminapdf --example multilingual -- [out-dir]   # writes <out-dir>/multilingual.pdf
+//! cargo run -p laminapdf --example multilingual -- latin.ttf arabic.ttf devanagari.ttf hebrew.ttf chinese.otf
 //! ```
 
 use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    Alignment, BuildOptions, Builder, CancelToken, Direction, PageSize, PointPt, Pt, RectPt, SaveOptions,
-    TextBoxOptions,
+    Alignment, BuildOptions, Builder, Direction, PageSize, PointPt, Pt, RectPt, SaveOptions, TextBoxOptions,
 };
 
-/// Each script's font, its line, its paragraph and the paragraph's direction.
-const SCRIPTS: [(&[u8], &str, &str, Direction); 5] = [
+/// Each script's line, its paragraph and the paragraph's direction, in the order of the fonts.
+const SCRIPTS: [(&str, &str, Direction); 5] = [
     (
-        include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf"),
         "Latin: the office staff fill the affine waffle flask",
         "A paragraph breaks at spaces and fits the width of its box, line by line.",
         Direction::LeftToRight,
     ),
     (
-        include_bytes!("../../../fixtures/fonts/NotoSansArabic-Regular.ttf"),
         "مرحبا بالعالم السلام عليكم",
         "مرحبا بالعالم السلام عليكم مرحبا بالعالم السلام عليكم",
         Direction::RightToLeft,
     ),
     (
-        include_bytes!("../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf"),
         "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण",
         "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण नमस्ते दुनिया।",
         Direction::LeftToRight,
     ),
     (
-        include_bytes!("../../../fixtures/fonts/NotoSansHebrew-Regular.ttf"),
         "שלום עולם וברוכים הבאים",
         "שלום עולם וברוכים הבאים שלום עולם וברוכים הבאים",
         Direction::RightToLeft,
     ),
     (
-        include_bytes!("../../../fixtures/fonts/NotoSansSC-Regular.otf"),
         "你好世界，这是中文字体子集测试。",
         "你好世界，这是中文字体子集测试。你好世界，这是中文。",
         Direction::LeftToRight,
     ),
 ];
+const MARGIN: f64 = 56.0;
+const FIRST_BASELINE: f64 = 80.0;
+/// The distance from one script's line to the next one's.
+const SCRIPT_HEIGHT: f64 = 140.0;
+/// The paragraph's box: this far below the line, this wide and this tall.
+const PARAGRAPH_DROP: f64 = 14.0;
+const PARAGRAPH_WIDTH: f64 = 220.0;
+const PARAGRAPH_HEIGHT: f64 = 100.0;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let out = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| "target/examples-out".into()));
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let out = PathBuf::from(if args.len() > SCRIPTS.len() {
+        args.remove(SCRIPTS.len())
+    } else {
+        "target/examples-out".into()
+    });
+    let fonts = args.iter().map(std::fs::read).collect::<Result<Vec<_>, _>>()?;
     std::fs::create_dir_all(&out)?;
-    std::fs::write(out.join("multilingual.pdf"), build()?)?;
+    std::fs::write(out.join("multilingual.pdf"), build(BuildOptions::new(), fonts)?)?;
     Ok(())
 }
 
-/// The document's bytes.
-pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
-    let options = BuildOptions::default()
-        .with_id(*b"lamina-ex-multil")
-        .with_producer("lamina examples")
-        .with_creation_date("D:20261030120000Z".parse()?);
+/// The document's bytes, with one font per script in `fonts` (in the order of [`SCRIPTS`]).
+/// `options` can fix the file ID, the producer and the creation date.
+pub(crate) fn build(options: BuildOptions, fonts: Vec<Vec<u8>>) -> Result<Vec<u8>, Box<dyn Error>> {
+    if fonts.len() != SCRIPTS.len() {
+        return Err(format!("{} fonts, one per script, are needed", SCRIPTS.len()).into());
+    }
     let mut b = Builder::new(options);
-    let fonts = SCRIPTS
-        .iter()
-        .map(|(bytes, ..)| b.font_bytes(bytes.to_vec()))
+    let fonts = fonts
+        .into_iter()
+        .map(|bytes| b.font_bytes(bytes))
         .collect::<Result<Vec<_>, _>>()?;
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
-    for (row, ((_, line, paragraph, direction), font)) in (0_u32..).zip(SCRIPTS.iter().zip(&fonts)) {
-        let y = 80.0 + 140.0 * f64::from(row);
-        let _ = s.text(line, font, Pt::new(16.0), PointPt::from_points(56.0, y))?;
+    for (row, ((line, paragraph, direction), font)) in (0_u32..).zip(SCRIPTS.iter().zip(&fonts)) {
+        let y = FIRST_BASELINE + SCRIPT_HEIGHT * f64::from(row);
+        s.text(line, font, Pt::new(16.0), PointPt::from_points(MARGIN, y))?;
         // A narrow box breaks the paragraph into lines; right-to-left paragraphs start at the right.
-        let options = TextBoxOptions::default()
+        let options = TextBoxOptions::new()
             .with_direction(*direction)
             .with_align(Alignment::Start);
-        let area = RectPt::from_xywh(Pt::new(56.0), Pt::new(y + 14.0), Pt::new(220.0), Pt::new(100.0));
+        let area = RectPt::from_points(MARGIN, y + PARAGRAPH_DROP, PARAGRAPH_WIDTH, PARAGRAPH_HEIGHT);
         s.text_box(paragraph, font, Pt::new(12.0), area, &options)?;
     }
     page.finish()?;
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }

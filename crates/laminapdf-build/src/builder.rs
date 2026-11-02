@@ -81,6 +81,12 @@ pub struct BuildOptions {
 }
 
 impl BuildOptions {
+    /// The defaults, as [`BuildOptions::default`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// The header version (default 1.7).
     #[must_use]
     pub const fn with_version(mut self, version: PdfVersion) -> Self {

@@ -124,7 +124,7 @@ export class SaveJob {
     budget: number,
   ):
     | ({ readonly state: "progress" } & Progress)
-    | { readonly state: "done"; readonly bytes: Uint8Array; readonly report: SaveReport } {
+    | { readonly state: "done"; readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     return guard(() => this.#job.step(budget));
   }
 
@@ -440,7 +440,7 @@ export class Document {
    * @returns the file's bytes.
    * @throws {@link LaminaPdfError} `would-invalidate-signatures`, `requires-rewrite`, `encrypted-base`, …
    */
-  save(options?: SaveOptions): Uint8Array {
+  save(options?: SaveOptions): Uint8Array<ArrayBuffer> {
     return this.saveWithReport(options).bytes;
   }
 
@@ -449,7 +449,7 @@ export class Document {
    *
    * @throws {@link LaminaPdfError} as {@link Document.save}.
    */
-  saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array; readonly report: SaveReport } {
+  saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("save");
     return guard(() => this.#doc.save(options));
   }

@@ -32,7 +32,7 @@ const PROFILES: Record<"2b" | "2u", Profile[]> = {
  * @param notoSans - the bytes of the Noto Sans font file.
  * @param photo - the bytes of a JPEG photo.
  */
-export function pdfAArchive(level: "2b" | "2u", notoSans: Uint8Array, photo: Uint8Array): Uint8Array {
+export function pdfAArchive(level: "2b" | "2u", notoSans: Uint8Array, photo: Uint8Array): Uint8Array<ArrayBuffer> {
   using b = new Builder({ profiles: PROFILES[level], tagged: true });
   b.metadata({ title: "Order confirmation 42", author: "Acme Widgets Ltd" });
   b.lang("en-GB");

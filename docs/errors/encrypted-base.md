@@ -18,8 +18,8 @@ Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full 
 ## Example
 
 ```rust
-let err = doc.save(&SaveOptions::default(), &CancelToken::new()).unwrap_err(); // encrypted-base
-let saved = doc.save(&SaveOptions::default().with_remove_encryption(true), &CancelToken::new())?;
+let err = doc.save(&SaveOptions::default()).unwrap_err(); // encrypted-base
+let saved = doc.save(&SaveOptions::default().with_remove_encryption(true))?;
 ```
 
 ## Data fields

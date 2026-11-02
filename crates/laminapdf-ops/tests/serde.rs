@@ -189,7 +189,7 @@ mod wire_form {
 
     #[test]
     fn a_patch_writes_set_fields_and_null_for_cleared_ones_only() {
-        let op: Op = SetInfo::new(InfoPatch::new().title(Some("T")).author(None), None).into();
+        let op: Op = SetInfo::patch(InfoPatch::new().title(Some("T")).author(None)).into();
         assert_eq!(
             serde_json::to_string(&op).unwrap(),
             r#"{"op":"setInfo","args":{"patch":{"title":"T","author":null}}}"#

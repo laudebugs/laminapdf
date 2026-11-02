@@ -254,7 +254,7 @@ impl Document {
     ///
     /// let mut doc = Document::open(bytes, Default::default())?;
     /// doc.transact(Origin::Local, |tx| {
-    ///     tx.apply(SetInfo::new(InfoPatch::new().title(Some("Report")), None))?;
+    ///     tx.apply(SetInfo::patch(InfoPatch::new().title(Some("Report"))))?;
     ///     Ok(())
     /// })?;
     /// assert_eq!(doc.info()?.map(|i| i.title()).transpose()?.flatten().as_deref(), Some("Report"));

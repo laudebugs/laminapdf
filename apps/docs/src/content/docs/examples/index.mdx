@@ -9,7 +9,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 Each example exists twice, in Rust and in TypeScript, and both write exactly the same bytes. Every change to Lamina PDF is tested for that in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. The source below is the tested code, and each PDF link is the file it writes.
 
-To run one yourself from a checkout of Lamina PDF, use `cargo run -p laminapdf --example <name>`; it writes the PDF to `target/examples-out/`.
+From a checkout of Lamina PDF, run `cargo run -p laminapdf --example <name>` with the font or image files its header names. It writes the PDF to `target/examples-out/`. The tests build the PDFs linked below with a fixed file ID and creation date, so they come out byte for byte the same on every run.
 
 ## hello
 
@@ -22,7 +22,7 @@ One A4 page with a line of text in a standard 14 font. [Open the PDF](/examples/
 
 ## invoice
 
-An embedded, subset font and a standard 14 one, a coloured band, right-aligned text boxes, hairlines and a link. It's tagged: headings, a table and a link element, with the decorations marked as artifacts. [Open the PDF](/examples/pdf/invoice.pdf).
+An embedded, subset font and a standard 14 one, and a table of line items with right-aligned amounts. It's tagged, so a screen reader reads the heading, the address, the table and the total in order. [Open the PDF](/examples/pdf/invoice.pdf).
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/invoice.ts" /></TabItem>
@@ -40,11 +40,11 @@ Latin, Arabic, Devanagari, Hebrew and Chinese, each in its own embedded font: a 
 
 ## images and vectors
 
-Paths, dashed strokes, gray, RGB, CMYK and hex colour, transparency and a blend mode, a clip, a rotated transform, a JPEG and an RGBA image with a soft mask. [Open the PDF](/examples/pdf/vectors.pdf).
+Paths, dashed strokes, gray, RGB, CMYK and hex colour, transparency and a blend mode, a clip, a rotated transform, a JPEG and an RGBA image with a soft mask. [Open the PDF](/examples/pdf/images_and_vectors.pdf).
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/images-and-vectors.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/vectors.rs" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/images_and_vectors.rs" /></TabItem>
 </Tabs>
 
 ## links and outlines

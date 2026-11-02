@@ -18,7 +18,7 @@ Use a `PageId` from this document.
 ## Example
 
 ```rust
-let other = Document::open_bytes(other_bytes, OpenOptions::default())?;
+let other = Document::open_bytes(other_bytes, OpenOptions::new())?;
 let id = other.page_info(0)?.id;
 doc.apply(vec![Op::from(RotatePage::new(id, Rotation::Clockwise90))]); // unknown-page
 ```

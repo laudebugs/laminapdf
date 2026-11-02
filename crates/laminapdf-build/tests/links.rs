@@ -172,8 +172,7 @@ fn appended_pages_get_text_and_links_to_existing_pages() {
     let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
     let f = appender.standard_font(Standard14::Helvetica).unwrap();
     let mut page = appender.page(PageSize::LETTER);
-    let _ = page
-        .surface()
+    page.surface()
         .text("Back to page 1", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap()
         .link(LinkTarget::page(0), None);
@@ -231,8 +230,7 @@ fn a_failed_append_leaves_the_page_tree_alone() {
     let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
     let f = appender.standard_font(Standard14::Helvetica).unwrap();
     let mut page = appender.page(PageSize::LETTER);
-    let _ = page
-        .surface()
+    page.surface()
         .text("nowhere", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap()
         .link(LinkTarget::page(9), None);

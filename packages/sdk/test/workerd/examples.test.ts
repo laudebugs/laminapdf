@@ -5,8 +5,10 @@
 // Vitest 4 only; the examples still run in workerd either way. Run by
 // `cargo xtask pdf-runtimes workerd` (vitest.workers.config.ts).
 import { fileURLToPath } from "node:url";
+import { Document, init } from "@laminapdf/sdk";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestHarness, type TestHarness } from "wrangler";
+import { REPORT_PAGES } from "../../examples/report.js";
 import { read } from "../helpers.js";
 import {
   difference,
@@ -16,7 +18,6 @@ import {
   type Measurement,
   printMeasurement,
   REPORT_SHA256,
-  sha256,
 } from "../suite/examples.js";
 
 const config = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
@@ -27,7 +28,7 @@ let example: TestHarness;
 beforeAll(async () => {
   suite = createTestHarness({ workers: [{ configPath: config("./wrangler.toml") }] });
   example = createTestHarness({ workers: [{ configPath: config("../../examples/worker/wrangler.toml") }] });
-  await Promise.all([suite.listen(), example.listen()]);
+  await Promise.all([suite.listen(), example.listen(), init()]);
 }, 120_000);
 
 afterAll(() => Promise.all([suite?.close(), example?.close()]));
@@ -69,9 +70,11 @@ describe("workerd", () => {
     });
   }
 
+  // The Worker leaves the file ID and dates to the builder, so its report differs from the suite's
+  // bytes (REPORT_SHA256, checked above): open it and count its pages instead.
   it("serves a letter and the report from the Worker example", async () => {
     const letter = await bytes(await example.fetch(`/?name=${encodeURIComponent("Zoë Łukasz")}`));
-    const report = await bytes(await example.fetch("/report"));
-    expect([new TextDecoder().decode(letter.subarray(0, 5)), await sha256(report)]).toEqual(["%PDF-", REPORT_SHA256]);
+    using report = Document.open(await bytes(await example.fetch("/report")));
+    expect([new TextDecoder().decode(letter.subarray(0, 5)), report.pageCount]).toEqual(["%PDF-", REPORT_PAGES]);
   });
 });

@@ -134,8 +134,7 @@ mod rules {
         let mut b = Builder::new(options(Profile::PdfA2b));
         let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
         let mut page = b.page(PageSize::A4);
-        let _ = page
-            .surface()
+        page.surface()
             .text("Hello", &helvetica, Pt::new(12.0), at(56.0, 80.0))
             .unwrap();
         page.finish().unwrap();
@@ -152,8 +151,7 @@ mod rules {
         let mut b = Builder::new(options(profile));
         let f = b.font(font("NotoSansArabic-Regular.ttf")).unwrap();
         let mut page = b.page(PageSize::A4);
-        let _ = page
-            .surface()
+        page.surface()
             .text("بالعالم", &f, Pt::new(12.0), at(56.0, 80.0))
             .unwrap();
         page.finish().unwrap();

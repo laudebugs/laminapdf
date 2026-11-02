@@ -154,6 +154,20 @@ impl RectPt {
         Self::new(x, y, x + width, y + height)
     }
 
+    /// [`RectPt::from_xywh`] with every value given in points: the rectangle whose top-left
+    /// corner is `(x, y)`, `width` wide and `height` tall.
+    ///
+    /// ```
+    /// use laminapdf_model::{Pt, RectPt};
+    ///
+    /// let r = RectPt::from_points(72.0, 72.0, 200.0, 50.0);
+    /// assert_eq!((r.width(), r.height()), (Pt::new(200.0), Pt::new(50.0)));
+    /// ```
+    #[must_use]
+    pub fn from_points(x: f64, y: f64, width: f64, height: f64) -> Self {
+        Self::from_xywh(Pt(x), Pt(y), Pt(width), Pt(height))
+    }
+
     /// `x1 - x0`.
     #[must_use]
     pub fn width(&self) -> Pt {
@@ -407,6 +421,24 @@ impl PageFrame {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rect_from_points_is_from_xywh_in_points() {
+        let pt = Pt::new;
+        assert_eq!(
+            RectPt::from_points(10.0, 20.0, 30.0, 40.0),
+            RectPt::from_xywh(pt(10.0), pt(20.0), pt(30.0), pt(40.0))
+        );
+    }
+
+    #[test]
+    fn rect_from_points_with_negative_sizes_extends_left_and_up() {
+        let pt = Pt::new;
+        assert_eq!(
+            RectPt::from_points(10.0, 20.0, -5.0, -5.0),
+            RectPt::new(pt(5.0), pt(15.0), pt(10.0), pt(20.0))
+        );
+    }
 
     const LETTER_RECT: UserSpaceRect = UserSpaceRect::from_corners(72.0, 692.0, 272.0, 720.0);
 

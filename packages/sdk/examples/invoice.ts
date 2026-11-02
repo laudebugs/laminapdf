@@ -1,7 +1,7 @@
-// An invoice: an embedded, subset font and a standard 14 one, a coloured band, right-aligned
-// text boxes, hairlines and a link, tagged (headings, a table, a link element; the bar and the
-// rules as artifacts). The TS twin of crates/laminapdf/examples/invoice.rs.
-import { Builder, Font, type Rect } from "@laminapdf/sdk";
+// An invoice that screen readers can follow, with an embedded font and a table of line items.
+// The heading, the address, the table of items and the total are tagged, so a screen reader
+// reads them in order.
+import { Builder, type BuilderOptions, Font, PAGE_SIZES, type Rect, type Surface } from "@laminapdf/sdk";
 
 const ITEMS: readonly (readonly [item: string, qty: number, price: number])[] = [
   ["Widgets, blue (W-100)", 3, 12.0],
@@ -9,67 +9,77 @@ const ITEMS: readonly (readonly [item: string, qty: number, price: number])[] = 
   ["Café-grade sprockets", 12, 1.25],
   ["Delivery", 1, 4.5],
 ];
+const ADDRESS = "Acme Widgets Ltd · 1 Example Street · London";
+const PAGE = "A4";
+const [PAGE_WIDTH] = PAGE_SIZES[PAGE];
+const MARGIN = 56;
+const RIGHT_EDGE = PAGE_WIDTH - MARGIN;
+const TITLE_AT = [MARGIN, 80] as const;
+const ADDRESS_AT = [MARGIN, 100] as const;
+const TITLE = 24;
+const BODY = 11;
+const FIRST_ROW = 160;
+const ROW_HEIGHT = 24;
+/** The quantity's and the amount's columns, each a width ending this far left of the right edge. */
+const COLUMNS = [
+  [40, 169],
+  [100, 0],
+] as const;
+/** A cell's box starts this far above its row's baseline and is this tall. */
+const CELL_RISE = 12;
+const CELL_HEIGHT = 16;
 
 /**
- * The document's bytes. Needs `init({ text: true })`.
+ * The document's bytes, in `fontBytes` (a TrueType or OpenType file). Needs `init({ text: true })`.
  *
- * @param notoSans - `fixtures/fonts/NotoSans-Regular.ttf` (the caller reads files; the package doesn't).
+ * @param options - can fix the file ID, the producer and the creation date.
  */
-export function invoice(notoSans: Uint8Array): Uint8Array {
-  const b = new Builder({
-    id: new TextEncoder().encode("lamina-ex-invoic"),
-    producer: "lamina examples",
-    creationDate: "D:20261030120000Z",
-    tagged: true,
-  });
-  const font = Font.fromBytes(notoSans);
+export function invoice(fontBytes: Uint8Array, options: BuilderOptions = {}): Uint8Array<ArrayBuffer> {
+  using b = new Builder({ ...options, tagged: true });
+  const font = Font.fromBytes(fontBytes);
   const bold = Font.standard("Helvetica-Bold");
-  // Registered in the Rust example's order, so the objects are numbered the same.
+  // Registered up front, in this order, so the embedded font is the document's first.
   b.font(font);
   b.font(bold);
-  const page = b.page("A4");
+  const page = b.page(PAGE);
   const s = page.surface();
-  // The accent bar and the hairlines are decoration (artifacts); the rest is the structure a
-  // screen reader follows: a heading, a paragraph, a table, the total, a link.
-  s.artifact("layout", (s) =>
-    s
-      .fillColor("#1e78c8")
-      .path((p) => p.rect([0, 0, 595.28, 14]))
-      .fill()
-      .fillColor([0]),
-  );
-  s.text("Invoice 42", { font: bold, size: 24, at: [56, 80], tag: "H1" });
-  s.text("Acme Widgets Ltd · 1 Example Street · London", { font, size: 10, at: [56, 100], tag: "P" });
-  let total = 0;
+  s.text("Invoice 42", { font: bold, size: TITLE, at: TITLE_AT, tag: "H1" });
+  s.text(ADDRESS, { font, size: BODY, at: ADDRESS_AT, tag: "P" });
+  items(s, font);
+  const total = ITEMS.reduce((sum, [, qty, price]) => sum + qty * price, 0);
+  const box = cell(COLUMNS[1], rowBaseline(ITEMS.length));
+  s.textBox(`Total € ${total.toFixed(2)}`, { font, size: BODY, box, align: "end", tag: "P" });
+  page.finish();
+  b.metadata({ title: "Invoice 42", author: "Acme Widgets Ltd" }).lang("en-GB");
+  using doc = b.finish();
+  return doc.save();
+}
+
+/** The table of line items: what, how many, and the amount, right-aligned. */
+function items(s: Surface, font: Font): void {
   s.tag("Table", (s) => {
     ITEMS.forEach(([item, qty, price], row) => {
-      const y = 160 + 24 * row;
-      const amount = qty * price;
-      total += amount;
+      const y = rowBaseline(row);
+      const cells = [
+        [String(qty), COLUMNS[0]],
+        [`€ ${(qty * price).toFixed(2)}`, COLUMNS[1]],
+      ] as const;
       s.tag("TR", (s) => {
-        s.text(item, { font, size: 11, at: [56, y], tag: "TD" });
-        const cell = (box: Rect, text: string) => s.textBox(text, { font, size: 11, box, align: "end", tag: "TD" });
-        cell([330, y - 12, 40, 16], String(qty));
-        cell([439, y - 12, 100, 16], `€ ${amount.toFixed(2)}`);
-        s.artifact("layout", (s) =>
-          s
-            .strokeColor([0.8])
-            .path((p) => p.moveTo(56, y + 8).lineTo(539, y + 8))
-            .stroke({ width: 0.5 }),
-        );
+        s.text(item, { font, size: BODY, at: [MARGIN, y], tag: "TD" });
+        for (const [text, column] of cells) {
+          s.textBox(text, { font, size: BODY, box: cell(column, y), align: "end", tag: "TD" });
+        }
       });
     });
   });
-  s.textBox(`Total € ${total.toFixed(2)}`, { font, size: 14, box: [339, 262, 200, 20], align: "end", tag: "P" });
-  s.text("Pay online at example.com/pay/42", {
-    font,
-    size: 11,
-    at: [56, 320],
-    fill: [0.12, 0.47, 0.78],
-    link: { target: { type: "uri", uri: "https://example.com/pay/42" }, contents: "Pay invoice 42 online" },
-    tag: "P",
-  });
-  page.finish();
-  b.metadata({ title: "Invoice 42", author: "Acme Widgets Ltd" }).lang("en-GB");
-  return b.finish().save();
+}
+
+/** The baseline of row `row` of the table. */
+function rowBaseline(row: number): number {
+  return FIRST_ROW + ROW_HEIGHT * row;
+}
+
+/** The box of a cell in `column` (width, distance from the right edge) on the row at `baseline`. */
+function cell([width, inset]: readonly [number, number], baseline: number): Rect {
+  return [RIGHT_EDGE - inset - width, baseline - CELL_RISE, width, CELL_HEIGHT];
 }

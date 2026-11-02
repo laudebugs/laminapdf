@@ -46,8 +46,8 @@ fn recipe() -> impl Strategy<Value = Recipe> {
 
 fn to_op(doc: &Document, recipe: &Recipe) -> Op {
     match recipe {
-        Recipe::Title(t) => SetInfo::new(InfoPatch::new().title(*t), None).into(),
-        Recipe::Author(a) => SetInfo::new(InfoPatch::new().author(*a), None).into(),
+        Recipe::Title(t) => SetInfo::patch(InfoPatch::new().title(*t)).into(),
+        Recipe::Author(a) => SetInfo::patch(InfoPatch::new().author(*a)).into(),
         Recipe::Rotate(index, rotation) => {
             let ids = page_ids(doc);
             RotatePage::new(ids[index % ids.len()].clone(), *rotation).into()

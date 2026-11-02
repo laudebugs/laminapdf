@@ -6,7 +6,7 @@
 //! # fn sample() -> Vec<u8> { std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/golden/text-std14.pdf")).unwrap() }
 //! use laminapdf::{Document, OpenOptions, extract::TextOptions};
 //!
-//! let doc = Document::open_bytes(sample(), OpenOptions::default())?;
+//! let doc = Document::open_bytes(sample(), OpenOptions::new())?;
 //! let text = doc.page_text(0, &TextOptions::new())?;
 //! assert_eq!(text.lines()[0], "Courier: Hello, world! 0123456789");
 //! let first = &text.glyphs[0];

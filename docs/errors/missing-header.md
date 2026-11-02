@@ -24,7 +24,7 @@ offset 1,212  %PDF-1.7
               1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
 ```
 
-Lamina PDF looks for `%PDF-` in the first 1,024 bytes only. Here it starts at byte 1,212, so `Document::open_bytes` warns `missing-header` and reads the objects anyway. With `OpenOptions::default().with_strict(true)` the same open fails with [`strict`](strict.md).
+Lamina PDF looks for `%PDF-` in the first 1,024 bytes only. Here it starts at byte 1,212, so `Document::open_bytes` warns `missing-header` and reads the objects anyway. With `OpenOptions::new().with_strict(true)` the same open fails with [`strict`](strict.md).
 
 ## Data fields
 

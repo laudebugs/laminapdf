@@ -1,14 +1,14 @@
 //! An archival letter, written as PDF/A-2b and as PDF/A-2u that is also PDF/UA-1.
 //!
-//! Run it with `cargo run -p laminapdf --example pdf_a_archive -- [out-dir]`: it writes
+//! Run it with `cargo run -p laminapdf --example pdf_a_archive -- <font.ttf> <photo.jpg> [out-dir]`: it writes
 //! `pdf_a_archive-2b.pdf` and `pdf_a_archive-2u.pdf`.
 
 use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    ArtifactKind, BuildError, BuildOptions, Builder, CancelToken, Color, FillRule, FontHandle, Image, Metadata,
-    PageSize, PointPt, Profile, Pt, RectPt, SaveOptions, Surface, TagKind, TextBoxOptions,
+    ArtifactKind, BuildError, BuildOptions, Builder, Color, FillRule, FontHandle, Image, Metadata, PageSize, PointPt,
+    Profile, Pt, RectPt, SaveOptions, Surface, TagKind, TextBoxOptions,
 };
 
 const MARGIN: f64 = 56.0;
@@ -29,11 +29,16 @@ const LETTER: &str = "Thank you for your order of 12 sprockets. This letter conf
                       price we agreed. Keep it: PDF/A files look the same in any viewer, now and in the future.";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let out = PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| "target/examples-out".into()));
+    let mut args = std::env::args().skip(1);
+    let usage = "arguments: <font.ttf> <photo.jpg> [out-dir]";
+    let font = std::fs::read(args.next().ok_or(usage)?)?;
+    let photo = std::fs::read(args.next().ok_or(usage)?)?;
+    let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
     std::fs::create_dir_all(&out)?;
-    std::fs::write(out.join("pdf_a_archive-2b.pdf"), build(Level::A2b)?)?;
-    std::fs::write(out.join("pdf_a_archive-2u.pdf"), build(Level::A2u)?)?;
-    Ok(())
+    let a2b = build(Level::A2b, font.clone(), photo.clone())?;
+    std::fs::write(out.join("pdf_a_archive-2b.pdf"), a2b)?;
+    let a2u = build(Level::A2u, font, photo)?;
+    Ok(std::fs::write(out.join("pdf_a_archive-2u.pdf"), a2u)?)
 }
 
 /// Which archive to write.
@@ -45,15 +50,11 @@ pub(crate) enum Level {
     A2u,
 }
 
-fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
-    RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
-}
-
-/// The letter's bytes.
-pub(crate) fn build(level: Level) -> Result<Vec<u8>, Box<dyn Error>> {
+/// The letter's bytes, in `font` (a TrueType or OpenType file) with `photo` (a JPEG).
+pub(crate) fn build(level: Level, font: Vec<u8>, photo: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let options = match level {
-        Level::A2b => BuildOptions::default().with_profile(Profile::PdfA2b),
-        Level::A2u => BuildOptions::default()
+        Level::A2b => BuildOptions::new().with_profile(Profile::PdfA2b),
+        Level::A2u => BuildOptions::new()
             .with_profile(Profile::PdfA2u)
             .with_profile(Profile::PdfUa1),
     };
@@ -64,13 +65,13 @@ pub(crate) fn build(level: Level) -> Result<Vec<u8>, Box<dyn Error>> {
             .with_author("Acme Widgets Ltd"),
     );
     b.lang("en-GB");
-    let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;
-    let photo = Image::jpeg(include_bytes!("../../../fixtures/images/photo-rgb.jpg").to_vec())?;
+    let font = b.font_bytes(font)?;
+    let photo = Image::jpeg(photo)?;
     let mut page = b.page(PageSize::A4);
     draw(page.surface(), &font, &photo)?;
     page.finish()?;
     let mut doc = b.finish()?;
-    Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(doc.save(&SaveOptions::new())?.bytes)
 }
 
 fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildError> {
@@ -80,7 +81,7 @@ fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildEr
         s.save()
             .opacity(BAND_OPACITY, 1.0)
             .fill_color(Color::rgb(0.12, 0.47, 0.78));
-        s.path(|p| _ = p.rect(rect(0.0, 0.0, width, BAND_HEIGHT)))
+        s.path(|p| _ = p.rect(RectPt::from_points(0.0, 0.0, width, BAND_HEIGHT)))
             .fill(FillRule::NonZero);
         s.restore();
         Ok(())
@@ -88,12 +89,11 @@ fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildEr
     s.tag(TagKind::H1, |s| {
         s.text("Order confirmation 42", font, TITLE, TITLE_AT).map(drop)
     })?;
-    let body = rect(MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT);
+    let body = RectPt::from_points(MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT);
     s.tag(TagKind::P, |s| {
-        s.text_box(LETTER, font, BODY, body, &TextBoxOptions::default())
-            .map(drop)
+        s.text_box(LETTER, font, BODY, body, &TextBoxOptions::new()).map(drop)
     })?;
-    let beside = rect(PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT);
+    let beside = RectPt::from_points(PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT);
     s.figure(photo, beside, Some(PHOTO_ALT));
     let footer = "Acme Widgets Ltd, 1 Example Street, London";
     s.tag(TagKind::P, |s| s.text(footer, font, BODY, FOOTER_AT).map(drop))

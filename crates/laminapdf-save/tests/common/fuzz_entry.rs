@@ -96,7 +96,7 @@ pub fn save_roundtrip(data: &[u8]) {
             1 => doc
                 .apply_all(
                     Origin::Local,
-                    [SetInfo::new(InfoPatch::new().title(Some(&step.to_string())), None).into()],
+                    [SetInfo::patch(InfoPatch::new().title(Some(&step.to_string()))).into()],
                 )
                 .map(drop),
             2 => doc.undo().map(drop),

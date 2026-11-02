@@ -132,19 +132,18 @@ fn first_page(s: &mut Surface, noto: &Font) -> Res {
         Ok(())
     })?;
     table_and_list(s, noto)?;
-    let _ = s
-        .text(
-            "Read the full report at example.com/report",
-            noto,
-            Pt::new(11.0),
-            at(56.0, 420.0),
-        )?
-        .fill(Color::rgb(0.12, 0.47, 0.78))
-        .link(
-            LinkTarget::Uri("https://example.com/report".into()),
-            Some(RUN_LINK.into()),
-        )
-        .tag(TagKind::P);
+    s.text(
+        "Read the full report at example.com/report",
+        noto,
+        Pt::new(11.0),
+        at(56.0, 420.0),
+    )?
+    .fill(Color::rgb(0.12, 0.47, 0.78))
+    .link(
+        LinkTarget::Uri("https://example.com/report".into()),
+        Some(RUN_LINK.into()),
+    )
+    .tag(TagKind::P);
     s.tag(TagKind::P, |s| {
         line(s, "Our motto:", noto, 11.0, 56.0, 440.0)?;
         tagged(

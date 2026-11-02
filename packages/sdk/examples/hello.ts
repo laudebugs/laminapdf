@@ -1,25 +1,18 @@
-// The smallest document: one A4 page with a line of text in a standard 14 font. The TS twin of
-// crates/laminapdf/examples/hello.rs: the same bytes (fixtures/golden/examples/hello.pdf).
-import { Builder, Font } from "@laminapdf/sdk";
+// The smallest document: one A4 page with a line of text in a standard 14 font.
+import { Builder, type BuilderOptions, Font } from "@laminapdf/sdk";
 
-/** The document's bytes: the same on every run and every platform. Needs `init({ text: true })`. */
-export function hello(): Uint8Array {
-  // Everything that would come from the environment (file ID, dates) is given.
-  const b = new Builder({
-    id: new TextEncoder().encode("lamina-ex-hello!"),
-    producer: "lamina examples",
-    creationDate: "D:20261030120000Z",
-  });
+/**
+ * The document's bytes. Needs `init({ text: true })`.
+ *
+ * @param options - can fix the file ID, the producer and the creation date, so that the same
+ *   input gives the same bytes on every run.
+ */
+export function hello(options: BuilderOptions = {}): Uint8Array<ArrayBuffer> {
+  using b = new Builder(options);
   const page = b.page("A4");
   // Page space: points from the top-left corner, y down; `at[1]` is the text's baseline.
   page.surface().text("Hello, world!", { font: Font.standard("Helvetica"), size: 24, at: [72, 96] });
   page.finish();
-  // Free the document at once (the saved bytes are a copy): a Worker or a timing loop calling
-  // this many times shouldn't wait for the garbage collector to release WebAssembly memory.
-  const doc = b.finish();
-  try {
-    return doc.save();
-  } finally {
-    doc.free();
-  }
+  using doc = b.finish();
+  return doc.save();
 }

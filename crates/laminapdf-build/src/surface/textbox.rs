@@ -54,6 +54,12 @@ impl Default for TextBoxOptions {
 }
 
 impl TextBoxOptions {
+    /// The defaults, as [`TextBoxOptions::default`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Line alignment (default: the paragraph's start side).
     #[must_use]
     pub const fn with_align(mut self, align: Alignment) -> Self {

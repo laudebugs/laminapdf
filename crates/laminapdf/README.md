@@ -8,12 +8,12 @@ The façade crate: one dependency for Rust users, and the API every binding wrap
 | --- | --- |
 | Open and read | `Document::open_bytes(Vec<u8>, OpenOptions)`, `open_source(Arc<dyn ByteSource>, …)`; `page_count`, `page_info(index)`, `page_infos()`, `page_by_id(&PageId)` (one page-tree walk, cached until the next change), `info`, `warnings()` (a `WarningCursor` with `next_batch(max)`; build warnings first) |
 | Edit | `apply(Vec<Op>)` (one transaction), `apply_log(json)`, `undo`, `redo` |
-| Save | `save(&SaveOptions, &CancelToken) -> Saved { bytes, report }`, or `save_job(&SaveOptions)` stepped with a `Budget`; after `not-rebased`, `Error::saved_output()` and `rebase(bytes)` |
+| Save | `save(&SaveOptions) -> Saved { bytes, report }`, `save_with(&SaveOptions, &CancelToken)` to stop it from another thread, or `save_job(&SaveOptions)` stepped with a `Budget`; after `not-rebased`, `Error::saved_output()` and `rebase(bytes)` |
 | Build (`build`; fonts and text with `text`) | `Builder` (fonts, pages and their `Surface`, destinations, outline, page labels, metadata; tagged PDF: `Surface::tag`, `figure`, `artifact`, `tagging_diagnostics`) → `finish()` → `Document` |
 | Extract (`text`) | `page_text(index, &TextOptions)` → `extract::PageText` (`page_texts` for every page in one walk): glyphs with Unicode and quads in page space, runs (font, size, MCID, `ActualText`, invisible), `lines()` (todo B9d); fonts parsed once per document and revision (a `RefCell` cache like the page facts') |
 | Errors | `Error` with `code()`, `kind()`, `location()`, `hint()`, `docs_url()`, `diagnostic()`, and `Serialize` to the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 object; `Warning` likewise |
 
-The ADR 0028 rules it follows, by number: no lifetimes on `Document` (F1: pages by index or `PageId`, owned `PageInfo`); no generics or closures in its signatures (F3: `open_bytes`/`open_source`, ops as values); `&self` reads and `&mut self` changes with no interior mutability (F4); owned records with `u32` counts (F5); options as `with_*` builders (F6); `Vec<u8>` in and out (F7); a cursor for warnings (F8); one error type (F9); jobs plus a run-to-completion form taking a `CancelToken`, no callbacks (F10). `Document` is `Send` and not `Sync` (`tests/facade.rs` asserts both at compile time): the lock lives in the edge crates (§2). The `Builder` keeps `laminapdf-build`'s Rust shape (borrowed page builders, closures for paths); its binding form belongs to the edge crates.
+The ADR 0028 rules it follows, by number: no lifetimes on `Document` (F1: pages by index or `PageId`, owned `PageInfo`); no generics or closures in its signatures (F3: `open_bytes`/`open_source`, ops as values); `&self` reads and `&mut self` changes with no interior mutability (F4); owned records with `u32` counts (F5); options as `with_*` builders (F6); `Vec<u8>` in and out (F7); a cursor for warnings (F8); one error type (F9); jobs plus a run-to-completion form taking a `CancelToken` (`save_with`), no callbacks (F10). `Document` is `Send` and not `Sync` (`tests/facade.rs` asserts both at compile time): the lock lives in the edge crates (§2). The `Builder` keeps `laminapdf-build`'s Rust shape (borrowed page builders, closures for paths); its binding form belongs to the edge crates.
 
 ## Jobs, budgets and cancellation
 
@@ -39,11 +39,11 @@ Edges should still adapt the next budget from the time the last step took (ADR 0
 
 ## Examples and goldens
 
-`examples/`: `hello`, `invoice`, `multilingual` (Latin, Arabic, Devanagari, Hebrew, CJK), `vectors` (paths, colour, opacity, blend, clip, images), `links_and_outlines`, `generate_then_edit` (build → save → open → `SetInfo` → incremental save). Fonts and images come from `fixtures/` as bytes (`include_bytes!`); the library never reads files.
+`examples/`: `hello`, `invoice`, `multilingual` (Latin, Arabic, Devanagari, Hebrew, CJK), `images_and_vectors` (paths, colour, opacity, blend, clip, images), `links_and_outlines`, `generate_then_edit` (build → save → open → `SetInfo` → incremental save), `pdf_ua_report`, `pdf_a_archive`, `pdf_a3_invoice_with_xml`. Each takes its fonts and images as parameters (and, but for the PDF/A and PDF/UA ones, its `BuildOptions`), and its `main` reads them from the command line; the library never reads files. `tests/examples.rs` passes the fixed file IDs, dates and `fixtures/` files that make the goldens.
 
 ```sh
-cargo run -p laminapdf --example invoice -- target/examples-out   # writes target/examples-out/invoice.pdf
-cargo xtask examples                  # every example: byte-compare with fixtures/golden/examples/, qpdf --check
+cargo run -p laminapdf --example invoice -- fixtures/fonts/NotoSans-Regular.ttf   # writes target/examples-out/invoice.pdf
+cargo xtask examples                  # every example (built by tests/examples.rs): byte-compare with fixtures/golden/examples/, qpdf --check
 cargo xtask golden --update           # rewrite the byte goldens (with every other golden)
 cargo xtask render-golden [--update]  # PDFium + hayro renders vs fixtures/render-golden/ (see its README)
 ```

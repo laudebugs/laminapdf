@@ -1,10 +1,8 @@
 //! An accessible report that screen readers can follow, checked against PDF/UA-1 when it is built.
 
-use std::error::Error;
-
 use laminapdf::{
-    ArtifactKind, BuildError, BuildOptions, Builder, CancelToken, Color, FillRule, FontHandle, LinkTarget, Metadata,
-    PageSize, PointPt, Profile, Pt, RectPt, SaveOptions, Surface, TableScope, Tag, TagKind,
+    ArtifactKind, BuildError, BuildOptions, Builder, Color, FillRule, FontHandle, LinkTarget, Metadata, PageSize,
+    PointPt, Profile, Pt, RectPt, SaveOptions, Surface, TableScope, Tag, TagKind,
 };
 
 const MARGIN: f64 = 56.0;
@@ -25,21 +23,23 @@ const BLUE: Color = Color::Rgb(0.12, 0.47, 0.78);
 const QUARTERS: [(&str, f64); 4] = [("Q1", 120.0), ("Q2", 135.0), ("Q3", 160.0), ("Q4", 150.0)];
 const CHART_ALT: &str = "Bar chart of sales by quarter: 120, 135, 160 and 150 thousand euros.";
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let out = std::path::PathBuf::from(std::env::args().nth(1).unwrap_or_else(|| "target/examples-out".into()));
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut args = std::env::args().skip(1);
+    let font = std::fs::read(args.next().ok_or("arguments: <font.ttf> [out-dir]")?)?;
+    let out = std::path::PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
     std::fs::create_dir_all(&out)?;
-    Ok(std::fs::write(out.join("pdf_ua_report.pdf"), build()?)?)
+    Ok(std::fs::write(out.join("pdf_ua_report.pdf"), build(font)?)?)
 }
 
-pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut b = Builder::new(BuildOptions::default().with_profile(Profile::PdfUa1));
+pub(crate) fn build(font: Vec<u8>) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let mut b = Builder::new(BuildOptions::new().with_profile(Profile::PdfUa1));
     b.metadata(Metadata::default().with_title("Annual sales report 2026"));
     b.lang("en-GB");
-    let font = b.font_bytes(include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf").to_vec())?;
+    let font = b.font_bytes(font)?;
     let mut page = b.page(PageSize::A4);
     draw(page.surface(), &font)?;
     page.finish()?;
-    Ok(b.finish()?.save(&SaveOptions::new(), &CancelToken::new())?.bytes)
+    Ok(b.finish()?.save(&SaveOptions::new())?.bytes)
 }
 
 /// One line of text with its baseline at `y`, as the structure element `tag`, sized by it.
@@ -61,7 +61,7 @@ fn draw(s: &mut Surface, font: &FontHandle) -> Result<(), BuildError> {
     let link = LinkTarget::Uri("https://example.com/accounts".into());
     s.tag(TagKind::P, |s| {
         let text = s.text("The full accounts", font, BODY, LINK_AT)?;
-        drop(text.fill(BLUE).link(link, Some("The full 2026 accounts".into())));
+        text.fill(BLUE).link(link, Some("The full 2026 accounts".into()));
         Ok(())
     })
 }

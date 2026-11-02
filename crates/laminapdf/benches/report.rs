@@ -33,8 +33,8 @@ use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use laminapdf::{
-    Alignment, BuildOptions, Builder, CancelToken, Color, Metadata, PageSize, PointPt, Pt, RectPt, SaveOptions,
-    Standard14, StrokeStyle, TextBoxOptions,
+    Alignment, BuildOptions, Builder, Color, Metadata, PageSize, PointPt, Pt, RectPt, SaveOptions, Standard14,
+    StrokeStyle, TextBoxOptions,
 };
 use sha2::{Digest, Sha256};
 
@@ -75,6 +75,8 @@ const fn suite_hash(suite: &str) -> &str {
 }
 
 const PAGES: u32 = 100;
+/// The A4 page width less the 56-point margin: the right edge of the text and the rules.
+const RIGHT_EDGE: f64 = PageSize::A4.width.get() - 56.0;
 
 const PARAGRAPH: &str = "Quarterly figures for every region follow. Each table lists the units shipped, the revenue \
                          and the change against the previous quarter; totals are at the end of the report.";
@@ -104,35 +106,32 @@ fn report() -> Vec<u8> {
     for n in 1..=PAGES {
         let mut page = b.page(PageSize::A4);
         let s = page.surface();
-        let _ = s
-            .text(
-                &format!("Region {n}: quarterly report"),
-                &font,
-                Pt::new(20.0),
-                at(56.0, 72.0),
-            )
-            .unwrap();
+        s.text(
+            &format!("Region {n}: quarterly report"),
+            &font,
+            Pt::new(20.0),
+            at(56.0, 72.0),
+        )
+        .unwrap();
         s.text_box(
             PARAGRAPH,
             &font,
             Pt::new(11.0),
-            rect(56.0, 88.0, 483.0, 60.0),
+            rect(56.0, 88.0, RIGHT_EDGE - 56.0, 60.0),
             &TextBoxOptions::default(),
         )
         .unwrap();
-        let _ = s
-            .text(
-                "你好世界，这是中文字体子集测试。",
-                &chinese,
-                Pt::new(11.0),
-                at(56.0, 166.0),
-            )
-            .unwrap();
+        s.text(
+            "你好世界，这是中文字体子集测试。",
+            &chinese,
+            Pt::new(11.0),
+            at(56.0, 166.0),
+        )
+        .unwrap();
         for row in 0..20_u32 {
             let y = 200.0 + 24.0 * f64::from(row);
             let units = (n * 37 + row * 11) % 500;
-            let _ = s
-                .text(&format!("Product {}", row + 1), &font, Pt::new(10.0), at(56.0, y))
+            s.text(&format!("Product {}", row + 1), &font, Pt::new(10.0), at(56.0, y))
                 .unwrap();
             s.text_box(
                 &units.to_string(),
@@ -147,18 +146,17 @@ fn report() -> Vec<u8> {
                 &format!("€ {euros:.2}"),
                 &font,
                 Pt::new(10.0),
-                rect(400.0, y - 11.0, 139.0, 14.0),
+                rect(400.0, y - 11.0, RIGHT_EDGE - 400.0, 14.0),
                 &end,
             )
             .unwrap();
             s.stroke_color(Color::gray(0.8))
                 .path(|p| {
-                    p.move_to(at(56.0, y + 7.0)).line_to(at(539.0, y + 7.0));
+                    p.move_to(at(56.0, y + 7.0)).line_to(at(RIGHT_EDGE, y + 7.0));
                 })
                 .stroke(&hairline);
         }
-        let _ = s
-            .text(&format!("Page {n} of {PAGES}"), &font, Pt::new(9.0), at(56.0, 800.0))
+        s.text(&format!("Page {n} of {PAGES}"), &font, Pt::new(9.0), at(56.0, 800.0))
             .unwrap();
         page.finish().unwrap();
     }
@@ -169,7 +167,7 @@ fn report() -> Vec<u8> {
     )
     .lang("en-GB");
     let mut doc = b.finish().unwrap();
-    doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap().bytes
+    doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
 const SENTENCES: &str = "The quarter closed with steady growth across every region we track. Shipments rose in \
@@ -186,14 +184,13 @@ fn text_boxes() -> Vec<u8> {
     for n in 1..=PAGES {
         let mut page = b.page(PageSize::A4);
         let s = page.surface();
-        let _ = s
-            .text(
-                &format!("Section {n}"),
-                &bold,
-                Pt::new(18.0),
-                PointPt::from_points(56.0, 72.0),
-            )
-            .unwrap();
+        s.text(
+            &format!("Section {n}"),
+            &bold,
+            Pt::new(18.0),
+            PointPt::from_points(56.0, 72.0),
+        )
+        .unwrap();
         for k in 0..6_u32 {
             let y = 96.0 + 110.0 * f64::from(k);
             s.text_box(SENTENCES, &font, Pt::new(11.0), rect(56.0, y, 483.0, 100.0), &options)
@@ -202,7 +199,7 @@ fn text_boxes() -> Vec<u8> {
         page.finish().unwrap();
     }
     let mut doc = b.finish().unwrap();
-    doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap().bytes
+    doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
 fn hex(bytes: &[u8]) -> String {

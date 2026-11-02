@@ -20,7 +20,7 @@ use crate::data;
 /// document or given by the caller; such strings go only to `data`.
 ///
 /// ```
-/// let err = laminapdf::Document::open_bytes(b"not a pdf".to_vec(), laminapdf::OpenOptions::default()).unwrap_err();
+/// let err = laminapdf::Document::open_bytes(b"not a pdf".to_vec(), laminapdf::OpenOptions::new()).unwrap_err();
 /// assert_eq!((err.code(), err.kind().as_str()), ("not-pdf", "input"));
 /// let json = serde_json::to_value(&err)?;
 /// assert_eq!(json["docsUrl"], "https://github.com/laudebugs/laminapdf/blob/main/docs/errors/not-pdf.md");

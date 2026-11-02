@@ -481,8 +481,7 @@ mod documents {
         let mut b = Builder::new(BuildOptions::default());
         let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
         let mut page = b.page(PageSize::A4);
-        let _ = page
-            .surface()
+        page.surface()
             .text("plain", &helvetica, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
             .unwrap()
             .link(laminapdf_build::LinkTarget::Uri("https://example.com".into()), None);
@@ -696,7 +695,7 @@ mod documents {
         let mut page = b.page(PageSize::A4);
         page.surface()
             .tag(TagKind::P, |s| {
-                let _ = s.text("a", &noto, Pt::new(12.0), PointPt::from_points(72.0, 72.0))?;
+                s.text("a", &noto, Pt::new(12.0), PointPt::from_points(72.0, 72.0))?;
                 s.tag(TagKind::Span, |s| {
                     s.text("b", &noto, Pt::new(12.0), PointPt::from_points(90.0, 72.0))
                         .map(|_| ())

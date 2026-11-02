@@ -21,7 +21,7 @@ A damaged file raising 50,000 repairs with the default `max_warnings`: the first
 
 ```rust
 let limits = laminapdf::Limits::default().with_max_warnings(100_000);
-let doc = laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::default().with_limits(limits))?;
+let doc = laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::new().with_limits(limits))?;
 ```
 
 ## Data fields
