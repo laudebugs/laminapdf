@@ -201,8 +201,8 @@ impl BlendMode {
 mod tests {
     use super::*;
 
-    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
-    /// place in `ALL`.
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
     #[test]
     fn all_should_list_every_line_cap_once_in_declaration_order() {
         let index = |v: LineCap| match v {
@@ -210,11 +210,11 @@ mod tests {
             LineCap::Round => 1,
             LineCap::Square => 2,
         };
-        assert_eq!(LineCap::ALL.map(index), [0, 1, 2]);
+        assert!(LineCap::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
     }
 
-    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
-    /// place in `ALL`.
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
     #[test]
     fn all_should_list_every_line_join_once_in_declaration_order() {
         let index = |v: LineJoin| match v {
@@ -222,11 +222,11 @@ mod tests {
             LineJoin::Round => 1,
             LineJoin::Bevel => 2,
         };
-        assert_eq!(LineJoin::ALL.map(index), [0, 1, 2]);
+        assert!(LineJoin::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
     }
 
-    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
-    /// place in `ALL`.
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
     #[test]
     fn all_should_list_every_blend_mode_once_in_declaration_order() {
         let index = |v: BlendMode| match v {

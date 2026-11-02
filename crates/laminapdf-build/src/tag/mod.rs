@@ -388,8 +388,8 @@ pub enum TagDiagnostic {
 mod tests {
     use super::*;
 
-    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
-    /// place in `ALL`.
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
     #[test]
     fn all_should_list_every_table_scope_once_in_declaration_order() {
         let index = |v: TableScope| match v {
@@ -397,11 +397,11 @@ mod tests {
             TableScope::Column => 1,
             TableScope::Both => 2,
         };
-        assert_eq!(TableScope::ALL.map(index), [0, 1, 2]);
+        assert!(TableScope::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
     }
 
-    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
-    /// place in `ALL`.
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
     #[test]
     fn all_should_list_every_tag_kind_once_in_declaration_order() {
         let index = |v: TagKind| match v {

@@ -35,7 +35,7 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 ## Tasks
 
 - [x] Claim by opening the work PR (#195) from a fresh worktree off `main`.
-- [x] Add `ALL` to `FillRule`, `LineCap`, `LineJoin`, `BlendMode`, `ArtifactKind` and `TableScope` (`TagKind` had one). An exhaustive-match test per enum keeps each `ALL` complete, and a laminapdf-wasm unit test checks that each name table names every variant once.
+- [x] Add `ALL` to `FillRule`, `LineCap`, `LineJoin`, `BlendMode`, `ArtifactKind` and `TableScope` (`TagKind` had one). An exhaustive-match test per enum makes a new variant fail to build there first, then checks `ALL` lists each variant once at its index, and a laminapdf-wasm unit test checks that each name table names every variant once.
 - [x] Extend the generator. `cargo xtask gen codes` also writes `packages/render/src/generated/codes.ts`, from `fixtures/codes.json` and the codes laminapdf-render's `RenderError::error_code` returns. The new `cargo xtask gen boundary` reads laminapdf-wasm's name tables and `TagKind::as_str` from the source, without a build, and writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render-hayro/src/generated/version.ts` (`HAYRO_VERSION` from the workspace's hayro pin, which laminapdf-render's `HayroBackend::version` must also return). Each file carries the `@generated` header.
 - [x] Send structure types, table scopes and artifact kinds as names: `beginTag` and `beginArtifact` take strings, and `@laminapdf/sdk` changes with them. Fill rules, caps, joins and blend modes already travelled as names.
 - [x] Delete the hand lists: `@laminapdf/sdk`'s builder lists, `@laminapdf/render`'s code tables and its `test/codes.test.ts`, and laminapdf-build's test that scraped `builder.ts`. The render generator lists only `disposed` itself (the web adapters alone throw it). `check docs` runs `gen boundary --check` beside `gen codes --check`.
@@ -67,6 +67,6 @@ Changing indices to strings changes the WASM call signatures: change `@laminapdf
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

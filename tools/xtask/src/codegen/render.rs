@@ -21,18 +21,23 @@ pub(super) const RUST_ERRORS: &str = "crates/laminapdf-render/src/error.rs";
 /// Codes only the web adapters throw (a closed `RenderDocument`; in Rust, dropping closes).
 const WEB_ONLY: [&str; 1] = ["disposed"];
 
-/// The `ErrorCode::X` variants `RenderError::error_code` returns, in order, each once.
+/// The `ErrorCode::X` variants `RenderError::error_code` returns, in order, each once. It reads
+/// the function's body by brace depth and ignores `//` comments, whole lines or trailing.
 fn rust_codes(source: &str) -> Result<Vec<&str>> {
     let start = source
         .find("pub const fn error_code(&self) -> ErrorCode {")
         .with_context(|| format!("{RUST_ERRORS}: no RenderError::error_code"))?;
     let mut variants = Vec::new();
-    for line in source[start..].lines().skip(1).take_while(|l| l.trim() != "}") {
-        if line.trim_start().starts_with("//") {
-            continue;
+    let mut depth = 1_i32;
+    for line in source[start..].lines().skip(1) {
+        let code = line.split_once("//").map_or(line, |(code, _)| code);
+        depth += i32::try_from(code.matches('{').count()).unwrap_or(0);
+        depth -= i32::try_from(code.matches('}').count()).unwrap_or(0);
+        if depth <= 0 {
+            break;
         }
-        for (at, _) in line.match_indices("ErrorCode::") {
-            let rest = &line[at + "ErrorCode::".len()..];
+        for (at, _) in code.match_indices("ErrorCode::") {
+            let rest = &code[at + "ErrorCode::".len()..];
             let variant = rest
                 .split(|c: char| !c.is_ascii_alphanumeric())
                 .next()
@@ -124,4 +129,28 @@ pub(super) fn render_ts(codes: &Codes, rust_errors: &str) -> Result<String> {
         quoted(&codes.docs_suffix)
     );
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rust_codes;
+
+    const SOURCE: &str = "    pub const fn error_code(&self) -> ErrorCode {
+        match self {
+            Self::A => ErrorCode::Source, // was ErrorCode::RenderFailed
+            Self::B => {
+                ErrorCode::Cancelled
+            }
+            Self::C => ErrorCode::DataPending,
+        }
+    }
+
+    fn other(&self) -> ErrorCode {
+        ErrorCode::Strict
+    }";
+
+    #[test]
+    fn rust_codes_should_read_every_arm_of_error_code_and_nothing_else() {
+        assert_eq!(rust_codes(SOURCE).unwrap(), ["Source", "Cancelled", "DataPending"]);
+    }
 }

@@ -79,7 +79,7 @@ pub(crate) fn generate(ws: &Workspace, check: bool) -> Result<()> {
         (SDK_ENUMS.to_owned(), render_sdk(&read(DTO)?, &read(TAG_KIND)?)?),
         (HAYRO_VERSION.to_owned(), render_hayro(&version)),
     ];
-    super::write_outputs(ws, &outputs, check, "gen boundary", "the Rust source")
+    super::write_outputs(ws, &outputs, check, "gen boundary", "the Rust source and Cargo.toml")
 }
 
 /// The names of `const NAME: [(&str, Type); N] = [("name", Type::Variant), …];` in `source`
@@ -246,11 +246,16 @@ mod tests {
         assert_eq!(name_table(src, "t.rs", "A").unwrap(), ["a"]);
     }
 
+    const HAYRO_SOURCE: &str = "    fn version(&self) -> &'static str {\n        // pinned\n        \"0.7.0\"\n    }";
+
     #[test]
     fn check_rust_hayro_version_should_refuse_another_version() {
-        let src = "    fn version(&self) -> &'static str {\n        // pinned\n        \"0.7.0\"\n    }";
-        assert!(check_rust_hayro_version(src, "0.8.0").is_err());
-        assert!(check_rust_hayro_version(&src.replace("0.7.0", "0.8.0"), "0.8.0").is_ok());
+        assert!(check_rust_hayro_version(HAYRO_SOURCE, "0.8.0").is_err());
+    }
+
+    #[test]
+    fn check_rust_hayro_version_should_accept_the_pinned_version() {
+        assert!(check_rust_hayro_version(HAYRO_SOURCE, "0.7.0").is_ok());
     }
 
     #[test]

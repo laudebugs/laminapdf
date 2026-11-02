@@ -60,8 +60,8 @@ pub(crate) fn begin(content: &mut Content, kind: ArtifactKind, page_box: [f32; 4
 mod tests {
     use super::*;
 
-    /// The match is exhaustive, so a new variant fails to build until it has an arm here and a
-    /// place in `ALL`.
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
     #[test]
     fn all_should_list_every_artifact_kind_once_in_declaration_order() {
         let index = |v: ArtifactKind| match v {
@@ -70,6 +70,6 @@ mod tests {
             ArtifactKind::Pagination => 2,
             ArtifactKind::Background => 3,
         };
-        assert_eq!(ArtifactKind::ALL.map(index), [0, 1, 2, 3]);
+        assert!(ArtifactKind::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
     }
 }
