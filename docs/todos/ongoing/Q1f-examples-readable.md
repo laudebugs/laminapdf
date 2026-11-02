@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](../done/Q1c-examples-checks.md), [Q1d](../ongoing/Q1d-example-api-cleanups.md) |
-| Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1l](./Q1l-docs-checks-strict.md) |
+| Depends on | [Q1c](../done/Q1c-examples-checks.md), [Q1d](./Q1d-example-api-cleanups.md) |
+| Blocks | [Q1j](../ready/Q1j-recipes-and-troubleshooting.md), [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
-| Branch | `refactor/q1f-examples-readable` |
+| Branch | `feat/q1d-example-api-cleanups` (with [Q1d](./Q1d-example-api-cleanups.md): editing an example makes its checks strict, so the two land together) |
 | PR title | `refactor(examples): examples readers can copy into their apps` |
 | Size | M |
-| PR | — |
+| PR | [#192](https://github.com/laudebugs/laminapdf/pull/192) |
 
 ## Goal
 
@@ -36,7 +36,7 @@ This todo rewrites the TypeScript and Rust examples to the [examples guideline](
 
 **Out of scope** (and which todo covers it)
 
-- Cloudflare Worker and Web Worker examples ([Q1g](./Q1g-worker-examples.md)).
+- Cloudflare Worker and Web Worker examples ([Q1g](../ready/Q1g-worker-examples.md)).
 - Quick-start apps ([Q1e](../done/Q1e-quick-start-apps.md)).
 
 ## Tasks

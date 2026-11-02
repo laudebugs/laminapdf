@@ -31,7 +31,7 @@ The Cloudflare Worker example imports fonts from `../../../../../fixtures/`, and
 
 **Out of scope** (and which todo covers it)
 
-- Other examples ([Q1f](./Q1f-examples-readable.md)).
+- Other examples ([Q1f](../ongoing/Q1f-examples-readable.md)).
 
 ## Tasks
 

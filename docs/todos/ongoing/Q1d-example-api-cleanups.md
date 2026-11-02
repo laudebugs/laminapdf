@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1f](../ready/Q1f-examples-readable.md) |
+| Blocks | [Q1f](./Q1f-examples-readable.md) |
 | ADRs | Follows 0028; may amend it for `save` |
 | Branch | `feat/q1d-example-api-cleanups` |
 | PR title | `feat(api): small API fixes that make the examples read cleanly` |
@@ -36,7 +36,7 @@ Some of the noise in the examples comes from the API, not the examples. This tod
 
 **Out of scope** (and which todo covers it)
 
-- Readability rewrites of the examples ([Q1f](../ready/Q1f-examples-readable.md)).
+- Readability rewrites of the examples ([Q1f](./Q1f-examples-readable.md)).
 - Façade renames ([Q2s](../ready/Q2s-facade-names.md)).
 
 ## Tasks
