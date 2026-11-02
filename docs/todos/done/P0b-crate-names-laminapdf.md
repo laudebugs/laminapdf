@@ -59,7 +59,7 @@ Give every Rust crate a name we can publish. `lamina` on crates.io belongs to an
 
 ## Post-merge checks
 
-- [ ] Once no open branch predates the rename, remove `RENAMED` and `renamed_only` from `tools/xtask/src/reports.rs`, so the ratchet treats every change alike again.
+- [x] Once no open branch predates the rename, remove `RENAMED` and `renamed_only` from `tools/xtask/src/reports.rs`, so the ratchet treats every change alike again. Done after P0c, on 2026-11-01, when no branch was open.
 
 ## Tests
 
