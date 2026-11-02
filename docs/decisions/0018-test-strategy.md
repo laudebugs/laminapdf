@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Amended 2026-11-02 (owner): the release guard also accepts a dispatched nightly run on `main` with every input at its default; until then the Release row counted only scheduled runs ([implementation note](#release-guard-accepts-a-full-dispatched-nightly-2026-11-02)).
 
 ## Context
 

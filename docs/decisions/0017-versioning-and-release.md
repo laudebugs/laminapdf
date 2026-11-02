@@ -2,6 +2,7 @@
 
 - Status: Accepted for the versioning part (§1–§6; todo [B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md), 2026-10-31). The publishing part (§7) Accepted on 2026-11-01 (todo [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md)).
 - Date: 2026-10-31
+- Amended 2026-11-02 (owner): the release guard (§6, step 1) also accepts a dispatched nightly run on `main` with every input at its default, not only a scheduled one; until then it read "a dispatched run may use short budgets" and counted scheduled runs only. The reasons and the rule are in [ADR 0018's implementation notes](0018-test-strategy.md#release-guard-accepts-a-full-dispatched-nightly-2026-11-02).
 - Amended 2026-10-31: `@laminapdf/render`, `@laminapdf/render-hayro` and `@laminapdf/render-pdfium` (C2c) join the lockstep group at `0.1.0-alpha.0`. `@laminapdf/render` and `@laminapdf/render-hayro` are built from the same Rust tree as `lamina_pdf_render_hayro` in `@laminapdf/wasm`, so they are only correct at the same commit; `@laminapdf/render-pdfium`'s version is ours (its adapter and the `@laminapdf/render` contract it implements), not PDFium's, and the pinned `@embedpdf/pdfium` stays an ordinary dependency. `version sync` now reads the group from `.changeset/config.json` (a new member needs no code change), merges every member's changelog into the root one (§4), and also writes `@laminapdf/sdk`'s `VERSION` constant (`packages/sdk/src/version.ts`, the worker handshake's version, L2a).
 
 ## Context

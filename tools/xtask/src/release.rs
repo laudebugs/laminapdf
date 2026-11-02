@@ -54,10 +54,13 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
     Ok(parsed)
 }
 
-/// Checks the latest completed scheduled nightly run on `main` (or run `run`) and fails unless
+/// Checks the latest completed full nightly run on `main` (see [`ran_full_nightly`]), or run
+/// `run`, and fails unless
 /// it succeeded on the release commit or an ancestor of it.
 pub(crate) fn guard(root: &Path, args: &Args) -> Result<()> {
-    crate::step("release-guard: the latest full nightly run on main (scheduled or dispatched) must have succeeded");
+    crate::step(
+        "release-guard: the latest full nightly run on main (scheduled, or dispatched with every input at its default) must have succeeded",
+    );
     let release = git_stdout(root, &["rev-parse", "--verify", &format!("{}^{{commit}}", args.commit)])
         .with_context(|| format!("{:?} is not a commit in this clone", args.commit))?;
     let json = match &args.run {
@@ -112,32 +115,39 @@ fn gh(args: &[&str]) -> Result<String> {
     String::from_utf8(output.stdout).context("gh printed non-UTF-8 output")
 }
 
-/// Whether `run` ran the full nightly lane: scheduled, or dispatched with every input at its
-/// default ([`FULL_DISPATCH_TITLE`]).
-fn ran_full_lane(run: &Value) -> bool {
-    let field = |name: &str| run.get(name).and_then(Value::as_str);
-    match field("event") {
+/// The string field `name` of a run object, if it has one.
+fn text<'a>(run: &'a Value, name: &str) -> Option<&'a str> {
+    run.get(name).and_then(Value::as_str)
+}
+
+/// Whether `run` was a full nightly: scheduled, or dispatched with every input at its default
+/// (titled [`FULL_DISPATCH_TITLE`]).
+fn ran_full_nightly(run: &Value) -> bool {
+    match text(run, "event") {
         Some("schedule") => true,
-        Some("workflow_dispatch") => field("displayTitle") == Some(FULL_DISPATCH_TITLE),
+        Some("workflow_dispatch") => text(run, "displayTitle") == Some(FULL_DISPATCH_TITLE),
         _ => false,
     }
 }
 
 /// The decision for `gh`'s JSON: one run object (`run view`) or a list of runs, newest first
-/// (`run list`), of which the first that [`ran_full_lane`] is judged. `Ok` with a line to print
+/// (`run list`), of which the first that [`ran_full_nightly`] is judged. `Ok` with a line to print
 /// when that run is a successful nightly run on `main` whose commit `contains` says is in the
 /// release commit's history; otherwise the reason the release is refused.
 fn verdict(json: &str, release: &str, contains: &dyn Fn(&str) -> Result<bool>) -> Result<String> {
     let value: Value = serde_json::from_str(json).context("gh printed JSON this guard can't read")?;
     let run = match &value {
-        Value::Array(runs) => runs.iter().find(|run| ran_full_lane(run)).context(
-            "refusing to release: there is no completed full nightly run on main, scheduled or dispatched with \
-             default inputs (wait for the next night, or run `gh workflow run nightly.yml --ref main`)",
-        )?,
+        Value::Array(runs) => runs.iter().find(|run| ran_full_nightly(run)).with_context(|| {
+            format!(
+                "refusing to release: none of the latest {LIST_LIMIT} completed nightly runs on main is a full \
+                 run (scheduled, or dispatched with every input at its default); wait for the next night, or \
+                 run `gh workflow run nightly.yml --ref main`"
+            )
+        })?,
         Value::Object(_) => &value,
         _ => bail!("gh printed neither a run nor a list of runs"),
     };
-    let field = |name: &str| run.get(name).and_then(Value::as_str).unwrap_or("?");
+    let field = |name: &str| text(run, name).unwrap_or("?");
     let id = run.get("databaseId").and_then(Value::as_u64).unwrap_or_default();
     let what = format!(
         "nightly run {id} on {} ({}, {}): {}",
@@ -155,7 +165,7 @@ fn verdict(json: &str, release: &str, contains: &dyn Fn(&str) -> Result<bool>) -
     if field("headBranch") != "main" {
         bail!("refusing to release: {what} is not a run on main");
     }
-    if !ran_full_lane(run) {
+    if !ran_full_nightly(run) {
         bail!(
             "refusing to release: {what} was triggered by {:?} and titled {:?}; only scheduled runs and \
              dispatched runs with every input at its default (titled {FULL_DISPATCH_TITLE:?}) count",
@@ -212,16 +222,34 @@ mod tests {
 
     use super::{Args, FULL_DISPATCH_TITLE, notes_for, parse_args, verdict};
 
-    fn run_with(conclusion: &str, status: &str, workflow: &str, branch: &str, event: &str) -> String {
-        titled(conclusion, status, workflow, branch, event, "Nightly")
+    /// A successful scheduled nightly run on main, as `gh` prints it, with `fields` replaced.
+    fn fixture(fields: &[(&str, &str)]) -> String {
+        let mut run = serde_json::json!({
+            "databaseId": 42, "conclusion": "success", "status": "completed", "event": "schedule",
+            "displayTitle": "Nightly", "headSha": "abc", "headBranch": "main", "workflowName": "Nightly",
+            "url": "https://example.invalid/42", "createdAt": "2026-10-30T03:17:00Z",
+        });
+        for (name, value) in fields {
+            run[*name] = serde_json::Value::from(*value);
+        }
+        run.to_string()
     }
 
-    fn titled(conclusion: &str, status: &str, workflow: &str, branch: &str, event: &str, title: &str) -> String {
-        format!(
-            r#"{{"databaseId":42,"conclusion":"{conclusion}","status":"{status}","event":"{event}","displayTitle":"{title}","headSha":"abc",
-               "headBranch":"{branch}","workflowName":"{workflow}","url":"https://example.invalid/42",
-               "createdAt":"2026-10-30T03:17:00Z"}}"#
-        )
+    /// A dispatched run titled `title`, with `fields` replaced.
+    fn dispatched(title: &str, fields: &[(&str, &str)]) -> String {
+        let mut all = vec![("event", "workflow_dispatch"), ("displayTitle", title)];
+        all.extend_from_slice(fields);
+        fixture(&all)
+    }
+
+    fn run_with(conclusion: &str, status: &str, workflow: &str, branch: &str, event: &str) -> String {
+        fixture(&[
+            ("conclusion", conclusion),
+            ("status", status),
+            ("workflowName", workflow),
+            ("headBranch", branch),
+            ("event", event),
+        ])
     }
 
     fn run(conclusion: &str, status: &str, workflow: &str) -> String {
@@ -294,73 +322,61 @@ mod tests {
 
     #[test]
     fn verdict_should_refuse_a_dispatched_run_with_short_budgets() {
-        let error = verdict(
-            &titled(
-                "success",
-                "completed",
-                "Nightly",
-                "main",
-                "workflow_dispatch",
-                "Nightly (short budgets)",
-            ),
-            "def",
-            &in_history,
-        )
-        .unwrap_err();
+        let error = verdict(&dispatched("Nightly (short budgets)", &[]), "def", &in_history).unwrap_err();
         assert!(error.to_string().contains("every input at its default"), "{error}");
     }
 
     /// Dispatched runs from before nightly.yml had a `run-name` are titled plain "Nightly".
     #[test]
     fn verdict_should_refuse_a_dispatched_run_without_the_full_budgets_title() {
-        let refused = verdict(
-            &run_with("success", "completed", "Nightly", "main", "workflow_dispatch"),
-            "def",
-            &in_history,
-        );
-        assert!(refused.is_err());
+        assert!(verdict(&dispatched("Nightly", &[]), "def", &in_history).is_err());
     }
 
     #[test]
     fn verdict_should_pass_a_successful_dispatched_run_with_full_budgets() {
-        let run = titled(
-            "success",
-            "completed",
-            "Nightly",
-            "main",
-            "workflow_dispatch",
-            FULL_DISPATCH_TITLE,
-        );
+        let run = dispatched(FULL_DISPATCH_TITLE, &[]);
         assert!(verdict(&format!("[{run}]"), "def", &in_history).is_ok());
     }
 
-    /// The newest run that ran the full lane decides: newer short-budget dispatches are skipped,
-    /// and an older green night can't outvote a newer red one.
     #[test]
-    fn verdict_should_judge_the_newest_run_that_ran_the_full_lane() {
-        let short = titled(
-            "success",
-            "completed",
-            "Nightly",
-            "main",
-            "workflow_dispatch",
-            "Nightly (short budgets)",
-        );
-        let red = titled(
-            "failure",
-            "completed",
-            "Nightly",
-            "main",
-            "workflow_dispatch",
-            FULL_DISPATCH_TITLE,
-        );
-        let green = run("success", "completed", "Nightly");
+    fn verdict_should_skip_newer_short_dispatches() {
+        let short = dispatched("Nightly (short budgets)", &[("conclusion", "failure")]);
+        let green = fixture(&[]);
         assert!(verdict(&format!("[{short},{green}]"), "def", &in_history).is_ok());
-        assert!(verdict(&format!("[{short},{red},{green}]"), "def", &in_history).is_err());
     }
 
-    /// nightly.yml's `run-name` gives [`FULL_DISPATCH_TITLE`] only to a dispatch whose inputs all
-    /// keep their defaults.
+    /// An older green night can't outvote a newer red full run.
+    #[test]
+    fn verdict_should_judge_the_newest_full_nightly() {
+        let red = dispatched(FULL_DISPATCH_TITLE, &[("conclusion", "failure")]);
+        let green = fixture(&[]);
+        assert!(verdict(&format!("[{red},{green}]"), "def", &in_history).is_err());
+    }
+
+    /// Every `workflow_dispatch` input of nightly.yml with its default: `(name, default)`, read
+    /// from the lines under `inputs:` (six-space-indented names, eight-space `default:` lines).
+    fn dispatch_inputs(workflow: &str) -> Vec<(&str, &str)> {
+        let block = workflow
+            .split("\n  workflow_dispatch:\n    inputs:\n")
+            .nth(1)
+            .unwrap_or_default();
+        let mut inputs: Vec<(&str, &str)> = Vec::new();
+        for line in block.lines().take_while(|l| l.starts_with("      ")) {
+            if let Some(name) = line.strip_prefix("      ").and_then(|l| l.strip_suffix(':')) {
+                if !name.starts_with(' ') {
+                    inputs.push((name, ""));
+                }
+            } else if let Some(value) = line.trim().strip_prefix("default: ")
+                && let Some(last) = inputs.last_mut()
+            {
+                last.1 = value.trim_matches('"');
+            }
+        }
+        inputs
+    }
+
+    /// nightly.yml's `run-name` gives [`FULL_DISPATCH_TITLE`] only to a dispatch whose every
+    /// input (read from the workflow, so a new input must be added) keeps its default.
     #[test]
     fn nightly_run_name_should_title_only_default_dispatches_full() {
         const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
@@ -370,15 +386,19 @@ mod tests {
             .take_while(|l| l.starts_with("run-name:") || l.starts_with("  "))
             .collect::<Vec<_>>()
             .join(" ");
-        for part in [
-            "github.event_name == 'workflow_dispatch'",
-            "inputs.fuzz-seconds == '600'",
-            "inputs.differential-sample == ''",
-            "inputs.render-diff-sample == ''",
-            "!inputs.force-failure",
-            &format!("'{FULL_DISPATCH_TITLE}'"),
-        ] {
-            assert!(run_name.contains(part), "run-name lacks {part}: {run_name}");
+        let inputs = dispatch_inputs(NIGHTLY);
+        assert!(inputs.len() >= 4, "{inputs:?}");
+        let mut parts: Vec<String> = inputs
+            .iter()
+            .map(|(name, default)| match *default {
+                "false" => format!("!inputs.{name}"),
+                value => format!("inputs.{name} == '{value}'"),
+            })
+            .collect();
+        parts.push("github.event_name == 'workflow_dispatch'".to_owned());
+        parts.push(format!("'{FULL_DISPATCH_TITLE}' || 'Nightly (short budgets)'"));
+        for part in parts {
+            assert!(run_name.contains(&part), "run-name lacks {part}: {run_name}");
         }
     }
 
