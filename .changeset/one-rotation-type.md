@@ -2,4 +2,4 @@
 "@laminapdf/render": minor
 ---
 
-Editing a page whose `/Rotate` is stored as an integral real, such as `90.0`, now sees the rotation the page displays: before, the `RotatePage` op read it as 0. The Rust crates share one rotation type, `Rotation`, which `laminapdf-syntax` defines and the model, the façade and `laminapdf-render` re-export. `laminapdf-render`'s `ViewRotation` is gone; `RenderRequest::with_rotation` takes a `Rotation`, and `RenderPage::rotate` is a `Rotation` instead of degrees. `laminapdf_cos::Page` no longer has `media_box`, `crop_box` and `rotate`: read them from `laminapdf-model`'s page view.
+The `RotatePage` op now reads a `/Rotate` stored as an integral real, such as `90.0`, as the rotation the page displays; before, it read 0. In the Rust crates, `Rotation` from `laminapdf-syntax` replaces `laminapdf-render`'s `ViewRotation` and the degrees in `RenderPage::rotate`, and `laminapdf_cos::Page` drops `media_box`, `crop_box` and `rotate`: read them, and their strict-mode errors, from `laminapdf-model`'s page view.

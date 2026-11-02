@@ -1,5 +1,5 @@
-//! [`Rotation`]: a quarter-turn rotation, clockwise, as `/Rotate` (ISO 32000-2 §7.7.3.3)
-//! stores it and a viewer adds it.
+//! [`Rotation`]: a rotation by a multiple of 90°, clockwise, as `/Rotate` (ISO 32000-2
+//! §7.7.3.3) stores it and a viewer adds it.
 
 use crate::Object;
 
@@ -30,7 +30,7 @@ impl Rotation {
         }
     }
 
-    /// The rotation for `degrees` (any multiple of 90, negative included), else `None`.
+    /// The rotation for `degrees` (any multiple of 90, negative included), else `Option::None`.
     #[must_use]
     pub const fn from_degrees(degrees: i64) -> Option<Self> {
         match degrees.rem_euclid(360) {
@@ -42,8 +42,22 @@ impl Rotation {
         }
     }
 
+    /// The rotation for `degrees` written the canonical way, 0, 90, 180 or 270, else
+    /// `Option::None`: the check for values callers pass in (op JSON, the bindings), where
+    /// `-90` or `450` is a mistake rather than a file to tolerate.
+    #[must_use]
+    pub const fn from_canonical_degrees(degrees: u16) -> Option<Self> {
+        match degrees {
+            0 => Some(Self::None),
+            90 => Some(Self::Clockwise90),
+            180 => Some(Self::Half),
+            270 => Some(Self::Clockwise270),
+            _ => None,
+        }
+    }
+
     /// The rotation a resolved `/Rotate` value states: an integer or an integral real that is
-    /// a multiple of 90 (`90` and `90.0` alike), else `None`.
+    /// a multiple of 90 (`90` and `90.0` alike), else `Option::None`.
     #[must_use]
     pub fn from_object(value: &Object) -> Option<Self> {
         let degrees = match *value {
@@ -107,6 +121,15 @@ mod tests {
                 None
             ]
         );
+    }
+
+    #[test]
+    fn from_canonical_degrees_should_refuse_other_spellings() {
+        let read: Vec<_> = [270, 450, 45]
+            .into_iter()
+            .map(Rotation::from_canonical_degrees)
+            .collect();
+        assert_eq!(read, [Some(Rotation::Clockwise270), None, None]);
     }
 
     #[test]

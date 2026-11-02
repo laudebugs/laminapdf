@@ -215,15 +215,11 @@ fn request(
     flags: u32,
     background: Option<u32>,
 ) -> Result<RenderRequest, JsValue> {
-    // Only the four canonical values: the TS type is `0 | 90 | 180 | 270`.
-    let rotation = Some(rotation)
-        .filter(|r| *r < 360)
-        .and_then(|r| Rotation::from_degrees(i64::from(r)))
-        .ok_or_else(|| {
-            throw(&RenderError::InvalidRequest {
-                what: "rotation must be 0, 90, 180 or 270",
-            })
-        })?;
+    let rotation = Rotation::from_canonical_degrees(rotation).ok_or_else(|| {
+        throw(&RenderError::InvalidRequest {
+            what: "rotation must be 0, 90, 180 or 270",
+        })
+    })?;
     let mut req = RenderRequest::page(page, scale)
         .with_rotation(rotation)
         .with_flags(RenderFlags {

@@ -1164,8 +1164,8 @@ impl Document {
     /// [`Warning::PageTreeNodeSkipped`]. `/Count` is not trusted: the walk is authoritative,
     /// and a root `/Count` that differs raises [`Warning::PageCountMismatch`].
     ///
-    /// Page attributes are inherited as stored (an own reference is resolved only to tell an
-    /// explicit `null` from a value); `laminapdf-model` reads the boxes and `/Rotate`. A
+    /// Page attributes are inherited as stored (the page's own reference is resolved only to
+    /// tell an explicit `null` from a value); `laminapdf-model` reads the boxes and `/Rotate`. A
     /// malformed `/Resources` or `/Count` reads as absent.
     ///
     /// # Errors

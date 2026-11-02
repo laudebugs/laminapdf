@@ -1,6 +1,7 @@
-//! ADR 0018 tier 4: every corpus file opens (or fails with a coded error), and its page count
-//! and outline titles equal pypdf's facts in `fixtures/corpus/expected.json`, except the
-//! deliberate differences listed in `fixtures/corpus/exceptions.toml`.
+//! ADR 0018 tier 4: every corpus file opens (or fails with a coded error), and its page count,
+//! outline titles and first-page media box equal pypdf's facts in
+//! `fixtures/corpus/expected.json`, except the deliberate differences listed in
+//! `fixtures/corpus/exceptions.toml`.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -42,6 +43,15 @@ fn exceptions() -> Vec<(String, String)> {
         .collect()
 }
 
+/// `value` with every number as a float: pypdf writes `612` where Lamina PDF reads `612.0`.
+fn as_floats(value: &Value) -> Value {
+    match value {
+        Value::Number(n) => n.as_f64().map_or(Value::Null, Value::from),
+        Value::Array(items) => items.iter().map(as_floats).collect(),
+        other => other.clone(),
+    }
+}
+
 fn check_fact(fact: &str, ours: impl Fn(&laminapdf_model::Document) -> Option<Value>) {
     let expected = json("corpus/expected.json");
     let excused = exceptions();
@@ -55,7 +65,7 @@ fn check_fact(fact: &str, ours: impl Fn(&laminapdf_model::Document) -> Option<Va
         match open(&bytes) {
             Ok(doc) => {
                 let ours = ours(&doc);
-                if ours.as_ref() != Some(theirs) {
+                if ours.as_ref().map(as_floats) != Some(as_floats(theirs)) {
                     failures.push(format!("{name}: {fact}: ours {ours:?} vs pypdf {theirs}"));
                 }
             }
@@ -95,23 +105,11 @@ fn outline_titles_match_pypdf() {
 
 #[test]
 fn first_page_media_box_matches_pypdf() {
-    let expected = json("corpus/expected.json");
-    let mut failures = Vec::new();
-    for (name, bytes) in corpus() {
-        let doc = open(&bytes).unwrap();
-        let pages = doc.pages().unwrap();
-        let ours = pages
-            .get(0)
-            .and_then(|p| p.media_box().unwrap())
-            .map(|b| b.to_array().to_vec());
-        let theirs: Option<Vec<f64>> = expected[&name]["first_page_mediabox"]
-            .as_array()
-            .map(|a| a.iter().filter_map(Value::as_f64).collect());
-        if ours != theirs {
-            failures.push(format!("{name}: ours {ours:?} vs pypdf {theirs:?}"));
-        }
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    check_fact("first_page_mediabox", |doc| {
+        let pages = doc.pages().ok()?;
+        let media = pages.get(0)?.media_box().ok()??;
+        Some(Value::from(media.to_array().to_vec()))
+    });
 }
 
 #[test]
@@ -127,6 +125,9 @@ fn exceptions_name_corpus_files() {
     let names: Vec<String> = corpus().into_iter().map(|(n, _)| n).collect();
     for (file, fact) in exceptions() {
         assert!(names.contains(&file), "{file}");
-        assert!(["page_count", "outline_titles"].contains(&fact.as_str()), "{fact}");
+        assert!(
+            ["page_count", "outline_titles", "first_page_mediabox"].contains(&fact.as_str()),
+            "{fact}"
+        );
     }
 }

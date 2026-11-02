@@ -71,11 +71,8 @@ pub(crate) mod rotation {
 
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Rotation, D::Error> {
         let degrees = u16::deserialize(d)?;
-        match degrees {
-            0 | 90 | 180 | 270 => Rotation::from_degrees(i64::from(degrees)),
-            _ => None,
-        }
-        .ok_or_else(|| de::Error::invalid_value(de::Unexpected::Unsigned(u64::from(degrees)), &"0, 90, 180 or 270"))
+        Rotation::from_canonical_degrees(degrees)
+            .ok_or_else(|| de::Error::invalid_value(de::Unexpected::Unsigned(u64::from(degrees)), &"0, 90, 180 or 270"))
     }
 }
 

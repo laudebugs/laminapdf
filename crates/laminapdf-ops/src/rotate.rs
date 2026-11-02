@@ -47,10 +47,14 @@ impl RotatePage {
             None => self.find_by_walk(doc)?,
         };
         let degrees = Object::Integer(i64::from(self.rotate.degrees()));
-        // An own value (even an invalid one, which this op repairs) is replaced in place;
-        // without one, nothing is written when the inherited value already matches.
+        // An own value is replaced in place unless it already states this rotation (`90`,
+        // `90.0` or a reference to either); an invalid one is repaired. Without one, nothing
+        // is written when the inherited value already matches.
         let unchanged = match dict.get("Rotate") {
-            Some(own) => *own == degrees,
+            Some(own) => {
+                let own = tolerant(doc.deref(own).map(laminapdf_cos::Resolved::into_owned))?;
+                own.as_ref().and_then(Rotation::from_object) == Some(self.rotate)
+            }
             None => inherited == self.rotate,
         };
         if unchanged {
@@ -63,7 +67,10 @@ impl RotatePage {
 
     /// The page object, its dictionary and the rotation it inherits, found by following
     /// `/Parent` up to the root `/Pages` and checking each parent's `/Kids` lists the child:
-    /// a few lookups instead of a page-tree walk. `None` when that path is broken (a wrong
+    /// a few lookups instead of a page-tree walk. The one place outside `laminapdf-model`
+    /// that reads an inherited `/Rotate`, kept for speed: the value goes through
+    /// [`Rotation::from_object`] like the model's, and the nearest ancestor's non-null value
+    /// wins, as in the walk. `None` when that path is broken (a wrong
     /// `/Parent`, a path ID, something unreadable): [`RotatePage::find_by_walk`] decides.
     fn find_by_parents(&self, doc: &laminapdf_model::Document) -> Result<Option<(ObjRef, Dict, Rotation)>> {
         let Some(r) = self.page.as_lamina_id().obj_ref() else {
