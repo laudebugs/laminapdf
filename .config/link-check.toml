@@ -12,6 +12,10 @@ prefix = "https://github.com/laudebugs/laminapdf/"
 reason = "the repository is private: its PRs, issues and runs answer 404 without a login"
 
 [[allow]]
+prefix = "https://github.com/laudebugs/lamina/"
+reason = "the repository's name before the 2026-11-01 rename, still in older links; like the new name, it answers 404 without a login (GitHub redirects it)"
+
+[[allow]]
 prefix = "https://app.semanticdiff.com/"
 reason = "answers 429 to automated clients (rate limit or bot protection)"
 
@@ -20,12 +24,20 @@ prefix = "https://business.adobe.com/"
 reason = "stalls non-browser clients until they time out, over HTTP/1.1 and HTTP/2 (bot protection)"
 
 [[allow]]
+prefix = "https://chromium.googlesource.com/"
+reason = "answered 503, or passed only on a retry, on 2026-11-01 and 2026-11-02 (rate limit under the nightly's request volume)"
+
+[[allow]]
 prefix = "https://deepwiki.com/"
 reason = "answers 429 to automated clients (rate limit or bot protection)"
 
 [[allow]]
 prefix = "https://deu.proz.com/"
 reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://docs.unstructured.io/"
+reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
 
 [[allow]]
 prefix = "https://fourweekmba.com/"
@@ -40,12 +52,20 @@ prefix = "https://hacecuentas.com/"
 reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
+prefix = "https://huggingface.co/"
+reason = "answers 403 to automated clients from some networks (rate limit or bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
+
+[[allow]]
 prefix = "https://mcpplaygroundonline.com/"
 reason = "answers 429 to automated clients (rate limit or bot protection)"
 
 [[allow]]
 prefix = "https://nl-be.trustpilot.com/"
 reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://openai.com/"
+reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://press.rebus.community/"
@@ -56,16 +76,40 @@ prefix = "https://slack-chats.kotlinlang.org/"
 reason = "answers 429 to automated clients (rate limit or bot protection)"
 
 [[allow]]
+prefix = "https://web.archive.org/web/"
+reason = "Wayback Machine snapshots stand in for dead pages (they don't move); the archive is slow and rate-limits bots, so a nightly check would only add noise"
+
+[[allow]]
 prefix = "https://wikidocs.net/"
 reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.americanbar.org/"
+reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://www.brainbound.blog/"
 reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
+prefix = "https://www.eesel.ai/"
+reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
+
+[[allow]]
 prefix = "https://www.g2.com/"
 reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.iso.org/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.llamaindex.ai/"
+reason = "answers 403 to automated clients from some networks (Vercel bot protection); 200 from a browser and from the other Mac; the nightly runs on both, so it would fail every night it lands there"
+
+[[allow]]
+prefix = "https://www.npmjs.com/"
+reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
 prefix = "https://www.publicsector.shidirect.com/"
@@ -84,13 +128,5 @@ prefix = "https://www.w3schools.com/"
 reason = "answers 403 to non-browser clients (bot protection)"
 
 [[allow]]
-prefix = "https://www.iso.org/"
-reason = "answers 403 to non-browser clients (bot protection)"
-
-[[allow]]
 prefix = "https://yingtongli.me/"
 reason = "answers 403 to non-browser clients, even with a browser user agent (bot protection)"
-
-[[allow]]
-prefix = "https://web.archive.org/web/"
-reason = "Wayback Machine snapshots stand in for dead pages (they don't move); the archive is slow and rate-limits bots, so a nightly check would only add noise"

@@ -92,7 +92,8 @@ pub enum Warning {
         /// Which box, e.g. `"MediaBox"`.
         key: &'static str,
     },
-    /// `invalid-rotate`: a page's `/Rotate` is not an integer multiple of 90; the view reads 0.
+    /// `invalid-rotate`: a page's `/Rotate` is not an integer or integral real (such as
+    /// `90.0`) that is a multiple of 90; the view reads 0.
     InvalidRotate {
         /// The page's object number (`None` for a direct page dictionary).
         object: Option<u32>,

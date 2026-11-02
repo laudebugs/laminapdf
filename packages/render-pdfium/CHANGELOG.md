@@ -12,6 +12,7 @@
 - Updated dependencies [5c2624e]
 - Updated dependencies [1c6e773]
 - Updated dependencies [6f7ae81]
+- Updated dependencies [2a9e364]
   - @laminapdf/render@0.2.0-alpha.1
 
 ## 0.2.0-alpha.0

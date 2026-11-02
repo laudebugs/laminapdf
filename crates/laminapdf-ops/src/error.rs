@@ -145,12 +145,6 @@ impl Error {
 /// Shorthand for `Result<T, laminapdf_ops::Error>`.
 pub type Result<T> = core::result::Result<T, Error>;
 
-/// `Ok(Some(v))`, or `Ok(None)` for a COS error an op may treat as "unreadable": every one
-/// except those that [must propagate](laminapdf_cos::Error::must_propagate), which end the op.
-pub(crate) fn tolerant<T>(result: laminapdf_cos::Result<T>) -> Result<Option<T>> {
-    laminapdf_cos::tolerant(result).map_err(Error::Cos)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

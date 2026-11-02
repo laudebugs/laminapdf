@@ -69,6 +69,7 @@ mod geometry;
 mod id;
 mod info;
 mod labels;
+mod locate;
 mod outline;
 mod page;
 mod structure;
@@ -80,6 +81,7 @@ pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserS
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
+pub use locate::ParentedPage;
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
 pub use page::{Page, Pages, Rotation};
 pub use structure::{StructElem, StructKid, StructTree};

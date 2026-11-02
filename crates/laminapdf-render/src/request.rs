@@ -1,6 +1,8 @@
 //! What a caller asks a backend to draw ([`RenderRequest`]), the bounds every backend enforces
 //! ([`RenderLimits`]) and the tile geometry they share ([`TilePlan`]), ADR 0004 §1.
 
+use laminapdf_syntax::Rotation;
+
 use crate::error::RenderError;
 
 /// The output pixel format of every backend: RGBA8, **straight (not premultiplied) alpha**,
@@ -68,39 +70,6 @@ impl RenderOpenOptions {
     #[must_use]
     pub const fn limits(&self) -> &RenderLimits {
         &self.limits
-    }
-}
-
-/// A view rotation, clockwise, added to the page's own `/Rotate`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum ViewRotation {
-    /// Upright.
-    #[default]
-    None,
-    /// 90° clockwise.
-    Clockwise90,
-    /// 180°.
-    Half,
-    /// 270° clockwise (90° counter-clockwise).
-    Clockwise270,
-}
-
-impl ViewRotation {
-    /// Whether the rotation swaps width and height.
-    #[must_use]
-    pub const fn is_quarter_turn(self) -> bool {
-        matches!(self, Self::Clockwise90 | Self::Clockwise270)
-    }
-
-    /// The rotation in degrees (0, 90, 180 or 270).
-    #[must_use]
-    pub const fn degrees(self) -> u16 {
-        match self {
-            Self::None => 0,
-            Self::Clockwise90 => 90,
-            Self::Half => 180,
-            Self::Clockwise270 => 270,
-        }
     }
 }
 
@@ -180,7 +149,7 @@ pub struct RenderRequest {
     /// The tile to draw; `None` is the whole page (still bounded by [`RenderLimits`]).
     pub clip: Option<PixelRect>,
     /// The view rotation.
-    pub rotation: ViewRotation,
+    pub rotation: Rotation,
     /// What to draw.
     pub flags: RenderFlags,
     /// The background; `None` is transparent.
@@ -195,7 +164,7 @@ impl RenderRequest {
             page,
             scale,
             clip: None,
-            rotation: ViewRotation::None,
+            rotation: Rotation::None,
             flags: RenderFlags::default(),
             background: Some(Rgba8::WHITE),
         }
@@ -210,7 +179,7 @@ impl RenderRequest {
 
     /// The view rotation.
     #[must_use]
-    pub const fn with_rotation(mut self, rotation: ViewRotation) -> Self {
+    pub const fn with_rotation(mut self, rotation: Rotation) -> Self {
         self.rotation = rotation;
         self
     }
@@ -237,8 +206,8 @@ pub struct RenderPage {
     pub width: f32,
     /// Displayed height in points.
     pub height: f32,
-    /// The page's own `/Rotate`, normalised to 0, 90, 180 or 270.
-    pub rotate: u16,
+    /// The page's own `/Rotate`.
+    pub rotate: Rotation,
 }
 
 /// The geometry of one validated request: the whole page's pixel size at the scale and view
@@ -339,7 +308,7 @@ impl TilePlan {
     /// apply the view `rotation`, shift the tile to the origin. Both adapters draw with it, so
     /// their tiles agree.
     #[must_use]
-    pub fn page_to_tile(&self, page: &RenderPage, rotation: ViewRotation) -> [f64; 6] {
+    pub fn page_to_tile(&self, page: &RenderPage, rotation: Rotation) -> [f64; 6] {
         // The page's pixel size before the view rotation.
         let (w0, h0) = if rotation.is_quarter_turn() {
             (f64::from(self.page_height), f64::from(self.page_width))
@@ -350,10 +319,10 @@ impl TilePlan {
         let (tx, ty) = (f64::from(self.tile.x), f64::from(self.tile.y));
         // Clockwise view rotations of the w0 × h0 bitmap, after scaling, then the tile shift.
         match rotation {
-            ViewRotation::None => [sx, 0.0, 0.0, sy, -tx, -ty],
-            ViewRotation::Clockwise90 => [0.0, sx, -sy, 0.0, h0 - tx, -ty],
-            ViewRotation::Half => [-sx, 0.0, 0.0, -sy, w0 - tx, h0 - ty],
-            ViewRotation::Clockwise270 => [0.0, -sx, sy, 0.0, -tx, w0 - ty],
+            Rotation::None => [sx, 0.0, 0.0, sy, -tx, -ty],
+            Rotation::Clockwise90 => [0.0, sx, -sy, 0.0, h0 - tx, -ty],
+            Rotation::Half => [-sx, 0.0, 0.0, -sy, w0 - tx, h0 - ty],
+            Rotation::Clockwise270 => [0.0, -sx, sy, 0.0, -tx, w0 - ty],
         }
     }
 
@@ -395,13 +364,13 @@ fn pixels(v: f64) -> Result<u32, RenderError> {
 #[cfg(test)]
 mod tests {
 
-    use super::{PixelRect, RenderLimits, RenderPage, RenderRequest, TilePlan, ViewRotation};
+    use super::{PixelRect, RenderLimits, RenderPage, RenderRequest, Rotation, TilePlan};
     use crate::RenderError;
 
     const LETTER: RenderPage = RenderPage {
         width: 612.0,
         height: 792.0,
-        rotate: 0,
+        rotate: Rotation::None,
     };
 
     mod tile_plan {
@@ -416,7 +385,7 @@ mod tests {
 
         #[test]
         fn quarter_turn_swaps_the_page_size() {
-            let req = RenderRequest::page(0, 1.0).with_rotation(ViewRotation::Clockwise90);
+            let req = RenderRequest::page(0, 1.0).with_rotation(Rotation::Clockwise90);
             let plan = TilePlan::new(&LETTER, &req, &RenderLimits::default()).unwrap();
             assert_eq!((plan.page_width, plan.page_height), (792, 612));
         }
@@ -452,7 +421,7 @@ mod tests {
                 let page = RenderPage {
                     width,
                     height,
-                    rotate: 0,
+                    rotate: Rotation::None,
                 };
                 let err = TilePlan::new(&page, &RenderRequest::page(0, 1.0), &RenderLimits::default()).unwrap_err();
                 assert_eq!(err.code(), "invalid-argument", "{width}×{height}");
@@ -505,20 +474,20 @@ mod tests {
             let page = RenderPage {
                 width: 100.0,
                 height: 50.0,
-                rotate: 0,
+                rotate: Rotation::None,
             };
             let apply = |m: [f64; 6], x: f64, y: f64| (m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]);
             let req = RenderRequest::page(0, 2.0);
             let plan = TilePlan::new(&page, &req, &RenderLimits::default()).unwrap();
             assert_eq!(
-                apply(plan.page_to_tile(&page, ViewRotation::None), 100.0, 50.0),
+                apply(plan.page_to_tile(&page, Rotation::None), 100.0, 50.0),
                 (200.0, 100.0)
             );
-            let turned = req.with_rotation(ViewRotation::Clockwise90);
+            let turned = req.with_rotation(Rotation::Clockwise90);
             let plan = TilePlan::new(&page, &turned, &RenderLimits::default()).unwrap();
             // Clockwise: the top-left corner goes to the top-right of the 100 × 200 bitmap.
             assert_eq!(
-                apply(plan.page_to_tile(&page, ViewRotation::Clockwise90), 0.0, 0.0),
+                apply(plan.page_to_tile(&page, Rotation::Clockwise90), 0.0, 0.0),
                 (100.0, 0.0)
             );
             let shifted = req.with_clip(PixelRect {
@@ -528,10 +497,7 @@ mod tests {
                 height: 5,
             });
             let plan = TilePlan::new(&page, &shifted, &RenderLimits::default()).unwrap();
-            assert_eq!(
-                apply(plan.page_to_tile(&page, ViewRotation::None), 5.0, 10.0),
-                (0.0, 0.0)
-            );
+            assert_eq!(apply(plan.page_to_tile(&page, Rotation::None), 5.0, 10.0), (0.0, 0.0));
         }
 
         #[test]

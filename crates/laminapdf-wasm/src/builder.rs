@@ -277,7 +277,8 @@ impl WasmPageBuilder {
     /// # Errors
     /// `invalid-argument` for another angle.
     pub fn rotate(&mut self, degrees: i32) -> JsResult<()> {
-        self.rotate = Rotation::from_degrees(i64::from(degrees)).ok_or_else(|| {
+        let canonical = u16::try_from(degrees).ok().and_then(Rotation::from_canonical_degrees);
+        self.rotate = canonical.ok_or_else(|| {
             invalid_argument(
                 "degrees",
                 "the rotation must be 0, 90, 180 or 270".to_owned(),

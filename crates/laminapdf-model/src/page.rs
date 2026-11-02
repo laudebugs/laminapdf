@@ -5,51 +5,13 @@ use std::cell::OnceCell;
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{Dict, DirectPath, ObjRef, Object, PathSegment, Result, Warning};
+pub use laminapdf_syntax::Rotation;
 
 use crate::document::Document;
 use crate::geometry::{LETTER, PageFrame, UserSpaceRect};
 use crate::id::PageId;
 use crate::labels::PageLabels;
 use crate::outline::Outline;
-
-/// A page's rotation (`/Rotate`, §7.7.3.3), clockwise when displayed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Rotation {
-    /// No rotation.
-    #[default]
-    None,
-    /// 90° clockwise.
-    Clockwise90,
-    /// 180°.
-    Half,
-    /// 270° clockwise (90° counter-clockwise).
-    Clockwise270,
-}
-
-impl Rotation {
-    /// The rotation in degrees: 0, 90, 180 or 270.
-    #[must_use]
-    pub const fn degrees(self) -> u16 {
-        match self {
-            Self::None => 0,
-            Self::Clockwise90 => 90,
-            Self::Half => 180,
-            Self::Clockwise270 => 270,
-        }
-    }
-
-    /// The rotation for `degrees` (any multiple of 90, negative included), else `None`.
-    #[must_use]
-    pub const fn from_degrees(degrees: i64) -> Option<Self> {
-        match degrees.rem_euclid(360) {
-            0 => Some(Self::None),
-            90 => Some(Self::Clockwise90),
-            180 => Some(Self::Half),
-            270 => Some(Self::Clockwise270),
-            _ => None,
-        }
-    }
-}
 
 /// The document's pages in page-tree order (the result of one walk; see
 /// [`laminapdf_cos::Document::pages`]).
@@ -335,28 +297,35 @@ impl<'p> Page<'p> {
         memo(self.cache().map(|c| &c.rotate), || self.read_rotate())
     }
 
-    fn read_rotate(&self) -> Result<Rotation> {
+    /// `/Rotate`, own or inherited, as [`Page::rotate`] reads it but without the warning: a
+    /// value that is not a multiple of 90 (or not a number) reads as [`Rotation::None`]. For
+    /// code that replaces the value, such as the `RotatePage` op.
+    ///
+    /// # Errors
+    /// [`laminapdf_cos::Error::DataPending`] / [`laminapdf_cos::Error::Source`], and
+    /// [`laminapdf_cos::Error::Strict`] in strict mode when the value cannot be resolved.
+    pub fn rotate_quietly(&self) -> Result<Rotation> {
+        Ok(self.stored_rotate()?.unwrap_or_default())
+    }
+
+    /// The stored `/Rotate` as a rotation ([`Rotation::None`] when absent), `None` when it is
+    /// malformed.
+    fn stored_rotate(&self) -> Result<Option<Rotation>> {
         let Some(value) = self.cos.inherited.rotate.as_deref() else {
-            return Ok(Rotation::None);
+            return Ok(Some(Rotation::None));
         };
-        let degrees = self.doc().read(value)?.and_then(|v| match *v {
-            Object::Integer(i) => Some(i),
-            #[expect(
-                clippy::cast_possible_truncation,
-                reason = "only integral values in i64 range get here"
-            )]
-            Object::Real(r) if r.fract() == 0.0 && r.abs() < 1e15 => Some(r as i64),
-            _ => None,
-        });
-        if let Some(rotation) = degrees.and_then(Rotation::from_degrees) {
-            Ok(rotation)
-        } else {
-            self.doc().warn(Warning::InvalidRotate {
-                object: self.object(),
-                page: self.page_number(),
-            })?;
-            Ok(Rotation::None)
+        self.doc().read_rotate(value)
+    }
+
+    fn read_rotate(&self) -> Result<Rotation> {
+        if let Some(rotation) = self.stored_rotate()? {
+            return Ok(rotation);
         }
+        self.doc().warn(Warning::InvalidRotate {
+            object: self.object(),
+            page: self.page_number(),
+        })?;
+        Ok(Rotation::None)
     }
 
     /// `/UserUnit` (§14.11.2.1): the size of a default user-space unit in 1/72 inch, read

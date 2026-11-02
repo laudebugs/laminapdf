@@ -15,6 +15,7 @@
 - Updated dependencies [1c6e773]
 - Updated dependencies [6f7ae81]
 - Updated dependencies [08e123d]
+- Updated dependencies [2a9e364]
   - @laminapdf/sdk@0.2.0-alpha.1
   - @laminapdf/render@0.2.0-alpha.1
   - @laminapdf/render-hayro@0.2.0-alpha.1

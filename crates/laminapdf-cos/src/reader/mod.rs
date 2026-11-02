@@ -57,7 +57,8 @@ const HEADER_PROBE: usize = 32;
 /// larger `DataPending` ranges for the many small objects of a typical file).
 const PROBE_GAP: usize = 256;
 
-/// A page with its inheritable attributes resolved (§7.7.3.4).
+/// A page with its inheritable attributes (§7.7.3.4): `/Resources` resolved, the others as
+/// stored. `laminapdf-model`'s page view reads the boxes and `/Rotate` from them.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Page {
@@ -65,17 +66,10 @@ pub struct Page {
     pub obj_ref: Option<ObjRef>,
     /// The page dictionary itself.
     pub dict: Dict,
-    /// `/MediaBox`, own or inherited.
-    pub media_box: Option<[f64; 4]>,
-    /// `/CropBox`, own or inherited.
-    pub crop_box: Option<[f64; 4]>,
-    /// `/Rotate`, own or inherited (0 if absent).
-    pub rotate: i64,
     /// `/Resources`, own or inherited, resolved. Always an [`Object::Dict`]; shared (not
     /// copied) between pages that inherit the same resources. See [`Page::resources_dict`].
     pub resources: Option<Arc<Object>>,
-    /// The inheritable attributes as stored (unresolved, own or inherited), for views that
-    /// need to tell an absent attribute from a malformed one.
+    /// The inheritable attributes as stored (unresolved, own or inherited).
     pub inherited: Arc<Inherited>,
     /// Where a direct page dictionary sits (`None` when the page is an indirect object).
     pub direct_path: Option<DirectPath>,
@@ -368,24 +362,6 @@ fn entries_are_valid(source: &Source, table: &XrefTable, limits: &Limits) -> Res
     }
     pending.finish()?;
     Ok(true)
-}
-
-/// `obj` as a rectangle; `None` when it is absent, malformed or not four numbers.
-fn as_rect(doc: &Document, obj: &Object) -> Result<Option<[f64; 4]>> {
-    let Some(arr) = absent_if_malformed(doc.deref(obj))? else {
-        return Ok(None);
-    };
-    let Some(items) = arr.as_array().filter(|items| items.len() == 4) else {
-        return Ok(None);
-    };
-    let mut out = [0.0; 4];
-    for (slot, item) in out.iter_mut().zip(items) {
-        match absent_if_malformed(doc.deref(item))?.and_then(|n| n.as_f64()) {
-            Some(n) => *slot = n,
-            None => return Ok(None),
-        }
-    }
-    Ok(Some(out))
 }
 
 /// Inheritable page attributes (§7.7.3.4) as stored, own or inherited and unresolved (a
@@ -1188,8 +1164,9 @@ impl Document {
     /// [`Warning::PageTreeNodeSkipped`]. `/Count` is not trusted: the walk is authoritative,
     /// and a root `/Count` that differs raises [`Warning::PageCountMismatch`].
     ///
-    /// A page attribute (`/MediaBox`, `/CropBox`, `/Rotate`, `/Resources`) or `/Count` that is
-    /// malformed reads as absent.
+    /// Page attributes are inherited as stored (the page's own reference is resolved only to
+    /// tell an explicit `null` from a value); `laminapdf-model` reads the boxes and `/Rotate`. A
+    /// malformed `/Resources` or `/Count` reads as absent.
     ///
     /// # Errors
     /// [`Error::ReferenceCycle`] when a page-tree node is reachable twice (e.g. a
@@ -1311,8 +1288,8 @@ impl Document {
         }
     }
 
-    /// A page from its dictionary and inherited attributes. A malformed attribute is `None`
-    /// (`/Rotate`: 0); cycles, hard limits and strict-mode refusals fail the call.
+    /// A page from its dictionary and inherited attributes. Malformed `/Resources` is `None`;
+    /// cycles, hard limits and strict-mode refusals fail the call.
     fn make_page(
         &self,
         obj_ref: Option<ObjRef>,
@@ -1320,14 +1297,6 @@ impl Document {
         attrs: Arc<Inherited>,
         direct_path: Option<DirectPath>,
     ) -> Result<Page> {
-        let rect = |o: &Option<Arc<Object>>| match o.as_deref() {
-            Some(o) => as_rect(self, o),
-            None => Ok(None),
-        };
-        let rotate = match attrs.rotate.as_deref() {
-            Some(o) => absent_if_malformed(self.deref(o))?.and_then(|r| r.as_int()),
-            None => None,
-        };
         // A direct dictionary is already shared through `attrs`; a reference resolves to
         // the cached object. Either way no dictionary is copied per page.
         let resources = match attrs.resources.as_ref() {
@@ -1340,9 +1309,6 @@ impl Document {
         .filter(|shared| matches!(**shared, Object::Dict(_)));
         Ok(Page {
             obj_ref,
-            media_box: rect(&attrs.media_box)?,
-            crop_box: rect(&attrs.crop_box)?,
-            rotate: rotate.unwrap_or(0),
             resources,
             dict,
             inherited: attrs,

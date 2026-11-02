@@ -1,11 +1,9 @@
 //! `RotatePage`: set a page's `/Rotate` (ISO 32000-2 §7.7.3.3).
 
-use std::sync::Arc;
-
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{PageId, Rotation};
 
-use crate::error::{Error, Result, tolerant};
+use crate::error::{Error, Result};
 use crate::wire;
 
 /// Sets a page's rotation to `rotate` (absolute, not relative to the current value).
@@ -47,10 +45,11 @@ impl RotatePage {
             None => self.find_by_walk(doc)?,
         };
         let degrees = Object::Integer(i64::from(self.rotate.degrees()));
-        // An own value (even an invalid one, which this op repairs) is replaced in place;
-        // without one, nothing is written when the inherited value already matches.
-        let unchanged = match dict.get("Rotate") {
-            Some(own) => *own == degrees,
+        // An own value is replaced in place unless it already states this rotation (`90`,
+        // `90.0` or a reference to either); an invalid one is repaired. Without one (or with
+        // `null`, which inherits), nothing is written when the inherited value already matches.
+        let unchanged = match dict.get("Rotate").filter(|own| !matches!(own, Object::Null)) {
+            Some(own) => doc.read_rotate(own)? == Some(self.rotate),
             None => inherited == self.rotate,
         };
         if unchanged {
@@ -61,68 +60,16 @@ impl RotatePage {
         Ok(vec![self.page.clone()])
     }
 
-    /// The page object, its dictionary and the rotation it inherits, found by following
-    /// `/Parent` up to the root `/Pages` and checking each parent's `/Kids` lists the child:
-    /// a few lookups instead of a page-tree walk. `None` when that path is broken (a wrong
-    /// `/Parent`, a path ID, something unreadable): [`RotatePage::find_by_walk`] decides.
+    /// The page object, its dictionary and the rotation it inherits, from
+    /// [`laminapdf_model::Document::page_by_parents`]: a few lookups instead of a page-tree
+    /// walk. `None` when that path is broken: [`RotatePage::find_by_walk`] decides.
     fn find_by_parents(&self, doc: &laminapdf_model::Document) -> Result<Option<(ObjRef, Dict, Rotation)>> {
         let Some(r) = self.page.as_lamina_id().obj_ref() else {
             return Ok(None);
         };
-        let Some(page) = tolerant(doc.resolve(r))? else {
-            return Ok(None);
-        };
-        let Some(dict) = page.as_dict() else {
-            return Ok(None);
-        };
-        let is_page = match dict.get_name("Type") {
-            Some(t) => t == b"Page",
-            None => !dict.contains_key("Kids"),
-        };
-        let root = tolerant(doc.catalog())?.and_then(|c| c.get("Pages").and_then(Object::as_ref));
-        let (true, Some(root)) = (is_page, root) else {
-            return Ok(None);
-        };
-        let mut inherited = None;
-        let (mut child, mut node) = (r, Arc::clone(&page));
-        for _ in 0..doc.limits().max_page_tree_depth() {
-            let Some(parent_ref) = node.as_dict().and_then(|d| d.get("Parent")).and_then(Object::as_ref) else {
-                return Ok(None);
-            };
-            let Some(parent) = tolerant(doc.resolve(parent_ref))? else {
-                return Ok(None);
-            };
-            let Some(parent_dict) = parent.as_dict() else {
-                return Ok(None);
-            };
-            let kids = match parent_dict.get("Kids") {
-                Some(kids) => tolerant(doc.deref(kids).map(laminapdf_cos::Resolved::into_arc))?,
-                None => None,
-            };
-            let listed = kids
-                .as_deref()
-                .and_then(Object::as_array)
-                .is_some_and(|kids| kids.contains(&Object::Ref(child)));
-            if !listed {
-                return Ok(None);
-            }
-            if inherited.is_none()
-                && let Some(value) = parent_dict.get("Rotate")
-            {
-                inherited = tolerant(doc.deref(value).map(laminapdf_cos::Resolved::into_owned))?
-                    .filter(|v| !matches!(v, Object::Null));
-            }
-            if parent_ref == root {
-                let rotation = inherited
-                    .as_ref()
-                    .and_then(Object::as_int)
-                    .and_then(Rotation::from_degrees)
-                    .unwrap_or(Rotation::None);
-                return Ok(Some((r, dict.clone(), rotation)));
-            }
-            (child, node) = (parent_ref, parent);
-        }
-        Ok(None)
+        Ok(doc
+            .page_by_parents(r)?
+            .map(|found| (r, found.dict, found.inherited_rotate)))
     }
 
     /// The page found by walking the page tree (the authority on what is a page); the
@@ -133,8 +80,6 @@ impl RotatePage {
             .by_id(&self.page)
             .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
         let r = page.obj_ref().ok_or_else(|| Error::DirectPage(self.page.clone()))?;
-        // The walk's own reading: own or inherited, a malformed value as 0, no warning.
-        let displayed = Rotation::from_degrees(page.cos().rotate).unwrap_or(Rotation::None);
-        Ok((r, page.dict().clone(), displayed))
+        Ok((r, page.dict().clone(), page.rotate_quietly()?))
     }
 }

@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use laminapdf_render::{
     ByteSource, CancelToken, RenderBackend, RenderDocument, RenderError, RenderLimits, RenderOpenOptions, RenderPage,
-    RenderRequest, SourceError, TilePlan, ViewRotation, merge_ranges,
+    RenderRequest, Rotation, SourceError, TilePlan, merge_ranges,
 };
 use pdfium_render::prelude::{
     PdfBitmap, PdfBitmapFormat, PdfColor, PdfDocument, PdfMatrix, PdfPage, PdfPageRenderRotation, PdfRenderConfig,
@@ -219,10 +219,10 @@ fn geometry(page: &PdfPage<'_>) -> RenderPage {
         width: page.width().value,
         height: page.height().value,
         rotate: match page.rotation() {
-            Ok(PdfPageRenderRotation::Degrees90) => 90,
-            Ok(PdfPageRenderRotation::Degrees180) => 180,
-            Ok(PdfPageRenderRotation::Degrees270) => 270,
-            Ok(PdfPageRenderRotation::None) | Err(_) => 0,
+            Ok(PdfPageRenderRotation::Degrees90) => Rotation::Clockwise90,
+            Ok(PdfPageRenderRotation::Degrees180) => Rotation::Half,
+            Ok(PdfPageRenderRotation::Degrees270) => Rotation::Clockwise270,
+            Ok(PdfPageRenderRotation::None) | Err(_) => Rotation::None,
         },
     }
 }
@@ -317,12 +317,12 @@ impl RenderDocument for PdfiumDocument {
     }
 }
 
-const fn rotation(r: ViewRotation) -> PdfPageRenderRotation {
+const fn rotation(r: Rotation) -> PdfPageRenderRotation {
     match r {
-        ViewRotation::None => PdfPageRenderRotation::None,
-        ViewRotation::Clockwise90 => PdfPageRenderRotation::Degrees90,
-        ViewRotation::Half => PdfPageRenderRotation::Degrees180,
-        ViewRotation::Clockwise270 => PdfPageRenderRotation::Degrees270,
+        Rotation::None => PdfPageRenderRotation::None,
+        Rotation::Clockwise90 => PdfPageRenderRotation::Degrees90,
+        Rotation::Half => PdfPageRenderRotation::Degrees180,
+        Rotation::Clockwise270 => PdfPageRenderRotation::Degrees270,
     }
 }
 
