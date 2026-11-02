@@ -23,11 +23,13 @@ import {
   type RenderDocument,
   RenderError,
   type RenderedTile,
+  type RenderFlags,
   type RenderLimits,
   type RenderOpenOptions,
   type RenderPage,
   type RenderRequest,
   type RenderSource,
+  type Rgba8,
   readFailure,
   readRange,
   type TilePlan,
@@ -147,6 +149,16 @@ interface Reads {
 function refusal(reads: Reads): RenderError | undefined {
   if (reads.failure !== undefined) return reads.failure;
   return reads.pending.length > 0 ? pendingError(reads.pending) : undefined;
+}
+
+/** PDFium's render flags for the request's flags; every render writes RGBA byte order. */
+function renderFlagsOf(flags: RenderFlags): number {
+  return (
+    (flags.annotations ? FPDF_ANNOT : 0) |
+    (flags.print ? FPDF_PRINTING : 0) |
+    (flags.grayscale ? FPDF_GRAYSCALE : 0) |
+    FPDF_REVERSE_BYTE_ORDER
+  );
 }
 
 class PdfiumDocument implements RenderDocument {
@@ -310,57 +322,81 @@ class PdfiumDocument implements RenderDocument {
     // As in every adapter: the abort first, then whether the document is open.
     throwIfAborted(options.signal);
     this.#live();
-    const p = this.#p;
-    const { malloc, free } = p.pdfium.wasmExports;
-    const result = this.#reading(() =>
-      this.#withPage(request.page, (page) => {
-        const info = this.#geometry(page);
-        const plan = planTile(info, request, this.#limits);
-        const { width, height } = plan.tile;
-        const flags = flagsOf(request.flags);
-        const background = request.background === undefined ? WHITE : request.background;
-        const renderFlags =
-          (flags.annotations ? FPDF_ANNOT : 0) |
-          (flags.print ? FPDF_PRINTING : 0) |
-          (flags.grayscale ? FPDF_GRAYSCALE : 0) |
-          FPDF_REVERSE_BYTE_ORDER;
-        const buffer = malloc(plan.byteLength);
-        if (buffer === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
-        const bitmap = p.FPDFBitmap_CreateEx(width, height, FPDFBITMAP_BGRA, buffer, width * 4);
-        let scratch = 0;
-        try {
-          if (bitmap === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
-          // FillRect takes 0xAARRGGBB into BGRA memory; with R and B swapped it lands as RGBA, the
-          // order the reversed-byte-order render writes.
-          const c = background ?? { r: 0, g: 0, b: 0, a: 0 };
-          p.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, ((c.a << 24) | (c.b << 16) | (c.g << 8) | c.r) >>> 0);
-          const rotate = (request.rotation ?? 0) / 90;
-          if (flags.annotations && flags.formWidgets) {
-            const [x, y] = [-plan.tile.x, -plan.tile.y];
-            p.FPDF_RenderPageBitmap(bitmap, page, x, y, plan.pageWidth, plan.pageHeight, rotate, renderFlags);
-            if (this.#form !== 0) {
-              p.FPDF_FFLDraw(this.#form, bitmap, page, x, y, plan.pageWidth, plan.pageHeight, rotate, renderFlags);
-            }
-          } else {
-            // FS_MATRIX (6 floats) then FS_RECTF (left, top, right, bottom).
-            scratch = malloc(40);
-            if (scratch === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate memory");
-            const floats = new Float32Array(heap(p).buffer, scratch, 10);
-            floats.set([...pageToTile(plan, info, request.rotation ?? 0), 0, 0, width, height]);
-            p.FPDF_RenderPageBitmapWithMatrix(bitmap, page, scratch, scratch + 24, renderFlags);
-          }
-          const pixels = new Uint8ClampedArray(plan.byteLength);
-          pixels.set(new Uint8Array(heap(p).buffer, buffer, plan.byteLength));
-          return { width, height, pixels };
-        } finally {
-          if (scratch !== 0) free(scratch);
-          if (bitmap !== 0) p.FPDFBitmap_Destroy(bitmap);
-          free(buffer);
-        }
-      }),
-    );
+    const result = this.#reading(() => this.#withPage(request.page, (page) => this.#renderPage(page, request)));
     throwIfAborted(options.signal);
     return result;
+  }
+
+  /** Renders the request's tile of an open page into a fresh bitmap and copies it out. */
+  #renderPage(page: number, request: RenderRequest): RenderedTile {
+    const p = this.#p;
+    const { malloc, free } = p.pdfium.wasmExports;
+    const info = this.#geometry(page);
+    const plan = planTile(info, request, this.#limits);
+    const { width, height } = plan.tile;
+    const buffer = malloc(plan.byteLength);
+    if (buffer === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
+    const bitmap = p.FPDFBitmap_CreateEx(width, height, FPDFBITMAP_BGRA, buffer, width * 4);
+    try {
+      if (bitmap === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
+      this.#fillBackground(bitmap, plan, request.background === undefined ? WHITE : request.background);
+      this.#draw(bitmap, page, plan, info, request);
+      const pixels = new Uint8ClampedArray(plan.byteLength);
+      pixels.set(new Uint8Array(heap(p).buffer, buffer, plan.byteLength));
+      return { width, height, pixels };
+    } finally {
+      if (bitmap !== 0) p.FPDFBitmap_Destroy(bitmap);
+      free(buffer);
+    }
+  }
+
+  /**
+   * Draws the page into the bitmap. Widgets need the whole page laid out and shifted, since
+   * FPDF_FFLDraw takes no matrix; without them the matrix call draws only the tile.
+   */
+  #draw(bitmap: number, page: number, plan: TilePlan, info: RenderPage, request: RenderRequest): void {
+    const flags = flagsOf(request.flags);
+    const renderFlags = renderFlagsOf(flags);
+    const rotation = request.rotation ?? 0;
+    if (flags.annotations && flags.formWidgets) {
+      this.#drawWithWidgets(bitmap, page, plan, rotation / 90, renderFlags);
+    } else {
+      this.#drawWithMatrix(bitmap, page, pageToTile(plan, info, rotation), plan, renderFlags);
+    }
+  }
+
+  #drawWithWidgets(bitmap: number, page: number, plan: TilePlan, rotate: number, renderFlags: number): void {
+    const p = this.#p;
+    const [x, y] = [-plan.tile.x, -plan.tile.y];
+    p.FPDF_RenderPageBitmap(bitmap, page, x, y, plan.pageWidth, plan.pageHeight, rotate, renderFlags);
+    if (this.#form !== 0) {
+      p.FPDF_FFLDraw(this.#form, bitmap, page, x, y, plan.pageWidth, plan.pageHeight, rotate, renderFlags);
+    }
+  }
+
+  /** Fills the whole bitmap with the background, or with transparent black when it is `null`. */
+  #fillBackground(bitmap: number, plan: TilePlan, background: Rgba8 | null): void {
+    // FillRect takes 0xAARRGGBB into BGRA memory; with R and B swapped it lands as RGBA, the
+    // order the reversed-byte-order render writes.
+    const c = background ?? { r: 0, g: 0, b: 0, a: 0 };
+    const color = ((c.a << 24) | (c.b << 16) | (c.g << 8) | c.r) >>> 0;
+    this.#p.FPDFBitmap_FillRect(bitmap, 0, 0, plan.tile.width, plan.tile.height, color);
+  }
+
+  /** Draws only the tile, through `matrix` (pageToTile's) and a clip of the whole bitmap. */
+  #drawWithMatrix(bitmap: number, page: number, matrix: readonly number[], plan: TilePlan, renderFlags: number): void {
+    const p = this.#p;
+    const { malloc, free } = p.pdfium.wasmExports;
+    // FS_MATRIX (6 floats) then FS_RECTF (left, top, right, bottom).
+    const scratch = malloc(40);
+    if (scratch === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate memory");
+    try {
+      const floats = new Float32Array(heap(p).buffer, scratch, 10);
+      floats.set([...matrix, 0, 0, plan.tile.width, plan.tile.height]);
+      p.FPDF_RenderPageBitmapWithMatrix(bitmap, page, scratch, scratch + 24, renderFlags);
+    } finally {
+      free(scratch);
+    }
   }
 
   close(): void {

@@ -271,7 +271,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2m](../todos/done/Q2m-ts-test-utils.md) | `@laminapdf/test-utils` for shared TypeScript test helpers | M | — |
 | [Q2n](../todos/done/Q2n-render-adapter-shared.md) | Shared code for the render adapters | M | Q2m |
 | [Q2o](../todos/done/Q2o-ts-hygiene.md) | TypeScript hygiene: no test hooks in shipped code | M | Q2u |
-| [Q2p](../todos/ready/Q2p-ts-complexity-splits.md) | Split the TypeScript functions over the complexity limit | M | Q2b |
+| [Q2p](../todos/done/Q2p-ts-complexity-splits.md) | Split the TypeScript functions over the complexity limit | M | Q2b |
 | [Q2q](../todos/ready/Q2q-split-cos-reader.md) | Split the COS reader module | M | Q2a, Q2e |
 | [Q2r](../todos/ready/Q2r-split-surface-modules.md) | Split the large xtask, builder, extraction and WASM modules | M | Q2a, Q2h, Q2i |
 | [Q2s](../todos/ready/Q2s-facade-names.md) | Façade names that don't collide | M | Q2a |
@@ -307,5 +307,5 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2h](../todos/done/Q2h-text-writers-dedup.md), surrogate pairs kept whole in ToUnicode, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code, are done)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2c](../todos/done/Q2c-test-fixtures-crate.md), `laminapdf-test-fixtures` for the core crates, [Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, and [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, are done)
-- [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero
+- [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero ([Q2p](../todos/done/Q2p-ts-complexity-splits.md), no TypeScript function over the complexity or length limit, is done)
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history

@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2p](../ready/Q2p-ts-complexity-splits.md) |
+| Blocks | [Q2p](./Q2p-ts-complexity-splits.md) |
 | ADRs | None |
 | Branch | `ci/q2b-ts-lint-rules` |
 | PR title | `ci(ts): Biome complexity and throw rules, TypeDoc check for undocumented exports` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-This todo adds the TypeScript rules from the [maintainability guideline](../../guidelines/maintainability.md) that the tools already in the repository can check: Biome's cognitive complexity (15), function length (60) and `useThrowOnlyError`, and TypeDoc's check for undocumented exports. Today's offenders are listed in an override until [Q2p](../ready/Q2p-ts-complexity-splits.md) splits them.
+This todo adds the TypeScript rules from the [maintainability guideline](../../guidelines/maintainability.md) that the tools already in the repository can check: Biome's cognitive complexity (15), function length (60) and `useThrowOnlyError`, and TypeDoc's check for undocumented exports. Today's offenders are listed in an override until [Q2p](../done/Q2p-ts-complexity-splits.md) splits them.
 
 ## Context
 
@@ -33,7 +33,7 @@ This todo adds the TypeScript rules from the [maintainability guideline](../../g
 **Out of scope** (and which todo covers it)
 
 - Dependency-cruiser, jscpd and knip ([Q2u](../done/Q2u-ts-dependency-tools.md)).
-- Splitting the offenders ([Q2p](../ready/Q2p-ts-complexity-splits.md)).
+- Splitting the offenders ([Q2p](../done/Q2p-ts-complexity-splits.md)).
 
 ## Tasks
 

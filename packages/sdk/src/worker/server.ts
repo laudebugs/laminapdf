@@ -334,7 +334,6 @@ function extensionMethod(request: Request): ExtensionMethod | undefined {
 }
 
 async function execute(job: Job): Promise<void> {
-  const { handle, method, params } = job.first;
   const { signal } = job.controller;
   const context: CallContext = {
     signal,
@@ -345,16 +344,7 @@ async function execute(job: Job): Promise<void> {
   current = job;
   started++;
   try {
-    let result: unknown;
-    if (handle === 0) result = await clientCall(method, params, context);
-    else {
-      const entry = handles.get(handle);
-      if (entry === undefined) throw packageError("disposed", "the handle was closed or belongs to another worker");
-      result =
-        entry.type === "document"
-          ? await documentCall(context, handle, entry, method, params)
-          : await pageCall(context, entry, method, params);
-    }
+    const result = await run(job.first, context);
     if (signal.aborted) {
       // Nobody will hold a handle the cancelled call made (`openUrl` aborted mid-fetch): free it.
       if (isHandleRef(result)) release(result.$handle);
@@ -363,25 +353,7 @@ async function execute(job: Job): Promise<void> {
     // The result is in: no caller joins this job any more (a reply can take a while, and a caller
     // that joined now would get none); a same-key call from here on runs again.
     current = undefined;
-    const own = extensionMethod(job.first);
-    const waiters = [...job.waiters];
-    for (const [i, w] of waiters.entries()) {
-      // Each caller's answer on its own: a reply that fails (createImageBitmap out of memory)
-      // fails only that caller, and those already answered aren't answered twice.
-      try {
-        let value: unknown;
-        let transfer: Transferable[];
-        if (own?.reply !== undefined) [value, transfer] = await own.reply(result);
-        else {
-          [value, transfer] = outgoing(result);
-          // One set of buffers: transferred to the last caller, copied to the others.
-          if (i < waiters.length - 1) transfer = [];
-        }
-        post({ kind: "result", id: w.id, ok: true, result: value }, transfer);
-      } catch (e) {
-        post({ kind: "result", id: w.id, ok: false, error: diagnostic(e) });
-      }
-    }
+    await replyAll(job, result);
   } catch (e) {
     if (e instanceof WebAssembly.RuntimeError) {
       // A trap: the module's state can't be trusted any more.
@@ -395,6 +367,46 @@ async function execute(job: Job): Promise<void> {
   } finally {
     current = undefined;
   }
+}
+
+/** Runs the call: a client method, or a method of the document or page its handle names. */
+async function run(request: Request, context: CallContext): Promise<unknown> {
+  const { handle, method, params } = request;
+  if (handle === 0) return clientCall(method, params, context);
+  const entry = handles.get(handle);
+  if (entry === undefined) throw packageError("disposed", "the handle was closed or belongs to another worker");
+  return entry.type === "document"
+    ? documentCall(context, handle, entry, method, params)
+    : pageCall(context, entry, method, params);
+}
+
+/**
+ * Answers each caller of the job on its own: a reply that fails (createImageBitmap out of
+ * memory) fails only that caller, and those already answered aren't answered twice.
+ */
+async function replyAll(job: Job, result: unknown): Promise<void> {
+  const own = extensionMethod(job.first);
+  const waiters = [...job.waiters];
+  for (const [i, w] of waiters.entries()) {
+    try {
+      const [value, transfer] = await answer(own, result, i === waiters.length - 1);
+      post({ kind: "result", id: w.id, ok: true, result: value }, transfer);
+    } catch (e) {
+      post({ kind: "result", id: w.id, ok: false, error: diagnostic(e) });
+    }
+  }
+}
+
+/** One caller's answer and what it transfers: the extension's reply, else the result itself. */
+async function answer(
+  own: ExtensionMethod | undefined,
+  result: unknown,
+  last: boolean,
+): Promise<readonly [unknown, Transferable[]]> {
+  if (own?.reply !== undefined) return own.reply(result);
+  const [value, transfer] = outgoing(result);
+  // One set of buffers: transferred to the last caller, copied to the others.
+  return [value, last ? transfer : []];
 }
 
 async function drain(): Promise<void> {

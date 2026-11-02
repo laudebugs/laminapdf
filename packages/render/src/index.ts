@@ -278,40 +278,58 @@ export function flagsOf(flags?: Partial<RenderFlags>): RenderFlags {
  * @throws RenderError `invalid-argument` or `render-too-large`.
  */
 export function planTile(page: RenderPage, request: RenderRequest, limits: RenderLimits): TilePlan {
-  const { scale } = request;
+  checkScale(request.scale);
+  checkPage(page);
+  checkBackground(request.background);
+  const quarter = isQuarterTurn(checkRotation(request.rotation ?? 0));
+  const pageWidth = wholePixels(quarter ? page.height : page.width, request.scale);
+  const pageHeight = wholePixels(quarter ? page.width : page.height, request.scale);
+  const tile = request.clip ?? { x: 0, y: 0, width: pageWidth, height: pageHeight };
+  checkTile(tile, pageWidth, pageHeight);
+  checkTileLimits(tile, limits);
+  return { pageWidth, pageHeight, tile, byteLength: tile.width * tile.height * 4 };
+}
+
+function checkScale(scale: number): void {
   // The Rust planner sees the scale as an f32: check that value, so both agree.
   if (!Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) {
     throw new RenderError("invalid-argument", "invalid render request: scale must be finite and positive");
   }
-  if (!(page.width > 0 && page.height > 0 && Number.isFinite(page.width) && Number.isFinite(page.height))) {
-    throw new RenderError("invalid-argument", "invalid render request: the page has no drawable area");
-  }
-  const background = request.background;
-  if (background !== undefined && background !== null) {
-    const channels = [background.r, background.g, background.b, background.a];
-    if (!channels.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
-      throw new RenderError("invalid-argument", "invalid render request: colour channels must be integers 0–255");
-    }
-  }
-  const rotation = request.rotation ?? 0;
+}
+
+function checkRotation(rotation: ViewRotation): ViewRotation {
   if (![0, 90, 180, 270].includes(rotation)) {
     throw new RenderError("invalid-argument", "invalid render request: rotation must be 0, 90, 180 or 270");
   }
-  const quarter = isQuarterTurn(rotation);
-  const pixels = (points: number): number => {
-    // f32 like the Rust planner, so both agree on the floor at every scale.
-    const v = Math.max(1, Math.floor(Math.fround(points) * Math.fround(scale)));
-    if (v > 2_147_483_647) {
-      throw new RenderError(
-        "invalid-argument",
-        "invalid render request: the page is too large to address at this scale",
-      );
-    }
-    return v;
-  };
-  const pageWidth = pixels(quarter ? page.height : page.width);
-  const pageHeight = pixels(quarter ? page.width : page.height);
-  const tile = request.clip ?? { x: 0, y: 0, width: pageWidth, height: pageHeight };
+  return rotation;
+}
+
+function checkPage(page: RenderPage): void {
+  if (!(page.width > 0 && page.height > 0 && Number.isFinite(page.width) && Number.isFinite(page.height))) {
+    throw new RenderError("invalid-argument", "invalid render request: the page has no drawable area");
+  }
+}
+
+function checkBackground(background: Rgba8 | null | undefined): void {
+  if (background === undefined || background === null) return;
+  const channels = [background.r, background.g, background.b, background.a];
+  if (!channels.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
+    throw new RenderError("invalid-argument", "invalid render request: colour channels must be integers 0–255");
+  }
+}
+
+/** One side of the whole page in pixels: `max(1, floor(points × scale))`. */
+function wholePixels(points: number, scale: number): number {
+  // f32 like the Rust planner, so both agree on the floor at every scale.
+  const v = Math.max(1, Math.floor(Math.fround(points) * Math.fround(scale)));
+  if (v > 2_147_483_647) {
+    throw new RenderError("invalid-argument", "invalid render request: the page is too large to address at this scale");
+  }
+  return v;
+}
+
+/** The tile is whole pixels, not empty, and inside the whole page. */
+function checkTile(tile: PixelRect, pageWidth: number, pageHeight: number): void {
   const ints = [tile.x, tile.y, tile.width, tile.height];
   if (!ints.every((v) => Number.isInteger(v) && v >= 0)) {
     throw new RenderError("invalid-argument", "invalid render request: the tile must be whole pixels");
@@ -322,6 +340,9 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
   if (tile.x + tile.width > pageWidth || tile.y + tile.height > pageHeight) {
     throw new RenderError("invalid-argument", "invalid render request: the tile extends past the page");
   }
+}
+
+function checkTileLimits(tile: PixelRect, limits: RenderLimits): void {
   if (tile.width > limits.maxRenderSide || tile.height > limits.maxRenderSide) {
     throw new RenderError(
       "render-too-large",
@@ -334,7 +355,6 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
       `a ${tile.width}×${tile.height} pixel tile exceeds the render limit of ${limits.maxRenderPixels} pixels`,
     );
   }
-  return { pageWidth, pageHeight, tile, byteLength: tile.width * tile.height * 4 };
 }
 
 /**
