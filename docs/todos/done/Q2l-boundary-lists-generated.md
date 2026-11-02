@@ -35,10 +35,10 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 ## Tasks
 
 - [x] Claim by opening the work PR (#195) from a fresh worktree off `main`.
-- [x] Add `ALL` to `FillRule`, `LineCap`, `LineJoin`, `BlendMode`, `ArtifactKind` and `TableScope` (`TagKind` had one); a laminapdf-wasm unit test checks each name table names every variant once.
-- [x] Extend the generator: `cargo xtask gen codes` also writes `packages/render/src/generated/codes.ts` from `fixtures/codes.json`, and the new `cargo xtask gen boundary` reads laminapdf-wasm's name tables and `TagKind::as_str` from the source (no build) and writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render-hayro/src/generated/version.ts` (`HAYRO_VERSION` from the workspace's hayro pin). Each file carries the `@generated` header.
+- [x] Add `ALL` to `FillRule`, `LineCap`, `LineJoin`, `BlendMode`, `ArtifactKind` and `TableScope` (`TagKind` had one). An exhaustive-match test per enum keeps each `ALL` complete, and a laminapdf-wasm unit test checks that each name table names every variant once.
+- [x] Extend the generator. `cargo xtask gen codes` also writes `packages/render/src/generated/codes.ts`, from `fixtures/codes.json` and the codes laminapdf-render's `RenderError::error_code` returns. The new `cargo xtask gen boundary` reads laminapdf-wasm's name tables and `TagKind::as_str` from the source, without a build, and writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render-hayro/src/generated/version.ts` (`HAYRO_VERSION` from the workspace's hayro pin, which laminapdf-render's `HayroBackend::version` must also return). Each file carries the `@generated` header.
 - [x] Send structure types, table scopes and artifact kinds as names: `beginTag` and `beginArtifact` take strings, and `@laminapdf/sdk` changes with them. Fill rules, caps, joins and blend modes already travelled as names.
-- [x] Delete the hand lists (in `@laminapdf/sdk`'s builder, `@laminapdf/render`'s code tables and its `test/codes.test.ts`) and laminapdf-build's test that scraped `builder.ts`; `check docs` runs `gen boundary --check` beside `gen codes --check`.
+- [x] Delete the hand lists: `@laminapdf/sdk`'s builder lists, `@laminapdf/render`'s code tables and its `test/codes.test.ts`, and laminapdf-build's test that scraped `builder.ts`. The render generator lists only `disposed` itself (the web adapters alone throw it). `check docs` runs `gen boundary --check` beside `gen codes --check`.
 
 The name tables stay in laminapdf-wasm's `src/build_dto.rs`, their one home, so that file doesn't shrink as [Q2r](../ready/Q2r-split-surface-modules.md) expected: it loses the index decoding and gains the two new tables and their test (849 → 866 lines).
 
