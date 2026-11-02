@@ -12,7 +12,7 @@
 | Branch | `refactor/q2l-boundary-lists-generated` |
 | PR title | `refactor(wasm,sdk,render): generate every list shared by Rust and TypeScript` |
 | Size | M |
-| PR | — |
+| PR | [#195](https://github.com/laudebugs/laminapdf/pull/195) |
 
 ## Goal
 
