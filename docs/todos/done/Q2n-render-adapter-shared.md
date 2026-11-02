@@ -31,7 +31,7 @@ The hayro and PDFium adapters repeat the page-index check, the "bytes could not 
 
 **Out of scope** (and which todo covers it)
 
-- Splitting PDFium's `render` closure ([Q2p](../ready/Q2p-ts-complexity-splits.md)).
+- Splitting PDFium's `render` closure ([Q2p](../ongoing/Q2p-ts-complexity-splits.md)).
 
 ## Tasks
 

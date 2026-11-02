@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2p` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2b](../done/Q2b-ts-lint-rules.md) |
