@@ -113,11 +113,7 @@ impl RotatePage {
                     .filter(|v| !matches!(v, Object::Null));
             }
             if parent_ref == root {
-                let rotation = inherited
-                    .as_ref()
-                    .and_then(Object::as_int)
-                    .and_then(Rotation::from_degrees)
-                    .unwrap_or(Rotation::None);
+                let rotation = inherited.as_ref().and_then(Rotation::from_object).unwrap_or_default();
                 return Ok(Some((r, dict.clone(), rotation)));
             }
             (child, node) = (parent_ref, parent);
@@ -133,8 +129,6 @@ impl RotatePage {
             .by_id(&self.page)
             .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
         let r = page.obj_ref().ok_or_else(|| Error::DirectPage(self.page.clone()))?;
-        // The walk's own reading: own or inherited, a malformed value as 0, no warning.
-        let displayed = Rotation::from_degrees(page.cos().rotate).unwrap_or(Rotation::None);
-        Ok((r, page.dict().clone(), displayed))
+        Ok((r, page.dict().clone(), page.rotate_quietly()?))
     }
 }

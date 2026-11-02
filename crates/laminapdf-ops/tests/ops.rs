@@ -177,6 +177,46 @@ mod rotate_page {
         assert!(!doc.is_dirty() && applied.touched_pages.is_empty());
     }
 
+    /// Two pages inheriting `/Rotate 90.0` (an integral real): the first one's `/Parent`
+    /// leads to the root, the second has none, so it is found by the page-tree walk.
+    fn real_rotate() -> laminapdf_ops::Document {
+        open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /Rotate 90.0 /MediaBox [0 0 100 100] >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+                "<< /Type /Page >>",
+            ],
+            "",
+        ))
+    }
+
+    #[test]
+    fn reads_an_integral_real_rotate_through_the_parents() {
+        let mut doc = real_rotate();
+        let first = page_ids(&doc).first().unwrap().clone();
+        let ((), applied) = doc
+            .transact(Origin::Local, |tx| {
+                tx.apply(RotatePage::new(first, Rotation::Clockwise90))?;
+                Ok(())
+            })
+            .unwrap();
+        assert!(!doc.is_dirty() && applied.touched_pages.is_empty());
+    }
+
+    #[test]
+    fn reads_an_integral_real_rotate_through_the_page_tree_walk() {
+        let mut doc = real_rotate();
+        let second = page_ids(&doc).get(1).unwrap().clone();
+        let ((), applied) = doc
+            .transact(Origin::Local, |tx| {
+                tx.apply(RotatePage::new(second, Rotation::Clockwise90))?;
+                Ok(())
+            })
+            .unwrap();
+        assert!(!doc.is_dirty() && applied.touched_pages.is_empty());
+    }
+
     #[test]
     fn replaces_an_own_value_in_place() {
         let mut doc = inherited_rotate();
@@ -496,6 +536,12 @@ mod transactions {
         let mut doc = inherited_rotate();
         let op = rotate_first(&doc, Rotation::Clockwise270);
         doc.apply_all(Origin::Local, [op]).unwrap();
-        assert_eq!(doc.cos().pages().unwrap().first().map(|p| p.rotate), Some(270));
+        let rotate = doc
+            .cos()
+            .pages()
+            .unwrap()
+            .first()
+            .and_then(|p| p.inherited.rotate.clone());
+        assert_eq!(rotate.as_deref(), Some(&Object::Integer(270)));
     }
 }

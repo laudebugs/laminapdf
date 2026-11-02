@@ -94,6 +94,27 @@ fn outline_titles_match_pypdf() {
 }
 
 #[test]
+fn first_page_media_box_matches_pypdf() {
+    let expected = json("corpus/expected.json");
+    let mut failures = Vec::new();
+    for (name, bytes) in corpus() {
+        let doc = open(&bytes).unwrap();
+        let pages = doc.pages().unwrap();
+        let ours = pages
+            .get(0)
+            .and_then(|p| p.media_box().unwrap())
+            .map(|b| b.to_array().to_vec());
+        let theirs: Option<Vec<f64>> = expected[&name]["first_page_mediabox"]
+            .as_array()
+            .map(|a| a.iter().filter_map(Value::as_f64).collect());
+        if ours != theirs {
+            failures.push(format!("{name}: ours {ours:?} vs pypdf {theirs:?}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
 fn every_view_reads_every_corpus_file_without_errors() {
     for (name, bytes) in corpus() {
         let doc = open(&bytes).unwrap();

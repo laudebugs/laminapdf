@@ -216,7 +216,8 @@ mod page_tree_nulls {
     fn explicit_null_media_box_keeps_inherited_value() {
         let bytes = tree(b"<< /Type /Page /Parent 2 0 R /MediaBox null >>");
         let doc = open(&bytes).unwrap();
-        assert_eq!(doc.pages().unwrap()[0].media_box, Some([0.0, 0.0, 612.0, 792.0]));
+        let inherited = Object::Array(vec![0.into(), 0.into(), 612.into(), 792.into()]);
+        assert_eq!(doc.pages().unwrap()[0].inherited.media_box.as_deref(), Some(&inherited));
     }
 
     #[test]

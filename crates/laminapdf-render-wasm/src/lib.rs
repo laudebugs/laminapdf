@@ -24,7 +24,7 @@ use std::sync::Arc;
 
 use laminapdf_render::{
     ByteSource, CancelToken, HayroBackend, PixelRect, RenderBackend, RenderDocument, RenderError, RenderFlags,
-    RenderLimits, RenderOpenOptions, RenderRequest, Rgba8, ViewRotation,
+    RenderLimits, RenderOpenOptions, RenderRequest, Rgba8, Rotation,
 };
 use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
 
@@ -126,7 +126,7 @@ impl HayroDocument {
     /// `page-index-out-of-range`.
     pub fn page(&self, index: u32) -> Result<Vec<f32>, JsValue> {
         let page = self.doc.page(index).map_err(|e| throw(&e))?;
-        Ok(vec![page.width, page.height, f32::from(page.rotate)])
+        Ok(vec![page.width, page.height, f32::from(page.rotate.degrees())])
     }
 
     /// The request's geometry: `[pageWidth, pageHeight, x, y, width, height]` in pixels.
@@ -215,17 +215,15 @@ fn request(
     flags: u32,
     background: Option<u32>,
 ) -> Result<RenderRequest, JsValue> {
-    let rotation = match rotation {
-        0 => ViewRotation::None,
-        90 => ViewRotation::Clockwise90,
-        180 => ViewRotation::Half,
-        270 => ViewRotation::Clockwise270,
-        _ => {
-            return Err(throw(&RenderError::InvalidRequest {
+    // Only the four canonical values: the TS type is `0 | 90 | 180 | 270`.
+    let rotation = Some(rotation)
+        .filter(|r| *r < 360)
+        .and_then(|r| Rotation::from_degrees(i64::from(r)))
+        .ok_or_else(|| {
+            throw(&RenderError::InvalidRequest {
                 what: "rotation must be 0, 90, 180 or 270",
-            }));
-        }
-    };
+            })
+        })?;
     let mut req = RenderRequest::page(page, scale)
         .with_rotation(rotation)
         .with_flags(RenderFlags {
