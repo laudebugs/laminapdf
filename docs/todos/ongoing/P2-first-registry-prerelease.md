@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `P2` |
-| Status | `ready` — **blocked on the owner's decision to publish** |
+| Status | `ongoing` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | [P1](../done/P1-reserve-names-and-trusted-publishing.md) |

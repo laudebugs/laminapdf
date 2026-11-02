@@ -42,7 +42,7 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 - Browser/Deno/Bun/workerd CI matrix: [B6c](./B6c-runtime-matrix.md).
 - TypeDoc site: [B7a](./B7a-docs-site.md).
 - `page.text()`: [B9c](./B9c-text-extraction-bindings-and-differential.md).
-- Publishing to npm: [P1](../done/P1-reserve-names-and-trusted-publishing.md), [P2](../ready/P2-first-registry-prerelease.md).
+- Publishing to npm: [P1](../done/P1-reserve-names-and-trusted-publishing.md), [P2](../ongoing/P2-first-registry-prerelease.md).
 
 ## Tasks
 

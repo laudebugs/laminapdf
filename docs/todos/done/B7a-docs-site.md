@@ -29,7 +29,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 **In scope**
 
 - `apps/docs` (Astro + Starlight), in the pnpm workspace, Biome + typecheck in `cargo xtask check ts`.
-- Pages: Overview; Install (local tarball and path/git deps while unpublished — wording updated by [P2](../ready/P2-first-registry-prerelease.md)); Quick start for browser/bundler, Node, Deno, Bun, Cloudflare Workers, Rust; Guides: fonts and text (shaping, scripts, fsType), images and vectors, links/outlines/labels/metadata, open/edit/save (`transact`, undo, save modes, `SaveConstraint`), encrypted files (password), errors and warnings (code table generated from `fixtures/codes.json`), limits; API: TypeDoc output for `@lamina/pdf` (via `starlight-typedoc` or a generated folder), link to rustdoc built by CI as an artefact; Examples gallery with source and output PDF.
+- Pages: Overview; Install (local tarball and path/git deps while unpublished — wording updated by [P2](../ongoing/P2-first-registry-prerelease.md)); Quick start for browser/bundler, Node, Deno, Bun, Cloudflare Workers, Rust; Guides: fonts and text (shaping, scripts, fsType), images and vectors, links/outlines/labels/metadata, open/edit/save (`transact`, undo, save modes, `SaveConstraint`), encrypted files (password), errors and warnings (code table generated from `fixtures/codes.json`), limits; API: TypeDoc output for `@lamina/pdf` (via `starlight-typedoc` or a generated folder), link to rustdoc built by CI as an artefact; Examples gallery with source and output PDF.
 - Code snippets imported from the example files (single source of truth), not copied.
 - Deploy: `wrangler` Workers static assets config `apps/docs/wrangler.toml`; GitHub workflow deploying a preview per PR (comment with URL) and production from `main` (domain TBD; workers.dev until the owner picks, architecture §8 Q3).
 - Link checking inside the site build (Starlight's) plus repo-wide [X1](../done/X1-docs-link-checker.md) if merged.
@@ -38,7 +38,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 - Changesets, tag, install verification: [B7b](./B7b-versioning-and-0-1-0-alpha.md).
 - PDF/UA and PDF/A guides: [B8b](../done/B8b-conformance-profiles-and-verapdf.md).
-- docs.rs publishing: [P2](../ready/P2-first-registry-prerelease.md).
+- docs.rs publishing: [P2](../ongoing/P2-first-registry-prerelease.md).
 
 ## Tasks
 

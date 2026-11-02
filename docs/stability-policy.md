@@ -1,6 +1,6 @@
 # Stability policy (draft)
 
-**Draft, not yet in force.** It describes what lamina promises once it is on a registry; it is published with the first registry pre-release ([P2](todos/ready/P2-first-registry-prerelease.md)). Versioning itself is [ADR 0017](decisions/0017-versioning-and-release.md).
+**Draft, not yet in force.** It describes what lamina promises once it is on a registry; it is published with the first registry pre-release ([P2](todos/ongoing/P2-first-registry-prerelease.md)). Versioning itself is [ADR 0017](decisions/0017-versioning-and-release.md).
 
 lamina is one library with one version: every crate and the npm packages `@laminapdf/wasm`, `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro` and `@laminapdf/render-pdfium` move together (lockstep). The version is `0.x`, currently `0.1.0-alpha.0`.
 
@@ -22,7 +22,7 @@ lamina is one library with one version: every crate and the npm packages `@lamin
 
 - The low-level COS and model APIs re-exported by the façade are public but may change in any minor `0.x` release ([pdf-library §9, question 6](plans/pdf-library.md#9-open-questions)).
 - Size budgets and performance targets are tracked, not promised.
-- `cargo-semver-checks` and a public API report are enabled against the first published version ([P2](todos/ready/P2-first-registry-prerelease.md)); until then reviews check breaking changes by hand.
+- `cargo-semver-checks` and a public API report are enabled against the first published version ([P2](todos/ongoing/P2-first-registry-prerelease.md)); until then reviews check breaking changes by hand.
 
 ## Changelog
 

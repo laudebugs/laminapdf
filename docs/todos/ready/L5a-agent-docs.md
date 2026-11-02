@@ -64,7 +64,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 **Out of scope** (and which todo covers it)
 
-- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](./P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
+- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../ongoing/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
 - Running the eval in CI or gating on it: not planned (it needs a paid API key and is non-deterministic).
 - Writing the guides themselves: [B7a](../done/B7a-docs-site.md).
 
