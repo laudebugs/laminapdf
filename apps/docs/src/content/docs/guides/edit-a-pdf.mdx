@@ -1,0 +1,38 @@
+---
+title: Edit a PDF
+description: Change an existing PDF in transactions you can undo, and replay edits stored as JSON.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll open a PDF, change its title and author, and save the edit after the original bytes. You need this whenever your app changes a file someone gave it: a corrected title, a rotated scan, a report marked final.
+
+This example generates a draft report, opens its bytes and retitles it in one transaction. Then it saves incrementally and checks that the draft's bytes start the result, unchanged:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    <Snippet file="packages/sdk/examples/generate-then-edit.ts" />
+  </TabItem>
+  <TabItem label="Rust">
+    <Snippet file="crates/laminapdf/examples/generate_then_edit.rs" />
+  </TabItem>
+</Tabs>
+
+[See the output](/examples/#generate-then-edit).
+
+Your edits live beside the bytes you opened and never change them. Nothing reaches a file until you save, so a mistake costs nothing until then. [How Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/) explains why it works this way.
+
+## Group edits into a transaction
+
+`doc.transact(tx => …)` collects edits, such as `setInfo` and `rotatePage`, and applies them together when the callback returns. If the callback throws, none of them apply. The callback is synchronous. Editing or saving the same document inside it fails with `nested-transaction`.
+
+## Undo and redo
+
+`doc.undo()` reverts the last transaction as a whole, and `doc.redo()` applies it again. A transaction is the unit of undo, so group the edits a user would expect to undo together.
+
+## Replay edits stored as JSON
+
+Every edit is also a plain JSON object, such as `{ op: "rotatePage", args: { … } }`. So you can store edits, send them to a server and replay them later. `doc.apply(ops)` applies a list of them as one transaction, and `doc.applyLog({ v: 1, ops })` replays a saved log.
+
+Next: [save a PDF](/guides/save-a-pdf/).

@@ -1,26 +1,46 @@
 ---
-title: Off the main thread
-description: Run Lamina PDF in a Web Worker with @laminapdf/sdk/worker, so a large file never blocks the page.
-sidebar:
-  order: 8
+title: Keep the page responsive
+description: Run Lamina PDF in a Web Worker with @laminapdf/sdk/worker, so a large file never freezes the page.
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-`@laminapdf/sdk` is synchronous after `init()`. On the main thread, a full rewrite of a 50 MB file blocks the page for about 200 ms. `@laminapdf/sdk/worker` runs the same API in a Web Worker. You call the same method names, and each returns a `Promise`.
+You'll run Lamina PDF in a Web Worker, so opening or saving a large file never freezes your page. You need this in a browser app once files get big: on the main thread, a [full rewrite](/reference/glossary/#full-rewrite) of a 50 MB file blocks the page for about 200 ms.
+
+`@laminapdf/sdk` is synchronous after `init()`. `@laminapdf/sdk/worker` runs the same API in a Web Worker, where you call the same methods and each returns a `Promise`. This example opens a file in a Web Worker, counts its pages, saves it with progress, and then cancels a second save:
 
 <Snippet file="packages/sdk/examples/worker-client.ts" />
 
-- **Same names, async.** Getters become methods: `await doc.pageCount()`. `doc.page(i)` returns a remote page, and `page.text()` returns a `PageText` (call `client.loadExtract()` first).
-- **Not served:**
-  - `transact`: its callback can't cross to the worker, so use `apply(ops)`.
-  - `saveJob`: the remote `save` is already stepped.
-  - `Builder`: build on the main thread or in your own worker.
-- **Cancellation.** Pass `signal` to any call. An aborted call rejects with `cancelled`, and `error.cause` is the signal's reason.
-  - A call that hasn't started never runs.
-  - `save` stops at its next step, and the document stays usable.
-  - Any other call runs to the end in the worker, because it is one synchronous call. `client.terminate()` is the hard stop.
-- **Buffers.** Saved bytes and page text come back transferred, not copied. Your input is copied unless you pass `transfer: true`, which moves it and leaves your buffer empty.
-- **Crashes.** If the worker dies, pending calls reject with `worker-crashed` and `client.on("crashed", …)` fires. `client.restart()` starts a fresh worker, and documents must be opened again.
-- **Version.** `connect()` checks that the worker comes from the same `@laminapdf/sdk` build, and rejects with `worker-version-mismatch` otherwise.
-- **Bundlers and CSP.** Vite and webpack bundle the worker with no setup. In Vite, exclude `@laminapdf/sdk` from `optimizeDeps`, as for the main entry. To host the worker file yourself, pass `connect({ worker: () => new Worker(url, { type: "module" }) })`.
+## Call the same methods, awaited
+
+Getters become methods: `await doc.pageCount()`. `doc.page(i)` returns a remote page, and `page.text()` returns a `PageText`, once you've called `client.loadExtract()`.
+
+Three things stay on your side of the Web Worker:
+
+- **`transact`:** its callback can't cross to the Web Worker, so pass the edits to `apply(ops)` instead.
+- **`saveJob`:** the Web Worker's `save` already works in steps.
+- **`Builder`:** build on the main thread, or in a Web Worker of your own.
+
+## Cancel a call
+
+Pass an `AbortSignal` as `signal` to any call. An aborted call rejects with `cancelled`, and `error.cause` holds the signal's reason. What happens to the work depends on where it was:
+
+- A call that hasn't started never runs.
+- `save` stops at its next step, and the document stays usable.
+- Any other call runs to the end in the Web Worker, because it is one synchronous call. `client.terminate()` stops it at once.
+
+## Move bytes instead of copying them
+
+Saved bytes and page text come back transferred, not copied. Your input is copied unless you pass `transfer: true`, which moves it and leaves your buffer empty.
+
+## Recover from a crash
+
+If the Web Worker dies, pending calls reject with `worker-crashed`, and `client.on("crashed", …)` fires. `client.restart()` starts a fresh Web Worker, and you open your documents again.
+
+`connect()` also checks that the Web Worker comes from the same `@laminapdf/sdk` build as your page. It rejects with `worker-version-mismatch` otherwise.
+
+## Bundlers and a content security policy
+
+Vite and webpack bundle the Web Worker with no setup. In Vite, exclude `@laminapdf/sdk` from `optimizeDeps`, as for the main entry. To host the Web Worker's file yourself, for example under a strict content security policy, pass `connect({ worker: () => new Worker(url, { type: "module" }) })`.
+
+Next: browse the [examples](/examples/), with the PDF each one makes.
