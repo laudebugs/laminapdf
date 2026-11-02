@@ -3,6 +3,7 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod boundary;
 mod capabilities;
 mod changes;
 mod codegen;
@@ -58,7 +59,7 @@ tasks:
                     everything a PR must pass (default: docs, rust and ts)
                     docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
-                    gen codes --check and version sync --check
+                    gen codes --check, gen boundary --check and version sync --check
                     rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
                           tests, rustdoc, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
@@ -89,8 +90,14 @@ tasks:
                     (crates/laminapdf-syntax/src/generated/), the façade's explain pages
                     (crates/laminapdf/src/generated/), @laminapdf/sdk's unions, tables and explain
                     pages (packages/sdk/src/generated/), the laminapdf.error/1 JSON Schema
-                    (packages/sdk/schemas/, crates/laminapdf/schemas/) and docs/errors/README.md's
-                    tables; --check fails naming each stale file; --md prints the tables
+                    (packages/sdk/schemas/, crates/laminapdf/schemas/), @laminapdf/render's code
+                    tables (packages/render/src/generated/) and docs/errors/README.md's tables;
+                    --check fails naming each stale file; --md prints the tables
+  gen boundary [--check]
+                    the TypeScript side of the lists that cross the WASM boundary, read from the
+                    Rust source: @laminapdf/sdk's builder enums (laminapdf-wasm's name tables,
+                    TagKind::as_str) and @laminapdf/render-hayro's HAYRO_VERSION (the hayro pin);
+                    --check fails naming each stale file
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
   test              Rust tests (cargo-nextest when installed, else cargo test) + doc tests, TS tests
@@ -273,6 +280,8 @@ fn main() -> Result<()> {
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
         ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
         ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
+        ("gen", [what]) if what == "boundary" => boundary::generate(&ws, false),
+        ("gen", [what, flag]) if what == "boundary" && flag == "--check" => boundary::generate(&ws, true),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => {
@@ -398,6 +407,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
     codegen::codes(ws, true)?;
+    boundary::generate(ws, true)?;
     version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())

@@ -15,3 +15,4 @@ crates/laminapdf/schemas/** linguist-generated=true
 packages/sdk/src/generated/** linguist-generated=true
 packages/sdk/schemas/** linguist-generated=true
 packages/render/src/generated/** linguist-generated=true
+packages/render-hayro/src/generated/** linguist-generated=true
