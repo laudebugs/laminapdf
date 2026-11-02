@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -36,7 +36,7 @@
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claimed by opening the work PR from a fresh worktree off `main`.
 - [ ] Write a test for `/Rotate 90.0` in ops and watch it fail.
 - [ ] Add the model reader; switch ops; remove the parsed fields from `cos::Page` and fix callers.
 - [ ] Move or alias `Rotation`, add `from_degrees`, delete the parsers in render-wasm and both adapters.
