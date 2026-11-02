@@ -50,9 +50,10 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
+# The test helpers every crate shares (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Validates serialised errors against the generated laminapdf.error/1 schema (tests/error_contract.rs).
 boon = { workspace = true }
 # The data-fields test builds one value of every variant of the wrapped crates' errors.

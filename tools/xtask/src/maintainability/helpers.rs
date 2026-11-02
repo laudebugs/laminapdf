@@ -1,6 +1,9 @@
 //! The test-helpers check: the Rust test helpers several crates need live once, in
 //! `laminapdf-test-fixtures` (code-organization.md §6). Two shapes outside it count as a copy:
-//! a `fn fixtures_dir` or `fn classic`, and a `#[path]` that includes a file of another crate.
+//! a `fn fixtures_dir`, `fn classic` or `struct Rng`, and a `#[path]` that includes a file of
+//! another crate. A `#[path]` is resolved against its file's folder, as on a top-level or
+//! `mod.rs` module; `cfg_attr(…, path = …)` and paths inside inline modules aren't followed
+//! (the tree has neither).
 //! The files that still have one are listed under `test-helpers` in [`BASELINE`]; the list only
 //! shrinks, and an entry whose file no longer has a copy must go.
 
@@ -10,8 +13,8 @@ use super::{BASELINE, Base, Problem, Tree, problem};
 
 /// The crate that owns the shared helpers.
 const HOME: &str = "crates/laminapdf-test-fixtures/";
-/// Helper names that only [`HOME`] may define.
-const HELPERS: [&str; 2] = ["fixtures_dir", "classic"];
+/// The definitions (keyword, name) that only [`HOME`] may hold.
+const HELPERS: [(&str, &str); 3] = [("fn", "fixtures_dir"), ("fn", "classic"), ("struct", "Rng")];
 const RULE: &str = "test-helpers";
 
 /// Every copy outside [`HOME`] in a file the baseline doesn't list, and every baseline entry
@@ -64,7 +67,7 @@ fn copies(path: &str, source: &super::Source) -> Vec<(usize, String)> {
     let tokens = source.tokens();
     for pair in tokens.windows(2) {
         let [keyword, name] = pair else { continue };
-        if let Some(helper) = HELPERS.iter().find(|h| keyword.is("fn") && name.is(h)) {
+        if let Some((_, helper)) = HELPERS.iter().find(|(k, h)| keyword.is(k) && name.is(h)) {
             let message = format!("a copy of `{helper}`: use `laminapdf_test_fixtures::{helper}`");
             found.push((source.line_of(keyword.offset()), message));
         }
@@ -127,6 +130,12 @@ mod tests {
     #[test]
     fn a_copied_helper_should_fail() {
         let found = messages(&[("crates/a/tests/common/mod.rs", "pub fn fixtures_dir() {}\n")]);
+        assert_eq!(found.len(), 1, "{found:?}");
+    }
+
+    #[test]
+    fn a_copied_rng_should_fail() {
+        let found = messages(&[("crates/a/tests/common/mod.rs", "pub struct Rng(u64);\n")]);
         assert_eq!(found.len(), 1, "{found:?}");
     }
 

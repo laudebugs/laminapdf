@@ -13,6 +13,9 @@ pub fn codes_json() -> serde_json::Value {
 }
 
 /// The kind `codes.json` gives `code`, in whichever group it is listed.
+///
+/// # Panics
+/// When `codes` isn't a JSON object.
 #[must_use]
 pub fn listed_kind(codes: &serde_json::Value, code: &str) -> Option<String> {
     codes
@@ -26,11 +29,10 @@ pub fn listed_kind(codes: &serde_json::Value, code: &str) -> Option<String> {
         .and_then(|entry| entry["kind"].as_str().map(str::to_owned))
 }
 
-/// Fails, naming each one, for every `(code, kind)` whose kind is not the one `codes.json`
-/// lists.
+/// Checks each `(code, kind)` against `codes.json`.
 ///
 /// # Panics
-/// When any kind differs.
+/// When any kind differs, naming each one.
 pub fn assert_kinds_match(pairs: impl IntoIterator<Item = (&'static str, &'static str)>) {
     let codes = codes_json();
     let wrong: Vec<String> = pairs

@@ -1,5 +1,5 @@
-//! ADR 0018 tier 3: every golden `laminapdf-build` owns is rebuilt byte for byte, twice the same,
-//! and reads back cleanly: Lamina PDF's reader and model open it without warnings and
+//! ADR 0018 tier 3: every golden `laminapdf-build` owns is rebuilt byte for byte and twice the
+//! same, and those and the frozen `hello.pdf` and `imaging-demo.pdf` read back cleanly: Lamina PDF's reader and model open it without warnings and
 //! `laminapdf-content` interprets every page without content warnings.
 #![allow(
     clippy::unwrap_used,
@@ -33,9 +33,12 @@ fn every_golden_is_the_same_on_a_second_build() {
     }
 }
 
+/// The frozen goldens `laminapdf-save` builds (its `tests/common/legacy.rs`), read back here too.
+const READ_BACK_ONLY: [&str; 2] = ["hello.pdf", "imaging-demo.pdf"];
+
 #[test]
 fn every_golden_opens_and_interprets_without_warnings() {
-    for (name, _) in GOLDENS {
+    for name in GOLDENS.iter().map(|(name, _)| *name).chain(READ_BACK_ONLY) {
         let doc = reopen(&fixture(&format!("golden/{name}")));
         let pages = doc.pages().unwrap().len();
         let content: Vec<&str> = (0..pages).flat_map(|i| record(&doc, i).warnings).collect();

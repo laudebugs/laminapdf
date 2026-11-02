@@ -1,4 +1,4 @@
-//! Hand-built classic files (a header, numbered objects, a correct cross-reference table) for
+//! Hand-built classic files (a header, numbered objects, a correct xref table) for
 //! tests that need exact bytes rather than what a writer produces.
 
 /// A classic file around object bodies numbered `1..`, with a correct xref table and the
@@ -22,8 +22,8 @@ pub fn classic(objects: &[&[u8]], trailer: &str) -> Vec<u8> {
     out
 }
 
-/// [`classic`] with object 1 as the catalog: the trailer is `<< /Size … /Root 1 0 R `
-/// `extra >>`, so `extra` adds entries such as `/Info 3 0 R`.
+/// [`classic`] with object 1 as the catalog. The trailer is
+/// `<< /Size … /Root 1 0 R extra >>`, so `extra` adds entries such as `/Info 3 0 R`.
 #[must_use]
 pub fn classic_with_root(objects: &[&str], extra: &str) -> Vec<u8> {
     let bodies: Vec<&[u8]> = objects.iter().map(|o| o.as_bytes()).collect();

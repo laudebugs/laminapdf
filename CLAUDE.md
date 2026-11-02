@@ -53,9 +53,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     tests and render goldens #[ignore]d: `cargo xtask render-golden` runs them)
 │   ├── laminapdf-render-wasm/  # edge: wasm-bindgen bindings of the hayro adapter (flat numbers and bytes), built by
 │                        #     `cargo xtask wasm` as lamina_pdf_render_hayro into @laminapdf/wasm (C2c)
-│   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers crates share (fixtures_dir, fixture, corpus,
+│   └── laminapdf-test-fixtures/  # dev, unpublished: the Rust test helpers that crates share (fixtures_dir, fixture, corpus,
 │                        #     json, classic/classic_with_root/stream_body, Rng, read_at, the codes.json loader); no Lamina
-│                        #     PDF dependencies, a path-only dev-dependency (Q2c); xtask uses its codes.json group rules
+│                        #     PDF dependencies, a path-only dev-dependency (Q2c); xtask uses its rules for which codes.json keys are groups
 ├── packages/wasm/       # @laminapdf/wasm: committed package.json + size-budgets.json, generated dist/
 │                        #   (lamina_pdf_base / lamina_pdf_text / lamina_pdf_extract / lamina_pdf_render_hayro .js, .d.ts, .wasm),
 │                        #   test/smoke.test.ts (Vitest, Node)
@@ -177,7 +177,7 @@ cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust r
                              #   and no new size-lint #[expect] (tools/xtask/maintainability-baseline.toml), no pub type name in
                              #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink;
                              #   no `matches!` or `Err(…)` or-pattern on LimitExceeded or DataPending outside laminapdf_cos::error;
-                             #   no copied test helper (`fn fixtures_dir`, `fn classic`) or cross-crate `#[path]` outside
+                             #   no copied test helper (`fn fixtures_dir`, `fn classic`, `struct Rng`) or cross-crate `#[path]` outside
                              #   laminapdf-test-fixtures (baseline `test-helpers`)
 cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build

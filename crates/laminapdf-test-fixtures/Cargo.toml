@@ -8,8 +8,8 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-# Read by `cargo xtask`: a dev crate, used only as a dev-dependency (and by xtask). It depends on
-# no Lamina PDF crate, so any crate's unit tests can use it without a dependency cycle.
+# Read by `cargo xtask`: a dev crate, used only by tests (as a dev-dependency) and by xtask. It
+# depends on no Lamina PDF crate, so any crate's unit tests can use it without a dependency cycle.
 [package.metadata.laminapdf]
 layer = "dev"
 

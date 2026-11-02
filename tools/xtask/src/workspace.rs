@@ -9,8 +9,8 @@
 //! ```
 //!
 //! Core crates are bytes in, bytes out (docs/guidelines/code-organization.md §2), and xtask enforces it.
-//! Dev crates (`laminapdf-test-fixtures`) hold test helpers: other crates take them only as
-//! dev-dependencies, and they are never published.
+//! Dev crates (`laminapdf-test-fixtures`) hold test helpers: only tests and tools use them
+//! (crates as dev-dependencies, xtask for the `codes.json` rules), and they are never published.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fs;

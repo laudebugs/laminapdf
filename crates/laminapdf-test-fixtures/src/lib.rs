@@ -3,14 +3,13 @@
 //! read for `ByteSource` fakes and the `fixtures/codes.json` loader.
 //!
 //! It depends on no Lamina PDF crate, so every crate can take it as a dev-dependency, unit
-//! tests included, without seeing a second copy of itself. Helpers that need a crate's types
-//! (opening a document, the writer) stay in that crate's `tests/common/`.
-#![allow(
+//! tests included, without a dependency cycle that would build a second copy of the crate
+//! under test. A helper that needs a crate's own types, such as one that opens a document or
+//! uses the spike-era writer, stays in that crate's `tests/common/`.
+#![expect(
     clippy::unwrap_used,
-    clippy::expect_used,
     clippy::panic,
     clippy::indexing_slicing,
-    clippy::missing_panics_doc,
     reason = "test helpers: a panic here is a test failure"
 )]
 
@@ -79,7 +78,7 @@ pub fn corpus() -> Vec<(String, Vec<u8>)> {
 }
 
 /// Copies `data[offset..]` into `buf` as far as both go and returns the count: the body of a
-/// `ByteSource::read_at` fake over a byte slice (0 past the end).
+/// `ByteSource::read_at` fake over a byte slice. Returns 0 when `offset` is past the end.
 #[must_use]
 pub fn read_at(data: &[u8], offset: u64, buf: &mut [u8]) -> usize {
     let tail = usize::try_from(offset)
@@ -112,7 +111,8 @@ impl Rng {
 
     /// A number in `0..n` (`0..1` when `n` is 0).
     pub fn below(&mut self, n: usize) -> usize {
-        usize::try_from(self.next_u64() % u64::try_from(n.max(1)).unwrap()).unwrap()
+        let n = u64::try_from(n.max(1)).unwrap_or(u64::MAX);
+        usize::try_from(self.next_u64() % n).unwrap_or(0)
     }
 }
 
