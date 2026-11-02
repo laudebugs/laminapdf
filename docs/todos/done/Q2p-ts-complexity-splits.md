@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2p` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2b](../done/Q2b-ts-lint-rules.md) |
+| Depends on | [Q2b](./Q2b-ts-lint-rules.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2p-ts-complexity-splits` |
@@ -34,13 +34,14 @@ Eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `r
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Split one function per commit, running its package's suite after each.
-- [ ] Remove each from the override as it lands; empty the override.
+- [x] Claim by opening the work PR (#191) from a fresh worktree off `main`.
+- [x] Remove the overrides and list what still fails. Six functions did: PDFium's `render` (39), the worker's `execute` (25), the HTTP test server's `send` in `test/source.test.ts` (23), `planTile` (21), `httpRangeSource`'s `fetchRange` (21) and `httpRangeSource` itself (16, and 103 lines). `PdfiumDocument.open`, hayro's `fill` and `WorkerClient.call` were already under the limits after Q2n.
+- [x] Split one function per commit, running its package's suite after each (Node; the worker's browser tests in Chromium).
+- [x] Remove each package's override as its functions land; no package's `biome.json` turns the rules off.
 
 ## Acceptance criteria
 
-- [ ] Biome's override for complexity and function length is empty.
+- [x] Biome's override for complexity and function length is empty.
 
 ## Post-merge checks
 
@@ -60,9 +61,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

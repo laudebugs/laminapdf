@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 208 ready · 82 done** (291 total).
+**0 ongoing · 208 ready · 83 done** (291 total).
 
 ## Can start now
 
@@ -43,7 +43,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [Q2p](ongoing/Q2p-ts-complexity-splits.md): Split the TypeScript functions over the complexity limit
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -366,7 +366,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](done/Q2m-ts-test-utils.md) | done | — |
 | Q2n | [Shared code for the render adapters](done/Q2n-render-adapter-shared.md) | done | [Q2m](done/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](done/Q2o-ts-hygiene.md) | done | [Q2u](done/Q2u-ts-dependency-tools.md) |
-| Q2p | [Split the TypeScript functions over the complexity limit](ongoing/Q2p-ts-complexity-splits.md) | ongoing | [Q2b](done/Q2b-ts-lint-rules.md) |
+| Q2p | [Split the TypeScript functions over the complexity limit](done/Q2p-ts-complexity-splits.md) | done | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |
 | Q2r | [Split the large xtask, builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](done/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
