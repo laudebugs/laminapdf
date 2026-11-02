@@ -76,7 +76,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
         let options = TextBoxOptions::default()
             .with_direction(*direction)
             .with_align(Alignment::Start);
-        let area = RectPt::from_xywh(Pt::new(56.0), Pt::new(y + 14.0), Pt::new(220.0), Pt::new(100.0));
+        let area = RectPt::from_points(56.0, y + 14.0, 220.0, 100.0);
         s.text_box(paragraph, font, Pt::new(12.0), area, &options)?;
     }
     page.finish()?;

@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The document's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let at = PointPt::from_points;
-    let row = |y: f64| RectPt::from_xywh(Pt::new(36.0), Pt::new(y - 15.0), Pt::new(220.0), Pt::new(20.0));
+    let row = |y: f64| RectPt::from_points(36.0, y - 15.0, 220.0, 20.0);
     let options = BuildOptions::default()
         .with_id(*b"lamina-ex-links!")
         .with_producer("lamina examples")

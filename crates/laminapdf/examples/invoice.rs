@@ -29,10 +29,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
-    RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
-}
-
 /// The document's bytes.
 pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = builder()?.finish()?;
@@ -57,7 +53,7 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
     s.artifact(ArtifactKind::Layout, |s| {
         s.fill_color(Color::hex("#1e78c8")?)
             .path(|p| {
-                p.rect(rect(0.0, 0.0, 595.28, 14.0));
+                p.rect(RectPt::from_points(0.0, 0.0, 595.28, 14.0));
             })
             .fill(FillRule::NonZero)
             .fill_color(Color::gray(0.0));
@@ -90,8 +86,12 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
             total += amount;
             s.tag(TagKind::TR, |s| {
                 s.text(item, &font, Pt::new(11.0), at(56.0, y))?.tag(TagKind::TD);
-                cell(s, &qty.to_string(), rect(330.0, y - 12.0, 40.0, 16.0))?;
-                cell(s, &format!("€ {amount:.2}"), rect(439.0, y - 12.0, 100.0, 16.0))?;
+                cell(s, &qty.to_string(), RectPt::from_points(330.0, y - 12.0, 40.0, 16.0))?;
+                cell(
+                    s,
+                    &format!("€ {amount:.2}"),
+                    RectPt::from_points(439.0, y - 12.0, 100.0, 16.0),
+                )?;
                 s.artifact(ArtifactKind::Layout, |s| {
                     s.stroke_color(Color::gray(0.8))
                         .path(|p| {
@@ -109,7 +109,7 @@ pub(crate) fn builder() -> Result<Builder, Box<dyn Error>> {
             &format!("Total € {total:.2}"),
             &font,
             Pt::new(14.0),
-            rect(339.0, 262.0, 200.0, 20.0),
+            RectPt::from_points(339.0, 262.0, 200.0, 20.0),
             &right,
         )
         .map(|_| ())

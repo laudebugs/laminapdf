@@ -21,10 +21,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
-    RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
-}
-
 /// A 16×16 RGBA gradient whose alpha falls off towards the right.
 fn gradient() -> Vec<u8> {
     (0_u8..16)
@@ -55,7 +51,7 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     };
     s.fill_color(Color::rgb(0.9, 0.3, 0.2))
         .path(|p| {
-            p.rect(rect(56.0, 56.0, 160.0, 100.0));
+            p.rect(RectPt::from_points(56.0, 56.0, 160.0, 100.0));
         })
         .fill(FillRule::NonZero);
     s.fill_color(Color::cmyk(0.8, 0.1, 0.0, 0.0))
@@ -84,13 +80,15 @@ pub(crate) fn build() -> Result<Vec<u8>, Box<dyn Error>> {
     // The photo clipped to an ellipse, and a rotated, alpha-masked gradient.
     s.save()
         .path(|p| {
-            p.ellipse(rect(300.0, 270.0, 239.0, 120.0));
+            p.ellipse(RectPt::from_points(300.0, 270.0, 239.0, 120.0));
         })
         .clip(FillRule::NonZero);
-    s.image(&photo, rect(300.0, 250.0, 239.0, 160.0)).restore();
+    s.image(&photo, RectPt::from_points(300.0, 250.0, 239.0, 160.0))
+        .restore();
     s.save()
         .transform(Matrix::translate(Pt::new(150.0), Pt::new(520.0)).after(&Matrix::rotate(30.0)));
-    s.image(&glow, rect(-60.0, -60.0, 120.0, 120.0)).restore();
+    s.image(&glow, RectPt::from_points(-60.0, -60.0, 120.0, 120.0))
+        .restore();
     page.finish()?;
     let mut doc = b.finish()?;
     Ok(doc.save(&SaveOptions::new(), &CancelToken::new())?.bytes)

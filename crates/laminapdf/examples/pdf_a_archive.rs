@@ -45,10 +45,6 @@ pub(crate) enum Level {
     A2u,
 }
 
-fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
-    RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
-}
-
 /// The letter's bytes.
 pub(crate) fn build(level: Level) -> Result<Vec<u8>, Box<dyn Error>> {
     let options = match level {
@@ -80,7 +76,7 @@ fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildEr
         s.save()
             .opacity(BAND_OPACITY, 1.0)
             .fill_color(Color::rgb(0.12, 0.47, 0.78));
-        s.path(|p| _ = p.rect(rect(0.0, 0.0, width, BAND_HEIGHT)))
+        s.path(|p| _ = p.rect(RectPt::from_points(0.0, 0.0, width, BAND_HEIGHT)))
             .fill(FillRule::NonZero);
         s.restore();
         Ok(())
@@ -88,12 +84,12 @@ fn draw(s: &mut Surface, font: &FontHandle, photo: &Image) -> Result<(), BuildEr
     s.tag(TagKind::H1, |s| {
         s.text("Order confirmation 42", font, TITLE, TITLE_AT).map(drop)
     })?;
-    let body = rect(MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT);
+    let body = RectPt::from_points(MARGIN, BLOCK_TOP, LETTER_WIDTH, BLOCK_HEIGHT);
     s.tag(TagKind::P, |s| {
         s.text_box(LETTER, font, BODY, body, &TextBoxOptions::default())
             .map(drop)
     })?;
-    let beside = rect(PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT);
+    let beside = RectPt::from_points(PHOTO_LEFT, BLOCK_TOP, PHOTO_WIDTH, BLOCK_HEIGHT);
     s.figure(photo, beside, Some(PHOTO_ALT));
     let footer = "Acme Widgets Ltd, 1 Example Street, London";
     s.tag(TagKind::P, |s| s.text(footer, font, BODY, FOOTER_AT).map(drop))
