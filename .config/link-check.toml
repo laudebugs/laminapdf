@@ -72,8 +72,40 @@ prefix = "https://openai.com/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
-prefix = "https://pdfa.org/"
-reason = "answers 403 to automated clients from some networks (Cloudflare bot protection): every pdfa.org link failed the 2026-11-02 release run (v0.2.0-alpha.1), after one page failed that day's nightly and answered 200 when re-checked"
+prefix = "https://pdfa.org/community/deriving-html-from-pdf-twg/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/download-area/publications/pdf-extension-brotli.pdf"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/enabling-ai-to-use-pdf/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/presentation/deriving-html-from-pdf-lessons-learned/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/resource/arlington-pdf-model/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 nightly and answered 200 when re-checked that day. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/resource/iso-32000-2/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/safedocs-latest-research-into-securing-pdf/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/sponsored-standards/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://pdfa.org/wp-content/uploads/2021/06/Survey-of-OpenSource-Solutions.pdf"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://press.rebus.community/"
@@ -128,8 +160,12 @@ prefix = "https://www.npmjs.com/"
 reason = "answers 403 with a Cloudflare challenge to non-browser clients (bot protection)"
 
 [[allow]]
-prefix = "https://www.pdfa.org/"
-reason = "pdfa.org's www host, behind the same bot protection (see https://pdfa.org/ above); its links failed the 2026-11-02 release run with 403"
+prefix = "https://www.pdfa.org/presentation/whats-new-in-the-updated-pdf-2-0-dated-revision/"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
+
+[[allow]]
+prefix = "https://www.pdfa.org/resource/deriving-html-from-pdf"
+reason = "answers 403 to automated clients from some networks (Cloudflare bot protection); it failed the 2026-11-02 release run (v0.2.0-alpha.1) while the host's other pages answered 200. The prefix is the whole page URL, so the host's other links stay checked"
 
 [[allow]]
 prefix = "https://www.publicsector.shidirect.com/"

@@ -498,12 +498,12 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
     let spec = git_spec(&ws.root, &git_ref);
     let (kind, value) = spec.as_ref().map_or(("rev", git_ref.clone()), |(k, v)| (*k, v.clone()));
     let mut outcomes = vec![Outcome {
-        label: "Rust binary, `laminapdf = { path = … }`".to_owned(),
+        label: format!("Rust binary, `{FACADE_CRATE} = {{ path = … }}`"),
         result: rust_project(ws, work, "rust-path", &path_dep, golden),
     }];
     outcomes.push(Outcome {
         label: format!(
-            "Rust binary, `laminapdf = {{ git = {}, {kind} = \"{value}\" }}`",
+            "Rust binary, `{FACADE_CRATE} = {{ git = {}, {kind} = \"{value}\" }}`",
             git_url.as_deref().unwrap_or("?")
         ),
         result: match (&git_url, spec) {
@@ -588,6 +588,17 @@ mod tests {
             assert!(examples.contains(&quoted), "tests/examples.rs lacks {quoted}");
             assert!(options_ts.contains(&quoted), "hello-options.ts lacks {quoted}");
         }
+    }
+
+    #[test]
+    fn hello_options_should_import_nothing_relative() {
+        // verify-install copies the file alone into each project, so a relative import can't resolve.
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let source = std::fs::read_to_string(root.join(super::HELLO_OPTIONS_TS)).unwrap();
+        assert!(
+            !source.contains("from \"./") && !source.contains("from \"../"),
+            "{source}"
+        );
     }
 
     #[test]
