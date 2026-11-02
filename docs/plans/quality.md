@@ -241,9 +241,9 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1a](../todos/done/Q1a-docs-font-source-sans.md) | One sans-serif font on the docs site (Source Sans 3) | S | — |
 | [Q1b](../todos/done/Q1b-docs-prose-check.md) | The `docs-prose` check for reader-facing text | M | — |
 | [Q1c](../todos/done/Q1c-examples-checks.md) | The examples checks: `docs-snippets`, a Biome override and `clippy-examples` | M | — |
-| [Q1d](../todos/ongoing/Q1d-example-api-cleanups.md) | API fixes the examples need | S | — |
+| [Q1d](../todos/done/Q1d-example-api-cleanups.md) | API fixes the examples need | S | — |
 | [Q1e](../todos/done/Q1e-quick-start-apps.md) | Runnable quick-start apps for every runtime | M | Q1c |
-| [Q1f](../todos/ongoing/Q1f-examples-readable.md) | Examples readers can copy | M | Q1c, Q1d |
+| [Q1f](../todos/done/Q1f-examples-readable.md) | Examples readers can copy | M | Q1c, Q1d |
 | [Q1g](../todos/ready/Q1g-worker-examples.md) | Worker examples that work outside this repository | S | Q1c |
 | [Q1h](../todos/done/Q1h-docs-story.md) | The docs as a story: start pages, concepts, glossary and an explicit sidebar | M | Q1b, Q1e |
 | [Q1i](../todos/done/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
@@ -299,7 +299,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Write the guidelines: [docs writing](../guidelines/docs-writing.md), [examples](../guidelines/examples.md), [maintainability](../guidelines/maintainability.md); name them in CLAUDE.md
 - [x] Q1a: one sans-serif font on the docs site
 - [x] Q1b, Q1c: the docs-prose and examples checks
-- [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples
+- [ ] Q1d–Q1g: example API fixes, quick-start apps, readable examples, Worker examples ([Q1d](../todos/done/Q1d-example-api-cleanups.md), [Q1e](../todos/done/Q1e-quick-start-apps.md) and [Q1f](../todos/done/Q1f-examples-readable.md) are done)
 - [x] Q1h, Q1i: the story and the create-PDF guides
 - [ ] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting ([Q1m](../todos/done/Q1m-guides-read-and-edit.md), the read-and-edit guides, is done)
 - [x] Q1k: internal IDs out of reader text
