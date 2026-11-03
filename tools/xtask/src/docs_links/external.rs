@@ -7,7 +7,7 @@
 //! passes only on the retry is reported as flaky, never hidden (ADR 0018 §4). Hosts are checked in
 //! parallel, but the URLs of one host one at a time with a pause between them (the rate limit);
 //! after [`HOST_GIVE_UP`] URLs of one host in a row fail without an HTTP answer, the rest of that
-//! host is reported dead unfetched, so one stalled host cannot outlast the job's timeout.
+//! host is reported missing unfetched, so one stalled host cannot outlast the job's timeout.
 //! URLs under a prefix in [`ALLOWLIST`] (hosts known to refuse bots) are listed, not fetched.
 //!
 //! A URL whose last answer is 403 (not retried) or 429 (after its retries) is **refused**: a bot wall or rate limit
@@ -16,8 +16,14 @@
 //! release runs in a row failed on a different site's bot protection).
 //!
 //! The report (every URL with its outcome) goes to stdout, `target/nightly/links/report.json`
-//! and `report.md`, and the job summary; `flaky=true|false` goes to `$GITHUB_OUTPUT`. The run
-//! fails when any URL is dead.
+//! and `report.md`, and the job summary; `flaky=true|false` goes to `$GITHUB_OUTPUT`.
+//!
+//! A URL whose page or site isn't there (404, 410, another error status, or no HTTP answer: the
+//! name doesn't resolve, the connection fails or times out) is **missing**. Missing links don't
+//! fail the run (decided 2026-11-03): each one gets a `::warning::`, `missing=true` goes to
+//! `$GITHUB_OUTPUT`, and `missing.md` holds the body of the issue the nightly lane opens, "Missing
+//! links in the docs on <ref>": every missing URL, where it is linked from and the reason in
+//! plain words ([`Outcome::reason`]).
 
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt::Write as _;
@@ -241,7 +247,7 @@ enum Class {
     Transient,
     /// The host may refuse `HEAD` only: ask again with `GET`.
     TryGet,
-    Dead,
+    Missing,
 }
 
 fn classify(method: Method, status: u16) -> Class {
@@ -250,7 +256,7 @@ fn classify(method: Method, status: u16) -> Class {
         // Some servers answer HEAD with 400/403/404/405/501 while GET works.
         400 | 403 | 404 | 405 | 501 if method == Method::Head => Class::TryGet,
         408 | 425 | 429 | 500..=599 => Class::Transient,
-        _ => Class::Dead,
+        _ => Class::Missing,
     }
 }
 
@@ -259,18 +265,19 @@ fn classify(method: Method, status: u16) -> Class {
 pub(crate) enum Outcome {
     /// It answered `status`; `attempts > 1` means it passed only on a retry (flaky).
     Alive { status: u16, attempts: u32 },
-    /// Dead for good: the last answer, after every retry.
-    Dead { last: Probe, attempts: u32 },
+    /// Missing: the last answer after every retry says the page or site isn't there (404, 410,
+    /// another error status, or no HTTP answer at all). Reported in an issue, not a failure.
+    Missing { last: Probe, attempts: u32 },
     /// A final 403 (not retried) or 429 (after the retries): the host refuses our requests (bot
-    /// protection or a rate limit). Reported, not counted as dead.
+    /// protection or a rate limit). Reported, not counted as missing.
     Refused { status: u16, attempts: u32 },
     /// Not fetched: covered by the allowlist.
     Allowed { reason: String },
 }
 
 impl Outcome {
-    fn is_dead(&self) -> bool {
-        matches!(self, Self::Dead { .. })
+    fn is_missing(&self) -> bool {
+        matches!(self, Self::Missing { .. })
     }
 
     fn is_refused(&self) -> bool {
@@ -285,7 +292,7 @@ impl Outcome {
         match self {
             Self::Alive { attempts: 1, .. } => "ok",
             Self::Alive { .. } => "flaky",
-            Self::Dead { .. } => "dead",
+            Self::Missing { .. } => "missing",
             Self::Refused { .. } => "refused",
             Self::Allowed { .. } => "allowed",
         }
@@ -295,22 +302,94 @@ impl Outcome {
         match self {
             Self::Alive { status, attempts: 1 } => status.to_string(),
             Self::Alive { status, attempts } => format!("{status} on attempt {attempts}"),
-            Self::Dead {
+            Self::Missing {
                 last: Probe::Status(status),
                 attempts,
             }
             | Self::Refused { status, attempts } => format!("{status} after {attempts} attempt(s)"),
-            Self::Dead {
+            Self::Missing {
                 last: Probe::Network(message),
                 attempts: 0,
             } => message.clone(),
-            Self::Dead {
+            Self::Missing {
                 last: Probe::Network(message),
                 attempts,
             } => format!("{message} after {attempts} attempt(s)"),
             Self::Allowed { reason } => reason.clone(),
         }
     }
+}
+
+impl Outcome {
+    /// Why a missing URL counts as missing, in plain words for the issue. `None` for every other
+    /// outcome.
+    fn reason(&self) -> Option<String> {
+        let Self::Missing { last, .. } = self else {
+            return None;
+        };
+        Some(match last {
+            Probe::Status(404) => "The page doesn't exist: the site answered 404 Not Found.".to_owned(),
+            Probe::Status(410) => "The page was removed: the site answered 410 Gone.".to_owned(),
+            Probe::Status(401) => "The page needs a login: the site answered 401 Unauthorized.".to_owned(),
+            Probe::Status(status @ 500..=599) => {
+                format!("The site's server failed: it answered {status} on every try.")
+            }
+            Probe::Status(status) => format!("The site refused the page: it answered {status}."),
+            Probe::Network(message) => network_reason(message),
+        })
+    }
+}
+
+/// The plain-words reason for a request that got no HTTP answer (curl's `message`).
+fn network_reason(message: &str) -> String {
+    let lower = message.to_lowercase();
+    let reason = if lower.contains("could not resolve host") {
+        "The site's name doesn't resolve: the domain may have expired, or the runner's DNS failed."
+    } else if lower.contains("timed out") || lower.contains("timeout") {
+        "The site didn't answer in time."
+    } else if lower.contains("connection refused") || lower.contains("couldn't connect") {
+        "The site refused the connection."
+    } else if lower.contains("ssl") || lower.contains("certificate") || lower.contains("tls") {
+        "The site's HTTPS failed: its certificate or TLS setup was rejected."
+    } else if lower.contains("not fetched") {
+        "Not checked: the site's earlier links got no answer, so the check gave up on the site."
+    } else {
+        "The site gave no HTTP answer."
+    };
+    format!("{reason} ({message})")
+}
+
+/// The body of the "Missing links in the docs" issue: each missing URL, why, and where it is
+/// linked from (every place, so the issue says what to edit). `None` when nothing is missing.
+fn missing_issue(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String, Outcome>) -> Option<String> {
+    let missing: Vec<_> = results.iter().filter(|(_, o)| o.is_missing()).collect();
+    if missing.is_empty() {
+        return None;
+    }
+    let mut out = format!(
+        "The external link check found {} of {} linked URLs missing. For each one, fix or remove the \
+         link, link an archived copy, or, if the page is there in a browser, add its site to \
+         `{ALLOWLIST}` with a reason.\n\n| URL | Why it's missing | Linked from |\n| --- | --- | --- |\n",
+        missing.len(),
+        results.len()
+    );
+    for (url, outcome) in missing {
+        let sites = urls.get(url).map_or_else(String::new, |sites| {
+            sites
+                .iter()
+                .map(|s| format!("`{}:{}`", s.file, s.line))
+                .collect::<Vec<_>>()
+                .join(", ")
+        });
+        let _ = writeln!(
+            out,
+            "| {} | {} | {} |",
+            md_cell(url),
+            md_cell(&outcome.reason().unwrap_or_default()),
+            md_cell(&sites)
+        );
+    }
+    Some(out)
 }
 
 /// Checks one URL with `probe`, retrying transient failures per `pacing`; `sleep` waits (tests
@@ -354,7 +433,7 @@ pub(crate) fn check_url(
                     attempts,
                 };
             }
-            _ => return Outcome::Dead { last: answer, attempts },
+            _ => return Outcome::Missing { last: answer, attempts },
         }
     }
 }
@@ -449,7 +528,7 @@ pub(crate) fn check_all(
                     let mut unreachable = 0;
                     for (i, url) in host_urls.into_iter().enumerate() {
                         let outcome = if unreachable >= HOST_GIVE_UP {
-                            Outcome::Dead {
+                            Outcome::Missing {
                                 last: Probe::Network(format!(
                                     "not fetched: the host's previous {HOST_GIVE_UP} URLs got no HTTP answer"
                                 )),
@@ -463,7 +542,7 @@ pub(crate) fn check_all(
                         };
                         if matches!(
                             outcome,
-                            Outcome::Dead {
+                            Outcome::Missing {
                                 last: Probe::Network(_),
                                 ..
                             }
@@ -494,25 +573,25 @@ fn unused<'a>(allowlist: &'a [Allow], urls: &BTreeMap<String, Vec<Site>>) -> Vec
         .collect()
 }
 
-/// The Markdown report: dead and flaky URLs with where they are linked from, then counts.
+/// The Markdown report: missing, flaky and refused URLs with where they are linked from, then counts.
 fn markdown_report(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String, Outcome>) -> String {
     let count = |label: &str| results.values().filter(|o| o.label() == label).count();
     let mut out = String::from("## External links\n\n");
     let _ = writeln!(
         out,
-        "{} URLs: {} ok, {} flaky, {} dead, {} refused, {} allowed ({ALLOWLIST}).\n",
+        "{} URLs: {} ok, {} flaky, {} missing, {} refused, {} allowed ({ALLOWLIST}).\n",
         results.len(),
         count("ok"),
         count("flaky"),
-        count("dead"),
+        count("missing"),
         count("refused"),
         count("allowed"),
     );
     for (title, keep) in [
-        ("Dead", Outcome::is_dead as fn(&Outcome) -> bool),
+        ("Missing", Outcome::is_missing as fn(&Outcome) -> bool),
         ("Flaky (passed on a retry)", Outcome::is_flaky),
         (
-            "Refused (403 or 429: the host refused the check; not counted as dead)",
+            "Refused (403 or 429: the host refused the check; not counted as missing)",
             Outcome::is_refused,
         ),
     ] {
@@ -612,13 +691,27 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
     for prefix in unused(&allowlist, &urls) {
         eprintln!("warning: {ALLOWLIST}: `{prefix}` covers no linked URL; remove it");
     }
-    let dead: Vec<_> = results.iter().filter(|(_, o)| o.is_dead()).collect();
-    for (url, outcome) in &dead {
+    let missing: Vec<_> = results.iter().filter(|(_, o)| o.is_missing()).collect();
+    for (url, outcome) in &missing {
         let sites = urls.get(*url).map(Vec::as_slice).unwrap_or_default();
         for site in sites {
-            eprintln!("{}:{}: dead link {url} ({})", site.file, site.line, outcome.detail());
+            eprintln!("{}:{}: missing link {url} ({})", site.file, site.line, outcome.detail());
+        }
+        if !json_output {
+            println!(
+                "::warning::missing link: {url}: {}",
+                outcome.reason().unwrap_or_default()
+            );
         }
     }
+    let issue = report_dir.join("missing.md");
+    match missing_issue(&urls, &results) {
+        Some(body) => fs::write(&issue, body).with_context(|| format!("writing {}", issue.display()))?,
+        // A stale file from an earlier run must not open an issue.
+        None if issue.exists() => fs::remove_file(&issue).with_context(|| format!("removing {}", issue.display()))?,
+        None => {}
+    }
+    github_output("missing", if missing.is_empty() { "false" } else { "true" })?;
     let refused: Vec<_> = results.iter().filter(|(_, o)| o.is_refused()).collect();
     if !json_output {
         for (url, outcome) in &refused {
@@ -627,16 +720,10 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
     }
     let flaky = results.values().filter(|o| o.is_flaky()).count();
     github_output("flaky", if flaky > 0 { "true" } else { "false" })?;
-    if !dead.is_empty() {
-        bail!(
-            "{} dead external link(s) of {} (report in {REPORT_DIR}/report.md)",
-            dead.len(),
-            results.len()
-        );
-    }
     eprintln!(
-        "docs-links --external: {} URLs, none dead ({flaky} flaky, {} refused)",
+        "docs-links --external: {} URLs, {} missing (reported, not failed; {REPORT_DIR}/missing.md), {flaky} flaky, {} refused",
         results.len(),
+        missing.len(),
         refused.len()
     );
     Ok(())
@@ -856,7 +943,7 @@ mod tests {
         assert_eq!(
             (outcome, asked.borrow().clone()),
             (
-                Outcome::Dead {
+                Outcome::Missing {
                     last: Probe::Status(404),
                     attempts: 1
                 },
@@ -866,11 +953,11 @@ mod tests {
     }
 
     #[test]
-    fn check_url_should_report_a_403_as_refused_not_dead() {
+    fn check_url_should_report_a_403_as_refused_not_missing() {
         let (probe, asked) = scripted(vec![Probe::Status(403), Probe::Status(403)]);
         let outcome = check_url("u", FAST, &probe, &no_sleep);
         assert_eq!(
-            (outcome.is_dead(), outcome.label(), asked.borrow().clone()),
+            (outcome.is_missing(), outcome.label(), asked.borrow().clone()),
             (false, "refused", vec![Method::Head, Method::Get])
         );
     }
@@ -928,7 +1015,7 @@ mod tests {
         assert_eq!(
             (outcome, asked.borrow().len()),
             (
-                Outcome::Dead {
+                Outcome::Missing {
                     last: Probe::Status(503),
                     attempts: 3
                 },
@@ -973,7 +1060,7 @@ mod tests {
         let probe = |url: &str, _: Method| Probe::Status(if url.ends_with("dead") { 410 } else { 200 });
         let results = check_all(&urls, &list, FAST, &probe, &no_sleep, &|_: &str, _: &Outcome| {});
         let labels: Vec<_> = results.values().map(Outcome::label).collect();
-        assert_eq!(labels, ["ok", "dead", "allowed"]);
+        assert_eq!(labels, ["ok", "missing", "allowed"]);
     }
 
     #[test]
@@ -994,7 +1081,7 @@ mod tests {
         let probes_per_url = 2 * (FAST.retries as usize + 1);
         assert_eq!(
             (
-                results.values().filter(|o| o.is_dead()).count(),
+                results.values().filter(|o| o.is_missing()).count(),
                 asked.load(Ordering::Relaxed)
             ),
             (5, super::HOST_GIVE_UP * probes_per_url)
@@ -1020,11 +1107,11 @@ mod tests {
     }
 
     #[test]
-    fn markdown_report_should_list_dead_links_with_their_sites() {
+    fn markdown_report_should_list_missing_links_with_their_sites() {
         let urls = urls(&["https://b.example/dead"]);
         let results = BTreeMap::from([(
             "https://b.example/dead".to_owned(),
-            Outcome::Dead {
+            Outcome::Missing {
                 last: Probe::Status(404),
                 attempts: 1,
             },
@@ -1033,5 +1120,81 @@ mod tests {
             markdown_report(&urls, &results)
                 .contains("| https://b.example/dead | 404 after 1 attempt(s) | `README.md:1` |")
         );
+    }
+
+    fn missing(last: Probe) -> Outcome {
+        Outcome::Missing { last, attempts: 2 }
+    }
+
+    #[test]
+    fn reason_should_explain_why_a_link_is_missing() {
+        let dns = "curl: (6) Could not resolve host: gone.example";
+        assert_eq!(
+            [
+                missing(Probe::Status(404)).reason(),
+                missing(Probe::Status(410)).reason(),
+                missing(Probe::Status(503)).reason(),
+                missing(Probe::Network(dns.into())).reason(),
+                Outcome::Alive {
+                    status: 200,
+                    attempts: 1
+                }
+                .reason(),
+            ],
+            [
+                Some("The page doesn't exist: the site answered 404 Not Found.".to_owned()),
+                Some("The page was removed: the site answered 410 Gone.".to_owned()),
+                Some("The site's server failed: it answered 503 on every try.".to_owned()),
+                Some(format!(
+                    "The site's name doesn't resolve: the domain may have expired, or the runner's DNS failed. ({dns})"
+                )),
+                None,
+            ]
+        );
+    }
+
+    #[test]
+    fn missing_issue_should_list_each_missing_link_with_its_reason_and_every_site() {
+        let mut urls = urls(&["https://b.example/gone", "https://a.example/"]);
+        if let Some(sites) = urls.get_mut("https://b.example/gone") {
+            sites.push(Site {
+                file: "docs/x.md".into(),
+                line: 7,
+            });
+        }
+        let results = BTreeMap::from([
+            (
+                "https://a.example/".to_owned(),
+                Outcome::Alive {
+                    status: 200,
+                    attempts: 1,
+                },
+            ),
+            ("https://b.example/gone".to_owned(), missing(Probe::Status(404))),
+        ]);
+        let body = super::missing_issue(&urls, &results).unwrap();
+        assert!(
+            body.starts_with("The external link check found 1 of 2 linked URLs missing."),
+            "{body}"
+        );
+        assert!(
+            body.contains(
+                "| https://b.example/gone | The page doesn't exist: the site answered 404 Not Found. | `README.md:1`, `docs/x.md:7` |"
+            ),
+            "{body}"
+        );
+    }
+
+    #[test]
+    fn missing_issue_should_be_none_when_nothing_is_missing() {
+        let urls = urls(&["https://a.example/"]);
+        let results = BTreeMap::from([(
+            "https://a.example/".to_owned(),
+            Outcome::Alive {
+                status: 200,
+                attempts: 1,
+            },
+        )]);
+        assert_eq!(super::missing_issue(&urls, &results), None);
     }
 }
