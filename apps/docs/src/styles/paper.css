@@ -227,6 +227,21 @@ h1#_top,
   color: var(--paper-text);
 }
 
+/* Previous and next links at the foot of a page: compact buttons from the design language
+   (§3: spacing 8 and 12, button radius 4, control text 13 px), not Starlight's 2xl cards. */
+.pagination-links a {
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+.pagination-links .link-title {
+  font-size: var(--sl-text-base);
+  line-height: 1.375rem;
+}
+
 /* Focus: the accent, 2 px (§2.1 `focus`). Only colour and width: Starlight's own offsets stay
    (inside offsets on the table of contents and tabs, whose containers would clip a ring drawn
    outside). */
