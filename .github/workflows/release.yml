@@ -466,7 +466,7 @@ jobs:
         run: |
           set -euo pipefail
           failed=$(jq -r --arg linux "$LINUX" 'to_entries
-            | map(select(.value.result != "success" and not (.key == "check-linux" and $linux != "true" and .value.result == "skipped")))
+            | map(select(.value.result != "success" and ((.key == "check-linux" and $linux != "true" and .value.result == "skipped") | not)))
             | map("\(.key): \(.value.result)") | join(", ")' <<<"$NEEDS")
           if [ -n "$failed" ]; then
             echo "::error::release checks failed: $failed"
