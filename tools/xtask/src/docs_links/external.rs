@@ -21,9 +21,9 @@
 //! A URL whose page or site isn't there (404, 410, another error status, or no HTTP answer: the
 //! name doesn't resolve, the connection fails or times out) is **missing**. Missing links don't
 //! fail the run (decided 2026-11-03): each one gets a `::warning::`, `missing=true` goes to
-//! `$GITHUB_OUTPUT`, and `missing.md` holds the body of the issue the nightly lane opens, "Missing
-//! links in the docs on <ref>": every missing URL, where it is linked from and the reason in
-//! plain words ([`Outcome::reason`]).
+//! `$GITHUB_OUTPUT`, and `missing.md` holds the body of the issue the nightly lane opens,
+//! `Missing links in the docs on <ref>`: every missing URL, where it is linked from and the reason
+//! in plain words ([`Outcome::reason`]).
 
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt::Write as _;
