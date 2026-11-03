@@ -237,6 +237,19 @@ impl Crate {
         if layer == Layer::Dev && publishable {
             bail!("{name}: a dev crate holds test helpers and must set `publish = false`");
         }
+        // `cargo xtask check rust` documents every crate with --all-features; docs.rs uses the
+        // default features unless told otherwise, and an intra-doc link to a feature-gated item
+        // then fails its build (laminapdf-source and laminapdf-render, 0.2.0-alpha.2).
+        let docs_rs_all_features = package
+            .pointer("/metadata/docs/rs/all-features")
+            .and_then(Value::as_bool)
+            == Some(true);
+        if publishable && !docs_rs_all_features {
+            bail!(
+                "{name}: a published crate must set `all-features = true` under [package.metadata.docs.rs], \
+                 so docs.rs builds the docs `cargo xtask check rust` checks"
+            );
+        }
         Ok(Self {
             name,
             dir: dir.to_path_buf(),
@@ -524,6 +537,15 @@ mod tests {
         let package = |publish: serde_json::Value| serde_json::json!({ "name": "t", "publish": publish, "metadata": { "laminapdf": { "layer": "dev" } } });
         let dir = Path::new("crates/t");
         assert!(Crate::from_metadata(&package(serde_json::json!([])), dir).is_ok());
+        assert!(Crate::from_metadata(&package(serde_json::Value::Null), dir).is_err());
+    }
+
+    #[test]
+    fn a_published_crate_should_need_docs_rs_all_features() {
+        let package = |docs_rs: serde_json::Value| serde_json::json!({ "name": "t", "publish": null, "metadata": { "laminapdf": { "layer": "core" }, "docs": { "rs": docs_rs } } });
+        let dir = Path::new("crates/t");
+        assert!(Crate::from_metadata(&package(serde_json::json!({ "all-features": true })), dir).is_ok());
+        assert!(Crate::from_metadata(&package(serde_json::json!({})), dir).is_err());
         assert!(Crate::from_metadata(&package(serde_json::Value::Null), dir).is_err());
     }
 
