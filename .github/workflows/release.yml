@@ -485,6 +485,9 @@ jobs:
     if: ${{ !cancelled() && needs.release.result == 'success' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 60
+    # crates.io's trusted-publisher entries for these crates require the `release` environment:
+    # the OIDC token only names it (claim `environment`) when the job declares it.
+    environment: release
     permissions:
       contents: read
       # For rust-lang/crates-io-auth-action's token exchange (crates.io trusted publishing).
