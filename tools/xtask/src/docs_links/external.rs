@@ -318,9 +318,7 @@ impl Outcome {
             Self::Allowed { reason } => reason.clone(),
         }
     }
-}
 
-impl Outcome {
     /// Why a missing URL counts as missing, in plain words for the issue. `None` for every other
     /// outcome.
     fn reason(&self) -> Option<String> {
@@ -331,6 +329,9 @@ impl Outcome {
             Probe::Status(404) => "The page doesn't exist: the site answered 404 Not Found.".to_owned(),
             Probe::Status(410) => "The page was removed: the site answered 410 Gone.".to_owned(),
             Probe::Status(401) => "The page needs a login: the site answered 401 Unauthorized.".to_owned(),
+            Probe::Status(status @ (408 | 425)) => {
+                format!("The site didn't answer in time: it answered {status} on every try.")
+            }
             Probe::Status(status @ 500..=599) => {
                 format!("The site's server failed: it answered {status} on every try.")
             }
@@ -340,21 +341,29 @@ impl Outcome {
     }
 }
 
-/// The plain-words reason for a request that got no HTTP answer (curl's `message`).
+/// The plain-words reason for a request that got no HTTP answer (`message`: curl's last stderr
+/// line, `curl exit <code>` when it printed none, or the give-up note from [`check_all`]).
 fn network_reason(message: &str) -> String {
-    let lower = message.to_lowercase();
-    let reason = if lower.contains("could not resolve host") {
-        "The site's name doesn't resolve: the domain may have expired, or the runner's DNS failed."
-    } else if lower.contains("timed out") || lower.contains("timeout") {
-        "The site didn't answer in time."
-    } else if lower.contains("connection refused") || lower.contains("couldn't connect") {
-        "The site refused the connection."
-    } else if lower.contains("ssl") || lower.contains("certificate") || lower.contains("tls") {
-        "The site's HTTPS failed: its certificate or TLS setup was rejected."
-    } else if lower.contains("not fetched") {
-        "Not checked: the site's earlier links got no answer, so the check gave up on the site."
-    } else {
-        "The site gave no HTTP answer."
+    // `curl: (6) Could not resolve host…`, or `curl exit 6` when curl printed nothing.
+    let code = message
+        .strip_prefix("curl: (")
+        .and_then(|rest| rest.split_once(')'))
+        .map(|(code, _)| code)
+        .or_else(|| message.strip_prefix("curl exit "))
+        .and_then(|code| code.trim().parse::<u32>().ok());
+    // curl's exit codes (curl(1), "EXIT CODES").
+    let reason = match code {
+        Some(6) => "The site's name doesn't resolve: the domain may have expired, or the runner's DNS failed.",
+        Some(7) => "The site refused the connection.",
+        Some(28) => "The site didn't answer in time.",
+        Some(35 | 51 | 58 | 59 | 60 | 77 | 83 | 90 | 91) => {
+            "The site's HTTPS failed: its certificate or TLS setup was rejected."
+        }
+        Some(47) => "The site redirected too many times.",
+        _ if message.starts_with("not fetched") => {
+            "Not checked: the site's earlier links got no answer, so the check gave up on the site."
+        }
+        _ => "The site gave no HTTP answer.",
     };
     format!("{reason} ({message})")
 }
@@ -1135,6 +1144,9 @@ mod tests {
                 missing(Probe::Status(410)).reason(),
                 missing(Probe::Status(503)).reason(),
                 missing(Probe::Network(dns.into())).reason(),
+                missing(Probe::Status(408)).reason(),
+                missing(Probe::Network("curl: (28) Operation timed out after 20001 milliseconds".into())).reason(),
+                missing(Probe::Network("curl: (35) rtlsdr.example: handshake failed".into())).reason(),
                 Outcome::Alive {
                     status: 200,
                     attempts: 1
@@ -1148,6 +1160,12 @@ mod tests {
                 Some(format!(
                     "The site's name doesn't resolve: the domain may have expired, or the runner's DNS failed. ({dns})"
                 )),
+                Some("The site didn't answer in time: it answered 408 on every try.".to_owned()),
+                Some("The site didn't answer in time. (curl: (28) Operation timed out after 20001 milliseconds)".to_owned()),
+                Some(
+                    "The site's HTTPS failed: its certificate or TLS setup was rejected. (curl: (35) rtlsdr.example: handshake failed)"
+                        .to_owned()
+                ),
                 None,
             ]
         );
