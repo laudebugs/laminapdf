@@ -10,7 +10,7 @@
 //! host is reported dead unfetched, so one stalled host cannot outlast the job's timeout.
 //! URLs under a prefix in [`ALLOWLIST`] (hosts known to refuse bots) are listed, not fetched.
 //!
-//! A URL still answering 403 or 429 after its retries is **refused**: a bot wall or rate limit
+//! A URL whose last answer is 403 (not retried) or 429 (after its retries) is **refused**: a bot wall or rate limit
 //! that answers our runner, not proof the page is gone (a removed page answers 404 or 410). It is
 //! listed in the report with a warning and doesn't fail the run (decided 2026-11-03, after three
 //! release runs in a row failed on a different site's bot protection).
@@ -261,8 +261,8 @@ pub(crate) enum Outcome {
     Alive { status: u16, attempts: u32 },
     /// Dead for good: the last answer, after every retry.
     Dead { last: Probe, attempts: u32 },
-    /// Still 403 or 429 after every retry: the host refuses our requests (bot protection or a
-    /// rate limit). Reported, not counted as dead.
+    /// A final 403 (not retried) or 429 (after the retries): the host refuses our requests (bot
+    /// protection or a rate limit). Reported, not counted as dead.
     Refused { status: u16, attempts: u32 },
     /// Not fetched: covered by the allowlist.
     Allowed { reason: String },
@@ -619,10 +619,12 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
             eprintln!("{}:{}: dead link {url} ({})", site.file, site.line, outcome.detail());
         }
     }
-    for (url, outcome) in results.iter().filter(|(_, o)| o.is_refused()) {
-        println!("::warning::refused, not checked: {url} ({})", outcome.detail());
+    let refused: Vec<_> = results.iter().filter(|(_, o)| o.is_refused()).collect();
+    if !json_output {
+        for (url, outcome) in &refused {
+            println!("::warning::refused, not checked: {url} ({})", outcome.detail());
+        }
     }
-    let refused = results.values().filter(|o| o.is_refused()).count();
     let flaky = results.values().filter(|o| o.is_flaky()).count();
     github_output("flaky", if flaky > 0 { "true" } else { "false" })?;
     if !dead.is_empty() {
@@ -633,8 +635,9 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
         );
     }
     eprintln!(
-        "docs-links --external: {} URLs, none dead ({flaky} flaky, {refused} refused)",
-        results.len()
+        "docs-links --external: {} URLs, none dead ({flaky} flaky, {} refused)",
+        results.len(),
+        refused.len()
     );
     Ok(())
 }

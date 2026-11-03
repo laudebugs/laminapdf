@@ -50,8 +50,25 @@ const VERSION_PREFIX: &str = "LAMINA_PDF_VERIFY_VERSION ";
 
 const REPORT_TS: &str = include_str!("verify_install/report.ts");
 const MAIN_TS: &str = include_str!("verify_install/main.ts");
-/// How a Node that can't parse `using` builds the project first (the Node quick start's advice).
-const NODE_TSCONFIG: &str = include_str!("verify_install/tsconfig.json");
+/// How a Node that can't parse `using` builds the project first (the Node quick start's advice):
+/// `tsc` with these options, on the command line so no tsconfig.json sits above the Vite and
+/// Worker projects. `ESNext.Disposable` types `using`; tsc lowers it to ES2022.
+const NODE_TSC_ARGS: [&str; 14] = [
+    "main.ts",
+    "--outDir",
+    "dist",
+    "--target",
+    "ES2022",
+    "--module",
+    "NodeNext",
+    "--moduleResolution",
+    "NodeNext",
+    "--rewriteRelativeImportExtensions",
+    "--strict",
+    "--skipLibCheck",
+    "--lib",
+    "ES2023,ESNext.Disposable,DOM",
+];
 const VITE_INDEX: &str = include_str!("verify_install/vite/index.html");
 const VITE_MAIN: &str = include_str!("verify_install/vite/main.ts");
 const FREE_PORT: &str = include_str!("verify_install/free-port.mjs");
@@ -274,7 +291,7 @@ fn parses_using(version: &str) -> bool {
 
 /// Builds the JavaScript project into `dist/` with the repository's pinned TypeScript.
 fn compile_js(ws: &Workspace, js: &Path) -> Result<()> {
-    crate::run(js, &tool(ws, "tsc"), &["-p", "tsconfig.json"])
+    crate::run(js, &tool(ws, "tsc"), &NODE_TSC_ARGS)
 }
 
 /// The first line `program args…` prints, or `?`.
@@ -383,7 +400,6 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
         write(&dir.join("report.ts"), REPORT_TS)?;
     }
     write(&js.join("main.ts"), MAIN_TS)?;
-    write(&js.join("tsconfig.json"), NODE_TSCONFIG)?;
     write(&js.join("vite/index.html"), VITE_INDEX)?;
     write(&js.join("vite/main.ts"), VITE_MAIN)?;
     write(&js.join("vite/chromium.mjs"), CHROMIUM_RUNNER)?;
