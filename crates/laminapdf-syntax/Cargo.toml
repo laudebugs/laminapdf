@@ -48,3 +48,7 @@ thiserror = { workspace = true }
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Reads fixtures/codes.json in the kind test.
 serde_json = { workspace = true }
+
+[package.metadata.docs.rs]
+# Every feature, as `cargo xtask check rust` documents it (docs.rs uses the default ones otherwise).
+all-features = true
