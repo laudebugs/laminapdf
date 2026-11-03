@@ -1,36 +1,23 @@
 ---
 title: Your first PDF
-description: Write hello.pdf from Node in five minutes, once Lamina PDF is built.
+description: Write hello.pdf from Node in five minutes.
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-You'll write `hello.pdf`, one A4 page that says "Hello, world!", from a short Node script. Once Lamina PDF is built, it takes about five minutes.
-
-## Before you start
-
-Lamina PDF isn't on npm yet, so you install it from a build of the repository, which is private for now. You need access to it, Node 24.2 or newer, pnpm, and Rust; [Install](/install/) covers the details. Clone it into a folder named `laminapdf` (ask a maintainer for the URL), build the packages once, and pack them into one folder:
-
-```sh
-git clone <repository URL> laminapdf && cd laminapdf
-pnpm install
-cargo xtask wasm
-(cd packages/wasm && pnpm pack --pack-destination ../../packs)
-(cd packages/sdk && pnpm pack --pack-destination ../../packs)
-```
-
-The last two lines write `@laminapdf/wasm` and `@laminapdf/sdk` as `.tgz` files into `packs/`, which your project installs.
+You'll write `hello.pdf`, one A4 page that says "Hello, world!", from a short Node script. It takes about five minutes.
 
 ## Make a project
 
-Leave the checkout, create a folder next to it and install both packages:
+You need Node 24.2 or newer, which runs `.ts` files directly. Create a folder and install `@laminapdf/sdk` from npm:
 
 ```sh
-cd ..
 mkdir hello-pdf && cd hello-pdf
 npm init -y && npm pkg set type=module
-npm install ../laminapdf/packs/*.tgz
+npm install @laminapdf/sdk@alpha
 ```
+
+Lamina PDF is in alpha, so the install names the `alpha` tag. `@laminapdf/sdk` brings its WebAssembly modules, `@laminapdf/wasm`, with it. [Install](/install/) covers other package managers and Rust.
 
 ## Write the page
 

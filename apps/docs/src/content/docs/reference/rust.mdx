@@ -1,14 +1,29 @@
 ---
 title: Rust API (rustdoc)
-description: Where to read the Lamina PDF crate's API documentation.
+description: Where to read the API documentation of the Lamina PDF crates.
 ---
 
-Lamina PDF's Rust crates aren't on crates.io yet, so docs.rs has no copy of their documentation. Build it on your own machine from a checkout of Lamina PDF:
+docs.rs builds the API documentation of every Lamina PDF crate on crates.io. Start with [`laminapdf` on docs.rs](https://docs.rs/laminapdf/0.2.0-alpha.2/laminapdf/), the crate to depend on. It wraps the core crates and holds `Document`, `Builder`, `Error`, `Warning`, jobs and `CancelToken`.
+
+The core crates under it are documented the same way:
+
+- [`laminapdf-syntax`](https://docs.rs/laminapdf-syntax/0.2.0-alpha.2/laminapdf_syntax/)
+- [`laminapdf-cos`](https://docs.rs/laminapdf-cos/0.2.0-alpha.2/laminapdf_cos/)
+- [`laminapdf-model`](https://docs.rs/laminapdf-model/0.2.0-alpha.2/laminapdf_model/)
+- [`laminapdf-ops`](https://docs.rs/laminapdf-ops/0.2.0-alpha.2/laminapdf_ops/)
+- [`laminapdf-save`](https://docs.rs/laminapdf-save/0.2.0-alpha.2/laminapdf_save/)
+- [`laminapdf-content`](https://docs.rs/laminapdf-content/0.2.0-alpha.2/laminapdf_content/)
+- [`laminapdf-text`](https://docs.rs/laminapdf-text/0.2.0-alpha.2/laminapdf_text/)
+- [`laminapdf-build`](https://docs.rs/laminapdf-build/0.2.0-alpha.2/laminapdf_build/)
+
+[Install](/install/#every-published-package) lists every crate, with its page on crates.io.
+
+## Build the docs yourself
+
+To read the docs of a change before it's released, build them from a checkout of Lamina PDF:
 
 ```sh
 cargo doc --workspace --no-deps --all-features --open
 ```
 
 The command opens the docs in your browser. Every public item of every crate is documented.
-
-Start with the `laminapdf` crate. It's the one to depend on. It wraps the core crates and holds `Document`, `Builder`, `Error`, `Warning`, jobs and `CancelToken`. The core crates under it (`laminapdf-syntax`, `laminapdf-cos`, `laminapdf-model`, `laminapdf-ops`, `laminapdf-save`, `laminapdf-content`, `laminapdf-text`, `laminapdf-build`) are documented the same way.

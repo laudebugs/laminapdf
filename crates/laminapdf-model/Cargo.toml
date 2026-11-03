@@ -9,6 +9,7 @@ repository.workspace = true
 publish = true
 readme = "README.md"
 homepage.workspace = true
+documentation.workspace = true
 keywords = ["pdf", "document", "outline", "structure-tree"]
 categories = ["parser-implementations"]
 

@@ -9,6 +9,7 @@ repository.workspace = true
 publish = true
 readme = "README.md"
 homepage.workspace = true
+documentation.workspace = true
 keywords = ["pdf", "range-requests", "streaming", "mmap"]
 categories = ["filesystem", "encoding"]
 
