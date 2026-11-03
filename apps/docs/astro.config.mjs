@@ -102,6 +102,7 @@ export default defineConfig({
             { label: "How Lamina PDF thinks about a PDF", slug: "concepts/how-lamina-thinks" },
             { label: "Pages and coordinates", slug: "concepts/pages-and-coordinates" },
             { label: "Errors and warnings", slug: "concepts/errors-and-warnings" },
+            { label: "What Lamina PDF writes and what it borrows", slug: "concepts/dependencies" },
           ],
         },
         {
