@@ -3,7 +3,7 @@ title: Install
 description: Install Lamina PDF from npm or crates.io, and find every published package.
 ---
 
-Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the alpha when you install: a plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
+Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the alpha when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
 
 ## TypeScript: `@laminapdf/sdk`
 
@@ -25,11 +25,11 @@ Add the crate at the alpha version:
 cargo add laminapdf@0.2.0-alpha
 ```
 
-The command writes `laminapdf = "0.2.0-alpha"` to `Cargo.toml`, which takes the newest 0.2.0 alpha. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+The command writes `laminapdf = "0.2.0-alpha"` to `Cargo.toml`. That requirement takes the newest 0.2.0 alpha. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
 
 ## Every published package
 
-You need only the two above. Each package below has its page on its registry:
+Most projects need only the two above. The table links every published package to its registry page:
 
 | Package | Registry | What it holds |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ pnpm install
 cargo xtask wasm      # builds packages/wasm/dist/ and packages/sdk/dist/, then tests them
 ```
 
-Then run `pnpm pack` in `packages/wasm` and in `packages/sdk`, and install both `.tgz` files in your project at once. In Rust, use a path dependency: `laminapdf = { path = "../laminapdf/crates/laminapdf" }`.
+Then run `pnpm pack` in `packages/wasm` and in `packages/sdk`, and install both `.tgz` files in one command: `@laminapdf/sdk` depends on `@laminapdf/wasm` at the same version, which the registry may not have yet. In Rust, use a path dependency: `laminapdf = { path = "../laminapdf/crates/laminapdf" }`.
 
 ## API docs
 

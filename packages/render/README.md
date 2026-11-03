@@ -1,6 +1,6 @@
 # @laminapdf/render
 
-The interface Lamina PDF's web renderers share, the TypeScript twin of the Rust `laminapdf-render` crate. Two packages implement it: [`@laminapdf/render-pdfium`](../render-pdfium/README.md), the default, and [`@laminapdf/render-hayro`](../render-hayro/README.md), a second engine to compare against and debug with. Both run inside the viewer's document Web Worker. This package is private and internal, and isn't published.
+The interface Lamina PDF's web renderers share, the TypeScript twin of the Rust `laminapdf-render` crate. Two packages implement it: [`@laminapdf/render-pdfium`](../render-pdfium/README.md), the default, and [`@laminapdf/render-hayro`](../render-hayro/README.md), a second engine to compare against and debug with. Both run inside the viewer's document Web Worker. It's on npm as an alpha release, `@laminapdf/render@alpha`; most apps reach it through `@laminapdf/viewer`.
 
 ```ts
 const backend = await initPdfium(wasmUrl);            // or initHayro()
