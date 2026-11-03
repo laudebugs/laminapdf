@@ -425,6 +425,7 @@ jobs:
     timeout-minutes: 45
     outputs:
       flaky: ${{ steps.links.outputs.flaky }}
+      missing: ${{ steps.links.outputs.missing }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -436,8 +437,10 @@ jobs:
         with:
           cache: false
       # curl per URL: HEAD, then a one-byte GET if HEAD is refused; timeouts, 429 and 5xx are
-      # retried once and a pass on retry is reported as flaky (flaky=true). Allowlist:
-      # .config/link-check.toml.
+      # retried once and a pass on retry is reported as flaky (flaky=true). A final 403 or 429 is
+      # refused (a warning). A missing page or site (404, 410, no answer) doesn't fail the job:
+      # missing=true, and the report job opens "Missing links in the docs on <ref>" from
+      # missing.md, with each link's reason. Allowlist: .config/link-check.toml.
       - id: links
         run: cargo xtask docs-links --external
       - name: Upload the report
@@ -544,7 +547,8 @@ jobs:
           exit 1
 
   # Opens or comments on one issue per kind and ref (labelled `nightly`): "Nightly lane failing
-  # on <ref>" for a failed or timed-out job, a flaky scaling test or a flaky link, "Nightly
+  # on <ref>" for a failed or timed-out job, a flaky scaling test or a flaky link, "Missing links
+  # in the docs on <ref>" for links whose page or site is missing (never a failure), "Nightly
   # benchmark regression on <ref>" for a >10% regression, "Nightly render-diff regression on
   # <ref>" for a pass rate more than 2 points below the last point (`cargo xtask render-diff
   # --dry-run` prints that issue locally). The ref in the title keeps a branch or tag run from
@@ -560,6 +564,7 @@ jobs:
       ${{ !cancelled() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
       || contains(needs.*.result, 'cancelled')
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
+      || needs.links.outputs.missing == 'true'
       || needs.bench.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
@@ -595,6 +600,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           FLAKY: ${{ needs.scaling.outputs.flaky }}
           LINKS_FLAKY: ${{ needs.links.outputs.flaky }}
+          LINKS_MISSING: ${{ needs.links.outputs.missing }}
           REGRESSION: ${{ needs.bench.outputs.regression }}
           RENDER_REGRESSION: ${{ needs.render-diff.outputs.regression }}
         run: |
@@ -655,7 +661,7 @@ jobs:
                 jq -r '([.disagreements[] | select(.kind == "failure")][:30][] | "- \u0060\(.file)\u0060 \(.fact): lamina \(.lamina | tojson | .[:60])"), ((.lamina_errors + .missing + .broken_readers)[:30][] | "- \u0060\(.)\u0060")' "$report"
               fi
               links=artefacts/links-report/report.md
-              for section in Dead Flaky; do
+              for section in Flaky; do
                 if [ -f "$links" ] && grep -q "^### $section" "$links"; then
                   links_section "$section" "$links"
                 fi
@@ -677,6 +683,16 @@ jobs:
               done
             } > failure.md
             upsert "Nightly lane failing on $GITHUB_REF_NAME" failure.md
+          fi
+          # Missing links don't fail the run; they get their own issue, with each link's reason
+          # (cargo xtask docs-links --external writes missing.md).
+          if [ "$LINKS_MISSING" = "true" ] && [ -f artefacts/links-report/missing.md ]; then
+            {
+              echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) found links in the docs whose page or site is missing. They don't fail the run."
+              echo
+              cat artefacts/links-report/missing.md
+            } > missing-links.md
+            upsert "Missing links in the docs on $GITHUB_REF_NAME" missing-links.md
           fi
           if [ "$REGRESSION" = "true" ]; then
             {
