@@ -50,6 +50,25 @@ const VERSION_PREFIX: &str = "LAMINA_PDF_VERIFY_VERSION ";
 
 const REPORT_TS: &str = include_str!("verify_install/report.ts");
 const MAIN_TS: &str = include_str!("verify_install/main.ts");
+/// How a Node that can't parse `using` builds the project first (the Node quick start's advice):
+/// `tsc` with these options, on the command line so no tsconfig.json sits above the Vite and
+/// Worker projects. `ESNext.Disposable` types `using`; tsc lowers it to ES2022.
+const NODE_TSC_ARGS: [&str; 14] = [
+    "main.ts",
+    "--outDir",
+    "dist",
+    "--target",
+    "ES2022",
+    "--module",
+    "NodeNext",
+    "--moduleResolution",
+    "NodeNext",
+    "--rewriteRelativeImportExtensions",
+    "--strict",
+    "--skipLibCheck",
+    "--lib",
+    "ES2023,ESNext.Disposable,DOM",
+];
 const VITE_INDEX: &str = include_str!("verify_install/vite/index.html");
 const VITE_MAIN: &str = include_str!("verify_install/vite/main.ts");
 const FREE_PORT: &str = include_str!("verify_install/free-port.mjs");
@@ -159,12 +178,25 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                 result: Err(anyhow::anyhow!("packing or installing the tarballs failed: {error:#}")),
             }),
             ("node", _) => {
+                let mut compiled = None;
                 for node in &args.nodes {
                     let version = version_of(node, &["--version"]);
+                    let js = work.join("js");
+                    let (label, result) = if parses_using(&version) {
+                        (format!("Node {version}"), js_line(&js, node, &["main.ts"], &[]))
+                    } else {
+                        // Node before 24.2 can't parse `using`: build with tsc first, as the Node
+                        // quick start tells its users to. Once, for every such Node.
+                        let built = compiled.get_or_insert_with(|| compile_js(ws, &js)).as_ref();
+                        let result = match built {
+                            Ok(()) => js_line(&js, node, &["dist/main.js"], &[]),
+                            Err(error) => Err(anyhow::anyhow!("tsc failed: {error:#}")),
+                        };
+                        (format!("Node {version} (built with tsc)"), result)
+                    };
                     outcomes.push(Outcome {
-                        label: format!("Node {version}"),
-                        result: js_line(&work.join("js"), node, &["main.ts"], &[])
-                            .and_then(|out| check_line(&out, &golden)),
+                        label,
+                        result: result.and_then(|out| check_line(&out, &golden)),
                     });
                 }
             }
@@ -245,6 +277,21 @@ fn tool(ws: &Workspace, name: &str) -> String {
     } else {
         name.to_owned()
     }
+}
+
+/// Whether Node `version` (`v24.2.0`) parses `using` declarations: 24.2 and newer. An unreadable
+/// version is taken as new, so the run shows the error instead of hiding it behind tsc.
+fn parses_using(version: &str) -> bool {
+    let mut parts = version.trim_start_matches('v').split('.').map(str::parse::<u32>);
+    match (parts.next(), parts.next()) {
+        (Some(Ok(major)), Some(Ok(minor))) => (major, minor) >= (24, 2),
+        _ => true,
+    }
+}
+
+/// Builds the JavaScript project into `dist/` with the repository's pinned TypeScript.
+fn compile_js(ws: &Workspace, js: &Path) -> Result<()> {
+    crate::run(js, &tool(ws, "tsc"), &NODE_TSC_ARGS)
 }
 
 /// The first line `program args…` prints, or `?`.
@@ -587,6 +634,19 @@ mod tests {
             assert!(super::RUST_MAIN.contains(&quoted), "main.rs.in lacks {quoted}");
             assert!(examples.contains(&quoted), "tests/examples.rs lacks {quoted}");
             assert!(options_ts.contains(&quoted), "hello-options.ts lacks {quoted}");
+        }
+    }
+
+    #[test]
+    fn parses_using_should_start_at_node_24_2() {
+        for (version, expected) in [
+            ("v22.23.4", false),
+            ("v24.1.0", false),
+            ("v24.2.0", true),
+            ("v26.0.0", true),
+            ("?", true),
+        ] {
+            assert_eq!(super::parses_using(version), expected, "{version}");
         }
     }
 

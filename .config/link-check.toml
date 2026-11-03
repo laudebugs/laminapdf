@@ -2,6 +2,8 @@
 # URLs starting with a `prefix` are listed in the report but not fetched: hosts that refuse
 # automated requests (bot walls, logins, aggressive rate limits) even though the page exists.
 # Every entry needs a `reason`. The check warns about entries that no longer match any link.
+# A URL that answers 403 or 429 without an entry is reported as refused, not dead, so an entry
+# is for hosts that refuse every time (it saves the requests and keeps the report quiet).
 #
 # [[allow]]
 # prefix = "https://example.com/"

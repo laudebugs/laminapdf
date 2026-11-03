@@ -10,6 +10,11 @@
 //! host is reported dead unfetched, so one stalled host cannot outlast the job's timeout.
 //! URLs under a prefix in [`ALLOWLIST`] (hosts known to refuse bots) are listed, not fetched.
 //!
+//! A URL whose last answer is 403 (not retried) or 429 (after its retries) is **refused**: a bot wall or rate limit
+//! that answers our runner, not proof the page is gone (a removed page answers 404 or 410). It is
+//! listed in the report with a warning and doesn't fail the run (decided 2026-11-03, after three
+//! release runs in a row failed on a different site's bot protection).
+//!
 //! The report (every URL with its outcome) goes to stdout, `target/nightly/links/report.json`
 //! and `report.md`, and the job summary; `flaky=true|false` goes to `$GITHUB_OUTPUT`. The run
 //! fails when any URL is dead.
@@ -256,6 +261,9 @@ pub(crate) enum Outcome {
     Alive { status: u16, attempts: u32 },
     /// Dead for good: the last answer, after every retry.
     Dead { last: Probe, attempts: u32 },
+    /// A final 403 (not retried) or 429 (after the retries): the host refuses our requests (bot
+    /// protection or a rate limit). Reported, not counted as dead.
+    Refused { status: u16, attempts: u32 },
     /// Not fetched: covered by the allowlist.
     Allowed { reason: String },
 }
@@ -263,6 +271,10 @@ pub(crate) enum Outcome {
 impl Outcome {
     fn is_dead(&self) -> bool {
         matches!(self, Self::Dead { .. })
+    }
+
+    fn is_refused(&self) -> bool {
+        matches!(self, Self::Refused { .. })
     }
 
     fn is_flaky(&self) -> bool {
@@ -274,6 +286,7 @@ impl Outcome {
             Self::Alive { attempts: 1, .. } => "ok",
             Self::Alive { .. } => "flaky",
             Self::Dead { .. } => "dead",
+            Self::Refused { .. } => "refused",
             Self::Allowed { .. } => "allowed",
         }
     }
@@ -285,7 +298,8 @@ impl Outcome {
             Self::Dead {
                 last: Probe::Status(status),
                 attempts,
-            } => format!("{status} after {attempts} attempt(s)"),
+            }
+            | Self::Refused { status, attempts } => format!("{status} after {attempts} attempt(s)"),
             Self::Dead {
                 last: Probe::Network(message),
                 attempts: 0,
@@ -333,6 +347,12 @@ pub(crate) fn check_url(
             }
             (Class::Transient, _) if attempts <= pacing.retries => {
                 sleep(pacing.backoff.saturating_mul(attempts));
+            }
+            (_, Probe::Status(status @ (403 | 429))) => {
+                return Outcome::Refused {
+                    status: *status,
+                    attempts,
+                };
             }
             _ => return Outcome::Dead { last: answer, attempts },
         }
@@ -480,16 +500,21 @@ fn markdown_report(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String
     let mut out = String::from("## External links\n\n");
     let _ = writeln!(
         out,
-        "{} URLs: {} ok, {} flaky, {} dead, {} allowed ({ALLOWLIST}).\n",
+        "{} URLs: {} ok, {} flaky, {} dead, {} refused, {} allowed ({ALLOWLIST}).\n",
         results.len(),
         count("ok"),
         count("flaky"),
         count("dead"),
+        count("refused"),
         count("allowed"),
     );
     for (title, keep) in [
         ("Dead", Outcome::is_dead as fn(&Outcome) -> bool),
         ("Flaky (passed on a retry)", Outcome::is_flaky),
+        (
+            "Refused (403 or 429: the host refused the check; not counted as dead)",
+            Outcome::is_refused,
+        ),
     ] {
         let rows: Vec<_> = results.iter().filter(|(_, o)| keep(o)).collect();
         if rows.is_empty() {
@@ -594,6 +619,12 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
             eprintln!("{}:{}: dead link {url} ({})", site.file, site.line, outcome.detail());
         }
     }
+    let refused: Vec<_> = results.iter().filter(|(_, o)| o.is_refused()).collect();
+    if !json_output {
+        for (url, outcome) in &refused {
+            println!("::warning::refused, not checked: {url} ({})", outcome.detail());
+        }
+    }
     let flaky = results.values().filter(|o| o.is_flaky()).count();
     github_output("flaky", if flaky > 0 { "true" } else { "false" })?;
     if !dead.is_empty() {
@@ -604,8 +635,9 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
         );
     }
     eprintln!(
-        "docs-links --external: {} URLs, none dead ({flaky} flaky)",
-        results.len()
+        "docs-links --external: {} URLs, none dead ({flaky} flaky, {} refused)",
+        results.len(),
+        refused.len()
     );
     Ok(())
 }
@@ -829,6 +861,32 @@ mod tests {
                     attempts: 1
                 },
                 vec![Method::Head, Method::Get]
+            )
+        );
+    }
+
+    #[test]
+    fn check_url_should_report_a_403_as_refused_not_dead() {
+        let (probe, asked) = scripted(vec![Probe::Status(403), Probe::Status(403)]);
+        let outcome = check_url("u", FAST, &probe, &no_sleep);
+        assert_eq!(
+            (outcome.is_dead(), outcome.label(), asked.borrow().clone()),
+            (false, "refused", vec![Method::Head, Method::Get])
+        );
+    }
+
+    #[test]
+    fn check_url_should_retry_a_429_then_report_it_refused() {
+        let (probe, asked) = scripted(vec![Probe::Status(429); 3]);
+        let outcome = check_url("u", FAST, &probe, &no_sleep);
+        assert_eq!(
+            (outcome, asked.borrow().len()),
+            (
+                Outcome::Refused {
+                    status: 429,
+                    attempts: 3
+                },
+                3
             )
         );
     }
