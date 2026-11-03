@@ -9,6 +9,7 @@ repository.workspace = true
 publish = true
 readme = "README.md"
 homepage.workspace = true
+documentation.workspace = true
 keywords = ["pdf", "pdf-generation", "pdf-editing", "document", "wasm"]
 categories = ["encoding", "parser-implementations", "text-processing", "wasm"]
 # `explain` carries the text of docs/errors/*.md as raw strings (src/generated/explain.rs, generated

@@ -1,38 +1,69 @@
 ---
 title: Install
-description: Use Lamina PDF before its first release, from a checkout, a packed tarball or a path dependency.
+description: Install Lamina PDF from npm or crates.io, and find every published package.
 ---
 
-Lamina PDF isn't published to npm or crates.io yet. Until it is, use it from a checkout of the repository, which needs Rust (the toolchain in `rust-toolchain.toml` installs itself), Node 22 or newer and pnpm. [Your first PDF](/start/first-pdf/) uses Node 24.2 or newer, which runs `.ts` files directly.
+Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the alpha when you install: a plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
 
 ## TypeScript: `@laminapdf/sdk`
 
-Build the WebAssembly modules and the package once:
+Install the `alpha` tag:
+
+```sh
+npm install @laminapdf/sdk@alpha
+```
+
+pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@alpha`), and Deno takes `npm:@laminapdf/sdk@alpha`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+
+The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
+
+## Rust: `laminapdf`
+
+Add the crate at the alpha version:
+
+```sh
+cargo add laminapdf@0.2.0-alpha
+```
+
+The command writes `laminapdf = "0.2.0-alpha"` to `Cargo.toml`, which takes the newest 0.2.0 alpha. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+
+## Every published package
+
+You need only the two above. Each package below has its page on its registry:
+
+| Package | Registry | What it holds |
+| --- | --- | --- |
+| `@laminapdf/sdk` | [npm](https://www.npmjs.com/package/@laminapdf/sdk) | The TypeScript API, for every JavaScript runtime |
+| `@laminapdf/wasm` | [npm](https://www.npmjs.com/package/@laminapdf/wasm) | The WebAssembly modules under `@laminapdf/sdk` |
+| `@laminapdf/render` | [npm](https://www.npmjs.com/package/@laminapdf/render) | The interface that page renderers implement |
+| `@laminapdf/render-pdfium` | [npm](https://www.npmjs.com/package/@laminapdf/render-pdfium) | The default web renderer, built on PDFium |
+| `@laminapdf/render-hayro` | [npm](https://www.npmjs.com/package/@laminapdf/render-hayro) | A second web renderer, built on hayro |
+| `@laminapdf/viewer` | [npm](https://www.npmjs.com/package/@laminapdf/viewer) | The core of a web PDF viewer, one worker per document |
+| `laminapdf` | [crates.io](https://crates.io/crates/laminapdf) | The Rust API: open, read, edit, save and build PDFs |
+| `laminapdf-syntax` | [crates.io](https://crates.io/crates/laminapdf-syntax) | Objects, the lexer, the parser and stream filters |
+| `laminapdf-cos` | [crates.io](https://crates.io/crates/laminapdf-cos) | File structure: the tolerant reader and the writer |
+| `laminapdf-model` | [crates.io](https://crates.io/crates/laminapdf-model) | Typed views of pages, outlines, metadata and labels |
+| `laminapdf-ops` | [crates.io](https://crates.io/crates/laminapdf-ops) | Editing ops, transactions, undo and redo |
+| `laminapdf-save` | [crates.io](https://crates.io/crates/laminapdf-save) | Incremental and full saves |
+| `laminapdf-content` | [crates.io](https://crates.io/crates/laminapdf-content) | The content-stream interpreter |
+| `laminapdf-text` | [crates.io](https://crates.io/crates/laminapdf-text) | Fonts, shaping and line breaking |
+| `laminapdf-build` | [crates.io](https://crates.io/crates/laminapdf-build) | The builder that generates PDFs |
+| `laminapdf-source` | [crates.io](https://crates.io/crates/laminapdf-source) | Byte sources filled range by range, for remote files |
+| `laminapdf-render` | [crates.io](https://crates.io/crates/laminapdf-render) | The Rust interface that page renderers implement |
+| `laminapdf-render-pdfium` | [crates.io](https://crates.io/crates/laminapdf-render-pdfium) | The native PDFium renderer |
+
+## From a checkout
+
+To try a change before it's released, build from a checkout of the repository. You need Rust (the toolchain in `rust-toolchain.toml` installs itself), Node 22 or newer and pnpm:
 
 ```sh
 pnpm install
 cargo xtask wasm      # builds packages/wasm/dist/ and packages/sdk/dist/, then tests them
 ```
 
-Then use one of these:
-
-- **A tarball:** run `pnpm pack` in `packages/wasm` and in `packages/sdk`, then add both `.tgz` files to your project. `@laminapdf/sdk` depends on `@laminapdf/wasm`, so install both tarballs at once.
-- **A workspace dependency:** inside this repository, add `"@laminapdf/sdk": "workspace:*"` to a package under `packages/` or `apps/`.
-
-The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
-
-## Rust: `laminapdf`
-
-Add a path dependency on the `laminapdf` crate:
-
-```toml
-[dependencies]
-laminapdf = { path = "../lamina/crates/laminapdf" }
-```
-
-A git dependency (`laminapdf = { git = "…" }`) works too, once you can read the repository. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, use `default-features = false`.
+Then run `pnpm pack` in `packages/wasm` and in `packages/sdk`, and install both `.tgz` files in your project at once. In Rust, use a path dependency: `laminapdf = { path = "../laminapdf/crates/laminapdf" }`.
 
 ## API docs
 
 - TypeScript: the [`@laminapdf/sdk` reference](/reference/sdk/readme/), generated from the package's TSDoc comments.
-- Rust: [rustdoc](/reference/rust/), or build it yourself with `cargo doc --open`.
+- Rust: the [Rust API](/reference/rust/) page, which links each crate's docs on docs.rs.

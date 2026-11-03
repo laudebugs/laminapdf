@@ -20,6 +20,8 @@ rust-version = "1.97"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/laudebugs/laminapdf"
 homepage = "https://laminapdf.com"
+# crates.io links here instead of docs.rs; the site links each crate's docs.rs page.
+documentation = "https://docs.laminapdf.com"
 publish = false
 
 [workspace.dependencies]
