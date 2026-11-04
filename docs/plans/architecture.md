@@ -73,7 +73,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0027](../decisions/0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Accepted |
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Accepted |
 | [0029](../decisions/0029-mobile-bindings-and-packaging.md) | Mobile bindings and packaging (UniFFI pin, SPM, AARs) | Shareable libraries L6 | Accepted (L6a spike) |
-| 0030 | Extraction output (`laminapdf.extract/1`) and model plug-ins | Shareable libraries L3 | Propose |
+| [0030](../decisions/0030-extraction-output-and-model-plugins.md) | Extraction output (`laminapdf.extract/1`) and model plug-ins | Shareable libraries L3 | Accepted |
 | 0031 | CLI and MCP contract | Shareable libraries L4 | Propose |
 
 ## 4. Spikes to close open questions

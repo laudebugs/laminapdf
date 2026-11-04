@@ -34,17 +34,17 @@ A **block** has:
 - `text`: the block's visible text, lines joined by a space after §5's fixes.
 - `page` (index), `bbox` (`[x, y, width, height]` in ADR 0027's page space: top-left points of the displayed CropBox) and `bboxNorm` (the same divided by the page's width and height, clamped to [0, 1], absent when the block lies wholly outside the box).
 - `structPath` (the structure types from the root to the block, `["Document", "Sect[2]", "H2[0]"]`, empty when untagged) and `structRef` (`{ "obj", "gen", "mcids" }`, when the block comes from one structure element).
-- `spans`: `{ "text", "bbox", "baseline", "font", "size", "flags" }` per run, in reading order. ADR 0027 §5 asks for `baseline` beside `bbox`. `flags` is empty for visible text.
+- `spans`: `{ "text", "bbox", "baseline", "font", "size", "flags" }` per run, in reading order. ADR 0027 §5 asks for `baseline` beside `bbox`. `flags` is a list of §4's names, empty for visible text.
 - `confidence`: in [0, 1], 1 for structure from the tree and lower for inferred structure. Callers may threshold it; its values are not otherwise specified.
 
-Rust has the same model with snake-case names (`bbox_norm`, `struct_path`), behind a `serde` feature; the JSON names are camel case.
+Keys are camel case and values kebab case (`"list-item"`, `"off-page"`). Rust has the same model with snake-case names (`bbox_norm`, `struct_path`), with serde behind a `serde` feature; `ExtractedSource` and `ExtractedPage` are the Rust names of a `source` and a `pages` entry.
 
 ### 2. Reading order
 
 Three sources, tried in this order unless the caller picks one:
 
 1. **The structure tree**, when `/MarkInfo /Marked` is true and the tree is plausible. Plausible means its MCIDs resolve to content, structure elements cover at least 80% of the visible characters outside artifacts, and its order jumps backwards across columns on at most 10% of a page's block boundaries. The tree's `/K` order is the reading order; `RoleMap` maps custom types to standard ones; untagged content outside artifacts goes after it on its page by XY-Cut++, with `extract-untagged-content`. An implausible tree is ignored with `extract-struct-tree-ignored`. The thresholds are starting values to tune on the corpus; a change is recorded here.
-2. **XY-Cut++** otherwise: blocks wider than 60% of the page, sitting above or below the others, are masked first so a full-width title doesn't stop the column split; then recursive projection-profile cuts on the block boxes, the widest gap first, vertical gaps before horizontal ones on a tie; then the masked blocks go back where their top edge falls.
+2. **XY-Cut++** otherwise. Blocks at least 60% as wide as the page's text that span two side-by-side narrower blocks and share no height with a narrower block (titles, abstracts, full-width figures) are masked first. They split the page into bands, so a full-width title doesn't stop the column split and a figure between two sections keeps each section's columns together. Each band is then cut recursively at the widest gap in the projection of its block boxes, a column gap before a row gap, so paragraphs whose breaks line up across columns still read column by column. A group whose blocks are all one line (a grid such as a table) cuts rows first instead, reading row by row. The masked blocks go back between the bands.
 3. **Content order**, the order the content stream draws, on request (`ReadingOrder::ContentStream`), for debugging and comparison.
 
 Right-to-left text keeps B9b's logical order within a line. A page written right to left as a whole (most of its characters right to left) takes its columns from right to left.
@@ -62,14 +62,14 @@ Rules, no models:
 
 Each span carries flags, and a flagged span is never part of any block's `text`:
 - `invisible`: drawn in render mode 3 or 7 (ISO 32000-2 §9.3.6).
-- `offPage`: its box lies outside the CropBox.
+- `off-page`: its box lies wholly outside the CropBox.
 - `tiny`: drawn below 1 pt.
 - `clipped`: its box lies outside the clip's bounding box. The clip is tracked as a box, not a path, so text inside a curved clip's box counts as visible.
-- `lowContrast`: filled within a short distance of white with no fill painted under it. This is a heuristic without rendering.
+- `low-contrast`: filled within a short distance of white with no fill painted under it. This is a heuristic without rendering.
 
 The last two are approximations, and both lean towards keeping text: a false negative leaves visible noise, a false positive loses real text. A rendered check can come later through the render backend ([ADR 0004](0004-render-backend.md)).
 
-`dropped` lists each removal with its `reason`, `page`, `bbox` and `chars` (a character count, never the text itself, so a log of the output can't leak what was hidden). Reasons are the five flags above, `artifact` (marked content tagged `Artifact`, authoritative when present), `running-header`, `running-footer` and `page-number`. Running headers and footers are lines in the top or bottom 10% of the page that repeat at a similar position on at least three pages once digits are ignored, and page numbers are lines there that hold only a number pattern. Callers can keep flagged spans (`Drop` options), but never in `text`.
+`dropped` lists each removal with its `reason`, `page`, `bbox` and `chars` (a character count, never the text itself, so a log of the output can't leak what was hidden). Reasons are the five flags above, `artifact` (marked content tagged `Artifact`, authoritative when present), `running-header`, `running-footer` and `page-number`. Running headers and footers are lines in the top or bottom 10% of the page that repeat at a similar position on at least three pages once digits are ignored, and page numbers are lines there that hold only a number pattern. A caller auditing a file can ask for the flagged runs themselves (`DropOptions::keep_spans`); they then appear as `spans` in their `dropped` entry, never in a block.
 
 ### 5. Text fixes
 
@@ -92,14 +92,18 @@ The last two are approximations, and both lean towards keeping text: a false neg
 
 ### 8. The API shape
 
-`laminapdf_extract::extract(&Document, &ExtractOptions) -> ExtractJob`, a resumable job per ADR 0028 §3. `step(&doc, Budget)` extracts one page per work unit and returns `Step::Progress` (pages done of the page count) or `Step::Done(Extraction)`. A `CancelToken` is polled per page and inside the XY-Cut recursion; a cancelled job fails with `cancelled` and returns no partial output. `ExtractOptions` is plain owned data (`pages`, `reading_order`, `drop`, `headers_footers`, `dehyphenate`) with a `Default`, so it crosses UniFFI and WASM as a record. Soft limits (blocks per page, XY-Cut depth) drop work with a warning, as [ADR 0003](0003-reader-tolerance-and-limits.md) asks of every limit.
+`laminapdf_extract::extract_job(&Document, &ExtractOptions) -> Result<ExtractJob>` starts a resumable job per ADR 0028 §3, and `extract(&Document, &ExtractOptions, &CancelToken)` runs one to completion (ADR 0028 F10). `ExtractJob::step(&doc, Budget)` extracts one page per work unit and returns `Step::Progress` (pages done of the pages asked for) or `Step::Done(Extraction)`; `Budget`, `Step` and `Phase` live in `laminapdf-syntax` beside `CancelToken`, so core jobs and the façade share them. The token is polled per page and inside the XY-Cut recursion; a cancelled job fails with `cancelled` and returns no partial output. `ExtractOptions` is plain owned data (`pages`, `reading_order`, `drop`, `dehyphenate`, `limits`, and `headers_footers` once headers are detected) with a `Default`, so it crosses UniFFI and WASM as a record. Soft limits (blocks per page, XY-Cut depth) cut work short with a warning, as [ADR 0003](0003-reader-tolerance-and-limits.md) asks of every limit: past the blocks limit, `extract-limit-blocks`; past the depth limit, a group reads top to bottom. The document's warnings stay on the document, and the façade's serialiser writes them as `warnings`.
+
+### 9. What lands when
+
+[L3a](../todos/done/L3a-lamina-extract-reading-order.md) builds §1's model, the layout and content orders of §2, §3's lines and blocks, the `invisible`, `off-page` and `tiny` flags of §4, and §5–§8. [L3d](../todos/ready/L3d-extract-structure-and-furniture.md) adds structure-tree order, headings and lists, the `clipped` and `low-contrast` flags, and running headers, footers and page numbers. Until then every block is a `paragraph` and `structSource` is never `tagged`.
 
 ## Consequences
 
 - Retrieval pipelines get text an LLM can cite, with boxes in one documented frame and no hidden text, from a WebAssembly-sized core with no model download.
 - Structure-tree order makes well-tagged files exact, and the plausibility check keeps badly tagged ones from doing worse than layout rules.
 - Rules fail on magazines, sidebars and floating figures; `confidence` and the crate README say so, and L3c's models are the answer for those pages.
-- The `clipped` and `lowContrast` flags miss some hidden text. Rendering would catch more, at the cost of a render backend in the extraction path.
+- The `clipped` and `low-contrast` flags miss some hidden text. Rendering would catch more, at the cost of a render backend in the extraction path.
 - `dropped` records counts, not text, so a caller who wants to inspect hidden text has to ask for flagged spans.
 
 ## Alternatives considered

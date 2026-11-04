@@ -8,7 +8,7 @@
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3b](./L3b-extract-tables-and-serialisers.md) |
 | Blocks | None |
-| ADRs | Implements 0030's plug-in policy (from [L3a](../ongoing/L3a-lamina-extract-reading-order.md)); follows 0028 (jobs; from [L1a](../done/L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](./E13a-adr-0013-heavy-jobs.md)) |
+| ADRs | Implements 0030's plug-in policy (from [L3a](../done/L3a-lamina-extract-reading-order.md)); follows 0028 (jobs; from [L1a](../done/L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](./E13a-adr-0013-heavy-jobs.md)) |
 | Branch | `feat/l3c-model-plugins` |
 | PR title | `feat(extract): LayoutModel and OcrEngine plug-in traits and an optional ONNX layout crate` |
 | Size | M–L (≈ 500–900 lines; model weights are downloaded, never committed) |

@@ -12,12 +12,14 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 190 ready · 100 done** (291 total).
+**0 ongoing · 191 ready · 101 done** (292 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done (an open PR may already have claimed one: check `gh pr list`):
 
+- [L3b](ready/L3b-extract-tables-and-serialisers.md): Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`
+- [L3d](ready/L3d-extract-structure-and-furniture.md): Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags
 - [L4c](ready/L4c-mcp-mode.md): `laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
@@ -31,7 +33,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [L3a](ongoing/L3a-lamina-extract-reading-order.md): ADR 0030 and `laminapdf-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -87,9 +89,10 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | L2a | [`@laminapdf/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](done/L2a-worker-client.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](done/L2b-disposal-and-memory.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](done/L2c-range-byte-source.md) | done | [B2d](done/B2d-windowed-reading.md), [B6b](done/B6b-lamina-pdf-package.md) |
-| L3a | [ADR 0030 and `laminapdf-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ongoing/L3a-lamina-extract-reading-order.md) | ongoing | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
-| L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](ongoing/L3a-lamina-extract-reading-order.md) |
+| L3a | [ADR 0030 and `laminapdf-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](done/L3a-lamina-extract-reading-order.md) | done | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
+| L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](done/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
+| L3d | [Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags](ready/L3d-extract-structure-and-furniture.md) | ready | [L3a](done/L3a-lamina-extract-reading-order.md) |
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](done/L4a-lamina-cli.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](done/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](done/L4a-lamina-cli.md) |

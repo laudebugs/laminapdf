@@ -32,7 +32,7 @@ Text drawn out of order on one baseline comes out glued: [U2b](../done/U2b-readi
 
 **Out of scope**
 
-- Reordering cells or columns by position: reading order is [L3a](../ongoing/L3a-lamina-extract-reading-order.md).
+- Reordering cells or columns by position: reading order is [L3a](../done/L3a-lamina-extract-reading-order.md).
 
 ## Tasks
 

@@ -1171,7 +1171,7 @@ The `location` has the page's `pageIndex`.
 
 The decisions and todos behind this code:
 
-- [L3a](../todos/ongoing/L3a-lamina-extract-reading-order.md): blocks and reading order
+- [L3a](../todos/done/L3a-lamina-extract-reading-order.md): blocks and reading order
 ",
         "extract-reading-order-ambiguous" => r"# `extract-reading-order-ambiguous`
 
@@ -1204,7 +1204,7 @@ The `location` has the page's `pageIndex`.
 
 The decisions and todos behind this code:
 
-- [L3a](../todos/ongoing/L3a-lamina-extract-reading-order.md): blocks and reading order
+- [L3a](../todos/done/L3a-lamina-extract-reading-order.md): blocks and reading order
 ",
         "not-pdf" => r#"# `not-pdf`
 
