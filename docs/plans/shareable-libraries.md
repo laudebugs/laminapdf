@@ -114,7 +114,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L2. TypeScript hardening
 
-**Todos:** [L2a](../todos/done/L2a-worker-client.md) (`@laminapdf/sdk/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
+**Todos:** [L2a](../todos/done/L2a-worker-client.md) (`@laminapdf/sdk/worker`), [L2b](../todos/done/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@laminapdf/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
 **Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; opening and disposing a document in a loop keeps wasm memory at its post-warm-up size (± one 64 KiB page; linear memory never shrinks, so the high-water mark is the baseline); opening a remote file fetches only the ranges it needs.
@@ -172,7 +172,7 @@ This plan adjusts these todos (edited in the same PR):
 ### L2. TypeScript hardening
 
 - [x] `@laminapdf/sdk/worker`: typed RPC, version handshake, `AbortSignal`, transfer lists ([L2a](../todos/done/L2a-worker-client.md))
-- [ ] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper
+- [x] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper ([L2b](../todos/done/L2b-disposal-and-memory.md))
 - [x] Range `ByteSource` reporting missing ranges through `Error::DataPending` (ADR 0005 §2), with edge adapters (HTTP range, JS callback, native positioned reads)
 
 ### L3. AI-ready extraction

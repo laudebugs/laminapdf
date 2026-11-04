@@ -25,6 +25,7 @@
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`builder-finished`](builder-finished.md) | `state` | what happened |
+| [`disposed`](disposed.md) | `state` | what happened |
 | [`invalid-argument`](invalid-argument.md) | `usage` | what happened |
 
 ## Package errors (`@laminapdf/sdk`)

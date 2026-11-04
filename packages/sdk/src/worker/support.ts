@@ -15,8 +15,11 @@ import type { Document, PageRef } from "../document.js";
  */
 export type ExcludedDocumentMembers = "transact" | "saveJob" | "ensure" | "free" | typeof Symbol.dispose;
 
-/** PageRef members with no remote twin: none. */
-export type ExcludedPageMembers = never;
+/**
+ * PageRef members with no remote twin: `free` and `Symbol.dispose`, since the worker frees a page
+ * with its document.
+ */
+export type ExcludedPageMembers = "free" | typeof Symbol.dispose;
 
 export type RemotableDocumentMember = Exclude<keyof Document, ExcludedDocumentMembers>;
 export type RemotablePageMember = Exclude<keyof PageRef, ExcludedPageMembers>;

@@ -17,6 +17,7 @@ import { Document, PageRef } from "../document.js";
 import { type Diagnostic, isDiagnostic, LaminaPdfError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import { init, loadExtract, loadText } from "../index.js";
+import { isTrap } from "../internal/instance.js";
 import { httpRangeSource } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
 import { PageText, rawOf } from "../text.js";
@@ -355,8 +356,10 @@ async function execute(job: Job): Promise<void> {
     current = undefined;
     await replyAll(job, result);
   } catch (e) {
-    if (e instanceof WebAssembly.RuntimeError) {
-      // A trap: the module's state can't be trusted any more.
+    if (isTrap(e)) {
+      // A trap: the module's state can't be trusted any more. The sync API reports Lamina PDF's
+      // own traps as `wasm-trap` or `out-of-memory`; an extension's module (PDFium) throws the
+      // RuntimeError itself.
       post({ kind: "crashed", reason: "trap" });
       scope.close();
       return;

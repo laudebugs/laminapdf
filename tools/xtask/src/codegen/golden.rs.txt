@@ -34,6 +34,8 @@ pub enum ErrorCode {
     NoTransaction,
     /// `builder-finished`: what happened.
     BuilderFinished,
+    /// `disposed`: what happened.
+    Disposed,
     /// `invalid-argument`: what happened.
     InvalidArgument,
 }
@@ -47,6 +49,7 @@ impl ErrorCode {
         Self::NestedTransaction,
         Self::NoTransaction,
         Self::BuilderFinished,
+        Self::Disposed,
         Self::InvalidArgument,
     ];
 
@@ -60,6 +63,7 @@ impl ErrorCode {
             b"nested-transaction" => Self::NestedTransaction,
             b"no-transaction" => Self::NoTransaction,
             b"builder-finished" => Self::BuilderFinished,
+            b"disposed" => Self::Disposed,
             b"invalid-argument" => Self::InvalidArgument,
             _ => return None,
         })
@@ -75,6 +79,7 @@ impl ErrorCode {
             Self::NestedTransaction => "nested-transaction",
             Self::NoTransaction => "no-transaction",
             Self::BuilderFinished => "builder-finished",
+            Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
         }
     }
@@ -89,6 +94,7 @@ impl ErrorCode {
             Self::NestedTransaction => ErrorKind::State,
             Self::NoTransaction => ErrorKind::State,
             Self::BuilderFinished => ErrorKind::State,
+            Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
         }
     }
@@ -103,6 +109,7 @@ impl ErrorCode {
             Self::NestedTransaction => "what happened",
             Self::NoTransaction => "what happened",
             Self::BuilderFinished => "what happened",
+            Self::Disposed => "what happened",
             Self::InvalidArgument => "what happened",
         }
     }
@@ -117,6 +124,7 @@ impl ErrorCode {
             Self::NestedTransaction => "what to do",
             Self::NoTransaction => "what to do",
             Self::BuilderFinished => "what to do",
+            Self::Disposed => "what to do",
             Self::InvalidArgument => "what to do",
         }
     }

@@ -3,10 +3,11 @@
 //!
 //! The document is shared as `Rc<RefCell<laminapdf::Document>>` (ADR 0028 §2): wasm32 has no
 //! threads, and no call re-enters JavaScript while it holds a borrow, so the `RefCell` never
-//! sees two borrows at once.
+//! sees two borrows at once. Pages and save jobs hold it weakly: freeing the `WasmDocument`
+//! frees the document's memory at once, and a page or job used afterwards throws `disposed`.
 
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Arc;
 
 use js_sys::{Object, Reflect, Uint8Array};
@@ -18,11 +19,16 @@ use crate::dto::{
     DocumentInfoJs, EditedJs, OpenOptionsInit, PageInfoJs, ProgressJs, SaveOptionsInit, SaveReportJs, UndoOutcomeJs,
     phase_name,
 };
-use crate::error::{JsResult, invalid_argument, lamina_error};
+use crate::error::{JsResult, disposed, invalid_argument, lamina_error};
 use crate::source::WasmSparseSource;
 
 /// The shared document behind every handle.
 pub(crate) type Shared = Rc<RefCell<laminapdf::Document>>;
+
+/// The document of a page or save job, while its `WasmDocument` lives.
+fn upgrade(doc: &Weak<RefCell<laminapdf::Document>>) -> JsResult<Shared> {
+    doc.upgrade().ok_or_else(disposed)
+}
 
 /// An open PDF: read it, edit it with ops (with undo), save it. The binding of
 /// `laminapdf::Document`, method for method (F12).
@@ -118,7 +124,7 @@ impl WasmDocument {
     pub fn page(&self, index: u32) -> JsResult<WasmPage> {
         let info = self.doc.borrow().page_info(index).map_err(|e| lamina_error(&e))?;
         Ok(WasmPage {
-            doc: Rc::clone(&self.doc),
+            doc: Rc::downgrade(&self.doc),
             id: info.id,
         })
     }
@@ -134,7 +140,7 @@ impl WasmDocument {
             .map_err(|_| invalid_argument("id", "not a page ID such as p12.0".to_owned(), Vec::new()))?;
         let info = self.doc.borrow().page_by_id(&id).map_err(|e| lamina_error(&e))?;
         Ok(WasmPage {
-            doc: Rc::clone(&self.doc),
+            doc: Rc::downgrade(&self.doc),
             id: info.id,
         })
     }
@@ -234,7 +240,7 @@ impl WasmDocument {
         let options: SaveOptionsInit = from_js_or_default(options, "options")?;
         let job = self.doc.borrow().save_job(&options.to_options());
         Ok(WasmSaveJob {
-            doc: Rc::clone(&self.doc),
+            doc: Rc::downgrade(&self.doc),
             job,
         })
     }
@@ -251,7 +257,7 @@ impl WasmDocument {
 /// A page of a [`WasmDocument`], held by its ID (F2): moving pages doesn't retarget it.
 #[wasm_bindgen]
 pub struct WasmPage {
-    doc: Shared,
+    doc: Weak<RefCell<laminapdf::Document>>,
     id: PageId,
 }
 
@@ -262,15 +268,17 @@ impl WasmPage {
     /// modules).
     ///
     /// # Errors
-    /// `unknown-page` when the page is gone; `data-pending` and the reading errors;
-    /// `unknown-option` / `invalid-argument` for bad options.
+    /// `unknown-page` when the page is gone; `disposed` when its document is freed;
+    /// `data-pending` and the reading errors; `unknown-option` / `invalid-argument` for bad
+    /// options.
     #[wasm_bindgen(unchecked_return_type = "PageTextJs")]
     pub fn text(
         &self,
         #[wasm_bindgen(unchecked_param_type = "TextOptionsInit | undefined")] options: &JsValue,
     ) -> JsResult<JsValue> {
         let options: crate::text::TextOptionsInit = from_js_or_default(options, "options")?;
-        let doc = self.doc.borrow();
+        let doc = upgrade(&self.doc)?;
+        let doc = doc.borrow();
         let info = doc.page_by_id(&self.id).map_err(|e| lamina_error(&e))?;
         let text = doc
             .page_text(info.index, &options.to_options())
@@ -290,9 +298,13 @@ impl WasmPage {
     /// The page's current 0-based index.
     ///
     /// # Errors
-    /// `unknown-page` when the page is gone; reading errors.
+    /// `unknown-page` when the page is gone; `disposed` when its document is freed; reading
+    /// errors.
     pub fn index(&self) -> JsResult<u32> {
-        let info = self.doc.borrow().page_by_id(&self.id).map_err(|e| lamina_error(&e))?;
+        let info = upgrade(&self.doc)?
+            .borrow()
+            .page_by_id(&self.id)
+            .map_err(|e| lamina_error(&e))?;
         Ok(info.index)
     }
 
@@ -302,7 +314,10 @@ impl WasmPage {
     /// As [`WasmPage::index`].
     #[wasm_bindgen(unchecked_return_type = "PageInfoJs")]
     pub fn info(&self) -> JsResult<JsValue> {
-        let info = self.doc.borrow().page_by_id(&self.id).map_err(|e| lamina_error(&e))?;
+        let info = upgrade(&self.doc)?
+            .borrow()
+            .page_by_id(&self.id)
+            .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&PageInfoJs::from(info)))
     }
 }
@@ -311,7 +326,7 @@ impl WasmPage {
 /// job was created (`document-changed`).
 #[wasm_bindgen]
 pub struct WasmSaveJob {
-    doc: Shared,
+    doc: Weak<RefCell<laminapdf::Document>>,
     job: SaveJob,
 }
 
@@ -321,14 +336,16 @@ impl WasmSaveJob {
     /// `{ state: "done", bytes, report }`.
     ///
     /// # Errors
-    /// `cancelled`, `document-changed`, `job-finished`, or the save's own errors.
+    /// `cancelled`, `document-changed`, `job-finished`, `disposed` when the document is freed,
+    /// or the save's own errors.
     #[wasm_bindgen(
         unchecked_return_type = "({ state: \"progress\" } & ProgressJs) | { state: \"done\"; bytes: Uint8Array<ArrayBuffer>; report: SaveReportJs }"
     )]
     pub fn step(&mut self, budget: u32) -> JsResult<JsValue> {
+        let doc = upgrade(&self.doc)?;
         let step = self
             .job
-            .step(&mut self.doc.borrow_mut(), Budget::units(budget))
+            .step(&mut doc.borrow_mut(), Budget::units(budget))
             .map_err(|e| lamina_error(&e))?;
         let (state, out) = match step {
             Step::Done(out) => ("done", saved(&out)?),

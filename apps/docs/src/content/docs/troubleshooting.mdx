@@ -55,8 +55,14 @@ Each entry starts from what you see, then gives the cause and the fix. Errors ca
 
 ## Memory keeps growing
 
-**Cause:** documents and builders live in WebAssembly memory, and the garbage collector frees them late: too late for a long-running page or server.
+**Cause:** documents and builders live in WebAssembly memory, and the garbage collector frees them late: too late for a long-running page or server. WebAssembly memory also never shrinks, so one large file leaves it large.
 
-**Fix:** free each one when you're done: `using doc = …` frees it at the end of the block, and `doc.free()` at once. A call on a freed one throws `disposed`. See [You free what you create](/concepts/how-lamina-thinks/#you-free-what-you-create).
+**Fix:** free each one when you're done: `using doc = …` frees it at the end of the block, and `doc.free()` at once. A call on a freed one throws `disposed`. To give grown memory back, call `reset()` while no document is in use: every module starts afresh, and handles from before throw `instance-reset`. See [You free what you create](/concepts/how-lamina-thinks/#you-free-what-you-create).
+
+## A call throws `out-of-memory` or `wasm-trap`
+
+**Cause:** the WebAssembly module ran out of memory (it may grow to 2 GiB), or it trapped on a bug in Lamina PDF. Either leaves the module's memory half-written, so Lamina PDF replaces the module's instance before the next call.
+
+**Fix:** open the document again from its bytes: documents, pages and builders from the old instance throw `instance-reset`. For `out-of-memory`, keep fewer documents open at once and lower the open limits for files you don't trust. Report a `wasm-trap` with the file that causes it. See [`out-of-memory`](/reference/codes/out-of-memory/) and [`wasm-trap`](/reference/codes/wasm-trap/).
 
 Next: the [error and warning codes](/reference/codes/), with what each one means and what to do.

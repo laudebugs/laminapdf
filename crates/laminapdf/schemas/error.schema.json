@@ -87,6 +87,7 @@
             "job-finished",
             "document-changed",
             "builder-finished",
+            "disposed",
             "invalid-argument",
             "source-budget-exceeded",
             "unknown-option",
@@ -96,10 +97,12 @@
             "not-initialized",
             "source-changed",
             "text-module-not-loaded",
-            "disposed",
             "worker-version-mismatch",
             "worker-crashed",
-            "worker-failed"
+            "worker-failed",
+            "wasm-trap",
+            "out-of-memory",
+            "instance-reset"
           ]
         },
         "data": {

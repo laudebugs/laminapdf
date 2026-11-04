@@ -57,7 +57,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 **Out of scope** (and which todo covers it)
 
 - Viewer priorities, coalescing, render scheduling, soft/hard render timeouts, password re-prompt: [C3a](../done/C3a-viewer-worker-rpc.md) (built on this client).
-- In-thread disposal, memory caps and trap recovery: [L2b](../ready/L2b-disposal-and-memory.md).
+- In-thread disposal, memory caps and trap recovery: [L2b](./L2b-disposal-and-memory.md).
 - Range loading through the worker: [L2c](../done/L2c-range-byte-source.md) (the worker runs its fetch-and-retry loop).
 - Node `worker_threads` adapter and a worker pool: later, if a use case appears (see Risks).
 - SharedArrayBuffer and threaded wasm: excluded by ADR 0002 and proposed ADR 0009.

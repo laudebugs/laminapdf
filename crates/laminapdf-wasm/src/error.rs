@@ -5,8 +5,8 @@
 //! can raise (listed under `bindingErrors` in `fixtures/codes.json`): `invalid-argument` (a
 //! value from JavaScript of the wrong shape), `unknown-option` (a key the record doesn't have,
 //! with `didYouMean`; ADR 0028 F6), `builder-finished` (an owned page or the builder used after
-//! the builder's `finish`) and `source-budget-exceeded` (a sparse source given more than its
-//! budget). Their kind, hint and `docsUrl` come from the façade's generated
+//! the builder's `finish`), `source-budget-exceeded` (a sparse source given more than its
+//! budget) and `disposed` (a page or save job used after its document was freed). Their kind, hint and `docsUrl` come from the façade's generated
 //! [`laminapdf::ErrorCode`] table, like every other code's.
 //!
 //! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
@@ -73,6 +73,15 @@ pub(crate) fn builder_finished() -> JsValue {
             detail: None,
         },
     )
+}
+
+/// `disposed`: a page or save job was used after its document was freed (no `data`, as when
+/// `@laminapdf/sdk` raises it).
+pub(crate) fn disposed() -> JsValue {
+    to_js(&Diagnostic::error(
+        ErrorCode::Disposed,
+        "the page or save job's document has been freed",
+    ))
 }
 
 /// `invalid-argument`: `argument` isn't the shape its type declares; `did_you_mean` lists

@@ -180,6 +180,7 @@ A PR that adds a code adds:
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`builder-finished`](builder-finished.md) | `state` | a builder or one of its pages was used after it finished |
+| [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`invalid-argument`](invalid-argument.md) | `usage` | a value passed to a binding does not have the shape its type declares |
 | [`source-budget-exceeded`](source-budget-exceeded.md) | `limit` | a sparse source was given more bytes than its byte budget allows |
 | [`unknown-option`](unknown-option.md) | `usage` | an options record passed to a binding has a key Lamina PDF does not know |
@@ -194,7 +195,9 @@ A PR that adds a code adds:
 | [`not-initialized`](not-initialized.md) | `state` | an @laminapdf/sdk function was called before init() finished loading the WebAssembly module |
 | [`source-changed`](source-changed.md) | `io` | a remote file changed while it was being read: its ETag or length differs from the first response |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` | a font or text call was made on a builder of the base module, which has no fonts or text |
-| [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`worker-version-mismatch`](worker-version-mismatch.md) | `usage` | the worker answered with a different protocol or package version than the client |
 | [`worker-crashed`](worker-crashed.md) | `internal` | the worker running Lamina PDF stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |
 | [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't Lamina PDF's (a bug in @laminapdf/sdk/worker, or a result it couldn't send) |
+| [`wasm-trap`](wasm-trap.md) | `internal` | the WebAssembly module trapped (a bug in Lamina PDF), so its instance was discarded and the next call gets a fresh one |
+| [`out-of-memory`](out-of-memory.md) | `limit` | the WebAssembly module ran out of memory (its maximum, or what the engine could give), so its instance was discarded and the next call gets a fresh one |
+| [`instance-reset`](instance-reset.md) | `state` | a handle was used after its WebAssembly instance was replaced, by reset() or after a trap |

@@ -3658,6 +3658,41 @@ The decisions and todos behind this code:
 
 - [ADR 0016](../decisions/0016-package-design.md) §7: the binding owns its pages
 "#,
+        "disposed" => r#"# `disposed`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a builder's page with its builder.
+
+## Why
+
+Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on.
+
+## How to fix
+
+Free a handle only after its last use. To keep working with the document, open it again from its bytes, or create a new builder.
+
+## Example
+
+```ts
+const doc = Document.open(bytes);
+doc.free();
+doc.save(); // throws LaminaPdfError { code: "disposed", … }
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): the check on every handle, and on the pages and save jobs of `@laminapdf/wasm`
+"#,
         "invalid-argument" => r#"# `invalid-argument`
 
 - Type: error
@@ -3973,41 +4008,6 @@ The decisions and todos behind this code:
 
 - [ADR 0016](../decisions/0016-package-design.md) §4
 "#,
-        "disposed" => r#"# `disposed`
-
-- Type: error
-- Kind: `state` (the call isn't valid in the object's current state)
-
-## What happened
-
-A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`).
-
-## Why
-
-Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on.
-
-## How to fix
-
-Free a handle only after its last use. To keep working with the document, open it again from its bytes, or create a new builder.
-
-## Example
-
-```ts
-const doc = Document.open(bytes);
-doc.free();
-doc.save(); // throws LaminaPdfError { code: "disposed", … }
-```
-
-## Data fields
-
-None.
-
-## For contributors
-
-The decisions and todos behind this code:
-
-- [L2b](../todos/ready/L2b-disposal-and-memory.md): adds the check that raises this code
-"#,
         "worker-version-mismatch" => r#"# `worker-version-mismatch`
 
 - Type: error
@@ -4110,6 +4110,121 @@ None.
 The decisions and todos behind this code:
 
 - [L2a](../todos/done/L2a-worker-client.md): the worker client
+"#,
+        "wasm-trap" => r#"# `wasm-trap`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
+
+## What happened
+
+The WebAssembly module trapped during the call: Lamina PDF hit a bug and stopped. `@laminapdf/sdk` discarded the module's instance, so the next call runs in a fresh one. Every document, page and builder from the old instance now throws `instance-reset`.
+
+## Why
+
+A trap stops the module in the middle of its work, so its memory may hold half-written state. Nothing in that instance can be trusted afterwards. A fresh instance keeps one failed call from breaking every call after it.
+
+## How to fix
+
+Open the document again from its bytes and retry. If the same call on the same file traps again, report it with the file: a trap is always a bug in Lamina PDF.
+
+## Example
+
+```ts
+try {
+  lines = doc.page(0).text().lines;
+} catch (e) {
+  if (!isLaminaPdfError(e, "wasm-trap")) throw e;
+  doc = Document.open(bytes); // the old document throws instance-reset from now on
+}
+```
+
+## Data fields
+
+- `module`: the module that trapped: `base`, `text` or `extract`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): trap recovery and the fresh instance
+- [ADR 0016](../decisions/0016-package-design.md): the modules and their build
+"#,
+        "out-of-memory" => r#"# `out-of-memory`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+The WebAssembly module needed more memory than it could get, so it stopped in the middle of the call. Each module may grow to at most 2 GiB, and a browser tab or server can run out before that. `@laminapdf/sdk` discarded the module's instance, so the next call runs in a fresh one. Every document, page and builder from the old instance now throws `instance-reset`.
+
+## Why
+
+A module's memory grows as the module needs more and never shrinks. Many open documents, a huge image, or a file built to exhaust memory can each push it to its limit. The open limits stop most hostile files before memory runs out, and the maximum catches the rest.
+
+## How to fix
+
+Open the document again, then keep less in memory at once. Free each document and builder as soon as you're done with it, or use `using`. For files from people you don't trust, lower the open limits, such as `maxStreamDecoded` and `maxImagePixels`, so they fail with `limit-exceeded` first. An app can also open each document in its own Web Worker, with `@laminapdf/sdk/worker`, and end the Web Worker afterwards: that returns all of its memory.
+
+## Example
+
+```ts
+try {
+  doc = Document.open(bytes, { limits: { maxStreamDecoded: 64_000_000 } });
+} catch (e) {
+  if (isLaminaPdfError(e, "out-of-memory")) showError("This file is too large to open here.");
+  else throw e;
+}
+```
+
+## Data fields
+
+- `module`: the module that ran out: `base`, `text` or `extract`.
+- `memoryBytes`: the size of its memory when it stopped.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): the memory maximum and the fresh instance
+- [ADR 0016](../decisions/0016-package-design.md): the maximum, set when the modules are built
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §3: the limits that come first
+"#,
+        "instance-reset" => r#"# `instance-reset`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A document, page, builder or save job was used after its WebAssembly instance was replaced. `reset()` replaces every loaded module's instance, and a trap (`wasm-trap` or `out-of-memory`) replaces the instance that trapped. The handle belonged to the old instance, so it has nothing left to work on.
+
+## Why
+
+Each handle lives in one instance's memory, and a fresh instance starts empty. Lamina PDF can't move a document across, so every handle from the old instance stops working at once.
+
+## How to fix
+
+Open the document again from its bytes, or create a new builder. Unsaved edits are lost with the old instance, so save often in an app that calls `reset()` or may run out of memory.
+
+## Example
+
+```ts
+const doc = Document.open(bytes);
+reset();
+doc.pageCount; // throws LaminaPdfError { code: "instance-reset", … }
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): `reset()` and trap recovery
 "#,
         _ => return None,
     })
