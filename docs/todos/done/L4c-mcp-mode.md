@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4a](../done/L4a-lamina-cli.md) |
+| Depends on | [L4a](./L4a-lamina-cli.md) |
 | Blocks | None |
-| ADRs | Implements 0031's MCP security defaults (from [L4a](../done/L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
+| ADRs | Implements 0031's MCP security defaults (from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
 | Branch | `feat/l4c-mcp-mode` |
 | PR title | `feat(cli): laminapdf mcp stdio server with root allow-list, read-only default and honest annotations` |
 | Size | M (≈ 300–500 lines plus tests) |
@@ -23,7 +23,7 @@ Let MCP clients use laminapdf without a second implementation. `laminapdf mcp` i
 - [Report: MCP 2026-07-28 is stateless, and agents increasingly prefer CLIs](../../research/libraries/shareable-libraries.md#mcp-2026-07-28-is-stateless-and-agents-increasingly-prefer-clis): `server/discover`, no `initialize`, deterministic `tools/list`, validation errors as tool errors, `outputSchema`, untrusted annotations, the filesystem server's symlink CVEs, github-mcp-server's `--read-only`.
 - [CLI spec note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): spec details, annotation defaults (`destructiveHint` defaults to true), prompt-injection recommendations.
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): rmcp 3.x (implements 2026-07-28, compatible with 2025-11-25), `#[tool]` macros, `serve(stdio())`.
-- ADR 0031 (from [L4a](../done/L4a-lamina-cli.md)): the tool mapping and security defaults this PR implements.
+- ADR 0031 (from [L4a](./L4a-lamina-cli.md)): the tool mapping and security defaults this PR implements.
 - [Shareable libraries plan §10 risks](../../plans/shareable-libraries.md#10-risks): MCP spec churn and prompt injection.
 
 ## Scope
@@ -48,14 +48,14 @@ Let MCP clients use laminapdf without a second implementation. `laminapdf mcp` i
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; follow [docs/guidelines/rust.md](../../guidelines/rust.md).
-- [ ] Add `rmcp` (pinned 3.x, features for server + stdio + schemars) and `tokio` (minimal features: `rt`, `io-std`, `macros`) as optional dependencies behind `mcp`. Check licences: expected MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
-- [ ] Add `src/mcp/mod.rs`: a server struct holding the roots and flags; `#[tool_router]` with one `#[tool]` per command that runs `commands::*` as a stepped job inside `spawn_blocking`, holding its `CancelToken`; on timeout, cancel the token and wait for the step loop to return `cancelled` before replying. A semaphore caps concurrent calls.
-- [ ] Add `src/mcp/roots.rs`: root canonicalisation at start-up, input and output path checks, unit-tested on a temporary tree with symlinks (Unix) and junctions where possible (Windows).
-- [ ] Map `CliError` to tool errors with `isError: true` and the error document.
-- [ ] Wire `laminapdf mcp` into the clap front end under `#[cfg(feature = "mcp")]`; without the feature, `laminapdf mcp` says it was built without MCP and exits 2.
-- [ ] Document client configuration (Claude Code, Claude Desktop, other clients) in the crate README with a JSON snippet.
-- [ ] Run the MCP inspector in CLI mode against the server and record the result in the PR.
+- [x] Load `/rust-best-practices`; follow [docs/guidelines/rust.md](../../guidelines/rust.md).
+- [x] Add `rmcp` (pinned 3.x, features for server + stdio + schemars) and `tokio` (minimal features: `rt`, `io-std`, `macros`) as optional dependencies behind `mcp`. Check licences: expected MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
+- [x] Add `src/mcp/mod.rs`: a server struct holding the roots and flags; `#[tool_router]` with one `#[tool]` per command that runs `commands::*` as a stepped job inside `spawn_blocking`, holding its `CancelToken`; on timeout, cancel the token and wait for the step loop to return `cancelled` before replying. A semaphore caps concurrent calls.
+- [x] Add `src/mcp/roots.rs`: root canonicalisation at start-up, input and output path checks, unit-tested on a temporary tree with symlinks (Unix) and junctions where possible (Windows).
+- [x] Map `CliError` to tool errors with `isError: true` and the error document.
+- [x] Wire `laminapdf mcp` into the clap front end under `#[cfg(feature = "mcp")]`; without the feature, `laminapdf mcp` says it was built without MCP and exits 2.
+- [x] Document client configuration (Claude Code, Claude Desktop, other clients) in the crate README with a JSON snippet.
+- [x] Run the MCP inspector in CLI mode against the server and record the result in the PR.
 
 ### Example
 
@@ -70,14 +70,14 @@ $ laminapdf mcp --root ./docs --allow-write   # adds laminapdf_pages_rotate (new
 
 ## Acceptance criteria
 
-- [ ] An integration test spawns `laminapdf mcp` and, over stdio, calls `server/discover`, `tools/list` and each tool; outputs validate against each tool's `outputSchema`.
-- [ ] `tools/list` is byte-identical across two runs and lists no write tool without `--allow-write`.
-- [ ] Paths outside `--root`, `..` escapes and a symlink inside the root pointing outside are refused as tool errors (`isError: true`), and nothing outside the root is read or written (test checks the file system).
-- [ ] An invalid argument (bad page range) is a tool error with the `laminapdf.error/1` document, not a protocol error.
-- [ ] A fixture with an injection string in its title and text: the string appears only in data fields, never in `message`, `hint` or tool descriptions.
-- [ ] The MCP inspector's checks pass (recorded in the PR; automate in CI if the inspector's CLI mode supports 2026-07-28 without network access).
-- [ ] `cargo build -p laminapdf-cli` without `mcp` pulls in no tokio or rmcp (`cargo tree` check in a test or xtask).
-- [ ] `cargo xtask check` passes, including cargo-deny.
+- [x] An integration test spawns `laminapdf mcp` and, over stdio, calls `server/discover`, `tools/list` and each tool; outputs validate against each tool's `outputSchema`.
+- [x] `tools/list` is byte-identical across two runs and lists no write tool without `--allow-write`.
+- [x] Paths outside `--root`, `..` escapes and a symlink inside the root pointing outside are refused as tool errors (`isError: true`), and nothing outside the root is read or written (test checks the file system).
+- [x] An invalid argument (bad page range) is a tool error with the `laminapdf.error/1` document, not a protocol error.
+- [x] A fixture with an injection string in its title and text: the string appears only in data fields, never in `message`, `hint` or tool descriptions.
+- [x] The MCP inspector's checks pass (recorded in the PR; automate in CI if the inspector's CLI mode supports 2026-07-28 without network access).
+- [x] `cargo build -p laminapdf-cli` without `mcp` pulls in no tokio or rmcp (`cargo tree` check in a test or xtask).
+- [x] `cargo xtask check` passes, including cargo-deny.
 
 ## Post-merge checks
 
@@ -91,9 +91,9 @@ None.
 
 ## Docs to update
 
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "`laminapdf mcp` (rmcp, stdio), `--root`, `--read-only`, honest tool annotations"
-- [ ] `crates/laminapdf-cli/README.md` (MCP section, client config, security model); ADR 0031 if any default changed during the work
-- [ ] `CLAUDE.md` (the `mcp` feature)
+- [x] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "`laminapdf mcp` (rmcp, stdio), `--root`, `--read-only`, honest tool annotations"
+- [x] `crates/laminapdf-cli/README.md` (MCP section, client config, security model); ADR 0031 if any default changed during the work
+- [x] `CLAUDE.md` (the `mcp` feature)
 
 ## Risks and open questions
 
@@ -104,8 +104,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

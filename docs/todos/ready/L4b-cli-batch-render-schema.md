@@ -47,7 +47,7 @@ Make the CLI useful at scale and self-describing for agents. Commands accept man
 
 **Out of scope** (and which todo covers it)
 
-- `laminapdf mcp` and its tools for these commands: [L4c](../ongoing/L4c-mcp-mode.md) (adds `render` and `extract` tools when this merges).
+- `laminapdf mcp` and its tools for these commands: [L4c](../done/L4c-mcp-mode.md) (adds `render` and `extract` tools when this merges).
 - SVG render output: later, when `laminapdf-render` supports it.
 - Batch over write commands (`pages rotate` on many files): add with the E2 page commands; this PR's batch runner is generic enough to take them.
 - Server-side batch: [E14e](./E14e-server-batch.md).
