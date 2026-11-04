@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 192 ready · 99 done** (291 total).
+**0 ongoing · 191 ready · 100 done** (291 total).
 
 ## Can start now
 
@@ -27,7 +27,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
-- [Q2r](ready/Q2r-split-surface-modules.md): Split the large xtask, builder, extraction and WASM modules
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
@@ -358,7 +357,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](done/Q2o-ts-hygiene.md) | done | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](done/Q2p-ts-complexity-splits.md) | done | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](done/Q2q-split-cos-reader.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |
-| Q2r | [Split the large xtask, builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](done/Q2h-text-writers-dedup.md), [Q2i](done/Q2i-one-lexer-one-png-filter.md) |
+| Q2r | [Split the large xtask, builder, extraction and WASM modules](done/Q2r-split-surface-modules.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](done/Q2h-text-writers-dedup.md), [Q2i](done/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2t | [Names and comments without project history](done/Q2t-history-out-of-names.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |

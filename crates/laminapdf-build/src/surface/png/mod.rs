@@ -10,6 +10,13 @@
 //!
 //! [PNG 3rd edition]: https://www.w3.org/TR/png-3/
 
+mod chunks;
+mod decode;
+mod interlace;
+use chunks::{Chunks, read_chunks};
+use decode::{Output, inflate};
+use interlace::{ADAM7, pass_size};
+
 use laminapdf_syntax::filters::unfilter_row;
 
 use crate::error::{Error, ImageFormat, Result};
@@ -30,8 +37,6 @@ pub(crate) struct Png {
     pub(crate) pixels: Vec<u8>,
 }
 
-const SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
-
 fn invalid(reason: &'static str) -> Error {
     Error::InvalidImage {
         format: ImageFormat::Png,
@@ -43,228 +48,6 @@ fn too_large() -> Error {
     Error::ImageTooLarge {
         limit: MAX_DECODED_IMAGE_BYTES,
     }
-}
-
-/// The CRC-32 table (ISO 3309, as PNG §5.5 specifies), computed at compile time.
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::indexing_slicing,
-    reason = "const evaluation: n < 256 indexes the 256-entry table"
-)]
-const CRC_TABLE: [u32; 256] = {
-    let mut table = [0u32; 256];
-    let mut n = 0;
-    while n < 256 {
-        let mut c = n as u32;
-        let mut k = 0;
-        while k < 8 {
-            c = if c & 1 == 1 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
-            k += 1;
-        }
-        table[n] = c;
-        n += 1;
-    }
-    table
-};
-
-/// CRC-32 over `parts` in order.
-fn crc32(parts: &[&[u8]]) -> u32 {
-    let mut crc = !0u32;
-    for part in parts {
-        for &byte in *part {
-            let [low, ..] = crc.to_le_bytes();
-            let index = usize::from(low ^ byte);
-            crc = CRC_TABLE.get(index).copied().unwrap_or(0) ^ (crc >> 8);
-        }
-    }
-    !crc
-}
-
-fn be32(b: &[u8]) -> Option<u32> {
-    Some(u32::from_be_bytes(b.get(..4)?.try_into().ok()?))
-}
-
-/// What `IHDR` says.
-#[derive(Debug, Clone, Copy)]
-struct Header {
-    width: u32,
-    height: u32,
-    depth: u8,
-    color: u8,
-    interlaced: bool,
-}
-
-impl Header {
-    fn parse(data: &[u8]) -> Result<Self> {
-        let bad = || invalid("a malformed IHDR chunk");
-        let [
-            w0,
-            w1,
-            w2,
-            w3,
-            h0,
-            h1,
-            h2,
-            h3,
-            depth,
-            color,
-            compression,
-            filter,
-            interlace,
-        ] = <[u8; 13]>::try_from(data).map_err(|_| bad())?;
-        let (width, height) = (
-            u32::from_be_bytes([w0, w1, w2, w3]),
-            u32::from_be_bytes([h0, h1, h2, h3]),
-        );
-        let depth_ok = match color {
-            0 => matches!(depth, 1 | 2 | 4 | 8 | 16),
-            3 => matches!(depth, 1 | 2 | 4 | 8),
-            2 | 4 | 6 => matches!(depth, 8 | 16),
-            _ => false,
-        };
-        if width == 0 || height == 0 || width > 0x7FFF_FFFF || height > 0x7FFF_FFFF || !depth_ok {
-            return Err(bad());
-        }
-        if compression != 0 || filter != 0 || interlace > 1 {
-            return Err(bad());
-        }
-        Ok(Self {
-            width,
-            height,
-            depth,
-            color,
-            interlaced: interlace == 1,
-        })
-    }
-
-    /// Samples per pixel as stored.
-    const fn channels(self) -> usize {
-        match self.color {
-            2 => 3,
-            4 => 2,
-            6 => 4,
-            _ => 1,
-        }
-    }
-
-    /// Bytes in a stored row of `width` pixels (without the filter byte).
-    fn row_bytes(self, width: u32) -> Option<usize> {
-        let bits = usize::try_from(width)
-            .ok()?
-            .checked_mul(self.channels() * usize::from(self.depth))?;
-        Some(bits.div_ceil(8))
-    }
-}
-
-/// The Adam7 passes as (x start, y start, x step, y step), or the whole image.
-const ADAM7: [(u32, u32, u32, u32); 7] = [
-    (0, 0, 8, 8),
-    (4, 0, 8, 8),
-    (0, 4, 4, 8),
-    (2, 0, 4, 4),
-    (0, 2, 2, 4),
-    (1, 0, 2, 2),
-    (0, 1, 1, 2),
-];
-
-/// The number of pixels a pass takes from a line of `size`.
-const fn pass_size(size: u32, start: u32, step: u32) -> u32 {
-    if size > start { (size - start).div_ceil(step) } else { 0 }
-}
-
-/// The chunks a decode needs.
-struct Chunks<'a> {
-    header: Header,
-    palette: Option<&'a [u8]>,
-    trns: Option<&'a [u8]>,
-    idat: Vec<u8>,
-}
-
-/// The longest chunk PNG allows (§5.3: lengths are below 2^31).
-const MAX_CHUNK: usize = 0x7FFF_FFFF;
-
-/// Reads the chunks, checking each CRC, up to the end of the image data: the first chunk
-/// after the `IDAT`s (normally `IEND`) ends the reading, so what follows the image data,
-/// even a missing or damaged `IEND`, doesn't matter, as in the `png` crate. A chunk cut short
-/// after image data was read ends the reading too; the inflate decides whether the data
-/// read is enough.
-fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
-    let mut rest = bytes
-        .strip_prefix(&SIGNATURE)
-        .ok_or_else(|| invalid("no PNG signature"))?;
-    let mut header = None;
-    let mut palette: Option<&[u8]> = None;
-    let mut trns: Option<&[u8]> = None;
-    let mut idat = Vec::new();
-    while !rest.is_empty() {
-        let in_image_data = !idat.is_empty();
-        let cut = || invalid("the data ends inside a chunk");
-        let parsed = (|| {
-            let len = be32(rest).and_then(|l| usize::try_from(l).ok()).ok_or_else(cut)?;
-            if len > MAX_CHUNK {
-                return Err(invalid("a chunk is longer than PNG allows"));
-            }
-            let kind = rest.get(4..8).ok_or_else(cut)?;
-            let data_end = len.checked_add(8).ok_or_else(cut)?;
-            let crc_end = data_end.checked_add(4).ok_or_else(cut)?;
-            let data = rest.get(8..data_end).ok_or_else(cut)?;
-            let crc = rest.get(data_end..crc_end).and_then(be32).ok_or_else(cut)?;
-            Ok((kind, data, crc, crc_end))
-        })();
-        let (kind, data, crc, end) = match parsed {
-            Ok(chunk) => chunk,
-            Err(_) if in_image_data => break,
-            Err(e) => return Err(e),
-        };
-        if in_image_data && kind != b"IDAT" {
-            break;
-        }
-        if crc != crc32(&[kind, data]) {
-            return Err(invalid("a chunk's CRC does not match"));
-        }
-        rest = rest.get(end..).unwrap_or_default();
-        match kind {
-            b"IHDR" if header.is_none() => header = Some(Header::parse(data)?),
-            _ if header.is_none() => return Err(invalid("the first chunk is not IHDR")),
-            b"PLTE" => {
-                if data.is_empty() || data.len() % 3 != 0 || data.len() > 256 * 3 {
-                    return Err(invalid("a malformed PLTE chunk"));
-                }
-                palette = Some(data);
-            }
-            b"tRNS" => trns = Some(data),
-            b"IDAT" => idat.extend_from_slice(data),
-            b"IEND" => break,
-            // An unknown critical chunk (upper-case first letter) can't be skipped (§5.4).
-            _ if kind.first().is_some_and(|c| c & 0x20 == 0) => return Err(invalid("an unknown critical chunk")),
-            _ => {}
-        }
-    }
-    Ok(Chunks {
-        header: header.ok_or_else(|| invalid("no IHDR chunk"))?,
-        palette,
-        trns,
-        idat,
-    })
-}
-
-/// Inflates zlib `data` into exactly `needed` bytes. Like the `png` crate, a stream that
-/// holds more data than the image needs, or ends without (or with a wrong) Adler-32 after
-/// the image's bytes, is accepted; fewer bytes than the image needs are an error.
-fn inflate(data: &[u8], needed: usize) -> Result<Vec<u8>> {
-    use miniz_oxide::inflate::core::{DecompressorOxide, decompress, inflate_flags};
-    let mut out = vec![0u8; needed];
-    let mut state = DecompressorOxide::new();
-    let flags = inflate_flags::TINFL_FLAG_PARSE_ZLIB_HEADER
-        | inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF
-        | inflate_flags::TINFL_FLAG_IGNORE_ADLER32;
-    let (_, _, written) = decompress(&mut state, data, &mut out, 0, flags);
-    if written < needed {
-        return Err(invalid(
-            "the image data is shorter than the image or not valid zlib data",
-        ));
-    }
-    Ok(out)
 }
 
 /// Decodes `bytes`; `strip_16` keeps the high byte of 16-bit samples.
@@ -352,145 +135,6 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
     })
 }
 
-/// How stored pixels become output pixels.
-struct Output<'a> {
-    h: Header,
-    palette: Option<&'a [u8]>,
-    trns: Option<&'a [u8]>,
-    gray: bool,
-    alpha: bool,
-    bits: u8,
-    width: usize,
-}
-
-impl<'a> Output<'a> {
-    fn new(h: Header, palette: Option<&'a [u8]>, trns: Option<&'a [u8]>, strip_16: bool) -> Result<Self> {
-        Ok(Self {
-            h,
-            palette,
-            trns,
-            gray: matches!(h.color, 0 | 4),
-            alpha: matches!(h.color, 4 | 6) || trns.is_some(),
-            bits: if h.depth == 16 && !strip_16 { 16 } else { 8 },
-            width: usize::try_from(h.width).map_err(|_| too_large())?,
-        })
-    }
-
-    /// Whether a stored row is already an output row: no palette, no `tRNS`, no bit-depth
-    /// change.
-    fn stored_as_output(&self) -> bool {
-        self.h.color != 3 && self.trns.is_none() && self.h.depth >= 8 && self.bits == self.h.depth
-    }
-
-    /// Output bytes per pixel.
-    fn pixel_bytes(&self) -> usize {
-        (usize::from(!self.gray) * 2 + 1 + usize::from(self.alpha)) * usize::from(self.bits / 8)
-    }
-
-    /// The zeroed output buffer, refused above [`MAX_DECODED_IMAGE_BYTES`].
-    fn allocate(&self) -> Result<Vec<u8>> {
-        let size = usize::try_from(self.h.height)
-            .ok()
-            .and_then(|h| h.checked_mul(self.width))
-            .and_then(|n| n.checked_mul(self.pixel_bytes()))
-            .filter(|n| *n <= MAX_DECODED_IMAGE_BYTES)
-            .ok_or_else(too_large)?;
-        Ok(vec![0; size])
-    }
-
-    /// Stored sample `index` of `row` (any bit depth), as a 16-bit value.
-    fn sample(&self, row: &[u8], index: usize) -> u16 {
-        let depth = usize::from(self.h.depth);
-        match depth {
-            16 => {
-                let i = index * 2;
-                u16::from_be_bytes([row.get(i).copied().unwrap_or(0), row.get(i + 1).copied().unwrap_or(0)])
-            }
-            8 => u16::from(row.get(index).copied().unwrap_or(0)),
-            _ => {
-                let bit = index * depth;
-                let byte = row.get(bit / 8).copied().unwrap_or(0);
-                let shift = 8 - depth - bit % 8;
-                u16::from((byte >> shift) & ((1u8 << depth) - 1))
-            }
-        }
-    }
-
-    /// Writes stored pixel `i` of `row` at (`x`, `y`).
-    fn put(&self, pixels: &mut [u8], row: &[u8], pixel: u32, x: u32, y: u32) {
-        let pixel = index(pixel);
-        let channels = self.h.channels();
-        // Up to four output samples: colour, then alpha.
-        let mut values = [0u16; 4];
-        let mut count = 0;
-        let mut push = |value: u16| {
-            if let Some(slot) = values.get_mut(count) {
-                *slot = value;
-                count += 1;
-            }
-        };
-        if self.h.color == 3 {
-            let entry = usize::from(self.sample(row, pixel)) * 3;
-            for k in 0..3 {
-                push(u16::from(
-                    self.palette.and_then(|p| p.get(entry + k)).copied().unwrap_or(0),
-                ));
-            }
-            if let Some(t) = self.trns {
-                push(u16::from(t.get(entry / 3).copied().unwrap_or(0xFF)));
-            }
-        } else {
-            let scale = if self.h.depth < 8 {
-                0xFF / ((1u16 << self.h.depth) - 1)
-            } else {
-                1
-            };
-            let mut keyed = true;
-            for k in 0..channels {
-                let value = self.sample(row, pixel * channels + k);
-                if let Some(t) = self.trns {
-                    let key = u16::from_be_bytes([
-                        t.get(2 * k).copied().unwrap_or(0),
-                        t.get(2 * k + 1).copied().unwrap_or(0),
-                    ]);
-                    keyed &= value == key;
-                }
-                // Below 8 bits (gray only), scaled to 8 by replication, as the `png` crate's
-                // EXPAND does.
-                push(value * scale);
-            }
-            if self.trns.is_some() {
-                // A colour key (§11.3.2.1): the matching colour is transparent.
-                push(if keyed {
-                    0
-                } else if self.h.depth == 16 {
-                    0xFFFF
-                } else {
-                    0xFF
-                });
-            }
-        }
-        let at = (index(y) * self.width + index(x)) * self.pixel_bytes();
-        let out = pixels.get_mut(at..).unwrap_or_default();
-        let mut out = out.iter_mut();
-        for value in values.iter().take(count) {
-            let [high, low] = value.to_be_bytes();
-            let bytes: &[u8] = if self.bits == 16 {
-                &[high, low]
-            } else if self.h.depth == 16 {
-                &[high]
-            } else {
-                &[low]
-            };
-            for b in bytes {
-                if let Some(o) = out.next() {
-                    *o = *b;
-                }
-            }
-        }
-    }
-}
-
 /// A pixel count or coordinate as an index (`u32` always fits in `usize` on our targets).
 fn index(v: u32) -> usize {
     usize::try_from(v).unwrap_or(usize::MAX)
@@ -505,7 +149,9 @@ mod tests {
 
     use laminapdf_syntax::filters::paeth;
 
-    use super::{ADAM7, crc32, decode, pass_size};
+    use super::chunks::crc32;
+    use super::decode;
+    use super::interlace::{ADAM7, pass_size};
 
     /// A deterministic pseudo-random byte stream.
     fn noise(seed: u32) -> impl FnMut() -> u16 {

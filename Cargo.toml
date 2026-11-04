@@ -71,7 +71,7 @@ subsetter = { version = "=0.2.6" }
 # Content-stream operators: laminapdf-build's content streams (ADR 0005 §6), laminapdf-text's tests and
 # goldens. MIT OR Apache-2.0
 pdf-writer = { version = "=0.15.0", default-features = false }
-# PNG encoding for laminapdf-build's tests, and the reference its own decoder (surface/png.rs, B6a)
+# PNG encoding for laminapdf-build's tests, and the reference its own decoder (surface/png/, B6a)
 # is compared with: a dev-dependency only. No default features. MIT OR Apache-2.0 (bitflags,
 # crc32fast, fdeflate, flate2, miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32:
 # MIT OR Apache-2.0 / Zlib)

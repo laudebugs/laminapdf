@@ -30,7 +30,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- The content interpreter ([Q2w](./Q2w-split-content-interpreter.md)); other large modules ([Q2r](../ready/Q2r-split-surface-modules.md)).
+- The content interpreter ([Q2w](./Q2w-split-content-interpreter.md)); other large modules ([Q2r](../done/Q2r-split-surface-modules.md)).
 
 ## Tasks
 

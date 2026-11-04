@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2c](./Q2c-test-fixtures-crate.md), [Q2e](./Q2e-error-policy-consolidation.md), [Q2g](../ready/Q2g-one-matrix.md), [Q2i](./Q2i-one-lexer-one-png-filter.md), [Q2q](./Q2q-split-cos-reader.md), [Q2r](../ready/Q2r-split-surface-modules.md), [Q2s](../ready/Q2s-facade-names.md), [Q2t](./Q2t-history-out-of-names.md), [Q2w](./Q2w-split-content-interpreter.md) |
+| Blocks | [Q2c](./Q2c-test-fixtures-crate.md), [Q2e](./Q2e-error-policy-consolidation.md), [Q2g](../ready/Q2g-one-matrix.md), [Q2i](./Q2i-one-lexer-one-png-filter.md), [Q2q](./Q2q-split-cos-reader.md), [Q2r](./Q2r-split-surface-modules.md), [Q2s](../ready/Q2s-facade-names.md), [Q2t](./Q2t-history-out-of-names.md), [Q2w](./Q2w-split-content-interpreter.md) |
 | ADRs | None |
 | Branch | `ci/q2a-maintainability-checks-rust` |
 | PR title | `ci(xtask): check maintainability (module budget, expect count, duplicate names) and new workspace lints` |
