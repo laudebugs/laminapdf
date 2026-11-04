@@ -32,7 +32,7 @@ Text extraction decides which errors propagate with its own `fatal()`, which lea
 
 **Out of scope** (and which todo covers it)
 
-- Splitting the reader module ([Q2q](../done/Q2q-split-cos-reader.md)).
+- Splitting the reader module ([Q2q](./Q2q-split-cos-reader.md)).
 
 ## Tasks
 
