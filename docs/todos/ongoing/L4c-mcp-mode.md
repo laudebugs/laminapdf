@@ -12,7 +12,7 @@
 | Branch | `feat/l4c-mcp-mode` |
 | PR title | `feat(cli): laminapdf mcp stdio server with root allow-list, read-only default and honest annotations` |
 | Size | M (≈ 300–500 lines plus tests) |
-| PR | — |
+| PR | [#225](https://github.com/laudebugs/laminapdf/pull/225) |
 
 ## Goal
 
