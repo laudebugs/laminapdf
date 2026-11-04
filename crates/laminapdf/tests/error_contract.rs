@@ -288,24 +288,17 @@ fn explain_returns_the_page_for_every_code() {
     );
 }
 
-/// The façade's code and kind (the generated tables) agree with the wrapped crates' own for
-/// every error and warning the marker fixture provokes.
+/// The façade's code and kind (the generated tables) agree with `codes.json` for every error
+/// the marker fixture provokes, and with the wrapped crates' own for every warning. The
+/// errors' inner types are opaque (ADR 0028 F9); each wrapped crate's tests check its kinds
+/// against `codes.json`, so agreeing with the file is agreeing with the crate.
 #[test]
 fn reached_codes_agree_with_the_wrapped_crates() {
     let (errors, warnings) = marker_diagnostics();
+    let codes = laminapdf_test_fixtures::codes::codes_json();
     let mut wrong = Vec::new();
     for e in &errors {
-        let core = match e {
-            Error::Cos(i) => Some((i.code(), i.kind())),
-            Error::Ops(i) => Some((i.code(), i.kind())),
-            Error::Save(i) => Some((i.code(), i.kind())),
-            Error::Text(i) => Some((i.code(), i.kind())),
-            Error::Build(i) => Some((i.code(), i.kind())),
-            _ => None,
-        };
-        if let Some(core) = core
-            && core != (e.code(), e.kind())
-        {
+        if laminapdf_test_fixtures::codes::listed_kind(&codes, e.code()).as_deref() != Some(e.kind().as_str()) {
             wrong.push(e.code());
         }
     }

@@ -20,7 +20,7 @@ mod file;
 #[cfg(feature = "mmap")]
 mod mmap;
 
-pub use retry::{RetryError, RetryOptions, open_with, pending_ranges, retry};
+pub use retry::{RetryError, RetryOptions, open_with, retry};
 pub use sparse::{SparseSource, SupplyError};
 
 #[cfg(feature = "native")]
