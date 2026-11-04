@@ -17,7 +17,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -167,16 +166,16 @@ function agentEnv(project) {
  */
 export function findPacks(config) {
   const dir = join(ROOT_DIR, config.packs);
-  const files = existsSync(dir) ? readdirSync(dir) : [];
-  const pick = (/** @type {string} */ name) => files.find((f) => f.startsWith(`${name}-`) && f.endsWith(".tgz"));
-  const wasm = pick("laminapdf-wasm");
-  const sdk = pick("laminapdf-sdk");
-  if (!wasm || !sdk) {
+  // The checkout's version names the tarballs, so a stale pack of another version is never used.
+  const { version } = JSON.parse(readFileSync(join(ROOT_DIR, "packages/sdk/package.json"), "utf8"));
+  const wasm = join(dir, `laminapdf-wasm-${version}.tgz`);
+  const sdk = join(dir, `laminapdf-sdk-${version}.tgz`);
+  if (!existsSync(wasm) || !existsSync(sdk)) {
     throw new Error(
-      `no @laminapdf/wasm and @laminapdf/sdk tarballs in ${config.packs}: run \`cargo xtask publish npm-pack\` first`,
+      `no @laminapdf/wasm and @laminapdf/sdk ${version} tarballs in ${config.packs}: run \`cargo xtask publish npm-pack\` first`,
     );
   }
-  return { wasm: join(dir, wasm), sdk: join(dir, sdk), version: sdk.slice("laminapdf-sdk-".length, -".tgz".length) };
+  return { wasm, sdk, version };
 }
 
 /**
