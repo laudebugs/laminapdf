@@ -12,7 +12,7 @@
 | Branch | `refactor/q2i-one-lexer-one-png-filter` |
 | PR title | `refactor(text,build): CMap parsing on laminapdf-syntax's lexer; PNG unfiltering from laminapdf-syntax` |
 | Size | M |
-| PR | — |
+| PR | [#212](https://github.com/laudebugs/laminapdf/pull/212) |
 
 ## Goal
 
