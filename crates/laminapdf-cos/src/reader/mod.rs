@@ -1,8 +1,10 @@
-//! Tolerant reader: xref/xref-stream loading with repair, object resolution, page tree.
+//! Tolerant reader: opening a file (the header, the xref table or stream, repair and the
+//! security handler) and the [`Document`] it returns. Resolving and loading objects is in
+//! `load`; the page tree is in `pages`.
 
 mod encrypt;
-mod load;
 pub use encrypt::strip_crypt_filter;
+mod load;
 mod objstm;
 mod options;
 mod pages;
