@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1l` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1f](../done/Q1f-examples-readable.md), [Q1i](../done/Q1i-guides-create.md), [Q1j](../done/Q1j-recipes-and-troubleshooting.md), [Q1k](../done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](../done/Q1m-guides-read-and-edit.md) |
+| Depends on | [Q1f](./Q1f-examples-readable.md), [Q1i](./Q1i-guides-create.md), [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1k](./Q1k-internal-ids-out-of-reader-text.md), [Q1m](./Q1m-guides-read-and-edit.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `claude/working-session-9g3nst` |
@@ -34,13 +34,13 @@ Once the rewrites have cleared every report, this todo makes the docs checks str
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Turn on the strict modes; run `cargo xtask check`; fix any stragglers.
-- [ ] Show in the PR description that a bad page and a bad example each fail CI (on a scratch branch).
+- [x] Claim by opening the work PR (#219) off an up-to-date `main`. The cloud session that did the work had a plain clone and an assigned branch, so it worked on that branch instead of a worktree.
+- [x] Turn on the strict modes; run `cargo xtask check`; fix any stragglers. Five error-code pages had long sentences or a long paragraph; `examples/differential/text-facts.rs`, a developer tool, is now skipped by the examples checks, as `cargo xtask examples` skips it.
+- [x] Show in the PR description that a bad page and a bad example each fail CI (on a scratch branch). The session could push only its assigned branch, so the PR shows the same failures from the local `cargo xtask check docs` and `biome ci`: an untouched error page with its old 65-word sentence, and an example with a todo ID in its header and a non-null assertion.
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask check` passes with every docs check strict everywhere.
+- [x] `cargo xtask check` passes with every docs check strict everywhere.
 
 ## Post-merge checks
 
@@ -60,9 +60,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Work PR opened; **PR** field filled in. It came from the session's assigned branch `claude/working-session-9g3nst` in a plain clone, not from a worktree or a `ci/…` branch (see Tasks)
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

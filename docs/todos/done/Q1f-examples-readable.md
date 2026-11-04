@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1c](./Q1c-examples-checks.md), [Q1d](./Q1d-example-api-cleanups.md) |
-| Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1l](../ongoing/Q1l-docs-checks-strict.md) |
+| Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1l](./Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `feat/q1d-example-api-cleanups` (with [Q1d](./Q1d-example-api-cleanups.md): editing an example makes its checks strict, so the two land together) |
 | PR title | `refactor(examples): examples readers can copy into their apps` |
