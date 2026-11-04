@@ -264,7 +264,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2f](../todos/done/Q2f-page-attributes-one-owner.md) | One reader of page attributes and one rotation type (fixes `/Rotate 90.0`) | M | — |
 | [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
 | [Q2h](../todos/done/Q2h-text-writers-dedup.md) | One ToUnicode writer and one FontDescriptor builder (fixes split surrogates) | S | — |
-| [Q2i](../todos/ready/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
+| [Q2i](../todos/ongoing/Q2i-one-lexer-one-png-filter.md) | One PDF lexer and one PNG row filter | M | Q2a |
 | [Q2j](../todos/done/Q2j-boundary-errors-rust.md) | One error object at every Rust boundary | M | — |
 | [Q2k](../todos/done/Q2k-boundary-errors-ts.md) | One error wire shape in TypeScript (fixes lost render ranges) | M | Q2j |
 | [Q2l](../todos/done/Q2l-boundary-lists-generated.md) | Lists that cross the WASM boundary are generated | M | — |
