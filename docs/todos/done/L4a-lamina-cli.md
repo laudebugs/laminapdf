@@ -7,7 +7,7 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md) |
-| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L4c](../ready/L4c-mcp-mode.md), [L4d](../ready/L4d-cli-distribution.md) |
+| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L4c](../ongoing/L4c-mcp-mode.md), [L4d](../ready/L4d-cli-distribution.md) |
 | ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](./L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
 | PR title | `feat(cli): ADR 0031 and the laminapdf CLI with info, check, pages rotate, extract and explain` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a stable machine contract. This PR writes ADR 0031, which fixes the grammar, page ranges, stdin/stdout handling, exit codes, JSON versioning and the MCP security defaults. It then ships the first commands on top of the `laminapdf` façade: `info`, `check`, `pages rotate`, `extract text` and `explain`. Each command has `--json` output with a schema id and errors in the ADR 0026 shape. The command logic lives in a library layer separate from the clap front end, so `laminapdf mcp` ([L4c](../ready/L4c-mcp-mode.md)) can call the same functions. The research says the CLI, not MCP, is the primary agent interface, so its contract must be right before more commands pile on.
+Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a stable machine contract. This PR writes ADR 0031, which fixes the grammar, page ranges, stdin/stdout handling, exit codes, JSON versioning and the MCP security defaults. It then ships the first commands on top of the `laminapdf` façade: `info`, `check`, `pages rotate`, `extract text` and `explain`. Each command has `--json` output with a schema id and errors in the ADR 0026 shape. The command logic lives in a library layer separate from the clap front end, so `laminapdf mcp` ([L4c](../ongoing/L4c-mcp-mode.md)) can call the same functions. The research says the CLI, not MCP, is the primary agent interface, so its contract must be right before more commands pile on.
 
 ## Context
 
@@ -44,7 +44,7 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
   - Streams: data on stdout; progress, warnings and human diagnostics on stderr. Colour only when the stream is a TTY and `NO_COLOR` is unset or empty (`--color` overrides). Progress only when stderr is a TTY.
   - No prompts when stdin is not a TTY or `--no-input` is set; anything that would prompt fails with exit 4 or 5 and a hint. Passwords come from `--password-file` or `LAMINA_PDF_PASSWORD`, never from argv.
   - Errors: the ADR 0026 shape wrapped as `laminapdf.error/1`, plus CLI fields `exitCode` and `input`. Document text never appears in `message` or `hint`.
-  - MCP security defaults (implemented in [L4c](../ready/L4c-mcp-mode.md)): stdio only; `--root DIR` required (repeatable), paths canonicalised and symlink escapes rejected; read-only by default (`--allow-write` to list write tools, `--allow-in-place` on top of that to overwrite inputs); tools mapped 1:1 to CLI commands with the same schemas; honest annotations; document text only in data fields; validation errors as tool errors.
+  - MCP security defaults (implemented in [L4c](../ongoing/L4c-mcp-mode.md)): stdio only; `--root DIR` required (repeatable), paths canonicalised and symlink escapes rejected; read-only by default (`--allow-write` to list write tools, `--allow-in-place` on top of that to overwrite inputs); tools mapped 1:1 to CLI commands with the same schemas; honest annotations; document text only in data fields; validation errors as tool errors.
 - **`crates/laminapdf-cli`**, layer `app` (`[package.metadata.laminapdf] layer = "app"`), binary name `laminapdf`:
   - `src/lib.rs` with `pub mod commands`: one function per command, `fn info(args: &InfoArgs, io: &mut dyn Io) -> Result<InfoReport, CliError>` style. Args and reports derive `serde` and `schemars::JsonSchema`; args also derive `clap::Args`. No clap types in reports, no printing in commands.
   - `src/io.rs`: an `Io` trait for reading inputs (`-`, path) and writing outputs (atomic write through a temporary file and rename in the target directory; refuse to overwrite without `--force`). A test double for unit tests.
@@ -65,7 +65,7 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
 **Out of scope** (and which todo covers it)
 
 - Several inputs per command, `--jobs`, NDJSON, `render`, `extract --format md|json`, the `schema` command, completions and man pages: [L4b](../ready/L4b-cli-batch-render-schema.md).
-- `laminapdf mcp`: [L4c](../ready/L4c-mcp-mode.md).
+- `laminapdf mcp`: [L4c](../ongoing/L4c-mcp-mode.md).
 - Release binaries, Homebrew and npm: [L4d](../ready/L4d-cli-distribution.md).
 - `pages select|delete|reorder|reverse` (need [E2b](../ready/E2b-page-structure-ops.md)), `pages merge|split|shuffle` (need [E2c](../ready/E2c-cross-document-pages.md) and [E2d](../ready/E2d-merge-and-split.md)): a follow-up CLI todo is added when E2b is claimed. This PR parses the full range and handle grammar so those commands only add wiring.
 - `fill`, `sign`, `verify`, `encrypt`, `optimize`, `diff`, `inspect`: later rounds, each with its feature.
