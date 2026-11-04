@@ -2415,7 +2415,7 @@ Feature settings use HarfBuzz's syntax without ranges: `tag` or `+tag` (on), `-t
 
 ## How to fix
 
-Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Feature::new(Tag::new(b"liga"), 0)`.
+Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Feature::new(OpenTypeTag::new(b"liga"), 0)`.
 
 ## Example
 

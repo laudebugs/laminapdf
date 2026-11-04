@@ -164,7 +164,7 @@ pub use laminapdf_text::Error as TextError;
 /// A font loaded from its bytes (TrueType, OpenType/CFF, collections, variable instances).
 #[cfg(feature = "text")]
 pub use laminapdf_text::Font;
-/// A four-letter OpenType tag: a variation axis for [`Font::instance`] (`OpenTypeTag::WEIGHT`)
+/// A four-byte OpenType tag (`wght`, `liga`, `cv01`): a variation axis for [`Font::instance`] (`OpenTypeTag::WEIGHT`)
 /// or a [`Feature`]'s.
 #[cfg(feature = "text")]
 pub use laminapdf_text::OpenTypeTag;

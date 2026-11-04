@@ -128,7 +128,7 @@ impl PageText {
 /// decodes every shown string with its font: codes by the font's encoding or CMap, widths
 /// from `/Widths`, `/W` and `/W2` (which move the text matrix, so the interpreter sees the
 /// right positions across `Tj` sequences), and Unicode by ToUnicode, then encoding and glyph
-/// names, then the embedded font's `cmap` (see `font/`).
+/// names, then the embedded font's `cmap`.
 ///
 /// Each [`Glyph`] keeps its code, text, origin and advance in user space, its size, and a
 /// [`Quad`] in page space (ADR 0027: the displayed `CropBox`, top-left origin, y down,
@@ -139,7 +139,7 @@ impl PageText {
 /// (§14.9.4); text drawn in rendering mode 3 or 7 is `invisible` (OCR layers).
 ///
 /// [`PageTextRun`]s group consecutive glyphs of one font, size, direction, MCID, `ActualText`
-/// span and visibility that follow each other on one baseline (see `runs.rs`). A run inside
+/// span and visibility that follow each other on one baseline. A run inside
 /// an `ActualText` span takes the span's text (the first run of the span; later runs of it
 /// add none) and keeps its glyphs' boxes. Other runs join their glyphs' text, with a space
 /// where the pen jumps forward over a quarter of the size; a run with right-to-left
@@ -152,7 +152,7 @@ impl PageText {
 /// Fonts are parsed once per [`TextExtractor`] (keyed by font object). Problems follow
 /// ADR 0003 and are warnings on the document: `font-invalid` (a malformed font dictionary,
 /// decoded with defaults), `cmap-invalid` (malformed CMap or ToUnicode entries skipped, an
-/// unsupported predefined CMap, a `/UseCMap` chain past 8 links) and
+/// unsupported predefined CMap, a `/UseCMap` chain too deep to follow) and
 /// `unmapped-glyph` (a font with glyphs no rule maps; they extract as U+FFFD). Strict mode
 /// turns each into an error; the content limits of `laminapdf-content` bound the work.
 #[derive(Debug, Default)]

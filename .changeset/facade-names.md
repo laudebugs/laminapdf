@@ -10,4 +10,4 @@ Breaking (Rust, while alpha): no two public types share a name any more, and eac
 - `laminapdf-text`'s `extract` and `agl` modules are private. Their items are at the crate root: `laminapdf_text::TextExtractor`, `PageText`, `Code` and the rest, `glyph_name_to_unicode` (was `agl::to_unicode`) and `zapf_dingbats_to_unicode`. `CMap` and `MAX_USECMAP_DEPTH` are no longer public.
 - `laminapdf::Document::ops` and `into_ops` are hidden from the docs. They stay for Lamina PDF's own crates, and may change without notice.
 
-The JavaScript API and every output are unchanged.
+In JavaScript, the extracted run's class is now named `PageTextRun` itself, not only exported under that name, so `run.constructor.name` reads `PageTextRun`. The rest of the JavaScript API and every output are unchanged.
