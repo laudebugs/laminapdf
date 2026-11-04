@@ -16,7 +16,7 @@
 
 ## Goal
 
-Two xtask modules are over the 800-line budget in lines of non-test code, and the maintainability baseline lists them: `tools/xtask/src/live.rs` (1,115) and `tools/xtask/src/render_diff.rs` (923). This todo splits them and removes their entries, so every baseline entry has a todo (the COS reader is Q2q's, `interp.rs` Q2w's).
+Two xtask modules are over the 800-line budget in lines of non-test code, and the maintainability baseline lists them: `tools/xtask/src/live.rs` (1,115) and `tools/xtask/src/render_diff.rs` (923). This todo splits them and removes their entries, so every baseline entry has a todo (the COS reader is Q2q's; [Q2w](../done/Q2w-split-content-interpreter.md) has already removed `interp.rs`'s).
 
 It also splits four files that are long but, once tests are excluded, within the budget: `laminapdf-text/src/extract/font.rs` (1,321 lines in total, 786 of non-test code), `laminapdf-build/src/surface/mod.rs` (1,027), `laminapdf-wasm/src/builder.rs` (1,011) and `laminapdf-build/src/surface/png.rs` (872). The review proposed the boundaries.
 

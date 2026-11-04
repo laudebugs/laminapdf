@@ -211,16 +211,6 @@ fn numbers<const N: usize>(args: &[Object]) -> [f64; N] {
     out
 }
 
-/// The one number of an operator that sets a single value.
-fn first(args: &[Object]) -> f64 {
-    args.first().map_or(0.0, number)
-}
-
-/// The one integer of an operator that sets a single value.
-fn first_integer(args: &[Object]) -> i64 {
-    args.first().map_or(0, integer)
-}
-
 #[expect(
     clippy::cast_possible_truncation,
     reason = "a real where an integer is expected is truncated, as PDF consumers do (§7.3.3)"
@@ -356,7 +346,9 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
 
     /// Runs one operator: one arm per Annex A operator (or per operators that behave alike),
     /// each a line that sets a value or calls its group's handler, in the module of that
-    /// group. Unknown operators and operands that don't fit the signature are skipped here.
+    /// group. An unknown operator, or one whose operands don't fit its signature, is skipped
+    /// here with a warning; one with extra operands in front of those it uses runs after a
+    /// `content-bad-operands` warning.
     fn execute(&mut self, frame: &mut Frame, op: &Op<'_>) -> Result<()> {
         if let Operator::Unknown(_) = op.operator {
             if frame.compat == 0 {
@@ -376,13 +368,13 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         let args = checked.operands;
         match op.operator {
             // General graphics state (§8.4.4).
-            Operator::LineWidth => frame.gs.line_width = first(args),
-            Operator::LineCap => frame.gs.line_cap = first_integer(args),
-            Operator::LineJoin => frame.gs.line_join = first_integer(args),
-            Operator::MiterLimit => frame.gs.miter_limit = first(args),
+            Operator::LineWidth => frame.gs.line_width = numbers::<1>(args)[0],
+            Operator::LineCap => frame.gs.line_cap = args.first().map_or(0, integer),
+            Operator::LineJoin => frame.gs.line_join = args.first().map_or(0, integer),
+            Operator::MiterLimit => frame.gs.miter_limit = numbers::<1>(args)[0],
             Operator::Dash => set_dash(&mut frame.gs, args),
             Operator::RenderingIntent => frame.gs.rendering_intent = args.first().and_then(name).cloned(),
-            Operator::Flatness => frame.gs.flatness = first(args),
+            Operator::Flatness => frame.gs.flatness = numbers::<1>(args)[0],
             Operator::ExtGState => self.ext_gstate(frame, op, args)?,
             // Special graphics state.
             Operator::Save => self.save(frame, op)?,
@@ -412,13 +404,13 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             Operator::BeginText => self.begin_text(frame, op)?,
             Operator::EndText => self.end_text(frame, op)?,
             // Text state (§9.3).
-            Operator::CharSpacing => frame.gs.text.char_spacing = first(args),
-            Operator::WordSpacing => frame.gs.text.word_spacing = first(args),
-            Operator::HorizontalScaling => frame.gs.text.horizontal_scaling = first(args) / 100.0,
-            Operator::Leading => frame.gs.text.leading = first(args),
+            Operator::CharSpacing => frame.gs.text.char_spacing = numbers::<1>(args)[0],
+            Operator::WordSpacing => frame.gs.text.word_spacing = numbers::<1>(args)[0],
+            Operator::HorizontalScaling => frame.gs.text.horizontal_scaling = numbers::<1>(args)[0] / 100.0,
+            Operator::Leading => frame.gs.text.leading = numbers::<1>(args)[0],
             Operator::Font => self.set_font(frame, op, args)?,
-            Operator::RenderMode => frame.gs.text.render_mode = first_integer(args),
-            Operator::Rise => frame.gs.text.rise = first(args),
+            Operator::RenderMode => frame.gs.text.render_mode = args.first().map_or(0, integer),
+            Operator::Rise => frame.gs.text.rise = numbers::<1>(args)[0],
             // Text positioning (§9.4.2).
             Operator::MoveText => self.move_text(frame, op, args)?,
             Operator::MoveTextSetLeading => self.move_text_set_leading(frame, op, args)?,
