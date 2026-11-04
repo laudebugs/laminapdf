@@ -1,0 +1,41 @@
+[package]
+name = "laminapdf-extract"
+description = "Text extraction for retrieval and LLMs (ADR 0030): blocks in reading order with boxes in top-left points, hidden text flagged and dropped (pure, bytes in / bytes out)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Reached through the façade once L3b exposes it; published then.
+publish = false
+readme = "README.md"
+homepage.workspace = true
+documentation.workspace = true
+keywords = ["pdf", "extraction", "reading-order", "rag"]
+categories = ["text-processing"]
+
+# Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;
+# no runtime/binding dependencies; #![forbid(unsafe_code)]; wasm32/iOS/Android builds).
+[package.metadata.laminapdf]
+layer = "core"
+
+[features]
+# serde derives on the output types (laminapdf.extract/1 names); L3b's serialisers turn them on.
+serde = ["dep:serde"]
+
+[dependencies]
+laminapdf-cos = { workspace = true }
+laminapdf-model = { workspace = true }
+laminapdf-syntax = { workspace = true }
+laminapdf-text = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The test helpers every crate shares, by path only (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

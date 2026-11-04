@@ -1,0 +1,206 @@
+//! Runs to lines ([ADR 0030] §3): runs on one baseline, split where a gap is wide enough to be
+//! a column gutter, joined in visual order.
+//!
+//! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+
+use std::cmp::Ordering;
+
+use laminapdf_model::{Pt, RectPt};
+
+/// Baselines closer than this fraction of the size are one line (superscripts stay on it).
+const SAME_BASELINE: f64 = 0.5;
+
+/// A gap wider than this fraction of the size between two runs on one baseline is a column
+/// gutter, so the runs are on two lines. Word spaces stay well below it, even in justified text.
+const GUTTER: f64 = 1.0;
+
+/// A gap wider than this fraction of the size between two runs is a space (as `laminapdf-text`
+/// uses within a run).
+const SPACE: f64 = 0.25;
+
+/// One visible run, in page space.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Piece {
+    pub(crate) text: String,
+    pub(crate) bbox: RectPt,
+    pub(crate) baseline: Pt,
+    pub(crate) size: Pt,
+    pub(crate) font: String,
+    pub(crate) vertical: bool,
+}
+
+/// One line: pieces left to right on one baseline (right to left when the line is).
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Line {
+    /// Indices into the page's pieces, in reading order.
+    pub(crate) pieces: Vec<usize>,
+    pub(crate) bbox: RectPt,
+    pub(crate) baseline: Pt,
+    pub(crate) size: Pt,
+    pub(crate) text: String,
+    pub(crate) rtl: bool,
+}
+
+fn by_value(a: f64, b: f64) -> Ordering {
+    a.partial_cmp(&b).unwrap_or(Ordering::Equal)
+}
+
+/// Whether `c` is written right to left (Hebrew, Arabic, Syriac, Thaana, N'Ko and their
+/// presentation forms).
+pub(crate) const fn is_rtl(c: char) -> bool {
+    matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFF}')
+}
+
+/// Whether more of `text`'s letters are right to left than left to right.
+pub(crate) fn mostly_rtl(text: &str) -> bool {
+    let (rtl, ltr) = text
+        .chars()
+        .filter(|c| c.is_alphabetic())
+        .fold(
+            (0usize, 0usize),
+            |(r, l), c| {
+                if is_rtl(c) { (r + 1, l) } else { (r, l + 1) }
+            },
+        );
+    rtl > ltr
+}
+
+/// A piece with its index.
+type Entry<'p> = (usize, &'p Piece);
+
+/// The lines of `pieces`, top to bottom. A vertical run is a line of its own.
+pub(crate) fn lines(pieces: &[Piece]) -> Vec<Line> {
+    let mut order: Vec<Entry<'_>> = pieces.iter().enumerate().collect();
+    order.sort_by(|(_, a), (_, b)| {
+        by_value(a.baseline.get(), b.baseline.get()).then(by_value(a.bbox.x0.get(), b.bbox.x0.get()))
+    });
+    let mut out = Vec::new();
+    let mut group: Vec<Entry<'_>> = Vec::new();
+    for entry in order {
+        let piece = entry.1;
+        if piece.vertical {
+            out.push(line(vec![entry]));
+            continue;
+        }
+        let joins = group.first().is_some_and(|(_, anchor)| {
+            let size = anchor.size.get().max(piece.size.get());
+            (piece.baseline.get() - anchor.baseline.get()).abs() <= SAME_BASELINE * size
+        });
+        if !joins && !group.is_empty() {
+            split(std::mem::take(&mut group), &mut out);
+        }
+        group.push(entry);
+    }
+    if !group.is_empty() {
+        split(group, &mut out);
+    }
+    out
+}
+
+/// `group` (one baseline) split at gutters, each part a line.
+fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
+    group.sort_by(|(_, a), (_, b)| by_value(a.bbox.x0.get(), b.bbox.x0.get()));
+    let mut part: Vec<Entry<'_>> = Vec::new();
+    for entry in group {
+        let next = entry.1;
+        let gutter = part.last().is_some_and(|(_, prev)| {
+            let size = prev.size.get().max(next.size.get());
+            next.bbox.x0.get() - prev.bbox.x1.get() > GUTTER * size
+        });
+        if gutter {
+            out.push(line(std::mem::take(&mut part)));
+        }
+        part.push(entry);
+    }
+    if !part.is_empty() {
+        out.push(line(part));
+    }
+}
+
+/// The line of `members` (left to right).
+fn line(mut members: Vec<Entry<'_>>) -> Line {
+    let all: String = members.iter().map(|(_, p)| p.text.as_str()).collect();
+    let rtl = mostly_rtl(&all);
+    if rtl {
+        members.reverse();
+    }
+    let mut text = String::new();
+    let mut previous: Option<&Piece> = None;
+    let mut bbox: Option<RectPt> = None;
+    let mut size = Pt::ZERO;
+    for &(_, piece) in &members {
+        if let Some(prev) = previous {
+            let gap = if rtl {
+                prev.bbox.x0.get() - piece.bbox.x1.get()
+            } else {
+                piece.bbox.x0.get() - prev.bbox.x1.get()
+            };
+            let spaced = text.ends_with(char::is_whitespace) || piece.text.starts_with(char::is_whitespace);
+            if !spaced && gap > SPACE * prev.size.get().max(piece.size.get()) {
+                text.push(' ');
+            }
+        }
+        text.push_str(&piece.text);
+        bbox = Some(bbox.map_or(piece.bbox, |b| b.union(&piece.bbox)));
+        if piece.size > size {
+            size = piece.size;
+        }
+        previous = Some(piece);
+    }
+    Line {
+        bbox: bbox.unwrap_or_default(),
+        baseline: members.first().map_or(Pt::ZERO, |(_, p)| p.baseline),
+        size,
+        text,
+        rtl,
+        pieces: members.iter().map(|(i, _)| *i).collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_model::{Pt, RectPt};
+
+    use super::{Piece, lines, mostly_rtl};
+
+    fn piece(text: &str, x: f64, baseline: f64, width: f64) -> Piece {
+        Piece {
+            text: text.to_owned(),
+            bbox: RectPt::from_points(x, baseline - 9.0, width, 12.0),
+            baseline: Pt::new(baseline),
+            size: Pt::new(12.0),
+            font: "F".to_owned(),
+            vertical: false,
+        }
+    }
+
+    fn texts(got: &[super::Line]) -> Vec<&str> {
+        got.iter().map(|l| l.text.as_str()).collect()
+    }
+
+    #[test]
+    fn runs_on_one_baseline_are_one_line_with_spaces_at_gaps() {
+        let got = lines(&[piece("world", 60.0, 100.0, 30.0), piece("Hello", 20.0, 100.5, 30.0)]);
+        assert_eq!(texts(&got), ["Hello world"]);
+    }
+
+    #[test]
+    fn a_gutter_splits_one_baseline_into_two_lines() {
+        let got = lines(&[piece("left", 20.0, 100.0, 200.0), piece("right", 300.0, 100.0, 200.0)]);
+        assert_eq!(texts(&got), ["left", "right"]);
+    }
+
+    #[test]
+    fn lines_come_top_to_bottom() {
+        let got = lines(&[piece("second", 20.0, 130.0, 50.0), piece("first", 20.0, 100.0, 50.0)]);
+        assert_eq!(texts(&got), ["first", "second"]);
+    }
+
+    #[test]
+    fn a_right_to_left_line_is_read_from_its_right_end() {
+        let got = lines(&[piece("שלום", 20.0, 100.0, 30.0), piece("עולם", 60.0, 100.0, 30.0)]);
+        assert_eq!(texts(&got), ["עולם שלום"]);
+        assert!(got.iter().all(|l| l.rtl));
+        assert!(!mostly_rtl("Hello שלום world"));
+    }
+}
