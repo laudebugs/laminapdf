@@ -3,13 +3,13 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2w` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
 | Blocks | None |
 | ADRs | None |
-| Branch | `refactor/q2w-split-content-interpreter` |
+| Branch | `claude/working-session-9g3nst` |
 | PR title | `refactor(content): dispatch operators to per-group handlers` |
 | Size | S |
 | PR | — |
