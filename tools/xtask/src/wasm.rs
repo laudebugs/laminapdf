@@ -75,9 +75,9 @@ const TARGET: &str = "wasm32-unknown-unknown";
 /// Set at link time; [`wasm_module::check`] reads it back from each module.
 const MAX_MEMORY: u64 = 2 << 30;
 
-/// The test build's maximum (64 MiB): small, so `@laminapdf/sdk`'s out-of-memory test reaches
-/// it at once.
-const TEST_HOOKS_MAX_MEMORY: u64 = 64 << 20;
+/// The small-memory build's maximum (64 MiB): small, so `@laminapdf/sdk`'s out-of-memory test
+/// reaches it with one large file.
+const SMALL_MAX_MEMORY: u64 = 64 << 20;
 
 /// One module of `@laminapdf/wasm`.
 pub(crate) struct Module {
@@ -161,7 +161,7 @@ pub(crate) fn build(ws: &Workspace) -> Result<()> {
     for module in &MODULES {
         build_module(ws, module, &wasm_opt, &out)?;
     }
-    build_test_hooks(ws)?;
+    build_small_memory(ws)?;
     test(ws)
 }
 
@@ -177,24 +177,20 @@ fn cargo_args<'a>(krate: &'a str, profile: &'a str, features: &[&'a str], link: 
     args
 }
 
-/// The base module with `laminapdf-wasm`'s `test-hooks` (`__trap`, `__grow`) and a 64 MiB
-/// maximum, built with the dev profile into `target/wasm/test-hooks/` for `@laminapdf/sdk`'s
-/// trap tests; never shipped.
-fn build_test_hooks(ws: &Workspace) -> Result<()> {
-    crate::step("WASM module `base` with the test hooks (target/wasm/test-hooks/, never shipped)");
-    let link = format!("link-arg=--max-memory={TEST_HOOKS_MAX_MEMORY}");
-    ws.cargo(&cargo_args(
-        "laminapdf-wasm",
-        "dev",
-        &["--features", "test-hooks"],
-        Some(&link),
-    ))?;
-    let out = ws.root.join("target/wasm/test-hooks");
+/// The base module with a 64 MiB maximum, into `target/wasm/small-memory/` for
+/// `@laminapdf/sdk`'s out-of-memory test; never shipped. The shipped module's source, profile and
+/// glue: only the link argument differs, so only the final link runs again. (Not the dev profile:
+/// with debug assertions, wasm-bindgen's allocator throws a JS error where release aborts.)
+fn build_small_memory(ws: &Workspace) -> Result<()> {
+    crate::step("WASM module `base` with a 64 MiB maximum (target/wasm/small-memory/, never shipped)");
+    let link = format!("link-arg=--max-memory={SMALL_MAX_MEMORY}");
+    ws.cargo(&cargo_args("laminapdf-wasm", "wasm-release", &[], Some(&link)))?;
+    let out = ws.root.join("target/wasm/small-memory");
     if out.exists() {
         fs::remove_dir_all(&out)?;
     }
     fs::create_dir_all(&out)?;
-    let built = ws.target_dir.join(TARGET).join("debug/laminapdf_wasm.wasm");
+    let built = ws.target_dir.join(TARGET).join("wasm-release/laminapdf_wasm.wasm");
     let (built_arg, out_arg) = (built.to_string_lossy(), out.to_string_lossy());
     crate::run(
         &ws.root,
@@ -214,7 +210,7 @@ fn build_test_hooks(ws: &Workspace) -> Result<()> {
     let glue = out.join("lamina_pdf_base.js");
     fs::write(&glue, wasm_glue::strip_call_checks(&fs::read_to_string(&glue)?)?)?;
     let wasm = fs::read(out.join("lamina_pdf_base_bg.wasm"))?;
-    wasm_module::check("test-hooks", &wasm, TEST_HOOKS_MAX_MEMORY, true)
+    wasm_module::check("small-memory", &wasm, SMALL_MAX_MEMORY)
 }
 
 fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) -> Result<()> {
@@ -262,7 +258,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
     strip.extend([named.as_str(), "-o", shipped.as_str()]);
     crate::run(&ws.root, &wasm_opt, &strip)?;
     if module.is_lamina() {
-        wasm_module::check(module.name, &fs::read(&shipped)?, MAX_MEMORY, false)?;
+        wasm_module::check(module.name, &fs::read(&shipped)?, MAX_MEMORY)?;
     }
     // The glue loads `<stem>_bg.wasm` by default; the package ships `<stem>.wasm`.
     let mut js = fs::read_to_string(work.join(format!("{stem}.js")))?;

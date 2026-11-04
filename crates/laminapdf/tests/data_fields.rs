@@ -36,7 +36,7 @@ const UNBUILDABLE: [(&str, &str); 13] = [
     // packages/sdk/test/browser/worker.browser.test.ts checks these two's keys.
     ("worker-version-mismatch", "raised by @laminapdf/sdk/worker"),
     ("worker-crashed", "raised by @laminapdf/sdk/worker"),
-    // packages/sdk/test/hooks/trap.test.ts checks these two's keys.
+    // packages/sdk/test/memory.test.ts and test/small-memory/oom.test.ts check these two's keys.
     ("wasm-trap", "raised by @laminapdf/sdk"),
     ("out-of-memory", "raised by @laminapdf/sdk"),
     // `renderErrors`: raised by laminapdf-render (not the façade); the fields are RenderError's.

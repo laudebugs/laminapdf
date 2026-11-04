@@ -961,21 +961,21 @@
       "kind": "internal",
       "summary": "the WebAssembly module trapped (a bug in Lamina PDF), so its instance was discarded and the next call gets a fresh one",
       "hint": "open the document again and retry; report the file and the call if it traps again",
-      "since": "0.3.0"
+      "since": "0.2.0"
     },
     {
       "code": "out-of-memory",
       "kind": "limit",
       "summary": "the WebAssembly module ran out of memory (its maximum, or what the engine could give), so its instance was discarded and the next call gets a fresh one",
       "hint": "open fewer or smaller documents at once and free each when done; lower the open limits so hostile files fail sooner",
-      "since": "0.3.0"
+      "since": "0.2.0"
     },
     {
       "code": "instance-reset",
       "kind": "state",
       "summary": "a handle was used after its WebAssembly instance was replaced, by reset() or after a trap",
       "hint": "open the document again or create a new builder: nothing from the old instance survives",
-      "since": "0.3.0"
+      "since": "0.2.0"
     }
   ]
 }

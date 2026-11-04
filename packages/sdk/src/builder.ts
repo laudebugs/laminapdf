@@ -6,7 +6,7 @@ import type { WasmBuilder as BaseBuilder, WasmDocument, WasmImage } from "@lamin
 import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@laminapdf/wasm/text";
 import { defined } from "./defined.js";
 import { Document } from "./document.js";
-import { didYouMean, isLaminaPdfError, packageError } from "./errors.js";
+import { didYouMean, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
 import {
   ARTIFACT_KINDS,
@@ -21,7 +21,7 @@ import {
   type TagName,
 } from "./generated/builder-enums.js";
 import { type BaseGlue, readingModule, textModule } from "./init.js";
-import { disposable, Handle, watch } from "./internal/handle.js";
+import { disposable, forget, Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Transform } from "./matrix.js";
 import { type PathBuilder, PathEncoder } from "./path.js";
@@ -224,16 +224,16 @@ class LivePage extends Handle<BaseGlue> {
     this.#onClose = onClose;
   }
 
-  /** @throws {@link LaminaPdfError} `disposed`, `instance-reset`, `builder-finished`. */
-  get(): TextPageBuilder {
-    this.assertLive();
-    if (this.#raw === undefined) throw packageError("builder-finished", "the page has already finished");
-    return this.#raw;
-  }
-
-  /** Runs `f`, a call into the glue, on this page. */
-  run<T>(f: () => T): T {
-    return this.call(f);
+  /**
+   * Runs `f`, calls into the glue, on this page's raw side.
+   *
+   * @throws {@link LaminaPdfError} `disposed`, `instance-reset`, `builder-finished`; what `f` throws.
+   */
+  run<T>(f: (page: TextPageBuilder) => T): T {
+    return this.call(() => {
+      if (this.#raw === undefined) throw packageError("builder-finished", "the page has already finished");
+      return f(this.#raw);
+    });
   }
 
   /** Frees the raw page and keeps the handle: later calls throw `builder-finished`. */
@@ -246,11 +246,6 @@ class LivePage extends Handle<BaseGlue> {
   protected release(): void {
     this.close();
   }
-}
-
-/** Whether `e` is a trap, after which nothing of the trapped instance may be freed. */
-function isTrap(e: unknown): boolean {
-  return isLaminaPdfError(e, "wasm-trap") || isLaminaPdfError(e, "out-of-memory");
 }
 
 /** A path waiting to be painted: fill it, stroke it, both, or clip to it. */
@@ -268,27 +263,27 @@ export class PendingPath {
 
   /** Fills the path with the fill colour. @returns the surface. */
   fill(rule: FillRule = "nonZero"): Surface {
-    this.#page.run(() => this.#page.get().fillPath(this.#path, rule));
+    this.#page.run((page) => page.fillPath(this.#path, rule));
     return this.#surface;
   }
 
   /** Strokes the path with the stroke colour and `style`. @returns the surface. */
   stroke(style: StrokeStyle = {}): Surface {
     this.#surface.strokeStyle(style);
-    this.#page.run(() => this.#page.get().strokePath(this.#path));
+    this.#page.run((page) => page.strokePath(this.#path));
     return this.#surface;
   }
 
   /** Fills, then strokes the path. @returns the surface. */
   fillStroke(rule: FillRule = "nonZero", style: StrokeStyle = {}): Surface {
     this.#surface.strokeStyle(style);
-    this.#page.run(() => this.#page.get().fillStrokePath(this.#path, rule));
+    this.#page.run((page) => page.fillStrokePath(this.#path, rule));
     return this.#surface;
   }
 
   /** Clips what is drawn next to the path, until the next `restore`. @returns the surface. */
   clip(rule: FillRule = "nonZero"): Surface {
-    this.#page.run(() => this.#page.get().clipPath(this.#path, rule));
+    this.#page.run((page) => page.clipPath(this.#path, rule));
     return this.#surface;
   }
 }
@@ -309,67 +304,61 @@ export class Surface {
 
   /** Saves the graphics state (`q`). */
   save(): this {
-    this.#page.run(() => this.#page.get().save());
+    this.#page.run((page) => page.save());
     return this;
   }
 
   /** Restores the graphics state (`Q`). */
   restore(): this {
-    this.#page.run(() => this.#page.get().restore());
+    this.#page.run((page) => page.restore());
     return this;
   }
 
   /** Applies `matrix` (page space) to what is drawn next. See {@link Matrix}. */
   transform(matrix: Transform): this {
-    this.#page.run(() => this.#page.get().transform(new Float64Array(matrix)));
+    this.#page.run((page) => page.transform(new Float64Array(matrix)));
     return this;
   }
 
   /** The colour fills (and text) use. */
   fillColor(color: Color): this {
-    this.#page.run(() =>
-      typeof color === "string"
-        ? this.#page.get().fillColorHex(color)
-        : this.#page.get().fillColor(new Float64Array(color)),
+    this.#page.run((page) =>
+      typeof color === "string" ? page.fillColorHex(color) : page.fillColor(new Float64Array(color)),
     );
     return this;
   }
 
   /** The colour strokes use. */
   strokeColor(color: Color): this {
-    this.#page.run(() =>
-      typeof color === "string"
-        ? this.#page.get().strokeColorHex(color)
-        : this.#page.get().strokeColor(new Float64Array(color)),
+    this.#page.run((page) =>
+      typeof color === "string" ? page.strokeColorHex(color) : page.strokeColor(new Float64Array(color)),
     );
     return this;
   }
 
   /** Fill and stroke opacity, 0 to 1. */
   opacity(fill: number, stroke: number): this {
-    this.#page.run(() => this.#page.get().opacity(fill, stroke));
+    this.#page.run((page) => page.opacity(fill, stroke));
     return this;
   }
 
   /** The blend mode. */
   blendMode(mode: BlendMode): this {
-    this.#page.run(() => this.#page.get().blendMode(mode));
+    this.#page.run((page) => page.blendMode(mode));
     return this;
   }
 
   /** @internal The stroke style the next stroke uses. */
   strokeStyle(style: StrokeStyle): void {
-    this.#page.run(() =>
-      this.#page
-        .get()
-        .strokeStyle(
-          style.width ?? 1,
-          style.cap ?? "butt",
-          style.join ?? "miter",
-          style.miterLimit ?? 10,
-          new Float64Array(style.dash ?? []),
-          style.dashPhase ?? 0,
-        ),
+    this.#page.run((page) =>
+      page.strokeStyle(
+        style.width ?? 1,
+        style.cap ?? "butt",
+        style.join ?? "miter",
+        style.miterLimit ?? 10,
+        new Float64Array(style.dash ?? []),
+        style.dashPhase ?? 0,
+      ),
     );
   }
 
@@ -393,7 +382,7 @@ export class Surface {
    */
   image(image: Image, rect: Rect, alt?: string): this {
     const raw = this.#builder.wasmImage(image);
-    const draw = () => this.#page.run(() => this.#page.get().image(raw, rect[0], rect[1], rect[2], rect[3]));
+    const draw = () => this.#page.run((page) => page.image(raw, rect[0], rect[1], rect[2], rect[3]));
     if (alt !== undefined) return this.tag({ type: "Figure", alt }, draw);
     draw();
     return this;
@@ -426,7 +415,7 @@ export class Surface {
    */
   artifact(kind: ArtifactKind, draw: (s: this) => void): this {
     const name = checked(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");
-    this.#page.run(() => this.#page.get().beginArtifact(name));
+    this.#page.run((page) => page.beginArtifact(name));
     this.#within(draw);
     return this;
   }
@@ -438,8 +427,8 @@ export class Surface {
       ? checked(TAG_NAMES, t.role ?? "", "role", "not a standard structure type")
       : checked(TAG_NAMES, t.type, "type", "not a standard structure type (give a custom type a role)");
     const scope = t.scope === undefined ? undefined : checked(TABLE_SCOPES, t.scope, "scope", "not a table scope");
-    this.#page.run(() =>
-      this.#page.get().beginTag(kind, custom ? t.type : undefined, t.alt, t.actualText, t.lang, t.expansion, scope),
+    this.#page.run((page) =>
+      page.beginTag(kind, custom ? t.type : undefined, t.alt, t.actualText, t.lang, t.expansion, scope),
     );
   }
 
@@ -458,13 +447,13 @@ export class Surface {
       result = draw();
     } catch (e) {
       try {
-        this.#page.get().endTag();
+        this.#page.run((page) => page.endTag());
       } catch {
         // `draw`'s error is the one to report.
       }
       throw e;
     }
-    this.#page.run(() => this.#page.get().endTag());
+    this.#page.run((page) => page.endTag());
     return result;
   }
 
@@ -477,7 +466,7 @@ export class Surface {
 
   /** A link annotation over `rect`, with `contents` as its alternate text. */
   link(rect: Rect, target: LinkTarget, contents?: string): this {
-    this.#page.run(() => this.#page.get().link(rect[0], rect[1], rect[2], rect[3], target, contents));
+    this.#page.run((page) => page.link(rect[0], rect[1], rect[2], rect[3], target, contents));
     return this;
   }
 
@@ -491,9 +480,7 @@ export class Surface {
     const font = this.#builder.wasmFont(options.font);
     const extra = rest(options, ["font", "size", "at", "tag"]);
     return this.#tagged(options.tag, () =>
-      this.#page.run(() =>
-        this.#page.get().text(text, font, options.size, options.at[0], options.at[1], extra as never),
-      ),
+      this.#page.run((page) => page.text(text, font, options.size, options.at[0], options.at[1], extra as never)),
     );
   }
 
@@ -508,7 +495,7 @@ export class Surface {
     const [x, y, w, h] = options.box;
     const extra = rest(options, ["font", "size", "box", "tag"]);
     return this.#tagged(options.tag, () =>
-      this.#page.run(() => this.#page.get().textBox(text, font, options.size, x, y, w, h, extra as never)),
+      this.#page.run((page) => page.textBox(text, font, options.size, x, y, w, h, extra as never)),
     );
   }
 }
@@ -534,13 +521,13 @@ export class Page {
 
   /** `/Rotate`: 0, 90, 180 or 270 degrees. */
   rotate(degrees: 0 | 90 | 180 | 270): this {
-    this.#page.run(() => this.#page.get().rotate(degrees));
+    this.#page.run((page) => page.rotate(degrees));
     return this;
   }
 
   /** `/UserUnit`, for pages larger than 14,400 units. */
   userUnit(unit: number): this {
-    this.#page.run(() => this.#page.get().userUnit(unit));
+    this.#page.run((page) => page.userUnit(unit));
     return this;
   }
 
@@ -565,7 +552,7 @@ export class Page {
   }
 
   #box(kind: "crop" | "bleed" | "trim" | "art", rect: Rect): this {
-    this.#page.run(() => this.#page.get().setBox(kind, rect[0], rect[1], rect[2], rect[3]));
+    this.#page.run((page) => page.setBox(kind, rect[0], rect[1], rect[2], rect[3]));
     return this;
   }
 
@@ -577,15 +564,11 @@ export class Page {
    * @throws {@link LaminaPdfError} `invalid-geometry`, `builder-finished`.
    */
   finish(): string {
-    const page = this.#page.get();
-    let failure: unknown;
     try {
-      return this.#page.run(() => page.finish());
-    } catch (e) {
-      failure = e;
-      throw e;
+      return this.#page.run((page) => page.finish());
     } finally {
-      if (!isTrap(failure)) this.#page.close();
+      // After a trap, `close` frees nothing: the instance is about to be replaced.
+      this.#page.close();
     }
   }
 
@@ -688,11 +671,13 @@ export class Builder extends Handle<BaseGlue> {
    */
   font(font: Font): FontInfo {
     const raw = this.wasmFont(font);
-    return { family: raw.family, postscriptName: raw.postscriptName, isStandard: raw.isStandard };
+    return this.call(() => ({ family: raw.family, postscriptName: raw.postscriptName, isStandard: raw.isStandard }));
   }
 
   /** @internal The font in this builder's instance. */
   wasmFont(font: Font): WasmFont {
+    // A cached font lives in the builder's instance: check it is still the current one.
+    this.assertLive();
     const key = font.standard ?? this.#bytesKey(font.bytes ?? new Uint8Array());
     let raw = this.#fonts.get(key);
     if (raw !== undefined) return raw;
@@ -780,14 +765,11 @@ export class Builder extends Handle<BaseGlue> {
    */
   finish(): Document {
     const builder = this.#builder;
-    let failure: unknown;
     try {
       return new Document(this.call(() => builder.finish()) as unknown as WasmDocument, this.instance);
-    } catch (e) {
-      failure = e;
-      throw e;
     } finally {
-      if (!isTrap(failure)) this.#close();
+      // After a trap, `#close` frees nothing: the instance is about to be replaced.
+      this.#close();
     }
   }
 
@@ -796,6 +778,8 @@ export class Builder extends Handle<BaseGlue> {
    * `builder-finished` (`free()` makes them `disposed`).
    */
   #close(): void {
+    // Its WASM side is freed (or gone with its instance): not a leak.
+    forget(this);
     for (const page of [...this.#pages]) page.close();
     if (this.owned) {
       for (const font of this.#fonts.values()) font.free();

@@ -4,7 +4,29 @@
 // a fresh one of the same compiled module (wasm-bindgen's `__wbg_reset_state`); `reset()` replaces
 // every one. Each replacement starts a new generation: a handle made in an older one throws
 // `instance-reset` rather than reach into the new instance's memory.
-import { isDiagnostic, LaminaPdfError, packageError } from "../errors.js";
+import { isDiagnostic, isLaminaPdfError, LaminaPdfError, packageError } from "../errors.js";
+
+/**
+ * Whether `e` stopped WebAssembly code mid-call: a trap (`RuntimeError`), or the engine's stack
+ * overflowing inside it (V8 and JavaScriptCore throw a `RangeError`, Firefox an `InternalError`).
+ * Either leaves the instance's memory half-written.
+ */
+function stoppedMidCall(e: unknown): boolean {
+  if (e instanceof WebAssembly.RuntimeError) return true;
+  if (!(e instanceof Error)) return false;
+  return (
+    (e instanceof RangeError && /call stack/i.test(e.message)) ||
+    (e.name === "InternalError" && /recursion/i.test(e.message))
+  );
+}
+
+/**
+ * Whether `e` is a trap: as {@link Instance.call} reports one (`wasm-trap`, `out-of-memory`), or
+ * raw from a module the package doesn't guard (an extension's PDFium).
+ */
+export function isTrap(e: unknown): boolean {
+  return stoppedMidCall(e) || isLaminaPdfError(e, "wasm-trap") || isLaminaPdfError(e, "out-of-memory");
+}
 
 /** The modules of `@laminapdf/wasm` that `@laminapdf/sdk` loads. */
 export type ModuleName = "base" | "text" | "extract";
@@ -92,7 +114,7 @@ export class Instance<G extends Glue = Glue> {
    * Runs one call into the glue, after replacing an instance that trapped.
    *
    * @throws {@link LaminaPdfError} for the §1 object the module throws; `wasm-trap` or
-   *   `out-of-memory` when it traps (the next call gets a fresh instance).
+   *   `out-of-memory` when it traps or overflows the stack (the next call gets a fresh instance).
    */
   call<T>(f: (glue: G) => T): T {
     const glue = this.live();
@@ -105,7 +127,7 @@ export class Instance<G extends Glue = Glue> {
 
   #wrap(e: unknown): unknown {
     if (isDiagnostic(e)) return new LaminaPdfError(e);
-    if (!(e instanceof WebAssembly.RuntimeError)) return e;
+    if (!stoppedMidCall(e)) return e;
     this.#poisoned = true;
     const module = this.name;
     if (this.#allocationFailed()) {

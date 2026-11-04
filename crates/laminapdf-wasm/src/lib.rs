@@ -44,8 +44,6 @@ pub use builder::WasmFont;
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
 pub use memory::allocation_failed;
-#[cfg(feature = "test-hooks")]
-pub use memory::{grow, trap};
 pub use source::WasmSparseSource;
 
 use wasm_bindgen::prelude::*;

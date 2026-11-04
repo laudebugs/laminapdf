@@ -13,6 +13,7 @@ import {
   wasmMemory,
 } from "@laminapdf/sdk";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { baseModule } from "../dist/init.js";
 import { read, thrown } from "./helpers.js";
 
 /** One WebAssembly page. */
@@ -87,6 +88,44 @@ describe("memory", () => {
   });
 });
 
+// A trap as the engine throws it, from inside the guard every call of the package runs through: a
+// real one comes only from a bug, or from memory running out (test/small-memory/).
+describe("a trap", () => {
+  const trapWith = (error: Error): unknown =>
+    thrown(() =>
+      baseModule().call(() => {
+        throw error;
+      }),
+    );
+
+  it("throws wasm-trap; the next call runs in a fresh instance and older handles throw instance-reset", () => {
+    const before = Document.open(outline);
+    const error = trapWith(new WebAssembly.RuntimeError("unreachable"));
+    expect(isLaminaPdfError(error, "wasm-trap") && error.data).toEqual({ module: "base" });
+    using after = Document.open(outline);
+    expect([
+      after.pageCount,
+      isLaminaPdfError(
+        thrown(() => before.pageCount),
+        "instance-reset",
+      ),
+    ]).toEqual([3, true]);
+    before.free();
+  });
+
+  it("is also what a stack overflow inside the module is", () => {
+    const v8 = trapWith(new RangeError("Maximum call stack size exceeded"));
+    const firefox = trapWith(Object.assign(new Error("too much recursion"), { name: "InternalError" }));
+    expect([isLaminaPdfError(v8, "wasm-trap"), isLaminaPdfError(firefox, "wasm-trap")]).toEqual([true, true]);
+  });
+
+  it("is not what an ordinary error is: the instance and its handles stay", () => {
+    using doc = Document.open(outline);
+    const error = trapWith(new TypeError("not a trap"));
+    expect([error instanceof TypeError, doc.pageCount]).toEqual([true, 3]);
+  });
+});
+
 describe("a reset() during a range open", () => {
   it("ends the open with instance-reset, and the fresh instance works", async () => {
     const source = callbackSource(outline.length, async (offset, length) => {
@@ -114,6 +153,18 @@ describe("onLeak", () => {
     const leaks: Leak[] = [];
     onLeak((leak) => leaks.push(leak));
     for (let i = 0; i < 10; i++) openReadFree();
+    await collect(leaks, 1);
+    expect(leaks).toEqual([]);
+  });
+
+  it.runIf(gc !== undefined)("reports nothing for a builder that finished", async () => {
+    const leaks: Leak[] = [];
+    onLeak((leak) => leaks.push(leak));
+    (() => {
+      const builder = new Builder();
+      builder.page("A6").finish();
+      builder.finish().free();
+    })();
     await collect(leaks, 1);
     expect(leaks).toEqual([]);
   });

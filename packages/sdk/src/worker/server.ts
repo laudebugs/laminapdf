@@ -14,9 +14,10 @@
 
 import { defined } from "../defined.js";
 import { Document, PageRef } from "../document.js";
-import { type Diagnostic, isDiagnostic, isLaminaPdfError, LaminaPdfError, packageError } from "../errors.js";
+import { type Diagnostic, isDiagnostic, LaminaPdfError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import { init, loadExtract, loadText } from "../index.js";
+import { isTrap } from "../internal/instance.js";
 import { httpRangeSource } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
 import { PageText, rawOf } from "../text.js";
@@ -369,13 +370,6 @@ async function execute(job: Job): Promise<void> {
   } finally {
     current = undefined;
   }
-}
-
-/** Whether `e` is a WebAssembly trap, raw or as the sync API reports it. */
-function isTrap(e: unknown): boolean {
-  return (
-    e instanceof WebAssembly.RuntimeError || isLaminaPdfError(e, "wasm-trap") || isLaminaPdfError(e, "out-of-memory")
-  );
 }
 
 /** Runs the call: a client method, or a method of the document or page its handle names. */

@@ -71,7 +71,7 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
   - [x] Error mapping to codes: `allocationFailed()`, from a recording global allocator, tells `out-of-memory` from `wasm-trap`.
   - [x] `reset()`
 - [x] Add codes `wasm-trap`, `out-of-memory` and `instance-reset` (as decided: `instance-reset`, because `disposed`'s advice, free a handle only after its last use, is wrong after a reset) to `fixtures/codes.json` in L1b's format (`disposed` comes from L1b); regenerate; Rust and TS codes tests pass
-- [x] `tools/xtask` `wasm`: the `--max-memory` link arg (one constant, documented) and the `test-hooks` build variant for tests; a check that the release build has no `__trap`/`__grow` exports. `tools/xtask/src/wasm_module.rs` reads each shipped module's maximum and exports; the test build goes to `target/wasm/test-hooks/` with a 64 MiB maximum.
+- [x] `tools/xtask` `wasm`: the `--max-memory` link arg (one constant, documented) and the `test-hooks` build variant for tests; a check that the release build has no `__trap`/`__grow` exports. Done without test hooks: the maintainability guideline keeps them out of `src/`, and it wins over this todo (the review of #222). `tools/xtask/src/wasm_module.rs` reads each shipped module's maximum, and the test variant is the base module linked with a 64 MiB maximum (`target/wasm/small-memory/`), where an over-large open runs out of memory for real.
 - [x] FinalizationRegistry registration and the `onLeak` debug hook. wasm-bindgen's own registry frees a collected handle, so the SDK registers documents, builders and images only while a hook is set.
 - [x] TSDoc on every handle: "use `using`; `free()` is an alias"; README section on memory (bounds, `reset()`, workers)
 - [x] Verify Safari's `Symbol.dispose` status on the MDN compatibility table and record it in the README and Risks
@@ -83,10 +83,10 @@ Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages 
 - [x] Memory baseline:
   - Open, read every page and dispose a corpus file 1,000 times in a loop. After the first iteration, `WebAssembly.Memory.buffer.byteLength` stays within the post-warm-up size plus one 64 KiB page.
   - With every handle disposed, the leak hook reports none.
-- [x] `__grow` past the cap throws `LaminaPdfError` with code `out-of-memory`. The next `Document.open` succeeds on a fresh instance. Handles from before the trap throw the decided code
-- [x] `__trap()` gives the same recovery with code `wasm-trap`
+- [x] `__grow` past the cap throws `LaminaPdfError` with code `out-of-memory`. The next `Document.open` succeeds on a fresh instance. Handles from before the trap throw the decided code. Instead of `__grow`, opening a 100 MiB file in the 64 MiB build (`test/small-memory/oom.test.ts`).
+- [x] `__trap()` gives the same recovery with code `wasm-trap`. Instead of `__trap`, `test/memory.test.ts` throws the engine's `RuntimeError` (and a stack overflow's `RangeError`) through the guard every call runs through.
 - [x] `reset()` returns `byteLength` to the fresh-instance size after a large open; old handles throw
-- [x] The release `.wasm` exports no test hooks; JS glue + API size stays within ADR 0016's budget
+- [x] The release `.wasm` exports no test hooks (there are none); JS glue + API size stays within ADR 0016's budget (17,992 B of 20,000)
 
 ## Post-merge checks
 
