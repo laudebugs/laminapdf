@@ -15,7 +15,11 @@ use crate::tracked::Tracked;
 
 const SNIPPET: &str = "apps/docs/src/components/Snippet.astro";
 const PAGES: &str = "apps/docs/src/content/docs/";
-const EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "crates/laminapdf/examples/"];
+/// The TypeScript examples' folder (`@laminapdf/sdk`'s).
+pub(crate) const TS_EXAMPLES: &str = "packages/sdk/examples/";
+/// The Rust examples' folder (the `laminapdf` façade's).
+pub(crate) const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
+const EXAMPLE_DIRS: [&str; 2] = [TS_EXAMPLES, RUST_EXAMPLES];
 const MAX_LINES: usize = 100;
 
 /// Folders under [`EXAMPLE_DIRS`] that hold developer tools rather than examples for readers:

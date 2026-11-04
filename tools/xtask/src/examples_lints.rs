@@ -9,12 +9,11 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
+use crate::docs_snippets::{RUST_EXAMPLES, TS_EXAMPLES, is_tool};
 use crate::reports::{Options, Ratchet, finding};
 use crate::tracked::Tracked;
 use crate::workspace::Workspace;
 
-const TS_EXAMPLES: &str = "packages/sdk/examples/";
-const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
 /// The examples' clippy configuration: the root `clippy.toml` plus a 40-line function limit.
 const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 
@@ -97,11 +96,7 @@ pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
         .files()
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .chain(untracked)
-        .filter(|path| {
-            path.starts_with(RUST_EXAMPLES)
-                && !crate::docs_snippets::is_tool(path)
-                && crate::util::has_extension(path, &["rs"])
-        })
+        .filter(|path| path.starts_with(RUST_EXAMPLES) && !is_tool(path) && crate::util::has_extension(path, &["rs"]))
         .count();
     if !output.status.success() {
         bail!(
@@ -137,7 +132,7 @@ fn example_finding(message: &Value, root: &Path) -> Option<(String, crate::repor
     let file = span.get("file_name")?.as_str()?.replace('\\', "/");
     let root = root.to_string_lossy().replace('\\', "/");
     let path = file.strip_prefix(&format!("{root}/")).unwrap_or(&file).to_owned();
-    if !path.starts_with(RUST_EXAMPLES) || crate::docs_snippets::is_tool(&path) {
+    if !path.starts_with(RUST_EXAMPLES) || is_tool(&path) {
         return None;
     }
     let line = span
