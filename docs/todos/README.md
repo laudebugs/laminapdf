@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 190 ready · 101 done** (291 total).
+**0 ongoing · 189 ready · 102 done** (291 total).
 
 ## Can start now
 
@@ -25,7 +25,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
-- [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
@@ -345,7 +344,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2d | [One PDF serialiser: the test `Writer` built on laminapdf-save's helpers](done/Q2d-one-serialiser.md) | done | [Q2c](done/Q2c-test-fixtures-crate.md) |
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](done/Q2e-error-policy-consolidation.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](done/Q2f-page-attributes-one-owner.md) | done | — |
-| Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
+| Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](done/Q2g-one-matrix.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](done/Q2h-text-writers-dedup.md) | done | — |
 | Q2i | [One PDF lexer and one PNG row filter](done/Q2i-one-lexer-one-png-filter.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2j | [One error object at every Rust boundary](done/Q2j-boundary-errors-rust.md) | done | — |

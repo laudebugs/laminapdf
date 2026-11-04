@@ -7,8 +7,8 @@
 
 use laminapdf::{
     AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin,
-    LinkTarget, Matrix, Metadata, OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt,
-    Profile, Pt, RectPt, StrokeStyle, TableScope, Tag, TagKind, ViewerPreferences,
+    LinkTarget, Metadata, OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt, Profile, Pt,
+    RectPt, StrokeStyle, TableScope, Tag, TagKind, ViewerPreferences,
 };
 use serde::Deserialize;
 use tsify::Tsify;
@@ -268,16 +268,8 @@ pub(crate) fn stroke_style(
         cap,
         join,
         miter_limit,
-        dash: (!dash.is_empty()).then(|| Dash {
-            array: dash.iter().copied().map(Pt::new).collect(),
-            phase: Pt::new(phase),
-        }),
+        dash: (!dash.is_empty()).then(|| Dash::new(dash.to_vec(), phase)),
     }
-}
-
-/// `[a, b, c, d, e, f]`, a page-space transform.
-pub(crate) fn matrix(m: [f64; 6]) -> Matrix {
-    Matrix::new(m)
 }
 
 /// How a destination shows its page (§12.3.2.2).

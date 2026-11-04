@@ -60,10 +60,7 @@ pub fn vectors() -> Vec<u8> {
     let dashed = StrokeStyle {
         width: Pt::new(6.0),
         join: LineJoin::Round,
-        dash: Some(Dash {
-            array: vec![Pt::new(18.0), Pt::new(6.0)],
-            phase: Pt::ZERO,
-        }),
+        dash: Some(Dash::new(vec![18.0, 6.0], 0.0)),
         ..StrokeStyle::default()
     };
     s.save()
@@ -117,7 +114,7 @@ pub fn vectors() -> Vec<u8> {
     // 4. A square turned 30° about its centre at 50 % opacity, and two circles multiplied.
     s.save()
         .opacity(0.5, 0.5)
-        .transform(Matrix::translate(Pt::new(156.0), Pt::new(680.0)).after(&Matrix::rotate(30.0)))
+        .transform(Matrix::translate(156.0, 680.0).after(&Matrix::rotate(30.0)))
         .fill_color(Color::rgb(0.0, 0.6, 0.3))
         .stroke_color(Color::BLACK)
         .path(|path| {

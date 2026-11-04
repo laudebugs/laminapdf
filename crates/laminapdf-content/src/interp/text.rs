@@ -3,15 +3,16 @@
 //! one-line arms in [`Interpreter::execute`].
 
 use laminapdf_cos::{Object, Result, Warning};
+use laminapdf_model::Matrix;
 
 use super::{Frame, Interpreter, matrix, name, number, numbers, offset_u64};
 use crate::lexer::Op;
-use crate::state::{FontRef, Matrix};
+use crate::state::FontRef;
 use crate::visitor::{TextShow, Visitor};
 
 /// Moves to the start of the next line, offset from the current one by (`tx`, `ty`).
 fn translate_line(frame: &mut Frame, tx: f64, ty: f64) {
-    frame.tlm = Matrix::translate(tx, ty).multiply(&frame.tlm);
+    frame.tlm = Matrix::translate(tx, ty).then(&frame.tlm);
     frame.tm = frame.tlm;
 }
 
@@ -161,6 +162,6 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
             tlm: frame.tlm,
             depth: self.forms.len(),
         });
-        frame.tm = Matrix::translate(advance.tx, advance.ty).multiply(&frame.tm);
+        frame.tm = Matrix::translate(advance.tx, advance.ty).then(&frame.tm);
     }
 }

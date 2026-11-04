@@ -1,6 +1,6 @@
 //! Stroke parameters (ISO 32000-2 §8.4.3) and blend modes (§11.3.5).
 
-use laminapdf_model::Pt;
+use laminapdf_model::{Dash, Pt};
 
 /// How open subpath ends are drawn (§8.4.3.3).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -38,16 +38,6 @@ impl LineJoin {
     pub const ALL: [Self; 3] = [Self::Miter, Self::Round, Self::Bevel];
 }
 
-/// A dash pattern (§8.4.3.6): alternating dash and gap lengths, and how far into the pattern
-/// the line starts.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct Dash {
-    /// Dash and gap lengths; an empty list draws a solid line.
-    pub array: Vec<Pt>,
-    /// Where in the pattern the line starts.
-    pub phase: Pt,
-}
-
 /// How a path is stroked. Lengths are in points (page space, physical).
 ///
 /// ```
@@ -57,7 +47,7 @@ pub struct Dash {
 /// let style = StrokeStyle {
 ///     width: Pt::new(6.0),
 ///     join: LineJoin::Round,
-///     dash: Some(Dash { array: vec![Pt::new(18.0), Pt::new(6.0)], phase: Pt::ZERO }),
+///     dash: Some(Dash::new(vec![18.0, 6.0], 0.0)),
 ///     ..StrokeStyle::default()
 /// };
 /// assert_eq!(style.miter_limit, 10.0);
@@ -101,8 +91,8 @@ impl StrokeStyle {
             return Some("a miter limit must be a finite number of at least 1");
         }
         if let Some(dash) = &self.dash {
-            let lengths = dash.array.iter().map(|d| d.get());
-            if !dash.phase.get().is_finite() || lengths.clone().any(|d| !d.is_finite() || d < 0.0) {
+            let lengths = dash.array.iter().copied();
+            if !dash.phase.is_finite() || lengths.clone().any(|d| !d.is_finite() || d < 0.0) {
                 return Some("dash lengths must be finite numbers of at least 0");
             }
             if !dash.array.is_empty() && lengths.clone().all(|d| d == 0.0) {
@@ -255,10 +245,7 @@ mod tests {
 
     fn dashed(array: &[f64]) -> StrokeStyle {
         StrokeStyle {
-            dash: Some(Dash {
-                array: array.iter().map(|d| Pt::new(*d)).collect(),
-                phase: Pt::ZERO,
-            }),
+            dash: Some(Dash::new(array.to_vec(), 0.0)),
             ..StrokeStyle::default()
         }
     }

@@ -1,7 +1,7 @@
 //! Writing a page's recorded commands as a content stream: the graphics state, resources by
 //! first use, tagged content and links.
 
-use laminapdf_model::PointPt;
+use laminapdf_model::{FillRule, Matrix, PointPt};
 #[cfg(feature = "text")]
 use laminapdf_text::{TjElement, pdf_run};
 #[cfg(feature = "text")]
@@ -14,7 +14,7 @@ use pdf_writer::{Str, TextStr};
 #[cfg(feature = "text")]
 use super::TextTarget;
 use super::color::Color;
-use super::path::{FillRule, Matrix, Segment};
+use super::path::Segment;
 use super::style::{LineCap, LineJoin, StrokeStyle};
 #[cfg(feature = "text")]
 use super::text::{TextCommand, TextRenderMode};
@@ -290,9 +290,7 @@ impl Writer {
         }
         if changed(&|p| p.dash == style.dash) {
             match &style.dash {
-                Some(dash) => {
-                    c.set_dash_pattern(dash.array.iter().map(|d| n(d.get() / unit)), n(dash.phase.get() / unit))
-                }
+                Some(dash) => c.set_dash_pattern(dash.array.iter().map(|d| n(d / unit)), n(dash.phase / unit)),
                 None => c.set_dash_pattern([], 0.0),
             };
         }

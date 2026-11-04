@@ -107,7 +107,7 @@ impl Reader<'_> {
 impl Visitor for Reader<'_> {
     fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
         // The text origin without the rise (`Ts` moves marks, not the baseline).
-        let trm = show.tm.multiply(&show.state.ctm);
+        let trm = show.tm.then(&show.state.ctm);
         let (map, width) = self.cmap(show.font().unwrap()).clone();
         let mut text = String::new();
         for item in show.items() {

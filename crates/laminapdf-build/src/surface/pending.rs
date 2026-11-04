@@ -1,7 +1,9 @@
 //! A path being built: segments in page space, painted or clipped once with `fill`, `stroke`,
 //! `fill_stroke` or `clip`.
 
-use super::path::{FillRule, PathBuilder};
+use laminapdf_model::FillRule;
+
+use super::path::PathBuilder;
 use super::style::StrokeStyle;
 use super::{Command, Paint, Surface};
 

@@ -337,7 +337,7 @@ fn a_run_link_covers_its_transformed_bounds() {
     let f = b.standard_font(Standard14::Helvetica).unwrap();
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
-    s.transform(Matrix::translate(Pt::new(100.0), Pt::new(50.0)));
+    s.transform(Matrix::translate(100.0, 50.0));
     let run = s
         .text("link", &f, Pt::new(10.0), PointPt::from_points(0.0, 20.0))
         .unwrap()

@@ -24,8 +24,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     (src/generated/) and, with feature `json`, Diagnostic (the ADR 0026 object every boundary throws)
 │   ├── laminapdf-cos/   #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
-│   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree)
-│                        #     and LaminaPdfIds
+│   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree),
+│                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetInfo, RotatePage), transactions, savepoints, undo/redo
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers
 │   │                    #     over the overlay, WriteSink, /ID, rebase; the spike-era Writer (feature `test-support`)

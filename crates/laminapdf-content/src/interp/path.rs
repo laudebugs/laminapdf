@@ -1,10 +1,11 @@
 //! The path operators: construction (§8.5.2), painting (§8.5.3) and clipping (§8.5.4).
 
 use laminapdf_cos::{Object, Result, Warning};
+use laminapdf_model::FillRule;
 
 use super::{Frame, Interpreter, numbers, offset_u64};
 use crate::lexer::Op;
-use crate::visitor::{FillRule, Paint, PathPaint, PathSegment, Visitor};
+use crate::visitor::{Paint, PathPaint, PathSegment, Visitor};
 
 /// `m`.
 pub(super) fn move_to(args: &[Object]) -> PathSegment {

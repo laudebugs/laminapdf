@@ -2,96 +2,8 @@
 
 use std::sync::Arc;
 
+use laminapdf_model::{Dash, Matrix};
 use laminapdf_syntax::{Name, ObjRef, Object};
-
-/// An affine transform `[a b c d e f]` (§8.3.3), applied to row vectors:
-/// `x' = a·x + c·y + e`, `y' = b·x + d·y + f`.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Matrix {
-    /// Row 1, column 1.
-    pub a: f64,
-    /// Row 1, column 2.
-    pub b: f64,
-    /// Row 2, column 1.
-    pub c: f64,
-    /// Row 2, column 2.
-    pub d: f64,
-    /// Translation x.
-    pub e: f64,
-    /// Translation y.
-    pub f: f64,
-}
-
-impl Default for Matrix {
-    fn default() -> Self {
-        Self::IDENTITY
-    }
-}
-
-impl Matrix {
-    /// The identity matrix.
-    pub const IDENTITY: Self = Self::new(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
-
-    /// The matrix `[a b c d e f]`.
-    #[must_use]
-    #[expect(
-        clippy::many_single_char_names,
-        reason = "the spec names the six entries a to f (§8.3.3)"
-    )]
-    pub const fn new(a: f64, b: f64, c: f64, d: f64, e: f64, f: f64) -> Self {
-        Self { a, b, c, d, e, f }
-    }
-
-    /// A translation by `(tx, ty)`.
-    #[must_use]
-    pub const fn translate(tx: f64, ty: f64) -> Self {
-        Self::new(1.0, 0.0, 0.0, 1.0, tx, ty)
-    }
-
-    /// `self × other`: a point is transformed by `self` first, then by `other`. `cm` sets
-    /// `CTM′ = M × CTM` (§8.4.4), so it is `m.multiply(&ctm)`.
-    #[must_use]
-    pub fn multiply(&self, other: &Self) -> Self {
-        Self {
-            a: self.a * other.a + self.b * other.c,
-            b: self.a * other.b + self.b * other.d,
-            c: self.c * other.a + self.d * other.c,
-            d: self.c * other.b + self.d * other.d,
-            e: self.e * other.a + self.f * other.c + other.e,
-            f: self.e * other.b + self.f * other.d + other.f,
-        }
-    }
-
-    /// The image of the point `(x, y)`.
-    #[must_use]
-    pub fn transform_point(&self, x: f64, y: f64) -> (f64, f64) {
-        (x * self.a + y * self.c + self.e, x * self.b + y * self.d + self.f)
-    }
-
-    /// The matrix from six numbers (`None` unless there are exactly six).
-    #[must_use]
-    #[expect(
-        clippy::many_single_char_names,
-        reason = "the spec names the six entries a to f (§8.3.3)"
-    )]
-    pub fn from_slice(values: &[f64]) -> Option<Self> {
-        match *values {
-            [a, b, c, d, e, f] => Some(Self::new(a, b, c, d, e, f)),
-            _ => None,
-        }
-    }
-
-    /// The matrix in a direct PDF array of six finite numbers, if it is one.
-    #[must_use]
-    pub fn from_object(object: &Object) -> Option<Self> {
-        let values: Option<Vec<f64>> = object
-            .as_array()?
-            .iter()
-            .map(|v| v.as_f64().filter(|v| v.is_finite()))
-            .collect();
-        Self::from_slice(&values?)
-    }
-}
 
 /// A font selected by `Tf` (by resource name) or by an `ExtGState`'s `/Font` entry. Glyph
 /// decoding and metrics are `laminapdf-text`'s job; this is where to find the font.
@@ -126,7 +38,7 @@ pub enum ColorSpace {
 /// A current colour: its space, components and pattern (§8.6.8).
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
-pub struct Color {
+pub struct CurrentColor {
     /// The colour space.
     pub space: ColorSpace,
     /// The components, as given (the initial colour of a device space is black; a named
@@ -136,13 +48,13 @@ pub struct Color {
     pub pattern: Option<Name>,
 }
 
-impl Default for Color {
+impl Default for CurrentColor {
     fn default() -> Self {
         Self::initial(ColorSpace::DeviceGray)
     }
 }
 
-impl Color {
+impl CurrentColor {
     /// The initial colour of `space` (§8.6.8 Table 73: black for device spaces).
     #[must_use]
     pub fn initial(space: ColorSpace) -> Self {
@@ -158,16 +70,6 @@ impl Color {
             pattern: None,
         }
     }
-}
-
-/// A line dash pattern (§8.4.3.6).
-#[derive(Debug, Clone, PartialEq, Default)]
-#[non_exhaustive]
-pub struct Dash {
-    /// Dash and gap lengths (empty: a solid line).
-    pub array: Vec<f64>,
-    /// The phase.
-    pub phase: f64,
 }
 
 /// The text state parameters (§9.3, Table 103). Part of the graphics state, so `q`/`Q` save
@@ -231,14 +133,14 @@ impl TextState {
     /// matrix's input (§9.4.4): `Trm = this × Tm × CTM`.
     #[must_use]
     pub fn text_space_matrix(&self) -> Matrix {
-        Matrix::new(
+        Matrix::new([
             self.font_size * self.horizontal_scaling,
             0.0,
             0.0,
             self.font_size,
             0.0,
             self.rise,
-        )
+        ])
     }
 }
 
@@ -290,9 +192,9 @@ pub struct GraphicsState {
     /// `i` / `/FL`.
     pub flatness: f64,
     /// The stroking colour.
-    pub stroke: Color,
+    pub stroke: CurrentColor,
     /// The nonstroking colour.
-    pub fill: Color,
+    pub fill: CurrentColor,
     /// `/CA`: stroking alpha.
     pub stroke_alpha: f64,
     /// `/ca`: nonstroking alpha.
@@ -312,8 +214,8 @@ impl Default for GraphicsState {
             dash: Dash::default(),
             rendering_intent: None,
             flatness: 1.0,
-            stroke: Color::default(),
-            fill: Color::default(),
+            stroke: CurrentColor::default(),
+            fill: CurrentColor::default(),
             stroke_alpha: 1.0,
             fill_alpha: 1.0,
             text: TextState::default(),
@@ -324,14 +226,6 @@ impl Default for GraphicsState {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn multiply_applies_the_left_matrix_first() {
-        let scale = Matrix::new(2.0, 0.0, 0.0, 2.0, 0.0, 0.0);
-        let shift = Matrix::translate(10.0, 0.0);
-        // Scale, then translate: (1, 1) → (2, 2) → (12, 2).
-        assert_eq!(scale.multiply(&shift).transform_point(1.0, 1.0), (12.0, 2.0));
-    }
 
     #[test]
     fn horizontal_advance_follows_9_4_4() {
