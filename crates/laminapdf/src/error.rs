@@ -38,7 +38,7 @@ pub enum Error {
     /// [`code`](Error::code), [`error_code`](Error::error_code), [`kind`](Error::kind),
     /// [`location`](Error::location), [`hint`](Error::hint) and [`diagnostic`](Error::diagnostic),
     /// which are stable, and match on [`ErrorCode`] rather than on the inner types, which
-    /// aren't. `std::error::Error::source` reaches the inner error for debugging.
+    /// aren't. Its message is the inner error's, and `Debug` shows the inner error.
     #[error(transparent)]
     Core(CoreError),
     /// A 0-based page index the document doesn't have (`page-index-out-of-range`).

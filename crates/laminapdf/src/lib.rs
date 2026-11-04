@@ -151,6 +151,11 @@ pub use laminapdf_build::{
     Alignment, Direction, EmbedPolicy, Feature, LineBox, Overflow, Standard14, TextBoxOptions, TextLayout,
     TextRenderMode, TextRun,
 };
+/// The error of [`Font`]'s own methods (`from_bytes`, `from_collection`, `instance`): `Font`
+/// comes from `laminapdf-text` as it is, like the builder's types, and `?` turns it into
+/// [`Error`].
+#[cfg(feature = "text")]
+pub use laminapdf_text::Error as TextError;
 /// A font loaded from its bytes (TrueType, OpenType/CFF, collections, variable instances).
 #[cfg(feature = "text")]
 pub use laminapdf_text::Font;

@@ -2,7 +2,7 @@
 
 - Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
-- Amended 2026-11-04 ([§8](#8-the-wrapped-crates-errors-are-opaque)): the crates' errors inside `laminapdf::Error` are opaque, behind `Error::Core(CoreError)`, and their types are no longer re-exported, except `BuildError` (decided by the owner, todo [Q2y](../todos/done/Q2y-facade-error-wrapping.md)).
+- Amended 2026-11-04 ([§8](#8-the-wrapped-crates-errors-are-opaque)): the crates' errors inside `laminapdf::Error` are opaque, behind `Error::Core(CoreError)`, and their types are no longer re-exported, except `BuildError` and `TextError` (decided by the owner, todo [Q2y](../todos/done/Q2y-facade-error-wrapping.md)).
 
 ## Context
 
@@ -158,13 +158,13 @@ There were two ways to settle it:
 
 The owner chose the second, so:
 
-- The five variants are one, `Error::Core(CoreError)`. `CoreError` is a struct over a crate-private enum. Its `Display` and `source()` are the inner error's, so messages and debugging don't change. The `From` impls stay, so `?` still converts every crate's error.
+- The five variants are one, `Error::Core(CoreError)`. `CoreError` is a struct over a crate-private enum. Its message is the inner error's and its `Debug` shows the inner error, so messages and debugging don't change. The `From` impls stay, so `?` still converts every crate's error.
 - The façade's own variants (`PageIndexOutOfRange`, `Cancelled`, `JobFinished`, `DocumentChanged`) stay public: they are the façade's types, not another crate's.
 - Anything a caller read from an inner variant gets a method instead. So far that is `Error::pending_ranges()`, the ranges of a `data-pending` error, which `laminapdf-source`'s retry loop needed.
-- The re-exports go, except `BuildError`. The builder's types (`Surface`, `PageBuilder` and the rest) come from `laminapdf-build` as they are (§1), and their methods return its error, so callers need its name in their own signatures.
+- The re-exports go, except `BuildError` and `TextError`. The builder's types (`Surface`, `PageBuilder` and the rest) come from `laminapdf-build` as they are (§1), and `Font` from `laminapdf-text`; their own methods return those crates' errors, so callers need the names in their own signatures.
 - `laminapdf::Warning` still wraps the crates' warning types (`Warning::Document`, `Warning::Font`). Warnings follow the same rule, and making them opaque is the next step; this amendment covers errors.
 
-rust.md's rule stands as it is: the façade now follows it, except for `BuildError` and the builder types, which §1 keeps in `laminapdf-build`'s shape.
+rust.md's rule stands as it is. The façade now follows it, except for `BuildError` and `TextError`: they come with the builder and `Font` APIs, which the façade takes from their crates as they are.
 
 ## Consequences
 
