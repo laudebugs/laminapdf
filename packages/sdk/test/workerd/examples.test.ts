@@ -4,11 +4,12 @@
 // `@cloudflare/vitest-pool-workers` would run the tests inside workerd instead, but it supports
 // Vitest 4 only; the examples still run in workerd either way. Run by
 // `cargo xtask pdf-runtimes workerd` (vitest.workers.config.ts).
+import { copyFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { Document, init } from "@laminapdf/sdk";
+import { fromRoot } from "@laminapdf/test-utils/root";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestHarness, type TestHarness } from "wrangler";
-import { REPORT_PAGES } from "../../examples/report.js";
 import { read } from "../helpers.js";
 import {
   difference,
@@ -22,10 +23,21 @@ import {
 
 const config = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
+/** More distinct Latin Extended-A letters than Helvetica's 37 spare codes. */
+const LATIN_EXTENDED_A = "ĀāĂăĄąĆćČčĎďĐđĒēĖėĘęĚěĞğĢģĪīĮįĶķĹĺĻļĽľŁłŃńŅņŇňŌōŐőŔŕ";
+
+/** The Worker example bundles a font from its own src/fonts/ (gitignored): copy it there. */
+async function copyExampleFont(): Promise<void> {
+  const dir = config("../../examples/worker/src/fonts/");
+  await mkdir(dir, { recursive: true });
+  await copyFile(fromRoot("fixtures/fonts/NotoSans-Regular.ttf"), `${dir}NotoSans-Regular.ttf`);
+}
+
 let suite: TestHarness;
 let example: TestHarness;
 
 beforeAll(async () => {
+  await copyExampleFont();
   suite = createTestHarness({ workers: [{ configPath: config("./wrangler.toml") }] });
   example = createTestHarness({ workers: [{ configPath: config("../../examples/worker/wrangler.toml") }] });
   await Promise.all([suite.listen(), example.listen(), init()]);
@@ -61,7 +73,7 @@ describe("workerd", () => {
   // non-WinAnsi Latin letters than its 37 spare codes (encoding-full, kind limit).
   for (const [name, code] of [
     ["Ада 世界", "missing-glyph"],
-    ["ĀāĂăĄąĆćČčĎďĐđĒēĖėĘęĚěĞğĢģĪīĮįĶķĹĺĻļĽľŁłŃńŅņŇňŌōŐőŔŕ", "encoding-full"],
+    [LATIN_EXTENDED_A, "encoding-full"],
   ] as const) {
     it(`answers a name Helvetica can't draw (${code}) with a 400 and the error, not a 500`, async () => {
       const response = await example.fetch(`/?name=${encodeURIComponent(name)}`);
@@ -70,11 +82,23 @@ describe("workerd", () => {
     });
   }
 
-  // The Worker leaves the file ID and dates to the builder, so its report differs from the suite's
-  // bytes (REPORT_SHA256, checked above): open it and count its pages instead.
-  it("serves a letter and the report from the Worker example", async () => {
-    const letter = await bytes(await example.fetch(`/?name=${encodeURIComponent("Zoë Łukasz")}`));
-    using report = Document.open(await bytes(await example.fetch("/report")));
-    expect([new TextDecoder().decode(letter.subarray(0, 5)), report.pageCount]).toEqual(["%PDF-", REPORT_PAGES]);
+  // The bundled font (the Noto Sans subset) draws every Latin letter Helvetica ran out of codes
+  // for, but has no Chinese.
+  it("draws Latin Extended-A in the bundled font, and answers Chinese with a 400", async () => {
+    await bytes(await example.fetch(`/embedded?name=${encodeURIComponent(LATIN_EXTENDED_A)}`));
+    const response = await example.fetch(`/embedded?name=${encodeURIComponent("世界")}`);
+    const body = (await response.json()) as { code?: string };
+    expect([response.status, body.code]).toEqual([400, "missing-glyph"]);
+  });
+
+  // The Worker leaves the file ID and dates to the builder, so its letters aren't goldens: open
+  // them instead. The one in the bundled font carries a subset of it, so it is the larger.
+  it("serves the letter in Helvetica and in the bundled font", async () => {
+    const name = encodeURIComponent("Zoë Łukasz");
+    const standard = await bytes(await example.fetch(`/?name=${name}`));
+    const embedded = await bytes(await example.fetch(`/embedded?name=${name}`));
+    using a = Document.open(standard);
+    using b = Document.open(embedded);
+    expect([a.pageCount, b.pageCount, embedded.byteLength > standard.byteLength]).toEqual([1, 1, true]);
   });
 });
