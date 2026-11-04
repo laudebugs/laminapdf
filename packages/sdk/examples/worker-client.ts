@@ -1,6 +1,6 @@
 // Saving a PDF in a Web Worker, so a large file never blocks the page: `@laminapdf/sdk/worker`
 // runs the same API there, and each method returns a Promise. The save reports its progress step
-// by step, and aborting the signal (a Cancel button, say) stops it.
+// by step, and aborting the signal (a Cancel button, say) stops the work.
 import { type CallOptions, connect } from "@laminapdf/sdk/worker";
 
 /** What the save reports to and listens to. */
