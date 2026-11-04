@@ -73,8 +73,10 @@ impl Document {
     ///
     /// # Errors
     /// [`Error::ReferenceCycle`] for chains that loop; [`Error::LimitExceeded`] for chains
-    /// longer than [`Limits::max_resolve_depth`](laminapdf_syntax::Limits::max_resolve_depth) or any other hard limit; parse errors for
+    /// longer than [`Limits::max_resolve_depth`] or any other hard limit; parse errors for
     /// corrupt objects; [`Error::Strict`] in strict mode.
+    ///
+    /// [`Limits::max_resolve_depth`]: laminapdf_syntax::Limits::max_resolve_depth
     pub fn resolve(&self, r: ObjRef) -> Result<Arc<Object>> {
         let _call = self.call();
         let mut chain = Vec::new();
@@ -288,8 +290,12 @@ impl Document {
     ///
     /// # Errors
     /// Unsupported filters, corrupt data, or [`Error::LimitExceeded`] for output over
-    /// [`Limits::max_stream_decoded`](laminapdf_syntax::Limits::max_stream_decoded) or [`Limits::max_decoded_total`](laminapdf_syntax::Limits::max_decoded_total), or a chain longer than
-    /// [`Limits::max_filter_chain`](laminapdf_syntax::Limits::max_filter_chain); [`Error::Strict`] in strict mode for truncated Flate data.
+    /// [`Limits::max_stream_decoded`] or [`Limits::max_decoded_total`], or a chain longer than
+    /// [`Limits::max_filter_chain`]; [`Error::Strict`] in strict mode for truncated Flate data.
+    ///
+    /// [`Limits::max_stream_decoded`]: laminapdf_syntax::Limits::max_stream_decoded
+    /// [`Limits::max_decoded_total`]: laminapdf_syntax::Limits::max_decoded_total
+    /// [`Limits::max_filter_chain`]: laminapdf_syntax::Limits::max_filter_chain
     pub fn decode_stream(&self, stream: &Stream) -> Result<Vec<u8>> {
         let _call = self.call();
         self.decode_stream_of(stream, None)

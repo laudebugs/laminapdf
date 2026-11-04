@@ -133,7 +133,7 @@ impl Document {
     /// Walks the page tree in document order, applying inherited attributes.
     ///
     /// Tolerant: a node that is missing, unparsable, not a dictionary, deeper than
-    /// [`Limits::max_page_tree_depth`](laminapdf_syntax::Limits::max_page_tree_depth) or otherwise over a limit (including a missing `/Pages`
+    /// [`Limits::max_page_tree_depth`] or otherwise over a limit (including a missing `/Pages`
     /// root) is skipped, as is a `/Kids` that is not an array — each with
     /// [`Warning::PageTreeNodeSkipped`]. `/Count` is not trusted: the walk is authoritative,
     /// and a root `/Count` that differs raises [`Warning::PageCountMismatch`].
@@ -147,6 +147,8 @@ impl Document {
     /// self-referencing `/Kids`) or a reference chain loops; [`Error::Strict`] in strict mode
     /// for any skip or any warning raised while reading attributes; [`Error::LimitExceeded`]
     /// when reading a page attribute exceeds a hard limit; errors from [`Document::catalog`].
+    ///
+    /// [`Limits::max_page_tree_depth`]: laminapdf_syntax::Limits::max_page_tree_depth
     pub fn pages(&self) -> Result<Vec<Page>> {
         let _call = self.call();
         let catalog = self.catalog()?;
@@ -300,11 +302,13 @@ impl Document {
 
     /// The decoded content of a page: all `/Contents` streams joined with `\n`. `/Contents`
     /// (or an array element) that is `null`, missing or free contributes nothing. All the
-    /// page's streams share one [`Limits::max_decoded_total`](laminapdf_syntax::Limits::max_decoded_total) budget.
+    /// page's streams share one [`Limits::max_decoded_total`] budget.
     ///
     /// # Errors
     /// Decode errors, [`Error::LimitExceeded`], or [`Error::Type`] if `/Contents` is not a
     /// stream or array of streams.
+    ///
+    /// [`Limits::max_decoded_total`]: laminapdf_syntax::Limits::max_decoded_total
     pub fn page_content(&self, page: &Page) -> Result<Vec<u8>> {
         let _call = self.call();
         let Some(contents) = page.dict.get("Contents") else {
