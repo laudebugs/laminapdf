@@ -12,7 +12,7 @@
 | Branch | `docs/u1a-adr-0024-app-shell-ux` |
 | PR title | `docs(adr): 0024 app shell ux: layout, modes, command registry and page appearance` |
 | Size | S (one ADR, < 300 lines of prose) |
-| PR | — |
+| PR | [#229](https://github.com/laudebugs/laminapdf/pull/229) |
 
 ## Goal
 
@@ -43,7 +43,7 @@ Record the interaction model every shell and editor round builds into, so `@lami
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Re-read ADRs 0009 and 0010 as merged; list where 0024 depends on them.
 - [ ] Fetch and cite the primary sources the research could not reach (WCAG 2.2 SC 2.4.11, 2.5.7, 2.5.8; APG combobox, toolbar and grid patterns; Apple HIG sheets; Material 3 bottom sheets); correct the plan if they disagree.
 - [ ] Write the ADR with a layout diagram, the mode table, the `Command` type in TypeScript, the selection-surface table and the page-mode table.
@@ -75,8 +75,8 @@ None (docs only); the link checker covers the new links.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
