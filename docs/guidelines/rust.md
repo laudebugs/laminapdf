@@ -97,6 +97,7 @@ too-many-lines-threshold = 100
 - **SHOULD:** take borrowed inputs (`&[u8]`, `&str`, `impl AsRef<[u8]>`), and return owned values or values borrowed from the input. Only take ownership when you store the value.
 - **SHOULD:** prefer generics (static dispatch) in hot paths, and use `dyn Trait` at API boundaries that need heterogeneity or a smaller WASM size.
 - **SHOULD:** document thread-safety. If a type is deliberately `!Send`/`!Sync` (the spike's `Rc`/`RefCell` caches), say so in its docs.
+- **MUST:** a `#[deprecated]` item gets an entry in [`docs/renames.json`](../renames.json) naming what replaces it, and so does a public item renamed without a deprecation. The packages ship that file, so an agent holding an old name finds the new one; `cargo xtask check docs` fails on a deprecation without an entry.
 - **MUST:** Cargo features are additive and named without `use-`/`with-` (C-FEATURE). `cargo hack check --feature-powerset` (or an equivalent) runs in CI once a crate has more than two features.
 
 ## Tests
