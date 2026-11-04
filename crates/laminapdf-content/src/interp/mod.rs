@@ -5,17 +5,18 @@ mod color;
 mod graphics_state;
 mod path;
 mod text;
+mod xobject;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Position, Result, Stream, Warning};
+use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Position, Result, Warning};
 
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
 use crate::state::{ColorSpace, GraphicsState, Matrix};
-use crate::visitor::{FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathSegment, Visitor};
+use crate::visitor::{FillRule, MarkedContent, Paint, PathSegment, Visitor};
 use color::{Target, device_color};
 use graphics_state::set_dash;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
@@ -351,10 +352,9 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         resources::lookup(self.doc, frame.resources.as_deref(), category, name.as_bytes())
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one match arm per Annex A operator reads best as a single table"
-    )]
+    /// Runs one operator: one arm per Annex A operator (or per operators that behave alike),
+    /// each a line that sets a value or calls its group's handler, in the module of that
+    /// group. Unknown operators and operands that don't fit the signature are skipped here.
     fn execute(&mut self, frame: &mut Frame, op: &Op<'_>) -> Result<()> {
         if let Operator::Unknown(_) = op.operator {
             if frame.compat == 0 {
@@ -443,26 +443,10 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             // Shading (§8.7.4.2).
             Operator::Shading => self.shading(frame, op, args)?,
             // Inline images (§8.9.7).
-            Operator::BeginInlineImage => {
-                if let Some(image) = &op.inline_image {
-                    self.visitor.image(&ImageDraw {
-                        source: ImageSource::Inline(image),
-                        state: &frame.gs,
-                    });
-                }
-            }
-            Operator::InlineImageData | Operator::EndInlineImage => {
-                self.warn(Warning::ContentSyntax {
-                    object: frame.object,
-                    offset: offset_u64(op.offset),
-                })?;
-            }
+            Operator::BeginInlineImage => self.inline_image(frame, op),
+            Operator::InlineImageData | Operator::EndInlineImage => self.stray_inline_image_operator(frame, op)?,
             // XObjects (§8.8).
-            Operator::PaintXObject => {
-                if let Some(n) = args.first().and_then(name) {
-                    self.xobject(frame, op, n)?;
-                }
-            }
+            Operator::PaintXObject => self.paint_xobject(frame, op, args)?,
             // Marked content (§14.6).
             Operator::MarkPoint
             | Operator::MarkPointProperties
@@ -520,117 +504,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             _ => self.visitor.marked_point(&marked),
         }
         Ok(())
-    }
-
-    /// `Do` (§8.8): an image is reported, a form is run, a PostScript XObject is ignored. An
-    /// XObject must be an indirect stream (§7.3.8); anything else is a missing resource.
-    fn xobject(&mut self, frame: &mut Frame, op: &Op<'_>, n: &Name) -> Result<()> {
-        let found = self.lookup(frame, "XObject", n)?;
-        let Some((object, found)) = found.and_then(|f| Some((f.object?, f))) else {
-            return self.missing(frame, op, "XObject");
-        };
-        let Object::Stream(stream) = &*found.value else {
-            return self.missing(frame, op, "XObject");
-        };
-        match stream.dict.get_name("Subtype") {
-            Some(b"Image") => {
-                self.visitor.image(&ImageDraw {
-                    source: ImageSource::XObject {
-                        name: n,
-                        object: Some(object),
-                        stream: &found.value,
-                    },
-                    state: &frame.gs,
-                });
-                Ok(())
-            }
-            Some(b"Form") => self.form(frame, op, n, object, stream),
-            // PostScript XObjects (§8.8.2) are ignored when rendering, and so here.
-            Some(b"PS") => Ok(()),
-            _ => self.missing(frame, op, "XObject"),
-        }
-    }
-
-    /// Runs a Form XObject (§8.10.1): `q`, its `/Matrix` concatenated to the CTM, its content
-    /// against its own resources (the parent's when it has none), `Q`.
-    fn form(&mut self, frame: &Frame, op: &Op<'_>, n: &Name, object: ObjRef, stream: &Stream) -> Result<()> {
-        if self.forms.contains(&object) {
-            return self.warn(Warning::XObjectCycle { object: object.num });
-        }
-        if self.forms.len() >= self.limits.max_xobject_depth() {
-            return Err(Error::LimitExceeded {
-                limit: Limit::XObjectDepth,
-                at: Some(Position::Object(object.num)),
-            });
-        }
-        let content = if let Some(content) = self.decoded.get(&object) {
-            Arc::clone(content)
-        } else {
-            let Some(content) = laminapdf_cos::tolerant(self.doc.decode_stream(stream))? else {
-                return self.missing(frame, op, "XObject");
-            };
-            let content: Arc<[u8]> = content.into();
-            self.decoded.insert(object, Arc::clone(&content));
-            content
-        };
-        let dict = &stream.dict;
-        let invalid = |key| Warning::InvalidEntry {
-            object: Some(object.num),
-            key,
-        };
-        let matrix = match dict.get("Matrix") {
-            None => Matrix::IDENTITY,
-            Some(m) => {
-                if let Some(values) = resources::numbers(self.doc, m, 6)? {
-                    Matrix::from_slice(&values).unwrap_or_default()
-                } else {
-                    self.warn(invalid("Matrix"))?;
-                    Matrix::IDENTITY
-                }
-            }
-        };
-        let bbox = match dict.get("BBox") {
-            Some(b) => resources::numbers(self.doc, b, 4)?,
-            None => None,
-        }
-        .and_then(|b| match *b.as_slice() {
-            [x0, y0, x1, y1] => Some(laminapdf_model::UserSpaceRect::from_corners(x0, y0, x1, y1)),
-            _ => None,
-        });
-        if bbox.is_none() {
-            // `/BBox` is required (§8.10.2, Table 93).
-            self.warn(invalid("BBox"))?;
-        }
-        let own = match dict.get("Resources") {
-            Some(r) => {
-                let own = resources::resolve(self.doc, r)?.filter(|r| r.as_dict().is_some());
-                if own.is_none() {
-                    self.warn(invalid("Resources"))?;
-                }
-                own
-            }
-            None => None,
-        };
-        let resources = own.or_else(|| frame.resources.clone());
-        let mut gs = frame.gs.clone();
-        gs.ctm = matrix.multiply(&gs.ctm);
-        let entry = gs.clone();
-        let enter = FormXObject {
-            name: n,
-            object: Some(object),
-            dict,
-            matrix,
-            bbox,
-            depth: self.forms.len() + 1,
-            state: &entry,
-        };
-        self.visitor.enter_xobject(&enter);
-        self.forms.push(object);
-        self.summary.forms += 1;
-        let result = self.run(Frame::new(Some(object.num), resources, gs), &content);
-        self.forms.pop();
-        self.visitor.leave_xobject(&enter);
-        result
     }
 }
 

@@ -6,7 +6,7 @@
 # by `#[expect]`, `#[allow]` or `cfg_attr` attributes, where an attribute naming two counts twice,
 # in the Rust files under crates/, tools/ and apps/, tests and examples included, generated
 # files not.
-size-expects = 13
+size-expects = 12
 
 # Files that still copy a shared Rust test helper (`fn fixtures_dir`, `fn classic`) or include
 # another crate's file with `#[path]`, instead of using laminapdf-test-fixtures (Q2c). Q2x
