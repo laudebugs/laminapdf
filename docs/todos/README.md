@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 204 ready · 87 done** (291 total).
+**0 ongoing · 203 ready · 88 done** (291 total).
 
 ## Can start now
 
@@ -33,7 +33,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
 - [Q2t](ready/Q2t-history-out-of-names.md): Names and comments without project history
 - [Q2v](ready/Q2v-did-you-mean.md): One did-you-mean rule, pinned in both languages
-- [Q2w](ready/Q2w-split-content-interpreter.md): Split the content interpreter's `execute`
 - [Q2x](ready/Q2x-test-fixtures-migration.md): `laminapdf-test-fixtures` for the remaining crates
 - [Q2y](ready/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
@@ -370,7 +369,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |
 | Q2v | [One did-you-mean rule, pinned in both languages](ready/Q2v-did-you-mean.md) | ready | — |
-| Q2w | [Split the content interpreter's `execute`](ready/Q2w-split-content-interpreter.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
+| Q2w | [Split the content interpreter's `execute`](done/Q2w-split-content-interpreter.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2x | [`laminapdf-test-fixtures` for the remaining crates](ready/Q2x-test-fixtures-migration.md) | ready | [Q2c](done/Q2c-test-fixtures-crate.md) |
 | Q2y | [Decide and implement how the façade wraps crate errors](ready/Q2y-facade-error-wrapping.md) | ready | — |
 
