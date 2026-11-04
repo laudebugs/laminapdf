@@ -15,6 +15,15 @@ use crate::tracked::Tracked;
 const SNIPPET: &str = "apps/docs/src/components/Snippet.astro";
 const PAGES: &str = "apps/docs/src/content/docs/";
 const EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "crates/laminapdf/examples/"];
+/// Folders under [`EXAMPLE_DIRS`] that hold developer tools rather than examples for readers:
+/// the text differential's `text-facts`. The examples checks skip them, as `cargo xtask examples`
+/// does.
+const TOOL_DIRS: [&str; 1] = ["crates/laminapdf/examples/differential/"];
+
+/// Whether `path` is in one of the [`TOOL_DIRS`].
+pub(crate) fn is_tool(path: &str) -> bool {
+    TOOL_DIRS.iter().any(|dir| path.starts_with(dir))
+}
 const MAX_LINES: usize = 100;
 
 /// `tools/xtask/docs-snippets.toml`: the TypeScript and Rust examples that show the same task.
@@ -103,7 +112,7 @@ fn load_config(root: &Path) -> Result<Config> {
 fn examples(paths: &BTreeSet<String>, globs: &[Glob]) -> Vec<String> {
     paths
         .iter()
-        .filter(|path| crate::util::has_extension(path, &["ts", "rs", "toml"]))
+        .filter(|path| crate::util::has_extension(path, &["ts", "rs", "toml"]) && !is_tool(path))
         .filter(|path| {
             EXAMPLE_DIRS.iter().any(|dir| path.starts_with(dir))
                 || (path.contains("/examples/") && globs.iter().any(|glob| glob.matches(path)))
@@ -532,6 +541,17 @@ mod tests {
             .into_iter()
             .map(|finding| finding.rule)
             .collect()
+    }
+
+    #[test]
+    fn a_developer_tool_under_the_examples_should_not_be_checked_as_an_example() {
+        let paths: BTreeSet<String> = [
+            "crates/laminapdf/examples/hello.rs",
+            "crates/laminapdf/examples/differential/text-facts.rs",
+        ]
+        .map(String::from)
+        .into();
+        assert_eq!(examples(&paths, &[]), ["crates/laminapdf/examples/hello.rs"]);
     }
 
     #[test]

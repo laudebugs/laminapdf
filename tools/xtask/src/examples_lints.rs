@@ -1,6 +1,7 @@
 //! The examples' lints (docs/guidelines/examples.md, "How it's checked"): Biome's examples override
 //! in `check ts`, and `cargo xtask clippy-examples` in `check rust`. Both ratchet like `docs-prose`
-//! ([`crate::reports`]): strict on the examples a PR changes, warnings on the others.
+//! ([`crate::reports`]): run on their own, strict on the examples a PR changes and warnings on the
+//! others; `cargo xtask check` runs both strict on every example.
 
 use std::path::Path;
 use std::process::Command;
@@ -17,8 +18,9 @@ const RUST_EXAMPLES: &str = "crates/laminapdf/examples/";
 /// The examples' clippy configuration: the root `clippy.toml` plus a 40-line function limit.
 const CLIPPY_CONF_DIR: &str = "tools/xtask/clippy-examples";
 
-/// Biome's `packages/sdk/biome.json` override warns on every example; this lints the changed
-/// ones again with warnings as errors.
+/// Biome's `packages/sdk/biome.json` override reports errors on every example; this lints the
+/// examples again with warnings as errors (the changed ones, or every one with `--all-strict`), for
+/// the rules that only warn outside the override.
 pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
     if options.json || options.warnings {
         bail!("usage: cargo xtask biome-examples [--all-strict] (Biome prints its own report)");
@@ -36,7 +38,7 @@ pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
         .filter(|path| ratchet.is_strict(path))
         .collect();
     crate::step(&format!(
-        "examples (Biome): {} changed example(s) with warnings as errors",
+        "examples (Biome): {} example(s) with warnings as errors",
         strict.len()
     ));
     if strict.is_empty() {
@@ -88,7 +90,11 @@ pub(crate) fn clippy(ws: &Workspace, options: Options) -> Result<()> {
         .files()
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .chain(untracked)
-        .filter(|path| path.starts_with(RUST_EXAMPLES) && crate::util::has_extension(path, &["rs"]))
+        .filter(|path| {
+            path.starts_with(RUST_EXAMPLES)
+                && !crate::docs_snippets::is_tool(path)
+                && crate::util::has_extension(path, &["rs"])
+        })
         .count();
     if !output.status.success() {
         bail!(
@@ -124,7 +130,7 @@ fn example_finding(message: &Value, root: &Path) -> Option<(String, crate::repor
     let file = span.get("file_name")?.as_str()?.replace('\\', "/");
     let root = root.to_string_lossy().replace('\\', "/");
     let path = file.strip_prefix(&format!("{root}/")).unwrap_or(&file).to_owned();
-    if !path.starts_with(RUST_EXAMPLES) {
+    if !path.starts_with(RUST_EXAMPLES) || crate::docs_snippets::is_tool(&path) {
         return None;
     }
     let line = span
@@ -179,6 +185,24 @@ mod tests {
                 "message": "x",
                 "code": { "code": "clippy::too_many_lines" },
                 "spans": [{ "is_primary": true, "file_name": "crates/laminapdf/src/lib.rs", "line_start": 1 }],
+            }
+        });
+        assert!(example_finding(&message, Path::new("/repo")).is_none());
+    }
+
+    #[test]
+    fn warnings_in_a_developer_tool_under_the_examples_should_be_ignored() {
+        let message = serde_json::json!({
+            "reason": "compiler-message",
+            "message": {
+                "level": "warning",
+                "message": "this function has too many lines (43/40)",
+                "code": { "code": "clippy::too_many_lines" },
+                "spans": [{
+                    "is_primary": true,
+                    "file_name": "crates/laminapdf/examples/differential/text-facts.rs",
+                    "line_start": 35,
+                }],
             }
         });
         assert!(example_finding(&message, Path::new("/repo")).is_none());

@@ -25,6 +25,14 @@ pub(crate) struct Options {
 }
 
 impl Options {
+    /// Every report an error: what `cargo xtask check` runs.
+    pub(crate) fn strict() -> Self {
+        Self {
+            all_strict: true,
+            ..Self::default()
+        }
+    }
+
     /// Parses `[--all-strict] [--warnings] [--json]`; `command` is how the check is run
     /// (`check docs-prose`, `clippy-examples`), for the usage line.
     pub(crate) fn parse(command: &str, flags: &[String]) -> Result<Self> {

@@ -395,10 +395,10 @@ fn ratchet(ws: &Workspace, command: &str, flags: &[String]) -> Result<()> {
 fn check_docs(ws: &Workspace) -> Result<()> {
     step("docs-links: relative links and anchors in tracked Markdown");
     docs_links::run(&ws.root, false)?;
-    step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on changed files)");
-    docs_prose::run(&ws.root, reports::Options::default())?;
-    step("docs-snippets: the examples against docs/guidelines/examples.md (strict on changed files)");
-    docs_snippets::run(&ws.root, reports::Options::default())?;
+    step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on every file)");
+    docs_prose::run(&ws.root, reports::Options::strict())?;
+    step("docs-snippets: the examples against docs/guidelines/examples.md (strict on every file)");
+    docs_snippets::run(&ws.root, reports::Options::strict())?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
@@ -417,8 +417,8 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     maintainability::run(&ws.root)?;
     portability(ws)?;
     clippy(ws)?;
-    step("clippy-examples: lamina's examples, functions of at most 40 lines (strict on changed examples)");
-    examples_lints::clippy(ws, reports::Options::default())?;
+    step("clippy-examples: lamina's examples, functions of at most 40 lines (strict on every example)");
+    examples_lints::clippy(ws, reports::Options::strict())?;
     rust_tests(ws)?;
     docs(ws)?;
     cargo_deny(ws)?;
@@ -435,7 +435,7 @@ fn api_docs(ws: &Workspace) -> Result<()> {
 
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
-    examples_lints::biome(ws, reports::Options::default())?;
+    examples_lints::biome(ws, reports::Options::strict())?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     api_docs(ws)?;

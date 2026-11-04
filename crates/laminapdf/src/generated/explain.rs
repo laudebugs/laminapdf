@@ -2523,7 +2523,9 @@ A standard 14 font had no free one-byte code left for another glyph in this docu
 
 ## Why
 
-A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). Lamina PDF writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`. A document that draws more such glyphs with one font than there are free codes runs out. Assignment is all or nothing: when one `encode` call needs more new codes than are free, none are assigned and nothing of the text is recorded.
+A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). Lamina PDF writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`.
+
+A document that draws more such glyphs with one font than there are free codes runs out. Assignment is all or nothing: when one `encode` call needs more new codes than are free, none are assigned and nothing of the text is recorded.
 
 ## How to fix
 
@@ -2550,7 +2552,7 @@ A standard 14 font (`Font::standard`) was given to the shaper, `itemize`, `break
 
 ## Why
 
-The standard 14 fonts are referred to by name and never embedded: Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with, no `cmap` for itemizing, and no CIDs for a shaped run (a standard 14 font is written as a simple font with one-byte codes).
+The standard 14 fonts are referred to by name and never embedded. Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with and no `cmap` for itemizing. Nor are there CIDs for a shaped run: a standard 14 font is written as a simple font with one-byte codes.
 
 ## How to fix
 
@@ -2747,7 +2749,7 @@ let img = Image::rgba(2, 2, &[0; 12])?; // image-data-length: 16 bytes expected
 
 ## Why
 
-An ICC profile (ICC.1:2010) starts with a 128-byte header holding its size, the `acsp` signature, its class and its data colour space. PDF's `ICCBased` colour spaces (ISO 32000-2 §8.6.5.5) take Gray, RGB, CMYK and Lab profiles; the builder takes Gray, RGB and CMYK (Lab components fall outside `[0, 1]` and need a `/Range`, not supported yet), and device-link, abstract and named-colour profiles can't be used.
+An ICC profile (ICC.1:2010) starts with a 128-byte header holding its size, the `acsp` signature, its class and its data colour space. PDF's `ICCBased` colour spaces (ISO 32000-2 §8.6.5.5) take Gray, RGB, CMYK and Lab profiles. The builder takes Gray, RGB and CMYK: Lab components fall outside `[0, 1]` and need a `/Range`, which it doesn't support yet. Device-link, abstract and named-colour profiles can't be used.
 
 ## How to fix
 
@@ -2829,7 +2831,7 @@ A page size, page box, `/UserUnit`, drawing value or image size given to the bui
 
 ## Why
 
-Page sizes and `/UserUnit` must be finite and positive, page boxes, path coordinates, matrices and image rectangles finite, line widths and dash lengths finite and not negative (and a dash pattern not all zeros, ISO 32000-2 §8.4.3.6), miter limits at least 1, images at least one pixel wide and tall, font sizes and line heights positive, text boxes wider than 0, and destination coordinates finite.
+Page sizes and `/UserUnit` must be finite and positive, and page boxes, path coordinates, matrices and image rectangles finite. Line widths and dash lengths must be finite and not negative, and a dash pattern not all zeros (ISO 32000-2 §8.4.3.6). Miter limits must be at least 1, images at least one pixel wide and tall, font sizes and line heights positive, text boxes wider than 0, and destination coordinates finite.
 
 ## How to fix
 
@@ -3842,7 +3844,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for: the request failed (network error, CORS refusal, DNS) or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for: a `Content-Range` the browser hides because CORS doesn't expose it looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
+A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for. Either the request failed (a network error, a CORS refusal, DNS), or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for. A `Content-Range` that the browser hides, because CORS doesn't expose it, looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
 
 ## Why
 

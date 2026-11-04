@@ -162,15 +162,17 @@ cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos -
                              #   + gen codes --check + gen boundary --check + version sync --check (fast; no network, no build, no node_modules)
 cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
                              #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on
-                             #   files changed since the merge base with main (drafts included), counted warnings elsewhere
+                             #   files changed since the merge base with main (drafts included), counted warnings elsewhere; `check docs`
+                             #   runs it with --all-strict
 cargo xtask check docs-snippets [--all-strict] [--warnings] [--json]  # the examples and Snippet's glob vs
                              #   docs/guidelines/examples.md (headers, shown on a page or in examples/UNUSED.md, TS/Rust pairs in
                              #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding, ≤ 100 lines); strict on changed
-                             #   examples, warnings elsewhere
-cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on the changed TS examples (every one with --all-strict)
+                             #   examples, warnings elsewhere (`check docs` runs it with --all-strict); skips examples/differential/ (a tool)
+cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on the changed TS examples (every one with --all-strict,
+                             #   as `check ts` runs it)
 cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on Lamina PDF's examples with
                              #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
-                             #   strict on changed examples, warnings elsewhere
+                             #   strict on changed examples, warnings elsewhere (`check rust` runs it with --all-strict)
 cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32 (-D warnings), clippy-examples,
                              #   tests, rustdoc, cargo-deny
 cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust rules, no build: ≤ 800 non-test lines per module
@@ -180,7 +182,7 @@ cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust r
                              #   no copied test helper (`fn fixtures_dir`, `fn classic`, `struct Rng`) or cross-crate `#[path]` outside
                              #   laminapdf-test-fixtures (baseline `test-helpers`); no PDF lexer or PNG row filter outside
                              #   laminapdf-syntax (`one-lexer`)
-cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
+cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override reports errors; every example is linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences
 cargo xtask fmt              # format Rust and TS/JSON (fmt --check only verifies)

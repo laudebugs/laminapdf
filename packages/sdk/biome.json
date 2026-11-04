@@ -29,7 +29,7 @@
         "rules": {
           "style": {
             "noRestrictedImports": {
-              "level": "warn",
+              "level": "error",
               "options": {
                 "patterns": [
                   {
@@ -39,20 +39,20 @@
                 ]
               }
             },
-            "noNonNullAssertion": "warn"
+            "noNonNullAssertion": "error"
           },
           "suspicious": {
-            "noExplicitAny": "warn"
+            "noExplicitAny": "error"
           },
           "complexity": {
             "noExcessiveCognitiveComplexity": {
-              "level": "warn",
+              "level": "error",
               "options": {
                 "maxAllowedComplexity": 10
               }
             },
             "noExcessiveLinesPerFunction": {
-              "level": "warn",
+              "level": "error",
               "options": {
                 "maxLines": 40
               }
