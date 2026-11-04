@@ -1642,6 +1642,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `measure.area` | Measure area | Convert and produce X12 | — |  |
 | `measure.distance` | Measure distance | Convert and produce X12 | — |  |
 | `measure.perimeter` | Measure perimeter | Convert and produce X12 | — |  |
+| `mode.comment` | Comment mode | ADR 0024 §2 | — |  |
 | `mode.edit` | Edit mode | Design language §8.1 | — |  |
 | `mode.fill-sign` | Fill & Sign mode | Forms P01 | — |  |
 | `mode.organise` | Organise mode | Edit session O06 | — |  |
@@ -1766,6 +1767,8 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `view.reader-reset` | Reset Reader settings | Reader B R14 | — |  |
 | `view.reader-text-larger` | Larger text (Reader mode) | Reader B R14 | — |  |
 | `view.reader-text-smaller` | Smaller text (Reader mode) | Reader B R14 | — |  |
+| `view.rotate-display` | Rotate view | ADR 0024 appendix | — | `clockwise`, `counter-clockwise`; turns the view, never the file |
+| `view.set-zoom` | Zoom to… | ADR 0024 appendix | — | A percentage, 10–800 (`zoom 150` in the palette) |
 | `view.settings` | View settings | Reader A; Reader B R10, R11, R16, R17, R18 | — | Popover; `app.settings` is the Settings window |
 | `view.show-attachments` | Show attachments | Reader A R06; Reader B R11, R17, R18 | — |  |
 | `view.show-fields-tab` | Show fields tab | Forms P01 | — |  |

@@ -8,7 +8,7 @@
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](./U6a-paper-tokens.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [U6f](./U6f-gallery-and-visual-tests.md) |
-| ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) (bundled fonts OFL-1.1 or Apache-2.0 only, listed with their licence in the notices), 0024 (typography tokens; from [U1a](./U1a-adr-0024-app-shell-ux.md)) |
+| ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) (bundled fonts OFL-1.1 or Apache-2.0 only, listed with their licence in the notices), 0024 (typography tokens; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6b-self-hosted-fonts` |
 | PR title | `feat(fonts): self-host subsetted newsreader and source sans 3 woff2 files` |
 | Size | S (≈ 150–200 lines of script, CSS and tests; the font binaries and licence texts don't count) |

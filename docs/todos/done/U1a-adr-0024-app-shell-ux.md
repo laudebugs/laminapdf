@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `U1a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md) |
-| Blocks | [C4a](./C4a-ui-chrome-and-platform.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U6a](./U6a-paper-tokens.md) |
+| Depends on | [C2a](./C2a-render-adrs.md) |
+| Blocks | [C4a](../ready/C4a-ui-chrome-and-platform.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U1c](../ready/U1c-inverted-l-shell-and-modes.md), [U6a](../ready/U6a-paper-tokens.md) |
 | ADRs | Writes 0024; follows 0009 (React chrome + framework-free viewer) and 0010 (`Platform` capability flags) |
 | Branch | `docs/u1a-adr-0024-app-shell-ux` |
 | PR title | `docs(adr): 0024 app shell ux: layout, modes, command registry and page appearance` |
 | Size | S (one ADR, < 300 lines of prose) |
-| PR | — |
+| PR | [#229](https://github.com/laudebugs/laminapdf/pull/229) |
 
 ## Goal
 
@@ -37,24 +37,24 @@ Record the interaction model every shell and editor round builds into, so `@lami
 
 **Out of scope** (and which todo covers it)
 
-- Implementation → [U1b](U1b-command-registry-and-palette.md), [U1c](U1c-inverted-l-shell-and-modes.md), [U2a](U2a-selection-surfaces-and-copy-modes.md), [U2c](U2c-page-appearance-modes.md), [U3a](U3a-responsive-mobile-and-touch.md).
-- Native mobile shell choice → ADR 0025 after [U3b](U3b-mobile-shell-spike.md).
-- Visual identity: decided (owner, 2026-10-29) as the **Paper** direction; the ADR's token layers take their values from the [Paper design language](../../design/paper/design-language.md), and [U6a](./U6a-paper-tokens.md) builds them ([Paper design plan](../../plans/paper-design.md)). The brand mark stays open.
+- Implementation → [U1b](../ready/U1b-command-registry-and-palette.md), [U1c](../ready/U1c-inverted-l-shell-and-modes.md), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- Native mobile shell choice → ADR 0025 after [U3b](../ready/U3b-mobile-shell-spike.md).
+- Visual identity: decided (owner, 2026-10-29) as the **Paper** direction; the ADR's token layers take their values from the [Paper design language](../../design/paper/design-language.md), and [U6a](../ready/U6a-paper-tokens.md) builds them ([Paper design plan](../../plans/paper-design.md)). The brand mark stays open.
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Re-read ADRs 0009 and 0010 as merged; list where 0024 depends on them.
-- [ ] Fetch and cite the primary sources the research could not reach (WCAG 2.2 SC 2.4.11, 2.5.7, 2.5.8; APG combobox, toolbar and grid patterns; Apple HIG sheets; Material 3 bottom sheets); correct the plan if they disagree.
-- [ ] Write the ADR with a layout diagram, the mode table, the `Command` type in TypeScript, the selection-surface table and the page-mode table.
-- [ ] List the reader v0.1 command set (about 30 commands: open, page navigation, zoom, rotate view, find, print, download, properties, toggle rail, focus mode, page modes, help …) as an appendix so U1b starts from it.
-- [ ] Add the ADR to the decisions index and architecture §3; link it from the UI/UX plan.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Re-read ADRs 0009 and 0010 as merged; list where 0024 depends on them.
+- [x] Fetch and cite the primary sources the research could not reach (WCAG 2.2 SC 2.4.11, 2.5.7, 2.5.8; APG combobox, toolbar and grid patterns; Apple HIG sheets; Material 3 bottom sheets); correct the plan if they disagree.
+- [x] Write the ADR with a layout diagram, the mode table, the `Command` type in TypeScript, the selection-surface table and the page-mode table.
+- [x] List the reader v0.1 command set (about 30 commands: open, page navigation, zoom, rotate view, find, print, download, properties, toggle rail, focus mode, page modes, help …) as an appendix so U1b starts from it.
+- [x] Add the ADR to the decisions index and architecture §3; link it from the UI/UX plan.
 
 ## Acceptance criteria
 
-- [ ] The ADR covers every decision listed in scope, each with at least one rejected alternative.
-- [ ] Every WCAG/APG claim cites the W3C page directly (not a secondary source).
-- [ ] `cargo xtask check docs` passes.
+- [x] The ADR covers every decision listed in scope, each with at least one rejected alternative.
+- [x] Every WCAG/APG claim cites the W3C page directly (not a secondary source).
+- [x] `cargo xtask check docs` passes.
 
 ## Post-merge checks
 
@@ -73,10 +73,17 @@ None (docs only); the link checker covers the new links.
 - Deciding modes before the editor exists: keep the list open-ended (a mode is registered, not hard-coded) and only Read ships in v0.1.
 - If ADR 0009 picked a primitives library whose toolbar or combobox semantics differ from APG, note the gap and the workaround here.
 
+## Outcome
+
+- [ADR 0024](../../decisions/0024-app-shell-ux.md) is accepted with seven decisions plus the accessibility rules that hold across them, eleven rejected alternatives and the reader v0.1 command set (39 commands) as its appendix.
+- It depends on ADR 0009 for React Aria Components and `ReaderController`, where modes register. It depends on ADR 0010 for the capability rule commands follow: hidden where the platform can never have a capability, disabled with a reason where the user could unlock it.
+- Every WCAG 2.2, APG, Apple HIG and Material 3 claim cites the primary page, checked on 2026-11-04; they agree with the UI/UX plan. Two findings went into the ADR: SC 2.5.7 covers the viewer's own panning, and a keyboard equivalent alone doesn't meet it.
+- The design language's command-id appendix gains `mode.comment`, `view.set-zoom` and `view.rotate-display`; ADR 0010 gains the `ownsKeyboard` flag and `Platform.howToEnable`, which the command registry needs. Token CSS names keep the docs site's `--paper-` prefix.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`)
 - Date: 2026-10-31
 
 ## Context
@@ -23,6 +23,9 @@ If UI code asked "is this Tauri?" or sniffed the user agent, every feature would
 ```ts
 export interface Platform {
   readonly capabilities: Capabilities;
+  /** Why a false flag could become true here ("Install lamina to open files from your computer"),
+   *  or undefined when this platform can never have it. Rule 2 hides or disables by it. */
+  howToEnable(flag: keyof Capabilities): string | undefined;
 
   /** Ask the user for documents. Resolves to [] when the dialog is dismissed. */
   openFiles(options: { multiple: boolean }): Promise<PlatformFile[]>;
@@ -95,6 +98,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `hasNativeMenus` | the shell draws the menu bar; the UI hides its own overflow equivalents | `false` | `true` (D4b) |
 | `canOpenUrl` | documents can be opened from an `http(s)` URL (range requests, ADR 0011 §2) | `true` | `true` |
 | `crossOriginIsolated` | the threaded variant may run (ADR 0009 §5) | `self.crossOriginIsolated` (`false` in v0.1, which ships no COOP/COEP) | measured in D1a |
+| `ownsKeyboard` | no browser sits around the app, so it may bind keys a browser keeps for itself (⌘W, ⌘[, F1; ADR 0024 §3) | `false` | `true` |
 
 ### 3. Rules
 
