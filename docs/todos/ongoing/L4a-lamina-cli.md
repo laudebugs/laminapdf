@@ -12,7 +12,7 @@
 | Branch | `feat/l4a-lamina-cli` |
 | PR title | `feat(cli): ADR 0031 and the laminapdf CLI with info, check, pages rotate, extract and explain` |
 | Size | L (≈ 600–900 lines: ADR, command layer, clap front end, tests; generated schemas and test fixtures don't count) |
-| PR | — |
+| PR | [#224](https://github.com/laudebugs/laminapdf/pull/224) |
 
 ## Goal
 
