@@ -40,7 +40,7 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 - [x] Send structure types, table scopes and artifact kinds as names: `beginTag` and `beginArtifact` take strings, and `@laminapdf/sdk` changes with them. Fill rules, caps, joins and blend modes already travelled as names.
 - [x] Delete the hand lists: `@laminapdf/sdk`'s builder lists, `@laminapdf/render`'s code tables and its `test/codes.test.ts`, and laminapdf-build's test that scraped `builder.ts`. The render generator lists only `disposed` itself (the web adapters alone throw it). `check docs` runs `gen boundary --check` beside `gen codes --check`.
 
-The name tables stay in laminapdf-wasm's `src/build_dto.rs`, their one home, so that file doesn't shrink as [Q2r](../ongoing/Q2r-split-surface-modules.md) expected: it loses the index decoding and gains the two new tables and their test (849 → 866 lines).
+The name tables stay in laminapdf-wasm's `src/build_dto.rs`, their one home, so that file doesn't shrink as [Q2r](../done/Q2r-split-surface-modules.md) expected: it loses the index decoding and gains the two new tables and their test (849 → 866 lines).
 
 ## Acceptance criteria
 
