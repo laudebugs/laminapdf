@@ -118,21 +118,16 @@ mod warning;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
-pub use error::{Error, Result};
+pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
 pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
-pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode};
-pub use warning::{Warning, WarningCursor};
-
+/// The error of the builder's own methods (`Surface`, `PageBuilder` and the rest come from
+/// `laminapdf-build` as they are, ADR 0028): `?` turns it into [`Error`].
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
-/// The wrapped errors, for matching on [`Error`]'s variants.
-pub use laminapdf_cos::Error as CosError;
-pub use laminapdf_ops::Error as OpsError;
-pub use laminapdf_save::{SaveError, SinkError};
-#[cfg(feature = "extract")]
-pub use laminapdf_text::Error as TextError;
+pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode};
+pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};

@@ -386,31 +386,19 @@ fn every_sample_is_for_a_listed_code() {
     assert!(unknown.is_empty(), "{unknown:?}");
 }
 
-/// The wrapped crate's own code and kind of `e` (its `kind()` is an exhaustive match each
-/// crate's tests check against `codes.json`), or `None` for the façade's own variants.
-fn core_code_and_kind(e: &Error) -> Option<(&'static str, laminapdf::ErrorKind)> {
-    match e {
-        Error::Cos(i) => Some((i.code(), i.kind())),
-        Error::Ops(i) => Some((i.code(), i.kind())),
-        Error::Save(i) => Some((i.code(), i.kind())),
-        Error::Text(i) => Some((i.code(), i.kind())),
-        Error::Build(i) => Some((i.code(), i.kind())),
-        _ => None,
-    }
-}
-
 /// The façade reads code and kind from the generated `ErrorCode`/`WarningCode` tables; the
-/// wrapped crates compute them with their own exhaustive matches. They must agree for every
-/// sample, so a stale table or a wrong `codes.json` kind fails here.
+/// wrapped crates compute them with their own exhaustive matches, which their tests check
+/// against `codes.json`. Every error sample's kind must be the one `codes.json` lists (the
+/// inner errors are opaque, ADR 0028 F9), and every warning's must be its crate's, so a stale
+/// table or a wrong `codes.json` kind fails here.
 #[test]
 fn the_generated_tables_agree_with_the_wrapped_crates() {
     let (errors, warnings) = sample_values();
+    let codes = laminapdf_test_fixtures::codes::codes_json();
     let mut wrong: Vec<String> = errors
         .iter()
-        .filter_map(|e| {
-            let (code, kind) = core_code_and_kind(e)?;
-            ((e.code(), e.kind()) != (code, kind)).then(|| format!("{code}: façade says {} {:?}", e.code(), e.kind()))
-        })
+        .filter(|e| laminapdf_test_fixtures::codes::listed_kind(&codes, e.code()).as_deref() != Some(e.kind().as_str()))
+        .map(|e| format!("{}: façade says {:?}", e.code(), e.kind()))
         .collect();
     for w in &warnings {
         let (code, kind) = match w {

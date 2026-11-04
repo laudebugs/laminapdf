@@ -12,7 +12,7 @@
 | Branch | `docs/q2y-facade-error-wrapping` |
 | PR title | `docs(adr): decide how the lamina façade wraps the errors of the crates below it` |
 | Size | S |
-| PR | — |
+| PR | [#217](https://github.com/laudebugs/laminapdf/pull/217) |
 
 ## Goal
 

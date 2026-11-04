@@ -89,19 +89,6 @@ pub enum RetryError<E> {
     },
 }
 
-/// The ranges a `data-pending` error asks for, if it is one.
-pub fn pending_ranges(error: &laminapdf::Error) -> Option<Vec<Range<u64>>> {
-    match error {
-        laminapdf::Error::Cos(laminapdf::CosError::DataPending { ranges }) => Some(
-            ranges
-                .iter()
-                .map(|&(offset, len)| offset..offset.saturating_add(len))
-                .collect(),
-        ),
-        _ => None,
-    }
-}
-
 /// Runs `call` until it stops answering `data-pending`: each time, the ranges it asks for are
 /// widened by `options`, reduced to what `source` doesn't hold yet, fetched with `fetch` (one
 /// call per range, in file order) and supplied. Synchronous, so it suits native shells and the
@@ -125,7 +112,7 @@ pub fn retry<T, E>(
             Ok(value) => return Ok(value),
             Err(e) => e,
         };
-        let Some(asked) = pending_ranges(&error) else {
+        let Some(asked) = error.pending_ranges() else {
             return Err(RetryError::Lamina(error));
         };
         let todo = source
