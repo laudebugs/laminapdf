@@ -8,5 +8,7 @@
 pub mod commands;
 pub mod exit;
 pub mod io;
+#[cfg(feature = "mcp")]
+pub mod mcp;
 pub mod ranges;
 pub mod schema;

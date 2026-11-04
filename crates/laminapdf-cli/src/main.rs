@@ -96,6 +96,16 @@ enum Command {
     Explain(ExplainArgs),
     /// Help on a command, or on a topic: exit-codes.
     Help(HelpArgs),
+    /// Serve the commands as MCP tools on stdin and stdout, for clients that speak only MCP.
+    #[cfg(feature = "mcp")]
+    Mcp(laminapdf_cli::mcp::McpArgs),
+    /// Serve the commands as MCP tools (this build has no MCP server).
+    #[cfg(not(feature = "mcp"))]
+    #[command(hide = true)]
+    Mcp {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
+        rest: Vec<String>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -169,6 +179,9 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
         let _ = write!(streams.err, "{}", Cli::command().render_help());
         return ExitCode::Usage;
     };
+    if let Command::Mcp { .. } = command {
+        return mcp(command, streams, global.json);
+    }
     let mut io = ProcessIo::default();
     let input = input_of(command);
     let outcome = settings(global, &mut io).and_then(|settings| execute(command, &settings, &mut io));
@@ -199,7 +212,7 @@ fn input_of(command: &Command) -> Option<&str> {
         Command::Check(a) => Some(&a.input),
         Command::Pages(PagesCommand::Rotate(a)) => Some(&a.input),
         Command::Extract(a) => Some(&a.input),
-        Command::Explain(_) | Command::Help(_) => None,
+        Command::Explain(_) | Command::Help(_) | Command::Mcp { .. } => None,
     }
 }
 
@@ -270,7 +283,33 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
             outcome(to_json(&report), render::explain_text(&report), Vec::new(), false)
         }
         Command::Help(args) => outcome(serde_json::Value::Null, help(args)?, Vec::new(), false),
+        Command::Mcp { .. } => outcome(serde_json::Value::Null, String::new(), Vec::new(), false),
     })
+}
+
+/// `laminapdf mcp`: serves until the client closes standard input, or says this build has no
+/// MCP server (the `mcp` feature).
+fn mcp(command: &Command, streams: &mut Streams, json: bool) -> ExitCode {
+    #[cfg(feature = "mcp")]
+    let result = match command {
+        Command::Mcp(args) => laminapdf_cli::mcp::run(args),
+        _ => Ok(()),
+    };
+    #[cfg(not(feature = "mcp"))]
+    let result = {
+        let _ = command;
+        Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "this laminapdf was built without the MCP server (the mcp feature)",
+        ))
+    };
+    match result {
+        Ok(()) => ExitCode::Ok,
+        Err(error) => {
+            render::error(streams, &error, None, json);
+            error.exit_code()
+        }
+    }
 }
 
 /// `laminapdf help [topic]`.

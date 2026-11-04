@@ -25,8 +25,16 @@ path = "src/main.rs"
 # layer's docs are the library's.
 doc = false
 
+[features]
+default = []
+# `laminapdf mcp`: the commands as tools of an MCP server on stdio (L4c). Off by default, so the
+# command layer and the plain CLI never pull in tokio or rmcp; release binaries turn it on (L4d).
+mcp = ["dep:rmcp", "dep:tokio"]
+
 [dependencies]
 laminapdf = { workspace = true, features = ["extract", "explain"] }
+rmcp = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 anstream = { workspace = true }
 clap = { workspace = true }
 schemars = { workspace = true }
@@ -38,6 +46,11 @@ serde_json = { workspace = true }
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 boon = { workspace = true }
 proptest = { workspace = true }
+# tests/mcp.rs builds its injection fixture with the builder (path only: never published).
+laminapdf = { path = "../laminapdf", features = ["text"] }
+# tests/mcp.rs talks to `laminapdf mcp` through rmcp's own client.
+rmcp = { workspace = true, features = ["client", "transport-child-process"] }
+tokio = { workspace = true, features = ["macros"] }
 
 [lints]
 workspace = true

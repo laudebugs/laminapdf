@@ -117,6 +117,9 @@ serde_json = "1.0.154"
 clap = { version = "4.6.7", default-features = false, features = ["std", "derive", "help", "usage", "error-context", "color"] }
 anstream = { version = "1.0.0", default-features = false, features = ["auto"] }
 schemars = { version = "1.2.3", default-features = false, features = ["derive", "std"] }
+# `laminapdf mcp` (L4c, ADR 0031 §9): the MCP SDK, pinned (MCP revises often), and the runtime it needs.
+rmcp = { version = "=3.8.0", default-features = false, features = ["server", "transport-io"] }
+tokio = { version = "1.54.1", default-features = false, features = ["rt", "sync", "time"] }
 # JSON Schema 2020-12 validation, for xtask (`gen codes` validates fixtures/codes.json against
 # fixtures/codes.schema.json) and tests (errors against the generated laminapdf.error/1 schema):
 # never in a library. 0.6.1 (2025-01). MIT OR Apache-2.0 (ahash, base64, idna, url, once_cell,
