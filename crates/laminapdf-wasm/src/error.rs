@@ -121,7 +121,9 @@ pub(crate) fn unknown_option(argument: &'static str, option: Option<String>, kno
     )
 }
 
-/// The known names within two edits of `given` (case-insensitive), closest first.
+/// The known names within two edits of `given`, closest first; names at the same distance in
+/// code-point order. Edits count chars, after lowercasing ASCII letters only
+/// (`fixtures/did-you-mean.json` pins the rule for both languages).
 pub(crate) fn did_you_mean(given: &str, known: &[String]) -> Vec<String> {
     let given = given.to_ascii_lowercase();
     let mut close: Vec<(usize, &String)> = known
@@ -156,12 +158,20 @@ fn distance(a: &str, b: &str) -> usize {
 mod tests {
     use super::did_you_mean;
 
+    /// One case of `fixtures/did-you-mean.json`.
+    #[derive(serde::Deserialize)]
+    struct Case {
+        about: String,
+        given: String,
+        known: Vec<String>,
+        expected: Vec<String>,
+    }
+
     /// Every `bindingErrors` code is in the generated `ErrorCode` table the binding takes its
     /// kind and hint from (the façade's tests check that table against `codes.json`).
     #[test]
     fn binding_codes_are_in_the_generated_table() {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/codes.json");
-        let codes: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let codes = laminapdf_test_fixtures::codes::codes_json();
         let missing: Vec<&str> = codes["bindingErrors"]
             .as_array()
             .unwrap()
@@ -172,23 +182,19 @@ mod tests {
         assert_eq!(missing, Vec::<&str>::new());
     }
 
-    fn names(names: &[&str]) -> Vec<String> {
-        names.iter().map(|n| (*n).to_owned()).collect()
-    }
-
+    /// Every case of `fixtures/did-you-mean.json`, which `@laminapdf/sdk`'s
+    /// `test/did-you-mean.test.ts` runs too, so both languages suggest the same names. Every
+    /// failing case is listed, as Vitest's `it.each` lists them.
     #[test]
-    fn did_you_mean_finds_a_misspelt_key() {
-        assert_eq!(
-            did_you_mean("pasword", &names(&["password", "strict", "limits"])),
-            ["password"]
-        );
-    }
-
-    #[test]
-    fn did_you_mean_is_empty_for_a_far_key() {
-        assert_eq!(
-            did_you_mean("colour", &names(&["password", "strict"])),
-            Vec::<String>::new()
-        );
+    fn did_you_mean_gives_the_shared_fixture_s_names() {
+        let fixture = laminapdf_test_fixtures::json("did-you-mean.json");
+        let cases: Vec<Case> = serde_json::from_value(fixture["cases"].clone()).unwrap();
+        let failing: Vec<(String, Vec<String>, Vec<String>)> = cases
+            .into_iter()
+            .map(|case| (did_you_mean(&case.given, &case.known), case))
+            .filter(|(suggested, case)| *suggested != case.expected)
+            .map(|(suggested, case)| (case.about, suggested, case.expected))
+            .collect();
+        assert!(failing.is_empty(), "(about, suggested, expected): {failing:#?}");
     }
 }

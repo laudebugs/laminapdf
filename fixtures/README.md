@@ -245,3 +245,11 @@ The error contract of [ADR 0026](../docs/decisions/0026-error-and-diagnostic-con
 | --- | --- | --- |
 | `contract.json` | hand-written; the `expected` objects are what the façade serialises | Shared expectations (ADR 0018 §5): wrong password, a limit exceeded (with `location.object`/`streamOffset` and `data.limit`) and a file that isn't a PDF. `crates/laminapdf/tests/error_contract.rs` and `packages/sdk/test/codes.test.ts` must both produce exactly these objects, and each validates against `laminapdf.error/1` |
 | `marker-text.pdf` | [`tools/fixtures/marker_text.py`](../tools/fixtures/marker_text.py) (no dependencies) | Its names, strings and `/Info` values carry one marker string; `error_contract.rs` provokes every error and warning it can (bad `/Rotate`, boxes, page labels, `/Count`, outline loop, Info dates, unknown operators, missing resources, a Form XObject with an unknown filter, a broken font and CMap; plus an `/Encrypt` with the marker as `/Filter`, strict mode and op logs quoting it) and checks that no `message` or `hint` contains the marker (ADR 0026 §4). Not in `corpus/`, which pypdf's facts cover |
+
+### `did-you-mean.json`
+
+The names an `invalid-argument` or `unknown-option` error suggests in `didYouMean`. Rust (`laminapdf-wasm`) and TypeScript (`@laminapdf/sdk`) each compute them, so one file pins both.
+
+| File | Source | What it tests |
+| --- | --- | --- |
+| `did-you-mean.json` | hand-written; its `rule` states what the cases pin | Each case gives a `given` name, the `known` names and the `expected` suggestions. The rule: names within two edits, closest first, ties in code-point order of the names as given. An edit is one code point, counted after lowercasing ASCII letters only, so a typed name outside ASCII gets the same answer from both languages. `crates/laminapdf-wasm/src/error.rs` and `packages/sdk/test/did-you-mean.test.ts` must both suggest exactly `expected` |

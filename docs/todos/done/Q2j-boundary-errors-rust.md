@@ -32,7 +32,7 @@ Errors cross the Rust and JavaScript boundary in two shapes. lamina-wasm throws 
 
 **Out of scope** (and which todo covers it)
 
-- Did-you-mean ([Q2v](../ready/Q2v-did-you-mean.md)); the TypeScript side ([Q2k](../done/Q2k-boundary-errors-ts.md)).
+- Did-you-mean ([Q2v](./Q2v-did-you-mean.md)); the TypeScript side ([Q2k](../done/Q2k-boundary-errors-ts.md)).
 
 ## Tasks
 
