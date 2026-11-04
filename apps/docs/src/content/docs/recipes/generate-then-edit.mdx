@@ -1,0 +1,37 @@
+---
+title: Generate, then edit
+description: Build a one-page draft, open its bytes, retitle it in one transaction and save the edit as a revision after the original bytes.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll generate a one-page draft report, then open its bytes, retitle it and save the edit as a revision after them. You need this whenever your app changes a PDF it already has, such as a file a user uploads or one it wrote earlier.
+
+One function builds and saves the draft. Another opens those bytes, changes the title and author, and saves again. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/generate-then-edit.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/generate_then_edit.rs" /></TabItem>
+</Tabs>
+
+The result is the draft's bytes, unchanged, followed by one revision that retitles it "Final report" and names Ada Lovelace as its author: [open the reference PDF](/examples/pdf/generate_then_edit.pdf).
+
+## How it works
+
+- A new document has no original bytes to append to, so the draft's save is a [full rewrite](/reference/glossary/#full-rewrite).
+- `Document.open` (`Document::open_bytes` in Rust) reads the draft. Your edits sit beside its bytes and never change them; see [How Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/).
+- `setInfo` changes the Info dictionary: the title, author and other facts a viewer shows in a file's properties. `transact` applies it as one transaction, which `undo` reverts as a whole. In Rust, `apply` takes the list of ops as one transaction.
+- `mode: "incremental"` (`SaveMode::Incremental`) asks for an [incremental save](/reference/glossary/#incremental-save): the draft's bytes first, then one revision with the edit.
+- `editedAt` is the modification date to record, a PDF date such as `D:20261030120000Z`. Leave it out and no date is written, because Lamina PDF never reads the clock.
+- The builder also wrote the draft's title into its XMP metadata, an XML copy of the same facts. `setInfo` leaves that copy alone, so it still says "Draft report".
+
+## What to change
+
+- **More edits in the same revision:** add them inside the callback, such as `tx.rotatePage(doc.page(0).id, 90)` (`RotatePage` in Rust). See [Edit a PDF](/guides/edit-a-pdf/).
+- **Removing an entry:** pass `null` for it, as in `{ author: null }` (`.author(None)` in Rust).
+- **Your own file:** open its bytes in place of the draft's. A signed, repaired or encrypted file limits how it saves; [Save a PDF](/guides/save-a-pdf/#when-a-file-refuses-a-save) lists the cases.
+- **A whole new file:** pass `mode: "fullRewrite"` (`SaveMode::FullRewrite`), or leave `mode` out and let the save choose. See [Choose a save mode](/guides/save-a-pdf/#choose-a-save-mode).
+- **Edits stored as JSON:** replay a saved log with `doc.applyLog({ v: 1, ops })` (`apply_log` in Rust), as [Edit a PDF](/guides/edit-a-pdf/#replay-edits-stored-as-json) shows.
+
+Next: [a PDF/UA report](/recipes/pdf-ua-report/), an accessible report checked as it's built.

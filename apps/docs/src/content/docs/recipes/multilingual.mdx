@@ -1,0 +1,35 @@
+---
+title: Multilingual text
+description: Latin, Arabic, Devanagari, Hebrew and Chinese on one page, each in its own embedded font, as a shaped line and a wrapped paragraph.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll put five scripts on one page: Latin, Arabic, Devanagari, Hebrew and Chinese, each as a single line and as a paragraph wrapped in a box. Start from it whenever your text goes beyond Latin, or mixes left-to-right and right-to-left writing.
+
+The function takes one font file per script, draws each script's line and paragraph, and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/multilingual.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/multilingual.rs" /></TabItem>
+</Tabs>
+
+The result is one A4 page, with each script set in its own Noto font: [open the reference PDF](/examples/pdf/multilingual.pdf).
+
+## How it works
+
+- `Font.fromBytes` (`font_bytes` in Rust) loads each font, which must cover its script. The builder embeds only the glyphs the page draws.
+- Lamina PDF shapes the text with each font, so Arabic letters join, Devanagari letters combine into clusters and the Latin line forms ligatures.
+- `textBox` breaks each paragraph into lines that fit its 220-point-wide box. It breaks where Unicode's line-breaking rules allow: between words, and between Chinese characters.
+- `direction: "rtl"` (`Direction::RightToLeft`) makes the Arabic and Hebrew paragraphs right to left, so `align: "start"` starts their lines at the box's right edge.
+- Each font is embedded with its [ToUnicode](/reference/glossary/#tounicode) mapping, so text copied or extracted from the PDF equals the strings you passed in, ligatures included.
+
+## What to change
+
+- **Your own scripts:** change `SCRIPTS` and pass one font per row, in the same order. A character the font lacks fails with `missing-glyph`.
+- **The paragraph's box:** `PARAGRAPH_WIDTH` and `PARAGRAPH_HEIGHT` set its size. Lines that don't fit are left out, unless you pass `overflow: "error"` (`Overflow::Error`) to fail with `text-overflow` instead.
+- **Alignment and spacing:** `align` also takes `"end"`, `"left"`, `"right"` or `"center"`, and `lineHeight` (`with_line_height`) sets the distance between baselines, 1.2 times the size by default.
+- **Ligatures and other OpenType features:** `features: ["liga=0"]` on `text` or `textBox` turns the ligatures off. In Rust, call `features` on the run or `with_feature` on the text box's options. See [Text and fonts](/guides/fonts-and-text/).
+
+Next: [images and vectors](/recipes/images-and-vectors/), with shapes, colour, transparency and two images.

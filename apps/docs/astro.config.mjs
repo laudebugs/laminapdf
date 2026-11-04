@@ -51,6 +51,7 @@ export default defineConfig({
     "/guides/encrypted-files/": "/guides/password-protected-files/",
     "/guides/limits/": "/guides/untrusted-files/",
     "/guides/off-the-main-thread/": "/guides/keep-the-page-responsive/",
+    "/examples/": "/recipes/",
   },
   integrations: [
     starlight({
@@ -75,7 +76,6 @@ export default defineConfig({
         ...(TYPEDOC ? [typeDoc] : []),
       ],
       // The docs as a story (quality plan §3): the order is a decision, so every page is listed.
-      // Q1i, Q1m and Q1j rename the guides and add the recipes and troubleshooting.
       sidebar: [
         {
           label: "Start here",
@@ -128,7 +128,26 @@ export default defineConfig({
           label: "Production",
           items: [{ label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" }],
         },
-        { label: "Examples", link: "/examples/" },
+        {
+          label: "Recipes",
+          items: [
+            { label: "All recipes", slug: "recipes" },
+            { label: "Hello, world", slug: "recipes/hello" },
+            { label: "An invoice", slug: "recipes/invoice" },
+            { label: "Multilingual text", slug: "recipes/multilingual" },
+            { label: "Images and vectors", slug: "recipes/images-and-vectors" },
+            { label: "Links and outlines", slug: "recipes/links-and-outlines" },
+            { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
+            { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
+            { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },
+            { label: "A PDF/A-3 invoice with XML", slug: "recipes/pdf-a3-invoice-with-xml" },
+            { label: "A 100-page report", slug: "recipes/report" },
+            { label: "Open files you don't trust", slug: "recipes/open-untrusted" },
+            { label: "Save in a Web Worker", slug: "recipes/web-worker-client" },
+            { label: "A Cloudflare Worker", slug: "recipes/cloudflare-worker" },
+          ],
+        },
+        { label: "Troubleshooting", slug: "troubleshooting" },
         {
           label: "Reference",
           items: [

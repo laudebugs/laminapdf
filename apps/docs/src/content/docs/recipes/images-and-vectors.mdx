@@ -1,0 +1,37 @@
+---
+title: Images and vectors
+description: Shapes, a dashed curve, gray, RGB, CMYK and hex colour, transparency, a blend mode, a clip, a rotation, a JPEG and an RGBA image on one page.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll draw shapes and images on one A4 page: a rectangle, a circle, a dashed curve, two see-through discs, a photo cut to an ellipse and a rotated gradient that fades out. Start from it for a logo, a chart, the rules of a table or a page with photos.
+
+The function takes a JPEG's bytes, draws the page and returns the PDF's bytes. It draws no text, so in TypeScript it needs only the base module, `init()`. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/images-and-vectors.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/images_and_vectors.rs" /></TabItem>
+</Tabs>
+
+The result is one A4 page with every shape and both images: [open the reference PDF](/examples/pdf/images_and_vectors.pdf).
+
+## How it works
+
+- `path(p => …)` builds a shape and returns it unpainted. `fill` and `stroke` paint it, and `clip` limits what's drawn next to its inside. See [Shapes, colour and images](/guides/images-and-vectors/).
+- A colour of one, three or four numbers from 0 to 1 is gray, RGB or CMYK, and a string such as `"#2a9d8f"` is hex. Rust has `Color::gray`, `rgb`, `cmyk` and `hex`.
+- `save()` and `restore()` bracket each group of drawings, so the opacity, blend mode, clip and rotation set inside stop at `restore()`.
+- Both discs are 60% opaque, and `multiply` darkens the area where the second disc covers the first.
+- `Image.jpeg` embeds the photo as it is, without decoding it. `Image.rgba` takes raw pixels, and their alpha becomes a soft mask: a second image that holds the transparency.
+- The matrix turns the gradient 30 degrees clockwise, then moves it to (150, 520). The gradient is drawn centred on the origin, so it turns about its own centre. Like every position, the matrix works in [page space](/reference/glossary/#page-space).
+
+## What to change
+
+- **A PNG instead of the JPEG:** `Image.png(bytes)` (`Image::png` in Rust) keeps the PNG's transparency.
+- **A shape with a hole:** draw both outlines in one path and fill it with `"evenOdd"` (`FillRule::EvenOdd`), so the inner shape stays empty.
+- **A filled shape with an outline:** `fillStroke(rule, style)` (`fill_stroke` in Rust) paints both at once.
+- **Another blend mode:** `"screen"` lightens where `"multiply"` darkens. `BlendMode` lists all sixteen.
+- **Alternate text:** pass a description as the third argument of `image` (`figure` in Rust), and a screen reader reads it out. See [Accessible PDFs](/guides/accessible-pdfs/).
+
+Next: [links and outlines](/recipes/links-and-outlines/), with four pages joined by links, an outline and page labels.

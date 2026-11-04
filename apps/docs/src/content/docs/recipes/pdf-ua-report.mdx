@@ -1,0 +1,36 @@
+---
+title: A PDF/UA report
+description: A one-page sales report a screen reader can follow, with headings, a table, a described chart and a link, checked against PDF/UA-1 as it's built.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll build a one-page sales report that a screen reader can follow: headings, a table, a chart described in words and a link. You need this when a document has to meet accessibility law or a client's accessibility policy.
+
+The function turns on the PDF/UA-1 profile, then draws each part of the report inside a tag that says what it is: a heading, a table cell, a figure. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-ua-report.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/pdf_ua_report.rs" /></TabItem>
+</Tabs>
+
+The result is one A4 page that reads, in order, as a title, a summary, a table of four quarters, a bar chart and a link: [open the reference PDF](/examples/pdf/pdf_ua_report.pdf).
+
+## How it works
+
+- `profiles: ["PDF/UA-1"]` (`Profile::PdfUa1` in Rust) tags the document and makes `finish()` check the rules a program can check. It fails with a coded error for the first rule the report breaks; [Accessible PDFs](/guides/accessible-pdfs/#what-pdfua-asks-for) lists them.
+- `metadata` gives the report its title and `lang` its language, which PDF/UA-1 asks for. The font is an embedded Noto Sans, because PDF/UA-1 refuses the [standard 14 fonts](/reference/glossary/#standard-14-fonts).
+- `tag` puts what its callback draws inside a structure element, such as `H1`, `P` or `TD`, in reading order. The `line` helper tags one line of text and sizes it by its tag: 22 points for `H1`, 15 for `H2`, 11 for the rest.
+- The table's first row holds `TH` header cells with a column scope, so a screen reader can name each cell's column.
+- The four bars are one `Figure` with alternate text, the sentence a screen reader reads in place of the drawing. The running header is an artifact, which screen readers skip.
+- The link's `contents`, "The full 2026 accounts", is its description. The builder makes the link a `Link` element inside its paragraph.
+
+## What to change
+
+- **The numbers:** change `QUARTERS`, then change `CHART_ALT` to match. The builder checks that the chart has alternate text, not that the text is right; see [What a program can't check](/guides/accessible-pdfs/#what-a-program-cant-check).
+- **A list:** nest an `"L"`, an `"LI"` for each item, and inside each a `"Lbl"` for the bullet and an `"LBody"` for the text. Any other nesting fails `finish()` with `invalid-structure-nesting`.
+- **A passage in another language:** tag it with its own, as in `{ type: "P", lang: "fr-FR" }` (`Tag::new(TagKind::P).with_lang("fr-FR")` in Rust).
+- **Accessible and archival at once:** add a PDF/A profile beside it, as in `profiles: ["PDF/A-2u", "PDF/UA-1"]`. The [PDF/A archive](/recipes/pdf-a-archive/) does this.
+
+Next: [a PDF/A archive](/recipes/pdf-a-archive/), a letter written for long-term keeping.

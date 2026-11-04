@@ -1,0 +1,36 @@
+---
+title: A PDF/A archive
+description: An order confirmation for long-term archiving, written as PDF/A-2b and as PDF/A-2u that is also PDF/UA-1, with an embedded font and a photo.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll write an order confirmation as a PDF/A file, which looks the same in any viewer for decades. You need it for documents kept for years, often by law: contracts, records, letters to customers. The recipe writes the letter twice, at two PDF/A levels.
+
+The function takes the level, `2b` or `2u`, and builds the same letter under that level's profiles. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a-archive.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/pdf_a_archive.rs" /></TabItem>
+</Tabs>
+
+The result is one A4 letter under a translucent blue band, with a photo beside its text: open the [PDF/A-2b](/examples/pdf/pdf_a_archive-2b.pdf) or the [PDF/A-2u](/examples/pdf/pdf_a_archive-2u.pdf) reference PDF.
+
+## How it works
+
+- PDF/A-2b makes the letter look the same everywhere. PDF/A-2u also maps every glyph to Unicode, so the text can be searched and copied. That copy is PDF/UA-1 too, so a screen reader can follow it.
+- PDF/A needs every font embedded, so the letter uses Noto Sans rather than one of the [standard 14 fonts](/reference/glossary/#standard-14-fonts). `finish()` checks rules like this one and fails with a coded error for the first one the letter breaks.
+- The builder writes what PDF/A asks for: the PDF/A identification in the file's XMP metadata, and an sRGB output intent that says what its RGB colours mean. See [What PDF/A asks for](/guides/archival-pdfs/#what-pdfa-asks-for).
+- Both copies draw the same tagged content: an `H1` title, `P` paragraphs and the photo as a figure with alternate text. PDF/A-2b doesn't ask for tags, but PDF/UA-1 does.
+- The blue band is drawn at 35% opacity, as a layout artifact that screen readers skip. PDF/A-2 allows transparency.
+- `textBox` breaks the letter into lines inside its box, beside the photo. The JPEG goes into the file as it is.
+
+## What to change
+
+- **The letter:** change `LETTER`. `textBox` leaves out lines that don't fit, so make `BLOCK_HEIGHT` larger for a longer letter, or pass `overflow: "error"` to fail with `text-overflow` instead.
+- **The photo:** pass any RGB or gray JPEG, or `Image.png(bytes)` for a PNG (`Image::png` in Rust). A CMYK JPEG fails `finish()` with `device-color-without-output-intent`, because the output intent is sRGB.
+- **Other profiles:** pass the ones you need, such as `["PDF/A-2u"]` alone or `["PDF/A-2b", "PDF/UA-1"]`. A document can claim PDF/UA-1 and at most one PDF/A profile.
+- **An attached file:** PDF/A-2 refuses attachments, so switch to PDF/A-3b, as the [PDF/A-3 invoice](/recipes/pdf-a3-invoice-with-xml/) does.
+
+Next: [a PDF/A-3 invoice with XML](/recipes/pdf-a3-invoice-with-xml/), with its data attached for software to read.

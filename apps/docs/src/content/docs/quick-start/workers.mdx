@@ -25,3 +25,5 @@ To run it, install `@laminapdf/sdk` and `wrangler` in the Cloudflare Worker's fo
 
 - **Errors the caller caused** become a `400` with the error's JSON: a name the font can't draw (`missing-glyph`, `encoding-full`). Anything else, such as a broken font file, stays a `500`. See [Errors and warnings](/concepts/errors-and-warnings/).
 - **Memory:** the letter frees its builder and document as soon as the bytes are saved, because one isolate serves many requests.
+
+Next: the [Cloudflare Worker recipe](/recipes/cloudflare-worker/) says what to change in it, and [Troubleshooting](/troubleshooting/) covers a Cloudflare Worker that can't load the WebAssembly.

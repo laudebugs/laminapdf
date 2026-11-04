@@ -1,0 +1,32 @@
+---
+title: A 100-page report
+description: A 100-page A4 report with two embedded fonts and a table on every page, the document Lamina PDF times in each JavaScript runtime.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll make a 100-page report with two embedded fonts: on every page, a heading, a paragraph, a line of Chinese and a table of 20 products. Start from it for any long document you generate from data, such as monthly statements or a catalogue.
+
+The function draws one region's page at a time in a loop, then returns the PDF's bytes:
+
+<Snippet file="packages/sdk/examples/report.ts" />
+
+The result is 100 A4 pages, one per region. It has no reference PDF to open. Instead, Lamina PDF's tests build and time the report in every JavaScript runtime and check its SHA-256 there, as does the Rust benchmark that builds the same bytes.
+
+## How it works
+
+- It needs the text module, `init({ text: true })`, because it draws with embedded fonts.
+- `Font.fromBytes` reads each font file, and `b.font` registers both before the first page. Each font is embedded once for the whole report, with only the glyphs its 100 pages draw.
+- `s.text` draws one line, with `at[1]` as its baseline, and `s.textBox` breaks the paragraph into lines that fit `PARAGRAPH_BOX`.
+- In the table, the units and the revenue are text boxes as wide as their columns, with `align: "end"` to right-align them. `cell` works out each box from its column and the row's baseline.
+- `strokeColor([0.8])` sets a light gray, and each rule is a path from the left margin to the right edge, stroked 0.5 points wide.
+- `metadata` and `lang("en-GB")` set the title, author and language once for the document, and `using` frees the builder and the document when the function returns.
+
+## What to change
+
+- **Your data:** replace `unitsShipped` with your own figures, and set `REPORT_PAGES` and `PRODUCTS` to your counts.
+- **A longer table:** 20 rows end at 656 points, above the page number at 800. For more rows, lower `ROW_HEIGHT` or carry the rest over to the next page.
+- **Another script:** load a font that covers it and draw its text in that font, as the Chinese line does. See [Text and fonts](/guides/fonts-and-text/).
+- **The file's details:** pass `producer` and `creationDate` in `options`, such as `creationDate: "D:20261104120000Z"`. The builder never reads the clock, so a report without a date has none.
+
+Next: [open someone else's file](/recipes/open-untrusted/), with a password and tighter limits.

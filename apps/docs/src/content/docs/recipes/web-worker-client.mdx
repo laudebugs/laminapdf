@@ -1,0 +1,31 @@
+---
+title: Save in a Web Worker
+description: Open and save a PDF in a Web Worker, so a large file never freezes the page, with progress as it saves and a signal that stops the work.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll save a PDF in a Web Worker, reporting progress as it goes and stopping when the user presses Cancel. You need this in a browser app once files get large, because a save on the main thread freezes the page until it ends.
+
+`saveInWorker` starts a Web Worker, opens the bytes there and saves them as a [full rewrite](/reference/glossary/#full-rewrite), handing your `onProgress` and `signal` to each call:
+
+<Snippet file="packages/sdk/examples/worker-client.ts" />
+
+The promise resolves to the saved file, or rejects with `cancelled` once the signal aborts. Lamina PDF's tests run it in Chromium, Firefox and WebKit.
+
+## How it works
+
+- `connect` starts the Web Worker file that ships with `@laminapdf/sdk` and checks that it comes from the same build as your page.
+- `client.open` copies the bytes into the Web Worker and returns a remote document, whose methods return promises. `await using` closes it there when the block ends.
+- The Web Worker saves in steps of 20,000 units of work, about one per object in a full rewrite. Between steps it calls `onProgress` with `done`, `total` and `phase`, at most every 50 ms, so a small file saves in one step and reports none.
+- Aborting the signal rejects the call at once with `cancelled`, and `error.cause` holds the signal's reason. A save stops at its next step.
+- `client.terminate()` in `finally` stops the Web Worker however the save ended, which also stops an open that was still running.
+
+## What to change
+
+- **A progress bar:** in `onProgress`, set a `<progress>` element's `value` to `done` and, when the save knows it, its `max` to `total`.
+- **Large files:** pass `transfer: true` to `client.open` to move the buffer instead of copying it, which leaves your copy empty. See [Keep the page responsive](/guides/keep-the-page-responsive/#move-bytes-instead-of-copying-them).
+- **Several files:** call `connect` once, reuse the client for each file, and terminate it when the page no longer needs it.
+- **Edits before the save:** apply them with `await doc.apply(ops)`, then save in the default `auto` mode. It appends them as an [incremental save](/reference/glossary/#incremental-save) when the file allows one. See [Save a PDF](/guides/save-a-pdf/#choose-a-save-mode).
+
+Next: [generate PDFs in a Cloudflare Worker](/recipes/cloudflare-worker/), one per request.

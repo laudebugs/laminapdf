@@ -1,0 +1,35 @@
+---
+title: A PDF/A-3 invoice with XML
+description: A PDF/A-3b invoice that carries the same invoice as an attached XML file, for people to read and for software to process.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll write a one-page invoice as PDF/A-3b, with the same invoice attached as XML. You need this for e-invoices such as Factur-X and ZUGFeRD, where a person reads the PDF and the buyer's software reads the XML.
+
+The function draws the invoice, writes the same items as XML and attaches that file before it finishes. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs" /></TabItem>
+</Tabs>
+
+The result is one A4 page with three line items and a total of € 99.40, carrying `invoice-42.xml`: [open the reference PDF](/examples/pdf/pdf_a3_invoice_with_xml.pdf). Most viewers show the XML in their attachments panel.
+
+## How it works
+
+- `profiles: ["PDF/A-3b"]` (`Profile::PdfA3b` in Rust) asks for PDF/A-2b's rules and allows attached files of any kind. `finish()` fails with a coded error for the first rule the invoice breaks; see [Archival PDFs](/guides/archival-pdfs/).
+- PDF/A needs every font embedded, so the invoice uses Noto Sans rather than one of the [standard 14 fonts](/reference/glossary/#standard-14-fonts).
+- `invoiceXml` writes the line items and the total from the same `ITEMS` the page draws, so the PDF and the XML always agree. Its schema is made up for the recipe.
+- `attach` adds the file with its name, its bytes and its MIME type, `text/xml`. PDF/A needs a MIME type on every attachment, or `finish()` fails with `embedded-file-without-mime-type`.
+- `relationship: "alternative"` (`AfRelationship::Alternative`) says the XML is another form of the same content, and the builder associates it with the document. `description` is the text a viewer shows beside the file.
+
+## What to change
+
+- **The items:** change `ITEMS`. The page, the total and the XML all follow.
+- **A real e-invoice:** replace `invoiceXml` with XML that follows EN 16931, the European e-invoicing standard, as Factur-X and ZUGFeRD do. Those formats also need XMP entries of their own, which the builder can't add yet.
+- **Other attachments:** attach the file the invoice was made from with `relationship: "source"`, or the data behind it with `"data"` (`AfRelationship::Source`, `AfRelationship::Data`). Each needs its own name and MIME type.
+- **Accessible too:** add `"PDF/UA-1"` to `profiles`, set `lang` and tag the content, as the [PDF/UA report](/recipes/pdf-ua-report/) does.
+
+Next: [a 100-page report](/recipes/report/), the case Lamina PDF times in every runtime.
