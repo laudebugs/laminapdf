@@ -12,7 +12,7 @@
 | Branch | `claude/working-session-9g3nst` |
 | PR title | `fix(wasm,sdk): one did-you-mean tie rule, pinned by a shared fixture` |
 | Size | S |
-| PR | — |
+| PR | [#214](https://github.com/laudebugs/laminapdf/pull/214) |
 
 ## Goal
 
