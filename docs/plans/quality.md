@@ -278,7 +278,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2t](../todos/ready/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
 | [Q2u](../todos/done/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
 | [Q2v](../todos/ready/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
-| [Q2w](../todos/ongoing/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
+| [Q2w](../todos/done/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
 | [Q2x](../todos/ready/Q2x-test-fixtures-migration.md) | `laminapdf-test-fixtures` for the remaining crates | M | Q2c |
 | [Q2y](../todos/ready/Q2y-facade-error-wrapping.md) | Decide and implement how the façade wraps crate errors | S | — |
 
@@ -307,5 +307,5 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [ ] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2h](../todos/done/Q2h-text-writers-dedup.md), surrogate pairs kept whole in ToUnicode, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code, are done)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2c](../todos/done/Q2c-test-fixtures-crate.md), `laminapdf-test-fixtures` for the core crates, [Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, and [Q2l](../todos/done/Q2l-boundary-lists-generated.md), the boundary lists generated from Rust, are done)
-- [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero ([Q2p](../todos/done/Q2p-ts-complexity-splits.md), no TypeScript function over the complexity or length limit, is done)
+- [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero ([Q2p](../todos/done/Q2p-ts-complexity-splits.md), no TypeScript function over the complexity or length limit, and [Q2w](../todos/done/Q2w-split-content-interpreter.md), the content interpreter's operator table, are done)
 - [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history
