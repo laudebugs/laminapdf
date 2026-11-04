@@ -33,7 +33,7 @@ It also splits four files that are long but, once tests are excluded, within the
 
 **Out of scope** (and which todo covers it)
 
-- The core modules ([Q2q](./Q2q-split-cos-reader.md), [Q2w](../done/Q2w-split-content-interpreter.md)).
+- The core modules ([Q2q](../done/Q2q-split-cos-reader.md), [Q2w](../done/Q2w-split-content-interpreter.md)).
 
 ## Tasks
 
