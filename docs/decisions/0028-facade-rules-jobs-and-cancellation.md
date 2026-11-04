@@ -151,20 +151,20 @@ UniFFI async exports are not used. lamina's work is CPU-bound, so there is nothi
 
 *Amendment, 2026-11-04 (todo Q2y).* Until this amendment, `laminapdf::Error` had one public variant per crate below the façade (`Cos`, `Ops`, `Save`, `Text`, `Build`), and the façade re-exported their types (`CosError`, `OpsError`, `SaveError`, `SinkError`, `TextError`, `BuildError`). Every change to one of those enums was therefore a breaking change to the façade, and the code broke rust.md's rule: a crate "SHOULD NOT expose another crate's error type".
 
-There were two ways to settle it:
+The owner weighed two options:
 
 - **Keep wrapping and amend rust.md**, with an exception for crates in the same lockstep version (ADR 0017 §1). Nothing changes for callers, who can keep matching on inner variants. But a renamed or split variant in any crate stays a façade break, and before 1.0 the inner crates change often.
 - **Make the wrapped errors opaque.** Callers read the error through what ADR 0026 already makes stable: `code()`, `error_code()` (match on `ErrorCode`), `kind()`, `location()`, `hint()`, `data` and `diagnostic()`. A caller matching on an inner variant has to switch to the code, which is a break while the version is `0.x-alpha`.
 
 The owner chose the second, so:
 
-- The five variants are one, `Error::Core(CoreError)`. `CoreError` is a struct over a crate-private enum. Its message is the inner error's and its `Debug` shows the inner error, so messages and debugging don't change. The `From` impls stay, so `?` still converts every crate's error.
+- One variant, `Error::Core(CoreError)`, replaces the five. `CoreError` is a struct over a crate-private enum. Its message is the inner error's and its `Debug` shows the inner error, so messages and debugging don't change. The `From` impls stay, so `?` still converts every crate's error.
 - The façade's own variants (`PageIndexOutOfRange`, `Cancelled`, `JobFinished`, `DocumentChanged`) stay public: they are the façade's types, not another crate's.
 - Anything a caller read from an inner variant gets a method instead. So far that is `Error::pending_ranges()`, the ranges of a `data-pending` error, which `laminapdf-source`'s retry loop needed.
-- The re-exports go, except `BuildError` and `TextError`. The builder's types (`Surface`, `PageBuilder` and the rest) come from `laminapdf-build` as they are (§1), and `Font` from `laminapdf-text`; their own methods return those crates' errors, so callers need the names in their own signatures.
+- The re-exports go, except `BuildError` and `TextError`. The builder's types (`Surface`, `PageBuilder` and the rest) come from `laminapdf-build` as they are (§1), and `Font` comes from `laminapdf-text`. Their own methods return those crates' errors, so callers need the two names for their own signatures.
 - `laminapdf::Warning` still wraps the crates' warning types (`Warning::Document`, `Warning::Font`). Warnings follow the same rule, and making them opaque is the next step; this amendment covers errors.
 
-rust.md's rule stands as it is. The façade now follows it, except for `BuildError` and `TextError`: they come with the builder and `Font` APIs, which the façade takes from their crates as they are.
+With those two exceptions, which come with APIs the façade takes whole, rust.md's rule stands unchanged, and the façade now follows it.
 
 ## Consequences
 
