@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 198 ready · 92 done** (291 total).
+**0 ongoing · 198 ready · 93 done** (291 total).
 
 ## Can start now
 
@@ -35,7 +35,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [Q2y](ongoing/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -367,7 +367,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | Q2v | [One did-you-mean rule, pinned in both languages](done/Q2v-did-you-mean.md) | done | — |
 | Q2w | [Split the content interpreter's `execute`](done/Q2w-split-content-interpreter.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2x | [`laminapdf-test-fixtures` for the remaining crates](done/Q2x-test-fixtures-migration.md) | done | [Q2c](done/Q2c-test-fixtures-crate.md) |
-| Q2y | [Decide and implement how the façade wraps crate errors](ongoing/Q2y-facade-error-wrapping.md) | ongoing | — |
+| Q2y | [Decide and implement how the façade wraps crate errors](done/Q2y-facade-error-wrapping.md) | done | — |
 
 ## Cross-cutting
 

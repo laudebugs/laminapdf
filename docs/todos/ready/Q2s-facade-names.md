@@ -33,7 +33,7 @@ Readers of the docs meet `laminapdf::TextRun` (drawn text) next to `laminapdf::e
 
 **Out of scope** (and which todo covers it)
 
-- `TextRun`'s `#[must_use]` ([Q1d](../done/Q1d-example-api-cleanups.md)); the error-wrapping decision ([Q2y](../ongoing/Q2y-facade-error-wrapping.md)).
+- `TextRun`'s `#[must_use]` ([Q1d](../done/Q1d-example-api-cleanups.md)); the error-wrapping decision ([Q2y](../done/Q2y-facade-error-wrapping.md)).
 
 ## Tasks
 

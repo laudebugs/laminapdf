@@ -2,6 +2,7 @@
 
 - Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
+- Amended 2026-11-04 ([§8](#8-the-wrapped-crates-errors-are-opaque)): the crates' errors inside `laminapdf::Error` are opaque, behind `Error::Core(CoreError)`, and their types are no longer re-exported, except `BuildError` (decided by the owner, todo [Q2y](../todos/done/Q2y-facade-error-wrapping.md)).
 
 ## Context
 
@@ -35,7 +36,7 @@ The `laminapdf` façade is a core crate whose public API each binding wraps one-
 | F6 | **Options are records with defaults.** Rust keeps private fields and `with_*` builders (as `OpenOptions`, `Limits` do, ADR 0003 §3); edges define their own DTOs (all fields optional) and convert. Unknown keys fail as `unknown-option` with `didYouMean` ([ADR 0026](0026-error-and-diagnostic-contract.md) §1) | Builders don't bind; plain records do. LLM-written JS bypasses types |
 | F7 | **Bytes in as `Vec<u8>`** (or `&[u8]` in edges where the tool lends it), **out as `Vec<u8>`**, never as serde arrays (ADR 0002 §1). Incremental saves can return only the appended bytes | `Uint8Array` / `Data` / `ByteArray`; avoids copying a large original back |
 | F8 | **Cursors, not iterators.** Sequences that can be long (warnings, search hits, extraction blocks) are `next_batch(&mut self, max: u32) -> Vec<T>` on a cursor value. TS wraps a cursor in an (async) iterator | Neither binding has an iterator or stream type |
-| F9 | **One error type**, `laminapdf::Error`, serialising to ADR 0026 §1. Edges map it to the UniFFI `LaminaPdfError` enum (one variant per kind, each with a `Diagnostic` record of strings and integers) and to the TS `LaminaPdfError` | A string-payload error enum is the only error shape both bindings express |
+| F9 | **One error type**, `laminapdf::Error`, serialising to ADR 0026 §1; the crates' errors inside it are opaque (§8). Edges map it to the UniFFI `LaminaPdfError` enum (one variant per kind, each with a `Diagnostic` record of strings and integers) and to the TS `LaminaPdfError` | A string-payload error enum is the only error shape both bindings express |
 | F10 | **Long work is a `Job`** (§3), and every long operation also has a run-to-completion form that takes a `CancelToken`. No progress callbacks cross the boundary | Neither binding can cancel or interrupt a sync call; callbacks cost an FFI crossing each (§6) |
 | F11 | **No panics across the boundary.** The core doesn't panic (lints, fuzzing, `Limits`). Native edges build with `panic = "unwind"` so UniFFI's scaffolding can catch a bug, and the web treats a trapped instance as disposable (L2b) | Scaffolding can only catch a panic that unwinds; under wasm `panic=abort` a panic kills the instance ([report: panic safety](../research/libraries/shareable-libraries.md#panic-safety-no-panics-in-core-a-disposable-instance-on-the-web-unwinding-at-native-edges)) |
 | F12 | **Same names on every surface**, modulo case (`page_info` → `pageInfo`). One façade method maps to one binding method | Guessable APIs across languages and for models (report) |
@@ -145,6 +146,25 @@ The core is synchronous and single-threaded. How each surface drives a job:
 | Desktop (Tauri) | `spawn_blocking`, locking the document per step (§2) |
 
 UniFFI async exports are not used. lamina's work is CPU-bound, so there is nothing to await, async exports lose zero-copy bytes, and they bring no cancellation. Parallelism (pages across threads, worker pools) is the edges' job: one document per thread or worker.
+
+### 8. The wrapped crates' errors are opaque
+
+*Amendment, 2026-11-04 (todo Q2y).* Until this amendment, `laminapdf::Error` had one public variant per crate below the façade (`Cos`, `Ops`, `Save`, `Text`, `Build`), and the façade re-exported their types (`CosError`, `OpsError`, `SaveError`, `SinkError`, `TextError`, `BuildError`). Every change to one of those enums was therefore a breaking change to the façade, and the code broke rust.md's rule: a crate "SHOULD NOT expose another crate's error type".
+
+There were two ways to settle it:
+
+- **Keep wrapping and amend rust.md**, with an exception for crates in the same lockstep version (ADR 0017 §1). Nothing changes for callers, who can keep matching on inner variants. But a renamed or split variant in any crate stays a façade break, and before 1.0 the inner crates change often.
+- **Make the wrapped errors opaque.** Callers read the error through what ADR 0026 already makes stable: `code()`, `error_code()` (match on `ErrorCode`), `kind()`, `location()`, `hint()`, `data` and `diagnostic()`. A caller matching on an inner variant has to switch to the code, which is a break while the version is `0.x-alpha`.
+
+The owner chose the second, so:
+
+- The five variants are one, `Error::Core(CoreError)`. `CoreError` is a struct over a crate-private enum. Its `Display` and `source()` are the inner error's, so messages and debugging don't change. The `From` impls stay, so `?` still converts every crate's error.
+- The façade's own variants (`PageIndexOutOfRange`, `Cancelled`, `JobFinished`, `DocumentChanged`) stay public: they are the façade's types, not another crate's.
+- Anything a caller read from an inner variant gets a method instead. So far that is `Error::pending_ranges()`, the ranges of a `data-pending` error, which `laminapdf-source`'s retry loop needed.
+- The re-exports go, except `BuildError`. The builder's types (`Surface`, `PageBuilder` and the rest) come from `laminapdf-build` as they are (§1), and their methods return its error, so callers need its name in their own signatures.
+- `laminapdf::Warning` still wraps the crates' warning types (`Warning::Document`, `Warning::Font`). Warnings follow the same rule, and making them opaque is the next step; this amendment covers errors.
+
+rust.md's rule stands as it is: the façade now follows it, except for `BuildError` and the builder types, which §1 keeps in `laminapdf-build`'s shape.
 
 ## Consequences
 
