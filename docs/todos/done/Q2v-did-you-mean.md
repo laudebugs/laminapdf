@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2v` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -35,13 +35,13 @@ Did-you-mean suggestions are written in both Rust (`laminapdf-wasm`) and TypeScr
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the fixture with tie cases; write both tests; watch the TypeScript one fail.
-- [ ] Fix the TypeScript sort.
+- [x] Claim by opening the work PR (#214) off an up-to-date `main`. The cloud session that did the work had a plain clone and an assigned branch, so it worked on that branch instead of a worktree.
+- [x] Write the fixture with tie cases; write both tests; watch the TypeScript one fail. `fixtures/did-you-mean.json` has eight cases; the Rust test replaced the two hand-written ones it covers. Before the fix, TypeScript failed the three tie cases.
+- [x] Fix the TypeScript sort: distance, then code point, as `laminapdf-wasm` sorts.
 
 ## Acceptance criteria
 
-- [ ] Both languages give the same suggestions for every fixture case.
+- [x] Both languages give the same suggestions for every fixture case.
 
 ## Post-merge checks
 
@@ -61,9 +61,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Work PR opened; **PR** field filled in. It came from the session's assigned branch `claude/working-session-9g3nst` in a plain clone, not from a worktree or a `fix/…` branch (see Tasks)
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
