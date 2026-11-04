@@ -90,7 +90,9 @@ pub use laminapdf_ops::{PendingRebase, SaveState};
 /// The spike-era [`Writer`](test_support::Writer) and [`incremental_update`](test_support::incremental_update),
 /// which build files from scratch for tests and doc examples (feature `test-support`, off by
 /// default). Saving an edited document goes through [`IncrementalWriter`] and [`FullWriter`].
+/// Hidden from the docs: docs.rs builds with every feature, and this is no product API.
 #[cfg(feature = "test-support")]
+#[doc(hidden)]
 pub mod test_support {
     pub use crate::legacy::{Writer, incremental_update};
 }

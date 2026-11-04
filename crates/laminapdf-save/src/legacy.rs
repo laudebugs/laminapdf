@@ -245,15 +245,20 @@ fn cos(error: SaveError) -> Error {
 }
 
 /// `table` (from [`stream_table`]: `/Type`, `/W`, `/Index`) with `/Size` before `/Index`, the
-/// order this writer has always used.
+/// order this writer has always used (last if `table` has no `/Index`).
 fn with_size(table: &Dict, size: impl Into<Object>) -> Dict {
-    let size = size.into();
+    let mut size = Some(size.into());
     let mut dict = Dict::new();
     for (k, v) in table.iter() {
-        if k.as_bytes() == b"Index" {
-            dict.insert("Size", size.clone());
+        if k.as_bytes() == b"Index"
+            && let Some(size) = size.take()
+        {
+            dict.insert("Size", size);
         }
         dict.insert(k.clone(), v.clone());
+    }
+    if let Some(size) = size {
+        dict.insert("Size", size);
     }
     dict
 }
