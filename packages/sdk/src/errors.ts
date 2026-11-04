@@ -146,7 +146,11 @@ export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
   );
 }
 
-/** The names in `known` within two edits of `given` (case-insensitive), closest first. */
+/**
+ * The names in `known` within two edits of `given` (case-insensitive), closest first; names at
+ * the same distance in code-point order, as laminapdf-wasm sorts them (fixtures/did-you-mean.json
+ * pins both). `<` compares UTF-16 code units, which is code-point order for these names.
+ */
 export function didYouMean(given: string, known: readonly string[]): string[] {
   const distance = (a: string, b: string): number => {
     let row = Array.from({ length: b.length + 1 }, (_, i) => i);
@@ -164,7 +168,7 @@ export function didYouMean(given: string, known: readonly string[]): string[] {
   return known
     .map((k) => [distance(lower, k.toLowerCase()), k] as const)
     .filter(([d]) => d <= 2)
-    .sort((x, y) => x[0] - y[0])
+    .sort(([dx, x], [dy, y]) => dx - dy || (x < y ? -1 : Number(x > y)))
     .map(([, k]) => k);
 }
 
