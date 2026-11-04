@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2c](../done/Q2c-test-fixtures-crate.md) |
@@ -32,7 +32,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Other test helpers ([Q2c](../done/Q2c-test-fixtures-crate.md), [Q2x](./Q2x-test-fixtures-migration.md)).
+- Other test helpers ([Q2c](../done/Q2c-test-fixtures-crate.md), [Q2x](../ready/Q2x-test-fixtures-migration.md)).
 
 ## Tasks
 

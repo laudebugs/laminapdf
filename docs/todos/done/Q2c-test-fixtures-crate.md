@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
-| Blocks | [Q2d](../ready/Q2d-one-serialiser.md), [Q2x](../ready/Q2x-test-fixtures-migration.md) |
+| Blocks | [Q2d](../ongoing/Q2d-one-serialiser.md), [Q2x](../ready/Q2x-test-fixtures-migration.md) |
 | ADRs | None |
 | Branch | `refactor/q2c-test-fixtures-crate` |
 | PR title | `refactor(tests): laminapdf-test-fixtures for shared Rust test helpers (core crates)` |
@@ -36,7 +36,7 @@ Rust test helpers are copied across crates and linked by 35 `#[path = "../../oth
 
 **Out of scope** (and which todo covers it)
 
-- The other crates ([Q2x](../ready/Q2x-test-fixtures-migration.md)); the test `Writer` ([Q2d](../ready/Q2d-one-serialiser.md)).
+- The other crates ([Q2x](../ready/Q2x-test-fixtures-migration.md)); the test `Writer` ([Q2d](../ongoing/Q2d-one-serialiser.md)).
 
 ## Tasks
 

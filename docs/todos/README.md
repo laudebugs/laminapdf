@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 203 ready · 88 done** (291 total).
+**1 ongoing · 202 ready · 88 done** (291 total).
 
 ## Can start now
 
@@ -27,7 +27,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
-- [Q2d](ready/Q2d-one-serialiser.md): One PDF serialiser: the test `Writer` built on laminapdf-save's helpers
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
 - [Q2i](ready/Q2i-one-lexer-one-png-filter.md): One PDF lexer and one PNG row filter
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
@@ -39,7 +38,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [Q2d](ongoing/Q2d-one-serialiser.md): One PDF serialiser: the test `Writer` built on laminapdf-save's helpers
 
 ## Architecture — Round A
 
@@ -350,7 +349,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2a | [`check maintainability` for Rust: module budget and new lints](done/Q2a-maintainability-checks-rust.md) | done | — |
 | Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](done/Q2b-ts-lint-rules.md) | done | — |
 | Q2c | [`laminapdf-test-fixtures` for the core crates' test helpers](done/Q2c-test-fixtures-crate.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
-| Q2d | [One PDF serialiser: the test `Writer` built on laminapdf-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](done/Q2c-test-fixtures-crate.md) |
+| Q2d | [One PDF serialiser: the test `Writer` built on laminapdf-save's helpers](ongoing/Q2d-one-serialiser.md) | ongoing | [Q2c](done/Q2c-test-fixtures-crate.md) |
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](done/Q2e-error-policy-consolidation.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](done/Q2f-page-attributes-one-owner.md) | done | — |
 | Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
