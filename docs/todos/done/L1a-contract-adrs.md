@@ -8,7 +8,7 @@
 | Round / milestone | Round L1 (shareable libraries) — before B5a/B5c |
 | Depends on | None |
 | Blocks | [B5a](./B5a-lamina-build-core.md), [B5c](./B5c-lamina-facade-and-examples.md), [L1b](./L1b-error-contract-codegen.md), [L1c](./L1c-error-contract-core.md), [L2a](./L2a-worker-client.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [L6a](./L6a-lamina-ffi-spike.md) |
-| ADRs | Writes **0026** (error and diagnostic contract), **0027** (coordinates, units and page indexing), **0028** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](../done/C2a-render-adrs.md)) and 0031 (CLI, [L4a](../ready/L4a-lamina-cli.md)) |
+| ADRs | Writes **0026** (error and diagnostic contract), **0027** (coordinates, units and page indexing), **0028** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](../done/C2a-render-adrs.md)) and 0031 (CLI, [L4a](./L4a-lamina-cli.md)) |
 | Branch | `docs/l1a-contract-adrs` |
 | PR title | `docs(decisions): ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)` |
 | Size | M (≈ 350–500 lines of docs) |
@@ -65,7 +65,7 @@ Write down the contract every lamina surface shares before the first public API 
 
 - Generating codes, the TS union, the JSON Schema and `explain` text: [L1b](../done/L1b-error-contract-codegen.md).
 - Applying the rules in code: [B5a](./B5a-lamina-build-core.md) (coordinates), [B5c](./B5c-lamina-facade-and-examples.md) (façade), [L2a](../done/L2a-worker-client.md) (async edge).
-- Extraction schema `lamina.extract/1`: ADR 0030 in [L3a](../ready/L3a-lamina-extract-reading-order.md). CLI exit codes: ADR 0031 in [L4a](../ready/L4a-lamina-cli.md). UniFFI pin: ADR 0029 in [L6a](../done/L6a-lamina-ffi-spike.md).
+- Extraction schema `lamina.extract/1`: ADR 0030 in [L3a](../ready/L3a-lamina-extract-reading-order.md). CLI exit codes: ADR 0031 in [L4a](./L4a-lamina-cli.md). UniFFI pin: ADR 0029 in [L6a](../done/L6a-lamina-ffi-spike.md).
 
 ## Tasks
 

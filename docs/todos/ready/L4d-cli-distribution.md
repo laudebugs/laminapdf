@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4a](./L4a-lamina-cli.md), [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
+| Depends on | [L4a](../done/L4a-lamina-cli.md), [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
 | Blocks | None |
-| ADRs | Follows 0017 (versioning and publishing, completed in [P1](../done/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](./L4a-lamina-cli.md)) |
+| ADRs | Follows 0017 (versioning and publishing, completed in [P1](../done/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](../done/L4a-lamina-cli.md)) |
 | Branch | `build/l4d-cli-distribution` |
 | PR title | `build(cli): release binaries with cargo-dist, Homebrew formula and npm wrapper packages` |
 | Size | M (≈ 300–500 lines: dist config, workflow, npm packages, install tests) |

@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "RotatedPage": {
+      "description": "A page's new rotation.",
+      "properties": {
+        "index": {
+          "description": "The 0-based page index.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "number": {
+          "description": "The 1-based page number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rotation": {
+          "description": "`/Rotate` now: 0, 90, 180 or 270.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "number",
+        "rotation"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/pages.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.pages/1`.",
+  "properties": {
+    "bytes": {
+      "description": "The bytes written (none with `--dry-run`).",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "input": {
+      "description": "The input as given: a path, or `-`.",
+      "type": "string"
+    },
+    "output": {
+      "description": "Where the result went: a path, or `-`.",
+      "type": "string"
+    },
+    "pages": {
+      "description": "The pages that turned, with their new rotation.",
+      "items": {
+        "$ref": "#/$defs/RotatedPage"
+      },
+      "type": "array"
+    },
+    "saveMode": {
+      "description": "How it was saved: `incremental` (the input's bytes, then an update) or `fullRewrite`.",
+      "type": "string"
+    },
+    "schema": {
+      "const": "laminapdf.pages/1",
+      "description": "`laminapdf.pages/1`.",
+      "type": "string"
+    },
+    "warnings": {
+      "description": "The warnings reading the document raised (ADR 0026 objects).",
+      "items": {
+        "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "output",
+    "saveMode",
+    "bytes",
+    "pages",
+    "warnings"
+  ],
+  "title": "laminapdf.pages/1",
+  "type": "object"
+}

@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "InfoMetadata": {
+      "description": "The Info dictionary's text entries; each is document text, absent when the file has none.",
+      "properties": {
+        "author": {
+          "description": "`/Author`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "creator": {
+          "description": "`/Creator`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "keywords": {
+          "description": "`/Keywords`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "producer": {
+          "description": "`/Producer`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subject": {
+          "description": "`/Subject`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "`/Title`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "PageSummary": {
+      "description": "One page's size.",
+      "properties": {
+        "height": {
+          "description": "Displayed height in points.",
+          "format": "double",
+          "type": "number"
+        },
+        "index": {
+          "description": "The 0-based page index.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "label": {
+          "description": "The page label, when the document defines one: document text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "number": {
+          "description": "The 1-based page number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rotation": {
+          "description": "`/Rotate`: 0, 90, 180 or 270.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "description": "Displayed width in points.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "index",
+        "number",
+        "width",
+        "height",
+        "rotation"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/info.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.info/1`.",
+  "properties": {
+    "bytes": {
+      "description": "The file's size in bytes.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "encrypted": {
+      "description": "Whether the file is encrypted.",
+      "type": "boolean"
+    },
+    "input": {
+      "description": "The input as given: a path, or `-`.",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/InfoMetadata",
+      "description": "The Info dictionary's text entries: document text."
+    },
+    "pageSizes": {
+      "description": "Each page's displayed size ([ADR 0027]: the `CropBox` with `/Rotate` and `/UserUnit`).\n\n[ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md",
+      "items": {
+        "$ref": "#/$defs/PageSummary"
+      },
+      "type": "array"
+    },
+    "pages": {
+      "description": "The page count.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema": {
+      "const": "laminapdf.info/1",
+      "description": "`laminapdf.info/1`.",
+      "type": "string"
+    },
+    "tagged": {
+      "description": "Whether the document says it is tagged (`/MarkInfo /Marked true`).",
+      "type": "boolean"
+    },
+    "version": {
+      "description": "The PDF version the file declares (`1.7`), when it declares one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "warnings": {
+      "description": "The warnings reading the document raised (ADR 0026 objects).",
+      "items": {
+        "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "pages",
+    "bytes",
+    "encrypted",
+    "tagged",
+    "pageSizes",
+    "metadata",
+    "warnings"
+  ],
+  "title": "laminapdf.info/1",
+  "type": "object"
+}

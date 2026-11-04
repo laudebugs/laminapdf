@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "CheckStatus": {
+      "description": "The outcome of a check that read the whole document.",
+      "oneOf": [
+        {
+          "const": "ok",
+          "description": "Nothing needed repair.",
+          "type": "string"
+        },
+        {
+          "const": "warnings",
+          "description": "The document reads, but only after repairs; `warnings` lists them.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/check.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.check/1`.",
+  "properties": {
+    "input": {
+      "description": "The input as given: a path, or `-`.",
+      "type": "string"
+    },
+    "objects": {
+      "description": "The objects read.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "pages": {
+      "description": "The page count.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema": {
+      "const": "laminapdf.check/1",
+      "description": "`laminapdf.check/1`.",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/CheckStatus",
+      "description": "`ok`, or `warnings` when a read had to repair something."
+    },
+    "warnings": {
+      "description": "The repairs (ADR 0026 warnings).",
+      "items": {
+        "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "status",
+    "pages",
+    "objects",
+    "warnings"
+  ],
+  "title": "laminapdf.check/1",
+  "type": "object"
+}

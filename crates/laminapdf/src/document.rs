@@ -274,6 +274,63 @@ impl Document {
         })
     }
 
+    /// The PDF version the file declares (ISO 32000-2 §7.2.2): the catalog's `/Version` when
+    /// it is later than the `%PDF-x.y` header's, else the header's (`"1.7"`); `None` with
+    /// neither. A `/Version` that isn't `<digits>.<digits>` is ignored.
+    ///
+    /// # Errors
+    /// Reading errors (the catalog).
+    pub fn version(&self) -> Result<Option<String>> {
+        let header = self.inner.header_version().filter(|v| version_number(v).is_some());
+        let catalog = self.inner.catalog()?;
+        let declared = catalog
+            .get_name("Version")
+            .and_then(|name| std::str::from_utf8(name).ok())
+            .filter(|v| version_number(v).is_some());
+        let later = match (header, declared) {
+            (Some(header), Some(declared)) if version_number(declared) > version_number(header) => Some(declared),
+            (Some(header), _) => Some(header),
+            (None, declared) => declared,
+        };
+        Ok(later.map(str::to_owned))
+    }
+
+    /// Whether the file is encrypted. An encrypted document opens only when its password, or
+    /// the empty user password, decrypts it, so this says only that it was encrypted.
+    #[must_use]
+    pub fn is_encrypted(&self) -> bool {
+        self.inner.encryption().is_some()
+    }
+
+    /// Whether the document says it is tagged: its catalog's `/MarkInfo` has `/Marked true`
+    /// (ISO 32000-2 §14.7.1). It doesn't check the structure tree.
+    ///
+    /// # Errors
+    /// Reading errors (the catalog, `/MarkInfo`).
+    pub fn is_tagged(&self) -> Result<bool> {
+        let catalog = self.inner.catalog()?;
+        let Some(mark_info) = catalog.get("MarkInfo") else {
+            return Ok(false);
+        };
+        let mark_info = self.inner.deref(mark_info)?;
+        let marked = mark_info.as_dict().and_then(|d| d.get("Marked"));
+        Ok(matches!(marked, Some(laminapdf_cos::Object::Bool(true))))
+    }
+
+    /// Reads every object the document holds, once, and returns how many there were: for a
+    /// validator (`laminapdf check`), since the other calls read only what they need. What a
+    /// tolerant read repairs becomes a warning ([`Document::warnings`]).
+    ///
+    /// # Errors
+    /// The first object that can't be read (in strict mode, the first repair too).
+    pub fn read_every_object(&self) -> Result<u32> {
+        let numbers: Vec<u32> = self.inner.object_numbers().collect();
+        for &number in &numbers {
+            self.inner.object(number)?;
+        }
+        Ok(u32::try_from(numbers.len()).unwrap_or(u32::MAX))
+    }
+
     /// A cursor over the warnings raised so far (F8), oldest first: those of building the
     /// document (font embedding), then those of reading it.
     #[must_use]
@@ -480,4 +537,15 @@ impl ReadableSink for Output<'_> {
     fn into_source(self) -> core::result::Result<Arc<dyn ByteSource>, SinkError> {
         Ok(Arc::new(self.bytes.clone()))
     }
+}
+
+/// A version string's numbers, `"1.7"` → `(1, 7)`; `None` unless it is `<digits>.<digits>`.
+fn version_number(version: &str) -> Option<(u32, u32)> {
+    let (major, minor) = version.split_once('.')?;
+    // `u32::from_str` takes a leading `+`, which a version never has.
+    let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    if !(digits(major) && digits(minor)) {
+        return None;
+    }
+    Some((major.parse().ok()?, minor.parse().ok()?))
 }

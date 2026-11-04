@@ -1,0 +1,43 @@
+[package]
+name = "laminapdf-cli"
+description = "The laminapdf command-line tool: info, check, page rotation, text extraction and error explanations over Lamina PDF, with versioned JSON output for scripts and agents (ADR 0031)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Distribution (release binaries, Homebrew, npm) is its own todo, L4d.
+publish = false
+readme = "README.md"
+homepage.workspace = true
+documentation.workspace = true
+keywords = ["pdf", "cli"]
+categories = ["command-line-utilities"]
+
+# Read by `cargo xtask`: an app crate, so it may use the file system, stdin and stdout.
+[package.metadata.laminapdf]
+layer = "app"
+
+[[bin]]
+name = "laminapdf"
+path = "src/main.rs"
+# Its rustdoc would land on the `laminapdf` library's page (same output name); the command
+# layer's docs are the library's.
+doc = false
+
+[dependencies]
+laminapdf = { workspace = true, features = ["extract", "explain"] }
+anstream = { workspace = true }
+clap = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# The test helpers every crate shares, by path only (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+boon = { workspace = true }
+proptest = { workspace = true }
+
+[lints]
+workspace = true

@@ -977,5 +977,56 @@
       "hint": "open the document again or create a new builder: nothing from the old instance survives",
       "since": "0.2.0"
     }
+  ],
+  "cliErrors": [
+    {
+      "code": "invalid-command-line",
+      "kind": "usage",
+      "summary": "the command line doesn't parse: an unknown command or flag, a missing argument, a bad value, or stdin named twice",
+      "hint": "run the command with --help to see its arguments",
+      "since": "0.2.0"
+    },
+    {
+      "code": "invalid-page-range",
+      "kind": "usage",
+      "summary": "a page range doesn't fit the grammar, or names a page the document lacks",
+      "hint": "write pages as 1-5, z for the last page, r2 for the second from the end, or x3 to leave page 3 out; data.position is the character where the range went wrong",
+      "since": "0.2.0"
+    },
+    {
+      "code": "binary-output-to-terminal",
+      "kind": "usage",
+      "summary": "the command would write a PDF to standard output, and standard output is a terminal",
+      "hint": "redirect standard output to a file or a pipe, or write to a file with -o",
+      "since": "0.2.0"
+    },
+    {
+      "code": "unknown-code",
+      "kind": "usage",
+      "summary": "explain was given a code that isn't a Lamina PDF error or warning code",
+      "hint": "check the spelling against didYouMean, or list every code at the docs URL",
+      "since": "0.2.0"
+    },
+    {
+      "code": "overwrite-refused",
+      "kind": "state",
+      "summary": "the output file exists, or the command would modify its input in place, and --force wasn't given",
+      "hint": "pass --force, or write to a new file with -o",
+      "since": "0.2.0"
+    },
+    {
+      "code": "input-unreadable",
+      "kind": "io",
+      "summary": "an input file, standard input or the password file couldn't be read",
+      "hint": "check that the file exists and that you can read it; data.input names it",
+      "since": "0.2.0"
+    },
+    {
+      "code": "output-unwritable",
+      "kind": "io",
+      "summary": "the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed",
+      "hint": "check that the output's folder exists, that you can write to it and that the disk has room",
+      "since": "0.2.0"
+    }
   ]
 }

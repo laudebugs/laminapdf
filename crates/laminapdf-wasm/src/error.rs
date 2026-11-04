@@ -117,7 +117,10 @@ pub(crate) fn source_budget_exceeded(detail: String) -> JsValue {
 /// `unknown-option`: `argument` has a key `option` (when it is a top-level key) none of
 /// `known` is.
 pub(crate) fn unknown_option(argument: &'static str, option: Option<String>, known: &[String]) -> JsValue {
-    let did_you_mean = option.as_deref().map(|o| did_you_mean(o, known)).unwrap_or_default();
+    let did_you_mean = option
+        .as_deref()
+        .map(|o| laminapdf::did_you_mean(o, known))
+        .unwrap_or_default();
     binding(
         ErrorCode::UnknownOption,
         "an options record has a key lamina does not know",
@@ -130,52 +133,8 @@ pub(crate) fn unknown_option(argument: &'static str, option: Option<String>, kno
     )
 }
 
-/// The known names within two edits of `given`, closest first; names at the same distance in
-/// code-point order. Edits count chars, after lowercasing ASCII letters only
-/// (`fixtures/did-you-mean.json` pins the rule for both languages).
-pub(crate) fn did_you_mean(given: &str, known: &[String]) -> Vec<String> {
-    let given = given.to_ascii_lowercase();
-    let mut close: Vec<(usize, &String)> = known
-        .iter()
-        .map(|k| (distance(&given, &k.to_ascii_lowercase()), k))
-        .filter(|(d, _)| *d <= 2)
-        .collect();
-    close.sort_unstable();
-    close.into_iter().map(|(_, k)| k.clone()).collect()
-}
-
-/// Levenshtein distance over chars.
-fn distance(a: &str, b: &str) -> usize {
-    let b: Vec<char> = b.chars().collect();
-    let mut row: Vec<usize> = (0..=b.len()).collect();
-    for (i, ca) in a.chars().enumerate() {
-        let mut diagonal = i;
-        let mut next = vec![i + 1];
-        for (j, cb) in b.iter().enumerate() {
-            let above = row.get(j + 1).copied().unwrap_or(usize::MAX);
-            let left = next.last().copied().unwrap_or(usize::MAX);
-            let cost = diagonal + usize::from(ca != *cb);
-            next.push(cost.min(above.saturating_add(1)).min(left.saturating_add(1)));
-            diagonal = above;
-        }
-        row = next;
-    }
-    row.last().copied().unwrap_or(0)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::did_you_mean;
-
-    /// One case of `fixtures/did-you-mean.json`.
-    #[derive(serde::Deserialize)]
-    struct Case {
-        about: String,
-        given: String,
-        known: Vec<String>,
-        expected: Vec<String>,
-    }
-
     /// Every `bindingErrors` code is in the generated `ErrorCode` table the binding takes its
     /// kind and hint from (the façade's tests check that table against `codes.json`).
     #[test]
@@ -189,21 +148,5 @@ mod tests {
             .filter(|c| laminapdf::ErrorCode::from_code(c).is_none())
             .collect();
         assert_eq!(missing, Vec::<&str>::new());
-    }
-
-    /// Every case of `fixtures/did-you-mean.json`, which `@laminapdf/sdk`'s
-    /// `test/did-you-mean.test.ts` runs too, so both languages suggest the same names. Every
-    /// failing case is listed, as Vitest's `it.each` lists them.
-    #[test]
-    fn did_you_mean_gives_the_shared_fixture_s_names() {
-        let fixture = laminapdf_test_fixtures::json("did-you-mean.json");
-        let cases: Vec<Case> = serde_json::from_value(fixture["cases"].clone()).unwrap();
-        let failing: Vec<(String, Vec<String>, Vec<String>)> = cases
-            .into_iter()
-            .map(|case| (did_you_mean(&case.given, &case.known), case))
-            .filter(|(suggested, case)| *suggested != case.expected)
-            .map(|(suggested, case)| (case.about, suggested, case.expected))
-            .collect();
-        assert!(failing.is_empty(), "(about, suggested, expected): {failing:#?}");
     }
 }
