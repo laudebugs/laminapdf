@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U1a](../done/U1a-adr-0024-app-shell-ux.md) |
-| Blocks | [U6b](./U6b-self-hosted-fonts.md), [U6c](./U6c-icon-set.md), [U6d](./U6d-core-components.md) |
+| Blocks | [U6b](../ready/U6b-self-hosted-fonts.md), [U6c](../ready/U6c-icon-set.md), [U6d](../ready/U6d-core-components.md) |
 | ADRs | Follows 0024 (token layers: primitive → semantic → component; page appearance separate from UI theme; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (pnpm workspace, `catalog:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence check for any new dev dependency) |
 | Branch | `feat/u6a-paper-tokens` |
 | PR title | `feat(tokens): add @laminapdf/tokens with paper light, dark and high-contrast themes` |
@@ -24,8 +24,8 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 - Design language: [§2 Colour](../../design/paper/design-language.md#2-colour) (light theme [§2.1](../../design/paper/design-language.md#21-light-ui-theme-default), annotation colours [§2.2](../../design/paper/design-language.md#22-highlight-and-annotation-colours), dark theme [§2.3](../../design/paper/design-language.md#23-dark-ui-theme-proposed), page appearance [§2.4](../../design/paper/design-language.md#24-page-appearance)), [§3 Typography](../../design/paper/design-language.md#3-typography) and the [type scale](../../design/paper/design-language.md#type-scale), [§4 Space, shape, depth](../../design/paper/design-language.md#4-space-shape-depth), [§6 Layout](../../design/paper/design-language.md#6-layout), [§7.0 shared states](../../design/paper/design-language.md#70-shared-states) (hover, pressed, disabled, focus), [§8.6 page appearance vs UI theme](../../design/paper/design-language.md#86-page-appearance-vs-ui-theme), [§8.9 accessibility checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa). Its §2 tables already list the contrast of each pair; the test recomputes them.
 - [UI/UX plan §5.5](../../plans/ui-ux.md#55-page-appearance-and-themes-r8) — page modes vs UI themes, annotation colours never change, the gutter has its own token; [§4 principles](../../plans/ui-ux.md#4-principles) 7 and 9.
 - ADR 0024 (written in [U1a](../done/U1a-adr-0024-app-shell-ux.md)) — the token layers and naming this package implements; if it and the design language disagree on names, the ADR wins and the design language is corrected in this PR.
-- [C4a](./C4a-ui-chrome-and-platform.md) planned a `src/styles/tokens.css` in `@laminapdf/ui`; this package replaces it (C4a imports `@laminapdf/tokens`). [C7a](./C7a-accessibility-and-theming.md) planned a token contrast script and the dark and high-contrast themes; the values and the contrast test now live here, and C7a wires the theme switch, `forced-colors` styles and settings.
-- [U2c](./U2c-page-appearance-modes.md) renders page appearances in both backends; it reads paper, ink and selection colours from this package.
+- [C4a](../ready/C4a-ui-chrome-and-platform.md) planned a `src/styles/tokens.css` in `@laminapdf/ui`; this package replaces it (C4a imports `@laminapdf/tokens`). [C7a](../ready/C7a-accessibility-and-theming.md) planned a token contrast script and the dark and high-contrast themes; the values and the contrast test now live here, and C7a wires the theme switch, `forced-colors` styles and settings.
+- [U2c](../ready/U2c-page-appearance-modes.md) renders page appearances in both backends; it reads paper, ink and selection colours from this package.
 - [TypeScript guidelines](../../guidelines/typescript.md#modules-and-packaging) (ESM-only, named exports, `exports` map); [code organization §9 generated code](../../guidelines/code-organization.md#9-generated-code) (header, no-diff check).
 - WCAG 2.2 SC 1.4.3 (contrast minimum, 4.5:1 text), 1.4.11 (non-text contrast, 3:1 for UI component boundaries and focus indicators) and the relative-luminance formula in the WCAG 2.2 definitions (W3C Recommendation).
 
@@ -46,11 +46,11 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 
 **Out of scope** (and which todo covers it)
 
-- Fonts themselves (files, `@font-face`, preload) → [U6b](./U6b-self-hosted-fonts.md); this package only names the families.
-- Icons → [U6c](./U6c-icon-set.md). Z-order tokens → [U6e](./U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
-- Components using the tokens → [U6d](./U6d-core-components.md), [U6e](./U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](./U6f-gallery-and-visual-tests.md).
-- The theme switch UI, `forced-colors` component styles, stored user preference and the settings dialog → [C7a](./C7a-accessibility-and-theming.md).
-- Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](./U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](./C7a-accessibility-and-theming.md) / [U2c](./U2c-page-appearance-modes.md).
+- Fonts themselves (files, `@font-face`, preload) → [U6b](../ready/U6b-self-hosted-fonts.md); this package only names the families.
+- Icons → [U6c](../ready/U6c-icon-set.md). Z-order tokens → [U6e](../ready/U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
+- Components using the tokens → [U6d](../ready/U6d-core-components.md), [U6e](../ready/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- The theme switch UI, `forced-colors` component styles, stored user preference and the settings dialog → [C7a](../ready/C7a-accessibility-and-theming.md).
+- Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](../ready/U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](../ready/C7a-accessibility-and-theming.md) / [U2c](../ready/U2c-page-appearance-modes.md).
 - Mockup-only document colours ([§2.5](../../design/paper/design-language.md#25-mockup-only-colours-document-content)) and the drawn macOS `window` colours: not product tokens.
 
 ## Tasks
@@ -65,7 +65,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 - [ ] `src/index.ts`: named exports only (`THEMES`, `PAGE_APPEARANCES`, `ANNOTATION_COLOURS`, `SPACE`, `RADIUS`, `TYPE`, `BREAKPOINTS`, `MOTION`, `cssVar(name)` returning `var(--paper-…)` typed by `SemanticColour | …`), each with TSDoc.
 - [ ] `src/contrast.ts`: WCAG 2.x relative luminance and ratio, alpha compositing over an opaque background; unit-tested against known values (black/white 21:1, `#767676` on white 4.54:1) and a few design-language numbers.
 - [ ] `src/contrast.test.ts`: iterates every declared pair in every theme and appearance; fails with a table of failing pairs (token, background, ratio, required).
-- [ ] `src/high-contrast.browser.test.ts` (Vitest browser mode, Chromium, Firefox, WebKit): applies `[data-theme="high-contrast"]`, reads computed system colours with `getComputedStyle`, and checks the same pairs; forced-colors rendering itself is screenshot-tested in [U6f](./U6f-gallery-and-visual-tests.md).
+- [ ] `src/high-contrast.browser.test.ts` (Vitest browser mode, Chromium, Firefox, WebKit): applies `[data-theme="high-contrast"]`, reads computed system colours with `getComputedStyle`, and checks the same pairs; forced-colors rendering itself is screenshot-tested in [U6f](../ready/U6f-gallery-and-visual-tests.md).
 - [ ] Tests that annotation colours are identical in every theme and appearance block, that every semantic token exists in every theme (no missing key falls back silently), and that no component token points at a primitive directly when a semantic one exists.
 - [ ] Wire `pnpm --filter @laminapdf/tokens generate --check` into the package's `test` script so `cargo xtask check ts` catches stale output; add the generated paths to `.gitattributes`.
 - [ ] Apply the owner's answers: approved values get `status: "approved"`; changed values are changed in the JSON, the design language and (noted for the next canvas edit) the canvases; refused values are replaced before merge.
@@ -93,14 +93,14 @@ None.
 ## Docs to update
 
 - [Design language](../../design/paper/design-language.md): the header's **Source of truth** line and the intro to §2–§4 say that values now come from `packages/tokens/tokens.json` (linked) and that the tables are a readable copy; remove the **(proposed)** markers for approved values (or note the approval date); fix any ratio the test computed differently.
-- [Paper design plan §9](../../plans/paper-design.md#9-to-dos): tick "Owner sign-off on proposed values (U6a)"; leave the combined U6 line for [U6f](./U6f-gallery-and-visual-tests.md); update §3 ("Values marked (proposed) … need sign-off in U6a") to say they were signed off.
+- [Paper design plan §9](../../plans/paper-design.md#9-to-dos): tick "Owner sign-off on proposed values (U6a)"; leave the combined U6 line for [U6f](../ready/U6f-gallery-and-visual-tests.md); update §3 ("Values marked (proposed) … need sign-off in U6a") to say they were signed off.
 - `packages/tokens/README.md` (new). `CLAUDE.md` repository layout: add `packages/` with `tokens/` (the first package, if no other package has landed yet).
 - `docs/guidelines/typescript.md` only if the package needs a rule exception (for example CSS side effects).
 
 ## Risks and open questions
 
 - **Owner availability gates merge.** Ask on the first day; if some answers take long, land approved values and keep the PR open rather than merging `proposed` ones (the "no proposed status" test makes that explicit).
-- **High contrast** is a mapping to system colours, so its contrast depends on the user's OS palette; we can only test the browsers' defaults in normal mode. The `forced-colors` screenshots in [U6f](./U6f-gallery-and-visual-tests.md) and C7a's manual pass cover the rest. Decide with the owner whether an explicit "High contrast" choice without OS forced colours needs its own fixed palette (recommendation: no; system colours resolve to black/white defaults, which pass).
+- **High contrast** is a mapping to system colours, so its contrast depends on the user's OS palette; we can only test the browsers' defaults in normal mode. The `forced-colors` screenshots in [U6f](../ready/U6f-gallery-and-visual-tests.md) and C7a's manual pass cover the rest. Decide with the owner whether an explicit "High contrast" choice without OS forced colours needs its own fixed palette (recommendation: no; system colours resolve to black/white defaults, which pass).
 - **DTCG format version**: the spec changed several times before its first stable version; pin the version you follow in the README and keep the generator tolerant of `$type` inheritance.
 - **Token names in ADR 0024 vs the design language** may differ (e.g. `text-2` vs `text-secondary`); the ADR wins, and the design language is updated in this PR.
 - **The canvases keep literal hex values**; they drift when tokens change. The paper-design plan's §5 rule 3 makes the canvas follow the tokens at its next edit; list changed values in the PR so the canvas owner can update them.

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6a](./U6a-paper-tokens.md), [U6c](./U6c-icon-set.md) |
+| Depends on | [U6a](../ongoing/U6a-paper-tokens.md), [U6c](./U6c-icon-set.md) |
 | Blocks | [U6e](./U6e-overlays-and-sheets.md) |
 | ADRs | Follows 0024 (component rules, selection surfaces, touch targets; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, the accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for new dependencies |
 | Branch | `feat/u6d-core-components` |
@@ -23,7 +23,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - Design language [§7 Components](../../design/paper/design-language.md#7-components): [§7.0 shared states](../../design/paper/design-language.md#70-shared-states), [§7.2 mode switcher](../../design/paper/design-language.md#72-mode-switcher), [§7.3 icon button](../../design/paper/design-language.md#73-icon-button), [§7.4 text buttons](../../design/paper/design-language.md#74-text-buttons), [§7.5 segmented tabs](../../design/paper/design-language.md#75-segmented-tabs-rail-tabs), [§7.6 thumbnail](../../design/paper/design-language.md#76-thumbnail), [§7.7 outline row](../../design/paper/design-language.md#77-outline-row), [§7.8 status bar items](../../design/paper/design-language.md#78-status-bar-items), [§7.12 colour swatches](../../design/paper/design-language.md#712-colour-swatches), [§7.19 form controls](../../design/paper/design-language.md#719-form-controls-proposed-consistent-with-the-page-input-and-note-field), [§7.20 toast and notice](../../design/paper/design-language.md#720-toast-and-notice-proposed), [§7.21 empty state](../../design/paper/design-language.md#721-empty-state-proposed), [§7.22 progress](../../design/paper/design-language.md#722-progress-proposed), [§7.23 badge and tag](../../design/paper/design-language.md#723-badge-and-tag-proposed), [§7.24 tool toggle](../../design/paper/design-language.md#724-secondary-toolbar-tool-toggle), [§7.25 page-appearance chips](../../design/paper/design-language.md#725-page-appearance-chips); the HTML snippets there are the reference markup.
 - Design language [§8.7 touch rules](../../design/paper/design-language.md#87-touch-rules), [§8.8 keyboard](../../design/paper/design-language.md#88-keyboard-and-shortcuts), [§8.9 accessibility checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa), [§9 writing style](../../design/paper/design-language.md#9-writing-style).
 - Design: the Paper foundation boards F01–F05 in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards) (F05 is the style tile).
-- [U6a](./U6a-paper-tokens.md) (tokens; components read only semantic and component tokens through `var(--paper-…)`), [U6c](./U6c-icon-set.md) (`<Icon>`), [U6b](./U6b-self-hosted-fonts.md) (fonts; not a dependency, the fallback stack works until it lands).
+- [U6a](../ongoing/U6a-paper-tokens.md) (tokens; components read only semantic and component tokens through `var(--paper-…)`), [U6c](./U6c-icon-set.md) (`<Icon>`), [U6b](./U6b-self-hosted-fonts.md) (fonts; not a dependency, the fallback stack works until it lands).
 - [C4a](./C4a-ui-chrome-and-platform.md) — plans `packages/ui` with React 19, the React Compiler, the primitives library (recommendation React Aria Components), a message catalogue and a `tokens.css`; see Risks for the order between C4a and this todo.
 - [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) and [§5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (24 px desktop and 44 px touch targets); [TypeScript guidelines](../../guidelines/typescript.md); [code organization §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction).
 - WCAG 2.2 SC 1.4.11, 2.4.7, 2.4.11, 2.5.8 and 4.1.2; WAI-ARIA APG patterns: button and toggle button, tabs, radio group, checkbox, switch.
@@ -98,7 +98,7 @@ None.
 ## Docs to update
 
 - `packages/ui/README.md` (new or extended).
-- [Design language §7](../../design/paper/design-language.md#7-components): link each section to its component; record any deviation found while building (exact spacing, state details) and drop **(proposed)** where the owner approved it in [U6a](./U6a-paper-tokens.md).
+- [Design language §7](../../design/paper/design-language.md#7-components): link each section to its component; record any deviation found while building (exact spacing, state details) and drop **(proposed)** where the owner approved it in [U6a](../ongoing/U6a-paper-tokens.md).
 - `CLAUDE.md` layout: `packages/ui` (if this PR creates it).
 
 ## Risks and open questions
@@ -106,7 +106,7 @@ None.
 - **Order with C4a (decided here: U6d before C4a).** C4a creates `@laminapdf/ui` and its chrome; built first, its buttons, dialogs and `tokens.css` would be restyled and partly rewritten once U6d and [U6e](./U6e-overlays-and-sheets.md) land. Building the components first avoids that rework at little schedule cost: C4a also waits for [C3b](../done/C3b-viewer-virtualiser-and-zoom.md)'s viewer, which is the longer path, and U6a–U6e need only U1a. So this todo does **not** depend on C4a; it creates `packages/ui` itself, and **C4a should depend on [U6e](./U6e-overlays-and-sheets.md)** (which needs U6d), drop its own scaffold and `tokens.css` tasks, and compose these components (its `PasswordDialog` uses U6e's dialog). Update C4a's **Depends on** in the claim PR of this todo (or in a board-only PR) so the board shows the order.
 - **Primitives library**: if ADR 0009 does not name one, decide here (React Aria Components recommended) and amend ADR 0009 in this PR; it is a long-lived dependency.
 - **Size**: the list is long. If the PR passes ~800 lines, split into U6d-a (buttons, toggles, mode switcher, tabs, form controls, swatches, chips) and U6d-b (badges, notices, progress, empty state, status items, thumbnail, outline row) with a board-only PR.
-- **Proposed styles** (§7.19–§7.23) depend on the owner's sign-off in [U6a](./U6a-paper-tokens.md); if a style changes later, only its CSS changes.
+- **Proposed styles** (§7.19–§7.23) depend on the owner's sign-off in [U6a](../ongoing/U6a-paper-tokens.md); if a style changes later, only its CSS changes.
 - **Mode switcher keyboard model** (roving focus vs Tab stops) must match ADR 0024 and U1c; settle it in this PR and note it in the design language.
 
 ## Definition of done

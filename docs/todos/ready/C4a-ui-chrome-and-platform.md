@@ -59,7 +59,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 - [ ] Zoom control: percentage input + menu; keyboard operable; reflects viewer state.
 - [ ] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password; `autocomplete="off"`.
 - [ ] Error/repair UI: maps ADR 0003 warning and error codes (`fixtures/codes.json`) to messages; "repaired" notice is dismissible; unsupported-feature list expandable.
-- [ ] Use `@laminapdf/tokens` ([U6a](./U6a-paper-tokens.md)) for all styles and compose the shell from `@laminapdf/ui`'s Paper components and overlays ([U6d](./U6d-core-components.md), [U6e](./U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
+- [ ] Use `@laminapdf/tokens` ([U6a](../ongoing/U6a-paper-tokens.md)) for all styles and compose the shell from `@laminapdf/ui`'s Paper components and overlays ([U6d](./U6d-core-components.md), [U6e](./U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
 - [ ] README with the component map and how desktop supplies its own `Platform`.
 
 ## Acceptance criteria

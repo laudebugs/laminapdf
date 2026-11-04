@@ -66,7 +66,7 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 
 **Deliverable:** tokens package (light, dark, high contrast, page appearances), self-hosted fonts, the icon set, core components and overlays in `@laminapdf/ui`, and a component gallery with visual and accessibility tests.
 **Accepted when:** every component in the design language exists with its states; contrast pairs are tested in CI; the gallery renders each component in each theme and screenshot tests guard them; no font or icon is fetched from a third-party host at runtime (the network indicator stays at 0).
-**Todos:** [U6a](../todos/ready/U6a-paper-tokens.md) (tokens), [U6b](../todos/ready/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/ready/U6c-icon-set.md) (icons), [U6d](../todos/ready/U6d-core-components.md) (core components), [U6e](../todos/ready/U6e-overlays-and-sheets.md) (dialogs, sheets, menus, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
+**Todos:** [U6a](../todos/ongoing/U6a-paper-tokens.md) (tokens), [U6b](../todos/ready/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/ready/U6c-icon-set.md) (icons), [U6d](../todos/ready/U6d-core-components.md) (core components), [U6e](../todos/ready/U6e-overlays-and-sheets.md) (dialogs, sheets, menus, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
 
 ### Changes to existing todos
 
