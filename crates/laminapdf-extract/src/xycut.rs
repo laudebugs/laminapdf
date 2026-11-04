@@ -1,11 +1,14 @@
 //! Reading order from the layout: XY-Cut++ ([ADR 0030] §2; Nagy and Seth's recursive cuts with
 //! [XY-Cut++]'s masking of cross-column blocks).
 //!
-//! Blocks wider than [`WIDE`] of the page's text and sharing no height with a narrower block
-//! (titles, full-width figures and paragraphs) are masked first: they split the page into
+//! Blocks wider than [`WIDE`] of the page's text that span two columns of narrower blocks and
+//! share no height with a narrower block (titles, full-width figures and paragraphs over
+//! columns) are masked first: they split the page into
 //! bands, each band is cut on its own, and the masked blocks go back between the bands. A band
-//! is cut recursively at the widest gap in the projection of its boxes, a column gap before a
-//! row gap on a tie; a group with no gap reads top to bottom.
+//! is cut recursively at the widest gap in the projection of its boxes: a column gap first, so
+//! paragraphs whose breaks line up across columns still read column by column, unless every
+//! block in the group is one line (a grid such as a table), which reads row by row. A group
+//! with no gap reads top to bottom.
 //!
 //! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 //! [XY-Cut++]: https://arxiv.org/abs/2504.10258
@@ -36,6 +39,8 @@ enum Axis {
 
 struct Cutter<'a> {
     boxes: &'a [RectPt],
+    /// How many lines each block has.
+    lines: &'a [usize],
     rtl: bool,
     max_depth: u32,
     cancel: &'a CancelToken,
@@ -45,15 +50,18 @@ fn rect(boxes: &[RectPt], i: usize) -> RectPt {
     boxes.get(i).copied().unwrap_or_default()
 }
 
-/// The reading order of `boxes` (indices), columns right to left when `rtl`.
+/// The reading order of `boxes` (indices), whose blocks have `lines` lines each, columns right
+/// to left when `rtl`.
 pub(crate) fn order(
     boxes: &[RectPt],
+    lines: &[usize],
     rtl: bool,
     max_depth: u32,
     cancel: &CancelToken,
 ) -> Result<Vec<usize>, Cancelled> {
     let cutter = Cutter {
         boxes,
+        lines,
         rtl,
         max_depth,
         cancel,
@@ -91,16 +99,27 @@ impl Cutter<'_> {
         });
         let width = x1 - x0;
         let wide = |i: usize| rect(self.boxes, i).width().get() >= WIDE * width;
+        let narrow: Vec<RectPt> = all
+            .iter()
+            .filter(|&&i| !wide(i))
+            .map(|&i| rect(self.boxes, i))
+            .collect();
+        let under = |r: &RectPt, o: &RectPt| o.x0 < r.x1 && o.x1 > r.x0;
+        // Two narrow blocks side by side under `r`: it crosses a column gap.
+        let crosses = |r: &RectPt| {
+            narrow.iter().filter(|o| under(r, o)).any(|a| {
+                narrow
+                    .iter()
+                    .filter(|o| under(r, o))
+                    .any(|b| a.x1 <= b.x0 || b.x1 <= a.x0)
+            })
+        };
         let mut masked: Vec<usize> = all
             .iter()
             .copied()
             .filter(|&i| {
                 let r = rect(self.boxes, i);
-                wide(i)
-                    && all.iter().all(|&j| {
-                        let o = rect(self.boxes, j);
-                        wide(j) || o.y1 <= r.y0 || o.y0 >= r.y1
-                    })
+                wide(i) && crosses(&r) && narrow.iter().all(|o| o.y1 <= r.y0 || o.y0 >= r.y1)
             })
             .collect();
         masked.sort_by(|&a, &b| self.reading(a, b));
@@ -157,10 +176,11 @@ impl Cutter<'_> {
         }
         let columns = self.gap(&group, Axis::Columns);
         let rows = self.gap(&group, Axis::Rows);
+        let grid = group.iter().all(|&i| self.lines.get(i).copied().unwrap_or(1) <= 1);
         let axis = match (columns, rows) {
-            (Some((c, _)), Some((r, _))) if c >= r => Some((Axis::Columns, columns)),
-            (Some(_), None) => Some((Axis::Columns, columns)),
-            (_, Some(_)) => Some((Axis::Rows, rows)),
+            (Some(_), Some(_)) if grid => Some((Axis::Rows, rows)),
+            (Some(_), _) => Some((Axis::Columns, columns)),
+            (None, Some(_)) => Some((Axis::Rows, rows)),
             (None, None) => None,
         };
         let Some((axis, Some((_, at)))) = axis else {
@@ -196,8 +216,9 @@ mod tests {
         RectPt::from_points(x, y, w, h)
     }
 
+    /// Paragraphs: three lines each.
     fn run(boxes: &[RectPt], rtl: bool) -> Vec<usize> {
-        order(boxes, rtl, 64, &CancelToken::new()).unwrap_or_default()
+        order(boxes, &vec![3; boxes.len()], rtl, 64, &CancelToken::new()).unwrap_or_default()
     }
 
     #[test]
@@ -210,6 +231,32 @@ mod tests {
             r(320.0, 240.0, 220.0, 40.0),
         ];
         assert_eq!(run(&boxes, false), [0, 2, 1, 3]);
+    }
+
+    #[test]
+    fn columns_come_first_even_when_paragraph_breaks_line_up() {
+        // The breaks between 0/2 and 1/3 leave a wider row gap than the gutter.
+        let boxes = [
+            r(50.0, 100.0, 220.0, 100.0),
+            r(300.0, 100.0, 220.0, 100.0),
+            r(50.0, 330.0, 220.0, 100.0),
+            r(300.0, 330.0, 220.0, 100.0),
+        ];
+        assert_eq!(run(&boxes, false), [0, 2, 1, 3]);
+    }
+
+    #[test]
+    fn a_grid_of_one_line_cells_reads_row_by_row() {
+        let boxes = [
+            r(56.0, 90.0, 120.0, 12.0),
+            r(216.0, 90.0, 120.0, 12.0),
+            r(56.0, 130.0, 120.0, 12.0),
+            r(216.0, 130.0, 120.0, 12.0),
+        ];
+        assert_eq!(
+            order(&boxes, &[1; 4], false, 64, &CancelToken::new()),
+            Ok(vec![0, 1, 2, 3])
+        );
     }
 
     #[test]
@@ -254,7 +301,7 @@ mod tests {
     #[test]
     fn a_depth_limit_falls_back_to_top_to_bottom() {
         let boxes = [r(320.0, 100.0, 200.0, 50.0), r(50.0, 120.0, 200.0, 50.0)];
-        assert_eq!(order(&boxes, false, 0, &CancelToken::new()), Ok(vec![0, 1]));
+        assert_eq!(order(&boxes, &[3, 3], false, 0, &CancelToken::new()), Ok(vec![0, 1]));
     }
 
     #[test]
@@ -262,6 +309,6 @@ mod tests {
         let cancel = CancelToken::new();
         cancel.cancel();
         let boxes = [r(50.0, 100.0, 220.0, 80.0), r(320.0, 100.0, 220.0, 80.0)];
-        assert_eq!(order(&boxes, false, 64, &cancel), Err(Cancelled));
+        assert_eq!(order(&boxes, &[3, 3], false, 64, &cancel), Err(Cancelled));
     }
 }

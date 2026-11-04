@@ -35,6 +35,7 @@ serde = { workspace = true, optional = true }
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 
 [lints]

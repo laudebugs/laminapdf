@@ -9,7 +9,7 @@ use laminapdf_text::extract::PageText;
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
 use crate::lines::{Line, Piece, lines, mostly_rtl};
-use crate::model::{Block, BlockKind, Coordinates, Dropped, PageInfo, Span};
+use crate::model::{Block, BlockKind, Coordinates, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::text_fix::{decompose_ligatures, join_lines};
 use crate::visibility::{flags, normalised};
@@ -18,7 +18,7 @@ use crate::xycut;
 /// What one page gave.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PageOut {
-    pub(crate) info: PageInfo,
+    pub(crate) info: ExtractedPage,
     pub(crate) blocks: Vec<Block>,
     pub(crate) dropped: Vec<Dropped>,
 }
@@ -126,7 +126,8 @@ fn ordered(
         }
         ReadingOrder::Auto | ReadingOrder::Layout => {
             let boxes: Vec<_> = drafts.iter().map(|d| d.bbox).collect();
-            xycut::order(&boxes, rtl, options.limits.max_xycut_depth, cancel)
+            let counts: Vec<_> = drafts.iter().map(|d| d.lines.len()).collect();
+            xycut::order(&boxes, &counts, rtl, options.limits.max_xycut_depth, cancel)
                 .map_err(|xycut::Cancelled| ExtractError::Cancelled)?
         }
     };
@@ -147,7 +148,7 @@ pub(crate) fn extract_page(
     cancel: &CancelToken,
 ) -> Result<PageOut, ExtractError> {
     let frame = &text.frame;
-    let info = PageInfo {
+    let info = ExtractedPage {
         index,
         number: index.saturating_add(1),
         label: page.label()?,

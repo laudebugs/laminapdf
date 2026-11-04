@@ -44,7 +44,7 @@ mod xycut;
 pub use error::ExtractError;
 pub use job::{ExtractJob, extract, extract_job};
 pub use model::{
-    Block, BlockKind, Coordinates, DropReason, Dropped, Extraction, Flags, PageInfo, SCHEMA, Source, Span, StructRef,
-    StructSource,
+    Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags, SCHEMA,
+    Span, StructRef, StructSource,
 };
 pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder};

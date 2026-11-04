@@ -1241,6 +1241,7 @@ dependencies = [
  "laminapdf-build",
  "laminapdf-cos",
  "laminapdf-model",
+ "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "laminapdf-text",

@@ -17,9 +17,9 @@ pub const SCHEMA: &str = "laminapdf.extract/1";
 #[non_exhaustive]
 pub struct Extraction {
     /// What was read.
-    pub source: Source,
+    pub source: ExtractedSource,
     /// The pages extracted, in the order asked for.
-    pub pages: Vec<PageInfo>,
+    pub pages: Vec<ExtractedPage>,
     /// Every block of those pages, page by page, each page's in reading order.
     pub blocks: Vec<Block>,
     /// What was left out of the text, and why.
@@ -30,7 +30,7 @@ pub struct Extraction {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[non_exhaustive]
-pub struct Source {
+pub struct ExtractedSource {
     /// The input's SHA-256 in hex: filled by the caller that holds the bytes (the façade), since
     /// a windowed source can't be hashed without reading it whole.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
@@ -66,7 +66,7 @@ pub enum StructSource {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
 #[non_exhaustive]
-pub struct PageInfo {
+pub struct ExtractedPage {
     /// 0-based.
     pub index: usize,
     /// 1-based, as people count.
@@ -338,9 +338,12 @@ mod ser {
         (v * 1000.0).round() / 1000.0
     }
 
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's serialize_with passes a reference"
+    #[cfg_attr(
+        target_pointer_width = "64",
+        expect(
+            clippy::trivially_copy_pass_by_ref,
+            reason = "serde's serialize_with passes a reference (as wide as a Pt here)"
+        )
     )]
     pub(super) fn pt<S: Serializer>(v: &Pt, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(round(v.get()))

@@ -8,7 +8,7 @@ use laminapdf_syntax::{Budget, CancelToken, Phase, Step};
 use laminapdf_text::TextExtractor;
 
 use crate::error::ExtractError;
-use crate::model::{Extraction, Source, StructSource};
+use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
 
@@ -43,7 +43,7 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
         ReadingOrder::ContentStream => StructSource::Content,
         ReadingOrder::Auto | ReadingOrder::Layout => StructSource::XyCut,
     };
-    let source = Source {
+    let source = ExtractedSource {
         sha256: None,
         page_count: count,
         tagged: doc.is_tagged()?,
