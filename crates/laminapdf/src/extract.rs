@@ -1,4 +1,4 @@
-//! Text extraction (todos B9b, B9d; feature `extract`, which `text` implies): [`Document::page_text`](crate::Document::page_text)
+//! Text extraction (feature `extract`, which `text` implies): [`Document::page_text`](crate::Document::page_text)
 //! returns a page's [`PageText`]: glyphs with their text, codes and boxes in page space
 //! (ADR 0027), runs with their font, size, MCID and `ActualText`, and [`PageText::lines`].
 //!

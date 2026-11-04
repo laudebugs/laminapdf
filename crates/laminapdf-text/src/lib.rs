@@ -1,4 +1,4 @@
-//! Fonts and text layout for generated PDFs (todos B4a, B4b, B4d; [ADR 0005] §6): load TrueType/OpenType/CFF fonts and
+//! Fonts and text layout for generated PDFs ([ADR 0005] §6): load TrueType/OpenType/CFF fonts and
 //! collection members from caller-supplied bytes, pick variable-font instances, track the
 //! glyphs a document uses, and at the end write each font as a deterministic subset: a Type 0
 //! font with Identity-H, a `CIDFontType2` (TrueType outlines, `/FontFile2`,
@@ -38,7 +38,7 @@
 //!   the bytes to show ([`GlyphCode`]: a two-byte CID or a one-byte code),
 //!   [`FontRegistry::usage`] reports what was drawn ([`FontUsage`]), and
 //!   [`FontRegistry::finish_fonts`] writes every font through a [`laminapdf_cos::CosMut`].
-//! * [`Font::standard`] / [`Standard14`] (B4c): the standard 14 fonts by name, with Adobe's
+//! * [`Font::standard`] / [`Standard14`]: the standard 14 fonts by name, with Adobe's
 //!   AFM metrics bundled ([`AfmMetrics`]); [`Font::requires_embedding`] is `false` for them.
 //!   They are written as non-embedded `/Type1` simple fonts: one-byte codes in
 //!   `WinAnsiEncoding` (other Latin glyphs through `/Differences`, [`SimpleUse`]) or the
@@ -50,7 +50,7 @@
 //! Subset tags are six letters derived from a SHA-256 of the font bytes and the glyphs in
 //! CID order, so the same text in the same font gives byte-identical output.
 //!
-//! Text layout (B4b; research 03 §7), for the builder to draw with:
+//! Text layout (research 03 §7), for the builder to draw with:
 //!
 //! * [`Shaper`] / [`HarfRust`]: characters → [`ShapedRun`]s of glyphs with clusters,
 //!   advances and offsets, with [`ShapeOptions`] (script, language, direction, [`Feature`]s
@@ -83,9 +83,10 @@
 //! # Ok::<(), laminapdf_text::Error>(())
 //! ```
 //!
-//! The `surface.text()` API (B5b) builds on this crate. It is part of Lamina PDF's pure core:
-//! bytes in, bytes out, no file system, network, clocks or threads; font bytes are parsed by
-//! `skrifa`/`read-fonts` and `subsetter`, which bounds-check every read.
+//! The builder's `surface.text()` (`laminapdf-build`) builds on this crate. It is part of
+//! Lamina PDF's pure core: bytes in, bytes out, no file system, network, clocks or threads;
+//! font bytes are parsed by `skrifa`/`read-fonts` and `subsetter`, which bounds-check every
+//! read.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #![forbid(unsafe_code)]

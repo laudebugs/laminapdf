@@ -1,5 +1,5 @@
 // What both adapters' browser runs share: fixtures fetched as Vite assets and PNGs decoded by
-// the browser itself (for C2b's goldens).
+// the browser itself (for the native render goldens).
 import type { Decoded } from "@laminapdf/test-utils/render-contract";
 
 /** A reader over `urls` (an eager `import.meta.glob` of `?url` imports, keyed relative to `prefix`). */

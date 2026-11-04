@@ -7,9 +7,11 @@
 //! allocates more than one tile.
 //!
 //! hayro can't be paused, so the cancel token is checked before and after each call. An engine
-//! panic (C1a saw one) is caught where unwinding is available and reported as `render-failed`.
+//! panic (seen on a tiling pattern with large steps) is caught where unwinding is available and
+//! reported as `render-failed`.
 //!
-//! Known differences from PDFium, which the oracle diff (X3b) must compare with default flags:
+//! Known differences from PDFium, so the nightly hayro-vs-PDFium diff (`cargo xtask render-diff`)
+//! must compare with default flags:
 //! hayro has no print intent (`print` is ignored) and no switch for widgets alone (it draws
 //! them with the other annotations, so `form_widgets: false` is ignored too). A
 //! [`RenderCache`] lives for one call: its lifetime is tied to the page borrowed from the

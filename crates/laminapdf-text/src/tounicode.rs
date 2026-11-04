@@ -12,7 +12,7 @@
 //! Destinations are UTF-16BE; a character outside the BMP becomes a surrogate pair. A
 //! destination stops at 512 bytes without splitting a pair. An empty text is `<code> <>`,
 //! for a code that stands for no text, such as the second glyph of a cluster whose first
-//! carries the text (B4b).
+//! carries the text.
 
 use std::fmt::Write as _;
 

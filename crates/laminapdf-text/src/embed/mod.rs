@@ -346,7 +346,7 @@ impl FontRegistry {
     }
 
     /// The CID of glyph `gid` of `key`, recorded as used without claiming any text
-    /// ([`FontUse`]'s `glyph_cid`, B4b).
+    /// ([`FontUse`]'s `glyph_cid`).
     ///
     /// # Errors
     /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`]; [`Error::FontNotShapable`] for a
@@ -362,9 +362,9 @@ impl FontRegistry {
     }
 
     /// Encodes `text` one glyph per character through the font's `cmap` (no shaping: ligatures
-    /// and complex scripts need B4b's shaper, which calls [`FontRegistry::use_glyph`]). A
-    /// standard 14 font maps characters to glyphs by name (Adobe Glyph List) and writes one
-    /// byte per character.
+    /// and complex scripts need [`Shaper`](crate::Shaper), whose glyphs go through
+    /// [`FontRegistry::use_glyph`]). A standard 14 font maps characters to glyphs by name
+    /// (Adobe Glyph List) and writes one byte per character.
     ///
     /// # Errors
     /// [`Error::UnknownFont`]; [`Error::MissingGlyph`] for the first character the font has no

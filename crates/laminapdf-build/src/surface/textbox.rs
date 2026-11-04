@@ -1,5 +1,5 @@
-//! Text boxes: a paragraph broken into lines that fit a rectangle (todo B5b; research 03
-//! §7.4), with `laminapdf-text`'s greedy, bidi-aware layout.
+//! Text boxes: a paragraph broken into lines that fit a rectangle (research 03 §7.4), with
+//! `laminapdf-text`'s greedy, bidi-aware layout.
 
 use std::ops::Range;
 

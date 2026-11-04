@@ -30,8 +30,8 @@ pub enum Limit {
     /// [`Limits::max_page_tree_depth`]. The only reader of the page tree today is
     /// `Document::pages`, one of ADR 0003's tolerant paths: it skips a subtree past this
     /// limit with the `page-tree-node-skipped` warning (an `Error::Strict` in strict mode)
-    /// instead of returning this error (ADR 0003 §3). Typed views (Round B2c) that read the
-    /// tree outside that walk return it.
+    /// instead of returning this error (ADR 0003 §3). Typed views (`laminapdf-model`) that read
+    /// the tree outside that walk return it.
     PageTreeDepth,
     /// [`Limits::max_tree_depth`].
     TreeDepth,

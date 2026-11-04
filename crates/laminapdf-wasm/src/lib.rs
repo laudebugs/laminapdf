@@ -9,7 +9,7 @@
 //!   navigation and metadata.
 //! * **text** (`lamina_pdf_text.wasm`, feature `text`): all of the base plus fonts (`WasmFont`),
 //!   shaped text runs and text boxes, and text extraction (`WasmPage.text`).
-//! * **extract** (`lamina_pdf_extract.wasm`, feature `extract`; B9c): all of the base plus text
+//! * **extract** (`lamina_pdf_extract.wasm`, feature `extract`): all of the base plus text
 //!   extraction (`WasmPage.text`), without fonts for building or shaping.
 //!
 //! The rules the bindings follow ([ADR 0016] §7): classes are the façade's types with a

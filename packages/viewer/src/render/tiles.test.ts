@@ -1,4 +1,4 @@
-// Progressive rendering's geometry (C3b): sharp tiles over the part in view, and the low pass.
+// Progressive rendering's geometry: sharp tiles over the part in view, and the low pass.
 import { describe, expect, it } from "vitest";
 import { lowScale, tilesFor } from "./tiles.js";
 

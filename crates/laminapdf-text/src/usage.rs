@@ -8,7 +8,7 @@ use subsetter::GlyphRemapper;
 use crate::error::{Error, Result, Warning};
 use crate::font::{Font, GlyphId};
 
-/// The CIDs a glyph that stands for no text is drawn with (B4d), while they last: code points
+/// The CIDs a glyph that stands for no text is drawn with, while they last: code points
 /// of general category Cf (format characters) in the order tried. A ToUnicode CMap maps such
 /// a CID to the empty string (`<cid> <>`), which pypdf and pdftotext read as nothing; pdf.js
 /// reads an empty destination as the code itself, and skips a code that is a format
@@ -43,8 +43,8 @@ fn is_textless_slot(cid: u16) -> bool {
 /// The glyphs one font uses in a document, collected while content is written and turned into
 /// a subset at the end.
 ///
-/// Each CID (two bytes in the content stream, Identity-H) stands for one glyph and one text
-/// (B4d): a glyph drawn with two texts (a pre-base matra standing for the consonant before
+/// Each CID (two bytes in the content stream, Identity-H) stands for one glyph and one text:
+/// a glyph drawn with two texts (a pre-base matra standing for the consonant before
 /// it, the same glyph elsewhere for itself) gets two CIDs, so the ToUnicode CMap (one code,
 /// one text: ISO 32000-2 §9.10.3) maps both exactly. In a subset, glyphs are renumbered
 /// densely in order of first use, `.notdef` staying 0, and CIDs are numbered densely in order
@@ -191,9 +191,9 @@ impl FontUse {
         }
     }
 
-    /// Records that `gid` is drawn without claiming any text for it (B4b: a hidden
-    /// default-ignorable drawn as the space glyph) and returns its CID: the glyph's first
-    /// one. The CID's ToUnicode entry is whatever other uses give it.
+    /// Records that `gid` is drawn without claiming any text for it (such as the space glyph a
+    /// hidden default-ignorable is drawn with) and returns its CID: the glyph's first one. The
+    /// CID's ToUnicode entry is whatever other uses give it.
     ///
     /// # Errors
     /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.

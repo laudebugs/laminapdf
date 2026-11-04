@@ -1,11 +1,11 @@
-//! Bidirectional text (todo B4b; research 03 §7.3): the Unicode Bidirectional Algorithm,
+//! Bidirectional text (research 03 §7.3): the Unicode Bidirectional Algorithm,
 //! [UAX #9], resolves an embedding level per character (even: left to right, odd: right to
 //! left), and after line breaking each line's runs are put in visual order (rule L2). PDF has
 //! no bidi concept: content is painted in visual order with absolute positions.
 //!
-//! The algorithm is `unicode-bidi`'s; the `Bidi_Class` data is ICU4X's (`icu_properties`),
-//! the same Unicode version as the line breaker's. ICU4X ships the data but not the
-//! algorithm, so this is the pairing the todo's "or `unicode-bidi`" names.
+//! The algorithm is `unicode-bidi`'s, because ICU4X ships the data but not the algorithm. The
+//! `Bidi_Class` data is ICU4X's (`icu_properties`), so it has the same Unicode version as the
+//! line breaker's.
 //!
 //! [UAX #9]: https://www.unicode.org/reports/tr9/
 

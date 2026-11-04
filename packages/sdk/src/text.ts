@@ -1,4 +1,4 @@
-// page.text() (B9c): a page's text as runs with glyph quads. The WASM hands over a struct of
+// page.text(): a page's text as runs with glyph quads. The WASM hands over a struct of
 // arrays (runs as records, every glyph's quad in one Float32Array, every glyph's text in one
 // string); the objects here are built from it on demand, and `buffers` gives the arrays as they
 // are, to post to a worker or the main thread without copying.
@@ -96,7 +96,7 @@ export class TextRun {
   }
 }
 
-/** @internal The raw arrays of a PageText (the worker client sends them, L2a). */
+/** @internal The raw arrays of a PageText (the worker client sends them). */
 export let rawOf: (text: PageText) => PageTextJs;
 
 /** A page's extracted text: lines in reading order, and runs with their glyphs' quads. */

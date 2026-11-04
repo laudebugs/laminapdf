@@ -356,14 +356,13 @@ impl ContentKind {
 
 /// What a tagged document lacks, found while its pages were drawn
 /// ([`Builder::tagging_diagnostics`](crate::Builder::tagging_diagnostics)). Conformance profiles
-/// ([B8b]) turn these into errors; the builder itself writes the document either way.
+/// ([`BuildOptions::with_profile`](crate::BuildOptions::with_profile)) turn these into errors;
+/// the builder itself writes the document either way.
 ///
 /// The builder counts on every page whether or not the document is tagged yet, so a document
 /// that becomes tagged only when a later page uses an element still reports everything its
 /// earlier pages drew and linked as [`TagDiagnostic::Untagged`]: the list is empty only when
 /// every drawing and every link annotation has structure (or is an artifact's drawing).
-///
-/// [B8b]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B8b-conformance-profiles-and-verapdf.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum TagDiagnostic {

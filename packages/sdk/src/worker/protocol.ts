@@ -1,4 +1,4 @@
-// The worker client's wire protocol (L2a): what the page and the worker post to each other. Every
+// The worker client's wire protocol: what the page and the worker post to each other. Every
 // message is structured-cloneable; errors and warnings travel as ADR 0026 objects (a cloned
 // `Error` loses its fields), and handles (documents, pages) as numbers.
 import type { Diagnostic } from "../errors.js";

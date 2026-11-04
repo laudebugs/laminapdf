@@ -1,4 +1,4 @@
-// The viewer's methods on the document worker (C3a): the extension `entry.ts` serves, and test
+// The viewer's methods on the document worker: the extension `entry.ts` serves, and test
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";

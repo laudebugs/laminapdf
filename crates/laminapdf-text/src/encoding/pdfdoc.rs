@@ -1,5 +1,5 @@
 //! `PDFDocEncoding` as code → glyph name. The workspace has one `PDFDocEncoding` table, in
-//! `laminapdf_syntax::text` (B2c); this only names each character's glyph in the standard Latin
+//! `laminapdf_syntax::text`; this only names each character's glyph in the standard Latin
 //! character set, through the Adobe Glyph List.
 
 use laminapdf_syntax::text::{pdf_doc_decode, pdf_doc_encode};

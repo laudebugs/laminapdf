@@ -1,6 +1,6 @@
 // Loading the WebAssembly modules (ADR 0016 §2, §3): `init()` compiles and instantiates the base
 // module once; the text module is loaded by `init({ text: true })` or `loadText()`, the extract
-// module (base + text extraction, B9c) by `init({ extract: true })` or `loadExtract()`. After
+// module (base + text extraction) by `init({ extract: true })` or `loadExtract()`. After
 // that, every call is synchronous. `reset()` replaces each loaded module's instance
 // (internal/instance.ts). Each export condition supplies its own `Locate` (src/loader/), so
 // this file has no environment detection and no runtime-specific API.

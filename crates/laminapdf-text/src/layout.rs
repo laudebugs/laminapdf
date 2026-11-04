@@ -1,4 +1,4 @@
-//! Paragraph layout in a box (todo B4b; research 03 §7, §7.4, §7.6): bidi resolution,
+//! Paragraph layout in a box (research 03 §7, §7.4, §7.6): bidi resolution,
 //! itemisation, shaping, greedy line breaking at UAX #14 opportunities, per-line visual
 //! reordering (UAX #9 rule L2) and alignment.
 //!
@@ -210,7 +210,7 @@ fn paragraphs(text: &str) -> Vec<Range<usize>> {
 }
 
 impl Line {
-    /// The order to draw [`Line::runs`] in for text extraction (B4d): their indices in
+    /// The order to draw [`Line::runs`] in for text extraction: their indices in
     /// logical (reading) order, by where each run's text starts. Each run is still drawn at
     /// its own `x`, so the page looks the same in any order, but extractors that keep the
     /// order of the content stream across a font change (pypdf flushes its right-to-left

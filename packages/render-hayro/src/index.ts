@@ -1,4 +1,4 @@
-// ADR 0004's second web renderer and CI oracle (todo C2c): laminapdf-render's hayro adapter, built by
+// ADR 0004's second web renderer and CI oracle: laminapdf-render's hayro adapter, built by
 // `cargo xtask wasm` as lamina_pdf_render_hayro (crates/laminapdf-render-wasm) into @laminapdf/wasm, behind
 // @laminapdf/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
 // buffer from the source in one pass, chunk by chunk (every missing range in one `data-pending`),

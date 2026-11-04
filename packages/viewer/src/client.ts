@@ -1,4 +1,4 @@
-// The page side of the document worker (C3a, ADR 0009 §3): a ViewerClient owns one worker for one
+// The page side of the document worker (ADR 0009 §3): a ViewerClient owns one worker for one
 // document, through `@laminapdf/sdk/worker`'s client (`request` with a priority and a coalescing
 // key). On top of it:
 //
@@ -62,7 +62,7 @@ export type RestartReason = "error" | "messageerror" | "trap" | "cancelled" | "h
 export interface ViewerEvents {
   /** An ADR 0003 warning about the open document (a repaired xref, …). */
   warning: { readonly code: string; readonly message: string };
-  /** The worker started drawing a render (for the perf harness, C3c). */
+  /** The worker started drawing a render (so a performance test can see what the worker is busy with). */
   "render-start": { readonly page: number; readonly scale: number; readonly key: string };
   /** A render passed the soft timeout: offer Stop. */
   "render-slow": { readonly id: number; readonly page: number };
