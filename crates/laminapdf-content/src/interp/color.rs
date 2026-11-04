@@ -5,7 +5,7 @@ use laminapdf_cos::{Name, Object, Result};
 use super::{Frame, Interpreter, name, number};
 use crate::lexer::Op;
 use crate::resources;
-use crate::state::{Color, ColorSpace, GraphicsState};
+use crate::state::{ColorSpace, CurrentColor, GraphicsState};
 use crate::visitor::{ShadingPaint, Visitor};
 
 /// Which colour of the graphics state an operator sets.
@@ -18,7 +18,7 @@ pub(super) enum Target {
 }
 
 impl Target {
-    fn color(self, gs: &mut GraphicsState) -> &mut Color {
+    fn color(self, gs: &mut GraphicsState) -> &mut CurrentColor {
         match self {
             Self::Stroke => &mut gs.stroke,
             Self::Fill => &mut gs.fill,
@@ -27,8 +27,8 @@ impl Target {
 }
 
 /// The colour of `G`/`g`, `RG`/`rg` and `K`/`k`: a device space and its components.
-pub(super) fn device_color(space: ColorSpace, args: &[Object]) -> Color {
-    let mut color = Color::initial(space);
+pub(super) fn device_color(space: ColorSpace, args: &[Object]) -> CurrentColor {
+    let mut color = CurrentColor::initial(space);
     color.components = args.iter().map(number).collect();
     color
 }
@@ -50,7 +50,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
 
     /// The colour `CS`/`cs` sets: the space and its initial colour (§8.6.8). A named space
     /// that is missing or not a colour space keeps its name, with no components.
-    fn color_space(&mut self, frame: &Frame, op: &Op<'_>, n: &Name) -> Result<Color> {
+    fn color_space(&mut self, frame: &Frame, op: &Op<'_>, n: &Name) -> Result<CurrentColor> {
         let space = match n.as_bytes() {
             b"DeviceGray" => ColorSpace::DeviceGray,
             b"DeviceRGB" => ColorSpace::DeviceRgb,
@@ -62,7 +62,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
                     Some(found) => resources::initial_components(self.doc, &found.value)?,
                     None => None,
                 };
-                let mut color = Color::initial(ColorSpace::Named(n.clone()));
+                let mut color = CurrentColor::initial(ColorSpace::Named(n.clone()));
                 match components {
                     Some(components) => color.components = components,
                     None => self.missing(frame, op, "ColorSpace")?,
@@ -70,7 +70,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
                 return Ok(color);
             }
         };
-        Ok(Color::initial(space))
+        Ok(CurrentColor::initial(space))
     }
 
     /// `SC`, `SCN`, `sc` and `scn`: components, then a pattern name for `SCN`/`scn`. A pattern

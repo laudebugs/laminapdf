@@ -2,11 +2,12 @@
 //! `M`, `ri`, `i` and `cm`) are one-line arms in [`Interpreter::execute`].
 
 use laminapdf_cos::{Error, Limit, Object, Result, Warning};
+use laminapdf_model::Dash;
 
 use super::{Frame, Interpreter, in_content, integer, name, number, offset_u64};
 use crate::lexer::Op;
 use crate::resources;
-use crate::state::{Dash, FontRef, GraphicsState};
+use crate::state::{FontRef, GraphicsState};
 use crate::visitor::{GraphicsStateParams, Visitor};
 
 fn dash(array: &[Object], phase: f64) -> Dash {

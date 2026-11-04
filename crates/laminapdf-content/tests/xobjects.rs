@@ -51,7 +51,7 @@ fn a_form_runs_with_its_matrix_and_reports_enter_and_leave() {
     // [1 0 0 1 50 60] × [2 0 0 2 0 0] = [2 0 0 2 100 120]
     assert_eq!(
         (*depth, *ctm, rec.events.last().map(|e| matches!(e, Event::Leave(_)))),
-        (1, Matrix::new(2.0, 0.0, 0.0, 2.0, 100.0, 120.0), Some(true))
+        (1, Matrix::new([2.0, 0.0, 0.0, 2.0, 100.0, 120.0]), Some(true))
     );
 }
 
@@ -177,7 +177,7 @@ fn an_image_xobject_is_reported_with_the_ctm() {
         rec.events,
         [Event::Image {
             inline: false,
-            ctm: Matrix::new(100.0, 0.0, 0.0, 50.0, 10.0, 10.0)
+            ctm: Matrix::new([100.0, 0.0, 0.0, 50.0, 10.0, 10.0])
         }]
     );
 }
@@ -262,7 +262,7 @@ fn an_indirect_form_matrix_is_applied() {
     });
     let (_, rec) = run(&doc);
     assert!(
-        matches!(rec.events.first(), Some(Event::Enter { ctm, .. }) if *ctm == Matrix::new(2.0, 0.0, 0.0, 2.0, 0.0, 0.0))
+        matches!(rec.events.first(), Some(Event::Enter { ctm, .. }) if *ctm == Matrix::new([2.0, 0.0, 0.0, 2.0, 0.0, 0.0]))
     );
 }
 

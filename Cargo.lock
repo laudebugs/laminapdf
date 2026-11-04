@@ -1271,6 +1271,7 @@ dependencies = [
  "boon",
  "hayro",
  "laminapdf-cos",
+ "laminapdf-model",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "serde_json",

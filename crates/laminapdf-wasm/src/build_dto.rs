@@ -268,10 +268,7 @@ pub(crate) fn stroke_style(
         cap,
         join,
         miter_limit,
-        dash: (!dash.is_empty()).then(|| Dash {
-            array: dash.iter().copied().map(Pt::new).collect(),
-            phase: Pt::new(phase),
-        }),
+        dash: (!dash.is_empty()).then(|| Dash::new(dash.to_vec(), phase)),
     }
 }
 

@@ -12,14 +12,16 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Position, Result, Warning};
+use laminapdf_model::FillRule;
 
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
-use crate::state::{ColorSpace, GraphicsState, Matrix};
-use crate::visitor::{FillRule, Paint, PathSegment, Visitor};
+use crate::state::{ColorSpace, GraphicsState};
+use crate::visitor::{Paint, PathSegment, Visitor};
 use color::{Target, device_color};
 use graphics_state::set_dash;
+use laminapdf_model::Matrix;
 use marked::Mark;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
 
@@ -379,7 +381,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             // Special graphics state.
             Operator::Save => self.save(frame, op)?,
             Operator::Restore => self.restore(frame, op)?,
-            Operator::Transform => frame.gs.ctm = matrix(args).multiply(&frame.gs.ctm),
+            Operator::Transform => frame.gs.ctm = matrix(args).then(&frame.gs.ctm),
             // Path construction (§8.5.2).
             Operator::MoveTo => self.segment(frame, op, move_to(args)),
             Operator::LineTo => self.segment(frame, op, line_to(args)),

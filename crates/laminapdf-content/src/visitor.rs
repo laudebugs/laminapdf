@@ -1,11 +1,11 @@
 //! The [`Visitor`] trait and the events the interpreter reports to it.
 
 use laminapdf_cos::Warning;
-use laminapdf_model::UserSpaceRect;
+use laminapdf_model::{FillRule, Matrix, UserSpaceRect};
 use laminapdf_syntax::{Dict, Name, ObjRef, Object};
 
 use crate::lexer::{InlineImage, Op};
-use crate::state::{FontRef, GraphicsState, Matrix, TextAdvance};
+use crate::state::{FontRef, GraphicsState, TextAdvance};
 
 /// Receives what a content stream draws, in content order (ADR 0023).
 ///
@@ -131,15 +131,6 @@ pub enum PathSegment {
     },
 }
 
-/// A fill rule (§8.5.3.3).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum FillRule {
-    /// Nonzero winding number.
-    NonZero,
-    /// Even-odd.
-    EvenOdd,
-}
-
 /// How a path is painted (§8.5.3, Table 59).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Paint {
@@ -240,11 +231,7 @@ impl<'s> TextShow<'s> {
     /// `Trm = [Tfs·Th 0 0 Tfs 0 Trise] × Tm × CTM` (§9.4.4).
     #[must_use]
     pub fn rendering_matrix(&self) -> Matrix {
-        self.state
-            .text
-            .text_space_matrix()
-            .multiply(&self.tm)
-            .multiply(&self.state.ctm)
+        self.state.text.text_space_matrix().then(&self.tm).then(&self.state.ctm)
     }
 }
 

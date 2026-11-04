@@ -167,8 +167,8 @@ impl RenderDocument for HayroDocument {
         }
 
         // initial_transform(true) is the displayed page space (points, y down, /Rotate applied).
-        let transform =
-            Affine::new(plan.page_to_tile(&info, request.rotation)) * page.initial_transform(true).to_kurbo();
+        let transform = Affine::new(plan.page_to_tile(&info, request.rotation).to_array())
+            * page.initial_transform(true).to_kurbo();
         let settings = InterpreterSettings {
             render_annotations: request.flags.annotations,
             ..InterpreterSettings::default()

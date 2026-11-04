@@ -1,6 +1,7 @@
 //! What a caller asks a backend to draw ([`RenderRequest`]), the bounds every backend enforces
 //! ([`RenderLimits`]) and the tile geometry they share ([`TilePlan`]), ADR 0004 §1.
 
+use laminapdf_model::Matrix;
 use laminapdf_syntax::Rotation;
 
 use crate::error::RenderError;
@@ -302,13 +303,12 @@ impl TilePlan {
             .unwrap_or(usize::MAX)
     }
 
-    /// The affine matrix `[a, b, c, d, e, f]` (`x' = a·x + c·y + e`, `y' = b·x + d·y + f`) from
-    /// the displayed page space of `page` (points, top-left origin, y down, `/Rotate` applied:
+    /// The affine matrix from the displayed page space of `page` (points, top-left origin, y down, `/Rotate` applied:
     /// ADR 0027's page space) to this tile's pixels: scale to the page's integer pixel size,
     /// apply the view `rotation`, shift the tile to the origin. Both adapters draw with it, so
     /// their tiles agree.
     #[must_use]
-    pub fn page_to_tile(&self, page: &RenderPage, rotation: Rotation) -> [f64; 6] {
+    pub fn page_to_tile(&self, page: &RenderPage, rotation: Rotation) -> Matrix {
         // The page's pixel size before the view rotation.
         let (w0, h0) = if rotation.is_quarter_turn() {
             (f64::from(self.page_height), f64::from(self.page_width))
@@ -318,12 +318,12 @@ impl TilePlan {
         let (sx, sy) = (w0 / f64::from(page.width), h0 / f64::from(page.height));
         let (tx, ty) = (f64::from(self.tile.x), f64::from(self.tile.y));
         // Clockwise view rotations of the w0 × h0 bitmap, after scaling, then the tile shift.
-        match rotation {
+        Matrix::new(match rotation {
             Rotation::None => [sx, 0.0, 0.0, sy, -tx, -ty],
             Rotation::Clockwise90 => [0.0, sx, -sy, 0.0, h0 - tx, -ty],
             Rotation::Half => [-sx, 0.0, 0.0, -sy, w0 - tx, h0 - ty],
             Rotation::Clockwise270 => [0.0, -sx, sy, 0.0, -tx, w0 - ty],
-        }
+        })
     }
 
     /// Checks that `out` has exactly [`TilePlan::byte_len`] bytes.
@@ -363,6 +363,8 @@ fn pixels(v: f64) -> Result<u32, RenderError> {
 
 #[cfg(test)]
 mod tests {
+
+    use laminapdf_model::Matrix;
 
     use super::{PixelRect, RenderLimits, RenderPage, RenderRequest, Rotation, TilePlan};
     use crate::RenderError;
@@ -476,7 +478,7 @@ mod tests {
                 height: 50.0,
                 rotate: Rotation::None,
             };
-            let apply = |m: [f64; 6], x: f64, y: f64| (m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]);
+            let apply = |m: Matrix, x: f64, y: f64| m.apply(x, y);
             let req = RenderRequest::page(0, 2.0);
             let plan = TilePlan::new(&page, &req, &RenderLimits::default()).unwrap();
             assert_eq!(
