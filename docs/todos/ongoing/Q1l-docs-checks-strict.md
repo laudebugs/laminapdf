@@ -12,7 +12,7 @@
 | Branch | `claude/working-session-9g3nst` |
 | PR title | `ci(xtask): docs-prose and the examples checks are strict on every file` |
 | Size | S |
-| PR | — |
+| PR | [#219](https://github.com/laudebugs/laminapdf/pull/219) |
 
 ## Goal
 
