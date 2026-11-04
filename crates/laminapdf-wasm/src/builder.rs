@@ -674,7 +674,7 @@ mod text {
                 invalid_argument(
                     "name",
                     "not a standard 14 font name".to_owned(),
-                    crate::error::did_you_mean(name, &known),
+                    laminapdf::did_you_mean(name, &known),
                 )
             })?;
             self.with(|b| {
