@@ -52,7 +52,7 @@ pub struct Summary {
 /// ```
 /// use laminapdf_content::{TextShow, TextAdvance, Visitor, interpret_page};
 /// use laminapdf_cos::{Dict, Object, Stream};
-/// use laminapdf_save::Writer;
+/// use laminapdf_save::test_support::Writer;
 /// use laminapdf_model::{Document, OpenOptions};
 ///
 /// // A one-page document showing "Hi".

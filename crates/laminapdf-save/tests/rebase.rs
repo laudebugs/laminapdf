@@ -104,7 +104,7 @@ fn rebase_of_a_clean_document_without_a_pending_save_is_refused() {
     set_title(&mut doc, "A");
     doc.undo().unwrap();
     let result = doc.rebase(
-        laminapdf_save::Writer::new(1, 7)
+        laminapdf_save::test_support::Writer::new(1, 7)
             .finish(&laminapdf_cos::Dict::new())
             .unwrap(),
     );

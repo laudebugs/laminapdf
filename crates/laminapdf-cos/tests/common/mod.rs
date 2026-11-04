@@ -17,7 +17,8 @@
 pub use laminapdf_test_fixtures::{Rng, classic, codes, corpus, fixture, fixtures_dir, read_at, stream_body};
 
 use laminapdf_cos::{ByteSource, Dict, Document, ObjRef, Object, OpenOptions, Result, SourceError};
-use laminapdf_save::{Writer, XrefEol, incremental_update};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::{Writer, incremental_update};
 
 /// A source that is not in memory (no `as_slice`), so the reader parses it in windows.
 pub struct NoSlice(pub Vec<u8>);

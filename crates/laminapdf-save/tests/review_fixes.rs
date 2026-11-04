@@ -11,7 +11,8 @@ mod common;
 
 use common::{open, open_with};
 use laminapdf_cos::{Limits, ObjRef, OpenOptions};
-use laminapdf_save::{XrefEol, incremental_update};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::incremental_update;
 
 fn with(limits: Limits) -> OpenOptions {
     OpenOptions::default().with_limits(limits)

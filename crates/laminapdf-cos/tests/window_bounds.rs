@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use laminapdf_cos::{ByteSource, Dict, Document, Error, ObjRef, Object, OpenOptions, SourceError, Stream};
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 use laminapdf_test_fixtures::read_at;
 
 const WINDOW: usize = 64 * 1024;

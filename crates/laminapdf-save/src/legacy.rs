@@ -39,7 +39,7 @@ enum Body {
 /// # Examples
 /// ```
 /// use laminapdf_cos::{Dict, Document, Object, OpenOptions};
-/// use laminapdf_save::Writer;
+/// use laminapdf_save::test_support::Writer;
 /// let mut w = Writer::new(1, 7);
 /// let pages = w.reserve();
 /// let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
@@ -289,7 +289,8 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
 ///
 /// ```
 /// use laminapdf_cos::{Document, ObjRef, Object, OpenOptions};
-/// use laminapdf_save::{Writer, XrefEol, incremental_update};
+/// use laminapdf_save::XrefEol;
+/// use laminapdf_save::test_support::{Writer, incremental_update};
 ///
 /// let mut w = Writer::new(1, 7);
 /// let root = w.add([("Type", Object::name("Catalog"))].into_iter().collect::<laminapdf_cos::Dict>());

@@ -11,7 +11,8 @@ mod common;
 
 use common::{classic, open, open_with};
 use laminapdf_cos::{Document, ObjRef, Object, OpenOptions, Warning};
-use laminapdf_save::{XrefEol, incremental_update};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::incremental_update;
 
 /// Catalog 1, pages 2, and object 3 that does not parse.
 fn with_corrupt_object() -> Document {

@@ -12,7 +12,8 @@ mod common;
 
 use common::{fixture, open, open_with};
 use laminapdf_cos::{Cipher, Document, Error, ObjRef, Object, OpenOptions, PasswordKind, Permissions, Warning};
-use laminapdf_save::{XrefEol, incremental_update};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::incremental_update;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 

@@ -14,7 +14,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use laminapdf_cos::{ByteSource, Error, OpenOptions, SourceError, Warning};
 use laminapdf_model::Document;
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 use laminapdf_syntax::{Dict, ObjRef, Object, Stream};
 use laminapdf_text::TextExtractor;
 

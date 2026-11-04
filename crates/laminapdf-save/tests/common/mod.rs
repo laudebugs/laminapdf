@@ -23,7 +23,8 @@ pub mod samples;
 pub mod save;
 
 use laminapdf_cos::{Document, ObjRef, Object, OpenOptions, Result};
-use laminapdf_save::{XrefEol, incremental_update};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::incremental_update;
 pub use laminapdf_test_fixtures::{classic, classic_with_root, corpus, fixture, fixtures_dir, stream_body};
 
 /// Opens a copy of `bytes` with default options (tests keep their inputs).

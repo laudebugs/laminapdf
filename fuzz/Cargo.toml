@@ -20,7 +20,7 @@ laminapdf-cos = { path = "../crates/laminapdf-cos" }
 laminapdf-model = { path = "../crates/laminapdf-model" }
 laminapdf-content = { path = "../crates/laminapdf-content" }
 laminapdf-ops = { path = "../crates/laminapdf-ops" }
-laminapdf-save = { path = "../crates/laminapdf-save" }
+laminapdf-save = { path = "../crates/laminapdf-save", features = ["test-support"] }
 laminapdf-text = { path = "../crates/laminapdf-text" }
 serde_json = "1.0.154"
 

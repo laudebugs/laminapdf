@@ -37,7 +37,7 @@ thiserror = { workspace = true }
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
 laminapdf = { path = "../laminapdf", features = ["saslprep"] }
 # The spike-era Writer builds the large generated file the byte-count criterion needs.
-laminapdf-save = { path = "../laminapdf-save" }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 
 [lints]
 workspace = true

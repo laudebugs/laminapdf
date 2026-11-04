@@ -26,7 +26,7 @@ laminapdf-syntax = { workspace = true }
 [dev-dependencies]
 # Workspace crates by path only, without a version: `cargo publish` drops such dev-dependencies,
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
-laminapdf-save = { path = "../laminapdf-save" }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 toml = { workspace = true }
 

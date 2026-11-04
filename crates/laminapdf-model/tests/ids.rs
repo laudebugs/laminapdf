@@ -13,7 +13,8 @@ mod common;
 use common::{classic_with_root, corpus, fixture, open};
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{Document, Kind, LaminaPdfId};
-use laminapdf_save::{XrefEol, incremental_update};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::incremental_update;
 
 /// Every page and outline-item ID of `doc`, in document order.
 fn ids(doc: &Document) -> Vec<String> {

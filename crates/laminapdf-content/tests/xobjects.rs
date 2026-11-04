@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use laminapdf_cos::{Dict, Object, Stream};
 use laminapdf_model::OpenOptions;
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 
 /// Resources with one XObject `/X` = `obj`.
 fn xobject(obj: Object) -> Dict {
