@@ -183,7 +183,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L4. CLI and MCP
 
-- [ ] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
+- [x] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain` ([L4a](../todos/done/L4a-lamina-cli.md))
 - [ ] Batch and NDJSON, `--jobs`, `render`, Markdown/JSON extraction, `schema`, completions, man pages
 - [ ] `laminapdf mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages
