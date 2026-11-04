@@ -252,4 +252,4 @@ The names an `invalid-argument` or `unknown-option` error suggests in `didYouMea
 
 | File | Source | What it tests |
 | --- | --- | --- |
-| `did-you-mean.json` | hand-written; its `rule` states what the cases pin | Each case gives a `given` name, the `known` names and the `expected` suggestions: names within two edits (Levenshtein, case-insensitive), closest first, ties in code-point order of the names as given. `crates/laminapdf-wasm/src/error.rs` and `packages/sdk/test/did-you-mean.test.ts` must both suggest exactly `expected`. The names are ASCII, like every name Lamina PDF suggests |
+| `did-you-mean.json` | hand-written; its `rule` states what the cases pin | Each case gives a `given` name, the `known` names and the `expected` suggestions: names within two edits, closest first, ties in code-point order of the names as given. An edit is one code point, counted after lowercasing ASCII letters only, so a typed name outside ASCII gets the same answer from both languages. `crates/laminapdf-wasm/src/error.rs` and `packages/sdk/test/did-you-mean.test.ts` must both suggest exactly `expected` |

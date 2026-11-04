@@ -208,7 +208,7 @@ Don't split:
 - just to organize files. Modules do that, with privacy and no publishing overhead.
 - when the two halves share many internal types or must always change together. That's one crate with a `pub(crate)` boundary.
 - pre-emptively. Merging crates later is easy. Undoing a premature public crate after a release isn't. *Rule of three:* wait for a second real consumer.
-- into `utils`/`common` grab-bags. Put a helper where it is used, or give it a name that says what it does. `laminapdf-test-fixtures` isn't one: the tests of eight crates and xtask use it today, and its name says what it holds (§6).
+- into `utils`/`common` grab-bags. Put a helper where it is used, or give it a name that says what it does. `laminapdf-test-fixtures` isn't one: the tests of nine crates and xtask use it today, and its name says what it holds (§6).
 
 ## 12. Spikes vs product code
 

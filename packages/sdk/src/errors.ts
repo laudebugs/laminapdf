@@ -147,12 +147,14 @@ export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
 }
 
 /**
- * The names in `known` within two edits of `given` (case-insensitive), closest first; names at
- * the same distance in code-point order, as laminapdf-wasm sorts them (fixtures/did-you-mean.json
- * pins both). `<` compares UTF-16 code units, which is code-point order for these names.
+ * The names in `known` within two edits of `given`, closest first; names at the same distance in
+ * code-point order. Edits count code points, after lowercasing ASCII letters only. That is
+ * laminapdf-wasm's rule, and fixtures/did-you-mean.json pins both. `<` compares UTF-16 code
+ * units, which is code-point order for the library's names (all ASCII).
  */
 export function didYouMean(given: string, known: readonly string[]): string[] {
-  const distance = (a: string, b: string): number => {
+  const chars = (s: string): string[] => Array.from(s.replace(/[A-Z]/g, (c) => c.toLowerCase()));
+  const distance = (a: readonly string[], b: readonly string[]): number => {
     let row = Array.from({ length: b.length + 1 }, (_, i) => i);
     for (let i = 0; i < a.length; i++) {
       const next = [i + 1];
@@ -164,9 +166,9 @@ export function didYouMean(given: string, known: readonly string[]): string[] {
     }
     return row[b.length] ?? 0;
   };
-  const lower = given.toLowerCase();
+  const target = chars(given);
   return known
-    .map((k) => [distance(lower, k.toLowerCase()), k] as const)
+    .map((k) => [distance(target, chars(k)), k] as const)
     .filter(([d]) => d <= 2)
     .sort(([dx, x], [dy, y]) => dx - dy || (x < y ? -1 : Number(x > y)))
     .map(([, k]) => k);

@@ -2,4 +2,4 @@
 "@laminapdf/sdk": patch
 ---
 
-When several names are equally close to a mistyped one, `didYouMean` now lists them in name order, as errors from the WASM module already did, so a typo gets the same suggestions whichever layer reports it.
+`didYouMean` now suggests exactly what errors from the WASM module do: names equally close to a mistyped one come in name order, and a typo with characters outside ASCII is measured the same way, one edit per character.
