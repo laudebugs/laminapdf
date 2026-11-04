@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md), [Q2h](../done/Q2h-text-writers-dedup.md), [Q2i](./Q2i-one-lexer-one-png-filter.md) |
+| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md), [Q2h](../done/Q2h-text-writers-dedup.md), [Q2i](../done/Q2i-one-lexer-one-png-filter.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2r-split-surface-modules` |

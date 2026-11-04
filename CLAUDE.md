@@ -178,7 +178,8 @@ cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust r
                              #   two crates and no façade name re-exported twice (maintainability-duplicates.toml); both only shrink;
                              #   no `matches!` or `Err(…)` or-pattern on LimitExceeded or DataPending outside laminapdf_cos::error;
                              #   no copied test helper (`fn fixtures_dir`, `fn classic`, `struct Rng`) or cross-crate `#[path]` outside
-                             #   laminapdf-test-fixtures (baseline `test-helpers`)
+                             #   laminapdf-test-fixtures (baseline `test-helpers`); no PDF lexer or PNG row filter outside
+                             #   laminapdf-syntax (`one-lexer`)
 cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override warns; changed examples are linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), npm licences
