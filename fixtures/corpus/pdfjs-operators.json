@@ -203,6 +203,15 @@
       "showText": 19
     }
   ],
+  "fixtures/golden/cli-rotate-hello.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
   "fixtures/golden/full-rewrite-hello.pdf": [
     {
       "beginText": 1,

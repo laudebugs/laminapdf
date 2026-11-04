@@ -1,0 +1,69 @@
+{
+  "$defs": {
+    "CodeType": {
+      "description": "Whether a code names an error or a warning.",
+      "oneOf": [
+        {
+          "const": "error",
+          "description": "The call failed.",
+          "type": "string"
+        },
+        {
+          "const": "warning",
+          "description": "The call went ahead, after a repair or with a default.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/explain.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.explain/1`.",
+  "properties": {
+    "code": {
+      "description": "The code.",
+      "type": "string"
+    },
+    "docsUrl": {
+      "description": "The code's page online.",
+      "type": "string"
+    },
+    "hint": {
+      "description": "What to do about it, in one sentence.",
+      "type": "string"
+    },
+    "kind": {
+      "description": "One of the nine kinds of ADR 0026 §2.",
+      "type": "string"
+    },
+    "page": {
+      "description": "The code's page, as Markdown.",
+      "type": "string"
+    },
+    "schema": {
+      "const": "laminapdf.explain/1",
+      "description": "`laminapdf.explain/1`.",
+      "type": "string"
+    },
+    "summary": {
+      "description": "What the code means, in one sentence.",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/CodeType",
+      "description": "Error or warning."
+    }
+  },
+  "required": [
+    "schema",
+    "code",
+    "type",
+    "kind",
+    "summary",
+    "hint",
+    "docsUrl",
+    "page"
+  ],
+  "title": "laminapdf.explain/1",
+  "type": "object"
+}
