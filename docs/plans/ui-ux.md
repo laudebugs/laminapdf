@@ -42,7 +42,7 @@ The research's three personas, with accessibility as a property of all three rat
 
 ## 4. Principles
 
-Recommendations from the research, adopted as the plan's rules (ADR 0024 records the ones that are hard to reverse).
+Recommendations from the research, adopted as the plan's rules ([ADR 0024](../decisions/0024-app-shell-ux.md) records the ones that are hard to reverse).
 
 1. **Open into reading.** The default is Read mode: the page and a slim top bar, as spare as SumatraPDF. Tools appear when the user expresses an intent (a mode, a selection, the palette), never as a ribbon.
 2. **Docked, not floating.** Panels dock; nothing floats over the page except a short-lived selection toolbar on desktop. Figma's UI3 and Acrobat's quick-tools widget both retreated from floating panels after user complaints.
@@ -263,7 +263,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§6](#6-roun
 Ticked by the PR that completes them.
 
 ### U1. Shell foundations
-- [ ] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens)
+- [x] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens): [ADR 0024](../decisions/0024-app-shell-ux.md), with the reader v0.1 command set as its appendix
 - [ ] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test
 - [ ] Command palette (cmdk) with argument parsing, recents and shortcut chips
 - [ ] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode

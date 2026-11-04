@@ -65,7 +65,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0011](../decisions/0011-cloudflare-topology-and-privacy.md) | Cloudflare topology, privacy/retention rules and the hosted service (accounts, cloud storage, sync) | Round C | Accepted (login stack by amendment after H1) |
 | 0008 | Desktop shell: Tauri 2, process model, tile transport, Linux fallback | Round D (after IPC spike) | Propose |
 | 0014 | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Propose |
-| 0024 | App shell UX: inverted-L layout, modes, one command registry, selection surfaces, page appearance modes, phone layout ([UI/UX plan](ui-ux.md)) | Round U (U1a) | Propose |
+| [0024](../decisions/0024-app-shell-ux.md) | App shell UX: inverted-L layout, modes, one command registry, selection surfaces, page appearance modes, phone layout, token layers ([UI/UX plan](ui-ux.md)) | Round U (U1a) | Accepted |
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
