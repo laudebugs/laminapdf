@@ -279,7 +279,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2u](../todos/done/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
 | [Q2v](../todos/ready/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
 | [Q2w](../todos/done/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
-| [Q2x](../todos/ready/Q2x-test-fixtures-migration.md) | `laminapdf-test-fixtures` for the remaining crates | M | Q2c |
+| [Q2x](../todos/ongoing/Q2x-test-fixtures-migration.md) | `laminapdf-test-fixtures` for the remaining crates | M | Q2c |
 | [Q2y](../todos/ready/Q2y-facade-error-wrapping.md) | Decide and implement how the façade wraps crate errors | S | — |
 
 ## 7. Risks

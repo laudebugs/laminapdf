@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2x` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2c](../done/Q2c-test-fixtures-crate.md) |
