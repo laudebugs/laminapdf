@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 publish = true
 readme = "README.md"
+# docs/ is generated and gitignored (`cargo xtask publish crates` writes it first), so it is
+# listed here: cargo leaves gitignored files out unless `include` names them.
+include = ["src/**", "schemas/**", "examples/**", "tests/**", "benches/**", "docs/**", "README.md"]
 homepage.workspace = true
 documentation.workspace = true
 keywords = ["pdf", "pdf-generation", "pdf-editing", "document", "wasm"]

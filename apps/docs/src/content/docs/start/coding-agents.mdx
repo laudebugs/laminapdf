@@ -1,0 +1,28 @@
+---
+title: Use Lamina PDF with coding agents
+description: Point a coding agent at the docs inside the installed package, so its answers match the version you use.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+A coding agent writes better Lamina PDF code when it reads docs for the version you installed. Each package therefore carries its own copy of these docs as Markdown. The copy sits in `node_modules/@laminapdf/sdk/docs/` for TypeScript and in the `laminapdf` crate's `docs/` folder for Rust, and every file names the version it describes.
+
+## Add the snippet to your agent's instructions
+
+Copy this snippet into your project's `AGENTS.md`, `CLAUDE.md` or the file your agent reads. It sends the agent to the installed docs first, and it lists the rules agents most often get wrong:
+
+<Snippet file="packages/sdk/examples/AGENTS.md" />
+
+## What the package docs hold
+
+The folder starts at `llms.txt`, an index in the [llms.txt](https://llmstxt.org/) format whose links stay inside the folder:
+
+- `pages/`: every page of this site as Markdown, with the examples written out in full.
+- `errors/`: a page per error and warning code, the same text as the [code pages](/reference/codes/).
+- `api/`: the TypeScript API reference (npm package only; Rust's is on docs.rs).
+- `renames.json`: what each renamed item is called now, so an agent holding an old name finds the new one.
+- `AGENTS.md`: the snippet above.
+
+## The same docs online
+
+This site serves the same Markdown for the latest version. Each page has a twin at its address with `.md` in place of the final slash, such as [`/install.md`](https://docs.laminapdf.com/install.md), and [`/llms.txt`](https://docs.laminapdf.com/llms.txt) lists them all. [`/llms-full.txt`](https://docs.laminapdf.com/llms-full.txt) puts every page in one file for agents that read a whole site at once. Prefer the package copy while you work in a project, because it matches the code the agent calls.

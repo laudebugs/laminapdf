@@ -116,3 +116,7 @@ test("llms.txt has an H1, a blockquote, the version and H2 link sections", () =>
   assert.match(out, /^## API reference\n\n- \[API\]\(https:\/\/docs\.example\/reference\/sdk\/readme\.md\)$/m);
   assert.match(out, /^## Optional\n\n- \[x\]\(https:\/\/docs\.example\/reference\/codes\/x\.md\): an x$/m);
 });
+
+test("a link whose text is code is rewritten", () => {
+  assert.equal(rewriteLinks("[`x`](/codes/x/)", twinHref), "[`x`](/codes/x.md)");
+});

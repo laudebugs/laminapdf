@@ -15,6 +15,7 @@ export function sidebar(typeDoc) {
         { label: "What is Lamina PDF", link: "/" },
         { label: "Install", slug: "install" },
         { label: "Your first PDF", slug: "start/first-pdf" },
+        { label: "Use with coding agents", slug: "start/coding-agents" },
       ],
     },
     {

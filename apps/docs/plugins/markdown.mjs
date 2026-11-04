@@ -85,7 +85,9 @@ export function rewriteLinks(markdown, rewrite) {
 }
 
 /**
- * Applies `transform` to the parts of `markdown` outside fenced code blocks and inline code.
+ * Applies `transform` to `markdown` with its fenced code blocks and inline code hidden: inline
+ * code becomes a placeholder while `transform` runs, so a link whose text is code (`` [`x`](/y/) ``)
+ * is still seen whole, and a link written inside code is never touched.
  *
  * @param {string} markdown
  * @param {(text: string) => string} transform
@@ -98,13 +100,12 @@ function outsideCode(markdown, transform) {
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i] ?? "";
     if (i % 3 === 1) out.push(part);
-    else if (i % 3 === 0)
-      out.push(
-        part
-          .split(/(`[^`\n]+`)/)
-          .map((p, j) => (j % 2 ? p : transform(p)))
-          .join(""),
-      );
+    else if (i % 3 === 0) {
+      /** @type {string[]} */
+      const spans = [];
+      const hidden = part.replace(/`[^`\n]+`/g, (span) => `\u0000${spans.push(span) - 1}\u0000`);
+      out.push(transform(hidden).replace(/\u0000(\d+)\u0000/g, (_, n) => spans[Number(n)] ?? ""));
+    }
   }
   return out.join("");
 }

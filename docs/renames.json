@@ -1,0 +1,86 @@
+{
+  "$schema": "./renames.schema.json",
+  "schema": "laminapdf.renames/1",
+  "renames": [
+    {
+      "from": "laminapdf::extract::TextRun",
+      "to": "laminapdf::extract::PageTextRun",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "An extracted run; TextRun now means only drawn text."
+    },
+    {
+      "from": "laminapdf_text::extract::TextRun",
+      "to": "laminapdf_text::PageTextRun",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "laminapdf-text's extract module is private; its items are at the crate root."
+    },
+    {
+      "from": "laminapdf_text::agl::to_unicode",
+      "to": "laminapdf_text::glyph_name_to_unicode",
+      "surface": "rust",
+      "kind": "function",
+      "since": "0.2.0",
+      "note": "laminapdf-text's agl module is private."
+    },
+    {
+      "from": "laminapdf_text::Tag",
+      "to": "laminapdf_text::OpenTypeTag",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "The façade exports it as laminapdf::OpenTypeTag, for Font::instance."
+    },
+    {
+      "from": "laminapdf_build::Font",
+      "to": "laminapdf_build::FontHandle",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "A font registered with a builder; laminapdf::Font is the font program."
+    },
+    {
+      "from": "laminapdf_content::Color",
+      "to": "laminapdf_content::CurrentColor",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "The content reader's current colour: a colour space, its components and a pattern."
+    },
+    {
+      "from": "laminapdf_content::Matrix::multiply",
+      "to": "laminapdf_model::Matrix::then",
+      "surface": "rust",
+      "kind": "method",
+      "since": "0.2.0",
+      "note": "One Matrix for building and reading; then applies the receiver first."
+    },
+    {
+      "from": "laminapdf_content::Matrix::transform_point",
+      "to": "laminapdf_model::Matrix::apply",
+      "surface": "rust",
+      "kind": "method",
+      "since": "0.2.0",
+      "note": ""
+    },
+    {
+      "from": "laminapdf::CosError",
+      "to": "laminapdf::Error::error_code",
+      "surface": "rust",
+      "kind": "type",
+      "since": "0.2.0",
+      "note": "The crates' errors are opaque behind Error::Core: match on error_code() instead."
+    },
+    {
+      "from": "laminapdf_source::pending_ranges",
+      "to": "laminapdf::Error::pending_ranges",
+      "surface": "rust",
+      "kind": "function",
+      "since": "0.2.0",
+      "note": ""
+    }
+  ]
+}

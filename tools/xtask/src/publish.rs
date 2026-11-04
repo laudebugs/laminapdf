@@ -89,6 +89,8 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
         bail!("CARGO_REGISTRY_TOKEN is not set: the release workflow gets it from crates.io's trusted publishing");
     }
     let version = crate::version::fixed_group_version(&ws.root)?.version;
+    crate_docs(ws)?;
+    crate::package_docs::check_crate(ws, &version)?;
     let mut args = vec!["publish".to_owned(), "--workspace".to_owned(), "--locked".to_owned()];
     if dry_run {
         args.push("--dry-run".to_owned());
@@ -108,6 +110,18 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     }
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     ws.cargo(&args)
+}
+
+/// The `laminapdf` crate's package docs (L5a): the site's pages, the code pages, `AGENTS.md` and
+/// `renames.json` as Markdown and JSON in `crates/laminapdf/docs/` (gitignored), which its
+/// `include` ships. Plain Node, no packages: the API reference is the npm package's only.
+fn crate_docs(ws: &Workspace) -> Result<()> {
+    crate::step("package docs: crates/laminapdf/docs/");
+    crate::run(
+        &ws.root,
+        "node",
+        &["apps/docs/scripts/package-docs.mjs", "crates/laminapdf/docs"],
+    )
 }
 
 /// Whether crates.io has `name` at `version` (its API answers 200 for a published version).
@@ -156,7 +170,8 @@ fn npm_pack(ws: &Workspace) -> Result<()> {
     for (name, _) in &group.members {
         ws.pnpm(&["--filter", name, "pack", "--pack-destination", packs_dir])?;
     }
-    Ok(())
+    let sdk = packs.join(tarball_name("@laminapdf/sdk", &group.version));
+    crate::package_docs::check_npm_tarball(ws, &sdk, &group.version)
 }
 
 fn npm_stage(ws: &Workspace, dry_run: bool) -> Result<()> {
