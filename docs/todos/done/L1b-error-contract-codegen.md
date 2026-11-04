@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md), [L1c](./L1c-error-contract-core.md) |
-| Blocks | [L2a](./L2a-worker-client.md), [L2b](./L2b-disposal-and-memory.md), [L4a](../ready/L4a-lamina-cli.md), [L5a](../ready/L5a-agent-docs.md) |
+| Blocks | [L2a](./L2a-worker-client.md), [L2b](./L2b-disposal-and-memory.md), [L4a](../ongoing/L4a-lamina-cli.md), [L5a](../ready/L5a-agent-docs.md) |
 | ADRs | Implements 0026 (from [L1a](../done/L1a-contract-adrs.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, Rust and TS tests), [0002](../../decisions/0002-binding-strategy.md) §1 (errors map 1:1 to a JS `Error` with `code`), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dev dependencies) |
 | Branch | `feat/l1b-error-contract` |
 | PR title | `feat(codes): generate the error contract into Rust, TypeScript and JSON Schema with explain text` |
@@ -27,7 +27,7 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
 - [Report: strict types](../../research/libraries/shareable-libraries.md#strict-types-branded-units-discriminated-options-codes-generated-from-one-file) and the [TypeScript note §6](../../research/libraries/notes/typescript-web-dx.md#6-strict-typescript-types-errors-tooling): `LaminaError<C>`, `isLaminaError(e, code)`.
 - [Code organisation §9](../../guidelines/code-organization.md#9-generated-code): `@generated` header, dedicated location, `linguist-generated`, a CI check that regeneration gives no diff.
 - [Rust guideline: errors](../../guidelines/rust.md#errors) and [TypeScript guideline: errors](../../guidelines/typescript.md#errors).
-- [CLI note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): `lamina explain <code>` ([L4a](../ready/L4a-lamina-cli.md)) prints the same text.
+- [CLI note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): `lamina explain <code>` ([L4a](../ongoing/L4a-lamina-cli.md)) prints the same text.
 
 ## Scope
 
@@ -50,7 +50,7 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
 
 **Out of scope** (and which todo covers it)
 
-- The CLI `explain` command and exit-code mapping: [L4a](../ready/L4a-lamina-cli.md).
+- The CLI `explain` command and exit-code mapping: [L4a](../ongoing/L4a-lamina-cli.md).
 - The docs-site code table and error pages: [B7a](./B7a-docs-site.md) (it can consume this generator's `--md` output if L1b merges first; B7a does not depend on L1b, see the order note under Risks); shipping the pages inside packages: [L5a](../ready/L5a-agent-docs.md).
 - Swift and Kotlin error types: [L6a](../done/L6a-lamina-ffi-spike.md).
 - `lamina.extract/1` and other output schemas: [L3a](../ready/L3a-lamina-extract-reading-order.md), [L4b](../ready/L4b-cli-batch-render-schema.md).
