@@ -1119,6 +1119,7 @@ dependencies = [
  "laminapdf-model",
  "laminapdf-save",
  "laminapdf-syntax",
+ "laminapdf-test-fixtures",
  "serde_json",
  "toml",
 ]
@@ -1222,6 +1223,7 @@ dependencies = [
  "laminapdf",
  "laminapdf-cos",
  "laminapdf-save",
+ "laminapdf-test-fixtures",
  "memmap2",
  "thiserror",
 ]
