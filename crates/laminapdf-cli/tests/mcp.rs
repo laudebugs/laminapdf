@@ -74,10 +74,20 @@ fn ok(result: &CallToolResult) -> &Value {
     result.structured_content.as_ref().unwrap()
 }
 
-/// The error object of a failed call.
-fn error(result: &CallToolResult) -> &Value {
+/// The `laminapdf.error/1` line of a failed call: its text, with no `structuredContent`, which
+/// would have to match the report's `outputSchema`.
+fn error_line(result: &CallToolResult) -> Value {
     assert_eq!(result.is_error, Some(true), "{:?}", result.structured_content);
-    &result.structured_content.as_ref().unwrap()["error"]
+    assert_eq!(result.structured_content, None);
+    let [block] = result.content.as_slice() else {
+        panic!("one text block: {:?}", result.content)
+    };
+    serde_json::from_str(&block.as_text().unwrap().text).unwrap()
+}
+
+/// The error object of a failed call.
+fn error(result: &CallToolResult) -> Value {
+    error_line(result).get("error").cloned().unwrap()
 }
 
 /// `value` checked against `tool`'s `outputSchema` alone: a client has no other schema to load.
@@ -229,18 +239,13 @@ async fn bad_arguments_should_be_tool_errors_with_the_error_object() {
         json!({ "input": "hello.pdf", "pages": "1-" }),
     )
     .await;
-    let error_line = result_line(&range);
+    let line = error_line(&range);
     assert_eq!(
-        (error_line["schema"].as_str(), error_line["error"]["code"].as_str()),
+        (line["schema"].as_str(), line["error"]["code"].as_str()),
         (Some("laminapdf.error/1"), Some("invalid-page-range"))
     );
     let unknown = call(&client, "laminapdf_info", json!({ "input": "hello.pdf", "bogus": 1 })).await;
     assert_eq!(error(&unknown)["code"], "invalid-command-line");
-}
-
-fn result_line(result: &CallToolResult) -> &Value {
-    assert_eq!(result.is_error, Some(true));
-    result.structured_content.as_ref().unwrap()
 }
 
 #[tokio::test]

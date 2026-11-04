@@ -10,7 +10,8 @@
 //! - **Read-only by default:** the write tool is listed only with `--allow-write`, and it
 //!   replaces its input only with `--allow-in-place` too.
 //! - **Document text only in data:** reports keep it in their fields; errors carry the ADR 0026
-//!   object, whose message and hint never quote the document; tool descriptions are fixed text.
+//!   object (as text: the `outputSchema` is the report's), whose message and hint never quote the
+//!   document; tool descriptions are fixed text.
 //! - **Bounded calls:** each runs on a blocking thread, at most one per CPU at once. When it
 //!   runs past `--timeout`, its [`CancelToken`] stops the command at its next step. The server
 //!   answers once the command has stopped, or after a short grace when it is in a step that
@@ -31,8 +32,8 @@ use std::time::Duration;
 use laminapdf::{CancelToken, ErrorCode};
 use rmcp::ServiceExt as _;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, ListToolsResult, PaginatedRequestParams,
-    ServerCapabilities, ServerConfig, Tool,
+    CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation, ListToolsResult,
+    PaginatedRequestParams, ServerCapabilities, ServerConfig, Tool,
 };
 use rmcp::service::{RequestContext, RoleServer};
 use rmcp::{ErrorData, ServerHandler};
@@ -172,7 +173,11 @@ impl Server {
             });
         Ok(match outcome {
             Ok(report) => CallToolResult::structured(report),
-            Err((error, input)) => CallToolResult::structured_error(error.to_line(input.as_deref())),
+            // Text only: `structuredContent` must match the tool's `outputSchema`, which is the
+            // report's, and some clients reject a call whose error object doesn't.
+            Err((error, input)) => {
+                CallToolResult::error(vec![ContentBlock::text(error.to_line(input.as_deref()).to_string())])
+            }
         })
     }
 }

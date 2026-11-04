@@ -69,7 +69,7 @@ A client starts it as a command. In Claude Code, add it with `claude mcp add lam
 { "mcpServers": { "laminapdf": { "command": "laminapdf", "args": ["mcp", "--root", "/home/me/docs"] } } }
 ```
 
-Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. A failure is a tool error carrying the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call.
+Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. A failure is a tool error whose text is the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call. The line is not `structuredContent`, because that has to match the report's schema.
 
 The server is safe without flags, because a model may follow instructions planted in a document:
 
