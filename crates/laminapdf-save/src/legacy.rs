@@ -1,7 +1,10 @@
 //! The spike-era writer, moved here from `laminapdf-cos` in B3b (ADR 0007 §7) with its tests:
 //! classic files, compact (object + xref stream) files built from objects numbered `1..n`,
 //! and [`incremental_update`] from an explicit list of changes. It builds whole files in
-//! memory and returns `laminapdf_cos` errors.
+//! memory and returns `laminapdf_cos` errors. Its xref sections, object stream and header come
+//! from the helpers the product writers use (`xref.rs`, `full.rs`), so it writes nothing they
+//! don't; only the order of an xref stream's `/Size` and `/Index` is its own (the frozen
+//! reference files keep it).
 //!
 //! Saving an edited document goes through [`IncrementalWriter`](crate::IncrementalWriter) and
 //! [`FullWriter`](crate::FullWriter) instead, which read the overlay and stream to a
@@ -12,27 +15,16 @@
 
 use std::collections::BTreeMap;
 
-use laminapdf_cos::{Document, Error, Result, XREF_STREAM_KEYS};
-use laminapdf_syntax::{Dict, Name, ObjRef, Object, Stream};
+use laminapdf_cos::{Document, Error, Result};
+use laminapdf_syntax::{Dict, ObjRef, Object};
 
-/// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum XrefEol {
-    /// `\r\n`.
-    #[default]
-    CrLf,
-    /// ` \n`.
-    SpaceLf,
-}
-
-impl XrefEol {
-    pub(crate) const fn bytes(self) -> &'static [u8] {
-        match self {
-            Self::CrLf => b"\r\n",
-            Self::SpaceLf => b" \n",
-        }
-    }
-}
+use crate::SaveError;
+use crate::full::header;
+use crate::options::XrefEol;
+use crate::xref::{
+    Row, Rows, classic_table, document_keys, document_keys_and_size, is_xref_key, object_stream, stream_object,
+    stream_table,
+};
 
 /// The body of an indirect object: a structured [`Object`], or pre-serialized bytes for
 /// callers that need exact control over formatting (e.g. reproducing hand-written files).
@@ -47,7 +39,7 @@ enum Body {
 /// # Examples
 /// ```
 /// use laminapdf_cos::{Dict, Document, Object, OpenOptions};
-/// use laminapdf_save::Writer;
+/// use laminapdf_save::test_support::Writer;
 /// let mut w = Writer::new(1, 7);
 /// let pages = w.reserve();
 /// let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
@@ -64,8 +56,6 @@ pub struct Writer {
     eol: XrefEol,
     objects: Vec<Option<Body>>,
 }
-
-pub(crate) const HEADER_MARKER: &[u8] = b"%\xE2\xE3\xCF\xD3\n";
 
 impl Writer {
     /// A writer emitting `%PDF-major.minor`.
@@ -124,15 +114,9 @@ impl Writer {
         }
     }
 
-    fn header(&self, min_minor: u8) -> Vec<u8> {
-        let (major, minor) = if self.version < (1, min_minor) {
-            (1, min_minor)
-        } else {
-            self.version
-        };
-        let mut out = format!("%PDF-{major}.{minor}\n").into_bytes();
-        out.extend_from_slice(HEADER_MARKER);
-        out
+    fn header(&self, compact: bool) -> Vec<u8> {
+        let (major, minor) = self.version;
+        header(Some(&format!("{major}.{minor}")), compact)
     }
 
     fn bodies(&self) -> impl Iterator<Item = Result<(u32, &Body)>> {
@@ -152,21 +136,18 @@ impl Writer {
     /// absent, kept in place (value overwritten) when the caller supplied one.
     ///
     /// # Errors
-    /// [`Error::UnsetObject`] if a reserved object was never set.
+    /// [`Error::UnsetObject`] if a reserved object was never set; [`Error::InvalidStructure`]
+    /// for an offset over ten digits.
     pub fn finish(&self, trailer: &Dict) -> Result<Vec<u8>> {
-        let mut out = self.header(0);
-        let mut offsets = Vec::with_capacity(self.objects.len());
+        let mut out = self.header(false);
+        let mut rows = Rows::from([(0, FREE_HEAD)]);
         for item in self.bodies() {
             let (num, body) = item?;
-            offsets.push(out.len());
+            rows.insert(num, in_file(out.len(), 0));
             write_indirect(num, body, &mut out);
         }
         let xref = out.len();
-        out.extend_from_slice(format!("xref\n0 {}\n", self.size()).as_bytes());
-        write_free_head(self.eol, &mut out);
-        for off in offsets {
-            write_in_use(off, 0, self.eol, &mut out);
-        }
+        out.extend_from_slice(&classic_table(&rows, self.eol).map_err(cos)?);
         // `/Size` goes first unless the caller placed it; its value is always recomputed.
         let mut t = if trailer.contains_key("Size") {
             trailer.clone()
@@ -185,101 +166,101 @@ impl Writer {
 
     /// Writes a compact PDF 1.5+ file: stream (and raw) objects stay top-level, every other
     /// object is packed into one Flate object stream, and the xref is a Flate xref stream
-    /// (`/W [1 4 2]`). The header is raised to 1.5 if lower.
+    /// (`/W [1 4 2]`, wider past 4 GiB). The header is raised to 1.5 if lower.
     ///
     /// # Errors
-    /// [`Error::UnsetObject`] for unset reservations; [`Error::InvalidStructure`] if offsets
-    /// exceed the 4-byte field or the object stream holds more than 65 535 objects.
+    /// [`Error::UnsetObject`] for unset reservations; [`Error::InvalidStructure`] if the object
+    /// stream would hold more than 65 536 objects.
     pub fn finish_compact(&self, trailer: &Dict) -> Result<Vec<u8>> {
-        let too_big = |message| Error::InvalidStructure {
-            kind: "compact output",
-            message,
-        };
-        let mut out = self.header(5);
-        let mut rows: BTreeMap<u32, (u8, u32, u16)> = BTreeMap::new();
+        let mut out = self.header(true);
+        let mut rows = Rows::from([(0, FREE_HEAD)]);
         let mut packed: Vec<(u32, &Object)> = Vec::new();
         for item in self.bodies() {
             let (num, body) = item?;
             match body {
                 Body::Object(obj) if !matches!(obj, Object::Stream(_)) => packed.push((num, obj)),
                 _ => {
-                    let off = u32::try_from(out.len()).map_err(|_| too_big("offset over 4 GiB"))?;
-                    rows.insert(num, (1, off, 0));
+                    rows.insert(num, in_file(out.len(), 0));
                     write_indirect(num, body, &mut out);
                 }
             }
         }
         let mut next = self.size();
         if !packed.is_empty() {
+            if packed.len() > usize::from(u16::MAX) + 1 {
+                return Err(Error::InvalidStructure {
+                    kind: "compact output",
+                    message: "more than 65535 packed objects",
+                });
+            }
             let objstm_num = next;
             next += 1;
-            let mut index_part = Vec::new();
-            let mut body_part = Vec::new();
-            for (i, (num, obj)) in packed.iter().enumerate() {
-                let idx = u16::try_from(i).map_err(|_| too_big("more than 65535 packed objects"))?;
-                rows.insert(*num, (2, objstm_num, idx));
-                if i > 0 {
-                    index_part.push(b' ');
-                }
-                index_part.extend_from_slice(format!("{num} {}", body_part.len()).as_bytes());
-                obj.write_to(&mut body_part);
-                body_part.push(b'\n');
-            }
-            index_part.push(b'\n');
-            let first = index_part.len();
-            index_part.extend_from_slice(&body_part);
-            let dict: Dict = [
-                ("Type", Object::name("ObjStm")),
-                ("N", i64::try_from(packed.len()).unwrap_or(i64::MAX).into()),
-                ("First", i64::try_from(first).unwrap_or(i64::MAX).into()),
-            ]
-            .into_iter()
-            .collect();
-            let off = u32::try_from(out.len()).map_err(|_| too_big("offset over 4 GiB"))?;
-            rows.insert(objstm_num, (1, off, 0));
-            write_indirect(
-                objstm_num,
-                &Body::Object(Stream::flate(dict, &index_part).into()),
-                &mut out,
-            );
+            let (stream, members) = object_stream(objstm_num, &packed, |obj, body| {
+                obj.write_to(body);
+                Ok(())
+            })
+            .map_err(cos)?;
+            rows.extend(members);
+            rows.insert(objstm_num, in_file(out.len(), 0));
+            write_indirect(objstm_num, &Body::Object(stream.into()), &mut out);
         }
         let xref_num = next;
         let size = xref_num + 1;
         let xref_off = out.len();
-        rows.insert(
-            xref_num,
-            (1, u32::try_from(xref_off).map_err(|_| too_big("offset over 4 GiB"))?, 0),
-        );
-        let mut table = Vec::with_capacity(usize::try_from(size).unwrap_or(0) * 7);
-        for num in 0..size {
-            let (kind, f2, f3) = rows
-                .get(&num)
-                .copied()
-                .unwrap_or((0, 0, if num == 0 { 65535 } else { 0 }));
-            table.push(kind);
-            table.extend_from_slice(&f2.to_be_bytes());
-            table.extend_from_slice(&f3.to_be_bytes());
-        }
-        let mut dict: Dict = [
-            ("Type", Object::name("XRef")),
-            ("W", vec![1.into(), 4.into(), 2.into()].into()),
-            ("Size", size.into()),
-            ("Index", vec![0.into(), size.into()].into()),
-        ]
-        .into_iter()
-        .collect();
+        rows.insert(xref_num, in_file(xref_off, 0));
+        let (table, data) = stream_table(&rows);
+        let mut dict = with_size(&table, size);
         for (k, v) in trailer.iter().filter(|(k, _)| !is_xref_key(k)) {
             dict.insert(k.clone(), v.clone());
         }
-        write_indirect(xref_num, &Body::Object(Stream::flate(dict, &table).into()), &mut out);
+        out.extend_from_slice(&stream_object(xref_num, dict, &data));
         out.extend_from_slice(format!("startxref\n{xref_off}\n%%EOF\n").as_bytes());
         Ok(out)
     }
 }
 
-/// Whether `key` describes an xref section rather than the document (see [`XREF_STREAM_KEYS`]).
-pub(crate) fn is_xref_key(key: &Name) -> bool {
-    XREF_STREAM_KEYS.iter().any(|k| k.as_bytes() == key.as_bytes())
+/// Object 0, the head of an empty free list (§7.5.4).
+const FREE_HEAD: Row = Row::Free {
+    next: 0,
+    generation: u16::MAX,
+};
+
+/// The row of an object at byte `offset`.
+fn in_file(offset: usize, generation: u16) -> Row {
+    Row::InFile {
+        offset: u64::try_from(offset).unwrap_or(u64::MAX),
+        generation,
+    }
+}
+
+/// The xref helpers fail only with a `laminapdf_cos` error, which this writer's API returns.
+fn cos(error: SaveError) -> Error {
+    match error {
+        SaveError::Cos(e) => e,
+        _ => Error::InvalidStructure {
+            kind: "writer",
+            message: "an unexpected save error",
+        },
+    }
+}
+
+/// `table` (from [`stream_table`]: `/Type`, `/W`, `/Index`) with `/Size` before `/Index`, the
+/// order this writer has always used (last if `table` has no `/Index`).
+fn with_size(table: &Dict, size: impl Into<Object>) -> Dict {
+    let mut size = Some(size.into());
+    let mut dict = Dict::new();
+    for (k, v) in table.iter() {
+        if k.as_bytes() == b"Index"
+            && let Some(size) = size.take()
+        {
+            dict.insert("Size", size);
+        }
+        dict.insert(k.clone(), v.clone());
+    }
+    if let Some(size) = size {
+        dict.insert("Size", size);
+    }
+    dict
 }
 
 fn write_indirect(num: u32, body: &Body, out: &mut Vec<u8>) {
@@ -289,16 +270,6 @@ fn write_indirect(num: u32, body: &Body, out: &mut Vec<u8>) {
         Body::Raw(raw) => out.extend_from_slice(raw),
     }
     out.extend_from_slice(b"\nendobj\n");
-}
-
-fn write_free_head(eol: XrefEol, out: &mut Vec<u8>) {
-    out.extend_from_slice(b"0000000000 65535 f");
-    out.extend_from_slice(eol.bytes());
-}
-
-fn write_in_use(offset: usize, gen_nr: u16, eol: XrefEol, out: &mut Vec<u8>) {
-    out.extend_from_slice(format!("{offset:010} {gen_nr:05} n").as_bytes());
-    out.extend_from_slice(eol.bytes());
 }
 
 fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
@@ -323,7 +294,8 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
 ///
 /// ```
 /// use laminapdf_cos::{Document, ObjRef, Object, OpenOptions};
-/// use laminapdf_save::{Writer, XrefEol, incremental_update};
+/// use laminapdf_save::XrefEol;
+/// use laminapdf_save::test_support::{Writer, incremental_update};
 ///
 /// let mut w = Writer::new(1, 7);
 /// let root = w.add([("Type", Object::name("Catalog"))].into_iter().collect::<laminapdf_cos::Dict>());
@@ -353,13 +325,15 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
     if !matches!(out.last(), Some(b'\n' | b'\r')) {
         out.push(b'\n');
     }
-    let mut offsets: BTreeMap<u32, (usize, u16)> = BTreeMap::new();
+    let mut rows = Rows::new();
     for (&num, &(gen_nr, obj)) in &by_num {
-        offsets.insert(num, (out.len(), gen_nr));
+        rows.insert(num, in_file(out.len(), gen_nr));
         out.extend_from_slice(format!("{num} {gen_nr} obj\n").as_bytes());
         obj.write_to(&mut out);
         out.extend_from_slice(b"\nendobj\n");
     }
+    // Object 0 stays the free-list head whatever the changes say.
+    rows.remove(&0);
 
     // The base's trailer: an overlay trailer may name objects this update does not write.
     let old = doc.base_trailer();
@@ -368,65 +342,32 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
         .max(by_num.keys().next_back().map_or(0, |&n| i64::from(n) + 1));
     let prev = i64::try_from(prev).unwrap_or(i64::MAX);
     if doc.newest_section_is_stream() {
-        append_xref_stream(&mut out, old, &offsets, size, prev)?;
+        append_xref_stream(&mut out, old, rows, size, prev)?;
     } else {
-        append_xref_table(&mut out, old, &offsets, size, prev, eol);
+        rows.insert(0, FREE_HEAD);
+        append_xref_table(&mut out, old, &rows, size, prev, eol)?;
     }
     Ok(out)
 }
 
-/// The previous trailer's document keys (no xref-section keys), in their order.
-pub(crate) fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
-    old.iter().filter(|(k, _)| !is_xref_key(k))
-}
-
-/// Like [`document_keys`], but keeps `/Size` so a classic trailer can hold it in its old position.
-pub(crate) fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
-    old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size")
-}
-
-fn append_xref_table(
-    out: &mut Vec<u8>,
-    old: &Dict,
-    offsets: &BTreeMap<u32, (usize, u16)>,
-    size: i64,
-    prev: i64,
-    eol: XrefEol,
-) {
+/// A classic section over `rows` and a trailer repeating `old`'s keys, `/Size` in its old place
+/// (first when it had none) and `/Prev` last.
+fn append_xref_table(out: &mut Vec<u8>, old: &Dict, rows: &Rows, size: i64, prev: i64, eol: XrefEol) -> Result<()> {
     let xref = out.len();
-    out.extend_from_slice(b"xref\n");
-    let nums: Vec<u32> = std::iter::once(0)
-        .chain(offsets.keys().copied().filter(|&n| n != 0))
-        .collect();
-    for run in nums.chunk_by(|a, b| b.checked_sub(*a) == Some(1)) {
-        let (Some(&start), len) = (run.first(), run.len()) else {
-            continue;
-        };
-        out.extend_from_slice(format!("{start} {len}\n").as_bytes());
-        for num in run {
-            match offsets.get(num) {
-                Some(&(off, gen_nr)) if *num != 0 => write_in_use(off, gen_nr, eol, out),
-                _ => write_free_head(eol, out),
-            }
-        }
-    }
-    // `/Size` keeps the previous trailer's position (first when it had none).
+    out.extend_from_slice(&classic_table(rows, eol).map_err(cos)?);
     let mut trailer = Dict::new();
     for (k, v) in document_keys_and_size(old) {
         trailer.insert(k.clone(), v.clone());
     }
     trailer.insert("Size", size);
-    trailer.insert(Name::from("Prev"), prev);
+    trailer.insert("Prev", prev);
     write_trailer(&trailer, xref, out);
+    Ok(())
 }
 
-fn append_xref_stream(
-    out: &mut Vec<u8>,
-    old: &Dict,
-    offsets: &BTreeMap<u32, (usize, u16)>,
-    size: i64,
-    prev: i64,
-) -> Result<()> {
+/// An xref stream over `rows` plus itself, numbered `size`, with `old`'s document keys and
+/// `/Prev`.
+fn append_xref_stream(out: &mut Vec<u8>, old: &Dict, mut rows: Rows, size: i64, prev: i64) -> Result<()> {
     let out_of_numbers = || Error::InvalidStructure {
         kind: "incremental update",
         message: "object numbers exhausted",
@@ -434,48 +375,14 @@ fn append_xref_stream(
     let xref_num = u32::try_from(size).map_err(|_| out_of_numbers())?;
     let new_size = xref_num.checked_add(1).ok_or_else(out_of_numbers)?;
     let xref_off = out.len();
-    let mut rows: BTreeMap<u32, (usize, u16)> = offsets
-        .iter()
-        .filter(|(n, _)| **n != 0)
-        .map(|(n, e)| (*n, *e))
-        .collect();
-    rows.insert(xref_num, (xref_off, 0));
-    // Offset field width: 4 bytes like `finish_compact`, wider only for files over 4 GiB.
-    let max_off = u64::try_from(xref_off).unwrap_or(u64::MAX);
-    let width = usize::try_from(8 - max_off.leading_zeros() / 8).unwrap_or(8).max(4);
-    let mut table = Vec::with_capacity(rows.len() * (3 + width));
-    let mut index = Vec::new();
-    let nums: Vec<u32> = rows.keys().copied().collect();
-    for run in nums.chunk_by(|a, b| b.checked_sub(*a) == Some(1)) {
-        let (Some(&start), len) = (run.first(), run.len()) else {
-            continue;
-        };
-        index.push(Object::from(start));
-        index.push(Object::from(i64::try_from(len).unwrap_or(i64::MAX)));
-        for num in run {
-            let Some(&(off, gen_nr)) = rows.get(num) else {
-                continue;
-            };
-            let off = u64::try_from(off).unwrap_or(u64::MAX).to_be_bytes();
-            table.push(1);
-            table.extend_from_slice(off.get(8 - width..).unwrap_or(&off));
-            table.extend_from_slice(&gen_nr.to_be_bytes());
-        }
-    }
-    let width = i64::try_from(width).unwrap_or(8);
-    let mut dict: Dict = [
-        ("Type", Object::name("XRef")),
-        ("W", vec![1.into(), width.into(), 2.into()].into()),
-        ("Size", new_size.into()),
-        ("Index", Object::Array(index)),
-    ]
-    .into_iter()
-    .collect();
+    rows.insert(xref_num, in_file(xref_off, 0));
+    let (table, data) = stream_table(&rows);
+    let mut dict = with_size(&table, new_size);
     for (k, v) in document_keys(old) {
         dict.insert(k.clone(), v.clone());
     }
     dict.insert("Prev", prev);
-    write_indirect(xref_num, &Body::Object(Stream::flate(dict, &table).into()), out);
+    out.extend_from_slice(&stream_object(xref_num, dict, &data));
     out.extend_from_slice(format!("startxref\n{xref_off}\n%%EOF\n").as_bytes());
     Ok(())
 }

@@ -12,7 +12,7 @@ mod common;
 use common::fixture;
 use common::open;
 use laminapdf_cos::{Dict, Error, ObjRef, Object, Warning};
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 use laminapdf_syntax::parse_object;
 
 /// A classic file around arbitrary object bodies, with a correct xref.

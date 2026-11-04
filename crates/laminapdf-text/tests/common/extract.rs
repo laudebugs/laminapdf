@@ -8,7 +8,7 @@
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Document;
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 use laminapdf_syntax::{Dict, Object, Stream};
 use laminapdf_text::{PageText, TextExtractor};
 

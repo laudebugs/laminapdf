@@ -2,10 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use laminapdf_cos::{Dict, Object, Stream};
+use laminapdf_cos::{Dict, Name, Object, Stream, XREF_STREAM_KEYS};
 
 use crate::error::{Result, SaveError};
-use crate::legacy::XrefEol;
+use crate::options::XrefEol;
 
 /// One xref entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,4 +130,58 @@ pub(crate) fn stream_object(num: u32, dict: Dict, data: &[u8]) -> Vec<u8> {
     Object::Stream(Stream::flate(dict, data)).write_to(&mut out);
     out.extend_from_slice(b"\nendobj\n");
     out
+}
+
+/// Whether `key` describes an xref section rather than the document (see [`XREF_STREAM_KEYS`]).
+pub(crate) fn is_xref_key(key: &Name) -> bool {
+    XREF_STREAM_KEYS.iter().any(|k| k.as_bytes() == key.as_bytes())
+}
+
+/// The previous trailer's document keys (no xref-section keys), in their order.
+pub(crate) fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+    old.iter().filter(|(k, _)| !is_xref_key(k))
+}
+
+/// Like [`document_keys`], but keeps `/Size` so a classic trailer can hold it in its old position.
+pub(crate) fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+    old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size")
+}
+
+/// An object stream (§7.5.7) numbered `num` holding `members`, each serialised by `write`
+/// (which may map references), and their xref rows. At most 65 536 members: the caller
+/// splits or refuses more.
+pub(crate) fn object_stream(
+    num: u32,
+    members: &[(u32, &Object)],
+    mut write: impl FnMut(&Object, &mut Vec<u8>) -> Result<()>,
+) -> Result<(Stream, Vec<(u32, Row)>)> {
+    let mut index = Vec::new();
+    let mut body = Vec::new();
+    let mut rows = Vec::with_capacity(members.len());
+    for ((member, object), position) in members.iter().zip(0u16..) {
+        rows.push((
+            *member,
+            Row::InStream {
+                stream: num,
+                index: position,
+            },
+        ));
+        if position > 0 {
+            index.push(b' ');
+        }
+        index.extend_from_slice(format!("{member} {}", body.len()).as_bytes());
+        write(object, &mut body)?;
+        body.push(b'\n');
+    }
+    index.push(b'\n');
+    let first = index.len();
+    index.extend_from_slice(&body);
+    let dict: Dict = [
+        ("Type", Object::name("ObjStm")),
+        ("N", Object::from(i64::try_from(members.len()).unwrap_or(i64::MAX))),
+        ("First", Object::from(i64::try_from(first).unwrap_or(i64::MAX))),
+    ]
+    .into_iter()
+    .collect();
+    Ok((Stream::flate(dict, &index), rows))
 }

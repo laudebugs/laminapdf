@@ -5,7 +5,7 @@
 //! use laminapdf_ops::{Document, Origin, RotatePage, UndoOutcome};
 //! use laminapdf_model::Rotation;
 //! # use laminapdf_cos::{Dict, Object};
-//! # use laminapdf_save::Writer;
+//! # use laminapdf_save::test_support::Writer;
 //! # let mut w = Writer::new(1, 7);
 //! # let pages = w.reserve();
 //! # let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());

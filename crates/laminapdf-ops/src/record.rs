@@ -427,7 +427,7 @@ fn lookup<'d>(dict: &'d Dict, key: &Name) -> Option<&'d Object> {
 mod tests {
     use super::*;
     use laminapdf_cos::{Document, OpenOptions};
-    use laminapdf_save::Writer;
+    use laminapdf_save::test_support::Writer;
 
     /// Catalog 1, pages 2 (no kids), object 3 `<< /A 1 /B 2 >>`.
     fn doc() -> Document {

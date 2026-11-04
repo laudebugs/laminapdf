@@ -6,7 +6,25 @@
 use std::collections::BTreeMap;
 
 use crate::constraint::SignatureInfo;
-use crate::legacy::XrefEol;
+
+/// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum XrefEol {
+    /// `\r\n`.
+    #[default]
+    CrLf,
+    /// ` \n`.
+    SpaceLf,
+}
+
+impl XrefEol {
+    pub(crate) const fn bytes(self) -> &'static [u8] {
+        match self {
+            Self::CrLf => b"\r\n",
+            Self::SpaceLf => b" \n",
+        }
+    }
+}
 
 /// How to save: the mode requested in [`SaveOptions`], and the one a plan resolves to
 /// ([`SavePlan::mode`](crate::SavePlan::mode), [`SaveReport::mode`]: never `Auto`).

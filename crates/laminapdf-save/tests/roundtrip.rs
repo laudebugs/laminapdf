@@ -11,7 +11,8 @@ mod common;
 
 use common::{open, update};
 use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
-use laminapdf_save::{Writer, XrefEol};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::Writer;
 use laminapdf_syntax::{Limits, parse_object};
 
 const MAX_DEPTH: usize = Limits::new().max_nesting_depth();

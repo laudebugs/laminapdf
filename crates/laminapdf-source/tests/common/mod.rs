@@ -14,7 +14,7 @@ use std::sync::OnceLock;
 
 use laminapdf::{Document, SaveMode, SaveOptions};
 use laminapdf_cos::{Dict, ObjRef, Object, Stream};
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 
 pub fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")

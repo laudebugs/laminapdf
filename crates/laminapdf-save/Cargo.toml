@@ -18,6 +18,11 @@ categories = ["encoding"]
 [package.metadata.laminapdf]
 layer = "core"
 
+[features]
+# The spike-era `Writer` and `incremental_update` as `laminapdf_save::test_support`, for the
+# workspace's tests and doc examples: not part of the product API.
+test-support = []
+
 [dependencies]
 laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
@@ -27,6 +32,8 @@ sha2 = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+# This crate's own tests use `test_support` (Cargo allows the self-dependency for tests).
+laminapdf-save = { path = ".", features = ["test-support"] }
 # The test helpers every crate shares, by path only so `cargo publish` drops it
 # (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }

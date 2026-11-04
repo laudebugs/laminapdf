@@ -12,7 +12,8 @@ mod common;
 use common::fixture;
 use common::{open, update};
 use laminapdf_cos::{Dict, Error, ObjRef, Object, PdfString};
-use laminapdf_save::{Writer, XrefEol};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::Writer;
 
 /// A compact base (object stream + xref stream): catalog 1, pages 2, page 3, info 4.
 fn compact_base() -> Vec<u8> {

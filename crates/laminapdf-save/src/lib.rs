@@ -7,7 +7,7 @@
 //! use laminapdf_ops::{Document, Origin, RotatePage, SaveState};
 //! use laminapdf_save::{Save, SaveMode, SaveOptions};
 //! # use laminapdf_cos::{Dict, Object};
-//! # use laminapdf_save::Writer;
+//! # use laminapdf_save::test_support::Writer;
 //! # let mut w = Writer::new(1, 7);
 //! # let pages = w.reserve();
 //! # let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
@@ -42,8 +42,9 @@
 //!   counted by [`CountingSink`]; nothing seeks.
 //! * `/ID` (§14.4): `/ID[0]` kept (derived when missing), `/ID[1]` the first 16 bytes of a
 //!   SHA-256 of the content written.
-//! * [`Writer`] / [`incremental_update`]: the spike-era writer, moved here from `laminapdf-cos`
-//!   with its golden tests, for building files from scratch.
+//! * `test_support` (feature `test-support`, off by default; for tests and doc examples): the
+//!   spike-era `Writer` and `incremental_update`, which build files from scratch on the same
+//!   xref helpers as the writers above.
 //!
 //! Safe by default: no save breaks a signature, appends to a repaired base or drops encryption
 //! unless the caller opted in ([`SaveError::WouldInvalidateSignatures`],
@@ -66,6 +67,7 @@ mod error;
 mod full;
 mod id;
 mod incremental;
+#[cfg(any(test, feature = "test-support"))]
 mod legacy;
 mod options;
 mod planner;
@@ -85,7 +87,15 @@ pub use error::{Result, SaveError, SavedOutput};
 pub use full::FullWriter;
 pub use incremental::{IncrementalSave, IncrementalWriter};
 pub use laminapdf_ops::{PendingRebase, SaveState};
-pub use legacy::{Writer, XrefEol, incremental_update};
-pub use options::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefKind};
+/// The spike-era [`Writer`](test_support::Writer) and [`incremental_update`](test_support::incremental_update),
+/// which build files from scratch for tests and doc examples (feature `test-support`, off by
+/// default). Saving an edited document goes through [`IncrementalWriter`] and [`FullWriter`].
+/// Hidden from the docs: docs.rs builds with every feature, and this is no product API.
+#[cfg(feature = "test-support")]
+#[doc(hidden)]
+pub mod test_support {
+    pub use crate::legacy::{Writer, incremental_update};
+}
+pub use options::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
 pub use planner::{SavePlan, SavePlanner};
 pub use sink::{CountingSink, IoWrite, ReadableSink, SinkError, WriteSink};

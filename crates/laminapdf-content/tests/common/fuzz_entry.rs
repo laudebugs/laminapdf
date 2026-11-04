@@ -5,7 +5,7 @@
 use laminapdf_content::{FormXObject, MarkedContent, Visitor, interpret_page};
 use laminapdf_cos::{Dict, Object, Stream};
 use laminapdf_model::{Document, OpenOptions};
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 
 /// Interprets `data`: a whole file (starting `%PDF`) page by page, anything else as the
 /// content of the page of [`fixture_file`], whose resources cover every resource category.

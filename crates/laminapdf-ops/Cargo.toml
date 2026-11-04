@@ -39,7 +39,7 @@ wasm-bindgen = { workspace = true, optional = true }
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts; unit tests in `src/`
 # see a second copy of this crate through it, so they use only its writer (laminapdf-cos types).
-laminapdf-save = { path = "../laminapdf-save" }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 proptest = { workspace = true }
 
 [lints]

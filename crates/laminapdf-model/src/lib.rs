@@ -4,7 +4,7 @@
 //! ```
 //! use laminapdf_model::{Document, OpenOptions, Rotation};
 //! use laminapdf_cos::{Dict, Object};
-//! use laminapdf_save::Writer;
+//! use laminapdf_save::test_support::Writer;
 //!
 //! let mut w = Writer::new(1, 7);
 //! let pages = w.reserve();
