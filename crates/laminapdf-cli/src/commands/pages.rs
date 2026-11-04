@@ -171,7 +171,8 @@ pub fn rotate(args: &RotateArgs, settings: &Settings, io: &mut dyn Io) -> Result
         });
     }
     doc.apply(ops)?;
-    let saved = doc.save(&SaveOptions::default())?;
+    settings.stop_if_cancelled()?;
+    let saved = doc.save_with(&SaveOptions::default(), &settings.cancel)?;
     // --in-place reached here only with --force (output_of), so force is the one rule.
     if settings.dry_run {
         io.check(output, settings.force)?;

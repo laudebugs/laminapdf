@@ -148,6 +148,21 @@ impl CliError {
         self.exit
     }
 
+    /// The line standard error holds under `--json`, which the MCP server returns as a tool
+    /// error: `{"schema":"laminapdf.error/1","error":{…}}`, the diagnostic with the `input` (when
+    /// there is one) and the `exitCode` (ADR 0031 §8).
+    #[must_use]
+    pub fn to_line(&self, input: Option<&str>) -> Value {
+        let mut error = self.diagnostic.to_json();
+        if let Some(map) = error.as_object_mut() {
+            if let Some(input) = input {
+                map.insert("input".to_owned(), input.into());
+            }
+            map.insert("exitCode".to_owned(), self.exit.number().into());
+        }
+        serde_json::json!({ "schema": "laminapdf.error/1", "error": error })
+    }
+
     /// The `data` of the diagnostic.
     #[must_use]
     pub const fn data(&self) -> &Map<String, Value> {

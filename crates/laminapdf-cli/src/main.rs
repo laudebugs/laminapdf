@@ -230,6 +230,7 @@ fn settings(global: &GlobalArgs, io: &mut ProcessIo) -> Result<Settings, CliErro
         password,
         force: global.force,
         dry_run: global.dry_run,
+        ..Settings::default()
     })
 }
 

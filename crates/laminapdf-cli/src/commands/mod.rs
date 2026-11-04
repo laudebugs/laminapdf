@@ -16,7 +16,7 @@ pub use extract::{ExtractArgs, Format, PageTextEntry, TextReport, extract};
 pub use info::{InfoArgs, InfoMetadata, InfoReport, PageSummary, info};
 pub use pages::{PagesReport, RotateArgs, RotatedPage, rotate};
 
-use laminapdf::{Diagnostic, Document, ErrorCode, Limits, OpenOptions};
+use laminapdf::{CancelToken, Diagnostic, Document, ErrorCode, Limits, OpenOptions};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::Deserialize;
 
@@ -93,7 +93,7 @@ open_args! {
 
 /// What every command shares, read by the front end from the global flags, the environment
 /// (`LAMINA_PDF_PASSWORD`) and the password file.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default)]
 pub struct Settings {
     /// Strict mode and the limits.
     pub open: OpenArgs,
@@ -103,6 +103,23 @@ pub struct Settings {
     pub force: bool,
     /// Do everything but write (`--dry-run`).
     pub dry_run: bool,
+    /// Stops a command at its next step: between reading and writing, between pages, and
+    /// inside a save (ADR 0028). The MCP server cancels it when a call runs out of time.
+    pub cancel: CancelToken,
+}
+
+impl Settings {
+    /// `cancelled` once [`Settings::cancel`] has been cancelled.
+    ///
+    /// # Errors
+    ///
+    /// `cancelled`.
+    pub fn stop_if_cancelled(&self) -> Result<(), CliError> {
+        if self.cancel.is_cancelled() {
+            return Err(CliError::new(ErrorCode::Cancelled, "the command was cancelled"));
+        }
+        Ok(())
+    }
 }
 
 /// An opened input: the document and its size in bytes.
@@ -176,6 +193,45 @@ fn schema_id(id: &str) -> Schema {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_cancelled_command_should_stop_at_its_next_step() {
+        let settings = Settings::default();
+        settings.cancel.cancel();
+        let mut io = crate::io::memory::MemoryIo::default();
+        io.files.insert(
+            "in.pdf".to_owned(),
+            laminapdf_test_fixtures::fixture("corpus/hello.pdf"),
+        );
+        let input = "in.pdf".to_owned();
+        let codes = [
+            check(&CheckArgs { input: input.clone() }, &settings, &mut io).map(|_| ()),
+            extract(
+                &ExtractArgs {
+                    input: input.clone(),
+                    format: Format::Text,
+                    pages: None,
+                },
+                &settings,
+                &mut io,
+            )
+            .map(|_| ()),
+            rotate(
+                &RotateArgs {
+                    input,
+                    rotation: "90".to_owned(),
+                    output: Some("out.pdf".to_owned()),
+                    in_place: false,
+                },
+                &settings,
+                &mut io,
+            )
+            .map(|_| ()),
+        ]
+        .map(|result| result.map_or_else(|e| e.diagnostic().code.clone(), |()| "ok".to_owned()));
+        assert_eq!(codes, ["cancelled", "cancelled", "cancelled"]);
+        assert!(!io.files.contains_key("out.pdf"));
+    }
 
     #[test]
     fn the_limit_flags_should_be_the_limits_codes_json_lists() {
