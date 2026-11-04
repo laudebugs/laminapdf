@@ -298,15 +298,18 @@ enum Token {
 /// CMap tokens over `laminapdf-syntax`'s [`Lexer`](laminapdf_syntax::Lexer), tolerantly: bytes
 /// that are not a token (a bad hex digit, an unbalanced `)` or `>`) are skipped one at a time
 /// as [`Token::Other`], and a token cut off by the end of the data, or one over
-/// [`Limits::max_string_length`](laminapdf_syntax::Limits::max_string_length), ends the CMap.
+/// [`Limits::max_string_length`](laminapdf_syntax::Limits::max_string_length), ends the CMap
+/// (`cut` records it, and [`Parser::run`] counts it as skipped).
 struct Tokens<'a> {
     inner: laminapdf_syntax::Lexer<'a>,
+    cut: bool,
 }
 
 impl<'a> Tokens<'a> {
     const fn new(source: &'a [u8]) -> Self {
         Self {
             inner: laminapdf_syntax::Lexer::new(source, 0),
+            cut: false,
         }
     }
 
@@ -320,7 +323,10 @@ impl<'a> Tokens<'a> {
                 self.inner.set_pos(start + 1);
                 return Some(Token::Other);
             }
-            Err(_) => return None,
+            Err(_) => {
+                self.cut = true;
+                return None;
+            }
         };
         Some(match token {
             Syntax::Eof => return None,
@@ -418,6 +424,7 @@ impl<'a> Parser<'a> {
                 last.push(token);
             }
         }
+        self.cmap.skipped += usize::from(self.tokens.cut);
         self.cmap
     }
 
@@ -672,6 +679,12 @@ mod tests {
             (cmap.use_cmap(), cmap.unicode(code(1, 1)).as_deref()),
             (Some(&b"UniJIS-UCS2-H"[..]), Some("\u{FB01}"))
         );
+    }
+
+    #[test]
+    fn a_token_cut_off_by_the_end_keeps_the_entries_before_it_and_counts_as_skipped() {
+        let cmap = CMap::parse(b"2 beginbfchar <01> <0041> <02> <004");
+        assert_eq!((cmap.unicode(code(1, 1)).as_deref(), cmap.skipped()), (Some("A"), 1));
     }
 
     #[test]
