@@ -33,7 +33,7 @@ fn parse(line: &str) -> (String, Vec<usize>) {
 
 #[test]
 fn line_break_test_subset_passes() {
-    let file = String::from_utf8(common::fixture("unicode/LineBreakTest.txt")).unwrap();
+    let file = String::from_utf8(laminapdf_test_fixtures::fixture("unicode/LineBreakTest.txt")).unwrap();
     let tests: Vec<&str> = file
         .lines()
         .filter(|l| !l.starts_with('#') && !l.trim().is_empty())

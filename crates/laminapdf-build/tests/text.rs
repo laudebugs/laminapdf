@@ -12,12 +12,13 @@ mod common;
 
 use common::b5b::{self, LATIN_PARAGRAPH, LATIN_RUNS, SCRIPTS};
 use common::text::{lines, shown};
-use common::{fixture, reopen, save};
+use common::{reopen, save};
 use laminapdf_build::{
     BuildOptions, Builder, Feature, LinkTarget, Matrix, PageSize, PdfVersion, Rotation, Standard14, TextRenderMode,
 };
 use laminapdf_cos::Object;
 use laminapdf_model::{PointPt, Pt};
+use laminapdf_test_fixtures::fixture;
 
 fn close(a: (f64, f64), b: (f64, f64)) -> bool {
     (a.0 - b.0).abs() < 1e-3 && (a.1 - b.1).abs() < 1e-3

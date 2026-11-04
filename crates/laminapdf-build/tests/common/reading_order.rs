@@ -11,7 +11,8 @@ use laminapdf_build::{BuildOptions, Builder, Direction, Font, PageSize, TextBoxO
 use laminapdf_model::{Pt, RectPt, Rotation};
 use serde_json::json;
 
-use super::{fixture, save};
+use super::save;
+use laminapdf_test_fixtures::fixture;
 
 /// A block's role, as the expected files name it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

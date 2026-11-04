@@ -14,11 +14,12 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{fixture, open, pdfium, render};
+use common::{open, pdfium, render};
 use laminapdf_render::{
     ByteSource, CancelToken, PixelRect, RenderBackend, RenderError, RenderFlags, RenderOpenOptions, RenderRequest,
     Rotation, SourceError,
 };
+use laminapdf_test_fixtures::fixture;
 
 mod errors {
     use super::*;

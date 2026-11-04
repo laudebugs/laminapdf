@@ -12,7 +12,8 @@
 mod common;
 
 use common::samples::GOLDENS;
-use common::{fixture, record, reopen};
+use common::{record, reopen};
+use laminapdf_test_fixtures::fixture;
 
 #[test]
 fn every_golden_is_rebuilt_byte_for_byte() {

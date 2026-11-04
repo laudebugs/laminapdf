@@ -14,7 +14,8 @@ use std::collections::BTreeMap;
 use laminapdf_cos::{Document, Object, OpenOptions};
 use laminapdf_text::{Encoding, Error, Font, FontRegistry, GlyphId, Standard14, agl};
 
-use common::{TestPdf, fixtures_dir};
+use common::TestPdf;
+use laminapdf_test_fixtures::fixtures_dir;
 
 /// (code, name, width) of every glyph in an AFM file of `tools/std14-gen/data/afm/`.
 fn afm(font: Standard14) -> Vec<(i32, String, u16)> {
@@ -547,7 +548,7 @@ mod written {
     }
 
     fn golden() -> BTreeMap<String, ReadFont> {
-        fonts(&common::fixture("golden/text-std14.pdf"))
+        fonts(&laminapdf_test_fixtures::fixture("golden/text-std14.pdf"))
     }
 
     #[test]

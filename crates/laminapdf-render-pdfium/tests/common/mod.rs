@@ -20,27 +20,19 @@ use laminapdf_render::{
     ByteSource, CancelToken, HayroBackend, RenderBackend, RenderDocument, RenderError, RenderOpenOptions, RenderRequest,
 };
 use laminapdf_render_pdfium::PdfiumBackend;
+use laminapdf_test_fixtures::{fixture, fixtures_dir};
 
 /// Render goldens' resolution.
 pub const DPI: f32 = 96.0;
 
-pub fn root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-pub fn fixture(path: &str) -> Vec<u8> {
-    let p = root().join("fixtures").join(path);
-    std::fs::read(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
-}
-
 /// The golden folder of `backend`.
 pub fn golden_dir(backend: &str) -> PathBuf {
-    root().join("fixtures/golden/render").join(backend)
+    fixtures_dir().join("golden/render").join(backend)
 }
 
 /// Every PDF of `fixtures/corpus/`, by file name.
 pub fn corpus() -> Vec<String> {
-    let mut names: Vec<String> = std::fs::read_dir(root().join("fixtures/corpus"))
+    let mut names: Vec<String> = std::fs::read_dir(fixtures_dir().join("corpus"))
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .filter(|n| Path::new(n).extension().is_some_and(|e| e.eq_ignore_ascii_case("pdf")))
@@ -53,7 +45,7 @@ pub fn corpus() -> Vec<String> {
 /// with its reason.
 pub fn skipped(backend: &str) -> BTreeMap<String, String> {
     let v: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(root().join("fixtures/golden/render/skip.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(fixtures_dir().join("golden/render/skip.json")).unwrap()).unwrap();
     v[backend]
         .as_object()
         .map(|o| {

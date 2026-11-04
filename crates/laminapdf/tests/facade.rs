@@ -1,22 +1,13 @@
 //! The façade's contract (ADR 0028, ADR 0026): auto traits, jobs (budgets, cancellation,
 //! revision checks), the error and warning objects, and the owned read API.
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    reason = "test code and helpers: a panic is a test failure"
-)]
-
-use std::path::Path;
+#![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{
     Budget, CancelToken, Document, Error, InfoPatch, Op, OpenOptions, RotatePage, Rotation, SaveMode, SaveOptions,
     SetInfo, Step,
 };
 
-fn fixture(rel: &str) -> Vec<u8> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(rel);
-    std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
-}
+use laminapdf_test_fixtures::fixture;
 
 fn hello() -> Document {
     Document::open_bytes(fixture("corpus/hello.pdf"), OpenOptions::default()).unwrap()

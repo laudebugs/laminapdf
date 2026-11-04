@@ -16,8 +16,6 @@
     reason = "test code: a panic is a test failure; rounding is the point; the writer builds text"
 )]
 
-use std::path::{Path, PathBuf};
-
 use laminapdf::extract::TextOptions;
 use laminapdf::{Document, OpenOptions};
 use serde_json::{Value, json};
@@ -37,9 +35,7 @@ const FILES: &[&str] = &[
     "golden/examples/multilingual.pdf",
 ];
 
-fn fixtures() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
+use laminapdf_test_fixtures::fixtures_dir;
 
 fn round(x: f64, step: f64) -> f64 {
     let r = (x / step).round() * step;
@@ -95,7 +91,7 @@ fn page_json(text: &laminapdf::extract::PageText) -> Value {
 fn snapshot() -> Value {
     let mut files = serde_json::Map::new();
     for rel in FILES {
-        let bytes = std::fs::read(fixtures().join(rel)).unwrap_or_else(|e| panic!("{rel}: {e}"));
+        let bytes = std::fs::read(fixtures_dir().join(rel)).unwrap_or_else(|e| panic!("{rel}: {e}"));
         let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
         let pages: Vec<Value> = doc
             .page_texts(&TextOptions::new())
@@ -147,7 +143,7 @@ fn text(value: &Value) -> String {
 
 #[test]
 fn page_text_matches_the_shared_snapshot() {
-    let path = fixtures().join("text/page-text.json");
+    let path = fixtures_dir().join("text/page-text.json");
     let committed = std::fs::read_to_string(&path).unwrap_or_default();
     assert!(
         text(&snapshot()) == committed,

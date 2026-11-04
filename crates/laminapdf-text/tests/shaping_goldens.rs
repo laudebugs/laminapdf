@@ -15,7 +15,7 @@ use laminapdf_text::{Direction, HarfRust, Script, ShapeOptions, Shaper};
 use serde_json::{Value, json};
 
 fn load(rel: &str) -> Value {
-    serde_json::from_slice(&common::fixture(rel)).unwrap()
+    serde_json::from_slice(&laminapdf_test_fixtures::fixture(rel)).unwrap()
 }
 
 fn cases() -> Vec<Value> {
@@ -110,8 +110,8 @@ fn goldens_cover_five_scripts() {
 
 #[test]
 fn goldens_script_pins_the_doctor_version() {
-    let script = String::from_utf8(common::fixture("../tools/shaping-goldens/goldens.py")).unwrap();
-    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let script = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/shaping-goldens/goldens.py")).unwrap();
+    let doctor = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/xtask/src/doctor.rs")).unwrap();
     let pin = |text: &str, prefix: &str| {
         text.lines()
             .find_map(|l| l.trim().strip_prefix(prefix))
@@ -126,7 +126,7 @@ fn goldens_script_pins_the_doctor_version() {
 
 #[test]
 fn goldens_were_written_with_the_pinned_harfbuzz() {
-    let script = String::from_utf8(common::fixture("../tools/shaping-goldens/goldens.py")).unwrap();
+    let script = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/shaping-goldens/goldens.py")).unwrap();
     let pinned = script
         .lines()
         .find_map(|l| l.strip_prefix("HB_VERSION = "))

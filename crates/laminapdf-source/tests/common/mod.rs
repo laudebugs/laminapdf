@@ -9,33 +9,17 @@
 )]
 
 use std::fmt::Debug;
-use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use laminapdf::{Document, SaveMode, SaveOptions};
 use laminapdf_cos::{Dict, ObjRef, Object, Stream};
 use laminapdf_save::test_support::Writer;
 
-pub fn fixtures_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
-
 /// `(name, bytes)` for every corpus file, sorted, then the generated large files.
 pub fn inputs() -> &'static [(String, Vec<u8>)] {
     static INPUTS: OnceLock<Vec<(String, Vec<u8>)>> = OnceLock::new();
     INPUTS.get_or_init(|| {
-        let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(fixtures_dir().join("corpus"))
-            .unwrap()
-            .map(|e| e.unwrap().path())
-            .filter(|p| p.extension().is_some_and(|x| x == "pdf"))
-            .map(|p| {
-                (
-                    p.file_name().unwrap().to_string_lossy().into_owned(),
-                    std::fs::read(&p).unwrap(),
-                )
-            })
-            .collect();
-        files.sort();
+        let mut files = laminapdf_test_fixtures::corpus();
         files.push(("generated/classic".into(), multi_page(false).to_vec()));
         files.push(("generated/compact".into(), multi_page(true).to_vec()));
         files

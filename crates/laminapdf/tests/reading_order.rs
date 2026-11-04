@@ -29,14 +29,14 @@
 )]
 
 use std::fmt::Write as _;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use laminapdf::extract::TextOptions;
 use laminapdf::{Document, OpenOptions};
 use serde_json::Value;
 
 fn corpus_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/reading-order")
+    laminapdf_test_fixtures::fixtures_dir().join("reading-order")
 }
 
 /// The Levenshtein distance between two sequences.

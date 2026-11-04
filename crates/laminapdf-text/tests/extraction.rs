@@ -22,7 +22,7 @@ use sha2::{Digest, Sha256};
 const EXTRACTORS: [&str; 3] = ["pypdf", "pdfjs", "pdftotext"];
 
 fn facts() -> serde_json::Value {
-    serde_json::from_slice(&common::fixture("text/extracted.json")).unwrap()
+    serde_json::from_slice(&laminapdf_test_fixtures::fixture("text/extracted.json")).unwrap()
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -36,7 +36,9 @@ fn hex(bytes: &[u8]) -> String {
 fn facts_describe_the_current_goldens() {
     let facts = facts();
     for (name, _, _) in common::samples::GOLDENS {
-        let digest = hex(&Sha256::digest(common::fixture(&format!("golden/{name}"))));
+        let digest = hex(&Sha256::digest(laminapdf_test_fixtures::fixture(&format!(
+            "golden/{name}"
+        ))));
         assert_eq!(
             facts["files"][name]["sha256"].as_str(),
             Some(digest.as_str()),
@@ -47,7 +49,8 @@ fn facts_describe_the_current_goldens() {
 
 /// `(file, extractor, line) → what the extractor returns instead`, from the exceptions file.
 fn exceptions() -> Vec<((String, String, usize), String)> {
-    let file: serde_json::Value = serde_json::from_slice(&common::fixture("text/extraction-exceptions.json")).unwrap();
+    let file: serde_json::Value =
+        serde_json::from_slice(&laminapdf_test_fixtures::fixture("text/extraction-exceptions.json")).unwrap();
     file["exceptions"]
         .as_array()
         .unwrap()
@@ -139,7 +142,8 @@ fn exceptions_are_limited_to_known_extractor_bugs() {
 
 #[test]
 fn every_exception_links_upstream() {
-    let file: serde_json::Value = serde_json::from_slice(&common::fixture("text/extraction-exceptions.json")).unwrap();
+    let file: serde_json::Value =
+        serde_json::from_slice(&laminapdf_test_fixtures::fixture("text/extraction-exceptions.json")).unwrap();
     for e in file["exceptions"].as_array().unwrap() {
         assert!(e["upstream"].as_str().unwrap().starts_with("https://"), "{e}");
     }
@@ -163,7 +167,8 @@ fn pinned(text: &str, pin: &str) -> String {
 
 #[test]
 fn facts_were_written_with_the_pinned_pypdf() {
-    let requirements = String::from_utf8(common::fixture("../tools/fixtures/requirements.txt")).unwrap();
+    let requirements =
+        String::from_utf8(laminapdf_test_fixtures::fixture("../tools/fixtures/requirements.txt")).unwrap();
     assert_eq!(
         facts()["pypdf_version"].as_str(),
         Some(pinned(&requirements, "pypdf==").as_str()),
@@ -173,7 +178,7 @@ fn facts_were_written_with_the_pinned_pypdf() {
 
 #[test]
 fn facts_were_written_with_the_pinned_qpdf() {
-    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let doctor = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/xtask/src/doctor.rs")).unwrap();
     assert_eq!(
         facts()["qpdf_version"].as_str(),
         Some(pinned(&doctor, "pub(crate) const QPDF_VERSION: &str =").as_str()),
@@ -183,7 +188,7 @@ fn facts_were_written_with_the_pinned_qpdf() {
 
 #[test]
 fn facts_were_written_with_the_pinned_poppler() {
-    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let doctor = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/xtask/src/doctor.rs")).unwrap();
     assert_eq!(
         facts()["poppler_version"].as_str(),
         Some(pinned(&doctor, "pub(crate) const POPPLER_VERSION: &str =").as_str()),
@@ -193,7 +198,7 @@ fn facts_were_written_with_the_pinned_poppler() {
 
 #[test]
 fn pdfjs_scripts_pin_the_doctor_version() {
-    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let doctor = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/xtask/src/doctor.rs")).unwrap();
     let pinned_version = pinned(&doctor, "const PDFJS_DIST_VERSION: &str =");
     for script in [
         "../tools/fixtures/pdfjs_text.mjs",
@@ -202,14 +207,14 @@ fn pdfjs_scripts_pin_the_doctor_version() {
         "../tools/corpus-facts/pdfjs-operators.mjs",
         "../tools/roundtrip/pdfjs.mjs",
     ] {
-        let text = String::from_utf8(common::fixture(script)).unwrap();
+        let text = String::from_utf8(laminapdf_test_fixtures::fixture(script)).unwrap();
         assert_eq!(pinned(&text, "const PINNED ="), pinned_version, "{script}");
     }
 }
 
 #[test]
 fn facts_were_written_with_the_pinned_pdfjs() {
-    let script = String::from_utf8(common::fixture("../tools/fixtures/pdfjs_text.mjs")).unwrap();
+    let script = String::from_utf8(laminapdf_test_fixtures::fixture("../tools/fixtures/pdfjs_text.mjs")).unwrap();
     assert_eq!(
         facts()["pdfjs_version"].as_str(),
         Some(pinned(&script, "const PINNED =").as_str()),

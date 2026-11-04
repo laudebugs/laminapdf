@@ -8,7 +8,7 @@ mod common;
 
 #[test]
 fn the_corpus_matches_its_generator() {
-    let dir = common::fixtures_dir().join("reading-order");
+    let dir = laminapdf_test_fixtures::fixtures_dir().join("reading-order");
     let corpus = common::reading_order::corpus();
     let mut stale = Vec::new();
     let mut names = Vec::new();

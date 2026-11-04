@@ -6,11 +6,11 @@
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Document;
+use laminapdf_test_fixtures::fixture;
 use laminapdf_text::{PageText, TextExtractor};
 
 fn pages(rel: &str, options: OpenOptions) -> Vec<PageText> {
-    let path = format!("{}/../../fixtures/{rel}", env!("CARGO_MANIFEST_DIR"));
-    let doc = Document::open(std::fs::read(path).expect("fixture"), options).expect("opens");
+    let doc = Document::open(fixture(rel), options).expect("opens");
     let mut extractor = TextExtractor::new();
     let pages = doc.pages().expect("pages");
     pages
@@ -70,12 +70,8 @@ fn rc4_128_text_extracts_as_its_plaintext() {
 
 #[test]
 fn the_wrong_password_extracts_nothing() {
-    let path = format!(
-        "{}/../../fixtures/text/encrypted/text-shaped-aes-256.pdf",
-        env!("CARGO_MANIFEST_DIR")
-    );
     let error = Document::open(
-        std::fs::read(path).expect("fixture"),
+        fixture("text/encrypted/text-shaped-aes-256.pdf"),
         OpenOptions::default().with_password("nope"),
     )
     .expect_err("refused");

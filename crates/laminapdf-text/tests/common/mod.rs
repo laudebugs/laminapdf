@@ -22,27 +22,15 @@ pub mod fuzz_entry;
 pub mod samples;
 pub mod shaped;
 
-use std::path::{Path, PathBuf};
-
 use laminapdf_cos::{Dict, Document, Name, ObjRef, Object, OpenOptions, Stream};
 use laminapdf_save::test_support::Writer;
 use laminapdf_save::{FullWriter, Renumber, SaveOptions, XrefKind};
 use laminapdf_text::{EmbedPolicy, EmbeddedFont, Encoded, Font, FontKey, FontRegistry, GlyphId, Result, Warning};
 use pdf_writer::{Content, Str};
 
-/// The repository's shared `fixtures/` directory (docs/guidelines/code-organization.md §6).
-pub fn fixtures_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
-
-pub fn fixture(rel: &str) -> Vec<u8> {
-    let path = fixtures_dir().join(rel);
-    std::fs::read(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()))
-}
-
 /// A font from `fixtures/fonts/`.
 pub fn font(name: &str) -> Font {
-    Font::from_bytes(fixture(&format!("fonts/{name}"))).unwrap()
+    Font::from_bytes(laminapdf_test_fixtures::fixture(&format!("fonts/{name}"))).unwrap()
 }
 
 /// The offset of table `tag` in a single-font `sfnt`.

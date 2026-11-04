@@ -3,7 +3,8 @@
 
 mod common;
 
-use common::{TestPdf, fixture, font, name_of, parse_cmap, read_fonts};
+use common::{TestPdf, font, name_of, parse_cmap, read_fonts};
+use laminapdf_test_fixtures::fixture;
 use laminapdf_text::{Error, Font, Tag};
 
 fn bold() -> Font {

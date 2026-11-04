@@ -14,8 +14,6 @@
 
 pub mod fuzz_entry;
 
-use std::path::{Path, PathBuf};
-
 use laminapdf_content::{
     FillRule, FormXObject, ImageDraw, ImageSource, Matrix, Op, Paint, PathSegment, TextAdvance, TextItem, TextShow,
     Visitor, Warning, interpret_content, interpret_page,
@@ -25,28 +23,6 @@ use laminapdf_model::{Document, OpenOptions, Result};
 use laminapdf_save::test_support::Writer;
 
 pub use laminapdf_content::Summary;
-
-/// The repository's shared `fixtures/` directory.
-pub fn fixtures_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
-
-/// Every `corpus/*.pdf` as `(file name, bytes)`, sorted by name.
-pub fn corpus() -> Vec<(String, Vec<u8>)> {
-    let mut files: Vec<(String, Vec<u8>)> = std::fs::read_dir(fixtures_dir().join("corpus"))
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .filter(|p| p.extension().is_some_and(|x| x == "pdf"))
-        .map(|p| {
-            (
-                p.file_name().unwrap().to_string_lossy().into_owned(),
-                std::fs::read(&p).unwrap(),
-            )
-        })
-        .collect();
-    files.sort();
-    files
-}
 
 /// A dictionary from `(key, value)` pairs.
 pub fn dict<const N: usize>(entries: [(&str, Object); N]) -> Dict {

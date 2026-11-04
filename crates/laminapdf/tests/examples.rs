@@ -69,11 +69,7 @@ fn options(id: &[u8; 16]) -> Result<BuildOptions, Box<dyn Error>> {
         .with_creation_date(CREATED.parse()?))
 }
 
-/// A file from `fixtures/`.
-fn fixture(path: &str) -> Vec<u8> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(path);
-    std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
-}
+use laminapdf_test_fixtures::{fixture, fixtures_dir};
 
 type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
@@ -105,7 +101,7 @@ const EXAMPLES: [(&str, Build); 10] = [
 ];
 
 fn golden(name: &str) -> Vec<u8> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../fixtures/golden/examples/{name}.pdf"));
+    let path = fixtures_dir().join(format!("golden/examples/{name}.pdf"));
     std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}; run `cargo xtask golden --update`", path.display()))
 }
 
@@ -180,7 +176,7 @@ fn write_every_example() {
 
 #[test]
 fn every_golden_has_an_example() {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/golden/examples");
+    let dir = fixtures_dir().join("golden/examples");
     let orphans: Vec<String> = std::fs::read_dir(dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())

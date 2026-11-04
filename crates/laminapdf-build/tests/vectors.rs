@@ -9,12 +9,13 @@
 
 mod common;
 
-use common::{fixture, record, reopen, save};
+use common::{record, reopen, save};
 use laminapdf_build::{
     BuildOptions, Builder, Color, FillRule, IccProfile, Matrix, PageSize, PdfVersion, Rotation, StrokeStyle,
 };
 use laminapdf_cos::Object;
 use laminapdf_model::{PointPt, Pt, RectPt, UserSpacePoint};
+use laminapdf_test_fixtures::fixture;
 
 fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
     RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))
