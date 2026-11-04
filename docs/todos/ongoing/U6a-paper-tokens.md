@@ -12,7 +12,7 @@
 | Branch | `feat/u6a-paper-tokens` |
 | PR title | `feat(tokens): add @laminapdf/tokens with paper light, dark and high-contrast themes` |
 | Size | M (≈ 300–400 lines of generator, tests and config; the token JSON and the generated CSS/TS don't count) |
-| PR | — |
+| PR | [#231](https://github.com/laudebugs/laminapdf/pull/231) |
 
 ## Goal
 
@@ -55,7 +55,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main` (`git worktree add -b feat/u6a-paper-tokens feat-u6a-paper-tokens main`), `pnpm install`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main` (`git worktree add -b feat/u6a-paper-tokens feat-u6a-paper-tokens main`), `pnpm install`.
 - [ ] **Ask for sign-off first** (it gates merge, so start it on day one): open a short issue or PR comment listing every **(proposed)** value in the design language, grouped (dark theme; `warning` and the three tints; `hover`/`pressed`/`disabled`; `accent-strong` for buttons; dialog/menu/toast shadows; breakpoints and rail rule; sheet large detent; page pill fade; page-appearance selection tints; the dark page shadow; component styles of §7.18–§7.23), each with its value and contrast. Link it from the PR description.
 - [ ] Re-read ADR 0024 as merged; note its layer names and any naming rule (e.g. `--paper-` prefix) and follow it.
 - [ ] Scaffold `packages/tokens`: `package.json` (`"type": "module"`, `"private": true`, `exports` with `types` first and `"./tokens.css"`, `"files"`, `"engines"`, scripts `generate`, `typecheck`, `test`), `tsconfig.json` extending `../../tsconfig.base.json`, `README.md`. No runtime dependencies.
@@ -107,8 +107,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
