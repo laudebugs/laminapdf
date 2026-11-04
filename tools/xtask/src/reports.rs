@@ -150,6 +150,12 @@ impl Ratchet {
         }));
     }
 
+    /// Whether every report is an error: a check without a ratchet, or `--all-strict`. Its summary
+    /// then counts errors, with no "on changed files".
+    fn strict_everywhere(&self) -> bool {
+        self.everywhere || self.options.all_strict
+    }
+
     /// Prints the reports and fails when any is an error; `file_count` is how many files were read.
     pub(crate) fn finish(mut self, file_count: usize, guideline: &str) -> Result<()> {
         self.reports
@@ -160,7 +166,7 @@ impl Ratchet {
             self.print_text(file_count);
         }
         let errors = self.reports.iter().filter(|report| report.error).count();
-        if errors > 0 && self.everywhere {
+        if errors > 0 && self.strict_everywhere() {
             bail!("{}: {errors} error(s); see {guideline}", self.name);
         }
         if errors > 0 {
@@ -182,7 +188,7 @@ impl Ratchet {
             }
         }
         let errors = self.reports.iter().filter(|report| report.error).count();
-        if self.everywhere {
+        if self.strict_everywhere() {
             let warnings = self.reports.len() - errors;
             println!(
                 "{}: {file_count} files, {errors} error(s), {warnings} warning(s)",
