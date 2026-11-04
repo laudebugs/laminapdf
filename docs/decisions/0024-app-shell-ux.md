@@ -194,6 +194,7 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 - **CSS `invert()` or a filter for dark pages.** Cheap. Rejected: it turns photos into negatives and shifts annotation colours.
 - **Page appearance tied to the UI theme.** Rejected: many readers want dark chrome around original pages, and the high-contrast theme must follow system colours rather than a page palette.
 - **A side drawer on phones.** Rejected: drawers hide navigation behind a tap, and the bottom bar and sheets keep the main tasks one tap away within thumb reach.
+- **The AA minimum of 24 × 24 px on touch as well.** Rejected: Apple's minimum control size is 28 × 28 pt and its default 44 × 44 pt, so 24 px touch targets would be smaller than iOS's own floor.
 - **Two token layers (primitive and semantic only).** Simpler. Rejected: component sizes such as bar heights and focus-ring offsets would be hard-coded in components, where U6f's visual tests can't see them change.
 
 ## Appendix: the reader v0.1 command set

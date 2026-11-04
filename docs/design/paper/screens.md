@@ -14,7 +14,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/ready/U1b-command-registry-and-palette.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | F03 | Phone, reading | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
 | F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
-| F05 | Style tile | — | [U1a](../../todos/ongoing/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
+| F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
 
 ## R. Reader (web reader v0.1 and the shared viewer)
 
