@@ -36,8 +36,8 @@ Did-you-mean suggestions are written in both Rust (`laminapdf-wasm`) and TypeScr
 ## Tasks
 
 - [x] Claim by opening the work PR (#214) off an up-to-date `main`. The cloud session that did the work had a plain clone and an assigned branch, so it worked on that branch instead of a worktree.
-- [x] Write the fixture with tie cases; write both tests; watch the TypeScript one fail. `fixtures/did-you-mean.json` has eight cases; the Rust test replaced the two hand-written ones it covers. Before the fix, TypeScript failed the three tie cases.
-- [x] Fix the TypeScript sort: distance, then code point, as `laminapdf-wasm` sorts.
+- [x] Write the fixture with tie cases; write both tests; watch the TypeScript one fail. `fixtures/did-you-mean.json` has ten cases, two of them added in review for typos outside ASCII; the Rust test replaced the two hand-written ones it covers. Before the fix, TypeScript failed the three tie cases, and later the two non-ASCII ones.
+- [x] Fix the TypeScript sort: distance, then code point, as `laminapdf-wasm` sorts. After review, `didYouMean` also lowercases ASCII letters only and counts edits per code point, as Rust does.
 
 ## Acceptance criteria
 
@@ -64,6 +64,6 @@ None.
 - [x] Claimed: the work PR moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] Work PR opened; **PR** field filled in. It came from the session's assigned branch `claude/working-session-9g3nst` in a plain clone, not from a worktree or a `fix/…` branch (see Tasks)
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
