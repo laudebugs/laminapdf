@@ -5,7 +5,7 @@
 
 ## Context
 
-The reader (Round C), the desktop app (Round D) and the editor (Round E) share one UI, `@laminapdf/ui` over `@laminapdf/viewer` ([ADR 0009](0009-web-client-architecture.md)). Five todos build that UI's shell, and each needs the same answers before it starts: C4a (the shell and top bar), U1b (the command registry and palette), U1c (the rail, inspector and modes), U6a (the design tokens) and D4b (native menus). Changing those answers after the editor modes ship would mean redrawing every mode's toolbar, menu and phone layout.
+The reader (Round C), the desktop app (Round D) and the editor (Round E) share one UI, `@laminapdf/ui` over `@laminapdf/viewer` ([ADR 0009](0009-web-client-architecture.md)). Five todos build that UI's shell, from the top bar (C4a) and the command palette (U1b) to the design tokens (U6a) and native menus (D4b), and each needs the same answers before it starts. Changing those answers after the editor modes ship would mean redrawing every mode's toolbar, menu and phone layout.
 
 The evidence for the answers is in the [product and UX research](../research/product/pdf-app-product-and-ux.md#docked-chrome-modes-and-a-palette-beat-floating-toolbars), and the [UI/UX plan §4–§5](../plans/ui-ux.md#4-principles) turns it into principles:
 
@@ -48,7 +48,7 @@ Every desktop and web window has the same five regions, after Linear's "inverted
 
 - **Docked, not floating.** Only short-lived layers float over the page: the selection mini toolbar, menus, popovers, tooltips, the palette, dialogs and toasts. Panels never float and never cast shadows.
 - **Stable.** Regions appear only under the rules in this table, so controls don't come and go with the pointer.
-- **Focus mode** (`view.focus-mode`) hides the rail and the mode's secondary toolbar; an open find bar stays until it is closed. A selection brings the inspector back until it ends, as in Figma's Minimize UI. Focus mode is the user's choice to hide those homes, so §3's visible-home rule is checked in the normal layout, and the same shortcut or Escape leaves focus mode.
+- **Focus mode** (`view.focus-mode`) hides the rail and the mode's secondary toolbar; an open find bar stays until it is closed. A selection brings the inspector back until it ends, as in Figma's Minimize UI. Focus mode is the user's choice to hide those homes, so §3's visible-home rule is checked in the normal layout. The same shortcut, or Escape, leaves focus mode.
 - **Narrow windows.** Below 600 px the phone shell (§6) replaces this one. Between 600 and 1023 px the rail starts collapsed. A coarse pointer uses the touch rules at any width.
 
 The design language's [§6.1](../design/paper/design-language.md#61-desktop-and-web-shell-inverted-l) gives the sizes; C4a builds the regions as slots, and U1c fills them.
@@ -108,7 +108,7 @@ export interface Shortcut {
 
 - **Ids** follow the design language's rule ([§8.8](../design/paper/design-language.md#88-keyboard-and-shortcuts)): `namespace.verb-object`, one id per action across every surface, labels allowed to differ by platform (`file.save-copy` is "Download a copy" on the web and "Save a copy…" on the desktop). Telemetry counts (U5c) and the docs use the same ids.
 - **Every command has a visible home besides the palette:** a toolbar button, a menu item or a context-menu item. The palette and shortcuts are accelerators; a test fails on a command that only the palette reaches.
-- **Capabilities, per ADR 0010.** When a command's `requires` flag is false, the registry asks `Platform.howToEnable(flag)`: with no answer the platform can never have it, and the command is left out of every view; with an answer the user could unlock it (by installing the PWA, say), and the command shows disabled with that answer as its reason. A binding whose `requires` flag is false is simply not bound. Keys a browser keeps for itself need `ownsKeyboard`, a flag this ADR adds to ADR 0010 (`false` on the web, `true` in the desktop app), so no command checks the platform's name.
+- **Capabilities, per ADR 0010.** When a command's `requires` flag is false, the registry asks `Platform.howToEnable(flag)`. No answer means the platform can never have the capability, so every view leaves the command out. An answer means the user could unlock it (by installing the PWA, say), so the command shows disabled with that answer as its reason. A binding whose `requires` flag is false is simply not bound. Keys a browser keeps for itself need `ownsKeyboard`, a flag this ADR adds to ADR 0010 (`false` on the web, `true` in the desktop app), so no command checks the platform's name.
 - **Shortcuts** are declared once, on the command, and a test checks them against each other and against the browser, OS and assistive-technology keys the design language lists. Single-key shortcuts work only while the page has focus and can be turned off in Settings.
 - **The palette** (U1b) searches titles and keywords, lists recent commands first, shows each row's shortcut, and parses arguments inline. It follows the APG combobox pattern: focus stays in the input, and `aria-activedescendant` names the active row (§8).
 - **Native menus** (D4b) are generated from the registry where `hasNativeMenus` is true; the web shows the same groups in its overflow menu.
@@ -141,7 +141,7 @@ Three settings recolour three different things, and none implies another:
 | Dark | The renderer recolours the page's text and paths | CSS `invert()`, which turns photos into negatives |
 | High contrast | The renderer maps page colours to the `forced-colors` system colours, as pdf.js does with `Canvas` and `CanvasText` | A hand-made palette |
 
-Annotation colours never change in any appearance, because they carry meaning. The gutter around pages has its own token per theme. These rules fix the outcome, and U2c finds the mechanism in each backend (ADR 0004). PDFium's colour scheme recolours text and paths, annotations too when they are drawn in the same pass, so they may need a pass of their own; hayro has no such option today, and U2c either adds one or records the gap.
+Annotation colours never change in any appearance, because they carry meaning. The gutter around pages has its own token per theme. These rules fix the outcome, and U2c finds the mechanism in each backend (ADR 0004). PDFium's colour scheme recolours text and paths, and annotations too when they are drawn in the same pass, so annotations may need a pass of their own. The hayro backend has no such option today, so U2c either adds one or records the gap.
 
 ### 6. The phone shell: bars, sheets and viewer-owned gestures
 
@@ -176,7 +176,7 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 
 - **Targets:** every pointer target is at least 24 × 24 CSS px ([SC 2.5.8 Target Size (Minimum), AA](https://www.w3.org/TR/WCAG22/#target-size-minimum)), and the shell's own controls meet that size themselves rather than through the criterion's spacing exception. On touch, lamina adopts 44 × 44 CSS px, the size of [SC 2.5.5 Target Size (Enhanced), AAA](https://www.w3.org/TR/WCAG22/#target-size-enhanced) and Apple's default control size ([Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility)). Material asks for 48 × 48 dp ([Accessibility designing](https://m3.material.io/foundations/designing/structure)); native apps decide that in ADR 0025.
 - **Dragging:** every drag has a single-pointer alternative ([SC 2.5.7 Dragging Movements, AA](https://www.w3.org/TR/WCAG22/#dragging-movements)): the sheet grabber button, "Move to page…" and move controls in Organise, inspector fields for page overlays, the page buttons for panning. A keyboard equivalent alone isn't enough: W3C's [Understanding document](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html) asks for controls a pointer can press.
-- **Focus never hidden:** a focused control is never entirely hidden by the top bar, a toolbar, a sheet or a toast ([SC 2.4.11 Focus Not Obscured (Minimum), AA](https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum)). W3C's [Understanding document](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) names sticky headers, sticky footers and non-modal dialogs as the usual failures, so the canvas keeps scroll padding equal to the docked chrome and sheets, and toasts never cover a focusable control.
+- **Focus never hidden:** a focused control is never entirely hidden by the top bar, a toolbar, a sheet or a toast ([SC 2.4.11 Focus Not Obscured (Minimum), AA](https://www.w3.org/TR/WCAG22/#focus-not-obscured-minimum)). W3C's [Understanding document](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) names sticky headers, sticky footers and non-modal dialogs as the usual failures, so the canvas keeps scroll padding equal to the docked chrome and any open sheet. Toasts never cover a focusable control.
 - **Single-key shortcuts** can be turned off and act only while the page has focus ([SC 2.1.4 Character Key Shortcuts, A](https://www.w3.org/TR/WCAG22/#character-key-shortcuts)).
 - **Patterns** from the WAI-ARIA Authoring Practices (APG):
   - The palette follows the [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a listbox popup, as in APG's [list autocomplete example](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/): DOM focus stays on the input, `aria-activedescendant` names the active row, and the script scrolls that row into view, which browsers don't do for an active descendant.
@@ -188,15 +188,15 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 
 - **One model to build against.** C4a, U1b, U1c, U6a and D4b can start in parallel, and each editor round adds a mode, its toolbar and its commands without touching the shell.
 - **The registry costs some ceremony.** Even a one-off button needs a command, an id and a visible home. That cost buys generated menus, help and shortcut chips that can't drift, and a test that finds palette-only commands.
-- **Read mode stays spare,** as the research recommends: the page, the top bar and the status bar, with tools appearing only when the user picks a mode, selects something or opens the palette.
 - **Page appearance needs renderer work** in both backends (U2c), and the two may differ. The nightly render diff (X3b) compares Original only today, so U2c adds the other appearances to it; Original stays the default.
-- **Touch users get no floating toolbar,** so a selection action costs a tap on the bottom bar instead of one near the text; the alternative fought the OS menu and lost on iOS.
 - **Some layout values are still proposals** in the design language (the dark theme, the large detent, the breakpoints); U6a asks the owner to approve them before they become tokens.
+- **Touch users get no floating toolbar,** so a selection action costs a tap on the bottom bar instead of one near the text; the alternative fought the OS menu and lost on iOS.
+- **Read mode stays spare,** as the research recommends: the page, the top bar and the status bar, with tools appearing only when the user picks a mode, selects something or opens the palette.
 
 ## Alternatives considered
 
 - **A ribbon.** It shows every tool at once and has the contextual tabs this ADR keeps. Rejected: it fills Read mode with editing tools, and the research's readers ask for less chrome. Modes keep the ribbon's good idea, one contextual toolbar.
-- **Floating panels and palettes** (UI3's first release, Acrobat's quick tools). Rejected: both vendors retreated from them after complaints that they covered the page.
+- **Floating panels** (UI3's first release, Acrobat's quick-tools widget). Rejected: both vendors retreated from them after complaints that they covered the page.
 - **Per-surface menus without a registry.** Simpler at first. Rejected: labels, shortcuts and enabled states drift between the palette, menus and toolbars, and native menus would need hand-written copies.
 - **A palette as the main way in.** Rejected: most users act on visible controls, so the palette stays an accelerator over commands that already have a home.
 - **A hard-coded mode list.** Rejected: the reader would ship empty modes, and every editor round would edit the shell. Registering a mode keeps Read alone in v0.1.

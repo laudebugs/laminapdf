@@ -76,7 +76,7 @@ None (docs only); the link checker covers the new links.
 ## Outcome
 
 - [ADR 0024](../../decisions/0024-app-shell-ux.md) is accepted with seven decisions plus the accessibility rules that hold across them, eleven rejected alternatives and the reader v0.1 command set (39 commands) as its appendix.
-- It depends on ADR 0009 for React Aria Components and `ReaderController`, where modes register, and on ADR 0010 for the capability rule that commands follow (`requires`: hidden where the platform can never have it, disabled with a reason otherwise).
+- It depends on ADR 0009 for React Aria Components and `ReaderController`, where modes register. It depends on ADR 0010 for the capability rule commands follow: hidden where the platform can never have a capability, disabled with a reason where the user could unlock it.
 - Every WCAG 2.2, APG, Apple HIG and Material 3 claim cites the primary page, checked on 2026-11-04; they agree with the UI/UX plan. Two findings went into the ADR: SC 2.5.7 covers the viewer's own panning, and a keyboard equivalent alone doesn't meet it.
 - The design language's command-id appendix gains `mode.comment`, `view.set-zoom` and `view.rotate-display`; ADR 0010 gains the `ownsKeyboard` flag and `Platform.howToEnable`, which the command registry needs. Token CSS names keep the docs site's `--paper-` prefix.
 
