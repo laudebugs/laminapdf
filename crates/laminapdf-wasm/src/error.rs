@@ -121,7 +121,9 @@ pub(crate) fn unknown_option(argument: &'static str, option: Option<String>, kno
     )
 }
 
-/// The known names within two edits of `given` (case-insensitive), closest first.
+/// The known names within two edits of `given` (case-insensitive), closest first; names at the
+/// same distance in code-point order (`fixtures/did-you-mean.json` pins the rule for both
+/// languages).
 pub(crate) fn did_you_mean(given: &str, known: &[String]) -> Vec<String> {
     let given = given.to_ascii_lowercase();
     let mut close: Vec<(usize, &String)> = known
@@ -172,23 +174,22 @@ mod tests {
         assert_eq!(missing, Vec::<&str>::new());
     }
 
-    fn names(names: &[&str]) -> Vec<String> {
-        names.iter().map(|n| (*n).to_owned()).collect()
-    }
-
+    /// Every case of `fixtures/did-you-mean.json`, which `@laminapdf/sdk`'s
+    /// `test/did-you-mean.test.ts` runs too, so both languages suggest the same names.
     #[test]
-    fn did_you_mean_finds_a_misspelt_key() {
-        assert_eq!(
-            did_you_mean("pasword", &names(&["password", "strict", "limits"])),
-            ["password"]
-        );
-    }
-
-    #[test]
-    fn did_you_mean_is_empty_for_a_far_key() {
-        assert_eq!(
-            did_you_mean("colour", &names(&["password", "strict"])),
-            Vec::<String>::new()
-        );
+    fn did_you_mean_gives_the_shared_fixture_s_names() {
+        let strings = |list: &serde_json::Value| -> Vec<String> {
+            list.as_array()
+                .unwrap()
+                .iter()
+                .map(|s| s.as_str().unwrap().to_owned())
+                .collect()
+        };
+        let fixture = laminapdf_test_fixtures::json("did-you-mean.json");
+        for case in fixture["cases"].as_array().unwrap() {
+            let given = case["given"].as_str().unwrap();
+            let suggested = did_you_mean(given, &strings(&case["known"]));
+            assert_eq!(suggested, strings(&case["expected"]), "{}", case["about"]);
+        }
     }
 }

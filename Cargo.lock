@@ -1277,6 +1277,7 @@ dependencies = [
  "laminapdf",
  "laminapdf-ops",
  "laminapdf-source",
+ "laminapdf-test-fixtures",
  "serde",
  "serde_json",
  "tsify",

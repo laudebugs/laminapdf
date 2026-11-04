@@ -39,6 +39,9 @@ tsify = { workspace = true }
 wasm-bindgen = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
+# The test helpers every crate shares (code-organization.md §6), by path only: `cargo publish`
+# drops such dev-dependencies.
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 wasm-bindgen-test = { workspace = true }
 
 [lints]
