@@ -121,6 +121,11 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+
+/// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as
+/// `cargo xtask gen codes` writes it. Tools that embed it in schemas of their own, such as
+/// `laminapdf mcp`'s output schemas, read it from here.
+pub const ERROR_SCHEMA: &str = include_str!("../schemas/error.schema.json");
 pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 /// The error of the builder's own methods (`Surface`, `PageBuilder` and the rest come from
 /// `laminapdf-build` as they are, ADR 0028): `?` turns it into [`Error`].
