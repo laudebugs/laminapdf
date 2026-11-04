@@ -66,7 +66,7 @@ Renames ripple into the docs: land this before Q1i and Q1m if possible, or updat
 ## Outcome
 
 - The extracted run is `PageTextRun`, the name `@laminapdf/sdk` already exported (`laminapdf::extract::PageTextRun`, `laminapdf_text::PageTextRun`); `TextRun` is only drawn text.
-- `laminapdf-build`'s handle is `FontHandle` at the source, so its signatures no longer show a second `Font`; the façade re-exports it without an alias.
+- `laminapdf-build`'s handle is `FontHandle` at the source, so its signatures read `&FontHandle`, distinct from `laminapdf::Font`; the façade re-exports it without an alias.
 - `laminapdf-text`'s OpenType tag is `OpenTypeTag`, and the façade exports it for `Font::instance`.
 - `laminapdf-text`'s `extract` and `agl` modules are private, their items re-exported at the root (`agl::to_unicode` became `glyph_name_to_unicode`); `CMap` and `MAX_USECMAP_DEPTH` are crate-private.
 - `Document::ops` and `into_ops` are `#[doc(hidden)]`, kept for Lamina PDF's own crates and tests.
