@@ -63,10 +63,7 @@ fn shapes(s: &mut Surface) -> Result<(), Box<dyn Error>> {
     let dashed = StrokeStyle {
         width: Pt::new(3.0),
         cap: LineCap::Round,
-        dash: Some(Dash {
-            array: vec![Pt::new(12.0), Pt::new(8.0)],
-            phase: Pt::ZERO,
-        }),
+        dash: Some(Dash::new(vec![12.0, 8.0], 0.0)),
         ..StrokeStyle::default()
     };
     s.stroke_color(Color::hex("#2a9d8f")?)
@@ -94,7 +91,7 @@ fn images(s: &mut Surface, photo: &Image, glow: &Image) {
         .clip(FillRule::NonZero);
     s.image(photo, RectPt::from_points(300.0, 250.0, 239.0, 160.0))
         .restore();
-    let placement = Matrix::translate(Pt::new(150.0), Pt::new(520.0)).after(&Matrix::rotate(30.0));
+    let placement = Matrix::translate(150.0, 520.0).after(&Matrix::rotate(30.0));
     s.save().transform(placement);
     s.image(glow, RectPt::from_points(-60.0, -60.0, 120.0, 120.0)).restore();
 }

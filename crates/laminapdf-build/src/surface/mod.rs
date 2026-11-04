@@ -34,7 +34,8 @@ use crate::tag::mcid::{Marking, PageMarks};
 use crate::tag::{ArtifactKind, Tag, TagKind};
 use color::Color;
 use image::Image;
-use path::{FillRule, Matrix, PathBuilder, Segment};
+use laminapdf_model::{FillRule, Matrix};
+use path::{PathBuilder, Segment};
 use style::{BlendMode, StrokeStyle};
 #[cfg(feature = "text")]
 use text::{Font, Spec, TextCommand, TextRenderMode, TextRun, lay_out};

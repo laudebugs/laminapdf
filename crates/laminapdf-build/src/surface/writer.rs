@@ -14,7 +14,9 @@ use pdf_writer::{Str, TextStr};
 #[cfg(feature = "text")]
 use super::TextTarget;
 use super::color::Color;
-use super::path::{FillRule, Matrix, Segment};
+use laminapdf_model::{FillRule, Matrix};
+
+use super::path::Segment;
 use super::style::{LineCap, LineJoin, StrokeStyle};
 #[cfg(feature = "text")]
 use super::text::{TextCommand, TextRenderMode};
@@ -290,9 +292,7 @@ impl Writer {
         }
         if changed(&|p| p.dash == style.dash) {
             match &style.dash {
-                Some(dash) => {
-                    c.set_dash_pattern(dash.array.iter().map(|d| n(d.get() / unit)), n(dash.phase.get() / unit))
-                }
+                Some(dash) => c.set_dash_pattern(dash.array.iter().map(|d| n(d / unit)), n(dash.phase / unit)),
                 None => c.set_dash_pattern([], 0.0),
             };
         }

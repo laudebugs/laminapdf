@@ -14,11 +14,11 @@ use laminapdf_text::{
 
 use super::Surface;
 use super::color::Color;
-use super::path::Matrix;
 use crate::annot::link::LinkSpec;
 use crate::error::Result;
 use crate::nav::LinkTarget;
 use crate::tag::Tag;
+use laminapdf_model::Matrix;
 
 /// A font registered with one builder ([`Builder::font`](crate::Builder::font),
 /// [`Builder::standard_font`](crate::Builder::standard_font) or the [`Appender`](crate::Appender)'s):

@@ -66,6 +66,7 @@
 mod date;
 mod document;
 mod geometry;
+mod graphics;
 mod id;
 mod info;
 mod labels;
@@ -78,6 +79,7 @@ mod tree;
 pub use date::{InvalidDate, PdfDate};
 pub use document::Document;
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
+pub use graphics::{Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};

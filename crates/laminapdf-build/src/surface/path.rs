@@ -6,22 +6,6 @@ use laminapdf_model::{PointPt, Pt, RectPt};
 /// at κ·r approximate a circle to within 0.03 %.
 pub(crate) const KAPPA: f64 = 4.0 * (std::f64::consts::SQRT_2 - 1.0) / 3.0;
 
-/// How a fill or clip decides what is inside a path (§8.5.3.3).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[non_exhaustive]
-pub enum FillRule {
-    /// Non-zero winding number (`f`, `W`).
-    #[default]
-    NonZero,
-    /// Even-odd (`f*`, `W*`).
-    EvenOdd,
-}
-
-impl FillRule {
-    /// Every fill rule, in declaration order.
-    pub const ALL: [Self; 2] = [Self::NonZero, Self::EvenOdd];
-}
-
 /// One path segment, in page space.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum Segment {
@@ -172,118 +156,9 @@ impl PathBuilder {
     }
 }
 
-/// An affine transformation in page space (§8.3.4): a point `(x, y)` maps to
-/// `(a·x + c·y + e, b·x + d·y + f)`, with `e` and `f` in points. Because page space has y
-/// down, [`Matrix::rotate`] with a positive angle turns clockwise on the displayed page.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Matrix {
-    /// `a`.
-    pub a: f64,
-    /// `b`.
-    pub b: f64,
-    /// `c`.
-    pub c: f64,
-    /// `d`.
-    pub d: f64,
-    /// `e`, in points.
-    pub e: f64,
-    /// `f`, in points.
-    pub f: f64,
-}
-
-impl Default for Matrix {
-    fn default() -> Self {
-        Self::IDENTITY
-    }
-}
-
-impl Matrix {
-    /// The identity.
-    pub const IDENTITY: Self = Self::new([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
-
-    /// The matrix `[a b c d e f]`.
-    #[must_use]
-    #[expect(clippy::many_single_char_names, reason = "a–f are the matrix entries of §8.3.4")]
-    pub const fn new([a, b, c, d, e, f]: [f64; 6]) -> Self {
-        Self { a, b, c, d, e, f }
-    }
-
-    /// A translation by `(x, y)`.
-    #[must_use]
-    pub const fn translate(x: Pt, y: Pt) -> Self {
-        Self::new([1.0, 0.0, 0.0, 1.0, x.get(), y.get()])
-    }
-
-    /// A scaling by `sx` horizontally and `sy` vertically.
-    #[must_use]
-    pub const fn scale(sx: f64, sy: f64) -> Self {
-        Self::new([sx, 0.0, 0.0, sy, 0.0, 0.0])
-    }
-
-    /// A rotation by `degrees` about the origin, clockwise as displayed.
-    #[must_use]
-    pub fn rotate(degrees: f64) -> Self {
-        let (s, c) = degrees.to_radians().sin_cos();
-        Self::new([c, s, -s, c, 0.0, 0.0])
-    }
-
-    /// `self` applied after `inner`: the transformation that maps `p` to
-    /// `self(inner(p))`.
-    #[must_use]
-    pub fn after(&self, inner: &Self) -> Self {
-        Self::new([
-            self.a * inner.a + self.c * inner.b,
-            self.b * inner.a + self.d * inner.b,
-            self.a * inner.c + self.c * inner.d,
-            self.b * inner.c + self.d * inner.d,
-            self.a * inner.e + self.c * inner.f + self.e,
-            self.b * inner.e + self.d * inner.f + self.f,
-        ])
-    }
-
-    /// The inverse, `None` for a singular matrix.
-    #[must_use]
-    pub fn invert(&self) -> Option<Self> {
-        let det = self.a * self.d - self.b * self.c;
-        if det == 0.0 || !det.is_finite() {
-            return None;
-        }
-        let (a, b, c, d) = (self.d / det, -self.b / det, -self.c / det, self.a / det);
-        Some(Self::new([
-            a,
-            b,
-            c,
-            d,
-            -(a * self.e + c * self.f),
-            -(b * self.e + d * self.f),
-        ]))
-    }
-
-    /// `(x, y)` transformed.
-    #[must_use]
-    pub fn apply(&self, x: f64, y: f64) -> (f64, f64) {
-        (self.a * x + self.c * y + self.e, self.b * x + self.d * y + self.f)
-    }
-
-    pub(crate) const fn to_array(self) -> [f64; 6] {
-        [self.a, self.b, self.c, self.d, self.e, self.f]
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// The match is exhaustive, so a new variant fails to build here first: give it the next
-    /// index and add it to `ALL` there, which this test then checks.
-    #[test]
-    fn all_should_list_every_fill_rule_once_in_declaration_order() {
-        let index = |v: FillRule| match v {
-            FillRule::NonZero => 0,
-            FillRule::EvenOdd => 1,
-        };
-        assert!(FillRule::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
-    }
 
     fn pt(x: f64, y: f64) -> PointPt {
         PointPt::from_points(x, y)
@@ -359,29 +234,5 @@ mod tests {
         let mut p = PathBuilder::default();
         p.move_to(pt(5.0, 5.0)).line_to(pt(9.0, 9.0)).close();
         assert_eq!(p.current, Some(pt(5.0, 5.0)));
-    }
-
-    #[test]
-    fn after_composes_inner_first() {
-        let m = Matrix::translate(Pt::new(10.0), Pt::ZERO).after(&Matrix::scale(2.0, 2.0));
-        assert_eq!(m.apply(1.0, 1.0), (12.0, 2.0));
-    }
-
-    #[test]
-    fn invert_undoes_the_matrix() {
-        let m = Matrix::new([0.0, 2.0, -2.0, 0.0, 5.0, 7.0]);
-        let inv = m.invert().unwrap();
-        assert_eq!(inv.after(&m).apply(3.0, 4.0), (3.0, 4.0));
-    }
-
-    #[test]
-    fn a_singular_matrix_has_no_inverse() {
-        assert_eq!(Matrix::scale(0.0, 1.0).invert(), None);
-    }
-
-    #[test]
-    fn rotate_90_turns_x_into_y_down() {
-        let (x, y) = Matrix::rotate(90.0).apply(1.0, 0.0);
-        assert!((x.abs() < 1e-12) && (y - 1.0).abs() < 1e-12);
     }
 }
