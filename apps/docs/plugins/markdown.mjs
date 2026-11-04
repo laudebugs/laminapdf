@@ -7,6 +7,9 @@
 /** The fence language of a file the docs show, by extension. */
 const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" };
 
+/** A `<Snippet … file="…" … />`, whatever its attributes' order; group 1 is the file. */
+export const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
+
 /**
  * Splits a page into its front matter (simple `key: value` lines, quotes removed) and body.
  *
@@ -94,18 +97,29 @@ export function rewriteLinks(markdown, rewrite) {
  * @returns {string}
  */
 function outsideCode(markdown, transform) {
+  return outsideFences(markdown, (part) => {
+    /** @type {string[]} */
+    const spans = [];
+    const hidden = part.replace(/`[^`\n]+`/g, (span) => `\uE000${spans.push(span) - 1}\uE001`);
+    return transform(hidden).replace(/\uE000(\d+)\uE001/g, (_, n) => spans[Number(n)] ?? "");
+  });
+}
+
+/**
+ * Applies `transform` to the parts of `markdown` outside fenced code blocks.
+ *
+ * @param {string} markdown
+ * @param {(text: string) => string} transform
+ * @returns {string}
+ */
+function outsideFences(markdown, transform) {
   const parts = markdown.split(/(^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?\n {0,3}\2[ \t]*$)/m);
   /** @type {string[]} */
   const out = [];
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i] ?? "";
     if (i % 3 === 1) out.push(part);
-    else if (i % 3 === 0) {
-      /** @type {string[]} */
-      const spans = [];
-      const hidden = part.replace(/`[^`\n]+`/g, (span) => `\u0000${spans.push(span) - 1}\u0000`);
-      out.push(transform(hidden).replace(/\u0000(\d+)\u0000/g, (_, n) => spans[Number(n)] ?? ""));
-    }
+    else if (i % 3 === 0) out.push(transform(part));
   }
   return out.join("");
 }
@@ -119,14 +133,17 @@ function outsideCode(markdown, transform) {
  * @returns {string}
  */
 export function mdxToMarkdown(body, components) {
-  let text = body
-    .replace(/^import\s.+?;?\s*$/gm, "")
-    .replace(/<Snippet\s+file="([^"]+)"[^>]*\/>/g, (_, file) => codeBlock(file, components.snippet(file)))
-    .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
-    .replace(/^[ \t]*<Tabs[^>]*>[ \t]*$/gm, "")
-    .replace(/^[ \t]*<\/Tabs>[ \t]*$/gm, "")
-    .replace(/^[ \t]*<TabItem\s+label="([^"]+)"[^>]*>[ \t]*$/gm, "**$1**\n")
-    .replace(/^[ \t]*<\/TabItem>[ \t]*$/gm, "");
+  // The page's own code blocks keep their lines (an example's `import`, a `<Tabs>` in JSX).
+  let text = outsideFences(body, (part) =>
+    part
+      .replace(/^import\s.+?;?\s*$/gm, "")
+      .replace(SNIPPET, (_, file) => codeBlock(file, components.snippet(file)))
+      .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
+      .replace(/^[ \t]*<Tabs[^>]*>[ \t]*$/gm, "")
+      .replace(/^[ \t]*<\/Tabs>[ \t]*$/gm, "")
+      .replace(/^[ \t]*<TabItem\s+label="([^"]+)"[^>]*>[ \t]*$/gm, "**$1**\n")
+      .replace(/^[ \t]*<\/TabItem>[ \t]*$/gm, ""),
+  );
   text = asides(dedentComponents(text));
   text = rewriteLinks(text, (href) => twinHref(href));
   return `${text.replace(/\n{3,}/g, "\n\n").trim()}\n`;

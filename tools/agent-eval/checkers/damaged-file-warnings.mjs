@@ -16,11 +16,19 @@ await check(({ sdk, read, open, pdf }) => {
     throw new CheckFailure("warnings.json is not JSON");
   }
   const damaged = sdk.Document.open(taskInput("damaged-file-warnings", "damaged.pdf"));
+  // Warnings raised at open must all be there; reading pages may add more, which is fine as long
+  // as each is a code Lamina PDF reported for this file once its pages are read too.
+  const atOpen = codes(damaged.warnings);
+  for (let i = 0; i < damaged.pageCount; i++) damaged.page(i);
   const want = codes(damaged.warnings);
   expect(
-    JSON.stringify(listed) === JSON.stringify(want),
-    `warnings.json is ${JSON.stringify(listed)}, expected ${JSON.stringify(want)}`,
+    Array.isArray(listed) && listed.every((c) => typeof c === "string"),
+    `warnings.json is ${JSON.stringify(listed)}, not an array of codes`,
   );
+  const missing = atOpen.filter((c) => !listed.includes(c));
+  const unknown = listed.filter((/** @type {string} */ c) => !want.includes(c));
+  expect(missing.length === 0, `warnings.json lacks ${missing.join(", ")}`);
+  expect(unknown.length === 0, `warnings.json lists ${unknown.join(", ")}, which Lamina PDF doesn't report here`);
   const repaired = open("repaired.pdf");
   expect(
     repaired.pageCount === damaged.pageCount,

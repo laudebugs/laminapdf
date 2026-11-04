@@ -173,6 +173,52 @@ export function pdfObjects(bytes) {
 }
 
 /**
+ * The outermost dictionaries (`<< … >>`, nested ones inside them) in `objects`, so a check can
+ * ask what one annotation or outline item holds instead of searching the whole file. Literal
+ * strings are skipped, so a `<<` inside one doesn't count.
+ *
+ * @param {string} objects - from {@link pdfObjects}
+ * @returns {string[]}
+ */
+export function topDictionaries(objects) {
+  const found = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < objects.length; i++) {
+    const c = objects[i];
+    const pair = objects.slice(i, i + 2);
+    if (c === "(" && depth > 0) {
+      i = skipString(objects, i);
+    } else if (pair === "<<") {
+      if (depth === 0) start = i;
+      depth++;
+      i++;
+    } else if (pair === ">>" && depth > 0) {
+      depth--;
+      if (depth === 0) found.push(objects.slice(start, i + 2));
+      i++;
+    }
+  }
+  return found;
+}
+
+/**
+ * The index of the `)` closing the literal string that opens at `open`.
+ *
+ * @param {string} text
+ * @param {number} open
+ */
+function skipString(text, open) {
+  let nesting = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "\\") i++;
+    else if (text[i] === "(") nesting++;
+    else if (text[i] === ")" && --nesting === 0) return i;
+  }
+  return text.length;
+}
+
+/**
  * Whether a PDF text string with this value appears in `objects`: as a literal string, or as
  * UTF-16BE with a byte-order mark, literal or hexadecimal.
  *

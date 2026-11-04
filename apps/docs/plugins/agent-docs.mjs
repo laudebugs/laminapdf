@@ -6,7 +6,7 @@
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
-import { frontMatter, mdxToMarkdown, rewriteLinks, twin, twinHref } from "./markdown.mjs";
+import { frontMatter, mdxToMarkdown, rewriteLinks, SNIPPET, twin, twinHref } from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -130,7 +130,7 @@ async function twinOf(route, context) {
     const source = await readFile(new URL(name, CONTENT), "utf8");
     const { data, body } = frontMatter(source);
     const markdown = mdxToMarkdown(body, {
-      snippet: (file) => snippetCache.get(file) ?? missingSnippet(file),
+      snippet: snippetText,
       codeTable: () => context.table,
     });
     const title = data.title ?? base;
@@ -153,7 +153,7 @@ let contentIndex;
  *
  * @returns {Promise<Map<string, string>>}
  */
-async function contentFiles() {
+export async function contentFiles() {
   if (contentIndex === undefined) {
     contentIndex = new Map();
     for (const name of await readdir(CONTENT, { recursive: true })) {
@@ -172,23 +172,28 @@ async function contentFiles() {
 const snippetCache = new Map();
 
 /**
- * @param {string} file
- * @returns {never}
+ * The text of an example file a page shows, read by {@link readSnippets}; fails for any other.
+ * The site's twins and the package docs both read snippets through it.
+ *
+ * @param {string} file the path from the repository root
+ * @returns {string}
  */
-function missingSnippet(file) {
-  throw new Error(`agent docs: a page shows ${file}, which wasn't read`);
+export function snippetText(file) {
+  const text = snippetCache.get(file);
+  if (text === undefined) throw new Error(`agent docs: a page shows ${file}, which wasn't read`);
+  return text;
 }
 
 /**
- * Reads every file a page's `<Snippet>` names into {@link snippetCache}.
+ * Reads every file a page's `<Snippet>` names, whatever its attributes' order.
  *
  * @returns {Promise<void>}
  */
-async function readSnippets() {
+export async function readSnippets() {
   for (const name of await readdir(CONTENT, { recursive: true })) {
     if (!/\.mdx?$/.test(name)) continue;
     const source = await readFile(new URL(name, CONTENT), "utf8");
-    for (const [, file = ""] of source.matchAll(/<Snippet\s+file="([^"]+)"/g)) {
+    for (const [, file = ""] of source.matchAll(SNIPPET)) {
       if (!snippetCache.has(file)) snippetCache.set(file, await readFile(new URL(file, ROOT), "utf8"));
     }
   }

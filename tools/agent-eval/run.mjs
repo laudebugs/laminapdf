@@ -23,7 +23,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadTasks, ROOT } from "./tasks.mjs";
@@ -204,35 +204,52 @@ function packageJson(dependencies) {
 
 /**
  * A project with the tarballs installed, made once per mode and copied for each task. The
- * tarballs are installed from copies that are deleted afterwards, and package.json names plain
- * versions, so nothing in the project points to this repository or to a tarball that still
- * holds the docs.
+ * tarballs sit in the project's `vendor/` and package.json names them with `file:`, so an
+ * `npm install` the agent runs reinstalls the same files offline, never the registry's version
+ * and never a path into this repository. In `no-docs` mode the sdk tarball is repacked without
+ * its `docs/`, so a reinstall can't bring the docs back.
  *
  * @param {{ wasm: string, sdk: string, version: string }} packs
  * @param {Mode} mode
  * @param {string} base - the run's temp folder
  */
-function makeTemplate(packs, mode, base) {
+export function makeTemplate(packs, mode, base) {
   const dir = join(base, `template-${mode}`);
-  const copies = join(base, `packs-${mode}`);
-  mkdirSync(dir, { recursive: true });
-  mkdirSync(copies, { recursive: true });
-  const tarballs = [packs.wasm, packs.sdk].map((from) => {
-    const to = join(copies, basename(from));
-    copyFileSync(from, to);
-    return to;
-  });
-  writeFileSync(join(dir, "package.json"), packageJson());
-  run("npm", ["install", "--no-audit", "--no-fund", "--no-package-lock", "--loglevel=error", ...tarballs], dir);
-  rmSync(copies, { recursive: true, force: true });
+  const vendor = join(dir, "vendor");
+  mkdirSync(vendor, { recursive: true });
+  const wasm = join(vendor, "laminapdf-wasm.tgz");
+  const sdk = join(vendor, "laminapdf-sdk.tgz");
+  copyFileSync(packs.wasm, wasm);
+  if (mode === "no-docs") withoutDocs(packs.sdk, sdk, join(base, "repack"));
+  else copyFileSync(packs.sdk, sdk);
   writeFileSync(
     join(dir, "package.json"),
-    packageJson({ "@laminapdf/sdk": packs.version, "@laminapdf/wasm": packs.version }),
+    packageJson({
+      "@laminapdf/sdk": "file:vendor/laminapdf-sdk.tgz",
+      "@laminapdf/wasm": "file:vendor/laminapdf-wasm.tgz",
+    }),
   );
+  run("npm", ["install", "--no-audit", "--no-fund", "--offline", "--loglevel=error"], dir);
   const docs = join(dir, "node_modules", "@laminapdf", "sdk", "docs");
-  if (mode === "no-docs") rmSync(docs, { recursive: true, force: true });
-  else if (!existsSync(docs)) throw new Error("the packed @laminapdf/sdk has no docs/ folder: repack it");
+  if (mode === "no-docs" && existsSync(docs)) throw new Error("the repacked @laminapdf/sdk still has docs/");
+  if (mode === "docs" && !existsSync(docs)) throw new Error("the packed @laminapdf/sdk has no docs/ folder: repack it");
   return dir;
+}
+
+/**
+ * Repacks the tarball `from` into `to` without `package/docs/`, in the scratch folder `work`.
+ *
+ * @param {string} from
+ * @param {string} to
+ * @param {string} work
+ */
+function withoutDocs(from, to, work) {
+  rmSync(work, { recursive: true, force: true });
+  mkdirSync(work, { recursive: true });
+  run("tar", ["-xzf", from, "-C", work], work);
+  rmSync(join(work, "package", "docs"), { recursive: true, force: true });
+  run("tar", ["-czf", to, "-C", work, "package"], work);
+  rmSync(work, { recursive: true, force: true });
 }
 
 /**

@@ -1,7 +1,7 @@
 // guide.pdf: three A4 pages with their headings, an outline of three entries, a URI link and a
 // link to page 3. The SDK can't read outlines or links back, so those are found by scanning the
 // file's objects (streams inflated).
-import { check, expect, hasPdfString, pdfObjects, squash } from "./lib.mjs";
+import { check, expect, hasPdfString, pdfObjects, squash, topDictionaries } from "./lib.mjs";
 
 const HEADINGS = ["Introduction", "Details", "Summary"];
 
@@ -17,10 +17,24 @@ await check(({ read, open, pdf }) => {
     expect(page1.includes(text), `page 1 lacks '${text}'`);
   const objects = pdfObjects(read("guide.pdf"));
   expect(/\/Outlines\s/.test(objects), "the catalog has no /Outlines");
-  for (const title of HEADINGS) expect(hasPdfString(objects, title), `no outline entry titled '${title}'`);
-  const links = objects.match(/\/Subtype\s*\/Link\b/g) ?? [];
+  const dictionaries = topDictionaries(objects);
+  // Outline items have a /Title and a /Parent; the page headings' text is in content streams.
+  const items = dictionaries.filter((d) => /\/Title\b/.test(d) && /\/Parent\b/.test(d));
+  for (const title of HEADINGS) {
+    expect(
+      items.some((d) => hasPdfString(d, title)),
+      `no outline entry titled '${title}'`,
+    );
+  }
+  const links = dictionaries.filter((d) => /\/Subtype\s*\/Link\b/.test(d));
   expect(links.length >= 2, `found ${links.length} link annotations, expected 2`);
-  expect(/\/URI\s*\(https:\/\/laminapdf\.com\/?\)/.test(objects), "no link to https://laminapdf.com");
-  expect(/\/Dest\s*[[(/]|\/S\s*\/GoTo\b/.test(objects), "no link to a page (/Dest or a GoTo action)");
+  expect(
+    links.some((d) => /\/URI\s*\(https:\/\/laminapdf\.com\/?\)/.test(d)),
+    "no link annotation to https://laminapdf.com",
+  );
+  expect(
+    links.some((d) => /\/Dest\s*[[(/]|\/S\s*\/GoTo\b/.test(d)),
+    "no link annotation to a page (/Dest or a GoTo action)",
+  );
   return "three pages, an outline, a URI link and a page link";
 });

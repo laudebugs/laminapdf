@@ -412,7 +412,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     portable_paths::check(&ws.root)?;
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
-    step("renames: docs/renames.json against its schema, every deprecation listed, every new name in the sources");
+    step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
     renames::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;

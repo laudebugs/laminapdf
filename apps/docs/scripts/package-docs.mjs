@@ -13,8 +13,10 @@
 //   renames.json        what old names became (laminapdf.renames/1)
 //   schemas/            laminapdf.error/1 and laminapdf.renames/1
 import { copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { packageVersion, SUMMARY } from "../plugins/agent-docs.mjs";
+import { resolve } from "node:path";
+import process from "node:process";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { contentFiles, packageVersion, readSnippets, SUMMARY, snippetText } from "../plugins/agent-docs.mjs";
 import { readerMarkdown } from "../plugins/error-pages.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, twin } from "../plugins/markdown.mjs";
 import { sidebarRoutes } from "../plugins/sidebar.mjs";
@@ -69,11 +71,10 @@ async function write(url, text) {
  * @returns {Promise<{ route: string, title: string, description?: string | undefined }[]>}
  */
 async function writePages(out, version, api) {
+  // Routes as the sidebar writes them (`""`, `install/`); the API pages come from TypeDoc's own run.
   const files = new Map();
-  for (const name of await readdir(CONTENT, { recursive: true })) {
-    if (!/\.mdx?$/.test(name) || name.startsWith("reference/sdk/")) continue;
-    const route = name.replace(/\.mdx?$/, "").replace(/(^|\/)index$/, "").toLowerCase();
-    files.set(route === "" ? "" : `${route}/`, name);
+  for (const [key, name] of await contentFiles()) {
+    if (!key.startsWith("reference/sdk/")) files.set(key === "index" ? "" : `${key}/`, name);
   }
   const listed = sidebarRoutes().flatMap((g) => g.slugs);
   const order = [...listed.filter((r) => files.has(r)), ...[...files.keys()].filter((r) => !listed.includes(r)).sort()];
@@ -85,7 +86,7 @@ async function writePages(out, version, api) {
     const path = route === "" ? "index" : route.replace(/\/$/, "");
     const depth = path.split("/").length;
     const markdown = mdxToMarkdown(body, {
-      snippet: (file) => snippets.get(file) ?? "",
+      snippet: snippetText,
       codeTable: () => "See the [error and warning codes](/reference/codes/).",
     });
     const local = rewriteLinks(markdown, (href) =>
@@ -99,19 +100,6 @@ async function writePages(out, version, api) {
     pages.push({ route, title, description: data.description });
   }
   return pages;
-}
-
-/** The example files the pages show, by path from the repository root. */
-const snippets = new Map();
-
-async function readSnippets() {
-  for (const name of await readdir(CONTENT, { recursive: true })) {
-    if (!/\.mdx?$/.test(name)) continue;
-    const source = await readFile(new URL(name, CONTENT), "utf8");
-    for (const [, file = ""] of source.matchAll(/<Snippet\s+file="([^"]+)"/g)) {
-      if (!snippets.has(file)) snippets.set(file, await readFile(new URL(file, ROOT), "utf8"));
-    }
-  }
 }
 
 /**
@@ -245,6 +233,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error("usage: node apps/docs/scripts/package-docs.mjs <out-dir> [--api]");
     process.exit(2);
   }
-  const out = new URL(`${dir.replace(/\/?$/, "/")}`, `file://${process.cwd()}/`);
+  const out = pathToFileURL(`${resolve(dir)}/`);
   await packageDocs(out, { api: flags.includes("--api") });
 }

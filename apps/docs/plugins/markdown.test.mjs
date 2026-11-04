@@ -120,3 +120,13 @@ test("llms.txt has an H1, a blockquote, the version and H2 link sections", () =>
 test("a link whose text is code is rewritten", () => {
   assert.equal(rewriteLinks("[`x`](/codes/x/)", twinHref), "[`x`](/codes/x.md)");
 });
+
+test("a page's own code blocks keep their imports and JSX", () => {
+  const mdx = 'import Snippet from "x";\n\n```ts\nimport { init } from "@laminapdf/sdk";\n<Tabs>\n```\n';
+  assert.equal(mdxToMarkdown(mdx, components), '```ts\nimport { init } from "@laminapdf/sdk";\n<Tabs>\n```\n');
+});
+
+test("a snippet's file is found whatever the attributes' order", () => {
+  const out = mdxToMarkdown('<Snippet title="Hello" file="a.ts" />\n', components);
+  assert.match(out, /^`a\.ts`:\n\n```ts\n/);
+});
