@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 188 ready · 104 done** (292 total).
+**0 ongoing · 187 ready · 105 done** (292 total).
 
 ## Can start now
 
@@ -24,7 +24,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
-- [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
+- [U6a](ready/U6a-paper-tokens.md): `@laminapdf/tokens`: Paper design tokens, themes, page appearances and a contrast test
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
@@ -110,7 +110,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
@@ -153,9 +153,9 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](ready/U1a-adr-0024-app-shell-ux.md) | ready | [C2a](done/C2a-render-adrs.md) |
-| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
-| U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
+| U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](done/U1a-adr-0024-app-shell-ux.md) | done | [C2a](done/C2a-render-adrs.md) |
+| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](done/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U2b | [Reading-order ground-truth corpus and metric](done/U2b-reading-order-ground-truth.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md) |
 | U2c | [Page appearance modes: Original, Sepia, Dark and High contrast](ready/U2c-page-appearance-modes.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C7a](ready/C7a-accessibility-and-theming.md) |
@@ -167,7 +167,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](done/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7a](ready/D7a-crash-reporting.md) |
-| U6a | [`@laminapdf/tokens`: Paper design tokens, themes, page appearances and a contrast test](ready/U6a-paper-tokens.md) | ready | [U1a](ready/U1a-adr-0024-app-shell-ux.md) |
+| U6a | [`@laminapdf/tokens`: Paper design tokens, themes, page appearances and a contrast test](ready/U6a-paper-tokens.md) | ready | [U1a](done/U1a-adr-0024-app-shell-ux.md) |
 | U6b | [`@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3](ready/U6b-self-hosted-fonts.md) | ready | [U6a](ready/U6a-paper-tokens.md) |
 | U6c | [`@laminapdf/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint](ready/U6c-icon-set.md) | ready | [U6a](ready/U6a-paper-tokens.md) |
 | U6d | [`@laminapdf/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows](ready/U6d-core-components.md) | ready | [U6a](ready/U6a-paper-tokens.md), [U6c](ready/U6c-icon-set.md) |

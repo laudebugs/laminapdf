@@ -42,7 +42,7 @@ The research's three personas, with accessibility as a property of all three rat
 
 ## 4. Principles
 
-Recommendations from the research, adopted as the plan's rules (ADR 0024 records the ones that are hard to reverse).
+Recommendations from the research, adopted as the plan's rules ([ADR 0024](../decisions/0024-app-shell-ux.md) records the ones that are hard to reverse).
 
 1. **Open into reading.** The default is Read mode: the page and a slim top bar, as spare as SumatraPDF. Tools appear when the user expresses an intent (a mode, a selection, the palette), never as a ribbon.
 2. **Docked, not floating.** Panels dock; nothing floats over the page except a short-lived selection toolbar on desktop. Figma's UI3 and Acrobat's quick-tools widget both retreated from floating panels after user complaints.
@@ -181,7 +181,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens); the command registry and palette; the left rail, inspector, mode switcher and focus mode in `@laminapdf/ui`.
 **Accepted when:** every reader command is in the registry and reachable from the palette, a menu and its shortcut; the help dialog and desktop menus are generated from it; axe reports no serious violations on the shell.
-**Todos:** [U1a](../todos/ready/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
+**Todos:** [U1a](../todos/done/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
 
 ### U2. Reading quality
 
@@ -238,7 +238,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 
 | Risk | Mitigation |
 | --- | --- |
-| Much of the evidence comes from search snippets (adobe.com, w3.org, webaim.org, pdfa.org and others were unreachable) | ADR 0024 re-checks the WCAG 2.2, APG and PDF Association sources it relies on before acceptance |
+| Much of the evidence comes from search snippets (adobe.com, w3.org, webaim.org, pdfa.org and others were unreachable) | [ADR 0024](../decisions/0024-app-shell-ux.md) re-checked the WCAG 2.2, APG, Apple HIG and Material 3 sources it relies on against the primary pages (2026-11-04); they agree with this plan. The PDF Association sources belong to reader mode and are U4b's to re-check |
 | A command registry over-engineered before there are many commands | Start with the reader's ~30 commands; the schema grows only when a mode needs it |
 | Floating selection toolbar annoys users or blocks text | Shown only after `pointerup`, flips on collision, disable in settings; never the only path |
 | Reflow quality on badly tagged files (fewer than 1% claim PDF/UA) | Fall back to tier 2 when the tag tree fails sanity checks; label the result; keep "back to page" one tap away |
@@ -263,7 +263,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§6](#6-roun
 Ticked by the PR that completes them.
 
 ### U1. Shell foundations
-- [ ] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens)
+- [x] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens): [ADR 0024](../decisions/0024-app-shell-ux.md), with the reader v0.1 command set as its appendix
 - [ ] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test
 - [ ] Command palette (cmdk) with argument parsing, recents and shortcut chips
 - [ ] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode
