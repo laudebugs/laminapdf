@@ -167,7 +167,7 @@ Native mobile apps are out of scope here: ADR 0025, after the U3b spike, decides
 | Component | Only the values the design language fixes per component: bar heights, focus-ring width and offset, sheet radius, thumbnail sizes | That component |
 
 - **Names.** Semantic and component tokens become CSS custom properties prefixed `--paper-` (`--paper-surface`, `--paper-focus-ring-width`), the prefix the docs site already uses. Primitives exist only as alias targets in `tokens.json`, so a component can't reach one.
-- **Axes.** Theme and accent select values of the semantic layer (`[data-theme]`, `[data-accent]`); page appearance is a separate axis on the canvas (`[data-page-appearance]`) and as constants the renderer reads. The high-contrast theme maps semantic tokens to CSS system colours rather than defining a palette.
+- **Axes.** Theme and accent select values of the semantic layer (`[data-theme]`, `[data-accent]`); page appearance is a separate axis, set on the canvas (`[data-page-appearance]`) and read by the renderer as constants. The high-contrast theme maps semantic tokens to CSS system colours rather than defining a palette.
 - **Values** come from the Paper design language. Where the design language and this ADR disagree on a name, the ADR wins and U6a corrects the design language.
 
 ### 8. Accessibility rules that hold across the shell
@@ -190,7 +190,7 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 - **The registry costs some ceremony.** Even a one-off button needs a command, an id and a visible home. That cost buys generated menus, help and shortcut chips that can't drift, and a test that finds palette-only commands.
 - **Page appearance needs renderer work** in both backends (U2c), and the two may differ. The nightly render diff (X3b) compares Original only today, so U2c adds the other appearances to it; Original stays the default.
 - **Some layout values are still proposals** in the design language (the dark theme, the large detent, the breakpoints); U6a asks the owner to approve them before they become tokens.
-- **Touch users get no floating toolbar,** so a selection action costs a tap on the bottom bar instead of one near the text; the alternative fought the OS menu and lost on iOS.
+- **Touch users get no floating toolbar,** so a selection action costs a tap on the bottom bar instead of one near the text. A floating toolbar would compete with the OS selection menu, which code can't control on iOS.
 - **Read mode stays spare,** as the research recommends: the page, the top bar and the status bar, with tools appearing only when the user picks a mode, selects something or opens the palette.
 
 ## Alternatives considered
