@@ -2,7 +2,7 @@
 //!
 //! The server is a thin adapter. Each tool parses its arguments into the command's own
 //! argument type, runs the same `commands::*` function the CLI runs, and returns the same report
-//! (the tool's `outputSchema` is the report's schema, [`tools`]). What makes it safe without
+//! (the tool's `outputSchema` is the report's schema). What makes it safe without
 //! opt-in flags:
 //!
 //! - **Roots:** every path goes through [`roots::Roots`]; nothing outside the `--root` folders is
