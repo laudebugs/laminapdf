@@ -141,6 +141,8 @@ struct Tree {
     src_texts: BTreeMap<String, String>,
     /// The todo board's IDs ([`history::todo_id`]).
     todo_ids: BTreeSet<String>,
+    /// Words of the todo-ID shape that aren't IDs: docs-prose's `id_exceptions`.
+    id_exceptions: Vec<String>,
 }
 
 impl Tree {
@@ -179,6 +181,7 @@ impl Tree {
             base: load_base(root),
             src_texts,
             todo_ids,
+            id_exceptions: crate::docs_prose::id_exceptions(root)?,
         })
     }
 

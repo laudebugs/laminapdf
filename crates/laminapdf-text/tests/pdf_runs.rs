@@ -11,14 +11,10 @@
 
 mod common;
 
-use common::{TestPdf, expand_widths, font, read_fonts};
+use common::{TestPdf, expand_widths, font, latin, read_fonts};
 use laminapdf_text::{
     EmbedPolicy, Error, FontRegistry, HarfRust, LayoutOptions, ShapeOptions, Shaper, Tag, TjElement, Warning, pdf_run,
 };
-
-fn latin() -> laminapdf_text::Font {
-    font("NotoSans-Regular.ttf")
-}
 
 /// Empty text is a text like any other: in a CFF font (one CID per glyph), a glyph
 /// first used for nothing keeps that, and a later real text is a conflict (not a silent

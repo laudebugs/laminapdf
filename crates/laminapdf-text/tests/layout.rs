@@ -10,12 +10,8 @@
 
 mod common;
 
-use common::font;
+use common::{font, latin};
 use laminapdf_text::{Alignment, BidiParagraph, HarfRust, LayoutOptions, ShapeOptions, Shaper, break_lines, itemize};
-
-fn latin() -> laminapdf_text::Font {
-    font("NotoSans-Regular.ttf")
-}
 
 /// A line feed ends a bidi paragraph (UAX #9 P1); the next paragraph finds its own
 /// direction, so a Latin paragraph after a Hebrew one starts on the left.

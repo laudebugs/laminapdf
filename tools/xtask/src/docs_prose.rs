@@ -38,6 +38,12 @@ pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
     ratchet.finish(files.len(), "docs/guidelines/docs-writing.md")
 }
 
+/// The words that look like todo IDs but aren't (`id_exceptions` in the config), which
+/// `check maintainability`'s todo-ID check skips too.
+pub(crate) fn id_exceptions(root: &Path) -> Result<Vec<String>> {
+    Ok(load_config(root)?.id_exceptions)
+}
+
 fn load_config(root: &Path) -> Result<Config> {
     let path = root.join("tools/xtask/docs-prose.toml");
     let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;

@@ -3,9 +3,15 @@
 //! in commit messages and plans, where `git log` and the board keep it.
 //!
 //! The IDs are read from the todo board's file names (`docs/todos/<state>/<ID>-<title>.md`), so a
-//! new todo is banned as soon as it exists. Only IDs with a letter suffix (`B5b`, `Q2t`) count:
-//! the plain ones (`A1`, `H2`, `P1`, `X1`) are also paper sizes, heading levels and the Unicode
-//! bidi algorithm's rule names, which code may name.
+//! new todo is banned as soon as it exists. Only IDs of docs-prose's shape count
+//! ([`is_todo_id`]: a letter suffix, as in `B5b` and `Q2t`): the plain ones (`A1`, `H2`, `P1`,
+//! `X1`) are also paper sizes, heading levels and the Unicode bidi algorithm's rule names, which
+//! code may name. A suffixed ID that is also a name code needs (UAX #9's rule `X5a`, should a
+//! todo `X5a` ever exist) goes in `id_exceptions` in `tools/xtask/docs-prose.toml`, which
+//! docs-prose skips too.
+
+use crate::docs_prose::is_todo_id;
+use crate::lines;
 
 use super::{Problem, Tree, problem};
 
@@ -15,20 +21,14 @@ const TODOS: &str = "docs/todos/";
 /// The top-level folders whose packages' `src/` the check reads.
 const ROOTS: [&str; 2] = ["crates/", "packages/"];
 /// The source files the check reads.
-const EXTENSIONS: [&str; 5] = ["rs", "ts", "tsx", "js", "mjs"];
+const EXTENSIONS: [&str; 9] = ["rs", "ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"];
 
 /// The todo ID that file `path` of the board is named for: `B5b` for
 /// `docs/todos/done/B5b-builder-text.md`; `None` for any other file, or a plain ID.
 pub(super) fn todo_id(path: &str) -> Option<&str> {
     let name = path.strip_prefix(TODOS)?.rsplit('/').next()?.strip_suffix(".md")?;
     let (id, _title) = name.split_once('-')?;
-    let digits = id.get(1..)?.trim_end_matches(|c: char| c.is_ascii_lowercase());
-    let suffixed = digits.len() + 1 < id.len();
-    (id.starts_with(|c: char| c.is_ascii_uppercase())
-        && suffixed
-        && !digits.is_empty()
-        && digits.bytes().all(|b| b.is_ascii_digit()))
-    .then_some(id)
+    is_todo_id(id).then_some(id)
 }
 
 /// Whether the check reads `path`: a source file in the `src/` of a crate or package, outside
@@ -42,13 +42,15 @@ pub(super) fn is_in_scope(path: &str) -> bool {
     in_src && !path.contains("/generated/") && crate::util::has_extension(path, &EXTENSIONS)
 }
 
-/// Every todo ID, as a whole word, in the files [`is_in_scope`] accepts.
+/// Every todo ID, as a whole word, in the files [`is_in_scope`] accepts, but for
+/// `id_exceptions`.
 pub(super) fn todo_ids(tree: &Tree) -> Vec<Problem> {
     let mut problems = Vec::new();
     for (path, text) in &tree.src_texts {
+        let mut starts = None;
         for (offset, word) in words(text) {
-            if tree.todo_ids.contains(word) {
-                let line = text.get(..offset).map_or(0, |before| before.matches('\n').count()) + 1;
+            if tree.todo_ids.contains(word) && !tree.id_exceptions.iter().any(|exception| exception == word) {
+                let line = lines::line_of(starts.get_or_insert_with(|| lines::starts(text)), offset);
                 let message = format!(
                     "`{word}` is a todo ID: say why the code is so in words; the todo's history belongs in commit messages and plans"
                 );
@@ -113,6 +115,16 @@ mod tests {
     }
 
     #[test]
+    fn an_id_exception_should_pass() {
+        let mut files = BOARD.to_vec();
+        files.push(("crates/a/src/bidi.rs", "// UAX #9 rule B5b.\n"));
+        let mut tree = Tree::from_files(&files);
+        assert_eq!(todo_ids(&tree).len(), 1);
+        tree.id_exceptions = vec!["B5b".to_owned()];
+        assert!(todo_ids(&tree).is_empty());
+    }
+
+    #[test]
     fn a_todo_id_in_a_src_comment_should_fail_on_its_line() {
         let mut files = BOARD.to_vec();
         files.push(("crates/a/src/lib.rs", "//! Fonts.\n// Shaped (B5b), see Q2t's list.\n"));
@@ -146,13 +158,14 @@ mod tests {
         let scoped = [
             "crates/a/src/lib.rs",
             "packages/sdk/src/worker/client.ts",
+            "packages/sdk/src/worker/entry.mts",
             "crates/a/src/generated/codes.rs",
             "crates/a/tests/text.rs",
             "packages/sdk/src/README.md",
             "apps/docs/src/index.ts",
         ]
         .map(is_in_scope);
-        assert_eq!(scoped, [true, true, false, false, false, false]);
+        assert_eq!(scoped, [true, true, true, false, false, false, false]);
     }
 
     #[test]
