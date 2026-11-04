@@ -18,7 +18,7 @@ Pass finite values; values outside the axis range are clamped, so there is no ne
 ## Example
 
 ```rust
-font.instance(&[(Tag::WEIGHT, f32::NAN)])?; // invalid-axis-value
+font.instance(&[(OpenTypeTag::WEIGHT, f32::NAN)])?; // invalid-axis-value
 ```
 
 ## Data fields

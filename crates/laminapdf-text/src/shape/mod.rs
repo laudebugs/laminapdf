@@ -21,7 +21,7 @@ use icu_properties::{CodePointMapData, PropertyNamesShort};
 
 pub use self::engine::HarfRust;
 use crate::error::{Error, Result};
-use crate::font::{Font, GlyphId, Tag};
+use crate::font::{Font, GlyphId, OpenTypeTag};
 
 /// A horizontal writing direction (vertical writing is out of scope, research 03 §7).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -172,20 +172,20 @@ impl fmt::Debug for Script {
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Feature {
-    tag: Tag,
+    tag: OpenTypeTag,
     value: u32,
 }
 
 impl Feature {
     /// A feature from its tag and value (0: off, 1: on, higher: an alternate's index).
     #[must_use]
-    pub const fn new(tag: Tag, value: u32) -> Self {
+    pub const fn new(tag: OpenTypeTag, value: u32) -> Self {
         Self { tag, value }
     }
 
     /// The feature tag.
     #[must_use]
-    pub const fn tag(self) -> Tag {
+    pub const fn tag(self) -> OpenTypeTag {
         self.tag
     }
 
@@ -230,7 +230,7 @@ impl FromStr for Feature {
         for (slot, b) in tag.iter_mut().zip(name.bytes()) {
             *slot = b;
         }
-        Ok(Self::new(Tag::new(&tag), value))
+        Ok(Self::new(OpenTypeTag::new(&tag), value))
     }
 }
 
@@ -396,14 +396,20 @@ mod tests {
 
     #[test]
     fn feature_parses_harfbuzz_syntax() {
-        let liga = Tag::new(b"liga");
+        let liga = OpenTypeTag::new(b"liga");
         assert_eq!("liga".parse::<Feature>().unwrap(), Feature::new(liga, 1));
         assert_eq!("+liga".parse::<Feature>().unwrap(), Feature::new(liga, 1));
         assert_eq!("-liga".parse::<Feature>().unwrap(), Feature::new(liga, 0));
         assert_eq!("liga=0".parse::<Feature>().unwrap(), Feature::new(liga, 0));
         assert_eq!("liga=off".parse::<Feature>().unwrap(), Feature::new(liga, 0));
-        assert_eq!("aalt=3".parse::<Feature>().unwrap(), Feature::new(Tag::new(b"aalt"), 3));
-        assert_eq!("cv1".parse::<Feature>().unwrap(), Feature::new(Tag::new(b"cv1 "), 1));
+        assert_eq!(
+            "aalt=3".parse::<Feature>().unwrap(),
+            Feature::new(OpenTypeTag::new(b"aalt"), 3)
+        );
+        assert_eq!(
+            "cv1".parse::<Feature>().unwrap(),
+            Feature::new(OpenTypeTag::new(b"cv1 "), 1)
+        );
     }
 
     #[test]

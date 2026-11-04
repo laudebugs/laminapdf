@@ -2,7 +2,7 @@
 
 use laminapdf_cos::{ErrorKind, Location, Position};
 
-use crate::font::Tag;
+use crate::font::OpenTypeTag;
 use crate::fstype::FsType;
 
 /// A `Result` with this crate's [`Error`].
@@ -39,13 +39,13 @@ pub enum Error {
         /// The font's PostScript name.
         font: String,
         /// The axis that was asked for.
-        tag: Tag,
+        tag: OpenTypeTag,
     },
     /// A variation coordinate that is NaN or infinite.
     #[error("variation axis values must be finite numbers")]
     InvalidAxisValue {
         /// The axis.
-        tag: Tag,
+        tag: OpenTypeTag,
     },
     /// [`FontRegistry::finish_fonts`](crate::FontRegistry::finish_fonts) was given a document
     /// in which a font's reserved object is not a free reserved number: the registry reserved
@@ -343,7 +343,7 @@ mod tests {
     /// [`Warning::kind`] have no wildcard, so a new variant is a compile error there, and these
     /// lists are what the tests compare.
     fn errors() -> Vec<Error> {
-        let tag = Tag::WEIGHT;
+        let tag = OpenTypeTag::WEIGHT;
         let font = String::new();
         vec![
             Error::InvalidFont { index: 0 },

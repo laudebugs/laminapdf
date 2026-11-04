@@ -11,18 +11,20 @@ mod common;
 
 use common::{TestPdf, font, name_of, parse_cmap, patch_table, read_fonts};
 use laminapdf_test_fixtures::fixture;
-use laminapdf_text::{Error, Font, Tag};
+use laminapdf_text::{Error, Font, OpenTypeTag};
 use skrifa::MetadataProvider as _;
 use skrifa::instance::{LocationRef, Size};
 
 fn bold() -> Font {
-    font("NotoSans-VF.ttf").instance(&[(Tag::WEIGHT, 700.0)]).unwrap()
+    font("NotoSans-VF.ttf")
+        .instance(&[(OpenTypeTag::WEIGHT, 700.0)])
+        .unwrap()
 }
 
 #[test]
 fn variable_font_lists_its_axes() {
-    let tags: Vec<Tag> = font("NotoSans-VF.ttf").info().axes.iter().map(|a| a.tag).collect();
-    assert_eq!(tags, [Tag::WEIGHT, Tag::WIDTH]);
+    let tags: Vec<OpenTypeTag> = font("NotoSans-VF.ttf").info().axes.iter().map(|a| a.tag).collect();
+    assert_eq!(tags, [OpenTypeTag::WEIGHT, OpenTypeTag::WIDTH]);
 }
 
 #[test]
@@ -44,19 +46,21 @@ fn instance_is_wider_than_the_default() {
 
 #[test]
 fn instance_clamps_to_the_axis_range() {
-    let heavy = font("NotoSans-VF.ttf").instance(&[(Tag::WEIGHT, 5000.0)]).unwrap();
-    assert_eq!(heavy.coordinates(), [(Tag::WEIGHT, 900.0)]);
+    let heavy = font("NotoSans-VF.ttf")
+        .instance(&[(OpenTypeTag::WEIGHT, 5000.0)])
+        .unwrap();
+    assert_eq!(heavy.coordinates(), [(OpenTypeTag::WEIGHT, 900.0)]);
 }
 
 #[test]
 fn instance_of_a_static_font_is_an_unknown_axis() {
     assert_eq!(
         font("NotoSans-Regular.ttf")
-            .instance(&[(Tag::WEIGHT, 700.0)])
+            .instance(&[(OpenTypeTag::WEIGHT, 700.0)])
             .unwrap_err(),
         Error::UnknownAxis {
             font: "NotoSans-Regular".to_owned(),
-            tag: Tag::WEIGHT
+            tag: OpenTypeTag::WEIGHT
         }
     );
 }
@@ -166,7 +170,7 @@ fn malformed_axis_range_is_an_error_not_a_panic() {
 fn non_finite_axis_value_is_refused() {
     let font = font("NotoSans-VF.ttf");
     assert_eq!(
-        font.instance(&[(Tag::WEIGHT, f32::NAN)]).unwrap_err().code(),
+        font.instance(&[(OpenTypeTag::WEIGHT, f32::NAN)]).unwrap_err().code(),
         "invalid-axis-value"
     );
 }
@@ -174,12 +178,14 @@ fn non_finite_axis_value_is_refused() {
 #[test]
 fn infinite_axis_value_is_refused() {
     let font = font("NotoSans-VF.ttf");
-    assert!(font.instance(&[(Tag::WEIGHT, f32::INFINITY)]).is_err());
+    assert!(font.instance(&[(OpenTypeTag::WEIGHT, f32::INFINITY)]).is_err());
 }
 
 #[test]
 fn instance_bbox_is_the_union_of_the_instanced_glyph_bounds() {
-    let heavy = font("NotoSans-VF.ttf").instance(&[(Tag::WEIGHT, 900.0)]).unwrap();
+    let heavy = font("NotoSans-VF.ttf")
+        .instance(&[(OpenTypeTag::WEIGHT, 900.0)])
+        .unwrap();
     let mut pdf = TestPdf::new();
     let key = pdf.add_font(heavy).unwrap();
     pdf.line(key, 12.0, "WMgj").unwrap();
@@ -214,7 +220,9 @@ fn instance_bbox_is_the_union_of_the_instanced_glyph_bounds() {
 #[test]
 fn instance_at_the_defaults_is_the_default_instance() {
     let regular = font("NotoSans-VF.ttf");
-    let same = regular.instance(&[(Tag::WEIGHT, 400.0), (Tag::WIDTH, 100.0)]).unwrap();
+    let same = regular
+        .instance(&[(OpenTypeTag::WEIGHT, 400.0), (OpenTypeTag::WIDTH, 100.0)])
+        .unwrap();
     assert_eq!(
         (same.coordinates().len(), same.info().postscript_name.as_str()),
         (0, regular.info().postscript_name.as_str())

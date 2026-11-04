@@ -1,7 +1,7 @@
 //! The documents behind the `fixtures/golden/text-*.pdf` goldens, with the text each line
 //! should extract to (checked against pypdf's output in `fixtures/text/extracted.json`).
 
-use laminapdf_text::{Font, GlyphId, LayoutOptions, Standard14, Tag};
+use laminapdf_text::{Font, GlyphId, LayoutOptions, OpenTypeTag, Standard14};
 
 use super::{TestPdf, font};
 use laminapdf_test_fixtures::fixture;
@@ -190,7 +190,7 @@ pub fn cff() -> Sample {
 /// A variable font at its default and at `wght` 700, and the Bold member of a collection.
 pub fn variable_and_collection() -> Sample {
     let variable = font("NotoSans-VF.ttf");
-    let bold = variable.instance(&[(Tag::WEIGHT, 700.0)]).unwrap();
+    let bold = variable.instance(&[(OpenTypeTag::WEIGHT, 700.0)]).unwrap();
     let ttc = Font::from_collection(fixture("fonts/NotoSans-RegularBold.ttc"), 1).unwrap();
     let mut pdf = TestPdf::new();
     let v = pdf.add_font(variable).unwrap();

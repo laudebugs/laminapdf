@@ -37,7 +37,7 @@ Some of the noise in the examples comes from the API, not the examples. This tod
 **Out of scope** (and which todo covers it)
 
 - Readability rewrites of the examples ([Q1f](./Q1f-examples-readable.md)).
-- Façade renames ([Q2s](../ready/Q2s-facade-names.md)).
+- Façade renames ([Q2s](../done/Q2s-facade-names.md)).
 
 ## Tasks
 

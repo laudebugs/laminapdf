@@ -119,7 +119,7 @@ fn listed_codes() -> Vec<String> {
 /// One value of every error and warning that has data.
 fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     use laminapdf_build::{ContentKind, Error as B, ImageFormat, Profile};
-    use laminapdf_text::{Error as T, FsType, Tag, Warning as TW};
+    use laminapdf_text::{Error as T, FsType, OpenTypeTag, Warning as TW};
     let s = String::new;
     let errors: Vec<Error> = vec![
         Error::from(laminapdf_cos::Error::LimitExceeded {
@@ -165,9 +165,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(T::CollectionIndex { index: 1, count: 1 }),
         Error::from(T::UnknownAxis {
             font: s(),
-            tag: Tag::WEIGHT,
+            tag: OpenTypeTag::WEIGHT,
         }),
-        Error::from(T::InvalidAxisValue { tag: Tag::WEIGHT }),
+        Error::from(T::InvalidAxisValue {
+            tag: OpenTypeTag::WEIGHT,
+        }),
         Error::from(T::WrongDocument { object: 1 }),
         Error::from(T::FontNotEmbeddable {
             font: s(),

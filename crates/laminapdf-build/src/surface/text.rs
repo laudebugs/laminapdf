@@ -24,12 +24,12 @@ use crate::tag::Tag;
 /// what [`Surface::text`] and [`Surface::text_box`] draw with. Cheap to clone. A font from
 /// another builder fails with `unknown-font` when its page is finished.
 #[derive(Debug, Clone)]
-pub struct Font {
+pub struct FontHandle {
     pub(crate) key: FontKey,
     pub(crate) font: laminapdf_text::Font,
 }
 
-impl Font {
+impl FontHandle {
     /// The font's names and metrics.
     #[must_use]
     pub fn info(&self) -> &FontInfo {
@@ -85,7 +85,7 @@ pub enum TextRenderMode {
 #[derive(Debug, Clone)]
 pub(crate) struct Spec {
     pub(crate) text: String,
-    pub(crate) font: Font,
+    pub(crate) font: FontHandle,
     /// Font size, points.
     pub(crate) size: f64,
     pub(crate) align: Alignment,

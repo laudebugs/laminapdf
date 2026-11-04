@@ -33,7 +33,7 @@ use super::cmap::{CMap, Code};
 
 /// How many `usecmap` / `/UseCMap` links are followed from a font's CMap (TN #5014 allows
 /// one; files nest a few). Further links are dropped with `cmap-invalid`.
-pub const MAX_USECMAP_DEPTH: usize = 8;
+pub(crate) const MAX_USECMAP_DEPTH: usize = 8;
 
 /// A font loaded for extraction.
 #[derive(Debug)]

@@ -17,7 +17,7 @@ Check the font's licence allows this, or use a static TrueType/CFF version of th
 
 ## Example
 
-Registering a variable font instance (`font.instance(&[(Tag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
+Registering a variable font instance (`font.instance(&[(OpenTypeTag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
 
 ## Data fields
 

@@ -7,7 +7,7 @@
 //! order with the method; `crates/laminapdf/tests/reading_order.rs` scores extraction against
 //! it. `cargo xtask golden --update` rewrites the files through `examples/reading_order.rs`.
 
-use laminapdf_build::{BuildOptions, Builder, Direction, Font, PageSize, TextBoxOptions};
+use laminapdf_build::{BuildOptions, Builder, Direction, FontHandle, PageSize, TextBoxOptions};
 use laminapdf_model::{Pt, RectPt, Rotation};
 use serde_json::json;
 
@@ -362,7 +362,7 @@ fn build(layout: &Layout, order: DrawOrder) -> Vec<u8> {
         .with_compress(false);
     let mut b = Builder::new(options);
     let scripts = [Script::Latin, Script::Arabic, Script::Hebrew, Script::Chinese];
-    let fonts: Vec<(Script, Font)> = scripts
+    let fonts: Vec<(Script, FontHandle)> = scripts
         .iter()
         .filter(|s| layout.blocks.iter().any(|b| b.script == **s))
         .map(|s| {

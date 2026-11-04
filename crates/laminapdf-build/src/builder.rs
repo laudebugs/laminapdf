@@ -17,7 +17,7 @@ use crate::page::{PageBuilder, PageSize};
 use crate::profile::{Conformance, Profile};
 use crate::resources::DocResources;
 #[cfg(feature = "text")]
-use crate::surface::text::Font;
+use crate::surface::text::FontHandle;
 use crate::tag::TagDiagnostic;
 use crate::tag::elem::TagState;
 
@@ -263,10 +263,10 @@ impl BuildState {
     }
 
     #[cfg(feature = "text")]
-    fn add_font(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<Font> {
+    fn add_font(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<FontHandle> {
         let key = self.fonts.add(font.clone(), policy)?;
         self.font_keys.push(key);
-        Ok(Font { key, font })
+        Ok(FontHandle { key, font })
     }
 }
 
@@ -351,7 +351,7 @@ impl Builder {
     /// `font-not-embeddable` when the font's `fsType` forbids embedding (see
     /// [`Builder::font_with`]).
     #[cfg(feature = "text")]
-    pub fn font(&mut self, font: laminapdf_text::Font) -> Result<Font> {
+    pub fn font(&mut self, font: laminapdf_text::Font) -> Result<FontHandle> {
         self.state.add_font(font, EmbedPolicy::Respect)
     }
 
@@ -361,7 +361,7 @@ impl Builder {
     /// # Errors
     /// As [`Builder::font`].
     #[cfg(feature = "text")]
-    pub fn font_with(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<Font> {
+    pub fn font_with(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<FontHandle> {
         self.state.add_font(font, policy)
     }
 
@@ -372,7 +372,7 @@ impl Builder {
     /// None in practice (the registry accepts every standard 14 font); kept for symmetry
     /// with [`Builder::font`].
     #[cfg(feature = "text")]
-    pub fn standard_font(&mut self, font: Standard14) -> Result<Font> {
+    pub fn standard_font(&mut self, font: Standard14) -> Result<FontHandle> {
         self.state
             .add_font(laminapdf_text::Font::standard(font), EmbedPolicy::Respect)
     }
@@ -585,7 +585,7 @@ impl<'d> Appender<'d> {
     /// # Errors
     /// As [`Builder::font`].
     #[cfg(feature = "text")]
-    pub fn font(&mut self, font: laminapdf_text::Font) -> Result<Font> {
+    pub fn font(&mut self, font: laminapdf_text::Font) -> Result<FontHandle> {
         self.state.add_font(font, EmbedPolicy::Respect)
     }
 
@@ -594,7 +594,7 @@ impl<'d> Appender<'d> {
     /// # Errors
     /// As [`Builder::font`].
     #[cfg(feature = "text")]
-    pub fn font_with(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<Font> {
+    pub fn font_with(&mut self, font: laminapdf_text::Font, policy: EmbedPolicy) -> Result<FontHandle> {
         self.state.add_font(font, policy)
     }
 
@@ -603,7 +603,7 @@ impl<'d> Appender<'d> {
     /// # Errors
     /// As [`Builder::standard_font`].
     #[cfg(feature = "text")]
-    pub fn standard_font(&mut self, font: Standard14) -> Result<Font> {
+    pub fn standard_font(&mut self, font: Standard14) -> Result<FontHandle> {
         self.state
             .add_font(laminapdf_text::Font::standard(font), EmbedPolicy::Respect)
     }

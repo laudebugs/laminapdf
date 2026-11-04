@@ -13,7 +13,7 @@ use common::text::lines;
 use common::text_and_navigation::{self, LATIN_PARAGRAPH, MULTISCRIPT_BOX_WIDTH, SCRIPTS};
 use common::{reopen, save};
 use laminapdf_build::{
-    Alignment, BuildOptions, Builder, Font, Overflow, PageSize, Standard14, TextBoxOptions, TextLayout,
+    Alignment, BuildOptions, Builder, FontHandle, Overflow, PageSize, Standard14, TextBoxOptions, TextLayout,
 };
 use laminapdf_model::{Pt, RectPt};
 use laminapdf_test_fixtures::fixture;
@@ -25,7 +25,7 @@ fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
 /// Lays `text` out in `r` on a fresh page with the font `make` registers; returns the
 /// layout, or the error, and the saved document when the page finished.
 fn boxed(
-    make: impl FnOnce(&mut Builder) -> Font,
+    make: impl FnOnce(&mut Builder) -> FontHandle,
     text: &str,
     r: RectPt,
     options: &TextBoxOptions,
@@ -38,11 +38,11 @@ fn boxed(
     (layout, save(b.finish().unwrap()))
 }
 
-fn noto(b: &mut Builder) -> Font {
+fn noto(b: &mut Builder) -> FontHandle {
     b.font(text_and_navigation::font("NotoSans-Regular.ttf")).unwrap()
 }
 
-fn times(b: &mut Builder) -> Font {
+fn times(b: &mut Builder) -> FontHandle {
     b.standard_font(Standard14::TimesRoman).unwrap()
 }
 
@@ -136,7 +136,7 @@ fn alignment_places_lines_in_the_box() {
         (Alignment::End, |l, r| (l.x1 - r.x1).get().abs()),
         (Alignment::Center, |l, r| ((l.x0 - r.x0) - (r.x1 - l.x1)).get().abs()),
     ] {
-        for font in [noto as fn(&mut Builder) -> Font, times] {
+        for font in [noto as fn(&mut Builder) -> FontHandle, times] {
             let (layout, _) = boxed(font, LATIN_PARAGRAPH, r, &TextBoxOptions::default().with_align(align));
             for line in layout.unwrap().lines {
                 assert!(check(&line.rect, &r) < 1e-3, "{align:?}: {line:?}");

@@ -2,58 +2,14 @@
 //! §3–5, §8.1): a page's text-showing operators to glyphs with the text each stands for, their
 //! boxes in page space, and runs of them.
 //!
-//! ```
-//! # fn sample() -> Vec<u8> { std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/golden/text-std14.pdf")).unwrap() }
-//! use laminapdf_text::TextExtractor;
-//!
-//! let doc = laminapdf_model::Document::open(sample(), laminapdf_cos::OpenOptions::default())?;
-//! let pages = doc.pages()?;
-//! let page = pages.get(0).expect("a page");
-//! let text = TextExtractor::new().page(&doc, &page)?;
-//! assert_eq!(text.lines().first().map(String::as_str), Some("Courier: Hello, world! 0123456789"));
-//! assert_eq!(&*text.runs[0].font_name, "Courier");
-//! # Ok::<(), laminapdf_cos::Error>(())
-//! ```
-//!
-//! [`TextExtractor::page`] runs the page through [`laminapdf_content::interpret_page`] and
-//! decodes every shown string with its font: codes by the font's encoding or CMap, widths
-//! from `/Widths`, `/W` and `/W2` (which move the text matrix, so the interpreter sees the
-//! right positions across `Tj` sequences), and Unicode by ToUnicode, then encoding and glyph
-//! names, then the embedded font's `cmap` (see `font/`).
-//!
-//! Each [`Glyph`] keeps its code, text, origin and advance in user space, its size, and a
-//! [`Quad`] in page space (ADR 0027: the displayed `CropBox`, top-left origin, y down,
-//! `/Rotate` and `/UserUnit` applied; [`PageText::frame`] maps back): the glyph's width across
-//! the font's ascent and descent (descriptor, `/FontBBox`, AFM, else a default), through the
-//! text rendering matrix; vertical fonts place it by the `/W2` position vector. Glyphs inside
-//! marked content carry the innermost MCID (§14.7.5) and the outermost `ActualText` span
-//! (§14.9.4); text drawn in rendering mode 3 or 7 is `invisible` (OCR layers).
-//!
-//! [`TextRun`]s group consecutive glyphs of one font, size, direction, MCID, `ActualText`
-//! span and visibility that follow each other on one baseline (see `runs.rs`). A run inside
-//! an `ActualText` span takes the span's text (the first run of the span; later runs of it
-//! add none) and keeps its glyphs' boxes. Other runs join their glyphs' text, with a space
-//! where the pen jumps forward over a quarter of the size; a run with right-to-left
-//! characters is taken to be drawn in visual order and is put in logical order by UAX #9 over
-//! grapheme clusters (`BidiParagraph`), as pdf.js does. [`PageText::lines`] joins the runs in
-//! content order, a new line where the baseline moves by over half the size, a space between
-//! runs over a quarter of it apart without overlapping (after the previous run, or wholly
-//! behind it: cells drawn out of order).
-//!
-//! Fonts are parsed once per [`TextExtractor`] (keyed by font object). Problems follow
-//! ADR 0003 and are warnings on the document: `font-invalid` (a malformed font dictionary,
-//! decoded with defaults), `cmap-invalid` (malformed CMap or ToUnicode entries skipped, an
-//! unsupported predefined CMap, a `/UseCMap` chain past [`MAX_USECMAP_DEPTH`]) and
-//! `unmapped-glyph` (a font with glyphs no rule maps; they extract as U+FFFD). Strict mode
-//! turns each into an error; the content limits of `laminapdf-content` bound the work.
+//! [`TextExtractor`] documents how; this module holds it, its font cache and its runs.
 
 mod cmap;
 mod font;
 mod runs;
 
-pub use cmap::{CMap, Code};
-pub use font::MAX_USECMAP_DEPTH;
-pub use runs::TextRun;
+pub use cmap::Code;
+pub use runs::PageTextRun;
 
 use std::sync::Arc;
 
@@ -115,7 +71,7 @@ pub struct PageText {
     /// Every glyph, in the order the content shows them.
     pub glyphs: Vec<Glyph>,
     /// The glyphs grouped into runs, in content order.
-    pub runs: Vec<TextRun>,
+    pub runs: Vec<PageTextRun>,
     /// The text of each `ActualText` span (`BDC` with `/ActualText`), in content order.
     pub actual_texts: Vec<String>,
     /// Glyphs no rule mapped (their text is U+FFFD).
@@ -151,7 +107,54 @@ impl PageText {
     }
 }
 
-/// Extracts text page by page, parsing each font once.
+/// Extracts text page by page, parsing each font once: a page's text-showing operators to
+/// glyphs with the text each stands for, their boxes in page space, and runs of them
+/// (ISO 32000-2 §9.4–9.10, §14.6, §14.9.4; research 03 §2.6, §3–5, §8.1).
+///
+/// ```
+/// # fn sample() -> Vec<u8> { std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/golden/text-std14.pdf")).unwrap() }
+/// use laminapdf_text::TextExtractor;
+///
+/// let doc = laminapdf_model::Document::open(sample(), laminapdf_cos::OpenOptions::default())?;
+/// let pages = doc.pages()?;
+/// let page = pages.get(0).expect("a page");
+/// let text = TextExtractor::new().page(&doc, &page)?;
+/// assert_eq!(text.lines().first().map(String::as_str), Some("Courier: Hello, world! 0123456789"));
+/// assert_eq!(&*text.runs[0].font_name, "Courier");
+/// # Ok::<(), laminapdf_cos::Error>(())
+/// ```
+///
+/// [`TextExtractor::page`] runs the page through [`laminapdf_content::interpret_page`] and
+/// decodes every shown string with its font: codes by the font's encoding or CMap, widths
+/// from `/Widths`, `/W` and `/W2` (which move the text matrix, so the interpreter sees the
+/// right positions across `Tj` sequences), and Unicode by ToUnicode, then encoding and glyph
+/// names, then the embedded font's `cmap`.
+///
+/// Each [`Glyph`] keeps its code, text, origin and advance in user space, its size, and a
+/// [`Quad`] in page space (ADR 0027: the displayed `CropBox`, top-left origin, y down,
+/// `/Rotate` and `/UserUnit` applied; [`PageText::frame`] maps back): the glyph's width across
+/// the font's ascent and descent (descriptor, `/FontBBox`, AFM, else a default), through the
+/// text rendering matrix; vertical fonts place it by the `/W2` position vector. Glyphs inside
+/// marked content carry the innermost MCID (§14.7.5) and the outermost `ActualText` span
+/// (§14.9.4); text drawn in rendering mode 3 or 7 is `invisible` (OCR layers).
+///
+/// [`PageTextRun`]s group consecutive glyphs of one font, size, direction, MCID, `ActualText`
+/// span and visibility that follow each other on one baseline. A run inside
+/// an `ActualText` span takes the span's text (the first run of the span; later runs of it
+/// add none) and keeps its glyphs' boxes. Other runs join their glyphs' text, with a space
+/// where the pen jumps forward over a quarter of the size; a run with right-to-left
+/// characters is taken to be drawn in visual order and is put in logical order by UAX #9 over
+/// grapheme clusters (`BidiParagraph`), as pdf.js does. [`PageText::lines`] joins the runs in
+/// content order, a new line where the baseline moves by over half the size, a space between
+/// runs over a quarter of it apart without overlapping (after the previous run, or wholly
+/// behind it: cells drawn out of order).
+///
+/// Fonts are parsed once per [`TextExtractor`] (keyed by font object). Problems follow
+/// ADR 0003 and are warnings on the document: `font-invalid` (a malformed font dictionary,
+/// decoded with defaults), `cmap-invalid` (malformed CMap or ToUnicode entries skipped, an
+/// unsupported predefined CMap, a `/UseCMap` chain too deep to follow) and
+/// `unmapped-glyph` (a font with glyphs no rule maps; they extract as U+FFFD). Strict mode
+/// turns each into an error; the content limits of `laminapdf-content` bound the work.
 #[derive(Debug, Default)]
 pub struct TextExtractor {
     fonts: FontCache,
