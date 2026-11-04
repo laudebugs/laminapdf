@@ -1144,7 +1144,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A page had more runs of text than `ExtractLimits::max_blocks_per_page` allows. Each run can be a block of its own, so extraction kept the first runs the page draws and left the rest out before grouping them, which keeps the work bounded.
+A page had more runs of text than `ExtractLimits::max_blocks_per_page` allows. Since each run can be a block of its own, extraction kept the first runs the page draws and left out the rest. It cuts them before grouping runs into blocks, so the work stays bounded.
 
 ## Why
 

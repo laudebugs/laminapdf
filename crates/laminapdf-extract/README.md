@@ -18,7 +18,7 @@ For long documents, `extract_job` returns an `ExtractJob` that you step one page
 
 ## How it reads a page
 
-1. **Runs.** `laminapdf-text` gives the page's runs of glyphs with their boxes. A run drawn invisibly (text rendering mode 3 or 7), wholly off the page or below 1 pt is left out. The run gets a `dropped` entry with its reason, its box and a character count, never its text. Ask for the hidden runs themselves with `DropOptions::keep_spans`.
+1. **Runs.** `laminapdf-text` gives the page's runs of glyphs with their boxes. Extraction leaves out any run drawn invisibly (text rendering mode 3 or 7), wholly off the page or below 1 pt. Each such run gets a `dropped` entry with its reason, its box and a character count, never its text. Ask for the hidden runs themselves with `DropOptions::keep_spans`.
 2. **Lines.** Runs whose baselines lie within half a font size join one line, in visual order, right to left when most of the line's letters are. A gap wider than one font size between two runs on one baseline is a column gutter, so it splits them into two lines.
 3. **Blocks.** A line joins the block above when it follows at most 1.6 font sizes lower, at a size within 20%, overlapping the block's last line by at least 30% of the narrower of the two.
 4. **Order.** XY-Cut++ orders the blocks. Blocks that span two columns (titles, abstracts, full-width figures) split the page into bands. Each band is cut at its widest gaps, columns first, so a two-column page reads column by column; a grid of one-line blocks (a table) reads row by row; right-to-left pages take their columns from the right. `ReadingOrder::ContentStream` keeps the order the page draws instead.
@@ -28,10 +28,10 @@ On the reading-order corpus in `fixtures/reading-order/`, every file reads in or
 
 ## What it can't do yet
 
-- **Structure.** It ignores structure trees, and every block is a paragraph: headings, list items, running headers and footers, and clipped or white-on-white text come with [L3d](../../docs/todos/ready/L3d-extract-structure-and-furniture.md). Until then `structSource` is never `tagged`.
-- **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so, and [L3c](../../docs/todos/ready/L3c-model-plugins.md)'s model plug-ins are the answer for those pages.
+- **Structure.** It ignores structure trees, and every block is a paragraph. Reading order from the structure tree, headings, list items, running headers and footers, and clipped or white-on-white text come in a later release; until then `structSource` is never `tagged`.
+- **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so; optional model plug-ins, planned for a later release, are the answer for those pages.
 - **Vertical writing.** Each vertical run is a block of its own, and a page that mixes vertical and horizontal writing raises `extract-reading-order-ambiguous`.
-- **Output formats.** It returns Rust values (serde behind the `serde` feature). Markdown, JSON and chunk serialisers, tables, and the façade, WASM and TypeScript come with [L3b](../../docs/todos/ready/L3b-extract-tables-and-serialisers.md).
+- **Output formats.** It returns Rust values (serde behind the `serde` feature). Markdown, JSON and chunk serialisers, tables, and access through the `laminapdf` crate, WebAssembly and TypeScript come in a later release.
 
 ## Limits
 
