@@ -28,29 +28,42 @@ use crate::tag::mcid::Marking;
 /// What the content stream has set, to skip operators that would change nothing. `None` is
 /// "not set by us" (the PDF default may still hold, but nothing is assumed).
 #[derive(Debug, Clone, Default)]
-pub(super) struct State {
-    pub(super) fill: Option<Color>,
-    pub(super) stroke: Option<Color>,
-    pub(super) line: Option<StrokeStyle>,
+struct State {
+    fill: Option<Color>,
+    stroke: Option<Color>,
+    line: Option<StrokeStyle>,
     /// `Tr` (0, fill, at the start of a page: text state is part of the graphics state).
     #[cfg(feature = "text")]
-    pub(super) mode: TextRenderMode,
+    mode: TextRenderMode,
 }
 
 pub(super) struct Writer {
     pub(super) content: Content,
-    pub(super) to_user: Matrix,
-    pub(super) unit: f64,
-    pub(super) state: State,
-    pub(super) saved: Vec<State>,
+    to_user: Matrix,
+    unit: f64,
+    state: State,
+    saved: Vec<State>,
     pub(super) marking: Marking,
 }
 
-pub(super) fn matrix(m: &Matrix) -> [f32; 6] {
+fn matrix(m: &Matrix) -> [f32; 6] {
     m.to_array().map(n)
 }
 
 impl Writer {
+    /// A writer for a page whose page space maps to user space by `to_user`, with `/UserUnit`
+    /// `unit`, marking content with `marking`.
+    pub(super) fn new(to_user: Matrix, unit: f64, marking: Marking) -> Self {
+        Self {
+            content: Content::new(),
+            to_user,
+            unit,
+            state: State::default(),
+            saved: Vec::new(),
+            marking,
+        }
+    }
+
     /// A link annotation drawn now: its `OBJR` goes in the innermost `Link` element, one made
     /// for it when the innermost element is another kind.
     pub(super) fn link(&mut self) {
@@ -211,12 +224,12 @@ impl Writer {
     /// `Tm` placing text space's origin at `(x, baseline)` in page space, upright as
     /// displayed (text space is y up, page space y down).
     #[cfg(feature = "text")]
-    pub(super) fn text_matrix(&mut self, x: f64, baseline: f64) {
+    fn text_matrix(&mut self, x: f64, baseline: f64) {
         let place = Matrix::new([1.0, 0.0, 0.0, -1.0, x, baseline]);
         self.content.set_text_matrix(matrix(&self.to_user.after(&place)));
     }
 
-    pub(super) fn color(&mut self, color: &Color, fill: bool, resources: &mut PageResources) {
+    fn color(&mut self, color: &Color, fill: bool, resources: &mut PageResources) {
         let current = if fill {
             &mut self.state.fill
         } else {
@@ -250,7 +263,7 @@ impl Writer {
         };
     }
 
-    pub(super) fn line(&mut self, style: &StrokeStyle) {
+    fn line(&mut self, style: &StrokeStyle) {
         let unit = self.unit;
         let previous = self.state.line.replace(style.clone());
         let c = &mut self.content;
@@ -285,7 +298,7 @@ impl Writer {
         }
     }
 
-    pub(super) fn paint(&mut self, segments: &[Segment], paint: &Paint) {
+    fn paint(&mut self, segments: &[Segment], paint: &Paint) {
         if let Paint::Stroke(style) | Paint::FillStroke(_, style) = paint {
             self.line(style);
         }

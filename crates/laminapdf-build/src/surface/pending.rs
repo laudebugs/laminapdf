@@ -14,7 +14,7 @@ pub struct PendingPath<'s> {
 }
 
 impl<'s> PendingPath<'s> {
-    pub(super) fn paint(self, paint: Paint) -> &'s mut Surface {
+    fn paint(self, paint: Paint) -> &'s mut Surface {
         let Self { surface, mut path } = self;
         if !path.is_finite() {
             surface.invalid("a path coordinate is not a finite number");

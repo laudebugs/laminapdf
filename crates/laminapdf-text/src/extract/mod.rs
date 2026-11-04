@@ -19,7 +19,7 @@
 //! decodes every shown string with its font: codes by the font's encoding or CMap, widths
 //! from `/Widths`, `/W` and `/W2` (which move the text matrix, so the interpreter sees the
 //! right positions across `Tj` sequences), and Unicode by ToUnicode, then encoding and glyph
-//! names, then the embedded font's `cmap` (see `font.rs`).
+//! names, then the embedded font's `cmap` (see `font/`).
 //!
 //! Each [`Glyph`] keeps its code, text, origin and advance in user space, its size, and a
 //! [`Quad`] in page space (ADR 0027: the displayed `CropBox`, top-left origin, y down,

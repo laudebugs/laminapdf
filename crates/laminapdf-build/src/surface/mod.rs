@@ -15,14 +15,13 @@ pub(crate) mod text;
 pub(crate) mod textbox;
 mod writer;
 pub use pending::PendingPath;
-use writer::{State, Writer};
+use writer::Writer;
 
 #[cfg(feature = "text")]
 use laminapdf_model::PointPt;
 use laminapdf_model::{PageFrame, Pt, RectPt, UserSpaceRect};
 #[cfg(feature = "text")]
 use laminapdf_text::{Alignment, FontRegistry};
-use pdf_writer::Content;
 
 use crate::annot::link::LinkSpec;
 #[cfg(feature = "text")]
@@ -611,14 +610,7 @@ impl Surface {
         // The frame maps page space to user space with a positive /UserUnit: never singular.
         let from_user = to_user.invert().unwrap_or(Matrix::IDENTITY);
         let unit = frame.user_unit();
-        let mut out = Writer {
-            content: Content::new(),
-            to_user,
-            unit,
-            state: State::default(),
-            saved: Vec::new(),
-            marking,
-        };
+        let mut out = Writer::new(to_user, unit, marking);
         // Only text writes through the target (fonts are reserved at first use).
         #[cfg(not(feature = "text"))]
         let _ = target;

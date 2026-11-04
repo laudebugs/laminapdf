@@ -187,7 +187,7 @@ pub(super) fn contains(haystack: &[u8], needle: &[u8]) -> bool {
 
 /// An embedded CMap stream with its `/UseCMap` (a stream, or a `usecmap` name inside), to
 /// [`MAX_USECMAP_DEPTH`].
-pub(super) fn embedded_cmap(reader: &mut Reader<'_>, object: &Object, depth: usize) -> Result<CMap> {
+fn embedded_cmap(reader: &mut Reader<'_>, object: &Object, depth: usize) -> Result<CMap> {
     let Some(bytes) = reader.stream(object)? else {
         return Ok(CMap::default());
     };
@@ -233,7 +233,7 @@ pub(super) fn embedded_cmap(reader: &mut Reader<'_>, object: &Object, depth: usi
 
 /// `/W` (`width` = 1 value per CID) or `/W2` (3): `c [v …]` runs and `c_first c_last v…` ranges
 /// (§9.7.4.3).
-pub(super) fn cid_widths<T: Copy>(
+fn cid_widths<T: Copy>(
     reader: &mut Reader<'_>,
     object: &Object,
     width: usize,

@@ -225,7 +225,7 @@ impl Simple {
 }
 
 /// `/Differences [code /name /name … code /name …]` (§9.6.5.1).
-pub(super) fn apply_differences(reader: &mut Reader<'_>, differences: &Object, names: &mut [Option<Box<str>>]) {
+fn apply_differences(reader: &mut Reader<'_>, differences: &Object, names: &mut [Option<Box<str>>]) {
     let Some(items) = differences.as_array() else {
         reader.issues.font = true;
         return;

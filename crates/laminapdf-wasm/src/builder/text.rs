@@ -12,9 +12,8 @@ use crate::convert::{from_js_or_default, to_js};
 use crate::error::{JsResult, invalid_argument, lamina_error};
 
 /// A rectangle as returned to JavaScript.
-#[cfg(feature = "text")]
 #[derive(Debug, Serialize, Tsify)]
-pub(crate) struct RectJs {
+pub(super) struct RectJs {
     /// Left.
     pub x: f64,
     /// Top.
@@ -25,7 +24,6 @@ pub(crate) struct RectJs {
     pub height: f64,
 }
 
-#[cfg(feature = "text")]
 impl From<laminapdf::RectPt> for RectJs {
     fn from(r: laminapdf::RectPt) -> Self {
         Self {
