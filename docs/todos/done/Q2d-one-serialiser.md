@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2c](../done/Q2c-test-fixtures-crate.md) |
+| Depends on | [Q2c](./Q2c-test-fixtures-crate.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2d-one-serialiser` |
@@ -36,15 +36,15 @@
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Rewrite each part of `legacy.rs` on the shared helper, running the tests and the frozen reference files (`hello.pdf`, `imaging-demo.pdf`) after each.
-- [ ] Decide the home (fixtures crate or feature) by checking the dependency graph; move it; update dev-dependencies.
-- [ ] Update the doc examples that use it; remove the `pub use`.
+- [x] Claim: the work PR's first commit moves this file to `ongoing/` (CLAUDE.md's current rule), from a fresh worktree off `main`.
+- [x] Rewrite each part of `legacy.rs` on the shared helper, running the tests and the frozen reference files (`hello.pdf`, `imaging-demo.pdf`) after each.
+- [x] Decide the home (fixtures crate or feature) by checking the dependency graph; move it; update dev-dependencies. Decided: the `test-support` feature (`laminapdf_save::test_support`), because the writer now uses laminapdf-save's crate-private xref helpers and the fixtures crate has no Lamina PDF dependencies.
+- [x] Update the doc examples that use it; remove the `pub use`.
 
 ## Acceptance criteria
 
-- [ ] Every test and reference file is unchanged.
-- [ ] No second implementation of xref or object-stream writing in the workspace.
+- [x] Every test and reference file is unchanged.
+- [x] No second implementation of xref or object-stream writing in the workspace.
 
 ## Post-merge checks
 
@@ -64,9 +64,9 @@ If the layout differs (end-of-line markers, padding), keep the old layout behind
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
