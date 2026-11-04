@@ -97,6 +97,7 @@ export type ErrorCode =
   | "job-finished"
   | "document-changed"
   | "builder-finished"
+  | "disposed"
   | "invalid-argument"
   | "source-budget-exceeded"
   | "unknown-option"
@@ -106,10 +107,12 @@ export type ErrorCode =
   | "not-initialized"
   | "source-changed"
   | "text-module-not-loaded"
-  | "disposed"
   | "worker-version-mismatch"
   | "worker-crashed"
-  | "worker-failed";
+  | "worker-failed"
+  | "wasm-trap"
+  | "out-of-memory"
+  | "instance-reset";
 
 /** Every warning code (ADR 0026 §3; `fixtures/codes.json`). */
 export type WarningCode =
@@ -249,6 +252,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "job-finished",
   "document-changed",
   "builder-finished",
+  "disposed",
   "invalid-argument",
   "source-budget-exceeded",
   "unknown-option",
@@ -258,10 +262,12 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "not-initialized",
   "source-changed",
   "text-module-not-loaded",
-  "disposed",
   "worker-version-mismatch",
   "worker-crashed",
   "worker-failed",
+  "wasm-trap",
+  "out-of-memory",
+  "instance-reset",
 ];
 
 /** Every warning code, in `codes.json` order. */
@@ -424,6 +430,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "job-finished": "state",
   "document-changed": "state",
   "builder-finished": "state",
+  "disposed": "state",
   "invalid-argument": "usage",
   "source-budget-exceeded": "limit",
   "unknown-option": "usage",
@@ -433,10 +440,12 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "not-initialized": "state",
   "source-changed": "io",
   "text-module-not-loaded": "state",
-  "disposed": "state",
   "worker-version-mismatch": "usage",
   "worker-crashed": "internal",
   "worker-failed": "internal",
+  "wasm-trap": "internal",
+  "out-of-memory": "limit",
+  "instance-reset": "state",
 };
 
 /** The hint of every code (ADR 0026 §5), with its `{limit}`/`{option}` parameters unfilled. */
@@ -559,6 +568,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
+  "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "invalid-argument": "pass the value the type declarations describe; the data field says what was wrong",
   "source-budget-exceeded": "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
   "unknown-option": "remove the key or correct its spelling; didYouMean lists the closest known names",
@@ -568,10 +578,12 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "not-initialized": "await init() once before calling anything else in @laminapdf/sdk",
   "source-changed": "open the file again; the document already read parts of the old version and can't mix in the new one",
   "text-module-not-loaded": "load the text module with init and the text option, or with loadText, before creating the builder that draws text",
-  "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "worker-version-mismatch": "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy",
   "worker-crashed": "call client.restart() and open the document again; report the file if it keeps happening",
   "worker-failed": "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running",
+  "wasm-trap": "open the document again and retry; report the file and the call if it traps again",
+  "out-of-memory": "open fewer or smaller documents at once and free each when done; lower the open limits so hostile files fail sooner",
+  "instance-reset": "open the document again or create a new builder: nothing from the old instance survives",
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */
@@ -612,6 +624,7 @@ export const RAISED_BY_PACKAGE = {
   "no-transaction": { kind: "state", hint: "call begin first, or use transact" },
   "cancelled": { kind: "cancelled", hint: "nothing to do: this is the outcome the caller asked for; start a new job to try again" },
   "builder-finished": { kind: "state", hint: "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings" },
+  "disposed": { kind: "state", hint: "free a handle only after its last use; to keep working, open the document again or create a new builder" },
   "invalid-argument": { kind: "usage", hint: "pass the value the type declarations describe; the data field says what was wrong" },
   "already-initialized": { kind: "state", hint: "call init and loadText with a source once, before the first load; later calls need no source" },
   "extract-module-not-loaded": { kind: "state", hint: "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document" },
@@ -619,8 +632,10 @@ export const RAISED_BY_PACKAGE = {
   "not-initialized": { kind: "state", hint: "await init() once before calling anything else in @laminapdf/sdk" },
   "source-changed": { kind: "io", hint: "open the file again; the document already read parts of the old version and can't mix in the new one" },
   "text-module-not-loaded": { kind: "state", hint: "load the text module with init and the text option, or with loadText, before creating the builder that draws text" },
-  "disposed": { kind: "state", hint: "free a handle only after its last use; to keep working, open the document again or create a new builder" },
   "worker-version-mismatch": { kind: "usage", hint: "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy" },
   "worker-crashed": { kind: "internal", hint: "call client.restart() and open the document again; report the file if it keeps happening" },
   "worker-failed": { kind: "internal", hint: "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running" },
+  "wasm-trap": { kind: "internal", hint: "open the document again and retry; report the file and the call if it traps again" },
+  "out-of-memory": { kind: "limit", hint: "open fewer or smaller documents at once and free each when done; lower the open limits so hostile files fail sooner" },
+  "instance-reset": { kind: "state", hint: "open the document again or create a new builder: nothing from the old instance survives" },
 } as const;

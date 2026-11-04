@@ -21,6 +21,7 @@ export type ErrorCode =
   | "nested-transaction"
   | "no-transaction"
   | "builder-finished"
+  | "disposed"
   | "invalid-argument"
   | "p-only";
 
@@ -40,6 +41,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "nested-transaction",
   "no-transaction",
   "builder-finished",
+  "disposed",
   "invalid-argument",
   "p-only",
 ];
@@ -58,6 +60,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "nested-transaction": "state",
   "no-transaction": "state",
   "builder-finished": "state",
+  "disposed": "state",
   "invalid-argument": "usage",
   "p-only": "state",
 };
@@ -71,6 +74,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "nested-transaction": "what to do",
   "no-transaction": "what to do",
   "builder-finished": "what to do",
+  "disposed": "what to do",
   "invalid-argument": "what to do",
   "p-only": "what to do",
 };
@@ -113,6 +117,7 @@ export const RAISED_BY_PACKAGE = {
   "nested-transaction": { kind: "state", hint: "what to do" },
   "no-transaction": { kind: "state", hint: "what to do" },
   "builder-finished": { kind: "state", hint: "what to do" },
+  "disposed": { kind: "state", hint: "what to do" },
   "invalid-argument": { kind: "usage", hint: "what to do" },
   "p-only": { kind: "state", hint: "what to do" },
 } as const;

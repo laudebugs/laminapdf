@@ -76,9 +76,10 @@ const GROUPS: [(&str, &str); 11] = [
 ];
 
 /// Codes of other groups that `@laminapdf/sdk` raises itself; each must be listed in `codes.json`.
-const ALSO_RAISED_BY_TS: [&str; 5] = [
+const ALSO_RAISED_BY_TS: [&str; 6] = [
     "builder-finished",
     "cancelled",
+    "disposed",
     "invalid-argument",
     "nested-transaction",
     "no-transaction",
@@ -809,7 +810,11 @@ mod tests {
             "warnings": [entry("w-one", "input")],
             "errors": [entry("not-pdf", "input"), entry("limit-exceeded", "limit"), entry("cancelled", "state")],
             "opErrors": [entry("nested-transaction", "state"), entry("no-transaction", "state")],
-            "bindingErrors": [entry("builder-finished", "state"), entry("invalid-argument", "usage")],
+            "bindingErrors": [
+                entry("builder-finished", "state"),
+                entry("disposed", "state"),
+                entry("invalid-argument", "usage")
+            ],
             "packageErrors": [entry("p-only", "state")],
         })
     }
@@ -883,6 +888,7 @@ mod tests {
                 "nested-transaction",
                 "no-transaction",
                 "builder-finished",
+                "disposed",
                 "invalid-argument",
                 "p-only"
             ]

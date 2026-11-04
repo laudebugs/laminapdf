@@ -864,6 +864,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "disposed",
+      "kind": "state",
+      "summary": "a document, builder or other handle was used after free(), or after the using block that held it ended",
+      "hint": "free a handle only after its last use; to keep working, open the document again or create a new builder",
+      "since": "0.1.0"
+    },
+    {
       "code": "invalid-argument",
       "kind": "usage",
       "summary": "a value passed to a binding does not have the shape its type declares",
@@ -929,13 +936,6 @@
       "since": "0.1.0"
     },
     {
-      "code": "disposed",
-      "kind": "state",
-      "summary": "a document, builder or other handle was used after free(), or after the using block that held it ended",
-      "hint": "free a handle only after its last use; to keep working, open the document again or create a new builder",
-      "since": "0.1.0"
-    },
-    {
       "code": "worker-version-mismatch",
       "kind": "usage",
       "summary": "the worker answered with a different protocol or package version than the client",
@@ -955,6 +955,27 @@
       "summary": "the worker client failed with an error that isn't Lamina PDF's (a bug in @laminapdf/sdk/worker, or a result it couldn't send)",
       "hint": "this is a bug in Lamina PDF: report it with the call and the message; the worker keeps running",
       "since": "0.1.0"
+    },
+    {
+      "code": "wasm-trap",
+      "kind": "internal",
+      "summary": "the WebAssembly module trapped (a bug in Lamina PDF), so its instance was discarded and the next call gets a fresh one",
+      "hint": "open the document again and retry; report the file and the call if it traps again",
+      "since": "0.3.0"
+    },
+    {
+      "code": "out-of-memory",
+      "kind": "limit",
+      "summary": "the WebAssembly module ran out of memory (its maximum, or what the engine could give), so its instance was discarded and the next call gets a fresh one",
+      "hint": "open fewer or smaller documents at once and free each when done; lower the open limits so hostile files fail sooner",
+      "since": "0.3.0"
+    },
+    {
+      "code": "instance-reset",
+      "kind": "state",
+      "summary": "a handle was used after its WebAssembly instance was replaced, by reset() or after a trap",
+      "hint": "open the document again or create a new builder: nothing from the old instance survives",
+      "since": "0.3.0"
     }
   ]
 }

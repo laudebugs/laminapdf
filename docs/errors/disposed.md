@@ -5,7 +5,7 @@
 
 ## What happened
 
-A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`).
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a page with its builder.
 
 ## Why
 
@@ -31,4 +31,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): adds the check that raises this code
+- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): the check on every handle, and on the pages and save jobs of `@laminapdf/wasm`

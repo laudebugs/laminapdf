@@ -21,7 +21,7 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 11] = [
+const UNBUILDABLE: [(&str, &str); 13] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -36,6 +36,9 @@ const UNBUILDABLE: [(&str, &str); 11] = [
     // packages/sdk/test/browser/worker.browser.test.ts checks these two's keys.
     ("worker-version-mismatch", "raised by @laminapdf/sdk/worker"),
     ("worker-crashed", "raised by @laminapdf/sdk/worker"),
+    // packages/sdk/test/hooks/trap.test.ts checks these two's keys.
+    ("wasm-trap", "raised by @laminapdf/sdk"),
+    ("out-of-memory", "raised by @laminapdf/sdk"),
     // `renderErrors`: raised by laminapdf-render (not the façade); the fields are RenderError's.
     ("render-too-large", "raised by laminapdf-render"),
     ("render-failed", "raised by laminapdf-render"),

@@ -52,6 +52,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "encoding-full":
     case "image-too-large":
     case "source-budget-exceeded":
+    case "out-of-memory":
     case "render-too-large":
       return "limit";
     case "password-required":
@@ -113,12 +114,14 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "text-module-not-loaded":
     case "extract-module-not-loaded":
     case "disposed":
+    case "instance-reset":
       return "state";
     case "cancelled":
       return "cancelled";
     case "unset-object":
     case "worker-crashed":
     case "worker-failed":
+    case "wasm-trap":
       return "internal";
     default: {
       const unhandled: never = code;

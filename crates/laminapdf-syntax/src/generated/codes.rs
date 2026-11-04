@@ -186,6 +186,8 @@ pub enum ErrorCode {
     DocumentChanged,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
+    /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
+    Disposed,
     /// `invalid-argument`: a value passed to a binding does not have the shape its type declares.
     InvalidArgument,
     /// `source-budget-exceeded`: a sparse source was given more bytes than its byte budget allows.
@@ -279,6 +281,7 @@ impl ErrorCode {
         Self::JobFinished,
         Self::DocumentChanged,
         Self::BuilderFinished,
+        Self::Disposed,
         Self::InvalidArgument,
         Self::SourceBudgetExceeded,
         Self::UnknownOption,
@@ -370,6 +373,7 @@ impl ErrorCode {
             b"job-finished" => Self::JobFinished,
             b"document-changed" => Self::DocumentChanged,
             b"builder-finished" => Self::BuilderFinished,
+            b"disposed" => Self::Disposed,
             b"invalid-argument" => Self::InvalidArgument,
             b"source-budget-exceeded" => Self::SourceBudgetExceeded,
             b"unknown-option" => Self::UnknownOption,
@@ -463,6 +467,7 @@ impl ErrorCode {
             Self::JobFinished => "job-finished",
             Self::DocumentChanged => "document-changed",
             Self::BuilderFinished => "builder-finished",
+            Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
             Self::SourceBudgetExceeded => "source-budget-exceeded",
             Self::UnknownOption => "unknown-option",
@@ -555,6 +560,7 @@ impl ErrorCode {
             Self::JobFinished => ErrorKind::State,
             Self::DocumentChanged => ErrorKind::State,
             Self::BuilderFinished => ErrorKind::State,
+            Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
             Self::SourceBudgetExceeded => ErrorKind::Limit,
             Self::UnknownOption => ErrorKind::Usage,
@@ -647,6 +653,7 @@ impl ErrorCode {
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
             Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
+            Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
             Self::SourceBudgetExceeded => "a sparse source was given more bytes than its byte budget allows",
             Self::UnknownOption => "an options record passed to a binding has a key Lamina PDF does not know",
@@ -739,6 +746,7 @@ impl ErrorCode {
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
+            Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",
             Self::SourceBudgetExceeded => "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
             Self::UnknownOption => "remove the key or correct its spelling; didYouMean lists the closest known names",
