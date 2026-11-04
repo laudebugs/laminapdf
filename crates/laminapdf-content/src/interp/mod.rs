@@ -3,6 +3,7 @@
 
 mod color;
 mod graphics_state;
+mod marked;
 mod path;
 mod text;
 mod xobject;
@@ -16,9 +17,10 @@ use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
 use crate::state::{ColorSpace, GraphicsState, Matrix};
-use crate::visitor::{FillRule, MarkedContent, Paint, PathSegment, Visitor};
+use crate::visitor::{FillRule, Paint, PathSegment, Visitor};
 use color::{Target, device_color};
 use graphics_state::set_dash;
+use marked::Mark;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
 
 /// What an interpretation did.
@@ -448,60 +450,12 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             // XObjects (§8.8).
             Operator::PaintXObject => self.paint_xobject(frame, op, args)?,
             // Marked content (§14.6).
-            Operator::MarkPoint
-            | Operator::MarkPointProperties
-            | Operator::BeginMarked
-            | Operator::BeginMarkedProperties => {
-                self.marked(frame, op, args)?;
-            }
-            Operator::EndMarked => {
-                if frame.marked == 0 {
-                    self.warn(Warning::ContentUnbalancedMarked {
-                        object: frame.object,
-                        offset: offset_u64(op.offset),
-                    })?;
-                } else {
-                    frame.marked -= 1;
-                    self.visitor.end_marked();
-                }
-            }
+            Operator::MarkPoint | Operator::MarkPointProperties => self.marked(frame, op, args, Mark::Point)?,
+            Operator::BeginMarked | Operator::BeginMarkedProperties => self.marked(frame, op, args, Mark::Begin)?,
+            Operator::EndMarked => self.end_marked(frame, op)?,
             // Compatibility sections (§7.8.2).
             Operator::BeginCompatibility => frame.compat += 1,
             Operator::EndCompatibility => frame.compat = frame.compat.saturating_sub(1),
-        }
-        Ok(())
-    }
-
-    fn marked(&mut self, frame: &mut Frame, op: &Op<'_>, args: &[Object]) -> Result<()> {
-        let Some(tag) = args.first().and_then(name) else {
-            return Ok(());
-        };
-        let found;
-        let (properties, properties_name) = match args.get(1) {
-            Some(Object::Dict(d)) => (Some(d), None),
-            Some(Object::Name(n)) => {
-                found = self.lookup(frame, "Properties", n)?;
-                let dict = found.as_ref().and_then(|f| f.value.as_dict());
-                if dict.is_none() {
-                    self.missing(frame, op, "Properties")?;
-                }
-                (dict, Some(n))
-            }
-            _ => (None, None),
-        };
-        let marked = MarkedContent {
-            tag,
-            properties,
-            properties_name,
-            mcid: properties.and_then(|p| p.get_int("MCID")),
-            depth: self.forms.len(),
-        };
-        match op.operator {
-            Operator::BeginMarked | Operator::BeginMarkedProperties => {
-                frame.marked += 1;
-                self.visitor.begin_marked(&marked);
-            }
-            _ => self.visitor.marked_point(&marked),
         }
         Ok(())
     }
