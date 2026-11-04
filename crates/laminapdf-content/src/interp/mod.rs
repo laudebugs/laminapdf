@@ -1,6 +1,8 @@
 //! The read-only interpreter (ADR 0023): runs content streams against a graphics state and
 //! reports what they draw to a [`Visitor`].
 
+mod graphics_state;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -9,11 +11,12 @@ use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Positi
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
-use crate::state::{Color, ColorSpace, Dash, FontRef, GraphicsState, Matrix};
+use crate::state::{Color, ColorSpace, FontRef, GraphicsState, Matrix};
 use crate::visitor::{
-    FillRule, FormXObject, GraphicsStateParams, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
-    ShadingPaint, TextShow, Visitor,
+    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment, ShadingPaint,
+    TextShow, Visitor,
 };
+use graphics_state::set_dash;
 
 /// What an interpretation did.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -203,6 +206,16 @@ fn numbers<const N: usize>(args: &[Object]) -> [f64; N] {
     out
 }
 
+/// The one number of an operator that sets a single value.
+fn first(args: &[Object]) -> f64 {
+    args.first().map_or(0.0, number)
+}
+
+/// The one integer of an operator that sets a single value.
+fn first_integer(args: &[Object]) -> i64 {
+    args.first().map_or(0, integer)
+}
+
 #[expect(
     clippy::cast_possible_truncation,
     reason = "a real where an integer is expected is truncated, as PDF consumers do (§7.3.3)"
@@ -215,13 +228,6 @@ fn name(object: &Object) -> Option<&Name> {
     match object {
         Object::Name(n) => Some(n),
         _ => None,
-    }
-}
-
-fn dash(array: &[Object], phase: f64) -> Dash {
-    Dash {
-        array: array.iter().filter_map(Object::as_f64).collect(),
-        phase,
     }
 }
 
@@ -402,42 +408,18 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         let gs = &mut frame.gs;
         match op.operator {
             // General graphics state (§8.4.4).
-            Operator::LineWidth => gs.line_width = numbers::<1>(args)[0],
-            Operator::LineCap => gs.line_cap = args.first().map_or(0, integer),
-            Operator::LineJoin => gs.line_join = args.first().map_or(0, integer),
-            Operator::MiterLimit => gs.miter_limit = numbers::<1>(args)[0],
-            Operator::Dash => {
-                if let [Object::Array(array), phase] = args {
-                    gs.dash = dash(array, number(phase));
-                }
-            }
-            Operator::RenderingIntent => gs.rendering_intent = args.first().and_then(name).cloned(),
-            Operator::Flatness => gs.flatness = numbers::<1>(args)[0],
-            Operator::ExtGState => {
-                if let Some(n) = args.first().and_then(name) {
-                    self.ext_gstate(frame, op, n)?;
-                }
-            }
+            Operator::LineWidth => frame.gs.line_width = first(args),
+            Operator::LineCap => frame.gs.line_cap = first_integer(args),
+            Operator::LineJoin => frame.gs.line_join = first_integer(args),
+            Operator::MiterLimit => frame.gs.miter_limit = first(args),
+            Operator::Dash => set_dash(&mut frame.gs, args),
+            Operator::RenderingIntent => frame.gs.rendering_intent = args.first().and_then(name).cloned(),
+            Operator::Flatness => frame.gs.flatness = first(args),
+            Operator::ExtGState => self.ext_gstate(frame, op, args)?,
             // Special graphics state.
-            Operator::Save => {
-                if frame.saved.len() >= self.limits.max_nesting_depth() {
-                    return Err(Error::LimitExceeded {
-                        limit: Limit::NestingDepth,
-                        at: in_content(frame.object, offset_u64(op.offset)),
-                    });
-                }
-                frame.saved.push(frame.gs.clone());
-            }
-            Operator::Restore => match frame.saved.pop() {
-                Some(saved) => frame.gs = saved,
-                None => self.warn(Warning::ContentUnbalancedQ {
-                    object: frame.object,
-                    offset: offset_u64(op.offset),
-                })?,
-            },
-            Operator::Transform => {
-                gs.ctm = matrix(args).multiply(&gs.ctm);
-            }
+            Operator::Save => self.save(frame, op)?,
+            Operator::Restore => self.restore(frame, op)?,
+            Operator::Transform => frame.gs.ctm = matrix(args).multiply(&frame.gs.ctm),
             // Path construction (§8.5.2).
             Operator::MoveTo => {
                 let [x, y] = numbers::<2>(args);
@@ -764,59 +746,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             }
         };
         Ok(Color::initial(space))
-    }
-
-    /// `gs`: the `ExtGState` subset of ADR 0023 (line style, rendering intent, flatness,
-    /// opacity, font); entries may be indirect.
-    fn ext_gstate(&mut self, frame: &mut Frame, op: &Op<'_>, n: &Name) -> Result<()> {
-        let found = self.lookup(frame, "ExtGState", n)?;
-        let Some((object, dict)) = found.as_ref().and_then(|f| Some((f.object, f.value.as_dict()?))) else {
-            return self.missing(frame, op, "ExtGState");
-        };
-        for (key, value) in dict.iter() {
-            let Some(value) = resources::resolve(self.doc, value)? else {
-                continue;
-            };
-            let gs = &mut frame.gs;
-            match (key.as_bytes(), &*value) {
-                (b"LW", v) if v.as_f64().is_some() => gs.line_width = number(v),
-                (b"LC", v) if v.as_f64().is_some() => gs.line_cap = integer(v),
-                (b"LJ", v) if v.as_f64().is_some() => gs.line_join = integer(v),
-                (b"ML", v) if v.as_f64().is_some() => gs.miter_limit = number(v),
-                (b"FL", v) if v.as_f64().is_some() => gs.flatness = number(v),
-                (b"CA", v) if v.as_f64().is_some() => gs.stroke_alpha = number(v),
-                (b"ca", v) if v.as_f64().is_some() => gs.fill_alpha = number(v),
-                (b"RI", Object::Name(intent)) => gs.rendering_intent = Some(intent.clone()),
-                (b"D", Object::Array(d)) => {
-                    if let [Object::Array(array), phase] = d.as_slice() {
-                        gs.dash = dash(array, number(phase));
-                    }
-                }
-                (b"Font", Object::Array(font)) => {
-                    if let [font, size] = font.as_slice() {
-                        let size = resources::number(self.doc, size)?.unwrap_or_default();
-                        let dict = resources::resolve(self.doc, font)?.filter(|f| f.as_dict().is_some());
-                        if dict.is_none() {
-                            self.missing(frame, op, "Font")?;
-                        }
-                        frame.gs.text.font = Some(FontRef {
-                            name: None,
-                            object: font.as_ref(),
-                            dict,
-                        });
-                        frame.gs.text.font_size = size;
-                    }
-                }
-                _ => {}
-            }
-        }
-        self.visitor.set_graphics_state(&GraphicsStateParams {
-            name: n,
-            object,
-            dict,
-            state: &frame.gs,
-        });
-        Ok(())
     }
 
     fn marked(&mut self, frame: &mut Frame, op: &Op<'_>, args: &[Object]) -> Result<()> {
