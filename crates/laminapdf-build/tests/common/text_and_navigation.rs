@@ -1,6 +1,6 @@
-//! The documents behind B5b's goldens: text with embedded and standard 14 fonts, five
-//! scripts through `text()` and `text_box()`, links, destinations, outlines, page labels, and
-//! metadata. The input text of each page is here, so tests compare what extractors read back
+//! The documents behind the text, navigation and metadata goldens: text with embedded and
+//! standard 14 fonts, five scripts through `text()` and `text_box()`, links, destinations,
+//! outlines, page labels, and metadata. The input text of each page is here, so tests compare what extractors read back
 //! with it.
 
 use laminapdf_build::{

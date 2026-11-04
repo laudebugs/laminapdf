@@ -10,8 +10,8 @@
 
 mod common;
 
-use common::b5b::{self, LATIN_PARAGRAPH, LATIN_RUNS, SCRIPTS};
 use common::text::{lines, shown};
+use common::text_and_navigation::{self, LATIN_PARAGRAPH, LATIN_RUNS, SCRIPTS};
 use common::{reopen, save};
 use laminapdf_build::{
     BuildOptions, Builder, Feature, LinkTarget, Matrix, PageSize, PdfVersion, Rotation, Standard14, TextRenderMode,
@@ -49,7 +49,11 @@ fn y_is_the_baseline_on_every_rotation() {
         Rotation::Half,
         Rotation::Clockwise270,
     ] {
-        let doc = one_run(|b| b.font(b5b::font("NotoSans-Regular.ttf")).unwrap(), "Hello", rotate);
+        let doc = one_run(
+            |b| b.font(text_and_navigation::font("NotoSans-Regular.ttf")).unwrap(),
+            "Hello",
+            rotate,
+        );
         let frame = doc.pages().unwrap().get(0).unwrap().frame().unwrap();
         let want = frame.to_user_space(PointPt::from_points(72.0, 100.0));
         let (runs, _) = shown(&doc, 0);
@@ -66,7 +70,7 @@ fn the_latin_golden_reads_back_as_its_input() {
     let doc = reopen(&fixture("golden/build-text-latin.pdf"));
     let got = lines(&doc, 0);
     // Every run and every text box line, in drawing order.
-    assert_eq!(vec![got.clone()], b5b::text_latin_drawn().1);
+    assert_eq!(vec![got.clone()], text_and_navigation::text_latin_drawn().1);
     assert_eq!(&got[..5], &LATIN_RUNS[..]);
     // Each of the four boxes holds the whole paragraph, broken at spaces.
     let boxed = got[7..].join(" ");
@@ -166,7 +170,7 @@ fn render_modes_are_written_once_and_reset() {
 /// The content of a page with "office" drawn, with `features`.
 fn office(features: &[&str]) -> (Vec<u8>, Vec<String>) {
     let mut b = Builder::new(BuildOptions::default().with_compress(false));
-    let f = b.font(b5b::font("NotoSans-Regular.ttf")).unwrap();
+    let f = b.font(text_and_navigation::font("NotoSans-Regular.ttf")).unwrap();
     let mut page = b.page(PageSize::A4);
     let features: Vec<Feature> = features.iter().map(|f| f.parse().unwrap()).collect();
     page.surface()
@@ -197,7 +201,7 @@ fn a_feature_change_reshapes_the_run() {
 fn a_character_the_font_lacks_is_missing_glyph() {
     let mut b = Builder::new(BuildOptions::default());
     let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
-    let noto = b.font(b5b::font("NotoSans-Regular.ttf")).unwrap();
+    let noto = b.font(text_and_navigation::font("NotoSans-Regular.ttf")).unwrap();
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
     let at = PointPt::from_points(72.0, 72.0);
@@ -244,7 +248,7 @@ fn a_font_from_another_builder_is_unknown_font() {
 /// A PDF 1.4 document with `text` in `font`: its first page's content and catalog `/Version`.
 fn at_1_4(font: &str, text: &str) -> (String, Option<Vec<u8>>) {
     let mut b = Builder::new(BuildOptions::default().with_version(PdfVersion::V1_4));
-    let f = b.font(b5b::font(font)).unwrap();
+    let f = b.font(text_and_navigation::font(font)).unwrap();
     let mut page = b.page(PageSize::A4);
     page.surface()
         .text(text, &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
@@ -276,7 +280,7 @@ fn plain_text_leaves_a_1_4_document_alone() {
 fn line_counts(text: &str) -> (usize, usize) {
     let mut b = Builder::new(BuildOptions::default());
     let std = b.standard_font(Standard14::Helvetica).unwrap();
-    let noto = b.font(b5b::font("NotoSans-Regular.ttf")).unwrap();
+    let noto = b.font(text_and_navigation::font("NotoSans-Regular.ttf")).unwrap();
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
     let at = PointPt::from_points(72.0, 72.0);

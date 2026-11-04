@@ -1,5 +1,6 @@
-//! Regressions from the review of PR #13, writer half (moved from `laminapdf-cos` in B3b; the
-//! reader cases stay in `laminapdf-cos/tests/review_fixes.rs`): `/Size` never shrinks.
+//! The trailer's `/Size` never shrinks: it covers every object number in the file, including
+//! objects the reader dropped under a limit. (The reader's side of these fallbacks is in
+//! `laminapdf-cos/tests/reader_fallbacks.rs`.)
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
