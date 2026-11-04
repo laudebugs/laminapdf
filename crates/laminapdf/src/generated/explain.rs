@@ -1137,6 +1137,75 @@ The decisions and todos behind this code:
 
 - [B9b](../todos/done/B9b-text-extraction-core.md): text extraction
 ",
+        "extract-limit-blocks" => r"# `extract-limit-blocks`
+
+- Type: warning
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+A page had more runs of text than `ExtractLimits::max_blocks_per_page` allows. Since each run can be a block of its own, extraction kept the first runs the page draws and left out the rest. It cuts them before grouping runs into blocks, so the work stays bounded.
+
+## Why
+
+A page of many tiny separate pieces of text, such as a dense table, a map with hundreds of labels, or a file built to slow extraction down.
+
+## How to fix
+
+Raise `max_blocks_per_page` if the page really holds that many blocks.
+
+## Example
+
+```rust
+let mut options = laminapdf_extract::ExtractOptions::default();
+options.limits.max_blocks_per_page = 50_000;
+```
+
+## Data fields
+
+- `limit`: the limit that was reached.
+
+The `location` has the page's `pageIndex`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L3a](../todos/done/L3a-lamina-extract-reading-order.md): blocks and reading order
+",
+        "extract-reading-order-ambiguous" => r"# `extract-reading-order-ambiguous`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+A page mixes horizontal and vertical writing. Extraction put its blocks in an order, but no layout rule tells which comes first, so the order is a guess.
+
+## Why
+
+Japanese and Chinese pages often set the body vertically and captions, headings or page numbers horizontally. Without a structure tree, nothing in the file says how the two relate.
+
+## How to fix
+
+Nothing to do in Lamina PDF; the file is valid. Like every warning, it fails the call in strict mode. Check the order of that page's blocks, or ask for the order the content stream draws (`ReadingOrder::ContentStream`). A tagged file avoids the guess.
+
+## Example
+
+A page whose body text is drawn with a vertical font (`Identity-V`) and whose page number is drawn with a horizontal one.
+
+## Data fields
+
+None.
+
+The `location` has the page's `pageIndex`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L3a](../todos/done/L3a-lamina-extract-reading-order.md): blocks and reading order
+",
         "not-pdf" => r#"# `not-pdf`
 
 - Type: error

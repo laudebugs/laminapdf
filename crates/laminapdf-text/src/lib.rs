@@ -120,7 +120,7 @@ pub use bidi::{BidiParagraph, BidiRun};
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry, FontUsage, GlyphCode};
 pub use encoding::{Encoding, UnsupportedEncoding};
 pub use error::{Error, Result, Warning};
-pub use extract::{Code, Glyph, PageText, PageTextRun, Quad, TextExtractor, UserSpaceVector};
+pub use extract::{Code, Glyph, PageText, PageTextRun, Quad, TextExtractor, UserSpaceVector, is_right_to_left};
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, OpenTypeTag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use itemize::{Item, itemize};

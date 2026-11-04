@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B9b](./B9b-text-extraction-core.md) |
-| Blocks | [B9c](./B9c-text-extraction-bindings-and-differential.md), [B9e](./B9e-separators-at-backward-jumps.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U2b](./U2b-reading-order-ground-truth.md) |
+| Blocks | [B9c](./B9c-text-extraction-bindings-and-differential.md), [B9e](./B9e-separators-at-backward-jumps.md), [L3a](./L3a-lamina-extract-reading-order.md), [U2b](./U2b-reading-order-ground-truth.md) |
 | ADRs | Implements 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (tolerance, warnings), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) (façade) |
 | Branch | `feat/b9d-text-runs-and-quads` |
 | PR title | `feat(text): glyph quads, text runs with ActualText and MCIDs, page.text()` |
@@ -38,7 +38,7 @@ Finish what [B9b](../done/B9b-text-extraction-core.md) started: B9b decodes ever
 **Out of scope** (and which todo covers it)
 
 - WASM/TS exposure, differential tests vs pdf.js/pdftotext, quad tests vs PDFium, 10-minute extraction fuzzing: [B9c](../done/B9c-text-extraction-bindings-and-differential.md).
-- Layout analysis and reading order: [L3a](../ready/L3a-lamina-extract-reading-order.md).
+- Layout analysis and reading order: [L3a](../done/L3a-lamina-extract-reading-order.md).
 - Bundled CJK character-collection CMaps: decide in B9c (size vs the WASM budget).
 
 ## Tasks

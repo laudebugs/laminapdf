@@ -308,13 +308,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the catalog, `/MarkInfo`).
     pub fn is_tagged(&self) -> Result<bool> {
-        let catalog = self.inner.catalog()?;
-        let Some(mark_info) = catalog.get("MarkInfo") else {
-            return Ok(false);
-        };
-        let mark_info = self.inner.deref(mark_info)?;
-        let marked = mark_info.as_dict().and_then(|d| d.get("Marked"));
-        Ok(matches!(marked, Some(laminapdf_cos::Object::Bool(true))))
+        Ok(self.inner.is_tagged()?)
     }
 
     /// Reads every object the document holds, once, and returns how many there were: for a

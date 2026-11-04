@@ -271,8 +271,15 @@ fn needs_space(before: &str, after: &str, gap: f64, size: f64) -> bool {
 /// Whether `text` has a character of a right-to-left script (Hebrew, Arabic, Syriac, Thaana,
 /// N’Ko and their presentation forms).
 fn has_right_to_left(text: &str) -> bool {
-    text.chars()
-        .any(|c| matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFC}'))
+    text.chars().any(is_right_to_left)
+}
+
+/// Whether `c` belongs to a script written right to left: Hebrew, Arabic, Syriac, Thaana, N'Ko
+/// and the scripts up to U+08FF, and the Hebrew and Arabic presentation forms (not the BOM,
+/// U+FEFF, at the end of the last block).
+#[must_use]
+pub const fn is_right_to_left(c: char) -> bool {
+    matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFC}')
 }
 
 /// Text drawn in visual order, in logical order: UAX #9 run levels of the text as it stands,

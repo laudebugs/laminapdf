@@ -148,6 +148,17 @@ impl RectPt {
         [self.x0, self.y0, self.x1, self.y1].iter().all(|v| v.0.is_finite())
     }
 
+    /// The smallest rectangle that holds both.
+    #[must_use]
+    pub fn union(&self, other: &Self) -> Self {
+        Self {
+            x0: Pt(self.x0.0.min(other.x0.0)),
+            y0: Pt(self.y0.0.min(other.y0.0)),
+            x1: Pt(self.x1.0.max(other.x1.0)),
+            y1: Pt(self.y1.0.max(other.y1.0)),
+        }
+    }
+
     /// The rectangle whose top-left corner is `(x, y)`, `width` wide and `height` tall
     /// (negative sizes extend left or up).
     #[must_use]

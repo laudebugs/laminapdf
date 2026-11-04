@@ -1320,6 +1320,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-extract"
+version = "0.2.0-alpha.2"
+dependencies = [
+ "laminapdf-build",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-save",
+ "laminapdf-syntax",
+ "laminapdf-test-fixtures",
+ "laminapdf-text",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "laminapdf-model"
 version = "0.2.0-alpha.2"
 dependencies = [

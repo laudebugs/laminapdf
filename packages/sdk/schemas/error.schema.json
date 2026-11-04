@@ -244,6 +244,8 @@
             "font-invalid",
             "cmap-invalid",
             "unmapped-glyph",
+            "extract-limit-blocks",
+            "extract-reading-order-ambiguous",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]

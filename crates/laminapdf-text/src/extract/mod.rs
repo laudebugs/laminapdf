@@ -9,7 +9,7 @@ mod font;
 mod runs;
 
 pub use cmap::Code;
-pub use runs::PageTextRun;
+pub use runs::{PageTextRun, is_right_to_left};
 
 use std::sync::Arc;
 
