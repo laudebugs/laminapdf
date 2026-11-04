@@ -1,12 +1,12 @@
 //! One page being drawn: graphics state, paths, images, tags and links.
 
-use laminapdf::{PageSize, Rotation, Surface};
+use laminapdf::{Matrix, PageSize, Rotation, Surface};
 use wasm_bindgen::prelude::*;
 
 use super::document::SharedBuilder;
 use super::image::WasmImage;
 use crate::build_dto::{
-    ARTIFACT_KINDS, BLEND_MODES, FILL_RULES, LINE_CAPS, LINE_JOINS, LinkTargetInit, Path, color, matrix, pick, rect,
+    ARTIFACT_KINDS, BLEND_MODES, FILL_RULES, LINE_CAPS, LINE_JOINS, LinkTargetInit, Path, color, pick, rect,
     stroke_style, tag,
 };
 use crate::convert::from_js;
@@ -101,10 +101,9 @@ impl WasmPageBuilder {
     /// # Errors
     /// `invalid-argument` unless there are 6 numbers.
     pub fn transform(&mut self, m: &[f64]) -> JsResult<()> {
-        let m: [f64; 6] = m
-            .try_into()
-            .map_err(|_| invalid_argument("matrix", "a matrix has 6 numbers".to_owned(), Vec::new()))?;
-        live(&mut self.surface)?.transform(matrix(m));
+        let m = Matrix::from_slice(m)
+            .ok_or_else(|| invalid_argument("matrix", "a matrix has 6 numbers".to_owned(), Vec::new()))?;
+        live(&mut self.surface)?.transform(m);
         Ok(())
     }
 

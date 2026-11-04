@@ -364,8 +364,6 @@ fn pixels(v: f64) -> Result<u32, RenderError> {
 #[cfg(test)]
 mod tests {
 
-    use laminapdf_model::Matrix;
-
     use super::{PixelRect, RenderLimits, RenderPage, RenderRequest, Rotation, TilePlan};
     use crate::RenderError;
 
@@ -478,18 +476,17 @@ mod tests {
                 height: 50.0,
                 rotate: Rotation::None,
             };
-            let apply = |m: Matrix, x: f64, y: f64| m.apply(x, y);
             let req = RenderRequest::page(0, 2.0);
             let plan = TilePlan::new(&page, &req, &RenderLimits::default()).unwrap();
             assert_eq!(
-                apply(plan.page_to_tile(&page, Rotation::None), 100.0, 50.0),
+                plan.page_to_tile(&page, Rotation::None).apply(100.0, 50.0),
                 (200.0, 100.0)
             );
             let turned = req.with_rotation(Rotation::Clockwise90);
             let plan = TilePlan::new(&page, &turned, &RenderLimits::default()).unwrap();
             // Clockwise: the top-left corner goes to the top-right of the 100 × 200 bitmap.
             assert_eq!(
-                apply(plan.page_to_tile(&page, Rotation::Clockwise90), 0.0, 0.0),
+                plan.page_to_tile(&page, Rotation::Clockwise90).apply(0.0, 0.0),
                 (100.0, 0.0)
             );
             let shifted = req.with_clip(PixelRect {
@@ -499,7 +496,7 @@ mod tests {
                 height: 5,
             });
             let plan = TilePlan::new(&page, &shifted, &RenderLimits::default()).unwrap();
-            assert_eq!(apply(plan.page_to_tile(&page, Rotation::None), 5.0, 10.0), (0.0, 0.0));
+            assert_eq!(plan.page_to_tile(&page, Rotation::None).apply(5.0, 10.0), (0.0, 0.0));
         }
 
         #[test]

@@ -6,7 +6,7 @@
 use std::ops::Range;
 use std::slice;
 
-use laminapdf_model::{PointPt, Pt, RectPt};
+use laminapdf_model::{Matrix, PointPt, Pt, RectPt};
 use laminapdf_text::{
     Alignment, Direction, Feature, FontInfo, FontKey, HarfRust, LayoutOptions, ShapedRun, break_lines,
     grapheme_boundaries, line_breaks,
@@ -18,7 +18,6 @@ use crate::annot::link::LinkSpec;
 use crate::error::Result;
 use crate::nav::LinkTarget;
 use crate::tag::Tag;
-use laminapdf_model::Matrix;
 
 /// A font registered with one builder ([`Builder::font`](crate::Builder::font),
 /// [`Builder::standard_font`](crate::Builder::standard_font) or the [`Appender`](crate::Appender)'s):

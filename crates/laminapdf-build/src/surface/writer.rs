@@ -1,7 +1,7 @@
 //! Writing a page's recorded commands as a content stream: the graphics state, resources by
 //! first use, tagged content and links.
 
-use laminapdf_model::PointPt;
+use laminapdf_model::{FillRule, Matrix, PointPt};
 #[cfg(feature = "text")]
 use laminapdf_text::{TjElement, pdf_run};
 #[cfg(feature = "text")]
@@ -14,8 +14,6 @@ use pdf_writer::{Str, TextStr};
 #[cfg(feature = "text")]
 use super::TextTarget;
 use super::color::Color;
-use laminapdf_model::{FillRule, Matrix};
-
 use super::path::Segment;
 use super::style::{LineCap, LineJoin, StrokeStyle};
 #[cfg(feature = "text")]

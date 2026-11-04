@@ -2,8 +2,6 @@
 //! [`FillRule`] (§8.5.3.3) and [`Dash`] (§8.4.3.6). They hold numbers in whatever space they
 //! are used in: page space when building, user space when reading content.
 
-use laminapdf_syntax::Object;
-
 /// An affine transformation `[a b c d e f]` (§8.3.3): a point `(x, y)` maps to
 /// `(a·x + c·y + e, b·x + d·y + f)`.
 ///
@@ -127,17 +125,6 @@ impl Matrix {
     pub fn from_slice(values: &[f64]) -> Option<Self> {
         <[f64; 6]>::try_from(values).ok().map(Self::new)
     }
-
-    /// The matrix in a direct PDF array of six finite numbers, if it is one.
-    #[must_use]
-    pub fn from_object(object: &Object) -> Option<Self> {
-        let values: Option<Vec<f64>> = object
-            .as_array()?
-            .iter()
-            .map(|v| v.as_f64().filter(|v| v.is_finite()))
-            .collect();
-        Self::from_slice(&values?)
-    }
 }
 
 /// How a fill or clip decides what is inside a path (§8.5.3.3).
@@ -159,6 +146,7 @@ impl FillRule {
 /// pattern the line starts. Lengths are in the space the line is drawn in: points when
 /// building (page space), user-space units when reading content.
 #[derive(Debug, Clone, PartialEq, Default)]
+#[non_exhaustive]
 pub struct Dash {
     /// Dash and gap lengths; an empty list draws a solid line.
     pub array: Vec<f64>,

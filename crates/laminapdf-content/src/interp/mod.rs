@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Position, Result, Warning};
-use laminapdf_model::FillRule;
+use laminapdf_model::{FillRule, Matrix};
 
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
@@ -21,7 +21,6 @@ use crate::state::{ColorSpace, GraphicsState};
 use crate::visitor::{Paint, PathSegment, Visitor};
 use color::{Target, device_color};
 use graphics_state::set_dash;
-use laminapdf_model::Matrix;
 use marked::Mark;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
 
@@ -457,5 +456,5 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
 
 /// The matrix of `cm` or `Tm` (six numbers, checked by the signature).
 fn matrix(args: &[Object]) -> Matrix {
-    Matrix::from_slice(&numbers::<6>(args)).unwrap_or_default()
+    Matrix::new(numbers::<6>(args))
 }
