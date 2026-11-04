@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2r](../ready/Q2r-split-surface-modules.md) |
+| Blocks | [Q2r](./Q2r-split-surface-modules.md) |
 | ADRs | None |
 | Branch | `fix/q2h-text-writers-dedup` |
 | PR title | `fix(text): one ToUnicode writer and one FontDescriptor builder` |

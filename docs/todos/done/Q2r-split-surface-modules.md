@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2r` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md), [Q2h](../done/Q2h-text-writers-dedup.md), [Q2i](../done/Q2i-one-lexer-one-png-filter.md) |
+| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md), [Q2h](./Q2h-text-writers-dedup.md), [Q2i](./Q2i-one-lexer-one-png-filter.md) |
 | Blocks | None |
 | ADRs | None |
-| Branch | `refactor/q2r-split-surface-modules` |
+| Branch | `refactor/q2r-split-modules` |
 | PR title | `refactor(xtask,text,build,wasm): split live, render_diff, extract/font, surface, png and the WASM builder` |
 | Size | M |
-| PR | — |
+| PR | [#220](https://github.com/laudebugs/laminapdf/pull/220) |
 
 ## Goal
 
@@ -37,14 +37,14 @@ It also splits four files that are long but, once tests are excluded, within the
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Split one file per commit, as pure moves; run the crate's tests after each.
-- [ ] Run `cargo xtask wasm` after the builder split.
-- [ ] Remove the two xtask entries from the baseline (`cargo xtask check maintainability` fails until they are gone).
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Split one file per commit, as pure moves; run the crate's tests after each.
+- [x] Run `cargo xtask wasm` after the builder split.
+- [x] Remove the two xtask entries from the baseline (`cargo xtask check maintainability` fails until they are gone).
 
 ## Acceptance criteria
 
-- [ ] No behaviour change; no file over budget; the baseline lists none of these files.
+- [x] No behaviour change; no file over budget; the baseline lists none of these files.
 
 ## Post-merge checks
 
@@ -64,9 +64,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
