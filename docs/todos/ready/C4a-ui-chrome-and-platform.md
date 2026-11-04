@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [U1a](../ongoing/U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2d](./D2d-tile-transport-and-first-document.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md), [E10e](./E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer) and 0010 (`Platform` interface, capability flags, web implementation) |
 | Branch | `feat/c4a-ui-chrome` |
@@ -21,7 +21,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 ## Context
 
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](./U1c-inverted-l-shell-and-modes.md) fills; ADR 0024 ([U1a](./U1a-adr-0024-app-shell-ux.md)) fixes the layout first, so this todo depends on it; toolbar buttons become command ids in [U1b](./U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
+- [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](./U1c-inverted-l-shell-and-modes.md) fills; ADR 0024 ([U1a](../ongoing/U1a-adr-0024-app-shell-ux.md)) fixes the layout first, so this todo depends on it; toolbar buttons become command ids in [U1b](./U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
 - ADR 0009 and ADR 0010 (from [C2a](../done/C2a-render-adrs.md)).
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — React 19 + Compiler; interaction modes in a state machine; view state in an external store; `Platform` flags (`canWriteInPlace`, `canWatchFiles`, `hasNativePrint`, `multiWindow`).
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §1 (framework, accessible primitives: React Aria / Radix / Base UI), §4 (state), §7 (a11y, theming via CSS custom properties).

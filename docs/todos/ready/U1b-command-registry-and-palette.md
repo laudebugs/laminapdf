@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4a](./C4a-ui-chrome-and-platform.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
+| Depends on | [C4a](./C4a-ui-chrome-and-platform.md), [U1a](../ongoing/U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [C7a](./C7a-accessibility-and-theming.md), [D4b](./D4b-native-menus.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0024 (command registry); follows 0009, 0010 |
 | Branch | `feat/u1b-command-registry-and-palette` |
@@ -21,7 +21,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 ## Context
 
 - **Design (Paper):** [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R12 Keyboard shortcuts](../../design/paper/reader-b.md#r12-keyboard-shortcuts). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) and ADR 0024 (from [U1a](./U1a-adr-0024-app-shell-ux.md)).
+- [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) and ADR 0024 (from [U1a](../ongoing/U1a-adr-0024-app-shell-ux.md)).
 - [Research: command palette](../../research/product/pdf-app-product-and-ux.md#a-command-palette-built-on-one-command-registry) — cmdk (MIT, React 18+, custom filter, async items, no built-in nested pages); kbar less active.
 - [C4a](./C4a-ui-chrome-and-platform.md) — toolbar and `ReaderController`, whose actions become commands here.
 - [TypeScript guidelines](../../guidelines/typescript.md) — named exports, strict types.

@@ -181,7 +181,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens); the command registry and palette; the left rail, inspector, mode switcher and focus mode in `@laminapdf/ui`.
 **Accepted when:** every reader command is in the registry and reachable from the palette, a menu and its shortcut; the help dialog and desktop menus are generated from it; axe reports no serious violations on the shell.
-**Todos:** [U1a](../todos/ready/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
+**Todos:** [U1a](../todos/ongoing/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
 
 ### U2. Reading quality
 

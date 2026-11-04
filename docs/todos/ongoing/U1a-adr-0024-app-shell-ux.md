@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `U1a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C2a](../done/C2a-render-adrs.md) |
-| Blocks | [C4a](./C4a-ui-chrome-and-platform.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U6a](./U6a-paper-tokens.md) |
+| Blocks | [C4a](../ready/C4a-ui-chrome-and-platform.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U1c](../ready/U1c-inverted-l-shell-and-modes.md), [U6a](../ready/U6a-paper-tokens.md) |
 | ADRs | Writes 0024; follows 0009 (React chrome + framework-free viewer) and 0010 (`Platform` capability flags) |
 | Branch | `docs/u1a-adr-0024-app-shell-ux` |
 | PR title | `docs(adr): 0024 app shell ux: layout, modes, command registry and page appearance` |
@@ -37,9 +37,9 @@ Record the interaction model every shell and editor round builds into, so `@lami
 
 **Out of scope** (and which todo covers it)
 
-- Implementation → [U1b](U1b-command-registry-and-palette.md), [U1c](U1c-inverted-l-shell-and-modes.md), [U2a](U2a-selection-surfaces-and-copy-modes.md), [U2c](U2c-page-appearance-modes.md), [U3a](U3a-responsive-mobile-and-touch.md).
-- Native mobile shell choice → ADR 0025 after [U3b](U3b-mobile-shell-spike.md).
-- Visual identity: decided (owner, 2026-10-29) as the **Paper** direction; the ADR's token layers take their values from the [Paper design language](../../design/paper/design-language.md), and [U6a](./U6a-paper-tokens.md) builds them ([Paper design plan](../../plans/paper-design.md)). The brand mark stays open.
+- Implementation → [U1b](../ready/U1b-command-registry-and-palette.md), [U1c](../ready/U1c-inverted-l-shell-and-modes.md), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- Native mobile shell choice → ADR 0025 after [U3b](../ready/U3b-mobile-shell-spike.md).
+- Visual identity: decided (owner, 2026-10-29) as the **Paper** direction; the ADR's token layers take their values from the [Paper design language](../../design/paper/design-language.md), and [U6a](../ready/U6a-paper-tokens.md) builds them ([Paper design plan](../../plans/paper-design.md)). The brand mark stays open.
 
 ## Tasks
 
