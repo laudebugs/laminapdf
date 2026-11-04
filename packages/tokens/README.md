@@ -10,7 +10,7 @@ Import the stylesheet once, from your app's entry module or main stylesheet:
 import "@laminapdf/tokens/tokens.css";
 ```
 
-Then set up to three attributes. The theme and the accent go on the same element, usually `<html>`; the page appearance goes on the element that holds the pages:
+Then add as many as three attributes. The theme and the accent go on the same element, usually `<html>`; the page appearance goes on the element that holds the pages:
 
 ```html
 <html data-theme="dark" data-accent="plum">
@@ -37,7 +37,7 @@ SPACE[16]; // 16 (px)
 cssVar("surface"); // "var(--paper-surface)"
 ```
 
-Sizes are numbers in px and durations numbers in ms. Colours are CSS colour strings. In the high-contrast theme they are system colour names such as `Canvas`, which only a browser can resolve.
+Sizes are numbers in px and durations numbers in ms. Colours are CSS colour strings. In the high-contrast theme, colours are system colour names such as `Canvas`, which only a browser can resolve.
 
 ## How the values are organised
 
@@ -70,10 +70,10 @@ The package's tests run the same generator with `--check` first, so a stale outp
 | `role` | What a colour does: `background`, `text`, `boundary`, `focus` or `decorative` |
 | `contrast` | The pairs the colour must pass, described below |
 | `system` | In the high-contrast theme, the CSS system colour the token maps to |
-| `followsAccent` | The alias names the Teal accent, and the generator swaps in each accent |
+| `followsAccent` | On a page token that aliases the Teal accent's page tint: the generator writes one value per accent |
 | `reducedMotion` | The duration under `prefers-reduced-motion` |
 
-A colour's role decides what it owes the contrast test. A `text`, `boundary` or `focus` colour declares at least one pair. At least one pair must sit on each `background` colour. A `decorative` colour, such as a hairline, needs no pair. So a new colour can't skip the test: it fails until it has a role and the pairs that role needs.
+A colour's role decides what it owes the contrast test. A `text`, `boundary` or `focus` colour declares at least one pair. Each `background` colour has at least one pair measured on it. A `decorative` colour, such as a hairline, needs no pair. So a new colour can't skip the test: the test fails until the colour has a role and the pairs that role needs.
 
 ## Declaring a contrast pair
 
@@ -88,6 +88,6 @@ Each pair names the background the colour sits on and the ratio it needs:
 ]
 ```
 
-A short name such as `{surface}` means that token in the same theme and accent (or the same page appearance), and a full path such as `{appearance.original.paper}` means that token anywhere. `kind` is `text` (the default, at least 4.5:1), `boundary` or `focus` (at least 3:1), following WCAG 2.2's success criteria 1.4.3 and 1.4.11. A translucent background, such as `hover`, names what it sits `over`, and the test composites it first. A pair marked `"decorative": true` or `"exempt": "<reason>"` is measured and reported but never fails. `fg` replaces the token as the foreground, for pairs such as page ink on a highlight colour.
+A short name such as `{surface}` means that token in the same theme and accent, or in the same page appearance. A full path such as `{appearance.original.paper}` means that token anywhere. `kind` is `text` (the default, at least 4.5:1), `boundary` or `focus` (at least 3:1), following WCAG 2.2's success criteria 1.4.3 and 1.4.11. A translucent background, such as `hover`, names what it sits `over`, and the test composites it first. A pair marked `"decorative": true` or `"exempt": "<reason>"` is measured and reported but never fails. `fg` replaces the token as the foreground, for pairs such as page ink on a highlight colour.
 
-The tests measure every pair in the light and dark themes with each of the four accents and in every page appearance, and fail with a list of the pairs below their minimum. [`CONTRAST.md`](CONTRAST.md) lists every pair and its ratio, one column per accent. Pairs of system colours read `browser` there: the browser tests measure them in Chromium, Firefox and WebKit with each engine's own system colours.
+The tests measure every pair in both themes with all four accents, and in every page appearance. They fail with a list of the pairs below their minimum. [`CONTRAST.md`](CONTRAST.md) lists every pair and its ratio, one column per accent. Pairs of system colours read `browser` there: the browser tests measure them in Chromium, Firefox and WebKit with each engine's own system colours.

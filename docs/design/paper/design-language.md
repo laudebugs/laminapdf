@@ -1,7 +1,7 @@
 # Paper: design language
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
-- **Source of truth:** for the values of §2–§4 and the component sizes of §6, [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`); the tables here are a readable copy, and a change goes into the tokens file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
+- **Source of truth:** [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`) holds the values of §2–§4 and the component sizes of §6; the tables here are a readable copy, and a change goes into that file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
@@ -69,7 +69,7 @@ From the files. Annotation colours carry meaning, so they never change with UI t
 | Blue | `#A9C8E8` | 8.93 | same |
 | Pink | `#EBB4C8` | 8.77 | same |
 
-The selected swatch adds a 2 px `text` outline (`#1F1D1A` in the light theme; offset 1 px in the toolbar, 2 px in the inspector). **(proposed)** It uses `text` rather than a fixed colour, so it follows the theme: a fixed `#1F1D1A` would measure 1.1:1 on the dark theme's `surface`.
+The selected swatch adds a 2 px `text` outline (`#1F1D1A` in the light theme; offset 1 px in the toolbar, 2 px in the inspector). **(proposed)** The outline uses `text` rather than a fixed colour, so it follows the theme: a fixed `#1F1D1A` would measure 1.1:1 on the dark theme's `surface`.
 
 ### 2.3 Dark UI theme (proposed)
 
@@ -104,7 +104,7 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 
 Dark-theme shadows **(proposed tokens)**: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Thumbnails on the dark rail **(proposed, Reader B R11)**: `0 1px 3px rgba(0,0,0,0.50)`. The phone page sheet uses `shadow-page-dark` too, and the bottom sheet `0 -8px 28px rgba(0,0,0,0.45)`. Floating layers in dark use `raised` with a `chip-border` edge.
 
-A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette. **(proposed)** The mapping keeps every pair readable with the browsers' default system colours as well as the OS palette, which the browser tests check in three engines:
+A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette. **(proposed)** The mapping keeps every pair readable with the OS palette under forced colours and with each browser's default system colours, which the browser tests check in three engines:
 
 | Tokens | System colour |
 | --- | --- |
@@ -113,7 +113,7 @@ A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), no
 | `accent`, `accent-strong`, primary pressed, the outline Blue | `LinkText` |
 | `disabled` | `GrayText` |
 
-Shadows are `none` in that theme. `accent` maps to `LinkText` rather than `Highlight`, and `focus` and `control-border` to `CanvasText` rather than `Highlight` and `ButtonBorder`, because each system palette pairs `LinkText` and `CanvasText` with `Canvas`, while the other two vary most between palettes (Chromium's default `Highlight` is a translucent blue).
+Shadows are `none` in that theme. `accent` maps to `LinkText` rather than `Highlight`, and `focus` and `control-border` map to `CanvasText` rather than `Highlight` and `ButtonBorder`. System palettes mean `LinkText` and `CanvasText` to be read on `Canvas`; the other two differ more between engines, and Chromium's default `Highlight` is translucent.
 
 ### 2.4 Page appearance
 
@@ -139,7 +139,7 @@ Photos are never inverted and annotation colours never change.
 | Chart bars | `#4E5A63` (7.08) | `#4E5A63` (6.01) | `#A9B4BC` (7.62) |
 | Chart labels | `#3A3733` (11.84) | `#5A4C38` (7.06) | `#C9C2B6` (9.10) |
 
-On a High contrast page every one of these is the ink, `#FFFFFF` (21.00) **(proposed)**.
+On a High contrast page, every page content colour is the ink, `#FFFFFF` (21.00) **(proposed)**.
 
 ### 2.5 Mockup-only colours (document content)
 
