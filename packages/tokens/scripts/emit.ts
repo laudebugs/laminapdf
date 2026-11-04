@@ -363,6 +363,24 @@ function row(m: Measured[]): string {
   return `| \`${first.fg}\` | \`${first.on}\` | ${first.kind} ≥ ${first.min} | ${ratios.join(" | ")} | ${note} |`;
 }
 
+/**
+ * One row per (foreground, background), one column per accent, whatever order each accent
+ * declares its pairs in; a pair missing for any accent fails.
+ */
+function accentRows(all: { label: string; pairs: Measured[] }[], prefix: string): Measured[][] {
+  const rows = new Map<string, Measured[]>();
+  for (const accent of ACCENTS) {
+    for (const m of all.find((c) => c.label === `${prefix} · ${accent}`)?.pairs ?? []) {
+      const key = `${m.fg} on ${m.on}`;
+      rows.set(key, [...(rows.get(key) ?? []), m]);
+    }
+  }
+  for (const [key, row] of rows) {
+    if (row.length !== ACCENTS.length) throw new Error(`${prefix}: ${key} is missing for an accent`);
+  }
+  return [...rows.values()];
+}
+
 /** CONTRAST.md: every declared pair and its ratio, per theme and appearance, one column per accent. */
 export function emitContrast(tokens: Map<string, Token>): string {
   const all = contexts(tokens).map(({ ctx, accent }) => ({
@@ -375,22 +393,7 @@ export function emitContrast(tokens: Map<string, Token>): string {
     sections.push(`## ${title}`, "", `| Foreground | On | Needs | ${columns.join(" | ")} | Waived |`);
     sections.push(`| --- | --- | --- | ${columns.map(() => "---").join(" | ")} | --- |`, ...groups.map(row), "");
   };
-  // One row per (foreground, background), one column per accent, whatever order each declares them in.
-  const byAccent = (prefix: string) => {
-    const rows = new Map<string, Measured[]>();
-    for (const accent of ACCENTS) {
-      for (const m of all.find((c) => c.label === `${prefix} · ${accent}`)?.pairs ?? []) {
-        const key = `${m.fg} on ${m.on}`;
-        const row = rows.get(key) ?? [];
-        if (row.length !== ACCENTS.indexOf(accent)) throw new Error(`${prefix}: ${key} is missing for an accent`);
-        rows.set(key, [...row, m]);
-      }
-    }
-    for (const [key, row] of rows) {
-      if (row.length !== ACCENTS.length) throw new Error(`${prefix}: ${key} is missing for an accent`);
-    }
-    return [...rows.values()];
-  };
+  const byAccent = (prefix: string) => accentRows(all, prefix);
   for (const t of ["light", "dark"]) table(`Paper ${t}`, [...ACCENTS], byAccent(t));
   table(
     "High contrast",
