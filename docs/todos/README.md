@@ -31,7 +31,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [Q2r](ready/Q2r-split-surface-modules.md): Split the large xtask, builder, extraction and WASM modules
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
 - [Q2t](ready/Q2t-history-out-of-names.md): Names and comments without project history
-- [Q2y](ready/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
@@ -368,7 +367,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2v | [One did-you-mean rule, pinned in both languages](done/Q2v-did-you-mean.md) | done | — |
 | Q2w | [Split the content interpreter's `execute`](done/Q2w-split-content-interpreter.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2x | [`laminapdf-test-fixtures` for the remaining crates](done/Q2x-test-fixtures-migration.md) | done | [Q2c](done/Q2c-test-fixtures-crate.md) |
-| Q2y | [Decide and implement how the façade wraps crate errors](ready/Q2y-facade-error-wrapping.md) | ready | — |
+| Q2y | [Decide and implement how the façade wraps crate errors](done/Q2y-facade-error-wrapping.md) | done | — |
 
 ## Cross-cutting
 

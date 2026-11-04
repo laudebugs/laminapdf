@@ -19,7 +19,7 @@ use std::sync::Arc;
 use common::{PAGES, Step, facts, first_difference, in_memory_facts, inputs, multi_page, show};
 use laminapdf::{ByteSource, Document, OpenOptions};
 use laminapdf_cos::SourceError;
-use laminapdf_source::{RetryError, RetryOptions, SparseSource, SupplyError, open_with, pending_ranges, retry};
+use laminapdf_source::{RetryError, RetryOptions, SparseSource, SupplyError, open_with, retry};
 
 fn read(source: &SparseSource, offset: u64, len: usize) -> Result<Vec<u8>, SourceError> {
     let mut buf = vec![0; len];
@@ -239,7 +239,7 @@ fn the_loop_gives_up_with_the_last_data_pending_when_the_rounds_run_out() {
     let RetryError::Lamina(e) = err else { panic!("{err:?}") };
     assert_eq!(e.code(), "data-pending");
     assert!(
-        !pending_ranges(&e).unwrap().is_empty(),
+        !e.pending_ranges().unwrap().is_empty(),
         "it carries the ranges still needed"
     );
     assert_eq!(fetcher.fetched.get(), 0);

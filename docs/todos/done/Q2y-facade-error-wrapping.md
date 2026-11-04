@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2y` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -12,7 +12,7 @@
 | Branch | `docs/q2y-facade-error-wrapping` |
 | PR title | `docs(adr): decide how the lamina façade wraps the errors of the crates below it` |
 | Size | S |
-| PR | — |
+| PR | [#217](https://github.com/laudebugs/laminapdf/pull/217) |
 
 ## Goal
 
@@ -30,19 +30,19 @@ The façade re-exports every wrapped crate's error type (`CosError`, `OpsError`,
 
 **Out of scope** (and which todo covers it)
 
-- Façade renames ([Q2s](./Q2s-facade-names.md)).
+- Façade renames ([Q2s](../ready/Q2s-facade-names.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Draft the amendment with `/writing`; list every caller that matches on an inner error type.
-- [ ] If the choice changes the public API in a way users would notice, ask the owner before implementing it.
-- [ ] Implement the choice; run every suite.
-- [ ] Run `/writing-review` on the amendment after opening the PR.
+- [x] Claim: the work PR's first commit moves this file to `ongoing/` (CLAUDE.md's current rule), from a fresh worktree off `main`.
+- [x] Draft the amendment with `/writing`; list every caller that matches on an inner error type.
+- [x] If the choice changes the public API in a way users would notice, ask the owner before implementing it. Asked 2026-11-04: the owner chose opaque errors.
+- [x] Implement the choice; run every suite.
+- [x] Run `/writing-review` on the amendment after opening the PR.
 
 ## Acceptance criteria
 
-- [ ] ADR 0028 records the decision, and the code and rust.md agree with it.
+- [x] ADR 0028 records the decision (§8), and the code and rust.md agree with it (rust.md unchanged: the façade now follows its rule).
 
 ## Post-merge checks
 
@@ -62,9 +62,9 @@ An API break while alpha: say so in the changeset.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -8,6 +8,7 @@
 use serde_json::{Map, Value, json};
 
 use crate::Error;
+use crate::error::{CoreError, Inner};
 use crate::warning::Warning;
 
 type Data = Map<String, Value>;
@@ -19,13 +20,15 @@ fn data<const N: usize>(entries: [(&str, Value); N]) -> Data {
 /// The `data` of `error`.
 pub(crate) fn of_error(error: &Error) -> Data {
     match error {
-        Error::Cos(e) => cos(e),
-        Error::Ops(e) => ops(e),
-        Error::Save(e) => save(e),
-        #[cfg(feature = "extract")]
-        Error::Text(e) => text(e),
-        #[cfg(feature = "build")]
-        Error::Build(e) => build(e),
+        Error::Core(CoreError(inner)) => match inner {
+            Inner::Cos(e) => cos(e),
+            Inner::Ops(e) => ops(e),
+            Inner::Save(e) => save(e),
+            #[cfg(feature = "extract")]
+            Inner::Text(e) => text(e),
+            #[cfg(feature = "build")]
+            Inner::Build(e) => build(e),
+        },
         Error::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         Error::Cancelled | Error::JobFinished | Error::DocumentChanged => Data::new(),
     }

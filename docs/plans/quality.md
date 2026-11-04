@@ -280,7 +280,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2v](../todos/done/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
 | [Q2w](../todos/done/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
 | [Q2x](../todos/done/Q2x-test-fixtures-migration.md) | `laminapdf-test-fixtures` for the remaining crates | M | Q2c |
-| [Q2y](../todos/ready/Q2y-facade-error-wrapping.md) | Decide and implement how the façade wraps crate errors | S | — |
+| [Q2y](../todos/done/Q2y-facade-error-wrapping.md) | Decide and implement how the façade wraps crate errors | S | — |
 
 ## 7. Risks
 
@@ -308,4 +308,4 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2h](../todos/done/Q2h-text-writers-dedup.md), surrogate pairs kept whole in ToUnicode, [Q2v](../todos/done/Q2v-did-you-mean.md), one did-you-mean tie rule in both languages, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2c](../todos/done/Q2c-test-fixtures-crate.md), `laminapdf-test-fixtures` for the core crates, [Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, [Q2l](../todos/done/Q2l-boundary-lists-generated.md), the boundary lists generated from Rust, [Q2i](../todos/done/Q2i-one-lexer-one-png-filter.md), one PDF lexer and one PNG row filter, [Q2d](../todos/done/Q2d-one-serialiser.md), one PDF serialiser, and [Q2x](../todos/done/Q2x-test-fixtures-migration.md), `laminapdf-test-fixtures` for every crate, are done)
 - [ ] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero ([Q2p](../todos/done/Q2p-ts-complexity-splits.md), no TypeScript function over the complexity or length limit, [Q2q](../todos/done/Q2q-split-cos-reader.md), the COS reader in three modules, and [Q2w](../todos/done/Q2w-split-content-interpreter.md), the content interpreter's operator table, are done)
-- [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history
+- [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history ([Q2y](../todos/done/Q2y-facade-error-wrapping.md), the crates' errors opaque behind `Error::Core`, ADR 0028 §8, is done)

@@ -296,8 +296,8 @@ mod diagnostics {
         );
     }
 
-    fn lamina_cos_limit() -> laminapdf::CosError {
-        laminapdf::CosError::LimitExceeded {
+    fn lamina_cos_limit() -> laminapdf_cos::Error {
+        laminapdf_cos::Error::LimitExceeded {
             limit: laminapdf::Limit::NestingDepth,
             at: Some(laminapdf::Position::Object(12)),
         }
