@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2y` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
@@ -30,7 +30,7 @@ The façade re-exports every wrapped crate's error type (`CosError`, `OpsError`,
 
 **Out of scope** (and which todo covers it)
 
-- Façade renames ([Q2s](./Q2s-facade-names.md)).
+- Façade renames ([Q2s](../ready/Q2s-facade-names.md)).
 
 ## Tasks
 
