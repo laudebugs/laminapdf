@@ -3,13 +3,13 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1f](../done/Q1f-examples-readable.md), [Q1g](../done/Q1g-worker-examples.md), [Q1h](../done/Q1h-docs-story.md) |
-| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
+| Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
 | ADRs | None |
-| Branch | `docs/q1j-recipes-and-troubleshooting` |
+| Branch | `claude/working-session-9g3nst` |
 | PR title | `docs(site): recipes, one per example, and troubleshooting` |
 | Size | M |
 | PR | — |
