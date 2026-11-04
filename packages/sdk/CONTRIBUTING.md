@@ -59,5 +59,5 @@ In CI, the fast lane runs every runtime on every PR in two jobs, one for the bro
 - Passwords (tried as given, then in NFKC form): ADR 0016 §7.
 - Page space and 0-based indexes: [ADR 0027](../../docs/decisions/0027-coordinates-units-and-page-indexing.md).
 - The worker client: [L2a](../../docs/todos/done/L2a-worker-client.md); its extensions for the viewer: [C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md) and [ADR 0009](../../docs/decisions/0009-web-client-architecture.md) §3.
-- Disposed handles and memory bounds: [L2b](../../docs/todos/ongoing/L2b-disposal-and-memory.md).
+- Disposed handles and memory bounds: [L2b](../../docs/todos/done/L2b-disposal-and-memory.md).
 - Publishing: P1 and P2 in the [architecture plan](../../docs/plans/architecture.md).

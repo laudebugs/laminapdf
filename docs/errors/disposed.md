@@ -31,4 +31,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): the check on every handle, and on the pages and save jobs of `@laminapdf/wasm`
+- [L2b](../todos/done/L2b-disposal-and-memory.md): the check on every handle, and on the pages and save jobs of `@laminapdf/wasm`

@@ -3,7 +3,7 @@
 - Status: Accepted (owner, 2026-10-30: the module split and the budgets in §6, option A of §5)
 - Date: 2026-10-30
 - Amended 2026-10-31 (owner): the TypeScript API package is **`@laminapdf/sdk`** in `packages/sdk` (first `@lamina/pdf`, then `@laminapdf/pdf` under the new scope; [P0](../todos/done/P0-npm-scope-laminapdf.md)). Its subpaths are `@laminapdf/sdk/explain` and `@laminapdf/sdk/worker`; everything else in this ADR is unchanged.
-- Amended 2026-11-04 ([L2b](../todos/ongoing/L2b-disposal-and-memory.md)): §8, a memory ceiling linked into each module and a fresh instance after a trap.
+- Amended 2026-11-04 ([L2b](../todos/done/L2b-disposal-and-memory.md)): §8, a memory ceiling linked into each module and a fresh instance after a trap.
 
 ## Context
 
