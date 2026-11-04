@@ -12,7 +12,7 @@ Then copy the tables from `target/agent-eval/<date>/results.md` into this page, 
 
 ## What the baseline measures
 
-A new library is an API that every model has seen rarely or never, so agents guess its names and get them wrong ([report: a new library is a rare API to every model](shareable-libraries.md#a-new-library-is-a-rare-api-to-every-model)). Lamina PDF answers with version-matched docs inside `@laminapdf/sdk` (`node_modules/@laminapdf/sdk/docs/`) and an `AGENTS.md` snippet that points agents to them. This baseline records how often a pinned coding agent finishes twelve fixed tasks in two modes: `no-docs`, with the package's `docs/` folder deleted and no `AGENTS.md`, and `docs`, with both. Later changes to names and docs are measured against it. A checker judges each result with Lamina PDF itself and `qpdf --check`; the [eval's README](../../../tools/agent-eval/README.md) describes the run.
+A new library is an API that every model has seen rarely or never, so agents guess its names and get them wrong ([report: a new library is a rare API to every model](shareable-libraries.md#a-new-library-is-a-rare-api-to-every-model)). Lamina PDF answers with version-matched docs inside `@laminapdf/sdk` (`node_modules/@laminapdf/sdk/docs/`) and an `AGENTS.md` snippet that points agents to them. This baseline records how often a pinned coding agent finishes twelve fixed tasks in two modes: `no-docs`, with the package's `docs/` folder left out and no `AGENTS.md`, and `docs`, with both. Later changes to names and docs are measured against it. A checker judges each result with Lamina PDF itself and `qpdf --check`; the [eval's README](../../../tools/agent-eval/README.md) describes the run.
 
 ## Run
 

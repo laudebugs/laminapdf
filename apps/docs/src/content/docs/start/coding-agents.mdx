@@ -5,11 +5,11 @@ description: Point a coding agent at the docs inside the installed package, so i
 
 import Snippet from "../../../components/Snippet.astro";
 
-A coding agent writes better Lamina PDF code when it reads docs for the version you installed. Each package therefore carries its own copy of these docs as Markdown. The copy sits in `node_modules/@laminapdf/sdk/docs/` for TypeScript and in the `laminapdf` crate's `docs/` folder for Rust, and every file names the version it describes.
+A coding agent guesses a new library's names from what it saw in training, which may be an older version or none at all. Each package therefore carries its own copy of these docs as Markdown. The copy sits in `node_modules/@laminapdf/sdk/docs/` for TypeScript and in the `laminapdf` crate's `docs/` folder for Rust, and every file names the version it describes.
 
 ## Add the snippet to your agent's instructions
 
-Copy this snippet into your project's `AGENTS.md`, `CLAUDE.md` or the file your agent reads. It sends the agent to the installed docs first, and it lists the rules agents most often get wrong:
+Copy this snippet into your project's `AGENTS.md`, `CLAUDE.md` or the file your agent reads. It sends the agent to the installed docs first, and it lists the rules where Lamina PDF differs from other PDF libraries:
 
 <Snippet file="packages/sdk/examples/AGENTS.md" />
 

@@ -1,18 +1,18 @@
 # Agent eval
 
-This eval measures whether a coding agent writes working Lamina PDF code more often when it can read the docs that `@laminapdf/sdk` ships. A pinned agent gets twelve fixed tasks, each run twice in a fresh project: once with the package's `docs/` folder deleted, and once with the docs and the `AGENTS.md` snippet in place. A checker then judges each result with Lamina PDF itself and `qpdf --check`. The eval is recorded by hand and never gates anything: it needs a paid API key, and an agent's answers vary from run to run.
+This eval measures whether a coding agent writes working Lamina PDF code more often when it can read the docs that `@laminapdf/sdk` ships. A pinned agent gets twelve fixed tasks, each run twice in a fresh project: once with the package's `docs/` folder left out, and once with the docs and the `AGENTS.md` snippet in place. A checker then judges each result with Lamina PDF itself and `qpdf --check`. The eval is recorded by hand and never gates anything: it needs a paid API key, and an agent's answers vary from run to run.
 
 ## What a run does
 
 For each task in `tasks/` and each mode, `run.mjs`:
 
 1. copies a project with the packed `@laminapdf/wasm` and `@laminapdf/sdk` installed into a new temp folder;
-2. in `no-docs` mode, deletes `node_modules/@laminapdf/sdk/docs` and writes no `AGENTS.md`; in `docs` mode, keeps the docs and copies `packages/sdk/examples/AGENTS.md` to the project's `AGENTS.md` and `CLAUDE.md`;
+2. in `no-docs` mode, installs an sdk tarball repacked without its `docs/` folder and writes no `AGENTS.md`; in `docs` mode, keeps the docs and copies `packages/sdk/examples/AGENTS.md` to the project's `AGENTS.md` and `CLAUDE.md`;
 3. copies the task's input files from `fixtures/`;
 4. starts the agent pinned in `eval.config.json` in print mode, with the task's prompt on stdin;
 5. runs `checkers/<task>.mjs` on the project, which prints `PASS: …` or `FAIL: <reason>`.
 
-Both modes get the same prompt, the same package and the same agent settings. Nothing in the project points back to this repository: the tarballs are installed from temporary copies, which are deleted afterwards, and `package.json` names plain versions. The agent runs with web search and web fetch turned off, so neither mode can read the docs online, and with an empty config folder, so your own Claude Code settings, memory and MCP servers stay out of it.
+Both modes get the same prompt, the same package and the same agent settings. Nothing in the project points back to this repository: the tarballs sit in the project's `vendor/` folder and `package.json` names them with `file:`, so an `npm install` the agent runs reinstalls the same files offline. The agent runs with web search and web fetch turned off, so neither mode can read the docs online, and with an empty config folder, so your own Claude Code settings, memory and MCP servers stay out of it.
 
 The tasks cover the first things people do with the library: build a page with text at a given position, a two-page invoice with a table, metadata, links and an outline, a tagged PDF/UA-1 document, and an image with a caption. Others open an encrypted file and branch on `wrong-password`, rotate a page and save incrementally, edit metadata incrementally, list page sizes, extract text, and repair a damaged file. Each task file holds its prompt and front matter (`id`, `title`, `checker`, `inputs`, `output`).
 
