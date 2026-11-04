@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2q` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md), [Q2e](../done/Q2e-error-policy-consolidation.md) |
@@ -30,7 +30,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- The content interpreter ([Q2w](./Q2w-split-content-interpreter.md)); other large modules ([Q2r](./Q2r-split-surface-modules.md)).
+- The content interpreter ([Q2w](../ready/Q2w-split-content-interpreter.md)); other large modules ([Q2r](../ready/Q2r-split-surface-modules.md)).
 
 ## Tasks
 
