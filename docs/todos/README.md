@@ -26,7 +26,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
-- [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
+- [Q1j](ready/Q1j-recipes-and-troubleshooting.md): Recipes, one page per example, and troubleshooting
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
 - [Q2r](ready/Q2r-split-surface-modules.md): Split the large xtask, builder, extraction and WASM modules
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
@@ -336,10 +336,10 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q1d | [API fixes the examples need](done/Q1d-example-api-cleanups.md) | done | — |
 | Q1e | [Runnable quick-start apps for every runtime](done/Q1e-quick-start-apps.md) | done | [Q1c](done/Q1c-examples-checks.md) |
 | Q1f | [Examples readers can copy](done/Q1f-examples-readable.md) | done | [Q1c](done/Q1c-examples-checks.md), [Q1d](done/Q1d-example-api-cleanups.md) |
-| Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](done/Q1c-examples-checks.md) |
+| Q1g | [Worker examples that work outside this repository](done/Q1g-worker-examples.md) | done | [Q1c](done/Q1c-examples-checks.md) |
 | Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](done/Q1h-docs-story.md) | done | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](done/Q1e-quick-start-apps.md) |
 | Q1i | [Plain-English guides: creating PDFs](done/Q1i-guides-create.md) | done | [Q1h](done/Q1h-docs-story.md) |
-| Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](done/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](done/Q1h-docs-story.md) |
+| Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](done/Q1f-examples-readable.md), [Q1g](done/Q1g-worker-examples.md), [Q1h](done/Q1h-docs-story.md) |
 | Q1k | [Internal IDs out of error pages and READMEs](done/Q1k-internal-ids-out-of-reader-text.md) | done | [Q1b](done/Q1b-docs-prose-check.md) |
 | Q1l | [The docs checks become strict everywhere](ready/Q1l-docs-checks-strict.md) | ready | [Q1f](done/Q1f-examples-readable.md), [Q1i](done/Q1i-guides-create.md), [Q1j](ready/Q1j-recipes-and-troubleshooting.md), [Q1k](done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](done/Q1m-guides-read-and-edit.md) |
 | Q1m | [Plain-English guides: reading and editing PDFs](done/Q1m-guides-read-and-edit.md) | done | [Q1h](done/Q1h-docs-story.md) |

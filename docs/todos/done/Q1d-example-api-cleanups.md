@@ -44,7 +44,7 @@ Some of the noise in the examples comes from the API, not the examples. This tod
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [x] Remove the attribute and every `let _ =` it forced; build the workspace.
 - [x] Add `RectPt::from_points` with tests; replace the examples' helpers.
-- [x] Change the TypeScript return types; remove the cast; run the TS suites. (The Worker example keeps its now-redundant cast: removing it would make that file strict before [Q1g](../ready/Q1g-worker-examples.md) clears it.)
+- [x] Change the TypeScript return types; remove the cast; run the TS suites. (The Worker example keeps its now-redundant cast: removing it would make that file strict before [Q1g](./Q1g-worker-examples.md) clears it.)
 - [x] Add the façade `save` overload, the option constructors and `SetInfo::patch`, with tests; update rustdoc examples.
 - [x] Run both example reference suites to prove the output bytes are unchanged; add the changeset.
 
