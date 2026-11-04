@@ -481,3 +481,45 @@ mod state {
         assert!(codes.contains(&"tounicode-conflict"), "{codes:?}");
     }
 }
+
+mod summary {
+    use super::*;
+
+    fn open(path: &str) -> Document {
+        Document::open_bytes(fixture(path), OpenOptions::default()).unwrap()
+    }
+
+    #[test]
+    fn version_should_be_the_headers_unless_the_catalog_declares_a_later_one() {
+        assert_eq!(hello().version().unwrap().as_deref(), Some("1.7"));
+        assert_eq!(open("corpus/enc.pdf").version().unwrap().as_deref(), Some("1.3"));
+        let mut doc = laminapdf::Builder::new(laminapdf::BuildOptions::default())
+            .finish()
+            .unwrap();
+        let saved = doc.save(&SaveOptions::default()).unwrap();
+        let built = Document::open_bytes(saved.bytes, OpenOptions::default()).unwrap();
+        assert!(built.version().unwrap().is_some());
+    }
+
+    #[test]
+    fn encryption_and_tagging_should_read_from_the_file() {
+        let enc = open("corpus/enc.pdf");
+        let tagged = open("golden/tagged-report.pdf");
+        assert_eq!(
+            [hello().is_encrypted(), enc.is_encrypted(), tagged.is_encrypted()],
+            [false, true, false]
+        );
+        assert_eq!(
+            [hello().is_tagged().unwrap(), tagged.is_tagged().unwrap()],
+            [false, true]
+        );
+    }
+
+    #[test]
+    fn read_every_object_should_count_the_objects() {
+        let doc = hello();
+        let count = doc.read_every_object().unwrap();
+        assert!(count > 3, "{count}");
+        assert_eq!(doc.warnings().next_batch(100), Vec::new());
+    }
+}
