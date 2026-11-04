@@ -21,7 +21,7 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 18] = [
+const UNBUILDABLE: [(&str, &str); 19] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -49,6 +49,8 @@ const UNBUILDABLE: [(&str, &str); 18] = [
     ("overwrite-refused", "raised by laminapdf-cli"),
     ("input-unreadable", "raised by laminapdf-cli"),
     ("output-unwritable", "raised by laminapdf-cli"),
+    // Raised by `laminapdf mcp`; laminapdf-cli's tests/mcp.rs checks its key.
+    ("path-outside-roots", "raised by laminapdf-cli"),
 ];
 
 fn root() -> PathBuf {

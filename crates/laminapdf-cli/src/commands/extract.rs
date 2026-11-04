@@ -89,12 +89,14 @@ pub fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Resu
     let options = TextOptions::default();
     // `page_text` walks the page tree each time, so many pages are read in one walk instead.
     let all = if numbers.len() >= ONE_WALK_FROM {
+        settings.stop_if_cancelled()?;
         Some(doc.page_texts(&options)?)
     } else {
         None
     };
     let mut pages = Vec::with_capacity(numbers.len());
     for number in numbers {
+        settings.stop_if_cancelled()?;
         let index = number.saturating_sub(1);
         let text = match all.as_ref().and_then(|all| all.get(usize::try_from(index).ok()?)) {
             Some(text) => text.lines(),

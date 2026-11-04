@@ -213,3 +213,4 @@ A PR that adds a code adds:
 | [`overwrite-refused`](overwrite-refused.md) | `state` | the output file exists, or the command would modify its input in place, and --force wasn't given |
 | [`input-unreadable`](input-unreadable.md) | `io` | an input file, standard input or the password file couldn't be read |
 | [`output-unwritable`](output-unwritable.md) | `io` | the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed |
+| [`path-outside-roots`](path-outside-roots.md) | `security` | laminapdf mcp was given a path outside its --root folders, or a link that leads out of them |
