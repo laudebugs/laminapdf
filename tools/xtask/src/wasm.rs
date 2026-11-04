@@ -23,6 +23,7 @@ use serde_json::{Value, json};
 use crate::doctor::{self, BINARYEN_VERSION};
 use crate::util::sha256_hex;
 use crate::workspace::Workspace;
+use crate::{wasm_glue, wasm_module};
 
 /// The SHA-256 of each binaryen [`BINARYEN_VERSION`] release asset, from the release's `.sha256`
 /// files.
@@ -67,6 +68,16 @@ const WASM_FEATURES: [&str; 6] = [
 const WASM_OPT_LEVEL: &str = "-O1";
 
 const TARGET: &str = "wasm32-unknown-unknown";
+
+/// The most memory each of Lamina PDF's modules may grow to (ADR 0016 §8): 2 GiB, which every
+/// engine `@laminapdf/sdk` runs in allows a wasm32 memory. Growth past it fails an allocation,
+/// the module traps, and `@laminapdf/sdk` throws `out-of-memory` and starts a fresh instance.
+/// Set at link time; [`wasm_module::check`] reads it back from each module.
+const MAX_MEMORY: u64 = 2 << 30;
+
+/// The test build's maximum (64 MiB): small, so `@laminapdf/sdk`'s out-of-memory test reaches
+/// it at once.
+const TEST_HOOKS_MAX_MEMORY: u64 = 64 << 20;
 
 /// One module of `@laminapdf/wasm`.
 pub(crate) struct Module {
@@ -150,24 +161,67 @@ pub(crate) fn build(ws: &Workspace) -> Result<()> {
     for module in &MODULES {
         build_module(ws, module, &wasm_opt, &out)?;
     }
+    build_test_hooks(ws)?;
     test(ws)
+}
+
+/// The `cargo` arguments that build `krate`'s cdylib: `cargo rustc` for Lamina PDF's own
+/// modules, so the memory cap reaches only their link and every dependency's build stays cached.
+fn cargo_args<'a>(krate: &'a str, profile: &'a str, features: &[&'a str], link: Option<&'a str>) -> Vec<&'a str> {
+    let mut args = vec![if link.is_some() { "rustc" } else { "build" }, "--locked", "-p", krate];
+    args.extend(["--lib", "--profile", profile, "--target", TARGET]);
+    args.extend(features);
+    if let Some(link) = link {
+        args.extend(["--", "-C", link]);
+    }
+    args
+}
+
+/// The base module with `laminapdf-wasm`'s `test-hooks` (`__trap`, `__grow`) and a 64 MiB
+/// maximum, built with the dev profile into `target/wasm/test-hooks/` for `@laminapdf/sdk`'s
+/// trap tests; never shipped.
+fn build_test_hooks(ws: &Workspace) -> Result<()> {
+    crate::step("WASM module `base` with the test hooks (target/wasm/test-hooks/, never shipped)");
+    let link = format!("link-arg=--max-memory={TEST_HOOKS_MAX_MEMORY}");
+    ws.cargo(&cargo_args(
+        "laminapdf-wasm",
+        "dev",
+        &["--features", "test-hooks"],
+        Some(&link),
+    ))?;
+    let out = ws.root.join("target/wasm/test-hooks");
+    if out.exists() {
+        fs::remove_dir_all(&out)?;
+    }
+    fs::create_dir_all(&out)?;
+    let built = ws.target_dir.join(TARGET).join("debug/laminapdf_wasm.wasm");
+    let (built_arg, out_arg) = (built.to_string_lossy(), out.to_string_lossy());
+    crate::run(
+        &ws.root,
+        "wasm-bindgen",
+        &[
+            "--target",
+            "web",
+            "--experimental-reset-state-function",
+            "--out-dir",
+            &out_arg,
+            "--out-name",
+            "lamina_pdf_base",
+            &built_arg,
+        ],
+    )?;
+    // The same glue as the shipped module's, so the tests see what users get.
+    let glue = out.join("lamina_pdf_base.js");
+    fs::write(&glue, wasm_glue::strip_call_checks(&fs::read_to_string(&glue)?)?)?;
+    let wasm = fs::read(out.join("lamina_pdf_base_bg.wasm"))?;
+    wasm_module::check("test-hooks", &wasm, TEST_HOOKS_MAX_MEMORY, true)
 }
 
 fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) -> Result<()> {
     crate::step(&format!("WASM module `{}`", module.name));
-    let mut args = vec![
-        "build",
-        "--locked",
-        "-p",
-        module.krate,
-        "--lib",
-        "--profile",
-        "wasm-release",
-        "--target",
-        TARGET,
-    ];
-    args.extend(module.features);
-    ws.cargo(&args)?;
+    let link = format!("link-arg=--max-memory={MAX_MEMORY}");
+    let link = module.is_lamina().then_some(link.as_str());
+    ws.cargo(&cargo_args(module.krate, "wasm-release", module.features, link))?;
     let work = work(ws, module);
     if work.exists() {
         fs::remove_dir_all(&work)?;
@@ -185,20 +239,15 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
     let stem = module.stem();
     let built_arg = built.to_string_lossy().into_owned();
     let work_arg = work.to_string_lossy().into_owned();
-    crate::run(
-        &ws.root,
-        "wasm-bindgen",
-        &[
-            "--target",
-            "web",
-            "--keep-debug",
-            "--out-dir",
-            &work_arg,
-            "--out-name",
-            &stem,
-            &built_arg,
-        ],
-    )?;
+    let mut bindgen = vec!["--target", "web", "--keep-debug"];
+    // `__wbg_reset_state`: `@laminapdf/sdk` replaces an instance with it after a trap and in
+    // `reset()`; the finalizers skip objects of a replaced instance (and `wasm_glue` drops the
+    // per-call checks, which the SDK makes itself).
+    if module.is_lamina() {
+        bindgen.push("--experimental-reset-state-function");
+    }
+    bindgen.extend(["--out-dir", &work_arg, "--out-name", &stem, &built_arg]);
+    crate::run(&ws.root, "wasm-bindgen", &bindgen)?;
     let bindgen_wasm = work.join(format!("{stem}_bg.wasm")).to_string_lossy().into_owned();
     let named = named(ws, module).to_string_lossy().into_owned();
     let wasm_opt = wasm_opt.to_string_lossy().into_owned();
@@ -212,8 +261,14 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
     strip.extend(WASM_FEATURES);
     strip.extend([named.as_str(), "-o", shipped.as_str()]);
     crate::run(&ws.root, &wasm_opt, &strip)?;
+    if module.is_lamina() {
+        wasm_module::check(module.name, &fs::read(&shipped)?, MAX_MEMORY, false)?;
+    }
     // The glue loads `<stem>_bg.wasm` by default; the package ships `<stem>.wasm`.
-    let js = fs::read_to_string(work.join(format!("{stem}.js")))?;
+    let mut js = fs::read_to_string(work.join(format!("{stem}.js")))?;
+    if module.is_lamina() {
+        js = wasm_glue::strip_call_checks(&js).with_context(|| format!("{stem}.js"))?;
+    }
     let from = format!("'{stem}_bg.wasm'");
     if js.matches(&from).count() != 1 {
         bail!("{stem}.js no longer names {from} exactly once: check the wasm-bindgen glue");

@@ -37,6 +37,8 @@ mod verapdf;
 mod verify_install;
 mod version;
 mod wasm;
+mod wasm_glue;
+mod wasm_module;
 #[cfg(test)]
 mod workflows;
 mod workspace;
