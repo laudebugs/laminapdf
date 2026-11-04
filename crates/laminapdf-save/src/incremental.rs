@@ -8,10 +8,11 @@ use laminapdf_cos::{ByteSource, Dict, Document, Name, Object, OverlayEntry, merg
 use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
-use crate::legacy::{document_keys, document_keys_and_size};
 use crate::options::{IncrementalOutput, SaveMode, SaveOptions, SaveReport};
 use crate::sink::{CountingSink, WriteSink, require_empty};
-use crate::xref::{Row, Rows, classic_table, link_free_list, stream_object, stream_table};
+use crate::xref::{
+    Row, Rows, classic_table, document_keys, document_keys_and_size, link_free_list, stream_object, stream_table,
+};
 
 /// Bytes read from the base at a time.
 const CHUNK: usize = 64 * 1024;
