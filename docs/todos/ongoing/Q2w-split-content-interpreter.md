@@ -30,7 +30,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- The COS reader ([Q2q](./Q2q-split-cos-reader.md)).
+- The COS reader ([Q2q](../ready/Q2q-split-cos-reader.md)).
 
 ## Tasks
 
