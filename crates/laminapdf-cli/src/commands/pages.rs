@@ -114,7 +114,12 @@ fn parse_rotation(text: &str) -> Result<(Angle, Option<&str>), CliError> {
 /// Where the result goes: `-o OUT`, or the input with `--in-place` and `--force`.
 fn output_of<'a>(args: &'a RotateArgs, settings: &Settings) -> Result<&'a str, CliError> {
     match (&args.output, args.in_place) {
-        (Some(output), _) => Ok(output),
+        // clap refuses both; this is for callers that build the arguments (the MCP adapter).
+        (Some(_), true) => Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "-o and --in-place exclude each other",
+        )),
+        (Some(output), false) => Ok(output),
         (None, true) if args.input == STDIO => Err(CliError::new(
             ErrorCode::InvalidCommandLine,
             "--in-place needs a file input, not standard input",
@@ -167,8 +172,11 @@ pub fn rotate(args: &RotateArgs, settings: &Settings, io: &mut dyn Io) -> Result
     }
     doc.apply(ops)?;
     let saved = doc.save(&SaveOptions::default())?;
-    if !settings.dry_run {
-        io.write(output, &saved.bytes, settings.force || args.in_place)?;
+    // --in-place reached here only with --force (output_of), so force is the one rule.
+    if settings.dry_run {
+        io.check(output, settings.force)?;
+    } else {
+        io.write(output, &saved.bytes, settings.force)?;
     }
     Ok(PagesReport {
         schema: PagesReport::SCHEMA,
@@ -251,6 +259,20 @@ mod tests {
         io.stdout_is_terminal = true;
         let error = rotate(&args("90", Some("-"), false), &Settings::default(), &mut io).unwrap_err();
         assert_eq!(error.diagnostic().code, "binary-output-to-terminal");
+    }
+
+    #[test]
+    fn dry_run_should_refuse_what_the_real_run_would() {
+        let mut io = io_with("in.pdf", "corpus/hello.pdf");
+        io.files.insert("out.pdf".to_owned(), b"x".to_vec());
+        let settings = Settings {
+            dry_run: true,
+            ..Settings::default()
+        };
+        let error = rotate(&args("90", Some("out.pdf"), false), &settings, &mut io).unwrap_err();
+        assert_eq!(error.diagnostic().code, "overwrite-refused");
+        let both = rotate(&args("90", Some("out.pdf"), true), &Settings::default(), &mut io).unwrap_err();
+        assert_eq!(both.diagnostic().code, "invalid-command-line");
     }
 
     #[test]

@@ -35,6 +35,19 @@ pub trait Io {
     /// `overwrite-refused`; `binary-output-to-terminal` when `output` is `-` and standard
     /// output is a terminal; `output-unwritable`.
     fn write(&mut self, output: &str, bytes: &[u8], force: bool) -> Result<(), CliError>;
+
+    /// Whether [`Io::write`] would accept `output`: the refusals it makes before writing, for a
+    /// dry run to report what the real run would.
+    ///
+    /// # Errors
+    ///
+    /// `overwrite-refused`; `binary-output-to-terminal`.
+    fn check(&self, output: &str, force: bool) -> Result<(), CliError>;
+}
+
+/// `binary-output-to-terminal`.
+fn terminal() -> CliError {
+    CliError::new(ErrorCode::BinaryOutputToTerminal, "standard output is a terminal")
 }
 
 /// The real process: the file system, standard input and standard output.
@@ -71,24 +84,29 @@ impl Io for ProcessIo {
     }
 
     fn write(&mut self, output: &str, bytes: &[u8], force: bool) -> Result<(), CliError> {
+        self.check(output, force)?;
         if output == STDIO {
             let mut stdout = std::io::stdout().lock();
-            if stdout.is_terminal() {
-                return Err(CliError::new(
-                    ErrorCode::BinaryOutputToTerminal,
-                    "standard output is a terminal",
-                ));
-            }
             return stdout
                 .write_all(bytes)
                 .and_then(|()| stdout.flush())
                 .map_err(|e| unwritable(output, &e));
         }
-        let path = Path::new(output);
-        if !force && path.exists() {
+        write_atomically(Path::new(output), bytes).map_err(|e| unwritable(output, &e))
+    }
+
+    fn check(&self, output: &str, force: bool) -> Result<(), CliError> {
+        if output == STDIO {
+            return if std::io::stdout().is_terminal() {
+                Err(terminal())
+            } else {
+                Ok(())
+            };
+        }
+        if !force && Path::new(output).exists() {
             return Err(refused(output));
         }
-        write_atomically(path, bytes).map_err(|e| unwritable(output, &e))
+        Ok(())
     }
 }
 
@@ -162,7 +180,7 @@ pub(crate) mod memory {
 
     use std::collections::BTreeMap;
 
-    use super::{CliError, ErrorCode, Io, STDIO, refused};
+    use super::{CliError, Io, STDIO, refused};
 
     /// Files by name, standard input and output, and whether standard output is a terminal.
     #[derive(Debug, Default)]
@@ -184,18 +202,21 @@ pub(crate) mod memory {
         }
 
         fn write(&mut self, output: &str, bytes: &[u8], force: bool) -> Result<(), CliError> {
+            self.check(output, force)?;
             if output == STDIO {
-                if self.stdout_is_terminal {
-                    return Err(CliError::new(
-                        ErrorCode::BinaryOutputToTerminal,
-                        "standard output is a terminal",
-                    ));
-                }
                 self.stdout.extend_from_slice(bytes);
-            } else if !force && self.files.contains_key(output) {
-                return Err(refused(output));
             } else {
                 self.files.insert(output.to_owned(), bytes.to_vec());
+            }
+            Ok(())
+        }
+
+        fn check(&self, output: &str, force: bool) -> Result<(), CliError> {
+            if output == STDIO && self.stdout_is_terminal {
+                return Err(super::terminal());
+            }
+            if output != STDIO && !force && self.files.contains_key(output) {
+                return Err(refused(output));
             }
             Ok(())
         }

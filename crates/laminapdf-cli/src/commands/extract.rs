@@ -88,7 +88,7 @@ pub fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Resu
     let numbers = pages_of(args.pages.as_deref(), doc.page_count()?)?;
     let options = TextOptions::default();
     // `page_text` walks the page tree each time, so many pages are read in one walk instead.
-    let all = if numbers.len() > ONE_WALK_FROM {
+    let all = if numbers.len() >= ONE_WALK_FROM {
         Some(doc.page_texts(&options)?)
     } else {
         None
