@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4a](../ongoing/L4a-lamina-cli.md) |
+| Depends on | [L4a](../done/L4a-lamina-cli.md) |
 | Blocks | None |
-| ADRs | Implements 0031's MCP security defaults (from [L4a](../ongoing/L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
+| ADRs | Implements 0031's MCP security defaults (from [L4a](../done/L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
 | Branch | `feat/l4c-mcp-mode` |
 | PR title | `feat(cli): laminapdf mcp stdio server with root allow-list, read-only default and honest annotations` |
 | Size | M (≈ 300–500 lines plus tests) |
@@ -23,7 +23,7 @@ Let MCP clients use laminapdf without a second implementation. `laminapdf mcp` i
 - [Report: MCP 2026-07-28 is stateless, and agents increasingly prefer CLIs](../../research/libraries/shareable-libraries.md#mcp-2026-07-28-is-stateless-and-agents-increasingly-prefer-clis): `server/discover`, no `initialize`, deterministic `tools/list`, validation errors as tool errors, `outputSchema`, untrusted annotations, the filesystem server's symlink CVEs, github-mcp-server's `--read-only`.
 - [CLI spec note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): spec details, annotation defaults (`destructiveHint` defaults to true), prompt-injection recommendations.
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): rmcp 3.x (implements 2026-07-28, compatible with 2025-11-25), `#[tool]` macros, `serve(stdio())`.
-- ADR 0031 (from [L4a](../ongoing/L4a-lamina-cli.md)): the tool mapping and security defaults this PR implements.
+- ADR 0031 (from [L4a](../done/L4a-lamina-cli.md)): the tool mapping and security defaults this PR implements.
 - [Shareable libraries plan §10 risks](../../plans/shareable-libraries.md#10-risks): MCP spec churn and prompt injection.
 
 ## Scope

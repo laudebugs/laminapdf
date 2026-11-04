@@ -99,7 +99,7 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted, owner 2026-10-29) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
 | [0029](../decisions/0029-mobile-bindings-and-packaging.md) (Accepted, 2026-10-30) | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
 | 0030 | Extraction output (`laminapdf.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
-| 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ongoing/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
+| 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/done/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 
 ## 7. Rounds
 
@@ -128,7 +128,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/ongoing/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
+**Todos:** [L4a](../todos/done/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
 **Deliverable:** the `laminapdf` binary (`crates/laminapdf-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.

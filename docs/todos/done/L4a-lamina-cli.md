@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [L1b](../done/L1b-error-contract-codegen.md) |
+| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L4c](../ready/L4c-mcp-mode.md), [L4d](../ready/L4d-cli-distribution.md) |
-| ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](../done/L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
+| ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](./L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
 | PR title | `feat(cli): ADR 0031 and the laminapdf CLI with info, check, pages rotate, extract and explain` |
 | Size | L (≈ 600–900 lines: ADR, command layer, clap front end, tests; generated schemas and test fixtures don't count) |
@@ -25,9 +25,9 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
 - [CLI spec note §1](../../research/libraries/notes/cli-spec.md#1-command-grammars-of-existing-pdf-clis-qpdf-mutool-pdftk-cpdf-poppler-ghostscript): qpdf page ranges and exit codes, mutool verbs, pdftk handles, Ghostscript's interactive-by-default anti-pattern.
 - [CLI spec note §2](../../research/libraries/notes/cli-spec.md#2-modern-cli-conventions-cligdev-12-factor-posix-exit-codes-env-vars-json): stdout for data, stderr for the rest, `-`, TTY and `NO_COLOR`, no prompts without a TTY.
 - [CLI spec note §6](../../research/libraries/notes/cli-spec.md#6-proposed-command-set-with-example-sessions-recommendations): the proposed command set, example sessions and the error JSON.
-- ADR 0026 (from [L1a](../done/L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](../done/L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
+- ADR 0026 (from [L1a](./L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](./L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§3](../../decisions/0003-reader-tolerance-and-limits.md#3-limits): warning codes drive exit code 3; `Limits` are CLI flags.
-- [B3a](../done/B3a-overlay-and-ops.md): today the only page op is `RotatePage`; that limits `pages` in this PR.
+- [B3a](./B3a-overlay-and-ops.md): today the only page op is `RotatePage`; that limits `pages` in this PR.
 - [Code organisation §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction): `app` crates may use the file system and threads; core crates may not.
 
 ## Scope
@@ -72,17 +72,17 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read [docs/guidelines/rust.md](../../guidelines/rust.md) and [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer). The `app` layer may use the file system, but errors still use `thiserror` and the `commands` library still avoids `unwrap`/`expect`/`panic`/indexing.
-- [ ] Write ADR 0031 from the Scope list above; add it to `docs/decisions/README.md`. Cite the report and the CLI spec note for each choice; mark recommendations.
-- [ ] Create `crates/laminapdf-cli` (`Cargo.toml` with workspace fields, lints, `layer = "app"`, `[[bin]] name = "lamina"`); add it to the workspace members.
-- [ ] Add dependencies through `[workspace.dependencies]`: `clap` 4 (derive), `anstream`, `serde`, `serde_json`, `schemars` 1; dev: `assert_cmd`, `predicates`, `jsonschema` (validate output against schemas), `tempfile`. Expected licences are MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
-- [ ] Implement `ranges.rs` with the qpdf grammar, the `end` alias, handles (uppercase only) and inline `file:range`; property tests (proptest) for "parsed range is within 1..=n" and reverse/exclusion cases.
-- [ ] Implement `io.rs` (stdin, stdout, atomic write, overwrite check, TTY check for binary stdout).
-- [ ] Implement `exit.rs` and `CliError`; map every `laminapdf::Error` code to an exit code (password codes → 5, `limit-exceeded` → 1, …) in one table with a test that every code in `fixtures/codes.json` is mapped.
-- [ ] Implement the commands in `commands/` and the clap front end in `main.rs`; human output kept under ~20 lines for `info`.
-- [ ] Implement `--password-file` and `LAMINA_PDF_PASSWORD` (decryption from B2b via the façade); never echo the password.
-- [ ] Generate and commit schemas; add the staleness test.
-- [ ] Update docs (below) and `CLAUDE.md` (layout and commands).
+- [x] Load `/rust-best-practices`; read [docs/guidelines/rust.md](../../guidelines/rust.md) and [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer). The `app` layer may use the file system, but errors still use `thiserror` and the `commands` library still avoids `unwrap`/`expect`/`panic`/indexing.
+- [x] Write ADR 0031 from the Scope list above; add it to `docs/decisions/README.md`. Cite the report and the CLI spec note for each choice; mark recommendations.
+- [x] Create `crates/laminapdf-cli` (`Cargo.toml` with workspace fields, lints, `layer = "app"`, `[[bin]] name = "lamina"`); add it to the workspace members.
+- [x] Add dependencies through `[workspace.dependencies]`: `clap` 4 (derive), `anstream`, `serde`, `serde_json`, `schemars` 1; dev: `assert_cmd`, `predicates`, `jsonschema` (validate output against schemas), `tempfile`. Expected licences are MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
+- [x] Implement `ranges.rs` with the qpdf grammar, the `end` alias, handles (uppercase only) and inline `file:range`; property tests (proptest) for "parsed range is within 1..=n" and reverse/exclusion cases.
+- [x] Implement `io.rs` (stdin, stdout, atomic write, overwrite check, TTY check for binary stdout).
+- [x] Implement `exit.rs` and `CliError`; map every `laminapdf::Error` code to an exit code (password codes → 5, `limit-exceeded` → 1, …) in one table with a test that every code in `fixtures/codes.json` is mapped.
+- [x] Implement the commands in `commands/` and the clap front end in `main.rs`; human output kept under ~20 lines for `info`.
+- [x] Implement `--password-file` and `LAMINA_PDF_PASSWORD` (decryption from B2b via the façade); never echo the password.
+- [x] Generate and commit schemas; add the staleness test.
+- [x] Update docs (below) and `CLAUDE.md` (layout and commands).
 
 ### Example sessions (to copy into ADR 0031 and the crate README)
 
@@ -126,16 +126,16 @@ The code name is whatever B2b and L1b define for a missing password; field names
 
 ## Acceptance criteria
 
-- [ ] ADR 0031 is Accepted and listed in `docs/decisions/README.md`.
-- [ ] `cargo run -p laminapdf-cli -- info fixtures/…` works for every command above; `laminapdf --help` lists only implemented commands.
-- [ ] Every command's `--json` output validates against its committed schema in tests, and each document carries its `schema` id.
-- [ ] Each exit code 0–5 is produced by at least one integration test (warnings only → 3, `--warnings-ok` → 0, bad range → 2, overwrite without `--force` → 4, encrypted fixture without password → 5, corrupt file → 1).
-- [ ] `-` input and `-o -` output work in a pipe; writing binary to a TTY stdout is refused with exit 2.
-- [ ] With stdin not a TTY, no command waits for input (tests run with closed stdin and a timeout from nextest).
-- [ ] `NO_COLOR=1` and non-TTY output contain no ANSI escapes (test).
-- [ ] No `message` or `hint` contains text from the document (test with a fixture whose Info title is an injection string).
-- [ ] The command layer compiles without the clap front end (`commands` has no dependency on `main.rs`); L4c can call `commands::info` directly.
-- [ ] `cargo xtask check` passes, including cargo-deny with the new dependencies.
+- [x] ADR 0031 is Accepted and listed in `docs/decisions/README.md`.
+- [x] `cargo run -p laminapdf-cli -- info fixtures/…` works for every command above; `laminapdf --help` lists only implemented commands.
+- [x] Every command's `--json` output validates against its committed schema in tests, and each document carries its `schema` id.
+- [x] Each exit code 0–5 is produced by at least one integration test (warnings only → 3, `--warnings-ok` → 0, bad range → 2, overwrite without `--force` → 4, encrypted fixture without password → 5, corrupt file → 1).
+- [x] `-` input and `-o -` output work in a pipe; writing binary to a TTY stdout is refused with exit 2.
+- [x] With stdin not a TTY, no command waits for input (tests run with closed stdin and a timeout from nextest).
+- [x] `NO_COLOR=1` and non-TTY output contain no ANSI escapes (test).
+- [x] No `message` or `hint` contains text from the document (test with a fixture whose Info title is an injection string).
+- [x] The command layer compiles without the clap front end (`commands` has no dependency on `main.rs`); L4c can call `commands::info` directly.
+- [x] `cargo xtask check` passes, including cargo-deny with the new dependencies.
 
 ## Post-merge checks
 
@@ -150,10 +150,10 @@ None.
 
 ## Docs to update
 
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Write ADR 0031; create `crates/laminapdf-cli` …"
-- [ ] `docs/decisions/README.md` (ADR 0031)
-- [ ] `CLAUDE.md`: layout (`crates/laminapdf-cli`), commands (`cargo run -p laminapdf-cli -- …`), ADR list
-- [ ] `crates/laminapdf-cli/README.md` with the example sessions; `fixtures/README.md` for new fixtures
+- [x] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Write ADR 0031; create `crates/laminapdf-cli` …"
+- [x] `docs/decisions/README.md` (ADR 0031)
+- [x] `CLAUDE.md`: layout (`crates/laminapdf-cli`), commands (`cargo run -p laminapdf-cli -- …`), ADR list
+- [x] `crates/laminapdf-cli/README.md` with the example sessions; `fixtures/README.md` for new fixtures
 
 ## Risks and open questions
 
@@ -165,8 +165,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

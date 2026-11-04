@@ -1,6 +1,6 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `laminapdf explain <code>` ([L4a](../todos/ongoing/L4a-lamina-cli.md)) will print them.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `laminapdf explain <code>` ([L4a](../todos/done/L4a-lamina-cli.md)) will print them.
 
 A PR that adds a code adds:
 
