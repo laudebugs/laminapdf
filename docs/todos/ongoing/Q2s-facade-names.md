@@ -12,7 +12,7 @@
 | Branch | `refactor/q2s-facade-names` |
 | PR title | `refactor(lamina): façade names without collisions; one public path per item` |
 | Size | M |
-| PR | — |
+| PR | [#228](https://github.com/laudebugs/laminapdf/pull/228) |
 
 ## Goal
 
@@ -37,7 +37,7 @@ Readers of the docs meet `laminapdf::TextRun` (drawn text) next to `laminapdf::e
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] List every collision the façade check reports; choose names with the TypeScript SDK in view.
 - [ ] Rename at the source crate where the name is wrong there too, else at the façade.
 - [ ] Make laminapdf-text's modules private; hide `ops()`.
@@ -65,8 +65,8 @@ Renames ripple into the docs: land this before Q1i and Q1m if possible, or updat
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
