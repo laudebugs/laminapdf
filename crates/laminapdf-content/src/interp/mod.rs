@@ -3,6 +3,7 @@
 
 mod graphics_state;
 mod path;
+mod text;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -12,9 +13,9 @@ use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Positi
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
-use crate::state::{Color, ColorSpace, FontRef, GraphicsState, Matrix};
+use crate::state::{Color, ColorSpace, GraphicsState, Matrix};
 use crate::visitor::{
-    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathSegment, ShadingPaint, TextShow, Visitor,
+    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathSegment, ShadingPaint, Visitor,
 };
 use graphics_state::set_dash;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
@@ -346,17 +347,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         })
     }
 
-    /// A text positioning or showing operator outside `BT … ET` runs anyway, with a warning.
-    fn require_text(&mut self, frame: &Frame, op: &Op<'_>) -> Result<()> {
-        if frame.in_text {
-            return Ok(());
-        }
-        self.warn(Warning::ContentUnbalancedBt {
-            object: frame.object,
-            offset: offset_u64(op.offset),
-        })
-    }
-
     fn lookup(&self, frame: &Frame, category: &str, name: &Name) -> Result<Option<Found>> {
         resources::lookup(self.doc, frame.resources.as_deref(), category, name.as_bytes())
     }
@@ -418,86 +408,25 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             Operator::Clip => frame.clip = Some(FillRule::NonZero),
             Operator::ClipEvenOdd => frame.clip = Some(FillRule::EvenOdd),
             // Text objects (§9.4.1).
-            Operator::BeginText => {
-                if frame.in_text {
-                    self.warn(Warning::ContentUnbalancedBt {
-                        object: frame.object,
-                        offset: offset_u64(op.offset),
-                    })?;
-                }
-                frame.in_text = true;
-                frame.tm = Matrix::IDENTITY;
-                frame.tlm = Matrix::IDENTITY;
-            }
-            Operator::EndText => {
-                if frame.in_text {
-                    frame.in_text = false;
-                } else {
-                    self.warn(Warning::ContentUnbalancedBt {
-                        object: frame.object,
-                        offset: offset_u64(op.offset),
-                    })?;
-                }
-            }
+            Operator::BeginText => self.begin_text(frame, op)?,
+            Operator::EndText => self.end_text(frame, op)?,
             // Text state (§9.3).
-            Operator::CharSpacing => gs.text.char_spacing = numbers::<1>(args)[0],
-            Operator::WordSpacing => gs.text.word_spacing = numbers::<1>(args)[0],
-            Operator::HorizontalScaling => gs.text.horizontal_scaling = numbers::<1>(args)[0] / 100.0,
-            Operator::Leading => gs.text.leading = numbers::<1>(args)[0],
-            Operator::Font => {
-                if let [font, size] = args
-                    && let Some(n) = name(font)
-                {
-                    let size = number(size);
-                    self.set_font(frame, op, n, size)?;
-                }
-            }
-            Operator::RenderMode => gs.text.render_mode = args.first().map_or(0, integer),
-            Operator::Rise => gs.text.rise = numbers::<1>(args)[0],
+            Operator::CharSpacing => frame.gs.text.char_spacing = first(args),
+            Operator::WordSpacing => frame.gs.text.word_spacing = first(args),
+            Operator::HorizontalScaling => frame.gs.text.horizontal_scaling = first(args) / 100.0,
+            Operator::Leading => frame.gs.text.leading = first(args),
+            Operator::Font => self.set_font(frame, op, args)?,
+            Operator::RenderMode => frame.gs.text.render_mode = first_integer(args),
+            Operator::Rise => frame.gs.text.rise = first(args),
             // Text positioning (§9.4.2).
-            Operator::MoveText => {
-                self.require_text(frame, op)?;
-                let [tx, ty] = numbers::<2>(args);
-                move_text(frame, tx, ty);
-            }
-            Operator::MoveTextSetLeading => {
-                self.require_text(frame, op)?;
-                let [tx, ty] = numbers::<2>(args);
-                frame.gs.text.leading = -ty;
-                move_text(frame, tx, ty);
-            }
-            Operator::TextMatrix => {
-                self.require_text(frame, op)?;
-                frame.tm = matrix(args);
-                frame.tlm = frame.tm;
-            }
-            Operator::NextLine => {
-                self.require_text(frame, op)?;
-                next_line(frame);
-            }
+            Operator::MoveText => self.move_text(frame, op, args)?,
+            Operator::MoveTextSetLeading => self.move_text_set_leading(frame, op, args)?,
+            Operator::TextMatrix => self.text_matrix(frame, op, args)?,
+            Operator::NextLine => self.next_line(frame, op)?,
             // Text showing (§9.4.3).
-            Operator::ShowText | Operator::ShowTextAdjusted => {
-                self.require_text(frame, op)?;
-                if let Some(operand) = args.first() {
-                    self.show(frame, operand);
-                }
-            }
-            Operator::NextLineShowText => {
-                self.require_text(frame, op)?;
-                next_line(frame);
-                if let Some(operand) = args.first() {
-                    self.show(frame, operand);
-                }
-            }
-            Operator::SpacingNextLineShowText => {
-                self.require_text(frame, op)?;
-                if let [word, char, string] = args {
-                    frame.gs.text.word_spacing = number(word);
-                    frame.gs.text.char_spacing = number(char);
-                    next_line(frame);
-                    self.show(frame, string);
-                }
-            }
+            Operator::ShowText | Operator::ShowTextAdjusted => self.show_text(frame, op, args)?,
+            Operator::NextLineShowText => self.next_line_show_text(frame, op, args)?,
+            Operator::SpacingNextLineShowText => self.spacing_next_line_show_text(frame, op, args)?,
             // Type 3 glyph procedures are not interpreted yet (ADR 0023): nothing to track.
             // Unknown operators returned above.
             Operator::GlyphWidth | Operator::GlyphWidthBBox | Operator::Unknown(_) => {}
@@ -597,35 +526,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             Operator::BeginCompatibility => frame.compat += 1,
             Operator::EndCompatibility => frame.compat = frame.compat.saturating_sub(1),
         }
-        Ok(())
-    }
-
-    fn show(&mut self, frame: &mut Frame, operand: &Object) {
-        let advance = self.visitor.show_text(&TextShow {
-            operand,
-            state: &frame.gs,
-            tm: frame.tm,
-            tlm: frame.tlm,
-            depth: self.forms.len(),
-        });
-        frame.tm = Matrix::translate(advance.tx, advance.ty).multiply(&frame.tm);
-    }
-
-    fn set_font(&mut self, frame: &mut Frame, op: &Op<'_>, n: &Name, size: f64) -> Result<()> {
-        let found = self.lookup(frame, "Font", n)?;
-        let (object, dict) = match found {
-            Some(found) if found.value.as_dict().is_some() => (found.object, Some(found.value)),
-            _ => {
-                self.missing(frame, op, "Font")?;
-                (None, None)
-            }
-        };
-        frame.gs.text.font = Some(FontRef {
-            name: Some(n.clone()),
-            object,
-            dict,
-        });
-        frame.gs.text.font_size = size;
         Ok(())
     }
 
@@ -803,16 +703,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
 /// The matrix of `cm` or `Tm` (six numbers, checked by the signature).
 fn matrix(args: &[Object]) -> Matrix {
     Matrix::from_slice(&numbers::<6>(args)).unwrap_or_default()
-}
-
-fn move_text(frame: &mut Frame, tx: f64, ty: f64) {
-    frame.tlm = Matrix::translate(tx, ty).multiply(&frame.tlm);
-    frame.tm = frame.tlm;
-}
-
-fn next_line(frame: &mut Frame) {
-    let leading = frame.gs.text.leading;
-    move_text(frame, 0.0, -leading);
 }
 
 fn device_color(space: ColorSpace, args: &[Object]) -> Color {
