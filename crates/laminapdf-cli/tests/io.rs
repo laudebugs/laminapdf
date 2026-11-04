@@ -53,3 +53,35 @@ fn a_missing_input_should_be_input_unreadable() {
         "the message never quotes the caller"
     );
 }
+
+#[cfg(unix)]
+#[test]
+fn a_replaced_file_should_keep_its_permissions() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let path = folder("permissions").join("private.pdf");
+    fs::write(&path, b"old").unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    ProcessIo::default()
+        .write(path.to_str().unwrap(), b"new", true)
+        .unwrap();
+    let mode = fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+    assert_eq!((fs::read(&path).unwrap(), mode), (b"new".to_vec(), 0o600));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_at_the_temporary_name_should_never_be_followed() {
+    let dir = folder("symlink");
+    let victim = dir.join("victim.txt");
+    fs::write(&victim, b"keep").unwrap();
+    let planted = dir.join(format!(".out.pdf.laminapdf-{}-0.tmp", std::process::id()));
+    std::os::unix::fs::symlink(&victim, &planted).unwrap();
+    let out = dir.join("out.pdf");
+    ProcessIo::default()
+        .write(out.to_str().unwrap(), b"pdf", false)
+        .unwrap();
+    assert_eq!(
+        (fs::read(&victim).unwrap(), fs::read(&out).unwrap()),
+        (b"keep".to_vec(), b"pdf".to_vec())
+    );
+}

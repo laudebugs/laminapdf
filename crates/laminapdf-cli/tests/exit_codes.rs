@@ -81,3 +81,31 @@ fn the_exit_code_table_should_list_0_to_5() {
         .collect();
     assert_eq!((run.code, numbers), (0, vec!['0', '1', '2', '3', '4', '5']));
 }
+
+#[cfg(target_os = "linux")]
+#[test]
+fn output_that_never_arrives_should_exit_1() {
+    use std::process::{Command, Stdio};
+    let full = std::fs::OpenOptions::new().write(true).open("/dev/full").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_laminapdf"))
+        .args(["info", "fixtures/corpus/hello.pdf"])
+        .current_dir(common::root())
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(full))
+        .stderr(Stdio::piped())
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(output.status.code(), Some(1), "{stderr}");
+    assert!(stderr.starts_with("error[output-unwritable]"), "{stderr}");
+}
+
+#[test]
+fn help_on_a_command_should_list_the_global_flags() {
+    let run = laminapdf(&["help", "info"]);
+    let text = run.stdout_text();
+    assert!(
+        text.contains("Usage: laminapdf info") && text.contains("--json") && text.contains("--password-file"),
+        "{text}"
+    );
+}

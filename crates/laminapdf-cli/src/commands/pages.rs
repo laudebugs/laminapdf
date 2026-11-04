@@ -99,11 +99,12 @@ fn parse_rotation(text: &str) -> Result<(Angle, Option<&str>), CliError> {
             ErrorCode::InvalidCommandLine,
             "the angle must be a multiple of 90: +90 or -90 turn a page, 90 sets its rotation",
         )
-        .with("angle", angle)
+        .with("argument", angle)
     };
     let degrees = degrees.ok_or_else(bad_angle)?;
     let angle = match sign {
-        Some(sign) => Angle::Turn(sign * degrees),
+        // A turn is reduced to a quarter-turn count, so adding it can't overflow.
+        Some(sign) => Angle::Turn((sign * degrees).rem_euclid(360)),
         None if degrees < 360 => Angle::Set(degrees),
         None => return Err(bad_angle()),
     };
@@ -152,7 +153,11 @@ pub fn rotate(args: &RotateArgs, settings: &Settings, io: &mut dyn Io) -> Result
             Angle::Turn(by) => i64::from(info.rotation) + by,
             Angle::Set(to) => to,
         };
-        let rotation = Rotation::from_degrees(degrees).unwrap_or(Rotation::None);
+        // Both are multiples of 90, so this holds; an error rather than a silent 0°.
+        let rotation = Rotation::from_degrees(degrees).ok_or_else(|| {
+            CliError::new(ErrorCode::InvalidCommandLine, "the angle must be a multiple of 90")
+                .with("argument", args.rotation.as_str())
+        })?;
         ops.push(Op::RotatePage(RotatePage::new(info.id.clone(), rotation)));
         pages.push(RotatedPage {
             index,
@@ -191,7 +196,8 @@ mod tests {
     #[test]
     fn a_signed_angle_should_turn_and_a_bare_one_should_set() {
         assert_eq!(parse_rotation("+90:1-3").unwrap(), (Angle::Turn(90), Some("1-3")));
-        assert_eq!(parse_rotation("-90").unwrap(), (Angle::Turn(-90), None));
+        assert_eq!(parse_rotation("-90").unwrap(), (Angle::Turn(270), None));
+        assert_eq!(parse_rotation("+9223372036854775800").unwrap(), (Angle::Turn(0), None));
         assert_eq!(parse_rotation("180:z:odd").unwrap(), (Angle::Set(180), Some("z:odd")));
     }
 

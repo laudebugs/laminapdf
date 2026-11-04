@@ -125,18 +125,17 @@ impl PageRange {
         for (i, group) in self.groups.iter().enumerate() {
             let start = page(group.start, page_count, group.at.0)?;
             let end = page(group.end, page_count, group.at.1)?;
-            let span: Vec<u32> = if start <= end {
-                (start..=end).collect()
-            } else {
-                (end..=start).rev().collect()
-            };
             if group.exclude {
                 if i == 0 {
                     pages = (1..=page_count).collect();
                 }
-                pages.retain(|p| !span.contains(p));
+                // A span is contiguous: a bounds test, not a search, keeps this linear.
+                let excluded = start.min(end)..=start.max(end);
+                pages.retain(|p| !excluded.contains(p));
+            } else if start <= end {
+                pages.extend(start..=end);
             } else {
-                pages.extend(span);
+                pages.extend((end..=start).rev());
             }
         }
         Ok(match self.parity {

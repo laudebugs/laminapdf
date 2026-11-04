@@ -5,7 +5,7 @@
 
 mod render;
 
-use std::io::Write as _;
+use std::io::{IsTerminal as _, Write as _};
 use std::process::ExitCode as ProcessExit;
 
 use anstream::ColorChoice;
@@ -136,7 +136,6 @@ fn main() -> ProcessExit {
     };
     let mut streams = Streams::new(choice);
     let exit = run(&cli, &mut streams);
-    let _ = streams.out.flush();
     ProcessExit::from(exit.number())
 }
 
@@ -174,14 +173,18 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
     let input = input_of(command);
     let outcome = settings(global, &mut io).and_then(|settings| execute(command, &settings, &mut io));
     match outcome {
-        Ok(outcome) => {
-            print(streams, &outcome, global);
-            if outcome.warnings.is_empty() || global.warnings_ok {
-                ExitCode::Ok
-            } else {
-                ExitCode::Warnings
+        Ok(outcome) => match print(streams, &outcome, global) {
+            Ok(()) if outcome.warnings.is_empty() || global.warnings_ok => ExitCode::Ok,
+            Ok(()) => ExitCode::Warnings,
+            // The data didn't arrive (a full disk, a closed pipe): not a success.
+            Err(error) => {
+                let error = CliError::new(ErrorCode::OutputUnwritable, "couldn't write the output")
+                    .with("output", STDIO)
+                    .with("reason", format!("{:?}", error.kind()));
+                render::error(streams, &error, input, global.json);
+                error.exit_code()
             }
-        }
+        },
         Err(error) => {
             render::error(streams, &error, input, global.json);
             error.exit_code()
@@ -214,6 +217,7 @@ fn settings(global: &GlobalArgs, io: &mut ProcessIo) -> Result<Settings, CliErro
             let text = String::from_utf8(bytes).map_err(|_| {
                 CliError::new(ErrorCode::InputUnreadable, "the password file isn't UTF-8 text")
                     .with("input", file.as_str())
+                    .with("reason", "InvalidData")
             })?;
             // One line: the newline an editor or `echo` adds isn't part of the password.
             let line = text.strip_suffix('\n').unwrap_or(&text);
@@ -271,6 +275,8 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
 /// `laminapdf help [topic]`.
 fn help(args: &HelpArgs) -> Result<String, CliError> {
     let mut command = Cli::command();
+    // Building propagates the global flags to the subcommands, so their help lists them.
+    command.build();
     let Some(topic) = args.topic.as_deref() else {
         return Ok(command.render_help().to_string());
     };
@@ -284,32 +290,44 @@ fn help(args: &HelpArgs) -> Result<String, CliError> {
     known.push("exit-codes".to_owned());
     Err(
         CliError::new(ErrorCode::InvalidCommandLine, "no such command or help topic")
-            .with("topic", topic)
+            .with("argument", topic)
             .with_did_you_mean(laminapdf::did_you_mean(topic, &known)),
     )
 }
 
 /// Prints a successful outcome: the report on standard output (standard error when standard
 /// output carries the PDF), and in text mode its warnings on standard error unless `--quiet`.
-fn print(streams: &mut Streams, outcome: &Outcome, global: &GlobalArgs) {
+/// Text for a terminal loses its control characters ([`render::for_terminal`]).
+///
+/// # Errors
+///
+/// Writing standard output failed.
+fn print(streams: &mut Streams, outcome: &Outcome, global: &GlobalArgs) -> std::io::Result<()> {
     if global.json && !outcome.json.is_null() {
         let line = format!("{}\n", outcome.json);
-        let stream: &mut dyn std::io::Write = if outcome.stdout_taken {
-            &mut streams.err
-        } else {
-            &mut streams.out
-        };
-        let _ = stream.write_all(line.as_bytes());
-        return;
+        if outcome.stdout_taken {
+            let _ = streams.err.write_all(line.as_bytes());
+            return Ok(());
+        }
+        streams.out.write_all(line.as_bytes())?;
+        return streams.out.flush();
     }
     if !global.quiet {
         render::warnings(streams, &outcome.warnings);
     }
-    if !outcome.stdout_taken {
-        let _ = streams.out.write_all(outcome.text.as_bytes());
-    } else if !global.quiet {
-        let _ = streams.err.write_all(outcome.text.as_bytes());
+    if outcome.stdout_taken {
+        if !global.quiet {
+            let _ = streams.err.write_all(render::for_terminal(&outcome.text).as_bytes());
+        }
+        return Ok(());
     }
+    let text = if streams.out.is_terminal() {
+        render::for_terminal(&outcome.text)
+    } else {
+        outcome.text.clone()
+    };
+    streams.out.write_all(text.as_bytes())?;
+    streams.out.flush()
 }
 
 /// `--version`: the version, or with `--json` the CLI's, the core's and the schema ids.
@@ -330,6 +348,12 @@ fn version(streams: &mut Streams, json: bool) -> ExitCode {
     } else {
         format!("laminapdf {version}\n")
     };
-    let _ = streams.out.write_all(text.as_bytes());
-    ExitCode::Ok
+    match streams
+        .out
+        .write_all(text.as_bytes())
+        .and_then(|()| streams.out.flush())
+    {
+        Ok(()) => ExitCode::Ok,
+        Err(_) => ExitCode::Failure,
+    }
 }

@@ -36,6 +36,10 @@ pub struct ExtractArgs {
     pub pages: Option<String>,
 }
 
+/// From this many pages on, `extract` reads every page's text in one page-tree walk rather
+/// than one walk per page.
+const ONE_WALK_FROM: usize = 16;
+
 /// `laminapdf.text/1`.
 #[derive(Debug, Clone, PartialEq, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -83,11 +87,24 @@ pub fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Resu
     let doc = &opened.doc;
     let numbers = pages_of(args.pages.as_deref(), doc.page_count()?)?;
     let options = TextOptions::default();
+    // `page_text` walks the page tree each time, so many pages are read in one walk instead.
+    let all = if numbers.len() > ONE_WALK_FROM {
+        Some(doc.page_texts(&options)?)
+    } else {
+        None
+    };
     let mut pages = Vec::with_capacity(numbers.len());
     for number in numbers {
         let index = number.saturating_sub(1);
-        let text = doc.page_text(index, &options)?.lines().join("\n");
-        pages.push(PageTextEntry { index, number, text });
+        let text = match all.as_ref().and_then(|all| all.get(usize::try_from(index).ok()?)) {
+            Some(text) => text.lines(),
+            None => doc.page_text(index, &options)?.lines(),
+        };
+        pages.push(PageTextEntry {
+            index,
+            number,
+            text: text.join("\n"),
+        });
     }
     Ok(TextReport {
         schema: TextReport::SCHEMA,

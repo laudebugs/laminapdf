@@ -25,7 +25,9 @@ fn every_cli_code_should_carry_the_data_keys_its_page_lists() {
     let existing = folder("data-fields").join("out.pdf");
     std::fs::write(&existing, b"x").unwrap_or_default();
     let existing = existing.to_str().unwrap_or_default();
-    let runs: [(&str, Vec<&str>); 5] = [
+    // Each code once, and `invalid-command-line` for each of its causes: every run's keys are
+    // on the page, and together the runs show every key the page lists.
+    let runs: [(&str, Vec<&str>); 8] = [
         (
             "invalid-page-range",
             vec!["extract", "fixtures/corpus/hello.pdf", "--pages", "3"],
@@ -47,7 +49,14 @@ fn every_cli_code_should_carry_the_data_keys_its_page_lists() {
                 "/no/such/folder/out.pdf",
             ],
         ),
+        ("invalid-command-line", vec!["info", "--no-such-flag", "x.pdf"]),
+        (
+            "invalid-command-line",
+            vec!["pages", "rotate", "fixtures/corpus/hello.pdf", "45", "-o", existing],
+        ),
+        ("invalid-command-line", vec!["help", "nope"]),
     ];
+    let mut seen: std::collections::BTreeMap<&str, BTreeSet<String>> = std::collections::BTreeMap::new();
     let mut problems = Vec::new();
     for (code, mut args) in runs {
         args.push("--json");
@@ -57,10 +66,19 @@ fn every_cli_code_should_carry_the_data_keys_its_page_lists() {
             .as_object()
             .map(|m| m.keys().cloned().collect())
             .unwrap_or_default();
-        if error["code"] != code || keys != documented(code) {
+        if error["code"] != code || !keys.is_subset(&documented(code)) {
             problems.push(format!(
-                "{code}: got {} with data keys {keys:?}, the page lists {:?}",
+                "{code} ({args:?}): got {} with data keys {keys:?}, the page lists {:?}",
                 error["code"],
+                documented(code)
+            ));
+        }
+        seen.entry(code).or_default().extend(keys);
+    }
+    for (code, keys) in seen {
+        if keys != documented(code) {
+            problems.push(format!(
+                "{code}: the runs show {keys:?}, the page lists {:?}",
                 documented(code)
             ));
         }

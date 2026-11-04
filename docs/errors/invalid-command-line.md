@@ -27,7 +27,10 @@ $ echo $?
 
 ## Data fields
 
-None.
+Which field is there depends on what was wrong:
+
+- `detail`: when the parser refused the line, the kind of problem it found, such as `UnknownArgument` or `MissingRequiredArgument`.
+- `argument`: when a value parsed but means nothing, the value given: the angle of `pages rotate`, a `help` topic or a `--fields` key (untrusted: caller text, never in the message).
 
 ## For contributors
 

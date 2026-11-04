@@ -18,18 +18,36 @@ const BOLD: &str = "\x1b[1m";
 const RESET: &str = "\x1b[0m";
 
 /// The two output streams, coloured per `--color` and the terminal.
+///
+/// Standard output carries data, so it is written as is: no colour to strip, nothing dropped
+/// on the way to a pipe. Only standard error, which has the diagnostics, is coloured.
 pub(crate) struct Streams {
-    pub(crate) out: AutoStream<std::io::Stdout>,
+    pub(crate) out: std::io::Stdout,
     pub(crate) err: AutoStream<std::io::Stderr>,
 }
 
 impl Streams {
     pub(crate) fn new(choice: ColorChoice) -> Self {
         Self {
-            out: AutoStream::new(std::io::stdout(), choice),
+            out: std::io::stdout(),
             err: AutoStream::new(std::io::stderr(), choice),
         }
     }
+}
+
+/// `text` safe for a terminal: every control character but the line feed, tab and form feed
+/// (escape sequences, BEL, the C1 controls) becomes U+FFFD, so document text can't move the
+/// cursor, retitle the window or plant a hyperlink.
+pub(crate) fn for_terminal(text: &str) -> String {
+    text.chars()
+        .map(|c| {
+            if c.is_control() && !matches!(c, '\n' | '\t' | '\u{c}') {
+                '\u{fffd}'
+            } else {
+                c
+            }
+        })
+        .collect()
 }
 
 /// Writes `error` to stderr: `error[code]: message` and its hint, docs URL and candidates, or
@@ -93,7 +111,7 @@ pub(crate) fn keep_fields(value: Value, fields: &[String]) -> Result<Value, CliE
             laminapdf::ErrorCode::InvalidCommandLine,
             "--fields names a key the report doesn't have",
         )
-        .with("field", unknown.as_str())
+        .with("argument", unknown.as_str())
         .with_did_you_mean(laminapdf::did_you_mean(unknown, &known)));
     }
     Ok(Value::Object(
@@ -252,6 +270,14 @@ mod tests {
     #[test]
     fn sizes_should_read_like_a_file_manager() {
         assert_eq!([size(900), size(41_200), size(1_800_000)], ["900 B", "41 KB", "1.8 MB"]);
+    }
+
+    #[test]
+    fn a_terminal_should_get_no_control_characters_but_line_breaks() {
+        assert_eq!(
+            for_terminal("a\u{1b}]0;x\u{7}b\n\tc\u{c}\u{9b}"),
+            "a\u{fffd}]0;x\u{fffd}b\n\tc\u{c}\u{fffd}"
+        );
     }
 
     #[test]

@@ -92,18 +92,22 @@ impl Io for ProcessIo {
     }
 }
 
-/// Writes `bytes` to a temporary file beside `path`, then renames it over `path`.
+/// Writes `bytes` to a temporary file beside `path`, then renames it over `path`. A file it
+/// replaces keeps its permissions (a private file stays private).
 fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let folder = match path.parent() {
         Some(folder) if !folder.as_os_str().is_empty() => folder,
         _ => Path::new("."),
     };
-    let name = path.file_name().unwrap_or_default().to_string_lossy();
-    let temporary = folder.join(format!(".{name}.laminapdf-{}.tmp", std::process::id()));
-    let written = fs::File::create(&temporary).and_then(|mut file| {
-        file.write_all(bytes)?;
-        file.sync_all()
-    });
+    let (temporary, mut file) = create_temporary(folder, &path.file_name().unwrap_or_default().to_string_lossy())?;
+    let written = file
+        .write_all(bytes)
+        .and_then(|()| match fs::metadata(path) {
+            Ok(old) => file.set_permissions(old.permissions()),
+            Err(_) => Ok(()),
+        })
+        .and_then(|()| file.sync_all());
+    drop(file);
     match written.and_then(|()| fs::rename(&temporary, path)) {
         Ok(()) => Ok(()),
         Err(error) => {
@@ -112,6 +116,21 @@ fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
             Err(error)
         }
     }
+}
+
+/// A new temporary file in `folder` for the output `name`. `create_new` never opens a file
+/// that is already there, so a symlink planted at a predictable name is never followed.
+fn create_temporary(folder: &Path, name: &str) -> std::io::Result<(std::path::PathBuf, fs::File)> {
+    let mut last = std::io::Error::from(std::io::ErrorKind::AlreadyExists);
+    for attempt in 0..100_u32 {
+        let temporary = folder.join(format!(".{name}.laminapdf-{}-{attempt}.tmp", std::process::id()));
+        match fs::OpenOptions::new().write(true).create_new(true).open(&temporary) {
+            Ok(file) => return Ok((temporary, file)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => last = error,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(last)
 }
 
 /// `input-unreadable` for `input`.
