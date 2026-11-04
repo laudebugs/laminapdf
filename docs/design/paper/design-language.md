@@ -1,11 +1,11 @@
 # Paper: design language
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
-- **Source of truth:** the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile). Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
+- **Source of truth:** for the values of §2–§4 and the component sizes of §6, [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`); the tables here are a readable copy, and a change goes into the tokens file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
-Designers: copy the snippets below rather than redrawing a component. Engineers: the token names in §2–§4 are the names to use in `@laminapdf/ui` (as CSS custom properties, `--paper-<name>`).
+Designers: copy the snippets below rather than redrawing a component. Engineers: the token names in §2–§4 are the names `@laminapdf/tokens` gives its CSS custom properties (`--paper-<name>`) and TypeScript constants; read them from there, never copy a value. Its README says how the names map.
 
 ## 1. Personality
 
@@ -15,7 +15,7 @@ It serves principles 1 (open into reading: the page dominates, no ribbon), 2 (do
 
 ## 2. Colour
 
-Contrast ratios are WCAG 2.x relative-luminance ratios, recomputed for this document. Thresholds: text ≥ 4.5:1; UI component boundaries, focus rings and state indicators ≥ 3:1. ⚠ marks a pair below the threshold, with the reason it is acceptable or the rule that avoids it.
+Contrast ratios are WCAG 2.x relative-luminance ratios. `@laminapdf/tokens` recomputes every pair in its tests and lists them in its [`CONTRAST.md`](../../../packages/tokens/CONTRAST.md). Thresholds: text ≥ 4.5:1; UI component boundaries, focus rings and state indicators ≥ 3:1. ⚠ marks a pair below the threshold, with the reason it is acceptable or the rule that avoids it.
 
 ### 2.1 Light UI theme (default)
 
@@ -44,10 +44,12 @@ Contrast ratios are WCAG 2.x relative-luminance ratios, recomputed for this docu
 | `danger-tint` / `positive-tint` / `warning-tint` **(proposed)** | `#F1E4E2` / `#E7EBE3` / `#F0E8DC` | Backgrounds of badges and notices (10% over `surface`) | own colour on tint 6.31 / 5.32 / 5.21; text ≥ 13.5 |
 | `field-tint` **(proposed)** | `#EDF2F3` | Fill of fillable form fields while Highlight fields is on, and of design-mode fields (= `accent` 8% over white). Decoration only: the boundary is the 1 px `control-border` edge | page ink 13.71 · `control-border` on it 3.40 |
 | `hover` **(proposed)** | `rgba(31,29,26,0.06)` | Hover fill of ghost and icon buttons (= `#EAE7E1` on ground) | text 13.62 · muted 4.73 |
-| `pressed` **(proposed)** | `rgba(31,29,26,0.10)` | Pressed fill (= `#E1DED9` on ground) | text 12.53 · ⚠ muted 4.35: a pressed control's label switches to `text-3` |
+| `pressed` **(proposed)** | `rgba(31,29,26,0.10)` | Pressed fill (= `#E1DFD9` on ground) | text 12.62 · `text-3` 7.12 · ⚠ muted 4.38: a pressed control's label switches to `text-3` |
 | `disabled` **(proposed)** | `#A39C91` text, `hairline` border | Disabled controls (exempt from contrast; also set `disabled`/`aria-disabled`) | surface 2.59 |
 | `scrim` | `rgba(31,29,26,0.30)` | Dims the app behind the palette and dialogs | — |
-| `pill` | `rgba(31,29,26,0.78)` | Page-indicator pill on the phone | white text on it (over gutter) 8.95 |
+| `pill` | `rgba(31,29,26,0.78)` | Page-indicator pill on the phone | `on-pill` on it (over gutter) 8.95 |
+| `on-pill` | `#FFFFFF` | Text on the page pill | (see `pill`) |
+| `raised` **(proposed)** | = `surface` | Palette, menus and dialogs. The light theme draws them on `surface`; the token exists so components can use one name in both themes | as `surface` |
 | `window` | `#DCD6CB` bg, `#C9C2B6` border, `#EFEBE3` title bar, `#E0D9CD` title-bar rule | Drawn macOS window frame in mockups only | title text `text-2` on title bar 10.08 |
 
 Notes:
@@ -67,7 +69,7 @@ From the files. Annotation colours carry meaning, so they never change with UI t
 | Blue | `#A9C8E8` | 8.93 | same |
 | Pink | `#EBB4C8` | 8.77 | same |
 
-The selected swatch adds `outline: 2px solid #1F1D1A` (offset 1 px in the toolbar, 2 px in the inspector).
+The selected swatch adds a 2 px `text` outline (`#1F1D1A` in the light theme; offset 1 px in the toolbar, 2 px in the inspector). **(proposed)** It uses `text` rather than a fixed colour, so it follows the theme: a fixed `#1F1D1A` would measure 1.1:1 on the dark theme's `surface`.
 
 ### 2.3 Dark UI theme (proposed)
 
@@ -93,11 +95,26 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `danger` | `#EE8C98` | ground 7.10 · surface 6.52 · raised 5.87 |
 | `positive` | `#86C49A` | ground 8.33 · surface 7.65 |
 | `warning` | `#E0AE5A` | ground 8.32 · surface 7.64 |
+| `danger-tint` / `positive-tint` / `warning-tint` | `#463534` / `#353E34` / `#443A2A` (16% over surface, the dark `accent-tint` rule) | own colour on tint 4.86 / 5.49 / 5.50; text ≥ 9.0 |
 | `hover` | `rgba(236,231,222,0.08)` (= `#2E2D2A` on ground) | text ≥ 11 |
+| `pressed` | `rgba(236,231,222,0.14)` (hover's light-theme ratio) | text 9.36 · `text-3` 6.94 |
 | `disabled` | `#6A645A` | exempt (2.64) |
 | `scrim` | `rgba(0,0,0,0.50)` | — |
+| `pill` / `on-pill` | as in the light theme | 8.95 |
 
-Dark-theme shadows **(proposed tokens)**: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Thumbnails on the dark rail **(proposed, Reader B R11)**: `0 1px 3px rgba(0,0,0,0.50)`. Floating layers in dark use `raised` with a `chip-border` edge. A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette.
+Dark-theme shadows **(proposed tokens)**: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Thumbnails on the dark rail **(proposed, Reader B R11)**: `0 1px 3px rgba(0,0,0,0.50)`. The phone page sheet uses `shadow-page-dark` too, and the bottom sheet `0 -8px 28px rgba(0,0,0,0.45)`. Floating layers in dark use `raised` with a `chip-border` edge.
+
+A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette. **(proposed)** The mapping keeps every pair readable with the browsers' default system colours as well as the OS palette, which the browser tests check in three engines:
+
+| Tokens | System colour |
+| --- | --- |
+| `ground`, `surface`, `raised`, `field`, `gutter`, the three tints, `accent-tint`, `field-tint`, `hover`, `pressed`, `pill`, `scrim`, `on-accent` | `Canvas` |
+| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `danger`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
+| `accent`, `accent-strong`, primary pressed | `LinkText` |
+| `control-border` | `ButtonBorder` |
+| `disabled` | `GrayText` |
+
+Shadows are `none` in that theme. `accent` maps to `LinkText` rather than `Highlight`, and `focus` to `CanvasText`, because each system palette pairs those with `Canvas`, while `Highlight` varies most between palettes (Chromium's default is a translucent blue).
 
 ### 2.4 Page appearance
 
@@ -123,6 +140,8 @@ Photos are never inverted and annotation colours never change.
 | Chart bars | `#4E5A63` (7.08) | `#4E5A63` (6.01) | `#A9B4BC` (7.62) |
 | Chart labels | `#3A3733` (11.84) | `#5A4C38` (7.06) | `#C9C2B6` (9.10) |
 
+On a High contrast page every one of these is the ink, `#FFFFFF` (21.00) **(proposed)**.
+
 ### 2.5 Mockup-only colours (document content)
 
 For drawing the sample page and thumbnails; not UI tokens. Page heading `#1C1B19` (17.21 on white), page muted `#6E6A64` (5.37), page rule `#E6E3DE`, chart bars `#4E5A63` (7.08), chart labels `#3A3733` (11.84). Thumbnail lines: heading `#B9B2A7`, text `#DDD7CD`, chart `#C9CFD3` (Original); **per page appearance (proposed, Reader B R10, R11)** Sepia heading `#B5A68C`, text `#DCD0B6`; Dark heading `#8D877D`, text `#55514A`, chart `#6E777D` (decorative only). Phone page-4 placeholders `#CFC9BF` / `#E3DED6`; phone page rules `rgba(0,0,0,0.1)` and header/footer `opacity: 0.75`. Links drawn in page content use the page ink with an underline, as the PDF draws them; there is no page-link colour. A signature field drawn on a page: `#EEF2F3` fill, 1 px `control-border` bottom rule, 12 px "Sign here" in `#4E5A63`, 72 px high on the desktop page.
@@ -138,7 +157,9 @@ Used for find results and for every other search hit on the page (Find sensitive
 | Original (paper `#FFFFFF`, ink `#262421`) | `#F6E3BC` (ink 12.26) | 1 px bottom `#8A5300` (6.33 on paper, 5.01 on fill) | `#EDBF6A` (ink 9.04) | 2 px `#1F5C63` (7.58 on paper) |
 | Sepia (paper `#F4ECD8`, ink `#3B2F20`) | `#E9CF95` (ink 8.57) | 1 px bottom `#8A5300` (5.38 on paper, 4.17 on fill) | `#D9A851` (ink 5.99) | 2 px `#1F5C63` (6.44 on paper) |
 | Dark (paper `#22211F`, ink `#E6E1D8`) | `#5A4520` (ink 6.99) | 1 px bottom `#E0AE5A` (7.95 on paper, 4.50 on fill) | `#7A5818` (ink 4.98) | 2 px `#7DBDC2` (7.61 on paper) |
-| High contrast | system `Mark` / `MarkText` | 1 px bottom `CanvasText` | system `Highlight` / `HighlightText` | 2 px `CanvasText` |
+| High contrast | system `Mark` / `MarkText` | 1 px bottom: the ink `#FFFFFF` **(proposed)** | system `Highlight` / `HighlightText` | 2 px: the ink `#FFFFFF` **(proposed)** |
+
+On a High contrast page, the edge and the outline are the ink rather than `CanvasText` **(proposed)**: the paper there is always `#000000`, and outside forced colours `CanvasText` is black too. The page's white ink under a `Mark` or `Highlight` fill can't be measured in advance, so the renderer draws the text under those fills in `MarkText` or `HighlightText` ([U2c](../../todos/ready/U2c-page-appearance-modes.md)); the tokens report those pairs as exempt.
 
 ### 2.7 Fixed content palettes (proposed)
 
@@ -173,6 +194,8 @@ Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces th
 | Blue | `#2D4A6B` | `#1A3757` | `#112E4D` | `#E2E4E4` | `#D1D7DE` | `#C8C8C0` | `#91B3DC` | `#AAC7E9` | `#373B3F` | `#495461` |
 | Plum | `#5B3B6B` | `#472856` | `#3D1E4C` | `#E8E2E4` | `#DBD4DE` | `#D2C5C0` | `#C59FD9` | `#D6B6E7` | `#3F383E` | `#5B4D60` |
 | Green | `#495533` | `#35401F` | `#2C3615` | `#E6E5DE` | `#D7DAD2` | `#CECBB4` | `#A8B78F` | `#BDCAA8` | `#3B3C33` | `#515646` |
+
+Dark primary pressed **(proposed)** is the dark `accent-strong` 30% toward white: Teal `#B9DDE0`, Blue `#C4D8F0`, Plum `#E2CCEE`, Green `#D1DAC2` (`on-accent` on it 11.62 / 11.58 / 11.32 / 11.65).
 
 `field-tint` (fillable fields, §2.1) is the accent at 8% over white in light; in dark it is the dark accent at 12% over dark `field`, with `control-border` on it ≥ 3.01 and text ≥ 10.9: Teal `#EDF2F3` / `#29302E`, Blue `#EEF1F3` / `#2C2F31`, Plum `#F2EFF3` / `#322D31`, Green `#F0F1EF` / `#2F2F28`. `on-accent` stays `#FFFFFF` in light and `#1E1D1A` in dark for every accent. Contrast, recomputed (WCAG 2.x):
 

@@ -120,7 +120,7 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `warning` | `ground` | text ≥ 4.5 | 8.32 | 8.32 | 8.32 | 8.32 |  |
 | `warning` | `surface` | text ≥ 4.5 | 7.64 | 7.64 | 7.64 | 7.64 |  |
 | `warning` | `warning-tint` | text ≥ 4.5 | 5.50 | 5.50 | 5.50 | 5.50 |  |
-| `disabled` | `ground` | text ≥ 4.5 | 2.88 | 2.88 | 2.88 | 2.88 | disabled controls are exempt (WCAG 1.4.3) |
+| `disabled` | `surface` | text ≥ 4.5 | 2.64 | 2.64 | 2.64 | 2.64 | disabled controls are exempt (WCAG 1.4.3) |
 | `on-pill` | `pill` | text ≥ 4.5 | 17.18 | 17.18 | 17.18 | 17.18 |  |
 | `accent` | `ground` | text ≥ 4.5 | 7.97 | 7.77 | 7.49 | 7.89 |  |
 | `accent` | `surface` | text ≥ 4.5 | 7.32 | 7.14 | 6.88 | 7.25 |  |

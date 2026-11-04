@@ -19,7 +19,9 @@ function resolved(host: HTMLElement, name: string): Rgba {
   const m = /^rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)$/.exec(getComputedStyle(probe).color);
   probe.remove();
   if (m === null) throw new Error(`--paper-${name} didn't resolve to an rgb() colour`);
-  return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), a: m[4] === undefined ? 1 : Number(m[4]) };
+  // A translucent system colour can't be measured on its own; none of the mapped ones is.
+  if (m[4] !== undefined && Number(m[4]) < 1) throw new Error(`--paper-${name} is translucent here: ${m[0]}`);
+  return { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), a: 1 };
 }
 
 const short = (ref: string) => ref.replace(/^\{|\}$/g, "");
