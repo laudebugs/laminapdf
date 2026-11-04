@@ -896,6 +896,10 @@ pub enum WarningCode {
     CmapInvalid,
     /// `unmapped-glyph`: a font shows glyphs that nothing maps to text.
     UnmappedGlyph,
+    /// `extract-limit-blocks`: a page had more runs of text than the extraction block limit; the runs past it were left out.
+    ExtractLimitBlocks,
+    /// `extract-reading-order-ambiguous`: a page mixes horizontal and vertical writing, so the order of its blocks is a guess.
+    ExtractReadingOrderAmbiguous,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -939,6 +943,8 @@ impl WarningCode {
         Self::FontInvalid,
         Self::CmapInvalid,
         Self::UnmappedGlyph,
+        Self::ExtractLimitBlocks,
+        Self::ExtractReadingOrderAmbiguous,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
     ];
@@ -981,6 +987,8 @@ impl WarningCode {
             b"font-invalid" => Self::FontInvalid,
             b"cmap-invalid" => Self::CmapInvalid,
             b"unmapped-glyph" => Self::UnmappedGlyph,
+            b"extract-limit-blocks" => Self::ExtractLimitBlocks,
+            b"extract-reading-order-ambiguous" => Self::ExtractReadingOrderAmbiguous,
             b"tounicode-conflict" => Self::TounicodeConflict,
             b"whole-font-rebuilt" => Self::WholeFontRebuilt,
             _ => return None,
@@ -1025,6 +1033,8 @@ impl WarningCode {
             Self::FontInvalid => "font-invalid",
             Self::CmapInvalid => "cmap-invalid",
             Self::UnmappedGlyph => "unmapped-glyph",
+            Self::ExtractLimitBlocks => "extract-limit-blocks",
+            Self::ExtractReadingOrderAmbiguous => "extract-reading-order-ambiguous",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
         }
@@ -1068,6 +1078,8 @@ impl WarningCode {
             Self::FontInvalid => ErrorKind::Input,
             Self::CmapInvalid => ErrorKind::Input,
             Self::UnmappedGlyph => ErrorKind::Input,
+            Self::ExtractLimitBlocks => ErrorKind::Limit,
+            Self::ExtractReadingOrderAmbiguous => ErrorKind::Unsupported,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
         }
@@ -1111,6 +1123,8 @@ impl WarningCode {
             Self::FontInvalid => "a font dictionary has a missing or malformed entry, so its text was decoded with defaults",
             Self::CmapInvalid => "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for",
             Self::UnmappedGlyph => "a font shows glyphs that nothing maps to text",
+            Self::ExtractLimitBlocks => "a page had more runs of text than the extraction block limit; the runs past it were left out",
+            Self::ExtractReadingOrderAmbiguous => "a page mixes horizontal and vertical writing, so the order of its blocks is a guess",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
         }
@@ -1154,6 +1168,8 @@ impl WarningCode {
             Self::FontInvalid => "nothing to do; extracted text or positions for that font may be off",
             Self::CmapInvalid => "nothing to do; the bad entries were skipped and the rest of the CMap is used",
             Self::UnmappedGlyph => "nothing to do; those glyphs extract as U+FFFD (the file needs a ToUnicode CMap)",
+            Self::ExtractLimitBlocks => "raise ExtractLimits::max_blocks_per_page if the page really has that many blocks",
+            Self::ExtractReadingOrderAmbiguous => "nothing to do; check the order of that page's blocks, or ask for content order",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
         }

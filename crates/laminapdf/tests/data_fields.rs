@@ -337,6 +337,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         W::XObjectCycle { object: 1 }.into(),
+        W::ExtractLimitBlocks { page: 0, limit: 1 }.into(),
         TW::ToUnicodeConflict {
             font: s(),
             gid: 1,

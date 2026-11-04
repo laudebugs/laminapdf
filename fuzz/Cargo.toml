@@ -22,6 +22,7 @@ laminapdf-content = { path = "../crates/laminapdf-content" }
 laminapdf-ops = { path = "../crates/laminapdf-ops" }
 laminapdf-save = { path = "../crates/laminapdf-save", features = ["test-support"] }
 laminapdf-text = { path = "../crates/laminapdf-text" }
+laminapdf-extract = { path = "../crates/laminapdf-extract" }
 serde_json = "1.0.154"
 
 [workspace]
@@ -89,6 +90,13 @@ bench = false
 [[bin]]
 name = "extract_text"
 path = "fuzz_targets/extract_text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "extract"
+path = "fuzz_targets/extract.rs"
 test = false
 doc = false
 bench = false

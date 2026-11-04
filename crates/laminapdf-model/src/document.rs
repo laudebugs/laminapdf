@@ -101,6 +101,21 @@ impl Document {
         Pages::new(self)
     }
 
+    /// Whether the document says it is tagged: its catalog's `/MarkInfo` has `/Marked true`
+    /// (ISO 32000-2 §14.7.1). It doesn't check the structure tree.
+    ///
+    /// # Errors
+    /// Reading errors (the catalog, `/MarkInfo`).
+    pub fn is_tagged(&self) -> Result<bool> {
+        let catalog = self.catalog()?;
+        let Some(mark_info) = catalog.get("MarkInfo") else {
+            return Ok(false);
+        };
+        let mark_info = self.deref(mark_info)?;
+        let marked = mark_info.as_dict().and_then(|d| d.get("Marked"));
+        Ok(matches!(marked, Some(Object::Bool(true))))
+    }
+
     /// The document outline (bookmarks); empty when the catalog has no `/Outlines`.
     ///
     /// # Errors
