@@ -39,7 +39,7 @@ This todo splits the 88-line Examples page into Recipes, one page per example (w
 - [x] Write one recipe page per example from the rewritten examples, each with a screenshot or description of the result. Thirteen recipes and an index that lists them by task; each links its reference PDF where one exists and describes the result otherwise. Three helper agents drafted twelve of them from the first; every claim was then checked against the example and the source.
 - [x] Write Troubleshooting from the error codes and the guides' asides; link each entry to its error page or guide. Nine entries: the review's eight, with the text module and the extract module as two.
 - [x] Update the sidebar; redirect `/examples/`. Recipes and Troubleshooting come before Reference; the reference PDFs stay at `/examples/pdf/`, and the guides' anchors into the old page point at their recipes.
-- [ ] Run `docs-prose` and `docs-snippets`; run `/writing-review` after opening the PR.
+- [x] Run `docs-prose` and `docs-snippets`; run `/writing-review` after opening the PR.
 
 ## Acceptance criteria
 
@@ -67,6 +67,6 @@ None.
 - [x] Claimed: the work PR moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] Work PR opened; **PR** field filled in. It came from the session's assigned branch `claude/working-session-9g3nst` in a plain clone, not from a worktree or a `docs/…` branch (see Tasks)
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

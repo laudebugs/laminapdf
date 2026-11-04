@@ -6,7 +6,7 @@ description: An order confirmation for long-term archiving, written as PDF/A-2b 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-You'll write an order confirmation as a PDF/A file, which looks the same in any viewer for decades. You need it for documents kept for years, often by law: contracts, records, letters to customers. The recipe writes the letter twice, at two PDF/A levels.
+You'll write a letter confirming an order as a PDF/A file, which looks the same in any viewer for decades. You need it for documents kept for years, often by law: contracts, records, letters to customers. The recipe writes the letter twice, at two PDF/A levels.
 
 The function takes the level, `2b` or `2u`, and builds the same letter under that level's profiles. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 

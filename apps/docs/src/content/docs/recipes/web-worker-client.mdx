@@ -28,4 +28,4 @@ The promise resolves to the saved file, or rejects with `cancelled` once the sig
 - **Several files:** call `connect` once, reuse the client for each file, and terminate it when the page no longer needs it.
 - **Edits before the save:** apply them with `await doc.apply(ops)`, then save in the default `auto` mode. It appends them as an [incremental save](/reference/glossary/#incremental-save) when the file allows one. See [Save a PDF](/guides/save-a-pdf/#choose-a-save-mode).
 
-Next: [generate PDFs in a Cloudflare Worker](/recipes/cloudflare-worker/), one per request.
+Next: [a Cloudflare Worker](/recipes/cloudflare-worker/) that generates a PDF per request.

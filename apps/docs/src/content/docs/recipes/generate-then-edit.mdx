@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll generate a one-page draft report, then open its bytes, retitle it and save the edit as a revision after them. You need this whenever your app changes a PDF it already has, such as a file a user uploads or one it wrote earlier.
 
-One function builds and saves the draft. Another opens those bytes, changes the title and author, and saves again. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+One function builds and saves the draft. Another opens those bytes, changes the title and author, and saves again. In TypeScript the draft needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/generate-then-edit.ts" /></TabItem>
