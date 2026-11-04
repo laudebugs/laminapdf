@@ -3,13 +3,13 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1l` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1f](../done/Q1f-examples-readable.md), [Q1i](../done/Q1i-guides-create.md), [Q1j](../done/Q1j-recipes-and-troubleshooting.md), [Q1k](../done/Q1k-internal-ids-out-of-reader-text.md), [Q1m](../done/Q1m-guides-read-and-edit.md) |
 | Blocks | None |
 | ADRs | None |
-| Branch | `ci/q1l-docs-checks-strict` |
+| Branch | `claude/working-session-9g3nst` |
 | PR title | `ci(xtask): docs-prose and the examples checks are strict on every file` |
 | Size | S |
 | PR | — |
