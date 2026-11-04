@@ -601,11 +601,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-model"
+version = "0.2.0-alpha.2"
+dependencies = [
+ "laminapdf-cos",
+ "laminapdf-syntax",
+ "thiserror",
+]
+
+[[package]]
 name = "laminapdf-render"
 version = "0.2.0-alpha.2"
 dependencies = [
  "hayro",
  "laminapdf-cos",
+ "laminapdf-model",
  "laminapdf-syntax",
  "serde_json",
  "thiserror",

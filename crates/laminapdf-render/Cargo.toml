@@ -26,6 +26,7 @@ hayro = ["dep:hayro"]
 
 [dependencies]
 laminapdf-cos = { workspace = true }
+laminapdf-model = { workspace = true }
 laminapdf-syntax = { workspace = true, features = ["json"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

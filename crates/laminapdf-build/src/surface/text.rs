@@ -6,7 +6,7 @@
 use std::ops::Range;
 use std::slice;
 
-use laminapdf_model::{PointPt, Pt, RectPt};
+use laminapdf_model::{Matrix, PointPt, Pt, RectPt};
 use laminapdf_text::{
     Alignment, Direction, Feature, FontInfo, FontKey, HarfRust, LayoutOptions, ShapedRun, break_lines,
     grapheme_boundaries, line_breaks,
@@ -14,7 +14,6 @@ use laminapdf_text::{
 
 use super::Surface;
 use super::color::Color;
-use super::path::Matrix;
 use crate::annot::link::LinkSpec;
 use crate::error::Result;
 use crate::nav::LinkTarget;

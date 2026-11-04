@@ -115,7 +115,7 @@ fn transforms_are_in_page_space() {
     // A unit square scaled by 10 and moved 50 pt right and down: page space [50 50 60 60].
     let doc = one_page(PageSize::LETTER, |page| {
         page.surface()
-            .transform(Matrix::translate(Pt::new(50.0), Pt::new(50.0)).after(&Matrix::scale(10.0, 10.0)))
+            .transform(Matrix::translate(50.0, 50.0).after(&Matrix::scale(10.0, 10.0)))
             .path(|p| {
                 p.rect(rect(0.0, 0.0, 1.0, 1.0));
             })

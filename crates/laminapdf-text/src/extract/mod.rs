@@ -239,7 +239,7 @@ impl Collector<'_> {
         let mut total = TextAdvance::default();
         let mut unmapped = false;
         let step = |advance: TextAdvance, tm: &mut Matrix, total: &mut TextAdvance| {
-            *tm = Matrix::translate(advance.tx, advance.ty).multiply(tm);
+            *tm = Matrix::translate(advance.tx, advance.ty).then(tm);
             *total = *total + advance;
         };
         for item in show.items() {
@@ -269,10 +269,10 @@ impl Collector<'_> {
                             font::ExtractFont::is_word_space(code),
                             vertical,
                         );
-                        let user = tm.multiply(&show.state.ctm);
-                        let trm = state.text_space_matrix().multiply(&user);
-                        let (x0, y0) = user.transform_point(0.0, 0.0);
-                        let (x1, y1) = user.transform_point(advance.tx, advance.ty);
+                        let user = tm.then(&show.state.ctm);
+                        let trm = state.text_space_matrix().then(&user);
+                        let (x0, y0) = user.apply(0.0, 0.0);
+                        let (x1, y1) = user.apply(advance.tx, advance.ty);
                         // The box in glyph space (thousandths), relative to the pen: the width
                         // across the ascent and descent, moved by the position vector when
                         // writing vertically (§9.7.4.3).
@@ -283,7 +283,7 @@ impl Collector<'_> {
                             (0.0, 0.0)
                         };
                         let corner = |x: f64, y: f64| {
-                            let (ux, uy) = trm.transform_point((left + x) / 1000.0, (bottom + y) / 1000.0);
+                            let (ux, uy) = trm.apply((left + x) / 1000.0, (bottom + y) / 1000.0);
                             self.frame.to_page(UserSpacePoint::new(ux, uy))
                         };
                         let quad = [

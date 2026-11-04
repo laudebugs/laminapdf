@@ -44,7 +44,7 @@ fn cm_premultiplies_the_ctm() {
     let Some(Event::Show { ctm, .. }) = rec.shows().first().copied() else {
         panic!("one show")
     };
-    assert_eq!(*ctm, Matrix::new(2.0, 0.0, 0.0, 2.0, 20.0, 40.0));
+    assert_eq!(*ctm, Matrix::new([2.0, 0.0, 0.0, 2.0, 20.0, 40.0]));
 }
 
 #[test]
@@ -79,8 +79,8 @@ fn tm_replaces_both_matrices_and_quote_moves_in_its_space() {
     assert_eq!(
         tms(b"BT 14 TL 2 0 0 2 100 100 Tm (a) Tj (b) ' ET", 0.0),
         [
-            Matrix::new(2.0, 0.0, 0.0, 2.0, 100.0, 100.0),
-            Matrix::new(2.0, 0.0, 0.0, 2.0, 100.0, 72.0)
+            Matrix::new([2.0, 0.0, 0.0, 2.0, 100.0, 100.0]),
+            Matrix::new([2.0, 0.0, 0.0, 2.0, 100.0, 72.0])
         ]
     );
 }
@@ -91,8 +91,8 @@ fn a_show_advances_the_text_matrix_by_the_visitor_s_displacement() {
     assert_eq!(
         tms(b"BT 2 0 0 2 10 0 Tm (ab) Tj (c) Tj ET", 0.5),
         [
-            Matrix::new(2.0, 0.0, 0.0, 2.0, 10.0, 0.0),
-            Matrix::new(2.0, 0.0, 0.0, 2.0, 12.0, 0.0)
+            Matrix::new([2.0, 0.0, 0.0, 2.0, 10.0, 0.0]),
+            Matrix::new([2.0, 0.0, 0.0, 2.0, 12.0, 0.0])
         ]
     );
 }
@@ -136,7 +136,7 @@ fn the_rendering_matrix_follows_9_4_4() {
     let shows = states(b"2 0 0 2 0 0 cm BT /F1 12 Tf 50 Tz 3 Ts 10 20 Td (a) Tj ET");
     assert_eq!(
         shows.first().map(|(_, trm)| *trm),
-        Some(Matrix::new(12.0, 0.0, 0.0, 24.0, 20.0, 46.0))
+        Some(Matrix::new([12.0, 0.0, 0.0, 24.0, 20.0, 46.0]))
     );
 }
 
