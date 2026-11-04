@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L2b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1b](../done/L1b-error-contract-codegen.md) |
@@ -108,7 +108,7 @@ None.
 - **Max memory value:** too low rejects legitimate large files; too high defeats the cap. Recommendation: 2 GiB by default. If a caller-set cap is needed, it requires a different build, because the maximum is fixed at link time (to verify: whether `WebAssembly.Memory` with a lower `maximum` can be imported instead). Owner decides with ADR 0016.
 - **Does memory never shrink?** The report marks it unverified. If an engine can shrink memory, `reset()` is still correct, just less necessary.
 - **OOM before the cap:** a browser tab can run out of memory below 2 GiB. `Limits` remains the main defence; this cap is the second line.
-- **Recovery after a trap** loses unsaved edits unless the op log is replayed. Recommendation: offer `reopen()` from kept bytes now, and leave op-log replay for later, when [E1d](./E1d-edit-session-undo-ui.md) needs it.
+- **Recovery after a trap** loses unsaved edits unless the op log is replayed. Recommendation: offer `reopen()` from kept bytes now, and leave op-log replay for later, when [E1d](../ready/E1d-edit-session-undo-ui.md) needs it.
 - **Safari and `using`:** sources conflict ([report](../../research/libraries/shareable-libraries.md#disposal-using-first-finalizationregistry-as-a-backstop-memory-bounded-three-ways)). TypeScript's downlevelled `using` helper needs `Symbol.dispose` to exist at runtime (to verify). If it does, document the one-line polyfill for apps rather than shipping a global side effect.
 
 ## Definition of done

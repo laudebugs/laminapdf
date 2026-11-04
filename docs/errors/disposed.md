@@ -31,4 +31,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [L2b](../todos/ready/L2b-disposal-and-memory.md): adds the check that raises this code
+- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): adds the check that raises this code
