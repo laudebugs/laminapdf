@@ -89,6 +89,7 @@ pub fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Resu
     let options = TextOptions::default();
     // `page_text` walks the page tree each time, so many pages are read in one walk instead.
     let all = if numbers.len() >= ONE_WALK_FROM {
+        settings.stop_if_cancelled()?;
         Some(doc.page_texts(&options)?)
     } else {
         None

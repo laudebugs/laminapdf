@@ -103,8 +103,8 @@ pub struct Settings {
     pub force: bool,
     /// Do everything but write (`--dry-run`).
     pub dry_run: bool,
-    /// Stops a command at its next step: between reading and writing, between pages, and
-    /// inside a save (ADR 0028). The MCP server cancels it when a call runs out of time.
+    /// Stops a command at its next step: after reading its input and after opening it, between
+    /// pages, and inside a save (ADR 0028). The MCP server cancels it when a call runs out of time.
     pub cancel: CancelToken,
 }
 
@@ -131,6 +131,7 @@ struct Opened {
 /// Reads `input` through `io` and opens it with `settings`.
 fn open(input: &str, settings: &Settings, io: &mut dyn Io) -> Result<Opened, CliError> {
     let data = io.read(input)?;
+    settings.stop_if_cancelled()?;
     let bytes = u64::try_from(data.len()).unwrap_or(u64::MAX);
     let mut options = OpenOptions::default()
         .with_strict(settings.open.strict)
@@ -138,10 +139,9 @@ fn open(input: &str, settings: &Settings, io: &mut dyn Io) -> Result<Opened, Cli
     if let Some(password) = &settings.password {
         options = options.with_password(password.as_bytes());
     }
-    Ok(Opened {
-        doc: Document::open_bytes(data, options)?,
-        bytes,
-    })
+    let doc = Document::open_bytes(data, options)?;
+    settings.stop_if_cancelled()?;
+    Ok(Opened { doc, bytes })
 }
 
 /// Every warning `doc` has raised so far, as ADR 0026 objects.

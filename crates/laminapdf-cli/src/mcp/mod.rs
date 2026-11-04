@@ -2,7 +2,8 @@
 //!
 //! The server is a thin adapter. Each tool parses its arguments into the command's own
 //! argument type, runs the same `commands::*` function the CLI runs, and returns the same report
-//! (the tool's `outputSchema` is the report's schema). What makes it safe without opt-in flags:
+//! (the tool's `outputSchema` is the report's schema, [`tools`]). What makes it safe without
+//! opt-in flags:
 //!
 //! - **Roots:** every path goes through [`roots::Roots`]; nothing outside the `--root` folders is
 //!   read or written.
@@ -10,14 +11,18 @@
 //!   replaces its input only with `--allow-in-place` too.
 //! - **Document text only in data:** reports keep it in their fields; errors carry the ADR 0026
 //!   object, whose message and hint never quote the document; tool descriptions are fixed text.
-//! - **Bounded calls:** each runs on a blocking thread with the default `Limits`, at most one per
-//!   CPU at once, and with `--timeout`: when it runs out, the call's [`CancelToken`] is cancelled,
-//!   and the server waits for the command to stop at its next step before it answers.
+//! - **Bounded calls:** each runs on a blocking thread, at most one per CPU at once. When it
+//!   runs past `--timeout`, its [`CancelToken`] stops the command at its next step. The server
+//!   answers once the command has stopped, or after a short grace when it is in a step that
+//!   can't be interrupted (opening a file, reading every object); that call keeps its share of
+//!   the CPU limit until the step ends.
 //!
 //! [ADR 0031]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0031-cli-and-mcp-contract.md
 //! [`CancelToken`]: laminapdf::CancelToken
 
 pub mod roots;
+mod tools;
+mod truncate;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -27,19 +32,15 @@ use laminapdf::{CancelToken, ErrorCode};
 use rmcp::ServiceExt as _;
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, CallToolResult, Implementation, ListToolsResult, PaginatedRequestParams,
-    ServerCapabilities, ServerConfig, Tool, ToolAnnotations,
+    ServerCapabilities, ServerConfig, Tool,
 };
 use rmcp::service::{RequestContext, RoleServer};
 use rmcp::{ErrorData, ServerHandler};
-use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
-use crate::commands::{
-    self, CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, InfoArgs, InfoReport,
-    PagesReport, RotateArgs, Settings, TextReport,
-};
+use crate::commands::{self, CheckArgs, ExplainArgs, ExtractArgs, InfoArgs, RotateArgs, Settings};
 use crate::exit::CliError;
 use roots::{RootedIo, Roots};
 
@@ -55,11 +56,12 @@ pub struct McpArgs {
     /// Let the write tool replace its input (`inPlace`); needs --allow-write.
     #[arg(long, requires = "allow_write")]
     pub allow_in_place: bool,
-    /// Cut a report down to about this many bytes of JSON, marking it `"truncated": true`.
-    #[arg(long, value_name = "N", default_value_t = 1 << 20)]
-    pub max_output_bytes: usize,
-    /// Stop a call after this many seconds; it ends as a `cancelled` tool error.
-    #[arg(long, value_name = "SECS", default_value_t = 60)]
+    /// Cut a report down to at most this many bytes of JSON (1 KiB or more), marking it
+    /// `"truncated": true`.
+    #[arg(long, value_name = "N", default_value_t = 1 << 20, value_parser = clap::value_parser!(u64).range(1024..))]
+    pub max_output_bytes: u64,
+    /// Stop a call after this many seconds (1 or more); it ends as a `cancelled` tool error.
+    #[arg(long, value_name = "SECS", default_value_t = 60, value_parser = clap::value_parser!(u64).range(1..))]
     pub timeout: u64,
 }
 
@@ -68,13 +70,18 @@ const INSTRUCTIONS: &str = "Lamina PDF's command-line tools as MCP tools: read a
 extract its text, explain an error code, and (when the server allows writing) rotate its pages. \
 Paths are files under the server's root folders.";
 
-/// Runs the server on stdin and stdout until the client closes them.
+/// How long a cancelled call may take to stop before the server answers anyway.
+const GRACE: Duration = Duration::from_secs(5);
+
+/// Runs the server on stdin and stdout until the client closes them. Every call opens documents
+/// with `settings`: the strict mode, limits and password the command line gave.
 ///
 /// # Errors
 ///
-/// `invalid-command-line` for a bad `--root`; `output-unwritable` when the transport fails.
-pub fn run(args: &McpArgs) -> Result<(), CliError> {
-    let server = Server::new(args)?;
+/// `invalid-command-line` for a bad `--root` or `--force`; `output-unwritable` when the
+/// transport fails.
+pub fn run(args: &McpArgs, settings: &Settings) -> Result<(), CliError> {
+    let server = Server::new(args, settings)?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -96,6 +103,7 @@ fn transport_error(error: &dyn std::fmt::Display) -> CliError {
 #[derive(Debug, Clone)]
 pub struct Server {
     roots: Arc<Roots>,
+    settings: Settings,
     allow_in_place: bool,
     max_output_bytes: usize,
     timeout: Duration,
@@ -104,20 +112,28 @@ pub struct Server {
 }
 
 impl Server {
-    /// A server for `args`.
+    /// A server for `args`, opening documents with `settings`.
     ///
     /// # Errors
     ///
-    /// `invalid-command-line` for a bad `--root`.
-    pub fn new(args: &McpArgs) -> Result<Self, CliError> {
+    /// `invalid-command-line` for a bad `--root`, or `--force`, which would let the write tool
+    /// replace files the server doesn't allow it to.
+    pub fn new(args: &McpArgs, settings: &Settings) -> Result<Self, CliError> {
+        if settings.force {
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "--force doesn't apply to laminapdf mcp: --allow-in-place lets the write tool replace its input",
+            ));
+        }
         let cpus = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
         Ok(Self {
             roots: Arc::new(Roots::new(&args.roots)?),
+            settings: settings.clone(),
             allow_in_place: args.allow_in_place,
-            max_output_bytes: args.max_output_bytes,
+            max_output_bytes: usize::try_from(args.max_output_bytes).unwrap_or(usize::MAX),
             timeout: Duration::from_secs(args.timeout),
             permits: Arc::new(Semaphore::new(cpus)),
-            tools: Arc::new(tools(args.allow_write, args.allow_in_place)),
+            tools: Arc::new(tools::tools(args.allow_write, args.allow_in_place)),
         })
     }
 
@@ -132,49 +148,77 @@ impl Server {
         if !self.tools.iter().any(|tool| tool.name == name) {
             return Err(ErrorData::invalid_params("no tool by that name", None));
         }
-        let Ok(_permit) = self.permits.acquire().await else {
-            return Err(ErrorData::internal_error("the server is shutting down", None));
+        // The semaphore is never closed, so this waits for a permit and never fails.
+        let permit = Arc::clone(&self.permits)
+            .acquire_owned()
+            .await
+            .map_err(|_| ErrorData::internal_error("the server is shutting down", None))?;
+        // A token of the call's own: cancelling one call never stops another.
+        let settings = Settings {
+            cancel: CancelToken::new(),
+            ..self.settings.clone()
         };
-        let settings = Settings::default();
         let cancel = settings.cancel.clone();
-        let (name, roots, allow_in_place) = (name.to_owned(), Arc::clone(&self.roots), self.allow_in_place);
-        let job = move || run_tool(&name, arguments, settings, &roots, allow_in_place);
-        let outcome = within(self.timeout, &cancel, job).await.unwrap_or_else(|| {
-            let error = CliError::new(ErrorCode::Cancelled, "the call ran longer than the server's --timeout");
-            Err((error, None))
-        });
+        let (name, roots) = (name.to_owned(), Arc::clone(&self.roots));
+        let (allow_in_place, max) = (self.allow_in_place, self.max_output_bytes);
+        let job = move || {
+            run_tool(&name, arguments, settings, &roots, allow_in_place).map(|report| truncate::truncate(report, max))
+        };
+        let outcome = within(self.timeout, GRACE, &cancel, permit, job)
+            .await
+            .unwrap_or_else(|| {
+                let error = CliError::new(ErrorCode::Cancelled, "the call ran longer than the server's --timeout");
+                Err((error, None))
+            });
         Ok(match outcome {
-            Ok(report) => CallToolResult::structured(truncate(report, self.max_output_bytes)),
+            Ok(report) => CallToolResult::structured(report),
             Err((error, input)) => CallToolResult::structured_error(error.to_line(input.as_deref())),
         })
     }
 }
 
-/// Runs `job` on a blocking thread; `None` when it runs past `timeout`. Then `cancel` stops it
-/// at its next step, and this returns only once it has, so no call goes on working unanswered.
+/// A tool's failure and the input it was reading, for the error line.
+type Failure = (CliError, Option<String>);
+
+/// Runs `job` on a blocking thread, holding `permit`; `None` when it runs past `timeout` and
+/// stops as cancelled. Past `timeout`, `cancel` stops it at its next step and this waits up to
+/// `grace` for that; a job that still runs is left to finish in the background, still holding
+/// `permit`. A job that finished anyway (its last step was past the cancel) keeps its result.
 async fn within<T: Send + 'static>(
     timeout: Duration,
+    grace: Duration,
     cancel: &CancelToken,
+    permit: OwnedSemaphorePermit,
     job: impl FnOnce() -> Result<T, Failure> + Send + 'static,
 ) -> Option<Result<T, Failure>> {
     let mut handle = tokio::task::spawn_blocking(job);
-    let finished = tokio::time::timeout(timeout, &mut handle).await;
-    let Ok(joined) = finished else {
-        cancel.cancel();
-        let _ = handle.await;
+    if let Ok(joined) = tokio::time::timeout(timeout, &mut handle).await {
+        return Some(flatten(joined));
+    }
+    cancel.cancel();
+    let Ok(joined) = tokio::time::timeout(grace, &mut handle).await else {
+        tokio::spawn(async move {
+            let _ = handle.await;
+            drop(permit);
+        });
         return None;
     };
-    // A job that panicked (the commands return errors instead) ends the call as cancelled.
-    Some(joined.unwrap_or_else(|_| {
+    match flatten(joined) {
+        Err((error, _)) if error.diagnostic().code == ErrorCode::Cancelled.as_str() => None,
+        finished => Some(finished),
+    }
+}
+
+/// A blocking job's outcome; a job that panicked (the commands return errors instead) ends the
+/// call as cancelled.
+fn flatten<T>(joined: Result<Result<T, Failure>, tokio::task::JoinError>) -> Result<T, Failure> {
+    joined.unwrap_or_else(|_| {
         Err((
             CliError::new(ErrorCode::Cancelled, "the call stopped unexpectedly"),
             None,
         ))
-    }))
+    })
 }
-
-/// A tool's failure and the input it was reading, for the error line.
-type Failure = (CliError, Option<String>);
 
 /// Runs one tool on a blocking thread.
 fn run_tool(
@@ -202,6 +246,7 @@ fn run_tool(
             let args: InfoArgs = parse(arguments)?;
             report(commands::info(&args, &settings, &mut io), Some(&args.input))
         }
+        // `call` checked the name against the listed tools; the write tool is the last.
         _ => {
             let args: RotateArgs = parse(arguments)?;
             if args.in_place && !allow_in_place {
@@ -238,160 +283,6 @@ fn report<R: serde::Serialize>(result: Result<R, CliError>, input: Option<&str>)
     })
 }
 
-/// `report` cut down to about `max` bytes of JSON: the last items of its largest arrays go
-/// first, then the second half of its longest text, until it fits; a cut report has
-/// `"truncated": true`.
-fn truncate(mut report: Value, max: usize) -> Value {
-    let size = |value: &Value| value.to_string().len();
-    if size(&report) <= max {
-        return report;
-    }
-    while size(&report) > max && shrink(&mut report) {}
-    if let Some(map) = report.as_object_mut() {
-        map.insert("truncated".to_owned(), Value::Bool(true));
-    }
-    report
-}
-
-/// Removes part of `value`, the largest that can shrink first: the last item of an array, or
-/// the second half of a text. `false` when nothing is left to remove.
-fn shrink(value: &mut Value) -> bool {
-    match value {
-        Value::Object(map) => {
-            let mut parts: Vec<&mut Value> = map.values_mut().collect();
-            parts.sort_by_key(|part| std::cmp::Reverse(part.to_string().len()));
-            parts.into_iter().any(shrink)
-        }
-        Value::Array(items) if items.len() == 1 => items.first_mut().is_some_and(shrink) || items.pop().is_some(),
-        Value::Array(items) => items.pop().is_some(),
-        Value::String(text) if text.len() > 1 => {
-            let mut cut = text.len() / 2;
-            while !text.is_char_boundary(cut) {
-                cut -= 1;
-            }
-            text.truncate(cut);
-            true
-        }
-        _ => false,
-    }
-}
-
-/// A JSON Schema object for `T`, self-contained: a reference to `laminapdf.error/1` (a report's
-/// `warnings`) becomes a reference to a copy of its definitions in the schema's own `$defs`, so
-/// a client validating `structuredContent` never has to fetch it.
-fn schema<T: JsonSchema>() -> Arc<Map<String, Value>> {
-    let mut schema = schemars::schema_for!(T).to_value();
-    if localise(&mut schema, &format!("{ERROR_SCHEMA_ID}#/$defs/")) {
-        let error: Value = serde_json::from_str(laminapdf::ERROR_SCHEMA).unwrap_or_default();
-        let defs = schema.as_object_mut().and_then(|map| {
-            map.entry("$defs")
-                .or_insert_with(|| Value::Object(Map::new()))
-                .as_object_mut()
-        });
-        if let (Some(defs), Some(error_defs)) = (defs, error.get("$defs").and_then(Value::as_object)) {
-            for (name, definition) in error_defs {
-                defs.entry(name.clone()).or_insert_with(|| definition.clone());
-            }
-        }
-    }
-    match schema {
-        Value::Object(map) => Arc::new(map),
-        _ => Arc::default(),
-    }
-}
-
-/// Rewrites every `$ref` that starts with `prefix` to the same name under `#/$defs/`; whether
-/// it rewrote one.
-fn localise(value: &mut Value, prefix: &str) -> bool {
-    // Every reference is visited (no short-circuit): one schema may hold several.
-    let mut rewrote = false;
-    match value {
-        Value::Object(map) => {
-            for (key, child) in map.iter_mut() {
-                match child {
-                    Value::String(target) if key == "$ref" => {
-                        if let Some(name) = target.strip_prefix(prefix) {
-                            *target = format!("#/$defs/{name}");
-                            rewrote = true;
-                        }
-                    }
-                    _ => rewrote |= localise(child, prefix),
-                }
-            }
-        }
-        Value::Array(items) => {
-            for item in items {
-                rewrote |= localise(item, prefix);
-            }
-        }
-        _ => {}
-    }
-    rewrote
-}
-
-/// One tool: `T` its arguments, `R` its report.
-fn tool<T: JsonSchema, R: JsonSchema>(
-    name: &'static str,
-    description: &'static str,
-    annotations: ToolAnnotations,
-) -> Tool {
-    Tool::new(name, description, schema::<T>())
-        .with_raw_output_schema(schema::<R>())
-        .with_annotations(annotations)
-}
-
-/// The tools, in name order. Their descriptions are fixed text, never a path or document text.
-fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
-    let read = || ToolAnnotations::new().read_only(true).open_world(false);
-    let mut tools = vec![
-        tool::<CheckArgs, CheckReport>(
-            "laminapdf_check",
-            "Read a whole PDF (every object, page and content stream) and report what a tolerant read had to repair.",
-            read(),
-        ),
-        tool::<ExplainArgs, ExplainReport>(
-            "laminapdf_explain",
-            "The documentation page of a Lamina PDF error or warning code.",
-            read(),
-        ),
-        tool::<ExtractArgs, TextReport>(
-            "laminapdf_extract",
-            "A PDF's text, page by page; `pages` takes a range such as 1-3, z (the last page) or 1-z,x2.",
-            read(),
-        ),
-        tool::<InfoArgs, InfoReport>(
-            "laminapdf_info",
-            "What a PDF is: its version, pages and their sizes, file size, encryption, tagging, metadata and warnings.",
-            read(),
-        ),
-    ];
-    if allow_write {
-        let (description, destructive) = if allow_in_place {
-            (
-                "Rotate pages of a PDF: +90 or -90 turn them, 90 sets their rotation, :RANGE names the pages. \
-                 Writes `output`, a new file, or with `inPlace` replaces the input.",
-                true,
-            )
-        } else {
-            (
-                "Rotate pages of a PDF: +90 or -90 turn them, 90 sets their rotation, :RANGE names the pages. \
-                 Writes `output`, which must be a new file.",
-                false,
-            )
-        };
-        let annotations = ToolAnnotations::new()
-            .read_only(false)
-            .destructive(destructive)
-            .open_world(false);
-        tools.push(tool::<RotateArgs, PagesReport>(
-            "laminapdf_pages_rotate",
-            description,
-            annotations,
-        ));
-    }
-    tools
-}
-
 impl ServerHandler for Server {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
@@ -419,86 +310,108 @@ impl ServerHandler for Server {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     use super::*;
 
-    #[test]
-    fn the_tools_should_be_in_name_order_and_read_only_by_default() {
-        let names = |tools: &[Tool]| tools.iter().map(|t| t.name.to_string()).collect::<Vec<_>>();
-        assert_eq!(
-            names(&tools(false, false)),
-            [
-                "laminapdf_check",
-                "laminapdf_explain",
-                "laminapdf_extract",
-                "laminapdf_info"
-            ]
-        );
-        let write = tools(true, false);
-        assert_eq!(names(&write).last().map(String::as_str), Some("laminapdf_pages_rotate"));
-        let annotations = |tools: &[Tool]| {
-            tools
-                .last()
-                .and_then(|t| t.annotations.clone())
-                .and_then(|a| a.destructive_hint)
-        };
-        assert_eq!(
-            (annotations(&write), annotations(&tools(true, true))),
-            (Some(false), Some(true))
-        );
+    fn runtime() -> tokio::runtime::Runtime {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+    }
+
+    fn cancelled() -> Failure {
+        (CliError::new(ErrorCode::Cancelled, "cancelled"), None)
     }
 
     #[test]
     fn a_job_past_the_timeout_should_be_cancelled_and_waited_for() {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        let runtime = runtime();
+        let permits = Arc::new(Semaphore::new(1));
         let cancel = CancelToken::new();
-        let seen = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let (token, flag) = (cancel.clone(), Arc::clone(&seen));
+        let stopped = Arc::new(AtomicBool::new(false));
+        let (token, flag) = (cancel.clone(), Arc::clone(&stopped));
         // A job that never ends on its own: only the timeout's cancel stops it.
         let job = move || {
             while !token.is_cancelled() {
                 std::thread::sleep(Duration::from_millis(1));
             }
-            flag.store(true, std::sync::atomic::Ordering::SeqCst);
-            Ok::<(), Failure>(())
+            flag.store(true, Ordering::SeqCst);
+            Err::<(), Failure>(cancelled())
         };
-        let outcome = runtime.block_on(within(Duration::from_millis(20), &cancel, job));
+        let outcome = runtime.block_on(async {
+            let permit = Arc::clone(&permits).acquire_owned().await.unwrap();
+            within(Duration::from_millis(20), Duration::from_secs(5), &cancel, permit, job).await
+        });
         assert!(outcome.is_none());
         assert!(
-            seen.load(std::sync::atomic::Ordering::SeqCst),
+            stopped.load(Ordering::SeqCst),
             "within() returned before the job stopped"
         );
-        let quick = runtime.block_on(within(Duration::from_secs(5), &CancelToken::new(), || {
+        assert_eq!(permits.available_permits(), 1);
+    }
+
+    #[test]
+    fn a_job_that_ignores_the_cancel_should_be_answered_after_the_grace_and_keep_its_permit() {
+        let runtime = runtime();
+        let permits = Arc::new(Semaphore::new(1));
+        let job = || {
+            std::thread::sleep(Duration::from_millis(300));
+            Ok::<u8, Failure>(1)
+        };
+        runtime.block_on(async {
+            let permit = Arc::clone(&permits).acquire_owned().await.unwrap();
+            let outcome = within(
+                Duration::from_millis(10),
+                Duration::from_millis(10),
+                &CancelToken::new(),
+                permit,
+                job,
+            )
+            .await;
+            assert!(outcome.is_none());
+            assert_eq!(permits.available_permits(), 0, "the call still holds its permit");
+            let _again = Arc::clone(&permits).acquire_owned().await.unwrap();
+        });
+    }
+
+    #[test]
+    fn a_job_that_finishes_after_the_cancel_should_keep_its_result() {
+        let runtime = runtime();
+        let permits = Arc::new(Semaphore::new(1));
+        let job = || {
+            std::thread::sleep(Duration::from_millis(50));
             Ok::<u8, Failure>(7)
-        }));
-        assert!(matches!(quick, Some(Ok(7))));
+        };
+        let outcome = runtime.block_on(async {
+            let permit = Arc::clone(&permits).acquire_owned().await.unwrap();
+            within(
+                Duration::from_millis(5),
+                Duration::from_secs(5),
+                &CancelToken::new(),
+                permit,
+                job,
+            )
+            .await
+        });
+        assert!(matches!(outcome, Some(Ok(7))));
     }
 
     #[test]
-    fn output_schemas_should_need_no_other_schema() {
-        for tool in tools(true, true) {
-            let schema = Value::Object((*tool.output_schema.clone().unwrap_or_default()).clone()).to_string();
-            assert!(!schema.contains("error.schema.json#"), "{}", tool.name);
-        }
-        let info = schema::<InfoReport>();
-        assert!(info["$defs"].get("warning").is_some() && info["$defs"].get("PageSummary").is_some());
-    }
-
-    #[test]
-    fn a_report_over_the_limit_should_be_cut_and_marked() {
-        let report = json!({ "schema": "laminapdf.text/1", "pages": [
-            { "text": "a".repeat(400) }, { "text": "b".repeat(400) }, { "text": "c".repeat(400) }
-        ] });
-        let cut = truncate(report.clone(), 300);
-        assert!(cut.to_string().len() <= 300, "{cut}");
-        assert_eq!(
-            (cut["truncated"].as_bool(), cut["schema"].as_str()),
-            (Some(true), Some("laminapdf.text/1"))
-        );
-        assert_eq!(truncate(report.clone(), 10_000), report);
+    fn force_should_be_refused() {
+        let args = McpArgs {
+            roots: vec![std::env::temp_dir()],
+            allow_write: true,
+            allow_in_place: false,
+            max_output_bytes: 1 << 20,
+            timeout: 60,
+        };
+        let settings = Settings {
+            force: true,
+            ..Settings::default()
+        };
+        let error = Server::new(&args, &settings).unwrap_err();
+        assert_eq!(error.diagnostic().code, "invalid-command-line");
     }
 }

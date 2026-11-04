@@ -5,7 +5,7 @@
 
 ## What happened
 
-A tool of `laminapdf mcp` was given a path the server may not use: one outside every `--root` folder it was started with, one that climbs out with `..`, or a symbolic link inside a root that leads out of it.
+A tool of `laminapdf mcp` was given a path the server may not use: one outside every `--root` folder it was started with, one that climbs out with `..`, or a symbolic link inside a root that leads out of it. A missing file outside the roots, and a link that leads nowhere, get this answer too, so a call can't tell whether a file out there exists.
 
 ## Why
 

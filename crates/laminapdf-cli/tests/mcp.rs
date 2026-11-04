@@ -265,13 +265,33 @@ async fn document_text_should_appear_only_in_data_fields() {
 }
 
 #[tokio::test]
-async fn a_report_over_the_limit_should_be_truncated() {
+async fn a_report_over_the_limit_should_be_truncated_and_still_match_its_schema() {
     let base = tree("truncate");
-    let client = connect(&base, &["--max-output-bytes", "200"]).await;
-    let info = call(&client, "laminapdf_info", json!({ "input": "injected.pdf" })).await;
-    let report = ok(&info);
-    assert_eq!(report["truncated"], true);
-    assert!(report.to_string().len() <= 260, "{report}");
+    std::fs::write(base.join("root/long.pdf"), long()).unwrap();
+    let client = connect(&base, &["--max-output-bytes", "1024"]).await;
+    let tools = client.list_all_tools().await.unwrap();
+    for name in ["laminapdf_extract", "laminapdf_info"] {
+        let result = call(&client, name, json!({ "input": "long.pdf" })).await;
+        let report = ok(&result);
+        assert_eq!(report["truncated"], true, "{name}");
+        assert!(report.to_string().len() <= 1024, "{report}");
+        validate(tools.iter().find(|t| t.name == name).unwrap(), report);
+    }
+}
+
+/// A 40-page PDF with a line of text on each page: its text and page sizes are over 1 KiB.
+fn long() -> Vec<u8> {
+    let mut b = Builder::new(BuildOptions::new());
+    let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
+    for n in 1..=40 {
+        let mut page = b.page(PageSize::A4);
+        let line = format!("Page {n}: the quick brown fox jumps over the lazy dog.");
+        page.surface()
+            .text(&line, &helvetica, Pt::new(12.0), PointPt::from_points(72.0, 96.0))
+            .unwrap();
+        page.finish().unwrap();
+    }
+    b.finish().unwrap().save(&SaveOptions::new()).unwrap().bytes
 }
 
 #[test]

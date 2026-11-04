@@ -15,7 +15,7 @@ use std::path::{Component, Path, PathBuf};
 use laminapdf::ErrorCode;
 
 use crate::exit::CliError;
-use crate::io::{Io, ProcessIo, unreadable};
+use crate::io::{Io, check_file, unreadable, unwritable, write_file};
 
 /// The server's root folders, resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,24 +64,28 @@ impl Roots {
 
     /// The resolved input `path`, inside a root.
     ///
+    /// A path that doesn't resolve is judged by the nearest folder above it that does: inside a
+    /// root it is `input-unreadable`; anywhere else it is `path-outside-roots`, like a path that
+    /// exists out there, so the answer never tells whether a file outside the roots exists.
+    ///
     /// # Errors
     ///
-    /// `input-unreadable` when it doesn't exist; `path-outside-roots`.
+    /// `path-outside-roots`; `input-unreadable` for a missing or unreadable file inside a root.
     pub fn input(&self, path: &str) -> Result<PathBuf, CliError> {
-        let resolved = std::fs::canonicalize(self.join(path)).map_err(|e| unreadable(path, &e))?;
-        if self.contains(&resolved) {
-            Ok(resolved)
-        } else {
-            Err(outside(path))
+        let joined = self.join(path);
+        match std::fs::canonicalize(&joined) {
+            Ok(resolved) if self.contains(&resolved) => Ok(resolved),
+            Err(error) if self.missing_inside(&joined) => Err(unreadable(path, &error)),
+            Ok(_) | Err(_) => Err(outside(path)),
         }
     }
 
-    /// The output `path`, its folder resolved and inside a root, its name a plain file name.
+    /// The output `path`: its folder resolved and inside a root, its name a plain file name.
     ///
     /// # Errors
     ///
-    /// `path-outside-roots`, also for a name such as `..`; `output-unwritable` style failures
-    /// are left to the write.
+    /// `path-outside-roots`, also for a name such as `..`; `output-unwritable` for a missing
+    /// folder inside a root.
     pub fn output(&self, path: &str) -> Result<PathBuf, CliError> {
         let joined = self.join(path);
         let name = match joined.components().next_back() {
@@ -89,11 +93,24 @@ impl Roots {
             _ => return Err(outside(path)),
         };
         let folder = joined.parent().unwrap_or(Path::new("."));
-        let folder = std::fs::canonicalize(folder).map_err(|_| outside(path))?;
-        if !self.contains(&folder) {
-            return Err(outside(path));
+        match std::fs::canonicalize(folder) {
+            Ok(resolved) if self.contains(&resolved) => Ok(resolved.join(name)),
+            Err(error) if self.missing_inside(folder) => Err(unwritable(path, &error)),
+            Ok(_) | Err(_) => Err(outside(path)),
         }
-        Ok(folder.join(name))
+    }
+
+    /// Whether `path`, which doesn't resolve, is simply missing inside a root: not a link that
+    /// leads nowhere (which could have pointed anywhere), and its nearest resolvable folder is
+    /// inside a root.
+    fn missing_inside(&self, path: &Path) -> bool {
+        if std::fs::symlink_metadata(path).is_ok() {
+            return false;
+        }
+        path.ancestors()
+            .skip(1)
+            .find_map(|ancestor| std::fs::canonicalize(ancestor).ok())
+            .is_some_and(|resolved| self.contains(&resolved))
     }
 }
 
@@ -107,21 +124,18 @@ fn outside(path: &str) -> CliError {
 }
 
 /// The commands' [`Io`] under `laminapdf mcp`: every path through [`Roots`], and no standard
-/// input or output, which carry the protocol.
+/// input or output, which carry the protocol. Files are read and written at the resolved path
+/// that was checked; errors name the path as the tool was given it.
 #[derive(Debug)]
 pub struct RootedIo<'a> {
     roots: &'a Roots,
-    inner: ProcessIo,
 }
 
 impl<'a> RootedIo<'a> {
     /// The I/O of one tool call.
     #[must_use]
-    pub fn new(roots: &'a Roots) -> Self {
-        Self {
-            roots,
-            inner: ProcessIo::default(),
-        }
+    pub const fn new(roots: &'a Roots) -> Self {
+        Self { roots }
     }
 }
 
@@ -133,12 +147,12 @@ impl Io for RootedIo<'_> {
 
     fn write(&mut self, output: &str, bytes: &[u8], force: bool) -> Result<(), CliError> {
         let path = self.roots.output(output)?;
-        self.inner.write(&path.to_string_lossy(), bytes, force)
+        check_file(&path, output, force)?;
+        write_file(&path, output, bytes)
     }
 
     fn check(&self, output: &str, force: bool) -> Result<(), CliError> {
-        let path = self.roots.output(output)?;
-        self.inner.check(&path.to_string_lossy(), force)
+        check_file(&self.roots.output(output)?, output, force)
     }
 }
 
@@ -209,6 +223,37 @@ mod tests {
     }
 
     #[test]
+    fn outside_the_roots_a_missing_file_should_answer_as_an_existing_one() {
+        let (base, roots) = tree("oracle");
+        let existing = base.join("outside/secret.pdf");
+        let missing = base.join("outside/nothing-here.pdf");
+        assert_eq!(
+            [
+                code(roots.input(existing.to_str().unwrap())),
+                code(roots.input(missing.to_str().unwrap()))
+            ],
+            ["path-outside-roots"; 2]
+        );
+        assert_eq!(code(roots.input("/no/such/folder/file.pdf")), "path-outside-roots");
+        // Inside a root, a missing file or folder is reported as missing.
+        assert_eq!(
+            [
+                code(roots.input("sub/missing.pdf")),
+                code(roots.output("missing/out.pdf"))
+            ],
+            ["input-unreadable", "output-unwritable"]
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_that_leads_nowhere_should_count_as_outside() {
+        let (base, roots) = tree("dangling");
+        std::os::unix::fs::symlink(base.join("outside/gone.pdf"), base.join("root/gone.pdf")).unwrap();
+        assert_eq!(code(roots.input("gone.pdf")), "path-outside-roots");
+    }
+
+    #[test]
     fn the_io_should_never_touch_a_file_outside() {
         let (base, roots) = tree("io");
         let mut io = RootedIo::new(&roots);
@@ -217,6 +262,9 @@ mod tests {
         assert_eq!(fs::read(base.join("outside/secret.pdf")).unwrap(), b"secret");
         io.write("out.pdf", b"pdf", false).unwrap();
         assert_eq!(fs::read(base.join("root/out.pdf")).unwrap(), b"pdf");
+        // An error names the path as given, never where the root really is.
+        let refused = io.write("out.pdf", b"again", false).unwrap_err();
+        assert_eq!(refused.data()["output"], "out.pdf");
     }
 
     #[test]

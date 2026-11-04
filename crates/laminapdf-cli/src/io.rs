@@ -92,7 +92,7 @@ impl Io for ProcessIo {
                 .and_then(|()| stdout.flush())
                 .map_err(|e| unwritable(output, &e));
         }
-        write_atomically(Path::new(output), bytes).map_err(|e| unwritable(output, &e))
+        write_file(Path::new(output), output, bytes)
     }
 
     fn check(&self, output: &str, force: bool) -> Result<(), CliError> {
@@ -103,11 +103,29 @@ impl Io for ProcessIo {
                 Ok(())
             };
         }
-        if !force && Path::new(output).exists() {
-            return Err(refused(output));
-        }
-        Ok(())
+        check_file(Path::new(output), output, force)
     }
+}
+
+/// Refuses to replace `path` without `force`; errors name `shown`, the path as the caller gave it.
+///
+/// # Errors
+///
+/// `overwrite-refused`.
+pub(crate) fn check_file(path: &Path, shown: &str, force: bool) -> Result<(), CliError> {
+    if !force && path.exists() {
+        return Err(refused(shown));
+    }
+    Ok(())
+}
+
+/// Writes `bytes` to `path` atomically; errors name `shown`, the path as the caller gave it.
+///
+/// # Errors
+///
+/// `output-unwritable`.
+pub(crate) fn write_file(path: &Path, shown: &str, bytes: &[u8]) -> Result<(), CliError> {
+    write_atomically(path, bytes).map_err(|e| unwritable(shown, &e))
 }
 
 /// Writes `bytes` to a temporary file beside `path`, then renames it over `path`. A file it
@@ -159,7 +177,7 @@ pub(crate) fn unreadable(input: &str, error: &std::io::Error) -> CliError {
 }
 
 /// `output-unwritable` for `output`.
-fn unwritable(output: &str, error: &std::io::Error) -> CliError {
+pub(crate) fn unwritable(output: &str, error: &std::io::Error) -> CliError {
     CliError::new(ErrorCode::OutputUnwritable, "couldn't write the output")
         .with("output", output)
         .with("reason", format!("{:?}", error.kind()))

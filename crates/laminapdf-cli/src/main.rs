@@ -179,9 +179,6 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
         let _ = write!(streams.err, "{}", Cli::command().render_help());
         return ExitCode::Usage;
     };
-    if let Command::Mcp { .. } = command {
-        return mcp(command, streams, global.json);
-    }
     let mut io = ProcessIo::default();
     let input = input_of(command);
     let outcome = settings(global, &mut io).and_then(|settings| execute(command, &settings, &mut io));
@@ -283,33 +280,20 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
             outcome(to_json(&report), render::explain_text(&report), Vec::new(), false)
         }
         Command::Help(args) => outcome(serde_json::Value::Null, help(args)?, Vec::new(), false),
-        Command::Mcp { .. } => outcome(serde_json::Value::Null, String::new(), Vec::new(), false),
-    })
-}
-
-/// `laminapdf mcp`: serves until the client closes standard input, or says this build has no
-/// MCP server (the `mcp` feature).
-fn mcp(command: &Command, streams: &mut Streams, json: bool) -> ExitCode {
-    #[cfg(feature = "mcp")]
-    let result = match command {
-        Command::Mcp(args) => laminapdf_cli::mcp::run(args),
-        _ => Ok(()),
-    };
-    #[cfg(not(feature = "mcp"))]
-    let result = {
-        let _ = command;
-        Err(CliError::new(
-            ErrorCode::InvalidCommandLine,
-            "this laminapdf was built without the MCP server (the mcp feature)",
-        ))
-    };
-    match result {
-        Ok(()) => ExitCode::Ok,
-        Err(error) => {
-            render::error(streams, &error, None, json);
-            error.exit_code()
+        // Serves until the client closes standard input; the protocol had standard output.
+        #[cfg(feature = "mcp")]
+        Command::Mcp(args) => {
+            laminapdf_cli::mcp::run(args, settings)?;
+            outcome(serde_json::Value::Null, String::new(), Vec::new(), true)
         }
-    }
+        #[cfg(not(feature = "mcp"))]
+        Command::Mcp { .. } => {
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "this laminapdf was built without the MCP server (the mcp feature)",
+            ));
+        }
+    })
 }
 
 /// `laminapdf help [topic]`.
