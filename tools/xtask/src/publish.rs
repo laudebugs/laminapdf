@@ -117,6 +117,15 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
 /// `include` ships. Plain Node, no packages: the API reference is the npm package's only.
 fn crate_docs(ws: &Workspace) -> Result<()> {
     crate::step("package docs: crates/laminapdf/docs/");
+    let node = std::process::Command::new(crate::program_path("node"))
+        .arg("--version")
+        .output();
+    if !node.is_ok_and(|out| out.status.success()) {
+        bail!(
+            "node is not on PATH: `publish crates` writes the laminapdf crate's docs/ with Node \
+             (in release.yml, give the publish-crates job `./.github/actions/node-pnpm` with `install: \"\"`)"
+        );
+    }
     crate::run(
         &ws.root,
         "node",
