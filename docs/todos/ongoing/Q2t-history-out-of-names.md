@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2t` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |

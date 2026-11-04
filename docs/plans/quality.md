@@ -275,7 +275,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2q](../todos/done/Q2q-split-cos-reader.md) | Split the COS reader module | M | Q2a, Q2e |
 | [Q2r](../todos/ready/Q2r-split-surface-modules.md) | Split the large xtask, builder, extraction and WASM modules | M | Q2a, Q2h, Q2i |
 | [Q2s](../todos/ready/Q2s-facade-names.md) | Façade names that don't collide | M | Q2a |
-| [Q2t](../todos/ready/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
+| [Q2t](../todos/ongoing/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
 | [Q2u](../todos/done/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
 | [Q2v](../todos/done/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
 | [Q2w](../todos/done/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
