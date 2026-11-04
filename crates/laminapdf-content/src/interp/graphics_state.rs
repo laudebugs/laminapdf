@@ -1,5 +1,5 @@
-//! The graphics state operators (§8.4.4): `d`, `gs`, `q` and `Q`. The ones that set a single
-//! value are one line each in [`Interpreter::execute`].
+//! The graphics state operators (§8.4.4): `d`, `gs`, `q` and `Q`. The others (`w`, `J`, `j`,
+//! `M`, `ri`, `i` and `cm`) are one-line arms in [`Interpreter::execute`].
 
 use laminapdf_cos::{Error, Limit, Object, Result, Warning};
 

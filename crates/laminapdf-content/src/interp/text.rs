@@ -1,6 +1,6 @@
 //! The text operators: text objects (§9.4.1), `Tf` (§9.3), positioning (§9.4.2) and showing
-//! (§9.4.3). The text state operators that set a single value are one line each in
-//! [`Interpreter::execute`].
+//! (§9.4.3). The other text state operators (`Tc`, `Tw`, `Tz`, `TL`, `Tr` and `Ts`) are
+//! one-line arms in [`Interpreter::execute`].
 
 use laminapdf_cos::{Object, Result, Warning};
 

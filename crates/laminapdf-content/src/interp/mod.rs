@@ -344,11 +344,11 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         resources::lookup(self.doc, frame.resources.as_deref(), category, name.as_bytes())
     }
 
-    /// Runs one operator: one arm per Annex A operator (or per operators that behave alike),
-    /// each a line that sets a value or calls its group's handler, in the module of that
-    /// group. An unknown operator, or one whose operands don't fit its signature, is skipped
-    /// here with a warning; one with extra operands in front of those it uses runs after a
-    /// `content-bad-operands` warning.
+    /// Runs one operator. The match has a one-line arm per Annex A operator, or per set of
+    /// operators that behave alike. Each arm sets a value or calls a handler in its group's
+    /// module. An unknown operator, or one whose operands don't fit its signature, is skipped
+    /// with a warning; an operator with extra operands in front of the ones it uses runs after
+    /// a `content-bad-operands` warning.
     fn execute(&mut self, frame: &mut Frame, op: &Op<'_>) -> Result<()> {
         if let Operator::Unknown(_) = op.operator {
             if frame.compat == 0 {

@@ -36,7 +36,7 @@
 
 - [x] Claim by opening the work PR (#210) off an up-to-date `main`. The cloud session that did the work had a plain clone and an assigned branch, so it worked on that branch instead of a worktree.
 - [x] Extract one group per commit, running the content tests and the operator fixture after each. After `interp.rs` moved to `interp/mod.rs`, the six groups went in this order: graphics state, path, text, colour, XObjects and inline images, marked content. Each commit also passed clippy and `cargo xtask check maintainability`.
-- [x] Remove the `#[expect]` and the baseline entry; run the differential and a short `content` fuzz run. The baseline entry went with the first group, which left `mod.rs` at 751 lines; the `#[expect]` went with the fifth. `cargo xtask differential`, `cargo xtask differential --text` and `cargo xtask fuzz content --time 120` pass.
+- [x] Remove the `#[expect]` and the baseline entry; run the differential and a short `content` fuzz run. Moving the first group left `mod.rs` at 751 lines, so the baseline entry went then; the `#[expect]` went with the fifth group. `cargo xtask differential`, `cargo xtask differential --text` and `cargo xtask fuzz content --time 120` pass.
 
 ## Acceptance criteria
 
