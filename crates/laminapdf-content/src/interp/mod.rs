@@ -1,6 +1,7 @@
 //! The read-only interpreter (ADR 0023): runs content streams against a graphics state and
 //! reports what they draw to a [`Visitor`].
 
+mod color;
 mod graphics_state;
 mod path;
 mod text;
@@ -13,10 +14,9 @@ use laminapdf_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Positi
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
-use crate::state::{Color, ColorSpace, GraphicsState, Matrix};
-use crate::visitor::{
-    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathSegment, ShadingPaint, Visitor,
-};
+use crate::state::{ColorSpace, GraphicsState, Matrix};
+use crate::visitor::{FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathSegment, Visitor};
+use color::{Target, device_color};
 use graphics_state::set_dash;
 use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
 
@@ -372,7 +372,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             self.bad_operands(frame, op)?;
         }
         let args = checked.operands;
-        let gs = &mut frame.gs;
         match op.operator {
             // General graphics state (§8.4.4).
             Operator::LineWidth => frame.gs.line_width = first(args),
@@ -431,58 +430,18 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             // Unknown operators returned above.
             Operator::GlyphWidth | Operator::GlyphWidthBBox | Operator::Unknown(_) => {}
             // Colour (§8.6.8).
-            Operator::StrokeColorSpace | Operator::FillColorSpace => {
-                if let Some(n) = args.first().and_then(name) {
-                    let color = self.color_space(frame, op, n)?;
-                    if op.operator == Operator::StrokeColorSpace {
-                        frame.gs.stroke = color;
-                    } else {
-                        frame.gs.fill = color;
-                    }
-                }
-            }
-            Operator::StrokeColor | Operator::StrokeColorN | Operator::FillColor | Operator::FillColorN => {
-                let (pattern, components) = match args.split_last() {
-                    Some((Object::Name(n), rest)) => (Some(n), rest),
-                    _ => (None, args),
-                };
-                if let Some(n) = pattern {
-                    let found = self.lookup(frame, "Pattern", n)?;
-                    if found.is_none_or(|f| f.value.as_dict().is_none()) {
-                        self.missing(frame, op, "Pattern")?;
-                    }
-                }
-                let stroke = matches!(op.operator, Operator::StrokeColor | Operator::StrokeColorN);
-                let color = if stroke {
-                    &mut frame.gs.stroke
-                } else {
-                    &mut frame.gs.fill
-                };
-                color.components = components.iter().map(number).collect();
-                color.pattern = pattern.cloned();
-            }
-            Operator::StrokeGray => gs.stroke = device_color(ColorSpace::DeviceGray, args),
-            Operator::FillGray => gs.fill = device_color(ColorSpace::DeviceGray, args),
-            Operator::StrokeRgb => gs.stroke = device_color(ColorSpace::DeviceRgb, args),
-            Operator::FillRgb => gs.fill = device_color(ColorSpace::DeviceRgb, args),
-            Operator::StrokeCmyk => gs.stroke = device_color(ColorSpace::DeviceCmyk, args),
-            Operator::FillCmyk => gs.fill = device_color(ColorSpace::DeviceCmyk, args),
+            Operator::StrokeColorSpace => self.set_color_space(frame, op, args, Target::Stroke)?,
+            Operator::FillColorSpace => self.set_color_space(frame, op, args, Target::Fill)?,
+            Operator::StrokeColor | Operator::StrokeColorN => self.set_color(frame, op, args, Target::Stroke)?,
+            Operator::FillColor | Operator::FillColorN => self.set_color(frame, op, args, Target::Fill)?,
+            Operator::StrokeGray => frame.gs.stroke = device_color(ColorSpace::DeviceGray, args),
+            Operator::FillGray => frame.gs.fill = device_color(ColorSpace::DeviceGray, args),
+            Operator::StrokeRgb => frame.gs.stroke = device_color(ColorSpace::DeviceRgb, args),
+            Operator::FillRgb => frame.gs.fill = device_color(ColorSpace::DeviceRgb, args),
+            Operator::StrokeCmyk => frame.gs.stroke = device_color(ColorSpace::DeviceCmyk, args),
+            Operator::FillCmyk => frame.gs.fill = device_color(ColorSpace::DeviceCmyk, args),
             // Shading (§8.7.4.2).
-            Operator::Shading => {
-                if let Some(n) = args.first().and_then(name) {
-                    match self.lookup(frame, "Shading", n)? {
-                        Some(found) if found.value.as_dict().is_some() => {
-                            self.visitor.paint_shading(&ShadingPaint {
-                                name: n,
-                                object: found.object,
-                                shading: &found.value,
-                                state: &frame.gs,
-                            });
-                        }
-                        _ => self.missing(frame, op, "Shading")?,
-                    }
-                }
-            }
+            Operator::Shading => self.shading(frame, op, args)?,
             // Inline images (§8.9.7).
             Operator::BeginInlineImage => {
                 if let Some(image) = &op.inline_image {
@@ -527,31 +486,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             Operator::EndCompatibility => frame.compat = frame.compat.saturating_sub(1),
         }
         Ok(())
-    }
-
-    /// The colour `CS`/`cs` sets: the space and its initial colour (§8.6.8). A named space
-    /// that is missing or not a colour space keeps its name, with no components.
-    fn color_space(&mut self, frame: &Frame, op: &Op<'_>, n: &Name) -> Result<Color> {
-        let space = match n.as_bytes() {
-            b"DeviceGray" => ColorSpace::DeviceGray,
-            b"DeviceRGB" => ColorSpace::DeviceRgb,
-            b"DeviceCMYK" => ColorSpace::DeviceCmyk,
-            b"Pattern" => ColorSpace::Pattern,
-            _ => {
-                let found = self.lookup(frame, "ColorSpace", n)?;
-                let components = match found {
-                    Some(found) => resources::initial_components(self.doc, &found.value)?,
-                    None => None,
-                };
-                let mut color = Color::initial(ColorSpace::Named(n.clone()));
-                match components {
-                    Some(components) => color.components = components,
-                    None => self.missing(frame, op, "ColorSpace")?,
-                }
-                return Ok(color);
-            }
-        };
-        Ok(Color::initial(space))
     }
 
     fn marked(&mut self, frame: &mut Frame, op: &Op<'_>, args: &[Object]) -> Result<()> {
@@ -703,10 +637,4 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
 /// The matrix of `cm` or `Tm` (six numbers, checked by the signature).
 fn matrix(args: &[Object]) -> Matrix {
     Matrix::from_slice(&numbers::<6>(args)).unwrap_or_default()
-}
-
-fn device_color(space: ColorSpace, args: &[Object]) -> Color {
-    let mut color = Color::initial(space);
-    color.components = args.iter().map(number).collect();
-    color
 }
