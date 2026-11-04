@@ -219,3 +219,36 @@ fn blocks_past_the_limit_are_left_out_with_a_warning() {
     assert_eq!(texts(&run(&doc, &options)), ["One.", "Two."]);
     assert!(doc.warnings().iter().any(|w| w.code() == "extract-limit-blocks"));
 }
+
+/// A page drawing `content` with Helvetica as `/F1`.
+fn page_with_content(content: &[u8]) -> Document {
+    use laminapdf_test_fixtures::{classic, stream_body};
+    let stream = stream_body("", content);
+    let objects: [&[u8]; 5] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        &stream,
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    ];
+    Document::open(classic(&objects, "<< /Size 6 /Root 1 0 R >>"), OpenOptions::default()).unwrap()
+}
+
+#[test]
+fn a_run_that_jumps_across_a_gutter_is_split_into_two_columns() {
+    // Two columns drawn row by row, each row one TJ whose offset jumps over the gutter.
+    let doc = page_with_content(
+        b"BT /F1 10 Tf 50 700 Td [(Left one) -18000 (Right one)] TJ 0 -12 Td [(Left two) -18000 (Right two)] TJ ET",
+    );
+    assert_eq!(
+        texts(&run(&doc, &ExtractOptions::new())),
+        ["Left one Left two", "Right one Right two"]
+    );
+}
+
+#[test]
+fn a_page_asked_for_twice_is_extracted_once() {
+    let doc = build(&[&[("Only.", 72.0, 100.0, 12.0, false)]], Rotation::None, 1.0);
+    let out = run(&doc, &ExtractOptions::new().with_pages(vec![0, 0]));
+    assert_eq!((out.pages.len(), texts(&out)), (1, vec!["Only."]));
+}

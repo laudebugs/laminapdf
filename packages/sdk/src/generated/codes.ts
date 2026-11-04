@@ -365,7 +365,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "cmap-invalid": "input",
   "unmapped-glyph": "input",
   "extract-limit-blocks": "limit",
-  "extract-reading-order-ambiguous": "input",
+  "extract-reading-order-ambiguous": "unsupported",
   "not-pdf": "input",
   "missing-root": "input",
   "reference-cycle": "input",

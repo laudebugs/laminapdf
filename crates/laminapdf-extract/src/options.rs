@@ -82,7 +82,9 @@ pub struct DropOptions {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct ExtractLimits {
-    /// Blocks kept per page (`extract-limit-blocks` past it).
+    /// Runs of text kept per page, so at most this many blocks: the page's first runs in drawing
+    /// order (`extract-limit-blocks` past it). Grouping and ordering grow faster than the runs
+    /// do, so the limit applies before them.
     pub max_blocks_per_page: u32,
     /// How deep XY-Cut recurses; deeper groups keep top-to-bottom order.
     pub max_xycut_depth: u32,

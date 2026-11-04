@@ -8,7 +8,9 @@ use laminapdf_syntax::CancelToken;
 
 /// Extracts every page of `data` (a whole file; anything else is ignored) by layout and by
 /// content order. Invariants: no panic, no hang, every block's box finite with its normalised
-/// box in [0, 1], block IDs unique, and no block text holding a dropped run's text.
+/// box in [0, 1], block IDs unique, no hidden run among a block's spans, and no block text
+/// longer than its own spans (so nothing hidden or from elsewhere reaches it: joining lines
+/// only adds spaces and removes hyphens).
 pub fn extract(data: &[u8]) {
     if !data.starts_with(b"%PDF") {
         return;
@@ -29,7 +31,14 @@ pub fn extract(data: &[u8]) {
                 assert!(norm.iter().all(|v| (0.0..=1.0).contains(v)), "{}: {norm:?}", block.id);
             }
             assert!(ids.insert(block.id.clone()), "{}: id used twice", block.id);
-            assert!(block.spans.iter().all(|s| !s.flags.any()), "{}: a flagged span", block.id);
+            assert!(
+                block.spans.iter().all(|s| !s.flags.any()),
+                "{}: a flagged span",
+                block.id
+            );
+            let visible = |t: &str| t.chars().filter(|c| !c.is_whitespace()).count();
+            let own: usize = block.spans.iter().map(|s| visible(&s.text)).sum();
+            assert!(visible(&block.text) <= own, "{}: text longer than its spans", block.id);
         }
     }
 }

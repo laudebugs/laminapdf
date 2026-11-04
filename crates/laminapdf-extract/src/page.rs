@@ -2,13 +2,14 @@
 //! in reading order.
 
 use laminapdf_cos::Warning;
+use laminapdf_model::RectPt;
 use laminapdf_model::{Document, Page, Pt};
 use laminapdf_syntax::CancelToken;
-use laminapdf_text::extract::PageText;
+use laminapdf_text::extract::{PageText, Quad, TextRun, is_right_to_left};
 
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
-use crate::lines::{Line, Piece, lines, mostly_rtl};
+use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
 use crate::model::{Block, BlockKind, Coordinates, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::text_fix::{decompose_ligatures, join_lines};
@@ -50,14 +51,9 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
             .glyphs
             .get(run.glyphs.start)
             .map_or(run.bounds.y1, |g| frame.to_page(g.origin).y);
-        let words = if run.actual_text {
-            run.text.clone()
-        } else {
-            decompose_ligatures(&run.text)
-        };
         let span_flags = flags(run.invisible, &run.bounds, size, width, height);
         let span = Span {
-            text: words,
+            text: run.text.clone(),
             bbox: run.bounds,
             baseline,
             font: run.font_name.to_string(),
@@ -78,20 +74,74 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
             });
             continue;
         }
-        if span.text.trim().is_empty() {
-            continue;
+        for (words, bbox) in segments(text, run, size) {
+            let words = if run.actual_text {
+                words
+            } else {
+                decompose_ligatures(&words)
+            };
+            if words.trim().is_empty() {
+                continue;
+            }
+            out.pieces.push(Piece {
+                text: words.clone(),
+                bbox,
+                baseline,
+                size,
+                font: span.font.clone(),
+                vertical: run.vertical,
+            });
+            out.spans.push(Span {
+                text: words,
+                bbox,
+                ..span.clone()
+            });
         }
-        out.pieces.push(Piece {
-            text: span.text.clone(),
-            bbox: span.bbox,
-            baseline,
-            size,
-            font: span.font.clone(),
-            vertical: run.vertical,
-        });
-        out.spans.push(span);
     }
     out
+}
+
+/// The smallest rectangle holding a glyph's quad.
+fn quad_box(quad: &Quad) -> RectPt {
+    let (x0, x1) = quad.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
+        (a.min(p.x.get()), b.max(p.x.get()))
+    });
+    let (y0, y1) = quad.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
+        (a.min(p.y.get()), b.max(p.y.get()))
+    });
+    RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
+}
+
+/// A visible run's text and box, split where its pen jumps forward past a column gutter:
+/// `laminapdf-text` keeps such a jump inside one run (as a space), so two columns drawn row
+/// by row in one font would otherwise share every line. Runs whose text is not their glyphs'
+/// in drawing order (`ActualText`, right to left, vertical) stay whole.
+fn segments(text: &PageText, run: &TextRun, size: Pt) -> Vec<(String, RectPt)> {
+    let whole = || vec![(run.text.clone(), run.bounds)];
+    if run.actual_text || run.vertical || run.text.chars().any(is_right_to_left) {
+        return whole();
+    }
+    let Some(glyphs) = text.glyphs.get(run.glyphs.clone()) else {
+        return whole();
+    };
+    let (gutter, space) = (GUTTER * size.get(), SPACE * size.get());
+    let mut parts: Vec<(String, RectPt)> = Vec::new();
+    for glyph in glyphs {
+        let r = quad_box(&glyph.quad);
+        match parts.last_mut() {
+            Some((words, bbox)) if r.x0.get() - bbox.x1.get() <= gutter => {
+                let gap = r.x0.get() - bbox.x1.get();
+                if gap > space && !words.ends_with(char::is_whitespace) && !glyph.text.starts_with(char::is_whitespace)
+                {
+                    words.push(' ');
+                }
+                words.push_str(&glyph.text);
+                *bbox = bbox.union(&r);
+            }
+            _ => parts.push((glyph.text.clone(), r)),
+        }
+    }
+    if parts.len() <= 1 { whole() } else { parts }
 }
 
 fn is_vertical(line: &Line, pieces: &[Piece]) -> bool {
@@ -156,24 +206,33 @@ pub(crate) fn extract_page(
         height: frame.height(),
         coordinates: Coordinates::new(frame.rotate(), frame.user_unit(), frame.is_letter_fallback()),
     };
-    let Runs { pieces, spans, dropped } = runs(index, text, options);
-    let lines = lines(&pieces);
-    let vertical = lines.iter().filter(|l| is_vertical(l, &pieces)).count();
+    let Runs {
+        mut pieces,
+        mut spans,
+        dropped,
+    } = runs(index, text, options);
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
-    if vertical > 0 && vertical < lines.len() {
-        doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
-    }
-    let drafts = blocks(&lines, |l| is_vertical(l, &pieces));
-    let rtl = mostly_rtl(&lines.iter().map(|l| l.text.as_str()).collect::<String>());
-    let mut drafts = ordered(drafts, &lines, rtl, options, cancel)?;
+    // Before the grouping and the cuts, whose work grows faster than the runs do.
     let limit = options.limits.max_blocks_per_page;
-    if drafts.len() > usize::try_from(limit).unwrap_or(usize::MAX) {
+    let kept = usize::try_from(limit).unwrap_or(usize::MAX);
+    if pieces.len() > kept {
         doc.report(Warning::ExtractLimitBlocks {
             page: page_number,
             limit,
         })?;
-        drafts.truncate(usize::try_from(limit).unwrap_or(usize::MAX));
+        pieces.truncate(kept);
+        spans.truncate(kept);
     }
+    let lines = lines(&pieces);
+    let vertical = lines.iter().filter(|l| is_vertical(l, &pieces)).count();
+    if vertical > 0 && vertical < lines.len() {
+        doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
+    }
+    let drafts = blocks(&lines, |l| is_vertical(l, &pieces));
+    // Vertical writing (Chinese, Japanese) sets its columns right to left, as do right-to-left
+    // scripts.
+    let rtl = 2 * vertical > lines.len() || mostly_rtl(&lines.iter().map(|l| l.text.as_str()).collect::<String>());
+    let drafts = ordered(drafts, &lines, rtl, options, cancel)?;
     let confidence = match options.reading_order {
         ReadingOrder::ContentStream => CONTENT_CONFIDENCE,
         ReadingOrder::Auto | ReadingOrder::Layout => LAYOUT_CONFIDENCE,

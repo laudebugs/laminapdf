@@ -35,7 +35,7 @@ On the reading-order corpus in `fixtures/reading-order/`, every file reads in or
 
 ## Limits
 
-`ExtractLimits` bounds the work per page: `max_blocks_per_page` (10,000; blocks past it are left out with `extract-limit-blocks`) and `max_xycut_depth` (64; a deeper group reads top to bottom).
+`ExtractLimits` bounds the work per page: `max_blocks_per_page` (10,000; a page with more runs of text keeps its first runs, with `extract-limit-blocks`, before any grouping) and `max_xycut_depth` (64; a deeper group reads top to bottom).
 
 ## Tests
 

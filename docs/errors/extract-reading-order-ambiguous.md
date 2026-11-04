@@ -1,7 +1,7 @@
 # `extract-reading-order-ambiguous`
 
 - Type: warning
-- Kind: `input` (the input is malformed beyond what tolerance repairs)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
@@ -13,7 +13,7 @@ Japanese and Chinese pages often set the body vertically and captions, headings 
 
 ## How to fix
 
-Nothing to do in Lamina PDF. Check the order of that page's blocks, or ask for the order the content stream draws (`ReadingOrder::ContentStream`). A tagged file avoids the guess.
+Nothing to do in Lamina PDF; the file is valid. Like every warning, it fails the call in strict mode. Check the order of that page's blocks, or ask for the order the content stream draws (`ReadingOrder::ContentStream`). A tagged file avoids the guess.
 
 ## Example
 

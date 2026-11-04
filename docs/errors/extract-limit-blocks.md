@@ -5,7 +5,7 @@
 
 ## What happened
 
-A page had more blocks than `ExtractLimits::max_blocks_per_page` allows. Extraction kept the first blocks in reading order and left the rest out of the output.
+A page had more runs of text than `ExtractLimits::max_blocks_per_page` allows. Each run can be a block of its own, so extraction kept the first runs the page draws and left the rest out before grouping them, which keeps the work bounded.
 
 ## Why
 

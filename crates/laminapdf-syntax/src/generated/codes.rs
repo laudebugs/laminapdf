@@ -888,7 +888,7 @@ pub enum WarningCode {
     CmapInvalid,
     /// `unmapped-glyph`: a font shows glyphs that nothing maps to text.
     UnmappedGlyph,
-    /// `extract-limit-blocks`: a page had more blocks than the extraction limit; the rest were left out.
+    /// `extract-limit-blocks`: a page had more runs of text than the extraction block limit; the runs past it were left out.
     ExtractLimitBlocks,
     /// `extract-reading-order-ambiguous`: a page mixes horizontal and vertical writing, so the order of its blocks is a guess.
     ExtractReadingOrderAmbiguous,
@@ -1071,7 +1071,7 @@ impl WarningCode {
             Self::CmapInvalid => ErrorKind::Input,
             Self::UnmappedGlyph => ErrorKind::Input,
             Self::ExtractLimitBlocks => ErrorKind::Limit,
-            Self::ExtractReadingOrderAmbiguous => ErrorKind::Input,
+            Self::ExtractReadingOrderAmbiguous => ErrorKind::Unsupported,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
         }
@@ -1115,7 +1115,7 @@ impl WarningCode {
             Self::FontInvalid => "a font dictionary has a missing or malformed entry, so its text was decoded with defaults",
             Self::CmapInvalid => "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for",
             Self::UnmappedGlyph => "a font shows glyphs that nothing maps to text",
-            Self::ExtractLimitBlocks => "a page had more blocks than the extraction limit; the rest were left out",
+            Self::ExtractLimitBlocks => "a page had more runs of text than the extraction block limit; the runs past it were left out",
             Self::ExtractReadingOrderAmbiguous => "a page mixes horizontal and vertical writing, so the order of its blocks is a guess",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",

@@ -6,17 +6,18 @@
 use std::cmp::Ordering;
 
 use laminapdf_model::{Pt, RectPt};
+use laminapdf_text::extract::is_right_to_left;
 
 /// Baselines closer than this fraction of the size are one line (superscripts stay on it).
 const SAME_BASELINE: f64 = 0.5;
 
 /// A gap wider than this fraction of the size between two runs on one baseline is a column
 /// gutter, so the runs are on two lines. Word spaces stay well below it, even in justified text.
-const GUTTER: f64 = 1.0;
+pub(crate) const GUTTER: f64 = 1.0;
 
 /// A gap wider than this fraction of the size between two runs is a space (as `laminapdf-text`
 /// uses within a run).
-const SPACE: f64 = 0.25;
+pub(crate) const SPACE: f64 = 0.25;
 
 /// One visible run, in page space.
 #[derive(Debug, Clone, PartialEq)]
@@ -45,23 +46,14 @@ fn by_value(a: f64, b: f64) -> Ordering {
     a.partial_cmp(&b).unwrap_or(Ordering::Equal)
 }
 
-/// Whether `c` is written right to left (Hebrew, Arabic, Syriac, Thaana, N'Ko and their
-/// presentation forms).
-pub(crate) const fn is_rtl(c: char) -> bool {
-    matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFF}')
-}
-
 /// Whether more of `text`'s letters are right to left than left to right.
 pub(crate) fn mostly_rtl(text: &str) -> bool {
     let (rtl, ltr) = text
         .chars()
         .filter(|c| c.is_alphabetic())
-        .fold(
-            (0usize, 0usize),
-            |(r, l), c| {
-                if is_rtl(c) { (r + 1, l) } else { (r, l + 1) }
-            },
-        );
+        .fold((0usize, 0usize), |(r, l), c| {
+            if is_right_to_left(c) { (r + 1, l) } else { (r, l + 1) }
+        });
     rtl > ltr
 }
 

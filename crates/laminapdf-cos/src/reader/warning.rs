@@ -246,8 +246,8 @@ pub enum Warning {
         /// The font dictionary's object (`None` for a direct one).
         object: Option<u32>,
     },
-    /// `extract-limit-blocks`: a page had more blocks than the extraction's limit; the rest
-    /// were left out of the output. Raised by `laminapdf-extract`.
+    /// `extract-limit-blocks`: a page had more runs of text than the extraction's block limit
+    /// (each run can be a block); the runs past it were left out. Raised by `laminapdf-extract`.
     ExtractLimitBlocks {
         /// The page's index.
         page: u64,
@@ -425,8 +425,8 @@ impl Warning {
             | Self::ContentPathUnpainted { .. }
             | Self::FontInvalid { .. }
             | Self::CMapInvalid { .. }
-            | Self::UnmappedGlyph { .. }
-            | Self::ExtractReadingOrderAmbiguous { .. } => ErrorKind::Input,
+            | Self::UnmappedGlyph { .. } => ErrorKind::Input,
+            Self::ExtractReadingOrderAmbiguous { .. } => ErrorKind::Unsupported,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
             }

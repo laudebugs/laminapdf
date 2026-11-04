@@ -1144,7 +1144,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A page had more blocks than `ExtractLimits::max_blocks_per_page` allows. Extraction kept the first blocks in reading order and left the rest out of the output.
+A page had more runs of text than `ExtractLimits::max_blocks_per_page` allows. Each run can be a block of its own, so extraction kept the first runs the page draws and left the rest out before grouping them, which keeps the work bounded.
 
 ## Why
 
@@ -1176,7 +1176,7 @@ The decisions and todos behind this code:
         "extract-reading-order-ambiguous" => r"# `extract-reading-order-ambiguous`
 
 - Type: warning
-- Kind: `input` (the input is malformed beyond what tolerance repairs)
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
 
 ## What happened
 
@@ -1188,7 +1188,7 @@ Japanese and Chinese pages often set the body vertically and captions, headings 
 
 ## How to fix
 
-Nothing to do in Lamina PDF. Check the order of that page's blocks, or ask for the order the content stream draws (`ReadingOrder::ContentStream`). A tagged file avoids the guess.
+Nothing to do in Lamina PDF; the file is valid. Like every warning, it fails the call in strict mode. Check the order of that page's blocks, or ask for the order the content stream draws (`ReadingOrder::ContentStream`). A tagged file avoids the guess.
 
 ## Example
 

@@ -53,7 +53,7 @@ mod runs;
 
 pub use cmap::{CMap, Code};
 pub use font::MAX_USECMAP_DEPTH;
-pub use runs::TextRun;
+pub use runs::{TextRun, is_right_to_left};
 
 use std::sync::Arc;
 

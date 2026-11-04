@@ -104,15 +104,16 @@ impl Cutter<'_> {
             .filter(|&&i| !wide(i))
             .map(|&i| rect(self.boxes, i))
             .collect();
-        let under = |r: &RectPt, o: &RectPt| o.x0 < r.x1 && o.x1 > r.x0;
-        // Two narrow blocks side by side under `r`: it crosses a column gap.
+        // Two narrow blocks side by side under `r` (one ends left of where another starts): it
+        // crosses a column gap.
         let crosses = |r: &RectPt| {
-            narrow.iter().filter(|o| under(r, o)).any(|a| {
-                narrow
-                    .iter()
-                    .filter(|o| under(r, o))
-                    .any(|b| a.x1 <= b.x0 || b.x1 <= a.x0)
-            })
+            let (first_end, last_start) = narrow
+                .iter()
+                .filter(|o| o.x0 < r.x1 && o.x1 > r.x0)
+                .fold((f64::INFINITY, f64::NEG_INFINITY), |(end, start), o| {
+                    (end.min(o.x1.get()), start.max(o.x0.get()))
+                });
+            first_end <= last_start
         };
         let mut masked: Vec<usize> = all
             .iter()

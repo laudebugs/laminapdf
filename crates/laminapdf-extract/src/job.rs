@@ -13,7 +13,9 @@ use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
 
 /// An extraction in progress. Step it with the document it was made from until it returns
-/// [`Step::Done`]; an error or a cancellation ends it with no partial result.
+/// [`Step::Done`]; an error or a cancellation ends it with no partial result. The core document
+/// has no revision to compare, so the job trusts the caller to pass that document; the façade's
+/// job checks it (`document-changed`, ADR 0028 §3).
 #[derive(Debug)]
 pub struct ExtractJob {
     options: ExtractOptions,
@@ -35,7 +37,10 @@ pub struct ExtractJob {
 /// catalog).
 pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJob, ExtractError> {
     let count = doc.pages()?.len();
-    let todo = options.pages.clone().unwrap_or_else(|| (0..count).collect());
+    let mut todo = options.pages.clone().unwrap_or_else(|| (0..count).collect());
+    // A page asked for twice is extracted once, where it first appears, so block IDs stay unique.
+    let mut seen = std::collections::BTreeSet::new();
+    todo.retain(|&i| seen.insert(i));
     if let Some(&index) = todo.iter().find(|&&i| i >= count) {
         return Err(ExtractError::PageIndexOutOfRange { index, count });
     }
@@ -85,7 +90,8 @@ impl ExtractJob {
     }
 
     /// Extracts up to `budget` pages (at least one), then returns the progress (pages done of
-    /// the pages asked for) or, once every page is done, the extraction.
+    /// the pages asked for) or, once every page is done, the extraction. Each step walks the
+    /// page tree once, so step a long document with budgets of many pages, not one.
     ///
     /// # Errors
     /// `cancelled` once the token is cancelled; `job-finished` after the job returned its
