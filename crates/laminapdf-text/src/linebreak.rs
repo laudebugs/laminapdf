@@ -1,5 +1,5 @@
 //! Line-break opportunities ([UAX #14]) and grapheme clusters ([UAX #29]) from ICU4X's
-//! `icu_segmenter` with compiled data (todo B4b; research 03 §7.4).
+//! `icu_segmenter` with compiled data (research 03 §7.4).
 //!
 //! The segmenter follows the Unicode 17 rules (ICU4X's `new_17_for_non_complex_scripts`; the
 //! full `LineBreakTest-17.0.0.txt` passes but for 10 lines of dictionary scripts) and is built for scripts

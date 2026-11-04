@@ -1,4 +1,4 @@
-// The worker side of `@laminapdf/sdk/worker` (L2a, extended for C3a): `serve()` answers the
+// The worker side of `@laminapdf/sdk/worker`: `serve()` answers the
 // handshake, calls `init()`, keeps the documents and pages it made in a handle table, and runs one
 // call at a time (the WASM is synchronous). `dist/worker/entry.js` is `serve()` alone; a package
 // that needs more in the same worker (`@laminapdf/viewer`: render methods) passes a ServerExtension
@@ -307,7 +307,7 @@ async function documentCall(
     if (value instanceof PageRef) return pageRef(value, handle);
     return value;
   };
-  // A range document fetches what a call needs, then calls again (L2c).
+  // A range document fetches what a call needs, then calls again.
   return entry.range ? doc.ensure(run, { signal: context.signal }) : run();
 }
 

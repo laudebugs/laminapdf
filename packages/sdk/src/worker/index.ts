@@ -1,4 +1,4 @@
-// `@laminapdf/sdk/worker` (L2a): the async twin of the sync API, in a Web Worker.
+// `@laminapdf/sdk/worker`: the async twin of the sync API, in a Web Worker.
 export type { ConnectOptions, RemoteHttpOptions, WorkerInitOptions, WorkerWasmSource } from "./client.js";
 export { connect, WorkerClient } from "./client.js";
 export { Emitter } from "./emitter.js";

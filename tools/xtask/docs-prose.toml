@@ -57,6 +57,7 @@ internal_phrases = ["fast lane", "full lane"]          # case-insensitive
 repository_paths = ["crates/", "packages/", "fixtures/", "tools/", "apps/", "docs/", "spikes/"]  # prefixes, case-sensitive
 
 # Words that look like todo IDs (a capital, a number, a lowercase letter) but aren't, as written.
+# `check maintainability`'s todo-id check skips them in src/ too.
 id_exceptions = []
 
 # Sentence splitting: words that end with a full stop without ending the sentence.

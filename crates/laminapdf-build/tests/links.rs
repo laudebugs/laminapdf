@@ -10,8 +10,8 @@
 
 mod common;
 
-use common::b5b::URI;
 use common::text::lines;
+use common::text_and_navigation::URI;
 use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, Fit, LinkTarget, PageSize, Standard14};
 use laminapdf_cos::{Dict, ObjRef, Object};

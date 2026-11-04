@@ -9,7 +9,7 @@
 
 mod common;
 
-use common::b5b::LABELS;
+use common::text_and_navigation::LABELS;
 use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, LabelStyle, PageLabel, PageSize};
 use laminapdf_test_fixtures::fixture;

@@ -11,7 +11,7 @@
 
 mod common;
 
-use common::b5b::font;
+use common::text_and_navigation::font;
 use common::{at, rect, reopen, save};
 use laminapdf_build::{
     Attachment, BuildOptions, Builder, Color, Error, FillRule, IccProfile, Image, Metadata, PageSize, PdfVersion,

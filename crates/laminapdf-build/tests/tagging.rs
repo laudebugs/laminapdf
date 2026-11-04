@@ -15,7 +15,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::tagged::{FIGURE_ALT, PAGE_LINK, RUN_LINK, STRUCTURE, tagged_report, tagged_report_builder};
-use common::{b5b::font, reopen, save};
+use common::{reopen, save, text_and_navigation::font};
 use laminapdf_build::{
     ArtifactKind, BuildOptions, Builder, Color, ContentKind, FillRule, Image, PageSize, Standard14, Tag, TagDiagnostic,
     TagKind,

@@ -265,7 +265,7 @@ mod coalescing {
     }
 }
 
-mod review_fixes {
+mod coalescing_and_saved_state {
     use super::*;
 
     fn coalesce(doc: &mut laminapdf_ops::Document, key: &str, patch: InfoPatch) {

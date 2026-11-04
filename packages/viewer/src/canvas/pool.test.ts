@@ -1,4 +1,4 @@
-// CanvasPool (C3b): the canvas count and the total pixel cap.
+// CanvasPool: the canvas count and the total pixel cap.
 import { describe, expect, it } from "vitest";
 import { CanvasPool } from "./pool.js";
 

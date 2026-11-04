@@ -7,7 +7,7 @@ use laminapdf_build::{
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
-use super::{b5b, png, rgba_gradient, save, tagged};
+use super::{png, rgba_gradient, save, tagged, text_and_navigation};
 use laminapdf_test_fixtures::fixture;
 
 /// The code that builds one golden.
@@ -17,10 +17,10 @@ pub type Build = fn() -> Vec<u8>;
 pub const GOLDENS: [(&str, Build); 7] = [
     ("vectors.pdf", vectors),
     ("images.pdf", images),
-    ("build-text-latin.pdf", b5b::text_latin),
-    ("build-text-multiscript.pdf", b5b::text_multiscript),
-    ("links-and-outlines.pdf", b5b::links_and_outlines),
-    ("metadata.pdf", b5b::metadata),
+    ("build-text-latin.pdf", text_and_navigation::text_latin),
+    ("build-text-multiscript.pdf", text_and_navigation::text_multiscript),
+    ("links-and-outlines.pdf", text_and_navigation::links_and_outlines),
+    ("metadata.pdf", text_and_navigation::metadata),
     ("tagged-report.pdf", tagged::tagged_report),
 ];
 

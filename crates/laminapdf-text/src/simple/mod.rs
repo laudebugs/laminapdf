@@ -121,9 +121,9 @@ impl SimpleUse {
         Ok(glyphs.iter().filter_map(|&g| self.code_of(g)).collect())
     }
 
-    /// Records `text` for `code`. As for Type 0 fonts (B4b), the first text is kept, the empty
-    /// text included, and a different later text (empty or not) is returned as a warning (the
-    /// builder covers that occurrence with `/ActualText`).
+    /// Records `text` for `code`. As in a Type 0 font with CFF outlines (one CID per glyph), the
+    /// first text is kept, the empty text included, and a different later text (empty or not)
+    /// is returned as a warning (the builder covers that occurrence with `/ActualText`).
     fn record(&mut self, code: u8, gid: GlyphId, text: &str) -> Option<Warning> {
         let Some(kept) = self.text.get(&code) else {
             self.text.insert(code, text.to_owned());
@@ -337,7 +337,7 @@ mod tests {
 
     #[test]
     fn empty_then_real_text_conflicts() {
-        // B4b's rule for Type 0 fonts: the empty text is a text.
+        // As in Type 0 fonts, the empty text is a text.
         let mut usage = SimpleUse::new(Standard14::Symbol);
         let omega = glyph(Standard14::Symbol, "Omega");
         let (code, _) = usage.use_glyph(omega, "").unwrap();

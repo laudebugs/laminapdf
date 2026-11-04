@@ -1,6 +1,6 @@
 //! Simple-font encodings (ISO 32000-2 §9.6.5, Annex D; research 03 §4.1): one-byte codes →
 //! glyph names, and glyph names → Unicode through the Adobe Glyph List ([`crate::agl`]).
-//! Shared by the simple-font writer and by text extraction (B9b).
+//! Shared by the simple-font writer and by text extraction.
 
 mod pdfdoc;
 

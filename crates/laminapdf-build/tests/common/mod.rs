@@ -16,11 +16,11 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure; pixel values are in 0..=255"
 )]
 
-pub mod b5b;
 pub mod reading_order;
 pub mod samples;
 pub mod tagged;
 pub mod text;
+pub mod text_and_navigation;
 
 use laminapdf_content::{ImageDraw, ImageSource, PathPaint, PathSegment, Visitor, interpret_page};
 use laminapdf_cos::{Object, OpenOptions, Warning};

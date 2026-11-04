@@ -1,4 +1,4 @@
-// ADR 0004's default web renderer (todo C2c): the pinned PDFium-WASM build behind
+// ADR 0004's default web renderer: the pinned PDFium-WASM build behind
 // @laminapdf/render's RenderBackend. It mirrors the native adapter (laminapdf-render-pdfium):
 // - input through PDFium's custom file access over a RenderSource (no whole copy); a read the
 //   source can't answer yet makes the call throw `data-pending` with the ranges;

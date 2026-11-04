@@ -1,4 +1,4 @@
-// httpRangeSource (L2c): a remote PDF read with HTTP Range requests. Errors never carry the URL
+// httpRangeSource: a remote PDF read with HTTP Range requests. Errors never carry the URL
 // (ADR 0026 §4): it may hold tokens.
 import { packageError } from "../errors.js";
 import { type RangeSource, WHOLE } from "./range.js";

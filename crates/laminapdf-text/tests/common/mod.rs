@@ -33,6 +33,11 @@ pub fn font(name: &str) -> Font {
     Font::from_bytes(laminapdf_test_fixtures::fixture(&format!("fonts/{name}"))).unwrap()
 }
 
+/// Noto Sans, the Latin TrueType font most tests draw with.
+pub fn latin() -> Font {
+    font("NotoSans-Regular.ttf")
+}
+
 /// The offset of table `tag` in a single-font `sfnt`.
 pub fn table_offset(bytes: &[u8], tag: [u8; 4]) -> usize {
     let num_tables = usize::from(u16::from_be_bytes([bytes[4], bytes[5]]));

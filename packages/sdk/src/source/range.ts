@@ -1,4 +1,4 @@
-// Range sources (L2c): a document whose bytes arrive range by range. The WASM reads
+// Range sources: a document whose bytes arrive range by range. The WASM reads
 // synchronously from a sparse source; when bytes are missing it throws `data-pending` with the
 // ranges it needs, and the loop here fetches them, supplies them and calls again.
 import type { WasmSparseSource } from "@laminapdf/wasm/base";
@@ -16,7 +16,7 @@ export interface ByteRange {
 
 /**
  * Random access to a file whose bytes are fetched on demand (a remote file, a `Blob`, a file
- * handle). Matches the viewer's source interface (C3a).
+ * handle). `@laminapdf/viewer`'s document worker reads a `Blob` through it too.
  */
 export interface RangeSource {
   /** The file's size in bytes. */

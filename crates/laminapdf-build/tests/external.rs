@@ -16,7 +16,7 @@ mod common;
 
 use std::fmt::Write as _;
 
-use common::b5b::{self, URI, golden_metadata};
+use common::text_and_navigation::{self, URI, golden_metadata};
 use laminapdf_test_fixtures::fixture;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -47,8 +47,11 @@ fn goldens() -> Vec<(&'static str, Vec<Vec<String>>)> {
             .collect()
     };
     vec![
-        ("build-text-latin.pdf", b5b::text_latin_drawn().1),
-        ("build-text-multiscript.pdf", b5b::text_multiscript_drawn().1),
+        ("build-text-latin.pdf", text_and_navigation::text_latin_drawn().1),
+        (
+            "build-text-multiscript.pdf",
+            text_and_navigation::text_multiscript_drawn().1,
+        ),
         (
             "links-and-outlines.pdf",
             owned(&[
@@ -223,7 +226,7 @@ fn page_labels_read_back_in_both_readers() {
     for extractor in EXTRACTORS {
         assert_eq!(
             facts["files"]["links-and-outlines.pdf"][extractor]["page_labels"],
-            json!(b5b::LABELS),
+            json!(text_and_navigation::LABELS),
             "{extractor}"
         );
     }

@@ -185,7 +185,7 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 
 /// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@laminapdf/render`
 /// built, then `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` (over the `wasm` job's
-/// `lamina_pdf_render_hayro.wasm`), each with C2b's goldens, and `@laminapdf/viewer`'s document worker and RPC
+/// `lamina_pdf_render_hayro.wasm`), each with the native render goldens, and `@laminapdf/viewer`'s document worker and RPC
 /// (C3a, built first). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;

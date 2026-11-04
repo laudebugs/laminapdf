@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2t` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
+| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2t-history-out-of-names` |
 | PR title | `refactor: name tests for behaviour; no todo IDs in src comments` |
 | Size | S |
-| PR | — |
+| PR | [#223](https://github.com/laudebugs/laminapdf/pull/223) |
 
 ## Goal
 
@@ -34,15 +34,15 @@ Test files are named after reviews and todos (`laminapdf-text/tests/review_b4b.r
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] List the files and comments with the grep.
-- [ ] Rename or fold each test file; run its crate's tests.
-- [ ] Rewrite each comment.
-- [ ] Add the ban to `check maintainability`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] List the files and comments with the grep.
+- [x] Rename or fold each test file; run its crate's tests.
+- [x] Rewrite each comment.
+- [x] Add the ban to `check maintainability`.
 
 ## Acceptance criteria
 
-- [ ] No todo ID in `crates/*/src` or `packages/*/src`; no test file named after a review or todo; the ban passes.
+- [x] No todo ID in `crates/*/src` or `packages/*/src`; no test file named after a review or todo; the ban passes.
 
 ## Post-merge checks
 
@@ -62,9 +62,9 @@ Some IDs carry context: move the context into the comment's words.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

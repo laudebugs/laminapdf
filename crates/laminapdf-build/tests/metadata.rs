@@ -10,7 +10,7 @@
 
 mod common;
 
-use common::b5b::{self, golden_metadata};
+use common::text_and_navigation::{self, golden_metadata};
 use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, Metadata, PageSize};
 use laminapdf_cos::Object;
@@ -152,8 +152,8 @@ fn unicode_and_markup_survive_both() {
 
 #[test]
 fn no_ambient_time_the_same_options_give_the_same_bytes() {
-    assert_eq!(b5b::metadata(), b5b::metadata());
-    assert_eq!(b5b::metadata(), fixture("golden/metadata.pdf"));
+    assert_eq!(text_and_navigation::metadata(), text_and_navigation::metadata());
+    assert_eq!(text_and_navigation::metadata(), fixture("golden/metadata.pdf"));
 }
 
 #[test]

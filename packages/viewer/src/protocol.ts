@@ -1,5 +1,5 @@
-// The viewer's methods on the document worker (C3a, ADR 0009 §3). They extend `@laminapdf/sdk/worker`
-// (L2a): one protocol, one queue and one cancellation path for both, with the viewer's methods
+// The viewer's methods on the document worker (ADR 0009 §3). They extend `@laminapdf/sdk/worker`:
+// one protocol, one queue and one cancellation path for both, with the viewer's methods
 // added through `serve({ methods })` in the worker and `client.request` on the page. This module
 // holds what both sides agree on: the method map (params and results), the priorities and the
 // coalescing key.

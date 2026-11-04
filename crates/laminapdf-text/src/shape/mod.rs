@@ -1,4 +1,4 @@
-//! Shaping (todo B4b; research 03 §7.2): characters → positioned glyphs through the font's
+//! Shaping (research 03 §7.2): characters → positioned glyphs through the font's
 //! OpenType layout tables (GSUB substitutions such as ligatures and contextual forms, GPOS
 //! kerning and mark attachment) and the script-specific shapers (Arabic joining, Indic
 //! reordering). [`Shaper`] is the seam; [`HarfRust`] (HarfBuzz's algorithm in Rust,

@@ -97,7 +97,7 @@ pub enum Error {
         /// not part of this API).
         reason: &'static str,
     },
-    /// An OpenType feature setting that does not parse (B4b): see
+    /// An OpenType feature setting that does not parse: see
     /// [`Feature`](crate::Feature)'s syntax (`liga`, `-liga`, `liga=0`, `aalt=2`).
     #[error("not an OpenType feature setting")]
     InvalidFeature {
@@ -105,7 +105,7 @@ pub enum Error {
         feature: String,
     },
     /// A byte range of a text that is out of bounds or does not fall on character boundaries
-    /// (B4b: [`Shaper::shape_range`](crate::Shaper::shape_range)).
+    /// ([`Shaper::shape_range`](crate::Shaper::shape_range)).
     #[error("text range {start}..{end} is not a character range of the {len}-byte text")]
     InvalidTextRange {
         /// The range's start (bytes).
@@ -115,7 +115,7 @@ pub enum Error {
         /// The text's length (bytes).
         len: usize,
     },
-    /// A layout option Lamina PDF does not implement yet (B4b: `LayoutOptions::justify`).
+    /// A layout option Lamina PDF does not implement yet (`LayoutOptions::justify`).
     #[error("layout option {option} is not supported yet")]
     UnsupportedLayoutOption {
         /// The option's name (fixed text).

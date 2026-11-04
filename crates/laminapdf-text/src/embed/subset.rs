@@ -261,7 +261,7 @@ pub(crate) fn subset_tag(font: &Font, glyphs: &[(u16, GlyphId)], salt: u32) -> S
         .collect()
 }
 
-/// A glyph's advance as `/W` writes it and as the shaped runs' `TJ` numbers (B4b) assume it:
+/// A glyph's advance as `/W` writes it and as the shaped runs' `TJ` numbers assume it:
 /// the original font's advance at the instance's location, rounded to a whole font unit, in
 /// millionths of an em. One function for both, so the two can't disagree.
 pub(crate) fn advance_milli(metrics: &skrifa::metrics::GlyphMetrics<'_>, gid: GlyphId, upem: u16) -> i64 {
@@ -270,7 +270,7 @@ pub(crate) fn advance_milli(metrics: &skrifa::metrics::GlyphMetrics<'_>, gid: Gl
 }
 
 /// `units` font units in millionths of an em (thousandths of a `/W` unit), rounded: the one
-/// conversion `/W` and the shaped runs' `TJ` numbers (B4b) both use.
+/// conversion `/W` and the shaped runs' `TJ` numbers both use.
 pub(crate) fn milli(units: f64, upem: u16) -> i64 {
     round_i64(units * 1_000_000.0 / f64::from(upem.max(1)))
 }

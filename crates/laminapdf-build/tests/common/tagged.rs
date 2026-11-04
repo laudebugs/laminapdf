@@ -11,7 +11,7 @@ use laminapdf_build::{
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
-use super::{b5b::font, save};
+use super::{save, text_and_navigation::font};
 
 /// The figure's alternate text.
 pub const FIGURE_ALT: &str = "A bar chart of sales by quarter, rising from 120 to 310";

@@ -1,4 +1,4 @@
-// Which members of the sync API the worker client serves (L2a), with their arity (0 for a
+// Which members of the sync API the worker client serves, with their arity (0 for a
 // getter): the client splits a call's arguments into the method's and the trailing
 // `CallOptions`. Each map must name every member
 // of its class except the excluded ones (`satisfies` makes a missing or extra name a `tsc`

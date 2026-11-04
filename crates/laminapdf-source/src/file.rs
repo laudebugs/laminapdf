@@ -9,7 +9,8 @@ use laminapdf_cos::{ByteSource, SourceError};
 /// A file read on demand with positioned reads (`pread` on Unix, `seek_read` on Windows), so
 /// several threads can read it at once without a shared cursor. The length is taken at open;
 /// a file that shrinks afterwards answers [`SourceError::Failed`] for the missing bytes, never
-/// a crash. The default for large local files (D2b keeps mmap out of the desktop process).
+/// a crash. The default for large local files, since a mapping (`MmapSource`) of a file
+/// truncated underneath kills the process with `SIGBUS`.
 #[derive(Debug)]
 pub struct FileSource {
     file: File,

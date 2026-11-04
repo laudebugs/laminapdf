@@ -1,4 +1,4 @@
-// Zoom (C3b): the fit modes for portrait, landscape and rotated pages, the range, and anchoring.
+// Zoom: the fit modes for portrait, landscape and rotated pages, the range, and anchoring.
 import { describe, expect, it } from "vitest";
 import { CSS_PX_PER_PT, PageLayout } from "../layout/page-layout.js";
 import { percentOfScale, pointAt, scaleFor, scrollToPoint } from "./zoom.js";

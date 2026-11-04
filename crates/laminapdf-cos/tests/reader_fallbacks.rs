@@ -1,7 +1,7 @@
-//! Regressions from the review of PR #13: every fallback in the reader either degrades with
-//! the right warning or passes the error on (ADR 0003 §1–3); object-stream members obey the
-//! same limits as in-file objects; sources are read safely and shared. (The writer cases, `/Size`
-//! never shrinking, moved to `laminapdf-save`'s `tests/review_fixes.rs` in B3b.)
+//! Every fallback in the reader either degrades with the right warning or passes the error on
+//! (ADR 0003 §1–3); object-stream members obey the same limits as in-file objects; sources are
+//! read safely and shared. (The writer's side, `/Size` never shrinking, is in
+//! `laminapdf-save`'s `tests/xref_size.rs`.)
 #![allow(
     clippy::unwrap_used,
     clippy::panic,

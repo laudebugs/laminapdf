@@ -1,4 +1,4 @@
-//! Glyphs to runs and runs to lines (todo B9d; research 03 §5.3, §8.1).
+//! Glyphs to runs and runs to lines (research 03 §5.3, §8.1).
 
 use std::ops::Range;
 use std::sync::Arc;
@@ -407,9 +407,9 @@ pub(super) fn lines(glyphs: &[Glyph], runs: &[TextRun]) -> Vec<String> {
 
 /// Units joined in the order given, with a space between two that don't overlap with a gap of
 /// over a quarter of the size: the next one starts that far after the previous one ends, or
-/// lies wholly that far behind its start (a table cell or column drawn out of order; todo
-/// B9e). Units that overlap (an accent drawn over its letter, an overprint, fake bold) or
-/// abut (glyphs drawn backwards one by one) get none.
+/// lies wholly that far behind its start (a table cell or column drawn out of order). Units
+/// that overlap (an accent drawn over its letter, an overprint, fake bold) or abut (glyphs
+/// drawn backwards one by one) get none.
 fn join(units: &[Unit<'_>]) -> String {
     let mut line = String::new();
     let mut previous: Option<&Unit<'_>> = None;

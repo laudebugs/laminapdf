@@ -703,7 +703,7 @@ fn descendant(reader: &mut Reader<'_>, dict: &Dict) -> Result<Option<Dict>> {
 /// `/FontBBox` through `/FontMatrix` (from `dict`); else the descriptor's `/Ascent` and
 /// `/Descent`, else its `/FontBBox`; else a standard 14 font's AFM values; else
 /// [`DEFAULT_EXTENT`]. A positive descent (a sign error some producers make) counts as
-/// negative. (pdf.js and PDFium differ here; B9c's quad tests set the tolerance.)
+/// negative. (pdf.js and PDFium differ here, so the quad tests compare within a tolerance.)
 fn extent(
     reader: &mut Reader<'_>,
     dict: &Dict,

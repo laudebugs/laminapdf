@@ -1,4 +1,4 @@
-// The remote handles' types (L2a): each served member of the sync class becomes an async method
+// The remote handles' types: each served member of the sync class becomes an async method
 // of the same name. Methods keep their parameters (plus `CallOptions`) and return a Promise of
 // their result; getters become methods with no parameters. A `PageRef` result is a RemotePage.
 import type { Document, PageRef } from "../document.js";
