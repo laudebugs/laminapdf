@@ -98,7 +98,7 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 | [0027](../decisions/0027-coordinates-units-and-page-indexing.md) (Accepted, owner 2026-10-29) | Coordinates, units and page indexing in public APIs | [L1a](../todos/done/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted, owner 2026-10-29) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
 | [0029](../decisions/0029-mobile-bindings-and-packaging.md) (Accepted, 2026-10-30) | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
-| 0030 | Extraction output (`laminapdf.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
+| 0030 | Extraction output (`laminapdf.extract/1`) and model plug-ins | [L3a](../todos/ongoing/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/done/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 
 ## 7. Rounds
@@ -121,7 +121,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L3. AI-ready extraction
 
-**Todos:** [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) (ADR 0030, `laminapdf-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
+**Todos:** [L3a](../todos/ongoing/L3a-lamina-extract-reading-order.md) (ADR 0030, `laminapdf-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
 
 **Deliverable:** `laminapdf-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `laminapdf.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
 **Accepted when:** reading-order and table scores are measured on a public benchmark subset and recorded; every block carries a bbox in top-left points; hidden text never appears in Markdown and is flagged in JSON.
@@ -157,7 +157,7 @@ This plan adjusts these todos (edited in the same PR):
 - [B6b](../todos/done/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
 - [C3a](../todos/done/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@laminapdf/sdk/worker` instead of a second protocol.
 - [C2a](../todos/done/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
-- [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `laminapdf-extract`'s ordering.
+- [L3a](../todos/ongoing/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `laminapdf-extract`'s ordering.
 - [L6a](../todos/done/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
 - [E10d](../todos/ready/E10d-pades-signing-core.md): the `Signer` is two-phase (`prepare` returns the digest, `finish` takes the signature) so WebCrypto, the Secure Enclave and HSMs fit a synchronous core.
 

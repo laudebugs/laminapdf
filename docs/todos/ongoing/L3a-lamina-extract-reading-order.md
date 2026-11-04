@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (3, 5, 7) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [B8a](../done/B8a-structure-tree.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md), [L1a](../done/L1a-contract-adrs.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
-| Blocks | [L3b](./L3b-extract-tables-and-serialisers.md) |
+| Blocks | [L3b](../ready/L3b-extract-tables-and-serialisers.md) |
 | ADRs | Writes **0030** (extraction output `laminapdf.extract/1` and model plug-in policy); follows 0026 (errors), 0027 (coordinates, top-left points), 0028 (jobs, cancellation) from [L1a](../done/L1a-contract-adrs.md), 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)), [0001](../../decisions/0001-core-language-and-licence.md) (licences, bytes in / bytes out), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (warnings, `Limits`), [0018](../../decisions/0018-test-strategy.md) (goldens, fuzz) |
 | Branch | `feat/l3a-lamina-extract` |
 | PR title | `feat(extract): ADR 0030 and laminapdf-extract with blocks, reading order and hidden-text flags` |
@@ -16,11 +16,11 @@
 
 ## Goal
 
-Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: blocks (paragraphs, headings, list items) in reading order, each with a bounding box in top-left points, page index and number, structure path, and visibility flags. Reading order comes from the structure tree when the file is tagged and the tree is plausible, and from XY-Cut++ otherwise. Running headers and footers are removed, hyphenated line breaks are joined, and hidden text is flagged and dropped from the text output with a record of what was dropped. ADR 0030 fixes the `laminapdf.extract/1` output model and the rule that models are optional plug-ins outside core. Tables, serialisers and bindings follow in [L3b](./L3b-extract-tables-and-serialisers.md); model traits in [L3c](./L3c-model-plugins.md).
+Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: blocks (paragraphs, headings, list items) in reading order, each with a bounding box in top-left points, page index and number, structure path, and visibility flags. Reading order comes from the structure tree when the file is tagged and the tree is plausible, and from XY-Cut++ otherwise. Running headers and footers are removed, hyphenated line breaks are joined, and hidden text is flagged and dropped from the text output with a record of what was dropped. ADR 0030 fixes the `laminapdf.extract/1` output model and the rule that models are optional plug-ins outside core. Tables, serialisers and bindings follow in [L3b](../ready/L3b-extract-tables-and-serialisers.md); model traits in [L3c](../ready/L3c-model-plugins.md).
 
 ## Context
 
-- [U2b](../done/U2b-reading-order-ground-truth.md): the hand-checked reading-order corpus and metric. This crate's reading order is measured with that metric, and the reader's copy and reader mode ([U2a](./U2a-selection-surfaces-and-copy-modes.md), [U4b](./U4b-reader-mode-from-structure-tree.md)) should use this crate's ordering rather than a second implementation.
+- [U2b](../done/U2b-reading-order-ground-truth.md): the hand-checked reading-order corpus and metric. This crate's reading order is measured with that metric, and the reader's copy and reader mode ([U2a](../ready/U2a-selection-surfaces-and-copy-modes.md), [U4b](../ready/U4b-reader-mode-from-structure-tree.md)) should use this crate's ordering rather than a second implementation.
 - [Report: rule-based extraction in core, models as licence-clean plug-ins](../../research/libraries/shareable-libraries.md#rule-based-extraction-in-core-models-as-licence-clean-plug-ins): rules reach about 0.90 reading-order accuracy at 15 ms a page (OpenDataLoader's vendor benchmark); fewer than 20% of PDFs are tagged; the proposed JSON shape; the hidden-text security point.
 - [AI extraction note §B](../../research/libraries/notes/llm-api-and-ai-extraction.md#b-ai-consumption-primitives-the-2026-landscape-algorithms-bboxprovenance-schema-tagged-pdf-and-rule-based-vs-model-based): algorithms (XY-cut, XY-Cut++, Docstrum), header/footer and de-hyphenation heuristics, bbox conventions of Textract, Azure, Docling and OpenDataLoader, and the full proposed `laminapdf.extract/1` example.
 - [Report: coordinates must be an explicit, typed field](../../research/libraries/shareable-libraries.md#coordinates-must-be-an-explicit-typed-field) and ADR 0027 (from [L1a](../done/L1a-contract-adrs.md)): points, top-left origin, y down; 0-based `index` plus 1-based `number`; record CropBox, `/Rotate` and `/UserUnit`.
@@ -54,9 +54,9 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 
 **Out of scope** (and which todo covers it)
 
-- Tables (lattice and stream), Markdown/JSON/chunk serialisers, JSON Schema file, façade, WASM and TS exposure, benchmark scores: [L3b](./L3b-extract-tables-and-serialisers.md).
-- `LayoutModel` and `OcrEngine` traits and the model edge crate: [L3c](./L3c-model-plugins.md).
-- CLI `laminapdf extract`: [L4b](./L4b-cli-batch-render-schema.md).
+- Tables (lattice and stream), Markdown/JSON/chunk serialisers, JSON Schema file, façade, WASM and TS exposure, benchmark scores: [L3b](../ready/L3b-extract-tables-and-serialisers.md).
+- `LayoutModel` and `OcrEngine` traits and the model edge crate: [L3c](../ready/L3c-model-plugins.md).
+- CLI `laminapdf extract`: [L4b](../ready/L4b-cli-batch-render-schema.md).
 - Formulas, figure descriptions, form-field values in output: later (record in ADR 0030 as future block kinds).
 - Editing the structure tree or auto-tagging: full-editor E15.
 
