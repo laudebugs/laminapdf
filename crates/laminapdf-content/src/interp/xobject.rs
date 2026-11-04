@@ -3,11 +3,11 @@
 use std::sync::Arc;
 
 use laminapdf_cos::{Error, Limit, Name, ObjRef, Object, Position, Result, Stream, Warning};
+use laminapdf_model::Matrix;
 
 use super::{Frame, Interpreter, name, offset_u64};
 use crate::lexer::Op;
 use crate::resources;
-use crate::state::Matrix;
 use crate::visitor::{FormXObject, ImageDraw, ImageSource, Visitor};
 
 impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
@@ -123,7 +123,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
         };
         let resources = own.or_else(|| frame.resources.clone());
         let mut gs = frame.gs.clone();
-        gs.ctm = matrix.multiply(&gs.ctm);
+        gs.ctm = matrix.then(&gs.ctm);
         let entry = gs.clone();
         let enter = FormXObject {
             name: n,

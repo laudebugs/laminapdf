@@ -90,7 +90,9 @@ use laminapdf_test_fixtures::codes as test_codes;
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result};
-pub use laminapdf_model::{LabelStyle, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use laminapdf_model::{
+    Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt, Rotation,
+};
 #[cfg(feature = "text")]
 pub use laminapdf_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14};
 pub use meta::{Metadata, PageLayout, PageMode, ViewerPreferences};
@@ -99,8 +101,8 @@ pub use page::{PageBuilder, PageSize};
 pub use profile::Profile;
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
-pub use surface::path::{FillRule, Matrix, PathBuilder};
-pub use surface::style::{BlendMode, Dash, LineCap, LineJoin, StrokeStyle};
+pub use surface::path::PathBuilder;
+pub use surface::style::{BlendMode, LineCap, LineJoin, StrokeStyle};
 #[cfg(feature = "text")]
 pub use surface::text::{Font, TextRenderMode, TextRun};
 #[cfg(feature = "text")]

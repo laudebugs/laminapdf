@@ -1,5 +1,6 @@
-//! Typed, tolerant views over a PDF's COS graph ([ADR 0005] §4) and the stable
-//! [`LaminaPdfId`]s that ops, undo and sync address (§5).
+//! Typed, tolerant views over a PDF's COS graph ([ADR 0005] §4), the stable
+//! [`LaminaPdfId`]s that ops, undo and sync address (§5), and the graphics values that
+//! building and reading share ([`Matrix`], [`FillRule`], [`Dash`]).
 //!
 //! ```
 //! use laminapdf_model::{Document, OpenOptions, Rotation};
@@ -66,6 +67,7 @@
 mod date;
 mod document;
 mod geometry;
+mod graphics;
 mod id;
 mod info;
 mod labels;
@@ -78,6 +80,7 @@ mod tree;
 pub use date::{InvalidDate, PdfDate};
 pub use document::Document;
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
+pub use graphics::{Dash, FillRule, Matrix};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};

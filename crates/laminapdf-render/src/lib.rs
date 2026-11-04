@@ -23,6 +23,7 @@ pub use error::RenderError;
 #[cfg(feature = "hayro")]
 pub use hayro::HayroBackend;
 pub use laminapdf_cos::{ByteSource, SourceError, merge_ranges};
+pub use laminapdf_model::Matrix;
 pub use laminapdf_syntax::{CancelToken, Rotation};
 pub use request::{
     BYTES_PER_PIXEL, PixelRect, RenderFlags, RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, Rgba8,

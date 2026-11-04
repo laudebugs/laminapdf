@@ -86,7 +86,7 @@ fn round(v: f64) -> f64 {
 impl Visitor for Recorder {
     fn path_segment(&mut self, segment: &PathSegment, ctm: &laminapdf_content::Matrix) {
         let mut at = |x: f64, y: f64| {
-            let (x, y) = ctm.transform_point(x, y);
+            let (x, y) = ctm.apply(x, y);
             self.pending.push((round(x), round(y)));
         };
         match *segment {
@@ -124,7 +124,7 @@ impl Visitor for Recorder {
         };
         let ctm = image.state.ctm;
         let corner = |x, y| {
-            let (x, y) = ctm.transform_point(x, y);
+            let (x, y) = ctm.apply(x, y);
             (round(x), round(y))
         };
         self.images.push(Drawn {

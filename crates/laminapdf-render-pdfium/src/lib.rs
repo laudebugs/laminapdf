@@ -282,14 +282,7 @@ impl RenderDocument for PdfiumDocument {
                 // own size, with no rotation or scale of its own.
                 let m = plan.page_to_tile(&info, request.rotation);
                 #[expect(clippy::cast_possible_truncation, reason = "PDFium's matrix is f32")]
-                let matrix = PdfMatrix::new(
-                    m[0] as f32,
-                    m[1] as f32,
-                    m[2] as f32,
-                    m[3] as f32,
-                    m[4] as f32,
-                    m[5] as f32,
-                );
+                let matrix = PdfMatrix::new(m.a as f32, m.b as f32, m.c as f32, m.d as f32, m.e as f32, m.f as f32);
                 config
                     .render_form_data(false)
                     .set_fixed_size(int(plan.tile.width)?, int(plan.tile.height)?)

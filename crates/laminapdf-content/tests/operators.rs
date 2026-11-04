@@ -164,7 +164,7 @@ fn an_inline_image_is_reported_with_the_ctm() {
         rec.events,
         [Event::Image {
             inline: true,
-            ctm: laminapdf_content::Matrix::new(20.0, 0.0, 0.0, 10.0, 5.0, 5.0)
+            ctm: laminapdf_content::Matrix::new([20.0, 0.0, 0.0, 10.0, 5.0, 5.0])
         }]
     );
 }

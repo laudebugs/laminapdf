@@ -7,6 +7,7 @@
 
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
+use crate::graphics::Matrix;
 use crate::page::Rotation;
 
 /// A length in points: 1/72 inch, physical (`/UserUnit` applied). Page-space geometry is in
@@ -379,25 +380,22 @@ impl PageFrame {
 
     /// A page-space point in user space: the inverse of [`PageFrame::to_page`].
     #[must_use]
-    #[expect(clippy::many_single_char_names, reason = "a–f are the matrix entries of §8.3.4")]
     pub fn to_user_space(&self, p: PointPt) -> UserSpacePoint {
-        let [a, b, c, d, e, f] = self.to_user_space_matrix();
-        let (x, y) = (p.x.get(), p.y.get());
-        UserSpacePoint::new(a * x + c * y + e, b * x + d * y + f)
+        let (x, y) = self.to_user_space_matrix().apply(p.x.get(), p.y.get());
+        UserSpacePoint::new(x, y)
     }
 
-    /// [`PageFrame::to_user_space`] as a PDF matrix `[a b c d e f]` (§8.3.4): a page-space
-    /// point `(x, y)` in points maps to `(a·x + c·y + e, b·x + d·y + f)` in user space.
+    /// [`PageFrame::to_user_space`] as a matrix (§8.3.4): page-space points to user space.
     #[must_use]
-    pub fn to_user_space_matrix(&self) -> [f64; 6] {
+    pub fn to_user_space_matrix(&self) -> Matrix {
         let UserSpaceRect { x0, y0, x1, y1 } = self.crop_box;
         let s = 1.0 / self.user_unit;
-        match self.rotate {
+        Matrix::new(match self.rotate {
             Rotation::None => [s, 0.0, 0.0, -s, x0, y1],
             Rotation::Clockwise90 => [0.0, s, s, 0.0, x0, y0],
             Rotation::Half => [-s, 0.0, 0.0, s, x1, y0],
             Rotation::Clockwise270 => [0.0, -s, -s, 0.0, x1, y1],
-        }
+        })
     }
 
     /// A page-space rectangle in user space (normalised: rotation and the y flip swap

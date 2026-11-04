@@ -19,7 +19,7 @@ use writer::Writer;
 
 #[cfg(feature = "text")]
 use laminapdf_model::PointPt;
-use laminapdf_model::{PageFrame, Pt, RectPt, UserSpaceRect};
+use laminapdf_model::{FillRule, Matrix, PageFrame, Pt, RectPt, UserSpaceRect};
 #[cfg(feature = "text")]
 use laminapdf_text::{Alignment, FontRegistry};
 
@@ -34,7 +34,7 @@ use crate::tag::mcid::{Marking, PageMarks};
 use crate::tag::{ArtifactKind, Tag, TagKind};
 use color::Color;
 use image::Image;
-use path::{FillRule, Matrix, PathBuilder, Segment};
+use path::{PathBuilder, Segment};
 use style::{BlendMode, StrokeStyle};
 #[cfg(feature = "text")]
 use text::{Font, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
@@ -605,7 +605,7 @@ impl Surface {
         target: &mut TextTarget<'_>,
         marking: Marking,
     ) -> Result<Rendered> {
-        let to_user = Matrix::new(frame.to_user_space_matrix());
+        let to_user = frame.to_user_space_matrix();
         // The frame maps page space to user space with a positive /UserUnit: never singular.
         let from_user = to_user.invert().unwrap_or(Matrix::IDENTITY);
         let unit = frame.user_unit();
