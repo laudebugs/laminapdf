@@ -32,7 +32,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Other test helpers ([Q2c](../done/Q2c-test-fixtures-crate.md), [Q2x](../ongoing/Q2x-test-fixtures-migration.md)).
+- Other test helpers ([Q2c](../done/Q2c-test-fixtures-crate.md), [Q2x](../done/Q2x-test-fixtures-migration.md)).
 
 ## Tasks
 

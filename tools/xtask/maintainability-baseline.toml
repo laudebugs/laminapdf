@@ -9,14 +9,9 @@
 size-expects = 12
 
 # Files that still copy a shared Rust test helper (`fn fixtures_dir`, `fn classic`) or include
-# another crate's file with `#[path]`, instead of using laminapdf-test-fixtures (Q2c). Q2x
-# migrates them; the list only shrinks.
-test-helpers = [
-    "crates/laminapdf-build/tests/common/mod.rs",
-    "crates/laminapdf-content/tests/common/mod.rs",
-    "crates/laminapdf-source/tests/common/mod.rs",
-    "crates/laminapdf-text/tests/common/mod.rs",
-]
+# another crate's file with `#[path]`, instead of using laminapdf-test-fixtures (Q2c). Empty since
+# Q2x, so the ban holds everywhere; the list only shrinks, so it stays empty.
+test-helpers = []
 
 # Modules over the 800-line budget: path = lines of non-test code (blank lines, comment lines
 # and #[cfg(test)] items don't count). The splits in the quality plan's §6 clear them.

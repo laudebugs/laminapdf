@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
-| Blocks | [Q2d](./Q2d-one-serialiser.md), [Q2x](../ongoing/Q2x-test-fixtures-migration.md) |
+| Blocks | [Q2d](./Q2d-one-serialiser.md), [Q2x](./Q2x-test-fixtures-migration.md) |
 | ADRs | None |
 | Branch | `refactor/q2c-test-fixtures-crate` |
 | PR title | `refactor(tests): laminapdf-test-fixtures for shared Rust test helpers (core crates)` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Rust test helpers are copied across crates and linked by 35 `#[path = "../../other-crate/…"]` includes. This todo creates an unpublished, dev-only `crates/laminapdf-test-fixtures` with no lamina dependencies, so `laminapdf-cos`'s own unit tests can use it too. It moves the shared helpers there and migrates laminapdf-cos, laminapdf-model, laminapdf-save and laminapdf-ops. [Q2x](../ongoing/Q2x-test-fixtures-migration.md) migrates the rest.
+Rust test helpers are copied across crates and linked by 35 `#[path = "../../other-crate/…"]` includes. This todo creates an unpublished, dev-only `crates/laminapdf-test-fixtures` with no lamina dependencies, so `laminapdf-cos`'s own unit tests can use it too. It moves the shared helpers there and migrates laminapdf-cos, laminapdf-model, laminapdf-save and laminapdf-ops. [Q2x](../done/Q2x-test-fixtures-migration.md) migrates the rest.
 
 ## Context
 
@@ -36,7 +36,7 @@ Rust test helpers are copied across crates and linked by 35 `#[path = "../../oth
 
 **Out of scope** (and which todo covers it)
 
-- The other crates ([Q2x](../ongoing/Q2x-test-fixtures-migration.md)); the test `Writer` ([Q2d](../done/Q2d-one-serialiser.md)).
+- The other crates ([Q2x](../done/Q2x-test-fixtures-migration.md)); the test `Writer` ([Q2d](../done/Q2d-one-serialiser.md)).
 
 ## Tasks
 
