@@ -9,7 +9,7 @@ The output couldn't be written: its folder is missing or read-only, the disk is 
 
 ## Why
 
-The CLI writes to a temporary file beside the output and renames it into place, so a failed write leaves the old file, if there was one, as it was.
+The system refused the write, or standard output closed while the command was writing to it. The CLI writes to a temporary file beside the output and renames it into place, so a failed write leaves any old file as it was.
 
 ## How to fix
 

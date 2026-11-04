@@ -19,11 +19,16 @@ Run the command with `--help` to see its arguments, and `laminapdf --help` for t
 
 ```console
 $ laminapdf info --pages 1 report.pdf
-error[invalid-command-line]: the command line doesn't parse
-  = hint: run the command with --help to see its arguments
+error[invalid-command-line]: unexpected argument '--pages' found
+
+Usage: laminapdf info [OPTIONS] <INPUT>
+
+For more information, try '--help'.
 $ echo $?
 2
 ```
+
+With `--json`, the line on standard error has the message "the command line doesn't parse" and the parser's finding in `data.detail`.
 
 ## Data fields
 

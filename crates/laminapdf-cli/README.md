@@ -31,7 +31,7 @@ $ laminapdf explain xref-repaired
 - **`explain <code>`**: the page of an error or warning code, as in [`docs/errors/`](../../docs/errors/README.md).
 - **`help exit-codes`**, `help <command>` and `--version` (with `--json`, the versions and schema ids).
 
-`-` reads standard input, `-o -` writes standard output, and a PDF never goes to a terminal. Passwords come from `--password-file FILE` or `LAMINA_PDF_PASSWORD`, never from the command line. Every `Limits` value has a flag (`--max-stream-decoded N`, …), listed by `--help`.
+`-` reads standard input, `-o -` writes standard output, and a PDF never goes to a terminal. Passwords come from `--password-file FILE` or `LAMINA_PDF_PASSWORD`, never from the command line. Each limit `fixtures/codes.json` lists has a flag (`--max-stream-decoded N`, …), shown by `--help`.
 
 ## Page ranges
 

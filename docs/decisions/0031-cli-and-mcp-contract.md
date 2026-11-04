@@ -20,20 +20,20 @@ Three accepted ADRs already constrain the CLI. [ADR 0026](0026-error-and-diagnos
 ### 1. One binary over one command layer
 
 - The binary is **`laminapdf`**, built from `crates/laminapdf-cli` (layer `app`: it may use the file system, stdin and stdout).
-- **The commands are a library**, `laminapdf_cli::commands`: one function per command that takes its arguments and an `Io` and returns a report or a `CliError`. Commands never print and hold no clap types in their reports.
+- **The commands are a library**, `laminapdf_cli::commands`: one function per command that takes its arguments, the `Settings` (open flags, password, `--force`, `--dry-run`) and an `Io`, and returns a report or a `CliError`. Commands never print and hold no clap types in their reports.
 - **`main.rs` is only the front end**: it parses with clap, calls the command, renders text or JSON, and maps the result to an exit code. `laminapdf mcp` (L4c) calls the same functions, so the CLI and MCP can't drift.
 - Every command reads documents through the `laminapdf` façade ([ADR 0028](0028-facade-rules-jobs-and-cancellation.md)); a façade gap is a missing key in the report, never a reach into a lower crate.
 
 ### 2. Grammar
 
 - **Verb first:** `laminapdf <command> [<subcommand>] <inputs…> [-o OUT | --in-place] [--json]`. Page operations are subcommands of `pages` (`pages rotate`, later `pages select`, `merge`, `split`); flat aliases are added only if users ask (no usability evidence either way, cli-spec note §6 Gaps).
-- **Global flags:** `--json`, `--quiet`, `--no-input`, `--force`, `--dry-run`, `--color auto|always|never`, `--password-file FILE`, `--strict`, `--warnings-ok`, and one flag per `Limits` field, named after it (`--max-stream-decoded`, …).
+- **Global flags:** `--json`, `--quiet`, `--no-input`, `--force`, `--dry-run`, `--color auto|always|never`, `--password-file FILE`, `--strict`, `--warnings-ok`, and one flag per limit `fixtures/codes.json` lists, named after it (`--max-stream-decoded`, …).
 - **`--help` lists only commands that exist.** `laminapdf help exit-codes` prints §5's table.
 
 ### 3. Page ranges
 
 Recommendation from the cli-spec note §1, adopted: **qpdf's grammar is the base**.
-- `n`; `a-b` inclusive, counting down when `a > b`; `z` for the last page and `r<n>` for the n-th from the end; `x<n>` and `x<a-b>` exclude from the groups before them; `:odd` and `:even` select alternate pages **of the resulting set**; groups are joined by commas.
+- `n`; `a-b` inclusive, counting down when `a > b`; `z` for the last page and `r<n>` for the n-th from the end; `x<n>` and `x<a-b>` exclude from the groups before them, or from every page when they come first (`x1` is every page but the first); `:odd` and `:even` select alternate pages **of the resulting set**; groups are joined by commas.
 - `end` is an alias of `z`, for pdftk users. Uppercase `N` (mutool's last page) is **not** an alias, because uppercase letters are handles.
 - **Handles** follow pdftk: `A=fronts.pdf B=backs.pdf`, then `A1-5`, `Bz-1`; a handle is one or more uppercase ASCII letters, so it never collides with a range token. An inline range is `file.pdf:1-z:odd`.
 - **Ranges are 1-based page numbers**, as users count (ADR 0027 §6). A page outside the document is a usage error that points at the character.
@@ -58,13 +58,13 @@ Recommendation from the cli-spec note §1, adopted: **qpdf's grammar is the base
 | `4` | Refused a destructive action that needs `--force` |
 | `5` | Password required or wrong |
 
-When several apply, the highest-priority one wins: **2 > 5 > 4 > 1 > 3 > 0**. The scale follows the report's recommendation. It keeps qpdf's `3` for warnings, so wrappers that know qpdf keep working (Stirling-PDF's had to learn it, cli-spec note §1), and keeps `1` for every failure, where qpdf reserves `1`. It deliberately differs from gh, where `2` means cancelled and `4` authentication. Every error code in `fixtures/codes.json` maps to an exit code in one table, and a test checks that each code is mapped.
+When several apply, the highest-priority one wins: **2 > 5 > 4 > 1 > 3 > 0**. The scale follows the report's recommendation. It keeps qpdf's `3` for warnings, so wrappers that already handle qpdf's warning exit keep working (Stirling-PDF had to add that handling, cli-spec note §1). Unlike qpdf, which reserves `1`, it uses `1` for every failure. It deliberately differs from gh, where `2` means cancelled and `4` authentication. Every error code in `fixtures/codes.json` maps to an exit code in one table, and a test checks that each code is mapped.
 
 ### 6. JSON output
 
 - **`--json` prints one JSON document on stdout with a `schema` id**: `laminapdf.info/1`, `laminapdf.check/1`, `laminapdf.pages/1`, `laminapdf.text/1`, `laminapdf.explain/1`. Keys are camelCase, as in ADR 0026.
 - **qpdf's compatibility rule:** within a version new keys may appear and consumers ignore unknown keys; the number goes up only on a breaking change (a key removed or its meaning changed).
-- **Each schema is JSON Schema 2020-12, generated from the Rust report types** and committed under `crates/laminapdf-cli/schemas/`; a test fails when a committed schema is stale. L4c reuses them as MCP `inputSchema` and `outputSchema`.
+- **Each schema is JSON Schema 2020-12, generated from the Rust report types** and committed under `crates/laminapdf-cli/schemas/`; a test fails when a committed schema is stale. L4c reuses them as MCP `outputSchema`s; the argument types derive `JsonSchema` too, for `inputSchema`.
 - **Pages carry `index` and `number`** (ADR 0027 §6).
 - **When stdout carries the PDF** (`-o -`), the `--json` report goes to stderr instead.
 - **`--fields a,b`** keeps only the named top-level keys (gh's pattern, cli-spec note §4), to save an agent's tokens.

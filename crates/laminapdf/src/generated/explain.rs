@@ -4226,7 +4226,7 @@ The decisions and todos behind this code:
 
 - [L2b](../todos/done/L2b-disposal-and-memory.md): `reset()` and trap recovery
 "#,
-        "invalid-command-line" => r"# `invalid-command-line`
+        "invalid-command-line" => r#"# `invalid-command-line`
 
 - Type: error
 - Kind: `usage` (the caller misused the API)
@@ -4247,11 +4247,16 @@ Run the command with `--help` to see its arguments, and `laminapdf --help` for t
 
 ```console
 $ laminapdf info --pages 1 report.pdf
-error[invalid-command-line]: the command line doesn't parse
-  = hint: run the command with --help to see its arguments
+error[invalid-command-line]: unexpected argument '--pages' found
+
+Usage: laminapdf info [OPTIONS] <INPUT>
+
+For more information, try '--help'.
 $ echo $?
 2
 ```
+
+With `--json`, the line on standard error has the message "the command line doesn't parse" and the parser's finding in `data.detail`.
 
 ## Data fields
 
@@ -4266,7 +4271,7 @@ The decisions and todos behind this code:
 
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
 - [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
-",
+"#,
         "invalid-page-range" => r"# `invalid-page-range`
 
 - Type: error
@@ -4469,7 +4474,7 @@ The output couldn't be written: its folder is missing or read-only, the disk is 
 
 ## Why
 
-The CLI writes to a temporary file beside the output and renames it into place, so a failed write leaves the old file, if there was one, as it was.
+The system refused the write, or standard output closed while the command was writing to it. The CLI writes to a temporary file beside the output and renames it into place, so a failed write leaves any old file as it was.
 
 ## How to fix
 
