@@ -30,7 +30,7 @@ laminapdf-text has two ToUnicode CMap writers that have drifted: the simple-font
 
 **Out of scope** (and which todo covers it)
 
-- The lexer and PNG filter ([Q2i](../ongoing/Q2i-one-lexer-one-png-filter.md)).
+- The lexer and PNG filter ([Q2i](../done/Q2i-one-lexer-one-png-filter.md)).
 
 ## Tasks
 
