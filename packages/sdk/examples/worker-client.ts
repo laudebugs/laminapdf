@@ -1,43 +1,24 @@
-// `@laminapdf/sdk/worker`: the sync API's async twin in a Web Worker, so a large file never blocks
-// the page. Open, count the pages, save with progress, and abort a save the user cancels. Runs
-// in browsers (test/browser/worker.browser.test.ts).
-import { isLaminaPdfError } from "@laminapdf/sdk";
-import { connect } from "@laminapdf/sdk/worker";
+// Saving a PDF in a Web Worker, so a large file never blocks the page: `@laminapdf/sdk/worker`
+// runs the same API there, and each method returns a Promise. The save reports its progress step
+// by step, and aborting the signal (a Cancel button, say) stops it.
+import { type CallOptions, connect } from "@laminapdf/sdk/worker";
 
-/** What the example saw: the page count, the saved size, and whether the abort was reported. */
-export interface WorkerClientResult {
-  readonly pages: number;
-  readonly savedBytes: number;
-  readonly progressEvents: number;
-  readonly abortedAsCancelled: boolean;
-}
+/** What the save reports to and listens to. */
+export type SaveInWorkerOptions = Pick<CallOptions, "onProgress" | "signal">;
 
 /**
- * Opens `bytes` in a worker, saves them, then starts a second save and aborts it.
+ * Opens `bytes` in a Web Worker and saves them there as a full rewrite.
  *
  * @param bytes - any PDF; it is copied to the worker (`transfer: true` would move it).
+ * @param options - `onProgress` is called after each step of the save; aborting `signal` stops
+ *   the save at its next step, and the promise rejects with a `cancelled` error.
+ * @returns the saved file.
  */
-export async function workerClient(bytes: Uint8Array): Promise<WorkerClientResult> {
+export async function saveInWorker(bytes: Uint8Array, options: SaveInWorkerOptions = {}): Promise<Uint8Array> {
   const client = await connect();
   try {
     await using doc = await client.open(bytes);
-    const pages = await doc.pageCount();
-
-    let progressEvents = 0;
-    const saved = await doc.save({ mode: "fullRewrite" }, { onProgress: () => progressEvents++ });
-
-    // A cancel button: abort the signal and the save stops at its next step.
-    const controller = new AbortController();
-    const saving = doc.save({ mode: "fullRewrite" }, { signal: controller.signal });
-    controller.abort(new Error("the user cancelled"));
-    let abortedAsCancelled = false;
-    try {
-      await saving;
-    } catch (e) {
-      abortedAsCancelled = isLaminaPdfError(e, "cancelled");
-    }
-
-    return { pages, savedBytes: saved.byteLength, progressEvents, abortedAsCancelled };
+    return await doc.save({ mode: "fullRewrite" }, options);
   } finally {
     client.terminate();
   }

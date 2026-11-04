@@ -1,11 +1,11 @@
 // `@laminapdf/sdk/worker` in a browser (Chromium, Firefox, WebKit; L2a): the remote API matches
 // the sync one on the corpus, the handshake refuses another build, cancellation before and
 // during a stepped save, transfers, rebuilt LaminaPdfErrors, crash and restart, async disposal.
-import { Document, init, isLaminaPdfError, LaminaPdfError, loadText } from "@laminapdf/sdk";
+import { Builder, Document, init, isLaminaPdfError, LaminaPdfError, loadText } from "@laminapdf/sdk";
 import { connect, type RemoteDocument, WorkerClient } from "@laminapdf/sdk/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { report } from "../../examples/report.js";
-import { workerClient } from "../../examples/worker-client.js";
+import { saveInWorker } from "../../examples/worker-client.js";
 import { REPORT_INPUTS } from "../suite/examples.js";
 
 const urls = import.meta.glob<string>(["../../../../fixtures/corpus/*.pdf", "../../../../fixtures/fonts/*.{ttf,otf}"], {
@@ -73,10 +73,25 @@ describe("the worker client", () => {
     }
   });
 
-  it("runs the worker-client example", async () => {
-    const result = await workerClient(await read("fixtures/corpus/hello.pdf"));
-    expect(result).toMatchObject({ pages: 1, abortedAsCancelled: true });
-    expect(result.savedBytes).toBeGreaterThan(0);
+  it("runs the worker-client example: a save with progress, then a cancelled one", async () => {
+    // A full rewrite costs one work unit per object and the worker's save steps are 20,000 units
+    // (server.ts), so a file of more objects than that is saved in several steps, with progress
+    // reported between them: blank pages are the cheapest objects to make.
+    const pages = 21_000;
+    using b = new Builder();
+    for (let i = 0; i < pages; i++) b.page("A4").finish();
+    using built = b.finish();
+    const bytes = built.save();
+    let progressCalls = 0;
+    const saved = await saveInWorker(bytes, { onProgress: () => progressCalls++ });
+    using reopened = Document.open(saved);
+    expect([reopened.pageCount, progressCalls > 0]).toEqual([pages, true]);
+
+    // A Cancel button pressed while the save is under way.
+    const controller = new AbortController();
+    const cancelled = saveInWorker(bytes, { signal: controller.signal });
+    controller.abort(new Error("the user cancelled"));
+    expect(isLaminaPdfError(await rejection(cancelled), "cancelled")).toBe(true);
   });
 
   it("returns remote pages and rebuilds page text", async () => {
