@@ -1,4 +1,4 @@
-//! The binding form of the builder (B5c left it to this crate, ADR 0028 F1–F3):
+//! The binding form of the builder, which the façade leaves to this crate (ADR 0028 F1–F3):
 //! [`WasmBuilder`] owns a `laminapdf::Builder`; [`WasmPageBuilder`] is an *owned* page that
 //! draws on its own `Surface` (paths as segment records instead of closures) and is written
 //! into the builder by [`WasmPageBuilder::finish`]. The surface is the one
