@@ -60,6 +60,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "password-required":
     case "wrong-password":
     case "would-invalidate-signatures":
+    case "path-outside-roots":
       return "security";
     case "unknown-page":
     case "sink-not-empty":

@@ -1,0 +1,33 @@
+# `path-outside-roots`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call)
+
+## What happened
+
+A tool of `laminapdf mcp` was given a path the server may not use: one outside every `--root` folder it was started with, one that climbs out with `..`, or a symbolic link inside a root that leads out of it.
+
+## Why
+
+An MCP server acts for a model that may have read instructions planted in a document or a web page. So the server touches only the folders the person who started it named. It resolves every path, links included, before it checks the path, so a link can't lead it elsewhere.
+
+## How to fix
+
+Use a path inside one of the server's `--root` folders; a relative path is read from the first root. To work on files elsewhere, start the server with another `--root`.
+
+## Example
+
+```json
+{"schema":"laminapdf.error/1","error":{"code":"path-outside-roots","kind":"security","message":"the path is outside the server's --root folders","data":{"path":"../secret.pdf"},"exitCode":1,…}}
+```
+
+## Data fields
+
+- `path`: the path the tool was given (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §9
+- [L4c](../todos/done/L4c-mcp-mode.md): `laminapdf mcp` and its path policy
