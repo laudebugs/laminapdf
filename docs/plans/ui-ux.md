@@ -238,7 +238,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 
 | Risk | Mitigation |
 | --- | --- |
-| Much of the evidence comes from search snippets (adobe.com, w3.org, webaim.org, pdfa.org and others were unreachable) | ADR 0024 re-checks the WCAG 2.2, APG and PDF Association sources it relies on before acceptance |
+| Much of the evidence comes from search snippets (adobe.com, w3.org, webaim.org, pdfa.org and others were unreachable) | [ADR 0024](../decisions/0024-app-shell-ux.md) re-checked the WCAG 2.2, APG, Apple HIG and Material 3 sources it relies on against the primary pages (2026-11-04); they agree with this plan. The PDF Association sources belong to reader mode and are U4b's to re-check |
 | A command registry over-engineered before there are many commands | Start with the reader's ~30 commands; the schema grows only when a mode needs it |
 | Floating selection toolbar annoys users or blocks text | Shown only after `pointerup`, flips on collision, disable in settings; never the only path |
 | Reflow quality on badly tagged files (fewer than 1% claim PDF/UA) | Fall back to tier 2 when the tag tree fails sanity checks; label the result; keep "back to page" one tap away |
