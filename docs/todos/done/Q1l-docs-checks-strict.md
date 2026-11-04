@@ -44,7 +44,7 @@ Once the rewrites have cleared every report, this todo makes the docs checks str
 
 ## Post-merge checks
 
-None.
+- [ ] A maintainer updates the checkout comment of the Rust job in `.github/workflows/ci.yml`: it still gives `clippy-examples` as a reason for `fetch-depth: 0`, and only `check maintainability` needs the merge base now. The PR's session couldn't change workflow files (its token lacks the `workflow` scope).
 
 ## Tests
 
