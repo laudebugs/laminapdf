@@ -299,11 +299,11 @@ enum Token {
 /// that are not a token (a bad hex digit, an unbalanced `)` or `>`) are skipped one at a time
 /// as [`Token::Other`], and a token cut off by the end of the data, or one over
 /// [`Limits::max_string_length`](laminapdf_syntax::Limits::max_string_length), ends the CMap.
-struct Lexer<'a> {
+struct Tokens<'a> {
     inner: laminapdf_syntax::Lexer<'a>,
 }
 
-impl<'a> Lexer<'a> {
+impl<'a> Tokens<'a> {
     const fn new(source: &'a [u8]) -> Self {
         Self {
             inner: laminapdf_syntax::Lexer::new(source, 0),
@@ -379,14 +379,14 @@ enum Operand {
 }
 
 struct Parser<'a> {
-    lexer: Lexer<'a>,
+    tokens: Tokens<'a>,
     cmap: CMap,
 }
 
 impl<'a> Parser<'a> {
     fn new(source: &'a [u8]) -> Self {
         Self {
-            lexer: Lexer::new(source),
+            tokens: Tokens::new(source),
             cmap: CMap::default(),
         }
     }
@@ -395,7 +395,7 @@ impl<'a> Parser<'a> {
         let mut last: Vec<Token> = Vec::new();
         // A keyword that ended a section missing its `end…`: handled here next.
         let mut pending: Option<Token> = None;
-        while let Some(token) = pending.take().or_else(|| self.lexer.next_token()) {
+        while let Some(token) = pending.take().or_else(|| self.tokens.next_token()) {
             if let Token::Keyword(word) = &token {
                 if let Some(section) = Section::begin(word) {
                     pending = self.section(section).map(Token::Keyword);
@@ -426,7 +426,7 @@ impl<'a> Parser<'a> {
     /// `begin…` right after starts its own section).
     fn section(&mut self, section: Section) -> Option<Vec<u8>> {
         let mut operands: Vec<Operand> = Vec::with_capacity(3);
-        while let Some(token) = self.lexer.next_token() {
+        while let Some(token) = self.tokens.next_token() {
             let operand = match token {
                 Token::Keyword(word) => {
                     if word.starts_with(b"end") {
@@ -457,7 +457,7 @@ impl<'a> Parser<'a> {
 
     fn array(&mut self) -> Vec<Token> {
         let mut items = Vec::new();
-        while let Some(token) = self.lexer.next_token() {
+        while let Some(token) = self.tokens.next_token() {
             match token {
                 Token::ArrayEnd | Token::Keyword(_) => break,
                 other => items.push(other),
