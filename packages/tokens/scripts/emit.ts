@@ -274,7 +274,7 @@ function tsTypography(tokens: Map<string, Token>, token: Token): unknown {
     fontSize: tsValue(resolve(tokens, aliasOf(v.fontSize) ?? "")),
     fontWeight: v.fontWeight,
     lineHeight: v.lineHeight,
-    letterSpacing: v.letterSpacing.value,
+    letterSpacing: tsValue({ ...token, type: "dimension", value: v.letterSpacing }),
   };
 }
 
@@ -385,6 +385,9 @@ export function emitContrast(tokens: Map<string, Token>): string {
         if (row.length !== ACCENTS.indexOf(accent)) throw new Error(`${prefix}: ${key} is missing for an accent`);
         rows.set(key, [...row, m]);
       }
+    }
+    for (const [key, row] of rows) {
+      if (row.length !== ACCENTS.length) throw new Error(`${prefix}: ${key} is missing for an accent`);
     }
     return [...rows.values()];
   };
