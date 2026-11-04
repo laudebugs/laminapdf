@@ -9,7 +9,7 @@ The WebAssembly module needed more memory than it could get, so it stopped in th
 
 ## Why
 
-A module's memory grows as it needs and never shrinks. Many open documents, a huge image, or a file built to exhaust memory can each push it to its limit. The open limits stop most hostile files before memory runs out, and the maximum catches the rest.
+A module's memory grows as the module needs more and never shrinks. Many open documents, a huge image, or a file built to exhaust memory can each push it to its limit. The open limits stop most hostile files before memory runs out, and the maximum catches the rest.
 
 ## How to fix
 

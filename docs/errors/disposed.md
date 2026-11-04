@@ -5,7 +5,7 @@
 
 ## What happened
 
-A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a page with its builder.
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a builder's page with its builder.
 
 ## Why
 

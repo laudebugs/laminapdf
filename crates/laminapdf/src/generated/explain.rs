@@ -3665,7 +3665,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a page with its builder.
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a builder's page with its builder.
 
 ## Why
 
@@ -4126,7 +4126,7 @@ A trap stops the module in the middle of its work, so its memory may hold half-w
 
 ## How to fix
 
-Open the document again from its bytes and retry. If the same file and call trap again, report them with the file: a trap is always a bug in Lamina PDF.
+Open the document again from its bytes and retry. If the same call on the same file traps again, report it with the file: a trap is always a bug in Lamina PDF.
 
 ## Example
 
@@ -4161,7 +4161,7 @@ The WebAssembly module needed more memory than it could get, so it stopped in th
 
 ## Why
 
-A module's memory grows as it needs and never shrinks. Many open documents, a huge image, or a file built to exhaust memory can each push it to its limit. The open limits stop most hostile files before memory runs out, and the maximum catches the rest.
+A module's memory grows as the module needs more and never shrinks. Many open documents, a huge image, or a file built to exhaust memory can each push it to its limit. The open limits stop most hostile files before memory runs out, and the maximum catches the rest.
 
 ## How to fix
 

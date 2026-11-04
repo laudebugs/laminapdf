@@ -13,7 +13,7 @@ A trap stops the module in the middle of its work, so its memory may hold half-w
 
 ## How to fix
 
-Open the document again from its bytes and retry. If the same file and call trap again, report them with the file: a trap is always a bug in Lamina PDF.
+Open the document again from its bytes and retry. If the same call on the same file traps again, report it with the file: a trap is always a bug in Lamina PDF.
 
 ## Example
 

@@ -196,7 +196,7 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
 
 ## Memory
 
-Documents, builders, pages, save jobs and images live in WebAssembly memory. Free each one when you're done: `using doc = Document.open(…)` frees it at the end of the block, and `doc.free()` frees it at once. A second `free()` does nothing, and any other call afterwards throws `disposed`. A page or save job is freed with its document, a page with its builder, and `page.finish()` and `builder.finish()` free their own side. The garbage collector frees whatever you forget, only later. To find it, `onLeak((leak) => console.warn(leak.handle))` reports each document, builder or image the collector reclaims without a `free()`.
+Documents, builders, pages, save jobs and images live in WebAssembly memory. Free each one when you're done: `using doc = Document.open(…)` frees it at the end of the block, and `doc.free()` frees it at once. A second `free()` does nothing, and any other call afterwards throws `disposed`. A page or save job is freed with its document, a builder's page with its builder, and `page.finish()` and `builder.finish()` free their WebAssembly memory. The garbage collector frees whatever you forget, only later. To find what you forget, `onLeak((leak) => console.warn(leak.handle))` reports each document, builder or image the collector reclaims without a `free()`.
 
 WebAssembly memory grows as Lamina PDF needs it and never shrinks. Three bounds keep it in check:
 
@@ -204,9 +204,9 @@ WebAssembly memory grows as Lamina PDF needs it and never shrinks. Three bounds 
 - **A ceiling:** each module may grow to 2 GiB. Past that, the call throws `out-of-memory`.
 - **`reset()`:** replaces every loaded module's instance with a fresh one, so memory returns to its size after `init()`. Every document, page, builder and save job made before throws `instance-reset`, so call it while none is in use, such as between jobs on a server. Images and fonts keep working.
 
-A trap is a bug in Lamina PDF, and the call throws `wasm-trap`. After a trap or `out-of-memory`, the next call runs in a fresh instance, and the old instance's handles throw `instance-reset`: open the document again from its bytes. In a Web Worker from `@laminapdf/sdk/worker`, a trap ends the Web Worker instead, and `client.restart()` starts a new one. `wasmMemory()` reports each module's memory size.
+When Lamina PDF hits a bug, the module traps and the call throws `wasm-trap`. After a trap or `out-of-memory`, the next call runs in a fresh instance, and the old instance's handles throw `instance-reset`: open the document again from its bytes. In a Web Worker from `@laminapdf/sdk/worker`, a trap ends the Web Worker instead, and `client.restart()` starts a new one. `wasmMemory()` reports each module's memory size.
 
-**`using` in Safari:** Safari has no `Symbol.dispose` outside its Technology Preview, according to MDN's compatibility data in November 2026. When esbuild or Babel compile `using`, they fall back to `Symbol.for("Symbol.dispose")`, and every Lamina PDF handle answers to that key too. TypeScript's compiled `using` needs the symbol itself, so add `Symbol.dispose ??= Symbol.for("Symbol.dispose")` to your app. In that form it matches Lamina PDF's key whichever runs first. Without it, call `free()` in a `finally` block.
+**`using` in Safari:** according to MDN's compatibility data (November 2026), Safari has `Symbol.dispose` only in its Technology Preview. When esbuild or Babel compile `using`, they fall back to `Symbol.for("Symbol.dispose")`, and every Lamina PDF handle answers to that key too. TypeScript's compiled `using` needs the symbol itself, so add `Symbol.dispose ??= Symbol.for("Symbol.dispose")` to your app. In that form it matches Lamina PDF's key whichever runs first. Without it, call `free()` in a `finally` block.
 
 ## Examples
 
