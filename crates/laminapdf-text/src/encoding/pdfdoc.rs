@@ -14,7 +14,7 @@ pub(super) fn glyph_name(code: u8) -> Option<&'static str> {
 
 /// The code of glyph `name`, when its character has one in `PDFDocEncoding`.
 pub(super) fn code(name: &str) -> Option<u8> {
-    let text = agl::to_unicode(name)?;
+    let text = agl::glyph_name_to_unicode(name)?;
     let mut chars = text.chars();
     let (Some(ch), None) = (chars.next(), chars.next()) else {
         return None;

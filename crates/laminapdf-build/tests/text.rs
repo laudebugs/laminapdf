@@ -26,7 +26,7 @@ fn close(a: (f64, f64), b: (f64, f64)) -> bool {
 
 /// One page with `text` in `font` at (72, 100), saved and reopened.
 fn one_run(
-    font: impl FnOnce(&mut Builder) -> laminapdf_build::Font,
+    font: impl FnOnce(&mut Builder) -> laminapdf_build::FontHandle,
     text: &str,
     rotate: Rotation,
 ) -> laminapdf_model::Document {

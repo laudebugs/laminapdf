@@ -119,7 +119,7 @@ impl<T: Clone> Table<T> {
 
 /// A parsed CMap (either kind).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct CMap {
+pub(crate) struct CMap {
     codespace: Vec<CodeSpace>,
     cids: Table<u32>,
     notdef: Table<u32>,
@@ -133,43 +133,37 @@ pub struct CMap {
 impl CMap {
     /// Parses CMap source. Never fails: what can't be read is skipped and counted.
     #[must_use]
-    pub fn parse(source: &[u8]) -> Self {
+    pub(crate) fn parse(source: &[u8]) -> Self {
         Parser::new(source).run()
     }
 
     /// Malformed entries skipped while parsing.
     #[must_use]
-    pub const fn skipped(&self) -> usize {
+    pub(crate) const fn skipped(&self) -> usize {
         self.skipped
     }
 
     /// `/WMode` (0 horizontal, 1 vertical; horizontal when not stated).
     #[must_use]
-    pub const fn vertical(&self) -> bool {
+    pub(crate) const fn vertical(&self) -> bool {
         matches!(self.wmode, Some(1))
     }
 
     /// Sets `/WMode` from the CMap stream's dictionary (Table 118) when the source states
     /// none.
-    pub fn default_vertical(&mut self, vertical: bool) {
+    pub(crate) fn default_vertical(&mut self, vertical: bool) {
         self.wmode.get_or_insert(u8::from(vertical));
     }
 
     /// The CMap named by `usecmap`, if any (resolved by the caller).
     #[must_use]
-    pub fn use_cmap(&self) -> Option<&[u8]> {
+    pub(crate) fn use_cmap(&self) -> Option<&[u8]> {
         self.use_cmap.as_deref()
-    }
-
-    /// Whether the CMap defines any codespace range.
-    #[must_use]
-    pub fn has_codespace(&self) -> bool {
-        !self.codespace.is_empty()
     }
 
     /// Adds `parent`'s definitions under this CMap's own (`usecmap`: the parent's entries
     /// apply where this CMap defines none).
-    pub fn inherit(&mut self, parent: &Self) {
+    pub(crate) fn inherit(&mut self, parent: &Self) {
         for space in &parent.codespace {
             if !self.codespace.contains(space) {
                 self.codespace.push(space.clone());
@@ -188,7 +182,7 @@ impl CMap {
     /// the first byte fits (else the shortest range), so one bad code costs few bytes;
     /// `default_len` without codespace ranges. `None` only when `bytes` is empty.
     #[must_use]
-    pub fn next_code(&self, bytes: &[u8], default_len: usize) -> Option<(Code, usize)> {
+    pub(crate) fn next_code(&self, bytes: &[u8], default_len: usize) -> Option<(Code, usize)> {
         if bytes.is_empty() {
             return None;
         }
@@ -219,7 +213,7 @@ impl CMap {
     /// The CID of `code` (`cidchar`/`cidrange`, then `notdefrange`), `None` when unmapped
     /// (which is CID 0 for rendering).
     #[must_use]
-    pub fn cid(&self, code: Code) -> Option<u32> {
+    pub(crate) fn cid(&self, code: Code) -> Option<u32> {
         if let Some((offset, start)) = self.cids.get(code) {
             return start.checked_add(offset);
         }
@@ -230,7 +224,7 @@ impl CMap {
     /// writes with another byte length (`<0041>` entries for a one-byte simple font, a common
     /// producer bug) matches by value, as in pdf.js and Poppler.
     #[must_use]
-    pub fn unicode(&self, code: Code) -> Option<String> {
+    pub(crate) fn unicode(&self, code: Code) -> Option<String> {
         let (offset, dst) = self.unicode.get(code).or_else(|| {
             (1..=4u8)
                 .filter(|&len| len != code.len && (len == 4 || code.value >> (8 * u32::from(len)) == 0))
@@ -559,7 +553,7 @@ fn destination(operand: &Operand) -> Option<Vec<u16>> {
     match operand {
         Operand::Token(Token::Hex(bytes) | Token::Str(bytes)) => Some(units(bytes)),
         Operand::Token(Token::Name(name)) => {
-            let text = crate::agl::to_unicode(std::str::from_utf8(name).ok()?)?;
+            let text = crate::agl::glyph_name_to_unicode(std::str::from_utf8(name).ok()?)?;
             Some(text.encode_utf16().collect())
         }
         _ => None,

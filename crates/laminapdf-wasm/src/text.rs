@@ -25,7 +25,7 @@ impl TextOptionsInit {
     }
 }
 
-/// One text run (`laminapdf::extract::TextRun`): glyphs of one font, size, direction and marked
+/// One text run (`laminapdf::extract::PageTextRun`): glyphs of one font, size, direction and marked
 /// content on one baseline, in logical order.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]

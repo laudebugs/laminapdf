@@ -213,7 +213,7 @@ impl Simple {
             let text = if self.zapf {
                 agl::zapf_dingbats_to_unicode(name)
             } else {
-                agl::to_unicode(name)
+                agl::glyph_name_to_unicode(name)
             };
             if text.is_some() {
                 return text;

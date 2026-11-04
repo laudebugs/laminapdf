@@ -2197,7 +2197,7 @@ Check `font.info().axes` before choosing coordinates, or use a variable font.
 ## Example
 
 ```rust
-let bold = static_font.instance(&[(Tag::WEIGHT, 700.0)])?; // unknown-axis: no wght axis
+let bold = static_font.instance(&[(OpenTypeTag::WEIGHT, 700.0)])?; // unknown-axis: no wght axis
 ```
 
 ## Data fields
@@ -2365,7 +2365,7 @@ Pass finite values; values outside the axis range are clamped, so there is no ne
 ## Example
 
 ```rust
-font.instance(&[(Tag::WEIGHT, f32::NAN)])?; // invalid-axis-value
+font.instance(&[(OpenTypeTag::WEIGHT, f32::NAN)])?; // invalid-axis-value
 ```
 
 ## Data fields
@@ -2621,7 +2621,7 @@ Check the font's licence allows this, or use a static TrueType/CFF version of th
 
 ## Example
 
-Registering a variable font instance (`font.instance(&[(Tag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
+Registering a variable font instance (`font.instance(&[(OpenTypeTag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
 
 ## Data fields
 

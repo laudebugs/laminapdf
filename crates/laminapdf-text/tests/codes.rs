@@ -43,7 +43,7 @@ fn messages_carry_no_font_names_or_text() {
     let errors = [
         Error::UnknownAxis {
             font: marker.to_owned(),
-            tag: laminapdf_text::Tag::WEIGHT,
+            tag: laminapdf_text::OpenTypeTag::WEIGHT,
         },
         Error::FontNotEmbeddable {
             font: marker.to_owned(),

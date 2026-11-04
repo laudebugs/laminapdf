@@ -6,8 +6,8 @@
 //! the calls build, which tests compare with what laminapdf-model and pdf.js read back.
 
 use laminapdf_build::{
-    ArtifactKind, BuildOptions, Builder, Color, FillRule, Font, Image, LinkTarget, Metadata, PageSize, StrokeStyle,
-    Surface, TableScope, Tag, TagKind, TextBoxOptions,
+    ArtifactKind, BuildOptions, Builder, Color, FillRule, FontHandle, Image, LinkTarget, Metadata, PageSize,
+    StrokeStyle, Surface, TableScope, Tag, TagKind, TextBoxOptions,
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
@@ -76,23 +76,23 @@ fn at(x: f64, y: f64) -> PointPt {
 type Res = laminapdf_build::Result<()>;
 
 /// A line of text in the surface's current element.
-fn line(s: &mut Surface, text: &str, font: &Font, size: f64, x: f64, y: f64) -> Res {
+fn line(s: &mut Surface, text: &str, font: &FontHandle, size: f64, x: f64, y: f64) -> Res {
     s.text(text, font, Pt::new(size), at(x, y)).map(|_| ())
 }
 
-fn tagged(s: &mut Surface, tag: impl Into<Tag>, text: &str, font: &Font, size: f64, x: f64, y: f64) -> Res {
+fn tagged(s: &mut Surface, tag: impl Into<Tag>, text: &str, font: &FontHandle, size: f64, x: f64, y: f64) -> Res {
     s.tag(tag, |s| line(s, text, font, size, x, y))
 }
 
 /// The running head and footer of page `n` (pagination artifacts).
-fn pagination(s: &mut Surface, font: &Font, n: u32) -> Res {
+fn pagination(s: &mut Surface, font: &FontHandle, n: u32) -> Res {
     s.artifact(ArtifactKind::Pagination, |s| {
         line(s, "Acme Widgets · Quarterly report", font, 9.0, 56.0, 40.0)?;
         line(s, &format!("Page {n}"), font, 9.0, 520.0, 810.0)
     })
 }
 
-fn first_page(s: &mut Surface, noto: &Font) -> Res {
+fn first_page(s: &mut Surface, noto: &FontHandle) -> Res {
     pagination(s, noto, 1)?;
     tagged(s, TagKind::H1, "Quarterly report", noto, 24.0, 56.0, 96.0)?;
     s.tag(TagKind::P, |s| {
@@ -168,7 +168,7 @@ fn first_page(s: &mut Surface, noto: &Font) -> Res {
 }
 
 /// The table with column headers and the list of page 1.
-fn table_and_list(s: &mut Surface, noto: &Font) -> Res {
+fn table_and_list(s: &mut Surface, noto: &FontHandle) -> Res {
     s.tag(TagKind::Table, |s| {
         let header = Tag::new(TagKind::TH).with_scope(TableScope::Column);
         s.tag(TagKind::TR, |s| {
@@ -200,7 +200,7 @@ fn table_and_list(s: &mut Surface, noto: &Font) -> Res {
     })
 }
 
-fn second_page(s: &mut Surface, noto: &Font) -> Res {
+fn second_page(s: &mut Surface, noto: &FontHandle) -> Res {
     s.artifact(ArtifactKind::Background, |s| {
         s.fill_color(Color::gray(0.97))
             .path(|p| {

@@ -35,7 +35,7 @@ export { httpRangeSource } from "./source/http.js";
 export type { ByteRange, RangeOptions, RangeSource } from "./source/range.js";
 export { callbackSource } from "./source/range.js";
 export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } from "./text.js";
-export { PageText, TextRun as PageTextRun } from "./text.js";
+export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
 export { Transaction } from "./transaction.js";
 export type {

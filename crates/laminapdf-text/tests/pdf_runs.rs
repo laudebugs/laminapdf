@@ -13,7 +13,8 @@ mod common;
 
 use common::{TestPdf, expand_widths, font, latin, read_fonts};
 use laminapdf_text::{
-    EmbedPolicy, Error, FontRegistry, HarfRust, LayoutOptions, ShapeOptions, Shaper, Tag, TjElement, Warning, pdf_run,
+    EmbedPolicy, Error, FontRegistry, HarfRust, LayoutOptions, OpenTypeTag, ShapeOptions, Shaper, TjElement, Warning,
+    pdf_run,
 };
 
 /// Empty text is a text like any other: in a CFF font (one CID per glyph), a glyph
@@ -125,7 +126,11 @@ fn textless_glyphs_get_format_character_cids_and_no_actual_text() {
 /// instance: drawing a run then reading `/W` back gives the shaper's advances.
 #[test]
 fn tj_widths_match_w_for_a_variable_instance() {
-    let instance = || font("NotoSans-VF.ttf").instance(&[(Tag::WEIGHT, 700.0)]).unwrap();
+    let instance = || {
+        font("NotoSans-VF.ttf")
+            .instance(&[(OpenTypeTag::WEIGHT, 700.0)])
+            .unwrap()
+    };
     let text = "Wave AVATAR office";
     let run = HarfRust.shape(&instance(), text, &ShapeOptions::new()).unwrap();
     let mut pdf = TestPdf::new();

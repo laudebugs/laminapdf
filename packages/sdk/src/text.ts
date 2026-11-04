@@ -28,7 +28,7 @@ export interface TextGlyph {
 }
 
 /** A run: glyphs of one font, size, direction and marked content on one baseline, in logical order. */
-export class TextRun {
+export class PageTextRun {
   readonly #page: PageText;
   readonly #run: TextRunJs;
 
@@ -102,7 +102,7 @@ export let rawOf: (text: PageText) => PageTextJs;
 /** A page's extracted text: lines in reading order, and runs with their glyphs' quads. */
 export class PageText {
   readonly #raw: PageTextJs;
-  #runs: readonly TextRun[] | undefined;
+  #runs: readonly PageTextRun[] | undefined;
 
   static {
     rawOf = (text) => text.#raw;
@@ -129,8 +129,8 @@ export class PageText {
   }
 
   /** The runs, in content order (made on first use). */
-  get runs(): readonly TextRun[] {
-    this.#runs ??= this.#raw.runs.map((r) => new TextRun(this, r));
+  get runs(): readonly PageTextRun[] {
+    this.#runs ??= this.#raw.runs.map((r) => new PageTextRun(this, r));
     return this.#runs;
   }
 
