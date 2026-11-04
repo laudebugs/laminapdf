@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](../done/Q1c-examples-checks.md) |
+| Depends on | [Q1c](./Q1c-examples-checks.md) |
 | Blocks | [Q1j](../ready/Q1j-recipes-and-troubleshooting.md) |
 | ADRs | None |
 | Branch | `claude/working-session-9g3nst` |
@@ -35,15 +35,15 @@ The Cloudflare Worker example imports fonts from `../../../../../fixtures/`, and
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Change the workerd runner's setup to copy the fonts into the example's folder; change the imports.
-- [ ] Rewrite `worker-client.ts` and update `worker.browser.test.ts`.
-- [ ] Run the workerd runner and the browser tests; run `docs-snippets` on both files.
+- [x] Claim by opening the work PR (#216) off an up-to-date `main`. The cloud session that did the work had a plain clone and an assigned branch, so it worked on that branch instead of a worktree.
+- [x] Change the workerd runner's setup to copy the fonts into the example's folder; change the imports. The Worker also imported the report from a sibling example, which Biome's examples rule refuses too, so its `/report` route became `/embedded`: the same letter in a font bundled from its own `src/fonts/`, which the runner fills with one font.
+- [x] Rewrite `worker-client.ts` and update `worker.browser.test.ts`: `saveInWorker(bytes, { onProgress, signal })`; the test counts progress on a save of 21,000 blank pages (more objects than one save step) and cancels a second save.
+- [x] Run the workerd runner and the browser tests; run `docs-snippets` on both files. workerd ran in full; the browser test ran in Chromium (Firefox and WebKit in CI).
 
 ## Acceptance criteria
 
-- [ ] `docs-snippets` reports nothing for these files.
-- [ ] The workerd and browser runs pass.
+- [x] `docs-snippets` reports nothing for these files.
+- [x] The workerd and browser runs pass.
 
 ## Post-merge checks
 
@@ -63,9 +63,9 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Work PR opened; **PR** field filled in. It came from the session's assigned branch `claude/working-session-9g3nst` in a plain clone, not from a worktree or a `refactor/…` branch (see Tasks)
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
