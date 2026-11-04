@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 205 ready · 86 done** (291 total).
+**0 ongoing · 204 ready · 87 done** (291 total).
 
 ## Can start now
 
@@ -30,7 +30,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [Q2d](ready/Q2d-one-serialiser.md): One PDF serialiser: the test `Writer` built on laminapdf-save's helpers
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
 - [Q2i](ready/Q2i-one-lexer-one-png-filter.md): One PDF lexer and one PNG row filter
-- [Q2q](ready/Q2q-split-cos-reader.md): Split the COS reader module
 - [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
 - [Q2t](ready/Q2t-history-out-of-names.md): Names and comments without project history
 - [Q2v](ready/Q2v-did-you-mean.md): One did-you-mean rule, pinned in both languages
@@ -365,7 +364,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2n | [Shared code for the render adapters](done/Q2n-render-adapter-shared.md) | done | [Q2m](done/Q2m-ts-test-utils.md) |
 | Q2o | [TypeScript hygiene: no test hooks in shipped code](done/Q2o-ts-hygiene.md) | done | [Q2u](done/Q2u-ts-dependency-tools.md) |
 | Q2p | [Split the TypeScript functions over the complexity limit](done/Q2p-ts-complexity-splits.md) | done | [Q2b](done/Q2b-ts-lint-rules.md) |
-| Q2q | [Split the COS reader module](ready/Q2q-split-cos-reader.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |
+| Q2q | [Split the COS reader module](done/Q2q-split-cos-reader.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |
 | Q2r | [Split the large xtask, builder, extraction and WASM modules](ready/Q2r-split-surface-modules.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](done/Q2h-text-writers-dedup.md), [Q2i](ready/Q2i-one-lexer-one-png-filter.md) |
 | Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2t | [Names and comments without project history](ready/Q2t-history-out-of-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
