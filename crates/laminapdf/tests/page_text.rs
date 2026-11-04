@@ -2,21 +2,13 @@
 //! index check, invisible text, warnings through the cursor, and the font cache following
 //! edits (a rotated page's quads turn with it).
 #![cfg(feature = "text")]
-#![expect(
-    clippy::unwrap_used,
-    clippy::panic,
-    reason = "test code and helpers: a panic is a test failure"
-)]
-
-use std::path::Path;
+#![expect(clippy::unwrap_used, reason = "test code: a panic is a test failure")]
 
 use laminapdf::extract::TextOptions;
 use laminapdf::{Document, Op, OpenOptions, RotatePage, Rotation};
 
 fn open(rel: &str) -> Document {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures").join(rel);
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    Document::open_bytes(bytes, OpenOptions::default()).unwrap()
+    Document::open_bytes(laminapdf_test_fixtures::fixture(rel), OpenOptions::default()).unwrap()
 }
 
 #[test]
