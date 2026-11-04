@@ -11,10 +11,11 @@ use laminapdf_cos::{Dict, Document, Limit, ObjRef, Object, OverlayEntry, Stream}
 use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
-use crate::legacy::{HEADER_MARKER, document_keys};
 use crate::options::{Renumber, SaveMode, SaveOptions, SaveReport, XrefKind};
 use crate::sink::{CountingSink, WriteSink, require_empty};
-use crate::xref::{Row, Rows, classic_table, link_free_list, stream_object, stream_table};
+use crate::xref::{
+    Row, Rows, classic_table, document_keys, link_free_list, object_stream, stream_object, stream_table,
+};
 
 /// Objects per object stream: small enough that reading one member stays cheap.
 const OBJSTM_CAPACITY: usize = 100;
@@ -169,7 +170,10 @@ impl<'d> FullWriter<'d> {
             out.indirect(num, generation, value, &remapper)?;
         }
         for (group, &stream_num) in packed.chunks(OBJSTM_CAPACITY).zip(&plan.streams) {
-            let (stream, members) = object_stream(stream_num, group, &remapper)?;
+            let (stream, members) = object_stream(stream_num, group, |object, out| {
+                remapper.object(object)?.write_to(out);
+                Ok(())
+            })?;
             rows.extend(members);
             rows.insert(
                 stream_num,
@@ -490,43 +494,12 @@ impl Remap<'_> {
     }
 }
 
-/// An object stream (§7.5.7) numbered `num` holding `members` (references mapped), and their
-/// xref rows.
-fn object_stream(num: u32, members: &[(u32, &Object)], remap: &Remap<'_>) -> Result<(Stream, Vec<(u32, Row)>)> {
-    let mut index = Vec::new();
-    let mut body = Vec::new();
-    let mut rows = Vec::with_capacity(members.len());
-    for ((member, object), position) in members.iter().zip(0u16..) {
-        rows.push((
-            *member,
-            Row::InStream {
-                stream: num,
-                index: position,
-            },
-        ));
-        if position > 0 {
-            index.push(b' ');
-        }
-        index.extend_from_slice(format!("{member} {}", body.len()).as_bytes());
-        remap.object(object)?.write_to(&mut body);
-        body.push(b'\n');
-    }
-    index.push(b'\n');
-    let first = index.len();
-    index.extend_from_slice(&body);
-    let dict: Dict = [
-        ("Type", Object::name("ObjStm")),
-        ("N", Object::from(i64::try_from(members.len()).unwrap_or(i64::MAX))),
-        ("First", Object::from(i64::try_from(first).unwrap_or(i64::MAX))),
-    ]
-    .into_iter()
-    .collect();
-    Ok((Stream::flate(dict, &index), rows))
-}
+/// The binary-marker comment after the header line (§7.5.2): four bytes over 127.
+const HEADER_MARKER: &[u8] = b"%\xE2\xE3\xCF\xD3\n";
 
 /// `%PDF-x.y` from the base header (1.7 when it has none), raised to 1.5 for object and xref
 /// streams, then the binary marker.
-fn header(version: Option<&str>, compact: bool) -> Vec<u8> {
+pub(crate) fn header(version: Option<&str>, compact: bool) -> Vec<u8> {
     let parsed = version.and_then(|v| {
         let (major, minor) = v.split_once('.')?;
         Some((major.parse::<u8>().ok()?, minor.parse::<u8>().ok()?))

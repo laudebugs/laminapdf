@@ -13,7 +13,8 @@ use common::content::ContentBuilder;
 use common::fixture;
 use common::open;
 use laminapdf_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
-use laminapdf_save::{Writer, XrefEol};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::Writer;
 
 const TITLE: &str = "Hello from lamina";
 const PARA: [&str; 2] = [

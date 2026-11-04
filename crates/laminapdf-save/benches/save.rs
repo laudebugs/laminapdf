@@ -19,7 +19,8 @@ use std::hint::black_box;
 
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use laminapdf_cos::{Dict, Document, Object, OpenOptions};
-use laminapdf_save::{FullWriter, IncrementalWriter, SaveOptions, Writer, XrefKind};
+use laminapdf_save::test_support::Writer;
+use laminapdf_save::{FullWriter, IncrementalWriter, SaveOptions, XrefKind};
 
 /// A classic file with 1,000 pages sharing one indirect `/Resources`.
 fn thousand_pages() -> Vec<u8> {

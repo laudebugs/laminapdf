@@ -35,7 +35,7 @@ laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 criterion = { workspace = true }
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts: the integration
 # tests link the one library `laminapdf-save` links; unit tests in `src/` must not use it.
-laminapdf-save = { path = "../laminapdf-save" }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 

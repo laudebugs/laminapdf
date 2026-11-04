@@ -22,7 +22,7 @@ use laminapdf_content::{
 };
 use laminapdf_cos::{Dict, ObjRef, Object, Stream};
 use laminapdf_model::{Document, OpenOptions, Result};
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 
 pub use laminapdf_content::Summary;
 

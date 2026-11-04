@@ -206,7 +206,7 @@ impl Visitor for Paints {
 }
 
 fn paint_states(
-    build: impl FnOnce(&mut laminapdf_save::Writer) -> (Vec<u8>, laminapdf_cos::Dict),
+    build: impl FnOnce(&mut laminapdf_save::test_support::Writer) -> (Vec<u8>, laminapdf_cos::Dict),
 ) -> Vec<GraphicsState> {
     let doc = common::page_doc(build);
     let pages = doc.pages().unwrap();
@@ -298,7 +298,7 @@ fn a_named_colour_space_needs_its_resource() {
 // Review round 1.
 
 fn fill_after(
-    build: impl FnOnce(&mut laminapdf_save::Writer) -> laminapdf_cos::Dict,
+    build: impl FnOnce(&mut laminapdf_save::test_support::Writer) -> laminapdf_cos::Dict,
     content: &[u8],
 ) -> (Vec<f64>, Vec<&'static str>) {
     let doc = common::page_doc(|w| (content.to_vec(), build(w)));

@@ -171,7 +171,7 @@ impl Tx<'_> {
 mod tests {
     use laminapdf_cos::{Dict, Object, OpenOptions};
     use laminapdf_model::Rotation;
-    use laminapdf_save::Writer;
+    use laminapdf_save::test_support::Writer;
 
     use super::*;
     use crate::{Error, RotatePage};

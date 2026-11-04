@@ -48,7 +48,7 @@ use crate::sink::{ReadableSink, WriteSink};
 /// use laminapdf_ops::{Document, InfoPatch, Origin, SaveState, SetInfo};
 /// use laminapdf_save::{Save, SaveMode, SaveOptions};
 /// # use laminapdf_cos::{Dict, Object};
-/// # use laminapdf_save::Writer;
+/// # use laminapdf_save::test_support::Writer;
 /// # let mut w = Writer::new(1, 7);
 /// # let pages = w.add([("Type", Object::name("Pages")), ("Kids", Vec::new().into()), ("Count", 0.into())].into_iter().collect::<Dict>());
 /// # let root = w.add([("Type", Object::name("Catalog")), ("Pages", pages.into())].into_iter().collect::<Dict>());

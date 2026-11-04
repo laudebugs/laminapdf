@@ -25,7 +25,8 @@ pub mod shaped;
 use std::path::{Path, PathBuf};
 
 use laminapdf_cos::{Dict, Document, Name, ObjRef, Object, OpenOptions, Stream};
-use laminapdf_save::{FullWriter, Renumber, SaveOptions, Writer, XrefKind};
+use laminapdf_save::test_support::Writer;
+use laminapdf_save::{FullWriter, Renumber, SaveOptions, XrefKind};
 use laminapdf_text::{EmbedPolicy, EmbeddedFont, Encoded, Font, FontKey, FontRegistry, GlyphId, Result, Warning};
 use pdf_writer::{Content, Str};
 

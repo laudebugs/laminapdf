@@ -154,7 +154,7 @@ enum Usage {
 /// # fn font_bytes() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
 /// # fn empty_pdf() -> Vec<u8> {
 /// #     use laminapdf_cos::{Dict, Object};
-/// #     let mut w = laminapdf_save::Writer::new(1, 7);
+/// #     let mut w = laminapdf_save::test_support::Writer::new(1, 7);
 /// #     let pages = w.add([("Type", Object::name("Pages")), ("Kids", Object::Array(vec![])), ("Count", 0.into())].into_iter().collect::<Dict>());
 /// #     let root = w.add([("Type", Object::name("Catalog")), ("Pages", pages.into())].into_iter().collect::<Dict>());
 /// #     w.finish(&[("Root", root)].into_iter().collect()).unwrap()

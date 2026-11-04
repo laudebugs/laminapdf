@@ -5,7 +5,7 @@
 
 use laminapdf_cos::{Dict, Object, Stream};
 use laminapdf_model::{Document, OpenOptions};
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 use laminapdf_text::TextExtractor;
 
 /// Extracts the text of `data`: a whole file (starting `%PDF`) page by page; anything else is

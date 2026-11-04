@@ -37,7 +37,7 @@ unicode-bidi = { workspace = true }
 # so the tests' cycles (laminapdf-save depends on this crate) never reach crates.io.
 # The test helpers every crate shares (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
-laminapdf-save = { path = "../laminapdf-save" }
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 pdf-writer = { workspace = true }
 serde_json = { workspace = true }
 

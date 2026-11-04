@@ -248,7 +248,7 @@ fn a_failed_append_leaves_the_page_tree_alone() {
 /// A one-page document whose page is a direct dictionary in `/Kids` (and has no usable
 /// `/MediaBox`).
 fn direct_page_document() -> Vec<u8> {
-    let mut w = laminapdf_save::Writer::new(1, 7);
+    let mut w = laminapdf_save::test_support::Writer::new(1, 7);
     let page: Dict = [("Type", Object::name("Page"))].into_iter().collect();
     let pages = w.add(
         [

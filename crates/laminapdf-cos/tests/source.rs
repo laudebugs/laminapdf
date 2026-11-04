@@ -22,7 +22,7 @@ use laminapdf_cos::{
     ByteSource, Dict, Document, Error, Limit, Limits, ObjRef, Object, OpenOptions, PdfString, Source, SourceError,
     Stream,
 };
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 
 /// A source that is not in memory (no `as_slice`): `read_at` only, serving at most `max`
 /// bytes per call, and counting its calls.
@@ -697,8 +697,11 @@ fn a_windowed_source_has_no_in_memory_data_but_updates_incrementally() {
     assert_eq!(
         (
             windowed.data(),
-            laminapdf_save::incremental_update(&windowed, &change, eol)
+            laminapdf_save::test_support::incremental_update(&windowed, &change, eol)
         ),
-        (None, laminapdf_save::incremental_update(&in_memory, &change, eol))
+        (
+            None,
+            laminapdf_save::test_support::incremental_update(&in_memory, &change, eol)
+        )
     );
 }

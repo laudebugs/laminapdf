@@ -8,7 +8,8 @@
 //! crate's golden example generates them, and its tests edit them.
 
 use laminapdf_cos::{Dict, ObjRef, Object, Result, Stream};
-use laminapdf_save::{Writer, XrefEol};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::Writer;
 
 use super::content::{ContentBuilder, fixed};
 

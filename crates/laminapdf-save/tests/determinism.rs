@@ -6,7 +6,8 @@ mod common;
 use common::fixture;
 use common::update;
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString, Stream};
-use laminapdf_save::{Writer, XrefEol};
+use laminapdf_save::XrefEol;
+use laminapdf_save::test_support::Writer;
 
 /// A small document using every object type, with forward references and a stream.
 fn build() -> (Writer, Dict) {

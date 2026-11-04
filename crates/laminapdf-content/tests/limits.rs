@@ -14,7 +14,7 @@ use common::{dict, form, page_doc_with, run};
 use laminapdf_content::{Error, Limit, Limits, Warning};
 use laminapdf_cos::{Dict, Object};
 use laminapdf_model::OpenOptions;
-use laminapdf_save::Writer;
+use laminapdf_save::test_support::Writer;
 
 fn with(limits: Limits) -> OpenOptions {
     OpenOptions::default().with_limits(limits)
