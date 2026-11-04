@@ -12,7 +12,7 @@
 | Branch | `refactor/q2q-split-cos-reader` |
 | PR title | `refactor(cos): split reader/mod.rs into page-tree and object-loading modules` |
 | Size | M |
-| PR | — |
+| PR | [#211](https://github.com/laudebugs/laminapdf/pull/211) |
 
 ## Goal
 
