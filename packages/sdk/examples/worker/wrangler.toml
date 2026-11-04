@@ -1,12 +1,11 @@
-# A Cloudflare Worker that generates a PDF per request with @laminapdf/sdk (B6c; the docs site's
-# Worker example). `pnpm exec wrangler dev -c examples/worker/wrangler.toml` from packages/sdk.
-# Wrangler bundles the `workerd` export condition, which imports both `.wasm` files as
-# `WebAssembly.Module`s (Workers can't compile WebAssembly at run time).
+# A Cloudflare Worker that generates a PDF per request with @laminapdf/sdk. Run `npx wrangler dev`
+# in this folder. Wrangler bundles the package's `workerd` export condition, which imports both
+# `.wasm` files as `WebAssembly.Module`s (Workers can't compile WebAssembly at run time).
 name = "lamina-pdf-example"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
-# The report's fonts are bundled with the Worker as ArrayBuffers.
+# Font files are bundled with the Worker as ArrayBuffers.
 [[rules]]
 type = "Data"
 globs = ["**/*.ttf", "**/*.otf"]

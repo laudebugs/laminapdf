@@ -7,7 +7,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll run Lamina PDF in a Web Worker, so opening or saving a large file never freezes your page. You need this in a browser app once files get big: on the main thread, a [full rewrite](/reference/glossary/#full-rewrite) of a 50 MB file blocks the page for about 200 ms.
 
-`@laminapdf/sdk` is synchronous after `init()`. `@laminapdf/sdk/worker` runs the same API in a Web Worker, where you call the same methods and each returns a `Promise`. This example opens a file in a Web Worker, counts its pages, saves it with progress, and then cancels a second save:
+`@laminapdf/sdk` is synchronous after `init()`. `@laminapdf/sdk/worker` runs the same API in a Web Worker, where you call the same methods and each returns a `Promise`. This example opens a file in a Web Worker and saves it there. The save reports its progress, and aborting the signal stops the work, for example when the user presses Cancel:
 
 <Snippet file="packages/sdk/examples/worker-client.ts" />
 

@@ -9,15 +9,19 @@ import Snippet from "../../../components/Snippet.astro";
 
 Cloudflare Workers can't compile WebAssembly at run time. So Wrangler bundles the package's entry for Cloudflare Workers, which imports both `.wasm` files as `WebAssembly.Module`s. `init` instantiates them once per isolate.
 
-This Cloudflare Worker returns a one-page letter at `/?name=…` and the 100-page report at `/report`. Lamina PDF's tests run it in workerd, Cloudflare's runtime:
+This Cloudflare Worker returns a one-page letter at `/?name=…` in a standard font, and the same letter at `/embedded?name=…` in a font bundled with the Cloudflare Worker. Lamina PDF's tests run it in workerd, Cloudflare's runtime:
 
 <Snippet file="packages/sdk/examples/worker/src/index.ts" />
 
-Its Wrangler configuration bundles the fonts as `Data` modules:
+Its Wrangler configuration bundles font files as `Data` modules, so importing a font gives its bytes:
 
 <Snippet file="packages/sdk/examples/worker/wrangler.toml" />
 
-Run it locally from `packages/sdk` with `pnpm exec wrangler dev -c examples/worker/wrangler.toml`.
+TypeScript learns what a font import is from a declaration file next to the code:
 
-- **Errors the caller caused** (kind `input` or `limit`) become a `400` with the error's JSON. See [Errors and warnings](/concepts/errors-and-warnings/).
-- **Memory:** both functions free their builder and document as soon as the bytes are saved, because one isolate serves many requests.
+<Snippet file="packages/sdk/examples/worker/src/data.d.ts" />
+
+To run it, install `@laminapdf/sdk` and `wrangler` in the Cloudflare Worker's folder (`npm install @laminapdf/sdk wrangler`), put a copy of [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) at `src/fonts/NotoSans-Regular.ttf`, and run `npx wrangler dev`.
+
+- **Errors the caller caused** become a `400` with the error's JSON: a name the font can't draw (`missing-glyph`, `encoding-full`). Anything else, such as a broken font file, stays a `500`. See [Errors and warnings](/concepts/errors-and-warnings/).
+- **Memory:** the letter frees its builder and document as soon as the bytes are saved, because one isolate serves many requests.
