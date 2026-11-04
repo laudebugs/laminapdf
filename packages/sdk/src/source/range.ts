@@ -2,7 +2,9 @@
 // synchronously from a sparse source; when bytes are missing it throws `data-pending` with the
 // ranges it needs, and the loop here fetches them, supplies them and calls again.
 import type { WasmSparseSource } from "@laminapdf/wasm/base";
-import { guard, isLaminaPdfError, type LaminaPdfError, packageError } from "../errors.js";
+import { isLaminaPdfError, type LaminaPdfError, packageError } from "../errors.js";
+import type { BaseGlue } from "../init.js";
+import type { Instance } from "../internal/instance.js";
 
 /** A byte range of the input. */
 export interface ByteRange {
@@ -72,6 +74,9 @@ export function wholeBytes(source: RangeSource): Uint8Array | undefined {
 
 /** @internal What a range document keeps to fetch more: never the password or a signal. */
 export interface RangeState {
+  /** The instance the sparse source lives in, and its generation then. */
+  readonly instance: Instance<BaseGlue>;
+  readonly generation: number;
   readonly sparse: WasmSparseSource;
   readonly source: RangeSource;
   readonly blockSize: number;
@@ -90,7 +95,7 @@ export interface RangeState {
  * @internal
  */
 export async function settle<T>(state: RangeState, call: () => T | Promise<T>, signal?: AbortSignal): Promise<T> {
-  const { sparse, blockSize, readahead, maxRounds } = state;
+  const { instance, generation, sparse, blockSize, readahead, maxRounds } = state;
   let previous: string | undefined;
   for (let round = 0; ; round++) {
     let error: LaminaPdfError;
@@ -104,7 +109,9 @@ export async function settle<T>(state: RangeState, call: () => T | Promise<T>, s
     const key = JSON.stringify(asked);
     const flat = new Float64Array(asked.flatMap((r) => [r.offset, r.offset + r.length]));
     // The planning is laminapdf-source's (`SparseSource::to_fetch`), shared with the Rust loop.
-    const todo = guard(() => sparse.toFetch(flat, blockSize, readahead));
+    // The fetches await: a reset() or a trap may have replaced the sparse source's instance.
+    instance.check(generation, "Document");
+    const todo = instance.call(() => sparse.toFetch(flat, blockSize, readahead));
     if (round >= maxRounds || todo.length === 0 || key === previous) throw error;
     signal?.throwIfAborted();
     await fetchRound(state, todo, signal);
@@ -114,7 +121,7 @@ export async function settle<T>(state: RangeState, call: () => T | Promise<T>, s
 
 /** Fetches and supplies the flat `[start, end, …]` ranges of one round. */
 async function fetchRound(state: RangeState, todo: Float64Array, signal: AbortSignal | undefined): Promise<void> {
-  const { sparse, source } = state;
+  const { instance, generation, sparse, source } = state;
   const controller = new AbortController();
   const onAbort = () => controller.abort(signal?.reason);
   signal?.addEventListener("abort", onAbort, { once: true });
@@ -132,7 +139,9 @@ async function fetchRound(state: RangeState, todo: Float64Array, signal: AbortSi
               data: { reason: "length", expected: end - start, got: bytes.length },
             });
           }
-          if (!controller.signal.aborted) guard(() => sparse.supply(start, bytes));
+          if (controller.signal.aborted) return;
+          instance.check(generation, "Document");
+          instance.call(() => sparse.supply(start, bytes));
         })
         .catch((e: unknown) => {
           // The first failure wins; the aborts it causes in the other fetches don't replace it.

@@ -2,8 +2,10 @@
 // instance (base or text, ADR 0016 §4), so the instance-side objects are made per builder (fonts)
 // or per module (images) when first used.
 import type { WasmImage } from "@laminapdf/wasm/base";
-import { guard } from "./errors.js";
-import { type BaseGlue, baseModule, type TextGlue } from "./init.js";
+import { packageError } from "./errors.js";
+import { type BaseGlue, baseModule } from "./init.js";
+import { disposable, forget, watch } from "./internal/handle.js";
+import type { Instance } from "./internal/instance.js";
 
 /** The standard 14 fonts, by PostScript name: no bytes needed, not embedded, Latin only, unshaped. */
 export type Standard14 =
@@ -72,8 +74,8 @@ type ImageSource =
   | { readonly kind: "png"; readonly bytes: Uint8Array }
   | { readonly kind: "rgba"; readonly width: number; readonly height: number; readonly bytes: Uint8Array };
 
-function decode(glue: BaseGlue | TextGlue, source: ImageSource): WasmImage {
-  return guard(() => {
+function decode(instance: Instance<BaseGlue>, source: ImageSource): WasmImage {
+  return instance.call((glue) => {
     switch (source.kind) {
       case "jpeg":
         return glue.WasmImage.jpeg(source.bytes);
@@ -82,7 +84,7 @@ function decode(glue: BaseGlue | TextGlue, source: ImageSource): WasmImage {
       case "rgba":
         return glue.WasmImage.rgba(source.width, source.height, source.bytes);
     }
-  }) as WasmImage;
+  });
 }
 
 /**
@@ -90,11 +92,13 @@ function decode(glue: BaseGlue | TextGlue, source: ImageSource): WasmImage {
  * The bytes are copied when the image is created. It is decoded once per WASM module, the first
  * time a builder of that module draws it (or `width`/`height` is read), so problems with the
  * data (`invalid-image`, `unsupported-image`, …) surface there. Written once per document however
- * often it is drawn.
+ * often it is drawn. It keeps its bytes, so it outlives `reset()` and decodes again.
  */
 export class Image {
   readonly #source: ImageSource;
-  readonly #decoded = new Map<BaseGlue | TextGlue, WasmImage>();
+  /** The decoded copy in each module, with the generation of the instance it lives in. */
+  readonly #decoded = new Map<Instance<BaseGlue>, { readonly generation: number; readonly image: WasmImage }>();
+  #freed = false;
 
   private constructor(source: ImageSource) {
     this.#source = source;
@@ -117,35 +121,60 @@ export class Image {
 
   /** Width in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`. */
   get width(): number {
-    return this.#any().width;
+    const [instance, image] = this.#any();
+    return instance.call(() => image.width);
   }
 
   /** Height in pixels (decodes the image if no module has yet). @throws {@link LaminaPdfError} as `in`. */
   get height(): number {
-    return this.#any().height;
+    const [instance, image] = this.#any();
+    return instance.call(() => image.height);
   }
 
-  #any(): WasmImage {
-    for (const image of this.#decoded.values()) return image;
-    return this.in(baseModule());
-  }
-
-  /** Frees the image's WASM memory now (otherwise when it is garbage-collected). */
-  free(): void {
-    for (const image of this.#decoded.values()) image.free();
-    this.#decoded.clear();
+  /** A decoded copy, in any module (the base module when none has one). */
+  #any(): readonly [Instance<BaseGlue>, WasmImage] {
+    for (const [instance, held] of this.#decoded) {
+      instance.live();
+      if (held.generation === instance.generation) return [instance, held.image];
+    }
+    const base = baseModule();
+    return [base, this.in(base)];
   }
 
   /**
-   * @internal The image in `glue`'s instance, decoded there at first use.
-   * @throws {@link LaminaPdfError} `invalid-image`, `unsupported-image`, `image-too-large`, `image-data-length`.
+   * Frees the image's WASM memory now; without it, the garbage collector frees it later. A second
+   * call does nothing, and any other call afterwards throws `disposed`. Prefer `using`.
    */
-  in(glue: BaseGlue | TextGlue): WasmImage {
-    let image = this.#decoded.get(glue);
-    if (image === undefined) {
-      image = decode(glue, this.#source);
-      this.#decoded.set(glue, image);
+  free(): void {
+    if (this.#freed) return;
+    this.#freed = true;
+    forget(this);
+    for (const [instance, held] of this.#decoded) {
+      if (instance.owns(held.generation)) held.image.free();
     }
+    this.#decoded.clear();
+  }
+
+  /** Frees the image at the end of a `using` block (an alias of `free()`). */
+  [Symbol.dispose](): void {
+    this.free();
+  }
+
+  /**
+   * @internal The image in `instance`, decoded there at first use (and again after a reset).
+   * @throws {@link LaminaPdfError} `disposed`; `invalid-image`, `unsupported-image`,
+   *   `image-too-large`, `image-data-length`.
+   */
+  in(instance: Instance<BaseGlue>): WasmImage {
+    if (this.#freed) throw packageError("disposed", "the Image was used after free() or its using block");
+    instance.live();
+    const held = this.#decoded.get(instance);
+    if (held !== undefined && held.generation === instance.generation) return held.image;
+    const image = decode(instance, this.#source);
+    if (this.#decoded.size === 0) watch(this, "Image");
+    this.#decoded.set(instance, { generation: instance.generation, image });
     return image;
   }
 }
+
+disposable(Image);
