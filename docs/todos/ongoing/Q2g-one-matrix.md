@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
@@ -31,7 +31,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Façade renames ([Q2s](./Q2s-facade-names.md)).
+- Façade renames ([Q2s](../ready/Q2s-facade-names.md)).
 
 ## Tasks
 
