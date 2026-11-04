@@ -12,7 +12,7 @@
 | Branch | `claude/working-session-9g3nst` |
 | PR title | `refactor(content): dispatch operators to per-group handlers` |
 | Size | S |
-| PR | — |
+| PR | [#210](https://github.com/laudebugs/laminapdf/pull/210) |
 
 ## Goal
 
