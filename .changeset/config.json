@@ -12,7 +12,7 @@
     ]
   ],
   "linked": [],
-  "ignore": ["@laminapdf/docs", "@laminapdf/test-utils"],
+  "ignore": ["@laminapdf/docs", "@laminapdf/test-utils", "@laminapdf/tokens"],
   "privatePackages": {
     "version": true,
     "tag": true

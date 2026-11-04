@@ -2,12 +2,10 @@
  * The docs site in Lamina PDF's Paper design language (docs/design/paper/design-language.md):
  * warm paper grounds, ink text, hairline rules, one deep teal accent, and Source Sans 3 for all
  * text, titles included (quality plan §5). Starlight is themed through its CSS custom properties
- * (`--sl-*`); the `--paper-*` names are the design language's token names (§2) and their
- * values are copied from it by hand. Keep them in step with the design language until U6a's
- * `@laminapdf/tokens` and U6b's `@laminapdf/fonts` exist; then this file imports those packages and
- * drops its copies (a task in both todos). Light is the design language's §2.1 theme; dark is
- * its proposed §2.3 theme. Colours for asides (note, tip, caution, danger) map to `accent`,
- * Plum, `warning` and `danger`.
+ * (`--sl-*`), which this file maps onto the `--paper-*` tokens of `@laminapdf/tokens` (loaded
+ * before this file in astro.config.mjs; Starlight sets `data-theme` on `<html>`, which picks the
+ * tokens' light or dark block). Fonts are still copied here until U6b's `@laminapdf/fonts`.
+ * Colours for asides (note, tip, caution, danger) map to `accent`, Plum, `warning` and `danger`.
  */
 
 /* Fonts: self-hosted (src/fonts/README.md), variable, Latin and Latin Extended. */
@@ -56,26 +54,10 @@
 
 /* Dark: the proposed Paper dark theme (§2.3). Starlight's default (unthemed) mode is dark.
    `::backdrop` as well, as Starlight does: it doesn't inherit from `:root` in every browser,
-   and the search dialog's overlay reads `--sl-color-backdrop-overlay` there. */
+   and the search dialog's overlay reads `--sl-color-backdrop-overlay` there, so that value is
+   the `scrim` token written out (here and in the light block) rather than a `var()`. */
 :root,
 ::backdrop {
-  --paper-ground: #1e1d1a;
-  --paper-surface: #262421;
-  --paper-raised: #2e2c28;
-  --paper-text: #ece7de;
-  --paper-text-2: #cfc8bc;
-  --paper-muted: #a39b8e;
-  --paper-hairline: #3a3732;
-  --paper-chip-border: #4a463f;
-  --paper-control-border: #7e766a;
-  --paper-accent: #7dbdc2;
-  --paper-accent-strong: #9bcfd3;
-  --paper-on-accent: #1e1d1a;
-  --paper-accent-tint: #343c3b;
-  --paper-danger: #ee8c98;
-  --paper-positive: #86c49a;
-  --paper-warning: #e0ae5a;
-
   --sl-color-white: var(--paper-text);
   --sl-color-gray-1: var(--paper-text);
   --sl-color-gray-2: var(--paper-text-2);
@@ -128,25 +110,6 @@
 /* Light: the Paper light theme (§2.1). */
 :root[data-theme="light"],
 [data-theme="light"] ::backdrop {
-  --paper-ground: #f7f4ee;
-  --paper-surface: #fbf9f5;
-  --paper-raised: #ffffff;
-  --paper-gutter: #ece7de;
-  --paper-text: #1f1d1a;
-  --paper-text-2: #3a3631;
-  --paper-text-3: #4a453e;
-  --paper-muted: #6b645a;
-  --paper-hairline: #e4ded3;
-  --paper-chip-border: #d8d1c5;
-  --paper-control-border: #8a8174;
-  --paper-accent: #1f5c63;
-  --paper-accent-strong: #16454b;
-  --paper-on-accent: #ffffff;
-  --paper-accent-tint: #e1e6e3;
-  --paper-danger: #9b2335;
-  --paper-positive: #2f6a45;
-  --paper-warning: #8a5300;
-
   --sl-color-white: var(--paper-text);
   --sl-color-gray-1: var(--paper-text-2);
   --sl-color-gray-2: var(--paper-text-3);

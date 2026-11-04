@@ -16,7 +16,7 @@ const RUNS_UNEXPORTED: Record<string, string[]> = {
   "test/workerd/worker.ts": ["test/workerd/worker.ts"],
   examples: ["examples/**/*.{ts,mjs}"],
   bench: ["bench/**/*.mjs"],
-  scripts: ["scripts/**/*.mjs"],
+  scripts: ["scripts/**/*.{mjs,ts}"],
 };
 
 function entries(dir: string): string[] {
@@ -29,9 +29,14 @@ function entries(dir: string): string[] {
 }
 
 function project(dir: string): string[] {
-  return ["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
-    existsSync(`packages/${dir}/${g.split("/")[0]}`),
-  );
+  const scripts = `packages/${dir}/scripts`;
+  const tsScripts = existsSync(scripts) && readdirSync(scripts).some((f) => f.endsWith(".ts"));
+  return [
+    ...["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
+      existsSync(`packages/${dir}/${g.split("/")[0]}`),
+    ),
+    ...(tsScripts ? ["scripts/**/*.ts"] : []),
+  ];
 }
 
 const config: KnipConfig = {
