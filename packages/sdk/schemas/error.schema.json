@@ -102,7 +102,14 @@
             "worker-failed",
             "wasm-trap",
             "out-of-memory",
-            "instance-reset"
+            "instance-reset",
+            "invalid-command-line",
+            "invalid-page-range",
+            "binary-output-to-terminal",
+            "unknown-code",
+            "overwrite-refused",
+            "input-unreadable",
+            "output-unwritable"
           ]
         },
         "data": {

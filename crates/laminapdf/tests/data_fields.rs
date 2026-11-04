@@ -21,7 +21,7 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 13] = [
+const UNBUILDABLE: [(&str, &str); 18] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -43,6 +43,12 @@ const UNBUILDABLE: [(&str, &str); 13] = [
     ("render-too-large", "raised by laminapdf-render"),
     ("render-failed", "raised by laminapdf-render"),
     ("render-backend-unavailable", "raised by laminapdf-render"),
+    // `cliErrors`: raised by laminapdf-cli; its tests/data_fields.rs checks their keys.
+    ("invalid-page-range", "raised by laminapdf-cli"),
+    ("unknown-code", "raised by laminapdf-cli"),
+    ("overwrite-refused", "raised by laminapdf-cli"),
+    ("input-unreadable", "raised by laminapdf-cli"),
+    ("output-unwritable", "raised by laminapdf-cli"),
 ];
 
 fn root() -> PathBuf {

@@ -201,3 +201,15 @@ A PR that adds a code adds:
 | [`wasm-trap`](wasm-trap.md) | `internal` | the WebAssembly module trapped (a bug in Lamina PDF), so its instance was discarded and the next call gets a fresh one |
 | [`out-of-memory`](out-of-memory.md) | `limit` | the WebAssembly module ran out of memory (its maximum, or what the engine could give), so its instance was discarded and the next call gets a fresh one |
 | [`instance-reset`](instance-reset.md) | `state` | a handle was used after its WebAssembly instance was replaced, by reset() or after a trap |
+
+## CLI errors (`laminapdf-cli`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`invalid-command-line`](invalid-command-line.md) | `usage` | the command line doesn't parse: an unknown command or flag, a missing argument, a bad value, or stdin named twice |
+| [`invalid-page-range`](invalid-page-range.md) | `usage` | a page range doesn't fit the grammar, or names a page the document lacks |
+| [`binary-output-to-terminal`](binary-output-to-terminal.md) | `usage` | the command would write a PDF to standard output, and standard output is a terminal |
+| [`unknown-code`](unknown-code.md) | `usage` | explain was given a code that isn't a Lamina PDF error or warning code |
+| [`overwrite-refused`](overwrite-refused.md) | `state` | the output file exists, or the command would modify its input in place, and --force wasn't given |
+| [`input-unreadable`](input-unreadable.md) | `io` | an input file, standard input or the password file couldn't be read |
+| [`output-unwritable`](output-unwritable.md) | `io` | the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed |

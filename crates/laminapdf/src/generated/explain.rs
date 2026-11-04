@@ -4226,6 +4226,274 @@ The decisions and todos behind this code:
 
 - [L2b](../todos/done/L2b-disposal-and-memory.md): `reset()` and trap recovery
 "#,
+        "invalid-command-line" => r"# `invalid-command-line`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The command line didn't parse: a command or flag `laminapdf` doesn't have, a missing argument, a value of the wrong form, or `-` (standard input) named as more than one input.
+
+## Why
+
+The CLI checks its whole command line before it reads any file, so a typo never runs half a command. Exit code 2 tells a script that the call itself was wrong, not the document.
+
+## How to fix
+
+Run the command with `--help` to see its arguments, and `laminapdf --help` for the commands. Read standard input at most once per command.
+
+## Example
+
+```console
+$ laminapdf info --pages 1 report.pdf
+error[invalid-command-line]: the command line doesn't parse
+  = hint: run the command with --help to see its arguments
+$ echo $?
+2
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "invalid-page-range" => r"# `invalid-page-range`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A page range doesn't fit the grammar, or it names a page the document doesn't have, such as page 9 of a 5-page file.
+
+## Why
+
+Ranges count pages from 1, as people do. A range that can't be read, or that reaches past the last page, fails before anything is written, so a command never works on the wrong pages.
+
+## How to fix
+
+Write pages as `1-5`, `z` for the last page, `r2` for the second from the end, `x3` to leave page 3 out, and `:odd` or `:even` at the end for every other page of the result. `data.position` is the character where the range went wrong.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf +90:1-9 -o out.pdf
+error[invalid-page-range]: the document has 5 pages
+  = hint: write pages as 1-5, z for the last page, …
+$ echo $?
+2
+```
+
+## Data fields
+
+- `range`: the range given (untrusted: caller text, never in the message).
+- `position`: the 1-based character of `range` where it went wrong.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "binary-output-to-terminal" => r"# `binary-output-to-terminal`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A command that writes a PDF was told to write it to standard output (`-o -`), and standard output is a terminal.
+
+## Why
+
+A PDF's bytes would fill the terminal with noise and can leave it in a strange state. The CLI writes binary output only to a file or a pipe.
+
+## How to fix
+
+Redirect standard output to a file or a pipe, or write to a file with `-o`.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf +90 -o -
+error[binary-output-to-terminal]: standard output is a terminal
+  = hint: redirect standard output to a file or a pipe, or write to a file with -o
+$ laminapdf pages rotate scan.pdf +90 -o - > rotated.pdf
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "unknown-code" => r"# `unknown-code`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`laminapdf explain` was given a code that isn't one of Lamina PDF's error or warning codes.
+
+## Why
+
+Every code Lamina PDF reports is listed once, with its own page. A code that isn't listed has no explanation to print.
+
+## How to fix
+
+Check the spelling: `didYouMean` lists the known codes closest to the one given. The tables in this folder's README list every code.
+
+## Example
+
+```console
+$ laminapdf explain xref-repaird
+error[unknown-code]: not a Lamina PDF code
+  = did you mean: xref-repaired
+$ echo $?
+2
+```
+
+## Data fields
+
+- `code`: the code given (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "overwrite-refused" => r"# `overwrite-refused`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+The output file already exists, or the command was asked to change its input in place with `--in-place`, and `--force` wasn't given.
+
+## Why
+
+The CLI never replaces a file without being told to, so a mistyped `-o` can't destroy a document. It never prompts either, because scripts and agents can't answer a prompt. Exit code 4 tells a script the command needs `--force`.
+
+## How to fix
+
+Pass `--force` to replace the file, or write to a new file with `-o`. The CLI writes to a temporary file and renames it, so a replaced file is never left half written.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf 90:z --in-place
+error[overwrite-refused]: refusing to replace a file without --force
+  = hint: pass --force, or write to a new file with -o
+$ echo $?
+4
+```
+
+## Data fields
+
+- `output`: the file that would have been replaced (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "input-unreadable" => r"# `input-unreadable`
+
+- Type: error
+- Kind: `io` (the host failed to supply or take bytes)
+
+## What happened
+
+An input couldn't be read: the PDF named on the command line, standard input, or the file given to `--password-file`.
+
+## Why
+
+The file may not exist, may be a folder, or may not be readable by the user running the command.
+
+## How to fix
+
+Check that the file exists and that you can read it. `data.input` names the file, and `data.reason` says what the system reported.
+
+## Example
+
+```console
+$ laminapdf info missing.pdf
+error[input-unreadable]: couldn't read an input
+  = hint: check that the file exists and that you can read it; data.input names it
+$ echo $?
+1
+```
+
+## Data fields
+
+- `input`: the file that couldn't be read, or `-` for standard input (untrusted: caller text, never in the message).
+- `reason`: the system's error kind, such as `NotFound` or `PermissionDenied`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "output-unwritable" => r"# `output-unwritable`
+
+- Type: error
+- Kind: `io` (the host failed to supply or take bytes)
+
+## What happened
+
+The output couldn't be written: its folder is missing or read-only, the disk is full, or standard output was closed before the command finished.
+
+## Why
+
+The CLI writes to a temporary file beside the output and renames it into place, so a failed write leaves the old file, if there was one, as it was.
+
+## How to fix
+
+Check that the output's folder exists, that you can write to it and that the disk has room. When piping, make sure the reading command doesn't exit early.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf +90 -o /no/such/folder/out.pdf
+error[output-unwritable]: couldn't write the output
+  = hint: check that the output's folder exists, …
+$ echo $?
+1
+```
+
+## Data fields
+
+- `output`: the file that couldn't be written, or `-` for standard output (untrusted: caller text, never in the message).
+- `reason`: the system's error kind, such as `NotFound` or `StorageFull`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
         _ => return None,
     })
 }

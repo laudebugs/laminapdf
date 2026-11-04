@@ -98,6 +98,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "facadeErrors",
   "bindingErrors",
   "packageErrors",
+  "cliErrors",
 ];
 
 /** The groups of `codes.json` that list warnings. */
