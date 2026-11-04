@@ -388,11 +388,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-extract"
+version = "0.2.0-alpha.2"
+dependencies = [
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-syntax",
+ "laminapdf-text",
+ "thiserror",
+]
+
+[[package]]
 name = "laminapdf-fuzz"
 version = "0.0.0"
 dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
+ "laminapdf-extract",
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-save",

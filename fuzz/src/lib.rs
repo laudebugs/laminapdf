@@ -17,3 +17,6 @@ pub mod save_entry;
 /// The `extract_text` target's entry point, shared with laminapdf-text's `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-text/tests/common/fuzz_entry.rs"]
 pub mod text_entry;
+/// The `extract` target's entry point, shared with laminapdf-extract's `tests/regressions.rs`.
+#[path = "../../crates/laminapdf-extract/tests/common/fuzz_entry.rs"]
+pub mod extract_entry;
