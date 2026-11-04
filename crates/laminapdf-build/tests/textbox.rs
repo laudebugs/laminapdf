@@ -11,11 +11,12 @@ mod common;
 
 use common::b5b::{self, LATIN_PARAGRAPH, MULTISCRIPT_BOX_WIDTH, SCRIPTS};
 use common::text::lines;
-use common::{fixture, reopen, save};
+use common::{reopen, save};
 use laminapdf_build::{
     Alignment, BuildOptions, Builder, Font, Overflow, PageSize, Standard14, TextBoxOptions, TextLayout,
 };
 use laminapdf_model::{Pt, RectPt};
+use laminapdf_test_fixtures::fixture;
 
 fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
     RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))

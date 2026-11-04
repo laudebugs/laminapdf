@@ -12,7 +12,7 @@ mod common;
 use laminapdf_text::{Error, Warning};
 
 fn listed(key: &str) -> Vec<String> {
-    let codes: serde_json::Value = serde_json::from_slice(&common::fixture("codes.json")).unwrap();
+    let codes: serde_json::Value = serde_json::from_slice(&laminapdf_test_fixtures::fixture("codes.json")).unwrap();
     codes[key]
         .as_array()
         .unwrap()

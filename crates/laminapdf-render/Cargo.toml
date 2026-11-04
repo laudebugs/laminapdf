@@ -32,6 +32,8 @@ thiserror = { workspace = true }
 hayro = { workspace = true, optional = true }
 
 [dev-dependencies]
+# The test helpers every crate shares, by path only (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 boon = { workspace = true }
 
 [lints]

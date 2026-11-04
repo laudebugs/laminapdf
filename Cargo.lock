@@ -1119,6 +1119,7 @@ dependencies = [
  "laminapdf-model",
  "laminapdf-save",
  "laminapdf-syntax",
+ "laminapdf-test-fixtures",
  "serde_json",
  "toml",
 ]
@@ -1174,6 +1175,7 @@ dependencies = [
  "hayro",
  "laminapdf-cos",
  "laminapdf-syntax",
+ "laminapdf-test-fixtures",
  "serde_json",
  "thiserror",
 ]
@@ -1184,6 +1186,7 @@ version = "0.2.0-alpha.2"
 dependencies = [
  "laminapdf",
  "laminapdf-render",
+ "laminapdf-test-fixtures",
  "pdfium-render",
  "png",
  "serde_json",
@@ -1222,6 +1225,7 @@ dependencies = [
  "laminapdf",
  "laminapdf-cos",
  "laminapdf-save",
+ "laminapdf-test-fixtures",
  "memmap2",
  "thiserror",
 ]

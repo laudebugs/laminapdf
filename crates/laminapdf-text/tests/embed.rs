@@ -417,7 +417,7 @@ fn every_drawn_cid_maps_to_the_glyph_it_was_drawn_with() {
 #[test]
 fn a_whole_font_puts_second_texts_past_its_glyph_count() {
     let sans = Font::from_bytes(common::with_fs_type(
-        &common::fixture("fonts/NotoSans-Regular.ttf"),
+        &laminapdf_test_fixtures::fixture("fonts/NotoSans-Regular.ttf"),
         0x0100,
     ))
     .unwrap();

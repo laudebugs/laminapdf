@@ -33,12 +33,12 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use common::fixtures_dir;
 use laminapdf_content::{
     FormXObject, GraphicsStateParams, ImageDraw, ImageSource, Op, Operator, Visitor, interpret_page,
 };
 use laminapdf_cos::Object;
 use laminapdf_model::{Document, OpenOptions};
+use laminapdf_test_fixtures::fixtures_dir;
 use serde_json::Value;
 
 /// Counts Lamina PDF's operators under pdf.js's names.

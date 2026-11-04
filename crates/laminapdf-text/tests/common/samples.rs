@@ -3,7 +3,8 @@
 
 use laminapdf_text::{Font, GlyphId, LayoutOptions, Standard14, Tag};
 
-use super::{TestPdf, fixture, font};
+use super::{TestPdf, font};
+use laminapdf_test_fixtures::fixture;
 
 /// A generated document (its lines are the `LATIN`, `CFF`, … constants).
 pub struct Sample {

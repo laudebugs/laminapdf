@@ -20,9 +20,7 @@ mod common;
 
 use common::extract::{extract, font, helvetica, page};
 
-fn fixture(rel: &str) -> Vec<u8> {
-    std::fs::read(format!("{}/../../fixtures/{rel}", env!("CARGO_MANIFEST_DIR"))).expect("fixture")
-}
+use laminapdf_test_fixtures::fixture;
 
 fn pages_text(bytes: Vec<u8>) -> (Vec<PageText>, Document) {
     let doc = Document::open(bytes, OpenOptions::default()).expect("opens");

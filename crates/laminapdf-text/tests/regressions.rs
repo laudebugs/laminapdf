@@ -11,13 +11,11 @@ mod common;
 
 use common::fuzz_entry::{extract_text, fixture_file};
 
-fn fixtures() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
+use laminapdf_test_fixtures::fixtures_dir;
 
 #[test]
 fn every_saved_crash_input_replays_without_a_panic() {
-    let Ok(files) = std::fs::read_dir(fixtures().join("regressions/extract_text")) else {
+    let Ok(files) = std::fs::read_dir(fixtures_dir().join("regressions/extract_text")) else {
         return;
     };
     for file in files {
@@ -41,7 +39,7 @@ BT /F1 12 Tf 72 700 Td (AB) Tj /F2 12 Tf <0001> Tj ET";
 
 #[test]
 fn whole_files_and_other_bytes_run_through_the_entry() {
-    extract_text(&std::fs::read(fixtures().join("golden/text-shaped.pdf")).unwrap());
+    extract_text(&std::fs::read(fixtures_dir().join("golden/text-shaped.pdf")).unwrap());
     extract_text(b"BT /F2 9 Tf <00010002> Tj /F1 9 Tf (A) ' ET");
     extract_text(b"");
 }

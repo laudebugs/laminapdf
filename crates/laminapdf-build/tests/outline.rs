@@ -10,8 +10,9 @@
 
 mod common;
 
-use common::{fixture, reopen, save};
+use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, LinkTarget, OutlineEntry, PageSize};
+use laminapdf_test_fixtures::fixture;
 
 #[test]
 fn the_golden_outline_reads_back_as_built() {

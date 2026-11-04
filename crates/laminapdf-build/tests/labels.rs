@@ -10,8 +10,9 @@
 mod common;
 
 use common::b5b::LABELS;
-use common::{fixture, reopen, save};
+use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, LabelStyle, PageLabel, PageSize};
+use laminapdf_test_fixtures::fixture;
 
 #[test]
 fn the_golden_labels_read_back() {

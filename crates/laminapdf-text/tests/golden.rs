@@ -8,7 +8,7 @@ mod common;
 fn text_goldens_are_byte_identical() {
     for (name, build, _) in common::samples::GOLDENS {
         assert!(
-            build().bytes == common::fixture(&format!("golden/{name}")),
+            build().bytes == laminapdf_test_fixtures::fixture(&format!("golden/{name}")),
             "{name} differs; run `cargo xtask golden --update`"
         );
     }

@@ -13,7 +13,7 @@ use laminapdf_build::Error;
 
 #[test]
 fn build_error_codes_match_the_fixture() {
-    let codes: serde_json::Value = serde_json::from_slice(&common::fixture("codes.json")).unwrap();
+    let codes: serde_json::Value = serde_json::from_slice(&laminapdf_test_fixtures::fixture("codes.json")).unwrap();
     let listed: Vec<&str> = codes["buildErrors"]
         .as_array()
         .unwrap()

@@ -9,8 +9,8 @@
 
 mod common;
 
-use common::fixtures_dir;
 use common::fuzz_entry::{content, fixture_file};
+use laminapdf_test_fixtures::fixtures_dir;
 
 #[test]
 fn every_saved_crash_input_replays_without_a_panic() {

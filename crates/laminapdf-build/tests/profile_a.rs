@@ -12,13 +12,14 @@
 mod common;
 
 use common::b5b::font;
-use common::{at, fixture, rect, reopen, save};
+use common::{at, rect, reopen, save};
 use laminapdf_build::{
     Attachment, BuildOptions, Builder, Color, Error, FillRule, IccProfile, Image, Metadata, PageSize, PdfVersion,
     Profile, Standard14,
 };
 use laminapdf_cos::{Dict, Object};
 use laminapdf_model::Pt;
+use laminapdf_test_fixtures::fixture;
 
 fn options(profile: Profile) -> BuildOptions {
     BuildOptions::default()

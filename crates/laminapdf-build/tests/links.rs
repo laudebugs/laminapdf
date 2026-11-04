@@ -12,11 +12,12 @@ mod common;
 
 use common::b5b::URI;
 use common::text::lines;
-use common::{fixture, reopen, save};
+use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, Fit, LinkTarget, PageSize, Standard14};
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{PointPt, Pt, RectPt};
 use laminapdf_save::{IncrementalWriter, SaveOptions};
+use laminapdf_test_fixtures::fixture;
 
 fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
     RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))

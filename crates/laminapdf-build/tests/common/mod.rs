@@ -22,21 +22,9 @@ pub mod samples;
 pub mod tagged;
 pub mod text;
 
-use std::path::{Path, PathBuf};
-
 use laminapdf_content::{ImageDraw, ImageSource, PathPaint, PathSegment, Visitor, interpret_page};
 use laminapdf_cos::{Object, OpenOptions, Warning};
 use laminapdf_save::{Save as _, SaveOptions, XrefKind};
-
-/// The repository's shared `fixtures/` directory.
-pub fn fixtures_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
-}
-
-pub fn fixture(rel: &str) -> Vec<u8> {
-    let path = fixtures_dir().join(rel);
-    std::fs::read(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()))
-}
 
 /// Saves a built document as a full rewrite with a classic xref table (the goldens' layout).
 pub fn save(mut doc: laminapdf_ops::Document) -> Vec<u8> {

@@ -11,7 +11,6 @@
     reason = "tests: a panic is a test failure; pixel counts are small"
 )]
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use laminapdf_render::{
@@ -19,12 +18,7 @@ use laminapdf_render::{
     RenderRequest, Rotation,
 };
 
-fn fixture(path: &str) -> Vec<u8> {
-    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../fixtures")
-        .join(path);
-    std::fs::read(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
-}
+use laminapdf_test_fixtures::fixture;
 
 fn open(path: &str, options: &RenderOpenOptions) -> Result<Box<dyn RenderDocument>, RenderError> {
     let source: Arc<dyn ByteSource> = Arc::new(fixture(path));
