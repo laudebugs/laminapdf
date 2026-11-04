@@ -70,7 +70,7 @@ Renames ripple into the docs: land this before Q1i and Q1m if possible, or updat
 - `laminapdf-text`'s OpenType tag is `OpenTypeTag`, and the façade exports it for `Font::instance`.
 - `laminapdf-text`'s `extract` and `agl` modules are private, their items re-exported at the root (`agl::to_unicode` became `glyph_name_to_unicode`); `CMap` and `MAX_USECMAP_DEPTH` are crate-private.
 - `Document::ops` and `into_ops` are `#[doc(hidden)]`, kept for Lamina PDF's own crates and tests.
-- `maintainability-duplicates.toml` lost `Font`, `Tag` and `TextRun`; `Document`, `Builder`, `Error`, `Warning`, `Op`, `Page` and `PathSegment` stay, each a wrapper or a different concept with its reason.
+- `maintainability-duplicates.toml` lost `Font`, `Tag` and `TextRun`. Seven names stay, each a wrapper or a different concept, with its reason in the file.
 
 ## Definition of done
 
