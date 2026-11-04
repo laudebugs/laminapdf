@@ -12,7 +12,7 @@
 | Branch | `feat/l2b-disposal-and-memory` |
 | PR title | `feat(pdf): Symbol.dispose on every handle, capped wasm memory and instance recovery` |
 | Size | M (≈ 300–500 lines of TS, Rust build config and tests) |
-| PR | — |
+| PR | [#222](https://github.com/laudebugs/laminapdf/pull/222) |
 
 ## Goal
 
