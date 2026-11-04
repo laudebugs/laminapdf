@@ -2,6 +2,7 @@
 //! reports what they draw to a [`Visitor`].
 
 mod graphics_state;
+mod path;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -13,10 +14,10 @@ use crate::operator::Operator;
 use crate::resources::{self, Found};
 use crate::state::{Color, ColorSpace, FontRef, GraphicsState, Matrix};
 use crate::visitor::{
-    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment, ShadingPaint,
-    TextShow, Visitor,
+    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathSegment, ShadingPaint, TextShow, Visitor,
 };
 use graphics_state::set_dash;
+use path::{close_fill_stroke, curve_to, curve_to_y, fill_stroke, line_to, move_to, rectangle};
 
 /// What an interpretation did.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -330,30 +331,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         Ok(())
     }
 
-    /// Drops the unpainted path whose first segment is at `offset`.
-    fn discard_path(&mut self, frame: &mut Frame, offset: usize) -> Result<()> {
-        self.paint(frame, Paint::Discarded);
-        self.warn(Warning::ContentPathUnpainted {
-            object: frame.object,
-            offset: offset_u64(offset),
-        })
-    }
-
-    /// Reports a path segment and moves the current point.
-    fn segment(&mut self, frame: &mut Frame, op: &Op<'_>, segment: PathSegment) {
-        frame.path.get_or_insert(op.offset);
-        match segment {
-            PathSegment::MoveTo { x, y } | PathSegment::Rect { x, y, .. } => {
-                frame.current = Some((x, y));
-                frame.subpath_start = Some((x, y));
-            }
-            PathSegment::LineTo { x, y } => frame.current = Some((x, y)),
-            PathSegment::CurveTo { end, .. } => frame.current = Some(end),
-            PathSegment::ClosePath => frame.current = frame.subpath_start,
-        }
-        self.visitor.path_segment(&segment, &frame.gs.ctm);
-    }
-
     fn bad_operands(&mut self, frame: &Frame, op: &Op<'_>) -> Result<()> {
         self.warn(Warning::ContentBadOperands {
             object: frame.object,
@@ -421,81 +398,22 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             Operator::Restore => self.restore(frame, op)?,
             Operator::Transform => frame.gs.ctm = matrix(args).multiply(&frame.gs.ctm),
             // Path construction (§8.5.2).
-            Operator::MoveTo => {
-                let [x, y] = numbers::<2>(args);
-                self.segment(frame, op, PathSegment::MoveTo { x, y });
-            }
-            Operator::LineTo => {
-                let [x, y] = numbers::<2>(args);
-                self.segment(frame, op, PathSegment::LineTo { x, y });
-            }
-            Operator::CurveTo => {
-                let [x1, y1, x2, y2, x3, y3] = numbers::<6>(args);
-                let curve = PathSegment::CurveTo {
-                    c1: (x1, y1),
-                    c2: (x2, y2),
-                    end: (x3, y3),
-                };
-                self.segment(frame, op, curve);
-            }
-            Operator::CurveToV => {
-                // §8.5.2.2: the first control point is the current point.
-                let [x2, y2, x3, y3] = numbers::<4>(args);
-                let curve = PathSegment::CurveTo {
-                    c1: frame.current.unwrap_or((x2, y2)),
-                    c2: (x2, y2),
-                    end: (x3, y3),
-                };
-                self.segment(frame, op, curve);
-            }
-            Operator::CurveToY => {
-                // §8.5.2.2: the second control point is the end point.
-                let [x1, y1, x3, y3] = numbers::<4>(args);
-                let curve = PathSegment::CurveTo {
-                    c1: (x1, y1),
-                    c2: (x3, y3),
-                    end: (x3, y3),
-                };
-                self.segment(frame, op, curve);
-            }
+            Operator::MoveTo => self.segment(frame, op, move_to(args)),
+            Operator::LineTo => self.segment(frame, op, line_to(args)),
+            Operator::CurveTo => self.segment(frame, op, curve_to(args)),
+            Operator::CurveToV => self.curve_to_v(frame, op, args),
+            Operator::CurveToY => self.segment(frame, op, curve_to_y(args)),
             Operator::ClosePath => self.segment(frame, op, PathSegment::ClosePath),
-            Operator::Rectangle => {
-                let [x, y, width, height] = numbers::<4>(args);
-                self.segment(frame, op, PathSegment::Rect { x, y, width, height });
-            }
+            Operator::Rectangle => self.segment(frame, op, rectangle(args)),
             // Path painting (§8.5.3) and clipping (§8.5.4).
             Operator::Stroke => self.paint(frame, Paint::Stroke { close: false }),
             Operator::CloseStroke => self.paint(frame, Paint::Stroke { close: true }),
             Operator::Fill | Operator::FillObsolete => self.paint(frame, Paint::Fill(FillRule::NonZero)),
             Operator::FillEvenOdd => self.paint(frame, Paint::Fill(FillRule::EvenOdd)),
-            Operator::FillStroke => self.paint(
-                frame,
-                Paint::FillStroke {
-                    rule: FillRule::NonZero,
-                    close: false,
-                },
-            ),
-            Operator::FillStrokeEvenOdd => self.paint(
-                frame,
-                Paint::FillStroke {
-                    rule: FillRule::EvenOdd,
-                    close: false,
-                },
-            ),
-            Operator::CloseFillStroke => self.paint(
-                frame,
-                Paint::FillStroke {
-                    rule: FillRule::NonZero,
-                    close: true,
-                },
-            ),
-            Operator::CloseFillStrokeEvenOdd => self.paint(
-                frame,
-                Paint::FillStroke {
-                    rule: FillRule::EvenOdd,
-                    close: true,
-                },
-            ),
+            Operator::FillStroke => self.paint(frame, fill_stroke(FillRule::NonZero)),
+            Operator::FillStrokeEvenOdd => self.paint(frame, fill_stroke(FillRule::EvenOdd)),
+            Operator::CloseFillStroke => self.paint(frame, close_fill_stroke(FillRule::NonZero)),
+            Operator::CloseFillStrokeEvenOdd => self.paint(frame, close_fill_stroke(FillRule::EvenOdd)),
             Operator::EndPath => self.paint(frame, Paint::None),
             Operator::Clip => frame.clip = Some(FillRule::NonZero),
             Operator::ClipEvenOdd => frame.clip = Some(FillRule::EvenOdd),
@@ -680,18 +598,6 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             Operator::EndCompatibility => frame.compat = frame.compat.saturating_sub(1),
         }
         Ok(())
-    }
-
-    fn paint(&mut self, frame: &mut Frame, paint: Paint) {
-        frame.path = None;
-        frame.current = None;
-        frame.subpath_start = None;
-        let clip = frame.clip.take();
-        self.visitor.paint_path(&PathPaint {
-            paint,
-            clip,
-            state: &frame.gs,
-        });
     }
 
     fn show(&mut self, frame: &mut Frame, operand: &Object) {
