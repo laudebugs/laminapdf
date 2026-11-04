@@ -31,7 +31,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Façade renames ([Q2s](../ready/Q2s-facade-names.md)).
+- Façade renames ([Q2s](../ongoing/Q2s-facade-names.md)).
 
 ## Tasks
 
