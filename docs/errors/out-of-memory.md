@@ -35,6 +35,6 @@ try {
 
 The decisions and todos behind this code:
 
-- [L2b](../todos/done/L2b-disposal-and-memory.md): the memory maximum and the fresh instance
+- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): the memory maximum and the fresh instance
 - [ADR 0016](../decisions/0016-package-design.md): the maximum, set when the modules are built
 - [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §3: the limits that come first

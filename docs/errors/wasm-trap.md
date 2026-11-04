@@ -34,5 +34,5 @@ try {
 
 The decisions and todos behind this code:
 
-- [L2b](../todos/done/L2b-disposal-and-memory.md): trap recovery and the fresh instance
+- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): trap recovery and the fresh instance
 - [ADR 0016](../decisions/0016-package-design.md): the modules and their build

@@ -31,4 +31,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [L2b](../todos/done/L2b-disposal-and-memory.md): `reset()` and trap recovery
+- [L2b](../todos/ongoing/L2b-disposal-and-memory.md): `reset()` and trap recovery
