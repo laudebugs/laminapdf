@@ -12,7 +12,7 @@
 | Branch | `claude/working-session-9g3nst` |
 | PR title | `docs(site): recipes, one per example, and troubleshooting` |
 | Size | M |
-| PR | — |
+| PR | [#218](https://github.com/laudebugs/laminapdf/pull/218) |
 
 ## Goal
 
