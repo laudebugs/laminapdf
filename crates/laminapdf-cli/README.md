@@ -73,8 +73,8 @@ Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages
 
 The server is safe without flags, because a model may follow instructions planted in a document:
 
-- **Roots.** Tools touch only files under the `--root` folders. A relative path starts at the first root. The server resolves every path, following its links, before it checks the path, so it refuses `..`, an absolute path elsewhere and a link that leads out (`path-outside-roots`). Outside the roots, a missing file gets the same answer as one that exists, so a call can't probe for files.
-- **Read-only by default.** The write tool is listed only with `--allow-write`. It writes new files only, unless the server also has `--allow-in-place`, which lets it replace its input.
+- **Roots.** Tools touch only files under the `--root` folders. A relative path starts at the first root. Before it checks a path, the server resolves it and follows its links. So `..`, an absolute path elsewhere and a link that leads out all get `path-outside-roots`. Outside the roots, a missing file gets the same answer as one that exists, so a call can't probe for files.
+- **Read-only by default.** The server lists the write tool only with `--allow-write`. It writes new files only, unless the server also has `--allow-in-place`, which lets it replace its input.
 - **Document text stays in data.** Titles and extracted text appear only in report fields. Error messages and hints never quote the document, and tool descriptions are fixed text.
 - **Bounded calls.** At most one call per CPU runs at a time. The server stops a call that runs past `--timeout` (60 s by default) at its next step and answers `cancelled`. A step that can't stop, such as opening a large file, gets 5 more seconds. After that the server answers anyway, and the call keeps its CPU slot until the step ends.
 - **Bounded output.** A report over `--max-output-bytes` (1 MiB by default, 1 KiB at least) loses items from the end of its lists, then text, and gets `"truncated": true`. The cut report still matches the tool's `outputSchema`.
