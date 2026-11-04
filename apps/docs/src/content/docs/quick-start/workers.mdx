@@ -21,7 +21,7 @@ TypeScript learns what a font import is from a declaration file next to the code
 
 <Snippet file="packages/sdk/examples/worker/src/data.d.ts" />
 
-To run it, put a copy of [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) at `src/fonts/NotoSans-Regular.ttf` and run `wrangler dev` in the Cloudflare Worker's folder.
+To run it, install `@laminapdf/sdk` and `wrangler` in the Cloudflare Worker's folder (`npm install @laminapdf/sdk wrangler`), put a copy of [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) at `src/fonts/NotoSans-Regular.ttf`, and run `npx wrangler dev`.
 
-- **Errors the caller caused** (kind `input` or `limit`) become a `400` with the error's JSON. See [Errors and warnings](/concepts/errors-and-warnings/).
+- **Errors the caller caused**, a name the font can't draw (`missing-glyph`, `encoding-full`), become a `400` with the error's JSON. Anything else, such as a broken font file, stays a `500`. See [Errors and warnings](/concepts/errors-and-warnings/).
 - **Memory:** the letter frees its builder and document as soon as the bytes are saved, because one isolate serves many requests.

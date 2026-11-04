@@ -1,5 +1,6 @@
-// The test Worker's images, bundled as Wrangler `Data` modules like its fonts (whose declarations
-// are the Worker example's src/data.d.ts: one per pattern in the package's program).
+/// <reference path="../../examples/worker/src/data.d.ts" />
+// The test Worker's images are Wrangler `Data` modules too. Its fonts use the Worker example's
+// declarations, referenced above: TypeScript refuses a second declaration of the same pattern.
 declare module "*.jpg" {
   const data: ArrayBuffer;
   export default data;

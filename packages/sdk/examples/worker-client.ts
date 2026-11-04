@@ -10,14 +10,15 @@ export type SaveInWorkerOptions = Pick<CallOptions, "onProgress" | "signal">;
  * Opens `bytes` in a Web Worker and saves them there as a full rewrite.
  *
  * @param bytes - any PDF; it is copied to the worker (`transfer: true` would move it).
- * @param options - `onProgress` is called after each step of the save; aborting `signal` stops
- *   the save at its next step, and the promise rejects with a `cancelled` error.
+ * @param options - `onProgress` is called after each step of the save. Aborting `signal` stops
+ *   the work wherever it is (starting the Web Worker, opening, or at the save's next step), and
+ *   the promise rejects with a `cancelled` error.
  * @returns the saved file.
  */
 export async function saveInWorker(bytes: Uint8Array, options: SaveInWorkerOptions = {}): Promise<Uint8Array> {
-  const client = await connect();
+  const client = await connect(options);
   try {
-    await using doc = await client.open(bytes);
+    await using doc = await client.open(bytes, options);
     return await doc.save({ mode: "fullRewrite" }, options);
   } finally {
     client.terminate();

@@ -1,5 +1,5 @@
-# A Cloudflare Worker that generates a PDF per request with @laminapdf/sdk. Run `wrangler dev` in
-# this folder. Wrangler bundles the package's `workerd` export condition, which imports both
+# A Cloudflare Worker that generates a PDF per request with @laminapdf/sdk. Run `npx wrangler dev`
+# in this folder. Wrangler bundles the package's `workerd` export condition, which imports both
 # `.wasm` files as `WebAssembly.Module`s (Workers can't compile WebAssembly at run time).
 name = "lamina-pdf-example"
 main = "src/index.ts"

@@ -87,9 +87,10 @@ describe("the worker client", () => {
     using reopened = Document.open(saved);
     expect([reopened.pageCount, progressCalls > 0]).toEqual([pages, true]);
 
-    // A Cancel button pressed while the save is under way.
+    // A Cancel button pressed at once: the example stops while the Web Worker is still starting.
+    // (Cancelling a save in its steps is "stops a stepped save when aborted", above.)
     const controller = new AbortController();
-    const cancelled = saveInWorker(bytes, { signal: controller.signal });
+    const cancelled = saveInWorker(await read("fixtures/corpus/hello.pdf"), { signal: controller.signal });
     controller.abort(new Error("the user cancelled"));
     expect(isLaminaPdfError(await rejection(cancelled), "cancelled")).toBe(true);
   });

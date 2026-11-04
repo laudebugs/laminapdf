@@ -3,7 +3,7 @@
 import { Builder, type BuilderOptions, Font, PAGE_SIZES, type Rect, type Surface } from "@laminapdf/sdk";
 
 /** The number of pages. */
-export const REPORT_PAGES = 100;
+const REPORT_PAGES = 100;
 const PRODUCTS = 20;
 const PRICE = 12.5;
 const [PAGE_WIDTH] = PAGE_SIZES.A4;

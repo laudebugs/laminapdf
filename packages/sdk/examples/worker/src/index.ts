@@ -9,17 +9,11 @@ import notoSans from "./fonts/NotoSans-Regular.ttf";
 /** The longest `?name=` the letter takes. */
 const MAX_NAME = 100;
 
-/** The letter's font at `path`: Helvetica, a standard 14 font, or the bundled Noto Sans. */
-function fontFor(path: string): Font | undefined {
-  switch (path) {
-    case "/":
-      return Font.standard("Helvetica");
-    case "/embedded":
-      return Font.fromBytes(new Uint8Array(notoSans));
-    default:
-      return undefined;
-  }
-}
+/** The letter's font for each path: Helvetica, a standard 14 font, or the bundled Noto Sans. */
+const FONTS = new Map([
+  ["/", Font.standard("Helvetica")],
+  ["/embedded", Font.fromBytes(notoSans)],
+]);
 
 /** A one-page letter to `name` in `font`. */
 function letter(name: string, font: Font): Uint8Array<ArrayBuffer> {
@@ -49,9 +43,12 @@ function saveAndFree(b: Builder): Uint8Array<ArrayBuffer> {
 const pdf = (bytes: Uint8Array<ArrayBuffer>): Response =>
   new Response(bytes, { headers: { "content-type": "application/pdf" } });
 
-/** Whether `e` is an error the name caused. */
+/**
+ * Whether `e` says the font can't draw the name: the caller's input, not a server fault. Other
+ * errors, such as `invalid-font` for a broken font file, stay a 500.
+ */
 function isNameError(e: unknown): e is LaminaPdfError {
-  return isLaminaPdfError(e) && (e.kind === "input" || e.kind === "limit");
+  return isLaminaPdfError(e, "missing-glyph") || isLaminaPdfError(e, "encoding-full");
 }
 
 /** A 400 with the error's ADR 0026 object as JSON. */
@@ -64,16 +61,15 @@ export default {
     // Loads both modules once per isolate; later requests return at once.
     await init({ text: true });
     const url = new URL(request.url);
-    const font = fontFor(url.pathname);
+    const font = FONTS.get(url.pathname);
     if (font === undefined) return new Response("not found", { status: 404 });
     const name = url.searchParams.get("name") ?? "world";
     if (name.length > MAX_NAME) return badRequest({ message: `name is longer than ${MAX_NAME} characters` });
     try {
       return pdf(letter(name, font));
     } catch (e) {
-      // A name the font can't draw is the caller's input, not a server fault: a script it lacks
-      // (`missing-glyph`, kind `input`: Chinese in either font) or, in Helvetica, more distinct
-      // non-WinAnsi Latin letters than its 37 spare codes (`encoding-full`, kind `limit`).
+      // A script the font lacks (`missing-glyph`: Chinese in either font) or, in Helvetica, more
+      // distinct non-WinAnsi Latin letters than its 37 spare codes (`encoding-full`).
       if (isNameError(e)) return badRequest(e.toJSON());
       throw e;
     }
