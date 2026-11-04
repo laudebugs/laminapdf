@@ -54,14 +54,38 @@ When several apply, the first in 2, 5, 4, 1, 3, 0 wins.
 
 With `--json`, the report goes to standard output with a `schema` id (`laminapdf.info/1`, `laminapdf.check/1`, `laminapdf.pages/1`, `laminapdf.text/1`, `laminapdf.explain/1`) and lists its warnings. A failure leaves standard output empty and writes one line to standard error: `{"schema":"laminapdf.error/1","error":{…}}`, the error object every Lamina PDF surface uses ([ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md)), with `input` and `exitCode`. Document text, such as a title, appears only in report fields, never in an error's message or hint. Within a schema version keys may be added, so read only the ones you need. The schemas are in [`schemas/`](schemas/), generated from the report types.
 
+## MCP server
+
+For clients that speak only the Model Context Protocol, `laminapdf mcp` serves the same commands as MCP tools on standard input and output. It is in builds with the crate's `mcp` feature (`cargo build -p laminapdf-cli --features mcp`), so the plain CLI carries no async runtime.
+
+```console
+$ laminapdf mcp --root ./docs                  # read-only: laminapdf_check, laminapdf_explain, laminapdf_extract, laminapdf_info
+$ laminapdf mcp --root ./docs --allow-write    # adds laminapdf_pages_rotate, which writes new files only
+```
+
+A client starts it as a command. In Claude Code, add it with `claude mcp add laminapdf -- laminapdf mcp --root /home/me/docs`; Claude Desktop and most other clients take the same command in their configuration file:
+
+```json
+{ "mcpServers": { "laminapdf": { "command": "laminapdf", "args": ["mcp", "--root", "/home/me/docs"] } } }
+```
+
+Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. A failure is a tool error carrying the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call.
+
+The server is safe without flags, because a model may follow instructions planted in a document:
+
+- **Roots.** Tools touch only files under the `--root` folders. A relative path starts at the first root. Every path is resolved with its links followed before it is checked, so `..`, an absolute path elsewhere and a link that leads out are refused (`path-outside-roots`).
+- **Read-only by default.** The write tool is listed only with `--allow-write`. It writes new files only, unless the server also has `--allow-in-place`, which lets it replace its input.
+- **Document text stays in data.** Titles and extracted text appear only in report fields. Error messages and hints never quote the document, and tool descriptions are fixed text.
+- **Bounded calls.** Each call runs with the default limits, at most one per CPU at a time. A call that runs past `--timeout` (60 s) is stopped at its next step and answered as `cancelled`. A report over `--max-output-bytes` (1 MiB) is cut down and marked `"truncated": true`.
+
 ## Code
 
-`src/commands/` holds one function per command, which takes its arguments, the settings and an `Io`, and returns a report or a `CliError`. Commands never print, so `laminapdf mcp` can call the same functions. `src/main.rs` is the clap front end and `src/render.rs` the text and JSON output. The rest is shared: `src/ranges.rs` (the range grammar), `src/exit.rs` (exit codes and errors), `src/io.rs` (stdin, stdout, atomic writes) and `src/schema.rs` (the schemas).
+`src/commands/` holds one function per command, which takes its arguments, the settings and an `Io`, and returns a report or a `CliError`. Commands never print, so `laminapdf mcp` can call the same functions. `src/main.rs` is the clap front end and `src/render.rs` the text and JSON output. `src/mcp/` is the MCP server (`mcp` feature): the tools in `mod.rs` and the path policy in `roots.rs`. The rest is shared: `src/ranges.rs` (the range grammar), `src/exit.rs` (exit codes and errors), `src/io.rs` (stdin, stdout, atomic writes) and `src/schema.rs` (the schemas).
 
-Tests (`tests/`, reading the shared [`fixtures/`](../../fixtures/README.md)): one file per command (`info.rs`, `check.rs`, `pages.rs`, `extract.rs`, `explain.rs`), and `exit_codes.rs` (every code from a real run), `pipes.rs`, `json_schemas.rs` (the committed schemas are the generated ones, and every `--json` output validates), `no_prompt.rs` (nothing waits for input), `injection.rs` (document text stays in data fields, and colour reaches only a terminal) and `io.rs`. `examples/golden.rs` writes `fixtures/golden/cli-rotate-hello.pdf` for `cargo xtask golden --update`.
+Tests (`tests/`, reading the shared [`fixtures/`](../../fixtures/README.md)): one file per command (`info.rs`, `check.rs`, `pages.rs`, `extract.rs`, `explain.rs`), and `exit_codes.rs` (every code from a real run), `pipes.rs`, `json_schemas.rs` (the committed schemas are the generated ones, and every `--json` output validates), `no_prompt.rs` (nothing waits for input), `injection.rs` (document text stays in data fields, and colour reaches only a terminal) `io.rs`, and with the `mcp` feature `mcp.rs` (the server through rmcp's client: the tool list, schemas, roots, write flags and injection). `examples/golden.rs` writes `fixtures/golden/cli-rotate-hello.pdf` for `cargo xtask golden --update`.
 
 ```sh
 cargo run -p laminapdf-cli -- info fixtures/corpus/hello.pdf
-cargo test -p laminapdf-cli
+cargo test -p laminapdf-cli --features mcp
 UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas   # after changing a report type
 ```
