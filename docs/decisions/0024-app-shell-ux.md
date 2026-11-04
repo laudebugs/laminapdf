@@ -48,7 +48,7 @@ Every desktop and web window has the same five regions, after Linear's "inverted
 
 - **Docked, not floating.** Only short-lived layers float over the page: the selection mini toolbar, menus, popovers, tooltips, the palette, dialogs and toasts. Panels never float and never cast shadows.
 - **Stable.** Regions appear only under the rules in this table, so controls don't come and go with the pointer.
-- **Focus mode** (`view.focus-mode`) hides the rail and the secondary toolbar. A selection brings the inspector back until it ends, as in Figma's Minimize UI.
+- **Focus mode** (`view.focus-mode`) hides the rail and the mode's secondary toolbar; an open find bar stays until it is closed. A selection brings the inspector back until it ends, as in Figma's Minimize UI. Focus mode is the user's choice to hide those homes, so §3's visible-home rule is checked in the normal layout, and the same shortcut or Escape leaves focus mode.
 - **Narrow windows.** Below 600 px the phone shell (§6) replaces this one. Between 600 and 1023 px the rail starts collapsed. A coarse pointer uses the touch rules at any width.
 
 The design language's [§6.1](../design/paper/design-language.md#61-desktop-and-web-shell-inverted-l) gives the sizes; C4a builds the regions as slots, and U1c fills them.
@@ -83,10 +83,10 @@ export interface Command<Args = void> {
   readonly keywords?: readonly string[];
   /** Menu and palette section (`file`, `view`, `navigate`, `find`, `help`, …). */
   readonly group: CommandGroup;
-  /** One binding per platform; `Mod` is ⌘ on macOS and Ctrl elsewhere. */
-  readonly shortcut?: { readonly mac?: string; readonly other?: string; readonly scope: ShortcutScope };
+  /** Its key bindings, each in one scope; several when the design language lists several. */
+  readonly shortcuts?: readonly Shortcut[];
   readonly icon?: IconName;
-  /** A capability the command needs (ADR 0010); hidden where the platform can never have it. */
+  /** A capability the command needs (ADR 0010): hidden or disabled when the flag is false. */
   readonly requires?: keyof Capabilities;
   /** `true`, or the reason it is disabled now ("Open a document first"). */
   enabled(ctx: CommandContext): true | string;
@@ -94,11 +94,21 @@ export interface Command<Args = void> {
   readonly args?: ArgsSchema<Args>;
   run(ctx: CommandContext, args: Args): void | Promise<void>;
 }
+
+export interface Shortcut {
+  /** Keys on macOS and elsewhere (`"Mod+K"`, `"?"`, `"F3"`); `Mod` is ⌘ or Ctrl. */
+  readonly mac: string;
+  readonly other: string;
+  /** Where the keys act: everywhere, while the page has focus, in the find field, … */
+  readonly scope: ShortcutScope;
+  /** A capability the binding needs: `ownsKeyboard` for keys a browser keeps (⌘W, F1). */
+  readonly requires?: keyof Capabilities;
+}
 ```
 
 - **Ids** follow the design language's rule ([§8.8](../design/paper/design-language.md#88-keyboard-and-shortcuts)): `namespace.verb-object`, one id per action across every surface, labels allowed to differ by platform (`file.save-copy` is "Download a copy" on the web and "Save a copy…" on the desktop). Telemetry counts (U5c) and the docs use the same ids.
 - **Every command has a visible home besides the palette:** a toolbar button, a menu item or a context-menu item. The palette and shortcuts are accelerators; a test fails on a command that only the palette reaches.
-- **Capabilities, per ADR 0010.** A command whose `requires` flag can never be true on this platform is left out of every view. One the user could unlock (by installing the PWA, say) is shown disabled with the reason.
+- **Capabilities, per ADR 0010.** When a command's `requires` flag is false, the registry asks `Platform.howToEnable(flag)`: with no answer the platform can never have it, and the command is left out of every view; with an answer the user could unlock it (by installing the PWA, say), and the command shows disabled with that answer as its reason. A binding whose `requires` flag is false is simply not bound. Keys a browser keeps for itself need `ownsKeyboard`, a flag this ADR adds to ADR 0010 (`false` on the web, `true` in the desktop app), so no command checks the platform's name.
 - **Shortcuts** are declared once, on the command, and a test checks them against each other and against the browser, OS and assistive-technology keys the design language lists. Single-key shortcuts work only while the page has focus and can be turned off in Settings.
 - **The palette** (U1b) searches titles and keywords, lists recent commands first, shows each row's shortcut, and parses arguments inline. It follows the APG combobox pattern: focus stays in the input, and `aria-activedescendant` names the active row (§8).
 - **Native menus** (D4b) are generated from the registry where `hasNativeMenus` is true; the web shows the same groups in its overflow menu.
@@ -112,7 +122,7 @@ The viewer stays headless: it emits selection events with client rectangles and 
 | Pointer | Text selected | Object selected |
 | --- | --- | --- |
 | Fine (mouse, trackpad, pen hovering) | A mini toolbar (`role="toolbar"`) above the first selected line, flipped below on collision. It appears on `pointerup`, never during a drag; Shift+F10 opens it and Escape closes it | The inspector (§1) |
-| Coarse (touch) | A bottom action bar (Copy, Highlight, Comment, Share, More) replaces the bottom bar; the OS selection menu is left alone | The inspector as a sheet at its medium detent (§6) |
+| Coarse (touch) | A bottom action bar (Copy, Highlight, Comment, Share, More): it replaces the bottom bar in the phone shell and docks under the canvas in the desktop shell on a tablet. The OS selection menu is left alone | The inspector: docked in the desktop shell, as on a tablet; a sheet at its medium detent in the phone shell (§6) |
 
 Every action in either surface also has a command (§3), so neither surface is ever the only path to it. Text selection never opens the inspector.
 
@@ -128,10 +138,10 @@ Three settings recolour three different things, and none implies another:
 | --- | --- | --- |
 | Original (default in every theme) | No change | — |
 | Sepia | The renderer recolours paper and text | Raster images change |
-| Dark | The renderer recolours text and paths (PDFium's forced-colours path; hayro's equivalent) | CSS `invert()`, which turns photos into negatives |
+| Dark | The renderer recolours the page's text and paths | CSS `invert()`, which turns photos into negatives |
 | High contrast | The renderer maps page colours to the `forced-colors` system colours, as pdf.js does with `Canvas` and `CanvasText` | A hand-made palette |
 
-Annotation colours never change in any appearance, because they carry meaning. The gutter around pages has its own token per theme. U2c implements the renderer side in both backends (ADR 0004).
+Annotation colours never change in any appearance, because they carry meaning. The gutter around pages has its own token per theme. These rules fix the outcome, and U2c finds the mechanism in each backend (ADR 0004). PDFium's colour scheme recolours text and paths, annotations too when they are drawn in the same pass, so they may need a pass of their own; hayro has no such option today, and U2c either adds one or records the gap.
 
 ### 6. The phone shell: bars, sheets and viewer-owned gestures
 
@@ -172,14 +182,14 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
   - The palette follows the [combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a listbox popup, as in APG's [list autocomplete example](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/): DOM focus stays on the input, `aria-activedescendant` names the active row, and the script scrolls that row into view, which browsers don't do for an active descendant.
   - The mini toolbar and each secondary toolbar follow the [toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/): one tab stop, arrow keys between controls, menu buttons allowed. A control that uses arrow keys itself, such as a text field, comes last, and a toolbar holds at most one.
   - The rail follows the [tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/), and the Organise page grid is a layout grid in the [grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/): one tab stop, arrow keys that may wrap, `aria-selected` on selected pages.
-- **Primitives:** React Aria Components (ADR 0009) supplies `Toolbar`, `Tabs`, `GridList` and `ComboBox`. If U1b builds the palette on cmdk instead, it checks cmdk's input against the APG combobox pattern (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`) and adds what is missing.
+- **Primitives:** React Aria Components (ADR 0009) supplies `Toolbar`, `Tabs` and `GridList`. For the palette, U1b chooses between cmdk, which the UI/UX plan proposes, and React Aria's `ComboBox`, and checks the result against the APG combobox pattern (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`), adding what is missing.
 
 ## Consequences
 
 - **One model to build against.** C4a, U1b, U1c, U6a and D4b can start in parallel, and each editor round adds a mode, its toolbar and its commands without touching the shell.
 - **The registry costs some ceremony.** Even a one-off button needs a command, an id and a visible home. That cost buys generated menus, help and shortcut chips that can't drift, and a test that finds palette-only commands.
 - **Read mode stays spare,** as the research recommends: the page, the top bar and the status bar, with tools appearing only when the user picks a mode, selects something or opens the palette.
-- **Page appearance needs renderer work** in both backends (U2c), and the two may differ; the nightly render diff (X3b) covers the modes, and Original stays the default.
+- **Page appearance needs renderer work** in both backends (U2c), and the two may differ. The nightly render diff (X3b) compares Original only today, so U2c adds the other appearances to it; Original stays the default.
 - **Touch users get no floating toolbar,** so a selection action costs a tap on the bottom bar instead of one near the text; the alternative fought the OS menu and lost on iOS.
 - **Some layout values are still proposals** in the design language (the dark theme, the large detent, the breakpoints); U6a asks the owner to approve them before they become tokens.
 
@@ -199,7 +209,7 @@ The shell targets WCAG 2.2 level AA. These rules come straight from the W3C text
 
 ## Appendix: the reader v0.1 command set
 
-U1b registers these 39 commands. Shortcuts follow the design language's table, and "page" means the page has focus. A "menu" is the command's group in the web's overflow menu and in the desktop app's menu bar. Two ids are new here and join the design language's appendix in this PR: `view.zoom` (a percentage) and `view.rotate` (a quarter turn of the view, which never changes the file).
+U1b registers these 39 commands. Shortcuts follow the design language's table, and "page" means the page has focus. A "menu" is the command's group in the web's overflow menu and in the desktop app's menu bar. Three ids are new in this ADR and join the design language's appendix in this PR: `mode.comment` (§2), `view.set-zoom` (a percentage) and `view.rotate-display` (a quarter turn of the view, which never changes the file).
 
 | Id | Title | Arguments | Shortcut (macOS / others) | Visible home |
 | --- | --- | --- | --- | --- |
@@ -207,7 +217,7 @@ U1b registers these 39 commands. Shortcuts follow the design language's table, a
 | `file.open-url` | Open from URL | URL | — | Home |
 | `file.open-recent` | Open recent | Recent entry | — | Home, file menu |
 | `file.clear-recent` | Clear recent | — | — | Home |
-| `file.unlock` | Unlock | Password | — | Password prompt |
+| `file.unlock` | Unlock (password) | Password | — | Password prompt |
 | `file.save-copy` | Download a copy / Save a copy… | — | — | File menu |
 | `file.print` | Print | Page range | ⌘P / Ctrl P | File menu |
 | `file.properties` | Document properties | — | — | File menu |
@@ -221,11 +231,11 @@ U1b registers these 39 commands. Shortcuts follow the design language's table, a
 | `nav.forward` | Forward | — | ⌘] / Alt → (desktop app) | View menu |
 | `view.zoom-in` | Zoom in | — | + (page); ⌘+ / Ctrl + (desktop app) | Zoom control |
 | `view.zoom-out` | Zoom out | — | − (page); ⌘− / Ctrl − (desktop app) | Zoom control |
-| `view.zoom` | Zoom to… | Percentage, 10–800 | — | Zoom control menu |
+| `view.set-zoom` | Zoom to… | Percentage, 10–800 | — | Zoom control menu |
 | `view.actual-size` | Actual size | — | 0 (page); ⌘0 / Ctrl 0 (desktop app) | Zoom control menu |
 | `view.fit-width` | Fit width | — | — | Zoom control menu |
 | `view.fit-page` | Fit page | — | — | Zoom control menu |
-| `view.rotate` | Rotate view | `clockwise` or `counter-clockwise` | — | View menu |
+| `view.rotate-display` | Rotate view | `clockwise` or `counter-clockwise` | — | View menu |
 | `view.page-layout` | Page layout | `single`, `two-up`, `continuous` | — | View settings |
 | `view.page-appearance` | Page appearance | `original`, `sepia`, `dark`, `high-contrast` | — | View settings |
 | `view.theme` | Theme | `light`, `dark`, `high-contrast`, `system` | — | View settings |
@@ -239,6 +249,6 @@ U1b registers these 39 commands. Shortcuts follow the design language's table, a
 | `privacy.network-activity` | Network activity | — | — | Status bar |
 | `palette.open` | Command palette | — | ⌘K / Ctrl K | Top bar |
 | `help.shortcuts` | Keyboard shortcuts | — | ? (page); F1 (desktop app) | Help menu |
-| `layer.close` | Close the open layer | — | Esc | Every layer's close button |
+| `layer.close` | Close the open panel or dialog | — | Esc | Every layer's close button |
 | `selection.actions` | Show selection actions | — | ⇧F10 / Shift F10 | Context menu |
 | `mode.read` | Read mode | — | — | Mode switcher |
