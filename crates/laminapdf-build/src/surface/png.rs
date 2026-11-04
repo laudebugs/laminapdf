@@ -1,6 +1,7 @@
 //! A small PNG decoder ([PNG 3rd edition], W3C; ISO/IEC 15948): chunks with CRCs, `IHDR`,
 //! `PLTE`, `tRNS`, the zlib `IDAT` stream (`miniz_oxide`, as `laminapdf-syntax`'s Flate), the
-//! five row filters and Adam7 interlacing. It replaces the `png` crate, whose decoder (with
+//! five row filters (`laminapdf-syntax`'s `filters::unfilter_row`, shared with Flate's PNG
+//! predictors) and Adam7 interlacing. It replaces the `png` crate, whose decoder (with
 //! `fdeflate`, a second `miniz_oxide` and `crc32fast`) was 48 KB of the 350 KB gzip budget of
 //! the WASM base module (ADR 0016 §5). Its output is what the `png` crate gives with
 //! `Transformations::EXPAND` (and `STRIP_16` when asked): palettes expanded to RGB, bit
@@ -8,6 +9,8 @@
 //! two on every colour type, bit depth and interlace method.
 //!
 //! [PNG 3rd edition]: https://www.w3.org/TR/png-3/
+
+use laminapdf_syntax::filters::unfilter_row;
 
 use crate::error::{Error, ImageFormat, Result};
 
@@ -323,7 +326,7 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
                 .get(..row_len)
                 .ok_or_else(|| invalid("the image data is cut short"))?;
             data = rest.get(row_len..).unwrap_or_default();
-            unfilter(*filter, raw, &previous, &mut current, bpp)?;
+            unfilter_row(*filter, raw, &previous, &mut current, bpp).map_err(|_| invalid("an unknown row filter"))?;
             let y = y0 + r * dy;
             if !h.interlaced && out.stored_as_output() {
                 // Samples already in the output layout: copy the row.
@@ -347,43 +350,6 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
         bits: out.bits,
         pixels,
     })
-}
-
-/// Reverses one row's filter (§7.3, §9): `raw` → `out`, given the previous row (zeros for
-/// the first) and the bytes per complete pixel (at least 1).
-fn unfilter(filter: u8, raw: &[u8], previous: &[u8], out: &mut [u8], bpp: usize) -> Result<()> {
-    for i in 0..raw.len() {
-        let x = raw.get(i).copied().unwrap_or(0);
-        let a = i.checked_sub(bpp).and_then(|j| out.get(j)).copied().unwrap_or(0);
-        let b = previous.get(i).copied().unwrap_or(0);
-        let c = i.checked_sub(bpp).and_then(|j| previous.get(j)).copied().unwrap_or(0);
-        let value = match filter {
-            0 => x,
-            1 => x.wrapping_add(a),
-            2 => x.wrapping_add(b),
-            3 => x.wrapping_add(a.midpoint(b)),
-            4 => x.wrapping_add(paeth(a, b, c)),
-            _ => return Err(invalid("an unknown row filter")),
-        };
-        if let Some(o) = out.get_mut(i) {
-            *o = value;
-        }
-    }
-    Ok(())
-}
-
-/// The Paeth predictor (§9.4).
-fn paeth(a: u8, b: u8, c: u8) -> u8 {
-    let (ia, ib, ic) = (i16::from(a), i16::from(b), i16::from(c));
-    let p = ia + ib - ic;
-    let (pa, pb, pc) = ((p - ia).abs(), (p - ib).abs(), (p - ic).abs());
-    if pa <= pb && pa <= pc {
-        a
-    } else if pb <= pc {
-        b
-    } else {
-        c
-    }
 }
 
 /// How stored pixels become output pixels.
@@ -537,7 +503,9 @@ mod tests {
         reason = "test code: samples are generated in range"
     )]
 
-    use super::{ADAM7, crc32, decode, paeth, pass_size};
+    use laminapdf_syntax::filters::paeth;
+
+    use super::{ADAM7, crc32, decode, pass_size};
 
     /// A deterministic pseudo-random byte stream.
     fn noise(seed: u32) -> impl FnMut() -> u16 {

@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2i` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
-| Blocks | [Q2r](./Q2r-split-surface-modules.md) |
+| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
+| Blocks | [Q2r](../ready/Q2r-split-surface-modules.md) |
 | ADRs | None |
 | Branch | `refactor/q2i-one-lexer-one-png-filter` |
 | PR title | `refactor(text,build): CMap parsing on laminapdf-syntax's lexer; PNG unfiltering from laminapdf-syntax` |
 | Size | M |
-| PR | — |
+| PR | [#212](https://github.com/laudebugs/laminapdf/pull/212) |
 
 ## Goal
 
@@ -28,24 +28,24 @@
 
 - CMap tokens from a tolerant wrapper over `laminapdf_syntax::Lexer` (on an error, skip one byte), with a test for a `#xx` name in a CMap.
 - `pub fn unfilter_row(filter, raw, prev, out, bpp)` in laminapdf-syntax, used by `png.rs` (inflating stays separate: exact size versus budget).
-- A ban in `check maintainability`: no lexer outside laminapdf-syntax.
+- A ban in `check maintainability`: no lexer outside laminapdf-syntax (the `one-lexer` rule, which also bans a second PNG row filter).
 
 **Out of scope** (and which todo covers it)
 
-- Splitting `png.rs` ([Q2r](./Q2r-split-surface-modules.md)).
+- Splitting `png.rs` ([Q2r](../ready/Q2r-split-surface-modules.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Write the `#xx` test and watch it fail.
-- [ ] Replace the CMap lexer with the wrapper; run the CMap tests and the extraction facts.
-- [ ] Export `unfilter_row`; switch `png.rs`; run the image reference PDFs.
-- [ ] Add the ban.
+- [x] Claim: the work PR's first commit moves this file to `ongoing/` (CLAUDE.md's current rule), from a fresh worktree off `main`.
+- [x] Write the `#xx` test and watch it fail.
+- [x] Replace the CMap lexer with the wrapper; run the CMap tests and the extraction facts.
+- [x] Export `unfilter_row`; switch `png.rs`; run the image reference PDFs.
+- [x] Add the ban.
 
 ## Acceptance criteria
 
-- [ ] The extraction facts and image reference PDFs are unchanged, or any change is explained.
-- [ ] About 150 fewer lines in laminapdf-text; one row-filter implementation.
+- [x] The extraction facts and image reference PDFs are unchanged, or any change is explained.
+- [x] About 150 fewer lines in laminapdf-text; one row-filter implementation.
 
 ## Post-merge checks
 
@@ -65,9 +65,9 @@ Stricter limits could reject malformed CMaps that worked before: keep skipping a
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

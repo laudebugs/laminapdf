@@ -180,53 +180,58 @@ fn apply_predictor(data: Vec<u8>, parms: Option<&Dict>) -> Result<Vec<u8>> {
 fn png_unpredict(data: &[u8], row_len: usize, bpp: usize) -> Result<Vec<u8>> {
     let mut out = Vec::with_capacity(data.len());
     let mut prev = vec![0u8; row_len];
+    let mut cur = vec![0u8; row_len];
     for chunk in data.chunks(row_len + 1) {
         let Some((&kind, row)) = chunk.split_first() else {
             continue;
         };
-        let mut cur = row.to_vec();
-        for i in 0..cur.len() {
-            let left = if i >= bpp {
-                cur.get(i - bpp).copied().unwrap_or(0)
-            } else {
-                0
-            };
-            let up = prev.get(i).copied().unwrap_or(0);
-            let up_left = if i >= bpp {
-                prev.get(i - bpp).copied().unwrap_or(0)
-            } else {
-                0
-            };
-            let predicted = match kind {
-                0 => 0,
-                1 => left,
-                2 => up,
-                3 => left.midpoint(up),
-                4 => paeth(left, up, up_left),
-                _ => {
-                    return Err(Error::InvalidStructure {
-                        kind: "PNG predictor",
-                        message: "unknown row filter",
-                    });
-                }
-            };
-            if let Some(b) = cur.get_mut(i) {
-                *b = b.wrapping_add(predicted);
-            }
-        }
-        out.extend_from_slice(&cur);
-        prev.iter_mut().zip(&cur).for_each(|(p, c)| *p = *c);
+        let cur = cur.get_mut(..row.len()).unwrap_or_default();
+        unfilter_row(kind, row, &prev, cur, bpp)?;
+        out.extend_from_slice(cur);
+        prev.iter_mut().zip(&*cur).for_each(|(p, c)| *p = *c);
     }
     Ok(out)
 }
 
-fn paeth(a: u8, b: u8, c: u8) -> u8 {
-    let p = i16::from(a) + i16::from(b) - i16::from(c);
-    let (pa, pb, pc) = (
-        (p - i16::from(a)).abs(),
-        (p - i16::from(b)).abs(),
-        (p - i16::from(c)).abs(),
-    );
+/// Reverses one row's PNG filter (PNG §9.2): `raw` (the row after its filter-type byte) into
+/// `out`, given the previous row's unfiltered bytes (zeros for the first row) and the bytes
+/// per complete pixel (at least 1). Flate's PNG predictors (§7.4.4.4) and PNG images share it.
+///
+/// # Errors
+/// [`Error::InvalidStructure`] for a filter type other than 0–4.
+pub fn unfilter_row(filter: u8, raw: &[u8], prev: &[u8], out: &mut [u8], bpp: usize) -> Result<()> {
+    for i in 0..raw.len() {
+        let x = raw.get(i).copied().unwrap_or(0);
+        let a = i.checked_sub(bpp).and_then(|j| out.get(j)).copied().unwrap_or(0);
+        let b = prev.get(i).copied().unwrap_or(0);
+        let c = i.checked_sub(bpp).and_then(|j| prev.get(j)).copied().unwrap_or(0);
+        let value = match filter {
+            0 => x,
+            1 => x.wrapping_add(a),
+            2 => x.wrapping_add(b),
+            3 => x.wrapping_add(a.midpoint(b)),
+            4 => x.wrapping_add(paeth(a, b, c)),
+            _ => {
+                return Err(Error::InvalidStructure {
+                    kind: "PNG predictor",
+                    message: "unknown row filter",
+                });
+            }
+        };
+        if let Some(o) = out.get_mut(i) {
+            *o = value;
+        }
+    }
+    Ok(())
+}
+
+/// The Paeth predictor (PNG §9.4): of `a` (left), `b` (up) and `c` (up-left), the one closest
+/// to `a + b - c`.
+#[must_use]
+pub fn paeth(a: u8, b: u8, c: u8) -> u8 {
+    let (ia, ib, ic) = (i16::from(a), i16::from(b), i16::from(c));
+    let p = ia + ib - ic;
+    let (pa, pb, pc) = ((p - ia).abs(), (p - ib).abs(), (p - ic).abs());
     if pa <= pb && pa <= pc {
         a
     } else if pb <= pc {

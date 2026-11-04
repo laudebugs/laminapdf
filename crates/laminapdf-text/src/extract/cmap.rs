@@ -295,161 +295,50 @@ enum Token {
     Other,
 }
 
-struct Lexer<'a> {
-    bytes: &'a [u8],
-    pos: usize,
+/// CMap tokens over `laminapdf-syntax`'s [`Lexer`](laminapdf_syntax::Lexer), tolerantly: bytes
+/// that are not a token (a bad hex digit, an unbalanced `)` or `>`) are skipped one at a time
+/// as [`Token::Other`], and a token cut off by the end of the data, or one over
+/// [`Limits::max_string_length`](laminapdf_syntax::Limits::max_string_length), ends the CMap
+/// (`cut` records it, and [`Parser::run`] counts it as skipped).
+struct Tokens<'a> {
+    inner: laminapdf_syntax::Lexer<'a>,
+    cut: bool,
 }
 
-const fn is_white(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\r' | b'\n' | b'\x0c' | b'\0')
-}
-
-const fn is_delim(b: u8) -> bool {
-    matches!(b, b'(' | b')' | b'<' | b'>' | b'[' | b']' | b'{' | b'}' | b'/' | b'%')
-}
-
-impl Lexer<'_> {
-    fn peek(&self) -> Option<u8> {
-        self.bytes.get(self.pos).copied()
-    }
-
-    fn word(&mut self) -> &[u8] {
-        let start = self.pos;
-        while self.peek().is_some_and(|b| !is_white(b) && !is_delim(b)) {
-            self.pos += 1;
+impl<'a> Tokens<'a> {
+    const fn new(source: &'a [u8]) -> Self {
+        Self {
+            inner: laminapdf_syntax::Lexer::new(source, 0),
+            cut: false,
         }
-        self.bytes.get(start..self.pos).unwrap_or_default()
     }
 
     fn next_token(&mut self) -> Option<Token> {
-        loop {
-            match self.peek()? {
-                b if is_white(b) => self.pos += 1,
-                b'%' => {
-                    while self.peek().is_some_and(|b| b != b'\n' && b != b'\r') {
-                        self.pos += 1;
-                    }
-                }
-                _ => break,
+        use laminapdf_syntax::Token as Syntax;
+        self.inner.skip_whitespace();
+        let start = self.inner.pos();
+        let token = match self.inner.next_token() {
+            Ok(token) => token,
+            Err(laminapdf_syntax::Error::Syntax { .. }) => {
+                self.inner.set_pos(start + 1);
+                return Some(Token::Other);
             }
-        }
-        let first = self.peek()?;
-        self.pos += 1;
-        Some(match first {
-            b'[' => Token::ArrayStart,
-            b']' => Token::ArrayEnd,
-            b'<' if self.peek() == Some(b'<') => {
-                self.pos += 1;
-                Token::Other
+            Err(_) => {
+                self.cut = true;
+                return None;
             }
-            b'<' => self.hex(),
-            b'>' => {
-                if self.peek() == Some(b'>') {
-                    self.pos += 1;
-                }
-                Token::Other
-            }
-            b'(' => self.string(),
-            b'/' => Token::Name(self.word().to_vec()),
-            b'{' | b'}' | b')' => Token::Other,
-            _ => {
-                self.pos -= 1;
-                let word = self.word();
-                if word.is_empty() {
-                    self.pos += 1;
-                    return Some(Token::Other);
-                }
-                match std::str::from_utf8(word).ok().and_then(|w| w.parse::<i64>().ok()) {
-                    Some(n) => Token::Int(n),
-                    None if word.iter().all(u8::is_ascii_alphabetic) => Token::Keyword(word.to_vec()),
-                    None => Token::Other,
-                }
-            }
+        };
+        Some(match token {
+            Syntax::Eof => return None,
+            Syntax::Integer(n) => Token::Int(n),
+            Syntax::Name(name) => Token::Name(name),
+            Syntax::LiteralString(bytes) => Token::Str(bytes),
+            Syntax::HexString(bytes) => Token::Hex(bytes),
+            Syntax::ArrayOpen => Token::ArrayStart,
+            Syntax::ArrayClose => Token::ArrayEnd,
+            Syntax::Keyword(word) if word.iter().all(u8::is_ascii_alphabetic) => Token::Keyword(word.to_vec()),
+            Syntax::Real(_) | Syntax::DictOpen | Syntax::DictClose | Syntax::Keyword(_) => Token::Other,
         })
-    }
-
-    fn hex(&mut self) -> Token {
-        let mut digits = Vec::new();
-        while let Some(b) = self.peek() {
-            self.pos += 1;
-            match b {
-                b'>' => break,
-                b if b.is_ascii_hexdigit() => digits.push(b),
-                b if is_white(b) => {}
-                _ => return Token::Other,
-            }
-        }
-        if digits.len() % 2 == 1 {
-            digits.push(b'0');
-        }
-        let value = |d: u8| (d as char).to_digit(16).and_then(|v| u8::try_from(v).ok()).unwrap_or(0);
-        Token::Hex(
-            digits
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .map(|[hi, lo]| (value(*hi) << 4) | value(*lo))
-                .collect(),
-        )
-    }
-
-    fn string(&mut self) -> Token {
-        let mut out = Vec::new();
-        let mut depth = 1usize;
-        while let Some(b) = self.peek() {
-            self.pos += 1;
-            match b {
-                b'\\' => self.escape(&mut out),
-                b'(' => {
-                    depth += 1;
-                    out.push(b);
-                }
-                b')' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        break;
-                    }
-                    out.push(b);
-                }
-                _ => out.push(b),
-            }
-        }
-        Token::Str(out)
-    }
-
-    /// One escape after `\\` in a literal string (§7.3.4.2): `\\n` and the rest, `\\ddd`
-    /// octal (one to three digits, high bits dropped), and a backslash before an end of line
-    /// continuing the string.
-    fn escape(&mut self, out: &mut Vec<u8>) {
-        let Some(next) = self.peek() else { return };
-        self.pos += 1;
-        match next {
-            b'n' => out.push(b'\n'),
-            b'r' => out.push(b'\r'),
-            b't' => out.push(b'\t'),
-            b'b' => out.push(0x08),
-            b'f' => out.push(0x0C),
-            b'0'..=b'7' => {
-                let mut value = u32::from(next - b'0');
-                for _ in 0..2 {
-                    match self.peek() {
-                        Some(d @ b'0'..=b'7') => {
-                            self.pos += 1;
-                            value = value * 8 + u32::from(d - b'0');
-                        }
-                        _ => break,
-                    }
-                }
-                out.push(u8::try_from(value & 0xFF).unwrap_or(0));
-            }
-            b'\r' => {
-                if self.peek() == Some(b'\n') {
-                    self.pos += 1;
-                }
-            }
-            b'\n' => {}
-            other => out.push(other),
-        }
     }
 }
 
@@ -496,14 +385,14 @@ enum Operand {
 }
 
 struct Parser<'a> {
-    lexer: Lexer<'a>,
+    tokens: Tokens<'a>,
     cmap: CMap,
 }
 
 impl<'a> Parser<'a> {
     fn new(source: &'a [u8]) -> Self {
         Self {
-            lexer: Lexer { bytes: source, pos: 0 },
+            tokens: Tokens::new(source),
             cmap: CMap::default(),
         }
     }
@@ -512,7 +401,7 @@ impl<'a> Parser<'a> {
         let mut last: Vec<Token> = Vec::new();
         // A keyword that ended a section missing its `end…`: handled here next.
         let mut pending: Option<Token> = None;
-        while let Some(token) = pending.take().or_else(|| self.lexer.next_token()) {
+        while let Some(token) = pending.take().or_else(|| self.tokens.next_token()) {
             if let Token::Keyword(word) = &token {
                 if let Some(section) = Section::begin(word) {
                     pending = self.section(section).map(Token::Keyword);
@@ -535,6 +424,7 @@ impl<'a> Parser<'a> {
                 last.push(token);
             }
         }
+        self.cmap.skipped += usize::from(self.tokens.cut);
         self.cmap
     }
 
@@ -543,7 +433,7 @@ impl<'a> Parser<'a> {
     /// `begin…` right after starts its own section).
     fn section(&mut self, section: Section) -> Option<Vec<u8>> {
         let mut operands: Vec<Operand> = Vec::with_capacity(3);
-        while let Some(token) = self.lexer.next_token() {
+        while let Some(token) = self.tokens.next_token() {
             let operand = match token {
                 Token::Keyword(word) => {
                     if word.starts_with(b"end") {
@@ -574,7 +464,7 @@ impl<'a> Parser<'a> {
 
     fn array(&mut self) -> Vec<Token> {
         let mut items = Vec::new();
-        while let Some(token) = self.lexer.next_token() {
+        while let Some(token) = self.tokens.next_token() {
             match token {
                 Token::ArrayEnd | Token::Keyword(_) => break,
                 other => items.push(other),
@@ -780,6 +670,21 @@ mod tests {
     fn wmode_and_usecmap_are_read() {
         let cmap = CMap::parse(b"/WMode 1 def /UniJIS-UCS2-H usecmap");
         assert_eq!((cmap.vertical(), cmap.use_cmap()), (true, Some(&b"UniJIS-UCS2-H"[..])));
+    }
+
+    #[test]
+    fn names_decode_their_hex_escapes() {
+        let cmap = CMap::parse(b"/UniJIS#2DUCS2#2DH usecmap 1 beginbfchar <01> /f#69 endbfchar");
+        assert_eq!(
+            (cmap.use_cmap(), cmap.unicode(code(1, 1)).as_deref()),
+            (Some(&b"UniJIS-UCS2-H"[..]), Some("\u{FB01}"))
+        );
+    }
+
+    #[test]
+    fn a_token_cut_off_by_the_end_keeps_the_entries_before_it_and_counts_as_skipped() {
+        let cmap = CMap::parse(b"2 beginbfchar <01> <0041> <02> <004");
+        assert_eq!((cmap.unicode(code(1, 1)).as_deref(), cmap.skipped()), (Some("A"), 1));
     }
 
     #[test]

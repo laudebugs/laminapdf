@@ -9,6 +9,7 @@
 
 mod budget;
 mod helpers;
+mod lexers;
 mod names;
 mod policy;
 mod source;
@@ -45,7 +46,7 @@ struct Check {
 }
 
 /// Every check, in the order they run. A new check is one entry here.
-const CHECKS: [Check; 8] = [
+const CHECKS: [Check; 9] = [
     Check {
         name: "module-budget",
         run: budget::module_budget,
@@ -77,6 +78,10 @@ const CHECKS: [Check; 8] = [
     Check {
         name: "test-helpers",
         run: helpers::test_helper_copies,
+    },
+    Check {
+        name: "one-lexer",
+        run: lexers::lexer_copies,
     },
 ];
 
