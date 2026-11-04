@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1f](./Q1f-examples-readable.md), [Q1g](./Q1g-worker-examples.md), [Q1h](./Q1h-docs-story.md) |
-| Blocks | [Q1l](../ready/Q1l-docs-checks-strict.md) |
+| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `claude/working-session-9g3nst` |
 | PR title | `docs(site): recipes, one per example, and troubleshooting` |

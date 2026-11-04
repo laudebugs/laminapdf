@@ -249,7 +249,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1i](../todos/done/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
 | [Q1j](../todos/done/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
 | [Q1k](../todos/done/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
-| [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
+| [Q1l](../todos/done/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
 | [Q1m](../todos/done/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 
 ### Q2: code quality and reuse
@@ -303,7 +303,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1h, Q1i: the story and the create-PDF guides
 - [x] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting ([Q1m](../todos/done/Q1m-guides-read-and-edit.md), the read-and-edit guides, and [Q1j](../todos/done/Q1j-recipes-and-troubleshooting.md), the recipes and Troubleshooting)
 - [x] Q1k: internal IDs out of reader text
-- [ ] Q1l: the docs checks are strict everywhere
+- [x] Q1l: the docs checks are strict everywhere ([Q1l](../todos/done/Q1l-docs-checks-strict.md))
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [x] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2h](../todos/done/Q2h-text-writers-dedup.md), surrogate pairs kept whole in ToUnicode, [Q2v](../todos/done/Q2v-did-you-mean.md), one did-you-mean tie rule in both languages, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2c](../todos/done/Q2c-test-fixtures-crate.md), `laminapdf-test-fixtures` for the core crates, [Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, [Q2l](../todos/done/Q2l-boundary-lists-generated.md), the boundary lists generated from Rust, [Q2i](../todos/done/Q2i-one-lexer-one-png-filter.md), one PDF lexer and one PNG row filter, [Q2d](../todos/done/Q2d-one-serialiser.md), one PDF serialiser, and [Q2x](../todos/done/Q2x-test-fixtures-migration.md), `laminapdf-test-fixtures` for every crate, are done)
