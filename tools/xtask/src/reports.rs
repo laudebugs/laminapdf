@@ -25,6 +25,14 @@ pub(crate) struct Options {
 }
 
 impl Options {
+    /// Every report an error: what `cargo xtask check` runs.
+    pub(crate) fn strict() -> Self {
+        Self {
+            all_strict: true,
+            ..Self::default()
+        }
+    }
+
     /// Parses `[--all-strict] [--warnings] [--json]`; `command` is how the check is run
     /// (`check docs-prose`, `clippy-examples`), for the usage line.
     pub(crate) fn parse(command: &str, flags: &[String]) -> Result<Self> {
@@ -79,20 +87,22 @@ pub(crate) struct Ratchet {
     options: Options,
     changed: Option<BTreeSet<String>>,
     reports: Vec<Report>,
-    /// Built by [`Ratchet::everywhere`]: every [`Ratchet::add`] is an error, whatever changed.
-    everywhere: bool,
 }
 
 impl Ratchet {
-    /// Starts check `name`, reading the changed files from git; `untracked` is
-    /// [`Ratchet::untracked`]'s list, which the check usually needs too.
+    /// Starts check `name`, reading the changed files from git unless every report is an error
+    /// (`--all-strict`); `untracked` is [`Ratchet::untracked`]'s list, which the check usually
+    /// needs too.
     pub(crate) fn new(root: &Path, name: &'static str, options: Options, untracked: &[String]) -> Self {
         Self {
             name,
             options,
-            changed: changed_files(root, untracked, name),
+            changed: if options.all_strict {
+                None
+            } else {
+                changed_files(root, untracked, name)
+            },
             reports: Vec::new(),
-            everywhere: false,
         }
     }
 
@@ -109,7 +119,6 @@ impl Ratchet {
             },
             changed: None,
             reports: Vec::new(),
-            everywhere: true,
         }
     }
 
@@ -152,7 +161,7 @@ impl Ratchet {
             self.print_text(file_count);
         }
         let errors = self.reports.iter().filter(|report| report.error).count();
-        if errors > 0 && self.everywhere {
+        if errors > 0 && self.options.all_strict {
             bail!("{}: {errors} error(s); see {guideline}", self.name);
         }
         if errors > 0 {
@@ -174,7 +183,8 @@ impl Ratchet {
             }
         }
         let errors = self.reports.iter().filter(|report| report.error).count();
-        if self.everywhere {
+        // Every report is an error (`--all-strict`, or a check without a ratchet): no "changed files".
+        if self.options.all_strict {
             let warnings = self.reports.len() - errors;
             println!(
                 "{}: {file_count} files, {errors} error(s), {warnings} warning(s)",
@@ -285,6 +295,19 @@ mod tests {
         let mut ratchet = Ratchet::everywhere("x");
         ratchet.warn("a.rs", [finding(1, "rule", "note")]);
         assert!(ratchet.finish(1, "guide").is_ok());
+    }
+
+    #[test]
+    fn a_strict_ratchet_should_fail_on_a_report_in_any_file() {
+        let mut ratchet = Ratchet {
+            name: "x",
+            options: Options::strict(),
+            changed: None,
+            reports: Vec::new(),
+        };
+        ratchet.add("untouched.md", [finding(1, "rule", "bad")]);
+        let error = ratchet.finish(1, "guide").map_err(|e| e.to_string());
+        assert_eq!(error, Err("x: 1 error(s); see guide".to_owned()));
     }
 
     #[test]

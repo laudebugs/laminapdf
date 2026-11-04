@@ -126,7 +126,7 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 /// `laminapdf-build` as they are, ADR 0028): `?` turns it into [`Error`].
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
-pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode};
+pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};

@@ -9,7 +9,7 @@ A standard 14 font (`Font::standard`) was given to the shaper, `itemize`, `break
 
 ## Why
 
-The standard 14 fonts are referred to by name and never embedded: Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with, no `cmap` for itemizing, and no CIDs for a shaped run (a standard 14 font is written as a simple font with one-byte codes).
+The standard 14 fonts are referred to by name and never embedded. Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with and no `cmap` for itemizing. Nor are there CIDs for a shaped run: a standard 14 font is written as a simple font with one-byte codes.
 
 ## How to fix
 

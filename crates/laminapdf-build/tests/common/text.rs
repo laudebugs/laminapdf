@@ -1,8 +1,8 @@
-//! Text read back through Lamina PDF's reader and `laminapdf-content` (todo B5b): every shown string
+//! Text read back through Lamina PDF's reader and `laminapdf-content`: every shown string
 //! decoded with its font's ToUnicode CMap (two-byte codes for Type 0 fonts, one byte for
 //! simple ones), `/ActualText` spans replacing the glyphs they cover, grouped into lines by
-//! baseline. A stand-in for B9b's extraction, enough to check that what the builder drew
-//! reads back as its input.
+//! baseline. Simpler than `laminapdf-text`'s extraction, and independent of it: enough to check
+//! that what the builder drew reads back as its input.
 
 use std::collections::BTreeMap;
 

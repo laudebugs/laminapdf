@@ -1,4 +1,4 @@
-//! Text extraction across the boundary (B9c): `WasmPage.text(options)` as a struct of arrays.
+//! Text extraction across the boundary: `WasmPage.text(options)` as a struct of arrays.
 //! Runs cross as JSON records (small: one per font and line piece); every glyph's quad crosses
 //! in one `Float32Array` and every glyph's text in one string with UTF-16 offsets, so a page of
 //! thousands of glyphs costs three copies, not thousands of objects.
@@ -119,7 +119,7 @@ pub(crate) fn page_text_js(text: &laminapdf::extract::PageText) -> JsResult<JsVa
 
 #[wasm_bindgen(typescript_custom_section)]
 const PAGE_TEXT_TS: &str = r#"
-/** A page's text as `WasmPage.text` returns it (B9c). */
+/** A page's text as `WasmPage.text` returns it. */
 export interface PageTextJs {
   /** The text by line, in content order (runs on one baseline, joined; trimmed). */
   lines: string[];

@@ -21,7 +21,7 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 11] = [
+const UNBUILDABLE: [(&str, &str); 18] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -36,10 +36,19 @@ const UNBUILDABLE: [(&str, &str); 11] = [
     // packages/sdk/test/browser/worker.browser.test.ts checks these two's keys.
     ("worker-version-mismatch", "raised by @laminapdf/sdk/worker"),
     ("worker-crashed", "raised by @laminapdf/sdk/worker"),
+    // packages/sdk/test/memory.test.ts and test/small-memory/oom.test.ts check these two's keys.
+    ("wasm-trap", "raised by @laminapdf/sdk"),
+    ("out-of-memory", "raised by @laminapdf/sdk"),
     // `renderErrors`: raised by laminapdf-render (not the façade); the fields are RenderError's.
     ("render-too-large", "raised by laminapdf-render"),
     ("render-failed", "raised by laminapdf-render"),
     ("render-backend-unavailable", "raised by laminapdf-render"),
+    // `cliErrors`: raised by laminapdf-cli; its tests/data_fields.rs checks their keys.
+    ("invalid-page-range", "raised by laminapdf-cli"),
+    ("unknown-code", "raised by laminapdf-cli"),
+    ("overwrite-refused", "raised by laminapdf-cli"),
+    ("input-unreadable", "raised by laminapdf-cli"),
+    ("output-unwritable", "raised by laminapdf-cli"),
 ];
 
 fn root() -> PathBuf {

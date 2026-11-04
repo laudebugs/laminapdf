@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "PageTextEntry": {
+      "description": "One page's text.",
+      "properties": {
+        "index": {
+          "description": "The 0-based page index.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "number": {
+          "description": "The 1-based page number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text": {
+          "description": "The page's lines, joined by line feeds: document text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "number",
+        "text"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/text.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.text/1`.",
+  "properties": {
+    "input": {
+      "description": "The input as given: a path, or `-`.",
+      "type": "string"
+    },
+    "pages": {
+      "description": "The pages, in the order the range named them.",
+      "items": {
+        "$ref": "#/$defs/PageTextEntry"
+      },
+      "type": "array"
+    },
+    "schema": {
+      "const": "laminapdf.text/1",
+      "description": "`laminapdf.text/1`.",
+      "type": "string"
+    },
+    "warnings": {
+      "description": "The warnings reading the document raised (ADR 0026 objects).",
+      "items": {
+        "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "pages",
+    "warnings"
+  ],
+  "title": "laminapdf.text/1",
+  "type": "object"
+}

@@ -1,4 +1,4 @@
-//! The spike-era writer, moved here from `laminapdf-cos` in B3b (ADR 0007 §7) with its tests:
+//! The spike-era writer, kept with its tests beside the product writers (ADR 0007 §7):
 //! classic files, compact (object + xref stream) files built from objects numbered `1..n`,
 //! and [`incremental_update`] from an explicit list of changes. It builds whole files in
 //! memory and returns `laminapdf_cos` errors. Its xref sections, object stream and header come

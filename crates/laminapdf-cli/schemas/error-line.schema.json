@@ -1,0 +1,40 @@
+{
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/error-line.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The line standard error holds under --json when a command fails (ADR 0031 §8).",
+  "properties": {
+    "error": {
+      "allOf": [
+        {
+          "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/error"
+        },
+        {
+          "properties": {
+            "exitCode": {
+              "maximum": 5,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "input": {
+              "description": "The input as given: a path, or -.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "exitCode"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "schema": {
+      "const": "laminapdf.error/1"
+    }
+  },
+  "required": [
+    "schema",
+    "error"
+  ],
+  "title": "laminapdf.error/1 line",
+  "type": "object"
+}

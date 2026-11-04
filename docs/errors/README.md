@@ -1,6 +1,6 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `laminapdf explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `laminapdf::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `laminapdf explain <code>` ([L4a](../todos/done/L4a-lamina-cli.md)) will print them.
 
 A PR that adds a code adds:
 
@@ -180,6 +180,7 @@ A PR that adds a code adds:
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`builder-finished`](builder-finished.md) | `state` | a builder or one of its pages was used after it finished |
+| [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`invalid-argument`](invalid-argument.md) | `usage` | a value passed to a binding does not have the shape its type declares |
 | [`source-budget-exceeded`](source-budget-exceeded.md) | `limit` | a sparse source was given more bytes than its byte budget allows |
 | [`unknown-option`](unknown-option.md) | `usage` | an options record passed to a binding has a key Lamina PDF does not know |
@@ -194,7 +195,21 @@ A PR that adds a code adds:
 | [`not-initialized`](not-initialized.md) | `state` | an @laminapdf/sdk function was called before init() finished loading the WebAssembly module |
 | [`source-changed`](source-changed.md) | `io` | a remote file changed while it was being read: its ETag or length differs from the first response |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` | a font or text call was made on a builder of the base module, which has no fonts or text |
-| [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`worker-version-mismatch`](worker-version-mismatch.md) | `usage` | the worker answered with a different protocol or package version than the client |
 | [`worker-crashed`](worker-crashed.md) | `internal` | the worker running Lamina PDF stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |
 | [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't Lamina PDF's (a bug in @laminapdf/sdk/worker, or a result it couldn't send) |
+| [`wasm-trap`](wasm-trap.md) | `internal` | the WebAssembly module trapped (a bug in Lamina PDF), so its instance was discarded and the next call gets a fresh one |
+| [`out-of-memory`](out-of-memory.md) | `limit` | the WebAssembly module ran out of memory (its maximum, or what the engine could give), so its instance was discarded and the next call gets a fresh one |
+| [`instance-reset`](instance-reset.md) | `state` | a handle was used after its WebAssembly instance was replaced, by reset() or after a trap |
+
+## CLI errors (`laminapdf-cli`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`invalid-command-line`](invalid-command-line.md) | `usage` | the command line doesn't parse: an unknown command or flag, a missing argument, a bad value, or stdin named twice |
+| [`invalid-page-range`](invalid-page-range.md) | `usage` | a page range doesn't fit the grammar, or names a page the document lacks |
+| [`binary-output-to-terminal`](binary-output-to-terminal.md) | `usage` | the command would write a PDF to standard output, and standard output is a terminal |
+| [`unknown-code`](unknown-code.md) | `usage` | explain was given a code that isn't a Lamina PDF error or warning code |
+| [`overwrite-refused`](overwrite-refused.md) | `state` | the output file exists, or the command would modify its input in place, and --force wasn't given |
+| [`input-unreadable`](input-unreadable.md) | `io` | an input file, standard input or the password file couldn't be read |
+| [`output-unwritable`](output-unwritable.md) | `io` | the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed |

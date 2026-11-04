@@ -1,4 +1,4 @@
-// PageLayout (C3b): prefix sums, pageAt and rotation, with its cost counted in steps.
+// PageLayout: prefix sums, pageAt and rotation, with its cost counted in steps.
 import { describe, expect, it } from "vitest";
 import { PageLayout } from "./page-layout.js";
 

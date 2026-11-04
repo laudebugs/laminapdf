@@ -157,7 +157,7 @@ pub(crate) fn pick<T: Copy>(argument: &'static str, name: &str, known: &[(&str, 
         invalid_argument(
             argument,
             format!("expected one of {}", names.join(", ")),
-            crate::error::did_you_mean(name, &names),
+            laminapdf::did_you_mean(name, &names),
         )
     })
 }

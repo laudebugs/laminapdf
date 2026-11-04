@@ -1,9 +1,10 @@
 //! The parts of the error and diagnostic contract ([ADR 0026]) that every layer shares: the
 //! nine [`ErrorKind`]s and tagged positions ([`Position`], [`Location`]).
 //!
-//! Codes form one namespace across crates, listed once in `fixtures/codes.json`. Each crate's
-//! `kind()` is an exhaustive match over its own variants, checked against that file by the
-//! crate's tests (L1b generates them).
+//! Codes form one namespace across crates, listed once in `fixtures/codes.json`, from which
+//! `cargo xtask gen codes` generates [`ErrorCode`](crate::ErrorCode) and
+//! [`WarningCode`](crate::WarningCode). Each crate's `kind()` is an exhaustive match over its own
+//! variants, checked against that file by the crate's tests.
 //!
 //! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 

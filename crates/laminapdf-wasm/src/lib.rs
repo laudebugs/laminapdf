@@ -9,7 +9,7 @@
 //!   navigation and metadata.
 //! * **text** (`lamina_pdf_text.wasm`, feature `text`): all of the base plus fonts (`WasmFont`),
 //!   shaped text runs and text boxes, and text extraction (`WasmPage.text`).
-//! * **extract** (`lamina_pdf_extract.wasm`, feature `extract`; B9c): all of the base plus text
+//! * **extract** (`lamina_pdf_extract.wasm`, feature `extract`): all of the base plus text
 //!   extraction (`WasmPage.text`), without fonts for building or shaping.
 //!
 //! The rules the bindings follow ([ADR 0016] §7): classes are the façade's types with a
@@ -19,7 +19,8 @@
 //! [ADR 0026] §1 object (thrown as a plain object; `@laminapdf/sdk` wraps it in `LaminaPdfError`);
 //! the API is synchronous once the module is instantiated.
 //!
-//! This is an edge crate: `unsafe` exists only in wasm-bindgen's generated glue.
+//! This is an edge crate: `unsafe` exists in wasm-bindgen's generated glue and in the global
+//! allocator of `memory`, which forwards to the system one and records a failed allocation.
 //!
 //! [ADR 0016]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0016-package-design.md
 //! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
@@ -32,6 +33,7 @@ mod convert;
 mod document;
 mod dto;
 mod error;
+mod memory;
 mod source;
 #[cfg(feature = "extract")]
 mod text;
@@ -41,6 +43,7 @@ pub use builder::WasmFont;
 #[cfg(feature = "build")]
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
+pub use memory::allocation_failed;
 pub use source::WasmSparseSource;
 
 use wasm_bindgen::prelude::*;

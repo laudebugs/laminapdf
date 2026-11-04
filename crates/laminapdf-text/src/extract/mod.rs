@@ -1,6 +1,6 @@
-//! Text extraction, read side (todos B9b, B9d; ISO 32000-2 §9.4–9.10, §14.6, §14.9.4;
-//! research 03 §2.6, §3–5, §8.1): a page's text-showing operators to glyphs with the text each
-//! stands for, their boxes in page space, and runs of them.
+//! Text extraction, read side (ISO 32000-2 §9.4–9.10, §14.6, §14.9.4; research 03 §2.6,
+//! §3–5, §8.1): a page's text-showing operators to glyphs with the text each stands for, their
+//! boxes in page space, and runs of them.
 //!
 //! ```
 //! # fn sample() -> Vec<u8> { std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/golden/text-std14.pdf")).unwrap() }
@@ -38,7 +38,7 @@
 //! grapheme clusters (`BidiParagraph`), as pdf.js does. [`PageText::lines`] joins the runs in
 //! content order, a new line where the baseline moves by over half the size, a space between
 //! runs over a quarter of it apart without overlapping (after the previous run, or wholly
-//! behind it: cells drawn out of order; todo B9e).
+//! behind it: cells drawn out of order).
 //!
 //! Fonts are parsed once per [`TextExtractor`] (keyed by font object). Problems follow
 //! ADR 0003 and are warnings on the document: `font-invalid` (a malformed font dictionary,

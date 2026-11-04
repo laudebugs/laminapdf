@@ -249,7 +249,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1i](../todos/done/Q1i-guides-create.md) | Plain-English guides: creating PDFs | M | Q1h |
 | [Q1j](../todos/done/Q1j-recipes-and-troubleshooting.md) | Recipes, one page per example, and troubleshooting | M | Q1h, Q1f, Q1g |
 | [Q1k](../todos/done/Q1k-internal-ids-out-of-reader-text.md) | Internal IDs out of error pages and READMEs | M | Q1b |
-| [Q1l](../todos/ready/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
+| [Q1l](../todos/done/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
 | [Q1m](../todos/done/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 
 ### Q2: code quality and reuse
@@ -275,7 +275,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2q](../todos/done/Q2q-split-cos-reader.md) | Split the COS reader module | M | Q2a, Q2e |
 | [Q2r](../todos/done/Q2r-split-surface-modules.md) | Split the large xtask, builder, extraction and WASM modules | M | Q2a, Q2h, Q2i |
 | [Q2s](../todos/ready/Q2s-facade-names.md) | Façade names that don't collide | M | Q2a |
-| [Q2t](../todos/ready/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
+| [Q2t](../todos/done/Q2t-history-out-of-names.md) | Names and comments without project history | S | Q2a |
 | [Q2u](../todos/done/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
 | [Q2v](../todos/done/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
 | [Q2w](../todos/done/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
@@ -303,9 +303,9 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 - [x] Q1h, Q1i: the story and the create-PDF guides
 - [x] Q1m, Q1j: the read-and-edit guides, recipes and troubleshooting ([Q1m](../todos/done/Q1m-guides-read-and-edit.md), the read-and-edit guides, and [Q1j](../todos/done/Q1j-recipes-and-troubleshooting.md), the recipes and Troubleshooting)
 - [x] Q1k: internal IDs out of reader text
-- [ ] Q1l: the docs checks are strict everywhere
+- [x] Q1l: the docs checks are strict everywhere ([Q1l](../todos/done/Q1l-docs-checks-strict.md))
 - [x] Q2a, Q2b, Q2u: maintainability checks for Rust and TypeScript ([Q2a](../todos/done/Q2a-maintainability-checks-rust.md) adds `cargo xtask check maintainability` and the two lints, [Q2b](../todos/done/Q2b-ts-lint-rules.md) the TypeScript lint rules and the TypeDoc check, and [Q2u](../todos/done/Q2u-ts-dependency-tools.md) the dependency tools)
 - [x] Q2e, Q2f, Q2h, Q2v, Q2k, Q2o: the behaviour bugs the review found ([Q2e](../todos/done/Q2e-error-policy-consolidation.md), source errors propagated by text extraction, [Q2f](../todos/done/Q2f-page-attributes-one-owner.md), `/Rotate 90.0` read the same everywhere, [Q2h](../todos/done/Q2h-text-writers-dedup.md), surrogate pairs kept whole in ToUnicode, [Q2v](../todos/done/Q2v-did-you-mean.md), one did-you-mean tie rule in both languages, [Q2k](../todos/done/Q2k-boundary-errors-ts.md), render ranges kept across the worker, and [Q2o](../todos/done/Q2o-ts-hygiene.md), no test hooks in shipped code)
 - [ ] Q2c, Q2x, Q2d, Q2g, Q2i, Q2j, Q2l, Q2m, Q2n: one home per concept ([Q2c](../todos/done/Q2c-test-fixtures-crate.md), `laminapdf-test-fixtures` for the core crates, [Q2j](../todos/done/Q2j-boundary-errors-rust.md), one error object at every Rust boundary, [Q2m](../todos/done/Q2m-ts-test-utils.md), `@laminapdf/test-utils`, [Q2n](../todos/done/Q2n-render-adapter-shared.md), the render adapters' shared helpers, [Q2l](../todos/done/Q2l-boundary-lists-generated.md), the boundary lists generated from Rust, [Q2i](../todos/done/Q2i-one-lexer-one-png-filter.md), one PDF lexer and one PNG row filter, [Q2d](../todos/done/Q2d-one-serialiser.md), one PDF serialiser, and [Q2x](../todos/done/Q2x-test-fixtures-migration.md), `laminapdf-test-fixtures` for every crate, are done)
 - [x] Q2p, Q2q, Q2w, Q2r: complexity and module splits; the baselines reach zero ([Q2p](../todos/done/Q2p-ts-complexity-splits.md), no TypeScript function over the complexity or length limit, [Q2q](../todos/done/Q2q-split-cos-reader.md), the COS reader in three modules, [Q2w](../todos/done/Q2w-split-content-interpreter.md), the content interpreter's operator table, and [Q2r](../todos/done/Q2r-split-surface-modules.md), the xtask, builder, extraction and WASM modules split, with `[modules]` empty)
-- [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history ([Q2y](../todos/done/Q2y-facade-error-wrapping.md), the crates' errors opaque behind `Error::Core`, ADR 0028 §8, is done)
+- [ ] Q2s, Q2y, Q2t: façade names, the error-wrapping decision, names without history ([Q2y](../todos/done/Q2y-facade-error-wrapping.md), the crates' errors opaque behind `Error::Core`, ADR 0028 §8, and [Q2t](../todos/done/Q2t-history-out-of-names.md), test files named for what they test and no todo IDs in `src/`, are done)

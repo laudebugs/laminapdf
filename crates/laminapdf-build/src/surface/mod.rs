@@ -108,7 +108,7 @@ fn transformed_bounds(m: &Matrix, r: &RectPt) -> RectPt {
 /// points from the top-left corner of the page as displayed (its `CropBox` after `/Rotate`),
 /// y down, `/UserUnit` applied. The builder maps it to user space when the page is finished,
 /// so what is drawn at the top-left is at the top-left in every viewer, whatever the page's
-/// boxes, rotation and unit. Text ([B5b]) puts its `y` on the baseline.
+/// boxes, rotation and unit. Text puts its `y` on the baseline.
 ///
 /// [`Surface::path`] builds a path and returns a [`PendingPath`] that borrows the surface
 /// until it is painted ([`PendingPath::fill`], [`PendingPath::stroke`],
@@ -147,7 +147,6 @@ fn transformed_bounds(m: &Matrix, r: &RectPt) -> RectPt {
 /// ```
 ///
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-/// [B5b]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
 #[derive(Debug, Default)]
 pub struct Surface {
     commands: Vec<Command>,

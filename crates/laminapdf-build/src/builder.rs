@@ -457,12 +457,10 @@ impl Builder {
         self
     }
 
-    /// What the tagged document lacks so far ([B8a]): for each finished page, the content
-    /// drawn outside every structure element and artifact, and the figures without alternate
-    /// text, in page order. Empty while the document isn't tagged (see
+    /// What the tagged document lacks so far: for each finished page, the content drawn
+    /// outside every structure element and artifact, and the figures without alternate text,
+    /// in page order. Empty while the document isn't tagged (see
     /// [`BuildOptions::with_tagged`]).
-    ///
-    /// [B8a]: https://github.com/laudebugs/laminapdf/blob/main/docs/todos/done/B8a-structure-tree.md
     #[must_use]
     pub fn tagging_diagnostics(&self) -> &[TagDiagnostic] {
         self.state.tag.diagnostics()

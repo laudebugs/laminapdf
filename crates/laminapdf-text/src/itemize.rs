@@ -1,4 +1,4 @@
-//! Itemisation (todo B4b; research 03 §7 steps 3–4): split a paragraph into runs that can each
+//! Itemisation (research 03 §7 steps 3–4): split a paragraph into runs that can each
 //! be shaped in one go: one script (UAX #24), one bidi level (UAX #9) and one font.
 //!
 //! Fonts are chosen per grapheme cluster (so combining marks stay with their base's font) from

@@ -173,15 +173,3 @@ export function didYouMean(given: string, known: readonly string[]): string[] {
     .sort(([dx, x], [dy, y]) => dx - dy || (x < y ? -1 : Number(x > y)))
     .map(([, k]) => k);
 }
-
-/**
- * Runs `f`, turning the §1 object the WASM throws into a {@link LaminaPdfError}. Other errors (a
- * `RangeError`, a trap) pass through unchanged.
- */
-export function guard<T>(f: () => T): T {
-  try {
-    return f();
-  } catch (e) {
-    throw isDiagnostic(e) ? new LaminaPdfError(e) : e;
-  }
-}

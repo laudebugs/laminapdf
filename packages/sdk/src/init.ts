@@ -1,10 +1,12 @@
 // Loading the WebAssembly modules (ADR 0016 §2, §3): `init()` compiles and instantiates the base
 // module once; the text module is loaded by `init({ text: true })` or `loadText()`, the extract
-// module (base + text extraction, B9c) by `init({ extract: true })` or `loadExtract()`. After
-// that, every call is synchronous. Each export condition supplies its own `Locate` (src/loader/), so
+// module (base + text extraction) by `init({ extract: true })` or `loadExtract()`. After
+// that, every call is synchronous. `reset()` replaces each loaded module's instance
+// (internal/instance.ts). Each export condition supplies its own `Locate` (src/loader/), so
 // this file has no environment detection and no runtime-specific API.
 import * as baseGlue from "@laminapdf/wasm/base";
 import { packageError } from "./errors.js";
+import { Instance } from "./internal/instance.js";
 
 /** The base module's wasm-bindgen glue. */
 export type BaseGlue = typeof baseGlue;
@@ -49,17 +51,12 @@ export interface InitOptions {
  */
 export type Locate = (module: "base" | "text" | "extract") => WasmSource | undefined | Promise<WasmSource | undefined>;
 
-/** The `memory` export every wasm-bindgen module has. */
-interface Exports {
-  readonly memory: WebAssembly.Memory;
-}
-
 /** One module's state: what it was asked to load from, and the load (pending or done). */
-interface Slot<G> {
+interface Slot<G extends BaseGlue> {
   /** The source of the first call (`undefined`: the export condition's default file). */
   requested?: WasmSource | undefined;
   pending?: Promise<void> | undefined;
-  loaded?: { readonly glue: G; readonly exports: Exports } | undefined;
+  loaded?: Instance<G> | undefined;
 }
 
 const base: Slot<BaseGlue> = {};
@@ -79,7 +76,7 @@ type GlueInit = (input?: { module_or_path: unknown }) => Promise<unknown>;
  * Loads `slot`'s module once with `glue` (a failed load can be retried). A later call naming a
  * different source than the first throws `already-initialized` instead of being ignored.
  */
-function load<G extends { default: GlueInit }>(
+function load<G extends BaseGlue & { default: GlueInit }>(
   slot: Slot<G>,
   name: "base" | "text" | "extract",
   glue: () => Promise<G>,
@@ -101,8 +98,10 @@ function load<G extends { default: GlueInit }>(
   slot.pending = (async () => {
     const g = await glue();
     const from = source ?? (await locate(name));
-    const exports = (await g.default(from === undefined ? undefined : { module_or_path: from })) as Exports;
-    slot.loaded = { glue: g, exports };
+    const exports = (await g.default(from === undefined ? undefined : { module_or_path: from })) as {
+      readonly memory: WebAssembly.Memory;
+    };
+    slot.loaded = new Instance(name, g, exports);
   })().catch((e: unknown) => {
     slot.pending = undefined;
     slot.requested = undefined;
@@ -147,12 +146,12 @@ export async function initWith(locate: Locate, input?: WasmSource | InitOptions)
   await Promise.all(loads);
 }
 
-/** The base module's glue. @throws {@link LaminaPdfError} `not-initialized` before `init()`. */
-export function baseModule(): BaseGlue {
+/** The base module. @throws {@link LaminaPdfError} `not-initialized` before `init()`. */
+export function baseModule(): Instance<BaseGlue> {
   if (base.loaded === undefined) {
     throw packageError("not-initialized", "init() has not finished loading the WebAssembly module");
   }
-  return base.loaded.glue;
+  return base.loaded;
 }
 
 /**
@@ -160,9 +159,9 @@ export function baseModule(): BaseGlue {
  * the base one (each a superset of the base module's reading API; the first two extract text).
  * @throws {@link LaminaPdfError} `not-initialized` before `init()`.
  */
-export function readingModule(): BaseGlue {
+export function readingModule(): Instance<BaseGlue> {
   const base = baseModule();
-  return (text.loaded?.glue ?? extract.loaded?.glue ?? base) as BaseGlue;
+  return (text.loaded ?? extract.loaded ?? base) as unknown as Instance<BaseGlue>;
 }
 
 /**
@@ -182,9 +181,9 @@ export function extractsText(doc: object): boolean {
   );
 }
 
-/** The text module's glue, when loaded. */
-export function textModule(): TextGlue | undefined {
-  return text.loaded?.glue;
+/** The text module, when loaded. */
+export function textModule(): Instance<TextGlue> | undefined {
+  return text.loaded;
 }
 
 /** Whether `init()` has finished. */
@@ -215,8 +214,18 @@ export interface WasmMemory {
  */
 export function wasmMemory(): WasmMemory {
   return {
-    ...(base.loaded === undefined ? {} : { base: base.loaded.exports.memory.buffer.byteLength }),
-    ...(text.loaded === undefined ? {} : { text: text.loaded.exports.memory.buffer.byteLength }),
-    ...(extract.loaded === undefined ? {} : { extract: extract.loaded.exports.memory.buffer.byteLength }),
+    ...(base.loaded === undefined ? {} : { base: base.loaded.memoryBytes }),
+    ...(text.loaded === undefined ? {} : { text: text.loaded.memoryBytes }),
+    ...(extract.loaded === undefined ? {} : { extract: extract.loaded.memoryBytes }),
   };
+}
+
+/**
+ * Replaces each loaded module's instance with a fresh one, so its memory returns to the size it
+ * had after `init()`: WebAssembly memory grows and never shrinks, and this gives it back. Every
+ * document, page, builder and save job made before throws `instance-reset` afterwards, so call it
+ * while none is in use, such as between jobs on a server. Images and fonts keep working.
+ */
+export function reset(): void {
+  for (const slot of [base, text, extract]) slot.loaded?.replace();
 }

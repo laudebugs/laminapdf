@@ -37,6 +37,8 @@ mod verapdf;
 mod verify_install;
 mod version;
 mod wasm;
+mod wasm_glue;
+mod wasm_module;
 #[cfg(test)]
 mod workflows;
 mod workspace;
@@ -55,7 +57,8 @@ usage: cargo xtask <task> [args]
 
 tasks:
   check [rust|ts|docs]
-                    everything a PR must pass (default: docs, rust and ts)
+                    everything a PR must pass (default: docs, rust and ts); runs docs-prose,
+                    docs-snippets, biome-examples and clippy-examples with --all-strict
                     docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
                     gen codes --check, gen boundary --check and version sync --check
@@ -71,18 +74,19 @@ tasks:
                     tools/xtask/maintainability-duplicates.toml (both files only shrink)
   check docs-prose [--all-strict] [--warnings] [--json]
                     reader-facing text (docs site, docs/errors, package READMEs) against
-                    docs/guidelines/docs-writing.md: errors on files changed since the merge
-                    base with main (drafts included), counted warnings elsewhere;
+                    docs/guidelines/docs-writing.md: on its own, errors on files changed since the
+                    merge base with main (drafts included), counted warnings elsewhere;
                     --all-strict fails on every report, --warnings lists them
                     (--json lists every report, so it takes no --warnings)
   check docs-snippets [--all-strict] [--warnings] [--json]
-                    the examples and Snippet's glob against docs/guidelines/examples.md: strict on
-                    changed examples, warnings elsewhere; TS/Rust pairs in tools/xtask/docs-snippets.toml
+                    the examples and Snippet's glob against docs/guidelines/examples.md: on its own,
+                    strict on changed examples, warnings elsewhere; TS/Rust pairs in
+                    tools/xtask/docs-snippets.toml; skips examples/differential/ (a developer tool)
   biome-examples [--all-strict]
                     Biome with --error-on-warnings on the changed TS examples (all with --all-strict)
   clippy-examples [--all-strict] [--warnings] [--json]
                     clippy on lamina's examples (functions of at most 40 lines, no discarded
-                    results): strict on changed examples, warnings elsewhere
+                    results): on its own, strict on changed examples, warnings elsewhere
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: ErrorCode/WarningCode
@@ -378,8 +382,9 @@ fn is_docs_ratchet(scope: &str) -> bool {
     matches!(scope, "docs-prose" | "docs-snippets")
 }
 
-/// Runs a check that is strict on changed files and warns elsewhere ([`reports`]), as `command`
-/// (`check docs-prose`, `clippy-examples`) names it, with its flags.
+/// Runs a check on its own, strict on changed files and warning elsewhere unless `--all-strict`
+/// ([`reports`]), as `command` (`check docs-prose`, `clippy-examples`) names it, with its flags.
+/// `cargo xtask check` runs these checks with `--all-strict`.
 fn ratchet(ws: &Workspace, command: &str, flags: &[String]) -> Result<()> {
     let options = reports::Options::parse(command, flags)?;
     match command {
@@ -395,10 +400,10 @@ fn ratchet(ws: &Workspace, command: &str, flags: &[String]) -> Result<()> {
 fn check_docs(ws: &Workspace) -> Result<()> {
     step("docs-links: relative links and anchors in tracked Markdown");
     docs_links::run(&ws.root, false)?;
-    step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on changed files)");
-    docs_prose::run(&ws.root, reports::Options::default())?;
-    step("docs-snippets: the examples against docs/guidelines/examples.md (strict on changed files)");
-    docs_snippets::run(&ws.root, reports::Options::default())?;
+    step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on every file)");
+    docs_prose::run(&ws.root, reports::Options::strict())?;
+    step("docs-snippets: the examples against docs/guidelines/examples.md (strict on every file)");
+    docs_snippets::run(&ws.root, reports::Options::strict())?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
@@ -417,8 +422,8 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     maintainability::run(&ws.root)?;
     portability(ws)?;
     clippy(ws)?;
-    step("clippy-examples: lamina's examples, functions of at most 40 lines (strict on changed examples)");
-    examples_lints::clippy(ws, reports::Options::default())?;
+    step("clippy-examples: lamina's examples, functions of at most 40 lines (strict on every example)");
+    examples_lints::clippy(ws, reports::Options::strict())?;
     rust_tests(ws)?;
     docs(ws)?;
     cargo_deny(ws)?;
@@ -435,7 +440,7 @@ fn api_docs(ws: &Workspace) -> Result<()> {
 
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
-    examples_lints::biome(ws, reports::Options::default())?;
+    examples_lints::biome(ws, reports::Options::strict())?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     api_docs(ws)?;

@@ -99,7 +99,7 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted, owner 2026-10-29) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
 | [0029](../decisions/0029-mobile-bindings-and-packaging.md) (Accepted, 2026-10-30) | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
 | 0030 | Extraction output (`laminapdf.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
-| 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
+| 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/done/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 
 ## 7. Rounds
 
@@ -114,7 +114,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L2. TypeScript hardening
 
-**Todos:** [L2a](../todos/done/L2a-worker-client.md) (`@laminapdf/sdk/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
+**Todos:** [L2a](../todos/done/L2a-worker-client.md) (`@laminapdf/sdk/worker`), [L2b](../todos/done/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@laminapdf/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
 **Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; opening and disposing a document in a loop keeps wasm memory at its post-warm-up size (± one 64 KiB page; linear memory never shrinks, so the high-water mark is the baseline); opening a remote file fetches only the ranges it needs.
@@ -128,7 +128,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
+**Todos:** [L4a](../todos/done/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
 **Deliverable:** the `laminapdf` binary (`crates/laminapdf-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
@@ -172,7 +172,7 @@ This plan adjusts these todos (edited in the same PR):
 ### L2. TypeScript hardening
 
 - [x] `@laminapdf/sdk/worker`: typed RPC, version handshake, `AbortSignal`, transfer lists ([L2a](../todos/done/L2a-worker-client.md))
-- [ ] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper
+- [x] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper ([L2b](../todos/done/L2b-disposal-and-memory.md))
 - [x] Range `ByteSource` reporting missing ranges through `Error::DataPending` (ADR 0005 §2), with edge adapters (HTTP range, JS callback, native positioned reads)
 
 ### L3. AI-ready extraction
@@ -183,7 +183,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L4. CLI and MCP
 
-- [ ] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
+- [x] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain` ([L4a](../todos/done/L4a-lamina-cli.md))
 - [ ] Batch and NDJSON, `--jobs`, `render`, Markdown/JSON extraction, `schema`, completions, man pages
 - [ ] `laminapdf mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages

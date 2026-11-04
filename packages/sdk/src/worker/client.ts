@@ -1,4 +1,4 @@
-// The page side of `@laminapdf/sdk/worker` (L2a): `connect()` starts the worker (the literal
+// The page side of `@laminapdf/sdk/worker`: `connect()` starts the worker (the literal
 // `new Worker(new URL(…, import.meta.url))` lets Vite and webpack bundle it), checks the
 // handshake, and returns a WorkerClient whose documents and pages are remote handles: proxies
 // whose methods post typed calls. Calls get monotonically increasing IDs; an aborted call is
@@ -411,7 +411,7 @@ export class WorkerClient {
     return this.#remoteDocument(ref as HandleRef);
   }
 
-  /** Opens a remote file by HTTP range requests (L2c): the worker fetches what each call needs. */
+  /** Opens a remote file by HTTP range requests: the worker fetches what each call needs. */
   async openUrl(url: string, options: OpenOptions & RemoteHttpOptions & CallOptions = {}): Promise<RemoteDocument> {
     const { signal, onProgress, transfer: _, ...open } = options;
     const ref = await this.call(0, "openUrl", [url, open], defined({ signal, onProgress }));

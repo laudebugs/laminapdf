@@ -1,9 +1,13 @@
 // Document: open, read, edit with ops (transactions, undo), save. A thin layer over
-// WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaPdfError.
+// WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaPdfError. Documents,
+// pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
+// document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { PageTextJs } from "@laminapdf/wasm/extract";
-import { guard, isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
-import { extractsText, readingModule } from "./init.js";
+import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
+import { type BaseGlue, extractsText, readingModule } from "./init.js";
+import { Handle, watch } from "./internal/handle.js";
+import type { Instance } from "./internal/instance.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import { Transaction } from "./transaction.js";
@@ -54,28 +58,32 @@ function tryNext(e: unknown, attempt: number, attempts: number): boolean {
   return attempt + 1 < attempts && isLaminaPdfError(e, "wrong-password");
 }
 
-/** A page of a {@link Document}, held by its ID: moving pages doesn't retarget it (ADR 0028 F2). */
-export class PageRef {
+/**
+ * A page of a {@link Document}, held by its ID: moving pages doesn't retarget it (ADR 0028 F2).
+ * Freed with its document; every call after that throws `disposed`.
+ */
+export class PageRef extends Handle<BaseGlue> {
   readonly #page: WasmPage;
 
   /** @internal */
-  constructor(page: WasmPage) {
+  constructor(page: WasmPage, doc: Document, instance: Instance<BaseGlue>) {
+    super("PageRef", instance, doc);
     this.#page = page;
   }
 
   /** The page's stable ID (`p12.0`). */
   get id(): string {
-    return this.#page.id;
+    return this.call(() => this.#page.id);
   }
 
   /** The page's current 0-based index. @throws {@link LaminaPdfError} `unknown-page` when it is gone. */
   get index(): number {
-    return guard(() => this.#page.index());
+    return this.call(() => this.#page.index());
   }
 
   /** The page's facts now. @throws {@link LaminaPdfError} `unknown-page` when it is gone. */
   get info(): PageInfo {
-    return guard(() => this.#page.info());
+    return this.call(() => this.#page.info());
   }
 
   /**
@@ -93,6 +101,7 @@ export class PageRef {
    *   module; `unknown-page`; reading errors (`data-pending` for a range document: use `ensure`).
    */
   text(options?: TextOptions): PageText {
+    this.assertLive();
     const page = this.#page as WasmPage & { text?: (options: TextOptions | undefined) => PageTextJs };
     if (typeof page.text !== "function") {
       throw packageError(
@@ -101,16 +110,24 @@ export class PageRef {
       );
     }
     const extract = page.text.bind(page);
-    return new PageText(guard(() => extract(options)));
+    return new PageText(this.call(() => extract(options)));
+  }
+
+  protected release(): void {
+    this.#page.free();
   }
 }
 
-/** A save in progress, stepped by the caller with a budget of work units (ADR 0028 §3). */
-export class SaveJob {
+/**
+ * A save in progress, stepped by the caller with a budget of work units (ADR 0028 §3). Freed with
+ * its document; every call after that throws `disposed`.
+ */
+export class SaveJob extends Handle<BaseGlue> {
   readonly #job: WasmSaveJob;
 
   /** @internal */
-  constructor(job: WasmSaveJob) {
+  constructor(job: WasmSaveJob, doc: Document, instance: Instance<BaseGlue>) {
+    super("SaveJob", instance, doc);
     this.#job = job;
   }
 
@@ -125,44 +142,46 @@ export class SaveJob {
   ):
     | ({ readonly state: "progress" } & Progress)
     | { readonly state: "done"; readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
-    return guard(() => this.#job.step(budget));
+    return this.call(() => this.#job.step(budget));
   }
 
   /** Stops the job: its next step fails with `cancelled`. */
   cancel(): void {
-    this.#job.cancel();
+    this.call(() => this.#job.cancel());
   }
 
-  /** Frees the job's memory now (otherwise when it is garbage-collected). */
-  free(): void {
+  protected release(): void {
     this.#job.free();
   }
 }
 
 /**
- * An open PDF: read it, edit it with ops (atomic transactions with undo), save it.
+ * An open PDF: read it, edit it with ops (atomic transactions with undo), save it. It holds
+ * WebAssembly memory: free it with `using` or {@link Document.free} (an alias).
  *
  * @example
  * ```ts
  * await init();
- * const doc = Document.open(bytes);
+ * using doc = Document.open(bytes);
  * doc.transact((tx) => tx.setInfo({ title: "Final" }));
  * const updated = doc.save({ mode: "incremental" });
- * doc.free();
  * ```
  */
-export class Document {
+export class Document extends Handle<BaseGlue> {
   readonly #doc: WasmDocument;
   /** Set for a document opened with {@link Document.openRange}: where more bytes come from. */
   readonly #range: RangeState | undefined;
-  #freed = false;
   /** Whether a `transact` callback of this document is running. */
   #transacting = false;
 
-  /** @internal Wraps a raw document (from `open`, `openRange` or `Builder.finish`). */
-  constructor(doc: WasmDocument, range?: RangeState) {
+  /**
+   * @internal Wraps a raw document (from `open`, `openRange` or `Builder.finish`) of `instance`.
+   */
+  constructor(doc: WasmDocument, instance: Instance<BaseGlue>, range?: RangeState) {
+    super("Document", instance);
     this.#doc = doc;
     this.#range = range;
+    watch(this, "Document");
   }
 
   /**
@@ -189,9 +208,11 @@ export class Document {
     // are, rather than copying them into a sparse source as well.
     const whole = wholeBytes(src);
     if (whole !== undefined) return Document.open(whole, open);
-    const wasm = readingModule();
-    const sparse = guard(() => new wasm.WasmSparseSource(src.size, budget));
+    const instance = readingModule();
+    const sparse = instance.call((wasm) => new wasm.WasmSparseSource(src.size, budget));
     const state: RangeState = {
+      instance,
+      generation: instance.generation,
       sparse,
       source: src,
       blockSize: blockSize ?? src.blockSize ?? 4096,
@@ -206,7 +227,11 @@ export class Document {
             state,
             () =>
               new Document(
-                guard(() => wasm.WasmDocument.openSource(sparse, attempts[i])),
+                instance.call((wasm) => {
+                  instance.check(state.generation, "Document");
+                  return wasm.WasmDocument.openSource(sparse, attempts[i]);
+                }),
+                instance,
                 state,
               ),
             signal,
@@ -216,8 +241,9 @@ export class Document {
         }
       }
     } catch (e) {
-      // Nothing holds the fetched bytes now: free them at once rather than at collection.
-      sparse.free();
+      // Nothing holds the fetched bytes now: free them at once rather than at collection, unless
+      // their instance was replaced (a trap, or reset() during a fetch).
+      if (instance.owns(state.generation)) sparse.free();
       throw e;
     }
   }
@@ -240,6 +266,7 @@ export class Document {
    * @throws what `f` throws, and as {@link Document.openRange}.
    */
   async ensure<T>(f: () => T | Promise<T>, options: { readonly signal?: AbortSignal } = {}): Promise<T> {
+    this.assertLive();
     return this.#range === undefined ? f() : settle(this.#range, f, options.signal);
   }
 
@@ -258,12 +285,15 @@ export class Document {
    *   `strict`, …; `unknown-option` / `invalid-argument` for bad options; `not-initialized`.
    */
   static open(bytes: Uint8Array | ArrayBuffer, options?: OpenOptions): Document {
-    const wasm = readingModule();
+    const instance = readingModule();
     const data = bytesOf(bytes);
     const attempts = passwordAttempts(options ?? {});
     for (let i = 0; ; i++) {
       try {
-        return new Document(guard(() => wasm.WasmDocument.openBytes(data, attempts[i])));
+        return new Document(
+          instance.call((wasm) => wasm.WasmDocument.openBytes(data, attempts[i])),
+          instance,
+        );
       } catch (e) {
         if (!tryNext(e, i, attempts.length)) throw e;
       }
@@ -276,17 +306,18 @@ export class Document {
    * module; save and reopen it to move it.
    */
   get canExtractText(): boolean {
+    this.assertLive();
     return extractsText(this.#doc);
   }
 
   /** The number of pages. @throws {@link LaminaPdfError} reading errors. */
   get pageCount(): number {
-    return guard(() => this.#doc.pageCount());
+    return this.call(() => this.#doc.pageCount());
   }
 
   /** Every page's facts, in order (one page-tree walk). @throws {@link LaminaPdfError} reading errors. */
   get pages(): readonly PageInfo[] {
-    return guard(() => this.#doc.pageInfos());
+    return this.call(() => this.#doc.pageInfos());
   }
 
   /**
@@ -295,7 +326,7 @@ export class Document {
    * @throws {@link LaminaPdfError} `page-index-out-of-range`.
    */
   pageInfo(index: number): PageInfo {
-    return guard(() => this.#doc.pageInfo(index));
+    return this.call(() => this.#doc.pageInfo(index));
   }
 
   /**
@@ -304,7 +335,11 @@ export class Document {
    * @throws {@link LaminaPdfError} `page-index-out-of-range`.
    */
   page(index: number): PageRef {
-    return new PageRef(guard(() => this.#doc.page(index)));
+    return new PageRef(
+      this.call(() => this.#doc.page(index)),
+      this,
+      this.instance,
+    );
   }
 
   /**
@@ -313,32 +348,38 @@ export class Document {
    * @throws {@link LaminaPdfError} `invalid-argument`, `unknown-page`.
    */
   pageById(id: string): PageRef {
-    return new PageRef(guard(() => this.#doc.pageById(id)));
+    return new PageRef(
+      this.call(() => this.#doc.pageById(id)),
+      this,
+      this.instance,
+    );
   }
 
   /** The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors. */
   get info(): DocumentInfo {
-    return guard(() => this.#doc.info());
+    return this.call(() => this.#doc.info());
   }
 
   /** Every warning so far (build warnings first), each the ADR 0026 §1 object. */
   get warnings(): readonly LaminaPdfWarning[] {
-    const cursor = this.#doc.warnings();
-    try {
-      const out: LaminaPdfWarning[] = [];
-      for (;;) {
-        const batch = cursor.nextBatch(WARNING_BATCH) as LaminaPdfWarning[];
-        if (batch.length === 0) return out;
-        out.push(...batch);
+    return this.call(() => {
+      const cursor = this.#doc.warnings();
+      try {
+        const out: LaminaPdfWarning[] = [];
+        for (;;) {
+          const batch = cursor.nextBatch(WARNING_BATCH) as LaminaPdfWarning[];
+          if (batch.length === 0) return out;
+          out.push(...batch);
+        }
+      } finally {
+        cursor.free();
       }
-    } finally {
-      cursor.free();
-    }
+    });
   }
 
   /** Whether there are changes no save has written yet. */
   get hasUnsavedChanges(): boolean {
-    return this.#doc.hasUnsavedChanges();
+    return this.call(() => this.#doc.hasUnsavedChanges());
   }
 
   /**
@@ -350,7 +391,7 @@ export class Document {
    */
   apply(ops: readonly Op[]): Edited {
     this.#notInTransaction("apply");
-    return guard(() => this.#doc.apply(ops as Op[]));
+    return this.call(() => this.#doc.apply(ops as Op[]));
   }
 
   /**
@@ -361,7 +402,7 @@ export class Document {
   applyLog(log: string | OpLog): Edited {
     this.#notInTransaction("applyLog");
     const json = typeof log === "string" ? log : JSON.stringify(log);
-    return guard(() => this.#doc.applyLog(json));
+    return this.call(() => this.#doc.applyLog(json));
   }
 
   /**
@@ -384,6 +425,7 @@ export class Document {
    * ```
    */
   transact<T>(edit: (tx: Transaction) => T): T {
+    this.assertLive();
     this.#notInTransaction("transact");
     this.#transacting = true;
     const tx = new Transaction();
@@ -419,7 +461,7 @@ export class Document {
    */
   undo(): UndoOutcome | undefined {
     this.#notInTransaction("undo");
-    return guard(() => this.#doc.undo());
+    return this.call(() => this.#doc.undo());
   }
 
   /**
@@ -430,7 +472,7 @@ export class Document {
    */
   redo(): UndoOutcome | undefined {
     this.#notInTransaction("redo");
-    return guard(() => this.#doc.redo());
+    return this.call(() => this.#doc.redo());
   }
 
   /**
@@ -451,7 +493,7 @@ export class Document {
    */
   saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("save");
-    return guard(() => this.#doc.save(options));
+    return this.call(() => this.#doc.save(options));
   }
 
   /**
@@ -461,7 +503,11 @@ export class Document {
    */
   saveJob(options?: SaveOptions): SaveJob {
     this.#notInTransaction("saveJob");
-    return new SaveJob(guard(() => this.#doc.saveJob(options)));
+    return new SaveJob(
+      this.call(() => this.#doc.saveJob(options)),
+      this,
+      this.instance,
+    );
   }
 
   /**
@@ -471,23 +517,12 @@ export class Document {
    */
   rebase(bytes: Uint8Array): void {
     this.#notInTransaction("rebase");
-    guard(() => this.#doc.rebase(bytes));
+    this.call(() => this.#doc.rebase(bytes));
   }
 
-  /**
-   * Frees the document's WASM memory now; without it, it is freed when garbage-collected.
-   * Calling it twice is harmless; using the document afterwards is not (L2b adds `disposed`).
-   */
-  free(): void {
-    if (this.#freed) return;
-    this.#freed = true;
+  protected release(): void {
     this.#doc.free();
     // A range document's fetched bytes live in its sparse source.
     this.#range?.sparse.free();
-  }
-
-  /** Frees the document at the end of a `using` block. */
-  [Symbol.dispose](): void {
-    this.free();
   }
 }

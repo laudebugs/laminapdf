@@ -1,11 +1,12 @@
 // Builder, Page and Surface: new documents, page by page, in page space (points from the top-left
 // of the displayed page, y down; ADR 0027). Over WasmBuilder / WasmPageBuilder (ADR 0016 §7):
-// paths cross as flat Float64Arrays, colours as component arrays.
-import type { WasmBuilder as BaseBuilder, WasmDocument } from "@laminapdf/wasm/base";
+// paths cross as flat Float64Arrays, colours as component arrays. Builders and pages are handles
+// (internal/handle.ts): a page is freed with its builder.
+import type { WasmBuilder as BaseBuilder, WasmDocument, WasmImage } from "@laminapdf/wasm/base";
 import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@laminapdf/wasm/text";
 import { defined } from "./defined.js";
 import { Document } from "./document.js";
-import { didYouMean, guard, packageError } from "./errors.js";
+import { didYouMean, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
 import {
   ARTIFACT_KINDS,
@@ -19,7 +20,9 @@ import {
   type TableScope,
   type TagName,
 } from "./generated/builder-enums.js";
-import { type BaseGlue, readingModule, type TextGlue, textModule } from "./init.js";
+import { type BaseGlue, readingModule, textModule } from "./init.js";
+import { disposable, forget, Handle, watch } from "./internal/handle.js";
+import type { Instance } from "./internal/instance.js";
 import type { Transform } from "./matrix.js";
 import { type PathBuilder, PathEncoder } from "./path.js";
 import type {
@@ -207,25 +210,41 @@ function rest<T extends object>(record: T, keys: readonly string[]): object | un
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-/** The raw page of a {@link Page}: freed when the page finishes, `builder-finished` afterwards. */
-class LivePage {
+/**
+ * The raw page of a {@link Page}, a handle freed with its builder: `builder-finished` once the page
+ * or its builder finishes, `disposed` once either is freed.
+ */
+class LivePage extends Handle<BaseGlue> {
   #raw: TextPageBuilder | undefined;
-  readonly #onFree: (page: LivePage) => void;
+  readonly #onClose: (page: LivePage) => void;
 
-  constructor(raw: TextPageBuilder, onFree: (page: LivePage) => void) {
+  constructor(raw: TextPageBuilder, builder: Builder, instance: Instance<BaseGlue>, onClose: (page: LivePage) => void) {
+    super("Page", instance, builder);
     this.#raw = raw;
-    this.#onFree = onFree;
+    this.#onClose = onClose;
   }
 
-  get(): TextPageBuilder {
-    if (this.#raw === undefined) throw packageError("builder-finished", "the page has already finished");
-    return this.#raw;
+  /**
+   * Runs `f`, calls into the glue, on this page's raw side.
+   *
+   * @throws {@link LaminaPdfError} `disposed`, `instance-reset`, `builder-finished`; what `f` throws.
+   */
+  run<T>(f: (page: TextPageBuilder) => T): T {
+    return this.call(() => {
+      if (this.#raw === undefined) throw packageError("builder-finished", "the page has already finished");
+      return f(this.#raw);
+    });
   }
 
-  free(): void {
-    this.#raw?.free();
+  /** Frees the raw page and keeps the handle: later calls throw `builder-finished`. */
+  close(): void {
+    if (this.owned) this.#raw?.free();
     this.#raw = undefined;
-    this.#onFree(this);
+    this.#onClose(this);
+  }
+
+  protected release(): void {
+    this.close();
   }
 }
 
@@ -244,27 +263,27 @@ export class PendingPath {
 
   /** Fills the path with the fill colour. @returns the surface. */
   fill(rule: FillRule = "nonZero"): Surface {
-    guard(() => this.#page.get().fillPath(this.#path, rule));
+    this.#page.run((page) => page.fillPath(this.#path, rule));
     return this.#surface;
   }
 
   /** Strokes the path with the stroke colour and `style`. @returns the surface. */
   stroke(style: StrokeStyle = {}): Surface {
     this.#surface.strokeStyle(style);
-    guard(() => this.#page.get().strokePath(this.#path));
+    this.#page.run((page) => page.strokePath(this.#path));
     return this.#surface;
   }
 
   /** Fills, then strokes the path. @returns the surface. */
   fillStroke(rule: FillRule = "nonZero", style: StrokeStyle = {}): Surface {
     this.#surface.strokeStyle(style);
-    guard(() => this.#page.get().fillStrokePath(this.#path, rule));
+    this.#page.run((page) => page.fillStrokePath(this.#path, rule));
     return this.#surface;
   }
 
   /** Clips what is drawn next to the path, until the next `restore`. @returns the surface. */
   clip(rule: FillRule = "nonZero"): Surface {
-    guard(() => this.#page.get().clipPath(this.#path, rule));
+    this.#page.run((page) => page.clipPath(this.#path, rule));
     return this.#surface;
   }
 }
@@ -285,67 +304,61 @@ export class Surface {
 
   /** Saves the graphics state (`q`). */
   save(): this {
-    guard(() => this.#page.get().save());
+    this.#page.run((page) => page.save());
     return this;
   }
 
   /** Restores the graphics state (`Q`). */
   restore(): this {
-    guard(() => this.#page.get().restore());
+    this.#page.run((page) => page.restore());
     return this;
   }
 
   /** Applies `matrix` (page space) to what is drawn next. See {@link Matrix}. */
   transform(matrix: Transform): this {
-    guard(() => this.#page.get().transform(new Float64Array(matrix)));
+    this.#page.run((page) => page.transform(new Float64Array(matrix)));
     return this;
   }
 
   /** The colour fills (and text) use. */
   fillColor(color: Color): this {
-    guard(() =>
-      typeof color === "string"
-        ? this.#page.get().fillColorHex(color)
-        : this.#page.get().fillColor(new Float64Array(color)),
+    this.#page.run((page) =>
+      typeof color === "string" ? page.fillColorHex(color) : page.fillColor(new Float64Array(color)),
     );
     return this;
   }
 
   /** The colour strokes use. */
   strokeColor(color: Color): this {
-    guard(() =>
-      typeof color === "string"
-        ? this.#page.get().strokeColorHex(color)
-        : this.#page.get().strokeColor(new Float64Array(color)),
+    this.#page.run((page) =>
+      typeof color === "string" ? page.strokeColorHex(color) : page.strokeColor(new Float64Array(color)),
     );
     return this;
   }
 
   /** Fill and stroke opacity, 0 to 1. */
   opacity(fill: number, stroke: number): this {
-    guard(() => this.#page.get().opacity(fill, stroke));
+    this.#page.run((page) => page.opacity(fill, stroke));
     return this;
   }
 
   /** The blend mode. */
   blendMode(mode: BlendMode): this {
-    guard(() => this.#page.get().blendMode(mode));
+    this.#page.run((page) => page.blendMode(mode));
     return this;
   }
 
   /** @internal The stroke style the next stroke uses. */
   strokeStyle(style: StrokeStyle): void {
-    guard(() =>
-      this.#page
-        .get()
-        .strokeStyle(
-          style.width ?? 1,
-          style.cap ?? "butt",
-          style.join ?? "miter",
-          style.miterLimit ?? 10,
-          new Float64Array(style.dash ?? []),
-          style.dashPhase ?? 0,
-        ),
+    this.#page.run((page) =>
+      page.strokeStyle(
+        style.width ?? 1,
+        style.cap ?? "butt",
+        style.join ?? "miter",
+        style.miterLimit ?? 10,
+        new Float64Array(style.dash ?? []),
+        style.dashPhase ?? 0,
+      ),
     );
   }
 
@@ -368,8 +381,8 @@ export class Surface {
    * alternate text.
    */
   image(image: Image, rect: Rect, alt?: string): this {
-    const raw = image.in(this.#builder.glue);
-    const draw = () => guard(() => this.#page.get().image(raw, rect[0], rect[1], rect[2], rect[3]));
+    const raw = this.#builder.wasmImage(image);
+    const draw = () => this.#page.run((page) => page.image(raw, rect[0], rect[1], rect[2], rect[3]));
     if (alt !== undefined) return this.tag({ type: "Figure", alt }, draw);
     draw();
     return this;
@@ -402,7 +415,7 @@ export class Surface {
    */
   artifact(kind: ArtifactKind, draw: (s: this) => void): this {
     const name = checked(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");
-    guard(() => this.#page.get().beginArtifact(name));
+    this.#page.run((page) => page.beginArtifact(name));
     this.#within(draw);
     return this;
   }
@@ -414,8 +427,8 @@ export class Surface {
       ? checked(TAG_NAMES, t.role ?? "", "role", "not a standard structure type")
       : checked(TAG_NAMES, t.type, "type", "not a standard structure type (give a custom type a role)");
     const scope = t.scope === undefined ? undefined : checked(TABLE_SCOPES, t.scope, "scope", "not a table scope");
-    guard(() =>
-      this.#page.get().beginTag(kind, custom ? t.type : undefined, t.alt, t.actualText, t.lang, t.expansion, scope),
+    this.#page.run((page) =>
+      page.beginTag(kind, custom ? t.type : undefined, t.alt, t.actualText, t.lang, t.expansion, scope),
     );
   }
 
@@ -434,13 +447,13 @@ export class Surface {
       result = draw();
     } catch (e) {
       try {
-        this.#page.get().endTag();
+        this.#page.run((page) => page.endTag());
       } catch {
         // `draw`'s error is the one to report.
       }
       throw e;
     }
-    guard(() => this.#page.get().endTag());
+    this.#page.run((page) => page.endTag());
     return result;
   }
 
@@ -453,7 +466,7 @@ export class Surface {
 
   /** A link annotation over `rect`, with `contents` as its alternate text. */
   link(rect: Rect, target: LinkTarget, contents?: string): this {
-    guard(() => this.#page.get().link(rect[0], rect[1], rect[2], rect[3], target, contents));
+    this.#page.run((page) => page.link(rect[0], rect[1], rect[2], rect[3], target, contents));
     return this;
   }
 
@@ -467,7 +480,7 @@ export class Surface {
     const font = this.#builder.wasmFont(options.font);
     const extra = rest(options, ["font", "size", "at", "tag"]);
     return this.#tagged(options.tag, () =>
-      guard(() => this.#page.get().text(text, font, options.size, options.at[0], options.at[1], extra as never)),
+      this.#page.run((page) => page.text(text, font, options.size, options.at[0], options.at[1], extra as never)),
     );
   }
 
@@ -482,12 +495,15 @@ export class Surface {
     const [x, y, w, h] = options.box;
     const extra = rest(options, ["font", "size", "box", "tag"]);
     return this.#tagged(options.tag, () =>
-      guard(() => this.#page.get().textBox(text, font, options.size, x, y, w, h, extra as never)),
+      this.#page.run((page) => page.textBox(text, font, options.size, x, y, w, h, extra as never)),
     );
   }
 }
 
-/** A page being drawn: its boxes and rotation, its {@link Surface}, then {@link Page.finish}. */
+/**
+ * A page being drawn: its boxes and rotation, its {@link Surface}, then {@link Page.finish}. Freed
+ * with its builder; `using` or {@link Page.free} drops it without writing it.
+ */
 export class Page {
   readonly #page: LivePage;
   readonly #surface: Surface;
@@ -505,13 +521,13 @@ export class Page {
 
   /** `/Rotate`: 0, 90, 180 or 270 degrees. */
   rotate(degrees: 0 | 90 | 180 | 270): this {
-    guard(() => this.#page.get().rotate(degrees));
+    this.#page.run((page) => page.rotate(degrees));
     return this;
   }
 
   /** `/UserUnit`, for pages larger than 14,400 units. */
   userUnit(unit: number): this {
-    guard(() => this.#page.get().userUnit(unit));
+    this.#page.run((page) => page.userUnit(unit));
     return this;
   }
 
@@ -536,7 +552,7 @@ export class Page {
   }
 
   #box(kind: "crop" | "bleed" | "trim" | "art", rect: Rect): this {
-    guard(() => this.#page.get().setBox(kind, rect[0], rect[1], rect[2], rect[3]));
+    this.#page.run((page) => page.setBox(kind, rect[0], rect[1], rect[2], rect[3]));
     return this;
   }
 
@@ -548,24 +564,35 @@ export class Page {
    * @throws {@link LaminaPdfError} `invalid-geometry`, `builder-finished`.
    */
   finish(): string {
-    const page = this.#page.get();
     try {
-      return guard(() => page.finish());
+      return this.#page.run((page) => page.finish());
     } finally {
-      this.#page.free();
+      // After a trap, `close` frees nothing: the instance is about to be replaced.
+      this.#page.close();
     }
   }
 
-  /** Drops the page without writing it (frees its WASM side). */
+  /**
+   * Drops the page without writing it and frees its WASM side; a second call does nothing, and
+   * any other call afterwards throws `disposed`.
+   */
   free(): void {
     this.#page.free();
   }
+
+  /** Drops the page at the end of a `using` block (an alias of `free()`). */
+  [Symbol.dispose](): void {
+    this.free();
+  }
 }
+
+disposable(Page);
 
 /**
  * Builds a new document: pages, navigation and metadata; {@link Builder.finish} returns a
  * {@link Document} to save. Created in the text module when it is loaded (or `text: true`),
- * else in the reading module (text, extract, then base; vector and image pages only).
+ * else in the reading module (text, extract, then base; vector and image pages only). `finish()`
+ * frees its WebAssembly memory; to drop it unfinished, use `using` or {@link Builder.free}.
  *
  * @example
  * ```ts
@@ -577,15 +604,13 @@ export class Page {
  * const bytes = b.finish().save();
  * ```
  */
-export class Builder {
+export class Builder extends Handle<BaseGlue> {
   #raw: TextBuilder | undefined;
   readonly #text: boolean;
   /** Registered fonts: standard 14 by name, others by their bytes (one PDF font per distinct font). */
   readonly #fonts = new Map<string | Uint8Array, WasmFont>();
   /** Pages not yet finished: freed with the builder, so they can't finish into nothing. */
   readonly #pages = new Set<LivePage>();
-  /** @internal The module the document is built in. */
-  readonly glue: BaseGlue | TextGlue;
 
   /**
    * @param options - version, file ID, producer, creation date, compression, tagging,
@@ -597,19 +622,27 @@ export class Builder {
     if (options.text === true && text === undefined) {
       throw packageError("text-module-not-loaded", "the text module is not loaded");
     }
-    this.#text = options.text ?? text !== undefined;
+    const withText = options.text ?? text !== undefined;
     // Without text, the reading module (text, extract, then base): the built document can then
     // extract text whenever a module that extracts is loaded.
-    this.glue = this.#text && text !== undefined ? text : readingModule();
-    const glue = this.glue;
+    super("Builder", (withText && text !== undefined ? text : readingModule()) as unknown as Instance<BaseGlue>);
+    this.#text = withText;
     const init = rest(options, ["text", "id"]) ?? {};
     const record = options.id === undefined ? init : { ...init, id: hexId(options.id) };
-    this.#raw = guard(() => new glue.WasmBuilder(record as BuildOptions)) as unknown as TextBuilder;
+    this.#raw = this.instance.call((glue) => new glue.WasmBuilder(record as BuildOptions)) as unknown as TextBuilder;
+    watch(this, "Builder");
   }
 
+  /** @throws {@link LaminaPdfError} `disposed`, `instance-reset`, `builder-finished`. */
   get #builder(): TextBuilder {
+    this.assertLive();
     if (this.#raw === undefined) throw packageError("builder-finished", "the builder has already finished");
     return this.#raw;
+  }
+
+  /** @internal `image` in this builder's instance. */
+  wasmImage(image: Image): WasmImage {
+    return image.in(this.instance);
   }
 
   /** As `new Builder(options)`. */
@@ -625,8 +658,8 @@ export class Builder {
   /** A new page of a named size or `[width, height]` in points. */
   page(size: PageSizeName | readonly [width: number, height: number] = "A4"): Page {
     const [w, h] = typeof size === "string" ? namedSize(size) : size;
-    const raw = guard(() => this.#builder.page(w, h)) as TextPageBuilder;
-    const live = new LivePage(raw, (p) => this.#pages.delete(p));
+    const raw = this.call(() => this.#builder.page(w, h)) as TextPageBuilder;
+    const live = new LivePage(raw, this, this.instance, (p) => this.#pages.delete(p));
     this.#pages.add(live);
     return new Page(this, live);
   }
@@ -638,11 +671,13 @@ export class Builder {
    */
   font(font: Font): FontInfo {
     const raw = this.wasmFont(font);
-    return { family: raw.family, postscriptName: raw.postscriptName, isStandard: raw.isStandard };
+    return this.call(() => ({ family: raw.family, postscriptName: raw.postscriptName, isStandard: raw.isStandard }));
   }
 
   /** @internal The font in this builder's instance. */
   wasmFont(font: Font): WasmFont {
+    // A cached font lives in the builder's instance: check it is still the current one.
+    this.assertLive();
     const key = font.standard ?? this.#bytesKey(font.bytes ?? new Uint8Array());
     let raw = this.#fonts.get(key);
     if (raw !== undefined) return raw;
@@ -650,7 +685,7 @@ export class Builder {
       throw packageError("text-module-not-loaded", "this builder was created without the text module");
     }
     const builder = this.#builder;
-    raw = guard(() =>
+    raw = this.call(() =>
       font.bytes !== undefined ? builder.fontBytes(font.bytes) : builder.standardFont(font.standard ?? ""),
     );
     this.#fonts.set(key, raw);
@@ -667,30 +702,30 @@ export class Builder {
 
   /** Defines the named destination `name`: page `index`, shown as `fit` (default: the page). */
   destination(name: string, index: number, fit?: Fit): this {
-    guard(() => this.#builder.destination(name, index, fit));
+    this.call(() => this.#builder.destination(name, index, fit));
     return this;
   }
 
   /** Adds outline (bookmark) items with their children. @returns their IDs, in pre-order. */
   outline(entries: readonly OutlineEntry[]): string[] {
-    return guard(() => this.#builder.outline(entries as OutlineEntry[]));
+    return this.call(() => this.#builder.outline(entries as OutlineEntry[]));
   }
 
   /** The page labels (`i, ii, 1, 2…`), ranges by first page; checked at finish. */
   pageLabels(ranges: readonly PageLabel[]): this {
-    guard(() => this.#builder.pageLabels(ranges as PageLabel[]));
+    this.call(() => this.#builder.pageLabels(ranges as PageLabel[]));
     return this;
   }
 
   /** The metadata, written as the Info dictionary and an XMP packet. */
   metadata(metadata: Metadata): this {
-    guard(() => this.#builder.metadata(metadata));
+    this.call(() => this.#builder.metadata(metadata));
     return this;
   }
 
   /** The natural language (`/Lang`), a BCP 47 tag. */
   lang(tag: string): this {
-    guard(() => this.#builder.lang(tag));
+    this.call(() => this.#builder.lang(tag));
     return this;
   }
 
@@ -708,13 +743,13 @@ export class Builder {
    *   `unknown-option` for an unknown key, `builder-finished` after {@link Builder.finish}.
    */
   attach(name: string, bytes: Uint8Array, mime: string, options?: AttachmentOptions): this {
-    guard(() => this.#builder.attach(name, bytes, mime, options));
+    this.call(() => this.#builder.attach(name, bytes, mime, options));
     return this;
   }
 
   /** How viewers present the document when it opens. */
   viewerPreferences(preferences: ViewerPreferences): this {
-    guard(() => this.#builder.viewerPreferences(preferences));
+    this.call(() => this.#builder.viewerPreferences(preferences));
     return this;
   }
 
@@ -731,26 +766,30 @@ export class Builder {
   finish(): Document {
     const builder = this.#builder;
     try {
-      return new Document(guard(() => builder.finish()) as unknown as WasmDocument);
+      return new Document(this.call(() => builder.finish()) as unknown as WasmDocument, this.instance);
     } finally {
-      this.free();
+      // After a trap, `#close` frees nothing: the instance is about to be replaced.
+      this.#close();
     }
   }
 
   /**
-   * Frees the builder's WASM memory now (`finish` does this itself); the builder takes no more
-   * calls afterwards. Unfinished pages are freed with {@link Page.free}.
+   * Frees the raw builder, its fonts and unfinished pages, and keeps the handle: later calls throw
+   * `builder-finished` (`free()` makes them `disposed`).
    */
-  free(): void {
-    for (const page of [...this.#pages]) page.free();
-    for (const font of this.#fonts.values()) font.free();
+  #close(): void {
+    // Its WASM side is freed (or gone with its instance): not a leak.
+    forget(this);
+    for (const page of [...this.#pages]) page.close();
+    if (this.owned) {
+      for (const font of this.#fonts.values()) font.free();
+      (this.#raw as unknown as BaseBuilder | undefined)?.free();
+    }
     this.#fonts.clear();
-    (this.#raw as unknown as BaseBuilder | undefined)?.free();
     this.#raw = undefined;
   }
 
-  /** Frees the builder at the end of a `using` block. */
-  [Symbol.dispose](): void {
-    this.free();
+  protected release(): void {
+    this.#close();
   }
 }

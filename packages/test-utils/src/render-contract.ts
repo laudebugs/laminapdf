@@ -1,8 +1,8 @@
-// The RenderBackend contract (todo C2c): one suite both web adapters run, in Node and in
+// The RenderBackend contract: one suite both web adapters run, in Node and in
 // Chromium, Firefox and WebKit. It checks what ADR 0004 promises every backend: the page sizes
 // Lamina PDF reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
-// AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), C2b's
-// render goldens of the same backend.
+// AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), the
+// native render goldens of the same backend.
 
 import {
   bytesSource,
@@ -27,7 +27,7 @@ export interface ContractOptions {
   readonly backend: () => Promise<RenderBackend>;
   /** Reads a repository file, `fixtures/…`. */
   readonly read: (path: string) => Promise<Uint8Array>;
-  /** Where PNGs can be decoded (browsers): C2b's goldens are compared at `minSsim`. */
+  /** Where PNGs can be decoded (browsers): the native render goldens are compared at `minSsim`. */
   readonly goldens?: { readonly decode: (png: Uint8Array) => Promise<Decoded>; readonly minSsim: number };
   /** The engine's WebAssembly memory size in bytes, for the memory-bound test. */
   readonly memory?: () => number;
@@ -311,7 +311,7 @@ export function renderContract(options: ContractOptions): void {
 
     if (options.goldens !== undefined) {
       const { decode, minSsim } = options.goldens;
-      it(`matches C2b's goldens of page 1 (SSIM ≥ ${minSsim})`, async () => {
+      it(`matches the native render goldens of page 1 (SSIM ≥ ${minSsim})`, async () => {
         for (const file of GOLDEN_FILES) {
           using doc = await open(`fixtures/corpus/${file}`);
           const tile = doc.render({ page: 0, scale: 96 / 72 });

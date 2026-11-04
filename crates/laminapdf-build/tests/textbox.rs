@@ -9,8 +9,8 @@
 
 mod common;
 
-use common::b5b::{self, LATIN_PARAGRAPH, MULTISCRIPT_BOX_WIDTH, SCRIPTS};
 use common::text::lines;
+use common::text_and_navigation::{self, LATIN_PARAGRAPH, MULTISCRIPT_BOX_WIDTH, SCRIPTS};
 use common::{reopen, save};
 use laminapdf_build::{
     Alignment, BuildOptions, Builder, Font, Overflow, PageSize, Standard14, TextBoxOptions, TextLayout,
@@ -39,7 +39,7 @@ fn boxed(
 }
 
 fn noto(b: &mut Builder) -> Font {
-    b.font(b5b::font("NotoSans-Regular.ttf")).unwrap()
+    b.font(text_and_navigation::font("NotoSans-Regular.ttf")).unwrap()
 }
 
 fn times(b: &mut Builder) -> Font {
@@ -52,7 +52,7 @@ fn no_line_is_wider_than_its_box_in_any_script_or_width() {
         for width in [60.0, MULTISCRIPT_BOX_WIDTH, 200.0] {
             let r = rect(50.0, 50.0, width, 700.0);
             let (layout, _) = boxed(
-                |b| b.font(b5b::font(file)).unwrap(),
+                |b| b.font(text_and_navigation::font(file)).unwrap(),
                 text,
                 r,
                 &TextBoxOptions::default(),
@@ -167,7 +167,7 @@ fn baselines_step_by_the_line_height() {
 fn right_to_left_paragraphs_start_on_the_right() {
     let r = rect(50.0, 50.0, 300.0, 300.0);
     let (layout, _) = boxed(
-        |b| b.font(b5b::font("NotoSansHebrew-Regular.ttf")).unwrap(),
+        |b| b.font(text_and_navigation::font("NotoSansHebrew-Regular.ttf")).unwrap(),
         SCRIPTS[3].1,
         r,
         &TextBoxOptions::default(),

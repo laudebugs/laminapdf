@@ -1,7 +1,7 @@
-//! A shaped run as PDF text operations (todo B4b; research 03 §2.6–2.7, §5.3, §7.2): the
+//! A shaped run as PDF text operations (research 03 §2.6–2.7, §5.3, §7.2): the
 //! glyphs' codes for `TJ`, the `TJ` numbers that turn the font's widths into the shaper's
 //! advances and offsets, `Ts` rises for vertical offsets, the glyph → text entries of the
-//! ToUnicode CMap (one CID per glyph and text, B4d), and the clusters that need `/ActualText`.
+//! ToUnicode CMap (one CID per glyph and text), and the clusters that need `/ActualText`.
 //!
 //! The arithmetic (ISO 32000-2 §9.4.4): after a glyph the pen moves by
 //! `(w0 − Tj/1000) × Tfs`, with `w0` the glyph's `/W` width in thousandths of an em. The
@@ -91,7 +91,7 @@ impl PdfRun {
 ///   stands for that character, the widest other glyph for the characters left over, and
 ///   the rest for nothing.
 ///
-/// With TrueType outlines a glyph gets one CID per text it stands for (B4d, [`crate::FontUse`]),
+/// With TrueType outlines a glyph gets one CID per text it stands for ([`crate::FontUse`]),
 /// so the texts are then dealt out again in reading order (drawing order, reversed in a
 /// right-to-left run), each glyph keeping its share's length: a cluster the shaper
 /// reordered (a pre-base matra, a reph, marks in another order) reads back as its text
@@ -104,10 +104,11 @@ impl PdfRun {
 /// up (pdf.js would read its code), or a second text once the font's CIDs run out
 /// ([`crate::Warning::ToUnicodeConflict`]).
 ///
-/// With CFF outlines (`CIDFontType0`: one CID per glyph) B4b's mapping stays: a glyph that is
-/// some character's own claims no text when it stands for nothing, and a cluster gets
-/// `/ActualText` when its glyphs, read in reading order, don't spell its text, when one of
-/// them stands for nothing, or when one of them already stands for another text in this font
+/// With CFF outlines (`CIDFontType0`: one CID per glyph) each glyph keeps the text the
+/// per-cluster mapping above gives it: a glyph that is some character's own claims no text
+/// when it stands for nothing, and a cluster gets `/ActualText` when its glyphs, read in
+/// reading order, don't spell its text, when one of them stands for nothing, or when one of
+/// them already stands for another text in this font
 /// ([`crate::Warning::ToUnicodeConflict`]). Either way the whole run gets `/ActualText` when
 /// its clusters are not in visual order for its direction.
 ///
@@ -154,8 +155,8 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
     };
     let mut claims: Vec<Claim<'_>> = Vec::with_capacity(run.glyphs.len());
     let mut actual: Vec<Option<String>> = Vec::with_capacity(groups.len());
-    // B4d: a glyph may get one CID per text (TrueType outlines), so each glyph's text can be
-    // chosen for the extractors alone; with CFF outlines it keeps its first text (B4b).
+    // A glyph may get one CID per text (TrueType outlines), so each glyph's text can be
+    // chosen for the extractors alone; with CFF outlines it keeps its first text.
     let splits = fonts.usage(key)?.embedded().is_some_and(crate::FontUse::splits_texts);
     let mut kept = if splits {
         BTreeMap::new()
@@ -274,7 +275,7 @@ fn in_visual_order(run: &ShapedRun, groups: &[Range<usize>]) -> bool {
     }
 }
 
-/// A glyph's claim in a font with one CID per glyph (CFF outlines; B4b's mapping): its text;
+/// A glyph's claim in a font with one CID per glyph (CFF outlines): its text;
 /// for a glyph given none, nothing when it is some character's own glyph and the empty text
 /// otherwise. Sets `needs_actual` when the glyph stands for nothing or already stands for
 /// another text (`kept`, updated with the first text of each glyph).
@@ -430,7 +431,7 @@ fn spells<'p>(pieces: impl Iterator<Item = &'p str>, text: &str) -> bool {
 }
 
 /// The texts of one cluster's glyphs (drawing order) for a font whose glyphs get one CID per
-/// text (B4d): the cluster's visible characters dealt out in reading order (drawing order,
+/// text: the cluster's visible characters dealt out in reading order (drawing order,
 /// reversed in a right-to-left run), each glyph taking as many as [`split_cluster`] gave it
 /// and a glyph given none standing for nothing (`""`, a textless CID). Read in reading order
 /// the glyphs then spell the cluster however the shaper reordered them (a pre-base matra, a

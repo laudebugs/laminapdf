@@ -2523,7 +2523,9 @@ A standard 14 font had no free one-byte code left for another glyph in this docu
 
 ## Why
 
-A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). Lamina PDF writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`. A document that draws more such glyphs with one font than there are free codes runs out. Assignment is all or nothing: when one `encode` call needs more new codes than are free, none are assigned and nothing of the text is recorded.
+A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). Lamina PDF writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`.
+
+A document that draws more such glyphs with one font than there are free codes runs out. Assignment is all or nothing: when one `encode` call needs more new codes than are free, none are assigned and nothing of the text is recorded.
 
 ## How to fix
 
@@ -2550,7 +2552,7 @@ A standard 14 font (`Font::standard`) was given to the shaper, `itemize`, `break
 
 ## Why
 
-The standard 14 fonts are referred to by name and never embedded: Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with, no `cmap` for itemizing, and no CIDs for a shaped run (a standard 14 font is written as a simple font with one-byte codes).
+The standard 14 fonts are referred to by name and never embedded. Lamina PDF has their metrics (Adobe's AFM files) but no font program, so there is nothing for HarfRust to shape with and no `cmap` for itemizing. Nor are there CIDs for a shaped run: a standard 14 font is written as a simple font with one-byte codes.
 
 ## How to fix
 
@@ -2747,7 +2749,7 @@ let img = Image::rgba(2, 2, &[0; 12])?; // image-data-length: 16 bytes expected
 
 ## Why
 
-An ICC profile (ICC.1:2010) starts with a 128-byte header holding its size, the `acsp` signature, its class and its data colour space. PDF's `ICCBased` colour spaces (ISO 32000-2 §8.6.5.5) take Gray, RGB, CMYK and Lab profiles; the builder takes Gray, RGB and CMYK (Lab components fall outside `[0, 1]` and need a `/Range`, not supported yet), and device-link, abstract and named-colour profiles can't be used.
+An ICC profile (ICC.1:2010) starts with a 128-byte header holding its size, the `acsp` signature, its class and its data colour space. PDF's `ICCBased` colour spaces (ISO 32000-2 §8.6.5.5) take Gray, RGB, CMYK and Lab profiles. The builder takes Gray, RGB and CMYK: Lab components fall outside `[0, 1]` and need a `/Range`, which it doesn't support yet. Device-link, abstract and named-colour profiles can't be used.
 
 ## How to fix
 
@@ -2829,7 +2831,7 @@ A page size, page box, `/UserUnit`, drawing value or image size given to the bui
 
 ## Why
 
-Page sizes and `/UserUnit` must be finite and positive, page boxes, path coordinates, matrices and image rectangles finite, line widths and dash lengths finite and not negative (and a dash pattern not all zeros, ISO 32000-2 §8.4.3.6), miter limits at least 1, images at least one pixel wide and tall, font sizes and line heights positive, text boxes wider than 0, and destination coordinates finite.
+Page sizes and `/UserUnit` must be finite and positive, and page boxes, path coordinates, matrices and image rectangles finite. Line widths and dash lengths must be finite and not negative, and a dash pattern not all zeros (ISO 32000-2 §8.4.3.6). Miter limits must be at least 1, images at least one pixel wide and tall, font sizes and line heights positive, text boxes wider than 0, and destination coordinates finite.
 
 ## How to fix
 
@@ -3656,6 +3658,41 @@ The decisions and todos behind this code:
 
 - [ADR 0016](../decisions/0016-package-design.md) §7: the binding owns its pages
 "#,
+        "disposed" => r#"# `disposed`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`). A page or save job is freed with its document, and a builder's page with its builder.
+
+## Why
+
+Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on.
+
+## How to fix
+
+Free a handle only after its last use. To keep working with the document, open it again from its bytes, or create a new builder.
+
+## Example
+
+```ts
+const doc = Document.open(bytes);
+doc.free();
+doc.save(); // throws LaminaPdfError { code: "disposed", … }
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): the check on every handle, and on the pages and save jobs of `@laminapdf/wasm`
+"#,
         "invalid-argument" => r#"# `invalid-argument`
 
 - Type: error
@@ -3842,7 +3879,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for: the request failed (network error, CORS refusal, DNS) or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for: a `Content-Range` the browser hides because CORS doesn't expose it looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
+A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for. The request failed (a network error, a CORS refusal, DNS), or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for. A `Content-Range` that the browser hides, because CORS doesn't expose it, looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
 
 ## Why
 
@@ -3971,41 +4008,6 @@ The decisions and todos behind this code:
 
 - [ADR 0016](../decisions/0016-package-design.md) §4
 "#,
-        "disposed" => r#"# `disposed`
-
-- Type: error
-- Kind: `state` (the call isn't valid in the object's current state)
-
-## What happened
-
-A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`).
-
-## Why
-
-Each handle owns memory inside the WebAssembly module. Freeing it returns that memory at once, so the handle has nothing left to work on.
-
-## How to fix
-
-Free a handle only after its last use. To keep working with the document, open it again from its bytes, or create a new builder.
-
-## Example
-
-```ts
-const doc = Document.open(bytes);
-doc.free();
-doc.save(); // throws LaminaPdfError { code: "disposed", … }
-```
-
-## Data fields
-
-None.
-
-## For contributors
-
-The decisions and todos behind this code:
-
-- [L2b](../todos/ready/L2b-disposal-and-memory.md): adds the check that raises this code
-"#,
         "worker-version-mismatch" => r#"# `worker-version-mismatch`
 
 - Type: error
@@ -4109,6 +4111,397 @@ The decisions and todos behind this code:
 
 - [L2a](../todos/done/L2a-worker-client.md): the worker client
 "#,
+        "wasm-trap" => r#"# `wasm-trap`
+
+- Type: error
+- Kind: `internal` (a bug in Lamina PDF or a broken invariant)
+
+## What happened
+
+The WebAssembly module trapped during the call: Lamina PDF hit a bug and stopped. `@laminapdf/sdk` discarded the module's instance, so the next call runs in a fresh one. Every document, page and builder from the old instance now throws `instance-reset`.
+
+## Why
+
+A trap stops the module in the middle of its work, so its memory may hold half-written state. Nothing in that instance can be trusted afterwards. A fresh instance keeps one failed call from breaking every call after it.
+
+## How to fix
+
+Open the document again from its bytes and retry. If the same call on the same file traps again, report it with the file: a trap is always a bug in Lamina PDF.
+
+## Example
+
+```ts
+try {
+  lines = doc.page(0).text().lines;
+} catch (e) {
+  if (!isLaminaPdfError(e, "wasm-trap")) throw e;
+  doc = Document.open(bytes); // the old document throws instance-reset from now on
+}
+```
+
+## Data fields
+
+- `module`: the module that trapped: `base`, `text` or `extract`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): trap recovery and the fresh instance
+- [ADR 0016](../decisions/0016-package-design.md): the modules and their build
+"#,
+        "out-of-memory" => r#"# `out-of-memory`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+The WebAssembly module needed more memory than it could get, so it stopped in the middle of the call. Each module may grow to at most 2 GiB, and a browser tab or server can run out before that. `@laminapdf/sdk` discarded the module's instance, so the next call runs in a fresh one. Every document, page and builder from the old instance now throws `instance-reset`.
+
+## Why
+
+A module's memory grows as the module needs more and never shrinks. Many open documents, a huge image, or a file built to exhaust memory can each push it to its limit. The open limits stop most hostile files before memory runs out, and the maximum catches the rest.
+
+## How to fix
+
+Open the document again, then keep less in memory at once. Free each document and builder as soon as you're done with it, or use `using`. For files from people you don't trust, lower the open limits, such as `maxStreamDecoded` and `maxImagePixels`, so they fail with `limit-exceeded` first. An app can also open each document in its own Web Worker, with `@laminapdf/sdk/worker`, and end the Web Worker afterwards: that returns all of its memory.
+
+## Example
+
+```ts
+try {
+  doc = Document.open(bytes, { limits: { maxStreamDecoded: 64_000_000 } });
+} catch (e) {
+  if (isLaminaPdfError(e, "out-of-memory")) showError("This file is too large to open here.");
+  else throw e;
+}
+```
+
+## Data fields
+
+- `module`: the module that ran out: `base`, `text` or `extract`.
+- `memoryBytes`: the size of its memory when it stopped.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): the memory maximum and the fresh instance
+- [ADR 0016](../decisions/0016-package-design.md): the maximum, set when the modules are built
+- [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §3: the limits that come first
+"#,
+        "instance-reset" => r#"# `instance-reset`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+A document, page, builder or save job was used after its WebAssembly instance was replaced. `reset()` replaces every loaded module's instance, and a trap (`wasm-trap` or `out-of-memory`) replaces the instance that trapped. The handle belonged to the old instance, so it has nothing left to work on.
+
+## Why
+
+Each handle lives in one instance's memory, and a fresh instance starts empty. Lamina PDF can't move a document across, so every handle from the old instance stops working at once.
+
+## How to fix
+
+Open the document again from its bytes, or create a new builder. Unsaved edits are lost with the old instance, so save often in an app that calls `reset()` or may run out of memory.
+
+## Example
+
+```ts
+const doc = Document.open(bytes);
+reset();
+doc.pageCount; // throws LaminaPdfError { code: "instance-reset", … }
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L2b](../todos/done/L2b-disposal-and-memory.md): `reset()` and trap recovery
+"#,
+        "invalid-command-line" => r#"# `invalid-command-line`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The command line didn't parse: a command or flag `laminapdf` doesn't have, a missing argument, a value of the wrong form, or `-` (standard input) named as more than one input.
+
+## Why
+
+The CLI checks its whole command line before it reads any file, so a typo never runs half a command. Exit code 2 tells a script that the call itself was wrong, not the document.
+
+## How to fix
+
+Run the command with `--help` to see its arguments, and `laminapdf --help` for the commands. Read standard input at most once per command.
+
+## Example
+
+```console
+$ laminapdf info --pages 1 report.pdf
+error[invalid-command-line]: unexpected argument '--pages' found
+
+Usage: laminapdf info [OPTIONS] <INPUT>
+
+For more information, try '--help'.
+$ echo $?
+2
+```
+
+With `--json`, the line on standard error has the message "the command line doesn't parse" and the parser's finding in `data.detail`.
+
+## Data fields
+
+Which field is there depends on what was wrong:
+
+- `detail`: when the parser refused the line, the kind of problem it found, such as `UnknownArgument` or `MissingRequiredArgument`.
+- `argument`: when a value parsed but means nothing, the value given: the angle of `pages rotate`, a `help` topic or a `--fields` key (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+"#,
+        "invalid-page-range" => r"# `invalid-page-range`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A page range doesn't fit the grammar, or it names a page the document doesn't have, such as page 9 of a 5-page file.
+
+## Why
+
+Ranges count pages from 1, as people do. A range that can't be read, or that reaches past the last page, fails before anything is written, so a command never works on the wrong pages.
+
+## How to fix
+
+Write pages as `1-5`, `z` for the last page, `r2` for the second from the end, `x3` to leave page 3 out, and `:odd` or `:even` at the end for every other page of the result. `data.position` is the character where the range went wrong.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf +90:1-9 -o out.pdf
+error[invalid-page-range]: the document has 5 pages
+  = hint: write pages as 1-5, z for the last page, …
+$ echo $?
+2
+```
+
+## Data fields
+
+- `range`: the range given (untrusted: caller text, never in the message).
+- `position`: the 1-based character of `range` where it went wrong.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "binary-output-to-terminal" => r"# `binary-output-to-terminal`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A command that writes a PDF was told to write it to standard output (`-o -`), and standard output is a terminal.
+
+## Why
+
+A PDF's bytes would fill the terminal with noise and can leave it in a strange state. The CLI writes binary output only to a file or a pipe.
+
+## How to fix
+
+Redirect standard output to a file or a pipe, or write to a file with `-o`.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf +90 -o -
+error[binary-output-to-terminal]: standard output is a terminal
+  = hint: redirect standard output to a file or a pipe, or write to a file with -o
+$ laminapdf pages rotate scan.pdf +90 -o - > rotated.pdf
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "unknown-code" => r"# `unknown-code`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`laminapdf explain` was given a code that isn't one of Lamina PDF's error or warning codes.
+
+## Why
+
+Every code Lamina PDF reports is listed once, with its own page. A code that isn't listed has no explanation to print.
+
+## How to fix
+
+Check the spelling: `didYouMean` lists the known codes closest to the one given. The tables in this folder's README list every code.
+
+## Example
+
+```console
+$ laminapdf explain xref-repaird
+error[unknown-code]: not a Lamina PDF code
+  = did you mean: xref-repaired
+$ echo $?
+2
+```
+
+## Data fields
+
+- `code`: the code given (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "overwrite-refused" => r"# `overwrite-refused`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state)
+
+## What happened
+
+The output file already exists, or the command was asked to change its input in place with `--in-place`, and `--force` wasn't given.
+
+## Why
+
+The CLI never replaces a file without being told to, so a mistyped `-o` can't destroy a document. It never prompts either, because scripts and agents can't answer a prompt. Exit code 4 tells a script the command needs `--force`.
+
+## How to fix
+
+Pass `--force` to replace the file, or write to a new file with `-o`. The CLI writes to a temporary file and renames it, so a replaced file is never left half written.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf 90:z --in-place
+error[overwrite-refused]: refusing to replace a file without --force
+  = hint: pass --force, or write to a new file with -o
+$ echo $?
+4
+```
+
+## Data fields
+
+- `output`: the file that would have been replaced (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "input-unreadable" => r"# `input-unreadable`
+
+- Type: error
+- Kind: `io` (the host failed to supply or take bytes)
+
+## What happened
+
+An input couldn't be read: the PDF named on the command line, standard input, or the file given to `--password-file`.
+
+## Why
+
+The file may not exist, may be a folder, or may not be readable by the user running the command.
+
+## How to fix
+
+Check that the file exists and that you can read it. `data.input` names the file, and `data.reason` says what the system reported.
+
+## Example
+
+```console
+$ laminapdf info missing.pdf
+error[input-unreadable]: couldn't read an input
+  = hint: check that the file exists and that you can read it; data.input names it
+$ echo $?
+1
+```
+
+## Data fields
+
+- `input`: the file that couldn't be read, or `-` for standard input (untrusted: caller text, never in the message).
+- `reason`: the system's error kind, such as `NotFound` or `PermissionDenied`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
+        "output-unwritable" => r"# `output-unwritable`
+
+- Type: error
+- Kind: `io` (the host failed to supply or take bytes)
+
+## What happened
+
+The output couldn't be written: its folder is missing or read-only, the disk is full, or standard output was closed before the command finished.
+
+## Why
+
+The system refused the write, or standard output closed while the command was writing to it. The CLI writes to a temporary file beside the output and renames it into place, so a failed write leaves any old file as it was.
+
+## How to fix
+
+Check that the output's folder exists, that you can write to it and that the disk has room. When piping, make sure the reading command doesn't exit early.
+
+## Example
+
+```console
+$ laminapdf pages rotate scan.pdf +90 -o /no/such/folder/out.pdf
+error[output-unwritable]: couldn't write the output
+  = hint: check that the output's folder exists, …
+$ echo $?
+1
+```
+
+## Data fields
+
+- `output`: the file that couldn't be written, or `-` for standard output (untrusted: caller text, never in the message).
+- `reason`: the system's error kind, such as `NotFound` or `StorageFull`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
+- [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
+",
         _ => return None,
     })
 }

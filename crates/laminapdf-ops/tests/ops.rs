@@ -314,7 +314,7 @@ mod rotate_page {
     }
 }
 
-mod review_fixes {
+mod invalid_input_and_rollback {
     use super::*;
 
     #[test]

@@ -151,11 +151,11 @@ struct Source {
     index: u32,
     /// SHA-256 of `bytes`, computed when a subset tag first needs it.
     digest: OnceLock<[u8; 32]>,
-    /// HarfRust's tables for the face (B4b), built when it is first shaped.
+    /// HarfRust's tables for the face, built when it is first shaped.
     shaping: OnceLock<harfrust::ShaperData>,
     /// HarfRust's shape plans (the lookups and feature masks for one direction, script,
-    /// language, feature list and set of feature variations), built at first use and reused
-    /// (B5d): building one costs more than shaping a short run with it. Least recently used
+    /// language, feature list and set of feature variations), built at first use and reused,
+    /// because building one costs more than shaping a short run with it. Least recently used
     /// first.
     plans: Mutex<Vec<Arc<harfrust::ShapePlan>>>,
 }
@@ -307,7 +307,7 @@ impl Font {
 
     /// Whether a document using this font has to embed it to be self-contained: `false` only
     /// for the standard 14, which readers provide. PDF/A and PDF/UA require every font
-    /// embedded, so their profiles (B8b) reject a font for which this is `false`.
+    /// embedded, so the builder's conformance profiles reject a font for which this is `false`.
     #[must_use]
     pub fn requires_embedding(&self) -> bool {
         self.standard.is_none()
@@ -406,7 +406,7 @@ impl Font {
     }
 
     /// The glyph the font's `cmap` maps `ch` to; `None` when it has none (the font would draw
-    /// `.notdef`). This is the unshaped, one-glyph-per-character mapping; shaping (B4b) picks
+    /// `.notdef`). This is the unshaped, one-glyph-per-character mapping; shaping picks
     /// glyphs from the same font. For a standard 14 font the glyph is found by name through
     /// the Adobe Glyph List; its ID is its index in [`Standard14::glyph_names`] plus one, as
     /// glyph 0 is `.notdef`.

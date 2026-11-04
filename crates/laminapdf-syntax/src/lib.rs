@@ -52,6 +52,7 @@ mod parser;
 #[cfg(feature = "json")]
 mod record;
 mod rotation;
+mod suggest;
 pub mod text;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -71,3 +72,4 @@ pub use parser::{
 #[cfg(feature = "json")]
 pub use record::Diagnostic;
 pub use rotation::Rotation;
+pub use suggest::did_you_mean;

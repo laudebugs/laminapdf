@@ -136,6 +136,30 @@ fn warnings_are_diagnostics() {
 }
 
 #[wasm_bindgen_test]
+fn a_page_and_a_save_job_outliving_their_document_are_disposed() {
+    let doc = hello();
+    let page = doc.page(0).unwrap();
+    let mut job = doc.save_job(&JsValue::UNDEFINED).unwrap();
+    let id = page.id();
+    drop(doc);
+    let code = |e: JsValue| string(&e, "code");
+    assert_eq!(
+        (
+            code(page.index().unwrap_err()),
+            code(page.info().unwrap_err()),
+            code(job.step(1).unwrap_err())
+        ),
+        (
+            Some("disposed".to_owned()),
+            Some("disposed".to_owned()),
+            Some("disposed".to_owned())
+        )
+    );
+    // The ID is the page's own: it needs no document.
+    assert_eq!(page.id(), id);
+}
+
+#[wasm_bindgen_test]
 fn a_finished_page_refuses_more_drawing_and_a_second_finish() {
     let b = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let mut page = b.page(100.0, 100.0);

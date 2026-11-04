@@ -1,4 +1,4 @@
-// BitmapCache (C3b): farthest-first eviction, and closing what it evicts or replaces.
+// BitmapCache: farthest-first eviction, and closing what it evicts or replaces.
 import { describe, expect, it } from "vitest";
 import { BitmapCache } from "./cache.js";
 

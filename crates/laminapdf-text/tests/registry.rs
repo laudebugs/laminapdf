@@ -1,5 +1,6 @@
-//! Regression tests for the first `/code-review` round of PR #48 (todo B4a). Each test names
-//! the finding it covers.
+//! The font registry's edge cases: a font that forbids subsetting is embedded whole (byte for
+//! byte, or rebuilt with a warning for an instance), Type 0 `/BaseFont` names, keys from another
+//! registry, finishing into another document, and nothing recorded when a glyph is out of range.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -11,105 +12,8 @@ mod common;
 
 use common::{TestPdf, font, name_of, patch_table, read_fonts, with_fs_type};
 use laminapdf_test_fixtures::fixture;
-use laminapdf_text::{EmbedPolicy, Error, Font, FontRegistry, Tag};
-use skrifa::MetadataProvider as _;
-use skrifa::instance::{LocationRef, Size};
+use laminapdf_text::{EmbedPolicy, Font, FontRegistry, Tag};
 
-fn variable_bytes() -> Vec<u8> {
-    fixture("fonts/NotoSans-VF.ttf")
-}
-
-/// The VF fixture with its first `fvar` axis's minimum raised above its maximum.
-fn inverted_axis() -> Vec<u8> {
-    let bytes = variable_bytes();
-    let fvar = common::table_offset(&bytes, *b"fvar");
-    let axes = usize::from(u16::from_be_bytes([bytes[fvar + 4], bytes[fvar + 5]]));
-    // Axis record: tag, minValue (Fixed 16.16), defaultValue, maxValue, flags, nameID.
-    let min = 2000i32 << 16;
-    patch_table(&bytes, *b"fvar", axes + 4, &min.to_be_bytes())
-}
-
-// A1
-#[test]
-fn malformed_axis_range_is_an_error_not_a_panic() {
-    let font = Font::from_bytes(inverted_axis()).unwrap();
-    let tag = font.info().axes[0].tag;
-    assert_eq!(font.instance(&[(tag, 500.0)]).unwrap_err().code(), "invalid-font");
-}
-
-// A2
-#[test]
-fn non_finite_axis_value_is_refused() {
-    let font = font("NotoSans-VF.ttf");
-    assert_eq!(
-        font.instance(&[(Tag::WEIGHT, f32::NAN)]).unwrap_err().code(),
-        "invalid-axis-value"
-    );
-}
-
-// A2
-#[test]
-fn infinite_axis_value_is_refused() {
-    let font = font("NotoSans-VF.ttf");
-    assert!(font.instance(&[(Tag::WEIGHT, f32::INFINITY)]).is_err());
-}
-
-// A3
-#[test]
-fn instance_bbox_is_the_union_of_the_instanced_glyph_bounds() {
-    let heavy = font("NotoSans-VF.ttf").instance(&[(Tag::WEIGHT, 900.0)]).unwrap();
-    let mut pdf = TestPdf::new();
-    let key = pdf.add_font(heavy).unwrap();
-    pdf.line(key, 12.0, "WMgj").unwrap();
-    let f = &read_fonts(&pdf.finish().unwrap().0)[0];
-    let program = skrifa::FontRef::new(&f.program).unwrap();
-    let upem = f32::from(skrifa::raw::TableProvider::head(&program).unwrap().units_per_em());
-    let metrics = program.glyph_metrics(Size::unscaled(), LocationRef::default());
-    let mut bbox = [f32::MAX, f32::MAX, f32::MIN, f32::MIN];
-    for gid in 1..u32::from(skrifa::raw::TableProvider::maxp(&program).unwrap().num_glyphs()) {
-        if let Some(b) = metrics.bounds(skrifa::GlyphId::new(gid)) {
-            bbox = [
-                bbox[0].min(b.x_min),
-                bbox[1].min(b.y_min),
-                bbox[2].max(b.x_max),
-                bbox[3].max(b.y_max),
-            ];
-        }
-    }
-    let expected: Vec<i64> = bbox.iter().map(|v| (v * 1000.0 / upem).round() as i64).collect();
-    let written: Vec<i64> = f
-        .descriptor
-        .get("FontBBox")
-        .unwrap()
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|o| o.as_int().unwrap())
-        .collect();
-    assert_eq!(written, expected);
-}
-
-// A4
-#[test]
-fn instance_at_the_defaults_is_the_default_instance() {
-    let regular = font("NotoSans-VF.ttf");
-    let same = regular.instance(&[(Tag::WEIGHT, 400.0), (Tag::WIDTH, 100.0)]).unwrap();
-    assert_eq!(
-        (same.coordinates().len(), same.info().postscript_name.as_str()),
-        (0, regular.info().postscript_name.as_str())
-    );
-}
-
-// A6
-#[test]
-fn unreadable_collection_reports_the_requested_index() {
-    assert_eq!(
-        Font::from_collection(b"garbage".to_vec(), 3).unwrap_err(),
-        Error::InvalidFont { index: 3 }
-    );
-}
-
-// A9
 #[test]
 fn finishing_into_another_document_is_refused() {
     let base =
@@ -128,7 +32,6 @@ fn finishing_into_another_document_is_refused() {
     );
 }
 
-// A10
 #[test]
 fn no_subsetting_truetype_font_is_embedded_byte_for_byte() {
     let bytes = with_fs_type(&fixture("fonts/NotoSans-Regular.ttf"), 0x0100);
@@ -139,7 +42,6 @@ fn no_subsetting_truetype_font_is_embedded_byte_for_byte() {
     assert!(embedded == bytes, "the embedded program differs from the font file");
 }
 
-// A10
 #[test]
 fn no_subsetting_cff_font_is_embedded_as_opentype() {
     let bytes = with_fs_type(&fixture("fonts/NotoSans-Regular.otf"), 0x0100);
@@ -153,7 +55,6 @@ fn no_subsetting_cff_font_is_embedded_as_opentype() {
     );
 }
 
-// A10
 #[test]
 fn no_subsetting_collection_member_is_embedded_whole() {
     let ttc = fixture("fonts/NotoSans-RegularBold.ttc");
@@ -188,7 +89,6 @@ fn no_subsetting_collection_member_is_embedded_whole() {
     );
 }
 
-// A11
 #[test]
 fn encode_records_nothing_when_a_glyph_is_out_of_range() {
     // maxp.numGlyphs lowered to 4 while the cmap still maps letters past it.
@@ -210,7 +110,6 @@ fn encode_records_nothing_when_a_glyph_is_out_of_range() {
     );
 }
 
-// A13
 #[test]
 fn cff_type0_base_font_appends_the_cmap_name() {
     let fonts = read_fonts(&common::samples::cff().bytes);
@@ -224,14 +123,12 @@ fn cff_type0_base_font_appends_the_cmap_name() {
     );
 }
 
-// A13
 #[test]
 fn truetype_type0_base_font_equals_the_cidfont_name() {
     let f = &read_fonts(&common::samples::latin().bytes)[0];
     assert_eq!(name_of(&f.type0, "BaseFont"), name_of(&f.cid_font, "BaseFont"));
 }
 
-// A14
 #[test]
 fn key_from_a_non_empty_foreign_registry_is_unknown() {
     let mut mine = FontRegistry::new();
@@ -242,10 +139,9 @@ fn key_from_a_non_empty_foreign_registry_is_unknown() {
     assert_eq!(mine.encode(key, "a").unwrap_err().code(), "unknown-font");
 }
 
-// A10
 #[test]
 fn no_subsetting_instance_is_rebuilt_whole_with_a_warning() {
-    let bytes = with_fs_type(&variable_bytes(), 0x0100);
+    let bytes = with_fs_type(&fixture("fonts/NotoSans-VF.ttf"), 0x0100);
     let bold = Font::from_bytes(bytes)
         .unwrap()
         .instance(&[(Tag::WEIGHT, 700.0)])

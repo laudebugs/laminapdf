@@ -2,11 +2,10 @@
 //! check, over every page a reader of the docs sees: the docs site's pages, the error-code pages
 //! it renders (`docs/errors/`) and the package READMEs that `TypeDoc` renders.
 //!
-//! The check binds while people write: a report on a file changed since the merge base with
-//! `main` (the working tree and untracked drafts included) is an error, and a report on a file
-//! nobody has touched is a warning, counted per rule, until the rewrite todos have cleared them.
-//! `--all-strict` makes every report an error (Q1l turns it on in `check docs`). The ratchet is
-//! shared with the examples checks ([`crate::reports`]).
+//! `cargo xtask check docs` runs it with `--all-strict`, so every report is an error. Run on its
+//! own while drafting, a report on a file changed since the merge base with `main` (the working
+//! tree and untracked drafts included) is an error, and one on a file nobody has touched is a
+//! warning, counted per rule. The ratchet is shared with the examples checks ([`crate::reports`]).
 
 mod extract;
 mod rules;
@@ -37,6 +36,12 @@ pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
         ratchet.add(path, rules::check(&extract::parse(&source), *scope, &config));
     }
     ratchet.finish(files.len(), "docs/guidelines/docs-writing.md")
+}
+
+/// The words that look like todo IDs but aren't (`id_exceptions` in the config), which
+/// `check maintainability`'s todo-ID check skips too.
+pub(crate) fn id_exceptions(root: &Path) -> Result<Vec<String>> {
+    Ok(load_config(root)?.id_exceptions)
 }
 
 fn load_config(root: &Path) -> Result<Config> {

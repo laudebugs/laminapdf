@@ -1,4 +1,4 @@
-// Which members of the sync API the worker client serves (L2a), with their arity (0 for a
+// Which members of the sync API the worker client serves, with their arity (0 for a
 // getter): the client splits a call's arguments into the method's and the trailing
 // `CallOptions`. Each map must name every member
 // of its class except the excluded ones (`satisfies` makes a missing or extra name a `tsc`
@@ -15,8 +15,11 @@ import type { Document, PageRef } from "../document.js";
  */
 export type ExcludedDocumentMembers = "transact" | "saveJob" | "ensure" | "free" | typeof Symbol.dispose;
 
-/** PageRef members with no remote twin: none. */
-export type ExcludedPageMembers = never;
+/**
+ * PageRef members with no remote twin: `free` and `Symbol.dispose`, since the worker frees a page
+ * with its document.
+ */
+export type ExcludedPageMembers = "free" | typeof Symbol.dispose;
 
 export type RemotableDocumentMember = Exclude<keyof Document, ExcludedDocumentMembers>;
 export type RemotablePageMember = Exclude<keyof PageRef, ExcludedPageMembers>;

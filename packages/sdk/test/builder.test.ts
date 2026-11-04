@@ -100,10 +100,22 @@ describe("Builder", () => {
     expect(isLaminaPdfError(e, "invalid-argument") && e.didYouMean?.[0]).toBe("A4");
   });
 
-  it("frees unfinished pages with the builder (builder-finished afterwards)", () => {
+  it("frees unfinished pages with the builder (disposed afterwards)", () => {
     const b = new Builder();
     const page = b.page("A6");
     b.free();
+    expect(
+      isLaminaPdfError(
+        thrown(() => page.finish()),
+        "disposed",
+      ),
+    ).toBe(true);
+  });
+
+  it("closes unfinished pages when the builder finishes (builder-finished afterwards)", () => {
+    const b = new Builder();
+    const page = b.page("A6");
+    b.finish().free();
     expect(
       isLaminaPdfError(
         thrown(() => page.finish()),

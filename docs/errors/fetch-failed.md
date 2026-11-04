@@ -5,7 +5,7 @@
 
 ## What happened
 
-A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for: the request failed (network error, CORS refusal, DNS) or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for: a `Content-Range` the browser hides because CORS doesn't expose it looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
+A range source of `@laminapdf/sdk` (`httpRangeSource`) couldn't get bytes it asked for. The request failed (a network error, a CORS refusal, DNS), or the server answered with a status other than `200` or `206`, or with a `206` whose `Content-Range` (or length) doesn't match the range asked for. A `Content-Range` that the browser hides, because CORS doesn't expose it, looks the same. It is also raised when a `callbackSource`'s read returns a different number of bytes than it was asked for.
 
 ## Why
 

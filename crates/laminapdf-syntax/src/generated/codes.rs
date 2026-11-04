@@ -186,12 +186,28 @@ pub enum ErrorCode {
     DocumentChanged,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
+    /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
+    Disposed,
     /// `invalid-argument`: a value passed to a binding does not have the shape its type declares.
     InvalidArgument,
     /// `source-budget-exceeded`: a sparse source was given more bytes than its byte budget allows.
     SourceBudgetExceeded,
     /// `unknown-option`: an options record passed to a binding has a key Lamina PDF does not know.
     UnknownOption,
+    /// `invalid-command-line`: the command line doesn't parse: an unknown command or flag, a missing argument, a bad value, or stdin named twice.
+    InvalidCommandLine,
+    /// `invalid-page-range`: a page range doesn't fit the grammar, or names a page the document lacks.
+    InvalidPageRange,
+    /// `binary-output-to-terminal`: the command would write a PDF to standard output, and standard output is a terminal.
+    BinaryOutputToTerminal,
+    /// `unknown-code`: explain was given a code that isn't a Lamina PDF error or warning code.
+    UnknownCode,
+    /// `overwrite-refused`: the output file exists, or the command would modify its input in place, and --force wasn't given.
+    OverwriteRefused,
+    /// `input-unreadable`: an input file, standard input or the password file couldn't be read.
+    InputUnreadable,
+    /// `output-unwritable`: the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed.
+    OutputUnwritable,
 }
 
 impl ErrorCode {
@@ -279,9 +295,17 @@ impl ErrorCode {
         Self::JobFinished,
         Self::DocumentChanged,
         Self::BuilderFinished,
+        Self::Disposed,
         Self::InvalidArgument,
         Self::SourceBudgetExceeded,
         Self::UnknownOption,
+        Self::InvalidCommandLine,
+        Self::InvalidPageRange,
+        Self::BinaryOutputToTerminal,
+        Self::UnknownCode,
+        Self::OverwriteRefused,
+        Self::InputUnreadable,
+        Self::OutputUnwritable,
     ];
 
     /// The code with this name, if there is one.
@@ -370,9 +394,17 @@ impl ErrorCode {
             b"job-finished" => Self::JobFinished,
             b"document-changed" => Self::DocumentChanged,
             b"builder-finished" => Self::BuilderFinished,
+            b"disposed" => Self::Disposed,
             b"invalid-argument" => Self::InvalidArgument,
             b"source-budget-exceeded" => Self::SourceBudgetExceeded,
             b"unknown-option" => Self::UnknownOption,
+            b"invalid-command-line" => Self::InvalidCommandLine,
+            b"invalid-page-range" => Self::InvalidPageRange,
+            b"binary-output-to-terminal" => Self::BinaryOutputToTerminal,
+            b"unknown-code" => Self::UnknownCode,
+            b"overwrite-refused" => Self::OverwriteRefused,
+            b"input-unreadable" => Self::InputUnreadable,
+            b"output-unwritable" => Self::OutputUnwritable,
             _ => return None,
         })
     }
@@ -463,9 +495,17 @@ impl ErrorCode {
             Self::JobFinished => "job-finished",
             Self::DocumentChanged => "document-changed",
             Self::BuilderFinished => "builder-finished",
+            Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
             Self::SourceBudgetExceeded => "source-budget-exceeded",
             Self::UnknownOption => "unknown-option",
+            Self::InvalidCommandLine => "invalid-command-line",
+            Self::InvalidPageRange => "invalid-page-range",
+            Self::BinaryOutputToTerminal => "binary-output-to-terminal",
+            Self::UnknownCode => "unknown-code",
+            Self::OverwriteRefused => "overwrite-refused",
+            Self::InputUnreadable => "input-unreadable",
+            Self::OutputUnwritable => "output-unwritable",
         }
     }
 
@@ -555,9 +595,17 @@ impl ErrorCode {
             Self::JobFinished => ErrorKind::State,
             Self::DocumentChanged => ErrorKind::State,
             Self::BuilderFinished => ErrorKind::State,
+            Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
             Self::SourceBudgetExceeded => ErrorKind::Limit,
             Self::UnknownOption => ErrorKind::Usage,
+            Self::InvalidCommandLine => ErrorKind::Usage,
+            Self::InvalidPageRange => ErrorKind::Usage,
+            Self::BinaryOutputToTerminal => ErrorKind::Usage,
+            Self::UnknownCode => ErrorKind::Usage,
+            Self::OverwriteRefused => ErrorKind::State,
+            Self::InputUnreadable => ErrorKind::Io,
+            Self::OutputUnwritable => ErrorKind::Io,
         }
     }
 
@@ -647,9 +695,17 @@ impl ErrorCode {
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
             Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
+            Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
             Self::SourceBudgetExceeded => "a sparse source was given more bytes than its byte budget allows",
             Self::UnknownOption => "an options record passed to a binding has a key Lamina PDF does not know",
+            Self::InvalidCommandLine => "the command line doesn't parse: an unknown command or flag, a missing argument, a bad value, or stdin named twice",
+            Self::InvalidPageRange => "a page range doesn't fit the grammar, or names a page the document lacks",
+            Self::BinaryOutputToTerminal => "the command would write a PDF to standard output, and standard output is a terminal",
+            Self::UnknownCode => "explain was given a code that isn't a Lamina PDF error or warning code",
+            Self::OverwriteRefused => "the output file exists, or the command would modify its input in place, and --force wasn't given",
+            Self::InputUnreadable => "an input file, standard input or the password file couldn't be read",
+            Self::OutputUnwritable => "the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed",
         }
     }
 
@@ -739,9 +795,17 @@ impl ErrorCode {
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
+            Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",
             Self::SourceBudgetExceeded => "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
             Self::UnknownOption => "remove the key or correct its spelling; didYouMean lists the closest known names",
+            Self::InvalidCommandLine => "run the command with --help to see its arguments",
+            Self::InvalidPageRange => "write pages as 1-5, z for the last page, r2 for the second from the end, or x3 to leave page 3 out; data.position is the character where the range went wrong",
+            Self::BinaryOutputToTerminal => "redirect standard output to a file or a pipe, or write to a file with -o",
+            Self::UnknownCode => "check the spelling against didYouMean, or list every code at the docs URL",
+            Self::OverwriteRefused => "pass --force, or write to a new file with -o",
+            Self::InputUnreadable => "check that the file exists and that you can read it; data.input names it",
+            Self::OutputUnwritable => "check that the output's folder exists, that you can write to it and that the disk has room",
         }
     }
 

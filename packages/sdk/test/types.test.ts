@@ -37,6 +37,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "fetch-failed":
     case "source-changed":
     case "render-backend-unavailable":
+    case "input-unreadable":
+    case "output-unwritable":
       return "io";
     case "encrypted-base":
     case "unsupported-security-handler":
@@ -52,6 +54,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "encoding-full":
     case "image-too-large":
     case "source-budget-exceeded":
+    case "out-of-memory":
     case "render-too-large":
       return "limit";
     case "password-required":
@@ -96,6 +99,10 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "invalid-argument":
     case "unknown-option":
     case "worker-version-mismatch":
+    case "invalid-command-line":
+    case "invalid-page-range":
+    case "binary-output-to-terminal":
+    case "unknown-code":
       return "usage";
     case "data-pending":
     case "repaired-base":
@@ -113,12 +120,15 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "text-module-not-loaded":
     case "extract-module-not-loaded":
     case "disposed":
+    case "instance-reset":
+    case "overwrite-refused":
       return "state";
     case "cancelled":
       return "cancelled";
     case "unset-object":
     case "worker-crashed":
     case "worker-failed":
+    case "wasm-trap":
       return "internal";
     default: {
       const unhandled: never = code;

@@ -1,8 +1,9 @@
-//! Regenerates `laminapdf-build`'s byte-exact goldens in `fixtures/golden/` (`vectors.pdf`,
-//! `images.pdf`, and B5b's `build-text-latin.pdf`, `build-text-multiscript.pdf`,
-//! `links-and-outlines.pdf`, `metadata.pdf`, and B8a's `tagged-report.pdf`; the code is in
-//! `tests/common/samples.rs`, `b5b.rs` and `tagged.rs`) into a directory, and prints the files it wrote. `cargo xtask golden
-//! --update` runs it on `fixtures/golden/`; tests never write goldens (ADR 0018 tier 3).
+//! Regenerates `laminapdf-build`'s byte-exact goldens in `fixtures/golden/` into a directory,
+//! and prints the files it wrote: `vectors.pdf` and `images.pdf` (the code is in
+//! `tests/common/samples.rs`), the text and navigation goldens `build-text-latin.pdf`,
+//! `build-text-multiscript.pdf`, `links-and-outlines.pdf` and `metadata.pdf`
+//! (`text_and_navigation.rs`), and the tagged `tagged-report.pdf` (`tagged.rs`). `cargo xtask
+//! golden --update` runs it on `fixtures/golden/`; tests never write goldens (ADR 0018 tier 3).
 //!
 //! ```sh
 //! cargo run -p laminapdf-build --example golden -- <out-dir>

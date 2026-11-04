@@ -2,19 +2,21 @@
 //! tool can check in Rust code, without building anything.
 //!
 //! Each check is a name and a function in [`CHECKS`]. A check reads the [`Tree`] (the Rust files
-//! of `crates/`, `tools/` and `apps/`, scanned once, and the two record files, parsed once) and
-//! returns its problems. What exists today is recorded in [`BASELINE`] and [`DUPLICATES`]; a
+//! of `crates/`, `tools/` and `apps/`, scanned once, the two record files, parsed once, and for
+//! the todo-ID check the source of each crate's and package's `src/` and the todo board's IDs)
+//! and returns its problems. What exists today is recorded in [`BASELINE`] and [`DUPLICATES`]; a
 //! check fails when the code and a record disagree in either direction, and when the baseline
 //! grows against the merge base with `main`; it warns when the allow-list grows.
 
 mod budget;
 mod helpers;
+mod history;
 mod lexers;
 mod names;
 mod policy;
 mod source;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -46,7 +48,7 @@ struct Check {
 }
 
 /// Every check, in the order they run. A new check is one entry here.
-const CHECKS: [Check; 9] = [
+const CHECKS: [Check; 10] = [
     Check {
         name: "module-budget",
         run: budget::module_budget,
@@ -82,6 +84,10 @@ const CHECKS: [Check; 9] = [
     Check {
         name: "one-lexer",
         run: lexers::lexer_copies,
+    },
+    Check {
+        name: "todo-id",
+        run: history::todo_ids,
     },
 ];
 
@@ -131,11 +137,17 @@ struct Tree {
     baseline: Baseline,
     allowed: Allowed,
     base: Base,
+    /// The text of each file the todo-ID check reads ([`history::is_in_scope`]).
+    src_texts: BTreeMap<String, String>,
+    /// The todo board's IDs ([`history::todo_id`]).
+    todo_ids: BTreeSet<String>,
+    /// Words of the todo-ID shape that aren't IDs: docs-prose's `id_exceptions`.
+    id_exceptions: Vec<String>,
 }
 
 impl Tree {
-    /// The tracked and untracked (not ignored) Rust files under [`ROOTS`], the record files and
-    /// their versions at the merge base with `main`.
+    /// The tracked and untracked (not ignored) Rust files under [`ROOTS`], the files and todo IDs
+    /// the todo-ID check reads, the record files and their versions at the merge base with `main`.
     fn load(root: &Path) -> Result<Self> {
         let untracked = Ratchet::untracked(root)?;
         let tracked = Tracked::from_git(root)?;
@@ -143,13 +155,23 @@ impl Tree {
             .files()
             .map(|path| path.to_string_lossy().replace('\\', "/"))
             .chain(untracked);
-        let mut sources = BTreeMap::new();
-        for path in paths.filter(|path| is_rust_in_scope(path)) {
+        let (mut sources, mut src_texts, mut todo_ids) = (BTreeMap::new(), BTreeMap::new(), BTreeSet::new());
+        for path in paths {
+            todo_ids.extend(history::todo_id(&path).map(str::to_owned));
+            let (rust, src) = (is_rust_in_scope(&path), history::is_in_scope(&path));
+            if !rust && !src {
+                continue;
+            }
             // A tracked file deleted in the working tree is gone: skip it.
             let Ok(text) = std::fs::read_to_string(root.join(&path)) else {
                 continue;
             };
-            sources.insert(path, Source::new(&text));
+            if rust {
+                sources.insert(path.clone(), Source::new(&text));
+            }
+            if src {
+                src_texts.insert(path, text);
+            }
         }
         let read = |path: &str| std::fs::read_to_string(root.join(path)).with_context(|| format!("reading {path}"));
         Ok(Self {
@@ -157,6 +179,9 @@ impl Tree {
             baseline: parse(BASELINE, &read(BASELINE)?)?,
             allowed: parse(DUPLICATES, &read(DUPLICATES)?)?,
             base: load_base(root),
+            src_texts,
+            todo_ids,
+            id_exceptions: crate::docs_prose::id_exceptions(root)?,
         })
     }
 
@@ -206,7 +231,8 @@ fn load_base(root: &Path) -> Base {
 #[cfg(test)]
 impl Tree {
     /// A tree of in-memory files: `.rs` files are scanned, [`BASELINE`] and [`DUPLICATES`]
-    /// parsed (a missing one is empty). The merge base has the same records.
+    /// parsed (a missing one is empty), todo board files give their IDs, and the todo-ID check's
+    /// files keep their text. The merge base has the same records.
     fn from_files(files: &[(&str, &str)]) -> Self {
         let mut tree = Self::default();
         for (path, text) in files {
@@ -214,7 +240,13 @@ impl Tree {
                 BASELINE => tree.baseline = parse(path, text).unwrap(),
                 DUPLICATES => tree.allowed = parse(path, text).unwrap(),
                 _ => {
-                    tree.sources.insert((*path).to_owned(), Source::new(text));
+                    tree.todo_ids.extend(history::todo_id(path).map(str::to_owned));
+                    if history::is_in_scope(path) {
+                        tree.src_texts.insert((*path).to_owned(), (*text).to_owned());
+                    }
+                    if has_extension(path, &["rs"]) {
+                        tree.sources.insert((*path).to_owned(), Source::new(text));
+                    }
                 }
             }
         }
@@ -283,7 +315,8 @@ pub(crate) fn run(root: &Path) -> Result<()> {
             ratchet.add(&path, [finding]);
         }
     }
-    ratchet.finish(tree.sources.len(), GUIDELINE)
+    let files: BTreeSet<&String> = tree.sources.keys().chain(tree.src_texts.keys()).collect();
+    ratchet.finish(files.len(), GUIDELINE)
 }
 
 /// Every check's problems.
