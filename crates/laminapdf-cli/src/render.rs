@@ -10,7 +10,7 @@ use anstream::{AutoStream, ColorChoice};
 use laminapdf::Diagnostic;
 use laminapdf_cli::commands::{CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, TextReport};
 use laminapdf_cli::exit::{CliError, ExitCode};
-use serde_json::{Value, json};
+use serde_json::Value;
 
 const RED: &str = "\x1b[1;31m";
 const YELLOW: &str = "\x1b[1;33m";
@@ -55,14 +55,7 @@ pub(crate) fn for_terminal(text: &str) -> String {
 pub(crate) fn error(streams: &mut Streams, error: &CliError, input: Option<&str>, json: bool) {
     let diagnostic = error.diagnostic();
     let text = if json {
-        let mut object = diagnostic.to_json();
-        if let Some(map) = object.as_object_mut() {
-            if let Some(input) = input {
-                map.insert("input".to_owned(), input.into());
-            }
-            map.insert("exitCode".to_owned(), error.exit_code().number().into());
-        }
-        format!("{}\n", json!({ "schema": "laminapdf.error/1", "error": object }))
+        format!("{}\n", error.to_line(input))
     } else {
         let mut text = format!(
             "{RED}error{RESET}{BOLD}[{}]: {}{RESET}\n",
@@ -266,6 +259,7 @@ pub(crate) fn exit_codes_text() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn sizes_should_read_like_a_file_manager() {

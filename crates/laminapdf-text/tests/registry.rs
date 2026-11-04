@@ -12,7 +12,7 @@ mod common;
 
 use common::{TestPdf, font, name_of, patch_table, read_fonts, with_fs_type};
 use laminapdf_test_fixtures::fixture;
-use laminapdf_text::{EmbedPolicy, Font, FontRegistry, Tag};
+use laminapdf_text::{EmbedPolicy, Font, FontRegistry, OpenTypeTag};
 
 #[test]
 fn finishing_into_another_document_is_refused() {
@@ -144,7 +144,7 @@ fn no_subsetting_instance_is_rebuilt_whole_with_a_warning() {
     let bytes = with_fs_type(&fixture("fonts/NotoSans-VF.ttf"), 0x0100);
     let bold = Font::from_bytes(bytes)
         .unwrap()
-        .instance(&[(Tag::WEIGHT, 700.0)])
+        .instance(&[(OpenTypeTag::WEIGHT, 700.0)])
         .unwrap();
     let count = bold.info().glyph_count;
     let mut pdf = TestPdf::new();

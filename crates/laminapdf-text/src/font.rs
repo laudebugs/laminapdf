@@ -17,9 +17,9 @@ use crate::std14::Standard14;
 
 /// A four-byte OpenType tag, such as the variation axis `wght`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Tag([u8; 4]);
+pub struct OpenTypeTag([u8; 4]);
 
-impl Tag {
+impl OpenTypeTag {
     /// The weight axis, `wght`.
     pub const WEIGHT: Self = Self(*b"wght");
     /// The width axis, `wdth`.
@@ -42,15 +42,15 @@ impl Tag {
     }
 }
 
-impl fmt::Display for Tag {
+impl fmt::Display for OpenTypeTag {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&String::from_utf8_lossy(&self.0))
     }
 }
 
-impl fmt::Debug for Tag {
+impl fmt::Debug for OpenTypeTag {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Tag({self})")
+        write!(f, "OpenTypeTag({self})")
     }
 }
 
@@ -81,7 +81,7 @@ impl GlyphId {
 #[non_exhaustive]
 pub struct Axis {
     /// The axis tag, such as `wght`.
-    pub tag: Tag,
+    pub tag: OpenTypeTag,
     /// The smallest value.
     pub min: f32,
     /// The default value.
@@ -180,7 +180,7 @@ pub(crate) const MAX_PLANS: usize = 64;
 pub struct Font {
     source: Arc<Source>,
     /// The instance's user coordinates, sorted by tag (empty: the default instance).
-    coords: Arc<[(Tag, f32)]>,
+    coords: Arc<[(OpenTypeTag, f32)]>,
     /// The same, normalised, in `fvar` axis order (empty: the default instance).
     location: Arc<[NormalizedCoord]>,
     info: Arc<FontInfo>,
@@ -336,7 +336,7 @@ impl Font {
     /// [`Error::UnknownAxis`] for a tag the font has no axis for (a static font has none);
     /// [`Error::InvalidAxisValue`] for a NaN or infinite value; [`Error::InvalidFont`] when the
     /// font's `fvar` record for the axis is not `min ≤ default ≤ max`.
-    pub fn instance(&self, settings: &[(Tag, f32)]) -> Result<Self> {
+    pub fn instance(&self, settings: &[(OpenTypeTag, f32)]) -> Result<Self> {
         if self.standard.is_some() {
             return match settings.first() {
                 Some(&(tag, _)) => Err(Error::UnknownAxis {
@@ -349,7 +349,7 @@ impl Font {
         let font = self.font_ref()?;
         let axes = font.axes();
         let index = self.source.index;
-        let mut coords: Vec<(Tag, f32)> = self.coords.to_vec();
+        let mut coords: Vec<(OpenTypeTag, f32)> = self.coords.to_vec();
         for &(tag, value) in settings {
             let found = axes.get_by_tag(tag.to_skrifa()).ok_or_else(|| Error::UnknownAxis {
                 font: self.info.postscript_name.clone(),
@@ -395,7 +395,7 @@ impl Font {
     /// The instance's variation coordinates (user units, sorted by tag); empty for a static
     /// font or the default instance.
     #[must_use]
-    pub fn coordinates(&self) -> &[(Tag, f32)] {
+    pub fn coordinates(&self) -> &[(OpenTypeTag, f32)] {
         &self.coords
     }
 
@@ -567,7 +567,7 @@ impl Font {
 }
 
 /// Reads [`FontInfo`] at `location`; `None` when a required table is missing or malformed.
-fn font_info(font: &FontRef<'_>, coords: &[(Tag, f32)], location: LocationRef<'_>) -> Option<FontInfo> {
+fn font_info(font: &FontRef<'_>, coords: &[(OpenTypeTag, f32)], location: LocationRef<'_>) -> Option<FontInfo> {
     let head = font.head().ok()?;
     font.hhea().ok()?;
     font.hmtx().ok()?;
@@ -602,7 +602,7 @@ fn font_info(font: &FontRef<'_>, coords: &[(Tag, f32)], location: LocationRef<'_
     let flags = u32::from(metrics.is_monospace) | 4 | if italic { 64 } else { 0 };
     let weight = coords
         .iter()
-        .find(|(tag, _)| *tag == Tag::WEIGHT)
+        .find(|(tag, _)| *tag == OpenTypeTag::WEIGHT)
         .map(|&(_, w)| clamp_weight(w))
         .or_else(|| os2.as_ref().map(skrifa::raw::tables::os2::Os2::us_weight_class))
         .unwrap_or(400);
@@ -610,7 +610,7 @@ fn font_info(font: &FontRef<'_>, coords: &[(Tag, f32)], location: LocationRef<'_
         .axes()
         .iter()
         .map(|a| Axis {
-            tag: Tag(a.tag().to_be_bytes()),
+            tag: OpenTypeTag(a.tag().to_be_bytes()),
             min: a.min_value(),
             default: a.default_value(),
             max: a.max_value(),
@@ -654,7 +654,7 @@ fn clamp_weight(w: f32) -> u16 {
 
 /// `base` with the instance's coordinates appended (`_wght700_wdth87.5`), so instances of one
 /// family get distinct `/BaseFont` names.
-fn instance_name(base: &str, coords: &[(Tag, f32)]) -> String {
+fn instance_name(base: &str, coords: &[(OpenTypeTag, f32)]) -> String {
     let mut name = base.to_owned();
     for (tag, value) in coords {
         let tag = pdf_name_chars(&tag.to_string());
@@ -734,7 +734,7 @@ mod tests {
 
     #[test]
     fn instance_name_appends_sorted_coordinates() {
-        let coords = [(Tag::WEIGHT, 700.0), (Tag::WIDTH, 87.5)];
+        let coords = [(OpenTypeTag::WEIGHT, 700.0), (OpenTypeTag::WIDTH, 87.5)];
         assert_eq!(instance_name("Noto", &coords), "Noto_wght700_wdth87.5");
     }
 
@@ -773,6 +773,6 @@ mod tests {
 
     #[test]
     fn tag_displays_its_ascii() {
-        assert_eq!(Tag::WEIGHT.to_string(), "wght");
+        assert_eq!(OpenTypeTag::WEIGHT.to_string(), "wght");
     }
 }

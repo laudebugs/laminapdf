@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 190 ready · 102 done** (292 total).
+**0 ongoing · 188 ready · 104 done** (292 total).
 
 ## Can start now
 
@@ -20,14 +20,12 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 - [L3b](ready/L3b-extract-tables-and-serialisers.md): Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`
 - [L3d](ready/L3d-extract-structure-and-furniture.md): Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags
-- [L4c](ready/L4c-mcp-mode.md): `laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
-- [Q2s](ready/Q2s-facade-names.md): Façade names that don't collide
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
@@ -94,7 +92,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L3d | [Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags](ready/L3d-extract-structure-and-furniture.md) | ready | [L3a](done/L3a-lamina-extract-reading-order.md) |
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](done/L4a-lamina-cli.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](done/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
-| L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](done/L4a-lamina-cli.md) |
+| L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](done/L4c-mcp-mode.md) | done | [L4a](done/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](done/L4a-lamina-cli.md), [P1](done/P1-reserve-names-and-trusted-publishing.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](done/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
@@ -359,7 +357,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2p | [Split the TypeScript functions over the complexity limit](done/Q2p-ts-complexity-splits.md) | done | [Q2b](done/Q2b-ts-lint-rules.md) |
 | Q2q | [Split the COS reader module](done/Q2q-split-cos-reader.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2e](done/Q2e-error-policy-consolidation.md) |
 | Q2r | [Split the large xtask, builder, extraction and WASM modules](done/Q2r-split-surface-modules.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md), [Q2h](done/Q2h-text-writers-dedup.md), [Q2i](done/Q2i-one-lexer-one-png-filter.md) |
-| Q2s | [Façade names that don't collide](ready/Q2s-facade-names.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
+| Q2s | [Façade names that don't collide](done/Q2s-facade-names.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2t | [Names and comments without project history](done/Q2t-history-out-of-names.md) | done | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |
 | Q2v | [One did-you-mean rule, pinned in both languages](done/Q2v-did-you-mean.md) | done | — |

@@ -119,7 +119,8 @@ export type ErrorCode =
   | "unknown-code"
   | "overwrite-refused"
   | "input-unreadable"
-  | "output-unwritable";
+  | "output-unwritable"
+  | "path-outside-roots";
 
 /** Every warning code (ADR 0026 §3; `fixtures/codes.json`). */
 export type WarningCode =
@@ -284,6 +285,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "overwrite-refused",
   "input-unreadable",
   "output-unwritable",
+  "path-outside-roots",
 ];
 
 /** Every warning code, in `codes.json` order. */
@@ -473,6 +475,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "overwrite-refused": "state",
   "input-unreadable": "io",
   "output-unwritable": "io",
+  "path-outside-roots": "security",
 };
 
 /** The hint of every code (ADR 0026 §5), with its `{limit}`/`{option}` parameters unfilled. */
@@ -620,6 +623,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "overwrite-refused": "pass --force, or write to a new file with -o",
   "input-unreadable": "check that the file exists and that you can read it; data.input names it",
   "output-unwritable": "check that the output's folder exists, that you can write to it and that the disk has room",
+  "path-outside-roots": "use a path inside one of the server's --root folders, or start the server with another --root",
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */

@@ -1041,6 +1041,13 @@
       "summary": "the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed",
       "hint": "check that the output's folder exists, that you can write to it and that the disk has room",
       "since": "0.2.0"
+    },
+    {
+      "code": "path-outside-roots",
+      "kind": "security",
+      "summary": "laminapdf mcp was given a path outside its --root folders, or a link that leads out of them",
+      "hint": "use a path inside one of the server's --root folders, or start the server with another --root",
+      "since": "0.2.0"
     }
   ]
 }

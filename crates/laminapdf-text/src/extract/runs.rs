@@ -16,7 +16,7 @@ use crate::{BidiParagraph, grapheme_boundaries};
 /// and visibility, one after the other on one baseline.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
-pub struct TextRun {
+pub struct PageTextRun {
     /// The run's text in logical order: the span's `ActualText` (the span's first run; its
     /// later runs have none), else the glyphs' text with gap spaces, put in logical order
     /// when it has right-to-left characters.
@@ -85,7 +85,7 @@ fn alike(a: &Glyph, b: &Glyph) -> bool {
 }
 
 /// Groups `glyphs` into runs.
-pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<TextRun> {
+pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<PageTextRun> {
     let mut ranges: Vec<Range<usize>> = Vec::new();
     let mut direction: Vector = (1.0, 0.0);
     // The pen after the last glyph that moved it: marks placed by moving back and forth
@@ -150,7 +150,7 @@ pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<TextRun> {
                 None if reversed => reverse_clusters(&by_position(run)),
                 None => joined(run),
             };
-            Some(TextRun {
+            Some(PageTextRun {
                 text,
                 glyphs: range,
                 font: first.font,
@@ -348,7 +348,7 @@ struct Unit<'r> {
 }
 
 impl Unit<'_> {
-    fn new<'r>(run: &'r TextRun, first: &Glyph, last: &Glyph, direction: Vector) -> Unit<'r> {
+    fn new<'r>(run: &'r PageTextRun, first: &Glyph, last: &Glyph, direction: Vector) -> Unit<'r> {
         let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
         let class = if has_right_to_left(&run.text) {
             'R'
@@ -368,7 +368,7 @@ impl Unit<'_> {
 }
 
 /// The runs' text as lines (see [`PageText::lines`](super::PageText::lines)).
-pub(super) fn lines(glyphs: &[Glyph], runs: &[TextRun]) -> Vec<String> {
+pub(super) fn lines(glyphs: &[Glyph], runs: &[PageTextRun]) -> Vec<String> {
     // Group runs into lines, in content order.
     let mut grouped: Vec<Vec<Unit<'_>>> = vec![Vec::new()];
     let mut previous: Option<(Vector, Vector, f64)> = None;

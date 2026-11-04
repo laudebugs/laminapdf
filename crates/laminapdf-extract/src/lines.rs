@@ -6,7 +6,7 @@
 use std::cmp::Ordering;
 
 use laminapdf_model::{Pt, RectPt};
-use laminapdf_text::extract::is_right_to_left;
+use laminapdf_text::is_right_to_left;
 
 /// Baselines closer than this fraction of the size are one line (superscripts stay on it).
 const SAME_BASELINE: f64 = 0.5;

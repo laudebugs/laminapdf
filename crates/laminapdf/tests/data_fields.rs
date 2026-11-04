@@ -21,7 +21,7 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 18] = [
+const UNBUILDABLE: [(&str, &str); 19] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -49,6 +49,8 @@ const UNBUILDABLE: [(&str, &str); 18] = [
     ("overwrite-refused", "raised by laminapdf-cli"),
     ("input-unreadable", "raised by laminapdf-cli"),
     ("output-unwritable", "raised by laminapdf-cli"),
+    // Raised by `laminapdf mcp`; laminapdf-cli's tests/mcp.rs checks its key.
+    ("path-outside-roots", "raised by laminapdf-cli"),
 ];
 
 fn root() -> PathBuf {
@@ -117,7 +119,7 @@ fn listed_codes() -> Vec<String> {
 /// One value of every error and warning that has data.
 fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     use laminapdf_build::{ContentKind, Error as B, ImageFormat, Profile};
-    use laminapdf_text::{Error as T, FsType, Tag, Warning as TW};
+    use laminapdf_text::{Error as T, FsType, OpenTypeTag, Warning as TW};
     let s = String::new;
     let errors: Vec<Error> = vec![
         Error::from(laminapdf_cos::Error::LimitExceeded {
@@ -163,9 +165,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(T::CollectionIndex { index: 1, count: 1 }),
         Error::from(T::UnknownAxis {
             font: s(),
-            tag: Tag::WEIGHT,
+            tag: OpenTypeTag::WEIGHT,
         }),
-        Error::from(T::InvalidAxisValue { tag: Tag::WEIGHT }),
+        Error::from(T::InvalidAxisValue {
+            tag: OpenTypeTag::WEIGHT,
+        }),
         Error::from(T::WrongDocument { object: 1 }),
         Error::from(T::FontNotEmbeddable {
             font: s(),

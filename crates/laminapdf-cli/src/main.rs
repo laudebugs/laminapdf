@@ -96,6 +96,16 @@ enum Command {
     Explain(ExplainArgs),
     /// Help on a command, or on a topic: exit-codes.
     Help(HelpArgs),
+    /// Serve the commands as MCP tools on stdin and stdout, for clients that speak only MCP.
+    #[cfg(feature = "mcp")]
+    Mcp(laminapdf_cli::mcp::McpArgs),
+    /// Serve the commands as MCP tools (this build has no MCP server).
+    #[cfg(not(feature = "mcp"))]
+    #[command(hide = true)]
+    Mcp {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
+        rest: Vec<String>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -199,7 +209,7 @@ fn input_of(command: &Command) -> Option<&str> {
         Command::Check(a) => Some(&a.input),
         Command::Pages(PagesCommand::Rotate(a)) => Some(&a.input),
         Command::Extract(a) => Some(&a.input),
-        Command::Explain(_) | Command::Help(_) => None,
+        Command::Explain(_) | Command::Help(_) | Command::Mcp { .. } => None,
     }
 }
 
@@ -230,6 +240,7 @@ fn settings(global: &GlobalArgs, io: &mut ProcessIo) -> Result<Settings, CliErro
         password,
         force: global.force,
         dry_run: global.dry_run,
+        ..Settings::default()
     })
 }
 
@@ -269,6 +280,19 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
             outcome(to_json(&report), render::explain_text(&report), Vec::new(), false)
         }
         Command::Help(args) => outcome(serde_json::Value::Null, help(args)?, Vec::new(), false),
+        // Serves until the client closes standard input; the protocol had standard output.
+        #[cfg(feature = "mcp")]
+        Command::Mcp(args) => {
+            laminapdf_cli::mcp::run(args, settings)?;
+            outcome(serde_json::Value::Null, String::new(), Vec::new(), true)
+        }
+        #[cfg(not(feature = "mcp"))]
+        Command::Mcp { .. } => {
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "this laminapdf was built without the MCP server (the mcp feature)",
+            ));
+        }
     })
 }
 

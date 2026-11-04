@@ -37,7 +37,7 @@ use image::Image;
 use path::{PathBuilder, Segment};
 use style::{BlendMode, StrokeStyle};
 #[cfg(feature = "text")]
-use text::{Font, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
+use text::{FontHandle, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
 #[cfg(feature = "text")]
 use textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 
@@ -421,7 +421,7 @@ impl Surface {
     ///
     /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
     #[cfg(feature = "text")]
-    pub fn text(&mut self, text: &str, font: &Font, size: Pt, at: PointPt) -> Result<TextRun<'_>> {
+    pub fn text(&mut self, text: &str, font: &FontHandle, size: Pt, at: PointPt) -> Result<TextRun<'_>> {
         check_size(size)?;
         if !(at.x.get().is_finite() && at.y.get().is_finite()) {
             return Err(Error::InvalidGeometry {
@@ -499,7 +499,7 @@ impl Surface {
     pub fn text_box(
         &mut self,
         text: &str,
-        font: &Font,
+        font: &FontHandle,
         size: Pt,
         rect: RectPt,
         options: &TextBoxOptions,

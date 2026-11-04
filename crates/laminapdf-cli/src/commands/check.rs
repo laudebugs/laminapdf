@@ -66,9 +66,12 @@ fn check_id(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
 pub fn check(args: &CheckArgs, settings: &Settings, io: &mut dyn Io) -> Result<CheckReport, CliError> {
     let opened = open(&args.input, settings, io)?;
     let doc = &opened.doc;
+    settings.stop_if_cancelled()?;
     let objects = doc.read_every_object()?;
+    settings.stop_if_cancelled()?;
     let pages = doc.page_count()?;
     doc.page_texts(&TextOptions::default())?;
+    settings.stop_if_cancelled()?;
     let warnings = warnings(doc);
     Ok(CheckReport {
         schema: CheckReport::SCHEMA,

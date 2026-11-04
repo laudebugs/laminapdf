@@ -140,10 +140,10 @@ impl Encoding {
         match self {
             Self::ZapfDingbats => agl::zapf_dingbats_to_unicode(name),
             // Letters only: the AGL's `questiongreek` is U+037E, a punctuation mark.
-            Self::Symbol => agl::to_unicode(&format!("{name}greek"))
+            Self::Symbol => agl::glyph_name_to_unicode(&format!("{name}greek"))
                 .filter(|t| t.chars().all(char::is_alphabetic))
-                .or_else(|| agl::to_unicode(name)),
-            _ => agl::to_unicode(name),
+                .or_else(|| agl::glyph_name_to_unicode(name)),
+            _ => agl::glyph_name_to_unicode(name),
         }
     }
 }

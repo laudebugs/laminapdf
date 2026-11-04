@@ -27,14 +27,14 @@ fn options() -> BuildOptions {
 
 /// A PDF/UA-1 builder with a title and a language, and one page drawn by `draw` with Noto Sans.
 fn ua(
-    draw: impl FnOnce(&mut laminapdf_build::Surface, &laminapdf_build::Font) -> laminapdf_build::Result<()>,
+    draw: impl FnOnce(&mut laminapdf_build::Surface, &laminapdf_build::FontHandle) -> laminapdf_build::Result<()>,
 ) -> Builder {
     ua_with(options(), draw)
 }
 
 fn ua_with(
     options: BuildOptions,
-    draw: impl FnOnce(&mut laminapdf_build::Surface, &laminapdf_build::Font) -> laminapdf_build::Result<()>,
+    draw: impl FnOnce(&mut laminapdf_build::Surface, &laminapdf_build::FontHandle) -> laminapdf_build::Result<()>,
 ) -> Builder {
     let mut b = Builder::new(options);
     b.metadata(Metadata::default().with_title("A report")).lang("en-GB");
@@ -45,7 +45,7 @@ fn ua_with(
     b
 }
 
-fn paragraph(s: &mut laminapdf_build::Surface, f: &laminapdf_build::Font) -> laminapdf_build::Result<()> {
+fn paragraph(s: &mut laminapdf_build::Surface, f: &laminapdf_build::FontHandle) -> laminapdf_build::Result<()> {
     s.text("Hello", f, Pt::new(12.0), at(56.0, 80.0))?.tag(TagKind::P);
     Ok(())
 }

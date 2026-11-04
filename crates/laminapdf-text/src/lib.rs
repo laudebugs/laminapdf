@@ -44,8 +44,8 @@
 //!   `WinAnsiEncoding` (other Latin glyphs through `/Differences`, [`SimpleUse`]) or the
 //!   built-in encoding, `/Widths`, a font descriptor and a ToUnicode CMap.
 //! * [`Encoding`] (code ↔ glyph name for `StandardEncoding`, `WinAnsiEncoding`,
-//!   `MacRomanEncoding`, `PDFDocEncoding`, Symbol and `ZapfDingbats`) and [`agl`] (glyph
-//!   name → Unicode), shared with text extraction.
+//!   `MacRomanEncoding`, `PDFDocEncoding`, Symbol and `ZapfDingbats`) and [`glyph_name_to_unicode`]
+//!   (the Adobe Glyph List), shared with text extraction.
 //!
 //! Subset tags are six letters derived from a SHA-256 of the font bytes and the glyphs in
 //! CID order, so the same text in the same font gives byte-identical output.
@@ -91,13 +91,13 @@
 //! [ADR 0005]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0005-document-model.md
 #![forbid(unsafe_code)]
 
-pub mod agl;
+mod agl;
 mod bidi;
 mod descriptor;
 mod embed;
 mod encoding;
 mod error;
-pub mod extract;
+mod extract;
 mod font;
 mod fstype;
 mod itemize;
@@ -115,12 +115,13 @@ use laminapdf_test_fixtures::codes as test_codes;
 #[cfg(test)]
 mod test_fonts;
 
+pub use agl::{glyph_name_to_unicode, zapf_dingbats_to_unicode};
 pub use bidi::{BidiParagraph, BidiRun};
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry, FontUsage, GlyphCode};
 pub use encoding::{Encoding, UnsupportedEncoding};
 pub use error::{Error, Result, Warning};
-pub use extract::{Glyph, PageText, Quad, TextExtractor, TextRun, UserSpaceVector};
-pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
+pub use extract::{Code, Glyph, PageText, PageTextRun, Quad, TextExtractor, UserSpaceVector, is_right_to_left};
+pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, OpenTypeTag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use itemize::{Item, itemize};
 pub use layout::{Alignment, LayoutOptions, Line, LineRun, break_lines};

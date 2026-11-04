@@ -5,7 +5,7 @@ use laminapdf_cos::Warning;
 use laminapdf_model::RectPt;
 use laminapdf_model::{Document, Page, Pt};
 use laminapdf_syntax::CancelToken;
-use laminapdf_text::extract::{PageText, Quad, TextRun, is_right_to_left};
+use laminapdf_text::{PageText, PageTextRun, Quad, is_right_to_left};
 
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
@@ -116,7 +116,7 @@ fn quad_box(quad: &Quad) -> RectPt {
 /// `laminapdf-text` keeps such a jump inside one run (as a space), so two columns drawn row
 /// by row in one font would otherwise share every line. Runs whose text is not their glyphs'
 /// in drawing order (`ActualText`, right to left, vertical) stay whole.
-fn segments(text: &PageText, run: &TextRun, size: Pt) -> Vec<(String, RectPt)> {
+fn segments(text: &PageText, run: &PageTextRun, size: Pt) -> Vec<(String, RectPt)> {
     let whole = || vec![(run.text.clone(), run.bounds)];
     if run.actual_text || run.vertical || run.text.chars().any(is_right_to_left) {
         return whole();

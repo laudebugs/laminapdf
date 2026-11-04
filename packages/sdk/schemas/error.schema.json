@@ -109,7 +109,8 @@
             "unknown-code",
             "overwrite-refused",
             "input-unreadable",
-            "output-unwritable"
+            "output-unwritable",
+            "path-outside-roots"
           ]
         },
         "data": {

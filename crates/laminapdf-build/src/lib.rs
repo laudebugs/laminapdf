@@ -42,7 +42,7 @@
 //!   page in order of first use (`GS1`, `Im1`, `CS1`) and every image, profile and
 //!   `ExtGState` is written once per document.
 //!
-//! * Text: [`Builder::font`] / [`Builder::standard_font`] give a [`Font`];
+//! * Text: [`Builder::font`] / [`Builder::standard_font`] give a [`FontHandle`];
 //!   [`Surface::text`] draws a shaped, bidi-resolved run with its **baseline at `y`** and
 //!   returns a [`TextRun`]; [`Surface::text_box`] breaks a paragraph into a rectangle
 //!   ([`TextBoxOptions`], [`TextLayout`]).
@@ -104,7 +104,7 @@ pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
 pub use surface::path::PathBuilder;
 pub use surface::style::{BlendMode, LineCap, LineJoin, StrokeStyle};
 #[cfg(feature = "text")]
-pub use surface::text::{Font, TextRenderMode, TextRun};
+pub use surface::text::{FontHandle, TextRenderMode, TextRun};
 #[cfg(feature = "text")]
 pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 pub use surface::{PendingPath, Surface};

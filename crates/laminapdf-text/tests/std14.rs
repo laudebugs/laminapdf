@@ -12,7 +12,9 @@ mod common;
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{Document, Object, OpenOptions};
-use laminapdf_text::{Encoding, Error, Font, FontRegistry, GlyphId, Standard14, agl};
+use laminapdf_text::{
+    Encoding, Error, Font, FontRegistry, GlyphId, Standard14, glyph_name_to_unicode, zapf_dingbats_to_unicode,
+};
 
 use common::TestPdf;
 use laminapdf_test_fixtures::fixtures_dir;
@@ -278,7 +280,7 @@ mod encodings {
 
     #[test]
     fn zapf_dingbats_names_map_through_their_own_list() {
-        assert_eq!(agl::zapf_dingbats_to_unicode("a191").as_deref(), Some("\u{27BE}"));
+        assert_eq!(zapf_dingbats_to_unicode("a191").as_deref(), Some("\u{27BE}"));
     }
 }
 
@@ -450,7 +452,7 @@ mod encode {
             .glyph_names()
             .iter()
             .filter(|n| Encoding::WinAnsi.code(n).is_none())
-            .filter_map(|n| agl::to_unicode(n))
+            .filter_map(|n| glyph_name_to_unicode(n))
             .collect();
         assert_eq!(encode(font, &text).unwrap_err().code(), "encoding-full");
     }
@@ -473,7 +475,7 @@ mod encode {
     fn standard_fonts_have_no_axes() {
         let font = Font::standard(Standard14::Helvetica);
         assert_eq!(
-            font.instance(&[(laminapdf_text::Tag::WEIGHT, 700.0)])
+            font.instance(&[(laminapdf_text::OpenTypeTag::WEIGHT, 700.0)])
                 .unwrap_err()
                 .code(),
             "unknown-axis"

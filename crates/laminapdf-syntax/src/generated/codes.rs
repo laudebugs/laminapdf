@@ -208,6 +208,8 @@ pub enum ErrorCode {
     InputUnreadable,
     /// `output-unwritable`: the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed.
     OutputUnwritable,
+    /// `path-outside-roots`: laminapdf mcp was given a path outside its --root folders, or a link that leads out of them.
+    PathOutsideRoots,
 }
 
 impl ErrorCode {
@@ -306,6 +308,7 @@ impl ErrorCode {
         Self::OverwriteRefused,
         Self::InputUnreadable,
         Self::OutputUnwritable,
+        Self::PathOutsideRoots,
     ];
 
     /// The code with this name, if there is one.
@@ -405,6 +408,7 @@ impl ErrorCode {
             b"overwrite-refused" => Self::OverwriteRefused,
             b"input-unreadable" => Self::InputUnreadable,
             b"output-unwritable" => Self::OutputUnwritable,
+            b"path-outside-roots" => Self::PathOutsideRoots,
             _ => return None,
         })
     }
@@ -506,6 +510,7 @@ impl ErrorCode {
             Self::OverwriteRefused => "overwrite-refused",
             Self::InputUnreadable => "input-unreadable",
             Self::OutputUnwritable => "output-unwritable",
+            Self::PathOutsideRoots => "path-outside-roots",
         }
     }
 
@@ -606,6 +611,7 @@ impl ErrorCode {
             Self::OverwriteRefused => ErrorKind::State,
             Self::InputUnreadable => ErrorKind::Io,
             Self::OutputUnwritable => ErrorKind::Io,
+            Self::PathOutsideRoots => ErrorKind::Security,
         }
     }
 
@@ -706,6 +712,7 @@ impl ErrorCode {
             Self::OverwriteRefused => "the output file exists, or the command would modify its input in place, and --force wasn't given",
             Self::InputUnreadable => "an input file, standard input or the password file couldn't be read",
             Self::OutputUnwritable => "the output couldn't be written: its folder is missing or read-only, the disk is full, or standard output closed",
+            Self::PathOutsideRoots => "laminapdf mcp was given a path outside its --root folders, or a link that leads out of them",
         }
     }
 
@@ -806,6 +813,7 @@ impl ErrorCode {
             Self::OverwriteRefused => "pass --force, or write to a new file with -o",
             Self::InputUnreadable => "check that the file exists and that you can read it; data.input names it",
             Self::OutputUnwritable => "check that the output's folder exists, that you can write to it and that the disk has room",
+            Self::PathOutsideRoots => "use a path inside one of the server's --root folders, or start the server with another --root",
         }
     }
 

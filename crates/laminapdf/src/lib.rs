@@ -121,6 +121,11 @@ pub use document::{Document, DocumentInfo, Edited, PageInfo, Saved};
 pub use error::{CoreError, Error, Result};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
+
+/// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as
+/// `cargo xtask gen codes` writes it. Tools that embed it in schemas of their own, such as
+/// `laminapdf mcp`'s output schemas, read it from here.
+pub const ERROR_SCHEMA: &str = include_str!("../schemas/error.schema.json");
 pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 /// The error of the builder's own methods (`Surface`, `PageBuilder` and the rest come from
 /// `laminapdf-build` as they are, ADR 0028): `?` turns it into [`Error`].
@@ -138,7 +143,7 @@ pub use laminapdf_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, Sav
 pub use builder::Builder;
 /// A font registered with a [`Builder`], to draw text with ([`Surface::text`]).
 #[cfg(feature = "text")]
-pub use laminapdf_build::Font as FontHandle;
+pub use laminapdf_build::FontHandle;
 #[cfg(feature = "build")]
 pub use laminapdf_build::{
     AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, FillRule, Fit,
@@ -159,3 +164,7 @@ pub use laminapdf_text::Error as TextError;
 /// A font loaded from its bytes (TrueType, OpenType/CFF, collections, variable instances).
 #[cfg(feature = "text")]
 pub use laminapdf_text::Font;
+/// A four-byte OpenType tag (`wght`, `liga`, `cv01`): a variation axis for [`Font::instance`] (`OpenTypeTag::WEIGHT`)
+/// or a [`Feature`]'s.
+#[cfg(feature = "text")]
+pub use laminapdf_text::OpenTypeTag;

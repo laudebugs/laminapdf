@@ -2266,7 +2266,7 @@ Check `font.info().axes` before choosing coordinates, or use a variable font.
 ## Example
 
 ```rust
-let bold = static_font.instance(&[(Tag::WEIGHT, 700.0)])?; // unknown-axis: no wght axis
+let bold = static_font.instance(&[(OpenTypeTag::WEIGHT, 700.0)])?; // unknown-axis: no wght axis
 ```
 
 ## Data fields
@@ -2434,7 +2434,7 @@ Pass finite values; values outside the axis range are clamped, so there is no ne
 ## Example
 
 ```rust
-font.instance(&[(Tag::WEIGHT, f32::NAN)])?; // invalid-axis-value
+font.instance(&[(OpenTypeTag::WEIGHT, f32::NAN)])?; // invalid-axis-value
 ```
 
 ## Data fields
@@ -2484,7 +2484,7 @@ Feature settings use HarfBuzz's syntax without ranges: `tag` or `+tag` (on), `-t
 
 ## How to fix
 
-Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Feature::new(Tag::new(b"liga"), 0)`.
+Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Feature::new(OpenTypeTag::new(b"liga"), 0)`.
 
 ## Example
 
@@ -2690,7 +2690,7 @@ Check the font's licence allows this, or use a static TrueType/CFF version of th
 
 ## Example
 
-Registering a variable font instance (`font.instance(&[(Tag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
+Registering a variable font instance (`font.instance(&[(OpenTypeTag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
 
 ## Data fields
 
@@ -4571,6 +4571,40 @@ The decisions and todos behind this code:
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §4, §5 and §8
 - [L4a](../todos/done/L4a-lamina-cli.md): the `laminapdf` CLI and its first commands
 ",
+        "path-outside-roots" => r#"# `path-outside-roots`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call)
+
+## What happened
+
+A tool of `laminapdf mcp` was given a path the server may not use: one outside every `--root` folder it was started with, one that climbs out with `..`, or a symbolic link inside a root that leads out of it. A missing file outside the roots, and a link that leads nowhere, get this answer too, so a call can't tell whether a file outside the roots exists.
+
+## Why
+
+An MCP server acts for a model that may have read instructions planted in a document or a web page. So the server touches only the folders named on its command line by the person who started it. It resolves every path, links included, before it checks the path, so a link can't lead it elsewhere.
+
+## How to fix
+
+Use a path inside one of the server's `--root` folders; a relative path is read from the first root. To work on files elsewhere, start the server with another `--root`.
+
+## Example
+
+```json
+{"schema":"laminapdf.error/1","error":{"code":"path-outside-roots","kind":"security","message":"the path is outside the server's --root folders","data":{"path":"../secret.pdf"},"exitCode":1,…}}
+```
+
+## Data fields
+
+- `path`: the path the tool was given (untrusted: caller text, never in the message).
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §9
+- [L4c](../todos/done/L4c-mcp-mode.md): `laminapdf mcp` and its path policy
+"#,
         _ => return None,
     })
 }
