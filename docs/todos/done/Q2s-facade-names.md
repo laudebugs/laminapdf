@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2s` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2a](../done/Q2a-maintainability-checks-rust.md) |
+| Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2s-facade-names` |
@@ -38,14 +38,14 @@ Readers of the docs meet `laminapdf::TextRun` (drawn text) next to `laminapdf::e
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] List every collision the façade check reports; choose names with the TypeScript SDK in view.
-- [ ] Rename at the source crate where the name is wrong there too, else at the façade.
-- [ ] Make laminapdf-text's modules private; hide `ops()`.
-- [ ] Update the examples, guides, rustdoc and CLAUDE.md; add the changeset; run everything.
+- [x] List every collision the façade check reports; choose names with the TypeScript SDK in view.
+- [x] Rename at the source crate where the name is wrong there too, else at the façade.
+- [x] Make laminapdf-text's modules private; hide `ops()`.
+- [x] Update the examples, guides, rustdoc and CLAUDE.md; add the changeset; run everything.
 
 ## Acceptance criteria
 
-- [ ] The façade collision check passes with no allow-list entry for these names.
+- [x] The façade collision check passes with no allow-list entry for these names.
 
 ## Post-merge checks
 
@@ -63,11 +63,20 @@ Guides, CLAUDE.md's façade paragraph, a changeset, plan §9.
 
 Renames ripple into the docs: land this before Q1i and Q1m if possible, or update those pages here.
 
+## Outcome
+
+- The extracted run is `PageTextRun`, the name `@laminapdf/sdk` already exported (`laminapdf::extract::PageTextRun`, `laminapdf_text::PageTextRun`); `TextRun` is only drawn text.
+- `laminapdf-build`'s handle is `FontHandle` at the source, so its signatures no longer show a second `Font`; the façade re-exports it without an alias.
+- `laminapdf-text`'s OpenType tag is `OpenTypeTag`, and the façade exports it for `Font::instance`.
+- `laminapdf-text`'s `extract` and `agl` modules are private, their items re-exported at the root (`agl::to_unicode` became `glyph_name_to_unicode`); `CMap` and `MAX_USECMAP_DEPTH` are crate-private.
+- `Document::ops` and `into_ops` are `#[doc(hidden)]`, kept for Lamina PDF's own crates and tests.
+- `maintainability-duplicates.toml` lost `Font`, `Tag` and `TextRun`; `Document`, `Builder`, `Error`, `Warning`, `Op`, `Page` and `PathSegment` stay, each a wrapper or a different concept with its reason.
+
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
