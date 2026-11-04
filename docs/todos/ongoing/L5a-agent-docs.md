@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L5a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L5](../../plans/shareable-libraries.md#l5-docs-for-agents) |
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
 | Depends on | [B7a](../done/B7a-docs-site.md), [L1b](../done/L1b-error-contract-codegen.md) |
@@ -64,7 +64,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 **Out of scope** (and which todo covers it)
 
-- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../done/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
+- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../done/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](../ready/L4b-cli-batch-render-schema.md)).
 - Running the eval in CI or gating on it: not planned (it needs a paid API key and is non-deterministic).
 - Writing the guides themselves: [B7a](../done/B7a-docs-site.md).
 

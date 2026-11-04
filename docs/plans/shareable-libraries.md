@@ -135,7 +135,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L5. Docs for agents
 
-**Todos:** [L5a](../todos/ready/L5a-agent-docs.md).
+**Todos:** [L5a](../todos/ongoing/L5a-agent-docs.md).
 
 **Deliverable:** `llms.txt` and `llms-full.txt` on the docs site, a `.md` twin of every page, docs shipped inside the npm package and the crate, an `AGENTS.md` snippet for users' repositories, a machine-readable rename log.
 **Accepted when:** the docs build produces the files; the npm tarball contains version-matched docs; an agent eval (a fixed task list run against the examples) is recorded as a baseline.
