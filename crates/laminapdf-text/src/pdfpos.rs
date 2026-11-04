@@ -104,12 +104,13 @@ impl PdfRun {
 /// up (pdf.js would read its code), or a second text once the font's CIDs run out
 /// ([`crate::Warning::ToUnicodeConflict`]).
 ///
-/// With CFF outlines (`CIDFontType0`: one CID per glyph) the texts stay as the list above
-/// gives them: a glyph that is some character's own claims no text when it stands for
-/// nothing, and a cluster gets `/ActualText` when its glyphs, read in reading order, don't
-/// spell its text, when one of them stands for nothing, or when one of them already stands
-/// for another text in this font ([`crate::Warning::ToUnicodeConflict`]). Either way the
-/// whole run gets `/ActualText` when its clusters are not in visual order for its direction.
+/// With CFF outlines (`CIDFontType0`: one CID per glyph) each glyph keeps the text the
+/// per-cluster mapping above gives it: a glyph that is some character's own claims no text
+/// when it stands for nothing, and a cluster gets `/ActualText` when its glyphs, read in
+/// reading order, don't spell its text, when one of them stands for nothing, or when one of
+/// them already stands for another text in this font
+/// ([`crate::Warning::ToUnicodeConflict`]). Either way the whole run gets `/ActualText` when
+/// its clusters are not in visual order for its direction.
 ///
 /// Everything is checked before anything is recorded: on an error, `fonts` is unchanged.
 ///

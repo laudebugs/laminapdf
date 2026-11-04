@@ -95,7 +95,7 @@ pub enum Error {
     /// A save of an encrypted document was requested: an incremental update's new objects
     /// would have to be encrypted too, and a full rewrite would have to re-encrypt or remove
     /// the encryption. Reading decrypts, but nothing encrypts on save yet, so `laminapdf-save`'s
-    /// writers refuse it before writing unless the save removes the encryption.
+    /// writers refuse such a save before writing, unless it removes the encryption.
     #[error("cannot save an encrypted document yet")]
     EncryptedBase,
     /// The document is encrypted with a non-empty user password and

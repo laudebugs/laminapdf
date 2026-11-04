@@ -227,21 +227,21 @@ pub enum Warning {
     },
     /// `font-invalid`: a font dictionary read for text extraction has a missing, unreadable
     /// or malformed entry (descendant font, encoding, `/Differences`, widths, font program);
-    /// its text was decoded with defaults (raised by `laminapdf-text`).
+    /// its text was decoded with defaults. Raised by `laminapdf-text`.
     FontInvalid {
         /// The font dictionary's object (`None` for a direct one).
         object: Option<u32>,
     },
     /// `cmap-invalid`: a font's CMap or ToUnicode CMap had malformed entries (skipped), names
     /// a predefined CMap Lamina PDF has no table for (read as Identity), or a `/UseCMap` chain
-    /// too deep (cut) (raised by `laminapdf-text`).
+    /// too deep (cut). Raised by `laminapdf-text`.
     CMapInvalid {
         /// The font dictionary's object (`None` for a direct one).
         object: Option<u32>,
     },
     /// `unmapped-glyph`: a font showed glyphs that neither its ToUnicode CMap, its encoding's
-    /// glyph names nor its font program map to text; they extract as U+FFFD (raised by
-    /// `laminapdf-text`).
+    /// glyph names nor its font program map to text; they extract as U+FFFD. Raised by
+    /// `laminapdf-text`.
     UnmappedGlyph {
         /// The font dictionary's object (`None` for a direct one).
         object: Option<u32>,

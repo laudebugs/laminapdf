@@ -3,12 +3,12 @@
 //! in commit messages and plans, where `git log` and the board keep it.
 //!
 //! The IDs are read from the todo board's file names (`docs/todos/<state>/<ID>-<title>.md`), so a
-//! new todo is banned as soon as it exists. Only IDs of docs-prose's shape count
-//! ([`is_todo_id`]: a letter suffix, as in `B5b` and `Q2t`): the plain ones (`A1`, `H2`, `P1`,
-//! `X1`) are also paper sizes, heading levels and the Unicode bidi algorithm's rule names, which
-//! code may name. A suffixed ID that is also a name code needs (UAX #9's rule `X5a`, should a
-//! todo `X5a` ever exist) goes in `id_exceptions` in `tools/xtask/docs-prose.toml`, which
-//! docs-prose skips too.
+//! new todo is banned as soon as it exists. Only IDs with a letter suffix count (`B5b`, `Q2t`;
+//! docs-prose's [`is_todo_id`]). The plain ones (`A1`, `H2`, `P1`, `X1`) are also paper sizes,
+//! heading levels and the Unicode bidi algorithm's rule names, which code may name. When code
+//! must name something that shares a todo's ID (UAX #9's rule `X5a`, should a todo `X5a` ever
+//! exist), add the word to `id_exceptions` in `tools/xtask/docs-prose.toml`; docs-prose skips
+//! those words too.
 
 use crate::docs_prose::is_todo_id;
 use crate::lines;
