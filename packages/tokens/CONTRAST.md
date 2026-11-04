@@ -60,6 +60,10 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `warning` | `warning-tint` | text ≥ 4.5 | 5.21 | 5.21 | 5.21 | 5.21 |  |
 | `disabled` | `surface` | text ≥ 4.5 | 2.59 | 2.59 | 2.59 | 2.59 | disabled controls are exempt (WCAG 1.4.3) |
 | `on-pill` | `pill` | text ≥ 4.5 | 8.95 | 8.95 | 8.95 | 8.95 |  |
+| `outline-blue` | `ground` | text ≥ 4.5 | 8.31 | 8.31 | 8.31 | 8.31 |  |
+| `outline-blue` | `surface` | text ≥ 4.5 | 8.67 | 8.67 | 8.67 | 8.67 |  |
+| `outline-blue` | `raised` | text ≥ 4.5 | 8.67 | 8.67 | 8.67 | 8.67 |  |
+| `outline-blue` | `accent-tint` | text ≥ 4.5 | 7.22 | 7.14 | 7.13 | 7.22 |  |
 | `accent` | `ground` | text ≥ 4.5 | 6.91 | 8.31 | 8.38 | 7.27 |  |
 | `accent` | `surface` | text ≥ 4.5 | 7.21 | 8.67 | 8.75 | 7.59 |  |
 | `accent` | `raised` | text ≥ 4.5 | 7.21 | 8.67 | 8.75 | 7.59 |  |
@@ -122,6 +126,10 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `warning` | `warning-tint` | text ≥ 4.5 | 5.50 | 5.50 | 5.50 | 5.50 |  |
 | `disabled` | `surface` | text ≥ 4.5 | 2.64 | 2.64 | 2.64 | 2.64 | disabled controls are exempt (WCAG 1.4.3) |
 | `on-pill` | `pill` | text ≥ 4.5 | 17.18 | 17.18 | 17.18 | 17.18 |  |
+| `outline-blue` | `ground` | text ≥ 4.5 | 7.77 | 7.77 | 7.77 | 7.77 |  |
+| `outline-blue` | `surface` | text ≥ 4.5 | 7.14 | 7.14 | 7.14 | 7.14 |  |
+| `outline-blue` | `raised` | text ≥ 4.5 | 6.43 | 6.43 | 6.43 | 6.43 |  |
+| `outline-blue` | `accent-tint` | text ≥ 4.5 | 5.22 | 5.21 | 5.25 | 5.15 |  |
 | `accent` | `ground` | text ≥ 4.5 | 7.97 | 7.77 | 7.49 | 7.89 |  |
 | `accent` | `surface` | text ≥ 4.5 | 7.32 | 7.14 | 6.88 | 7.25 |  |
 | `accent` | `raised` | text ≥ 4.5 | 6.59 | 6.43 | 6.19 | 6.53 |  |
@@ -167,6 +175,7 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `accent` | `ground` | text ≥ 4.5 | browser |  |
 | `accent-strong` | `ground` | text ≥ 4.5 | browser |  |
 | `focus` | `ground` | focus ≥ 3 | browser |  |
+| `outline-blue` | `ground` | text ≥ 4.5 | browser |  |
 
 ## Page: original
 
@@ -247,7 +256,6 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `content.page.grey` | `appearance.original.paper` | text ≥ 4.5 | 5.37 |  |
 | `content.page.teal` | `appearance.original.paper` | text ≥ 4.5 | 7.58 |  |
 | `content.page.red` | `appearance.original.paper` | text ≥ 4.5 | 7.82 |  |
-| `content.outline-blue` | `theme.light.surface` | text ≥ 4.5 | 8.67 |  |
 | `content.signature.black` | `appearance.original.paper` | text ≥ 4.5 | 16.81 |  |
 | `content.signature.dark-blue` | `appearance.original.paper` | text ≥ 4.5 | 12.97 |  |
 | `primitive.color.neutral.1000` | `content.presence.violet` | text ≥ 4.5 | 7.45 |  |

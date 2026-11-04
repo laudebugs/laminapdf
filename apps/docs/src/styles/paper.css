@@ -84,22 +84,24 @@
   --sl-color-hairline-shade: var(--paper-ground);
   --sl-color-backdrop-overlay: rgba(0, 0, 0, 0.5);
 
-  /* Asides (dark, proposed for U6a to review): low is the background, base the edge, high the
-     title. WCAG ratios on low: high 6.61 / 6.34 / 8.08 / 7.55 / 7.53 (blue, purple, orange, red,
-     green), body text 9.19 to 10.68, edge 5.06 to 6.16. */
+  /* Asides (dark): low is the background, base the edge, high the title. The lows and bases are
+     tokens; purple is the Plum accent's dark values, written out because the stylesheet holds
+     only the current accent; the highs are this site's own. WCAG ratios on low: high 6.61 / 6.34
+     / 7.22 / 6.62 / 6.98 (blue, purple, orange, red, green), body text 9.02 to 9.37, edge 4.86
+     to 5.50. */
   --sl-color-blue-low: var(--paper-accent-tint);
   --sl-color-blue: var(--paper-accent);
   --sl-color-blue-high: var(--paper-accent-strong);
   --sl-color-purple-low: #3f383e;
   --sl-color-purple: #c59fd9;
   --sl-color-purple-high: #d6b6e7;
-  --sl-color-orange-low: #3b3324;
+  --sl-color-orange-low: var(--paper-warning-tint);
   --sl-color-orange: var(--paper-warning);
   --sl-color-orange-high: #f0cb8a;
-  --sl-color-red-low: #3f2b2e;
+  --sl-color-red-low: var(--paper-danger-tint);
   --sl-color-red: var(--paper-danger);
   --sl-color-red-high: #f5b3bb;
-  --sl-color-green-low: #2b3a30;
+  --sl-color-green-low: var(--paper-positive-tint);
   --sl-color-green: var(--paper-positive);
   --sl-color-green-high: #a9d8b6;
 
@@ -137,22 +139,23 @@
   --sl-color-hairline-shade: var(--paper-hairline);
   --sl-color-backdrop-overlay: rgba(31, 29, 26, 0.3);
 
-  /* Asides (light): tints over `surface`, the token as the edge and the title (§2.1, §2.8).
-     WCAG ratios on low: title 8.37 / 9.63 / 5.21 / 6.31 / 5.32 (blue, purple, orange, red,
-     green), body text 13.16 to 13.92. */
+  /* Asides (light): tints over `surface`, the token as the edge and the title (§2.1, §2.8);
+     purple is the Plum accent's light values, written out as in the dark block. WCAG ratios on
+     low: title 8.37 / 9.63 / 5.21 / 6.31 / 5.32 (blue, purple, orange, red, green), body text
+     13.16 to 13.92. */
   --sl-color-blue-low: var(--paper-accent-tint);
   --sl-color-blue: var(--paper-accent);
   --sl-color-blue-high: var(--paper-accent-strong);
   --sl-color-purple-low: #e8e2e4;
   --sl-color-purple: #5b3b6b;
   --sl-color-purple-high: #472856;
-  --sl-color-orange-low: #f0e8dc;
+  --sl-color-orange-low: var(--paper-warning-tint);
   --sl-color-orange: var(--paper-warning);
   --sl-color-orange-high: var(--paper-warning);
-  --sl-color-red-low: #f1e4e2;
+  --sl-color-red-low: var(--paper-danger-tint);
   --sl-color-red: var(--paper-danger);
   --sl-color-red-high: var(--paper-danger);
-  --sl-color-green-low: #e7ebe3;
+  --sl-color-green-low: var(--paper-positive-tint);
   --sl-color-green: var(--paper-positive);
   --sl-color-green-high: var(--paper-positive);
 }

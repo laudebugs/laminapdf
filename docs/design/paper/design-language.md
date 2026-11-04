@@ -109,12 +109,11 @@ A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), no
 | Tokens | System colour |
 | --- | --- |
 | `ground`, `surface`, `raised`, `field`, `gutter`, the three tints, `accent-tint`, `field-tint`, `hover`, `pressed`, `pill`, `scrim`, `on-accent` | `Canvas` |
-| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `danger`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
-| `accent`, `accent-strong`, primary pressed | `LinkText` |
-| `control-border` | `ButtonBorder` |
+| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `control-border`, `danger`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
+| `accent`, `accent-strong`, primary pressed, the outline Blue | `LinkText` |
 | `disabled` | `GrayText` |
 
-Shadows are `none` in that theme. `accent` maps to `LinkText` rather than `Highlight`, and `focus` to `CanvasText`, because each system palette pairs those with `Canvas`, while `Highlight` varies most between palettes (Chromium's default is a translucent blue).
+Shadows are `none` in that theme. `accent` maps to `LinkText` rather than `Highlight`, and `focus` and `control-border` to `CanvasText` rather than `Highlight` and `ButtonBorder`, because each system palette pairs `LinkText` and `CanvasText` with `Canvas`, while the other two vary most between palettes (Chromium's default `Highlight` is a translucent blue).
 
 ### 2.4 Page appearance
 
@@ -169,7 +168,7 @@ Colours written into the file or drawn on the page. Like the highlight colours (
 | --- | --- | --- |
 | Annotation line colours | Black `#262421` (15.48 on white) · Red `#B3261E` (≈ 6.5) · Blue `#2D5DA8` (≈ 6.4) · Green `#2F6A45` (6.43) | Underline, strike, caret, ink, shapes, lines and annotation text. The Comment toolbar swaps between these and the highlight (fill) colours with the tool |
 | Page content colours | Ink `#262421` · Grey `#6E6A64` · Teal `#1F5C63` · Red `#9B2335` · Custom…; "No fill" is a white swatch with a red diagonal. An existing object's colour comes first, named "(original)" | Text, shapes and fills added or edited in Edit mode |
-| Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`) | Bookmark rows |
+| Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`). **(proposed)** In the dark theme the rail shows Blue as `#91B3DC`, the Blue accent's dark value (7.77 on ground), since `#2D4A6B` measures 1.85 there; the file always gets `#2D4A6B` | Bookmark rows |
 | Signature ink | Black `#1F1D1A` · Dark blue `#1F2F5C` (12.97 on white) | Drawn and typed signatures |
 | Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue. A remote selection is a 2 px **dashed** outline with its name tab; your own selection stays solid `focus`, so the two differ whatever the accent (§2.8) |
 | Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline at a 2 px offset **and** its number chip (“3 of 14”), so it never relies on the accent hue alone (the Blue accent is the overlay blue, §2.8) |

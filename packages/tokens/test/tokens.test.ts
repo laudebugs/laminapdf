@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { cssName, emitContrast, emitCss, emitTs } from "../scripts/emit.ts";
+import { colour, cssName, emitContrast, emitCss, emitTs } from "../scripts/emit.ts";
 import {
   ACCENTS,
   APPEARANCES,
   aliasOf,
   appearanceContext,
+  type Colour,
   type Context,
   contexts,
   flatten,
@@ -69,6 +70,14 @@ describe("tokens.json", () => {
 
   it("gives every colour a role, and every role the pairs it needs", () => {
     expect(contexts(tokens).flatMap(({ ctx, accent }) => roleProblems(ctx, accent))).toEqual([]);
+  });
+
+  it("writes each colour's hex as its components say", () => {
+    const differ = [...tokens.values()]
+      .filter((t) => t.type === "color" && aliasOf(t.value) === undefined)
+      .filter((t) => (t.value as Colour).hex !== colour({ ...(t.value as Colour), alpha: 1 }))
+      .map((t) => t.path);
+    expect(differ).toEqual([]);
   });
 
   it("lets component tokens read semantic tokens, never primitives", () => {

@@ -15,7 +15,6 @@ import {
   measure,
   resolve,
   resolveFor,
-  swapAccent,
   THEMES,
   type Token,
 } from "./model.ts";
@@ -62,10 +61,17 @@ function length(d: Dimension): string {
   return d.value === 0 ? "0" : `${d.value}${d.unit}`;
 }
 
-function colour(c: Colour): string {
-  const [r, g, b] = c.components.map((x) => Math.round(x * 255));
-  if (c.alpha === undefined || c.alpha === 1) return c.hex ?? `rgb(${r}, ${g}, ${b})`;
-  return `rgba(${r}, ${g}, ${b}, ${c.alpha})`;
+/** A colour as CSS, from its components (the `hex` field is a readable copy the tests compare). */
+export function colour(c: Colour): string {
+  const [r, g, b] = c.components.map((x) => Math.round(x * 255)) as [number, number, number];
+  if (c.alpha !== undefined && c.alpha < 1) return `rgba(${r}, ${g}, ${b}, ${c.alpha})`;
+  return `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0").toUpperCase()).join("")}`;
+}
+
+/** A DTCG duration in ms (it may be written in `s` or `ms`). */
+function ms(d: Dimension): number {
+  if (d.unit !== "ms" && d.unit !== "s") throw new Error(`unknown duration unit ${d.unit}`);
+  return d.unit === "s" ? d.value * 1000 : d.value;
 }
 
 function shadow(token: Token): string {
@@ -98,7 +104,7 @@ function literal(token: Token): string {
     case "dimension":
       return length(token.value as Dimension);
     case "duration":
-      return `${(token.value as Dimension).value}ms`;
+      return `${ms(token.value as Dimension)}ms`;
     case "number":
       return String(token.value);
     case "fontFamily":
@@ -120,7 +126,8 @@ function cssValue(tokens: Map<string, Token>, token: Token): string {
   if (target !== undefined) {
     const name = cssName(target);
     const fixed = FIXED.includes(target.split(".")[0] ?? "");
-    if (token.lamina.followsAccent) return `var(--paper-${cssName(swapAccent(target, DEFAULT_ACCENT))})`;
+    // The page-tint variables every accent block declares (checked in model.ts's resolveFor).
+    if (token.lamina.followsAccent && name !== undefined) return `var(--paper-${name})`;
     if (name !== undefined && (fixed || scope(target) === scope(token.path))) return `var(--paper-${name})`;
   }
   return literal(resolve(tokens, token.path));
@@ -166,7 +173,7 @@ function blocks(tokens: Map<string, Token>): Block[] {
   const fixed = FIXED.flatMap((g) => decl(`${g}.`));
   const reduced = [...tokens.values()].flatMap((t): [string, string][] => {
     const r = t.lamina.reducedMotion;
-    return r === undefined ? [] : [[cssName(t.path) ?? "", `${r.value}${r.unit}`]];
+    return r === undefined ? [] : [[cssName(t.path) ?? "", `${ms(r)}ms`]];
   });
   return [
     { comment: "Fixed: every theme and appearance", selectors: [":root"], decls: fixed },
@@ -252,7 +259,7 @@ function tsValue(token: Token): unknown {
       return d.value;
     }
     case "duration":
-      return (token.value as Dimension).value;
+      return ms(token.value as Dimension);
     case "number":
       return token.value;
     default:
@@ -368,9 +375,18 @@ export function emitContrast(tokens: Map<string, Token>): string {
     sections.push(`## ${title}`, "", `| Foreground | On | Needs | ${columns.join(" | ")} | Waived |`);
     sections.push(`| --- | --- | --- | ${columns.map(() => "---").join(" | ")} | --- |`, ...groups.map(row), "");
   };
+  // One row per (foreground, background), one column per accent, whatever order each declares them in.
   const byAccent = (prefix: string) => {
-    const sets = ACCENTS.map((a) => all.find((c) => c.accent === a && c.label === `${prefix} · ${a}`)?.pairs ?? []);
-    return (sets[0] ?? []).map((_, i) => sets.map((s) => s[i]).filter((m): m is Measured => m !== undefined));
+    const rows = new Map<string, Measured[]>();
+    for (const accent of ACCENTS) {
+      for (const m of all.find((c) => c.label === `${prefix} · ${accent}`)?.pairs ?? []) {
+        const key = `${m.fg} on ${m.on}`;
+        const row = rows.get(key) ?? [];
+        if (row.length !== ACCENTS.indexOf(accent)) throw new Error(`${prefix}: ${key} is missing for an accent`);
+        rows.set(key, [...row, m]);
+      }
+    }
+    return [...rows.values()];
   };
   for (const t of ["light", "dark"]) table(`Paper ${t}`, [...ACCENTS], byAccent(t));
   table(

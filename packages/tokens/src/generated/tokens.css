@@ -115,7 +115,6 @@
   --paper-content-page-grey: #6E6A64;
   --paper-content-page-teal: #1F5C63;
   --paper-content-page-red: #9B2335;
-  --paper-content-outline-blue: #2D4A6B;
   --paper-content-signature-black: #1F1D1A;
   --paper-content-signature-dark-blue: #1F2F5C;
   --paper-content-presence-violet: #5B4B8A;
@@ -153,6 +152,7 @@
   --paper-scrim: rgba(31, 29, 26, 0.3);
   --paper-pill: rgba(31, 29, 26, 0.78);
   --paper-on-pill: #FFFFFF;
+  --paper-outline-blue: #2D4A6B;
   --paper-shadow-page: 0 1px 2px 0 rgba(60, 48, 30, 0.08), 0 8px 28px 0 rgba(60, 48, 30, 0.1);
   --paper-shadow-page-phone: 0 1px 2px 0 rgba(60, 48, 30, 0.08), 0 6px 20px 0 rgba(60, 48, 30, 0.1);
   --paper-shadow-thumbnail: 0 1px 3px 0 rgba(60, 48, 30, 0.12);
@@ -258,6 +258,7 @@
   --paper-scrim: rgba(0, 0, 0, 0.5);
   --paper-pill: rgba(31, 29, 26, 0.78);
   --paper-on-pill: #FFFFFF;
+  --paper-outline-blue: #91B3DC;
   --paper-shadow-page: 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 8px 28px 0 rgba(0, 0, 0, 0.45);
   --paper-shadow-page-phone: 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 8px 28px 0 rgba(0, 0, 0, 0.45);
   --paper-shadow-thumbnail: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
@@ -330,6 +331,7 @@
     --paper-scrim: rgba(0, 0, 0, 0.5);
     --paper-pill: rgba(31, 29, 26, 0.78);
     --paper-on-pill: #FFFFFF;
+    --paper-outline-blue: #91B3DC;
     --paper-shadow-page: 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 8px 28px 0 rgba(0, 0, 0, 0.45);
     --paper-shadow-page-phone: 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 8px 28px 0 rgba(0, 0, 0, 0.45);
     --paper-shadow-thumbnail: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
@@ -394,7 +396,7 @@
   --paper-muted: CanvasText;
   --paper-hairline: CanvasText;
   --paper-chip-border: CanvasText;
-  --paper-control-border: ButtonBorder;
+  --paper-control-border: CanvasText;
   --paper-on-accent: Canvas;
   --paper-danger: CanvasText;
   --paper-positive: CanvasText;
@@ -414,6 +416,7 @@
   --paper-accent-tint: Canvas;
   --paper-focus: CanvasText;
   --paper-field-tint: Canvas;
+  --paper-outline-blue: LinkText;
   --paper-shadow-page: none;
   --paper-shadow-page-phone: none;
   --paper-shadow-thumbnail: none;
@@ -436,7 +439,7 @@
     --paper-muted: CanvasText;
     --paper-hairline: CanvasText;
     --paper-chip-border: CanvasText;
-    --paper-control-border: ButtonBorder;
+    --paper-control-border: CanvasText;
     --paper-on-accent: Canvas;
     --paper-danger: CanvasText;
     --paper-positive: CanvasText;
@@ -456,6 +459,7 @@
     --paper-accent-tint: Canvas;
     --paper-focus: CanvasText;
     --paper-field-tint: Canvas;
+    --paper-outline-blue: LinkText;
     --paper-shadow-page: none;
     --paper-shadow-page-phone: none;
     --paper-shadow-thumbnail: none;

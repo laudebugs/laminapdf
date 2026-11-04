@@ -16,11 +16,17 @@ const RUNS_UNEXPORTED: Record<string, string[]> = {
   "test/workerd/worker.ts": ["test/workerd/worker.ts"],
   examples: ["examples/**/*.{ts,mjs}"],
   bench: ["bench/**/*.mjs"],
-  scripts: ["scripts/**/*.{mjs,ts}"],
+  scripts: ["scripts/**/*.mjs"],
 };
 
+/** Whether `packages/<dir>/<sub>` holds a file ending in `ext`. */
+function holds(dir: string, sub: string, ext: string): boolean {
+  const path = `packages/${dir}/${sub}`;
+  return existsSync(path) && readdirSync(path).some((f) => f.endsWith(ext));
+}
+
 function entries(dir: string): string[] {
-  const at = (p: string) => existsSync(`packages/${dir}/${p}`);
+  const at = (p: string) => (p === "scripts" ? holds(dir, p, ".mjs") : existsSync(`packages/${dir}/${p}`));
   const runs = Object.entries(RUNS_UNEXPORTED).flatMap(([p, globs]) => (at(p) ? globs : []));
   const vitest = readdirSync(`packages/${dir}`).some((f) => /^vitest\..*config\.ts$/.test(f))
     ? ["vitest.*config.ts"]
@@ -29,8 +35,8 @@ function entries(dir: string): string[] {
 }
 
 function project(dir: string): string[] {
-  const scripts = `packages/${dir}/scripts`;
-  const tsScripts = existsSync(scripts) && readdirSync(scripts).some((f) => f.endsWith(".ts"));
+  // A TypeScript script (run by a package.json script, which knip reads as the entry) is project code.
+  const tsScripts = holds(dir, "scripts", ".ts");
   return [
     ...["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
       existsSync(`packages/${dir}/${g.split("/")[0]}`),

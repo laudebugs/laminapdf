@@ -5,13 +5,13 @@
 import { composite, contrastRatio, type Rgba } from "../src/contrast.ts";
 
 /** Where a value came from: copied from the design files, proposed, or approved by the owner. */
-export type Status = "from-files" | "proposed" | "approved";
+type Status = "from-files" | "proposed" | "approved";
 
 /** What a colour does, which decides the pairs it needs (README: "Declaring a pair"). */
-export type Role = "background" | "text" | "boundary" | "focus" | "decorative";
+type Role = "background" | "text" | "boundary" | "focus" | "decorative";
 
 /** A foreground on a background, measured against `min`; `{x}` names a token of the same context. */
-export interface Pair {
+interface Pair {
   on: string;
   min: number;
   fg?: string;
@@ -22,7 +22,7 @@ export interface Pair {
 }
 
 /** The `$extensions["dev.lamina"]` entry every token above the primitives carries. */
-export interface Lamina {
+interface Lamina {
   /** Absent on primitives: the tokens that use one carry the status of the value. */
   status?: Status;
   role?: Role;
@@ -139,7 +139,7 @@ export function appearanceContext(tokens: Map<string, Token>, appearance: string
 }
 
 /** The token a contrast reference names: a short name of the context, else a full path. */
-export function lookup(tokens: Map<string, Token>, ctx: Context, accent: string, ref: string): Token {
+function lookup(tokens: Map<string, Token>, ctx: Context, accent: string, ref: string): Token {
   const name = aliasOf(ref);
   if (name === undefined) throw new Error(`${ctx.label}: "${ref}" is not a {reference}`);
   const path = ctx.names.get(name) ?? name;
@@ -149,21 +149,22 @@ export function lookup(tokens: Map<string, Token>, ctx: Context, accent: string,
 /** `resolve`, with a `followsAccent` token's default accent replaced by `accent`. */
 export function resolveFor(tokens: Map<string, Token>, path: string, accent: string): Token {
   const token = tokens.get(path);
-  const target = aliasOf(token?.value);
-  if (token?.lamina.followsAccent && target !== undefined) {
-    return resolve(tokens, swapAccent(target, accent), [path]);
+  if (!token?.lamina.followsAccent) return resolve(tokens, path);
+  const target = aliasOf(token.value);
+  if (!target?.startsWith(`accent.${DEFAULT_ACCENT}.page.`)) {
+    throw new Error(`${path}: followsAccent needs an alias to accent.${DEFAULT_ACCENT}.page.…`);
   }
-  return resolve(tokens, path);
+  return resolve(tokens, swapAccent(target, accent), [path]);
 }
 
 /** `accent.teal.…` as `accent.<accent>.…`. */
-export function swapAccent(path: string, accent: string): string {
+function swapAccent(path: string, accent: string): string {
   const prefix = `accent.${DEFAULT_ACCENT}.`;
   return path.startsWith(prefix) ? `accent.${accent}.${path.slice(prefix.length)}` : path;
 }
 
 /** A colour token's value as straight RGBA in 0–255 (alpha 0–1). */
-export function rgba(token: Token): Rgba {
+function rgba(token: Token): Rgba {
   const c = token.value as Colour;
   if (token.type !== "color" || c.colorSpace !== "srgb") throw new Error(`${token.path}: not an sRGB colour`);
   const [r, g, b] = c.components.map((x) => Math.round(x * 255)) as [number, number, number];
