@@ -3,13 +3,13 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1c](../done/Q1c-examples-checks.md) |
-| Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md) |
+| Blocks | [Q1j](../ready/Q1j-recipes-and-troubleshooting.md) |
 | ADRs | None |
-| Branch | `refactor/q1g-worker-examples` |
+| Branch | `claude/working-session-9g3nst` |
 | PR title | `refactor(examples): Cloudflare Worker and Web Worker examples without repo internals` |
 | Size | S |
 | PR | — |

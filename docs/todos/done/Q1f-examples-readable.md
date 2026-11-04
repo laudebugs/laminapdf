@@ -36,7 +36,7 @@ This todo rewrites the TypeScript and Rust examples to the [examples guideline](
 
 **Out of scope** (and which todo covers it)
 
-- Cloudflare Worker and Web Worker examples ([Q1g](../ready/Q1g-worker-examples.md)).
+- Cloudflare Worker and Web Worker examples ([Q1g](../ongoing/Q1g-worker-examples.md)).
 - Quick-start apps ([Q1e](../done/Q1e-quick-start-apps.md)).
 
 ## Tasks
@@ -47,7 +47,7 @@ This todo rewrites the TypeScript and Rust examples to the [examples guideline](
 - [x] Refactor one TS/Rust pair at a time; after each, run both reference suites.
 - [x] Add `using` to every TS example and remove the manual freeing.
 - [x] Rename `vectors.rs` and its reference PDF (`cargo xtask golden --update` for the rename only), and align header sentences.
-- [x] Run `docs-snippets`, the Biome override and `clippy-examples` with `--all-strict` on the examples. (Strict on every example this PR changed; `--all-strict` still reports the Worker examples, which are [Q1g](../ready/Q1g-worker-examples.md)'s, and the `text-facts` tool.)
+- [x] Run `docs-snippets`, the Biome override and `clippy-examples` with `--all-strict` on the examples. (Strict on every example this PR changed; `--all-strict` still reports the Worker examples, which are [Q1g](../ongoing/Q1g-worker-examples.md)'s, and the `text-facts` tool.)
 
 ## Acceptance criteria
 
@@ -87,4 +87,4 @@ Refactoring can reorder font registration and change object order: keep the orde
 - `invoice.pdf` is the one reference PDF that changed. To fit 100 lines with named numbers, the invoice lost its accent bar, payment link and row rules, and its total moved into the amount column. `pdf_ua_report` and `pdf_a_archive` still show links and decoration marked as artifacts. Its render goldens, the page-text snapshot and PDFium's character boxes were regenerated.
 - The 100-page report now takes its right edge from the page size, so `REPORT_SHA256` changed, along with its Rust twin, the `report_100_pages` bench.
 - `multilingual` takes its fonts as a parameter, and the five scripts' text stays in the example, because that text is what the example shows. Each suite has an options function, not one `EXAMPLE_OPTIONS`, because each reference PDF has its own file ID.
-- The Cloudflare Worker example and `worker-client.ts` are left to [Q1g](../ready/Q1g-worker-examples.md).
+- The Cloudflare Worker example and `worker-client.ts` are left to [Q1g](../ongoing/Q1g-worker-examples.md).
