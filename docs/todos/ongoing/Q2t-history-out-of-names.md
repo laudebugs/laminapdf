@@ -12,7 +12,7 @@
 | Branch | `refactor/q2t-history-out-of-names` |
 | PR title | `refactor: name tests for behaviour; no todo IDs in src comments` |
 | Size | S |
-| PR | — |
+| PR | [#223](https://github.com/laudebugs/laminapdf/pull/223) |
 
 ## Goal
 
