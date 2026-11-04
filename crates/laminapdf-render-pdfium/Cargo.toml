@@ -27,6 +27,8 @@ pdfium-render = { workspace = true }
 # The goldens and cross-checks render with both backends and compare sizes with lamina's model.
 laminapdf = { path = "../laminapdf" }
 laminapdf-render = { path = "../laminapdf-render", features = ["hayro"] }
+# The test helpers every crate shares (code-organization.md §6).
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 png = { workspace = true }
 serde_json = { workspace = true }
 

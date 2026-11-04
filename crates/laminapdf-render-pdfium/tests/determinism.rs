@@ -4,8 +4,9 @@
 
 mod common;
 
-use common::{fixture, open, render};
+use common::{open, render};
 use laminapdf_render::{RenderOpenOptions, RenderRequest};
+use laminapdf_test_fixtures::fixture;
 
 #[test]
 #[ignore = "needs the PDFium library: cargo xtask render-golden"]
