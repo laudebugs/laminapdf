@@ -1,0 +1,32 @@
+---
+title: Open someone else's file
+description: Open an uploaded PDF with an optional password and tighter limits, and get its page count and warnings, or the error, back as a value.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll open a PDF from someone else, with a password if it needs one and tighter limits than the defaults, and get the outcome as a value. You need this wherever you accept uploads: a stranger's file can be damaged, locked or built to use up memory.
+
+The function opens the bytes under its limits and returns the page count and warning codes, or the error's code and hint:
+
+<Snippet file="packages/sdk/examples/open-untrusted.ts" />
+
+It writes no PDF. The value it returns is the result: `{ ok: true, pages, warnings }` for a file that opened, or `{ ok: false, code, hint }`, such as `password-required` for a locked file opened without its password.
+
+## How it works
+
+- It needs only `init()`: opening a file uses the base module, without fonts or text.
+- `Document.open` gets the password only when you pass one, and tries it against both of the file's passwords. See [Open password-protected files](/guides/password-protected-files/).
+- `LIMITS` allows 16 MiB decoded from one stream and 64 MiB in all, against defaults of 64 MiB and 1 GiB. A file that needs more fails with `limit-exceeded`, and every other limit keeps its default.
+- A file can open and still carry warnings: each one names a repair or a dropped value, and the function returns their codes.
+- `isLaminaPdfError(e)` picks out Lamina PDF's coded errors, whose message and hint never contain text from the file. Any other error is a bug, so the function throws it again.
+- `using` frees the document as soon as the function returns, so the WebAssembly side keeps no copy of the file.
+
+## What to change
+
+- **Ask for the password again:** on `password-required` or `wrong-password`, ask your user and call `openUntrusted` again with their answer.
+- **Name the limit:** on `limit-exceeded`, return `e.data?.limit` too. It names the limit the file went over as Rust spells it, such as `max_stream_decoded` for `maxStreamDecoded`.
+- **Other limits:** add any limit from the table in [Open files you don't trust](/guides/untrusted-files/#hard-and-soft-limits), such as a lower `maxNestingDepth`.
+- **Refuse damaged files:** add `strict: true` to the options, and a file that needs repair fails with `strict` instead of opening with warnings.
+
+Next: [save in a Web Worker](/recipes/web-worker-client/), so a large file never freezes the page.

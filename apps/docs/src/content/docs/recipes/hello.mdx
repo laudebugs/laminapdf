@@ -1,0 +1,34 @@
+---
+title: Hello, world
+description: One A4 page with a line of text in a standard 14 font, the smallest PDF Lamina PDF writes, in TypeScript and Rust.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll make the smallest PDF Lamina PDF writes: one A4 page that says "Hello, world!" in Helvetica. Start from it to check that a new setup works, or as the skeleton of a document of your own.
+
+The function builds the page and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/hello.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/hello.rs" /></TabItem>
+</Tabs>
+
+The result is one page with the line near its top-left corner: [open the reference PDF](/examples/pdf/hello.pdf).
+
+## How it works
+
+- The builder makes an A4 page, and the page's surface is what you draw on.
+- `at` is in points from the top-left corner of the page, with y going down. Its second number is the text's baseline. See [Pages and coordinates](/concepts/pages-and-coordinates/).
+- Helvetica is one of the [standard 14 fonts](/reference/glossary/#standard-14-fonts), which every PDF viewer has, so the PDF embeds no font.
+- Finishing the builder gives a document, and saving the document gives its bytes. `using` in TypeScript frees both as soon as the function ends.
+
+## What to change
+
+- **The text and where it goes:** change the string, the size and `at`.
+- **The page size:** name another size, such as `"Letter"`, or pass `[width, height]` in points.
+- **The font:** for characters outside the standard 14 fonts' Latin set, embed a font. See [Text and fonts](/guides/fonts-and-text/).
+- **A file ID or a date of your own:** pass them in the builder's options. Without them, the file ID is a hash of the content and the PDF has no creation date, so the same code writes the same bytes on every run.
+
+Next: [an invoice](/recipes/invoice/), with an embedded font and a table of line items.

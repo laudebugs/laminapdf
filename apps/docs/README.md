@@ -1,6 +1,6 @@
 # `apps/docs`: the docs site
 
-Lamina PDF's documentation site ([todo B7a](../../docs/todos/done/B7a-docs-site.md)): [Astro](https://astro.build/) with [Starlight](https://starlight.astro.build/), served from Cloudflare Workers static assets. It has quick starts per runtime, guides, an examples gallery, the `@laminapdf/sdk` API reference (TypeDoc) and a page on the Rust API (rustdoc).
+Lamina PDF's documentation site ([todo B7a](../../docs/todos/done/B7a-docs-site.md)): [Astro](https://astro.build/) with [Starlight](https://starlight.astro.build/), served from Cloudflare Workers static assets. It has quick starts per runtime, guides, recipes (one per example) and troubleshooting, the `@laminapdf/sdk` API reference (TypeDoc) and a page on the Rust API (rustdoc).
 
 ```sh
 pnpm install                        # once per worktree

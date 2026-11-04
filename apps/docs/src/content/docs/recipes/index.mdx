@@ -1,0 +1,37 @@
+---
+title: Recipes
+description: Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes.
+---
+
+Each recipe is a complete program to copy: what it makes, the code, how it works and what to change. Pick the one closest to the document you need, and change it from there.
+
+Most recipes exist twice, in Rust and in TypeScript, and both write exactly the same bytes. Lamina PDF's tests check that on every change, in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. Each recipe shows the tested code, and its reference PDF is the file that code writes.
+
+To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf --example <name>`. Its header comment lists the arguments it takes, such as the font or image files it reads.
+
+## Create a PDF
+
+- [Hello, world](/recipes/hello/): one page of text in a standard 14 font.
+- [An invoice](/recipes/invoice/): an embedded font, a table of line items, and tags for screen readers.
+- [Multilingual text](/recipes/multilingual/): five scripts, each in its own embedded font.
+- [Images and vectors](/recipes/images-and-vectors/): paths, colour, transparency, a clip and two images.
+- [Links and outlines](/recipes/links-and-outlines/): links, an outline and page labels.
+
+## Edit a PDF
+
+- [Generate, then edit](/recipes/generate-then-edit/): open a file's bytes, change its metadata and save incrementally.
+
+## Meet a standard
+
+- [A PDF/UA report](/recipes/pdf-ua-report/): an accessible report a screen reader can follow.
+- [A PDF/A archive](/recipes/pdf-a-archive/): a letter for long-term archiving.
+- [A PDF/A-3 invoice with XML](/recipes/pdf-a3-invoice-with-xml/): an invoice with its data attached.
+
+## Run it in production (TypeScript)
+
+- [A 100-page report](/recipes/report/): the case Lamina PDF times in every runtime.
+- [Open someone else's file](/recipes/open-untrusted/): a password and tighter limits, with the outcome as a value.
+- [Save in a Web Worker](/recipes/web-worker-client/): progress and cancelling, off the main thread.
+- [A Cloudflare Worker](/recipes/cloudflare-worker/): a PDF per request.
+
+Next: [Hello, world](/recipes/hello/), the smallest PDF Lamina PDF writes.

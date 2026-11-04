@@ -1,0 +1,36 @@
+---
+title: Links and outlines
+description: Four A5 pages joined by web, page and named links, with a nested outline, page labels that read i, ii, 1, 2 and the outline shown on open.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll make four A5 pages joined by links to a website and between pages, an outline (the bookmarks panel) and page numbers that read i, ii, 1, 2. Start from it for a manual, a report or any document longer than a page or two.
+
+The function draws the four pages, links them and returns the PDF's bytes. It draws text, so in TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/links-and-outlines.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/links_and_outlines.rs" /></TabItem>
+</Tabs>
+
+The result is four A5 pages with an outline and page labels: [open the reference PDF](/examples/pdf/links_and_outlines.pdf).
+
+## How it works
+
+- `s.link(rect, target, contents)` puts a clickable box over each label on the title page. A target is a web address (`uri`), a page by its index from 0, or a named destination. See [Pages and coordinates](/concepts/pages-and-coordinates/#pages-count-from-0).
+- `destination("chapter-2", 3)` names the fourth page, so a link or an outline entry can go there by name. When the builder finishes, a missing page fails with `page-index-out-of-range` and a missing name with `unknown-destination`.
+- On the other pages, the `link` option of `text` (`.link(…)` on the run in Rust) makes the blue run itself the link, with no box to work out.
+- `contents` describes a link in words, for viewers and screen readers. Accessible PDFs need one on every link.
+- `outline` builds the bookmarks. "Chapters" has no target, so it's a heading, shown open and in bold with both chapters inside it.
+- `pageLabels` numbers the pages i and ii, then 1 and 2 from the third page. `pageMode: "outlines"` asks the viewer to open the file with the outline showing.
+
+## What to change
+
+- **Where a page link lands:** add a `fit` to the target, such as `fit: { type: "width" }` (`Fit::Width` in Rust) to fill the window with the page's width. `destination` takes one too.
+- **The page numbers:** a label also takes a `prefix` and a `first` number, so `{ start: 2, style: "decimal", prefix: "A-" }` numbers the chapters A-1 and A-2.
+- **The panel on open:** `pageMode` also takes `"thumbnails"`, `"attachments"` or `"none"`.
+- **A title and an author:** add `metadata({ title, author })`, and `displayDocTitle: true` in the viewer preferences so viewers show the title instead of the file name. See [Links, outlines and metadata](/guides/links-outlines-and-metadata/).
+
+Next: [generate, then edit](/recipes/generate-then-edit/), which opens a PDF you made and changes its metadata.

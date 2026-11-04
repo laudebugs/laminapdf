@@ -200,7 +200,7 @@ Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (
 
 ## Examples
 
-The [examples](https://docs.laminapdf.com/examples/) are `hello`, `invoice`, `multilingual`, `images-and-vectors`, `links-and-outlines` and `generate-then-edit`, plus `report`, 100 pages with two embedded fonts. Each produces the same bytes as its Rust twin.
+The [recipes](https://docs.laminapdf.com/recipes/) show each example with what it makes and what to change: `hello`, `invoice`, `multilingual`, `images-and-vectors`, `links-and-outlines` and `generate-then-edit`, plus `report`, 100 pages with two embedded fonts. Each produces the same bytes as its Rust twin.
 
 A Cloudflare Worker example generates a PDF per request: `/?name=Ada` returns a letter in Helvetica, and `/embedded?name=Ada` the same letter in a font bundled with the Cloudflare Worker. A name the font can't draw gets a 400 with the error as JSON. The [Cloudflare Workers quick start](https://docs.laminapdf.com/quick-start/workers/) shows it and how to run it.
 

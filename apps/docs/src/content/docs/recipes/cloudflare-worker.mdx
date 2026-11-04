@@ -1,0 +1,31 @@
+---
+title: A Cloudflare Worker
+description: A Cloudflare Worker that returns a one-page letter per request, in a standard 14 font or a bundled one, and a 400 for a name the font can't draw.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll make a Cloudflare Worker that returns a one-page letter to the name in its URL. You need this to make PDFs on request, such as tickets or receipts, without running a server of your own.
+
+The Cloudflare Worker draws the letter in Helvetica at `/?name=` and in a bundled Noto Sans at `/embedded?name=`, then returns the PDF:
+
+<Snippet file="packages/sdk/examples/worker/src/index.ts" />
+
+Open `/?name=Ada` and your browser shows one A4 page that says "Hello, Ada!" in 24-point type. To configure Wrangler and run it, follow the [Cloudflare Workers quick start](/quick-start/workers/).
+
+## How it works
+
+- `init({ text: true })` loads the WebAssembly modules the first time an isolate runs `fetch`, and returns at once after that. An isolate is one running copy of the Cloudflare Worker, which serves many requests.
+- `FONTS` maps each path to its font, made once per isolate. Helvetica is one of the [standard 14 fonts](/reference/glossary/#standard-14-fonts), so that PDF embeds no font. Noto Sans arrives as bytes from `src/fonts/`, and that PDF embeds only the glyphs the letter uses.
+- An unknown path gets a 404, and a name longer than `MAX_NAME` characters gets a 400 before anything is drawn.
+- `isNameError` turns two codes into a 400 with the error's JSON. `missing-glyph` means a character the font lacks, and `encoding-full` means more than 37 different letters outside Helvetica's Western European set. Any other error, such as a broken font file, becomes a 500.
+- `letter` frees its builder in `finally`, and `saveAndFree` frees the document once its bytes are copied out, because the isolate goes on to serve other requests.
+
+## What to change
+
+- **The document:** draw your own pages in `letter`, and keep both `finally` blocks, so a request that fails still frees what it made.
+- **Your fonts:** put the font files your documents need in `src/fonts/`, import each one and add it to `FONTS`. The quick start's Wrangler configuration bundles every `.ttf` and `.otf` file as bytes.
+- **Errors the caller caused:** add a code to `isNameError` when the request can cause it, such as `text-overflow` for a text box drawn with `overflow: "error"`. See [Errors and warnings](/concepts/errors-and-warnings/).
+- **A download name:** add `content-disposition: attachment; filename="letter.pdf"` to the headers in `pdf`, so browsers save the file instead of showing it.
+
+Next: [Troubleshooting](/troubleshooting/), for the problems people hit most and how to fix them.

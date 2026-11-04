@@ -45,4 +45,4 @@ If the Web Worker dies, pending calls reject with `worker-crashed`, and `client.
 
 Vite and webpack bundle the Web Worker with no setup. In Vite, exclude `@laminapdf/sdk` from `optimizeDeps`, as for the main entry. To host the Web Worker's file yourself, for example under a strict content security policy, pass `connect({ worker: () => new Worker(url, { type: "module" }) })`.
 
-Next: browse the [examples](/examples/), with the PDF each one makes.
+Next: browse the [recipes](/recipes/), with the PDF each one makes, or the [troubleshooting](/troubleshooting/) page when something goes wrong.

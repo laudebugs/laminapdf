@@ -1,0 +1,34 @@
+---
+title: An invoice
+description: A tagged one-page invoice with an embedded font, a table of line items with right-aligned amounts and a total, in TypeScript and Rust.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll make a one-page invoice: a heading, an address, a table of line items with right-aligned amounts, and a total. It's tagged, so a screen reader reads it in order. Start from it for any document built around a table, such as a quote or a receipt.
+
+The function takes a font file, draws the invoice and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/invoice.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/invoice.rs" /></TabItem>
+</Tabs>
+
+The result is one A4 page with its body set in Noto Sans: [open the reference PDF](/examples/pdf/invoice.pdf).
+
+## How it works
+
+- The body uses your font file, and Lamina PDF embeds only the glyphs the invoice draws. The heading uses Helvetica Bold, one of the [standard 14 fonts](/reference/glossary/#standard-14-fonts), so it embeds nothing.
+- Each quantity and amount is a text box aligned to its `end`, so the numbers line up on the right. `cell` works out each box from its column's width and its distance from the right margin.
+- `tagged: true` (`with_tagged(true)` in Rust) gives the document a structure for screen readers. The `tag` option and `s.tag(…)` make the heading an `H1`, the address and the total each a paragraph (`P`), and the items a `Table` of rows (`TR`) and cells (`TD`).
+- `metadata` sets the title and author, and `lang("en-GB")` tells a screen reader which language to speak.
+
+## What to change
+
+- **The line items:** edit `ITEMS`. Each row sits `ROW_HEIGHT` points below the one before, and the total follows the last row.
+- **The columns:** each pair in `COLUMNS` is a column's width and its distance from the right margin, in points.
+- **The currency:** change the `€` in the amount and total strings. Your font needs a glyph for the new symbol, or drawing fails with `missing-glyph`. See [Text and fonts](/guides/fonts-and-text/).
+- **A PDF/UA-1 invoice:** add `profiles: ["PDF/UA-1"]` (`with_profile(Profile::PdfUa1)` in Rust) to check the rules for accessible PDFs. PDF/UA-1 needs every font embedded, so load a bold font file for the heading. See [Accessible PDFs](/guides/accessible-pdfs/).
+
+Next: [multilingual text](/recipes/multilingual/), with five scripts, each in its own embedded font.

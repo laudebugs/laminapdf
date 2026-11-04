@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll open a PDF, change its title and author, and save the edit after the original bytes. You need this whenever your app changes a file someone gave it: a corrected title, a rotated scan, a report marked final.
 
-This example generates a draft report, opens its bytes and retitles it in one transaction. Then it saves incrementally and checks that the draft's bytes start the result, unchanged:
+This example generates a draft report, opens its bytes and retitles it in one transaction. Then it saves incrementally, which keeps the draft's bytes at the start of the result, unchanged:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
@@ -19,7 +19,7 @@ This example generates a draft report, opens its bytes and retitles it in one tr
   </TabItem>
 </Tabs>
 
-[See the output](/examples/#generate-then-edit).
+[See the output](/recipes/generate-then-edit/).
 
 Your edits live beside the bytes you opened and never change them. Nothing reaches a file until you save. [How Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/) explains why it works this way.
 
