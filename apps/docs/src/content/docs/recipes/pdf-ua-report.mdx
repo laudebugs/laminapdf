@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll build a one-page sales report that a screen reader can follow: headings, a table, a chart described in words and a link. You need this when a document has to meet accessibility law or a client's accessibility policy.
 
-The function turns on the PDF/UA-1 profile, then draws each part of the report inside a tag that says what it is: a heading, a table cell, a figure. Both languages write the same bytes:
+The function turns on the PDF/UA-1 profile, then draws each part of the report inside a tag that says what it is: a heading, a table cell, a figure. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-ua-report.ts" /></TabItem>
@@ -29,7 +29,7 @@ The result is one A4 page that reads, in order, as a title, a summary, a table o
 ## What to change
 
 - **The numbers:** change `QUARTERS`, then change `CHART_ALT` to match. The builder checks that the chart has alternate text, not that the text is right; see [What a program can't check](/guides/accessible-pdfs/#what-a-program-cant-check).
-- **A list:** nest an `"L"`, an `"LI"` for each item, and inside each a `"Lbl"` for the bullet and an `"LBody"` for the text. Any other nesting fails `finish()` with `invalid-structure-nesting`.
+- **A list:** nest an `"L"`, an `"LI"` for each item, and inside each a `"Lbl"` for the bullet and an `"LBody"` for the text. An `L` holds `LI` items or a nested `L`, and an `LI` holds a `Lbl` and an `LBody`: anything else inside them fails `finish()` with `invalid-structure-nesting`.
 - **A passage in another language:** tag it with its own, as in `{ type: "P", lang: "fr-FR" }` (`Tag::new(TagKind::P).with_lang("fr-FR")` in Rust).
 - **Accessible and archival at once:** add a PDF/A profile beside it, as in `profiles: ["PDF/A-2u", "PDF/UA-1"]`. The [PDF/A archive](/recipes/pdf-a-archive/) does this.
 

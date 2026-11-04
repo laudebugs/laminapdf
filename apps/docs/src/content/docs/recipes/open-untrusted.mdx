@@ -25,7 +25,7 @@ It writes no PDF. The value it returns is the result: `{ ok: true, pages, warnin
 ## What to change
 
 - **Ask for the password again:** on `password-required` or `wrong-password`, ask your user and call `openUntrusted` again with their answer.
-- **Name the limit:** on `limit-exceeded`, return `e.data?.limit` too, which names the limit the file went over.
+- **Name the limit:** on `limit-exceeded`, return `e.data?.limit` too. It names the limit the file went over as Rust spells it, such as `max_stream_decoded` for `maxStreamDecoded`.
 - **Other limits:** add any limit from the table in [Open files you don't trust](/guides/untrusted-files/#hard-and-soft-limits), such as a lower `maxNestingDepth`.
 - **Refuse damaged files:** add `strict: true` to the options, and a file that needs repair fails with `strict` instead of opening with warnings.
 

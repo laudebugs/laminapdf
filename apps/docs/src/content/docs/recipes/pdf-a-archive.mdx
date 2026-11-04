@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll write an order confirmation as a PDF/A file, which looks the same in any viewer for decades. You need it for documents kept for years, often by law: contracts, records, letters to customers. The recipe writes the letter twice, at two PDF/A levels.
 
-The function takes the level, `2b` or `2u`, and builds the same letter under that level's profiles. Both languages write the same bytes:
+The function takes the level, `2b` or `2u`, and builds the same letter under that level's profiles. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a-archive.ts" /></TabItem>

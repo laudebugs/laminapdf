@@ -37,7 +37,7 @@ This todo splits the 88-line Examples page into Recipes, one page per example (w
 
 - [x] Claim by opening the work PR (#218) off an up-to-date `main`. The cloud session that did the work had a plain clone and an assigned branch, so it worked on that branch instead of a worktree.
 - [x] Write one recipe page per example from the rewritten examples, each with a screenshot or description of the result. Thirteen recipes and an index that lists them by task; each links its reference PDF where one exists and describes the result otherwise. Three helper agents drafted twelve of them from the first; every claim was then checked against the example and the source.
-- [x] Write Troubleshooting from the error codes and the guides' asides; link each entry to its error page or guide. Eight entries, the review's list.
+- [x] Write Troubleshooting from the error codes and the guides' asides; link each entry to its error page or guide. Nine entries: the review's eight, with the text module and the extract module as two.
 - [x] Update the sidebar; redirect `/examples/`. Recipes and Troubleshooting come before Reference; the reference PDFs stay at `/examples/pdf/`, and the guides' anchors into the old page point at their recipes.
 - [ ] Run `docs-prose` and `docs-snippets`; run `/writing-review` after opening the PR.
 

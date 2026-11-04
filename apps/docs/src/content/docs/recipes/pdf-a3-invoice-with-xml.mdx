@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll write a one-page invoice as PDF/A-3b, with the same invoice attached as XML. You need this for e-invoices such as Factur-X and ZUGFeRD, where a person reads the PDF and the buyer's software reads the XML.
 
-The function draws the invoice, writes the same items as XML and attaches that file before it finishes. Both languages write the same bytes:
+The function draws the invoice, writes the same items as XML and attaches that file before it finishes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" /></TabItem>

@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll make the smallest PDF Lamina PDF writes: one A4 page that says "Hello, world!" in Helvetica. Start from it to check that a new setup works, or as the skeleton of a document of your own.
 
-The function builds the page and returns the PDF's bytes. Both languages write the same bytes:
+The function builds the page and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/hello.ts" /></TabItem>

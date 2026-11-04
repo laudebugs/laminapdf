@@ -142,7 +142,7 @@ export default defineConfig({
             { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },
             { label: "A PDF/A-3 invoice with XML", slug: "recipes/pdf-a3-invoice-with-xml" },
             { label: "A 100-page report", slug: "recipes/report" },
-            { label: "Open files you don't trust", slug: "recipes/open-untrusted" },
+            { label: "Open someone else's file", slug: "recipes/open-untrusted" },
             { label: "Save in a Web Worker", slug: "recipes/web-worker-client" },
             { label: "A Cloudflare Worker", slug: "recipes/cloudflare-worker" },
           ],
