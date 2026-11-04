@@ -1,0 +1,65 @@
+{
+  "rule": "Names within two edits of the given one (Levenshtein over code points, with ASCII letters lowercased first), closest first; names at the same distance in code-point order of the names as given.",
+  "cases": [
+    {
+      "about": "one close name",
+      "given": "pasword",
+      "known": ["password", "strict", "limits"],
+      "expected": ["password"]
+    },
+    {
+      "about": "no name within two edits",
+      "given": "colour",
+      "known": ["password", "strict"],
+      "expected": []
+    },
+    {
+      "about": "no names at all",
+      "given": "strict",
+      "known": [],
+      "expected": []
+    },
+    {
+      "about": "a tie listed against name order",
+      "given": "cat",
+      "known": ["hat", "bat"],
+      "expected": ["bat", "hat"]
+    },
+    {
+      "about": "three tied at one edit, then one at two",
+      "given": "size",
+      "known": ["sz", "sizes", "side", "seize"],
+      "expected": ["seize", "side", "sizes", "sz"]
+    },
+    {
+      "about": "two edits is the limit",
+      "given": "abcd",
+      "known": ["a", "ab"],
+      "expected": ["ab"]
+    },
+    {
+      "about": "matching ignores case and keeps the name as given",
+      "given": "PASSWORD",
+      "known": ["strict", "password"],
+      "expected": ["password"]
+    },
+    {
+      "about": "a tie is ordered by the names as given, so upper case comes first",
+      "given": "bold",
+      "known": ["bolt", "Gold"],
+      "expected": ["Gold", "bolt"]
+    },
+    {
+      "about": "an edit is one code point, so each emoji counts once",
+      "given": "pass\ud83d\ude00\ud83d\ude00rd",
+      "known": ["password"],
+      "expected": ["password"]
+    },
+    {
+      "about": "only ASCII letters are lowercased: the Kelvin sign is not k",
+      "given": "\u212a\u212a\u212a",
+      "known": ["kkk"],
+      "expected": []
+    }
+  ]
+}
