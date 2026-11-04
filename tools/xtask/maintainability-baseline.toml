@@ -16,4 +16,3 @@ test-helpers = []
 # Modules over the 800-line budget: path = lines of non-test code (blank lines, comment lines
 # and #[cfg(test)] items don't count). The splits in the quality plan's §6 clear them.
 [modules]
-"tools/xtask/src/render_diff.rs" = 923
