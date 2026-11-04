@@ -11,9 +11,10 @@
 mod common;
 
 use common::b5b::{self, golden_metadata};
-use common::{fixture, reopen, save};
+use common::{reopen, save};
 use laminapdf_build::{BuildOptions, Builder, Metadata, PageSize};
 use laminapdf_cos::Object;
+use laminapdf_test_fixtures::fixture;
 
 /// The text of the first `<tag>…</tag>` in `xml` (inside `rdf:li` for the `dc:` arrays),
 /// with the five XML escapes undone.

@@ -7,7 +7,8 @@ use laminapdf_build::{
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
-use super::{b5b, fixture, png, rgba_gradient, save, tagged};
+use super::{b5b, png, rgba_gradient, save, tagged};
+use laminapdf_test_fixtures::fixture;
 
 /// The code that builds one golden.
 pub type Build = fn() -> Vec<u8>;

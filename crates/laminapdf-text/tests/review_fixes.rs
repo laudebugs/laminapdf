@@ -9,7 +9,8 @@
 
 mod common;
 
-use common::{TestPdf, fixture, font, name_of, patch_table, read_fonts, with_fs_type};
+use common::{TestPdf, font, name_of, patch_table, read_fonts, with_fs_type};
+use laminapdf_test_fixtures::fixture;
 use laminapdf_text::{EmbedPolicy, Error, Font, FontRegistry, Tag};
 use skrifa::MetadataProvider as _;
 use skrifa::instance::{LocationRef, Size};

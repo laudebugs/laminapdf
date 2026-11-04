@@ -9,12 +9,13 @@
 
 mod common;
 
-use common::{fixture, record, reopen};
+use common::{record, reopen};
 use laminapdf_build::{BuildOptions, Builder, Color, FillRule, PageSize, Rotation};
 use laminapdf_cos::{Dict, Object};
 use laminapdf_model::{PageId, Pt, RectPt};
 use laminapdf_save::test_support::Writer;
 use laminapdf_save::{IncrementalWriter, SaveOptions};
+use laminapdf_test_fixtures::fixture;
 
 fn ids(doc: &laminapdf_model::Document) -> Vec<String> {
     doc.pages().unwrap().iter().map(|p| p.id().to_string()).collect()

@@ -87,7 +87,7 @@ fn check(line: &str) -> Result<(), String> {
 
 #[test]
 fn bidi_character_test_subset_passes() {
-    let file = String::from_utf8(common::fixture("unicode/BidiCharacterTest.txt")).unwrap();
+    let file = String::from_utf8(laminapdf_test_fixtures::fixture("unicode/BidiCharacterTest.txt")).unwrap();
     let tests: Vec<&str> = file
         .lines()
         .filter(|l| !l.starts_with('#') && !l.trim().is_empty())

@@ -15,7 +15,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::tagged::{FIGURE_ALT, PAGE_LINK, RUN_LINK, STRUCTURE, tagged_report, tagged_report_builder};
-use common::{b5b::font, fixture, reopen, save};
+use common::{b5b::font, reopen, save};
 use laminapdf_build::{
     ArtifactKind, BuildOptions, Builder, Color, ContentKind, FillRule, Image, PageSize, Standard14, Tag, TagDiagnostic,
     TagKind,
@@ -23,6 +23,7 @@ use laminapdf_build::{
 use laminapdf_content::{MarkedContent, Visitor, interpret_page};
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{PageId, PointPt, Pt, RectPt, StructElem, StructKid, StructTree};
+use laminapdf_test_fixtures::fixture;
 
 fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
     RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))

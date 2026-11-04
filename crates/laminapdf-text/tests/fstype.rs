@@ -4,7 +4,8 @@
 
 mod common;
 
-use common::{TestPdf, fixture, name_of, read_fonts, with_fs_type};
+use common::{TestPdf, name_of, read_fonts, with_fs_type};
+use laminapdf_test_fixtures::fixture;
 use laminapdf_text::{EmbedPolicy, Error, Font, FsType};
 
 fn noto_with(fs_type: u16) -> Font {

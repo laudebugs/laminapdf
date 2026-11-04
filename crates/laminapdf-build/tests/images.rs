@@ -9,10 +9,11 @@
 
 mod common;
 
-use common::{fixture, png, record, reopen, rgba_gradient, save};
+use common::{png, record, reopen, rgba_gradient, save};
 use laminapdf_build::{BuildOptions, Builder, Image, PageSize, PngOptions};
 use laminapdf_cos::{Dict, Object, Stream};
 use laminapdf_model::{Pt, RectPt};
+use laminapdf_test_fixtures::fixture;
 
 fn rect(x: f64, y: f64, w: f64, h: f64) -> RectPt {
     RectPt::from_xywh(Pt::new(x), Pt::new(y), Pt::new(w), Pt::new(h))

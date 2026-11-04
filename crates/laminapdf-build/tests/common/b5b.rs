@@ -9,7 +9,8 @@ use laminapdf_build::{
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
-use super::{fixture, save};
+use super::save;
+use laminapdf_test_fixtures::fixture;
 
 fn options(id: &[u8; 16]) -> BuildOptions {
     BuildOptions::default()

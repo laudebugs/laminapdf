@@ -17,7 +17,7 @@ mod common;
 use std::fmt::Write as _;
 
 use common::b5b::{self, URI, golden_metadata};
-use common::fixture;
+use laminapdf_test_fixtures::fixture;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
