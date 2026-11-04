@@ -37,10 +37,17 @@ pub(crate) fn biome(ws: &Workspace, options: Options) -> Result<()> {
         })
         .filter(|path| ratchet.is_strict(path))
         .collect();
-    crate::step(&format!(
-        "examples (Biome): {} example(s) with warnings as errors",
-        strict.len()
-    ));
+    crate::step(&if options.all_strict {
+        format!(
+            "examples (Biome): every example ({}) with warnings as errors",
+            strict.len()
+        )
+    } else {
+        format!(
+            "examples (Biome): {} changed example(s) with warnings as errors",
+            strict.len()
+        )
+    });
     if strict.is_empty() {
         return Ok(());
     }

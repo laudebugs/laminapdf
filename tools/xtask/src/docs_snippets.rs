@@ -1,7 +1,8 @@
 //! `cargo xtask check docs-snippets`: the rules of docs/guidelines/examples.md that a tool can check,
 //! over the examples (`packages/sdk/examples/**`, `crates/laminapdf/examples/**`) and the files the
-//! docs site's `Snippet` component may show (its `import.meta.glob`). Strict on changed files and
-//! counted warnings elsewhere, like `docs-prose` ([`crate::reports`]).
+//! docs site's `Snippet` component may show (its `import.meta.glob`). Run on its own, strict on
+//! changed files and counted warnings elsewhere, like `docs-prose` ([`crate::reports`]);
+//! `cargo xtask check docs` runs it strict on every file.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -15,6 +16,8 @@ use crate::tracked::Tracked;
 const SNIPPET: &str = "apps/docs/src/components/Snippet.astro";
 const PAGES: &str = "apps/docs/src/content/docs/";
 const EXAMPLE_DIRS: [&str; 2] = ["packages/sdk/examples/", "crates/laminapdf/examples/"];
+const MAX_LINES: usize = 100;
+
 /// Folders under [`EXAMPLE_DIRS`] that hold developer tools rather than examples for readers:
 /// the text differential's `text-facts`. The examples checks skip them, as `cargo xtask examples`
 /// does.
@@ -24,7 +27,6 @@ const TOOL_DIRS: [&str; 1] = ["crates/laminapdf/examples/differential/"];
 pub(crate) fn is_tool(path: &str) -> bool {
     TOOL_DIRS.iter().any(|dir| path.starts_with(dir))
 }
-const MAX_LINES: usize = 100;
 
 /// `tools/xtask/docs-snippets.toml`: the TypeScript and Rust examples that show the same task.
 #[derive(Debug, Default, Deserialize)]
