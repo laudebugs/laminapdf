@@ -242,6 +242,20 @@
       "summary": "a font shows glyphs that nothing maps to text",
       "hint": "nothing to do; those glyphs extract as U+FFFD (the file needs a ToUnicode CMap)",
       "since": "0.1.0"
+    },
+    {
+      "code": "extract-limit-blocks",
+      "kind": "limit",
+      "summary": "a page had more blocks than the extraction limit; the rest were left out",
+      "hint": "raise ExtractLimits::max_blocks_per_page if the page really has that many blocks",
+      "since": "0.2.0"
+    },
+    {
+      "code": "extract-reading-order-ambiguous",
+      "kind": "input",
+      "summary": "a page mixes horizontal and vertical writing, so the order of its blocks is a guess",
+      "hint": "nothing to do; check the order of that page's blocks, or ask for content order",
+      "since": "0.2.0"
     }
   ],
   "errors": [

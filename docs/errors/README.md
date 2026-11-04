@@ -51,6 +51,8 @@ A PR that adds a code adds:
 | [`font-invalid`](font-invalid.md) | `input` | a font dictionary has a missing or malformed entry, so its text was decoded with defaults |
 | [`cmap-invalid`](cmap-invalid.md) | `input` | a font's CMap or ToUnicode CMap is malformed or names a predefined CMap Lamina PDF has no table for |
 | [`unmapped-glyph`](unmapped-glyph.md) | `input` | a font shows glyphs that nothing maps to text |
+| [`extract-limit-blocks`](extract-limit-blocks.md) | `limit` | a page had more blocks than the extraction limit; the rest were left out |
+| [`extract-reading-order-ambiguous`](extract-reading-order-ambiguous.md) | `input` | a page mixes horizontal and vertical writing, so the order of its blocks is a guess |
 
 ## Errors
 

@@ -246,6 +246,20 @@ pub enum Warning {
         /// The font dictionary's object (`None` for a direct one).
         object: Option<u32>,
     },
+    /// `extract-limit-blocks`: a page had more blocks than the extraction's limit; the rest
+    /// were left out of the output. Raised by `laminapdf-extract`.
+    ExtractLimitBlocks {
+        /// The page's index.
+        page: u64,
+        /// The limit that was reached.
+        limit: u32,
+    },
+    /// `extract-reading-order-ambiguous`: a page mixes horizontal and vertical writing, so the
+    /// order of its blocks is a guess. Raised by `laminapdf-extract`.
+    ExtractReadingOrderAmbiguous {
+        /// The page's index.
+        page: u64,
+    },
 }
 
 impl Warning {
@@ -285,6 +299,8 @@ impl Warning {
         "font-invalid",
         "cmap-invalid",
         "unmapped-glyph",
+        "extract-limit-blocks",
+        "extract-reading-order-ambiguous",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -325,6 +341,8 @@ impl Warning {
             Self::FontInvalid { .. } => "font-invalid",
             Self::CMapInvalid { .. } => "cmap-invalid",
             Self::UnmappedGlyph { .. } => "unmapped-glyph",
+            Self::ExtractLimitBlocks { .. } => "extract-limit-blocks",
+            Self::ExtractReadingOrderAmbiguous { .. } => "extract-reading-order-ambiguous",
         }
     }
 
@@ -365,7 +383,9 @@ impl Warning {
             | Self::XrefStmIgnored { .. }
             | Self::PermsMismatch
             | Self::WarningsTruncated
-            | Self::InvalidPageLabel { .. } => None,
+            | Self::InvalidPageLabel { .. }
+            | Self::ExtractLimitBlocks { .. }
+            | Self::ExtractReadingOrderAmbiguous { .. } => None,
         }
     }
 
@@ -405,8 +425,11 @@ impl Warning {
             | Self::ContentPathUnpainted { .. }
             | Self::FontInvalid { .. }
             | Self::CMapInvalid { .. }
-            | Self::UnmappedGlyph { .. } => ErrorKind::Input,
-            Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated => ErrorKind::Limit,
+            | Self::UnmappedGlyph { .. }
+            | Self::ExtractReadingOrderAmbiguous { .. } => ErrorKind::Input,
+            Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
+                ErrorKind::Limit
+            }
             Self::AesPaddingInvalid { .. } | Self::PermsMismatch => ErrorKind::Security,
         }
     }
@@ -431,7 +454,10 @@ impl Warning {
                     Location::from(Position::InStream { object, offset })
                 });
             }
-            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page),
+            Self::InvalidBox { page, .. }
+            | Self::InvalidRotate { page, .. }
+            | Self::ExtractLimitBlocks { page, .. }
+            | Self::ExtractReadingOrderAmbiguous { page } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
         };
@@ -446,7 +472,10 @@ impl Warning {
     const fn key(&self) -> WarningKey {
         let position = match *self {
             Self::InvalidPageLabel { start } => Some(start as i128),
-            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page as i128),
+            Self::InvalidBox { page, .. }
+            | Self::InvalidRotate { page, .. }
+            | Self::ExtractLimitBlocks { page, .. }
+            | Self::ExtractReadingOrderAmbiguous { page } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
             | Self::ContentBadOperands { offset, .. }
@@ -591,6 +620,8 @@ mod tests {
             Warning::FontInvalid { object: None },
             Warning::CMapInvalid { object: None },
             Warning::UnmappedGlyph { object: None },
+            Warning::ExtractLimitBlocks { page: 0, limit: 1 },
+            Warning::ExtractReadingOrderAmbiguous { page: 0 },
         ];
         for w in &all {
             match w {
@@ -627,7 +658,9 @@ mod tests {
                 | Warning::ContentPathUnpainted { .. }
                 | Warning::FontInvalid { .. }
                 | Warning::CMapInvalid { .. }
-                | Warning::UnmappedGlyph { .. } => {}
+                | Warning::UnmappedGlyph { .. }
+                | Warning::ExtractLimitBlocks { .. }
+                | Warning::ExtractReadingOrderAmbiguous { .. } => {}
             }
         }
         all
