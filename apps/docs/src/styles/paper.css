@@ -143,9 +143,10 @@ h1#_top,
   color: var(--paper-text-2);
 }
 /* The site header both sites share (@laminapdf/site-kit's header.css), in Starlight's 56 px bar:
-   design language §7.39's smaller variant, with a 22 px wordmark and no width of its own. Below
-   Starlight's 50rem breakpoint the links give way to search and the mobile menu, as Starlight's
-   own header items do. */
+   design language §7.39's smaller variant, with a 22 px wordmark and no width of its own. The row
+   never wraps, so where the bar is too narrow for every link the links scroll sideways instead
+   of pushing search off the bar. Below Starlight's 50rem breakpoint the links give way to search
+   and the mobile menu, as Starlight's own header items do, and the menu lists them instead. */
 .header .site-header-row {
   --site-header-height: 100%;
   --site-header-max-width: none;
@@ -153,6 +154,15 @@ h1#_top,
   --site-header-wordmark-size: 22px;
   flex-wrap: nowrap;
   height: 100%;
+}
+.header .site-nav {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.header .site-nav ul {
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 .docs-header-extras {
   align-items: center;
@@ -162,6 +172,10 @@ h1#_top,
   .header .site-nav {
     display: none;
   }
+}
+.docs-menu-site-nav {
+  padding-block: 0.5rem;
+  border-top: 1px solid var(--sl-color-gray-6);
 }
 
 /* Previous and next links at the foot of a page: compact buttons from the design language

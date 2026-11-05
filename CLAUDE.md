@@ -115,7 +115,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   LAMINA_PDF_ENV=production, the website's checks of every built page (ADR 0011 §3: same-origin loads, no
 │                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
 │                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
-│                        #   src/SiteHeader.astro + header.css (sized per site by CSS variables); test/ (Node), test/browser/ (the
+│                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); test/ (Node), test/browser/ (the
 │                        #   header rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order,
 │                        #   current underline, phone width, axe; run by `cargo xtask pdf-runtimes`); README.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and

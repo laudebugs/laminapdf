@@ -15,6 +15,7 @@
     "./integrations": "./src/integrations.mjs",
     "./nav": "./src/nav.mjs",
     "./SiteHeader.astro": "./src/SiteHeader.astro",
+    "./SiteNav.astro": "./src/SiteNav.astro",
     "./header.css": "./src/header.css",
     "./package.json": "./package.json"
   },

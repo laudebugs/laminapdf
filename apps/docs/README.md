@@ -46,7 +46,7 @@ When the design language's tokens change, change them here too.
 
 ## The site header
 
-The docs site shows the header the website shows, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): the wordmark links to https://laminapdf.com, and "Docs" is marked on every page. `src/components/Header.astro` is Starlight's `Header` override, which keeps Starlight's search, social icons and theme switch beside the shared links; the mobile menu button stays where Starlight draws it. A link to a website page appears once the page exists: `astro.config.mjs` reads `apps/site/src/pages/` at build time. Below Starlight's 50 rem breakpoint the links give way to search and the menu.
+The docs site shows the header the website shows, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): the wordmark links to https://laminapdf.com, and "Docs" is marked on every page. `src/components/Header.astro` is Starlight's `Header` override, which keeps Starlight's search, social icons and theme switch beside the shared links; the mobile menu button stays where Starlight draws it. A link to a website page appears once the page exists: `astro.config.mjs` reads `apps/site/src/pages/` at build time. Below Starlight's 50 rem breakpoint the links give way to search and the menu, and `src/components/MobileMenuFooter.astro` (Starlight's `MobileMenuFooter` override) lists them in the menu, above the theme switch.
 
 ## Headers
 

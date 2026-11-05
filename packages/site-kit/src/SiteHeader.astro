@@ -4,11 +4,12 @@
 // `tools` slot (the docs site's search and theme switch), and "Open the web app" once the reader
 // is live. Its look is header.css; each site sizes it with header.css's variables.
 import "./header.css";
-import { APP_LAUNCHED, APP_URL } from "./nav.mjs";
+import { APP_LAUNCHED, APP_URL, type NavLink } from "./nav.mjs";
+import SiteNav from "./SiteNav.astro";
 
 interface Props {
   /** The links, as nav.mjs's `siteNav` resolves them for this site and page. */
-  links: readonly { label: string; href: string; current: "page" | "true" | undefined }[];
+  links: readonly NavLink[];
   /** Where the wordmark goes: the website's home. */
   home: string;
 }
@@ -18,19 +19,7 @@ const { links, home } = Astro.props;
 
 <div class="site-header-row">
   <a class="site-wordmark" href={home}>Lamina PDF</a>
-  <nav class="site-nav" aria-label="Site">
-    <ul>
-      {
-        links.map((link) => (
-          <li>
-            <a href={link.href} aria-current={link.current}>
-              {link.label}
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </nav>
+  <SiteNav links={links} />
   {
     Astro.slots.has("tools") && (
       <div class="site-header-tools">

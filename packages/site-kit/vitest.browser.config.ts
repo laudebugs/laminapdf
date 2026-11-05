@@ -3,6 +3,8 @@
 // phone width, light and dark, axe. Astro's Vite setup compiles SiteHeader.astro, which the global
 // setup renders with the container API in Node and hands to the tests as HTML. Firefox gets its own
 // data folder (firefoxProvider in @laminapdf/test-utils). A default export because Vitest reads one.
+
+import { fileURLToPath } from "node:url";
 import { firefoxProvider } from "@laminapdf/test-utils/firefox";
 import { playwright } from "@vitest/browser-playwright";
 import { getViteConfig } from "astro/config";
@@ -24,5 +26,5 @@ export default getViteConfig(
       },
     },
   },
-  { root: new URL("./", import.meta.url).pathname, logLevel: "error" },
+  { root: fileURLToPath(new URL("./", import.meta.url)), logLevel: "error" },
 );

@@ -25,6 +25,16 @@ function mount(html: string, theme: "light" | "dark"): HTMLElement {
   return header;
 }
 
+/** `color` as the browser computes it (`rgb(…)`), the form `box-shadow` reports its colour in. */
+function resolvedColor(color: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = color;
+  document.body.append(probe);
+  const resolved = getComputedStyle(probe).color;
+  probe.remove();
+  return resolved;
+}
+
 afterEach(async () => {
   document.body.innerHTML = "";
   await page.viewport(1280, 800);
@@ -46,15 +56,13 @@ for (const theme of ["light", "dark"] as const) {
       const header = mount(HEADERS.website, theme);
       const link = (label: string) =>
         [...header.querySelectorAll<HTMLAnchorElement>(".site-nav a")].find((a) => a.textContent?.trim() === label);
-      const accent = getComputedStyle(document.documentElement).getPropertyValue("--paper-accent").trim();
       const current = getComputedStyle(link("Privacy") ?? header);
       expect(link("Privacy")?.getAttribute("aria-current")).toBe("page");
       expect(current.fontWeight).toBe("600");
-      expect(current.boxShadow).not.toContain("transparent");
-      expect(current.boxShadow).not.toBe("none");
-      expect(accent).not.toBe("");
+      expect(current.boxShadow).toContain(resolvedColor("var(--paper-accent)"));
       const plain = getComputedStyle(link("Download") ?? header);
       expect(plain.fontWeight).toBe("400");
+      expect(plain.boxShadow).toContain(resolvedColor("transparent"));
       expect(link("Download")?.hasAttribute("aria-current")).toBe(false);
     });
 

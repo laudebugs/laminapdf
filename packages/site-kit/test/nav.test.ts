@@ -35,6 +35,15 @@ describe("siteNav", () => {
     ]);
   });
 
+  it("marks a website link as the current section on the pages below it", () => {
+    const nav = siteNav(pages, { site: "website", path: "/download/linux/" });
+    expect(nav.map((link) => [link.label, link.current])).toEqual([
+      ["Download", "true"],
+      ["Docs", undefined],
+      ["Privacy", undefined],
+    ]);
+  });
+
   it("gives the docs site full addresses for the website's pages, and marks Docs on every docs page", () => {
     expect(siteNav(pages, { site: "docs", path: "/guides/save-a-pdf/" })).toEqual([
       { label: "Download", href: "https://laminapdf.com/download/", current: undefined },

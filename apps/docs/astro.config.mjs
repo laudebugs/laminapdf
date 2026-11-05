@@ -72,8 +72,12 @@ export default defineConfig({
           }
         : {}),
       lastUpdated: false,
-      // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch.
-      components: { Header: "./src/components/Header.astro" },
+      // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
+      // on phones, where the header hides the site's links, the menu lists them.
+      components: {
+        Header: "./src/components/Header.astro",
+        MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+      },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
       // then Starlight's colours and fonts mapped onto them.
       customCss: ["@laminapdf/tokens/tokens.css", "@laminapdf/fonts/fonts.css", "./src/styles/paper.css"],

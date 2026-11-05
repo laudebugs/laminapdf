@@ -6,11 +6,11 @@ This package holds what Lamina PDF's two Astro sites share: the website (`apps/s
 
 Both sites show the same header, from design language [§7.39](../../docs/design/paper/design-language.md#739-site-and-product-pages-proposed): the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app".
 
-- **One list of links.** `src/nav.mjs` lists the links once. `siteNav(pages, here)` resolves them for the site and page being built: a link to the other site is a full address, a link on the same site is a path, and the current page or section gets `aria-current`.
+- **One list of links.** `src/nav.mjs` lists the links once. `siteNav(pages, here)` resolves them for the site and page being built: a link to the other site is a full address, a link on the same site is a path, and the current page gets `aria-current="page"`. The pages below a link's page, such as `/download/linux/` for Download, get `aria-current="true"`, as every docs page does for Docs.
 - **A link appears once its page exists.** Each site's `astro.config.mjs` reads the website's `src/pages/` folder with `pageFiles()` and passes it to the pages as `__SITE_PAGES__`. The todo that writes `/privacy/` therefore adds its link on both sites by adding the page.
 - **"Open the web app"** appears on both sites once `APP_LAUNCHED` in `src/nav.mjs` is `true`. The reader's launch todo sets it.
-- **One component.** `src/SiteHeader.astro` renders the row; each site wraps it in its own header element. The docs site puts Starlight's search, social icons and theme switch in its `tools` slot (`apps/docs/src/components/Header.astro`, Starlight's `Header` override).
-- **One style sheet.** `src/header.css` draws it from the Paper tokens, which each site loads first. A site sizes it with variables: the website keeps §7.39's 64 px bar, at most 1120 px wide. The docs site fits it into Starlight's 56 px bar with a 22 px wordmark, §7.39's smaller variant, and hides the links below Starlight's 50 rem breakpoint, as Starlight hides its own header items.
+- **One component.** `src/SiteHeader.astro` renders the row; each site wraps it in its own header element. The docs site puts Starlight's search, social icons and theme switch in its `tools` slot (`apps/docs/src/components/Header.astro`, Starlight's `Header` override). `src/SiteNav.astro` renders the links alone, for the header and for the docs site's phone menu.
+- **One style sheet.** `src/header.css` draws it from the Paper tokens, which each site loads first. A site sizes it with variables: the website keeps §7.39's 64 px bar, at most 1120 px wide. The docs site fits it into Starlight's 56 px bar with a 22 px wordmark, §7.39's smaller variant, and hides the links below Starlight's 50 rem breakpoint, as Starlight hides its own header items. Its phone menu lists them instead. Above that breakpoint the links scroll sideways if the bar is too narrow for them all.
 
 ## The build steps
 

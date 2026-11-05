@@ -20,7 +20,8 @@ export const APP_LAUNCHED = false;
 
 /**
  * One link of the header, resolved for the site it renders on. `current` is `"page"` on the page it
- * names, `"true"` anywhere in the section it names (every page of the docs site for "Docs").
+ * names, `"true"` on the pages below it (`/download/linux/` for "Download") and on every page of
+ * the docs site for "Docs".
  *
  * @typedef {{ label: string, href: string, current: "page" | "true" | undefined }} NavLink
  */
@@ -50,6 +51,22 @@ export function routeOf(file) {
 }
 
 /**
+ * How `link` marks the page at `path` on `site`: `"page"` on the page it names, `"true"` on the
+ * pages below it (and on every docs page for "Docs"), else not at all.
+ *
+ * @param {(typeof LINKS)[number]} link
+ * @param {"website" | "docs"} site
+ * @param {string} path the page's path, ending in a slash
+ * @returns {NavLink["current"]}
+ */
+function currentness(link, site, path) {
+  if (link.site !== site) return undefined;
+  if (link.site === "docs") return "true";
+  if (path === link.path) return "page";
+  return path.startsWith(link.path) ? "true" : undefined;
+}
+
+/**
  * The header's links on `here.site` at `here.path`: the docs link always, and each website page
  * that one of `pages` serves. A link to the other site is a full address; a link on the same site
  * is a path.
@@ -64,8 +81,6 @@ export function siteNav(pages, here) {
   return LINKS.filter((link) => link.site === "docs" || routes.has(link.path)).map((link) => {
     const origin = link.site === "docs" ? DOCS : WEBSITE;
     const href = link.site === here.site ? link.path : `${origin}${link.path}`;
-    const current =
-      link.site !== here.site ? undefined : link.site === "docs" ? "true" : path === link.path ? "page" : undefined;
-    return { label: link.label, href, current };
+    return { label: link.label, href, current: currentness(link, here.site, path) };
   });
 }
