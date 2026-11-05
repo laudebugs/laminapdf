@@ -488,7 +488,8 @@ function call(request: Request): void {
 function cancel(id: number): void {
   // Only a call still queued or running can be cancelled. A cancel that crossed its answer (the
   // page aborted after the worker answered, before it read the answer) finds no job: the page
-  // drops that answer, so a document the call made is freed here, and nothing else is left.
+  // drops that answer, so a document the call made is freed here. (A crossed `page(i)` keeps its
+  // page handle, which `page(i)` reuses and closing the document frees.)
   const job = current?.waiters.some((w) => w.id === id)
     ? current
     : queue.find((j) => j.waiters.some((w) => w.id === id));

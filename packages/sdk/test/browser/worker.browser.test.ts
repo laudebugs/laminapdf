@@ -22,7 +22,9 @@ async function read(path: string): Promise<Uint8Array> {
 
 /** The absolute URL a fixture is served at, for `openUrl` (the worker resolves no page URLs). */
 function served(path: string): string {
-  return new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
+  const url = urls[`../../../../${path}`];
+  if (url === undefined) throw new Error(`${path} is not served`);
+  return new URL(url, globalThis.location.href).href;
 }
 
 async function rejection(p: Promise<unknown>): Promise<unknown> {
@@ -260,9 +262,10 @@ describe("the worker client's lifecycle", () => {
     await held;
     controller.abort();
     expect(isLaminaPdfError(await rejection(opening), "cancelled")).toBe(true);
-    // Calls run one at a time, so this answers after the aborted open has finished.
+    // Calls run one at a time, so this answers after the aborted open has finished. (If the abort
+    // never reached the fetch, this call would wait behind it: the 10 s timeout fails it sooner.)
     expect((await stats()).handles).toBe(before);
-  });
+  }, 10_000);
 
   it.each(["open", "openUrl"] as const)(
     "frees the document of an %s whose abort crosses its answer",
