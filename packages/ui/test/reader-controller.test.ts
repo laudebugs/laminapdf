@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlatformFile } from "../src/platform/types.ts";
-import { type Opener, ReaderController } from "../src/state/reader-controller.ts";
+import { type OpenedDocument, type Opener, ReaderController } from "../src/state/reader-controller.ts";
 import { fakeFile, fakePlatform } from "./fakes.ts";
 
 /** An error shaped like the SDK's LaminaPdfError: a message and an ADR 0026 code. */
@@ -53,7 +53,7 @@ describe("ReaderController", () => {
   });
 
   it("is opening while the opener works, and tells subscribers of each change", async () => {
-    const pending = deferred<{ pageCount: number }>();
+    const pending = deferred<OpenedDocument>();
     const controller = new ReaderController(fakePlatform(), () => pending.promise);
     const phases: string[] = [];
     controller.subscribe(() => phases.push(controller.getState().phase));
@@ -128,13 +128,37 @@ describe("ReaderController", () => {
   });
 
   it("drops an open's outcome once it was cancelled", async () => {
-    const pending = deferred<{ pageCount: number }>();
+    const pending = deferred<OpenedDocument>();
     const controller = new ReaderController(fakePlatform(), () => pending.promise);
     const done = controller.open(fakeFile());
     controller.cancel();
     pending.reject(coded("invalid-header"));
     await done;
     expect(controller.getState().phase).toBe("empty");
+  });
+
+  it("frees an open that nothing will show: superseded, cancelled, replaced or closed", async () => {
+    const closed: string[] = [];
+    const slow = deferred<OpenedDocument>();
+    const opener: Opener = (file) =>
+      file.name === "slow.pdf" ? slow.promise : Promise.resolve({ pageCount: 1, close: () => closed.push(file.name) });
+    const controller = new ReaderController(fakePlatform(), opener);
+    const superseded = controller.open(fakeFile("slow.pdf"));
+    await controller.open(fakeFile("first.pdf"));
+    slow.resolve({ pageCount: 1, close: () => closed.push("slow.pdf") });
+    await superseded;
+    expect(closed).toEqual(["slow.pdf"]);
+    await controller.open(fakeFile("second.pdf"));
+    expect(closed).toEqual(["slow.pdf", "first.pdf"]);
+    controller.close();
+    expect(closed).toEqual(["slow.pdf", "first.pdf", "second.pdf"]);
+  });
+
+  it("calls a DOMException's legacy numeric code unknown", async () => {
+    const opener: Opener = () => Promise.reject(new DOMException("The file could not be read.", "NotReadableError"));
+    const controller = new ReaderController(fakePlatform(), opener);
+    await controller.open(fakeFile());
+    expect(controller.getState()).toMatchObject({ error: { code: "unknown", message: "The file could not be read." } });
   });
 
   it("stops telling a listener once it unsubscribes", async () => {

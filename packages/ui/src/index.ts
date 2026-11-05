@@ -119,7 +119,7 @@ export type {
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
 export { type ExternalStore, useReaderState, useStoreState } from "./state/hooks.js";
-export { type Opener, ReaderController } from "./state/reader-controller.js";
+export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
 export {
   EMPTY,
   type InteractionMode,

@@ -108,29 +108,42 @@ export function fakeScope(parts: Partial<WebScope> = {}): WebScope & { readonly 
 
 /**
  * An IndexedDB with one database and one store, in memory: enough for the web platform's
- * key-value store. Values are kept as given, not cloned, so fake file handles survive.
+ * key-value store. Values are kept as given, not cloned, so fake file handles survive. With
+ * `failOpen` the database won't open, as in some private modes; with `abortWrites` every write's
+ * request succeeds and its transaction then aborts, as when the origin is out of quota.
  */
-export function fakeIndexedDb(): IDBFactory {
+export function fakeIndexedDb(options: { failOpen?: boolean; abortWrites?: boolean } = {}): IDBFactory {
   const data = new Map<unknown, unknown>();
-  const request = (act: () => unknown) => {
-    const pending: Record<string, unknown> & { onsuccess?: () => void } = {};
-    queueMicrotask(() => {
-      pending.result = act();
-      pending.onsuccess?.();
-    });
-    return pending;
+  type Handlers = Record<string, unknown> & { onsuccess?: () => void; onerror?: () => void };
+  type Transaction = { oncomplete?: () => void; onabort?: () => void; error?: DOMException };
+  const transaction = (mode: string) => {
+    const tx: Transaction & { objectStore: () => unknown } = { objectStore: () => store };
+    const request = (act: () => unknown) => {
+      const pending: Handlers = {};
+      queueMicrotask(() => {
+        pending.result = act();
+        pending.onsuccess?.();
+        if (mode === "readwrite" && options.abortWrites === true) {
+          tx.error = new DOMException("Quota exceeded", "QuotaExceededError");
+          tx.onabort?.();
+        } else tx.oncomplete?.();
+      });
+      return pending;
+    };
+    const store = {
+      get: (key: unknown) => request(() => data.get(key)),
+      put: (value: unknown, key: unknown) => request(() => void data.set(key, value)),
+      delete: (key: unknown) => request(() => void data.delete(key)),
+      clear: () => request(() => data.clear()),
+    };
+    return tx;
   };
-  const store = {
-    get: (key: unknown) => request(() => data.get(key)),
-    put: (value: unknown, key: unknown) => request(() => void data.set(key, value)),
-    delete: (key: unknown) => request(() => void data.delete(key)),
-    clear: () => request(() => data.clear()),
-  };
-  const database = { transaction: () => ({ objectStore: () => store }), createObjectStore: () => store };
+  const database = { transaction: (_name: string, mode: string) => transaction(mode), createObjectStore: () => ({}) };
   return {
     open: () => {
-      const opening: Record<string, unknown> & { onupgradeneeded?: () => void; onsuccess?: () => void } = {};
+      const opening: Handlers & { onupgradeneeded?: () => void } = {};
       queueMicrotask(() => {
+        if (options.failOpen === true) return opening.onerror?.();
         opening.result = database;
         opening.onupgradeneeded?.();
         opening.onsuccess?.();

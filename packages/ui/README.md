@@ -94,7 +94,9 @@ const platform = createWebPlatform();
 
 `createWebPlatform()` detects each capability once, from the browser's own APIs: the file pickers where the browser has them, a file input and downloads where it doesn't, and storage in IndexedDB and the origin-private file system. A control that needs a capability reads `useCapability(flag)`. The hook answers `available`; `disabled`, with a reason that says how to get the capability, such as another browser or installing the app; or `hidden`, when this platform never has it. To keep it that way, `cargo xtask check ts` fails on any package that imports Tauri, calls `isTauri()` or reads the user agent.
 
-`ReaderController` holds the reader's lifecycle: empty, opening, asking for a password, open, or failed. It asks the platform for files and hands each one to the opener the shell gives it, such as the viewer client's `open`. A password goes to the opener and is never kept. Toolbars and menus call the controller's methods, so commands can call the same ones. Components read the controller and the viewer through `useStoreState(store, select)`, which re-renders only when the selected value changes:
+`ReaderController` holds the reader's lifecycle: empty, opening, asking for a password, open, or failed. It asks the platform for files and hands each one to the opener the shell gives it, such as the viewer client's `open`. A password goes to the opener and is never kept. When nothing will show a document any more, because it was closed, replaced or overtaken by a later open, the controller calls the `close` the opener returned with it.
+
+Toolbars and menus call the controller's methods, so commands can call the same ones. Components read the controller and the viewer through `useStoreState(store, select)`, which re-renders only when the selected value changes:
 
 ```ts
 const page = useStoreState(viewer, (state) => state.currentPage);

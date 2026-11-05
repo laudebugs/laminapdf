@@ -1,7 +1,7 @@
 //! ADR 0010 rule 1, capabilities not platforms: no package may import `@tauri-apps/*`, call
 //! `isTauri()`, read Tauri's globals or read the user agent. UI code branches on the `Platform`'s
 //! capability flags; only an app's entry may ask which shell it runs in. Run by
-//! `cargo xtask check ts` over every source file in `packages/*/src`, comments left out.
+//! `cargo xtask check ts` over every source file in `packages/*/src`, whole-line comments left out.
 
 use std::path::{Path, PathBuf};
 
@@ -71,11 +71,10 @@ fn walk(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-/// The 1-based line and reason of each forbidden use in `source`, outside comments.
+/// The 1-based line and reason of each forbidden use in `source`, outside whole-line comments.
 fn violations(source: &str) -> Vec<(usize, &'static str)> {
-    let code = without_comments(source);
     let mut found = Vec::new();
-    for (index, line) in code.lines().enumerate() {
+    for (index, line) in code_lines(source) {
         for (needle, why) in FORBIDDEN {
             if contains_word_start(line, needle) {
                 found.push((index + 1, *why));
@@ -95,49 +94,24 @@ fn contains_word_start(line: &str, needle: &str) -> bool {
     })
 }
 
-/// `source` with its comments blanked out and its line breaks kept, so line numbers still match.
-/// Strings and template literals are copied as they are: a URL's `//` starts no comment.
-fn without_comments(source: &str) -> String {
-    let mut out = String::with_capacity(source.len());
-    let mut chars = source.chars().peekable();
-    let mut quote: Option<char> = None;
-    while let Some(c) = chars.next() {
-        if let Some(q) = quote {
-            out.push(c);
-            if c == '\\' {
-                out.extend(chars.next());
-            } else if c == q {
-                quote = None;
-            }
-            continue;
+/// The 0-based index and text of each line that isn't a whole-line comment: `//` lines and
+/// `/* … */` blocks that start a line are left out. Telling a comment from a string, a regex or JSX
+/// text anywhere else would take a parser, so a comment after code counts as code: write the user
+/// agent, not its property name, there.
+fn code_lines(source: &str) -> impl Iterator<Item = (usize, &str)> {
+    let mut in_block = false;
+    source.lines().enumerate().filter(move |(_, line)| {
+        let text = line.trim_start();
+        if in_block {
+            in_block = !line.contains("*/");
+            return false;
         }
-        match (c, chars.peek()) {
-            ('/', Some('/')) => {
-                while chars.peek().is_some_and(|&next| next != '\n') {
-                    chars.next();
-                }
-            }
-            ('/', Some('*')) => {
-                chars.next();
-                let mut last = ' ';
-                for next in chars.by_ref() {
-                    if next == '\n' {
-                        out.push('\n');
-                    }
-                    if last == '*' && next == '/' {
-                        break;
-                    }
-                    last = next;
-                }
-            }
-            ('"' | '\'' | '`', _) => {
-                quote = Some(c);
-                out.push(c);
-            }
-            _ => out.push(c),
+        if let Some(rest) = text.strip_prefix("/*") {
+            in_block = !rest.contains("*/");
+            return false;
         }
-    }
-    out
+        !text.starts_with("//")
+    })
 }
 
 #[cfg(test)]
@@ -164,21 +138,27 @@ mod tests {
     }
 
     #[test]
-    fn violations_should_skip_comments_and_keep_line_numbers() {
+    fn violations_should_skip_whole_line_comments_and_keep_line_numbers() {
         let source = "// never read navigator.userAgent\n\
                       /* isTauri() is for\n   the shell's entry */\n\
-                      const url = \"https://example.com/\"; // isTauri\n\
+                      /** One line of TSDoc: isTauri */\n\
                       const a = isTauri;\n";
         assert_eq!(violations(source), vec![(5, "asks whether it runs in Tauri")]);
     }
 
     #[test]
-    fn violations_should_read_strings_as_code_whatever_they_hold() {
-        let source = "const k = \"a//b\"; const ua = navigator[\"userAgent\"];\n\
-                      const t = `/* ${isTauri()} */`;\n";
+    fn violations_should_not_be_misled_by_quotes_in_jsx_text_or_slashes_in_regexes() {
+        let source = "const p = <p>Don't</p>;\n\
+                      const re = /\\/*x/;\n\
+                      const ua = navigator.userAgent;\n";
+        assert_eq!(violations(source), vec![(3, "reads the user agent")]);
+    }
+
+    #[test]
+    fn violations_should_count_a_comment_after_code() {
         assert_eq!(
-            violations(source),
-            vec![(1, "reads the user agent"), (2, "asks whether it runs in Tauri")]
+            violations("run(); // isTauri\n"),
+            vec![(1, "asks whether it runs in Tauri")]
         );
     }
 

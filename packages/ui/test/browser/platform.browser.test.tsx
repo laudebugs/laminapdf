@@ -36,6 +36,18 @@ class TwoNumbers implements ExternalStore<{ page: number; scroll: number }> {
   }
 }
 
+/** The store's page, counting its renders in `renders`. */
+function Page({ store, renders }: { store: TwoNumbers; renders: { count: number } }) {
+  renders.count++;
+  return <p>{useStoreState(store, (state) => state.page)}</p>;
+}
+
+/** The reader's phase, or its page count once open. */
+function Phase({ controller }: { controller: ReaderController }) {
+  const state = useReaderState(controller);
+  return <p>{state.phase === "open" ? `${state.pageCount} pages` : state.phase}</p>;
+}
+
 const settle = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
 describe("capability gates", () => {
@@ -62,29 +74,21 @@ describe("capability gates", () => {
 describe("useStoreState", () => {
   it("re-renders when the selected part changes, not on every update", async () => {
     const store = new TwoNumbers();
-    let renders = 0;
-    function Page() {
-      renders++;
-      return <p>{useStoreState(store, (state) => state.page)}</p>;
-    }
-    const host = renderIn(<Page />);
-    const before = renders;
+    const renders = { count: 0 };
+    const host = renderIn(<Page store={store} renders={renders} />);
+    const before = renders.count;
     for (let scroll = 1; scroll <= 5; scroll++) store.set({ scroll });
     await settle();
-    expect(renders).toBe(before);
+    expect(renders.count).toBe(before);
     store.set({ page: 4 });
     await settle();
-    expect(renders).toBe(before + 1);
+    expect(renders.count).toBe(before + 1);
     expect(host.textContent).toBe("4");
   });
 
   it("follows the reader controller through an open", async () => {
     const controller = new ReaderController(fakePlatform(), async () => ({ pageCount: 3 }));
-    function Phase() {
-      const state = useReaderState(controller);
-      return <p>{state.phase === "open" ? `${state.pageCount} pages` : state.phase}</p>;
-    }
-    const host = renderIn(<Phase />);
+    const host = renderIn(<Phase controller={controller} />);
     expect(host.textContent).toBe("empty");
     await controller.open(fakeFile());
     await settle();

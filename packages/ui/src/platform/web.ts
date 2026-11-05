@@ -3,7 +3,7 @@
 // has them, an <input type=file> and downloads where it doesn't; storage in IndexedDB and OPFS.
 
 import { message } from "../messages.js";
-import { createIdbStore, type KeyValueStore } from "./idb.js";
+import { createStore, type KeyValueStore } from "./idb.js";
 import type {
   Capabilities,
   Capability,
@@ -35,6 +35,8 @@ export interface WebScope {
 
 /** How many recent documents are kept. */
 const RECENT_LIMIT = 20;
+/** How long a download's blob URL lives: long enough for every engine to start reading it. */
+const DOWNLOAD_URL_LIFETIME_MS = 40_000;
 const PDF_TYPES = [{ description: message("platform.picker.pdf"), accept: { "application/pdf": [".pdf"] } }];
 
 /** Detects the web values of every capability (ADR 0010 §2), once. */
@@ -65,14 +67,8 @@ export function detectCapabilities(scope: WebScope): Capabilities {
 /** The web Platform over `scope` (the window by default). */
 export function createWebPlatform(scope: WebScope = globalThis as unknown as WebScope): Platform {
   const capabilities = detectCapabilities(scope);
-  const store = scope.indexedDB === undefined ? memoryStore() : createIdbStore(scope.indexedDB);
-  const listeners = new Set<(files: PlatformFile[]) => void>();
-  if (capabilities.hasFileHandlers) {
-    scope.launchQueue?.setConsumer(async ({ files }) => {
-      const opened = await Promise.all(files.filter(isFileHandle).map((handle) => fromHandle(handle, capabilities)));
-      for (const listener of listeners) listener(opened);
-    });
-  }
+  const store = createStore(scope.indexedDB);
+  const launches = launchQueue(scope, capabilities);
   return {
     capabilities,
     howToEnable: (flag) => howToEnable(flag, capabilities, scope),
@@ -88,10 +84,7 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
       }
     },
     filesFromDataTransfer: (data) => filesFromDataTransfer(data, capabilities),
-    onOpenRequest(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    onOpenRequest: launches.subscribe,
     saveAs: (bytes, name) => saveAs(scope, bytes, name),
     async saveInPlace(file, bytes) {
       const handle = file.handle;
@@ -129,6 +122,29 @@ function howToEnable(flag: Capability, capabilities: Capabilities, scope: WebSco
   }
 }
 
+/**
+ * Files the OS asks the installed app to open. The browser can launch before the app subscribes
+ * (the shell creates the platform before it renders), so launches wait for the first listener.
+ */
+function launchQueue(scope: WebScope, capabilities: Capabilities) {
+  const listeners = new Set<(files: PlatformFile[]) => void>();
+  const waiting: PlatformFile[][] = [];
+  if (capabilities.hasFileHandlers) {
+    scope.launchQueue?.setConsumer(async ({ files }) => {
+      const opened = await Promise.all(files.filter(isFileHandle).map((handle) => fromHandle(handle, capabilities)));
+      if (listeners.size === 0) waiting.push(opened);
+      for (const listener of listeners) listener(opened);
+    });
+  }
+  return {
+    subscribe(listener: (files: PlatformFile[]) => void): () => void {
+      listeners.add(listener);
+      for (const files of waiting.splice(0)) listener(files);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
 /** A PlatformFile over a File: range reads by slicing, the File itself for the worker. */
 export function fromFile(file: File, handle?: FileSystemFileHandle, writable = false): PlatformFile {
   return {
@@ -145,19 +161,27 @@ async function fromHandle(handle: FileSystemFileHandle, capabilities: Capabiliti
 }
 
 /**
- * Files from a drop or a paste. Handles are asked for before anything is awaited, since a
- * DataTransfer's items empty once the event's task ends; without handles, the plain files.
+ * Files from a drop or a paste. Handles and files are both taken before anything is awaited, since
+ * a DataTransfer's items empty once the event's task ends. A drop gives handles where the browser
+ * has them; a paste gives none, so its plain file stands in.
  */
 function filesFromDataTransfer(data: DataTransfer, capabilities: Capabilities): Promise<PlatformFile[]> {
   const items = [...data.items].filter((item) => item.kind === "file");
   const asHandles = capabilities.canWriteInPlace && items.every((item) => "getAsFileSystemHandle" in item);
   if (!asHandles) return Promise.resolve([...data.files].map((file) => fromFile(file)));
-  const pending = items.map((item) =>
-    (item as DataTransferItem & { getAsFileSystemHandle(): Promise<FileSystemHandle | null> }).getAsFileSystemHandle(),
-  );
-  return Promise.all(pending).then((handles) =>
-    Promise.all(handles.filter(isFileHandle).map((handle) => fromHandle(handle, capabilities))),
-  );
+  const pending = items.map((item) => ({
+    file: item.getAsFile(),
+    handle: (
+      item as DataTransferItem & { getAsFileSystemHandle(): Promise<FileSystemHandle | null> }
+    ).getAsFileSystemHandle(),
+  }));
+  return Promise.all(
+    pending.map(async ({ file, handle }) => {
+      const found = await handle;
+      if (isFileHandle(found)) return fromHandle(found, capabilities);
+      return file === null ? undefined : fromFile(file);
+    }),
+  ).then((files) => files.filter((file) => file !== undefined));
 }
 
 /** A hidden file input's choice; [] when the user cancels. */
@@ -177,11 +201,14 @@ async function saveAs(scope: WebScope, bytes: Uint8Array, suggestedName: string)
   if (scope.showSaveFilePicker === undefined) {
     // No dialog: the browser downloads it, under the suggested name.
     const url = scope.URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+    // Attached while it is clicked, which some engines need before they download.
     const link = scope.document.createElement("a");
     link.href = url;
     link.download = suggestedName;
+    scope.document.body.append(link);
     link.click();
-    setTimeout(() => scope.URL.revokeObjectURL(url), 0);
+    link.remove();
+    setTimeout(() => scope.URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
     return { saved: true, name: suggestedName };
   }
   try {
@@ -194,9 +221,15 @@ async function saveAs(scope: WebScope, bytes: Uint8Array, suggestedName: string)
   }
 }
 
+/** Writes `bytes` over the file; on a failure the stream is aborted, so no swap file or lock stays. */
 async function write(handle: FileSystemFileHandle, bytes: Uint8Array): Promise<void> {
   const writable = await handle.createWritable();
-  await writable.write(bytes as FileSystemWriteChunkType);
+  try {
+    await writable.write(bytes as FileSystemWriteChunkType);
+  } catch (error) {
+    await writable.abort().catch(() => undefined);
+    throw error;
+  }
   await writable.close();
 }
 
@@ -218,29 +251,42 @@ const handleKey = (id: string) => `recent-handle:${id}`;
 /** Recent documents in the key-value store; their file handles beside them where they can reopen. */
 function recentFiles(store: KeyValueStore, capabilities: Capabilities): RecentFiles {
   const list = async () => ((await store.get(RECENT)) as RecentFile[] | undefined) ?? [];
+  // Each change reads the list and writes it back, so changes run one at a time: two drops at once
+  // would otherwise each write their own copy and one would be lost.
+  let queue: Promise<unknown> = Promise.resolve();
+  const serial = <T>(change: () => Promise<T>): Promise<T> => {
+    const next = queue.then(change);
+    queue = next.catch(() => undefined);
+    return next;
+  };
   const recent: RecentFiles = {
     list,
-    async add(file) {
-      const entries = await list();
-      const same = entries.find((entry) => entry.name === file.name && entry.size === file.size);
-      const id = same?.id ?? crypto.randomUUID();
-      const entry: RecentFile = { id, name: file.name, size: file.size, lastOpened: Date.now() };
-      const kept = [entry, ...entries.filter((e) => e.id !== id)];
-      for (const dropped of kept.splice(RECENT_LIMIT)) await store.delete(handleKey(dropped.id));
-      await store.set(RECENT, kept);
-      if (capabilities.canReopenRecent && isFileHandle(file.handle)) await store.set(handleKey(id), file.handle);
-    },
-    async remove(id) {
-      await store.set(
-        RECENT,
-        (await list()).filter((entry) => entry.id !== id),
-      );
-      await store.delete(handleKey(id));
-    },
-    async clear() {
-      for (const entry of await list()) await store.delete(handleKey(entry.id));
-      await store.delete(RECENT);
-    },
+    add: (file) =>
+      serial(async () => {
+        const entries = await list();
+        const same = entries.find((entry) => entry.name === file.name && entry.size === file.size);
+        const id = same?.id ?? crypto.randomUUID();
+        const entry: RecentFile = { id, name: file.name, size: file.size, lastOpened: Date.now() };
+        const kept = [entry, ...entries.filter((e) => e.id !== id)];
+        for (const dropped of kept.splice(RECENT_LIMIT)) await store.delete(handleKey(dropped.id));
+        await store.set(RECENT, kept);
+        // A handle from an earlier open of a file with this name and size would reopen that file.
+        if (capabilities.canReopenRecent && isFileHandle(file.handle)) await store.set(handleKey(id), file.handle);
+        else await store.delete(handleKey(id));
+      }),
+    remove: (id) =>
+      serial(async () => {
+        await store.set(
+          RECENT,
+          (await list()).filter((entry) => entry.id !== id),
+        );
+        await store.delete(handleKey(id));
+      }),
+    clear: () =>
+      serial(async () => {
+        for (const entry of await list()) await store.delete(handleKey(entry.id));
+        await store.delete(RECENT);
+      }),
   };
   if (capabilities.canReopenRecent) {
     recent.reopen = async (id) => {
@@ -264,17 +310,6 @@ async function canRead(handle: FileSystemFileHandle): Promise<boolean> {
   const read = { mode: "read" };
   if ((await permitted.queryPermission?.(read)) === "granted") return true;
   return (await permitted.requestPermission(read)) === "granted";
-}
-
-/** A store in memory, for a browser without IndexedDB (private modes of some). */
-function memoryStore(): KeyValueStore {
-  const map = new Map<string, unknown>();
-  return {
-    get: async (key) => map.get(key),
-    set: async (key, value) => void map.set(key, value),
-    delete: async (key) => void map.delete(key),
-    clear: async () => map.clear(),
-  };
 }
 
 function isFileHandle(value: unknown): value is FileSystemFileHandle {

@@ -5,8 +5,15 @@
 import type { Platform, PlatformFile } from "../platform/types.js";
 import { EMPTY, type ReaderError, type ReaderEvent, type ReaderState, transition } from "./reader-machine.js";
 
-/** Opens `file`, with `password` when given, and resolves to its page count. */
-export type Opener = (file: PlatformFile, password: string | undefined) => Promise<{ readonly pageCount: number }>;
+/** A document the opener opened: its page count, and how to free it once the reader lets it go. */
+export interface OpenedDocument {
+  readonly pageCount: number;
+  /** Frees the document (its worker's memory); called when it is closed, replaced or superseded. */
+  close?(): void;
+}
+
+/** Opens `file`, with `password` when given. */
+export type Opener = (file: PlatformFile, password: string | undefined) => Promise<OpenedDocument>;
 
 /** The codes an opener's error carries when the document needs a password (ADR 0026). */
 const NEEDS_PASSWORD = "password-required";
@@ -20,6 +27,8 @@ export class ReaderController {
   #state: ReaderState = EMPTY;
   /** Counts opens, so a slower earlier one can't overwrite a later one's outcome. */
   #attempt = 0;
+  /** The document that is open, freed when another replaces it or the reader closes. */
+  #document: OpenedDocument | undefined;
 
   constructor(platform: Platform, opener: Opener) {
     this.#platform = platform;
@@ -41,6 +50,7 @@ export class ReaderController {
 
   /** Opens `file`, replacing whatever was open. */
   open(file: PlatformFile): Promise<void> {
+    this.#release();
     this.#dispatch({ type: "open", file });
     return this.#attemptOpen(file, undefined);
   }
@@ -62,7 +72,13 @@ export class ReaderController {
   /** Closes the open document, or the error, back to empty. */
   close(): void {
     this.#attempt += 1;
+    this.#release();
     this.#dispatch({ type: "close" });
+  }
+
+  #release(): void {
+    this.#document?.close?.();
+    this.#document = undefined;
   }
 
   async #attemptOpen(file: PlatformFile, password: string | undefined): Promise<void> {
@@ -70,8 +86,11 @@ export class ReaderController {
     const attempt = this.#attempt;
     let event: ReaderEvent;
     try {
-      const { pageCount } = await this.#opener(file, password);
-      event = { type: "opened", pageCount };
+      const opened = await this.#opener(file, password);
+      // A later open, a cancel or a close came first: nothing will show this document.
+      if (attempt !== this.#attempt) return opened.close?.();
+      this.#document = opened;
+      event = { type: "opened", pageCount: opened.pageCount };
     } catch (error) {
       const failure = asReaderError(error);
       if (failure.code === NEEDS_PASSWORD) event = { type: "password-required" };
@@ -89,9 +108,15 @@ export class ReaderController {
   }
 }
 
-/** An opener's error as a code and message: ADR 0026 errors carry `code`; anything else is unknown. */
+/**
+ * An opener's error as a code and message: ADR 0026 errors carry a string `code`; anything else,
+ * a DOMException's legacy numeric code included, is unknown.
+ */
 function asReaderError(error: unknown): ReaderError {
-  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "unknown";
+  const code =
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+      ? error.code
+      : "unknown";
   const text = error instanceof Error ? error.message : String(error);
   return { code, message: text };
 }

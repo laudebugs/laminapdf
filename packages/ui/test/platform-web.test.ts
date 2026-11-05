@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { message } from "../src/messages.ts";
 import type { PlatformFile } from "../src/platform/types.ts";
 import { createWebPlatform, detectCapabilities, type WebScope } from "../src/platform/web.ts";
@@ -13,7 +13,12 @@ const requested: string[] = [];
  * A file handle over `bytes` that records what is written to it. It holds `kept` permission
  * already, and a request for one answers `permission`.
  */
-function fakeHandle(name: string, bytes = PDF, permission: PermissionState = "granted", kept: PermissionState = "prompt") {
+function fakeHandle(
+  name: string,
+  bytes = PDF,
+  permission: PermissionState = "granted",
+  kept: PermissionState = "prompt",
+) {
   const written: Uint8Array[] = [];
   const handle = {
     kind: "file" as const,
@@ -47,17 +52,37 @@ function chromiumLike(parts: Partial<WebScope> = {}): WebScope & { readonly open
   });
 }
 
-/** A document whose created elements record their clicks. */
+/** A document whose created elements record their clicks, and whether they were attached then. */
 function recordingDocument() {
   const clicked: Record<string, unknown>[] = [];
   const document = {
     createElement: () => {
-      const element: Record<string, unknown> = { addEventListener: method };
-      element.click = () => clicked.push(element);
+      const element: Record<string, unknown> = { addEventListener: method, attached: false };
+      element.click = () => clicked.push({ ...element });
+      element.remove = () => {
+        element.attached = false;
+      };
       return element;
+    },
+    body: {
+      append: (element: Record<string, unknown>) => {
+        element.attached = true;
+      },
     },
   } as unknown as Document;
   return { document, clicked };
+}
+
+/** A DataTransfer of `items`, each a file with a handle (or none, as a paste gives) and a File. */
+function transfer(items: { file: File; handle: FileSystemHandle | null }[]): DataTransfer {
+  return {
+    items: items.map(({ file, handle }) => ({
+      kind: "file",
+      getAsFile: () => file,
+      getAsFileSystemHandle: async () => handle,
+    })),
+    files: items.map(({ file }) => file),
+  } as unknown as DataTransfer;
 }
 
 const abort = () => Promise.reject(new DOMException("The user aborted a request.", "AbortError"));
@@ -126,6 +151,37 @@ describe("opening files on the web", () => {
     await expect(platform.openFiles({ multiple: false })).rejects.toThrow("blocked");
   });
 
+  it("keeps files the OS opened before the app subscribed, for the first listener", async () => {
+    let consumer: ((params: { files: readonly FileSystemHandle[] }) => void) | undefined;
+    const launchQueue = {
+      setConsumer: (c: typeof consumer) => {
+        consumer = c;
+      },
+    };
+    const platform = createWebPlatform(chromiumLike({ launchQueue }));
+    consumer?.({ files: [fakeHandle("early.pdf").handle] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const received: string[][] = [];
+    platform.onOpenRequest((files) => received.push(files.map((f) => f.name)));
+    platform.onOpenRequest((files) => received.push(files.map((f) => `second ${f.name}`)));
+    expect(received).toEqual([["early.pdf"]]);
+  });
+
+  it("takes a dropped file's handle, and a pasted file, which has none, as a plain file", async () => {
+    const platform = createWebPlatform(chromiumLike());
+    const dropped = fakeHandle("dropped.pdf").handle;
+    const files = await platform.filesFromDataTransfer(
+      transfer([
+        { file: new File([PDF], "dropped.pdf"), handle: dropped },
+        { file: new File([PDF], "pasted.pdf"), handle: null },
+      ]),
+    );
+    expect(files.map((f) => [f.name, f.writable, f.handle === dropped])).toEqual([
+      ["dropped.pdf", true, true],
+      ["pasted.pdf", false, false],
+    ]);
+  });
+
   it("hands files the OS opened in the app to every listener", async () => {
     let consumer: ((params: { files: readonly FileSystemHandle[] }) => void) | undefined;
     const launchQueue = {
@@ -147,7 +203,21 @@ describe("saving on the web", () => {
     const { document, clicked } = recordingDocument();
     const platform = createWebPlatform(fakeScope({ document }));
     expect(await platform.saveAs(PDF, "copy.pdf")).toEqual({ saved: true, name: "copy.pdf" });
-    expect(clicked).toMatchObject([{ href: "blob:fake", download: "copy.pdf" }]);
+    expect(clicked).toMatchObject([{ href: "blob:fake", download: "copy.pdf", attached: true }]);
+  });
+
+  it("keeps a download's URL alive past the click, for engines that read it late", async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const revoked: string[] = [];
+    const URL = { createObjectURL: () => "blob:late", revokeObjectURL: (url: string) => void revoked.push(url) };
+    await createWebPlatform(fakeScope({ document: recordingDocument().document, URL })).saveAs(PDF, "copy.pdf");
+    vi.advanceTimersByTime(1000);
+    expect(revoked).toEqual([]);
+    vi.advanceTimersByTime(60_000);
+    expect(revoked).toEqual(["blob:late"]);
   });
 
   it("writes to the file the save dialog chose, under the name the user gave", async () => {
@@ -155,6 +225,21 @@ describe("saving on the web", () => {
     const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: async () => handle }));
     expect(await platform.saveAs(PDF, "copy.pdf")).toEqual({ saved: true, name: "chosen.pdf" });
     expect(written).toEqual([PDF]);
+  });
+
+  it("aborts a write that fails, so the file isn't left locked, and passes the failure on", async () => {
+    const aborted: string[] = [];
+    const handle = {
+      ...fakeHandle("full.pdf").handle,
+      createWritable: async () => ({
+        write: () => Promise.reject(new DOMException("Disk full", "QuotaExceededError")),
+        abort: async () => void aborted.push("full.pdf"),
+        close: async () => undefined,
+      }),
+    } as unknown as FileSystemFileHandle;
+    const platform = createWebPlatform(chromiumLike({ showSaveFilePicker: async () => handle }));
+    await expect(platform.saveAs(PDF, "copy.pdf")).rejects.toThrow("Disk full");
+    expect(aborted).toEqual(["full.pdf"]);
   });
 
   it("reports a dismissed save dialog as cancelled", async () => {
@@ -213,6 +298,17 @@ describe("storage and recent files on the web", () => {
     expect(await storage.persist()).toBe(false);
   });
 
+  it("keeps values in memory when IndexedDB won't open, as in some private modes", async () => {
+    const { storage } = createWebPlatform(fakeScope({ indexedDB: fakeIndexedDb({ failOpen: true }) }));
+    await storage.set("theme", "dark");
+    expect(await storage.get("theme")).toBe("dark");
+  });
+
+  it("fails a write whose transaction the browser aborts, as when out of quota", async () => {
+    const { storage } = createWebPlatform(fakeScope({ indexedDB: fakeIndexedDb({ abortWrites: true }) }));
+    await expect(storage.set("theme", "dark")).rejects.toThrow("Quota exceeded");
+  });
+
   it("keeps small values until they are deleted or cleared", async () => {
     const { storage } = createWebPlatform(fakeScope());
     await storage.set("theme", "dark");
@@ -232,6 +328,20 @@ describe("storage and recent files on the web", () => {
     expect(names.slice(0, 3)).toEqual(["doc-5.pdf", "doc-21.pdf", "doc-20.pdf"]);
     expect(names.filter((name) => name === "doc-5.pdf")).toHaveLength(1);
     expect(names).not.toContain("doc-1.pdf");
+  });
+
+  it("keeps every document added at once", async () => {
+    const { recent } = createWebPlatform(fakeScope({ indexedDB: fakeIndexedDb() }));
+    await Promise.all(["a.pdf", "b.pdf", "c.pdf"].map((name) => recent.add(fakeFile(name))));
+    expect((await recent.list()).map((entry) => entry.name).sort()).toEqual(["a.pdf", "b.pdf", "c.pdf"]);
+  });
+
+  it("forgets the handle of an earlier file when one of the same name and size comes without one", async () => {
+    const platform = createWebPlatform(chromiumLike({ indexedDB: fakeIndexedDb() }));
+    await platform.recent.add({ ...fakeFile("same.pdf"), handle: fakeHandle("same.pdf").handle });
+    await platform.recent.add(fakeFile("same.pdf"));
+    const [entry] = await platform.recent.list();
+    expect(await platform.recent.reopen?.(entry?.id ?? "")).toBeUndefined();
   });
 
   it("removes one recent document, or all of them", async () => {
