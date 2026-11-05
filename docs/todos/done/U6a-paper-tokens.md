@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U1a](./U1a-adr-0024-app-shell-ux.md) |
-| Blocks | [U6b](../ready/U6b-self-hosted-fonts.md), [U6c](./U6c-icon-set.md), [U6d](../ready/U6d-core-components.md) |
+| Blocks | [U6b](../ready/U6b-self-hosted-fonts.md), [U6c](./U6c-icon-set.md), [U6d](../ongoing/U6d-core-components.md) |
 | ADRs | Follows 0024 (token layers: primitive → semantic → component; page appearance separate from UI theme; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (pnpm workspace, `catalog:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence check for any new dev dependency) |
 | Branch | `feat/u6a-paper-tokens` |
 | PR title | `feat(tokens): add @laminapdf/tokens with paper light, dark and high-contrast themes` |
@@ -48,7 +48,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 
 - Fonts themselves (files, `@font-face`, preload) → [U6b](../ready/U6b-self-hosted-fonts.md); this package only names the families.
 - Icons → [U6c](../done/U6c-icon-set.md). Z-order tokens → [U6e](../ready/U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
-- Components using the tokens → [U6d](../ready/U6d-core-components.md), [U6e](../ready/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- Components using the tokens → [U6d](../ongoing/U6d-core-components.md), [U6e](../ready/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 - The theme switch UI, `forced-colors` component styles, stored user preference and the settings dialog → [C7a](../ready/C7a-accessibility-and-theming.md).
 - Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](../ready/U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](../ready/C7a-accessibility-and-theming.md) / [U2c](../ready/U2c-page-appearance-modes.md).
 - Mockup-only document colours ([§2.5](../../design/paper/design-language.md#25-mockup-only-colours-document-content)) and the drawn macOS `window` colours: not product tokens.

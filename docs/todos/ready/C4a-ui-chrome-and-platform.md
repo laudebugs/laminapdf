@@ -32,7 +32,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 
 **In scope**
 
-- The reader shell in `packages/ui` (`@laminapdf/ui`), which [U6d](./U6d-core-components.md) creates (package scaffold, React 19, tests, Biome config) and [U6e](./U6e-overlays-and-sheets.md) extends; C4a adds the shell and platform modules to it and does not re-scaffold the package.
+- The reader shell in `packages/ui` (`@laminapdf/ui`), which [U6d](../ongoing/U6d-core-components.md) creates (package scaffold, React 19, tests, Biome config) and [U6e](./U6e-overlays-and-sheets.md) extends; C4a adds the shell and platform modules to it and does not re-scaffold the package.
 - Accessible primitives library chosen per ADR 0009 (recommendation: React Aria Components for i18n/RTL/keyboard) — licence checked (Apache-2.0).
 - Components: `ReaderShell` (layout: toolbar, optional sidebar slot, viewer slot, status region), `Toolbar` (open, page indicator with input, prev/next, zoom out/in, zoom menu with fit width / fit page / actual size / presets, rotate, download/print placeholders disabled by capability, overflow menu), `OpenDropZone` (empty state with "Open a file", drag-and-drop target, paste hint), `PasswordDialog`, `ErrorBanner` / `RepairNotice` (ADR 0003 warnings in plain words, list of unsupported features), `LoadingState`, `DebugMenu` slot (backend switch hayro/PDFium for diffing — hidden behind `#debug`, a fragment per ADR 0011 §3.6).
 - `useViewer(viewer)` hooks over the store (`useSyncExternalStore`), `ReaderController` that owns the interaction state machine (`empty → opening → needs-password → open → error`).
@@ -59,7 +59,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 - [ ] Zoom control: percentage input + menu; keyboard operable; reflects viewer state.
 - [ ] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password; `autocomplete="off"`.
 - [ ] Error/repair UI: maps ADR 0003 warning and error codes (`fixtures/codes.json`) to messages; "repaired" notice is dismissible; unsupported-feature list expandable.
-- [ ] Use `@laminapdf/tokens` ([U6a](../done/U6a-paper-tokens.md)) for all styles and compose the shell from `@laminapdf/ui`'s Paper components and overlays ([U6d](./U6d-core-components.md), [U6e](./U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
+- [ ] Use `@laminapdf/tokens` ([U6a](../done/U6a-paper-tokens.md)) for all styles and compose the shell from `@laminapdf/ui`'s Paper components and overlays ([U6d](../ongoing/U6d-core-components.md), [U6e](./U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
 - [ ] README with the component map and how desktop supplies its own `Platform`.
 
 ## Acceptance criteria

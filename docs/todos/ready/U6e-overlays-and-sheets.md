@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6d](./U6d-core-components.md) |
+| Depends on | [U6d](../ongoing/U6d-core-components.md) |
 | Blocks | [C4a](./C4a-ui-chrome-and-platform.md), [U1b](./U1b-command-registry-and-palette.md), [U6f](./U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows 0024 (selection surfaces per pointer type, sheets with detents, palette as an APG combobox, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for any positioning dependency |
 | Branch | `feat/u6e-overlays-and-sheets` |
@@ -23,7 +23,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 - Design language [§7.9 selection mini toolbar](../../design/paper/design-language.md#79-selection-mini-toolbar-desktop-fine-pointer), [§7.10 command palette](../../design/paper/design-language.md#710-command-palette), [§7.16 bottom sheet](../../design/paper/design-language.md#716-bottom-sheet), [§7.18 dialog](../../design/paper/design-language.md#718-dialog), [§7.20 toast and notice](../../design/paper/design-language.md#720-toast-and-notice); [§4](../../design/paper/design-language.md#4-space-shape-depth) (floating shadows, `scrim`, and the proposed z-order table); [§6.2 phone shell](../../design/paper/design-language.md#62-phone-shell-390--844-artboard) (sheet detents: medium, large, collapsed; grabber 64 × 44 button); [§8.7 touch rules](../../design/paper/design-language.md#87-touch-rules); [§8.8 keyboard](../../design/paper/design-language.md#88-keyboard-and-shortcuts) (Escape closes the innermost layer; Shift+F10); [§8.9 checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa).
 - Design: F01 (mini toolbar), F02 (palette), F04 (Pages sheet) in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards).
 - [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) (palette), [§5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) (selection surfaces), [§5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (sheets, safe areas).
-- [U6d](./U6d-core-components.md) — buttons, icon buttons, toast visual, shortcut chip and the shared test helpers this todo builds on.
+- [U6d](../ongoing/U6d-core-components.md) — buttons, icon buttons, toast visual, shortcut chip and the shared test helpers this todo builds on.
 - Consumers: [U1b](./U1b-command-registry-and-palette.md) (palette contents, ranking and argument parsing), [U2a](./U2a-selection-surfaces-and-copy-modes.md) (when the mini toolbar shows and what it holds), [U3a](./U3a-responsive-mobile-and-touch.md) (which panels become sheets), [C4a](./C4a-ui-chrome-and-platform.md) (password dialog, zoom menu, overflow menu).
 - WCAG 2.2 SC 2.1.2 (no keyboard trap), 2.4.3 (focus order), 2.4.11 (focus not obscured), 2.5.7 (dragging movements), 4.1.3 (status messages); WAI-ARIA APG: dialog (modal), menu button and menu, combobox with listbox popup, toolbar.
 
@@ -62,7 +62,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 - [ ] `SelectionToolbarShell` (positioning, roving focus, Shift+F10, Escape) with a fake selection rect in tests.
 - [ ] `CommandPaletteShell` with the combobox semantics; tests asserting `aria-activedescendant` follows the active option, focus never leaves the input, disabled options are announced and skipped, sections are labelled groups.
 - [ ] `ToastRegion` and `toast()`; tests for stacking, timeout pause on hover and focus, the action's keyboard reach, announcements via the live region.
-- [ ] Phone variant: `Dialog` renders as a large-detent `BottomSheet` under the touch density (from [U6d](./U6d-core-components.md)).
+- [ ] Phone variant: `Dialog` renders as a large-detent `BottomSheet` under the touch density (from [U6d](../ongoing/U6d-core-components.md)).
 - [ ] README section: which overlay to use when (dialog vs sheet vs popover vs notice), the layer order and Escape order.
 
 ## Acceptance criteria
@@ -83,7 +83,7 @@ None.
 
 ## Tests
 
-`packages/ui/src/overlays/**/*.test.tsx` (Vitest browser mode, Chromium, Firefox, WebKit) with the shared state and axe helpers from [U6d](./U6d-core-components.md); unit tests for the layer stack and positioning maths; touch emulation for sheets (Playwright device descriptors in the browser runner).
+`packages/ui/src/overlays/**/*.test.tsx` (Vitest browser mode, Chromium, Firefox, WebKit) with the shared state and axe helpers from [U6d](../ongoing/U6d-core-components.md); unit tests for the layer stack and positioning maths; touch emulation for sheets (Playwright device descriptors in the browser runner).
 
 ## Docs to update
 
@@ -94,7 +94,7 @@ None.
 ## Risks and open questions
 
 - **Palette library**: [U1b](./U1b-command-registry-and-palette.md) planned cmdk. cmdk renders its own input and list, so it would bypass this shell. Recommendation: the shell owns the ARIA and rendering, and U1b uses a ranking function only (cmdk's scoring or its own); agree this with whoever claims U1b and update U1b's text in this PR's claim or a board-only PR.
-- **Order with C4a**: this todo should land before [C4a](./C4a-ui-chrome-and-platform.md) so its password dialog and menus use these overlays (see [U6d](./U6d-core-components.md)'s risks); C4a's **Depends on** gains U6e.
+- **Order with C4a**: this todo should land before [C4a](./C4a-ui-chrome-and-platform.md) so its password dialog and menus use these overlays (see [U6d](../ongoing/U6d-core-components.md)'s risks); C4a's **Depends on** gains U6e.
 - **Bottom sheet gestures vs the viewer's**: the viewer owns pan and pinch on the canvas (UI/UX §5.4); the sheet only handles drags that start on the sheet or the grabber. Test on real iOS Safari and Android Chrome before [U3a](./U3a-responsive-mobile-and-touch.md) relies on it.
 - **`inert` and the desktop webview**: `inert` is supported in current WebKit, Blink and Gecko; confirm in the Tauri webviews (WKWebView, WebView2, WebKitGTK) when [D2a](./D2a-adr-0008-and-desktop-scaffold.md) lands.
 - **Toast action reachability** without moving focus is awkward for keyboard users; if no clean pattern exists, actions in toasts are limited to ones that are also available elsewhere (e.g. Undo in the Edit menu and `Mod Z`).
