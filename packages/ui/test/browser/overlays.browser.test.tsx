@@ -112,7 +112,7 @@ describe("Dialog", () => {
     const title = document.getElementById(dialog.getAttribute("aria-labelledby") ?? "");
     expect(title?.textContent).toBe("Move pages");
     expect(document.getElementById(dialog.getAttribute("aria-describedby") ?? "")?.textContent).toContain("4–6");
-    expect(focused().tagName).toBe("INPUT");
+    await expect.poll(() => focused().tagName).toBe("INPUT");
   });
 
   it("traps Tab inside and makes the page behind inert", async () => {
@@ -129,7 +129,8 @@ describe("Dialog", () => {
     await openDialog();
     await userEvent.keyboard("{Escape}");
     expect(role("dialog")).toBeNull();
-    expect(focused().textContent).toBe("Move pages");
+    // WebKit moves focus back a little after the dialog unmounts.
+    await expect.poll(() => focused().textContent).toBe("Move pages");
   });
 
   it("closes on a scrim click, from its close button, but not when it asks a required question", async () => {
@@ -172,9 +173,7 @@ describe("Dialog", () => {
     document.body.append(fallback);
     renderIn(<Conditional fallback={fallback} />);
     await userEvent.keyboard("{Escape}");
-    await frame();
-    await frame();
-    expect(focused()).toBe(fallback);
+    await expect.poll(focused).toBe(fallback);
   });
 
   it("closes a menu inside it first, then itself", async () => {
@@ -385,7 +384,7 @@ describe("ToastRegion", () => {
     await userEvent.tab();
     expect(focused().textContent).toBe("Undo");
     await userEvent.keyboard("{Enter}");
-    expect(focused().textContent).toBe("Before");
+    await expect.poll(() => focused().textContent).toBe("Before");
     queue.add({ message: "Copied", timeout: 100 });
     await new Promise((r) => setTimeout(r, 300));
     expect([...host.querySelectorAll(".paper-toast")].map((t) => t.textContent)).toEqual(["Update ready"]);
