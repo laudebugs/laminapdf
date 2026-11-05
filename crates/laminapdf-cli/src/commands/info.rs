@@ -14,6 +14,8 @@ use crate::io::Io;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InfoArgs {
     /// The PDF to read, or `-` for standard input.
+    // The command line takes several inputs, so the front end fills this in per input.
+    #[arg(skip)]
     pub input: String,
     /// Keep only these top-level keys of the JSON report (`schema` and `input` always stay).
     #[arg(long, value_delimiter = ',', value_name = "KEYS")]

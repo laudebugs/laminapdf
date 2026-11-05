@@ -1,7 +1,7 @@
 //! The committed JSON Schemas (`schemas/`): each is what the report types generate
 //! (`UPDATE_GOLDEN=1` rewrites them), and every `--json` output of the binary validates
 //! against its own, errors and warnings on standard error included.
-#![expect(
+#![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
     clippy::panic,
@@ -10,8 +10,8 @@
 
 mod common;
 
-use common::{folder, laminapdf, root, run};
-use serde_json::Value;
+use common::schemas::Validator;
+use common::{folder, laminapdf, run};
 
 /// The `schemas/` folder.
 fn schemas_dir() -> std::path::PathBuf {
@@ -35,43 +35,6 @@ fn the_committed_schemas_should_be_the_generated_ones() {
         stale.is_empty(),
         "stale schemas {stale:?}: rerun with UPDATE_GOLDEN=1 and review the diff"
     );
-}
-
-/// Every committed schema and `laminapdf.error/1`, compiled.
-struct Validator {
-    schemas: boon::Schemas,
-    compiler_ids: Vec<(String, boon::SchemaIndex)>,
-}
-
-impl Validator {
-    fn new() -> Self {
-        let mut compiler = boon::Compiler::new();
-        let error: Value =
-            serde_json::from_slice(&std::fs::read(root().join("packages/sdk/schemas/error.schema.json")).unwrap())
-                .unwrap();
-        compiler
-            .add_resource(error["$id"].as_str().unwrap(), error.clone())
-            .unwrap();
-        let mut ids = Vec::new();
-        for (file, schema) in laminapdf_cli::schema::all() {
-            let id = schema["$id"].as_str().unwrap().to_owned();
-            compiler.add_resource(&id, schema).unwrap();
-            ids.push((file.to_owned(), id));
-        }
-        let mut schemas = boon::Schemas::new();
-        let compiler_ids = ids
-            .into_iter()
-            .map(|(file, id)| (file, compiler.compile(&id, &mut schemas).unwrap()))
-            .collect();
-        Self { schemas, compiler_ids }
-    }
-
-    fn check(&self, file: &str, value: &Value) {
-        let (_, index) = self.compiler_ids.iter().find(|(f, _)| f == file).unwrap();
-        if let Err(e) = self.schemas.validate(value, *index) {
-            panic!("{value} does not match {file}:\n{e}");
-        }
-    }
 }
 
 #[test]
