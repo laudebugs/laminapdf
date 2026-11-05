@@ -12,7 +12,7 @@
 | Branch | `build/p5-npm-trusted-publishing` |
 | PR title | `build: publish to npm with trusted publishing and skip the release lane's nightly run for a version-only commit` |
 | Size | M (≈ 300–500 lines: xtask, workflow changes for the owner, tests) |
-| PR | — |
+| PR | [#263](https://github.com/laudebugs/laminapdf/pull/263) |
 
 ## Goal
 
