@@ -1,0 +1,135 @@
+{
+  "$comment": "Edit 'sources' by hand when a font is updated; tools/fonts/subset.py writes 'outputs' and 'fallback'.",
+  "version": 1,
+  "tools": {
+    "fonttools": "4.68.0",
+    "brotli": "1.2.1"
+  },
+  "sources": [
+    {
+      "id": "source-sans-3",
+      "package": "source-sans",
+      "version": "3.52.0",
+      "tarball": "source-sans-3.52.0.tgz",
+      "upstream": "https://github.com/adobe-fonts/source-sans (release 3.052, published to npm by Adobe)",
+      "licence": "OFL-1.1",
+      "reservedFontName": "Source",
+      "files": {
+        "package/VF/SourceSans3VF-Upright.ttf": "1147db9a3f0edd4956068de77930148acce2742dd76d57f7239b2b1c687ac63f",
+        "package/VF/SourceSans3VF-Italic.ttf": "c34791f4f889af43d84e2f84ebeb02e6eed07058aca21e6729d26e6436d18965",
+        "package/LICENSE.md": "56af9b9c6715597e458284a474dc118a50a4150e9d547c70f7b4a33c3e6a9328"
+      }
+    },
+    {
+      "id": "newsreader",
+      "package": "@fontsource-variable/newsreader",
+      "version": "5.3.0",
+      "tarball": "fontsource-variable-newsreader-5.3.0.tgz",
+      "upstream": "https://github.com/productiontype/Newsreader (version 1.003, as built by Google Fonts; repackaged by Fontsource)",
+      "licence": "OFL-1.1",
+      "reservedFontName": null,
+      "files": {
+        "package/files/newsreader-latin-opsz-normal.woff2": "6e4f2958c3a7c4a80acde4e5a679abe7e01bc1e30b92be3c7a8b696ef401d101",
+        "package/files/newsreader-latin-ext-opsz-normal.woff2": "45683de03de37187604102316c0b42c0cb2d8dc9c4140a20ad471c3148cc1278",
+        "package/files/newsreader-latin-opsz-italic.woff2": "5dfcd10d24af8c82927ba57f7983dd997f7b200594c09c35a1b1ed9fc4597506",
+        "package/files/newsreader-latin-ext-opsz-italic.woff2": "bb24f6648f75d909eb74535916015c97ef72a1344e532ec7bbaf3f80eb6f389f",
+        "package/LICENSE": "26028ec4e13b650065fa525a09532176f8a668b76ff849ea01c564a7480f91e7"
+      }
+    },
+    {
+      "id": "caveat",
+      "package": "@fontsource/caveat",
+      "version": "5.3.0",
+      "tarball": "fontsource-caveat-5.3.0.tgz",
+      "upstream": "https://github.com/googlefonts/caveat (version 2.000, as built by Google Fonts; repackaged by Fontsource)",
+      "licence": "OFL-1.1",
+      "reservedFontName": null,
+      "files": {
+        "package/files/caveat-latin-500-normal.woff2": "edbfb1a768829d4e85127cd327e59faaec9701cb043e96430938f1f66acf009f",
+        "package/LICENSE": "163a2b400e16916ad3196296c946c526d0efce6baf22a2164269ffc62fb9f671"
+      }
+    }
+  ],
+  "outputs": {
+    "files/lamina-sans-latin-wght-normal.woff2": {
+      "sha256": "8c68726416d2731b53c1f37666c105123f67476052d1b102e5b0b90b650a338f",
+      "bytes": 30640,
+      "family": "Lamina Sans",
+      "style": "normal",
+      "weight": "400 700",
+      "coverage": "U+0020-007E,U+00A0-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2007,U+2009-200B,U+2010-201E,U+2020-2023,U+2026,U+202F-2033,U+2035,U+2039-203A,U+203C-203F,U+2044,U+2047-204A,U+20AC,U+2122,U+2190-2193,U+21E7,U+2212,U+2215,U+2318,U+2325,U+232B,U+2713,U+FEFF"
+    },
+    "files/lamina-sans-latin-ext-wght-normal.woff2": {
+      "sha256": "09f7e16e2fc3734bb76e7d781862371ad07cd4b966f1a69af1a271d3c283b84a",
+      "bytes": 62436,
+      "family": "Lamina Sans",
+      "style": "normal",
+      "weight": "400 700",
+      "coverage": "U+0100-0181,U+0186,U+018A,U+018D-0190,U+0192-0194,U+0196-0197,U+019A-019B,U+019E,U+01A0-01A1,U+01AF-01B1,U+01B7,U+01BF-01C3,U+01CD-01DD,U+01E2-01E7,U+01EA-01EB,U+01EE-01F0,U+01F4-01F5,U+01F7-0201,U+0204-0205,U+0208-0209,U+020C-020D,U+0218-0220,U+0222-0223,U+0226-0227,U+0237,U+023A-023E,U+0241-0245,U+0248-0249,U+0250-027B,U+027D-0285,U+0287-0292,U+0294-0295,U+0298-0299,U+029B-029F,U+02A1-02A8,U+02B0-02B4,U+02B7-02B9,U+02BD-02C1,U+02C7-02CC,U+02D0-02D7,U+02DD-02DE,U+02E0-02E4,U+02ED,U+0304,U+0308,U+0329,U+1D25,U+1D2C,U+1D2E,U+1D30-1D31,U+1D33-1D3A,U+1D3C,U+1D3E-1D43,U+1D47-1D4B,U+1D4D,U+1D4F-1D52,U+1D56-1D58,U+1D5B,U+1D6F-1D70,U+1D79,U+1D7B,U+1D7F,U+1D9C,U+1DA0,U+1DAC,U+1DAE,U+1DB0,U+1DBB,U+1DBF,U+1E02-1E03,U+1E06-1E07,U+1E0A-1E11,U+1E16-1E17,U+1E1E-1E2B,U+1E32-1E3B,U+1E3E-1E49,U+1E52-1E53,U+1E56-1E63,U+1E66-1E67,U+1E6A-1E6F,U+1E72-1E73,U+1E7E-1E85,U+1E8E-1E97,U+1E9E-1E9F,U+1EF2-1EF9,U+2020,U+20A1,U+20A3-20A4,U+20A6-20A7,U+20A9,U+20AB,U+20AE,U+20B1-20B2,U+20B4-20B5,U+20B8-20BA,U+20BD,U+2113,U+2C60-2C62,U+2C65-2C66,U+2C71,U+2C7D,U+A722-A725,U+A74E-A74F,U+A75A-A75B,U+A764-A765,U+A779-A787,U+A789,U+A7AD-A7AE,U+A7B3,U+A7B5,U+A7F2-A7F4"
+    },
+    "files/lamina-sans-latin-wght-italic.woff2": {
+      "sha256": "37e0e8b3b7711d1146ad28e949df78bf7612976becc4add298e8aebe6fc01c37",
+      "bytes": 30596,
+      "family": "Lamina Sans",
+      "style": "italic",
+      "weight": "400 700",
+      "coverage": "U+0020-007E,U+00A0-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2007,U+2009-200B,U+2010-201E,U+2020-2023,U+2026,U+202F-2033,U+2035,U+2039-203A,U+203C-203F,U+2044,U+2047-204A,U+20AC,U+2122,U+2190-2193,U+21E7,U+2212,U+2215,U+2318,U+2325,U+232B,U+2713,U+FEFF"
+    },
+    "files/lamina-sans-latin-ext-wght-italic.woff2": {
+      "sha256": "287873fa6bb1a8f58712310dfd546b9955565c672ef4aba3c3fad6eec6a5adda",
+      "bytes": 62592,
+      "family": "Lamina Sans",
+      "style": "italic",
+      "weight": "400 700",
+      "coverage": "U+0100-0181,U+0186,U+018A,U+018D-0190,U+0192-0194,U+0196-0197,U+019A-019B,U+019E,U+01A0-01A1,U+01AF-01B1,U+01B7,U+01BF-01C3,U+01CD-01DD,U+01E2-01E7,U+01EA-01EB,U+01EE-01F0,U+01F4-01F5,U+01F7-0201,U+0204-0205,U+0208-0209,U+020C-020D,U+0218-0220,U+0222-0223,U+0226-0227,U+0237,U+023A-023E,U+0241-0245,U+0248-0249,U+0250-027B,U+027D-0285,U+0287-0292,U+0294-0295,U+0298-0299,U+029B-029F,U+02A1-02A8,U+02B0-02B4,U+02B7-02B9,U+02BD-02C1,U+02C7-02CC,U+02D0-02D7,U+02DD-02DE,U+02E0-02E4,U+02ED,U+0304,U+0308,U+0329,U+1D25,U+1D2C,U+1D2E,U+1D30-1D31,U+1D33-1D3A,U+1D3C,U+1D3E-1D43,U+1D47-1D4B,U+1D4D,U+1D4F-1D52,U+1D56-1D58,U+1D5B,U+1D6F-1D70,U+1D79,U+1D7B,U+1D7F,U+1D9C,U+1DA0,U+1DAC,U+1DAE,U+1DB0,U+1DBB,U+1DBF,U+1E02-1E03,U+1E06-1E07,U+1E0A-1E11,U+1E16-1E17,U+1E1E-1E2B,U+1E32-1E3B,U+1E3E-1E49,U+1E52-1E53,U+1E56-1E63,U+1E66-1E67,U+1E6A-1E6F,U+1E72-1E73,U+1E7E-1E85,U+1E8E-1E97,U+1E9E-1E9F,U+1EF2-1EF9,U+2020,U+20A1,U+20A3-20A4,U+20A6-20A7,U+20A9,U+20AB,U+20AE,U+20B1-20B2,U+20B4-20B5,U+20B8-20BA,U+20BD,U+2113,U+2C60-2C62,U+2C65-2C66,U+2C71,U+2C7D,U+A722-A725,U+A74E-A74F,U+A75A-A75B,U+A764-A765,U+A779-A787,U+A789,U+A7AD-A7AE,U+A7B3,U+A7B5,U+A7F2-A7F4"
+    },
+    "files/newsreader-latin-wght-normal.woff2": {
+      "sha256": "3471838e647913ceb45be541198f1c51dbe50ddc5908a6b091e1e8e73a9ad3aa",
+      "bytes": 36868,
+      "family": "Newsreader",
+      "style": "normal",
+      "weight": "400 600",
+      "coverage": "U+0020-007E,U+00A0-00FF,U+0131,U+0152-0153,U+02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026,U+2032-2033,U+2039-203A,U+2044,U+20AC,U+2122,U+2212,U+2215"
+    },
+    "files/newsreader-latin-ext-wght-normal.woff2": {
+      "sha256": "bd96c243ec583e40c21a39761de4e6143a137c0183eca92e75800b645fcbbd0b",
+      "bytes": 21212,
+      "family": "Newsreader",
+      "style": "normal",
+      "weight": "400 600",
+      "coverage": "U+0100-0130,U+0134-0148,U+014A-0151,U+0154-017E,U+018F,U+0192,U+01A0-01A1,U+01AF-01B0,U+01C4-01CC,U+01E6-01E7,U+01EA-01EB,U+01FA-021B,U+022A-022D,U+0230-0233,U+0237,U+0259,U+02B9-02BA,U+02C7,U+02DD,U+0304,U+0308,U+1E80-1E85,U+1E9E,U+1EF2-1EF9,U+2020,U+20A1,U+20A3-20A4,U+20A6-20A7,U+20A9,U+20AB,U+20AD,U+20B1-20B2,U+20B5,U+20B9-20BA,U+20BC-20BD"
+    },
+    "files/newsreader-latin-400-italic.woff2": {
+      "sha256": "10fd87b2259b2971df8dc9175ae0e2a724c2c414f9d54041139c6910b85694e0",
+      "bytes": 21868,
+      "family": "Newsreader",
+      "style": "italic",
+      "weight": "400",
+      "coverage": "U+0020-007E,U+00A0-00FF,U+0131,U+0152-0153,U+02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026,U+2032-2033,U+2039-203A,U+2044,U+20AC,U+2122,U+2212,U+2215"
+    },
+    "files/newsreader-latin-ext-400-italic.woff2": {
+      "sha256": "45b52900a87386fe0f5b935d865cff37579e41a01c4c56202900e6e009daf0e1",
+      "bytes": 12784,
+      "family": "Newsreader",
+      "style": "italic",
+      "weight": "400",
+      "coverage": "U+0100-0130,U+0134-0148,U+014A-0151,U+0154-017E,U+018F,U+0192,U+01A0-01A1,U+01AF-01B0,U+01C4-01CC,U+01E6-01E7,U+01EA-01EB,U+01FA-021B,U+022A-022D,U+0230-0233,U+0237,U+0259,U+02B9-02BA,U+02C7,U+02DD,U+0304,U+0308,U+1E80-1E85,U+1E9E,U+1EF2-1EF9,U+2020,U+20A1,U+20A3-20A4,U+20A6-20A7,U+20A9,U+20AB,U+20AD,U+20B1-20B2,U+20B5,U+20B9-20BA,U+20BC-20BD"
+    },
+    "files/caveat-latin-500-normal.woff2": {
+      "sha256": "ec287663da04e081a251a36c5cad6f7316909d3af1db05802bf5c2d94c32c46e",
+      "bytes": 49000,
+      "family": "Caveat",
+      "style": "normal",
+      "weight": "500",
+      "coverage": "U+0000,U+000D,U+0020-007E,U+00A0-00FF,U+0131,U+0152-0153,U+02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026,U+2032-2033,U+2039-203A,U+2044,U+20AC,U+2122,U+2212,U+2215"
+    }
+  },
+  "fallback": {
+    "family": "Lamina Sans Fallback",
+    "for": "Lamina Sans",
+    "sizeAdjust": 94.23,
+    "ascentOverride": 106.12,
+    "descentOverride": 34.6,
+    "lineGapOverride": 0.0
+  }
+}

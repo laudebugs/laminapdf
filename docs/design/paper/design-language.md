@@ -252,7 +252,7 @@ The link line used in every file (keep it byte-identical, inside `<helmet>`):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
 ```
 
-The product will self-host these fonts (no third-party requests: principle 7); the link is for mockups.
+The product self-hosts these fonts from `@laminapdf/fonts` and never loads this link (no third-party requests: principle 7); the link is for mockups. The package ships Source Sans 3 as **Lamina Sans**: the font's licence reserves the name "Source", and a subset is a modified copy, so it takes another name. It is the same design, and the `--paper-font-sans` stack names it, with a fallback face that sizes Arial to its widths. Source Serif 4 isn't shipped, so the page-appearance chips (§7.25) draw "Aa" in Georgia until the owner chooses (U6b's open question).
 
 ### Type scale
 

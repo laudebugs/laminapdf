@@ -187,8 +187,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// built, then `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` (over the `wasm` job's
 /// `lamina_pdf_render_hayro.wasm`), each with the native render goldens, `@laminapdf/viewer`'s document worker and RPC
 /// (C3a, built first), `@laminapdf/tokens`' high-contrast theme, whose system colours only a browser resolves
-/// (U6a), `@laminapdf/icons`' React `<Icon>` and gallery (U6c), and `@laminapdf/ui`'s components (U6d). They record
-/// no measurements.
+/// (U6a), `@laminapdf/fonts`' faces (U6b: what a page fetches, all from its own origin), `@laminapdf/icons`'
+/// React `<Icon>` and gallery (U6c), and `@laminapdf/ui`'s components (U6d). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
     // The viewer's document worker and RPC (C3a), over the built package.
@@ -215,6 +215,7 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "@laminapdf/render-hayro",
         "@laminapdf/viewer",
         "@laminapdf/tokens",
+        "@laminapdf/fonts",
         "@laminapdf/icons",
         "@laminapdf/ui",
     ] {

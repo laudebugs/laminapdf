@@ -55,17 +55,17 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 ## Tasks
 
 - [x] Claim: the work PR's first commit moves this file to `ongoing/` (git workflow §2; the claim-PR wording predates it).
-- [ ] Download the upstream font sources from their official repositories (not from Google Fonts' CSS API) into a gitignored scratch folder; record repository, tag/commit and SHA-256 in `fonts.lock.json`; copy each `OFL.txt` verbatim into `LICENSES/` and note any Reserved Font Name.
-- [ ] Licence check per ADR 0019: OFL-1.1 is on the allow-list for bundled fonts; if the npm licence check reads `package.json` `license`, set `"license": "OFL-1.1"` for `@laminapdf/fonts` and make sure the allow-list accepts it for this package (or document the exception in the xtask's licence config).
-- [ ] Write `tools/fonts/subset.sh` (`set -euo pipefail`, `shellcheck` clean) and `requirements.txt`: one `pyftsubset` call per face × range with `--flavor=woff2 --layout-features='kern,liga,calt,tnum,lnum,case,ss01…'` (keep the features the type scale needs; check which the fonts have), `--unicodes` for Latin and Latin Extended, `--no-hinting` unless hinting visibly helps on Windows at 12 px (compare in the gallery), and name-table licence entries kept.
-- [ ] Measure variable vs static files for both families; pick the smaller set that meets the budget and record the numbers in the README.
-- [ ] Write `fonts.css`: one `@font-face` per file with `font-family` names matching [U6a](../done/U6a-paper-tokens.md)'s tokens, `font-weight` ranges for variable files, `font-style`, `unicode-range`, `font-display`; plus metric-adjusted fallback faces.
-- [ ] Export `FONT_PRELOADS` (typed array of `{ href, type }` resolved with `new URL("./files/….woff2", import.meta.url)`) from `src/index.ts` with TSDoc.
-- [ ] Add a guard test (in this package, scanning the repository's `packages/` and `apps/` sources) that fails on `fonts.googleapis.com`, `fonts.gstatic.com`, `use.typekit.net` or any `@import url(http…)` for fonts; `docs/design/` (the canvases) is excluded.
-- [ ] Add a size test: total of all WOFF2 files and the preloaded file each under budget (see Acceptance).
-- [ ] Add a glyph-coverage test: every character used in the UI message catalogue (`@laminapdf/ui`, once it exists; until then the design language's sample strings) is in the Latin subsets, or in an explicit "system fallback" list.
-- [ ] README: faces, ranges, sizes, how other scripts fall back, how to regenerate, licence table (font, version, licence, copyright line) for the future notices file.
-- [ ] Switch the docs site to `@laminapdf/fonts` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete `apps/docs/src/fonts/` and the `@font-face` rules in `apps/docs/src/styles/paper.css`.
+- [x] Download the upstream font sources from their official repositories (not from Google Fonts' CSS API) into a gitignored scratch folder; record repository, tag/commit and SHA-256 in `fonts.lock.json`; copy each `OFL.txt` verbatim into `LICENSES/` and note any Reserved Font Name.
+- [x] Licence check per ADR 0019: OFL-1.1 is on the allow-list for bundled fonts; if the npm licence check reads `package.json` `license`, set `"license": "OFL-1.1"` for `@laminapdf/fonts` and make sure the allow-list accepts it for this package (or document the exception in the xtask's licence config).
+- [x] Write `tools/fonts/subset.sh` (`set -euo pipefail`, `shellcheck` clean) and `requirements.txt`: one `pyftsubset` call per face × range with `--flavor=woff2 --layout-features='kern,liga,calt,tnum,lnum,case,ss01…'` (keep the features the type scale needs; check which the fonts have), `--unicodes` for Latin and Latin Extended, `--no-hinting` unless hinting visibly helps on Windows at 12 px (compare in the gallery), and name-table licence entries kept.
+- [x] Measure variable vs static files for both families; pick the smaller set that meets the budget and record the numbers in the README.
+- [x] Write `fonts.css`: one `@font-face` per file with `font-family` names matching [U6a](../done/U6a-paper-tokens.md)'s tokens, `font-weight` ranges for variable files, `font-style`, `unicode-range`, `font-display`; plus metric-adjusted fallback faces.
+- [x] Export `FONT_PRELOADS` (typed array of `{ href, type }` resolved with `new URL("./files/….woff2", import.meta.url)`) from `src/index.ts` with TSDoc.
+- [x] Add a guard test (in this package, scanning the repository's `packages/` and `apps/` sources) that fails on `fonts.googleapis.com`, `fonts.gstatic.com`, `use.typekit.net` or any `@import url(http…)` for fonts; `docs/design/` (the canvases) is excluded.
+- [x] Add a size test: total of all WOFF2 files and the preloaded file each under budget (see Acceptance).
+- [x] Add a glyph-coverage test: every character used in the UI message catalogue (`@laminapdf/ui`, once it exists; until then the design language's sample strings) is in the Latin subsets, or in an explicit "system fallback" list.
+- [x] README: faces, ranges, sizes, how other scripts fall back, how to regenerate, licence table (font, version, licence, copyright line) for the future notices file.
+- [x] Switch the docs site to `@laminapdf/fonts` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete `apps/docs/src/fonts/` and the `@font-face` rules in `apps/docs/src/styles/paper.css`.
 
 ## Acceptance criteria
 
@@ -98,6 +98,14 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - **Unhinted fonts at 12 px on Windows** can look soft; compare in the gallery on Windows ([X6](../ready/X6-windows-ci.md) runners or a manual check) before choosing `--no-hinting`.
 - **OFL Reserved Font Names**: if a family declares one, the subset must be renamed; check the licence texts rather than assuming.
 - **Licence allow-list**: the npm licence check may not know `OFL-1.1` for an npm package; extend the allow-list in its single source of truth rather than skipping the package.
+
+## Notes from the work
+
+- **Lamina Sans.** Source Sans 3's copyright notice reserves the font name "Source" (in Google Fonts' build too), so the subsets are renamed Lamina Sans, as the risk above says; the copyright notice and the licence are unchanged, and nameID 10 records the origin. `--paper-font-sans` now names Lamina Sans and its fallback face. The docs site's interim copy, which kept the name, is deleted with this PR.
+- **Sources from npm.** The official GitHub repositories aren't reachable from the build environment, so the sources are npm tarballs: Adobe's own `source-sans@3.52.0`, and Fontsource's packages of Google Fonts' builds of Newsreader and Caveat. `fonts.lock.json` records each package, version and file hash, and the script reads the tarballs offline.
+- **A Python script, not `subset.sh`.** The subsetting has real logic (instancing, renaming, fallback metrics, the lock), which code organization §10 keeps out of shell; `tools/fonts/subset.py` follows `tools/fixtures/fonts.py` (fontTools, pinned, run by hand).
+- **Measured.** Newsreader's optical-size axis is pinned at 18: its Latin file is 37 KB without the axis and 90 KB with it. The fraction features are left out of Lamina Sans, which keeps its preloaded Latin file at 30,640 bytes, under the 30 KB budget. The Latin files together come to 169 KB, under 200 KB.
+- **Source Serif 4** isn't shipped (the page-appearance chips fall back to Georgia); the open question above stays with the owner.
 
 ## Definition of done
 
