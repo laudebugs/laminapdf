@@ -166,7 +166,7 @@ Codes come from `fixtures/codes.json`; each code has one plain sentence in the U
 | Results tab | Matches grouped under “Page 3 · Repairs backlog” (page label + outline section), each a link with a snippet and the match in 600; the current one has `accent-tint` and an `accent` inset ring, `aria-current="true"` | — |
 | Replace (editor only) | Opened from the Edit toolbar’s **Replace…** button or ⌥⌘F / `Ctrl H` on desktop ([A06](add-edit-content.md)): this bar plus a second row ([§7.30](design-language.md#730-find-bar-and-results-proposed)): a 300 px replace field, **Replace** · **Skip** · **Replace n checked** (primary) and a note. The reader v0.1 has no Replace row | `find.open-replace` |
 
-Match colours on the page are the `find-match` and `find-current` tokens, defined per page appearance (design language [§2.6](design-language.md#26-find-marks-proposed)). On Original: other matches `#F6E3BC` with a 1 px `warning` bottom border (so they differ from a yellow highlight), the current match `#EDBF6A` with a 2 px `accent` outline.
+Match colours on the page are the `find-match` and `find-current` tokens, defined per page appearance (design language [§2.6](design-language.md#26-find-marks)). On Original: other matches `#F6E3BC` with a 1 px `warning` bottom border (so they differ from a yellow highlight), the current match `#EDBF6A` with a 2 px `accent` outline.
 
 **States.** *Typing* (count “…”); *counting* (“40+”, results stream in by page); *done* (drawn: “3 of 9”, “Searched all 24 pages”); *no matches* (count “No matches”, Results tab shows “No matches for “backlogs”.” with a ghost “Turn off Whole words” when a toggle is on); *scanned pages without text*: the context note adds “4 pages have no text to search”.
 

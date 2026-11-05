@@ -1,11 +1,12 @@
 # Paper: design language
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
-- **Source of truth:** the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile). Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
+- **Source of truth:** [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`) holds the values of §2–§4 and the component sizes of §6; the tables here are a readable copy, and a change goes into that file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
+- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ready/U6e-overlays-and-sheets.md).
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
-Designers: copy the snippets below rather than redrawing a component. Engineers: the token names in §2–§4 are the names to use in `@laminapdf/ui` (as CSS custom properties, `--paper-<name>`).
+Designers: copy the snippets below rather than redrawing a component. Engineers: the token names in §2–§4 are the names `@laminapdf/tokens` gives its CSS custom properties (`--paper-<name>`) and TypeScript constants; read them from there, never copy a value. Its README says how the names map.
 
 ## 1. Personality
 
@@ -15,7 +16,7 @@ It serves principles 1 (open into reading: the page dominates, no ribbon), 2 (do
 
 ## 2. Colour
 
-Contrast ratios are WCAG 2.x relative-luminance ratios, recomputed for this document. Thresholds: text ≥ 4.5:1; UI component boundaries, focus rings and state indicators ≥ 3:1. ⚠ marks a pair below the threshold, with the reason it is acceptable or the rule that avoids it.
+Contrast ratios are WCAG 2.x relative-luminance ratios. `@laminapdf/tokens` recomputes every pair in its tests and lists them in its [`CONTRAST.md`](../../../packages/tokens/CONTRAST.md). Thresholds: text ≥ 4.5:1; UI component boundaries, focus rings and state indicators ≥ 3:1. ⚠ marks a pair below the threshold, with the reason it is acceptable or the rule that avoids it.
 
 ### 2.1 Light UI theme (default)
 
@@ -33,28 +34,30 @@ Contrast ratios are WCAG 2.x relative-luminance ratios, recomputed for this docu
 | `chip-border` | `#D8D1C5` | Shortcut chips, floating-panel edges, inactive appearance chips | ⚠ white 1.52 (decorative; those elements are identified by their text or shadow) |
 | `control-border` | `#8A8174` | Borders of inputs, secondary buttons, swatches; sheet grabber | ground 3.50 · surface 3.65 · white 3.84 · gutter 3.12 · accent-tint 3.04 |
 | `accent` | `#1F5C63` | Primary button, selected state, active-mode underline, links, network shield | ground 6.91 · surface 7.21 · white 7.58 · gutter 6.16 · accent-tint 6.00 |
-| `accent-strong` | `#16454B` | Link hover; primary hover **(proposed for buttons)** | ground 9.63 · white on it 10.57 |
+| `accent-strong` | `#16454B` | Link hover; primary hover | ground 9.63 · white on it 10.57 |
 | `on-accent` | `#FFFFFF` | Text on `accent` | 7.58 |
 | `accent-tint` | `#E1E6E3` | Selected rows and pressed toggles (= `accent` 12% over `surface`) | text 13.32 · accent 6.00 |
 | `selection-tint` | `#CEDBDD` | Text selection on an Original page (= `accent` 22% over white) | page ink 10.91 · ⚠ vs white page 1.42 (see note 1) |
 | `focus` | `#1F5C63` | Focus ring: same as `accent` | ground 6.91 · surface 7.21 · gutter 6.16 · accent-tint 6.00 |
 | `danger` | `#9B2335` | Destructive actions ("Delete highlight"), errors | ground 7.12 · surface 7.44 · white 7.82 |
 | `positive` | `#2F6A45` | Success, valid signature | ground 5.85 · surface 6.11 · white 6.43 |
-| `warning` **(proposed)** | `#8A5300` | Warnings: approximate reflow, signature that saving would break | ground 5.77 · surface 6.02 · white 6.33 · gutter 5.14 |
-| `danger-tint` / `positive-tint` / `warning-tint` **(proposed)** | `#F1E4E2` / `#E7EBE3` / `#F0E8DC` | Backgrounds of badges and notices (10% over `surface`) | own colour on tint 6.31 / 5.32 / 5.21; text ≥ 13.5 |
-| `field-tint` **(proposed)** | `#EDF2F3` | Fill of fillable form fields while Highlight fields is on, and of design-mode fields (= `accent` 8% over white). Decoration only: the boundary is the 1 px `control-border` edge | page ink 13.71 · `control-border` on it 3.40 |
-| `hover` **(proposed)** | `rgba(31,29,26,0.06)` | Hover fill of ghost and icon buttons (= `#EAE7E1` on ground) | text 13.62 · muted 4.73 |
-| `pressed` **(proposed)** | `rgba(31,29,26,0.10)` | Pressed fill (= `#E1DED9` on ground) | text 12.53 · ⚠ muted 4.35: a pressed control's label switches to `text-3` |
-| `disabled` **(proposed)** | `#A39C91` text, `hairline` border | Disabled controls (exempt from contrast; also set `disabled`/`aria-disabled`) | surface 2.59 |
+| `warning` | `#8A5300` | Warnings: approximate reflow, signature that saving would break | ground 5.77 · surface 6.02 · white 6.33 · gutter 5.14 |
+| `danger-tint` / `positive-tint` / `warning-tint` | `#F1E4E2` / `#E7EBE3` / `#F0E8DC` | Backgrounds of badges and notices (10% over `surface`) | own colour on tint 6.31 / 5.32 / 5.21; text ≥ 13.5 |
+| `field-tint` | `#EDF2F3` | Fill of fillable form fields while Highlight fields is on, and of design-mode fields (= `accent` 8% over white). Decoration only: the boundary is the 1 px `control-border` edge | page ink 13.71 · `control-border` on it 3.40 |
+| `hover` | `rgba(31,29,26,0.06)` | Hover fill of ghost and icon buttons (= `#EAE7E1` on ground) | text 13.62 · muted 4.73 |
+| `pressed` | `rgba(31,29,26,0.10)` | Pressed fill (= `#E1DFD9` on ground) | text 12.62 · `text-3` 7.12 · ⚠ muted 4.38: a pressed control's label switches to `text-3` |
+| `disabled` | `#A39C91` text, `hairline` border | Disabled controls (exempt from contrast; also set `disabled`/`aria-disabled`) | surface 2.59 |
 | `scrim` | `rgba(31,29,26,0.30)` | Dims the app behind the palette and dialogs | — |
-| `pill` | `rgba(31,29,26,0.78)` | Page-indicator pill on the phone | white text on it (over gutter) 8.95 |
+| `pill` | `rgba(31,29,26,0.78)` | Page-indicator pill on the phone | `on-pill` on it (over gutter) 8.95 |
+| `on-pill` | `#FFFFFF` | Text on the page pill | (see `pill`) |
+| `raised` | = `surface` | Palette, menus and dialogs. The light theme draws them on `surface`; the token exists so components can use one name in both themes | as `surface` |
 | `window` | `#DCD6CB` bg, `#C9C2B6` border, `#EFEBE3` title bar, `#E0D9CD` title-bar rule | Drawn macOS window frame in mockups only | title text `text-2` on title bar 10.08 |
 
 Notes:
 
 1. **Selection tint and highlights on white are fills, not boundaries.** `selection-tint` (1.42) and the highlight colours (1.43–1.77) are low-contrast against the page by design, so text stays readable through them (ink on them ≥ 8.77). The *selected* state never relies on the fill alone: a selected annotation gets a 2 px `focus` outline (5.29 against yellow), the mini toolbar or the action bar appears, and touch selections draw `accent` handles (7.58 on white).
 2. The `Commands` button in the top bar has a `hairline` border (1.22); its visible text identifies it, so WCAG 1.4.11 does not require the border. Don't copy that border onto icon-only controls.
-3. Teal `#1F5C63` is the default accent. The user can choose Blue, Plum or Green instead; every accent-derived token above has a value per accent in [§2.8](#28-accent-colours-proposed).
+3. Teal `#1F5C63` is the default accent. The user can choose Blue, Plum or Green instead; every accent-derived token above has a value per accent in [§2.8](#28-accent-colours).
 
 ### 2.2 Highlight and annotation colours
 
@@ -67,9 +70,9 @@ From the files. Annotation colours carry meaning, so they never change with UI t
 | Blue | `#A9C8E8` | 8.93 | same |
 | Pink | `#EBB4C8` | 8.77 | same |
 
-The selected swatch adds `outline: 2px solid #1F1D1A` (offset 1 px in the toolbar, 2 px in the inspector).
+The selected swatch adds a 2 px `text` outline (`#1F1D1A` in the light theme; offset 1 px in the toolbar, 2 px in the inspector). The outline uses `text` rather than a fixed colour, so it follows the theme: a fixed `#1F1D1A` would measure 1.1:1 on the dark theme's `surface`.
 
-### 2.3 Dark UI theme (proposed)
+### 2.3 Dark UI theme
 
 The same warm family, inverted: chrome is warm charcoal, never pure black, and the accent lightens to keep its hue. The page stays Original (white) unless the user picks a page appearance.
 
@@ -86,24 +89,38 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `hairline` (decorative) | `#3A3732` | ⚠ ground 1.42 |
 | `chip-border` (decorative) | `#4A463F` | ⚠ raised 1.49 |
 | `control-border` | `#7E766A` | ground 3.76 · surface 3.45 · raised 3.11 |
-| `accent` / `focus` | `#7DBDC2` (Teal; other accents in [§2.8](#28-accent-colours-proposed)) | ground 7.97 · surface 7.32 · raised 6.59 |
+| `accent` / `focus` | `#7DBDC2` (Teal; other accents in [§2.8](#28-accent-colours)) | ground 7.97 · surface 7.32 · raised 6.59 |
 | `accent-strong` (hover) | `#9BCFD3` | — |
 | `on-accent` | `#1E1D1A` | on accent 7.97 |
 | `accent-tint` | `#343C3B` (16% over surface) | text 9.19 · accent 5.35 |
 | `danger` | `#EE8C98` | ground 7.10 · surface 6.52 · raised 5.87 |
 | `positive` | `#86C49A` | ground 8.33 · surface 7.65 |
 | `warning` | `#E0AE5A` | ground 8.32 · surface 7.64 |
+| `danger-tint` / `positive-tint` / `warning-tint` | `#463534` / `#353E34` / `#443A2A` (16% over surface, the dark `accent-tint` rule) | own colour on tint 4.86 / 5.49 / 5.50; text ≥ 9.0 |
 | `hover` | `rgba(236,231,222,0.08)` (= `#2E2D2A` on ground) | text ≥ 11 |
+| `pressed` | `rgba(236,231,222,0.14)` (hover's light-theme ratio) | text 9.36 · `text-3` 6.94 |
 | `disabled` | `#6A645A` | exempt (2.64) |
 | `scrim` | `rgba(0,0,0,0.50)` | — |
+| `pill` / `on-pill` | as in the light theme | 8.95 |
 
-Dark-theme shadows **(proposed tokens)**: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Thumbnails on the dark rail **(proposed, Reader B R11)**: `0 1px 3px rgba(0,0,0,0.50)`. Floating layers in dark use `raised` with a `chip-border` edge. A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette.
+Dark-theme shadows: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Thumbnails on the dark rail: `0 1px 3px rgba(0,0,0,0.50)`. The phone page sheet uses `shadow-page-dark` too, and the bottom sheet `0 -8px 28px rgba(0,0,0,0.45)`. Floating layers in dark use `raised` with a `chip-border` edge.
+
+A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette. The mapping keeps every pair readable with the OS palette under forced colours and with each browser's default system colours, which the browser tests check in three engines:
+
+| Tokens | System colour |
+| --- | --- |
+| `ground`, `surface`, `raised`, `field`, `gutter`, the three tints, `accent-tint`, `field-tint`, `hover`, `pressed`, `pill`, `scrim`, `on-accent` | `Canvas` |
+| `text`, `text-2`, `text-3`, `muted`, `hairline`, `chip-border`, `control-border`, `danger`, `positive`, `warning`, `focus`, `on-pill` | `CanvasText` |
+| `accent`, `accent-strong`, primary pressed, the outline Blue | `LinkText` |
+| `disabled` | `GrayText` |
+
+Shadows are `none` in that theme. `accent` maps to `LinkText` rather than `Highlight`, and `focus` and `control-border` map to `CanvasText` rather than `Highlight` and `ButtonBorder`. System palettes mean `LinkText` and `CanvasText` to be read on `Canvas`; the other two differ more between engines, and Chromium's default `Highlight` is translucent.
 
 ### 2.4 Page appearance
 
 Separate from the UI theme; chosen per document or globally. From the style tile (`Aa` chips).
 
-| Appearance | Paper | Ink | Ink on paper | Selection tint (proposed) |
+| Appearance | Paper | Ink | Ink on paper | Selection tint |
 | --- | --- | --- | --- | --- |
 | Original | `#FFFFFF` | `#262421` | 15.48 | `#CEDBDD` (ink 10.91) |
 | Sepia | `#F4ECD8` | `#3B2F20` | 11.05 | `#C5CCBE` (ink 7.91) |
@@ -112,7 +129,7 @@ Separate from the UI theme; chosen per document or globally. From the style tile
 
 Photos are never inverted and annotation colours never change.
 
-**Page content colours per appearance (proposed)** for drawing mockup pages and thumbnails in each appearance (ratios on that paper; rules are decorative):
+**Page content colours per appearance** for drawing mockup pages and thumbnails in each appearance (ratios on that paper; rules are decorative):
 
 | Role | Original | Sepia | Dark |
 | --- | --- | --- | --- |
@@ -123,13 +140,15 @@ Photos are never inverted and annotation colours never change.
 | Chart bars | `#4E5A63` (7.08) | `#4E5A63` (6.01) | `#A9B4BC` (7.62) |
 | Chart labels | `#3A3733` (11.84) | `#5A4C38` (7.06) | `#C9C2B6` (9.10) |
 
+On a High contrast page, every page content colour is the ink, `#FFFFFF` (21.00).
+
 ### 2.5 Mockup-only colours (document content)
 
 For drawing the sample page and thumbnails; not UI tokens. Page heading `#1C1B19` (17.21 on white), page muted `#6E6A64` (5.37), page rule `#E6E3DE`, chart bars `#4E5A63` (7.08), chart labels `#3A3733` (11.84). Thumbnail lines: heading `#B9B2A7`, text `#DDD7CD`, chart `#C9CFD3` (Original); **per page appearance (proposed, Reader B R10, R11)** Sepia heading `#B5A68C`, text `#DCD0B6`; Dark heading `#8D877D`, text `#55514A`, chart `#6E777D` (decorative only). Phone page-4 placeholders `#CFC9BF` / `#E3DED6`; phone page rules `rgba(0,0,0,0.1)` and header/footer `opacity: 0.75`. Links drawn in page content use the page ink with an underline, as the PDF draws them; there is no page-link colour. A signature field drawn on a page: `#EEF2F3` fill, 1 px `control-border` bottom rule, 12 px "Sign here" in `#4E5A63`, 72 px high on the desktop page.
 
 More mockup-only colours **(proposed, Convert and produce)**: scanned paper `#F5F2EC` and `#F3F0EA`, scan ink and smudges `#B8B2A8` and `#A9A296` (X01); photo blocks `#4E5A63`, flat, no gradients (X10, X12); the fictional spot ink “Northwind Teal” `#1F7A80` (X10 separations, the annual review's buttons in X11).
 
-### 2.6 Find marks (proposed)
+### 2.6 Find marks
 
 Used for find results and for every other search hit on the page (Find sensitive content). Ratios are page ink on the fill, and the edge or outline against the paper. The bottom edge separates other matches from a yellow highlight (`#F2D675`), which has no edge; the current match is never shown by fill alone.
 
@@ -138,9 +157,11 @@ Used for find results and for every other search hit on the page (Find sensitive
 | Original (paper `#FFFFFF`, ink `#262421`) | `#F6E3BC` (ink 12.26) | 1 px bottom `#8A5300` (6.33 on paper, 5.01 on fill) | `#EDBF6A` (ink 9.04) | 2 px `#1F5C63` (7.58 on paper) |
 | Sepia (paper `#F4ECD8`, ink `#3B2F20`) | `#E9CF95` (ink 8.57) | 1 px bottom `#8A5300` (5.38 on paper, 4.17 on fill) | `#D9A851` (ink 5.99) | 2 px `#1F5C63` (6.44 on paper) |
 | Dark (paper `#22211F`, ink `#E6E1D8`) | `#5A4520` (ink 6.99) | 1 px bottom `#E0AE5A` (7.95 on paper, 4.50 on fill) | `#7A5818` (ink 4.98) | 2 px `#7DBDC2` (7.61 on paper) |
-| High contrast | system `Mark` / `MarkText` | 1 px bottom `CanvasText` | system `Highlight` / `HighlightText` | 2 px `CanvasText` |
+| High contrast | system `Mark` / `MarkText` | 1 px bottom: the ink `#FFFFFF` | system `Highlight` / `HighlightText` | 2 px: the ink `#FFFFFF` |
 
-### 2.7 Fixed content palettes (proposed)
+On a High contrast page, the edge and the outline are the ink rather than `CanvasText`: the paper there is always `#000000`, and outside forced colours `CanvasText` is black too. The page's white ink under a `Mark` or `Highlight` fill can't be measured in advance, so the renderer draws the text under those fills in `MarkText` or `HighlightText` ([U2c](../../todos/ready/U2c-page-appearance-modes.md)); the tokens report those pairs as exempt.
+
+### 2.7 Fixed content palettes
 
 Colours written into the file or drawn on the page. Like the highlight colours (§2.2) they never change with UI theme or page appearance, and each swatch has a name. Each palette belongs to one job; don't mix them.
 
@@ -148,13 +169,13 @@ Colours written into the file or drawn on the page. Like the highlight colours (
 | --- | --- | --- |
 | Annotation line colours | Black `#262421` (15.48 on white) · Red `#B3261E` (≈ 6.5) · Blue `#2D5DA8` (≈ 6.4) · Green `#2F6A45` (6.43) | Underline, strike, caret, ink, shapes, lines and annotation text. The Comment toolbar swaps between these and the highlight (fill) colours with the tool |
 | Page content colours | Ink `#262421` · Grey `#6E6A64` · Teal `#1F5C63` · Red `#9B2335` · Custom…; "No fill" is a white swatch with a red diagonal. An existing object's colour comes first, named "(original)" | Text, shapes and fills added or edited in Edit mode |
-| Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`) | Bookmark rows |
+| Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`). In the dark theme the rail shows Blue as `#91B3DC`, the Blue accent's dark value (7.77 on ground), since `#2D4A6B` measures 1.85 there; the file always gets `#2D4A6B` | Bookmark rows |
 | Signature ink | Black `#1F1D1A` · Dark blue `#1F2F5C` (12.97 on white) | Drawn and typed signatures |
 | Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue. A remote selection is a 2 px **dashed** outline with its name tab; your own selection stays solid `focus`, so the two differ whatever the accent (§2.8) |
 | Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline at a 2 px offset **and** its number chip (“3 of 14”), so it never relies on the accent hue alone (the Blue accent is the overlay blue, §2.8) |
 | Measurement | Selected shape: `accent` at 12% with a 2 px `accent` edge, value chip filled `accent`; other measurements in `warning` with a white chip | Measure tool |
 
-### 2.8 Accent colours (proposed)
+### 2.8 Accent colours
 
 The owner chose on 2026-10-29 to let people pick the accent: **Teal** (default), **Blue**, **Plum** or **Green**, in both UI themes. The accent is a third setting beside Theme and Page appearance (§8.6). High contrast ignores it and uses system colours.
 
@@ -173,6 +194,8 @@ Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces th
 | Blue | `#2D4A6B` | `#1A3757` | `#112E4D` | `#E2E4E4` | `#D1D7DE` | `#C8C8C0` | `#91B3DC` | `#AAC7E9` | `#373B3F` | `#495461` |
 | Plum | `#5B3B6B` | `#472856` | `#3D1E4C` | `#E8E2E4` | `#DBD4DE` | `#D2C5C0` | `#C59FD9` | `#D6B6E7` | `#3F383E` | `#5B4D60` |
 | Green | `#495533` | `#35401F` | `#2C3615` | `#E6E5DE` | `#D7DAD2` | `#CECBB4` | `#A8B78F` | `#BDCAA8` | `#3B3C33` | `#515646` |
+
+Dark primary pressed is the dark `accent-strong` 30% toward white: Teal `#B9DDE0`, Blue `#C4D8F0`, Plum `#E2CCEE`, Green `#D1DAC2` (`on-accent` on it 11.62 / 11.58 / 11.32 / 11.65).
 
 `field-tint` (fillable fields, §2.1) is the accent at 8% over white in light; in dark it is the dark accent at 12% over dark `field`, with `control-border` on it ≥ 3.01 and text ≥ 10.9: Teal `#EDF2F3` / `#29302E`, Blue `#EEF1F3` / `#2C2F31`, Plum `#F2EFF3` / `#322D31`, Green `#F0F1EF` / `#2F2F28`. `on-accent` stays `#FFFFFF` in light and `#1E1D1A` in dark for every accent. Contrast, recomputed (WCAG 2.x):
 
@@ -220,8 +243,8 @@ Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces th
 | **Newsreader** (serif, optical sizes 6–72) | Titles: file name, inspector and sheet titles, section headings, outline rows, quoted text |
 | **Source Sans 3** | Every control, label and message; fallbacks `'Segoe UI', system-ui, sans-serif` (Newsreader falls back to `Georgia, serif`) |
 | **Source Serif 4** | Page mockups only (the sample document's body). Never in UI |
-| `mono` **(proposed)** | System stack, no webfont: `ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`. Code blocks, object trees, payloads, licence keys, fingerprints, raw XML, JavaScript shown as text (12.5 / 1.6); field names in design mode (11) |
-| **Caveat** 500 **(proposed)** | Typed signature style only (OFL; self-hosted in the product, a second link line on the boards that use it). The other typed styles are Newsreader italic and Newsreader with letter spacing |
+| `mono` | System stack, no webfont: `ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`. Code blocks, object trees, payloads, licence keys, fingerprints, raw XML, JavaScript shown as text (12.5 / 1.6); field names in design mode (11) |
+| **Caveat** 500 | Typed signature style only (OFL; self-hosted in the product, a second link line on the boards that use it). The other typed styles are Newsreader italic and Newsreader with letter spacing |
 
 The link line used in every file (keep it byte-identical, inside `<helmet>`):
 
@@ -235,9 +258,9 @@ The product will self-host these fonts (no third-party requests: principle 7); t
 
 | Name | Family | Size / line height / weight | Usage |
 | --- | --- | --- | --- |
-| Site display **(proposed)** | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 700) | Docs-site pages: pricing, benchmark, download |
+| Site display | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 700) | Docs-site pages: pricing, benchmark, download |
 | Display | Newsreader | 40 / 44 / 400 | Empty states, home screen heading |
-| Page heading **(proposed)** | Newsreader | 28 / 34 / 500 | `h1` of settings and list pages (Account, Cloud files, Telemetry) |
+| Page heading | Newsreader | 28 / 34 / 500 | `h1` of settings and list pages (Account, Cloud files, Telemetry) |
 | Title | Newsreader | 20 / 24–26 / 500 | Inspector title, sheet title, dialog title |
 | Heading | Newsreader | 18 / 24 / 500 | Section headings in panels and settings |
 | Document name | Newsreader | 16 / 20 / 500 (phone 17) | File name in the top bar |
@@ -257,7 +280,7 @@ The docs site uses Source Sans 3 for all text, titles included ([quality plan §
 Rules:
 
 - **Tabular numerals** (`font-variant-numeric: tabular-nums`) on every number that changes or lines up: page input and `/ 24`, zoom %, counts ("0 network requests", "24 pages"), dates, thumbnail and outline page numbers, shortcut chips, the page pill.
-- **Minimum sizes:** 12 px for UI text; 11 px only for shortcut chips, uppercase overlines and, as an explicit exception **(proposed, Forms)**, the page-overlay labels and tags of §7.32 (design-mode field name, size chip, tab-stop badge, suggestion type tag, snap-guide and destination tags): they sit on the page at the page's zoom, are short, and repeat at 12 px or more in the inspector or a rail tab; 11.5 px only for phone bar labels under a 22 px icon. 16 px for any text input on touch.
+- **Minimum sizes:** 12 px for UI text; 11 px only for shortcut chips, uppercase overlines and, as an explicit exception, the page-overlay labels and tags of §7.32 (design-mode field name, size chip, tab-stop badge, suggestion type tag, snap-guide and destination tags): they sit on the page at the page's zoom, are short, and repeat at 12 px or more in the inspector or a rail tab; 11.5 px only for phone bar labels under a 22 px icon. 16 px for any text input on touch.
 - Sentence case everywhere; uppercase only for overlines.
 
 ## 4. Space, shape, depth
@@ -275,9 +298,9 @@ Rules:
 | Page sheet (web, desktop) | `0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10)` |
 | Page sheet (phone) | `0 1px 2px rgba(60,48,30,0.08), 0 6px 20px rgba(60,48,30,0.10)` |
 | Thumbnail | `0 1px 3px rgba(60,48,30,0.12)` |
-| Selection mini toolbar; toast, menu, tooltip **(proposed)** | `0 4px 14px rgba(60,48,30,0.14)` |
+| Selection mini toolbar; toast, menu, tooltip | `0 4px 14px rgba(60,48,30,0.14)` |
 | Bottom sheet | `0 -8px 28px rgba(60,48,30,0.12)` |
-| Command palette; dialog **(proposed)** | `0 18px 48px rgba(31,29,26,0.22)` over `scrim` |
+| Command palette; dialog | `0 18px 48px rgba(31,29,26,0.22)` over `scrim` |
 
 **Z-order (proposed):**
 
@@ -434,17 +457,17 @@ Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid w
 | --- | --- | --- | --- |
 | Top bar | `min-height: 40px`, padding `0 16px`, gaps `8px 20px` | `ground`, `hairline` bottom | Three groups: file (flex `1 1 220px`), mode switcher (centred), tools (flex `1 1 220px`, right-aligned, gap 14). Wraps onto two lines when narrow |
 | Secondary toolbar | `min-height: 40px`, padding `0 16px`, gaps `4px 6px`, 13 px text | `surface`, `hairline` bottom | Only in modes other than Read |
-| Left rail | `220px` (every board) | `ground`, `hairline` right | Rule **(proposed)**: default 220, min 196, user-resizable, remembered locally. 280 with four or more tabs (§8.10); a rail panel (§7.34) may be 260–280 |
+| Left rail | `220px` (every board) | `ground`, `hairline` right | Rule: default 220, min 196, user-resizable, remembered locally. 280 with four or more tabs (§8.10); a rail panel (§7.34) may be 260–280 |
 | Canvas | flex `999 1 560px` (560 min before wrapping), padding `32px 16px` (desktop `28px 16px`) | `gutter` | Pages centred |
 | Inspector | `288px`, padding `20px 20px 24px`, gap 22 | `surface`, `hairline` left | Only while something is selected |
-| Wide docked panel **(proposed)** | `360px`, same anatomy as the inspector | `surface`, `hairline` left | In the inspector's place, for panels whose rows carry a sentence: Comments, network activity, reports (sanitise, redaction verification), jobs. Opened by a toggle with `aria-expanded`; it replaces the inspector while open. **One right dock (proposed, Comment):** a wide panel and the inspector never show together; with the Comments panel open, selecting an annotation expands its thread, “Properties” in the thread's More menu swaps the dock to the inspector and “Back to comments” swaps it back |
+| Wide docked panel | `360px`, same anatomy as the inspector | `surface`, `hairline` left | In the inspector's place, for panels whose rows carry a sentence: Comments, network activity, reports (sanitise, redaction verification), jobs. Opened by a toggle with `aria-expanded`; it replaces the inspector while open. **One right dock (proposed, Comment):** a wide panel and the inspector never show together; with the Comments panel open, selecting an annotation expands its thread, “Properties” in the thread's More menu swaps the dock to the inspector and “Back to comments” swaps it back |
 | Status bar | `min-height: 28px`, padding `0 16px`, 12 px | `ground`, `hairline` top | Left: network indicator, then the sync item when the file is in the cloud; middle **(proposed, Desktop shell)**: notices, progress and persistent action items (a progress item such as “Printing pages 5–12” with Cancel printing, the “Update ready” action item), then at most one note, by priority **(proposed)**: signed-file or constraint note → repaired notice → history note (“Earlier versions stay inside the file until you choose Save as optimised…”, only once original content is deleted, replaced or recoloured) → tool hint while a creation tool is active → nothing; right: page label, then signature, security or claim badges (facts about the document, never notices or progress) |
 | Window frame (desktop mockup) | title bar 30 px, traffic lights 12 px gap 8, radius 10 | see `window` | Draw for macOS. **Windows (proposed):** title bar 32 px, document glyph in `accent`, left-aligned title, caption buttons 46 × 32 with 10 px glyphs; menu bar 28 px. **Linux (proposed):** 36 px title bar, centred 13/600 title, one 24 px round close button on a 10% `text` fill. Windows and Linux frames use radius 8 |
 | Document tab strip (desktop) **(proposed)** | 34 px, on the title-bar colour `#EFEBE3`, `#E0D9CD` rule below | see §7.33 | Hidden with one tab |
 
 **Page sheet:** `max-width: 612px` (US Letter width at 100%), `min-height: 790px`, white, page shadow, no border, no radius. Gutter colour fills the rest.
 
-**Breakpoints (proposed):**
+**Breakpoints:**
 
 | Width | Shell |
 | --- | --- |
@@ -460,13 +483,13 @@ A coarse pointer (`pointer: coarse`) uses the touch rules (§8.7) at any width. 
 | --- | --- | --- |
 | Top bar | 56 px, padding `0 6px`, `ground`, `hairline` bottom | Back (44×44), centred title (Newsreader 17/500) over a 12 px `muted` subtitle, overflow (44×44). Auto-hides on scroll down, returns on scroll up or tap |
 | Page | 358 px wide (16 px gutters), 16 px from the top bar, 14 px between pages | Phone page shadow |
-| Page pill | 30 px high, padding `0 14px`, radius 15, `pill` bg, white 13/500 tabular, 100 px from the bottom (16 above the bar) | `aria-live="polite"`; fades out after scrolling stops **(proposed: 1.5 s)** |
+| Page pill | 30 px high, padding `0 14px`, radius 15, `pill` bg, white 13/500 tabular, 100 px from the bottom (16 above the bar) | `aria-live="polite"`; fades out 1.5 s after scrolling stops |
 | Bottom bar | 84 px incl. safe area: padding `6px 8px 22px`, 5 equal columns, gap 4, `ground`, `hairline` top | Search, Annotate, Pages, Reader, More. Buttons 56 high, radius 6, 22 px icon over 11.5 px label, gap 3 |
 | Bottom action bar | 76 px incl. safe area: padding `4px 8px 18px`, 5 columns, buttons 52 high | Replaces the bottom bar while text is selected: Copy, Highlight, Comment, Share, More |
 | Bottom sheet | `surface`, radius `12px 12px 0 0`, `hairline` top, sheet shadow | Grabber button 64×44 with a 36×5 `control-border` bar (radius 3, 8 px from top); header: title 20/500 + count 13 `muted`, close 44×44 |
 | Home indicator | 134×5, radius 3, `text` at 0.85, 6–8 px from bottom | Mockups only; real apps leave `env(safe-area-inset-bottom)` |
 
-**Sheet detents:** medium = sheet top at 404 px of 844 (≈ 48% from the top; 364 px tall above a 76 px action bar), from the file. Large **(proposed)** = sheet top 56 px from the top (just under the top bar's space), collapsed = hidden. Tapping the grabber cycles medium → large → medium; dragging snaps; the grabber is a real `<button aria-label="Resize sheet">` (single-pointer alternative to the drag, WCAG 2.5.7). The page stays visible above a medium sheet.
+**Sheet detents:** medium = sheet top at 404 px of 844 (≈ 48% from the top; 364 px tall above a 76 px action bar), from the file. Large = sheet top 56 px from the top (just under the top bar's space), collapsed = hidden. Tapping the grabber cycles medium → large → medium; dragging snaps; the grabber is a real `<button aria-label="Resize sheet">` (single-pointer alternative to the drag, WCAG 2.5.7). The page stays visible above a medium sheet.
 
 **Tablet (1024 × 1366, proposed):** desktop shell with touch rules: rail as a docked panel (collapsed by default in portrait), inspector docked, bottom action bar instead of the mini toolbar, 44 px targets. Sizes: top bar 56 px with 44 × 44 icon buttons and 56 px mode buttons (padding `2px 10px 0`); secondary toolbar 56 px with 44 px tool toggles (padding `0 14px`, radius 6, 20 px icons, 14 px labels); status bar 44 px with 13 px items; page fitted to 880 px with 72 px gutters. Zoom controls and the Commands button leave the top bar on touch. A stylus gets a tool shelf (§7.35) instead of the secondary toolbar. **Tablet Comment toolbar (proposed, Comment C09):** the C01 Comment toolbar at touch size until a pen is used, then the tool shelf for the rest of the session; `comment.pen` is an alias of `comment.ink` (one op, one palette entry).
 
@@ -833,7 +856,7 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 **Hint state (proposed, Comment):** for the first three sessions of a mode that takes over one-finger gestures, the pill may show a one-line hint (“Use two fingers to scroll”) in place of the page number; it moves up to sit 16 px above whatever bar is showing.
 
-### 7.18 Dialog (proposed)
+### 7.18 Dialog
 
 Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide, proposed:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
 
@@ -859,7 +882,7 @@ Rules **(proposed)**:
 </div>
 ```
 
-### 7.19 Form controls (proposed, consistent with the page input and note field)
+### 7.19 Form controls (consistent with the page input and note field)
 
 All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `accent` ring, offset 1.
 
@@ -904,7 +927,7 @@ More controls **(proposed)**:
 | Licence key field | The input in `mono`; on the account page read-only and masked except the last group (Show / Copy key) |
 | Disabled secondary button | `ground` fill, `chip-border` edge, `muted` label, `aria-disabled="true"` with the reason as its description |
 
-### 7.20 Toast and notice (proposed)
+### 7.20 Toast and notice
 
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
 - **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.
@@ -917,7 +940,7 @@ More controls **(proposed)**:
 </div>
 ```
 
-### 7.21 Empty state (proposed)
+### 7.21 Empty state
 
 Centred in the region it fills, max-width 360, gap 12: optional 32 px stroke icon `muted`; title Newsreader 20/500 (Display 40/44 only on the home screen); one sentence 14 `muted`; at most one primary and one ghost action. Example: Outline tab of a file without bookmarks, "This file has no outline" / "Use Pages to move through it."
 
@@ -927,13 +950,13 @@ Centred in the region it fills, max-width 360, gap 12: optional 32 px stroke ico
 
 **File list row (proposed):** full-width button, min-height 56 (64 touch, 72 on the phone Files list), padding 8, gap 14: 20 px icon, Newsreader 15/500 name over a 12 `muted` meta line, date right; rows split by `hairline`. A missing file shows a dashed placeholder, the name in `muted`, “File not found” and Remove. On desktop, recent files may be cards with the last page viewed as a thumbnail.
 
-### 7.22 Progress (proposed)
+### 7.22 Progress
 
 - **Determinate bar:** 4 px track `hairline`, radius 2, `accent` fill (5.66 on the track), label above (12 `muted`, tabular: "Saving… 62%"), `role="progressbar"` with `aria-valuenow`.
 - **Indeterminate:** the same bar with a 30% segment sliding (1.2 s, linear); with `prefers-reduced-motion`, a static 30% segment plus the label.
 - **Spinner:** avoid; pages use placeholders, sidebars skeletons (`#ECE7DE` blocks, no shimmer under reduced motion).
 
-### 7.23 Badge and tag (proposed)
+### 7.23 Badge and tag
 
 Height 20, padding `0 8px`, radius 3, 12 px 600, tint background with the status colour as text: neutral `surface` + `chip-border` + `text-3`; accent `accent-tint` + `accent`; positive `positive-tint` + `positive` ("Signature valid"); warning `warning-tint` + `warning` ("Approximate"); danger `danger-tint` + `danger` ("Leak found"). Pair with an icon or word; never colour alone.
 
@@ -1164,7 +1187,7 @@ No auto-save. The top bar shows the state ("No unsaved changes", "1 unsaved chan
 
 ### 8.6 Page appearance vs UI theme
 
-Three separate settings in View settings: **Theme** (Light, Dark, High contrast, Match system) recolours the chrome; **Accent** (Teal, Blue, Plum, Green, [§2.8](#28-accent-colours-proposed)) recolours the accent-derived tokens of the chrome and the text selection on the page; **Page appearance** (Original, Sepia, Dark, High contrast) recolours page content in the renderer. Original is the default in every theme: draw white pages on the dark gutter in dark mockups. Photos and annotation colours never change.
+Three separate settings in View settings: **Theme** (Light, Dark, High contrast, Match system) recolours the chrome; **Accent** (Teal, Blue, Plum, Green, [§2.8](#28-accent-colours)) recolours the accent-derived tokens of the chrome and the text selection on the page; **Page appearance** (Original, Sepia, Dark, High contrast) recolours page content in the renderer. Original is the default in every theme: draw white pages on the dark gutter in dark mockups. Photos and annotation colours never change.
 
 ### 8.7 Touch rules
 

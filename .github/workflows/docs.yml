@@ -21,6 +21,7 @@ on:
     paths: &inputs
       - apps/docs/**
       - packages/sdk/**
+      - packages/tokens/**   
       - packages/wasm/package.json
       - crates/laminapdf/examples/**
       - fixtures/golden/examples/**

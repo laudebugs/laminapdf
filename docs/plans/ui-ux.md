@@ -117,7 +117,7 @@ Delivered by [U3a](../todos/ready/U3a-responsive-mobile-and-touch.md). Native ap
 
 ### 5.5 Page appearance and themes (R8)
 
-UI themes (light, dark, high contrast, from [C7a](../todos/ready/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours-proposed)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are cached on every device and applied before first paint; when the user is signed in they are also saved to the account, so every device matches (first-sign-in rule in the design language §2.8).
+UI themes (light, dark, high contrast, from [C7a](../todos/ready/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are cached on every device and applied before first paint; when the user is signed in they are also saved to the account, so every device matches (first-sign-in rule in the design language §2.8).
 
 | Page mode | How | Notes |
 | --- | --- | --- |
@@ -210,7 +210,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 ### U6. Paper design system
 
 Planned in the [Paper design plan §6](paper-design.md#6-round-u6-paper-in-code): tokens, self-hosted fonts, icons, core components, overlays and a gallery with visual tests.
-**Todos:** [U6a](../todos/ready/U6a-paper-tokens.md), [U6b](../todos/ready/U6b-self-hosted-fonts.md), [U6c](../todos/ready/U6c-icon-set.md), [U6d](../todos/ready/U6d-core-components.md), [U6e](../todos/ready/U6e-overlays-and-sheets.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
+**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/ready/U6b-self-hosted-fonts.md), [U6c](../todos/ready/U6c-icon-set.md), [U6d](../todos/ready/U6d-core-components.md), [U6e](../todos/ready/U6e-overlays-and-sheets.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
 
 ### Changes to existing todos
 
