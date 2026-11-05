@@ -10,6 +10,13 @@
 //! out full history). `--run <id>` checks one given run instead, under the same rules, which is
 //! how the guard is tested against a known failed run; `--commit <rev>` names the release commit
 //! (default `HEAD`).
+//!
+//! With `--version-only` it also says whether the release lane may skip its own run of the nightly
+//! lane (ADR 0017 §6): `nightly=skip` in `$GITHUB_OUTPUT` when the release commit differs from the
+//! commit the nightly passed on only by a version bump, else `nightly=run`. A bump writes the
+//! changelogs, `.changeset/` and `packages/sdk/src/version.ts` freely; in a `package.json`,
+//! `Cargo.toml` or `Cargo.lock` every changed line names the old or the new version. The daily
+//! release's commits (todo P6) are always such a bump.
 
 use std::path::Path;
 use std::process::Command;
@@ -26,22 +33,28 @@ const FIELDS: &str = "databaseId,conclusion,status,event,displayTitle,headSha,he
 pub(crate) const FULL_DISPATCH_TITLE: &str = "Nightly (full budgets)";
 /// How many of the latest completed nightly runs on main `guard` looks through for one that counts.
 const LIST_LIMIT: &str = "50";
-const USAGE: &str = "usage: cargo xtask release-guard [--run <run-id>] [--commit <rev>]";
+const USAGE: &str = "usage: cargo xtask release-guard [--run <run-id>] [--commit <rev>] [--version-only]";
 
 /// What `cargo xtask release-guard` was asked to check.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Args {
     run: Option<String>,
     commit: String,
+    version_only: bool,
 }
 
 pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
     let mut parsed = Args {
         run: None,
         commit: "HEAD".to_owned(),
+        version_only: false,
     };
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
+        if arg == "--version-only" {
+            parsed.version_only = true;
+            continue;
+        }
         match (arg.as_str(), rest.next()) {
             ("--run", Some(id)) if !id.is_empty() && id.bytes().all(|b| b.is_ascii_digit()) => {
                 parsed.run = Some(id.clone());
@@ -82,9 +95,89 @@ pub(crate) fn guard(root: &Path, args: &Args) -> Result<()> {
             ],
         )?,
     };
-    let verdict = verdict(&json, &release, &|nightly: &str| is_ancestor(root, nightly, &release))?;
-    println!("{verdict}");
+    let passed = verdict(&json, &release, &|nightly: &str| is_ancestor(root, nightly, &release))?;
+    println!("{}", passed.line);
+    if args.version_only {
+        let changes = changes_since(root, &passed.nightly, &release)?;
+        let (old, new) = (sdk_version_at(root, &passed.nightly)?, sdk_version_at(root, &release)?);
+        let skip = only_a_version_bump(&changes, &old, &new);
+        if skip {
+            println!(
+                "version-only: the release commit adds only the bump {old} → {new}; the lane skips its nightly run"
+            );
+        } else {
+            println!(
+                "version-only: the release commit changes more than the version since the nightly; the lane runs it"
+            );
+        }
+        crate::util::github_output("nightly", if skip { "skip" } else { "run" })?;
+    }
     Ok(())
+}
+
+/// The paths the release commit changes since `nightly`, each with the lines it adds or removes
+/// when it is a manifest that [`only_a_version_bump`] reads line by line.
+fn changes_since(root: &Path, nightly: &str, release: &str) -> Result<Vec<(String, Vec<String>)>> {
+    // --no-renames: a rename lists both of its paths, so neither slips past as a bump.
+    let names = git_stdout(root, &["diff", "--name-only", "--no-renames", nightly, release])
+        .with_context(|| format!("git diff --name-only {nightly} {release} failed"))?;
+    names
+        .lines()
+        .filter(|path| !path.is_empty())
+        .map(|path| {
+            if !bump_edits_versions(path) {
+                return Ok((path.to_owned(), Vec::new()));
+            }
+            let diff = git_stdout(root, &["diff", "-U0", nightly, release, "--", path])
+                .with_context(|| format!("git diff of {path} failed"))?;
+            let lines = diff
+                .lines()
+                .filter(|line| !line.starts_with("+++") && !line.starts_with("---"))
+                .filter_map(|line| line.strip_prefix('+').or_else(|| line.strip_prefix('-')))
+                .map(str::to_owned)
+                .collect();
+            Ok((path.to_owned(), lines))
+        })
+        .collect()
+}
+
+/// The fixed group's version at `rev`, read from `@laminapdf/sdk`'s `package.json`.
+fn sdk_version_at(root: &Path, rev: &str) -> Result<String> {
+    let text = git_stdout(root, &["show", &format!("{rev}:packages/sdk/package.json")])
+        .with_context(|| format!("reading packages/sdk/package.json at {rev}"))?;
+    let manifest: Value = serde_json::from_str(&text).context("packages/sdk/package.json is not JSON")?;
+    manifest
+        .get("version")
+        .and_then(Value::as_str)
+        .map(str::to_owned)
+        .context("packages/sdk/package.json has no version")
+}
+
+/// The files a version bump writes whatever their lines.
+fn bump_writes_freely(path: &str) -> bool {
+    path.ends_with("CHANGELOG.md") || path.starts_with(".changeset/") || path == "packages/sdk/src/version.ts"
+}
+
+/// The manifests a version bump edits only on the lines that name a version.
+fn bump_edits_versions(path: &str) -> bool {
+    matches!(
+        path.rsplit('/').next(),
+        Some("package.json" | "Cargo.toml" | "Cargo.lock")
+    )
+}
+
+/// Whether `changes` (each path with the manifest lines it adds or removes) are only a version
+/// bump from `old` to `new`: every path is one a bump writes, and every non-blank changed line of
+/// a manifest names one of the two versions. No change at all is a bump too: the nightly ran on
+/// the release commit itself.
+fn only_a_version_bump(changes: &[(String, Vec<String>)], old: &str, new: &str) -> bool {
+    changes.iter().all(|(path, lines)| {
+        bump_writes_freely(path)
+            || (bump_edits_versions(path)
+                && lines
+                    .iter()
+                    .all(|line| line.trim().is_empty() || line.contains(old) || line.contains(new)))
+    })
 }
 
 /// Whether `ancestor` is `commit` or one of its ancestors; an error when git can't tell (a commit
@@ -117,11 +210,18 @@ fn ran_full_nightly(run: &Value) -> bool {
     }
 }
 
+/// A nightly run the guard accepted: the line it prints and the commit the run tested.
+#[derive(Debug)]
+struct Passed {
+    line: String,
+    nightly: String,
+}
+
 /// The decision for `gh`'s JSON: one run object (`run view`) or a list of runs, newest first
 /// (`run list`), of which the first that [`ran_full_nightly`] is judged. `Ok` with a line to print
-/// when that run is a successful nightly run on `main` whose commit `contains` says is in the
-/// release commit's history; otherwise the reason the release is refused.
-fn verdict(json: &str, release: &str, contains: &dyn Fn(&str) -> Result<bool>) -> Result<String> {
+/// and the run's commit when that run is a successful nightly run on `main` whose commit
+/// `contains` says is in the release commit's history; otherwise the reason the release is refused.
+fn verdict(json: &str, release: &str, contains: &dyn Fn(&str) -> Result<bool>) -> Result<Passed> {
     let value: Value = serde_json::from_str(json).context("gh printed JSON this guard can't read")?;
     let run = match &value {
         Value::Array(runs) => runs.iter().find(|run| ran_full_nightly(run)).with_context(|| {
@@ -173,7 +273,10 @@ fn verdict(json: &str, release: &str, contains: &dyn Fn(&str) -> Result<bool>) -
     if !contains(field("headSha"))? {
         bail!("refusing to release: {what} tested a commit that is not in the history of the release commit {release}");
     }
-    Ok(format!("ok: {what} succeeded on an ancestor of {release}"))
+    Ok(Passed {
+        line: format!("ok: {what} succeeded on an ancestor of {release}"),
+        nightly: field("headSha").to_owned(),
+    })
 }
 
 /// `cargo xtask release-notes <tag> <out>`: the root `CHANGELOG.md`'s section for the tag's
@@ -207,7 +310,7 @@ mod tests {
 
     use anyhow::Result;
 
-    use super::{Args, FULL_DISPATCH_TITLE, notes_for, parse_args, verdict};
+    use super::{Args, FULL_DISPATCH_TITLE, notes_for, only_a_version_bump, parse_args, verdict};
 
     /// A successful scheduled nightly run on main, as `gh` prints it, with `fields` replaced.
     fn fixture(fields: &[(&str, &str)]) -> String {
@@ -455,14 +558,17 @@ mod tests {
         steps
     }
 
-    /// The release lane publishes only from its publish jobs (ADR 0017 §7, todo P1): no other job
-    /// runs a publish command, asks for an OIDC token or creates a release; each publish job waits
-    /// for every check; and only a tag push publishes, stages or releases for real, a dispatch
-    /// (even on a tag) being a dry run. Comments may name anything.
+    /// The release lane publishes only from its publish jobs (ADR 0017 §7, todos P1, P5): no
+    /// other job runs a publish command, asks for an OIDC token or creates a release; only
+    /// `publish-crates` and `publish-npm` ask for an OIDC token, and no job reads a stored npm
+    /// token; `publish-npm` runs on a GitHub-hosted runner with no checkout, so no code from the
+    /// repository runs beside its token; each publish job waits for every check; and only a tag
+    /// push publishes or releases for real, a dispatch (even on a tag) being a dry run. Comments
+    /// may name anything.
     #[test]
     fn release_workflow_should_publish_only_from_its_publish_jobs_and_only_on_a_tag_push() {
         const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
-        const PUBLISH_JOBS: [&str; 3] = ["publish-crates", "publish-npm", "github-release"];
+        const PUBLISH_JOBS: [&str; 4] = ["publish-crates", "pack-npm", "publish-npm", "github-release"];
         const PUBLISHING: [&str; 13] = [
             "npm publish",
             "pnpm publish",
@@ -503,9 +609,22 @@ mod tests {
             );
             assert_eq!(
                 text.contains("id-token"),
-                *job == "publish-crates",
-                "only publish-crates asks for an OIDC token"
+                matches!(*job, "publish-crates" | "publish-npm"),
+                "only publish-crates and publish-npm ask for an OIDC token"
             );
+            assert!(!text.contains("NPM_TOKEN"), "{job} reads a stored npm token");
+            if *job == "publish-npm" {
+                assert!(
+                    text.contains("runs-on: ubuntu-latest"),
+                    "npm's trusted publishing needs a GitHub-hosted runner"
+                );
+                for code_from_the_repository in ["actions/checkout", "./.github/actions", "cargo ", "pnpm "] {
+                    assert!(
+                        !text.contains(code_from_the_repository),
+                        "publish-npm runs code from the repository ({code_from_the_repository}) beside its OIDC token"
+                    );
+                }
+            }
             assert!(
                 code.iter()
                     .filter(|l| l.contains("ref_type"))
@@ -530,31 +649,17 @@ mod tests {
                     .contains(&format!("DRY_RUN: ${{{{ !({ON_TAG}) && '--dry-run' || '' }}}}"))
                     && step
                         .iter()
-                        .any(|l| l.contains("xtask publish") && l.contains("$DRY_RUN"));
+                        .any(|l| l.contains("$DRY_RUN") && (l.contains("xtask publish") || l.contains(" publish ")));
                 let real = [
                     "crates-io-auth-action",
                     "gh release",
-                    "secrets.NPM_TOKEN",
                     "xtask publish crates",
-                    "npm-stage",
+                    "\" publish ",
                 ];
                 if real.iter().any(|p| step_text.contains(p)) {
                     assert!(
                         gated_by_if || dry_run_unless_tag,
                         "{job}: a step publishes without the tag-push gate:\n{step_text}"
-                    );
-                }
-                if step_text.contains("xtask publish npm-pack") {
-                    assert!(
-                        !step_text.contains("NPM_TOKEN"),
-                        "{job}: npm-pack must build and pack without the token"
-                    );
-                }
-                if step_text.contains("secrets.NPM_TOKEN") {
-                    assert!(
-                        step.iter()
-                            .any(|l| l.contains(&format!("${{{{ {ON_TAG} && secrets.NPM_TOKEN || '' }}}}"))),
-                        "{job}: NPM_TOKEN reaches a run that isn't a tag push"
                     );
                 }
             }
@@ -656,20 +761,72 @@ mod tests {
             [
                 parse(&[]),
                 parse(&["--run", "123", "--commit", "v1.0.0"]),
+                parse(&["--version-only", "--commit", "v1.0.0"]),
                 parse(&["--run", "x"])
             ],
             [
                 Some(Args {
                     run: None,
-                    commit: "HEAD".to_owned()
+                    commit: "HEAD".to_owned(),
+                    version_only: false
                 }),
                 Some(Args {
                     run: Some("123".to_owned()),
-                    commit: "v1.0.0".to_owned()
+                    commit: "v1.0.0".to_owned(),
+                    version_only: false
+                }),
+                Some(Args {
+                    run: None,
+                    commit: "v1.0.0".to_owned(),
+                    version_only: true
                 }),
                 None
             ]
         );
+    }
+
+    /// A path with the manifest lines a change adds or removes.
+    fn change(path: &str, lines: &[&str]) -> (String, Vec<String>) {
+        (path.to_owned(), lines.iter().map(|line| (*line).to_owned()).collect())
+    }
+
+    #[test]
+    fn only_a_version_bump_should_accept_what_a_version_bump_writes() {
+        let bump = [
+            change(
+                "packages/sdk/package.json",
+                &[r#"  "version": "0.2.0-alpha.2","#, r#"  "version": "0.2.0-alpha.3","#],
+            ),
+            change(
+                "Cargo.toml",
+                &[
+                    r#"version = "0.2.0-alpha.2""#,
+                    r#"laminapdf-cos = { version = "=0.2.0-alpha.3", path = "crates/laminapdf-cos" }"#,
+                ],
+            ),
+            change("Cargo.lock", &[r#"version = "0.2.0-alpha.3""#, ""]),
+            change("CHANGELOG.md", &[]),
+            change("packages/sdk/CHANGELOG.md", &[]),
+            change(".changeset/extract-output.md", &[]),
+            change(".changeset/pre.json", &[]),
+            change("packages/sdk/src/version.ts", &[]),
+        ];
+        assert!(only_a_version_bump(&bump, "0.2.0-alpha.2", "0.2.0-alpha.3"));
+        assert!(only_a_version_bump(&[], "0.2.0-alpha.2", "0.2.0-alpha.2"));
+    }
+
+    #[test]
+    fn only_a_version_bump_should_refuse_any_other_change() {
+        let (old, new) = ("0.2.0-alpha.2", "0.2.0-alpha.3");
+        let source = [change("crates/laminapdf/src/lib.rs", &[])];
+        assert!(!only_a_version_bump(&source, old, new));
+        let dependency = [change("packages/sdk/package.json", &[r#"    "left-pad": "1.3.0","#])];
+        assert!(!only_a_version_bump(&dependency, old, new));
+        let lock = [change(
+            "Cargo.lock",
+            &[r#"version = "0.2.0-alpha.3""#, r#"name = "left-pad""#],
+        )];
+        assert!(!only_a_version_bump(&lock, old, new));
     }
 
     #[test]
