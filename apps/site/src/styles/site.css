@@ -1,0 +1,170 @@
+/*
+ * The website in Lamina PDF's Paper design language (docs/design/paper/design-language.md): pages
+ * of text on the paper ground, from the tokens of @laminapdf/tokens and the fonts of
+ * @laminapdf/fonts, both loaded before this file (src/layouts/Base.astro). The light or dark theme
+ * follows the visitor's system; the site sets no `data-theme`, so it needs no script.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper-ground);
+  color: var(--paper-text);
+  font: 400 16px / 1.5 var(--paper-font-sans);
+}
+
+a {
+  color: var(--paper-accent);
+}
+
+a:hover {
+  color: var(--paper-accent-strong);
+}
+
+:focus-visible {
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset);
+  border-radius: var(--paper-radius-3);
+}
+
+/* Hidden until a keyboard user tabs to it, then shown above the header. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--paper-space-16);
+  top: calc(-1 * var(--paper-target-min-touch) - var(--paper-space-16));
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--paper-target-min-touch);
+  padding: 0 var(--paper-space-16);
+  background: var(--paper-surface);
+}
+
+.skip-link:focus {
+  top: var(--paper-space-8);
+  box-shadow: var(--paper-shadow-page);
+}
+
+/* §7.39: 64 px, at most 1120 px wide; the wordmark 24/700, the links 15 px. */
+.site-header-row,
+.site-footer {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: var(--paper-space-16);
+}
+
+.site-header-row {
+  min-height: 64px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--paper-space-24);
+}
+
+.wordmark {
+  margin-inline-end: auto;
+  color: var(--paper-text);
+  font: 700 24px / 1 var(--paper-font-sans);
+  text-decoration: none;
+}
+
+.site-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--paper-space-20);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--paper-target-min-touch);
+  color: var(--paper-text-2);
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: inset 0 calc(-1 * var(--paper-selected-underline-width)) 0 transparent;
+}
+
+.site-nav a:hover {
+  color: var(--paper-text);
+}
+
+.site-nav a[aria-current="page"] {
+  color: var(--paper-text);
+  font-weight: 600;
+  box-shadow: inset 0 calc(-1 * var(--paper-selected-underline-width)) 0 var(--paper-accent);
+}
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--paper-target-min-touch);
+  padding: 0 var(--paper-space-16);
+  border: var(--paper-border-width) solid var(--paper-control-border);
+  border-radius: var(--paper-radius-4);
+  color: var(--paper-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button-secondary:hover {
+  color: var(--paper-text);
+  background: var(--paper-hover);
+}
+
+main {
+  flex: 1;
+  padding: var(--paper-space-8) var(--paper-space-16) var(--paper-space-48);
+}
+
+/* The page on paper: one sheet on the ground, as a PDF rests in the reader. */
+.sheet {
+  max-width: 920px;
+  margin-inline: auto;
+  padding: clamp(24px, 6vw, 72px);
+  background: var(--paper-surface);
+  border-radius: var(--paper-radius-3);
+  box-shadow: var(--paper-shadow-page);
+}
+
+.sheet h1 {
+  margin: 0 0 var(--paper-space-16);
+  font: var(--paper-type-display);
+  font-size: clamp(34px, 5vw, 48px);
+  text-wrap: balance;
+}
+
+.sheet p {
+  margin: 0 0 var(--paper-space-16);
+  max-width: 60ch;
+}
+
+.lead {
+  color: var(--paper-text-2);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.site-footer {
+  padding-block: var(--paper-space-24);
+  color: var(--paper-muted);
+  font: var(--paper-type-caption);
+}
+
+.site-footer p {
+  margin: 0;
+}

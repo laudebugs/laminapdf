@@ -55,6 +55,9 @@ const config: KnipConfig = {
     // Starlight loads the tokens' and fonts' stylesheets by name (astro.config.mjs's `customCss`),
     // which knip can't see.
     "apps/docs": { ignoreDependencies: ["@laminapdf/tokens", "@laminapdf/fonts"] },
+    // The website deploys with `pnpm exec wrangler` in .github/workflows/site.yml, which knip reads
+    // once the owner commits it (W1b's PR gives the file); until then knip can't see the use.
+    "apps/site": { ignoreDependencies: ["wrangler"] },
   },
   ignore: ["**/src/generated/**"],
   // knip finds pnpm's workspaces itself; the generated package is left out here too.
