@@ -22,6 +22,10 @@ on:
       - apps/docs/**
       - packages/sdk/**
       - packages/tokens/**
+      - packages/fonts/**
+      - packages/site-kit/**
+      # The website's pages: the shared header links to each one once it exists.
+      - apps/site/src/pages/**
       - packages/wasm/package.json
       - crates/laminapdf/examples/**
       - fixtures/golden/examples/**
