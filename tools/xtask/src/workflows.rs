@@ -140,11 +140,18 @@ mod tests {
         }
     }
 
-    /// The value after `key` on the first line that starts with it, indentation and quotes trimmed.
+    /// The value after `key` on the first line that starts with it, without indentation, a
+    /// trailing ` #` comment or quotes.
     fn pinned<'a>(file: &'a str, key: &str) -> Option<&'a str> {
         file.lines()
             .find_map(|l| l.trim_start().strip_prefix(key))
-            .map(|v| v.trim().trim_matches('"'))
+            .map(|v| v.split(" #").next().unwrap_or_default().trim().trim_matches('"'))
+    }
+
+    #[test]
+    fn pinned_should_drop_quotes_and_a_trailing_comment() {
+        let file = "env:\n  # V: old\n  V: \"1.2.3\" # why\n";
+        assert_eq!(pinned(file, "V:"), Some("1.2.3"));
     }
 
     #[test]

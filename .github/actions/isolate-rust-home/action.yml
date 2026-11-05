@@ -111,8 +111,11 @@ runs:
           echo "$sum  $init" | shasum -a 256 -c -
           chmod +x "$init"
           # Outside the checkout, so rust-toolchain.toml plays no part. The path check would only
-          # repeat the warning above.
-          (cd "$RUNNER_TEMP" && RUSTUP_INIT_SKIP_PATH_CHECK=yes "$init" -y --no-modify-path --default-toolchain none)
+          # repeat the warning above. rustup-init writes its --profile into settings.toml, so it
+          # gets the one RUSTUP_HOME already has (rustup's own default when there is none).
+          profile=$(sed -n 's/^profile = "\(.*\)"$/\1/p' "$RUSTUP_HOME/settings.toml" 2>/dev/null || true)
+          (cd "$RUNNER_TEMP" && RUSTUP_INIT_SKIP_PATH_CHECK=yes "$init" -y --no-modify-path \
+            --default-toolchain none --profile "${profile:-default}")
           rm -f "$init"
         fi
     - if: runner.environment == 'self-hosted' && inputs.target-dir != ''
