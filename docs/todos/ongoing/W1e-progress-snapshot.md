@@ -77,6 +77,7 @@ Unit tests over fixture todo files and a fixture milestone table; merge-subject 
 - **Claims come from the files a pull request moves, not its branch.** A pull request claims a todo when it adds the todo's file under `ongoing/` or `done/`, which is what claiming means on the board. The **Branch** field turned out to be unreliable: on 2026-11-05 neither U6e's pull request (`claude/working-session-9g3nst`) nor L3e's (`feat/l3e-extract-bindings`) used the branch its todo names. The open pull requests are read with `gh api` (REST), one call for the list and one per pull request for its files.
 - **"Rounds" in the file are the board's sections** (`A`, `B`, `L` …), each with its heading, because the dashboard draws one bar per section. A ready todo that an open pull request claims counts as in progress, so a section's `todos` is `done + inProgress + ready`.
 - **The roadmap's Rounds cells** mix four forms: a section letter (`A`), a range (`B1–B7`), a round (`U1`) and a todo (`U3a`). A token that matches no todo fails the command.
+- **It reads the board and the roadmap from `main`** (`origin/main` when there is one, with `git show`), not from the checkout, so a branch's own todo moves never reach the snapshot, and "Next up" leaves out the todos already in progress.
 - **`gh` moved to `util.rs`**, shared with `release-guard`, and runs in the repository's folder so `{owner}/{repo}` resolves.
 
 ## Definition of done

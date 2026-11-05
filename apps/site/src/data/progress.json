@@ -4,8 +4,8 @@
   "totals": {
     "todos": 301,
     "done": 115,
-    "inProgress": 3,
-    "ready": 183
+    "inProgress": 4,
+    "ready": 182
   },
   "rounds": [
     {
@@ -45,8 +45,8 @@
       "heading": "Website — Round W",
       "todos": 5,
       "done": 2,
-      "inProgress": 1,
-      "ready": 2
+      "inProgress": 2,
+      "ready": 1
     },
     {
       "letter": "D",
@@ -193,6 +193,10 @@
         "title": "Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark"
       },
       {
+        "id": "W1d",
+        "title": "One header for the website and the docs site"
+      },
+      {
         "id": "W1e",
         "title": "The progress snapshot: `cargo xtask progress` writes the home page's roadmap data"
       },
@@ -210,10 +214,6 @@
     {
       "id": "L3d",
       "title": "Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags"
-    },
-    {
-      "id": "L3e",
-      "title": "Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark"
     },
     {
       "id": "L4b",
@@ -236,16 +236,8 @@
       "title": "`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter"
     },
     {
-      "id": "W1d",
-      "title": "One header for the website and the docs site"
-    },
-    {
       "id": "D1a",
       "title": "`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews"
-    },
-    {
-      "id": "U6i",
-      "title": "`@laminapdf/ui` bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell"
     },
     {
       "id": "P3",
@@ -257,7 +249,7 @@
     }
   ],
   "merged": {
-    "count": 90,
+    "count": 92,
     "recent": [
       "feat(site): the website at laminapdf.com, with a preview per pull request",
       "feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts",

@@ -2,20 +2,22 @@
 //! website's home page reads for its roadmap and dashboard (website plan §4).
 //!
 //! The snapshot comes from four sources:
-//! - the todo files, through [`todos`]'s own parser and checks, so its counts and "Can start now"
-//!   list are the board's;
-//! - the roadmap's Milestones table, each milestone's state worked out from the todos its Rounds
-//!   cell names ([`milestone_state`]);
-//! - `git log` on `main`: the merged pull requests, since squash merges end in `(#<n>)`;
+//! - the todo files on `main`, through [`todos`]'s own parser and checks, so its counts and "Can
+//!   start now" list are the board's;
+//! - the roadmap's Milestones table on `main`, each milestone's state worked out from the todos its
+//!   Rounds cell names ([`milestone_state`]);
+//! - `git log` on `main`: the merged pull requests, squash merges (subjects ending in `(#<n>)`) and
+//!   merge commits alike;
 //! - the open pull requests (`gh api`). A pull request claims a todo when it adds that todo's file
 //!   under `ongoing/` or `done/`, which only its branch holds, so `main` alone can't say what is in
 //!   progress. With `--offline`, or when gh fails, the last snapshot's list stays and the file
 //!   says so (`inProgress.source`).
 //!
-//! The file names no person and holds no pull request number or link into the repository, which
-//! is private.
+//! It reads the board and the roadmap from `main` (`origin/main` when there is one), not from the
+//! checkout, so a branch's own todo moves never reach the snapshot. The file names no person and
+//! holds no pull request number or link into the repository, which is private.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -23,9 +25,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-use crate::changes::default_base;
+use crate::changes::{at_revision, default_base};
 use crate::todos::{self, SECTIONS, State, Todo, TodoFile, id_parts, order_key};
-use crate::tracked::{Tracked, git};
+use crate::tracked::git;
 use crate::util::gh;
 
 /// The snapshot, relative to the repository root.
@@ -49,7 +51,7 @@ pub(crate) struct Snapshot {
     rounds: Vec<Round>,
     milestones: Vec<Milestone>,
     in_progress: InProgress,
-    /// The board's "Can start now", in board order.
+    /// The board's "Can start now", in board order, without the todos already in progress.
     next_up: Vec<TodoRef>,
     merged: Merged,
 }
@@ -127,7 +129,8 @@ struct TodoRef {
     title: String,
 }
 
-/// The pull requests merged into `main`: how many, and the latest titles without their numbers.
+/// The pull requests merged into `main`: how many, and the latest squash-merge titles without
+/// their numbers (a title that still names a pull request is left out).
 #[derive(Debug, Serialize)]
 struct Merged {
     count: usize,
@@ -172,11 +175,20 @@ pub(crate) fn run(root: &Path, offline: bool) -> Result<()> {
             .ok()
     };
     if claims.is_none() {
-        eprintln!("warning: the in-progress list is the last snapshot's (inProgress.source says so in the file)");
+        match &previous {
+            Some(previous) if previous.source != ClaimSource::None => {
+                eprintln!(
+                    "warning: in progress: kept the last snapshot's list (inProgress.source says so in the file)"
+                );
+            }
+            _ => eprintln!("warning: in progress: no pull requests read and no earlier list, so only ongoing/ shows"),
+        }
     }
-    let files = todos::load(root, &Tracked::from_git(root)?)?;
-    let roadmap = fs::read_to_string(root.join(ROADMAP)).with_context(|| format!("reading {ROADMAP}"))?;
-    let log = git(root, &["log", "--first-parent", "--format=%s", default_base(root)])?;
+    let base = default_base(root);
+    println!("progress: reading the board, the roadmap and the merges from {base}");
+    let files = todo_files_at(root, base)?;
+    let roadmap = at_revision(root, base, ROADMAP).with_context(|| format!("reading {ROADMAP} on {base}"))?;
+    let log = git(root, &["log", "--first-parent", "--format=%s", base])?;
     let snapshot = snapshot(&Inputs {
         files: &files,
         roadmap: &roadmap,
@@ -227,6 +239,7 @@ pub(crate) fn snapshot(inputs: &Inputs<'_>) -> Result<Snapshot> {
             .count(),
     };
     let all: Vec<&Todo> = todos.iter().collect();
+    let by_id: BTreeMap<&str, &Todo> = todos.iter().map(|t| (t.id.as_str(), t)).collect();
     let rounds = SECTIONS
         .iter()
         .filter_map(|&(letter, heading)| {
@@ -244,7 +257,11 @@ pub(crate) fn snapshot(inputs: &Inputs<'_>) -> Result<Snapshot> {
         totals: counts(&all),
         rounds,
         milestones: milestones(inputs.roadmap, &todos, &ids)?,
-        next_up: todos::startable(&todos).into_iter().map(todo_ref).collect(),
+        next_up: todos::startable(&todos, &by_id)
+            .into_iter()
+            .filter(|t| !ids.contains(t.id.as_str()))
+            .map(todo_ref)
+            .collect(),
         merged: merged(inputs.log),
         in_progress,
     })
@@ -266,12 +283,12 @@ fn in_progress(todos: &[Todo], inputs: &Inputs<'_>) -> InProgress {
             Some(inputs.date.to_owned()),
             claimed_ids(paths),
         ),
-        (None, Some(previous)) => (
+        (None, Some(previous)) if previous.source != ClaimSource::None => (
             ClaimSource::PreviousSnapshot,
             previous.checked.clone(),
             previous.todos.iter().map(|t| t.id.clone()).collect(),
         ),
-        (None, None) => (ClaimSource::None, None, BTreeSet::new()),
+        (None, _) => (ClaimSource::None, None, BTreeSet::new()),
     };
     let mut listed: Vec<&Todo> = todos
         .iter()
@@ -401,20 +418,80 @@ fn milestone_state(todos: &[&Todo], in_progress: &BTreeSet<&str>) -> MilestoneSt
     }
 }
 
-/// The squash-merged pull requests in `log` (subjects ending in `(#<n>)`), newest first.
+/// The pull requests merged into `main` per `log` (newest first): squash merges, whose subjects end
+/// in `(#<n>)`, and merge commits (`Merge pull request #<n> …`), which name a branch and so give no
+/// title.
 fn merged(log: &str) -> Merged {
-    let titles: Vec<&str> = log.lines().filter_map(without_pr_number).collect();
-    Merged {
-        count: titles.len(),
-        recent: titles.iter().take(RECENT).map(|&title| title.to_owned()).collect(),
+    let mut count = 0;
+    let mut recent = Vec::new();
+    for subject in log.lines() {
+        if let Some(title) = without_pr_number(subject) {
+            count += 1;
+            if recent.len() < RECENT && !names_a_pull_request(&title) {
+                recent.push(title);
+            }
+        } else if subject.starts_with("Merge pull request #") {
+            count += 1;
+        }
     }
+    Merged { count, recent }
 }
 
-/// A squash merge's subject without its ` (#<n>)`, or `None` for any other commit.
-fn without_pr_number(subject: &str) -> Option<&str> {
+/// A squash merge's subject without its ` (#<n>)`, and without any other ` (#<n>)` it quotes (a
+/// revert's), or `None` for any other commit.
+fn without_pr_number(subject: &str) -> Option<String> {
     let (title, number) = subject.trim_end().rsplit_once(" (#")?;
     let number = number.strip_suffix(')')?;
-    (!number.is_empty() && number.bytes().all(|b| b.is_ascii_digit())).then_some(title)
+    if number.is_empty() || !number.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let mut out = String::with_capacity(title.len());
+    let mut rest = title;
+    while let Some((before, after)) = rest.split_once(" (#") {
+        out.push_str(before);
+        let digits = after.bytes().take_while(u8::is_ascii_digit).count();
+        match after.get(digits..).and_then(|tail| tail.strip_prefix(')')) {
+            // ` (#123)`: dropped.
+            Some(tail) if digits > 0 => rest = tail,
+            // Anything else stays as written.
+            _ => {
+                out.push_str(" (#");
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    Some(out)
+}
+
+/// Whether `title` still names a pull request by number (`#<digit>`), which the file never holds.
+fn names_a_pull_request(title: &str) -> bool {
+    title
+        .as_bytes()
+        .windows(2)
+        .any(|pair| pair.first() == Some(&b'#') && pair.get(1).is_some_and(u8::is_ascii_digit))
+}
+
+/// The todo files on `rev`, as [`todos::load`] reads them from a checkout: the snapshot describes
+/// `main`, whichever branch runs the command.
+fn todo_files_at(root: &Path, rev: &str) -> Result<Vec<TodoFile>> {
+    let mut files = Vec::new();
+    for state in State::ALL {
+        let folder = format!("docs/todos/{}/", state.name());
+        let names = git(root, &["ls-tree", "--name-only", &format!("{rev}:{folder}")])?;
+        for file in names
+            .lines()
+            .filter(|name| Path::new(name).extension().is_some_and(|ext| ext == "md"))
+        {
+            let text = at_revision(root, rev, &format!("{folder}{file}"))?;
+            files.push(TodoFile {
+                state,
+                file: file.to_owned(),
+                text,
+            });
+        }
+    }
+    Ok(files)
 }
 
 /// The `docs/todos/` paths each open pull request adds or changes, read with `gh api` (REST).
@@ -481,7 +558,7 @@ fn civil_date(days: u64) -> (u64, u64, u64) {
 #[cfg(test)]
 mod tests {
     use super::{
-        ClaimSource, InProgress, Inputs, MilestoneState, Previous, Snapshot, TodoRef, civil_date, claimed_ids,
+        ClaimSource, InProgress, Inputs, MilestoneState, Previous, Snapshot, TodoRef, civil_date, claimed_ids, merged,
         snapshot, without_pr_number,
     };
     use crate::todos::tests::todo;
@@ -494,7 +571,7 @@ mod tests {
         | M2 Reader | C1–C7, U3a | The reader |\n\
         | M3 Cross-cutting | X | CI |\n\n## Later\n";
 
-    const LOG: &str = "feat(site): the website (#246)\nfix: a typo (#245)\nInitial import\n";
+    const LOG: &str = "feat(site): the website (#246)\nfix: a typo (#245)\nMerge pull request #7 from someone/branch\nInitial import\n";
 
     /// A1 and B1, B2a done; B2b ready after B2a; C1 ready, C2 after C1; C8 done (outside C1–C7);
     /// U3a ready, U3b done; X1 ongoing.
@@ -621,6 +698,8 @@ mod tests {
         assert_eq!(snapshot.in_progress.source, ClaimSource::PullRequests);
         assert_eq!(snapshot.in_progress.checked.as_deref(), Some("2026-11-05"));
         assert_eq!(ids(&snapshot.in_progress.todos), ["C1", "U3a", "X1"]);
+        // Claimed todos leave "next up" for "in progress".
+        assert_eq!(ids(&snapshot.next_up), ["B2b"]);
         let c = snapshot.rounds.iter().find(|r| r.letter == 'C').unwrap();
         assert_eq!((c.counts.done, c.counts.in_progress, c.counts.ready), (1, 1, 1));
     }
@@ -646,6 +725,13 @@ mod tests {
             (none.in_progress.source, none.in_progress.checked),
             (ClaimSource::None, None)
         );
+        // A last snapshot that read no pull requests passes nothing on.
+        let empty = InProgress {
+            source: ClaimSource::None,
+            checked: None,
+            todos: Vec::new(),
+        };
+        assert_eq!(take(&board(), None, Some(empty)).in_progress.source, ClaimSource::None);
         assert_eq!(ids(&none.in_progress.todos), ["X1"]);
     }
 
@@ -655,7 +741,7 @@ mod tests {
         let previous: Previous = serde_json::from_str(&json).unwrap();
         assert_eq!(ids(&previous.in_progress.todos), ["X1"]);
         assert!(json.contains("\"recent\": [\n      \"feat(site): the website\",\n      \"fix: a typo\"\n    ]"));
-        assert!(json.contains("\"count\": 2"));
+        assert!(json.contains("\"count\": 3"));
         assert!(!json.contains('#'), "{json}");
         // The keys in the order the site's type lists them (serde_json's Value would sort them).
         let at = |key: &str| json.find(&format!("\n  \"{key}\": ")).unwrap();
@@ -673,11 +759,27 @@ mod tests {
     }
 
     #[test]
-    fn merge_subjects_lose_their_pull_request_number() {
-        assert_eq!(without_pr_number("feat(x): y (#12)"), Some("feat(x): y"));
+    fn merge_subjects_lose_their_pull_request_numbers() {
+        assert_eq!(without_pr_number("feat(x): y (#12)").as_deref(), Some("feat(x): y"));
+        assert_eq!(
+            without_pr_number("Revert \"feat: x (#212)\" (#250)").as_deref(),
+            Some("Revert \"feat: x\"")
+        );
+        assert_eq!(
+            without_pr_number("fix: keep (#tag) (#9)").as_deref(),
+            Some("fix: keep (#tag)")
+        );
         assert_eq!(without_pr_number("Initial import"), None);
         assert_eq!(without_pr_number("fix: a (#12) b"), None);
         assert_eq!(without_pr_number("fix: a (#)"), None);
+    }
+
+    #[test]
+    fn merged_counts_merge_commits_and_leaves_out_titles_that_name_a_pull_request() {
+        let log = "fix: handle #198 review notes (#251)\nMerge pull request #204 from someone/branch\nfeat: x (#200)\n";
+        let merged = merged(log);
+        assert_eq!(merged.count, 3);
+        assert_eq!(merged.recent, ["feat: x"]);
     }
 
     #[test]

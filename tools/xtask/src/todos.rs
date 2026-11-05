@@ -221,8 +221,8 @@ pub(crate) fn checked(files: &[TodoFile]) -> Result<Vec<Todo>, Vec<String>> {
 }
 
 /// The board's "Can start now": the ready todos whose dependencies are all done, in board order.
-pub(crate) fn startable(todos: &[Todo]) -> Vec<&Todo> {
-    let by_id: BTreeMap<&str, &Todo> = todos.iter().map(|t| (t.id.as_str(), t)).collect();
+/// `by_id` maps each of `todos` by its ID.
+pub(crate) fn startable<'a>(todos: &'a [Todo], by_id: &BTreeMap<&str, &Todo>) -> Vec<&'a Todo> {
     let mut startable: Vec<&Todo> = todos
         .iter()
         .filter(|t| {
@@ -485,7 +485,7 @@ fn board(todos: &[Todo], by_id: &BTreeMap<&str, &Todo>) -> (String, String) {
     sorted.sort_by_key(|t| order_key(&t.id));
     let count = |state: State| todos.iter().filter(|t| t.state == state).count();
     let (ongoing, ready, done) = (count(State::Ongoing), count(State::Ready), count(State::Done));
-    let startable = startable(todos);
+    let startable = startable(todos, by_id);
 
     let mut out = String::from(BOARD_HEADER);
     let _ = writeln!(
