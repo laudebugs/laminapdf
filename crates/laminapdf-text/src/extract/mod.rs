@@ -62,6 +62,9 @@ pub struct Glyph {
     pub actual_text: Option<usize>,
     /// Drawn in text rendering mode 3 or 7: neither filled nor stroked (OCR layers).
     pub invisible: bool,
+    /// Inside marked content tagged `Artifact` (§14.8.2.2): page furniture such as running
+    /// headers, page numbers and decoration, not part of the document's content.
+    pub artifact: bool,
 }
 
 /// The text a page shows, in content order.
@@ -233,6 +236,7 @@ impl TextExtractor {
 struct Marked {
     mcid: Option<i64>,
     actual_text: Option<usize>,
+    artifact: bool,
 }
 
 struct Collector<'a, 'p> {
@@ -265,6 +269,7 @@ impl Collector<'_, '_> {
         let invisible = matches!(state.render_mode, 3 | 7);
         let mcid = self.marked.iter().rev().find_map(|m| m.mcid);
         let actual_text = self.marked.iter().find_map(|m| m.actual_text);
+        let artifact = self.marked.iter().any(|m| m.artifact);
         let (ascent, descent) = font.extent;
         let mut tm = show.tm;
         let mut total = TextAdvance::default();
@@ -344,6 +349,7 @@ impl Collector<'_, '_> {
                             mcid,
                             actual_text,
                             invisible,
+                            artifact,
                         });
                         step(advance, &mut tm, &mut total);
                     }
@@ -411,6 +417,7 @@ impl Visitor for Collector<'_, '_> {
         self.marked.push(Marked {
             mcid: marked.mcid,
             actual_text,
+            artifact: marked.tag.as_bytes() == b"Artifact",
         });
     }
 

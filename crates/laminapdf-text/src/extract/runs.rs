@@ -37,6 +37,8 @@ pub struct PageTextRun {
     pub actual_text: bool,
     /// Drawn in text rendering mode 3 or 7 (OCR layers).
     pub invisible: bool,
+    /// Inside marked content tagged `Artifact` (§14.8.2.2).
+    pub artifact: bool,
     /// The union of the glyphs' boxes, in page space.
     pub bounds: RectPt,
 }
@@ -82,6 +84,7 @@ fn alike(a: &Glyph, b: &Glyph) -> bool {
         && a.mcid == b.mcid
         && a.actual_text == b.actual_text
         && a.invisible == b.invisible
+        && a.artifact == b.artifact
 }
 
 /// Groups `glyphs` into runs.
@@ -160,6 +163,7 @@ pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<PageTextRun
                 mcid: first.mcid,
                 actual_text: first.actual_text.is_some(),
                 invisible: first.invisible,
+                artifact: first.artifact,
                 bounds: bounds(run),
             })
         })
