@@ -44,7 +44,7 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.10 Command palette | `ShortcutChip` | `⌥⌘E` on macOS, `Ctrl Shift E` elsewhere, from the platform the app names |
 | §7.12 Colour swatches | `SwatchGroup` | Colours are token names, so only design-language colours appear |
 | §7.19 Form controls | `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup`, `Radio`, `Switch` | Label above, help or error below, wired with `aria-describedby` and `aria-invalid` |
-| §7.20 Toast and notice | `Notice`, `Toast` | Status messages; the toast region and timing come with the overlays |
+| §7.20 Toast and notice | `Notice`, `Toast` | A notice is a status message; the toast region, which comes with the overlays, announces a toast |
 | §7.21 Empty state | `EmptyState` | A title, one sentence and at most two actions |
 | §7.22 Progress | `ProgressBar`, `Skeleton` | Indeterminate without a `value`; it stands still under reduced motion |
 | §7.23 Badge and tag | `Badge` | Always a word, never colour alone |
