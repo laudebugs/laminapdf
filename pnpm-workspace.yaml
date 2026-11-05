@@ -16,6 +16,11 @@ allowBuilds:
 
 # Shared third-party versions; packages depend on them with "catalog:" (typescript.md).
 catalog:
+  # The public API report of @laminapdf/sdk, compared with the published version's in
+  # `cargo xtask semver` (todo P3). MIT; it bundles its own TypeScript 5.9 (Apache-2.0), apart
+  # from the workspace's; its argparse 1.0 is Python-2.0, as the docs site's 2.0 is. Dev-only.
+  # Pinned to a release at least two weeks old when added.
+  "@microsoft/api-extractor": 7.59.4
   "@arethetypeswrong/cli": 0.18.5
   "@biomejs/biome": 2.6.3
   # Versioning (ADR 0017): the npm half of the lockstep version; `cargo xtask version sync` does
