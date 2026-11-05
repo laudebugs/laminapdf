@@ -34,7 +34,9 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
-PACKAGE = Path(__file__).resolve().parents[2] / "packages" / "fonts"
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE = ROOT / "packages" / "fonts"
+AFM = ROOT / "tools" / "std14-gen" / "data" / "afm"
 LOCK = PACKAGE / "fonts.lock.json"
 CSS = PACKAGE / "fonts.css"
 
@@ -79,14 +81,20 @@ FACES = [
      {}, ("latin",), False),
 ]
 
-# The fallback face is Arial, whose advance widths match Helvetica's AFM (tools/std14-gen/data):
-# size-adjust scales it to Lamina Sans' average width in English text, and the overrides give it
-# Lamina Sans' own vertical metrics, so swapping fonts moves no line.
-HELVETICA_WIDTHS = {  # per 1000 em, from Adobe's Helvetica AFM
-    " ": 278, "a": 556, "b": 556, "c": 500, "d": 556, "e": 556, "f": 278, "g": 556, "h": 556,
-    "i": 222, "j": 222, "k": 500, "l": 222, "m": 833, "n": 556, "o": 556, "p": 556, "q": 556,
-    "r": 333, "s": 500, "t": 278, "u": 556, "v": 500, "w": 722, "x": 500, "y": 500, "z": 500,
-}
+# The fallback faces are Arial in its four styles, whose advance widths match Helvetica's
+# (Adobe's AFM files in tools/std14-gen/data/afm/): size-adjust scales each to Lamina Sans' average
+# width in English text at the same weight and style, and the overrides give it Lamina Sans' own
+# vertical metrics, so swapping fonts moves no line. Weights 500 and 600 use the nearer face.
+FALLBACKS = [  # (style, weight, Lamina Sans source, AFM, local() names)
+    ("normal", 400, "package/VF/SourceSans3VF-Upright.ttf", "Helvetica",
+     ["Arial", "ArialMT", "Liberation Sans", "Arimo"]),
+    ("normal", 700, "package/VF/SourceSans3VF-Upright.ttf", "Helvetica-Bold",
+     ["Arial Bold", "Arial-BoldMT", "Liberation Sans Bold", "Arimo Bold"]),
+    ("italic", 400, "package/VF/SourceSans3VF-Italic.ttf", "Helvetica-Oblique",
+     ["Arial Italic", "Arial-ItalicMT", "Liberation Sans Italic", "Arimo Italic"]),
+    ("italic", 700, "package/VF/SourceSans3VF-Italic.ttf", "Helvetica-BoldOblique",
+     ["Arial Bold Italic", "Arial-BoldItalicMT", "Liberation Sans Bold Italic", "Arimo Bold Italic"]),
+]
 # Relative frequencies of the characters of English text (space included), per 1000.
 FREQUENCY = {
     " ": 182, "a": 65, "b": 12, "c": 22, "d": 34, "e": 102, "f": 18, "g": 16, "h": 49, "i": 57,
@@ -108,7 +116,13 @@ def read_sources(download: Path, lock: dict) -> dict:
             sys.exit(f"missing {tarball}: npm pack {source['package']}@{source['version']}")
         with tarfile.open(tarball) as tar:
             for member, expected in source["files"].items():
-                data = tar.extractfile(member).read()
+                try:
+                    entry = tar.extractfile(member)
+                except KeyError:
+                    entry = None
+                if entry is None:
+                    sys.exit(f"{source['tarball']}: no file {member}, which fonts.lock.json lists")
+                data = entry.read()
                 if sha256(data) != expected:
                     sys.exit(f"{source['tarball']}:{member}: SHA-256 differs from fonts.lock.json")
                 files[(source["id"], member)] = data
@@ -182,11 +196,27 @@ def coverage(font: TTFont) -> str:
     return ",".join(ranges)
 
 
-def fallback_metrics(font: TTFont) -> dict:
-    """size-adjust and overrides that make Arial take Lamina Sans' space (the fallback face)."""
+def afm_widths(name: str) -> dict:
+    """The advance widths, per 1000 em, of the characters FREQUENCY weighs, from an AFM file."""
+    widths = {}
+    for line in (AFM / f"{name}.afm").read_text(encoding="latin-1").splitlines():
+        if not line.startswith("C "):
+            continue
+        fields = dict(part.strip().split(" ", 1) for part in line.split(";") if " " in part.strip())
+        code = int(fields["C"])  # -1 for glyphs outside the standard encoding
+        if code >= 0 and chr(code) in FREQUENCY:
+            widths[chr(code)] = int(fields["WX"])
+    if set(widths) != set(FREQUENCY):
+        sys.exit(f"{name}.afm lacks widths for {sorted(set(FREQUENCY) - set(widths))}")
+    return widths
+
+
+def fallback_metrics(source: bytes, weight: int, afm: str) -> dict:
+    """size-adjust and overrides that make an Arial face take Lamina Sans' space at `weight`."""
+    font = instancer.instantiateVariableFont(TTFont(io.BytesIO(source)), {"wght": weight})
     cmap, hmtx, upm = font.getBestCmap(), font["hmtx"], font["head"].unitsPerEm
     ours = sum(FREQUENCY[c] * hmtx[cmap[ord(c)]][0] / upm for c in FREQUENCY)
-    arial = sum(FREQUENCY[c] * HELVETICA_WIDTHS[c] / 1000 for c in FREQUENCY)
+    arial = sum(FREQUENCY[c] * w / 1000 for c, w in afm_widths(afm).items())
     size = ours / arial
     hhea = font["hhea"]
     return {
@@ -197,7 +227,7 @@ def fallback_metrics(font: TTFont) -> dict:
     }
 
 
-def css(outputs: list, fallback: dict) -> str:
+def css(outputs: list, fallbacks: list) -> str:
     lines = [
         "/* @generated by tools/fonts/subset.py from fonts.lock.json: do not edit. */",
         f"/* {RENAME_NOTE} */",
@@ -216,18 +246,23 @@ def css(outputs: list, fallback: dict) -> str:
             "}",
             "",
         ]
-    lines += [
-        "/* Arial (or a metric twin), sized to take Lamina Sans' space while the font loads. */",
-        "@font-face {",
-        '  font-family: "Lamina Sans Fallback";',
-        '  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("Arimo");',
-        f"  size-adjust: {fallback['sizeAdjust']:g}%;",
-        f"  ascent-override: {fallback['ascentOverride']:g}%;",
-        f"  descent-override: {fallback['descentOverride']:g}%;",
-        f"  line-gap-override: {fallback['lineGapOverride']:g}%;",
-        "}",
-    ]
-    return "\n".join(lines) + "\n"
+    lines.append("/* Arial (or a metric twin), sized to take Lamina Sans' space while the font loads. */")
+    for fallback in fallbacks:
+        names = ", ".join(f'local("{name}")' for name in fallback["local"])
+        lines += [
+            "@font-face {",
+            '  font-family: "Lamina Sans Fallback";',
+            f"  font-style: {fallback['style']};",
+            f"  font-weight: {fallback['weight']};",
+            f"  src: {names};",
+            f"  size-adjust: {fallback['sizeAdjust']:g}%;",
+            f"  ascent-override: {fallback['ascentOverride']:g}%;",
+            f"  descent-override: {fallback['descentOverride']:g}%;",
+            f"  line-gap-override: {fallback['lineGapOverride']:g}%;",
+            "}",
+            "",
+        ]
+    return "\n".join(lines[:-1]) + "\n"
 
 
 def main() -> None:
@@ -238,14 +273,12 @@ def main() -> None:
 
     lock = json.loads(LOCK.read_text())
     sources = read_sources(args.download, lock)
-    written, outputs, fallback = {}, [], None
+    written, outputs = {}, []
     for family, style, weight, source, member, limits, ranges, renamed in FACES:
         slug = "lamina-sans" if renamed else family.lower()
         for name in ranges:
             data = sources[(source, member.format(range=name))]
             font = subset_face(data, limits, RANGES[name], renamed, style)
-            if renamed and style == "normal" and name == "latin":
-                fallback = fallback_metrics(font)
             buffer = io.BytesIO()
             font.save(buffer)
             axis = "wght-" if limits and isinstance(limits.get("wght"), tuple) else ""
@@ -266,9 +299,15 @@ def main() -> None:
         }
         for out in outputs
     }
-    lock["fallback"] = {"family": "Lamina Sans Fallback", "for": "Lamina Sans", **fallback}
+    fallbacks = [
+        {"style": style, "weight": weight, "local": names,
+         **fallback_metrics(sources[("source-sans-3", member)], weight, afm)}
+        for style, weight, member, afm, names in FALLBACKS
+    ]
+    lock.pop("fallback", None)
+    lock["fallbacks"] = fallbacks
     new_lock = json.dumps(lock, indent=2, ensure_ascii=False) + "\n"
-    new_css = css(outputs, fallback)
+    new_css = css(outputs, fallbacks)
 
     def current(path: Path, data: bytes) -> bool:
         return path.is_file() and path.read_bytes() == data

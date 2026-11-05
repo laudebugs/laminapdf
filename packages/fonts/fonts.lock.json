@@ -124,12 +124,62 @@
       "coverage": "U+0000,U+000D,U+0020-007E,U+00A0-00FF,U+0131,U+0152-0153,U+02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026,U+2032-2033,U+2039-203A,U+2044,U+20AC,U+2122,U+2212,U+2215"
     }
   },
-  "fallback": {
-    "family": "Lamina Sans Fallback",
-    "for": "Lamina Sans",
-    "sizeAdjust": 94.23,
-    "ascentOverride": 106.12,
-    "descentOverride": 34.6,
-    "lineGapOverride": 0.0
-  }
+  "fallbacks": [
+    {
+      "style": "normal",
+      "weight": 400,
+      "local": [
+        "Arial",
+        "ArialMT",
+        "Liberation Sans",
+        "Arimo"
+      ],
+      "sizeAdjust": 94.23,
+      "ascentOverride": 106.12,
+      "descentOverride": 34.6,
+      "lineGapOverride": 0.0
+    },
+    {
+      "style": "normal",
+      "weight": 700,
+      "local": [
+        "Arial Bold",
+        "Arial-BoldMT",
+        "Liberation Sans Bold",
+        "Arimo Bold"
+      ],
+      "sizeAdjust": 92.14,
+      "ascentOverride": 108.53,
+      "descentOverride": 35.38,
+      "lineGapOverride": 0.0
+    },
+    {
+      "style": "italic",
+      "weight": 400,
+      "local": [
+        "Arial Italic",
+        "Arial-ItalicMT",
+        "Liberation Sans Italic",
+        "Arimo Italic"
+      ],
+      "sizeAdjust": 91.98,
+      "ascentOverride": 108.72,
+      "descentOverride": 35.44,
+      "lineGapOverride": 0.0
+    },
+    {
+      "style": "italic",
+      "weight": 700,
+      "local": [
+        "Arial Bold Italic",
+        "Arial-BoldItalicMT",
+        "Liberation Sans Bold Italic",
+        "Arimo Bold Italic"
+      ],
+      "sizeAdjust": 89.45,
+      "ascentOverride": 111.8,
+      "descentOverride": 36.45,
+      "lineGapOverride": 0.0
+    }
+  ]
 }

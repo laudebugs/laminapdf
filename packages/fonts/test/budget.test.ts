@@ -12,8 +12,7 @@ describe("size budgets", () => {
   it("keeps the preloaded file under 30 KB", () => {
     const { outputs } = lock();
     for (const preload of FONT_PRELOADS) {
-      const file = `files/${preload.href.split("/").pop()}`;
-      expect(outputs[file]?.bytes ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(PRELOAD_BUDGET);
+      expect(outputs[preload.file]?.bytes ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(PRELOAD_BUDGET);
     }
   });
 
@@ -24,8 +23,8 @@ describe("size budgets", () => {
   });
 
   it("preloads Lamina Sans' Latin file and nothing else", () => {
-    expect(FONT_PRELOADS.map((p) => [p.href.split("/").pop(), p.type])).toEqual([
-      ["lamina-sans-latin-wght-normal.woff2", "font/woff2"],
+    expect(FONT_PRELOADS.map((p) => [p.file, p.href.endsWith(`/${p.file}`), p.type])).toEqual([
+      ["files/lamina-sans-latin-wght-normal.woff2", true, "font/woff2"],
     ]);
   });
 });

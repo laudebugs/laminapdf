@@ -62,7 +62,7 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 
 ## Tasks
 
-- [ ] Bundle the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../ongoing/U6b-self-hosted-fonts.md)) in the desktop frontend (import `fonts.css`, preload Source Sans 3 Latin 400); nothing is fetched at runtime.
+- [ ] Bundle the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../ongoing/U6b-self-hosted-fonts.md)) in the desktop frontend (import `fonts.css`, preload `FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); nothing is fetched at runtime.
 - [ ] Fresh worktree `feat-d2a-desktop-scaffold`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
 - [ ] Write `docs/decisions/0008-desktop-shell.md` using the ADR template in `docs/decisions/README.md`; cite D1a/D1b numbers and research sources; add it to the decisions index and the architecture §3 table.
 - [ ] `apps/desktop/package.json`: deps `@laminapdf/ui`, `@laminapdf/viewer` (workspace), `@tauri-apps/api@^2` (pinned via pnpm `catalog:`), devDeps `@tauri-apps/cli@^2`, `vite`, `@vitejs/plugin-react`; scripts `dev` (`vite`), `build` (`vite build`), `tauri` (`tauri`), `typecheck`, `test` (Vitest). Add `@tauri-apps/*` to the Dependabot group (ADR 0019).

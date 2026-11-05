@@ -47,7 +47,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 
 ## Tasks
 
-- [ ] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../ongoing/U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link for Source Sans 3 Latin 400; no font CDN (the network indicator must stay at 0).
+- [ ] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../ongoing/U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link (`FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); no font CDN (the network indicator must stay at 0).
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Scaffold `apps/web` (`"name": "@laminapdf/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@laminapdf/ui`, `@laminapdf/viewer`, `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` via `workspace:*`.
 - [ ] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.

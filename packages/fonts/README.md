@@ -14,7 +14,7 @@ Load the style sheet once, before your own styles. A bundler such as Vite or Ast
 
 Then set `font-family` from the design tokens (`var(--paper-font-sans)`, `var(--paper-font-serif)`, `var(--paper-font-signature)`). A face downloads only when text on the page uses it.
 
-To show the first paint in the right font, preload the one file that paint needs:
+To show the first paint in the right font, preload the one file that paint needs. In code that runs in the browser:
 
 ```ts
 import { FONT_PRELOADS } from "@laminapdf/fonts";
@@ -25,6 +25,8 @@ for (const { href, type } of FONT_PRELOADS) {
   document.head.append(link);
 }
 ```
+
+A page rendered on a server, such as an Astro page, has no browser build to resolve `href`. It imports each `file` through its bundler instead, for example `import href from "@laminapdf/fonts/files/lamina-sans-latin-wght-normal.woff2?url"`.
 
 ## The faces
 
@@ -42,7 +44,7 @@ Greek, Cyrillic, CJK, Arabic, Hebrew, Indic and every other script fall back to 
 
 **Lamina Sans is Source Sans 3**, Adobe's typeface, under another name. Its licence reserves the name "Source" for the font as Adobe ships it, and these files are subsets, which the licence counts as modified copies, so they can't keep that name. The design is unchanged; Adobe's copyright notice stays in every file.
 
-**The fallback face** is Arial (or Liberation Sans or Arimo, which share its widths), scaled to 94.23% so that its text takes the space Lamina Sans' text will take. The stack names it right after Lamina Sans, so the swap when the font arrives moves no line.
+**The fallback faces** are Arial in its regular, bold, italic and bold italic styles (or Liberation Sans or Arimo, which share its widths). Each is scaled so that its text takes the space Lamina Sans' text will take at the same weight and style: 94.23% for regular text. The stack names them right after Lamina Sans, so the swap when the font arrives moves no line. Weights 500 and 600 use the nearer of the two.
 
 **Newsreader's optical size** is fixed at its default, 18. The variable optical-size axis would more than double its Latin file (90 KB instead of 37 KB), and the interface's titles, from 15 to 40 px, read well at one size.
 

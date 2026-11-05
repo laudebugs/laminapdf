@@ -12,13 +12,17 @@ const HOSTS = [
   ["fonts", "gstatic", "com"],
   ["use", "typekit", "net"],
 ].map((parts) => parts.join("."));
-const REMOTE_IMPORT = /@import\s+url\(\s*["']?https?:/;
+// A style sheet imported from a remote URL (with or without url()), or an @font-face whose src is one.
+const REMOTE_IMPORT = /@import\s+(?:url\(\s*)?["']?https?:/;
+const REMOTE_SRC = /\bsrc:[^;}]*url\(\s*["']?https?:/;
 const SCANNED = /\.(astro|cjs|css|html|js|json|jsx|mdx|mjs|scss|ts|tsx)$/;
 
 /** Every font CDN reference in `text`. */
 function cdnReferences(text: string): string[] {
   const hits = HOSTS.filter((host) => text.includes(host));
-  return REMOTE_IMPORT.test(text) ? [...hits, "@import url(http…)"] : hits;
+  if (REMOTE_IMPORT.test(text)) hits.push("@import url(http…)");
+  if (REMOTE_SRC.test(text)) hits.push("src: url(http…)");
+  return hits;
 }
 
 describe("font CDN guard", () => {
@@ -41,5 +45,8 @@ describe("font CDN guard", () => {
     expect(cdnReferences(page)).toEqual([HOSTS[0]]);
     const remote = `@import url("${"https"}://example.com/font.css");`;
     expect(cdnReferences(remote)).toEqual(["@import url(http…)"]);
+    expect(cdnReferences(`@import "${"https"}://example.com/font.css";`)).toEqual(["@import url(http…)"]);
+    const face = `@font-face { font-family: X; src: url("${"https"}://example.com/x.woff2") format("woff2"); }`;
+    expect(cdnReferences(face)).toEqual(["src: url(http…)"]);
   });
 });

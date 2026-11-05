@@ -94,9 +94,44 @@
 /* Arial (or a metric twin), sized to take Lamina Sans' space while the font loads. */
 @font-face {
   font-family: "Lamina Sans Fallback";
+  font-style: normal;
+  font-weight: 400;
   src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("Arimo");
   size-adjust: 94.23%;
   ascent-override: 106.12%;
   descent-override: 34.6%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Lamina Sans Fallback";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("Arimo Bold");
+  size-adjust: 92.14%;
+  ascent-override: 108.53%;
+  descent-override: 35.38%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Lamina Sans Fallback";
+  font-style: italic;
+  font-weight: 400;
+  src: local("Arial Italic"), local("Arial-ItalicMT"), local("Liberation Sans Italic"), local("Arimo Italic");
+  size-adjust: 91.98%;
+  ascent-override: 108.72%;
+  descent-override: 35.44%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Lamina Sans Fallback";
+  font-style: italic;
+  font-weight: 700;
+  src: local("Arial Bold Italic"), local("Arial-BoldItalicMT"), local("Liberation Sans Bold Italic"), local("Arimo Bold Italic");
+  size-adjust: 89.45%;
+  ascent-override: 111.8%;
+  descent-override: 36.45%;
   line-gap-override: 0%;
 }

@@ -24,7 +24,15 @@ export interface Lock {
     readonly files: Record<string, string>;
   }[];
   readonly outputs: Record<string, Output>;
-  readonly fallback: Record<string, string | number>;
+  readonly fallbacks: readonly {
+    readonly style: string;
+    readonly weight: number;
+    readonly local: readonly string[];
+    readonly sizeAdjust: number;
+    readonly ascentOverride: number;
+    readonly descentOverride: number;
+    readonly lineGapOverride: number;
+  }[];
 }
 
 /** A path inside packages/fonts. */
@@ -32,9 +40,12 @@ export function packagePath(path: string): URL {
   return fromRoot(`packages/fonts/${path}`);
 }
 
-/** fonts.lock.json, parsed. */
+let parsed: Lock | undefined;
+
+/** fonts.lock.json, parsed once. */
 export function lock(): Lock {
-  return JSON.parse(readFileSync(packagePath("fonts.lock.json"), "utf8"));
+  parsed ??= JSON.parse(readFileSync(packagePath("fonts.lock.json"), "utf8")) as Lock;
+  return parsed;
 }
 
 /** One `@font-face` rule of fonts.css, its descriptors by name. */

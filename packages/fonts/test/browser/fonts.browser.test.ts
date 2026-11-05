@@ -49,15 +49,18 @@ describe("fonts.css", () => {
 
   it("draws Greek, Cyrillic and CJK text in the system's fonts", async () => {
     const samples = ["Ελληνικά", "Кириллица", "漢字かな"];
+    const before = fontRequests().length;
     const paragraphs = samples.map((text) =>
       show(text, '400 16px "Lamina Sans", "Lamina Sans Fallback", system-ui, sans-serif'),
     );
+    await Promise.all(samples.map((text) => document.fonts.load('400 16px "Lamina Sans"', text)));
     await document.fonts.ready;
     for (const paragraph of paragraphs) {
       const range = document.createRange();
       range.selectNodeContents(paragraph);
       expect(range.getBoundingClientRect().width).toBeGreaterThan(0);
     }
-    expect(fontRequests().every((url) => new URL(url).origin === location.origin)).toBe(true);
+    // No face's unicode-range covers these scripts, so the browser fetches nothing for them.
+    expect(fontRequests().slice(before)).toEqual([]);
   });
 });
