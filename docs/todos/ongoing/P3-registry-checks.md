@@ -12,7 +12,7 @@
 | Branch | `build/p3-registry-checks` |
 | PR title | `build: check registry installs and semver against the published version` |
 | Size | M (≈ 300–500 lines: xtask, CI jobs, docs pages) |
-| PR | — |
+| PR | [#258](https://github.com/laudebugs/laminapdf/pull/258) |
 
 ## Goal
 
