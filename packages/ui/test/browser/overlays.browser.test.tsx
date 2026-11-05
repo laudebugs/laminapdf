@@ -342,15 +342,16 @@ describe("ToastRegion", () => {
   it("removes a toast after its timeout, unless the region is hovered", async () => {
     const queue = new ToastQueue();
     const host = renderIn(<ToastRegion queue={queue} aria-label="Notifications" />);
-    queue.add({ message: "Copied", timeout: 150 });
+    // Long enough that the hover lands first on a busy runner, where Firefox can take over 150 ms
+    // to deliver it; the waits are twice the timeout, so each check is past it either way.
+    queue.add({ message: "Copied", timeout: 1000 });
     await frame();
     const toast = host.querySelector(".paper-toast") as HTMLElement;
     await userEvent.hover(toast);
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 2000));
     expect(host.querySelector(".paper-toast")).not.toBeNull();
     await userEvent.unhover(toast);
-    await new Promise((r) => setTimeout(r, 300));
-    expect(host.querySelector(".paper-toast")).toBeNull();
+    await expect.poll(() => host.querySelector(".paper-toast"), { timeout: 4000 }).toBeNull();
   });
 
   it("runs the action from the keyboard and dismisses the toast; a handle dismisses too", async () => {

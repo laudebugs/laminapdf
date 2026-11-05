@@ -153,6 +153,11 @@
   --paper-toast-region-offset: 24px;
   --paper-sheet-detent-large: var(--paper-phone-top-bar-height);
   --paper-sheet-detent-medium: 0.48;
+  --paper-palette-offset: 96px;
+  --paper-palette-width: 600px;
+  --paper-palette-input-height: 44px;
+  --paper-palette-row-height: 40px;
+  --paper-toolbar-divider-height: 18px;
   --paper-annotation-yellow: #F2D675;
   --paper-annotation-green: #B7D9A8;
   --paper-annotation-blue: #A9C8E8;
