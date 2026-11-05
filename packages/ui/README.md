@@ -120,7 +120,7 @@ Every message the reader shows comes from one catalogue. `message(id, values)` f
 <PasswordDialog reader={controller} />
 ```
 
-`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply, and once a document is open the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets.
+`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets.
 
 The viewer comes in as any object with its store and three calls (`goToPage`, `setZoom`, `rotate`), so `@laminapdf/viewer`'s viewer fits without this package importing it. `PasswordDialog` asks for a password whenever the controller needs one and passes each try to it.
 
