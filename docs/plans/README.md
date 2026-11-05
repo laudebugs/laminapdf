@@ -13,4 +13,5 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Shareable libraries](shareable-libraries.md): contracts, worker client, AI extraction, CLI and MCP, agent docs, mobile (Rounds L1–L6) | Draft |
 | [UI/UX](ui-ux.md): interaction model for web, desktop and mobile; command palette, selection, mobile layout, reader mode, trust surfaces (Round U) | Draft |
 | [Paper design](paper-design.md): the chosen visual design, every screen designed and documented, Round U6 design system | Draft |
+| [Website](website.md): the website at `laminapdf.com` and the reader at `app.laminapdf.com` (Round W) | Draft |
 | [Quality](quality.md): docs that tell a story in plain English, examples readers can copy, maintainable code with checks that keep it so (Round Q) | Draft |
