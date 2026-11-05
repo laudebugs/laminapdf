@@ -7,7 +7,7 @@ import "@laminapdf/fonts/fonts.css";
 import "../../src/header.css";
 import axe from "axe-core";
 import { afterEach, describe, expect, inject, it } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { page, server, userEvent } from "vitest/browser";
 
 const HEADERS = inject("headers");
 
@@ -35,6 +35,15 @@ function resolvedColor(color: string): string {
   return resolved;
 }
 
+/**
+ * Moves the focus on, as a keyboard user does. WebKit on macOS skips links on Tab unless the
+ * system's keyboard navigation setting is on, as Safari does; Option+Tab reaches them there.
+ */
+async function tabForward(): Promise<void> {
+  if (server.browser === "webkit") await userEvent.keyboard("{Alt>}{Tab}{/Alt}");
+  else await userEvent.tab();
+}
+
 afterEach(async () => {
   document.body.innerHTML = "";
   await page.viewport(1280, 800);
@@ -46,7 +55,7 @@ for (const theme of ["light", "dark"] as const) {
       mount(HEADERS.docs, theme);
       const order: string[] = [];
       for (let i = 0; i < 5; i += 1) {
-        await userEvent.tab();
+        await tabForward();
         order.push(document.activeElement?.textContent?.trim() ?? "");
       }
       expect(order).toEqual(["Lamina PDF", "Download", "Docs", "Privacy", "Search"]);

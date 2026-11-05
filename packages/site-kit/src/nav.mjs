@@ -11,8 +11,9 @@ export const DOCS = "https://docs.laminapdf.com";
 export const APP_URL = "https://app.laminapdf.com/";
 
 /**
- * Whether the reader is live, which shows "Open the web app" on both sites (website plan §4). C7c
- * turns it on in the PR that deploys the reader to production.
+ * Whether the reader is live, which shows "Open the web app" on both sites (website plan §4). It
+ * turns on in the pull request that deploys the reader to production, so the link never points at
+ * a reader that isn't there.
  *
  * @type {boolean}
  */
