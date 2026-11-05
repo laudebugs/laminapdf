@@ -12,7 +12,7 @@
 | Branch | `test/c3c-viewer-perf-harness` |
 | PR title | `test(viewer): add a playwright performance harness for scrolling, memory and first page` |
 | Size | M (200–600 lines) |
-| PR | — |
+| PR | [#254](https://github.com/laudebugs/laminapdf/pull/254) |
 
 ## Goal
 
@@ -80,7 +80,7 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 ## Definition of done
 
 - [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
