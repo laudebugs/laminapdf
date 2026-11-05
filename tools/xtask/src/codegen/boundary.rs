@@ -6,7 +6,9 @@
 //!   `src/build_dto.rs`) and of the standard structure types (`TagKind::as_str` in
 //!   laminapdf-build), each a list and its union type;
 //! - `packages/render-hayro/src/generated/version.ts`: `HAYRO_VERSION`, the workspace's hayro pin,
-//!   which laminapdf-render's `HayroBackend::version` must also return (checked here).
+//!   which laminapdf-render's `HayroBackend::version` must also return (checked here);
+//! - `packages/sdk/src/generated/extract.ts`: the `laminapdf.extract/1` JSON's types, from its
+//!   committed schema ([`super::schema_ts`]).
 //!
 //! It reads source text, not a build, so `cargo xtask check docs` runs `--check`. The parser
 //! accepts only the literal shapes those files use and fails, naming the item, on anything else.
@@ -25,7 +27,10 @@ const TAG_KIND: &str = "crates/laminapdf-build/src/tag/mod.rs";
 const CARGO_TOML: &str = "Cargo.toml";
 const RUST_HAYRO: &str = "crates/laminapdf-render/src/hayro.rs";
 
+const EXTRACT_SCHEMA: &str = "crates/laminapdf-extract/schemas/extract.schema.json";
+
 const SDK_ENUMS: &str = "packages/sdk/src/generated/builder-enums.ts";
+const SDK_EXTRACT: &str = "packages/sdk/src/generated/extract.ts";
 const HAYRO_VERSION: &str = "packages/render-hayro/src/generated/version.ts";
 
 /// One list: the Rust table it comes from (the TS list has the same name), its TS union type
@@ -78,6 +83,7 @@ pub(crate) fn generate(ws: &Workspace, check: bool) -> Result<()> {
     let outputs = [
         (SDK_ENUMS.to_owned(), render_sdk(&read(DTO)?, &read(TAG_KIND)?)?),
         (HAYRO_VERSION.to_owned(), render_hayro(&version)),
+        (SDK_EXTRACT.to_owned(), render_extract(&read(EXTRACT_SCHEMA)?)?),
     ];
     super::write_outputs(ws, &outputs, check, "gen boundary", "the Rust source and Cargo.toml")
 }
@@ -177,6 +183,13 @@ fn render_sdk(dto: &str, tag_kind: &str) -> Result<String> {
 }
 
 /// The workspace's hayro pin, `hayro = { version = "=x.y.z" }`, as `x.y.z`.
+/// The extraction JSON's types from its schema.
+fn render_extract(schema: &str) -> Result<String> {
+    let schema: serde_json::Value =
+        serde_json::from_str(schema).with_context(|| format!("parsing {EXTRACT_SCHEMA}"))?;
+    super::schema_ts::render(&schema, "Extraction", HEADER, EXTRACT_SCHEMA)
+}
+
 fn hayro_pin(cargo_toml: &str) -> Result<String> {
     let manifest: toml::Value = toml::from_str(cargo_toml).context("Cargo.toml is not TOML")?;
     let pin = manifest

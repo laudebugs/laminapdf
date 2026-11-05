@@ -20,6 +20,28 @@ export { Builder, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./bu
 export { Document, PageRef, SaveJob } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaPdfWarning, Location } from "./errors.js";
 export { isLaminaPdfError, LaminaPdfError } from "./errors.js";
+export type {
+  Cell,
+  Chunk,
+  ChunkOptions,
+  Coordinates,
+  Dropped,
+  DropReason,
+  ExtractedBlock,
+  ExtractedPage,
+  ExtractedSource,
+  ExtractFormat,
+  ExtractOptions,
+  ExtractResult,
+  Extraction,
+  ReadingOrder,
+  Region,
+  Span,
+  SplitOn,
+  TableDetector,
+  TableMode,
+  TextRange,
+} from "./extract.js";
 export type { FontInfo, Standard14 } from "./font.js";
 export { Font, Image } from "./font.js";
 export type { ErrorCode, LimitName, WarningCode } from "./generated/codes.js";

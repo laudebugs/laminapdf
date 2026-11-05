@@ -5,6 +5,7 @@
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
 import type { PageTextJs } from "@laminapdf/wasm/extract";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
+import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { type BaseGlue, extractsText, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
@@ -353,6 +354,38 @@ export class Document extends Handle<BaseGlue> {
       this,
       this.instance,
     );
+  }
+
+  /**
+   * The document's text for retrieval and LLMs: Markdown or plain text in reading order, the
+   * `laminapdf.extract/1` JSON with a box for every block, or chunks sized for retrieval. Tables
+   * drawn with lines come out as tables, and text a reader can't see is left out. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * await init({ extract: true });
+   * const doc = Document.open(bytes);
+   * const markdown = doc.extract({ format: "markdown" });
+   * const chunks = doc.extract({ format: "chunks", chunk: { maxTokens: 400 } });
+   * ```
+   * @returns a string for `"markdown"` and `"text"`, an {@link Extraction} for `"json"`,
+   *   {@link Chunk}s for `"chunks"`.
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; `page-index-out-of-range`; `unknown-option` (with `didYouMean`) / `invalid-argument`
+   *   for bad options; reading errors (`data-pending` for a range document: use `ensure`).
+   */
+  extract<F extends ExtractFormat>(options: ExtractOptions<F>): ExtractResult[F] {
+    this.assertLive();
+    const doc = this.#doc as WasmDocument & { extract?: (options: ExtractOptions) => string };
+    if (typeof doc.extract !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        "doc.extract() needs a document opened while the extract or text module was loaded",
+      );
+    }
+    const extract = doc.extract.bind(doc);
+    return parseExtract(options.format, this.call(() => extract(options)));
   }
 
   /** The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors. */

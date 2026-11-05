@@ -35,6 +35,7 @@ use crate::workspace::Workspace;
 
 pub(crate) mod boundary;
 mod render;
+mod schema_ts;
 
 use laminapdf_test_fixtures::code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS, is_warning_group};
 
