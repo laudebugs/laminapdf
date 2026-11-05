@@ -12,7 +12,7 @@
 | Branch | `feat/w1e-progress-snapshot` |
 | PR title | `feat(xtask): cargo xtask progress, the snapshot behind the website's roadmap` |
 | Size | M (200–400 lines of Rust and tests, plus the first snapshot) |
-| PR | — |
+| PR | [#248](https://github.com/laudebugs/laminapdf/pull/248) |
 
 ## Goal
 
@@ -81,8 +81,8 @@ Unit tests over fixture todo files and a fixture milestone table; merge-subject 
 
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the guideline and `CLAUDE.md` text
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
