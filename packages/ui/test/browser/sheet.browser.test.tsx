@@ -396,7 +396,7 @@ describe("Dialog on a phone", () => {
         expect(button.getBoundingClientRect().width).toBeCloseTo(footer.getBoundingClientRect().width - 32, 0);
         expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
       }
-      expect(focused().tagName).toBe("INPUT");
+      await expect.poll(() => focused().tagName).toBe("INPUT");
     } finally {
       // Back to the size the other tests run at, which is wider than a phone.
       await page.viewport(width, height);
