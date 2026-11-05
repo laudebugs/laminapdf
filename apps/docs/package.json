@@ -18,7 +18,7 @@
   "devDependencies": {
     "@astrojs/starlight": "0.42.7",
     "@laminapdf/tokens": "workspace:*",
-    "astro": "7.4.2",
+    "astro": "7.4.4",
     "starlight-links-validator": "0.27.0",
     "starlight-typedoc": "0.23.1",
     "typedoc": "0.28.20",

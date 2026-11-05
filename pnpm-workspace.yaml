@@ -17,11 +17,11 @@ allowBuilds:
 # Shared third-party versions; packages depend on them with "catalog:" (typescript.md).
 catalog:
   "@arethetypeswrong/cli": 0.18.5
-  "@biomejs/biome": 2.6.3
+  "@biomejs/biome": 2.6.4
   # Versioning (ADR 0017): the npm half of the lockstep version; `cargo xtask version sync` does
   # the crates. Dev-only, MIT (its @changesets/*, @manypkg/*, cac, semver, tinyexec: MIT/ISC).
   "@changesets/cli": 3.0.3
-  "@types/node": 26.6.5
+  "@types/node": 26.6.6
   "@vitest/browser-playwright": 5.0.5
   # JSON Schema 2020-12 validation of LaminaPdfError.toJSON() against laminapdf.error/1 (tests only).
   # MIT (fast-deep-equal, json-schema-traverse, require-from-string: MIT; fast-uri: BSD-3-Clause)
@@ -40,7 +40,7 @@ catalog:
   typescript: 7.0.2
   vite: 8.3.5
   vitest: 5.0.5
-  wrangler: 4.152.0
+  wrangler: 4.155.0
 
 # Named catalogs: versions one package needs apart from the default catalog's.
 catalogs:
