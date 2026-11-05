@@ -1,0 +1,12 @@
+# The extraction benchmark's scorer (tools/bench/olmocr_score.py), for `cargo xtask extract-bench`:
+# olmOCR-bench's own tests (Apache-2.0) and what they import. Playwright is imported by the test
+# module for the math tests, which the benchmark doesn't run, so no browser is installed.
+olmocr==0.4.25
+playwright==1.64.1
+RapidFuzz==3.14.6
+fuzzysearch==0.8.1
+beautifulsoup4==4.15.0
+soupsieve==4.0.1
+pypdf==6.21.4
+greenlet==3.5.6
+pyee==14.0.0

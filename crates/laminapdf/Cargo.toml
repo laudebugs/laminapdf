@@ -117,6 +117,13 @@ name = "text-facts"
 path = "examples/differential/text-facts.rs"
 required-features = ["extract"]
 
+# Not a golden example either: lamina's Markdown for the extraction benchmark (`cargo xtask
+# extract-bench`, todo L3f), which scores it with the benchmark's own tests.
+[[example]]
+name = "extract-bench"
+path = "examples/differential/extract-bench.rs"
+required-features = ["extract"]
+
 [[test]]
 name = "examples"
 required-features = ["text"]
