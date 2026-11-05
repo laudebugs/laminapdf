@@ -16,7 +16,7 @@
 
 ## Goal
 
-[L3d](../done/L3d-extract-structure-and-furniture.md) split its todo in two. It finds headings and list items from the layout, and moves running headers, footers, page numbers and artifacts to `dropped`. This todo adds the rest of ADR 0030 §2–§4: reading order from a plausible structure tree, the tagged headings, lists and tables that win over the layout rules, and the `clipped` and `low-contrast` flags.
+Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tree, tagged headings, lists and tables that win over the layout rules, and the `clipped` and `low-contrast` flags. [L3d](../done/L3d-extract-structure-and-furniture.md), which this todo was split from, finds headings and lists from the layout and drops running headers, footers, page numbers and artifacts.
 
 ## Context
 

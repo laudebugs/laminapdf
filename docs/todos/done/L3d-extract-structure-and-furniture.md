@@ -16,9 +16,9 @@
 
 ## Goal
 
-[L3a](../done/L3a-lamina-extract-reading-order.md) split its todo at the line its Risks section drew. `laminapdf-extract` now reads blocks in layout order and drops invisible, off-page and tiny text. This todo adds the layout rules of ADR 0030 §3–§4: headings and list items found from font sizes, bold and markers, and running headers, footers, page numbers and artifact-marked text moved to `dropped`.
+Add ADR 0030 §3–§4's layout rules to `laminapdf-extract`: headings and list items from font sizes, bold and markers, and running headers, footers, page numbers and artifact-marked text moved to `dropped`. [L3a](../done/L3a-lamina-extract-reading-order.md) already reads blocks in layout order and drops invisible, off-page and tiny text.
 
-> **Split (2026-11-05).** The structure tree needs work in three crates (`laminapdf-content`'s clip, `laminapdf-text`'s run fields, the tree walk), so the rest moved to [L3g](../ready/L3g-extract-structure-tree.md): reading order from the structure tree, tagged headings, lists and tables, and the `clipped` and `low-contrast` flags.
+> **Split (2026-11-05).** Structure-tree order and the clipped and low-contrast flags need work in three crates (the clip in `laminapdf-content`, run fields in `laminapdf-text`, the tree walk in `laminapdf-extract`), so the rest moved to [L3g](../ready/L3g-extract-structure-tree.md): reading order from the structure tree, tagged headings, lists and tables, and the `clipped` and `low-contrast` flags.
 
 ## Context
 
@@ -30,7 +30,7 @@
 **In scope**
 
 - **Headings** from font-metric clusters: the body size covers the most characters; short blocks set larger, and bold at the body size, rank into up to six levels.
-- **List items** from bullets and numbering with a hanging indent; depth from the indent. A line starting with a marker starts a block, and a lone marker joins the text a tab to its right.
+- **List items** from bullets and numbering with a hanging indent; depth from the indent. A line starting with a marker starts a block, and a lone marker joins the text up to four font sizes beside it.
 - **Running headers, footers and page numbers** (ADR 0030 §4) and `Artifact` marked content (`artifact`): `laminapdf-text`'s runs carry whether they are in an artifact; `DropOptions::furniture` (`drop: { furniture }` in TypeScript) turns removal off.
 - Tests on files built with `laminapdf-build`: headings and lists, and a five-page file with running headers, footers, page numbers and artifacts.
 
