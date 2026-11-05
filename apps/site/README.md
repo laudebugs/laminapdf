@@ -63,9 +63,15 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 `.github/workflows/site.yml` deploys it, following the docs site's workflow ([`apps/docs/README.md`](../docs/README.md#deploying)):
 
-- **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`. The inputs are `apps/site/**`, the packages it imports (`packages/site-kit/**`, `packages/tokens/**`, `packages/fonts/**`) and the files `src/data/sources.ts` reads: `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf/examples/hello.rs`, `crates/laminapdf-cli/README.md` and `apps/docs/src/content/docs/install.mdx`. The workflow's `paths` must list them all, or a change to one of them reaches the site only at its next deploy.
+- **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
 - **`production`** (pushes to `main`): builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`.
+
+The workflow's `paths` must list everything the site builds from, or a change to one of those files reaches the site only at its next deploy:
+
+- `apps/site/**`;
+- the packages it imports: `packages/site-kit/**`, `packages/tokens/**` and `packages/fonts/**`;
+- the files `src/data/sources.ts` reads: `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf/examples/hello.rs`, `crates/laminapdf-cli/README.md` and `apps/docs/src/content/docs/install.mdx`.
 
 Until the workflow is on `main`, the owner can upload a preview by hand: build the site, then run this from `apps/site` with the deploy token:
 

@@ -58,7 +58,7 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 - [x] Design the screen; add it to `screens.md` and the design docs.
 - [x] Draft the copy with `/writing`; mark the headline, the paragraph and each claim `[OWNER TO APPROVE]` until the owner approves them in the PR.
 - [x] Build the page from the snapshot, the metadata and the share image; the code panel and the install lines come from tested example files and the published package list, never typed by hand.
-- [ ] `/writing-review` on the copy.
+- [x] `/writing-review` on the copy.
 
 ## Acceptance criteria
 

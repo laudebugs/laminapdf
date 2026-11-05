@@ -8,7 +8,7 @@ export const META = {
   title: "Lamina PDF: create, read and edit PDFs from Rust and TypeScript",
   // [OWNER TO APPROVE]
   description:
-    "A PDF library with one Rust core, for Rust and TypeScript today, with a web reader and a desktop app next. See the roadmap and how far it has come.",
+    "A PDF library with one Rust core, for Rust and TypeScript today; a web reader and a desktop app come next. See the roadmap and how far the work has come.",
 } as const;
 
 /** The opening section. */
@@ -16,13 +16,13 @@ export const OPENING = {
   // [OWNER TO APPROVE]
   headline: "Create, read and edit PDFs with one Rust core, from Rust and TypeScript.",
   // [OWNER TO APPROVE]
-  lead: "Lamina PDF is a PDF library for Rust and TypeScript today, and a web reader and a desktop app next. This page shows the plan and how far it has come.",
+  lead: "Lamina PDF is a PDF library for Rust and TypeScript today, and a web reader and a desktop app next. This page shows the plan and how far the work has come.",
   docs: "Read the docs",
   packages: "Install a package",
   app: "Open the web app",
   // [OWNER TO APPROVE]
   caption:
-    "TypeScript and Rust make the same first PDF: one A4 page with a line of text. The command line shows the tool's own examples.",
+    "TypeScript and Rust make the same first PDF: one A4 page with a line of text. The Command line tab shows examples from the tool's README.",
 } as const;
 
 /** The milestones section; the summary sentence is built from the counts. */
