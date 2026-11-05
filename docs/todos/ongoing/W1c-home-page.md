@@ -12,7 +12,7 @@
 | Branch | `feat/w1c-home-page` |
 | PR title | `feat(site): the home page, with the roadmap and what's coming next` |
 | Size | M (design, copy and 300–500 lines of site) |
-| PR | — |
+| PR | [#250](https://github.com/laudebugs/laminapdf/pull/250) |
 
 ## Goal
 
@@ -55,9 +55,9 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 ## Tasks
 
 - [x] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Design the screen; add it to `screens.md` and the design docs.
-- [ ] Draft the copy with `/writing`; mark the headline, the paragraph and each claim `[OWNER TO APPROVE]` until the owner approves them in the PR.
-- [ ] Build the page from the snapshot, the metadata and the share image; the code panel and the install lines come from tested example files and the published package list, never typed by hand.
+- [x] Design the screen; add it to `screens.md` and the design docs.
+- [x] Draft the copy with `/writing`; mark the headline, the paragraph and each claim `[OWNER TO APPROVE]` until the owner approves them in the PR.
+- [x] Build the page from the snapshot, the metadata and the share image; the code panel and the install lines come from tested example files and the published package list, never typed by hand.
 - [ ] `/writing-review` on the copy.
 
 ## Acceptance criteria
@@ -83,8 +83,8 @@ The site's post-build checks (W1b); the fixture-snapshot test; a test that each 
 
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` and `/writing-review` followed (findings and fixes recorded in commit messages)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
