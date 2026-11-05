@@ -1,0 +1,19 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-05T05:04:54Z" },
+  "title": "Lamina PDF Paper — Website home (H12)",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "H12-home.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 3750, "title": "H12 Website home · B, a page on paper, with C's code panel (chosen 2026-11-05)", "expand": "fill", "is_interactive": true },
+    "H12-home-phone.dc.html": { "x": 1360, "y": 0, "w": 390, "h": 6200, "title": "H12 Website home · phone", "is_interactive": true },
+    "H12-sample-a.dc.html": { "x": 1830, "y": 0, "w": 1280, "h": 3000, "title": "Sample A · Roadmap first (not chosen)", "expand": "fill" },
+    "H12-sample-a-phone.dc.html": { "x": 3190, "y": 0, "w": 390, "h": 4300, "title": "Sample A on a phone (not chosen)" },
+    "H12-sample-c.dc.html": { "x": 3660, "y": 0, "w": 1280, "h": 2900, "title": "Sample C · Developer first (its code panel was kept)", "expand": "fill", "is_interactive": true }
+  },
+  "order": ["H12-home.dc.html", "H12-home-phone.dc.html", "H12-sample-a.dc.html", "H12-sample-a-phone.dc.html", "H12-sample-c.dc.html"],
+  "notes": {
+    "heading": { "x": 0, "y": -300, "text": "Website home (H12): the chosen design and the two samples it was chosen from", "kind": "title1", "maxW": 4940 }
+  },
+  "designSystems": []
+}

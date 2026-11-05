@@ -1,0 +1,16 @@
+---
+// A snapshot date (`YYYY-MM-DD`) as people read it, "5 November 2026", in a <time> element.
+interface Props {
+  date: string;
+}
+
+const { date } = Astro.props;
+const text = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+}).format(new Date(`${date}T00:00:00Z`));
+---
+
+<time datetime={date}>{text}</time>

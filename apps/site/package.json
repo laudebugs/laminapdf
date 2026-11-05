@@ -13,7 +13,8 @@
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "typecheck": "ASTRO_TELEMETRY_DISABLED=1 astro sync && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "share-image": "node scripts/share-image.mjs"
   },
   "devDependencies": {
     "@laminapdf/fonts": "workspace:*",
@@ -21,6 +22,7 @@
     "@laminapdf/tokens": "workspace:*",
     "@types/node": "catalog:",
     "astro": "7.4.2",
+    "playwright": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"

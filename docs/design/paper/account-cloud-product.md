@@ -2,7 +2,7 @@
 
 - **Status:** Draft (Paper direction, 2026-10-29)
 - **Canvas:** [lamina Paper — Account, cloud and product](https://claude.ai/artifact/Ronx2eZUMeMbgZGbx8CYhX)
-- **Inventory:** [screens.md, section H](screens.md#h-account-cloud-collaboration-and-product-pages-h-e18-u5) · **Look and components:** [design-language.md](design-language.md)
+- **Inventory:** [screens.md, section H](screens.md#h-account-cloud-collaboration-and-product-pages-h-e18-u5-w1) · **Look and components:** [design-language.md](design-language.md)
 - **Plans:** [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) and [optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features), [roadmap: decisions made](../../plans/roadmap.md#decisions-made), [UI/UX principle 10](../../plans/ui-ux.md#4-principles) and [§5.9](../../plans/ui-ux.md#59-product-promises-r18-r19)
 
 This area covers everything that involves our server or our prices: the optional account (H01, H02), cloud documents and sync (H03, H04), shared review (H05–H07), the product pages on the website (H08, H09), opt-in usage counts (H10) and the upgrade prompt (H11).
@@ -357,6 +357,34 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 **Artboards.** `H11-upgrade-prompt.dc.html`, `H11-tier-label.dc.html`.
 
 **Todos.** [U5a](../../todos/ready/U5a-pricing-and-promises-page.md).
+
+## H12 Website home
+
+**Purpose.** The website's home page (`laminapdf.com/`, `apps/site`), for now the roadmap ([website plan §4](../../plans/website.md#the-home-page-for-now-the-roadmap)): what Lamina PDF is, a first PDF in code, where the work stands and what comes next, and the packages that exist today. When the reader launches, the product leads the page and the roadmap moves to a page of its own.
+
+**Entry points.** The site header's wordmark on every page of the website and, after [W1d](../../todos/done/W1d-one-site-header.md), of the docs site; search results and shared links (the 1200 × 630 share image).
+
+**Layout.** The owner chose sample B, "a page on paper", with sample C's tabbed code panel (2026-11-05). The whole page is one document sheet (`surface`, the page shadow, radius 3, at most 920 px wide) resting on the reader's paper ground under the site header of design language [§7.39](design-language.md#739-site-and-product-pages-proposed). The header keeps §7.39's Lamina Sans wordmark rather than the sample's serif one, and shows a link only once its page exists. Newsreader sets the headings; Lamina Sans sets the text. Sections follow in this order, each after a hairline:
+
+1. **Opening.** An overline (the version and the snapshot's date), the headline (`display`, 34–48 px), one paragraph, "Read the docs" (primary) and "Install a package" (secondary; "Open the web app" joins them once the reader launches), and the code panel: tabs TypeScript, Rust and Command line over a `field` pane, with a caption. The TypeScript and Rust tabs show the same first PDF, read from the tested examples; the Command line tab shows the CLI README's commands that succeed.
+2. **The roadmap.** A sentence of counts, then M0 to M10 down a vertical timeline: a dot per milestone (filled `accent` when done, a `warning` ring under way, a `chip-border` ring not started), its name (`title`), its state label and what it ships.
+3. **Where the work stands.** The snapshot's date, the totals as one serif sentence, then two columns: one bar per area of the todo board (done `accent`, in progress `warning`, ready `chip-border`, on `gutter`) with the counts in text below, and the In progress and Next up lists; below them, the last ten merged pull requests by title.
+4. **The packages.** A sentence on the two packages with the install page's note on alpha releases, the two install lines, a table of every published package (from the docs site's install page) at the current version, then a sentence on the command-line tool, not released yet.
+5. **Where each part lives.** Links to the docs, the packages and the Rust crate; the reader and the desktop app link to their milestones, with each one's state.
+
+**Content and controls.** Every number and list comes from `apps/site/src/data/progress.json` ([W1e](../../todos/done/W1e-progress-snapshot.md)); the words are in `apps/site/src/data/copy.ts`, approved by the owner on 2026-11-05. Areas take plain names ("Core library", "Web reader") from `rounds.ts`. Todo titles show as the board writes them, with their code spans.
+
+**States.** One static page, rebuilt when the snapshot changes. An empty list (nothing in progress, nothing ready, nothing merged) shows a sentence instead.
+
+**Behaviour.** The code panel follows the WAI-ARIA tabs pattern with automatic activation: click or the arrow keys pick a tab, Home and End jump to the ends, and only the selected tab is in the tab order. Without its script, which is a file because the CSP allows no inline script, every pane shows under its own heading.
+
+**Accessibility.** One `h1`; each section labelled by its `h2`; the bars are hidden from assistive technology because their counts are in the text below them; the code panes and the package table scroll and take focus; the theme follows the system. axe finds no violations in light and dark at 375 and 1280 px.
+
+**Platform differences.** A web page only; at phone width the dashboard's two columns stack and the code panel and the package table scroll sideways.
+
+**Artboards.** `H12-home.dc.html`, `H12-home-phone.dc.html` (the chosen design), and the samples it was chosen from: `H12-sample-a.dc.html`, `H12-sample-a-phone.dc.html`, `H12-sample-c.dc.html`, in [`website-home/`](website-home/project/canvas.json).
+
+**Todos.** [W1c](../../todos/done/W1c-home-page.md).
 
 ## New components
 

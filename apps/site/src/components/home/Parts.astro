@@ -1,0 +1,33 @@
+---
+// Where each part lives: the docs, the packages and the Rust crate; the reader and the desktop
+// app point at their milestones, with each milestone's state from progress.json.
+import { DOCS } from "@laminapdf/site-kit/nav";
+import { PARTS, ROADMAP } from "../../data/copy.js";
+import type { Progress } from "../../data/progress.js";
+import { packages } from "../../data/sources.js";
+
+interface Props {
+  milestones: Progress["milestones"];
+}
+
+/** "milestone M2, under way", for the milestone `id`; fails the build when the roadmap lacks it. */
+function milestone(id: string): string {
+  const found = Astro.props.milestones.find((m) => m.id === id);
+  if (found === undefined) throw new Error(`the roadmap has no milestone ${id}`);
+  return `milestone ${id}, ${ROADMAP.states[found.state].toLowerCase()}`;
+}
+
+const crate = packages().find((item) => item.name === "laminapdf");
+if (crate === undefined) throw new Error("install.mdx: no `laminapdf` row in the package table");
+---
+
+<section id="parts" class="home-section" aria-labelledby="parts-title">
+  <h2 id="parts-title">{PARTS.heading}</h2>
+  <ul class="parts">
+    <li><a href={`${DOCS}/`}>{PARTS.docs}</a></li>
+    <li><a href="#packages">{PARTS.packages}</a></li>
+    <li><a href={crate.url}>{PARTS.crate}</a></li>
+    <li><a href="#m2">{PARTS.reader}: {milestone("M2")}</a></li>
+    <li><a href="#m3">{PARTS.desktop}: {milestone("M3")}</a></li>
+  </ul>
+</section>

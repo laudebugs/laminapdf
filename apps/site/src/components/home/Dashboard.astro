@@ -1,0 +1,76 @@
+---
+// The dashboard: the totals, progress by area as bars with their counts in text, what is in
+// progress, what comes next and what merged lately, all from progress.json.
+import { DASHBOARD } from "../../data/copy.js";
+import type { Progress } from "../../data/progress.js";
+import { roundName } from "../../data/rounds.js";
+import DateText from "./DateText.astro";
+import Inline from "./Inline.astro";
+import TodoList from "./TodoList.astro";
+
+interface Props {
+  progress: Progress;
+}
+
+const { progress } = Astro.props;
+const { totals, merged } = progress;
+---
+
+<section id="progress" class="home-section" aria-labelledby="progress-title">
+  <div class="section-head">
+    <h2 id="progress-title">{DASHBOARD.heading}</h2>
+    <p class="section-date">Snapshot of <DateText date={progress.date} /></p>
+  </div>
+  <p class="totals">
+    <strong>{totals.done} of {totals.todos}</strong> todos are done, across <strong>{merged.count}</strong> merged
+    pull requests. {DASHBOARD.explainer}
+  </p>
+  <div class="dashboard-grid">
+    <div class="rounds">
+      <h3>{DASHBOARD.rounds}</h3>
+      <ul class="round-list">
+        {
+          progress.rounds.map((round) => (
+            <li class="round">
+              <span class="round-name">{roundName(round.letter)}</span>
+              <svg
+                class="bar"
+                viewBox={`0 0 ${Math.max(round.todos, 1)} 1`}
+                preserveAspectRatio="none"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect class="bar-done" x="0" y="0" width={round.done} height="1" />
+                <rect class="bar-in-progress" x={round.done} y="0" width={round.inProgress} height="1" />
+                <rect class="bar-ready" x={round.done + round.inProgress} y="0" width={round.ready} height="1" />
+              </svg>
+              <span class="round-counts">
+                {round.done} done · {round.inProgress} in progress · {round.ready} ready
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    <div class="lists">
+      <TodoList heading={DASHBOARD.inProgress} todos={progress.inProgress.todos} empty={DASHBOARD.noneInProgress} />
+      <TodoList heading={DASHBOARD.nextUp} todos={progress.nextUp} empty={DASHBOARD.noneNext} />
+    </div>
+  </div>
+  <div class="todo-list">
+    <h3>{DASHBOARD.merged}</h3>
+    {
+      merged.recent.length === 0 ? (
+        <p class="empty">{DASHBOARD.noneMerged}</p>
+      ) : (
+        <ul class="merged">
+          {merged.recent.map((title) => (
+            <li>
+              <Inline text={title} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</section>
