@@ -40,8 +40,8 @@ Coordinates are in page space: points from the top-left of the displayed page, w
 | Module | gzip | What it can do |
 | --- | ---: | --- |
 | base (`init()`) | ≈ 373 KB | Open (passwords, limits, strict mode), read pages and Info, warnings, edit with ops (transactions, undo/redo), save (auto, incremental, full rewrite; save jobs); build vector and image pages with links, outline, page labels, metadata |
-| extract (`init({ extract: true })` or `loadExtract()`) | ≈ 526 KB | Everything in base, plus text extraction (`page.text()`, `doc.extract()`) |
-| text (`init({ text: true })` or `loadText()`) | ≈ 1,009 KB | Everything in base, plus fonts (`Font.fromBytes`, the standard 14), shaped text runs and text boxes, and text extraction |
+| extract (`init({ extract: true })` or `loadExtract()`) | ≈ 589 KB | Everything in base, plus text extraction (`page.text()`, `doc.extract()`) |
+| text (`init({ text: true })` or `loadText()`) | ≈ 1,075 KB | Everything in base, plus fonts (`Font.fromBytes`, the standard 14), shaped text runs and text boxes, and text extraction |
 
 A page that never draws text never downloads the text module. A `Builder` is built in the text module when it is loaded at the time the builder is created (or with `new Builder({ text: true })`); drawing text on a base-module builder throws `text-module-not-loaded`.
 
@@ -141,13 +141,15 @@ console.log(text.text());
 - `"json"`: an `Extraction`, the `laminapdf.extract/1` document: every block with its page and box in points from the top-left corner, the text left out and why, and the file's warnings. With `chunk`, it carries the chunks too.
 - `"chunks"`: `Chunk`s of whole blocks up to `chunk.maxTokens` (512 by default), each with its blocks, pages, boxes and place in the Markdown.
 
-The JSON is the same, byte for byte, as Rust's `extract_json`. `pages`, `readingOrder`, `tables` (`"lattice-and-stream"` also finds tables without lines), `drop` and `dehyphenate` tune the extraction; an unknown option throws `unknown-option` with the name you probably meant.
+The JSON holds what Rust's `extract_json` writes for the same options. `pages`, `readingOrder`, `tables` (`"lattice-and-stream"` also finds tables without lines), `drop` and `dehyphenate` tune the extraction; an unknown option throws `unknown-option` with the name you probably meant.
 
 ```ts
 await init({ extract: true });
 const doc = Document.open(bytes);
 const chunks = doc.extract({ format: "chunks", chunk: { maxTokens: 400 } });
 ```
+
+`doc.extract()` runs to the end in one call. Through `@laminapdf/sdk/worker` it keeps the main thread free, but an aborted `signal` only rejects the call: the worker finishes the extraction first.
 
 ## Remote and large files
 

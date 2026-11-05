@@ -182,7 +182,6 @@ fn render_sdk(dto: &str, tag_kind: &str) -> Result<String> {
     Ok(out.trim_end().to_owned() + "\n")
 }
 
-/// The workspace's hayro pin, `hayro = { version = "=x.y.z" }`, as `x.y.z`.
 /// The extraction JSON's types from its schema.
 fn render_extract(schema: &str) -> Result<String> {
     let schema: serde_json::Value =
@@ -190,6 +189,7 @@ fn render_extract(schema: &str) -> Result<String> {
     super::schema_ts::render(&schema, "Extraction", HEADER, EXTRACT_SCHEMA)
 }
 
+/// The workspace's hayro pin, `hayro = { version = "=x.y.z" }`, as `x.y.z`.
 fn hayro_pin(cargo_toml: &str) -> Result<String> {
     let manifest: toml::Value = toml::from_str(cargo_toml).context("Cargo.toml is not TOML")?;
     let pin = manifest

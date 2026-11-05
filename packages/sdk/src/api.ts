@@ -38,6 +38,8 @@ export type {
   Region,
   Span,
   SplitOn,
+  StructRef,
+  StructSource,
   TableDetector,
   TableMode,
   TextRange,

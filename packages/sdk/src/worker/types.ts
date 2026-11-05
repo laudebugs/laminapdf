@@ -2,6 +2,7 @@
 // of the same name. Methods keep their parameters (plus `CallOptions`) and return a Promise of
 // their result; getters become methods with no parameters. A `PageRef` result is a RemotePage.
 import type { Document, PageRef } from "../document.js";
+import type { ExtractFormat, ExtractOptions, ExtractResult } from "../extract.js";
 import type { Progress } from "../types.js";
 import type { RemotableDocumentMember, RemotablePageMember } from "./support.js";
 
@@ -38,7 +39,15 @@ export type RemoteMember<T> = T extends (...args: infer A) => infer R
   : (options?: CallOptions) => Promise<RemoteResult<T>>;
 
 /** A document in the worker. Close it (or `await using`) to free it there. */
-export type RemoteDocument = { readonly [K in RemotableDocumentMember]: RemoteMember<Document[K]> } & {
+export type RemoteDocument = {
+  readonly [K in Exclude<RemotableDocumentMember, "extract">]: RemoteMember<Document[K]>;
+} & {
+  /**
+   * {@link Document.extract} in the worker, typed by `format` like the sync one (a mapped type
+   * would lose the generic). It runs to the end: an aborted `signal` rejects the call, and the
+   * worker finishes the extraction before its next call.
+   */
+  extract<F extends ExtractFormat>(options: ExtractOptions<F>, call?: CallOptions): Promise<ExtractResult[F]>;
   /** Frees the document in the worker; a second call, or one after the worker stopped, does nothing. */
   close(): Promise<void>;
   /** `close()`, for `await using`. */

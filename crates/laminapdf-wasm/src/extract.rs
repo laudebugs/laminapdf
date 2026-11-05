@@ -11,7 +11,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::convert::from_js;
 use crate::document::WasmDocument;
-use crate::error::{JsResult, lamina_error};
+use crate::error::{JsResult, internal, lamina_error};
 
 /// What `WasmDocument.extract` returns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Tsify)]
@@ -117,23 +117,29 @@ pub(crate) struct ExtractInit {
 }
 
 impl ExtractInit {
+    /// The options, starting from `ExtractOptions`' defaults and changing only what was given,
+    /// so the binding keeps no copy of them.
     fn to_options(&self) -> ExtractOptions {
-        let mut options = ExtractOptions::new()
-            .with_reading_order(match self.reading_order.unwrap_or(ReadingOrderName::Auto) {
+        let mut options = ExtractOptions::new();
+        if let Some(order) = self.reading_order {
+            options = options.with_reading_order(match order {
                 ReadingOrderName::Auto => ReadingOrder::Auto,
                 ReadingOrderName::Layout => ReadingOrder::Layout,
                 ReadingOrderName::ContentStream => ReadingOrder::ContentStream,
-            })
-            .with_tables(match self.tables.unwrap_or(TableModeName::Lattice) {
+            });
+        }
+        if let Some(mode) = self.tables {
+            options = options.with_tables(match mode {
                 TableModeName::Off => TableMode::Off,
                 TableModeName::Lattice => TableMode::Lattice,
                 TableModeName::LatticeAndStream => TableMode::LatticeAndStream,
             });
+        }
         if let Some(pages) = &self.pages {
             options = options.with_pages(pages.iter().map(|&p| p as usize).collect());
         }
-        if let Some(drop) = &self.drop {
-            options.drop.keep_spans = drop.keep_spans.unwrap_or(false);
+        if let Some(keep) = self.drop.as_ref().and_then(|d| d.keep_spans) {
+            options.drop.keep_spans = keep;
         }
         if let Some(on) = self.dehyphenate {
             options.dehyphenate = on;
@@ -183,7 +189,7 @@ impl WasmDocument {
             ExtractFormat::Chunks => {
                 let markdown = init.markdown(&extraction);
                 let chunks = extraction.chunks(&markdown, &init.chunk_options());
-                serde_json::to_string(&chunks).unwrap_or_else(|_| "[]".to_owned())
+                serde_json::to_string(&chunks).map_err(|_| internal("the chunks could not be written as JSON"))?
             }
             ExtractFormat::Json => {
                 let markdown = init.markdown(&extraction);

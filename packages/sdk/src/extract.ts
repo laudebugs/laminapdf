@@ -2,7 +2,14 @@
 // (Markdown, text, the laminapdf.extract/1 JSON or the chunks as a JSON array); this module
 // names the options and parses the string into the type each `format` promises. The JSON's
 // types are generated from its schema (generated/extract.ts).
-import type { Chunk, Extraction } from "./generated/extract.js";
+import type {
+  ExtractFormat,
+  ReadingOrderName as ReadingOrder,
+  SplitOnName as SplitOn,
+  TableModeName as TableMode,
+} from "@laminapdf/wasm/extract";
+import type { LaminaPdfWarning } from "./errors.js";
+import type { Chunk, Extraction as ExtractionJson } from "./generated/extract.js";
 
 export type {
   Cell,
@@ -11,24 +18,26 @@ export type {
   DropReason,
   ExtractedPage,
   ExtractedSource,
+  Flags,
+  Generator,
   JsonBlock as ExtractedBlock,
   Region,
   Span,
+  StructRef,
+  StructSource,
   TableDetector,
   TextRange,
 } from "./generated/extract.js";
 
-/** What {@link Document.extract} returns, by `format`. */
-export type ExtractFormat = "markdown" | "json" | "text" | "chunks";
+/**
+ * The `laminapdf.extract/1` document: the schema's type, with the file's warnings as the
+ * {@link LaminaPdfWarning}s they are (the schema leaves their shape to ADR 0026's).
+ */
+export type Extraction = Omit<ExtractionJson, "warnings"> & { warnings: LaminaPdfWarning[] };
 
-/** Where the reading order comes from. */
-export type ReadingOrder = "auto" | "layout" | "content-stream";
-
-/** Which table detectors run: none, tables drawn with lines (the default), or those and text lined up in columns. */
-export type TableMode = "off" | "lattice" | "lattice-and-stream";
-
-/** Where chunks may start: at headings (the default), only where the budget runs out, or at pages. */
-export type SplitOn = "headings" | "blocks" | "pages";
+// The format and option names come from the extract module's own declarations (tsify, from
+// crates/laminapdf-wasm/src/extract.rs), so they can't drift from what the binding accepts.
+export type { ExtractFormat, ReadingOrder, SplitOn, TableMode };
 
 /** How the Markdown is cut into chunks. */
 export interface ChunkOptions {
@@ -73,4 +82,4 @@ export function parseExtract<F extends ExtractFormat>(format: F, out: string): E
   return (format === "json" || format === "chunks" ? JSON.parse(out) : out) as ExtractResult[F];
 }
 
-export type { Chunk, Extraction };
+export type { Chunk };

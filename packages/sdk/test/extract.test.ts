@@ -1,8 +1,8 @@
 // doc.extract(): each format, the JSON byte for byte as Rust writes it (the goldens
 // crates/laminapdf/tests/extract.rs shares), option errors, and the base module's refusal.
-import { Document, type ExtractOptions, init, isLaminaPdfError, loadExtract } from "@laminapdf/sdk";
+import { type ChunkOptions, Document, type ExtractOptions, init, isLaminaPdfError, loadExtract } from "@laminapdf/sdk";
 import * as glue from "@laminapdf/wasm/extract";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, expectTypeOf, it } from "vitest";
 import { extractForAnLlm } from "../examples/extract-markdown.js";
 import { read, readText, thrown } from "./helpers.js";
 
@@ -96,6 +96,12 @@ describe("doc.extract() with the extract module", () => {
     const doc = Document.open(read("fixtures/reading-order/table-ordered.pdf"));
     const e = thrown(() => doc.extract({ format: "markdown", pageMarker: true } as unknown as ExtractOptions));
     expect(isLaminaPdfError(e) && [e.code, e.didYouMean]).toEqual(["unknown-option", ["pageMarkers"]]);
+  });
+
+  it("names the same options as the binding", () => {
+    // The SDK's option types are written out for their docs; the binding's come from Rust.
+    expectTypeOf<keyof ExtractOptions>().toEqualTypeOf<keyof glue.ExtractInit>();
+    expectTypeOf<keyof ChunkOptions>().toEqualTypeOf<keyof NonNullable<glue.ExtractInit["chunk"]>>();
   });
 
   it("refuses an unknown format at compile time", () => {
