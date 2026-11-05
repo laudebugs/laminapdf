@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6d](./U6d-core-components.md), [U6h](./U6h-display-components.md) |
-| Blocks | [C4a](../ready/C4a-ui-chrome-and-platform.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md), [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
+| Blocks | [C4a](../ongoing/C4a-ui-chrome-and-platform.md), [C4e](../ready/C4e-reader-chrome.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md), [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
 | ADRs | Follows 0024 (Escape order; from [U1a](./U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/u6e-overlays-and-sheets` |
 | PR title | `feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts` |
@@ -22,7 +22,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 
 - Design language [§7.18 dialog](../../design/paper/design-language.md#718-dialog), [§7.20 toast and notice](../../design/paper/design-language.md#720-toast-and-notice); [§4](../../design/paper/design-language.md#4-space-shape-depth) (floating shadows, `scrim`, and the z-order table); [§8.8 keyboard](../../design/paper/design-language.md#88-keyboard-and-shortcuts) (Escape closes the innermost layer); [§8.9 checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa).
 - [U6d](./U6d-core-components.md) and [U6h](./U6h-display-components.md): the buttons, icon buttons, `Toast` look, `ShortcutChip` and the shared test helpers this todo builds on.
-- Consumers: [C4a](../ready/C4a-ui-chrome-and-platform.md) (password dialog, zoom menu, overflow menu) and [U6i](./U6i-sheets-positioning-and-palette-shell.md) (sheets, the mini toolbar and the palette on the same layer stack).
+- Consumers: [C4a](../ongoing/C4a-ui-chrome-and-platform.md) (password dialog, zoom menu, overflow menu) and [U6i](./U6i-sheets-positioning-and-palette-shell.md) (sheets, the mini toolbar and the palette on the same layer stack).
 - WCAG 2.2 SC 2.1.2 (no keyboard trap), 2.4.3 (focus order), 2.4.11 (focus not obscured), 4.1.3 (status messages); WAI-ARIA APG: dialog (modal), menu button and menu, tooltip.
 
 ## Scope
@@ -41,7 +41,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../ready/U1b-command-registry-and-palette.md).
 - When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar components → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
 - Which panels become sheets on the phone (outline, find, view settings) → [U3a](../ready/U3a-responsive-mobile-and-touch.md); the inspector as a sheet → [U3a](../ready/U3a-responsive-mobile-and-touch.md) / [U1c](../ready/U1c-inverted-l-shell-and-modes.md).
-- Specific dialogs (password, properties, print, settings, close with unsaved changes) → their todos ([C4a](../ready/C4a-ui-chrome-and-platform.md), [C6c](../ready/C6c-print-download-properties.md), [C7a](../ready/C7a-accessibility-and-theming.md), [E2i](../ready/E2i-signed-gating-and-close.md)).
+- Specific dialogs (password, properties, print, settings, close with unsaved changes) → their todos ([C4a](../ongoing/C4a-ui-chrome-and-platform.md), [C6c](../ready/C6c-print-download-properties.md), [C7a](../ready/C7a-accessibility-and-theming.md), [E2i](../ready/E2i-signed-gating-and-close.md)).
 - F6 region cycling and the global shortcut dispatcher → [C7a](../ready/C7a-accessibility-and-theming.md), [U1b](../ready/U1b-command-registry-and-palette.md).
 - Gallery pages and screenshots → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 
@@ -82,7 +82,7 @@ None.
 
 ## Risks and open questions
 
-- **Order with C4a**: this todo should land before [C4a](../ready/C4a-ui-chrome-and-platform.md) so its password dialog and menus use these overlays (see [U6d](./U6d-core-components.md)'s risks); C4a's **Depends on** gains U6e.
+- **Order with C4a**: this todo should land before [C4a](../ongoing/C4a-ui-chrome-and-platform.md) so its password dialog and menus use these overlays (see [U6d](./U6d-core-components.md)'s risks); C4a's **Depends on** gains U6e.
 - **`inert` and the desktop webview**: `inert` is supported in current WebKit, Blink and Gecko; confirm in the Tauri webviews (WKWebView, WebView2, WebKitGTK) when [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md) lands.
 - **Toast action reachability** without moving focus is awkward for keyboard users; if no clean pattern exists, actions in toasts are limited to ones that are also available elsewhere (e.g. Undo in the Edit menu and `Mod Z`).
 

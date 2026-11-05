@@ -71,7 +71,7 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 ### Changes to existing todos
 
 - [U1a](../todos/done/U1a-adr-0024-app-shell-ux.md): ADR 0024's token layers and visual identity take their values from the Paper design language; the "visual identity" out-of-scope line is resolved.
-- [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) and every todo that builds UI in Rounds C, D, E, H and U: a "Design" line under Context links its Paper screens (from [screens.md](../design/paper/screens.md)), and acceptance includes matching them.
+- [C4a](../todos/ongoing/C4a-ui-chrome-and-platform.md) and every todo that builds UI in Rounds C, D, E, H and U: a "Design" line under Context links its Paper screens (from [screens.md](../design/paper/screens.md)), and acceptance includes matching them.
 - [C7a](../todos/ready/C7a-accessibility-and-theming.md): themes are Paper light, Paper dark and high contrast from `@laminapdf/tokens`.
 
 ## 7. Risks

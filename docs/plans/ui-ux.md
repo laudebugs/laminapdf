@@ -80,7 +80,7 @@ Recommendations from the research, adopted as the plan's rules ([ADR 0024](../de
 - **Focus mode** (shortcut and palette command): hides both rails and the secondary toolbar; selecting something brings the inspector back temporarily (Figma's "Minimize UI").
 - The layout is stable: controls don't appear and disappear outside these rules (Microsoft's progressive-disclosure guidance).
 
-Delivered by [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) (shell and top bar) and [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md) (rail, inspector, modes, focus mode).
+Delivered by [C4a](../todos/ongoing/C4a-ui-chrome-and-platform.md) (shell and top bar) and [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md) (rail, inspector, modes, focus mode).
 
 ### 5.2 Command registry and palette (R3)
 
@@ -221,7 +221,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C1b](../todos/done/C1b-pdfium-wasm-spike.md) | Choose a growable-heap PDFium WASM build; one PDFium instance per worker; record upstream licence notices |
 | [C2a](../todos/done/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
 | [C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
-| [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
+| [C4a](../todos/ongoing/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
 | [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
 | [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
 | [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
