@@ -12,7 +12,7 @@
 | Branch | `docs/w1a-domain-map` |
 | PR title | `docs: the website at laminapdf.com and the reader at app.laminapdf.com` |
 | Size | S (100–250 lines of docs) |
-| PR | — |
+| PR | [#243](https://github.com/laudebugs/laminapdf/pull/243) |
 
 ## Goal
 
@@ -72,7 +72,7 @@ All of Scope; [website plan §8](../../plans/website.md#8-to-dos): tick the firs
 ## Definition of done
 
 - [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` and `/writing-review` followed (findings and fixes recorded in commit messages)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
