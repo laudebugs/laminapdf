@@ -106,7 +106,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   files (src/components/Snippet.astro), the code table from fixtures/codes.json, code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build); wrangler.toml (Workers static
-│                        #   assets, docs.laminapdf.com); deployed by .github/workflows/docs.yml; README.md has the owner's setup
+│                        #   assets, docs.laminapdf.com); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
+│                        #   for agents (L5a): a Markdown twin of every page, llms.txt and llms-full.txt (plugins/agent-docs.mjs,
+│                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship
 ├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json + exceptions.toml
 │                        #   + pdfjs-operators.json, content/ (operator fixture), differential/ (pypdf expectations),
 │                        #   ops/v1/ (op JSON samples), fonts/ (OFL Noto subsets), images/ (JPEG, ICC), text/ (pypdf extraction facts),
@@ -129,6 +131,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── tools/render/        # `render-golden` (hayro; its own workspace and Cargo.lock, outside the root one) and pdfium.py
 │                        #   (pypdfium2) for `cargo xtask render-golden`; `render-diff` (laminapdf-render's hayro and PDFium
 │                        #   adapters, the same parity comparison) for `cargo xtask render-diff`
+├── tools/agent-eval/     # L5a: fixed tasks for a pinned coding agent, with and without the shipped docs, checked by
+│                        #   @laminapdf/sdk and qpdf; run by hand with the owner's API key, never in CI (README.md)
 ├── tools/ci-runner/linux/  # the Linux CI runner container on the Mac (Dockerfile, up.sh, down.sh, loop.sh)
 ├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
 │                        #   nightly lane (workflows/nightly.yml), release lane on v* tags (workflows/release.yml: every check, then the publish jobs),
@@ -181,7 +185,9 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
 cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos --check + portable paths + capability matrix static checks
-                             #   + gen codes --check + gen boundary --check + version sync --check (fast; no network, no build, no node_modules)
+                             #   + renames (docs/renames.json against laminapdf.renames/1, an entry per #[deprecated]/@deprecated item,
+                             #   every new name in the sources) + gen codes --check + gen boundary --check + version sync --check
+                             #   (fast; no network, no build, no node_modules)
 cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-facing text (docs site, docs/errors, package
                              #   READMEs) vs docs/guidelines/docs-writing.md (word lists: tools/xtask/docs-prose.toml); errors on
                              #   files changed since the merge base with main (drafts included), counted warnings elsewhere; `check docs`
@@ -314,7 +320,14 @@ cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin
 cargo xtask release-guard [--run <id>] [--commit <rev>]  # fail unless the latest completed full nightly.yml run on main, or run <id>, succeeded on <rev>
                              #   (default HEAD) or an ancestor (gh, git merge-base); full: scheduled, or dispatched with every
                              #   input at its default, titled "Nightly (full budgets)"
-pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys)
+pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a
+                             #   Markdown twin per page (`/install.md`), llms.txt and llms-full.txt; `test` runs plugins/ and scripts/ tests
+node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder the packages ship: pages, code pages, AGENTS.md
+                             #   (packages/sdk/examples/AGENTS.md), llms.txt, renames.json, schemas; --api adds the TypeDoc Markdown;
+                             #   @laminapdf/sdk's prepack runs it; `publish crates` writes crates/laminapdf/docs/ and checks
+                             #   `cargo package --list`, `publish npm-pack` checks the sdk tarball (tools/xtask/src/package_docs.rs)
+node tools/agent-eval/run.mjs [--tasks a,b] [--modes docs,no-docs] [--dry-run]  # the agent eval (after `publish npm-pack`;
+                             #   ANTHROPIC_API_KEY from the environment); results in target/agent-eval/
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
 ```

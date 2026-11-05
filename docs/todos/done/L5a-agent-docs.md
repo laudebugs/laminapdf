@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `L5a` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L5](../../plans/shareable-libraries.md#l5-docs-for-agents) |
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
-| Depends on | [B7a](../done/B7a-docs-site.md), [L1b](../done/L1b-error-contract-codegen.md) |
-| Blocks | None |
+| Depends on | [B7a](./B7a-docs-site.md), [L1b](./L1b-error-contract-codegen.md) |
+| Blocks | [L5b](../ready/L5b-agent-eval-baseline.md) |
 | ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](../done/L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](../done/B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5a-agent-docs` |
 | PR title | `docs(site): llms.txt, Markdown twins, docs in packages, rename log and agent-eval baseline` |
 | Size | M (≈ 400–700 lines of config, scripts and tests; generated docs and copied pages don't count) |
-| PR | — |
+| PR | [#230](https://github.com/laudebugs/laminapdf/pull/230) |
 
 ## Goal
 
@@ -64,34 +64,34 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 **Out of scope** (and which todo covers it)
 
-- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../done/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
+- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../done/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](../ready/L4b-cli-batch-render-schema.md)).
 - Running the eval in CI or gating on it: not planned (it needs a paid API key and is non-deterministic).
 - Writing the guides themselves: [B7a](../done/B7a-docs-site.md).
 
 ## Tasks
 
-- [ ] Read the report section, the LLM note (A), B7a's `apps/docs` on `main` and llmstxt.org
-- [ ] Choose the generation route (plugin vs own integration). Check licences with `cargo xtask npm-licenses`. Pin versions
-- [ ] Generate `.md` twins for every route. Inline imported snippets (the twin must be self-contained). Emit `llms.txt` and `llms-full.txt` with the version
-- [ ] TypeDoc Markdown output for `@laminapdf/sdk`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
-- [ ] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](../done/L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/sdk/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
-- [ ] The "Using lamina with coding agents" page and `packages/sdk/examples/AGENTS.md` (same text, one source)
-- [ ] `renames.json`, its schema, and the deprecation check in `cargo xtask check docs` (grep `#[deprecated` and `@deprecated` in `crates/` and `packages/`; every hit has an entry)
-- [ ] `tools/agent-eval/`:
-  - [ ] Task files, checkers and the runner script
-  - [ ] Agent and model pinned in one config file; the API key from the environment, never committed
-  - [ ] The README says how to run it
-- [ ] Run the eval once (owner provides the key). Write `docs/research/libraries/agent-eval-baseline.md` and add it to `docs/research/libraries/README.md`
+- [x] Read the report section, the LLM note (A), B7a's `apps/docs` on `main` and llmstxt.org
+- [x] Choose the generation route (plugin vs own integration). Check licences with `cargo xtask npm-licenses`. Pin versions
+- [x] Generate `.md` twins for every route. Inline imported snippets (the twin must be self-contained). Emit `llms.txt` and `llms-full.txt` with the version
+- [x] TypeDoc Markdown output for `@laminapdf/sdk`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
+- [x] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](../done/L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/sdk/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
+- [x] The "Using lamina with coding agents" page and `packages/sdk/examples/AGENTS.md` (same text, one source)
+- [x] `renames.json`, its schema, and the deprecation check in `cargo xtask check docs` (grep `#[deprecated` and `@deprecated` in `crates/` and `packages/`; every hit has an entry)
+- [x] `tools/agent-eval/`:
+  - [x] Task files, checkers and the runner script
+  - [x] Agent and model pinned in one config file; the API key from the environment, never committed
+  - [x] The README says how to run it
+- [x] Write `docs/research/libraries/agent-eval-baseline.md` (the task list, results pending) and add it to `docs/research/libraries/README.md`; the run itself, which needs the owner's API key, moved to [L5b](../ready/L5b-agent-eval-baseline.md)
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter docs build` emits `llms.txt`, `llms-full.txt` and one `.md` per HTML page (a build test compares the two lists)
-- [ ] `llms.txt` passes a format check (H1, blockquote, H2 link sections, every link resolves to an emitted `.md`)
-- [ ] The `pnpm pack` tarball of `@laminapdf/sdk` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
-- [ ] `cargo package --list -p laminapdf` lists the crate's `docs/` with the same version
-- [ ] Adding `@deprecated` to a TS export (or `#[deprecated]` to a Rust item) without a `renames.json` entry fails `cargo xtask check docs`
-- [ ] `renames.json` validates against `laminapdf.renames/1`
-- [ ] `docs/research/libraries/agent-eval-baseline.md` records a run of every task with and without docs: agent, model, date, laminapdf version and per-task result
+- [x] `pnpm --filter docs build` emits `llms.txt`, `llms-full.txt` and one `.md` per HTML page (a build test compares the two lists)
+- [x] `llms.txt` passes a format check (H1, blockquote, H2 link sections, every link resolves to an emitted `.md`)
+- [x] The `pnpm pack` tarball of `@laminapdf/sdk` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
+- [x] `cargo package --list -p laminapdf` lists the crate's `docs/` with the same version
+- [x] Adding `@deprecated` to a TS export (or `#[deprecated]` to a Rust item) without a `renames.json` entry fails `cargo xtask check docs`
+- [x] `renames.json` validates against `laminapdf.renames/1`
+- [ ] `docs/research/libraries/agent-eval-baseline.md` records a run of every task with and without docs: agent, model, date, laminapdf version and per-task result. Moved to [L5b](../ready/L5b-agent-eval-baseline.md): the run needs the owner's API key
 
 ## Post-merge checks
 
@@ -106,9 +106,9 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 ## Docs to update
 
-- [ ] [shareable-libraries §9 L5](../../plans/shareable-libraries.md#9-to-dos): tick the agent-docs to-do
-- [ ] `CLAUDE.md` (layout: `tools/agent-eval`; the new xtask command), `docs/research/libraries/README.md` (baseline file), `packages/sdk/README.md` ("Docs for agents" pointer)
-- [ ] [TypeScript guideline](../../guidelines/typescript.md) and [Rust guideline](../../guidelines/rust.md): a line that every deprecation needs a `renames.json` entry
+- [x] [shareable-libraries §9 L5](../../plans/shareable-libraries.md#9-to-dos): tick the agent-docs to-do
+- [x] `CLAUDE.md` (layout: `tools/agent-eval`; the new xtask command), `docs/research/libraries/README.md` (baseline file), `packages/sdk/README.md` ("Docs for agents" pointer)
+- [x] [TypeScript guideline](../../guidelines/typescript.md) and [Rust guideline](../../guidelines/rust.md): a line that every deprecation needs a `renames.json` entry
 
 ## Risks and open questions
 
@@ -120,8 +120,8 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

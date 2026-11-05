@@ -15,7 +15,7 @@ import { GITHUB, REPOSITORY } from "./repository.mjs";
  * @param {string} markdown
  * @returns {string}
  */
-function readerMarkdown(markdown) {
+export function readerMarkdown(markdown) {
   const lines = markdown.split("\n");
   /** @type {string | undefined} */
   let fence;
@@ -40,7 +40,7 @@ function readerMarkdown(markdown) {
  * @param {string} href
  * @returns {string | undefined}
  */
-function siteHref(href) {
+export function siteHref(href) {
   if (href.startsWith(REPOSITORY) && !GITHUB) return undefined;
   if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#") || href.startsWith("/")) return href;
   const code = /^([a-z0-9-]+)\.md(#.*)?$/.exec(href);
