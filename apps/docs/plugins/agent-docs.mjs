@@ -68,7 +68,7 @@ async function codeTable() {
  * @param {URL} dir
  * @returns {Promise<string[]>}
  */
-export async function pageRoutes(dir) {
+async function pageRoutes(dir) {
   const routes = [];
   for (const name of await readdir(dir, { recursive: true })) {
     if (!name.endsWith(".html") || name === "404.html") continue;
