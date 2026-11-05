@@ -1335,6 +1335,7 @@ dependencies = [
  "clap_mangen",
  "indicatif",
  "laminapdf",
+ "laminapdf-extract",
  "laminapdf-test-fixtures",
  "proptest",
  "rmcp",

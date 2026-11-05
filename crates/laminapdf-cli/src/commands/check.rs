@@ -14,8 +14,8 @@ use crate::io::Io;
 #[derive(clap::Args, Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CheckArgs {
-    /// The PDF to check, or `-` for standard input. The command line takes several (the front end's
-    /// batch), so clap fills this in per input.
+    /// The PDF to check, or `-` for standard input.
+    // The command line takes several inputs, so the front end fills this in per input.
     #[arg(skip)]
     pub input: String,
 }

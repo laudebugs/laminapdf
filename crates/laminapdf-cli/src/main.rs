@@ -269,7 +269,8 @@ where
             return error.exit_code();
         }
     };
-    if let [input] = inputs.as_slice() {
+    // A list may hold one file or many, so a list always prints as a batch.
+    if let ([input], None) = (inputs.as_slice(), &many.batch.files_from) {
         let outcome = one(&many.args.for_input(input), settings, io);
         return finish(streams, global, outcome, Some(input));
     }
@@ -385,9 +386,12 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
         stdout_taken,
     };
     Ok(match command {
-        // Run by `each`, before this.
+        // `run` sends these to `each`, which runs them per input.
         Command::Info(_) | Command::Check(_) | Command::Extract(_) => {
-            outcome(Value::Null, String::new(), Vec::new(), false)
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "this command takes its inputs one by one",
+            ));
         }
         Command::Pages(PagesCommand::Rotate(args)) => {
             let report = commands::rotate(args, settings, io)?;

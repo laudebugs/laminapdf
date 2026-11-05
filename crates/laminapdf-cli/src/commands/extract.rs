@@ -4,7 +4,9 @@
 //! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 
 use clap::ValueEnum;
-use laminapdf::extract::{ChunkOptions, ExtractOptions, Extraction, MarkdownOptions, Rendered, TextOptions};
+use laminapdf::extract::{
+    ChunkOptions, ExtractOptions, Extraction, MarkdownOptions, Rendered, TextOptions, chunks_jsonl,
+};
 use laminapdf::{Diagnostic, ErrorCode};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize};
@@ -33,8 +35,8 @@ pub enum Format {
 #[derive(clap::Args, Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ExtractArgs {
-    /// The PDF to read, or `-` for standard input. The command line takes several (the front end's
-    /// batch), so clap fills this in per input.
+    /// The PDF to read, or `-` for standard input.
+    // The command line takes several inputs, so the front end fills this in per input.
     #[arg(skip)]
     pub input: String,
     /// The output format.
@@ -110,6 +112,12 @@ pub fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Resu
             "this reads the text format only: the others are an extracted document",
         ));
     }
+    if args.max_chars.is_some() {
+        return Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "--max-chars cuts Markdown, JSON or chunks: use it with --format md, json or chunks",
+        ));
+    }
     let opened = open(&args.input, settings, io)?;
     let doc = &opened.doc;
     let numbers = pages_of(args.pages.as_deref(), doc.page_count()?)?;
@@ -176,7 +184,7 @@ impl JsonSchema for ExtractedReport {
 
     fn json_schema(_: &mut SchemaGenerator) -> Schema {
         json_schema!({
-            "allOf": [{ "$ref": Self::SCHEMA_ID }],
+            "allOf": [laminapdf_extract::json_schema()],
             "type": "object",
             "properties": {
                 "input": { "type": "string", "description": "The input as given: a path, or -." },
@@ -212,6 +220,12 @@ pub fn extract_document(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io
             "the text format is read page by page, not as an extracted document",
         ));
     }
+    if args.visible_only {
+        return Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "--visible-only is for --format text: the other formats always leave hidden text out",
+        ));
+    }
     let opened = open(&args.input, settings, io)?;
     let doc = &opened.doc;
     let numbers = pages_of(args.pages.as_deref(), doc.page_count()?)?;
@@ -225,22 +239,20 @@ pub fn extract_document(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io
     let truncated = args
         .max_chars
         .is_some_and(|max| truncate(&mut extraction, &mut markdown, markdown_options, max));
-    let chunks = extraction.chunks(&markdown, &ChunkOptions::new());
-    let output = match args.format {
-        Format::Md => markdown.text.clone(),
-        Format::Chunks => {
-            let mut lines = String::new();
-            for line in chunks.iter().filter_map(|c| serde_json::to_string(c).ok()) {
-                lines.push_str(&line);
-                lines.push('\n');
-            }
-            lines
-        }
-        Format::Json | Format::Text => String::new(),
+    let chunks = (args.format == Format::Chunks).then(|| extraction.chunks(&markdown, &ChunkOptions::new()));
+    let output = match (&chunks, args.format) {
+        (Some(chunks), _) => chunks_jsonl(chunks),
+        (None, Format::Md) => markdown.text.clone(),
+        (None, _) => String::new(),
     };
-    let with_chunks = (args.format == Format::Chunks).then_some(chunks);
-    let text = doc.extract_json(&extraction, &markdown, with_chunks);
-    let mut json: Value = serde_json::from_str(&text).unwrap_or_default();
+    let text = doc.extract_json(&extraction, &markdown, chunks);
+    let mut json: Value = serde_json::from_str(&text).map_err(|_| {
+        CliError::new(
+            ErrorCode::OutputUnwritable,
+            "the extraction couldn't be written as JSON",
+        )
+        .with("output", "-")
+    })?;
     if let Some(map) = json.as_object_mut() {
         map.insert("input".to_owned(), args.input.clone().into());
         if truncated {

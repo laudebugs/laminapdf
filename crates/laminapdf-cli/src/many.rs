@@ -49,18 +49,18 @@ impl<A: Args> Many<A> {
     /// Every input: the command line's, then `--files-from`'s.
     pub(crate) fn expand(&self, io: &mut dyn laminapdf_cli::io::Io) -> Result<Vec<String>, CliError> {
         let list = match &self.batch.files_from {
-            Some(file) => {
-                if file == STDIO && self.inputs.iter().any(|i| i == STDIO) {
-                    return Err(CliError::new(
-                        ErrorCode::InvalidCommandLine,
-                        "standard input can be read only once",
-                    ));
-                }
-                Some(io.read(file)?)
-            }
+            Some(file) => Some(io.read(file)?),
             None => None,
         };
-        batch::inputs(&self.inputs, list.as_deref(), self.batch.null)
+        let inputs = batch::inputs(&self.inputs, list.as_deref(), self.batch.null)?;
+        // The list took standard input, so no input can.
+        if self.batch.files_from.as_deref() == Some(STDIO) && inputs.iter().any(|i| i == STDIO) {
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "standard input can be read only once",
+            ));
+        }
+        Ok(inputs)
     }
 }
 

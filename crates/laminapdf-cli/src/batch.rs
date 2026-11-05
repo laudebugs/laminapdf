@@ -15,6 +15,13 @@ use serde::Serialize;
 use crate::exit::{CliError, ExitCode};
 use crate::io::STDIO;
 
+/// How many inputs past the oldest one not yet handed over a worker may start, per thread: the
+/// results waiting for that one to finish are held in memory.
+const LOOKAHEAD_PER_JOB: usize = 4;
+
+/// How long a worker that is too far ahead waits before looking again.
+const AHEAD_WAIT: std::time::Duration = std::time::Duration::from_millis(5);
+
 /// The most threads `--jobs` takes by default, to stay polite on shared machines.
 pub const MAX_DEFAULT_JOBS: usize = 8;
 
@@ -74,9 +81,10 @@ pub struct BatchOptions {
 }
 
 /// Runs `work` on each input on up to `options.jobs` threads, and hands each result to `emit`
-/// in argument order as soon as every input before it has been handed over. With
-/// `fail_fast`, no input starts after a failure; those never started aren't handed over.
-/// Returns how many inputs were skipped.
+/// in argument order as soon as every input before it has been handed over. No input starts
+/// more than [`LOOKAHEAD_PER_JOB`] × jobs past the oldest one not handed over, so a slow input
+/// holds back a bounded number of finished results. With `fail_fast`, no input starts after a
+/// failure; those never started aren't handed over. Returns how many inputs were skipped.
 pub fn run<T, W, E>(inputs: &[String], options: BatchOptions, work: W, mut emit: E) -> usize
 where
     T: Send,
@@ -85,15 +93,26 @@ where
 {
     let next = AtomicUsize::new(0);
     let stop = AtomicBool::new(false);
+    let handed = AtomicUsize::new(0);
     let (sender, receiver) = mpsc::channel();
     let mut emitted = 0;
+    let threads = options.jobs.clamp(1, inputs.len().max(1));
+    let lookahead = threads.saturating_mul(LOOKAHEAD_PER_JOB);
     std::thread::scope(|scope| {
-        for _ in 0..options.jobs.clamp(1, inputs.len().max(1)) {
+        for _ in 0..threads {
             let sender = sender.clone();
-            let (next, stop, work) = (&next, &stop, &work);
+            let (next, stop, handed, work) = (&next, &stop, &handed, &work);
             scope.spawn(move || {
                 while !stop.load(Ordering::Acquire) {
                     let index = next.fetch_add(1, Ordering::AcqRel);
+                    while index >= handed.load(Ordering::Acquire).saturating_add(lookahead)
+                        && !stop.load(Ordering::Acquire)
+                    {
+                        std::thread::sleep(AHEAD_WAIT);
+                    }
+                    if stop.load(Ordering::Acquire) {
+                        break;
+                    }
                     let Some(input) = inputs.get(index) else {
                         break;
                     };
@@ -116,6 +135,7 @@ where
                 let input = inputs.get(emitted).map_or("", String::as_str);
                 emit(emitted, input, result);
                 emitted += 1;
+                handed.store(emitted, Ordering::Release);
             }
         }
     });
@@ -237,6 +257,31 @@ mod tests {
         );
         let expected: Vec<(usize, Option<u64>)> = (0..12).map(|i| (i, Some(i as u64))).collect();
         assert_eq!((seen, skipped), (expected, 0));
+    }
+
+    #[test]
+    fn a_slow_first_input_should_hold_back_only_a_few_results() {
+        let inputs = names(40);
+        let started = AtomicUsize::new(0);
+        let mut seen = 0;
+        run(
+            &inputs,
+            BatchOptions {
+                jobs: 2,
+                fail_fast: false,
+            },
+            |input| {
+                let n = started.fetch_add(1, Ordering::AcqRel);
+                if input == "in0.pdf" {
+                    // While the first input runs, the other worker may run ahead only so far.
+                    std::thread::sleep(Duration::from_millis(100));
+                    assert!(started.load(Ordering::Acquire) <= 2 * LOOKAHEAD_PER_JOB + 1);
+                }
+                Ok(n)
+            },
+            |_, _, result| seen += usize::from(result.is_ok()),
+        );
+        assert_eq!(seen, 40);
     }
 
     #[test]

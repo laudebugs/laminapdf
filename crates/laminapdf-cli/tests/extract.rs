@@ -89,6 +89,19 @@ fn max_chars_should_keep_whole_blocks_and_say_so() {
 }
 
 #[test]
+fn a_flag_another_format_needs_should_be_refused() {
+    let text = laminapdf(&["extract", "fixtures/corpus/hello.pdf", "--max-chars", "10"]);
+    let md = laminapdf(&[
+        "extract",
+        "fixtures/corpus/hello.pdf",
+        "--format",
+        "md",
+        "--visible-only",
+    ]);
+    assert_eq!((text.code, md.code), (2, 2), "{} {}", text.stderr, md.stderr);
+}
+
+#[test]
 fn pages_should_be_separated_by_form_feeds() {
     let run = laminapdf(&["extract", "fixtures/golden/links-and-outlines.pdf"]);
     assert_eq!(run.code, 0, "{}", run.stderr);

@@ -76,6 +76,30 @@ fn the_exit_code_should_say_how_the_batch_went() {
     assert_eq!(code(&[locked, "fixtures/corpus/missing.pdf"]), 1);
     assert_eq!(laminapdf(&["info", ok, warns, "--warnings-ok"]).code, 0);
     assert_eq!(laminapdf(&["info", "-", "-"]).code, 2);
+    let listed_stdin = run(
+        &["info", "--files-from", "-"],
+        Some(b"-\nfixtures/corpus/hello.pdf\n"),
+        &[],
+    );
+    assert_eq!(
+        listed_stdin.code, 2,
+        "the list took standard input: {}",
+        listed_stdin.stderr
+    );
+}
+
+#[test]
+fn a_list_of_one_file_should_still_print_as_a_batch() {
+    let one = run(
+        &["info", "--files-from", "-", "--json"],
+        Some(b"fixtures/corpus/hello.pdf\n"),
+        &[],
+    );
+    let lines = lines(&one.stdout);
+    assert_eq!(
+        (lines[0]["type"].as_str(), lines[1]["type"].as_str()),
+        (Some("result"), Some("summary"))
+    );
 }
 
 #[test]

@@ -33,6 +33,8 @@ mcp = ["dep:rmcp", "dep:tokio"]
 
 [dependencies]
 laminapdf = { workspace = true, features = ["extract", "explain"] }
+# Only for `laminapdf schema extract`, which embeds `laminapdf.extract/1`'s schema.
+laminapdf-extract = { workspace = true, features = ["schema"] }
 rmcp = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 anstream = { workspace = true }
