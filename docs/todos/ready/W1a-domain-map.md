@@ -8,7 +8,7 @@
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | None |
 | Blocks | [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](./W1b-site-scaffold-and-deploys.md) |
-| ADRs | Amends [0011 §1, §2 and §4](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology) |
+| ADRs | Amends [0011 §1–§4](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology) |
 | Branch | `docs/w1a-domain-map` |
 | PR title | `docs: the website at laminapdf.com and the reader at app.laminapdf.com` |
 | Size | S (100–250 lines of docs) |
@@ -32,9 +32,9 @@ Every plan, ADR, todo and design doc says the same thing about who serves which 
   - §1: the hosts of the [plan's table](../../plans/website.md#2-the-domain-map); the reader's Workers keep their names; the website is a third Worker, `lamina-pdf-site`, deployed from `main` with a preview per PR, which never serves the reader.
   - §2: remote documents open from `https://app.laminapdf.com/#url=…`; the website forwards no fragment.
   - §3: "our origin" is `app.laminapdf.com`; the website's own rules (no cookies, no third parties, no analytics, no Worker code), stated as checks W1b runs on every built page.
-  - §4: the website's headers (the reader's, without `'wasm-unsafe-eval'` and with `connect-src 'self'`) and the HSTS preload after the website's first production deploy.
+  - §4: the website's headers: the reader's, without `'wasm-unsafe-eval'`, with `connect-src 'self'`, and with a hash in `script-src` for each inline script the build writes (the docs site's pattern, since Astro writes inline scripts). Any other difference is named with its reason. The HSTS preload: `preload` joins the website's `Strict-Transport-Security` header after its first production deploy, once every subdomain is HTTPS-only, and the owner submits the domain.
 - The plans: [web reader](../../plans/web-app.md) (§3's link row, §5 hosting, §8 Q1), [roadmap](../../plans/roadmap.md) "Decisions made" (the domain line), [desktop plan](../../plans/desktop-app.md) (the download page's home).
-- The todos that name hosts or pages: [C4c](./C4c-remote-files-encryption-privacy.md) (`#url=` links and the privacy suite's origin), [C4d](./C4d-deploy-previews-and-production.md) (the custom domains), [C7c](./C7c-performance-gates-and-launch.md) (the privacy page moves to the website; the reader links to it; C7c turns on "Open the web app"), [D7b](./D7b-settings-renderer-switch-and-download-page.md) (`/download` in `apps/site`), [U5a](./U5a-pricing-and-promises-page.md) and [U5b](./U5b-reader-benchmark.md) (website pages, not docs-site pages), [D5a](./D5a-update-worker-and-adr-0014.md) (release notes under the website).
+- The todos that name hosts or pages: [C4c](./C4c-remote-files-encryption-privacy.md) (`#url=` links and the privacy suite's origin), [C4d](./C4d-deploy-previews-and-production.md) (the custom domains), [C7c](./C7c-performance-gates-and-launch.md) (the privacy page moves to the website; the reader links to it; C7c turns on "Open the web app" and adds the privacy promises to the home page), [D7b](./D7b-settings-renderer-switch-and-download-page.md) (`/download` in `apps/site`), [U5a](./U5a-pricing-and-promises-page.md) and [U5b](./U5b-reader-benchmark.md) (website pages, not docs-site pages), [D5a](./D5a-update-worker-and-adr-0014.md) and [D7c](./D7c-desktop-beta-release.md) (release notes under the website), [D6a](./D6a-signing-runbook-and-owner-setup.md) (the Linux release key at `/keys/lamina-release.asc`, a file of `apps/site`).
 - The design docs: [design language §7.39](../../design/paper/design-language.md#739-site-and-product-pages-proposed) ("site header" for the website and the docs site), [H08](../../design/paper/account-cloud-product.md#h08-pricing-and-promises-page) (a website page), [desktop shell](../../design/paper/desktop-shell.md) (entry points).
 - `CLAUDE.md`'s ADR 0011 summary.
 
@@ -53,9 +53,9 @@ Every plan, ADR, todo and design doc says the same thing about who serves which 
 
 ## Acceptance criteria
 
-- [ ] A search of `docs/` (outside `done/`) and `CLAUDE.md` finds `staging.laminapdf.com` nowhere, and finds `laminapdf.com` alone only for the website.
+- [ ] A search of `docs/` (outside `done/`) and `CLAUDE.md` finds `staging.laminapdf.com`, or the reader at bare `laminapdf.com`, only where a document records the move: ADR 0011's amendment note and the website plan.
 - [ ] ADR 0011 names every host in the plan's table, with the Worker and the deploy trigger for each.
-- [ ] Each moved page (`/download`, `/privacy`, `/pricing`, `/performance`, release notes) names `apps/site` as its home in its todo.
+- [ ] Each moved page or file (`/download`, `/privacy`, `/pricing`, `/performance`, release notes, the release key) names `apps/site` as its home in its todo.
 
 ## Tests
 
