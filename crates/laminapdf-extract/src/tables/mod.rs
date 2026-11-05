@@ -9,9 +9,8 @@ mod stream;
 use laminapdf_model::RectPt;
 
 pub(crate) use edges::{Collector, Edges};
-pub(crate) use lattice::contains_centre;
 
-use crate::lines::SPACE;
+use crate::lines::{SPACE, mostly_rtl};
 use crate::model::{Cell, TableDetector};
 
 /// One visible glyph, as tables see it.
@@ -78,35 +77,48 @@ pub(crate) fn detect(
     tables
 }
 
-/// The text of the glyphs `members`, line by line (top to bottom, left to right), with a space
-/// where the pen jumps, and lines joined by a space.
-pub(crate) fn cell_text(glyphs: &[Glyph], members: &[usize]) -> String {
-    let mut list: Vec<&Glyph> = members.iter().filter_map(|&i| glyphs.get(i)).collect();
-    list.sort_by(|a, b| a.bbox.y1.get().total_cmp(&b.bbox.y1.get()));
-    // Lines: glyphs whose bottoms lie within half a font size of the line's first.
-    let mut lines: Vec<Vec<&Glyph>> = Vec::new();
-    for g in list {
+/// The glyphs `members` grouped into lines, top to bottom: a glyph joins the line whose first
+/// glyph's bottom lies within half a font size of its own. Both cell text and unruled rows
+/// read lines this way.
+pub(crate) fn group_lines(glyphs: &[Glyph], members: &[usize]) -> Vec<Vec<usize>> {
+    let mut order: Vec<usize> = members.iter().copied().filter(|&i| i < glyphs.len()).collect();
+    order.sort_by(|&a, &b| {
+        let y = |i: usize| glyphs.get(i).map_or(0.0, |g| g.bbox.y1.get());
+        y(a).total_cmp(&y(b))
+    });
+    let mut lines: Vec<Vec<usize>> = Vec::new();
+    for i in order {
+        let Some(g) = glyphs.get(i) else { continue };
+        let joins = lines
+            .last()
+            .and_then(|l| l.first())
+            .and_then(|&f| glyphs.get(f))
+            .is_some_and(|f| (g.bbox.y1.get() - f.bbox.y1.get()).abs() <= 0.5 * f.size.max(g.size));
         match lines.last_mut() {
-            Some(line)
-                if line
-                    .first()
-                    .is_some_and(|f| (g.bbox.y1.get() - f.bbox.y1.get()).abs() <= 0.5 * f.size.max(g.size)) =>
-            {
-                line.push(g);
-            }
-            _ => lines.push(vec![g]),
+            Some(line) if joins => line.push(i),
+            _ => lines.push(vec![i]),
         }
     }
+    lines
+}
+
+/// The text of the glyphs `members`, line by line, each line in reading order (right to left
+/// when most of its letters are), a space where the pen jumps, lines joined by a space.
+pub(crate) fn cell_text(glyphs: &[Glyph], members: &[usize]) -> String {
     let mut out = String::new();
-    for mut line in lines {
+    for line in group_lines(glyphs, members) {
+        let mut line: Vec<&Glyph> = line.iter().filter_map(|&i| glyphs.get(i)).collect();
         line.sort_by(|a, b| a.bbox.x0.get().total_cmp(&b.bbox.x0.get()));
+        if mostly_rtl(&line.iter().map(|g| g.text.as_str()).collect::<String>()) {
+            line.reverse();
+        }
         if !out.is_empty() && !out.ends_with(' ') {
             out.push(' ');
         }
         let mut prev: Option<&Glyph> = None;
         for g in line {
             if let Some(p) = prev {
-                let gap = g.bbox.x0.get() - p.bbox.x1.get();
+                let gap = (g.bbox.x0.get() - p.bbox.x1.get()).max(p.bbox.x0.get() - g.bbox.x1.get());
                 if gap > SPACE * g.size
                     && !out.ends_with(char::is_whitespace)
                     && !g.text.starts_with(char::is_whitespace)
@@ -197,6 +209,13 @@ mod tests {
             glyph("d", 100.0, 60.0),
         ];
         assert_eq!(cell_text(&glyphs, &[0, 1, 2, 3]), "ab c d");
+    }
+
+    #[test]
+    fn a_right_to_left_cell_reads_from_the_right() {
+        // Two Hebrew words drawn left to right as separate pieces: the right one is first.
+        let glyphs = [glyph("שלום", 100.0, 40.0), glyph("עולם", 60.0, 40.0)];
+        assert_eq!(cell_text(&glyphs, &[0, 1]), "שלום עולם");
     }
 
     #[test]

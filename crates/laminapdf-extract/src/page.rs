@@ -12,7 +12,7 @@ use crate::error::ExtractError;
 use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
 use crate::model::{Block, BlockKind, Coordinates, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
-use crate::tables::{self, Collector, Glyph, Table, TableMode, contains_centre, is_bold};
+use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::text_fix::{decompose_ligatures, join_lines};
 use crate::visibility::{flags, normalised};
 use crate::xycut;
@@ -31,12 +31,11 @@ const LAYOUT_CONFIDENCE: f64 = 0.75;
 /// Content order is the drawing order, which is often not the reading order.
 const CONTENT_CONFIDENCE: f64 = 0.5;
 
-/// The page's runs as spans: kept ones (with their pieces and glyphs) and dropped ones.
+/// The page's runs as spans: kept ones (with their pieces) and dropped ones.
 struct Runs {
     pieces: Vec<Piece>,
     spans: Vec<Span>,
     dropped: Vec<Dropped>,
-    glyphs: Vec<Glyph>,
 }
 
 fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
@@ -46,7 +45,6 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
         pieces: Vec::new(),
         spans: Vec::new(),
         dropped: Vec::new(),
-        glyphs: Vec::new(),
     };
     for run in &text.runs {
         let size = Pt::new(run.font_size * unit);
@@ -76,15 +74,6 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
                 },
             });
             continue;
-        }
-        let bold = is_bold(&span.font);
-        for g in text.glyphs.get(run.glyphs.clone()).unwrap_or_default() {
-            out.glyphs.push(Glyph {
-                text: g.text.clone(),
-                bbox: quad_box(&g.quad),
-                size: size.get(),
-                bold,
-            });
         }
         for (words, bbox) in segments(text, run, size) {
             let words = if run.actual_text {
@@ -198,27 +187,35 @@ fn ordered(
         .collect())
 }
 
-/// The page's tables, from its rules and (on request) its aligned text.
+/// The page's tables, from its rules (`edges`, collected while its text was read) and, on
+/// request, its aligned text. Their units are the paragraph pieces, so a table's text is the
+/// same text (ligatures spelled out, `ActualText` applied) and each piece lands in exactly one
+/// of a cell and the paragraph flow.
 fn find_tables(
     doc: &Document,
-    page: &Page<'_>,
     index: usize,
-    text: &PageText,
-    glyphs: &[Glyph],
+    edges: Option<&Edges>,
+    pieces: &[Piece],
     options: &ExtractOptions,
 ) -> Result<Vec<Table>, ExtractError> {
-    if options.tables == TableMode::Off || glyphs.is_empty() {
+    let Some(edges) = edges.filter(|_| options.tables != TableMode::Off && !pieces.is_empty()) else {
         return Ok(Vec::new());
-    }
-    let mut collector = Collector::new(&text.frame);
-    laminapdf_content::interpret_page(doc, page, &mut collector)?;
+    };
+    let glyphs: Vec<Glyph> = pieces
+        .iter()
+        .map(|p| Glyph {
+            text: p.text.clone(),
+            bbox: p.bbox,
+            size: p.size.get(),
+            bold: is_bold(&p.font),
+        })
+        .collect();
     let max_cells = usize::try_from(options.limits.max_table_cells).unwrap_or(usize::MAX);
     let mut limited = false;
-    let tables = tables::detect(options.tables, &collector.finish(), glyphs, max_cells, &mut limited);
+    let tables = tables::detect(options.tables, edges, &glyphs, max_cells, &mut limited);
     if limited {
-        let page = u64::try_from(index).unwrap_or(u64::MAX);
         doc.report(Warning::ExtractTableLimit {
-            page,
+            page: u64::try_from(index).unwrap_or(u64::MAX),
             limit: options.limits.max_table_cells,
         })?;
     }
@@ -242,6 +239,7 @@ pub(crate) fn extract_page(
     page: &Page<'_>,
     index: usize,
     text: &PageText,
+    edges: Option<&Edges>,
     options: &ExtractOptions,
     cancel: &CancelToken,
 ) -> Result<PageOut, ExtractError> {
@@ -258,7 +256,6 @@ pub(crate) fn extract_page(
         mut pieces,
         mut spans,
         dropped,
-        glyphs,
     } = runs(index, text, options);
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
     // Before the grouping and the cuts, whose work grows faster than the runs do.
@@ -272,7 +269,7 @@ pub(crate) fn extract_page(
         pieces.truncate(kept);
         spans.truncate(kept);
     }
-    let tables = find_tables(doc, page, index, text, &glyphs, options)?;
+    let tables = find_tables(doc, index, edges, &pieces, options)?;
     if tables.iter().any(|t| t.ambiguous) {
         doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
     }
@@ -344,8 +341,17 @@ impl Flow {
             table_spans: vec![Vec::new(); tables.len()],
             table_first: vec![usize::MAX; tables.len()],
         };
+        // Each piece's table, if a cell took it.
+        let mut owner: Vec<Option<usize>> = vec![None; pieces.len()];
+        for (t, table) in tables.iter().enumerate() {
+            for &g in &table.glyphs {
+                if let Some(slot) = owner.get_mut(g) {
+                    *slot = Some(t);
+                }
+            }
+        }
         for (i, (piece, span)) in pieces.into_iter().zip(spans).enumerate() {
-            if let Some(t) = tables.iter().position(|t| contains_centre(&t.bbox, &piece.bbox)) {
+            if let Some(t) = owner.get(i).copied().flatten() {
                 if let Some(list) = flow.table_spans.get_mut(t) {
                     list.push(span);
                 }

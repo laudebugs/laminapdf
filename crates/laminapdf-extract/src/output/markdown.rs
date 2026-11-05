@@ -94,12 +94,12 @@ fn escape_inline(text: &str) -> String {
 }
 
 /// A paragraph: escapes a start a renderer would read as structure (`#`, `>`, `-`, `+`, `*`,
-/// `=`, a fence, or a number followed by `.` or `)`).
+/// `_`, `=`, a fence, or a number followed by `.` or `)`).
 fn escape_block(text: &str) -> String {
     let inline = escape_inline(text);
     let digits = inline.chars().take_while(char::is_ascii_digit).count();
     let after_digits = inline.get(digits..).unwrap_or_default();
-    let structural = inline.starts_with(['#', '>', '-', '+', '*', '=', '`', '~'])
+    let structural = inline.starts_with(['#', '>', '-', '+', '*', '_', '=', '`', '~'])
         || (digits > 0 && after_digits.starts_with(['.', ')']));
     if !structural {
         return inline;
@@ -187,6 +187,7 @@ mod tests {
         assert_eq!(escape_block("# not a heading"), "\\# not a heading");
         assert_eq!(escape_block("1. Introduction"), "1\\. Introduction");
         assert_eq!(escape_block("2024 was good"), "2024 was good");
+        assert_eq!(escape_block("__________"), "\\__________");
         assert_eq!(escape_inline("a <b> and a < b"), "a \\<b> and a < b");
     }
 

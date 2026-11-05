@@ -3,7 +3,7 @@
 //! segments are left out; tables are ruled with horizontal and vertical lines.
 
 use laminapdf_content::{Paint, PathPaint, PathSegment, Visitor};
-use laminapdf_model::{Matrix, PageFrame, PointPt, RectPt, UserSpacePoint};
+use laminapdf_model::{Matrix, PageFrame, PointPt, Pt, RectPt, UserSpacePoint};
 
 /// A filled rectangle thinner than this (in points) is a rule, not an area.
 const THIN: f64 = 2.0;
@@ -82,9 +82,13 @@ impl Edges {
 pub(crate) struct Collector<'f> {
     frame: &'f PageFrame,
     edges: Edges,
-    /// The current path: straight segments and rectangles, in page space.
-    segments: Vec<(PointPt, PointPt)>,
+    /// The current path: straight segments (with their subpath's number) and rectangles, in
+    /// page space.
+    segments: Vec<(PointPt, PointPt, usize)>,
     rects: Vec<RectPt>,
+    /// Subpaths with a curve, which can't be a rule.
+    curved: Vec<usize>,
+    subpath: usize,
     start: Option<PointPt>,
     current: Option<PointPt>,
 }
@@ -100,6 +104,8 @@ impl<'f> Collector<'f> {
             },
             segments: Vec::new(),
             rects: Vec::new(),
+            curved: Vec::new(),
+            subpath: 0,
             start: None,
             current: None,
         }
@@ -117,8 +123,49 @@ impl<'f> Collector<'f> {
     fn clear(&mut self) {
         self.segments.clear();
         self.rects.clear();
+        self.curved.clear();
+        self.subpath = 0;
         self.start = None;
         self.current = None;
+    }
+
+    /// `s`, `b` and `b*` close the current subpath before painting; the interpreter reports
+    /// them as a stroke with `close` and no `ClosePath`.
+    fn close(&mut self) {
+        if let (Some(from), Some(to)) = (self.current, self.start) {
+            self.segments.push((from, to, self.subpath));
+        }
+        self.current = self.start;
+    }
+
+    /// Each filled subpath of straight horizontal and vertical sides, as its bounding box: a
+    /// thin one is a rule (as a word processor draws table borders), a wide one an area.
+    fn filled_polygons(&mut self) {
+        let mut boxes: std::collections::BTreeMap<usize, (f64, f64, f64, f64, bool)> =
+            std::collections::BTreeMap::new();
+        for &(a, b, n) in &self.segments {
+            let axis =
+                (a.x.get() - b.x.get()).abs() <= AXIS_TOLERANCE || (a.y.get() - b.y.get()).abs() <= AXIS_TOLERANCE;
+            let e =
+                boxes
+                    .entry(n)
+                    .or_insert((f64::INFINITY, f64::INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY, true));
+            for p in [a, b] {
+                *e = (
+                    e.0.min(p.x.get()),
+                    e.1.min(p.y.get()),
+                    e.2.max(p.x.get()),
+                    e.3.max(p.y.get()),
+                    e.4 && axis,
+                );
+            }
+        }
+        for (n, (x0, y0, x1, y1, axis)) in boxes {
+            if axis && !self.curved.contains(&n) {
+                let r = RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1));
+                self.edges.add_filled_rect(&r);
+            }
+        }
     }
 }
 
@@ -127,23 +174,22 @@ impl Visitor for Collector<'_> {
         match *segment {
             PathSegment::MoveTo { x, y } => {
                 let p = self.page(ctm, x, y);
+                self.subpath += 1;
                 self.start = Some(p);
                 self.current = Some(p);
             }
             PathSegment::LineTo { x, y } => {
                 let p = self.page(ctm, x, y);
                 if let Some(from) = self.current {
-                    self.segments.push((from, p));
+                    self.segments.push((from, p, self.subpath));
                 }
                 self.current = Some(p);
             }
-            PathSegment::CurveTo { end, .. } => self.current = Some(self.page(ctm, end.0, end.1)),
-            PathSegment::ClosePath => {
-                if let (Some(from), Some(to)) = (self.current, self.start) {
-                    self.segments.push((from, to));
-                }
-                self.current = self.start;
+            PathSegment::CurveTo { end, .. } => {
+                self.curved.push(self.subpath);
+                self.current = Some(self.page(ctm, end.0, end.1));
             }
+            PathSegment::ClosePath => self.close(),
             PathSegment::Rect { x, y, width, height } => {
                 let a = self.page(ctm, x, y);
                 let b = self.page(ctm, x + width, y + height);
@@ -154,6 +200,7 @@ impl Visitor for Collector<'_> {
                 if axis_aligned {
                     self.rects.push(RectPt::new(a.x, a.y, b.x, b.y));
                 }
+                self.subpath += 1;
                 self.start = Some(a);
                 self.current = Some(a);
             }
@@ -161,14 +208,17 @@ impl Visitor for Collector<'_> {
     }
 
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
-        let (stroked, filled) = match paint.paint {
-            Paint::Stroke { .. } => (true, false),
-            Paint::Fill(_) => (false, true),
-            Paint::FillStroke { .. } => (true, true),
-            _ => (false, false),
+        let (stroked, filled, close) = match paint.paint {
+            Paint::Stroke { close } => (true, false, close),
+            Paint::Fill(_) => (false, true, false),
+            Paint::FillStroke { close, .. } => (true, true, close),
+            _ => (false, false, false),
         };
+        if close {
+            self.close();
+        }
         if stroked {
-            for &(a, b) in &self.segments {
+            for &(a, b, _) in &self.segments {
                 self.edges.add_segment(a, b);
             }
             for r in &self.rects {
@@ -178,6 +228,7 @@ impl Visitor for Collector<'_> {
             for r in &self.rects {
                 self.edges.add_filled_rect(r);
             }
+            self.filled_polygons();
         }
         self.clear();
     }

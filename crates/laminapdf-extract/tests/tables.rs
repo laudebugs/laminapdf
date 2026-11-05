@@ -280,3 +280,93 @@ fn a_grid_past_the_cell_limit_gives_no_table_and_a_warning() {
     );
     assert!(doc.warnings().iter().any(|w| w.code() == "extract-table-limit"));
 }
+
+/// The grid of `XS` and `YS` drawn cell by cell as closed outlines painted with `s` (close and
+/// stroke), which reports no `h` of its own.
+fn closed_outlines(out: &mut String) {
+    for r in 0..YS.len() - 1 {
+        for c in 0..XS.len() - 1 {
+            let (x0, x1, y0, y1) = (XS[c], XS[c + 1], YS[r + 1], YS[r]);
+            writeln!(out, "{x0} {y0} m {x1} {y0} l {x1} {y1} l {x0} {y1} l s").unwrap();
+        }
+    }
+}
+
+#[test]
+fn cells_outlined_with_close_and_stroke_are_a_table() {
+    let mut c = String::new();
+    closed_outlines(&mut c);
+    for (r, row) in [["Item", "Price"], ["Tea", "2.50"], ["Cake", "4.00"]]
+        .iter()
+        .enumerate()
+    {
+        for (col, cell) in row.iter().enumerate() {
+            text(&mut c, cell, XS[col] + 5.0, YS[r] - 14.0, false);
+        }
+    }
+    let out = run(&pages(&[c]), &ExtractOptions::new());
+    assert_eq!(cell_texts(&out, 0), ["Item", "Price", "Tea", "2.50", "Cake", "4.00"]);
+}
+
+#[test]
+fn borders_drawn_as_thin_filled_shapes_are_rules() {
+    let mut c = String::new();
+    // Each rule a 0.5 pt quadrilateral built with m, l and h, then filled.
+    for &y in &YS {
+        writeln!(
+            c,
+            "{} {} m {} {} l {} {} l {} {} l h f",
+            XS[0],
+            y,
+            XS[2],
+            y,
+            XS[2],
+            y + 0.5,
+            XS[0],
+            y + 0.5
+        )
+        .unwrap();
+    }
+    for &x in &XS {
+        writeln!(
+            c,
+            "{} {} m {} {} l {} {} l {} {} l h f",
+            x,
+            YS[3],
+            x + 0.5,
+            YS[3],
+            x + 0.5,
+            YS[0],
+            x,
+            YS[0]
+        )
+        .unwrap();
+    }
+    for (r, row) in [["Item", "Price"], ["Tea", "2.50"], ["Cake", "4.00"]]
+        .iter()
+        .enumerate()
+    {
+        for (col, cell) in row.iter().enumerate() {
+            text(&mut c, cell, XS[col] + 5.0, YS[r] - 14.0, false);
+        }
+    }
+    let out = run(&pages(&[c]), &ExtractOptions::new());
+    assert_eq!(cell_texts(&out, 0), ["Item", "Price", "Tea", "2.50", "Cake", "4.00"]);
+}
+
+#[test]
+fn each_piece_of_text_is_in_one_place_only() {
+    let mut c = String::new();
+    text(&mut c, "Before the table", 50.0, 740.0, false);
+    grid(
+        &mut c,
+        &XS,
+        &YS,
+        &[&["Item", "Price"], &["Tea", "2.50"], &["Cake", "4.00"]],
+    );
+    let out = run(&pages(&[c]), &ExtractOptions::new());
+    let markdown = out.to_markdown(&laminapdf_extract::MarkdownOptions::new()).text;
+    for word in ["Before the table", "Item", "Price", "Tea", "2.50", "Cake", "4.00"] {
+        assert_eq!(markdown.matches(word).count(), 1, "{word} in {markdown}");
+    }
+}

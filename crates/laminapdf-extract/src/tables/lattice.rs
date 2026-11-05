@@ -210,23 +210,42 @@ fn grid(h: &[Rule], v: &[Rule], xs: &[f64], ys: &[f64], edges: &Edges, glyphs: &
             Pt::new(*ys.get(r0 + rs)?),
         ))
     };
+    // Each grid square's region, then each glyph into the square holding its centre: a binary
+    // search per glyph, and a centre on a shared rule goes to exactly one square.
+    let mut owner = vec![0; rows * cols];
+    for (n, &(r0, c0, rs, cs)) in regions.iter().enumerate() {
+        for r in r0..r0 + rs {
+            for c in c0..c0 + cs {
+                if let Some(slot) = owner.get_mut(r * cols + c) {
+                    *slot = n;
+                }
+            }
+        }
+    }
+    let mut members: Vec<Vec<usize>> = vec![Vec::new(); regions.len()];
+    for (i, g) in glyphs.iter().enumerate() {
+        let (cx, cy) = (
+            f64::midpoint(g.bbox.x0.get(), g.bbox.x1.get()),
+            f64::midpoint(g.bbox.y0.get(), g.bbox.y1.get()),
+        );
+        if let (Some(c), Some(r)) = (square(xs, cx), square(ys, cy))
+            && let Some(list) = owner.get(r * cols + c).and_then(|&n| members.get_mut(n))
+        {
+            list.push(i);
+        }
+    }
     let mut cells = Vec::with_capacity(regions.len());
-    let mut members = Vec::with_capacity(regions.len());
-    for (row, col, row_span, col_span) in regions {
+    for (&(row, col, row_span, col_span), inside) in regions.iter().zip(&members) {
         let bbox = rect(row, col, row_span, col_span)?;
-        let inside: Vec<usize> = (0..glyphs.len())
-            .filter(|&i| glyphs.get(i).is_some_and(|g| contains_centre(&bbox, &g.bbox)))
-            .collect();
         cells.push(Cell {
             row,
             col,
             row_span,
             col_span,
             header: false,
-            text: cell_text(glyphs, &inside),
+            text: cell_text(glyphs, inside),
             bbox,
         });
-        members.push(inside);
     }
     // An empty ruled grid is a form or a frame, not a table.
     if cells.iter().filter(|c| !c.text.is_empty()).count() < 2 {
@@ -254,16 +273,24 @@ fn grid(h: &[Rule], v: &[Rule], xs: &[f64], ys: &[f64], edges: &Edges, glyphs: &
     })
 }
 
-/// Whether `outer` holds the centre of `inner`.
-pub(crate) fn contains_centre(outer: &RectPt, inner: &RectPt) -> bool {
-    let cx = f64::midpoint(inner.x0.get(), inner.x1.get());
-    let cy = f64::midpoint(inner.y0.get(), inner.y1.get());
-    cx >= outer.x0.get() && cx <= outer.x1.get() && cy >= outer.y0.get() && cy <= outer.y1.get()
+/// The index of the square of `lines` (ascending grid coordinates) that holds `at`: the last
+/// line at or before it, `None` outside the grid.
+fn square(lines: &[f64], at: f64) -> Option<usize> {
+    let (first, last) = (*lines.first()?, *lines.last()?);
+    if at < first || at > last {
+        return None;
+    }
+    Some(
+        lines
+            .partition_point(|&l| l <= at)
+            .saturating_sub(1)
+            .min(lines.len() - 2),
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Rule, covered, join, snap, spans};
+    use super::{Rule, covered, join, snap, spans, square};
 
     fn rule(at: f64, from: f64, to: f64) -> Rule {
         Rule { at, from, to }
@@ -289,6 +316,15 @@ mod tests {
             rule(10.0, 120.0, 200.0),
         ]);
         assert_eq!(joined, vec![rule(10.0, 0.0, 100.0), rule(10.0, 120.0, 200.0)]);
+    }
+
+    #[test]
+    fn a_point_on_a_shared_line_is_in_one_square() {
+        let lines = [0.0, 10.0, 20.0];
+        assert_eq!(square(&lines, 5.0), Some(0));
+        assert_eq!(square(&lines, 10.0), Some(1));
+        assert_eq!(square(&lines, 20.0), Some(1));
+        assert_eq!(square(&lines, 25.0), None);
     }
 
     #[test]

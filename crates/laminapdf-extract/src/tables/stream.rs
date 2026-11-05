@@ -5,7 +5,7 @@
 
 use laminapdf_model::{Pt, RectPt};
 
-use super::{Glyph, Table, cell_text};
+use super::{Glyph, Table, cell_text, group_lines};
 use crate::model::{Cell, TableDetector};
 
 /// A gap wider than this many font sizes splits a line into cells (word spaces are a third).
@@ -36,27 +36,10 @@ struct Row {
 }
 
 fn rows(glyphs: &[Glyph], free: &[usize]) -> Vec<Row> {
-    let mut order: Vec<usize> = free.to_vec();
-    order.sort_by(|&a, &b| {
-        let (ga, gb) = (glyphs.get(a), glyphs.get(b));
-        let ya = ga.map_or(0.0, |g| g.bbox.y1.get());
-        let yb = gb.map_or(0.0, |g| g.bbox.y1.get());
-        ya.total_cmp(&yb)
-    });
-    let mut lines: Vec<Vec<usize>> = Vec::new();
-    for i in order {
-        let Some(g) = glyphs.get(i) else { continue };
-        let joins = lines
-            .last()
-            .and_then(|l| l.first())
-            .and_then(|&f| glyphs.get(f))
-            .is_some_and(|f| (g.bbox.y1.get() - f.bbox.y1.get()).abs() <= 0.5 * f.size.max(g.size));
-        match lines.last_mut() {
-            Some(line) if joins => line.push(i),
-            _ => lines.push(vec![i]),
-        }
-    }
-    lines.into_iter().filter_map(|line| row(glyphs, line)).collect()
+    group_lines(glyphs, free)
+        .into_iter()
+        .filter_map(|line| row(glyphs, line))
+        .collect()
 }
 
 fn row(glyphs: &[Glyph], mut line: Vec<usize>) -> Option<Row> {
