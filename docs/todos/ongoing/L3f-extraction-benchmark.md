@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) ("Accepted when": scores measured and recorded) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3e](../done/L3e-extract-bindings-and-benchmark.md) |
@@ -33,7 +33,7 @@ Measure what the rule-based extractor achieves, so users know before reaching fo
 
 **Out of scope**
 
-- Model plug-ins → [L3c](./L3c-model-plugins.md); structure-tree order → [L3d](./L3d-extract-structure-and-furniture.md).
+- Model plug-ins → [L3c](../ready/L3c-model-plugins.md); structure-tree order → [L3d](../ready/L3d-extract-structure-and-furniture.md).
 
 ## Tasks
 

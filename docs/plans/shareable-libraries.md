@@ -121,7 +121,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L3. AI-ready extraction
 
-**Todos:** [L3a](../todos/done/L3a-lamina-extract-reading-order.md) (ADR 0030, `laminapdf-extract` blocks and reading order), [L3d](../todos/ready/L3d-extract-structure-and-furniture.md) (structure-tree order, headings, lists, running headers), [L3b](../todos/done/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, the Rust façade), [L3e](../todos/done/L3e-extract-bindings-and-benchmark.md) (WASM, TypeScript), [L3f](../todos/ready/L3f-extraction-benchmark.md) (benchmark), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
+**Todos:** [L3a](../todos/done/L3a-lamina-extract-reading-order.md) (ADR 0030, `laminapdf-extract` blocks and reading order), [L3d](../todos/ready/L3d-extract-structure-and-furniture.md) (structure-tree order, headings, lists, running headers), [L3b](../todos/done/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, the Rust façade), [L3e](../todos/done/L3e-extract-bindings-and-benchmark.md) (WASM, TypeScript), [L3f](../todos/ongoing/L3f-extraction-benchmark.md) (benchmark), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
 
 **Deliverable:** `laminapdf-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `laminapdf.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
 **Accepted when:** reading-order and table scores are measured on a public benchmark subset and recorded; every block carries a bbox in top-left points; hidden text never appears in Markdown and is flagged in JSON.
@@ -181,7 +181,7 @@ This plan adjusts these todos (edited in the same PR):
 - [ ] Structure-tree reading order, headings, lists, header/footer removal, clipped and low-contrast text ([L3d](../todos/ready/L3d-extract-structure-and-furniture.md))
 - [x] Lattice tables; Markdown, JSON and chunk serialisers; JSON Schema; expose in Rust ([L3b](../todos/done/L3b-extract-tables-and-serialisers.md))
 - [x] Expose in WASM and TypeScript ([L3e](../todos/done/L3e-extract-bindings-and-benchmark.md))
-- [ ] Extraction benchmark ([L3f](../todos/ready/L3f-extraction-benchmark.md))
+- [ ] Extraction benchmark ([L3f](../todos/ongoing/L3f-extraction-benchmark.md))
 - [ ] `LayoutModel` and `OcrEngine` traits; optional model edge crate
 
 ### L4. CLI and MCP
