@@ -14,6 +14,8 @@
   "linked": [],
   "ignore": [
     "@laminapdf/docs",
+    "@laminapdf/site",
+    "@laminapdf/site-kit",
     "@laminapdf/test-utils",
     "@laminapdf/tokens",
     "@laminapdf/fonts",

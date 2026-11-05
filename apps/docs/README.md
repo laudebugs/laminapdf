@@ -48,7 +48,7 @@ When the design language's tokens change, change them here too.
 
 `public/_headers` applies [ADR 0011 §4](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-)'s headers to every response, with these differences for a static docs site:
 
-- **`script-src` lists hashes.** After the build, `plugins/integrations.mjs` replaces `'inline-script-hashes'` with the SHA-256 of every inline script the build wrote (Starlight's theme and tabs, Expressive Code's copy button), so there is no `'unsafe-inline'` for scripts. `'wasm-unsafe-eval'` is for search (Pagefind). The build fails if the CSP line passes 1,900 characters, because Cloudflare's limit for a `_headers` line is 2,000.
+- **`script-src` lists hashes.** After the build, `@laminapdf/site-kit` (the build steps both sites share) replaces `'inline-script-hashes'` with the SHA-256 of every inline script the build wrote (Starlight's theme and tabs, Expressive Code's copy button), so there is no `'unsafe-inline'` for scripts. `'wasm-unsafe-eval'` is for search (Pagefind). The build fails if the CSP line passes 1,900 characters, because Cloudflare's limit for a `_headers` line is 2,000.
 - **`style-src` allows `'unsafe-inline'`,** because Expressive Code colours code tokens with style attributes.
 - **`connect-src` is `'self'` only.**
 

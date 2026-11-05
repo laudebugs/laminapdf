@@ -67,7 +67,8 @@ tasks:
                     rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
                           tests, rustdoc, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
-                          workspace, the docs site's build (apps/docs), npm licences
+                          workspace, the docs site's and the website's builds (apps/docs,
+                          apps/site), npm licences
   check maintainability
                     docs/guidelines/maintainability.md's Rust rules, without a build: modules of at most 800
                     lines of non-test code and no more size-lint #[expect]s than
@@ -450,6 +451,7 @@ fn check_ts(ws: &Workspace) -> Result<()> {
     api_docs(ws)?;
     ts_structure::check(ws)?;
     docs_site(ws)?;
+    website(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");
     Ok(())
@@ -634,6 +636,14 @@ fn ts_tests(ws: &Workspace) -> Result<()> {
 fn docs_site(ws: &Workspace) -> Result<()> {
     step("docs site: astro build of apps/docs (TypeDoc, snippets, code table, link check)");
     ws.pnpm(&["--filter", "@laminapdf/docs", "run", "build"])
+}
+
+/// Builds the website (`apps/site`), whose post-build checks fail on a page that breaks the
+/// website's rules (ADR 0011 §3): a file from another origin, a cookie, a missing title,
+/// description or canonical URL, a broken internal link.
+fn website(ws: &Workspace) -> Result<()> {
+    step("website: astro build of apps/site (the website's rules, internal links)");
+    ws.pnpm(&["--filter", "@laminapdf/site", "run", "build"])
 }
 
 pub(crate) fn step(message: &str) {

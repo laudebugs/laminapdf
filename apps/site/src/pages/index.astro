@@ -1,0 +1,15 @@
+---
+// The home page, a placeholder until W1c writes it: what Lamina PDF is, and where the docs are.
+import Base from "../layouts/Base.astro";
+
+const description =
+  "Create, read, edit and save PDFs from Rust and TypeScript: one Rust core, as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers.";
+---
+
+<Base title="Lamina PDF" description={description}>
+  <article class="sheet">
+    <h1>Lamina PDF</h1>
+    <p class="lead">{description}</p>
+    <p><a href="https://docs.laminapdf.com/">Read the docs</a></p>
+  </article>
+</Base>
