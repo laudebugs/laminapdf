@@ -215,7 +215,7 @@ const EXCEPTIONS: [&str; 2] = [
 ];
 
 /// Where `cargo build --release` puts the laminapdf-model example.
-fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
+pub(crate) fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
     ws.target_dir
         .join("release/examples")
         .join(format!("{name}{}", std::env::consts::EXE_SUFFIX))

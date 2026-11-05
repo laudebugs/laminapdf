@@ -13,6 +13,7 @@ mod docs_snippets;
 mod doctor;
 mod examples;
 mod examples_lints;
+mod extract_bench;
 mod harness;
 mod licenses;
 mod lines;
@@ -178,6 +179,12 @@ tasks:
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
+  extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
+                    score lamina's extraction on the pinned public benchmark of
+                    tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
+                    file against its lock), write Markdown with the extract-bench example, score it with
+                    the benchmark's own tests (Python with tools/bench/requirements.txt; $LAMINA_PDF_PYTHON
+                    or python3); report in target/bench/extract/<dataset>/
   verapdf [--dir <dir>]
                     run the lamina examples into target/examples-out/ (or take the PDFs in <dir>)
                     and validate each with veraPDF for the profiles its XMP claims (PDF/A-2b, 2u,
@@ -331,8 +338,8 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
-        ("verapdf", []) => verapdf::run(&ws, None),
-        ("verapdf", [flag, dir]) if flag == "--dir" => verapdf::run(&ws, Some(dir)),
+        ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
+        ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
