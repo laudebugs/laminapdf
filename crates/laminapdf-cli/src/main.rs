@@ -14,8 +14,8 @@ use anstream::ColorChoice;
 use clap::{Args, CommandFactory as _, Parser, Subcommand, ValueEnum};
 use laminapdf::{Diagnostic, ErrorCode};
 use laminapdf_cli::commands::{
-    self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format, InfoArgs, InfoReport,
-    OpenArgs, PagesReport, RotateArgs, Settings, TextReport,
+    self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format, InfoArgs,
+    InfoReport, OpenArgs, PagesReport, RotateArgs, Settings, TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
 use laminapdf_cli::io::{Io, ProcessIo, STDIO};
@@ -238,7 +238,9 @@ macro_rules! for_input {
     ($($ty:ty),*) => {$(
         impl ForInput for $ty {
             fn for_input(&self, input: &str) -> Self {
-                Self { input: input.to_owned(), ..self.clone() }
+                let mut args = self.clone();
+                args.input = input.to_owned();
+                args
             }
         }
     )*};
@@ -284,13 +286,21 @@ fn info(args: &InfoArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome
 
 fn check(args: &CheckArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
     let report = commands::check(args, settings, io)?;
-    Ok(Outcome::new(to_json(&report), render::check_text(&report), report.warnings))
+    Ok(Outcome::new(
+        to_json(&report),
+        render::check_text(&report),
+        report.warnings,
+    ))
 }
 
 fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
     if args.format == Format::Text {
         let report = commands::extract(args, settings, io)?;
-        return Ok(Outcome::new(to_json(&report), render::extract_text(&report), report.warnings));
+        return Ok(Outcome::new(
+            to_json(&report),
+            render::extract_text(&report),
+            report.warnings,
+        ));
     }
     let report = commands::extract_document(args, settings, io)?;
     Ok(Outcome::new(report.json, report.output, report.warnings))
@@ -376,7 +386,9 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
     };
     Ok(match command {
         // Run by `each`, before this.
-        Command::Info(_) | Command::Check(_) | Command::Extract(_) => outcome(Value::Null, String::new(), Vec::new(), false),
+        Command::Info(_) | Command::Check(_) | Command::Extract(_) => {
+            outcome(Value::Null, String::new(), Vec::new(), false)
+        }
         Command::Pages(PagesCommand::Rotate(args)) => {
             let report = commands::rotate(args, settings, io)?;
             let taken = report.output == STDIO && !settings.dry_run;
@@ -389,7 +401,12 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
         Command::Help(args) => outcome(Value::Null, help(args)?, Vec::new(), false),
         Command::Schema(args) => {
             let schema = docs::schema(args)?;
-            outcome(schema.clone(), format!("{}\n", serde_json::to_string_pretty(&schema).unwrap_or_default()), Vec::new(), false)
+            outcome(
+                schema.clone(),
+                format!("{}\n", serde_json::to_string_pretty(&schema).unwrap_or_default()),
+                Vec::new(),
+                false,
+            )
         }
         Command::Completions(args) => outcome(Value::Null, docs::completions(args, Cli::command()), Vec::new(), false),
         Command::ManPages(args) => {

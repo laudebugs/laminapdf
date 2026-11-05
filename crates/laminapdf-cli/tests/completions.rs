@@ -1,5 +1,5 @@
 //! Shell completions and man pages come from the clap definitions.
-#![expect(clippy::unwrap_used, reason = "test helpers: a panic is a test failure")]
+#![allow(clippy::unwrap_used, reason = "test helpers: a panic is a test failure")]
 
 mod common;
 
@@ -13,7 +13,10 @@ fn the_bash_script_should_parse() {
     assert_eq!(run.code, 0, "{}", run.stderr);
     let script = folder("completions").join("laminapdf.bash");
     std::fs::write(&script, &run.stdout).unwrap();
-    let parsed = Command::new("bash").args(["-n", arg(&script)]).stdout(Stdio::null()).status();
+    let parsed = Command::new("bash")
+        .args(["-n", arg(&script)])
+        .stdout(Stdio::null())
+        .status();
     // A machine without bash can't check the syntax; the script was still written.
     if let Ok(status) = parsed {
         assert!(status.success());
@@ -33,8 +36,17 @@ fn there_should_be_a_man_page_per_command() {
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .collect();
     pages.sort();
-    for page in ["laminapdf.1", "laminapdf-info.1", "laminapdf-extract.1", "laminapdf-pages-rotate.1", "laminapdf-schema.1"] {
+    for page in [
+        "laminapdf.1",
+        "laminapdf-info.1",
+        "laminapdf-extract.1",
+        "laminapdf-pages-rotate.1",
+        "laminapdf-schema.1",
+    ] {
         assert!(pages.iter().any(|p| p == page), "{page} in {pages:?}");
     }
-    assert!(!pages.iter().any(|p| p.contains("man-pages")), "the hidden command has none");
+    assert!(
+        !pages.iter().any(|p| p.contains("man-pages")),
+        "the hidden command has none"
+    );
 }

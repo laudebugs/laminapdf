@@ -188,13 +188,13 @@ impl JsonSchema for ExtractedReport {
 
 /// The blocks of `extraction` that fit in `max_chars` characters of Markdown, whole; whether
 /// any was left out.
-fn truncate(extraction: &mut Extraction, markdown: &mut Rendered, options: &MarkdownOptions, max_chars: usize) -> bool {
+fn truncate(extraction: &mut Extraction, markdown: &mut Rendered, options: MarkdownOptions, max_chars: usize) -> bool {
     let keep = markdown.ranges.iter().take_while(|r| r.end <= max_chars).count();
     if keep >= extraction.blocks.len() {
         return false;
     }
     extraction.blocks.truncate(keep);
-    *markdown = extraction.to_markdown(options);
+    *markdown = extraction.to_markdown(&options);
     true
 }
 
@@ -215,21 +215,27 @@ pub fn extract_document(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io
     let opened = open(&args.input, settings, io)?;
     let doc = &opened.doc;
     let numbers = pages_of(args.pages.as_deref(), doc.page_count()?)?;
-    let indices = numbers.iter().filter_map(|n| usize::try_from(n.saturating_sub(1)).ok()).collect();
+    let indices = numbers
+        .iter()
+        .filter_map(|n| usize::try_from(n.saturating_sub(1)).ok())
+        .collect();
     let mut extraction = doc.extract_with(&ExtractOptions::new().with_pages(indices), &settings.cancel)?;
     let markdown_options = MarkdownOptions::new().with_page_markers(numbers.len() > 1);
     let mut markdown = extraction.to_markdown(&markdown_options);
     let truncated = args
         .max_chars
-        .is_some_and(|max| truncate(&mut extraction, &mut markdown, &markdown_options, max));
+        .is_some_and(|max| truncate(&mut extraction, &mut markdown, markdown_options, max));
     let chunks = extraction.chunks(&markdown, &ChunkOptions::new());
     let output = match args.format {
         Format::Md => markdown.text.clone(),
-        Format::Chunks => chunks
-            .iter()
-            .filter_map(|c| serde_json::to_string(c).ok())
-            .map(|line| format!("{line}\n"))
-            .collect(),
+        Format::Chunks => {
+            let mut lines = String::new();
+            for line in chunks.iter().filter_map(|c| serde_json::to_string(c).ok()) {
+                lines.push_str(&line);
+                lines.push('\n');
+            }
+            lines
+        }
         Format::Json | Format::Text => String::new(),
     };
     let with_chunks = (args.format == Format::Chunks).then_some(chunks);
@@ -241,7 +247,11 @@ pub fn extract_document(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io
             map.insert("truncated".to_owned(), true.into());
         }
     }
-    let output = if args.format == Format::Json { format!("{json}\n") } else { output };
+    let output = if args.format == Format::Json {
+        format!("{json}\n")
+    } else {
+        output
+    };
     Ok(ExtractedReport {
         json,
         output,

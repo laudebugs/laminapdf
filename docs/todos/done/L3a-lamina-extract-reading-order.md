@@ -62,7 +62,7 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 
 - Tables (lattice and stream), Markdown/JSON/chunk serialisers, JSON Schema file, façade, WASM and TS exposure, benchmark scores: [L3b](../done/L3b-extract-tables-and-serialisers.md).
 - `LayoutModel` and `OcrEngine` traits and the model edge crate: [L3c](../ready/L3c-model-plugins.md).
-- CLI `laminapdf extract`: [L4b](../ongoing/L4b-cli-batch-render-schema.md).
+- CLI `laminapdf extract`: [L4b](./L4b-cli-batch-render-schema.md).
 - Formulas, figure descriptions, form-field values in output: later (record in ADR 0030 as future block kinds).
 - Editing the structure tree or auto-tagging: full-editor E15.
 

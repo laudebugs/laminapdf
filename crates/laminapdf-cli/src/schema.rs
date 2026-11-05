@@ -7,7 +7,7 @@
 use schemars::{JsonSchema, schema_for};
 use serde_json::{Value, json};
 
-use crate::batch::{Status, Summary};
+use crate::batch::{BatchSummary, Status};
 use crate::commands::{
     CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
     InfoReport, PagesReport, RotateArgs, TextReport,
@@ -117,7 +117,7 @@ fn result_line() -> Value {
             "index": { "type": "integer", "minimum": 0, "description": "The input's position, from 0." },
             "input": { "type": "string", "description": "The input as given: a path, or -." },
             "status": status,
-            "error": error_line()["properties"]["error"].clone()
+            "error": error_line().get("properties").and_then(|p| p.get("error")).cloned().unwrap_or_default()
         },
         "if": { "properties": { "status": { "const": "error" } } },
         "then": { "required": ["error"] }
@@ -126,7 +126,7 @@ fn result_line() -> Value {
 
 /// The last NDJSON line of a command over several inputs: the counts.
 fn summary_line() -> Value {
-    let mut schema = schema_for!(Summary).to_value();
+    let mut schema = schema_for!(BatchSummary).to_value();
     if let Some(map) = schema.as_object_mut() {
         map.insert("$id".to_owned(), format!("{BASE}summary-line.schema.json").into());
         map.insert("title".to_owned(), "laminapdf batch summary line".into());

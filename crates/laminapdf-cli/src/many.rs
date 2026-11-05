@@ -8,7 +8,7 @@ use std::time::Instant;
 use clap::Args;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use laminapdf::ErrorCode;
-use laminapdf_cli::batch::{self, BatchOptions, Status, Summary};
+use laminapdf_cli::batch::{self, BatchOptions, BatchSummary, Status};
 use laminapdf_cli::exit::{CliError, ExitCode};
 use laminapdf_cli::io::STDIO;
 use serde_json::{Map, Value};
@@ -73,7 +73,11 @@ fn result_line(index: usize, input: &str, schema: &str, outcome: &Result<Outcome
     line.insert("input".to_owned(), input.into());
     match outcome {
         Ok(outcome) => {
-            let status = if outcome.warnings.is_empty() { Status::Ok } else { Status::Warnings };
+            let status = if outcome.warnings.is_empty() {
+                Status::Ok
+            } else {
+                Status::Warnings
+            };
             line.insert("status".to_owned(), serde_json::to_value(status).unwrap_or_default());
             if let Value::Object(report) = &outcome.json {
                 for (key, value) in report {
@@ -82,7 +86,10 @@ fn result_line(index: usize, input: &str, schema: &str, outcome: &Result<Outcome
             }
         }
         Err(error) => {
-            line.insert("status".to_owned(), serde_json::to_value(Status::Error).unwrap_or_default());
+            line.insert(
+                "status".to_owned(),
+                serde_json::to_value(Status::Error).unwrap_or_default(),
+            );
             let error = error.to_line(Some(input)).get("error").cloned().unwrap_or_default();
             line.insert("error".to_owned(), error);
         }
@@ -95,7 +102,10 @@ fn progress(global: &GlobalArgs, total: usize) -> ProgressBar {
     if global.quiet || !std::io::stderr().is_terminal() {
         return ProgressBar::hidden();
     }
-    let bar = ProgressBar::with_draw_target(Some(u64::try_from(total).unwrap_or(u64::MAX)), ProgressDrawTarget::stderr());
+    let bar = ProgressBar::with_draw_target(
+        Some(u64::try_from(total).unwrap_or(u64::MAX)),
+        ProgressDrawTarget::stderr(),
+    );
     if let Ok(style) = ProgressStyle::with_template("{bar:30} {pos}/{len} {elapsed}") {
         bar.set_style(style);
     }
@@ -120,11 +130,16 @@ where
         fail_fast: batch.fail_fast,
     };
     let bar = progress(global, inputs.len());
-    let mut summary = Summary::default();
+    let mut summary = BatchSummary::default();
     let mut unwritable: Option<std::io::Error> = None;
     let terminal = streams.out.is_terminal();
     let skipped = batch::run(inputs, options, work, |index, input, outcome| {
-        summary.count(outcome.as_ref().map(|o| !o.warnings.is_empty()).map_err(CliError::exit_code));
+        summary.count(
+            outcome
+                .as_ref()
+                .map(|o| !o.warnings.is_empty())
+                .map_err(CliError::exit_code),
+        );
         bar.suspend(|| {
             let written = if global.json {
                 let line = result_line(index, input, schema, &outcome);
@@ -135,8 +150,16 @@ where
                         if !global.quiet {
                             render::warnings(streams, &outcome.warnings);
                         }
-                        let text = if terminal { render::for_terminal(&outcome.text) } else { outcome.text.clone() };
-                        let header = if terminal { render::for_terminal(input) } else { input.to_owned() };
+                        let text = if terminal {
+                            render::for_terminal(&outcome.text)
+                        } else {
+                            outcome.text.clone()
+                        };
+                        let header = if terminal {
+                            render::for_terminal(input)
+                        } else {
+                            input.to_owned()
+                        };
                         let gap = if index > 0 { "\n" } else { "" };
                         write!(streams.out, "{gap}==> {header} <==\n{text}")
                     }

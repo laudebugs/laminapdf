@@ -5,6 +5,7 @@
 
 mod capabilities;
 mod changes;
+mod cli_docs;
 mod codegen;
 mod corpus;
 mod docs_links;
@@ -179,6 +180,7 @@ tasks:
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
+  cli-docs          the laminapdf CLI's man pages and shell completions into target/cli-docs/
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -302,10 +304,7 @@ fn main() -> Result<()> {
         ("gen", [what, flag]) if what == "boundary" && flag == "--check" => codegen::boundary::generate(&ws, true),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
-        ("lint", []) => {
-            clippy(&ws)?;
-            biome_ci(&ws)
-        }
+        ("lint", []) => clippy(&ws).and_then(|()| biome_ci(&ws)),
         ("test", []) => {
             rust_tests(&ws)?;
             ts_tests(&ws)
@@ -338,6 +337,7 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
+        ("cli-docs", []) => cli_docs::run(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
         ("render-golden", []) => render::run(&ws, false),

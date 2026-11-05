@@ -1,6 +1,6 @@
 //! `laminapdf extract`: plain text, chosen pages, the JSON report, and the Markdown, JSON and
 //! chunk formats of `laminapdf.extract/1`, which never carry hidden text.
-#![expect(
+#![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
     reason = "test helpers: a panic is a test failure"
@@ -20,8 +20,13 @@ fn hidden_text() -> std::path::PathBuf {
     let font = b.standard_font(Standard14::Helvetica).unwrap();
     let mut page = b.page(PageSize::A4);
     let s = page.surface();
-    s.text("Visible words on the page.", &font, Pt::new(12.0), PointPt::from_points(72.0, 100.0))
-        .unwrap();
+    s.text(
+        "Visible words on the page.",
+        &font,
+        Pt::new(12.0),
+        PointPt::from_points(72.0, 100.0),
+    )
+    .unwrap();
     s.text(HIDDEN, &font, Pt::new(12.0), PointPt::from_points(72.0, 140.0))
         .unwrap()
         .render_mode(TextRenderMode::Invisible);
@@ -40,13 +45,19 @@ fn markdown_json_and_chunks_should_leave_hidden_text_out() {
     let json = laminapdf(&["extract", arg(&path), "--format", "json"]).json();
     Validator::new().check("extract.schema.json", &json);
     assert!(!json["blocks"].to_string().contains("IGNORE"));
-    assert_eq!((json["dropped"][0]["reason"].as_str(), json["input"].as_str()), (Some("invisible"), Some(arg(&path))));
+    assert_eq!(
+        (json["dropped"][0]["reason"].as_str(), json["input"].as_str()),
+        (Some("invisible"), Some(arg(&path)))
+    );
     let chunks = laminapdf(&["extract", arg(&path), "--format", "chunks"]);
     let first: serde_json::Value = serde_json::from_str(chunks.stdout_text().lines().next().unwrap()).unwrap();
     assert_eq!(first["text"], "Visible words on the page.");
     let text = laminapdf(&["extract", arg(&path), "--visible-only"]);
     assert!(!text.stdout_text().contains("IGNORE"));
-    assert!(laminapdf(&["extract", arg(&path)]).stdout_text().contains("IGNORE"), "plain text keeps it without the flag");
+    assert!(
+        laminapdf(&["extract", arg(&path)]).stdout_text().contains("IGNORE"),
+        "plain text keeps it without the flag"
+    );
 }
 
 #[test]
@@ -61,7 +72,10 @@ fn max_chars_should_keep_whole_blocks_and_say_so() {
         "60",
     ])
     .stdout_text();
-    assert!(cut.chars().count() <= 60 && !cut.is_empty() && full.starts_with(&cut), "{cut:?}");
+    assert!(
+        cut.chars().count() <= 60 && !cut.is_empty() && full.starts_with(&cut),
+        "{cut:?}"
+    );
     let json = laminapdf(&[
         "extract",
         "fixtures/golden/links-and-outlines.pdf",

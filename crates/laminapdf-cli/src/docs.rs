@@ -1,6 +1,6 @@
 //! The commands that describe the CLI itself: `schema` (from the same types the commands use,
-//! so agents and `laminapdf mcp` never drift from them), `completions` (clap_complete) and the
-//! hidden `man-pages` that `cargo xtask cli-docs` runs (clap_mangen).
+//! so agents and `laminapdf mcp` never drift from them), `completions` (`clap_complete`) and the
+//! hidden `man-pages` that `cargo xtask cli-docs` runs (`clap_mangen`).
 
 use std::path::Path;
 
@@ -70,7 +70,9 @@ pub(crate) fn man_pages(args: &ManPagesArgs, command: &Command) -> Result<(), Cl
 /// The page of `command` as `<name>.1`, then its subcommands' as `<name>-<sub>.1`.
 fn write_page(folder: &Path, command: &Command, name: &str) -> std::io::Result<()> {
     let mut page = Vec::new();
-    clap_mangen::Man::new(command.clone()).title(name.to_owned()).render(&mut page)?;
+    clap_mangen::Man::new(command.clone())
+        .title(name.to_owned())
+        .render(&mut page)?;
     std::fs::write(folder.join(format!("{name}.1")), page)?;
     for sub in command.get_subcommands().filter(|s| !s.is_hide_set()) {
         write_page(folder, sub, &format!("{name}-{}", sub.get_name()))?;

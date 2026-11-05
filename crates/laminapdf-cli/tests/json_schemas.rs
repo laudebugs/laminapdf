@@ -1,7 +1,7 @@
 //! The committed JSON Schemas (`schemas/`): each is what the report types generate
 //! (`UPDATE_GOLDEN=1` rewrites them), and every `--json` output of the binary validates
 //! against its own, errors and warnings on standard error included.
-#![expect(
+#![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
     clippy::panic,
@@ -12,7 +12,6 @@ mod common;
 
 use common::schemas::Validator;
 use common::{folder, laminapdf, run};
-use serde_json::Value;
 
 /// The `schemas/` folder.
 fn schemas_dir() -> std::path::PathBuf {

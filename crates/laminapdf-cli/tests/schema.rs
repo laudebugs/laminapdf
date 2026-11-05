@@ -1,6 +1,6 @@
 //! `laminapdf schema`: every command's document is valid JSON Schema 2020-12, its `output` is
 //! the committed schema of the report, and the index lists every committed schema.
-#![expect(
+#![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
     reason = "test helpers: a panic is a test failure"
@@ -25,7 +25,9 @@ fn every_command_schema_should_be_valid_json_schema_2020_12() {
             "crates/laminapdf-extract/schemas/extract.schema.json",
         ] {
             let resource: Value = serde_json::from_slice(&std::fs::read(root().join(path)).unwrap()).unwrap();
-            compiler.add_resource(resource["$id"].as_str().unwrap(), resource.clone()).unwrap();
+            compiler
+                .add_resource(resource["$id"].as_str().unwrap(), resource.clone())
+                .unwrap();
         }
         let id = schema["$id"].as_str().unwrap().to_owned();
         compiler.add_resource(&id, schema).unwrap();

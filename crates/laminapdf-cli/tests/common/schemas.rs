@@ -1,5 +1,6 @@
 //! The committed schemas, `laminapdf.error/1` and `laminapdf.extract/1`, compiled, to validate
 //! what the binary prints.
+#![allow(clippy::indexing_slicing, reason = "test helpers: a missing key is a test failure")]
 
 use serde_json::Value;
 
@@ -24,7 +25,9 @@ impl Validator {
             "crates/laminapdf-extract/schemas/extract.schema.json",
         ] {
             let schema = read(path);
-            compiler.add_resource(schema["$id"].as_str().unwrap(), schema.clone()).unwrap();
+            compiler
+                .add_resource(schema["$id"].as_str().unwrap(), schema.clone())
+                .unwrap();
         }
         let mut ids = Vec::new();
         for (file, schema) in laminapdf_cli::schema::all() {

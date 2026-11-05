@@ -41,7 +41,10 @@ pub fn inputs(named: &[String], files_from: Option<&[u8]>, nul: bool) -> Result<
                 continue;
             }
             let name = String::from_utf8(entry.to_vec()).map_err(|_| {
-                CliError::new(ErrorCode::InvalidCommandLine, "a name in the --files-from list isn't UTF-8")
+                CliError::new(
+                    ErrorCode::InvalidCommandLine,
+                    "a name in the --files-from list isn't UTF-8",
+                )
             })?;
             all.push(name);
         }
@@ -134,7 +137,7 @@ pub enum Status {
 /// The counts a batch ends with: its last NDJSON line.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Summary {
+pub struct BatchSummary {
     /// Always `summary`.
     #[serde(rename = "type")]
     #[schemars(schema_with = "summary_type")]
@@ -160,14 +163,14 @@ pub struct Summary {
 pub enum SummaryKind {
     /// `summary`.
     #[default]
-    Summary,
+    BatchSummary,
 }
 
 fn summary_type(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
     schemars::json_schema!({ "const": "summary" })
 }
 
-impl Summary {
+impl BatchSummary {
     /// Counts one input's outcome: `Ok(has_warnings)`, or the error's exit code.
     pub fn count(&mut self, outcome: Result<bool, ExitCode>) {
         match outcome {
@@ -222,7 +225,11 @@ mod tests {
             },
             |input| {
                 // The first inputs take longest.
-                let n: u64 = input.trim_start_matches("in").trim_end_matches(".pdf").parse().unwrap_or(0);
+                let n: u64 = input
+                    .trim_start_matches("in")
+                    .trim_end_matches(".pdf")
+                    .parse()
+                    .unwrap_or(0);
                 std::thread::sleep(Duration::from_millis(12u64.saturating_sub(n) * 3));
                 Ok(n)
             },
@@ -279,8 +286,10 @@ mod tests {
     #[test]
     fn the_exit_code_should_follow_the_counts() {
         let summary = |outcomes: &[Result<bool, ExitCode>]| {
-            let mut s = Summary::default();
-            outcomes.iter().for_each(|o| s.count(*o));
+            let mut s = BatchSummary::default();
+            for outcome in outcomes {
+                s.count(*outcome);
+            }
             s.exit_code(false)
         };
         assert_eq!(summary(&[Ok(false), Ok(false)]), ExitCode::Ok);

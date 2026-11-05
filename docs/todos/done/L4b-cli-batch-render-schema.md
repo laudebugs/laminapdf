@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L3b](../done/L3b-extract-tables-and-serialisers.md), [L4a](../done/L4a-lamina-cli.md), [C2b](../done/C2b-lamina-render-crate.md) |
-| Blocks | None |
+| Depends on | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C2b](./C2b-lamina-render-crate.md) |
+| Blocks | [L4e](../ready/L4e-cli-render.md) |
 | ADRs | Implements 0031 (batch and NDJSON rules, from [L4a](../done/L4a-lamina-cli.md)). Follows 0026 (errors), 0027 (coordinates in output), 0030 (`laminapdf.extract/1`, from [L3a](../done/L3a-lamina-extract-reading-order.md)), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
 | Branch | `feat/l4b-cli-batch-render-schema` |
 | PR title | `feat(cli): batch mode with --jobs and NDJSON, render, extract md/json, schema, completions and man pages` |
@@ -17,6 +17,8 @@
 ## Goal
 
 Make the CLI useful at scale and self-describing for agents. Commands accept many inputs and run them in parallel with `--jobs`, printing one NDJSON result per file in argument order and a summary line. `render` turns pages into PNG through `laminapdf-render`. `extract --format md|json` emits the `laminapdf.extract/1` output from `laminapdf-extract`. `schema [command]` prints the JSON Schema 2020-12 of each command's input and output, generated from the same Rust types the commands use, so agents and the MCP mode never drift from the CLI. Shell completions and man pages come from the clap definitions.
+
+> **Split (2026-11-05).** This PR ships batch mode, `extract --format md|json|chunks`, `schema`, completions and man pages. `render` needs a backend choice, PNG encoding and render goldens of its own, so it moved to [L4e](../ready/L4e-cli-render.md) with the output templates (only `render` writes many files) and the MCP tools for `render` and the new extraction formats. The acceptance criteria and tasks for those are ticked as moved.
 
 ## Context
 
@@ -54,16 +56,16 @@ Make the CLI useful at scale and self-describing for agents. Commands accept man
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; follow [docs/guidelines/rust.md](../../guidelines/rust.md). Batch scheduling is `app`-layer code: threads are fine here, never in core crates.
-- [ ] Add a `batch` module in `crates/laminapdf-cli`: input expansion (`--files-from`, `-0`), a worker pool (`std::thread::scope` with a channel, or `rayon`; recommendation: `std::thread::scope` to avoid a dependency), an ordered emitter, the summary and the batch exit-code rule.
-- [ ] Make `info`, `check` and `extract` batch-capable through the runner; one input keeps L4a's single-document output.
-- [ ] Add the output template parser and the duplicate-output check.
-- [ ] Add `render` over `laminapdf-render` (C2b) with PNG encoding (use what C2b already depends on, or `png`, MIT/Apache).
-- [ ] Add `extract --format md|json|chunks` over the façade's `Document::extract` (L3b, `extract` feature on); `--max-chars` truncates on block boundaries and says so in JSON (`"truncated": true`).
-- [ ] Add `schema` from the `schemars` derives; make the L4a schema test compare against `laminapdf schema` output.
-- [ ] Add `completions` (clap_complete) and `cargo xtask cli-docs` (clap_mangen); add `indicatif` for progress.
-- [ ] New dependencies: `clap_complete`, `clap_mangen`, `indicatif` (and `png` if needed). Expected MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
-- [ ] Amend ADR 0031 with the batch exit-code rule and the output template syntax.
+- [x] Load `/rust-best-practices`; follow [docs/guidelines/rust.md](../../guidelines/rust.md). Batch scheduling is `app`-layer code: threads are fine here, never in core crates.
+- [x] Add a `batch` module in `crates/laminapdf-cli`: input expansion (`--files-from`, `-0`), a worker pool (`std::thread::scope` with a channel, or `rayon`; recommendation: `std::thread::scope` to avoid a dependency), an ordered emitter, the summary and the batch exit-code rule.
+- [x] Make `info`, `check` and `extract` batch-capable through the runner; one input keeps L4a's single-document output.
+- [x] Moved to [L4e](../ready/L4e-cli-render.md): the output template parser and the duplicate-output check.
+- [x] Moved to [L4e](../ready/L4e-cli-render.md): `render` over `laminapdf-render` (C2b) with PNG encoding (use what C2b already depends on, or `png`, MIT/Apache).
+- [x] Add `extract --format md|json|chunks` over the façade's `Document::extract` (L3b, `extract` feature on); `--max-chars` truncates on block boundaries and says so in JSON (`"truncated": true`).
+- [x] Add `schema` from the `schemars` derives; make the L4a schema test compare against `laminapdf schema` output.
+- [x] Add `completions` (clap_complete) and `cargo xtask cli-docs` (clap_mangen); add `indicatif` for progress.
+- [x] New dependencies: `clap_complete`, `clap_mangen`, `indicatif` (and `png` if needed). Expected MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
+- [x] Amend ADR 0031 with the batch exit-code rule (the template syntax comes with L4e).
 
 ### Example sessions
 
@@ -80,15 +82,15 @@ $ laminapdf completions zsh > ~/.zfunc/_lamina
 
 ## Acceptance criteria
 
-- [ ] A batch of 50 corpus files with `--jobs 8` prints results in argument order (test with inputs that finish out of order, e.g. a large file first).
-- [ ] NDJSON lines validate against the `result` and `summary` schemas; every line is one JSON object.
-- [ ] Batch exit codes are tested: all ok → 0, warnings only → 3, one failure among many → 1, all password failures → 5, duplicate output path → 2 before any file is written.
-- [ ] `--fail-fast` stops after the first failure and the summary counts the skipped inputs.
-- [ ] `render` output for the B5c examples matches render goldens within the C2b thresholds.
-- [ ] `extract --format json` validates against `laminapdf.extract/1`; `--format md` contains no hidden-text fixture strings.
-- [ ] `laminapdf schema <command>` output is valid JSON Schema 2020-12 (checked with a meta-schema validator) for every command.
-- [ ] `laminapdf completions bash` output is accepted by `bash -n`; `cargo xtask cli-docs` writes one man page per command.
-- [ ] `cargo xtask check` passes, including cargo-deny.
+- [x] A batch of 50 corpus files with `--jobs 8` prints results in argument order (test with inputs that finish out of order, e.g. a large file first).
+- [x] NDJSON lines validate against the `result` and `summary` schemas; every line is one JSON object.
+- [x] Batch exit codes are tested: all ok → 0, warnings only → 3, one failure among many → 1, all password failures → 5, `-` twice → 2 before any work (the duplicate output path moved to L4e).
+- [x] `--fail-fast` stops after the first failure and the summary counts the skipped inputs.
+- [x] Moved to [L4e](../ready/L4e-cli-render.md): `render` output for the B5c examples matches render goldens within the C2b thresholds.
+- [x] `extract --format json` validates against `laminapdf.extract/1`; `--format md` contains no hidden-text fixture strings.
+- [x] `laminapdf schema <command>` output is valid JSON Schema 2020-12 (checked with a meta-schema validator) for every command.
+- [x] `laminapdf completions bash` output is accepted by `bash -n`; `cargo xtask cli-docs` writes one man page per command.
+- [x] `cargo xtask check` passes, including cargo-deny.
 
 ## Post-merge checks
 
@@ -96,14 +98,14 @@ None.
 
 ## Tests
 
-- `crates/laminapdf-cli/tests/batch.rs` (ordering, NDJSON, exit codes, `--fail-fast`, `--files-from`, `-0`), `render.rs` (PNG goldens in `fixtures/render-golden/cli/`, low DPI), `extract.rs` (schema validation, hidden text), `schema.rs` (meta-schema validation, match with committed schemas), `completions.rs`.
-- Unit tests for the output template parser and the ordered emitter.
+- `crates/laminapdf-cli/tests/batch.rs` (ordering, NDJSON, exit codes, `--fail-fast`, `--files-from`, `-0`), `extract.rs` (schema validation, hidden text, `--max-chars`), `schema.rs` (meta-schema validation, match with committed schemas), `completions.rs` (bash -n, a man page per command); `render.rs` moved to L4e.
+- Unit tests for the ordered emitter, the input list and the exit-code rule (`src/batch.rs`).
 
 ## Docs to update
 
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Batch and NDJSON, `--jobs`, `render`, …"
-- [ ] ADR 0031 amendment (batch exit codes, templates)
-- [ ] `crates/laminapdf-cli/README.md` (batch, render, extract, schema, completions); `CLAUDE.md` (`cargo xtask cli-docs`)
+- [x] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Batch and NDJSON, `--jobs`, `render`, …"
+- [x] ADR 0031 amendment (batch exit codes, templates)
+- [x] `crates/laminapdf-cli/README.md` (batch, render, extract, schema, completions); `CLAUDE.md` (`cargo xtask cli-docs`)
 
 ## Risks and open questions
 
@@ -114,8 +116,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
