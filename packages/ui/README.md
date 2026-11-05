@@ -41,7 +41,8 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.6 Thumbnail | `Thumbnail` | `aria-current="page"` on the current page; the viewer's image goes in as `children` |
 | §7.7 Outline row | `OutlineRow` | `aria-current="location"`; a chevron button with `aria-expanded` for a row with children |
 | §7.8 Status bar items | `StatusBarItem`, `NetworkIndicator`, `RepairedNotice`, `PageLabel` | The app supplies the counts and wording |
-| §7.10 Command palette | `ShortcutChip` | `⌥⌘E` on macOS, `Ctrl Shift E` elsewhere, from the platform the app names |
+| §7.9 Selection mini toolbar | `SelectionToolbar`, `SelectionToolbarDivider` | Above a rectangle the app gives, flipping below; Shift+F10 reaches it |
+| §7.10 Command palette | `CommandPalette`, `ShortcutChip` | The palette's shell over rows the app ranks; the chip writes `⌥⌘E` on macOS and `Ctrl Shift E` elsewhere |
 | §7.12 Colour swatches | `SwatchGroup` | Colours are token names, so only design-language colours appear |
 | §7.19 Form controls | `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup`, `Radio`, `Switch` | Label above, help or error below, wired with `aria-describedby` and `aria-invalid` |
 | §7.16 Bottom sheet | `BottomSheet` | Medium and large detents; the grabber is a button; modal or not |
@@ -55,15 +56,13 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.26 Menu | `Menu`, `MenuTrigger`, `Popover`, `PopoverTrigger` | The menu button pattern; a popover is a named dialog |
 | §7.27 Tooltip | `Tooltip` | After 500 ms of hover, at once on keyboard focus |
 
-The selection toolbar and the command palette's shell come next, in the same package.
-
 ## Overlays
 
 Pick the layer by what it asks of people:
 
 - A **notice** for a state that lasts, inside the panel it concerns.
 - A **toast** to confirm something that already happened. It goes away, so it never carries an error, and its action (such as Undo) must also be in a menu or a shortcut.
-- A **popover** or **menu** for a short choice next to the button that opened it.
+- A **popover** or **menu** for a short choice next to the button that opened it, and the **selection toolbar** for actions on selected text.
 - A **dialog** when the work must stop for an answer. On a phone it rises as a bottom sheet.
 - A **bottom sheet** for a panel on the phone: modal when it asks something, non-modal when the page stays in use beside it.
 
