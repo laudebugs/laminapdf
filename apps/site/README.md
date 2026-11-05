@@ -42,7 +42,7 @@ After each build, `astro.config.mjs` runs three steps from `@laminapdf/site-kit`
 
 The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), with the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
 
-The header is design language §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". A link to a page of this site appears once the page exists. `astro.config.mjs` lists the files in `src/pages/` once per build for `src/nav.ts`, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in `src/nav.ts` is `true`, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) sets when the reader goes live. [W1d](../../docs/todos/ready/W1d-one-site-header.md) gives the docs site the same header.
+The header is design language §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". A link to a page of this site appears once the page exists. `astro.config.mjs` lists the files in `src/pages/` once per build for `src/nav.ts`, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in `src/nav.ts` is `true`, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) sets when the reader goes live. [W1d](../../docs/todos/ongoing/W1d-one-site-header.md) gives the docs site the same header.
 
 ## Deploying
 

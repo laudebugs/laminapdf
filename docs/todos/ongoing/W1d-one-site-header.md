@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Website §4 The website](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md) |
@@ -37,7 +37,7 @@ A visitor moving between `laminapdf.com` and `docs.laminapdf.com` sees the same 
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
+- [x] Claim: the first commit moves this file to `ongoing/`.
 - [ ] Move the header and its links into the shared package; use it in both sites.
 - [ ] Browser tests: keyboard order, the current page's underline, phone width, light and dark, axe.
 
