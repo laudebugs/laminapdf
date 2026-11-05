@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 184 ready · 123 done** (307 total).
+**1 ongoing · 183 ready · 123 done** (307 total).
 
 ## Can start now
 
@@ -28,12 +28,11 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6f](ready/U6f-gallery-and-visual-tests.md): Component gallery, screenshot tests, axe on every page and the screens docs check
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
-- [P5](ready/P5-npm-trusted-publishing-and-version-only-releases.md): npm trusted publishing, and a release lane that skips its nightly run for a version-only commit
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [P5](ongoing/P5-npm-trusted-publishing-and-version-only-releases.md): npm trusted publishing, and a release lane that skips its nightly run for a version-only commit
 
 ## Architecture — Round A
 
@@ -342,8 +341,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | P2 | [First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2](done/P2-first-registry-prerelease.md) | done | [P1](done/P1-reserve-names-and-trusted-publishing.md) |
 | P3 | [Registry checks after the first release: installs, semver, docs](ready/P3-registry-checks.md) | ready | [P2](done/P2-first-registry-prerelease.md) |
 | P4 | [Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`](ready/P4-docs-match-the-release.md) | ready | [P3](ready/P3-registry-checks.md) |
-| P5 | [npm trusted publishing, and a release lane that skips its nightly run for a version-only commit](ready/P5-npm-trusted-publishing-and-version-only-releases.md) | ready | [P2](done/P2-first-registry-prerelease.md) |
-| P6 | [The daily release: the release bot, its version commit and pull request](ready/P6-daily-release.md) | ready | [P4](ready/P4-docs-match-the-release.md), [P5](ready/P5-npm-trusted-publishing-and-version-only-releases.md) |
+| P5 | [npm trusted publishing, and a release lane that skips its nightly run for a version-only commit](ongoing/P5-npm-trusted-publishing-and-version-only-releases.md) | ongoing | [P2](done/P2-first-registry-prerelease.md) |
+| P6 | [The daily release: the release bot, its version commit and pull request](ready/P6-daily-release.md) | ready | [P4](ready/P4-docs-match-the-release.md), [P5](ongoing/P5-npm-trusted-publishing-and-version-only-releases.md) |
 
 ## Docs and code quality — Round Q
 

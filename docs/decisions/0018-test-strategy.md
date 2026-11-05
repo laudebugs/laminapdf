@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
-- Amended 2026-11-05 (owner): the release lane skips its own nightly run when the release commit differs from a commit a full nightly passed on only in version files, as the daily release's commits do ([ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane); [P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md)).
+- Amended 2026-11-05 (owner): the release lane skips its own nightly run when the release commit differs from a commit a full nightly passed on only in version files, as the daily release's commits do ([ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane); [P5](../todos/ongoing/P5-npm-trusted-publishing-and-version-only-releases.md)).
 - Amended 2026-11-02 (owner): the release guard also accepts a dispatched nightly run on `main` with every input at its default; until then the Release row counted only scheduled runs ([implementation note](#release-guard-accepts-a-full-dispatched-nightly-2026-11-02)).
 
 ## Context
