@@ -108,10 +108,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
 │                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
-│                        #   CommandPalette; z-order from --paper-z-*),
+│                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
+│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
+│                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
+│                        #   useStoreState, useReaderState), src/messages.ts (the message catalogue),
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
-│                        #   only, @layer paper.*); test/ (states.tsx; Node: CSS tokens only, import boundary, §7 map; browser/: keyboard,
-│                        #   ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
+│                        #   only, @layer paper.*); test/ (states.tsx, fakes.ts (fakePlatform with any flags); Node: CSS tokens only,
+│                        #   import boundary, §7 map, the reader machine and controller, the web platform over fake windows; browser/:
+│                        #   keyboard, ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
 ├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; build time only): what both Astro sites share.
 │                        #   src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex unless
 │                        #   LAMINA_PDF_ENV=production, the website's checks of every built page (ADR 0011 §3: same-origin loads, no
@@ -245,7 +249,8 @@ cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust r
                              #   laminapdf-test-fixtures (baseline `test-helpers`); no PDF lexer or PNG row filter outside
                              #   laminapdf-syntax (`one-lexer`); no todo ID with a letter suffix (read from docs/todos/'s file
                              #   names) in crates/*/src or packages/*/src, TypeScript included (`todo-id`)
-cargo xtask check ts         # biome ci (packages/sdk/biome.json's examples override reports errors; every example is linted
+cargo xtask check ts         # the platform boundary (ADR 0010 rule 1: no `@tauri-apps/*`, `isTauri`, Tauri globals or user agent in
+                             #   packages/*/src, comments aside), biome ci (packages/sdk/biome.json's examples override reports errors; every example is linted
                              #   again with --error-on-warnings), typecheck and tests of packages/* and apps/*, the docs site's build
                              #   (apps/docs: TypeDoc, snippets, code table; fails on a broken internal link), the website's build
                              #   (apps/site: fails on a page that breaks the website's rules), npm licences
