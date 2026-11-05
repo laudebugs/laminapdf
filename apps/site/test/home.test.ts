@@ -60,8 +60,9 @@ describe("the home page", () => {
     for (const title of ["Fixture todo in flight", "Fixture todo ready next", "feat(fixture): the last merged title"]) {
       expect(page).toContain(title);
     }
-    expect(page).toContain("milestone M2, under way");
-    expect(page).toContain("milestone M3, not started");
+    expect(page).toContain("The web reader: milestone M2, under way");
+    expect(page).toContain("The desktop app: milestone M3, not started");
+    expect(page.match(/milestone M2/g)).toHaveLength(1);
   });
 
   it("draws each area's bar from its counts", async () => {

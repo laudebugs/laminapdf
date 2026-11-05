@@ -10,6 +10,7 @@ import sans from "@laminapdf/fonts/files/lamina-sans-latin-wght-normal.woff2?url
 import { siteNav } from "@laminapdf/site-kit/nav";
 import SiteHeader from "@laminapdf/site-kit/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import { OPENING } from "../data/copy.js";
 
 interface Props {
   /** The page's title, as the browser tab and search results show it. */
@@ -23,8 +24,10 @@ interface Props {
 const { title, description, noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const links = siteNav(__SITE_PAGES__, { site: "website", path: Astro.url.pathname });
-// The share image and the favicons, written by scripts/share-image.mjs.
+// The share image and the favicons, written by scripts/share-image.mjs. The image shows the
+// wordmark and the home page's headline on every page's card, so its alt text says the same.
 const shareImage = new URL("/og.png", Astro.site);
+const shareAlt = `Lamina PDF: ${OPENING.headline}`;
 ---
 
 <!doctype html>
@@ -47,7 +50,7 @@ const shareImage = new URL("/og.png", Astro.site);
     <meta property="og:image" content={shareImage.href} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Lamina PDF: create, read and edit PDFs from Rust and TypeScript" />
+    <meta property="og:image:alt" content={shareAlt} />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>

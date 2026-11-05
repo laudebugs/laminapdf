@@ -97,7 +97,8 @@ main {
   text-wrap: balance;
 }
 
-.sheet p {
+/* :where() keeps this at one class's weight, so a paragraph's own class sets its margins. */
+.sheet :where(p) {
   margin: 0 0 var(--paper-space-16);
   max-width: 60ch;
 }

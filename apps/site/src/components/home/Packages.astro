@@ -2,7 +2,7 @@
 // The packages: the two install lines and every published package, read from the docs site's
 // install page so the two never disagree, and the command-line tool, not released yet.
 import { PACKAGES } from "../../data/copy.js";
-import { installLines, packages, VERSION } from "../../data/sources.js";
+import { alphaNote, installLines, packages, VERSION } from "../../data/sources.js";
 import Inline from "./Inline.astro";
 
 const [npm, cargo] = installLines();
@@ -10,7 +10,7 @@ const [npm, cargo] = installLines();
 
 <section id="packages" class="home-section" aria-labelledby="packages-title">
   <h2 id="packages-title">{PACKAGES.heading}</h2>
-  <p class="section-intro">{PACKAGES.intro}</p>
+  <p class="section-intro">{PACKAGES.intro} <Inline text={alphaNote()} /></p>
   <div class="install">
     <div>
       <p class="install-label">{PACKAGES.typescript}</p>

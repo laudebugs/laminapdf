@@ -49,9 +49,8 @@ export const DASHBOARD = {
 /** The packages section. */
 export const PACKAGES = {
   heading: "The packages",
-  // [OWNER TO APPROVE]
-  intro:
-    "Two packages cover most projects. Both are alpha releases, so name the alpha when you install: a plain install picks a placeholder that only reserves the name.",
+  // [OWNER TO APPROVE] The install page's note on alpha releases follows it (sources.ts, alphaNote).
+  intro: "Two packages cover most projects.",
   typescript: "TypeScript, in every JavaScript runtime",
   rust: "Rust",
   // [OWNER TO APPROVE]
@@ -64,8 +63,7 @@ export const PARTS = {
   docs: "The docs: guides, recipes and the API reference",
   packages: "The packages on npm and crates.io",
   crate: "The Rust crate on crates.io",
-  // [OWNER TO APPROVE]
-  reader: "The web reader: milestone M2, under way",
-  // [OWNER TO APPROVE]
-  desktop: "The desktop app: milestone M3",
+  // The milestone and its state follow, from progress.json: "The web reader: milestone M2, under way".
+  reader: "The web reader",
+  desktop: "The desktop app",
 } as const;

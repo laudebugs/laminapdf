@@ -56,7 +56,8 @@ try {
     });
     await page.goto(`${ORIGIN}/`, { waitUntil: "load" });
     await page.evaluate(() => document.fonts.ready);
-    await page.screenshot({ path: fileURLToPath(at(out)), omitBackground: false });
+    // A transparent icon keeps its alpha channel; Chromium paints white under it otherwise.
+    await page.screenshot({ path: fileURLToPath(at(out)), omitBackground: true });
     await page.close();
   };
   await render(share, 1200, 630, "../public/og.png");

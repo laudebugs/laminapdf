@@ -10,7 +10,7 @@ interface Props {
 }
 
 const { milestones } = Astro.props;
-const count = (state: string) => milestones.filter((m) => m.state === state).length;
+const count = (state: Progress["milestones"][number]["state"]) => milestones.filter((m) => m.state === state).length;
 const summary = `${milestones.length} milestones: ${count("done")} done, ${count("under-way")} under way.`;
 ---
 

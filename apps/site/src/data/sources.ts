@@ -31,26 +31,57 @@ export function typescriptFirstPdf(source: string = helloTs): string {
   return withoutHeader(source);
 }
 
+/** The names a `use` line brings in: `Error` for `use std::error::Error;`, each name in braces. */
+function importedNames(line: string): string[] {
+  const path = line.replace(/^use\s+/, "").replace(/;\s*$/, "");
+  const list = path.match(/\{([^}]*)\}/)?.[1] ?? path.split("::").at(-1) ?? "";
+  return list
+    .split(",")
+    .map(
+      (name) =>
+        name
+          .trim()
+          .split(/\s+as\s+/)
+          .at(-1) ?? "",
+    )
+    .filter((name) => name !== "");
+}
+
 /**
- * The Rust example's `use laminapdf::…` line and its `build` function with the doc comment above
- * it (`crates/laminapdf/examples/hello.rs`), leaving out `main`, which only writes the file.
+ * The Rust example's `build` function with the doc comment above it
+ * (`crates/laminapdf/examples/hello.rs`), and the `use` lines it needs: the standard library's,
+ * then Lamina PDF's. `main`, which only writes the file, and its imports are left out.
  */
 export function rustFirstPdf(source: string = helloRs): string {
   const lines = source.split("\n");
-  const use = lines.find((line) => line.startsWith("use laminapdf::"));
   const build = lines.findIndex((line) => line.startsWith("pub(crate) fn build("));
-  if (use === undefined || build < 0) throw new Error("hello.rs: no `use laminapdf::` line or `build` function");
+  if (build < 0) throw new Error("hello.rs: no `build` function");
   let start = build;
   while (start > 0 && lines[start - 1]?.startsWith("///")) start -= 1;
-  return [use, "", ...lines.slice(start)].join("\n").trimEnd();
+  const body = lines.slice(start).join("\n").trimEnd();
+  const uses = lines.filter(
+    (line) => line.startsWith("use ") && importedNames(line).some((name) => new RegExp(`\\b${name}\\b`).test(body)),
+  );
+  const std = uses.filter((line) => line.startsWith("use std::"));
+  const others = uses.filter((line) => !line.startsWith("use std::"));
+  if (others.length === 0) throw new Error("hello.rs: `build` uses nothing from a `use laminapdf::` line");
+  return [...std, ...(std.length > 0 ? [""] : []), ...others, "", body].join("\n");
 }
 
-/** The commands of the CLI README's `console` examples (`$ …` lines, without `echo $?`). */
+/**
+ * The commands of the CLI README's `console` examples that succeed: each `$ …` line but `echo $?`
+ * and those whose output is an `error[…]`, which the README shows to explain the error. A trailing
+ * `# …` comment keeps two spaces before it, not the README's column alignment.
+ */
 export function cliCommands(readme: string = cliReadme): string {
   const blocks = [...readme.matchAll(/```console\n([\s\S]*?)```/g)].map(([, block = ""]) => block);
-  const commands = blocks
-    .flatMap((block) => block.split("\n"))
-    .filter((line) => line.startsWith("$ ") && !line.startsWith("$ echo $?"));
+  const commands = blocks.flatMap((block) =>
+    block
+      .split(/^(?=\$ )/m)
+      .filter((example) => example.startsWith("$ ") && !example.startsWith("$ echo $?"))
+      .filter((example) => !/^error\[/m.test(example))
+      .map((example) => (example.split("\n")[0] ?? "").replace(/\s{2,}#/, "  #")),
+  );
   if (commands.length === 0) throw new Error("laminapdf-cli README: no `$ ` commands in its console examples");
   return commands.join("\n");
 }
@@ -60,6 +91,16 @@ export function installLines(page: string = installPage): readonly string[] {
   const lines = page.split("\n").filter((line) => /^(npm install|cargo add) /.test(line));
   if (lines.length !== 2) throw new Error("install.mdx: expected one `npm install` and one `cargo add` line");
   return lines;
+}
+
+/**
+ * The install page's note on alpha releases: the sentences from "Both are alpha releases" to the
+ * end of their paragraph, so the home page repeats the install page's advice word for word.
+ */
+export function alphaNote(page: string = installPage): string {
+  const note = page.match(/Both are alpha releases[^\n]*/)?.[0];
+  if (note === undefined) throw new Error('install.mdx: no "Both are alpha releases" note');
+  return note.trim();
 }
 
 /** The install page's table of published packages, in its order. */

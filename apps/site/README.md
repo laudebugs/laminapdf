@@ -44,7 +44,7 @@ After each build, `astro.config.mjs` runs three steps from `@laminapdf/site-kit`
 The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12-website-home)) is one document sheet on the paper ground, the design the owner chose. Nothing on it is typed by hand twice:
 
 - **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
-- **Code and packages** come from the files CI tests (`src/data/sources.ts`): the first PDF from `packages/sdk/examples/hello.ts` and `crates/laminapdf/examples/hello.rs`, the command-line examples from the CLI's README, and the install lines and package table from the docs site's install page.
+- **Code and packages** come from the files CI tests (`src/data/sources.ts`): the first PDF from `packages/sdk/examples/hello.ts` and `crates/laminapdf/examples/hello.rs`, the command-line examples that succeed from the CLI's README, and the install lines, the note on alpha releases and the package table from the docs site's install page.
 - **Words** are in `src/data/copy.ts`, each claim marked until the owner approves it; the areas' plain names are in `src/data/rounds.ts`.
 
 `test/home.test.ts` renders the page from a fixture snapshot with Astro's container API and finds each count, title and the date; `test/sources.test.ts` holds the code panel and the package table to their files. The code panel's tabs come from `src/scripts/tabs.ts`, a file because the CSP allows no inline script; without it, each pane shows under its own heading.
@@ -63,7 +63,7 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 `.github/workflows/site.yml` deploys it, following the docs site's workflow ([`apps/docs/README.md`](../docs/README.md#deploying)):
 
-- **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
+- **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`. The inputs are `apps/site/**`, the packages it imports (`packages/site-kit/**`, `packages/tokens/**`, `packages/fonts/**`) and the files `src/data/sources.ts` reads: `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf/examples/hello.rs`, `crates/laminapdf-cli/README.md` and `apps/docs/src/content/docs/install.mdx`. The workflow's `paths` must list them all, or a change to one of them reaches the site only at its next deploy.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
 - **`production`** (pushes to `main`): builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`.
 
