@@ -332,6 +332,7 @@
       "type": "object"
     },
     "Flags": {
+      "description": "Why a run would be hidden from a reader; empty for visible text.",
       "items": {
         "$ref": "#/$defs/DropReason"
       },

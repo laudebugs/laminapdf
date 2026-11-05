@@ -99,6 +99,13 @@ pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_m
     )
 }
 
+/// A failure that is a bug in Lamina PDF (kind `internal`): the façade's own fallback code,
+/// whose hint says to report it.
+#[cfg(feature = "extract")]
+pub(crate) fn internal(message: &'static str) -> JsValue {
+    to_js(&Diagnostic::error(ErrorCode::UnsetObject, message))
+}
+
 /// `source-budget-exceeded`: a sparse source would hold more than its budget (`detail` says how
 /// much; Lamina PDF's own numbers).
 pub(crate) fn source_budget_exceeded(detail: String) -> JsValue {

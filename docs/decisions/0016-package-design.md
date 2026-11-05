@@ -101,14 +101,16 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
 | base (`lamina_pdf_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **410,000** (amended 2026-10-31; was 390,000) | 6.8 % |
-| text (`lamina_pdf_text.wasm`) | 1,008,844 (brotli 770,741; with extraction, B9c) | **1,070,000** (amended 2026-10-31; was 1,020,000) | 5.7 % |
+| text (`lamina_pdf_text.wasm`) | 1,074,722 (brotli 818,716; with `doc.extract()`, L3e, 2026-11-05) | **1,130,000** (amended 2026-11-05; was 1,070,000) | 5.1 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
-| extract (`lamina_pdf_extract.wasm`, B9c) | 526,184 (brotli 414,641) | **560,000** (amended 2026-10-31; was 535,000) | 6.0 % |
+| extract (`lamina_pdf_extract.wasm`, B9c) | 588,769 (brotli 459,612; with `doc.extract()`, L3e, 2026-11-05) | **620,000** (amended 2026-11-05; was 560,000) | 5.3 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-11-05, L3e):** the extract module's budget rises from 560,000 to 620,000 bytes and the text module's from 1,070,000 to 1,130,000. `doc.extract()` ([L3e](../todos/done/L3e-extract-bindings-and-benchmark.md)) links `laminapdf-extract` into both modules: lines, blocks, XY-Cut++ reading order, ruled and unruled tables, and the Markdown, JSON and chunk writers. With it the modules measured extract 588,769 and text 1,074,722, 28.8 KB and 4.7 KB over the old budgets. That is after L3e cut about 6 KB from each by writing `ErrorCode::from_code` and `WarningCode::from_code` as a scan rather than a string `match`. The new budgets are those measurements plus about 5 % headroom. The owner chose this over a fourth module for retrieval extraction: extraction for an LLM belongs with text extraction, and a page that never reads text still downloads only the base module.
 
 **Amendment (owner, 2026-10-31):** every module's budget rises by about 5 %: base from 390,000 to 410,000 bytes, extract from 535,000 to 560,000 and text from 1,020,000 to 1,070,000. With L1b (generated error codes), B9c (text extraction) and B8a (tagged PDF) together, the modules measured base 389,668, extract 534,032 and text 1,019,875: 332, 968 and 125 bytes under their budgets, so the next feature would fail the check. The table's headroom is against its last recorded measurements; against the combined ones it is 5.0 %, 4.6 % and 4.7 %. The raise buys headroom for Round B's remaining features (B8b's conformance profiles first) without a budget amendment per PR; growth is still visible on every PR as a twiggy diff once a module passes 5 % over its baseline.
 

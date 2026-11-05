@@ -28,6 +28,7 @@ export const DOCUMENT_METHODS = {
   apply: 1,
   applyLog: 1,
   canExtractText: 0,
+  extract: 1,
   hasUnsavedChanges: 0,
   info: 0,
   page: 1,
