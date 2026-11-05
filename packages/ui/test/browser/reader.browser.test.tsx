@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import {
   type MenuEntry,
+  OpenDropZone,
   PasswordDialog,
   PlatformProvider,
   ReaderController,
@@ -447,6 +448,79 @@ describe("PasswordDialog", () => {
     await userEvent.keyboard("x{Enter}");
     await expect.poll(() => document.querySelector("[role=alert]")).not.toBeNull();
     const { violations } = await axe.run(document.querySelector("[role=dialog]") as HTMLElement, {
+      resultTypes: ["violations"],
+    });
+    expect(violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+/** Drags `files` over the window and drops them, as a file manager would. */
+function dropFiles(...files: File[]) {
+  const data = new DataTransfer();
+  for (const file of files) data.items.add(file);
+  const target = document.querySelector(".paper-open-zone") as HTMLElement;
+  target.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: data }));
+  target.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
+  return () => target.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data }));
+}
+
+describe("OpenDropZone", () => {
+  const pdf = new File(["%PDF-1.7\n%…"], "Q3-board-report.pdf", { type: "application/pdf" });
+
+  function home(platform = fakePlatform()) {
+    const opened: string[] = [];
+    const reader = new ReaderController(platform, async (file) => {
+      opened.push(file.name);
+      return { pageCount: 1 };
+    });
+    renderIn(
+      <PlatformProvider platform={platform}>
+        <OpenDropZone reader={reader} keys="other">
+          <p>Lamina PDF reads PDFs inside this browser tab.</p>
+        </OpenDropZone>
+      </PlatformProvider>,
+    );
+    return { reader, opened, platform };
+  }
+
+  it("is a labelled section whose only stop is Choose a file, which asks the platform", async () => {
+    const { platform } = home();
+    const section = document.querySelector("section.paper-open") as HTMLElement;
+    expect(section.getAttribute("aria-labelledby")).not.toBeNull();
+    await userEvent.tab();
+    expect(focused().textContent).toBe("Choose a file");
+    await userEvent.keyboard("{Enter}");
+    expect(platform.calls.openFiles).toEqual([{ multiple: false }]);
+  });
+
+  it("covers the window while a file is dragged over it, and opens a dropped PDF", async () => {
+    const { opened } = home();
+    const drop = dropFiles(pdf);
+    await frame();
+    expect(document.querySelector(".paper-open-overlay")?.textContent).toBe("Drop to open the PDF");
+    drop();
+    await expect.poll(() => opened).toEqual(["Q3-board-report.pdf"]);
+    expect(document.querySelector(".paper-open-overlay")).toBeNull();
+  });
+
+  it("refuses a file that isn't a PDF, with a message, and opens nothing", async () => {
+    const { opened } = home();
+    dropFiles(new File(["hello"], "notes.pdf.txt", { type: "text/plain" }))();
+    await expect
+      .poll(() => document.querySelector("[role=alert]")?.textContent)
+      .toBe("That isn't a PDF. Lamina PDF opens PDF files only.");
+    expect(opened).toEqual([]);
+  });
+
+  it("opens a PDF whose header follows a few leading bytes, as many files do", async () => {
+    const { opened } = home();
+    dropFiles(new File(["﻿junk%PDF-1.4\n"], "scan.pdf"))();
+    await expect.poll(() => opened).toEqual(["scan.pdf"]);
+  });
+
+  it("passes axe, with the shell's content under it", async () => {
+    home();
+    const { violations } = await axe.run(document.querySelector("section.paper-open") as HTMLElement, {
       resultTypes: ["violations"],
     });
     expect(violations.map((v) => v.id)).toEqual([]);

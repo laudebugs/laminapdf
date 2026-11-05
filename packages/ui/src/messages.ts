@@ -39,6 +39,12 @@ const EN = {
   "reader.password.cancel": "Cancel",
   "reader.password.open": "Open",
   "reader.password.opening": "Opening…",
+  "reader.open.heading": "Open a PDF",
+  "reader.open.drop": "Drop a PDF anywhere in this window",
+  "reader.open.paste": "or paste one with",
+  "reader.open.choose": "Choose a file",
+  "reader.open.dropping": "Drop to open the PDF",
+  "reader.open.notPdf": "That isn't a PDF. Lamina PDF opens PDF files only.",
 } as const;
 
 /** A message's key in the catalogue. */

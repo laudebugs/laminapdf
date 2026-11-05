@@ -97,6 +97,8 @@
   --paper-secondary-toolbar-height: 40px;
   --paper-top-bar-group-basis: 220px;
   --paper-zoom-percent-min-width: 40px;
+  --paper-open-column-width: 720px;
+  --paper-drop-border-width: 2px;
   --paper-page-input-height: 24px;
   --paper-page-input-min-width: 30px;
   --paper-status-bar-height: 28px;

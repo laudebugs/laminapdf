@@ -282,3 +282,74 @@
     color: var(--paper-muted);
   }
 }
+
+/* The home screen (R01): one centred column on `ground`, a display heading, the drop zone (a
+   dashed hairline box explaining the window takes drops), and the overlay while files are dragged
+   over the window: `accent-tint` with a 2 px dashed `accent` inset border. */
+@layer paper.components {
+  .paper-open {
+    display: grid;
+    gap: var(--paper-space-24);
+    inline-size: 100%;
+    max-inline-size: var(--paper-open-column-width);
+    margin-inline: auto;
+    padding: var(--paper-space-48) var(--paper-space-16);
+  }
+
+  .paper-open-heading {
+    margin: 0;
+    font: var(--paper-type-display);
+    letter-spacing: var(--paper-type-display-letter-spacing);
+  }
+
+  .paper-open-zone {
+    display: grid;
+    justify-items: center;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-32) var(--paper-space-16);
+    border: var(--paper-border-width) dashed var(--paper-control-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-surface);
+    color: var(--paper-text-2);
+    text-align: center;
+  }
+
+  .paper-open-zone > svg {
+    color: var(--paper-muted);
+  }
+
+  .paper-open-drop,
+  .paper-open-hint,
+  .paper-open-problem {
+    margin: 0;
+  }
+
+  .paper-open-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    margin-block-end: var(--paper-space-8);
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-open-problem {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    color: var(--paper-danger);
+  }
+
+  .paper-open-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--paper-z-modal);
+    display: grid;
+    place-items: center;
+    border: var(--paper-drop-border-width) dashed var(--paper-accent);
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent-strong);
+    font: var(--paper-type-heading);
+    pointer-events: none;
+  }
+}
