@@ -138,27 +138,32 @@ fn allowed_bump(root: &Path, members: &[String], baseline: &str, version: &str) 
 /// counts as removed, an added optional parameter too: the check errs towards a minor bump.
 fn api_lines(report: &str) -> BTreeSet<String> {
     let mut lines = BTreeSet::new();
+    // One label per `{` still open, so a line that closes more braces than it opens (`}`,
+    // `}): Promise<T>;`) closes exactly the blocks it ends.
     let mut scope: Vec<&str> = Vec::new();
     for line in report.lines().map(str::trim) {
         let skip = line.is_empty() || ["//", "##", ">", "```", "import "].iter().any(|p| line.starts_with(p));
         if skip {
             continue;
         }
-        if line.starts_with('}') {
-            scope.pop();
-            continue;
+        let (opens, closes) = (line.matches('{').count(), line.matches('}').count());
+        if !matches!(line, "}" | "};") {
+            let key = |text: &str| scope.iter().map(|s| format!("{s} › ")).collect::<String>() + text;
+            match literal_union(line) {
+                Some((head, members)) => lines.extend(members.into_iter().map(|m| key(&format!("{head} = {m}")))),
+                None if opens > closes => {
+                    lines.insert(key(scope_label(line)));
+                }
+                None => {
+                    lines.insert(key(line));
+                }
+            }
         }
-        let key = |text: &str| scope.iter().map(|s| format!("{s} › ")).collect::<String>() + text;
-        match literal_union(line) {
-            Some((head, members)) => lines.extend(members.into_iter().map(|m| key(&format!("{head} = {m}")))),
-            None if line.ends_with('{') => {
-                let label = scope_label(line);
-                lines.insert(key(label));
-                scope.push(label);
-            }
-            None => {
-                lines.insert(key(line));
-            }
+        for _ in closes..opens {
+            scope.push(scope_label(line));
+        }
+        for _ in opens..closes {
+            scope.pop();
         }
     }
     lines
@@ -203,10 +208,29 @@ fn compare(published: &str, local: &str) -> (Vec<String>, Vec<String>) {
     (removed, added)
 }
 
-/// Every `.d.ts` an entry point of `package` declares (its `package.json`'s `exports`: the plain
-/// `types` and each condition's, so the `node` and `workerd` entries of `.` are compared too),
-/// labelled `<subpath>` or, where a subpath has several, `<subpath> <types file>`.
-fn entry_points(package: &Path) -> Result<Vec<(String, PathBuf)>> {
+/// One `.d.ts` an entry point declares: its subpath, the export conditions that name it (a
+/// plain `types` counts as `default`), and a label: the subpath, with the conditions when the
+/// subpath has several `.d.ts` files (`. (node)`).
+#[derive(Debug)]
+struct Entry {
+    subpath: String,
+    conditions: Vec<String>,
+    file: PathBuf,
+    label: String,
+}
+
+impl Entry {
+    /// Whether `other` is the same entry point in another version of the package: the same
+    /// subpath and a condition in common, so a release that gives `.` a `node` types file of its
+    /// own still compares its `default` entry with the old one.
+    fn matches(&self, other: &Entry) -> bool {
+        self.subpath == other.subpath && self.conditions.iter().any(|c| other.conditions.contains(c))
+    }
+}
+
+/// Every `.d.ts` the entry points of `package` declare (its `package.json`'s `exports`: the plain
+/// `types` and each condition's, so the `node` and `workerd` entries of `.` are compared too).
+fn entry_points(package: &Path) -> Result<Vec<Entry>> {
     let manifest: Value = serde_json::from_str(&fs::read_to_string(package.join("package.json"))?)?;
     let exports = manifest
         .get("exports")
@@ -214,42 +238,45 @@ fn entry_points(package: &Path) -> Result<Vec<(String, PathBuf)>> {
         .context("package.json has no exports")?;
     let mut entries = Vec::new();
     for (subpath, target) in exports {
-        let mut types: Vec<&str> = Vec::new();
-        let conditions = target.as_object().into_iter().flat_map(|c| c.values());
-        for found in std::iter::once(target.get("types")).chain(conditions.map(|c| c.get("types"))) {
-            if let Some(file) = found.and_then(Value::as_str)
-                && !types.contains(&file)
-            {
-                types.push(file);
+        let mut files: Vec<(&str, Vec<String>)> = Vec::new();
+        let plain = target.get("types").map(|types| ("default", types));
+        let conditions = target.as_object().into_iter().flatten();
+        let named = conditions.filter_map(|(name, value)| Some((name.as_str(), value.get("types")?)));
+        for (condition, types) in plain.into_iter().chain(named) {
+            let Some(file) = types.as_str() else { continue };
+            match files.iter_mut().find(|(f, _)| *f == file) {
+                Some((_, names)) if !names.iter().any(|n| n == condition) => names.push(condition.to_owned()),
+                Some(_) => {}
+                None => files.push((file, vec![condition.to_owned()])),
             }
         }
-        for file in &types {
-            let label = if types.len() == 1 {
-                subpath.clone()
+        let several = files.len() > 1;
+        for (file, conditions) in files {
+            let label = if several {
+                format!("{subpath} ({})", conditions.join(", "))
             } else {
-                format!("{subpath} {file}")
+                subpath.clone()
             };
-            entries.push((label, package.join(file)));
+            entries.push(Entry {
+                subpath: subpath.clone(),
+                conditions,
+                file: package.join(file),
+                label,
+            });
         }
     }
     Ok(entries)
 }
 
 /// The report's file name for an entry point's label: `.` → `index`, `./worker/server` →
-/// `worker-server`, `. ./dist/entry/node.d.ts` → `dist-entry-node-d-ts`.
+/// `worker-server`, `. (node)` → `node`.
 fn report_name(label: &str) -> String {
-    let name: String = label
-        .trim_start_matches(". ")
-        .trim_start_matches("./")
-        .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
-        .collect();
-    let name = name.trim_matches('-');
-    if name.is_empty() {
-        "index".to_owned()
-    } else {
-        name.to_owned()
-    }
+    let name = label
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    if name.is_empty() { "index".to_owned() } else { name }
 }
 
 /// Runs API Extractor on `entry` of `package`, writing `<out>/<name>.api.md`. The config goes
@@ -373,19 +400,19 @@ fn typescript(ws: &Workspace, work: &Path, version: &str) -> Result<Vec<Outcome>
     let published = install_published(work, version)?;
     let (before, after) = (entry_points(&published)?, entry_points(&local)?);
     let mut outcomes = Vec::new();
-    for (subpath, entry) in &before {
-        let name = report_name(subpath);
-        let label = format!("{SDK} `{subpath}`");
-        let Some((_, local_entry)) = after.iter().find(|(s, _)| s == subpath) else {
+    for entry in &before {
+        let name = report_name(&entry.label);
+        let label = format!("{SDK} `{}`", entry.label);
+        let Some(local_entry) = after.iter().find(|a| a.matches(entry)) else {
             outcomes.push(Outcome {
                 name: label,
-                breaking: vec![format!("the entry point {subpath} is gone")],
+                breaking: vec![format!("the entry point {} is gone", entry.label)],
                 note: String::new(),
             });
             continue;
         };
-        let old = api_report(ws, &published, entry, &name, &work.join("reports/published"))?;
-        let new = api_report(ws, &local, local_entry, &name, &work.join("reports/local"))?;
+        let old = api_report(ws, &published, &entry.file, &name, &work.join("reports/published"))?;
+        let new = api_report(ws, &local, &local_entry.file, &name, &work.join("reports/local"))?;
         let (removed, added) = compare(&old, &new);
         outcomes.push(Outcome {
             name: label,
@@ -393,9 +420,9 @@ fn typescript(ws: &Workspace, work: &Path, version: &str) -> Result<Vec<Outcome>
             note: format!("{} API lines added", added.len()),
         });
     }
-    for (subpath, _) in after.iter().filter(|(s, _)| !before.iter().any(|(b, _)| b == s)) {
+    for entry in after.iter().filter(|a| !before.iter().any(|b| a.matches(b))) {
         outcomes.push(Outcome {
-            name: format!("{SDK} `{subpath}`"),
+            name: format!("{SDK} `{}`", entry.label),
             breaking: Vec::new(),
             note: "a new entry point".to_owned(),
         });
@@ -572,7 +599,8 @@ mod tests {
         assert_eq!(report_name("."), "index");
         assert_eq!(report_name("./explain"), "explain");
         assert_eq!(report_name("./worker/server"), "worker-server");
-        assert_eq!(report_name(". ./dist/entry/node.d.ts"), "dist-entry-node-d-ts");
+        assert_eq!(report_name(". (node)"), "node");
+        assert_eq!(report_name("./worker (default, browser)"), "worker-default-browser");
     }
 
     #[test]
@@ -587,21 +615,44 @@ mod tests {
         let found = entry_points(&tree.0).unwrap_or_default();
         let names: Vec<(&str, String)> = found
             .iter()
-            .map(|(s, p)| {
-                (
-                    s.as_str(),
-                    p.file_name().unwrap_or_default().to_string_lossy().into_owned(),
-                )
+            .map(|e| {
+                let file = e.file.file_name().unwrap_or_default().to_string_lossy().into_owned();
+                (e.label.as_str(), file)
             })
             .collect();
         assert_eq!(
             names,
             [
-                (". ./i.d.ts", "i.d.ts".to_owned()),
-                (". ./w.d.ts", "w.d.ts".to_owned()),
+                (". (default)", "i.d.ts".to_owned()),
+                (". (workerd)", "w.d.ts".to_owned()),
                 ("./explain", "e.d.ts".to_owned())
             ]
         );
+        // A published `.` with one types file is the new `.`'s default entry.
+        let old = Entry {
+            subpath: ".".to_owned(),
+            conditions: vec!["default".to_owned()],
+            file: PathBuf::from("i.d.ts"),
+            label: ".".to_owned(),
+        };
+        let matched: Vec<&str> = found
+            .iter()
+            .filter(|e| e.matches(&old))
+            .map(|e| e.label.as_str())
+            .collect();
+        assert_eq!(matched, [". (default)"]);
+    }
+
+    #[test]
+    fn compare_should_follow_braces_when_a_literal_opens_mid_line() {
+        let published = "```ts\nexport class A {\n    a(options?: {x: string;\n    }): void;\n    b(): void;\n}\nexport function c(): void;\n```\n";
+        let lines = api_lines(published);
+        assert!(lines.contains("export class A › b(): void;"), "{lines:?}");
+        assert!(
+            lines.contains("export class A › a(options?: {x: string; › }): void;"),
+            "{lines:?}"
+        );
+        assert!(lines.contains("export function c(): void;"), "{lines:?}");
     }
 
     #[test]
