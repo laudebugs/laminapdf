@@ -161,6 +161,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── tools/render/        # `render-golden` (hayro; its own workspace and Cargo.lock, outside the root one) and pdfium.py
 │                        #   (pypdfium2) for `cargo xtask render-golden`; `render-diff` (laminapdf-render's hayro and PDFium
 │                        #   adapters, the same parity comparison) for `cargo xtask render-diff`
+├── tools/bench/         # the extraction benchmark (L3f): extract-datasets.toml (pinned datasets, licences, refusals), the
+│                        #   lock of SHA-256 per file, olmocr_score.py (the benchmark's own tests), requirements.txt; README.md
 ├── tools/agent-eval/     # L5a: fixed tasks for a pinned coding agent, with and without the shipped docs, checked by
 │                        #   @laminapdf/sdk and qpdf; run by hand with the owner's API key, never in CI (README.md)
 ├── tools/ci-runner/linux/  # the Linux CI runner container on the Mac (Dockerfile, up.sh, down.sh, loop.sh)
@@ -303,6 +305,12 @@ cargo xtask verapdf [--dir <dir>]  # the Lamina PDF examples (or the PDFs in <di
                              #   claims (PDF/A-2b, 2u, 3b, PDF/UA-1); any violation fails; the pinned greenfield CLI (doctor.rs,
                              #   SHA-256 checked) installed into $RUNNER_TOOL_CACHE/lamina-verapdf or target/verapdf, run with
                              #   $LAMINA_PDF_JAVA, Homebrew's openjdk@21 or java (17+); an external process only (ADR 0019)
+cargo xtask extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]  # L3f: Lamina PDF's extraction
+                             #   scored on olmOCR-bench (tools/bench/extract-datasets.toml: revision, ODC-BY-1.0, subsets, refused datasets;
+                             #   SHA-256 per file in tools/bench/olmocr-bench.lock): files fetched into target/bench/datasets/, Markdown
+                             #   from crates/laminapdf/examples/differential/extract-bench.rs, scored by the benchmark's own tests
+                             #   (tools/bench/olmocr_score.py, Python with tools/bench/requirements.txt, $LAMINA_PDF_PYTHON); report
+                             #   in target/bench/extract/<dataset>/; never in CI; scores in crates/laminapdf-extract/README.md
 cargo run -p laminapdf-cli -- <command> …  # the `laminapdf` CLI (ADR 0031): info, check, pages rotate, extract, explain, help exit-codes
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)
 cargo xtask fetch-pdfium     # the pinned native PDFium (pdfium-binaries chromium/7881, SHA-256 per host) and its notices,

@@ -1,0 +1,73 @@
+# The public datasets `cargo xtask extract-bench` scores Lamina PDF's extraction on (todo L3f).
+#
+# Each [[dataset]] is pinned to a revision, and every file it fetches is checked against the
+# SHA-256 in its `lock` (`cargo xtask extract-bench --update-lock` rewrites it after a deliberate
+# change of revision). The files go to target/bench/datasets/ and are never committed: the
+# licences below allow use and redistribution with attribution, but the repository doesn't need
+# a copy. Only born-digital PDFs are scored: a rule-based extractor reads a PDF's text layer and
+# can't read a scan, so subsets of page images are left out, with the reason.
+#
+# [[refused]] lists the datasets looked at and not used, with the reason, so the choice can be
+# checked and revisited.
+
+[[dataset]]
+name = "olmocr-bench"
+title = "olmOCR-bench"
+url = "https://huggingface.co/datasets/allenai/olmOCR-bench"
+# The dataset repository's commit (2025), so the PDFs and the tests never move under the scores.
+revision = "54a96a6fb6a2bd3b297e59869491db4d3625b711"
+licence = "ODC-BY-1.0"
+licence_url = "https://opendatacommons.org/licenses/by/1-0/"
+attribution = "olmOCR-bench, Allen Institute for AI (Poznanski et al., 2025, arXiv:2502.18443), ODC-BY-1.0"
+# The scorer runs the benchmark's own tests (olmocr.bench.tests, Apache-2.0, pinned in
+# tools/bench/requirements.txt), so the scores mean what the benchmark's published table means.
+scorer = "tools/bench/olmocr_score.py"
+lock = "tools/bench/olmocr-bench.lock"
+
+[[dataset.subset]]
+name = "multi_column"
+measures = "reading order: 884 tests that one passage comes before another, on 231 multi-column pages"
+
+[[dataset.subset]]
+name = "table_tests"
+measures = "tables: 1,020 tests that a cell's neighbours (up, down, left, right, headings) are right, on 188 pages"
+
+[[dataset.subset]]
+name = "headers_footers"
+measures = "running headers, footers and page numbers left out: 753 tests on 266 pages"
+
+[[dataset.excluded]]
+name = "long_tiny_text"
+reason = "scanned pages from the Internet Archive with no text layer: they need OCR"
+
+[[dataset.excluded]]
+name = "old_scans"
+reason = "scans from the Library of Congress: they need OCR"
+
+[[dataset.excluded]]
+name = "old_scans_math"
+reason = "scans: they need OCR"
+
+[[dataset.excluded]]
+name = "arxiv_math"
+reason = "its tests compare equations rendered from LaTeX (KaTeX in a browser), and Lamina PDF's Markdown has no LaTeX"
+
+[[refused]]
+name = "OmniDocBench"
+url = "https://huggingface.co/datasets/opendatalab/OmniDocBench"
+reason = "its inputs are page images, not PDFs, and its dataset card states no licence"
+
+[[refused]]
+name = "PubTables-1M"
+url = "https://huggingface.co/datasets/bsmock/pubtables-1m"
+reason = "CDLA-Permissive-2.0, but it ships page images and words, not the PDFs, so there is no file for Lamina PDF to read"
+
+[[refused]]
+name = "FinTabNet"
+url = "https://developer.ibm.com/exchanges/data/all/fintabnet/"
+reason = "CDLA-Permissive-1.0 with the original PDFs and table structure (TEDS), but its host (IBM's data exchange) refuses connections from this environment; a candidate for a later run"
+
+[[refused]]
+name = "DocLayNet"
+url = "https://github.com/DS4SD/DocLayNet"
+reason = "CDLA-Permissive-1.0, but it labels layout boxes only: no reading order and no table structure to score against"
