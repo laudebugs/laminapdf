@@ -44,13 +44,31 @@ The rules refuse what isn't a grid of text: a page border, a form's separate fie
 
 On the reading-order corpus in `fixtures/reading-order/`, every file reads in order, including the copies drawn in reverse: one, two and three columns, an academic page, a sidebar, a table, a rotated page, and Arabic, Hebrew and Chinese text.
 
+## Benchmark
+
+On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets of born-digital pages. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
+
+| Subset | What it measures | Pages | Tests | Ruled tables (the default) | Also tables without lines |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `multi_column` | one passage before another, on multi-column pages | 231 | 884 | 52.8 % | 15.0 % |
+| `table_tests` | a table cell's neighbours and headings | 188 | 1,022 | 24.1 % | 47.1 % |
+| `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 37.6 % | 37.2 % |
+| **Mean** | | | | **38.2 %** | **33.1 %** |
+
+Three things explain most of the failures:
+
+- **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
+- **No headers, footers or structure yet.** Running headers and page numbers stay in the text, which fails the third subset, until the extractor reads them and the structure tree.
+- **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
+
+The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
+
 ## What it can't do yet
 
 - **Structure.** It ignores structure trees, and every block is a paragraph. Reading order from the structure tree, headings, list items, running headers and footers, and clipped or white-on-white text come in a later release; until then `structSource` is never `tagged`.
 - **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so; optional model plug-ins, planned for a later release, are the answer for those pages.
 - **Vertical writing.** Each vertical run is a block of its own, and a page that mixes vertical and horizontal writing raises `extract-reading-order-ambiguous`.
 - **Tables without lines or with structure.** Unruled tables need `TableMode::LatticeAndStream`, and the structure tree's `Table` elements aren't read yet.
-- **WebAssembly and TypeScript.** Extraction is Rust only for now; the TypeScript package gets it in a later release.
 
 ## Limits
 

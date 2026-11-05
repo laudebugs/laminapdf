@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (5, 6) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3b](./L3b-extract-tables-and-serialisers.md) |
-| Blocks | [L3f](../ongoing/L3f-extraction-benchmark.md) |
+| Blocks | [L3f](./L3f-extraction-benchmark.md) |
 | ADRs | Implements 0030 for the web; follows 0016 (the extract module and its budget), [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), 0026 (unknown option keys with "did you mean"), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (benchmark data licences) |
 | Branch | `feat/l3e-extract-bindings-and-benchmark` |
 | PR title | `feat(sdk): doc.extract() in WASM and TypeScript, and the extraction benchmark` |
@@ -18,7 +18,7 @@
 
 Give TypeScript the extraction Rust has since [L3b](./L3b-extract-tables-and-serialisers.md), and measure what the rules achieve. L3b split this off at its size limit: L3b built the tables, the Markdown, JSON and chunk output, the JSON Schema and `laminapdf::Document::extract`; this todo exposes them in the extract module and `@laminapdf/sdk`, and runs a licence-clean public benchmark.
 
-> **Split at the size limit (2026-11-05).** The bindings, `doc.extract()`, the shared JSON goldens and the recipe's TypeScript tab came to about 800 lines, the top of this todo's size, so the benchmark moved to [L3f](../ongoing/L3f-extraction-benchmark.md), whose dataset licence checks need their own pass.
+> **Split at the size limit (2026-11-05).** The bindings, `doc.extract()`, the shared JSON goldens and the recipe's TypeScript tab came to about 800 lines, the top of this todo's size, so the benchmark moved to [L3f](./L3f-extraction-benchmark.md), whose dataset licence checks need their own pass.
 
 ## Context
 
