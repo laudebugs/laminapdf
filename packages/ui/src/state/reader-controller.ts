@@ -1,6 +1,6 @@
 // The reader's controller: it owns the lifecycle machine, asks the platform for files, and hands
 // each one to the opener the shell gives it (the viewer client's open, in the web app). The
-// toolbar and menus call its methods, so command ids (U1b) can call the same ones.
+// toolbar and menus call its methods, so registered commands can call the same ones.
 
 import type { Platform, PlatformFile } from "../platform/types.js";
 import { EMPTY, type ReaderError, type ReaderEvent, type ReaderState, transition } from "./reader-machine.js";
