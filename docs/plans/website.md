@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-11-05
 - **Asked for by:** the project owner (2026-11-05): "the app rests on app.laminapdf.com and laminapdf.com is the landing page"; then, for the home page: "the home page will contain the roadmap for now, including a dashboard on what's coming up next", and "this dashboard will be updated from time to time"
-- **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex: its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and the HSTS preload (§4); [W1a](../todos/ready/W1a-domain-map.md) amends them
+- **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex; [W1a](../todos/ready/W1a-domain-map.md) amends its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and HSTS preload (§4)
 - **Builds on:**
   - the [web reader plan](web-app.md) (C4's deploys, C7's launch pages)
   - the [Paper design plan](paper-design.md) and [design language §7.39](../design/paper/design-language.md#739-site-and-product-pages-proposed) (the site's header and product pages)
@@ -60,11 +60,11 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
 - **Look.** Paper, through `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` ([U6b](../todos/ready/U6b-self-hosted-fonts.md)), the one copy that the reader, the desktop app and both sites share. The header is §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". [W1d](../todos/ready/W1d-one-site-header.md) gives the website and the docs site one header, built from one list of links.
 - **Privacy.** The website keeps the reader's promises that apply to a page of text. It sets no cookies, loads nothing from a third party and sends no analytics. ADR 0011's amendment states these rules and the website's headers, and W1b checks every built page against them.
 - **Before the reader launches.** The website can go live first, with the roadmap, the SDK, the library and the docs. "Open the web app" appears once C7c deploys the reader to production, behind one build setting that C7c turns on.
-- **HSTS preload.** ADR 0011 §4 holds the preload submission until the reader serves the apex. After the move, the website serves the apex, so the preload follows W1b's first production deploy, once every subdomain is known to be HTTPS-only: a one-line PR adds `preload` to the website's `Strict-Transport-Security` header, which the preload list requires, and the owner then submits the domain.
+- **HSTS preload.** ADR 0011 §4 holds the preload submission until the reader serves the apex. After the move, the website serves the apex, so the preload follows W1b's first production deploy, once every subdomain is known to be HTTPS-only. Then a one-line PR adds `preload` to the website's `Strict-Transport-Security` header, which the preload list requires, and the owner submits the domain.
 
 ### The home page, for now: the roadmap
 
-Until the reader launches, the home page is mostly the roadmap. It follows the build log the project keeps as a separate page today: where the work stands, what is being built and what comes next. Under a headline and one paragraph on what Lamina PDF is, the page shows:
+Until the reader launches, the home page is mostly the roadmap. The page follows the build log the project keeps as a separate page today: where the work stands, what is being built and what comes next. Under a headline and one paragraph on what Lamina PDF is, the page shows:
 
 - **The milestones** of the [roadmap](roadmap.md#milestones), M0 to M10, each with what it ships and whether its rounds are done, under way or not started.
 - **Progress by round:** one bar per round of the todo board, split into done, in progress and ready.
@@ -76,7 +76,7 @@ Until the reader launches, the home page is mostly the roadmap. It follows the b
 
 The dashboard reads one committed file, `apps/site/src/data/progress.json`. `cargo xtask progress` writes it from the todo files (with the board's own parser), the roadmap's milestone table, `git log` on `main` and the open pull requests. The build reads only that file, so it never needs the network or GitHub, and a preview shows exactly what production will.
 
-The dashboard is updated from time to time: someone runs the command and merges the new file as an exempt PR, like a change to the todo board ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board) gains that case). A scheduled workflow could open that PR every week, but it needs the owner to commit a workflow file, so it stays optional.
+Someone refreshes the dashboard from time to time: they run the command and merge the new file as an exempt PR, like a change to the todo board ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board) gains that case). A scheduled workflow could open that PR every week, but it needs the owner to commit a workflow file, so it stays optional.
 
 The page shows titles and counts only. It names no person and links nothing in the repository, which is private. Rounds get plain names ("Core library", "Web reader") from one table in the site, and todo titles appear as the board writes them.
 
