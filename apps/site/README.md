@@ -65,7 +65,7 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 - **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
-- **`production`** (every push to `main`, and every three hours): regenerates `src/data/progress.json` with `cargo xtask progress`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule picks up the pull requests opened since the last merge, whose todos show as in progress.
+- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule picks up the pull requests opened since the last merge, whose todos show as in progress.
 
 Pushes to `main` deploy whatever they change, because any merge can move a todo. The pull request trigger's `paths` must list everything the site builds from, or a pull request that changes one of those files gets no preview:
 

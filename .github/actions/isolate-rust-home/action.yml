@@ -16,7 +16,7 @@
 #   targets, and sharing one directory would keep rebuilding each other's output.
 # - One per kind of run (<bucket>), keyed on the event and the ref:
 #     main-push      pushes to main
-#     main-nightly   scheduled and dispatched runs on main (the nightly lane)
+#     main-nightly   scheduled and dispatched runs on main (the nightly lane, the website's scheduled deploy)
 #     pull_request   pull requests
 #     other          anything else (a dispatch on another branch, a tag push, …): rare, so it is
 #                    emptied before every use rather than kept

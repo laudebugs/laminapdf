@@ -25,14 +25,18 @@ pub(crate) fn jobs(workflow: &str) -> Vec<(&str, Vec<&str>)> {
     keys_under(workflow, "jobs")
 }
 
-/// The two-space-indented keys under `workflow`'s top-level `<section>:` line, each with its own
-/// lines, in order. The section ends at the next top-level key.
+/// The two-space-indented keys under `workflow`'s top-level `<section>:` line (a trailing comment
+/// allowed), each with its own lines, in order. The section ends at the next top-level key.
 fn keys_under<'a>(workflow: &'a str, section: &str) -> Vec<(&'a str, Vec<&'a str>)> {
-    let header = format!("\n{section}:\n");
-    let body = workflow.split(header.as_str()).nth(1).unwrap_or_default();
+    let top_level = |line: &str| !line.is_empty() && !line.starts_with(' ') && !line.starts_with('#');
+    let header = format!("{section}:");
+    let body = workflow
+        .lines()
+        .skip_while(|line| !(top_level(line) && line.split(" #").next().unwrap_or_default().trim_end() == header))
+        .skip(1);
     let mut keys: Vec<(&str, Vec<&str>)> = Vec::new();
-    for line in body.lines() {
-        if !line.is_empty() && !line.starts_with(' ') && !line.starts_with('#') {
+    for line in body {
+        if top_level(line) {
             break;
         }
         if let Some(id) = job_id(line) {
@@ -194,7 +198,7 @@ mod tests {
 
     #[test]
     fn keys_under_should_stop_at_the_next_top_level_key() {
-        let workflow = "name: x\non:\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";
+        let workflow = "name: x\non: # triggers\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";
         let ids: Vec<&str> = keys_under(workflow, "on").into_iter().map(|(id, _)| id).collect();
         assert_eq!(ids, ["push", "schedule"]);
         assert_eq!(
