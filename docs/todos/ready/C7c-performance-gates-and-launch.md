@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — **M2 Web reader v0.1** (milestone closes with this PR) |
-| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4d](./C4d-deploy-previews-and-production.md), [C6c](./C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md), [W1b](../ongoing/W1b-site-scaffold-and-deploys.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U2c](./U2c-page-appearance-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md), [U4a](./U4a-network-indicator-and-privacy-proof.md) |
+| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4d](./C4d-deploy-previews-and-production.md), [C6c](./C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U2c](./U2c-page-appearance-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md), [U4a](./U4a-network-indicator-and-privacy-proof.md) |
 | Blocks | [U5a](./U5a-pricing-and-promises-page.md), [U5b](./U5b-reader-benchmark.md), [U5c](./U5c-opt-in-usage-telemetry.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E13e](./E13e-server-jobs-infrastructure.md), [H2](./H2-accounts-and-login.md) |
 | ADRs | Follows 0011 (publishes its privacy rules as a user-facing page), [0018](../../decisions/0018-test-strategy.md) §2 (which gates run in which lane) |
 | Branch | `feat/c7c-web-v0-1-launch` |

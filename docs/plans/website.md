@@ -98,7 +98,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 | ID | Todo | Depends on |
 | --- | --- | --- |
 | [W1a](../todos/done/W1a-domain-map.md) | The domain map: amend ADR 0011, move the reader to `app.laminapdf.com` in every plan, todo and design doc | — |
-| [W1b](../todos/ongoing/W1b-site-scaffold-and-deploys.md) | `apps/site`: the Astro site in Paper, its headers, a preview per PR and production at `laminapdf.com` | W1a, U6b |
+| [W1b](../todos/done/W1b-site-scaffold-and-deploys.md) | `apps/site`: the Astro site in Paper, its headers, a preview per PR and production at `laminapdf.com` | W1a, U6b |
 | [W1c](../todos/ready/W1c-home-page.md) | The home page for now: what Lamina PDF is, the roadmap and the dashboard; design, copy approved by the owner, metadata and share images | W1b, W1e |
 | [W1d](../todos/ready/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
 | [W1e](../todos/ready/W1e-progress-snapshot.md) | The progress snapshot: `cargo xtask progress` writes the dashboard's data from the board, the roadmap and `git log` | W1b |
@@ -114,7 +114,7 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 ## 8. To-dos
 
 - [x] Amend ADR 0011 and move the reader to `app.laminapdf.com` everywhere ([W1a](../todos/done/W1a-domain-map.md))
-- [ ] Serve `apps/site` at `laminapdf.com`, with previews per PR ([W1b](../todos/ongoing/W1b-site-scaffold-and-deploys.md))
+- [x] Serve `apps/site` at `laminapdf.com`, with previews per PR ([W1b](../todos/done/W1b-site-scaffold-and-deploys.md))
 - [ ] Publish the home page with the roadmap and the dashboard ([W1c](../todos/ready/W1c-home-page.md))
 - [ ] Share one header between the website and the docs site ([W1d](../todos/ready/W1d-one-site-header.md))
 - [ ] Write the dashboard's data with one command ([W1e](../todos/ready/W1e-progress-snapshot.md))

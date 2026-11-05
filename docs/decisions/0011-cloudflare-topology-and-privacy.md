@@ -40,7 +40,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
   - The WASM modules are static assets of the same origin (ADR 0009 §2), never a CDN's.
-- **The website is a Worker of its own, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/ongoing/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. Every push to `main` deploys it, with a preview per PR. It never serves the reader: it links to the reader and forwards nothing.
+- **The website is a Worker of its own, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/done/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. Every push to `main` deploys it, with a preview per PR. It never serves the reader: it links to the reader and forwards nothing.
 - **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). Since 2026-11-05 the website holds the apex and the reader `app.` ([website plan §2](../plans/website.md#2-the-domain-map)). Every host, its Worker and what deploys it:
 
   | Host | Serves | Worker | Deployed from |

@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Website §4 The website](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1a](../done/W1a-domain-map.md), [U6a](../done/U6a-paper-tokens.md), [U6b](../done/U6b-self-hosted-fonts.md) |
+| Depends on | [W1a](./W1a-domain-map.md), [U6a](./U6a-paper-tokens.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Blocks | [C7c](../ready/C7c-performance-gates-and-launch.md), [W1c](../ready/W1c-home-page.md), [W1d](../ready/W1d-one-site-header.md), [W1e](../ready/W1e-progress-snapshot.md), [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md), [U5a](../ready/U5a-pricing-and-promises-page.md), [U5b](../ready/U5b-reader-benchmark.md) |
 | ADRs | Implements 0011 §1 and §4 as W1a amends them; follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (Astro for sites, pnpm workspace) and [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, least-privilege tokens) |
 | Branch | `feat/w1b-site` |
@@ -74,10 +74,19 @@ The post-build checks' own tests (Vitest); the docs site's link check pattern fo
 - **Two Astro sites.** Before copying anything from `apps/docs`, move it to a shared package; W1d does the header.
 - **Workflow files.** When the owner has to commit `site.yml`, deploy the PR's preview by hand with the README's commands until it lands.
 
+## Notes from the work
+
+- **The shared build steps live in `@laminapdf/site-kit`.** The docs site's inline-script hashing moved there, and its link check now uses the same `pageExists` rule as the website: a file, a folder's `index.html` or `<path>.html`, the three forms the asset server answers. The docs site still gets `noindex` from `docs.yml`; it can switch to `previewNoindex` once `docs.yml`'s production build sets `LAMINA_PDF_ENV=production`.
+- **The checks read markup, not text.** An attribute parser runs over each page with script bodies and comments removed, so a code sample or a JSON-LD string can't trip a rule. Links and loads resolve against the page's own address, as a browser resolves them.
+- **A load by full address on the site's own origin fails the build.** It works in production but breaks on a preview, whose `'self'` is a workers.dev host.
+- **Production has no workers.dev copy.** `workers_dev = false` with `preview_urls = true`, which Cloudflare's previews page documents. The README tells the owner where to turn on Version URLs if previews don't appear.
+- **The header lists §7.39's links but shows only those whose pages exist**, from a page list `astro.config.mjs` reads once per build, so no component imports every page.
+- **Lighthouse is unrun.** This environment blocked downloading it, and the preview waits for the owner's workflow commit. axe in Chromium found no violations.
+
 ## Definition of done
 
 - [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the README and `CLAUDE.md` text
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the README and `CLAUDE.md` text
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
