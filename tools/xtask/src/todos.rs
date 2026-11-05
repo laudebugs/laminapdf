@@ -205,8 +205,16 @@ pub(crate) fn stale_files(files: &[TodoFile], generated: &Generated) -> Vec<(Str
             if field(&todo.text, "Blocks").is_some() {
                 reasons.push("a Blocks row (the board lists what each todo blocks)");
             }
-            if field(&todo.text, "Depends on") != field(text, "Depends on") {
+            let depends_on = |text: &str| {
+                text.lines()
+                    .find(|line| row_value(line, "Depends on").is_some())
+                    .map(str::to_owned)
+            };
+            if depends_on(&todo.text) != depends_on(text) {
                 reasons.push("Depends on isn't the links `cargo xtask todos` writes (current folders, board order)");
+            }
+            if reasons.is_empty() {
+                reasons.push("differs from what `cargo xtask todos` writes");
             }
             (format!("{}/{}", todo.state.name(), todo.file), reasons.join("; "))
         })
@@ -832,6 +840,17 @@ pub(crate) mod tests {
                  Depends on isn't the links `cargo xtask todos` writes (current folders, board order)"
                     .to_owned()
             )]
+        );
+    }
+
+    #[test]
+    fn extra_spaces_in_depends_on_are_a_named_reason() {
+        let mut files = consistent();
+        files[1].text = files[1].text.replace("| Depends on | None |", "| Depends on | None  |");
+        let generated = generated(&files);
+        assert_eq!(
+            stale_files(&files, &generated)[0].1,
+            "Depends on isn't the links `cargo xtask todos` writes (current folders, board order)"
         );
     }
 
