@@ -689,3 +689,34 @@ describe("DebugMenu", () => {
     expect(onBackendChange).toHaveBeenCalledWith("hayro");
   });
 });
+
+describe("OpenDropZone's failures", () => {
+  it("says a file couldn't be read when the platform can't give it", async () => {
+    const platform = fakePlatform();
+    const failing = { ...platform, openFiles: () => Promise.reject(new DOMException("blocked", "SecurityError")) };
+    const reader = new ReaderController(failing, async () => ({ pageCount: 1 }));
+    renderIn(
+      <PlatformProvider platform={failing}>
+        <OpenDropZone reader={reader} keys="other" />
+      </PlatformProvider>,
+    );
+    await userEvent.click(button("Choose a file") as HTMLButtonElement);
+    await expect.poll(() => document.querySelector("[role=alert]")?.textContent).toContain("couldn't be read");
+  });
+
+  it("leaves an open's failure to the reader rather than calling the file unreadable", async () => {
+    const report = { name: "report.pdf", size: 5, read: async () => new Uint8Array(), writable: false };
+    const platform = fakePlatform({ picked: [report] });
+    const reader = new ReaderController(platform, () =>
+      Promise.reject(Object.assign(new Error(), { code: "not-pdf" })),
+    );
+    renderIn(
+      <PlatformProvider platform={platform}>
+        <OpenDropZone reader={reader} keys="other" />
+      </PlatformProvider>,
+    );
+    await userEvent.click(button("Choose a file") as HTMLButtonElement);
+    await expect.poll(() => reader.getState().phase).toBe("error");
+    expect(document.querySelector("[role=alert]")).toBeNull();
+  });
+});

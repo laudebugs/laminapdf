@@ -42,8 +42,9 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
     setProblem(refused ?? "");
     if (refused === undefined) await reader.open(file);
   };
+  // Only getting the files can fail here: the reader reports its own failures (an open never rejects).
   const take = (files: Promise<PlatformFile[]>) =>
-    void files.then(accept).catch(() => setProblem(message("reader.open.unreadable")));
+    void files.then(accept, () => setProblem(message("reader.open.unreadable")));
   // The platform reads the transfer before anything awaits, while its items are still there.
   const onFiles = useEffectEvent((data: DataTransfer) => take(platform.filesFromDataTransfer(data)));
   useEffect(() => listenForFiles(window, { onDragging: setDragging, onFiles }), []);
