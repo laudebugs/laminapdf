@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) ("Accepted when": scores measured and recorded) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
-| Depends on | [L3e](../ongoing/L3e-extract-bindings-and-benchmark.md) |
+| Depends on | [L3e](../done/L3e-extract-bindings-and-benchmark.md) |
 | Blocks | None |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md), [0018](../../decisions/0018-test-strategy.md) (not in the PR lanes), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (data and metric licences) |
 | Branch | `feat/l3f-extract-bench` |
@@ -20,7 +20,7 @@ Measure what the rule-based extractor achieves, so users know before reaching fo
 
 ## Context
 
-- Split from [L3e](../ongoing/L3e-extract-bindings-and-benchmark.md) at its size limit (2026-11-05); [L3b's todo](../done/L3b-extract-tables-and-serialisers.md) has the design (its Benchmark bullet) and the licence risks.
+- Split from [L3e](../done/L3e-extract-bindings-and-benchmark.md) at its size limit (2026-11-05); [L3b's todo](../done/L3b-extract-tables-and-serialisers.md) has the design (its Benchmark bullet) and the licence risks.
 - [AI extraction note §B](../../research/libraries/notes/llm-api-and-ai-extraction.md#b-ai-consumption-primitives-the-2026-landscape-algorithms-bboxprovenance-schema-tagged-pdf-and-rule-based-vs-model-based): the benchmarks (olmOCR-Bench, OmniDocBench, OpenDataLoader's) and their metrics.
 
 ## Scope

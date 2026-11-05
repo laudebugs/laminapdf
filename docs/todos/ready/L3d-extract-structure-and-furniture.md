@@ -37,7 +37,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Ruled and unruled tables, serialisers, the JSON Schema and the Rust façade: [L3b](../done/L3b-extract-tables-and-serialisers.md); WASM, TypeScript and the benchmark: [L3e](../ongoing/L3e-extract-bindings-and-benchmark.md).
+- Ruled and unruled tables, serialisers, the JSON Schema and the Rust façade: [L3b](../done/L3b-extract-tables-and-serialisers.md); WASM, TypeScript and the benchmark: [L3e](../done/L3e-extract-bindings-and-benchmark.md).
 - Model plug-ins: [L3c](./L3c-model-plugins.md).
 
 ## Tasks
