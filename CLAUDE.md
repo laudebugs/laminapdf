@@ -124,7 +124,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
 │                        #   font preload), §7.39's header (src/nav.ts: a link appears once its page exists; APP_LAUNCHED for "Open the web
-│                        #   app"), src/pages/ (a placeholder home page until W1c, 404); public/_headers (ADR 0011 §4's website headers,
+│                        #   app"), src/pages/ (a placeholder home page until W1c, 404), src/data/ (progress.json from `cargo xtask
+│                        #   progress`, its type and reader in progress.ts); public/_headers (ADR 0011 §4's website headers,
 │                        #   test/headers.test.ts holds them to the ADR); @laminapdf/site-kit's checks after every build; wrangler.toml
 │                        #   (lamina-pdf-site, the apex as a custom domain); deployed by .github/workflows/site.yml, which W1b's PR gives
 │                        #   for the owner to commit; README.md has the owner's setup
@@ -274,6 +275,10 @@ cargo xtask docs-links --external  # nightly: every http(s) URL in tracked *.md 
                              #   missing pages/sites reported (missing.md, with reasons), never a failure; report in target/nightly/links/)
 cargo xtask todos            # regenerate docs/todos/README.md and each todo's Blocks from its Depends on links
 cargo xtask todos --check    # fail if the board or a Blocks field is stale, or the todo graph is inconsistent
+cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the website's roadmap and dashboard: the board's
+                             #   counts per section and "Can start now" (todos.rs's parser), the roadmap's milestones and their
+                             #   state, merged PRs from `git log` on main (titles without numbers) and the todos open PRs claim
+                             #   (gh api; --offline or a gh failure keeps the last snapshot's list); refreshing it is an exempt PR
 cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surface> <status>`, regenerate docs/capabilities/README.md
 cargo xtask capabilities --check  # full lane: fail if that page differs from what the passing tagged tests prove
 cargo xtask golden --update  # regenerate every golden in fixtures/golden/ (and fixtures/reading-order/) from its source, print the list

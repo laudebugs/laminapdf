@@ -47,18 +47,18 @@
 ## Tasks
 
 - [x] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Expose what the snapshot needs from `todos.rs` (counts per round, the startable and ongoing todos) without a second parser.
-- [ ] The milestone table reader and the state rule.
-- [ ] The `git log` and `gh` readers behind functions the tests replace with fixtures.
-- [ ] Write the file; the TypeScript type and its test; the first snapshot.
-- [ ] Git workflow §2 and `CLAUDE.md`.
+- [x] Expose what the snapshot needs from `todos.rs` (counts per round, the startable and ongoing todos) without a second parser.
+- [x] The milestone table reader and the state rule.
+- [x] The `git log` and `gh` readers behind functions the tests replace with fixtures.
+- [x] Write the file; the TypeScript type and its test; the first snapshot.
+- [x] Git workflow §2 and `CLAUDE.md`.
 
 ## Acceptance criteria
 
-- [ ] For one set of fixture todo files, the snapshot's counts per round and its "Can start now" list equal the board's.
-- [ ] `--offline` writes a valid file with neither the network nor `gh`.
-- [ ] The milestone states for the fixture board match a hand-checked table, including a range (`C1–C7`) and a single todo (`U3a`).
-- [ ] The file holds no author, no session name and no PR number.
+- [x] For one set of fixture todo files, the snapshot's counts per round and its "Can start now" list equal the board's.
+- [x] `--offline` writes a valid file with neither the network nor `gh`.
+- [x] The milestone states for the fixture board match a hand-checked table, including a range (`C1–C7`) and a single todo (`U3a`).
+- [x] The file holds no author, no session name and no PR number.
 
 ## Tests
 
@@ -71,6 +71,13 @@ Unit tests over fixture todo files and a fixture milestone table; merge-subject 
 ## Risks and open questions
 
 - **Milestone rows mix rounds and todos.** Parse both forms, and fail on a token that matches no todo, so a renamed round can't silently drop out of its milestone.
+
+## Notes from the work
+
+- **Claims come from the files a pull request moves, not its branch.** A pull request claims a todo when it adds the todo's file under `ongoing/` or `done/`, which is what claiming means on the board. The **Branch** field turned out to be unreliable: on 2026-11-05 neither U6e's pull request (`claude/working-session-9g3nst`) nor L3e's (`feat/l3e-extract-bindings`) used the branch its todo names. The open pull requests are read with `gh api` (REST), one call for the list and one per pull request for its files.
+- **"Rounds" in the file are the board's sections** (`A`, `B`, `L` …), each with its heading, because the dashboard draws one bar per section. A ready todo that an open pull request claims counts as in progress, so a section's `todos` is `done + inProgress + ready`.
+- **The roadmap's Rounds cells** mix four forms: a section letter (`A`), a range (`B1–B7`), a round (`U1`) and a todo (`U3a`). A token that matches no todo fails the command.
+- **`gh` moved to `util.rs`**, shared with `release-guard`, and runs in the repository's folder so `{owner}/{repo}` resolves.
 
 ## Definition of done
 
