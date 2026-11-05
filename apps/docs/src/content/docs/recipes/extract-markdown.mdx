@@ -8,7 +8,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 You'll turn a PDF into three outputs an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks.
 
-In TypeScript the function returns the three outputs and needs the extract module, `init({ extract: true })`. In Rust the program extracts once and writes the three files. Both give the same JSON:
+In TypeScript the function returns the three outputs and needs the extract module, `init({ extract: true })`. In Rust, the program instead extracts once and writes the three files. Both give the same JSON:
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/extract-markdown.ts" /></TabItem>
@@ -22,9 +22,9 @@ Run the Rust program on any PDF: `cargo run -p laminapdf --example extract_markd
 - `extract` (`doc.extract` in TypeScript) reads every page's text, joins it into lines and paragraphs, and puts the paragraphs in reading order. A two-column page reads down the left column, then the right; a title across both columns comes first.
 - Tables drawn with lines become table blocks with their cells, and Markdown writes them as tables. A cell that spans columns or rows makes the table HTML, since Markdown tables can't span.
 - Text a reader can't see never reaches the outputs: invisible text (such as the hidden layer of a scanned page), text off the page and text too small to read. The JSON lists each such run under `dropped`, with the reason and how many characters it held.
-- `to_markdown` writes headings, paragraphs and tables, with a `<!-- page N -->` comment before each page, so a passage can be traced to its page.
-- `chunks` groups whole paragraphs and tables up to the budget, starting a new chunk at each heading. Each chunk records the blocks, pages and boxes it came from, and where its text sits in the Markdown.
-- `extract_json` writes the `laminapdf.extract/1` document: the pages, every block with its box in points from the top-left corner, the dropped text, the file's warnings and the chunks.
+- `to_markdown` (`format: "markdown"` in TypeScript) writes headings, paragraphs and tables, with a `<!-- page N -->` comment before each page, so a passage can be traced to its page.
+- `chunks` (`format: "chunks"`, or the `chunk` option with the JSON) groups whole paragraphs and tables up to the budget, starting a new chunk at each heading. Each chunk records the blocks, pages and boxes it came from, and where its text sits in the Markdown.
+- `extract_json` (`format: "json"`) writes the `laminapdf.extract/1` document: the pages, every block with its box in points from the top-left corner, the dropped text, the file's warnings and the chunks.
 
 ## What to change
 
@@ -32,7 +32,7 @@ Run the Rust program on any PDF: `cargo run -p laminapdf --example extract_markd
 - **Tables without lines:** `tables: "lattice-and-stream"` (`.with_tables(TableMode::LatticeAndStream)`) also looks for text lined up in columns. It finds more tables, and now and then a pair of columns that isn't one.
 - **Bigger or smaller chunks:** change `maxTokens` (`with_max_tokens`). A token here is about four characters, a rough count that runs low for code, numbers and scripts other than Latin, so leave room.
 - **Overlap between chunks:** `overlap: 80` (`.with_overlap(80)`) repeats up to about 80 tokens of whole paragraphs from the end of the previous chunk.
-- **One output:** `format` picks it in TypeScript: `"markdown"`, `"text"`, `"json"` or `"chunks"`.
+- **One output (TypeScript):** set `format` to `"markdown"`, `"text"`, `"json"` or `"chunks"`.
 - **A long file in steps (Rust):** `doc.extract_job(&options)` and `step` do a page per unit of work, so a long file can report progress or stop between steps.
 
 Next: [all recipes](/recipes/).

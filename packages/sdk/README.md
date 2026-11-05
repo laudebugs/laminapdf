@@ -141,7 +141,9 @@ console.log(text.text());
 - `"json"`: an `Extraction`, the `laminapdf.extract/1` document: every block with its page and box in points from the top-left corner, the text left out and why, and the file's warnings. With `chunk`, it carries the chunks too.
 - `"chunks"`: `Chunk`s of whole blocks up to `chunk.maxTokens` (512 by default), each with its blocks, pages, boxes and place in the Markdown.
 
-The JSON holds what Rust's `extract_json` writes for the same options. `pages`, `readingOrder`, `tables` (`"lattice-and-stream"` also finds tables without lines), `drop` and `dehyphenate` tune the extraction; an unknown option throws `unknown-option` with the name you probably meant.
+The JSON holds what Rust's `extract_json` writes for the same options.
+
+Five more options tune the extraction: `pages`, `readingOrder`, `tables` (`"lattice-and-stream"` also finds tables without lines), `drop` and `dehyphenate`. An unknown option throws `unknown-option` with the name you probably meant.
 
 ```ts
 await init({ extract: true });
@@ -149,7 +151,7 @@ const doc = Document.open(bytes);
 const chunks = doc.extract({ format: "chunks", chunk: { maxTokens: 400 } });
 ```
 
-`doc.extract()` runs to the end in one call. Through `@laminapdf/sdk/worker` it keeps the main thread free, but an aborted `signal` only rejects the call: the worker finishes the extraction first.
+`doc.extract()` runs to the end in one call. In a worker (`@laminapdf/sdk/worker`) the main thread stays free, but aborting the call's `signal` only rejects the promise: the worker finishes the extraction first.
 
 ## Remote and large files
 
