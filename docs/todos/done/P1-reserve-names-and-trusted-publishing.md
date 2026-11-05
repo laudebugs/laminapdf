@@ -7,7 +7,6 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [P0](./P0-npm-scope-laminapdf.md), [P0b](./P0b-crate-names-laminapdf.md), [P0c](./P0c-lamina-pdf-names.md) |
-| Blocks | [L4d](../ready/L4d-cli-distribution.md), [P2](./P2-first-registry-prerelease.md) |
 | ADRs | Completes **0017** (publishing part: OIDC trusted publishing, provenance, attestations); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM), [0002](../../decisions/0002-binding-strategy.md) (`@laminapdf/wasm` packaging) |
 | Branch | `build/p1-trusted-publishing` |
 | PR title | `build: reserve names and set up OIDC trusted publishing with provenance and attestations` |

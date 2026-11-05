@@ -7,7 +7,6 @@
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E10g](./E10g-signature-validation.md), [E10i](./E10i-platform-signers.md), [E11b](./E11b-encrypt-on-write.md) |
-| Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11e-public-key-security` |
 | PR title | `feat(crypto): public-key security handler` |

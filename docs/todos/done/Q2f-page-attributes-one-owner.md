@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2f-page-attributes-one-owner` |
 | PR title | `fix(model,ops,render): one reader of page attributes and one rotation type` |

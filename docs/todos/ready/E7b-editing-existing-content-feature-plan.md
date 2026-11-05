@@ -7,7 +7,6 @@
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6a](./E6a-adding-content-feature-plan.md), [E7a](./E7a-adr-0022-content-editing.md) |
-| Blocks | [E7c](./E7c-content-ir.md), [E8a](./E8a-adr-0021-javascript-policy.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e7b-editing-existing-content-feature-plan` |
 | PR title | `docs(editor): E7 feature plan (editing existing content)` |

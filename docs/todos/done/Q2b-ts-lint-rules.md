@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2p](./Q2p-ts-complexity-splits.md) |
 | ADRs | None |
 | Branch | `ci/q2b-ts-lint-rules` |
 | PR title | `ci(ts): Biome complexity and throw rules, TypeDoc check for undocumented exports` |

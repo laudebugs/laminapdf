@@ -7,7 +7,6 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
-| Blocks | [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows 0024 (selection surfaces per pointer type, sheets with detents, palette as an APG combobox, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for any positioning dependency |
 | Branch | `feat/u6j-positioning-and-palette-shell` |
 | PR title | `feat(ui): add anchored positioning, the selection toolbar shell and the palette shell` |

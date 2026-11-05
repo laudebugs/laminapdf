@@ -7,7 +7,6 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6d](./U6d-core-components.md), [U6h](./U6h-display-components.md) |
-| Blocks | [C4a](../ready/C4a-ui-chrome-and-platform.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md), [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
 | ADRs | Follows 0024 (Escape order; from [U1a](./U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/u6e-overlays-and-sheets` |
 | PR title | `feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts` |

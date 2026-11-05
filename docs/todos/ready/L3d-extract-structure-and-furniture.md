@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
 | Depends on | [L3a](../done/L3a-lamina-extract-reading-order.md), [L3b](../done/L3b-extract-tables-and-serialisers.md) |
-| Blocks | None |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) §2–§4 (this todo implements what its §9 lists as L3d's); [0023](../../decisions/0023-content-stream-reading.md) for the clip and fill colour |
 | Branch | `feat/l3d-extract-structure` |
 | PR title | `feat(extract): structure-tree order, headings, lists, running headers, clipped and low-contrast text` |

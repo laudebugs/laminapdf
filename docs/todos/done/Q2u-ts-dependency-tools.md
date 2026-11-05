@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2o](./Q2o-ts-hygiene.md) |
 | ADRs | None |
 | Branch | `ci/q2u-ts-dependency-tools` |
 | PR title | `ci(ts): dependency-cruiser, jscpd and knip in check ts` |

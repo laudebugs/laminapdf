@@ -7,7 +7,6 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md) |
-| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](../ready/L4d-cli-distribution.md) |
 | ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](./L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
 | PR title | `feat(cli): ADR 0031 and the laminapdf CLI with info, check, pages rotate, extract and explain` |

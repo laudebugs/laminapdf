@@ -7,7 +7,6 @@
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2b](./E2b-page-structure-ops.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3c](./E3c-links.md) |
-| Blocks | [E3f](./E3f-attachments-and-associated-files.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3b-bookmarks-and-destinations` |
 | PR title | `feat(ops): outline editing, named destinations and TOC generation` |

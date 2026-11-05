@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3a](./C3a-viewer-worker-rpc.md) |
-| Blocks | [C3c](./C3c-viewer-perf-harness.md), [C4a](../ready/C4a-ui-chrome-and-platform.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md), [D2d](../ready/D2d-tile-transport-and-first-document.md) |
 | ADRs | Implements 0009 (framework-free viewer core, `ImageBitmap` transfer, pooled canvases) |
 | Branch | `feat/c3b-viewer-virtualiser` |
 | PR title | `feat(viewer): add the page virtualiser, canvas pool, progressive tiles and anchored zoom` |

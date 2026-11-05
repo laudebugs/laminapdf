@@ -180,7 +180,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
-    ├── todos/           # one file per PR of work: ready/ → ongoing/ → done/ (README.md is the board)
+    ├── todos/           # one file per PR of work: ready/ → ongoing/ → done/ (the board is built by `cargo xtask todos`, never committed)
     ├── capabilities/    # the capability matrix: manifest.toml (one row per 06 §3 operation) + generated README.md
     ├── decisions/       # Architecture Decision Records (NNNN-title.md)
     ├── design/          # visual design: Paper design language, screen inventory, area docs, Design canvas sources
@@ -191,7 +191,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ## Working agreements
 
 - **Always work in a git worktree.** Start every piece of work in a new worktree off main (see docs/guidelines/git-workflow.md). The repo is a bare clone; worktrees are folders inside it: `git worktree add -b <type>/<desc> <type>-<desc> main`. Never `git stash` across worktrees; remove the worktree after merge.
-- **Work from the todo board.** Every PR implements one todo from [`docs/todos/`](docs/todos/README.md) (`ready/` → `ongoing/` → `done/`), except bot, CI-maintenance, typo, board-only and progress-snapshot refresh PRs. Pick one from `ready/` whose dependencies are all `done/`; claim it by opening its work PR at once; its first commit moves it to `ongoing/`. The open PR is the claim, so check `gh pr list` before picking. Move it to `done/` in the same PR before merge, updating links and regenerating the board (`cargo xtask todos`). Plans link to their todos. See [git workflow §2](docs/guidelines/git-workflow.md#pick-work-from-the-todo-board).
+- **Work from the todo board.** Every PR implements one todo from [`docs/todos/`](docs/todos/README.md) (`ready/` → `ongoing/` → `done/`), except bot, CI-maintenance, typo, board-only and progress-snapshot refresh PRs. Pick one from `ready/` whose dependencies are all `done/` (`cargo xtask todos` lists them); claim it by opening its work PR at once; its first commit moves it to `ongoing/`. The open PR is the claim, so check `gh pr list` before picking. Move it to `done/` in the same PR before merge, updating links and running `cargo xtask todos`. Plans link to their todos. See [git workflow §2](docs/guidelines/git-workflow.md#pick-work-from-the-todo-board).
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
 - **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#>` (trivial PRs: `low`) without `--comment`: don't post review comments. Fix the findings in new commits whose messages list each finding and its fix. If there were more than 6 findings, run `/code-review low <PR#>` after the fixes and record those the same way. A non-trivial PR that adds or changes prose people read also gets `/writing-review`, whose findings are counted and fixed separately ([§7](docs/guidelines/git-workflow.md#7-review-and-merge-process)). Run `cargo xtask ci` locally, then squash-merge once CI is green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
@@ -292,8 +292,12 @@ cargo xtask docs-links       # every relative link and #anchor in tracked *.md r
 cargo xtask docs-links --external  # nightly: every http(s) URL in tracked *.md answers (links, bare URLs, HTML href/src;
                              #   curl, one retry, per-host rate limit, allowlist .config/link-check.toml; 403/429 reported as refused;
                              #   missing pages/sites reported (missing.md, with reasons), never a failure; report in target/nightly/links/)
-cargo xtask todos            # regenerate docs/todos/README.md and each todo's Blocks from its Depends on links
-cargo xtask todos --check    # fail if the board or a Blocks field is stale, or the todo graph is inconsistent
+cargo xtask todos            # check the todo graph, point each Depends on link at its todo's current folder, print "Can start now"
+                             #   and the ongoing todos, and write the whole board (with what each todo blocks) to
+                             #   target/todos/board.md; the board and Blocks fields are never committed, since a derived list
+                             #   would change in every PR that moves a todo and make each merge conflict with the other open PRs
+cargo xtask todos --check    # change nothing; fail on an inconsistent graph, a Depends on link to an old folder, a Blocks row,
+                             #   or a docs/todos/README.md that links to a todo file (a stale board brought back by a merge)
 cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the website's roadmap and dashboard, from main
                              #   (origin/main) whatever the checkout: the board's counts per section and "Can start now" (todos.rs's
                              #   parser), the roadmap's milestones and their state, merged PRs from `git log` (titles without

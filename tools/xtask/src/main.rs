@@ -124,8 +124,9 @@ tasks:
                     check every relative link and #anchor in the tracked Markdown files;
                     --external checks the http(s) URLs over the network instead (nightly;
                     allowlist in .config/link-check.toml, report in target/nightly/links/)
-  todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
-                    field from the Depends on links; --check only verifies
+  todos [--check]   check the todo files, point each Depends on link at its todo's folder, print
+                    the todos that can start now and write the whole board (never committed) to
+                    target/todos/board.md; --check only verifies
   progress [--offline]
                     write apps/site/src/data/progress.json, the website's roadmap and dashboard:
                     the board's counts, the roadmap's milestones, merged and open pull requests
@@ -427,7 +428,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     docs_prose::run(&ws.root, reports::Options::strict())?;
     step("docs-snippets: the examples against docs/guidelines/examples.md (strict on every file)");
     docs_snippets::run(&ws.root, reports::Options::strict())?;
-    step("todos --check: the todo board and Blocks fields are up to date");
+    step("todos --check: the todo graph and the Depends on links; no committed board or Blocks rows");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;

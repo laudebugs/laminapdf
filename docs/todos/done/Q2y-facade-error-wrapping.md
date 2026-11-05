@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | None |
 | ADRs | Amends 0028 |
 | Branch | `docs/q2y-facade-error-wrapping` |
 | PR title | `docs(adr): decide how the lamina façade wraps the errors of the crates below it` |

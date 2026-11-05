@@ -7,7 +7,6 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [B7a](./B7a-docs-site.md) |
-| Blocks | None |
 | ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md) (CSP `font-src 'self'`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) (bundled fonts OFL-1.1) |
 | Branch | `feat/docs-site-paper-theme` |
 | PR title | `feat(docs): the docs site in the Paper design language` |
