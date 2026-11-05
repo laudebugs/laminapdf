@@ -1,0 +1,55 @@
+/* Page-appearance chips (§7.25): a 4-column grid, gap 10; each chip a 52 px "Aa" preview in its
+   appearance's paper and ink over a 13 px label; the chosen chip white with a 2 px accent edge. */
+@layer paper.components {
+  .paper-appearance-chips {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--paper-space-10);
+  }
+
+  .paper-appearance-chip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-8);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-surface);
+    color: var(--paper-text);
+    font: var(--paper-type-control);
+    text-align: center;
+    cursor: default;
+  }
+
+  .paper-appearance-chip[data-hovered] {
+    background: linear-gradient(var(--paper-hover), var(--paper-hover)), var(--paper-surface);
+  }
+
+  .paper-appearance-chip[data-selected] {
+    border-color: var(--paper-accent);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+    background: var(--paper-field);
+    font-weight: 600;
+  }
+
+  .paper-appearance-preview {
+    display: grid;
+    place-items: center;
+    block-size: var(--paper-chip-preview-height);
+    border-radius: var(--paper-radius-3);
+    background: var(--paper-page-paper);
+    color: var(--paper-page-ink);
+    font-family: var(--paper-font-page);
+    font-size: var(--paper-chip-preview-font-size);
+  }
+
+  @media (forced-colors: active) {
+    .paper-appearance-preview {
+      forced-color-adjust: none;
+    }
+
+    .paper-appearance-chip[data-selected] {
+      border-color: Highlight;
+    }
+  }
+}

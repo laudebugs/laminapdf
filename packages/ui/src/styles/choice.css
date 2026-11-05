@@ -1,0 +1,146 @@
+/* Checkboxes, radios and switches (§7.19): a label row at least one target high, the drawn box,
+   circle or track beside the label, and the focus ring on that drawing. */
+@layer paper.components {
+  .paper-choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+    min-block-size: var(--ui-target);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+    cursor: default;
+  }
+
+  .paper-choice[data-disabled] {
+    color: var(--paper-muted);
+  }
+
+  .paper-checkbox-box,
+  .paper-radio-circle {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    inline-size: var(--paper-checkbox-size);
+    block-size: var(--paper-checkbox-size);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    background: var(--paper-field);
+  }
+
+  .paper-checkbox-box {
+    border-radius: var(--paper-checkbox-radius);
+    color: var(--paper-on-accent);
+  }
+
+  .paper-checkbox-check,
+  .paper-checkbox-dash {
+    display: none;
+  }
+
+  .paper-checkbox-check {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .paper-checkbox-dash {
+    inline-size: var(--paper-mixed-dash-width);
+    block-size: var(--paper-mixed-dash-height);
+    background: var(--paper-on-accent);
+  }
+
+  .paper-checkbox:is([data-selected], [data-indeterminate]) .paper-checkbox-box {
+    border-color: var(--paper-accent);
+    background: var(--paper-accent);
+  }
+
+  .paper-checkbox[data-selected]:not([data-indeterminate]) .paper-checkbox-check,
+  .paper-checkbox[data-indeterminate] .paper-checkbox-dash {
+    display: block;
+  }
+
+  .paper-checkbox[data-disabled] .paper-checkbox-box {
+    border-color: var(--paper-chip-border);
+    background: var(--paper-ground);
+  }
+
+  .paper-radio-options {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .paper-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-radio-circle {
+    border-radius: var(--paper-radius-pill);
+  }
+
+  .paper-radio[data-selected] .paper-radio-circle {
+    border: var(--paper-selected-underline-width) solid var(--paper-accent);
+  }
+
+  .paper-radio[data-selected] .paper-radio-circle::after {
+    content: "";
+    inline-size: var(--paper-radio-dot);
+    block-size: var(--paper-radio-dot);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-accent);
+  }
+
+  .paper-switch-track {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    inline-size: var(--paper-switch-width);
+    block-size: var(--paper-switch-height);
+    padding-inline: var(--paper-space-2);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-field);
+  }
+
+  .paper-switch-knob {
+    inline-size: var(--paper-switch-knob);
+    block-size: var(--paper-switch-knob);
+    border-radius: var(--paper-radius-pill);
+    background: var(--paper-control-border);
+  }
+
+  .paper-switch[data-selected] .paper-switch-track {
+    justify-content: flex-end;
+    border-color: var(--paper-accent);
+    background: var(--paper-accent);
+  }
+
+  .paper-switch[data-selected] .paper-switch-knob {
+    background: var(--paper-on-accent);
+  }
+
+  .paper-choice[data-focus-visible] .paper-checkbox-box,
+  .paper-choice[data-focus-visible] .paper-radio-circle,
+  .paper-choice[data-focus-visible] .paper-switch-track {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  /* The ring goes on the drawing, not the whole row. */
+  .paper-choice[data-focus-visible] {
+    outline: none;
+  }
+
+  @media (forced-colors: active) {
+    .paper-checkbox-box,
+    .paper-radio-circle,
+    .paper-switch-track {
+      border-color: CanvasText;
+    }
+
+    .paper-checkbox:is([data-selected], [data-indeterminate]) .paper-checkbox-box,
+    .paper-switch[data-selected] .paper-switch-track {
+      background: Highlight;
+    }
+  }
+}

@@ -1,0 +1,33 @@
+/* Shared ground rules for the components. */
+@layer paper.base {
+  :where(.paper-density) {
+    display: contents;
+  }
+
+  :where([class^="paper-"], [class*=" paper-"]),
+  :where([class^="paper-"], [class*=" paper-"])::before,
+  :where([class^="paper-"], [class*=" paper-"])::after {
+    box-sizing: border-box;
+  }
+
+  :where(button:is([class^="paper-"], [class*=" paper-"])) {
+    font: inherit;
+    color: inherit;
+    margin: 0;
+  }
+}
+
+/* The focus ring of §7.0 on every focusable control: shown for the keyboard, never removed,
+   whatever the order of the element's classes. */
+@layer paper.components {
+  :is([class^="paper-"], [class*=" paper-"])[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  @media (forced-colors: active) {
+    :is([class^="paper-"], [class*=" paper-"])[data-focus-visible] {
+      outline-color: CanvasText;
+    }
+  }
+}

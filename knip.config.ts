@@ -11,7 +11,7 @@ import { entrySources, packageDirs } from "./tools/ts/package-entries.mjs";
 /** Entry globs that apply where their folder or file exists. */
 const RUNS_UNEXPORTED: Record<string, string[]> = {
   "src/worker/entry.ts": ["src/worker/entry.ts"],
-  test: ["test/**/*.test.ts"],
+  test: ["test/**/*.test.{ts,tsx}"],
   "test/vite-app": ["test/vite-app/*.ts"],
   "test/workerd/worker.ts": ["test/workerd/worker.ts"],
   examples: ["examples/**/*.{ts,mjs}"],
@@ -38,7 +38,7 @@ function project(dir: string): string[] {
   // A TypeScript script (run by a package.json script, which knip reads as the entry) is project code.
   const tsScripts = holds(dir, "scripts", ".ts");
   return [
-    ...["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
+    ...["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "examples/**/*.{ts,mjs}"].filter((g) =>
       existsSync(`packages/${dir}/${g.split("/")[0]}`),
     ),
     ...(tsScripts ? ["scripts/**/*.ts"] : []),

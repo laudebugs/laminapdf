@@ -1,0 +1,86 @@
+/* Text fields and the select (§7.19): label 12/600 above with gap 8, help 12 muted or the error
+   12 danger below, a white field with a control border that turns danger when invalid. */
+@layer paper.components {
+  .paper-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-field-label {
+    font: var(--paper-type-label);
+    color: var(--paper-text-3);
+  }
+
+  .paper-field-help {
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-field-error {
+    font: var(--paper-type-caption);
+    color: var(--paper-danger);
+  }
+
+  .paper-input {
+    inline-size: 100%;
+    min-block-size: var(--ui-field-height);
+    padding-block: 0;
+    padding-inline: var(--paper-space-10);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+    color: var(--paper-text);
+    font: var(--ui-field-font);
+  }
+
+  .paper-input::placeholder {
+    color: var(--paper-muted);
+    opacity: 1;
+  }
+
+  .paper-textarea {
+    padding-block: var(--paper-space-8);
+    resize: vertical;
+  }
+
+  .paper-select {
+    position: relative;
+  }
+
+  .paper-select .paper-input {
+    appearance: none;
+    padding-inline-end: var(--paper-select-chevron-space);
+  }
+
+  .paper-field[data-invalid] .paper-input {
+    border-color: var(--paper-danger);
+  }
+
+  .paper-input:focus-visible,
+  .paper-input[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  .paper-input:disabled,
+  .paper-input[data-disabled] {
+    border-color: var(--paper-hairline);
+    color: var(--paper-disabled);
+  }
+
+  .paper-select-chevron {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: var(--paper-select-chevron-inset);
+    margin-block: auto;
+    color: var(--paper-text-3);
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .paper-input {
+      border-color: CanvasText;
+    }
+  }
+}

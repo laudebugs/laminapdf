@@ -44,6 +44,9 @@ catalog:
   knip: 6.43.0
   playwright: 1.64.1
   publint: 0.3.25
+  # @laminapdf/ui's accessible primitives (ADR 0009: React Aria Components). Apache-2.0, as are its
+  # @react-aria/* and @internationalized/* packages. Pinned to a release at least two weeks old.
+  react-aria-components: 1.22.1
   react: 19.3.1
   react-dom: 19.3.1
   typescript: 7.0.2

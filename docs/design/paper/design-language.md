@@ -593,6 +593,8 @@ Variants **(proposed)**:
 
 ### 7.2 Mode switcher
 
+In `@laminapdf/ui`: `ModeSwitcher`. **Keyboard (decided, U6d):** each mode button is its own Tab stop, with Enter or Space to switch, because a `role="group"` gives no hint that arrow keys work. The secondary toolbars below use the toolbar pattern instead (ADR 0024 §8).
+
 Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, not a panel). Active: `text` 600 + 2 px `accent` underline; inactive: `muted`, transparent underline (keeps height stable). Hover **(proposed)**: label turns `text`. Gap 22, height 40 (fills the top bar).
 
 ```html
@@ -607,6 +609,8 @@ Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, n
 
 ### 7.3 Icon button
 
+In `@laminapdf/ui`: `IconButton`, which requires its `label`.
+
 Desktop 28×28 (top bar, inspector close), 26×26 (zoom), 32×32 (style tile); phone 44×44 with 22 px icon, radius 6. Radius 4, transparent, `text-3`.
 
 ```html
@@ -614,6 +618,8 @@ Desktop 28×28 (top bar, inspector close), 26×26 (zoom), 32×32 (style tile); p
 ```
 
 ### 7.4 Text buttons
+
+In `@laminapdf/ui`: `Button`.
 
 Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, padding 0 12, 13 px); phone ≥ 44 **(proposed)**. Radius 4. One primary per view.
 
@@ -627,6 +633,8 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 ```
 
 ### 7.5 Segmented tabs (rail tabs)
+
+In `@laminapdf/ui`: `SegmentedTabs` and `TabPanel`. **Activation (decided, U6d):** automatic, so an arrow key selects the tab it moves to, because a rail panel appears as soon as its tab is selected; a slow panel passes `keyboardActivation="manual"`.
 
 `role="tablist"` with `role="tab"`/`aria-selected`; 13 px, gap 16, padding `14px 18px 0`, 2 px `accent` underline on the selected tab, `hairline` under the row. Arrow keys move between tabs. Which tabs appear is in §8.10.
 
@@ -647,6 +655,8 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 ```
 
 ### 7.6 Thumbnail
+
+In `@laminapdf/ui`: `Thumbnail`, a button whose `children` are the page image the viewer drew.
 
 116×150 in the rail (column, gap 22, padding 22 0), 122×158 in the phone sheet (2-column grid, gaps `18px 16px`). White, thumbnail shadow, 1 px `hairline` outline; **current page**: `outline: 2px solid #1F5C63; outline-offset: 3px`, `aria-current="page"`, number 600 `text`; others number `muted`. Number 12 px (13 on phone) tabular, 8 px below. Thumbnails are named and numbered by the page label (“Page A-1, 22 of 24”).
 
@@ -672,6 +682,8 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 
 ### 7.7 Outline row
 
+In `@laminapdf/ui`: `OutlineRow`. **Chevron (decided, U6h):** a row with children has a chevron button before its link, on desktop as on touch, so the link and the button each do one thing. The button keeps one name, such as “Sections in 2. Repairs backlog”, and `aria-expanded` says whether they show; a name that flips between Expand and Collapse would say the same thing twice. The tree below stays proposed.
+
 Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Row: Newsreader 15, padding `6px 8px`, radius 4, page number right (Source Sans 3 12 `muted` tabular). Level 2: 14 px, `text-3`, left padding 22. Current: `accent` text 600 on `accent-tint`, `aria-current="location"`. Hover **(proposed)**: `hover` fill.
 
 **Outline tree (proposed; replaces the link list once an outline has levels):** the same rows as a WAI-ARIA tree (`ul role="tree"`, `li role="treeitem"` with `aria-level` and `aria-expanded`). A 16 px chevron (down = expanded, right = collapsed) is decoration inside the row, toggled by click or ← →, so there is no nested button. The current row tracks scrolling (the deepest entry at or above the top of the view).
@@ -686,6 +698,8 @@ Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Ro
 ```
 
 ### 7.8 Status bar items
+
+In `@laminapdf/ui`: `StatusBarItem`, `NetworkIndicator`, `RepairedNotice` and `PageLabel`. **Unexpected origin (U6h):** the shield becomes the Warning sign as well as turning `warning`, so the state doesn't rest on colour, which forced colours take away. A pressed item's label turns `text-3`, as §7.0's ghost controls do, because `muted` is under 4.5:1 on `pressed`.
 
 Each item is a button (min-height 24, 12 px, `muted`) that opens its panel. Network indicator: shield in `accent`, count in `text`, explanation in `muted`. Repaired notice: wrench + "Repaired on open · Details" (Details underlined). Page label: plain text, "Page 3 · Repairs backlog" or "Page 3 of 24". If requests > 0 **(proposed)**: count stays `text`, explanation names the host ("2 requests · to files.example.org only"); a request to an unexpected origin turns the shield and count `warning`. **Wording (decided, one form for every area):** with a document open the count is for that document: “0 network requests for this document · Offline-safe: nothing uploaded” when nothing was sent, otherwise “N network requests for this document · to lamina’s storage only” (the destination names of [Account and cloud](account-cloud-product.md); in shared review, “· live connection to lamina’s review server”). Screens without a document (start window, home, settings, product pages) drop “for this document”: “0 network requests · Offline-safe: nothing uploaded”, or the count plus the destination.
 
@@ -764,6 +778,8 @@ Modal over `scrim` (from below the window title bar), 96 px from the top, `max-w
 
 **Shortcut chip** (anywhere): 11–12 px, padding `1px 5–6px`, `chip-border`, radius 3, white, `text-3`, tabular. macOS glyphs run together (`⌥⌘E`, `⌘K`); Windows/Linux words with spaces (`Ctrl K`, `Ctrl Shift E`).
 
+In `@laminapdf/ui`: `ShortcutChip`, which writes a command's keys for the platform the app names.
+
 **Plan label (proposed):** a command outside the user's plan shows a neutral badge “In [PLAN NAME]” (§7.23; on the active row: white with `accent` border and text) in place of the shortcut chip, and the footer explains it. Commands in the plan show no badge; never a lock icon.
 
 ### 7.11 Inspector panel
@@ -809,6 +825,8 @@ The same shell **(proposed)** serves the **details panel** (a document-level exp
 ```
 
 ### 7.12 Colour swatches
+
+In `@laminapdf/ui`: `SwatchGroup`, whose colours are token names.
 
 Circles with `aria-label` (colour name) and `aria-pressed`; 24 px in the secondary toolbar (gap 4, preceded by a 12 `muted` "Colour" label), 28 px in the inspector (gap 8). Edge 1 px `control-border`; selected `outline: 2px solid #1F1D1A` (offset 1 / 2). On touch **(proposed)**, the 26 px swatch sits centred in a 44 × 44 button and the selected ring is a `box-shadow` (2 px `surface` gap, 2 px `text`) so it doesn't change the layout. The same circles carry the other palettes of §2.7.
 
@@ -920,6 +938,8 @@ Rules **(proposed)**:
 
 ### 7.19 Form controls (consistent with the page input and note field)
 
+In `@laminapdf/ui`: `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup` with `Radio`, and `Switch`. The switch is a visually hidden `<input type="checkbox" role="switch">` inside its label, like the checkbox below, rather than a `<button role="switch">`: it reports the same role and state, and keeps the whole row as its target.
+
 All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `accent` ring, offset 1.
 
 | Control | Size | Details |
@@ -965,6 +985,8 @@ More controls **(proposed)**:
 
 ### 7.20 Toast and notice
 
+In `@laminapdf/ui`: `Notice`, and `Toast` for the toast's look. The toast region, which comes with the overlays, is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
+
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
 - **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.
 - **Notice:** an inline strip inside a panel or under the bars for a lasting state (repaired file details, approximate reflow, offline). Tint background (`warning-tint`, `danger-tint`, `positive-tint` or `surface`), `hairline` edge, radius 4, padding `10px 12px`, 16 px icon in the status colour, title 600 + body 13 px `text`. No left-border accent stripe.
@@ -978,6 +1000,8 @@ More controls **(proposed)**:
 
 ### 7.21 Empty state
 
+In `@laminapdf/ui`: `EmptyState`.
+
 Centred in the region it fills, max-width 360, gap 12: optional 32 px stroke icon `muted`; title Newsreader 20/500 (Display 40/44 only on the home screen); one sentence 14 `muted`; at most one primary and one ghost action. Example: Outline tab of a file without bookmarks, "This file has no outline" / "Use Pages to move through it."
 
 **Error page (proposed):** the empty state with a 32 px `danger` Warning icon, the error code in 12 `muted` under the sentence, `role="alert"`, one primary and one ghost action; focus moves to the primary action.
@@ -988,11 +1012,15 @@ Centred in the region it fills, max-width 360, gap 12: optional 32 px stroke ico
 
 ### 7.22 Progress
 
+In `@laminapdf/ui`: `ProgressBar` (determinate with a `value`, indeterminate without) and `Skeleton`. **Skeleton colour (U6h):** `hairline`, the nearest semantic token to `#ECE7DE`, so skeletons follow the theme.
+
 - **Determinate bar:** 4 px track `hairline`, radius 2, `accent` fill (5.66 on the track), label above (12 `muted`, tabular: "Saving… 62%"), `role="progressbar"` with `aria-valuenow`.
 - **Indeterminate:** the same bar with a 30% segment sliding (1.2 s, linear); with `prefers-reduced-motion`, a static 30% segment plus the label.
 - **Spinner:** avoid; pages use placeholders, sidebars skeletons (`#ECE7DE` blocks, no shimmer under reduced motion).
 
 ### 7.23 Badge and tag
+
+In `@laminapdf/ui`: `Badge`, which also draws tags.
 
 Height 20, padding `0 8px`, radius 3, 12 px 600, tint background with the status colour as text: neutral `surface` + `chip-border` + `text-3`; accent `accent-tint` + `accent`; positive `positive-tint` + `positive` ("Signature valid"); warning `warning-tint` + `warning` ("Approximate"); danger `danger-tint` + `danger` ("Leak found"). Pair with an icon or word; never colour alone.
 
@@ -1013,6 +1041,8 @@ Badge sets **(proposed)**, all at this size:
 
 ### 7.24 Secondary-toolbar tool toggle
 
+In `@laminapdf/ui`: `ToolToggle`, and `ToggleButton` for other pressed buttons.
+
 From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon + 13 px label, 1 px transparent border; selected = `accent` border, `accent-tint`, `accent` 600. Right end: a 12 `muted` context note ("1 comment on this page").
 
 ```html
@@ -1024,6 +1054,8 @@ From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon
 **Tool toolbar (proposed):** the secondary toolbar of a tool that works inside a mode (Redact, Protect, Form design, Accessibility, Print production, Measure). Same metrics; it starts with the tool's 16 px icon and its name in Newsreader 15/500 and ends with a context note and **Done** (secondary), which returns to the mode's own toolbar.
 
 ### 7.25 Page-appearance chips
+
+In `@laminapdf/ui`: `PageAppearanceChips`.
 
 From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. `role="group"` + `aria-pressed`.
 

@@ -1,0 +1,147 @@
+/* Text buttons (§7.4) and icon buttons (§7.3), with the shared states of §7.0. */
+@layer paper.components {
+  .paper-button,
+  .paper-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: var(--paper-border-width) solid transparent;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text-3);
+    cursor: default;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .paper-button {
+    gap: var(--paper-space-8);
+    min-height: max(var(--paper-button-height), var(--ui-target));
+    padding-block: 0;
+    padding-inline: var(--paper-space-16);
+    font: var(--paper-type-body);
+    color: var(--paper-text);
+  }
+
+  .paper-button[data-size="30"] {
+    min-height: max(var(--paper-button-height-inspector), var(--ui-target));
+    padding-inline: var(--paper-space-14);
+  }
+
+  .paper-button[data-size="26"] {
+    min-height: max(var(--paper-button-height-top-bar), var(--ui-target));
+    padding-inline: var(--paper-space-12);
+    font: var(--paper-type-control);
+  }
+
+  /* Secondary: field fill and a control border; hover lays the hover fill over it. */
+  .paper-button[data-variant="secondary"] {
+    background: var(--paper-field);
+    border-color: var(--paper-control-border);
+  }
+
+  .paper-button[data-variant="secondary"][data-hovered] {
+    background: linear-gradient(var(--paper-hover), var(--paper-hover)), var(--paper-field);
+  }
+
+  .paper-button[data-variant="secondary"][data-pressed] {
+    background: linear-gradient(var(--paper-pressed), var(--paper-pressed)), var(--paper-field);
+  }
+
+  .paper-button[data-variant="primary"] {
+    background: var(--paper-accent);
+    border-color: var(--paper-accent);
+    color: var(--paper-on-accent);
+    font-weight: 600;
+  }
+
+  .paper-button[data-variant="primary"][data-hovered] {
+    background: var(--paper-accent-strong);
+    border-color: var(--paper-accent-strong);
+  }
+
+  .paper-button[data-variant="primary"][data-pressed] {
+    background: var(--paper-primary-pressed);
+    border-color: var(--paper-primary-pressed);
+  }
+
+  .paper-button[data-variant="ghost"] {
+    color: var(--paper-text-3);
+  }
+
+  .paper-button[data-variant="danger"] {
+    color: var(--paper-danger);
+  }
+
+  .paper-button:is([data-variant="ghost"], [data-variant="danger"])[data-hovered],
+  .paper-icon-button[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-button:is([data-variant="ghost"], [data-variant="danger"])[data-pressed],
+  .paper-icon-button[data-pressed] {
+    background: var(--paper-pressed);
+  }
+
+  .paper-button[data-variant="danger-filled"] {
+    background: var(--paper-danger);
+    border-color: var(--paper-danger);
+    color: var(--paper-on-accent);
+    font-weight: 600;
+  }
+
+  /* Disabled or pending: the disabled text, no hover; filled buttons lose their fill. */
+  .paper-button:is([data-disabled], [data-pending]),
+  .paper-icon-button[data-disabled] {
+    color: var(--paper-disabled);
+    background: transparent;
+  }
+
+  .paper-button[data-variant="secondary"]:is([data-disabled], [data-pending]) {
+    background: var(--paper-field);
+    border-color: var(--paper-hairline);
+  }
+
+  .paper-button:is([data-variant="primary"], [data-variant="danger-filled"]):is([data-disabled], [data-pending]) {
+    background: var(--paper-hairline);
+    border-color: var(--paper-hairline);
+  }
+
+  .paper-button[data-pending] {
+    cursor: progress;
+  }
+
+  .paper-icon-button {
+    border-radius: var(--ui-icon-button-radius);
+    inline-size: max(var(--paper-icon-button-size), var(--ui-target));
+    block-size: max(var(--paper-icon-button-size), var(--ui-target));
+    padding: 0;
+  }
+
+  .paper-icon-button[data-size="26"] {
+    inline-size: max(var(--paper-icon-button-size-zoom), var(--ui-target));
+    block-size: max(var(--paper-icon-button-size-zoom), var(--ui-target));
+  }
+
+  .paper-icon-button[data-size="32"] {
+    inline-size: max(var(--paper-icon-button-size-large), var(--ui-target));
+    block-size: max(var(--paper-icon-button-size-large), var(--ui-target));
+  }
+
+  .paper-icon-button svg {
+    inline-size: var(--ui-touch-icon, var(--paper-icon-size-toolbar));
+    block-size: var(--ui-touch-icon, var(--paper-icon-size-toolbar));
+  }
+
+  .paper-icon-button[data-size="26"] svg {
+    inline-size: var(--ui-touch-icon, var(--paper-icon-size-label));
+    block-size: var(--ui-touch-icon, var(--paper-icon-size-label));
+  }
+
+  @media (forced-colors: active) {
+    .paper-button,
+    .paper-icon-button {
+      border-color: ButtonBorder;
+    }
+  }
+}
