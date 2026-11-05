@@ -54,10 +54,18 @@ describe("siteNav", () => {
 });
 
 describe("pageFiles", () => {
-  it("lists a pages folder's .astro and .md files as /src/pages paths, endpoints left out", async () => {
+  it("lists a pages folder's .astro and .md files as /src/pages paths, endpoints and _ names left out", async () => {
     const root = await mkdtemp(join(tmpdir(), "site-kit-pages-"));
     try {
-      for (const file of ["index.astro", "privacy.md", "download/index.astro", "robots.txt.ts"]) {
+      const files = [
+        "index.astro",
+        "privacy.md",
+        "download/index.astro",
+        "robots.txt.ts",
+        "_pricing.astro",
+        "_wip/a.md",
+      ];
+      for (const file of files) {
         await mkdir(join(root, file, ".."), { recursive: true });
         await writeFile(join(root, file), "");
       }

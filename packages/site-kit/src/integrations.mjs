@@ -28,6 +28,7 @@ export async function filesIn(dir, extension) {
 /**
  * The page files under `dir` (a site's src/pages folder, a file: URL), as `/src/pages/…` paths: the
  * pages the header may link to (nav.mjs). A site's astro.config.mjs reads them once per build.
+ * Like Astro, it leaves out files and folders whose names start with `_`, which serve no page.
  *
  * @param {URL} dir
  * @returns {string[]}
@@ -35,7 +36,7 @@ export async function filesIn(dir, extension) {
 export function pageFiles(dir) {
   return readdirSync(dir, { recursive: true })
     .map((file) => `/src/pages/${String(file).replaceAll("\\", "/")}`)
-    .filter((file) => /\.(astro|md)$/.test(file))
+    .filter((file) => /\.(astro|md)$/.test(file) && !file.split("/").some((part) => part.startsWith("_")))
     .sort();
 }
 
