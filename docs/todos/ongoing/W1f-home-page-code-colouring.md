@@ -12,7 +12,7 @@
 | Branch | `feat/w1f-code-colouring` |
 | PR title | `feat(site): colour the home page's code` |
 | Size | S (≈ 150–300 lines: the code panel, a style sheet, tokens, tests) |
-| PR | — |
+| PR | [#264](https://github.com/laudebugs/laminapdf/pull/264) |
 
 ## Goal
 
