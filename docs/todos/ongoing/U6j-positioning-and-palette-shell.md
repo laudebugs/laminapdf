@@ -12,7 +12,7 @@
 | Branch | `feat/u6j-positioning-and-palette-shell` |
 | PR title | `feat(ui): add anchored positioning, the selection toolbar shell and the palette shell` |
 | Size | L (≈ 600–800 lines of components and tests) |
-| PR | — |
+| PR | [#251](https://github.com/laudebugs/laminapdf/pull/251) |
 
 ## Goal
 
