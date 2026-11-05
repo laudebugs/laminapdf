@@ -4,12 +4,14 @@ import { userEvent } from "vitest/browser";
 import {
   type MenuEntry,
   OpenDropZone,
+  OpenFailure,
   PasswordDialog,
   PlatformProvider,
   ReaderController,
   ReaderShell,
   ReaderTopBar,
   type ReaderTopBarProps,
+  RepairDetails,
   useGatedEntries,
 } from "../../src/index.ts";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
@@ -523,6 +525,95 @@ describe("OpenDropZone", () => {
     const { violations } = await axe.run(document.querySelector("section.paper-open") as HTMLElement, {
       resultTypes: ["violations"],
     });
+    expect(violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+describe("RepairDetails", () => {
+  const repairs = [
+    { code: "xref-repaired" },
+    { code: "stream-length-recovered", pages: [3, 4, 9] },
+    { code: "outline-item-skipped" },
+    { code: "content-syntax" },
+    { code: "invalid-date" },
+    { code: "invalid-box" },
+    { code: "a-code-from-the-future" },
+  ];
+
+  it("names itself, explains each repair over its code, and shows five kinds until asked for all", async () => {
+    const host = renderIn(
+      <RepairDetails fileName="Q3-board-report.pdf" repairs={repairs} onClose={() => {}} onCopy={() => {}} />,
+    );
+    const aside = host.querySelector("aside") as HTMLElement;
+    expect(document.getElementById(aside.getAttribute("aria-labelledby") ?? "")?.textContent).toBe("Repaired on open");
+    const rows = () => [...host.querySelectorAll(".paper-repair-row")].map((row) => row.textContent);
+    expect(rows()).toHaveLength(5);
+    expect(rows()[1]).toBe("Measured page data whose stated length was wrongstream-length-recovered · pages 3, 4, 9");
+    await userEvent.click(button("Show all 7") as HTMLButtonElement);
+    expect(rows()).toHaveLength(7);
+    expect(rows()[6]).toBe("Repaired a problem in the filea-code-from-the-future");
+  });
+
+  it("closes on Escape or its close button, and copies its details", async () => {
+    const onClose = vi.fn();
+    const onCopy = vi.fn();
+    renderIn(
+      <RepairDetails
+        fileName="Q3-board-report.pdf"
+        repairs={repairs}
+        notRun={["This file contains JavaScript. Lamina PDF never runs it."]}
+        onClose={onClose}
+        onCopy={onCopy}
+      />,
+    );
+    await userEvent.click(button("Copy details") as HTMLButtonElement);
+    expect(onCopy).toHaveBeenCalledOnce();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(button("Close repair details") as HTMLButtonElement);
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes axe", async () => {
+    const host = renderIn(
+      <RepairDetails
+        fileName="Q3-board-report.pdf"
+        repairs={repairs}
+        notRun={["This file contains JavaScript. Lamina PDF never runs it."]}
+        onClose={() => {}}
+        onCopy={() => {}}
+      />,
+    );
+    const { violations } = await axe.run(host, { resultTypes: ["violations"] });
+    expect(violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+describe("OpenFailure", () => {
+  it("is announced, says why in words, and focuses Try another file", async () => {
+    const onTryAnother = vi.fn();
+    const host = renderIn(
+      <OpenFailure
+        error={{ code: "missing-root", message: "no /Root" }}
+        detail="1.8 MB read"
+        onTryAnother={onTryAnother}
+        onCopy={() => {}}
+      />,
+    );
+    await frame();
+    const page = host.querySelector("[role=alert]") as HTMLElement;
+    expect(page.querySelector("h2")?.textContent).toBe("This file can't be opened");
+    expect(page.textContent).toContain("couldn't find the document's list of pages");
+    expect(page.querySelector(".paper-failure-code")?.textContent).toBe("missing-root · 1.8 MB read");
+    expect(focused().textContent).toBe("Try another file");
+    await userEvent.keyboard("{Enter}");
+    expect(onTryAnother).toHaveBeenCalledOnce();
+  });
+
+  it("passes axe", async () => {
+    const host = renderIn(
+      <OpenFailure error={{ code: "not-pdf", message: "" }} onTryAnother={() => {}} onCopy={() => {}} />,
+    );
+    const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
   });
 });

@@ -122,6 +122,13 @@ export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
 export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
+export {
+  OpenFailure,
+  type OpenFailureProps,
+  RepairDetails,
+  type RepairDetailsProps,
+  type RepairKind,
+} from "./reader/repair.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
 export {

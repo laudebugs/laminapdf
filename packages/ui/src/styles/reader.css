@@ -353,3 +353,101 @@
     pointer-events: none;
   }
 }
+
+/* Repairs and failures (R04): the docked panel's header, notice, overlines over rows of a sentence
+   above its code in 12 muted mono, and Copy details; the failure page centred in the canvas with
+   the `danger` warning icon, a heading, its sentence, the code and two actions. */
+@layer paper.components {
+  .paper-repair {
+    display: grid;
+    align-content: start;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-16);
+  }
+
+  .paper-repair-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-repair-title,
+  .paper-repair-file,
+  .paper-repair-overline,
+  .paper-failure-title,
+  .paper-failure-body,
+  .paper-failure-code {
+    margin: 0;
+  }
+
+  .paper-repair-title {
+    font: var(--paper-type-title);
+    letter-spacing: var(--paper-type-title-letter-spacing);
+  }
+
+  .paper-repair-file {
+    overflow-wrap: anywhere;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-repair-overline {
+    font: var(--paper-type-overline);
+    letter-spacing: var(--paper-type-overline-letter-spacing);
+    color: var(--paper-muted);
+    text-transform: uppercase;
+  }
+
+  .paper-repair-list {
+    display: grid;
+    gap: var(--paper-space-10);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-repair-row {
+    display: grid;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-repair-code,
+  .paper-failure-code {
+    font: var(--paper-type-mono);
+    color: var(--paper-muted);
+  }
+
+  .paper-repair-actions,
+  .paper-failure-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-failure {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--paper-space-10);
+    block-size: 100%;
+    max-inline-size: var(--paper-dialog-width-form);
+    margin-inline: auto;
+    padding: var(--paper-space-24);
+    text-align: center;
+  }
+
+  .paper-failure > svg {
+    color: var(--paper-danger);
+  }
+
+  .paper-failure-title {
+    font: var(--paper-type-heading);
+    letter-spacing: var(--paper-type-heading-letter-spacing);
+  }
+
+  .paper-failure-actions {
+    justify-content: center;
+    margin-block-start: var(--paper-space-8);
+  }
+}
