@@ -203,7 +203,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 ### U5. Product promises
 
-**Deliverable:** the pricing, promises and targets pages on the docs site; the reader benchmark; optional, opt-in usage telemetry.
+**Deliverable:** the pricing, promises and targets pages on the website (`apps/site`, [website plan §4](website.md#4-the-website)); the reader benchmark; optional, opt-in usage telemetry.
 **Accepted when:** the owner has approved the pricing page; the benchmark is reproducible from a script with published raw numbers; telemetry is off by default and its payload is documented and tested to carry no document data.
 **Todos:** [U5a](../todos/ready/U5a-pricing-and-promises-page.md), [U5b](../todos/ready/U5b-reader-benchmark.md), [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)
 

@@ -258,7 +258,7 @@ The product will self-host these fonts (no third-party requests: principle 7); t
 
 | Name | Family | Size / line height / weight | Usage |
 | --- | --- | --- | --- |
-| Site display | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 700) | Docs-site pages: pricing, benchmark, download |
+| Site display | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 700) | Website pages: pricing, benchmark, download |
 | Display | Newsreader | 40 / 44 / 400 | Empty states, home screen heading |
 | Page heading | Newsreader | 28 / 34 / 500 | `h1` of settings and list pages (Account, Cloud files, Telemetry) |
 | Title | Newsreader | 20 / 24–26 / 500 | Inspector title, sheet title, dialog title |
@@ -1196,9 +1196,9 @@ Drawn over the page (layer 1, §4) and `aria-hidden` unless stated. Every overla
 
 ### 7.39 Site and product pages (proposed)
 
-- **Docs-site header:** 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every docs-site page (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app”. The download page uses a 56 px variant with a 22 px Source Sans 3 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
+- **Site header** (the website at `laminapdf.com` and the docs site): 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every page of both sites (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app” (shown once the reader launches, [website plan §4](../../plans/website.md#4-the-website)). The download page uses a 56 px variant with a 22 px Source Sans 3 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
 - **Large primary link:** 40 px primary button styling on an `<a>`, with the Download icon (“Download for macOS”).
-- **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (docs site): `surface`, padding 28, name 26, price 40 Source Sans 3 700.
+- **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (website): `surface`, padding 28, name 26, price 40 Source Sans 3 700.
 
 ### 7.40 Media poster (proposed)
 

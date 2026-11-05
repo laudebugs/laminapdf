@@ -2,6 +2,7 @@
 
 - Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ready/H1-auth-spike.md).
 - Date: 2026-10-31
+- Amended: 2026-11-05 ([W1a](../todos/done/W1a-domain-map.md), the [website plan](../plans/website.md)): the website is at `laminapdf.com` and the reader moves to `app.laminapdf.com`, with its staging at `staging-app.laminapdf.com`. Until then the plan put the reader at the apex and its staging at `staging.laminapdf.com`. The reader had never been deployed, so nothing redirects. This amendment edits §1–§4 in place: the hosts (§1), the `#url=` links (§2), the origin the guarantees name and the website's own rules (§3), and the website's headers and the HSTS preload (§4).
 
 ## Context
 
@@ -16,7 +17,7 @@ What the research found ([Cloudflare notes §1, §4](../research/architecture/no
 - **The `cf` CLI** has been in beta since 2026-09-28 and is the planned successor to Wrangler. Its config and commands may change, and secondary sources say it sends anonymous telemetry by default.
 - **Retention:** Workers Logs keeps 3 days on Free and 7 on Paid. R2 lifecycle rules can expire objects. Workflows, Queues and D1 Time Travel have their own retention.
 
-Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optional, opt-in and off by default ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)). The domain, `laminapdf.com`, was chosen by the owner on 2026-10-31 ([web-app §8](../plans/web-app.md#8-open-questions) Q1); the product name is still open.
+Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optional, opt-in and off by default ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)). The domain, `laminapdf.com`, was chosen by the owner on 2026-10-31 ([web-app §8](../plans/web-app.md#8-open-questions) Q1); the product name is still open. On 2026-11-05 the owner put a website at the apex and the reader at `app.laminapdf.com` ([website plan](../plans/website.md)).
 
 ## Decision
 
@@ -32,19 +33,31 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
 - **`compatibility_date` is pinned** in `apps/web/wrangler.jsonc`, ≥ 2025-04-01, so browser navigations go straight to assets.
 - **Tooling:** Wrangler is pinned exactly in CI, at the workspace catalog's version (4.149.0 today). The `cf` CLI is tried in a branch once it reaches GA, with its telemetry turned off; adopting it is a deliberate PR.
 - **Environments are two Workers,** so a staging deploy can never replace production. Both come from one `wrangler.jsonc` with a Wrangler environment `staging`.
-  - **`lamina-pdf-web-staging`:** custom domain `staging.laminapdf.com`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
-  - **`lamina-pdf-web`:** custom domain `laminapdf.com`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
+  - **`lamina-pdf-web-staging`:** custom domain `staging-app.laminapdf.com`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
+  - **`lamina-pdf-web`:** custom domain `app.laminapdf.com`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
 - **`noindex`:** the build takes the environment as an input (`LAMINA_PDF_ENV=staging|production`) and writes `_headers` from one template. Staging and preview builds add `X-Robots-Tag: noindex`; production doesn't. Everything else in §4 is identical, and C4d compares the two files.
 - **Assets:**
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
   - The WASM modules are static assets of the same origin (ADR 0009 §2), never a CDN's.
-- **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). The docs site is at `docs.laminapdf.com`, the updater and downloads at `updates.laminapdf.com` and `downloads.laminapdf.com` ([desktop plan §5](../plans/desktop-app.md#5-design-summary); ADR 0014, written in D5a). The HSTS preload submission waits for the reader at the apex (§4).
+- **The website is a Worker of its own, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. Every push to `main` deploys it, with a preview per PR. It never serves the reader: it links to the reader and forwards nothing.
+- **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). Since 2026-11-05 the website holds the apex and the reader `app.` ([website plan §2](../plans/website.md#2-the-domain-map)). Every host, its Worker and what deploys it:
+
+  | Host | Serves | Worker | Deployed from |
+  | --- | --- | --- | --- |
+  | `laminapdf.com` | the website (`apps/site`) | `lamina-pdf-site` | `main`, with a preview per PR |
+  | `www.laminapdf.com` | a 301 to `laminapdf.com`, path and query kept | none: a Cloudflare redirect rule | set once by the owner |
+  | `app.laminapdf.com` | the reader (`apps/web`) | `lamina-pdf-web` | `web-v*` release tags only |
+  | `staging-app.laminapdf.com` | the reader's staging | `lamina-pdf-web-staging` | every push to `main` |
+  | `docs.laminapdf.com` | the docs site (`apps/docs`) | `lamina-pdf-docs` | `main`, with a preview per PR |
+  | `updates.laminapdf.com`, `downloads.laminapdf.com`, `staging-downloads.laminapdf.com`, `nightly-downloads.laminapdf.com` | the desktop updater and the downloads of the release, staging and nightly channels ([desktop plan §5](../plans/desktop-app.md#5-design-summary), [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md)) | ADR 0014, written in D5a | D5a, D6b |
+
+  Every name is one label deep, so the zone's universal certificate (the apex and `*.laminapdf.com`) covers it. The HSTS preload submission follows the website's first production deploy (§4).
 
 ### 2. Documents never pass through our servers
 
 - **Local files** are read in the document worker and never leave the device.
-- **Remote documents** come from the **`#url=` fragment** only (`https://laminapdf.com/#url=https://…`). Browsers never send a fragment, so neither our Worker nor Cloudflare's request logs learn which document was opened. The worker fetches the file **directly from its host**:
+- **Remote documents** come from the **`#url=` fragment** only (`https://app.laminapdf.com/#url=https://…`). The website at `laminapdf.com` forwards no fragment: the apex never served the reader, so no link expects it to. Browsers never send a fragment, so neither our Worker nor Cloudflare's request logs learn which document was opened. The worker fetches the file **directly from its host**:
   - with range requests (`httpRangeSource`, L2c);
   - with `credentials: "omit"`, `referrerPolicy: "no-referrer"` and `cache: "no-store"`;
   - following the host's own HTTP redirects (`redirect: "follow"`; hosted PDFs often redirect to a storage or CDN host). The viewer shows the final host's name in the document's properties.
@@ -53,7 +66,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
 
 ### 3. The v0.1 privacy guarantees (testable)
 
-Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d's header checks), and the text of C7c's privacy page:
+Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d's header checks), and the text of C7c's privacy page. "Our origin" is the reader's, `https://app.laminapdf.com` (and `staging-app.` for staging):
 
 1. **No document bytes leave the device.** No request from the app to any origin carries a body containing bytes of the opened document. No request to our origin has a body at all.
 2. **Our origin never learns the remote document's URL.** No request to our origin contains it, or any part of it, in the URL, the request line or any header, including `Referer`.
@@ -72,6 +85,16 @@ Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d'
    "Clear local data" in settings removes all of them except the app cache.
 10. **Strict headers.** Every response from our origin carries the §4 headers. C4d checks them on preview, staging and production.
 
+**The website's rules.** The website at `laminapdf.com` holds pages of text, not documents, so it keeps the guarantees that apply to a page. W1b's post-build checks test every built page against them:
+
+- **No cookies** (4): no page or response sets one.
+- **No third parties** (5): every script, style sheet, font and image comes from the website's own origin.
+- **No analytics** (6, 7): no beacon, ping or counter of any kind; the progress dashboard is data built into the page, not a request.
+- **No Worker code** (§1): every request is answered by the asset server.
+- **Strict headers** (10): every response carries the website's §4 headers.
+
+Guarantees 1–3, 8 and 9 have nothing to act on there: the website opens no document, takes no password and stores nothing on the device.
+
 ### 4. Security headers (`apps/web/public/_headers`, for `/*`)
 
 ```
@@ -88,8 +111,17 @@ Cross-Origin-Resource-Policy: same-origin
 - **`connect-src https:`** is what lets the worker fetch a remote document from any host (§2); everything else is `'self'`.
 - **`frame-src 'self'` with `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`** allow the same-origin print iframe (C6c) and refuse framing by every other site. Styles are set through the CSSOM, never through `style` attributes in markup.
 - **No COOP or COEP in v0.1** (ADR 0009 §5). The threaded variant would add them on its own route.
-- **`preload` is added to HSTS** once `lamina-pdf-web` serves `laminapdf.com` and every subdomain is HTTPS (C4d): the preload list checks the apex's header.
+- **`preload` is added to HSTS** after the website's first production deploy, once every subdomain answers over HTTPS only. The preload list checks the apex's header, and the website now serves the apex. A one-line PR adds `preload` to the website's `Strict-Transport-Security` header (W1b's post-merge checks), and the owner then submits `laminapdf.com`.
 - **Changes are amendments:** a change that loosens any directive is an amendment to this ADR, and C4d's header test pins the exact values.
+
+**The website's headers** (`apps/site/public/_headers`, for `/*`; W1b) are the set above with two differences, each with its reason:
+
+- **`script-src 'self'` plus one `'sha256-…'` hash per inline script the build writes**, filled in after the build as the docs site does, because Astro writes small inline scripts. No `'wasm-unsafe-eval'`: the website runs no WebAssembly.
+- **`connect-src 'self'`**: the website fetches nothing remote.
+
+`style-src 'self'` stays as it is: the build sets Astro's `build.inlineStylesheets: "never"`, so every style sheet is a file, and pages set no `style` attributes. Preview builds add `X-Robots-Tag: noindex`, as the reader's do (§1). The website has no staging.
+
+Any other difference is added here, with its reason, before W1b ships it.
 
 ### 5. Observability without content
 
@@ -131,6 +163,7 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
 - **`connect-src https:`** is broader than `'self'`. It is required by direct fetching, and contained by allowing scripts from `'self'` only.
 - **Every later server feature starts from opt-in, per-document consent and fixed retention.** Its ADR has to justify any exception.
 - **One more governance task:** the domain choice touched every `<domain>` placeholder in a single PR (`laminapdf.com`, 2026-10-31).
+- **Two origins (amendment 2026-11-05):** the reader's storage, service worker and permissions live at `app.laminapdf.com`, apart from the website. No website page can read or clear the reader's local data, and the reader's offline cache never captures a website page.
 
 ## Alternatives considered
 

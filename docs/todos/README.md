@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 189 ready · 112 done** (301 total).
+**0 ongoing · 188 ready · 113 done** (301 total).
 
 ## Can start now
 
@@ -26,7 +26,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [C4a](ready/C4a-ui-chrome-and-platform.md): `@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter
-- [W1a](ready/W1a-domain-map.md): The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6b](ready/U6b-self-hosted-fonts.md): `@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3
 - [U6i](ready/U6i-sheets-positioning-and-palette-shell.md): `@laminapdf/ui` bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell
@@ -119,8 +118,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
 | C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
-| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](ready/W1a-domain-map.md) |
-| C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](ready/W1a-domain-map.md) |
+| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
+| C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](done/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
@@ -134,8 +133,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| W1a | [The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`](ready/W1a-domain-map.md) | ready | — |
-| W1b | [`apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`](ready/W1b-site-scaffold-and-deploys.md) | ready | [W1a](ready/W1a-domain-map.md), [U6a](done/U6a-paper-tokens.md), [U6b](ready/U6b-self-hosted-fonts.md) |
+| W1a | [The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`](done/W1a-domain-map.md) | done | — |
+| W1b | [`apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`](ready/W1b-site-scaffold-and-deploys.md) | ready | [W1a](done/W1a-domain-map.md), [U6a](done/U6a-paper-tokens.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | W1c | [The home page for now: what Lamina PDF is, the roadmap and what's coming next](ready/W1c-home-page.md) | ready | [W1b](ready/W1b-site-scaffold-and-deploys.md), [W1e](ready/W1e-progress-snapshot.md) |
 | W1d | [One header for the website and the docs site](ready/W1d-one-site-header.md) | ready | [W1b](ready/W1b-site-scaffold-and-deploys.md) |
 | W1e | [The progress snapshot: `cargo xtask progress` writes the home page's roadmap data](ready/W1e-progress-snapshot.md) | ready | [W1b](ready/W1b-site-scaffold-and-deploys.md) |
