@@ -40,6 +40,7 @@ mod util;
 mod verapdf;
 mod verify_install;
 mod version;
+mod viewer_perf;
 mod wasm;
 mod wasm_glue;
 mod wasm_module;
@@ -222,8 +223,13 @@ tasks:
                     the timings and WebAssembly memory against pdf-library §4 in the job summary;
                     --label writes target/xtask/pdf-runtimes/measurements-<name>.json
                     and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
+  viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> --runner <label> [--record] [--dry-run]]
+                    @laminapdf/viewer's perf harness (needs `wasm` first): first page, scrolling 1,000
+                    pages, memory, fling and zoom against the web plan's §4 targets, written to
+                    target/viewer-perf/ and the job summary (never fails on a target); --history flags
+                    >10% regressions, --record appends to <dir>/history.jsonl, --dry-run prints the issue
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
-                    wasm + pdf-runtimes, render-diff, external links)
+                    wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
@@ -257,6 +263,27 @@ tasks:
 const PORTABLE_TARGETS: [&str; 3] = ["wasm32-unknown-unknown", "aarch64-apple-ios", "aarch64-linux-android"];
 const WASM_TARGET: &str = "wasm32-unknown-unknown";
 
+/// The tasks that run before `cargo metadata`, or None for every other task.
+fn without_workspace(task: &str, rest: &[String]) -> Option<Result<()>> {
+    let result = match (task, rest) {
+        // `changes` runs first in the full lane and needs only git: skip `cargo metadata`.
+        ("changes", []) => repo_root().and_then(|root| changes::run(&root, changes::default_base(&root))),
+        ("changes", [flag, base]) if flag == "--base" => repo_root().and_then(|root| changes::run(&root, base)),
+        ("changes", _) => Err(anyhow::anyhow!("usage: cargo xtask changes [--base <rev>]")),
+        // `version` rewrites Cargo.toml and Cargo.lock, so it can't wait for `cargo metadata
+        // --locked` (which fails on a manifest bumped by hand, the case `--check` reports).
+        ("version", _) => version::parse_args(rest).and_then(|args| version::run(&repo_root()?, &args)),
+        // Needs only gh: no `cargo metadata`.
+        ("release-guard", _) => release::parse_args(rest).and_then(|args| release::guard(&repo_root()?, &args)),
+        // Needs only CHANGELOG.md.
+        ("release-notes", [tag, out]) => {
+            repo_root().and_then(|root| release::release_notes(&root, tag, Path::new(out)))
+        }
+        _ => return None,
+    };
+    Some(result)
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().skip(1).collect();
     let task = args.first().map_or("help", String::as_str);
@@ -266,29 +293,8 @@ fn main() -> Result<()> {
         println!("{USAGE}");
         return Ok(());
     }
-    // `changes` runs first in the full lane and needs only git: skip `cargo metadata`.
-    if task == "changes" {
-        return match rest {
-            [] => {
-                let root = repo_root()?;
-                changes::run(&root, changes::default_base(&root))
-            }
-            [flag, base] if flag == "--base" => changes::run(&repo_root()?, base),
-            _ => bail!("usage: cargo xtask changes [--base <rev>]"),
-        };
-    }
-    // `version` rewrites Cargo.toml and Cargo.lock, so it can't wait for `cargo metadata --locked`
-    // (which fails on a manifest bumped by hand, the case `--check` reports).
-    if task == "version" {
-        return version::run(&repo_root()?, &version::parse_args(rest)?);
-    }
-    // Needs only gh: no `cargo metadata`.
-    if task == "release-guard" {
-        return release::guard(&repo_root()?, &release::parse_args(rest)?);
-    }
-    // Needs only CHANGELOG.md.
-    if let ("release-notes", [tag, out]) = (task, rest) {
-        return release::release_notes(&repo_root()?, tag, Path::new(out));
+    if let Some(result) = without_workspace(task, rest) {
+        return result;
     }
     let ws = Workspace::load(repo_root()?)?;
 
@@ -353,6 +359,7 @@ fn main() -> Result<()> {
         ("scaling", []) => nightly::scaling(&ws),
         ("bench", args) => nightly::bench(&ws, &nightly::parse_bench_args(args)?),
         ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
+        ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),

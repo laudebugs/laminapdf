@@ -19,6 +19,7 @@ export type {
   Result,
   SourceInit,
   ViewerOpenOptions,
+  WorkerMemory,
 } from "./protocol.js";
 export type {
   CreateViewerOptions,
