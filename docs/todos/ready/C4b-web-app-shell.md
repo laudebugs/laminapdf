@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [U6b](./U6b-self-hosted-fonts.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [U6b](../done/U6b-self-hosted-fonts.md) |
 | Blocks | [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0011 (Worker with static assets, `_headers`, CSP, no `/api`), 0009 (Vite 8, module worker), 0010 (web `Platform`) |
 | Branch | `feat/c4b-web-app-shell` |
@@ -47,7 +47,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 
 ## Tasks
 
-- [ ] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](./U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link for Source Sans 3 Latin 400; no font CDN (the network indicator must stay at 0).
+- [ ] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../done/U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link (`FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); no font CDN (the network indicator must stay at 0).
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Scaffold `apps/web` (`"name": "@laminapdf/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@laminapdf/ui`, `@laminapdf/viewer`, `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` via `workspace:*`.
 - [ ] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6b](./U6b-self-hosted-fonts.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
+| Depends on | [U6b](../done/U6b-self-hosted-fonts.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md#2-ci-lanes) (CI lanes, flaky tests), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (`cargo xtask` as the single entry point), 0024 (from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6f-gallery-and-visual-tests` |
@@ -23,7 +23,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 - [Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used) (every UI todo links its screens; designs change in the same PR as behaviour) and [§7 risks](../../plans/paper-design.md#7-risks) ("designs drift from code": U6f's screenshots are the mitigation); [§6 U6 acceptance](../../plans/paper-design.md#u6-design-system) ("the gallery renders each component in each theme and screenshot tests guard them").
 - [Screen inventory](../../design/paper/screens.md) (IDs such as `F01`, `R05`; the area documents in [plan §4](../../plans/paper-design.md#4-areas); the canvases table at the end, with each area's committed files under `docs/design/paper/<area>/`).
 - Design language [§8.6 page appearance vs UI theme](../../design/paper/design-language.md#86-page-appearance-vs-ui-theme), [§8.9 checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa) (forced colours, reduced motion, 200% zoom, 320 px reflow), [§10 authoring notes](../../design/paper/design-language.md#10-authoring-notes-for-the-design-canvas) (artboard file names and `canvas.json`).
-- Inputs: [U6a](../done/U6a-paper-tokens.md) tokens, [U6b](./U6b-self-hosted-fonts.md) fonts (needed for stable screenshots), [U6c](../done/U6c-icon-set.md) icons, [U6d](../done/U6d-core-components.md) components and its `test/states.ts` helper, [U6e](../done/U6e-overlays-and-sheets.md) overlays.
+- Inputs: [U6a](../done/U6a-paper-tokens.md) tokens, [U6b](../done/U6b-self-hosted-fonts.md) fonts (needed for stable screenshots), [U6c](../done/U6c-icon-set.md) icons, [U6d](../done/U6d-core-components.md) components and its `test/states.ts` helper, [U6e](../done/U6e-overlays-and-sheets.md) overlays.
 - [ADR 0018](../../decisions/0018-test-strategy.md) (lanes; [flaky tests](../../decisions/0018-test-strategy.md#4-flaky-tests) are quarantined, not retried silently); [code organization §1](../../guidelines/code-organization.md#1-top-level-layout) (apps are never depended on) and [§6](../../guidelines/code-organization.md#6-tests-and-fixtures) (goldens change only through an explicit command and are reviewed like code).
 - [C7a](./C7a-accessibility-and-theming.md) runs axe on the *app's* states; this todo runs it on the components in isolation, so both exist and neither replaces the other.
 
@@ -54,7 +54,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 - [ ] Build the routes from Scope; each route imports the state lists from `@laminapdf/ui`'s test helpers (exported on a `./testing` subpath) instead of repeating them.
 - [ ] Add the global controls and URL parameters; an index page listing every route.
 - [ ] Add `@playwright/test` and `@axe-core/playwright` (licence-check: Apache-2.0 and MPL-2.0, dev only); `playwright.config.ts` with the projects above; pin the Docker image tag next to the npm version and check they match in a test.
-- [ ] `e2e/visual.spec.ts` (screenshots), `e2e/a11y.spec.ts` (axe on every route × theme × engine), `e2e/fonts.spec.ts` (no request leaves the origin: complements [U6b](./U6b-self-hosted-fonts.md)).
+- [ ] `e2e/visual.spec.ts` (screenshots), `e2e/a11y.spec.ts` (axe on every route × theme × engine), `e2e/fonts.spec.ts` (no request leaves the origin: complements [U6b](../done/U6b-self-hosted-fonts.md)).
 - [ ] A coverage test: every exported component of `@laminapdf/ui` appears on at least one route (compare the package's export list with a registry in the gallery).
 - [ ] `cargo xtask gallery [--test|--update]` in `tools/xtask` (calls `pnpm` and `docker`; a clear error if Docker is missing, with the CI fallback: run the "update screenshots" `workflow_dispatch` job, which uploads the new PNGs as an artifact).
 - [ ] `tools/xtask/src/design_screens.rs` with unit tests on small Markdown inputs (ID found, heading missing, file missing, "Not yet drawn" exemption), wired into `check docs`; run it on the real tree and either fix gaps or list them under "Not yet drawn" in screens.md in this PR.

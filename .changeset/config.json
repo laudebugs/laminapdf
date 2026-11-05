@@ -12,7 +12,14 @@
     ]
   ],
   "linked": [],
-  "ignore": ["@laminapdf/docs", "@laminapdf/test-utils", "@laminapdf/tokens", "@laminapdf/icons", "@laminapdf/ui"],
+  "ignore": [
+    "@laminapdf/docs",
+    "@laminapdf/test-utils",
+    "@laminapdf/tokens",
+    "@laminapdf/fonts",
+    "@laminapdf/icons",
+    "@laminapdf/ui"
+  ],
   "privatePackages": {
     "version": true,
     "tag": true

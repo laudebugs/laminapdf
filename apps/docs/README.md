@@ -31,7 +31,7 @@ The sidebar is an explicit list in `astro.config.mjs`, in the order of the [qual
 
 `src/styles/paper.css` (Starlight's `customCss`) maps the design language's tokens (`--paper-*`) onto Starlight's `--sl-*` properties:
 - **Colours:** asides use Paper's accent, Plum, `warning` and `danger`, and the sidebar marks the current page as a selected row.
-- **Fonts:** self-hosted from `src/fonts/` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [`src/fonts/README.md`](src/fonts/README.md).
+- **Fonts:** self-hosted from `@laminapdf/fonts` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [its README](../../packages/fonts/README.md).
 
 When the design language's tokens change, change them here too.
 
