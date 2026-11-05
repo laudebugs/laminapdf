@@ -33,6 +33,7 @@
   "scripts": {
     "build:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json",
     "typecheck:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "perf": "node perf/run.ts",
     "test:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
   },
   "dependencies": {

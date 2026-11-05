@@ -48,6 +48,15 @@ export interface RenderedBitmap {
   readonly height: number;
 }
 
+/**
+ * The bytes of the worker's WebAssembly memories: the render backend's and Lamina PDF's (every
+ * module loaded). Memories only grow, so this is also their peak.
+ */
+export interface WorkerMemory {
+  readonly backend: number;
+  readonly sdk: number;
+}
+
 /** The viewer's methods: params and result per method. `client.call` is typed by it. */
 export interface Methods {
   initBackend: { params: [BackendInit]; result: { name: BackendName; version: string } };
@@ -55,6 +64,7 @@ export interface Methods {
   closeDocument: { params: []; result: undefined };
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
+  memory: { params: []; result: WorkerMemory };
 }
 
 /** A viewer method's name. */

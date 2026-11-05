@@ -11,9 +11,9 @@ import {
 } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import { initPdfium } from "@laminapdf/render-pdfium";
-import { Document, isLaminaPdfError } from "@laminapdf/sdk";
+import { Document, isLaminaPdfError, wasmMemory } from "@laminapdf/sdk";
 import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
-import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions } from "../protocol.js";
+import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions, WorkerMemory } from "../protocol.js";
 import { blobSource, readAll } from "../source.js";
 
 let backend: RenderBackend | undefined;
@@ -123,6 +123,12 @@ export async function openDocument(
     needsPassword,
     backend: { name: engine.name, version: engine.version },
   };
+}
+
+/** The worker's WebAssembly memory in bytes: the backend's (0 before one loads) and Lamina PDF's. */
+export function workerMemory(): WorkerMemory {
+  const sdk = Object.values(wasmMemory()).reduce((sum, bytes) => sum + bytes, 0);
+  return { backend: backend?.memory() ?? 0, sdk };
 }
 
 export function closeDocument(): undefined {
