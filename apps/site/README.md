@@ -49,6 +49,8 @@ The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12
 
 `test/home.test.ts` renders the page from a fixture snapshot with Astro's container API and finds each count, title and the date; `test/sources.test.ts` holds the code panel and the package table to their files. The code panel's tabs come from `src/scripts/tabs.ts`, a file because the CSP allows no inline script; without it, each pane shows under its own heading.
 
+The panel's code is coloured when the site is built, so the page ships no script for it. `src/data/highlight.ts` reads the code with Shiki and sorts each piece into one of five kinds: keyword, string, comment, function or constant. The panel wraps each piece in a span whose class `src/styles/site.css` colours with a `--paper-code-*` token. Classes stand in for the inline styles Shiki would write, which the CSP's `style-src 'self'` blocks. `test/highlight.test.ts` checks the kinds and that no character of the code changes.
+
 Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets search engines in only on the production build, and `sitemap.xml` lists every page but the 404 page.
 
 ## Look and header

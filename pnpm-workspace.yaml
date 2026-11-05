@@ -49,6 +49,9 @@ catalog:
   react-aria-components: 1.22.1
   react: 19.3.1
   react-dom: 19.3.1
+  # The website's code colouring at build time. MIT. The release Astro itself depends on, so one copy
+  # installs.
+  shiki: 4.5.0
   typescript: 7.0.2
   vite: 8.3.5
   vitest: 5.0.5
