@@ -34,7 +34,7 @@
   - from the todo files, through `todos.rs`: done, ongoing and ready counts per round in the board's order; the "Can start now" todos and the ongoing ones, by ID and title;
   - from the roadmap's Milestones table: each milestone's name, what it ships, and its state: done when every todo of its rounds is done, under way when any is done or claimed, not started otherwise. A round range (`C1–C7`) or a round (`U1`) matches every todo of those rounds; a todo ID (`U3a`) matches itself;
   - from `git log` on `main`: the number of merged pull requests and the last ten merge subjects, without their PR numbers;
-  - from the open pull requests (`gh pr list`): the todos they claim, matched by the todo's **Branch** field, shown by the todo's title. `--offline`, or `gh` failing, skips this with a warning and keeps the ongoing todos from `main`.
+  - from the open pull requests (`gh pr list`): the todos they claim, matched by the todo's **Branch** field, shown by the todo's title. `--offline`, or `gh` failing, keeps the in-progress list of the last snapshot and says so in a warning and in the file, since claims live only on PR branches and `ongoing/` on `main` is always empty.
 - A TypeScript type for the file in `apps/site` and a test that the committed file matches it.
 - The first snapshot, committed.
 - [Git workflow §2](../../guidelines/git-workflow.md#pick-work-from-the-todo-board) and `CLAUDE.md`: a snapshot refresh is an exempt PR; `CLAUDE.md`'s commands list `cargo xtask progress`.
