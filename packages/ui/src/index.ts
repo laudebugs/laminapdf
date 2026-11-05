@@ -70,6 +70,7 @@ export {
 export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components/thumbnail.js";
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";
+export { type Catalogue, ENGLISH, type MessageId, message } from "./messages.js";
 export {
   Dialog,
   type DialogProps,
@@ -104,3 +105,26 @@ export {
   type ToastRegionProps,
 } from "./overlays/toast-region.js";
 export { Tooltip, type TooltipProps } from "./overlays/tooltip.js";
+export { type CapabilityState, PlatformProvider, useCapability, usePlatform } from "./platform/context.js";
+export type {
+  Capabilities,
+  Capability,
+  Platform,
+  PlatformFile,
+  PlatformStorage,
+  PrintJob,
+  RecentFile,
+  RecentFiles,
+  SaveResult,
+} from "./platform/types.js";
+export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { type ExternalStore, useReaderState, useStoreState } from "./state/hooks.js";
+export { type Opener, ReaderController } from "./state/reader-controller.js";
+export {
+  EMPTY,
+  type InteractionMode,
+  type ReaderError,
+  type ReaderEvent,
+  type ReaderState,
+  transition,
+} from "./state/reader-machine.js";

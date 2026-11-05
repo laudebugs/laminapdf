@@ -23,6 +23,7 @@ mod nightly;
 mod package_docs;
 mod pdf_runtimes;
 mod pdfium;
+mod platform_boundary;
 mod portable_paths;
 mod progress;
 mod publish;
@@ -457,6 +458,7 @@ fn api_docs(ws: &Workspace) -> Result<()> {
 }
 
 fn check_ts(ws: &Workspace) -> Result<()> {
+    platform_boundary::check(ws)?;
     biome_ci(ws)?;
     examples_lints::biome(ws, reports::Options::strict())?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
