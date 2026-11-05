@@ -1,0 +1,811 @@
+{
+  "$defs": {
+    "Cell": {
+      "description": "One cell of a table block.",
+      "properties": {
+        "bbox": {
+          "description": "Its box in page space.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "col": {
+          "description": "The first column it covers, 0 at the left.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "colSpan": {
+          "description": "How many columns it covers.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "header": {
+          "description": "Whether it is in a header row.",
+          "type": "boolean"
+        },
+        "row": {
+          "description": "The first row it covers, 0 at the top.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rowSpan": {
+          "description": "How many rows it covers.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text": {
+          "description": "Its visible text, lines joined by a space.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "row",
+        "col",
+        "rowSpan",
+        "colSpan",
+        "header",
+        "text",
+        "bbox"
+      ],
+      "type": "object"
+    },
+    "Chunk": {
+      "description": "One chunk.",
+      "properties": {
+        "blockIds": {
+          "description": "The blocks it holds, in order.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "headingPath": {
+          "description": "The headings above its first block, outermost first.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "id": {
+          "description": "`c<n>`, from 0, in order.",
+          "type": "string"
+        },
+        "pages": {
+          "description": "The pages its blocks are on, ascending.",
+          "items": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "regions": {
+          "description": "Its area on each of those pages.",
+          "items": {
+            "$ref": "#/$defs/Region"
+          },
+          "type": "array"
+        },
+        "text": {
+          "description": "The Markdown from the first block's start to the last block's end.",
+          "type": "string"
+        },
+        "textRange": {
+          "$ref": "#/$defs/TextRange",
+          "description": "Where `text` sits in the Markdown."
+        },
+        "tokensApprox": {
+          "description": "[`tokens_approx`] of `text`.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "blockIds",
+        "headingPath",
+        "pages",
+        "regions",
+        "textRange",
+        "tokensApprox"
+      ],
+      "type": "object"
+    },
+    "Coordinates": {
+      "description": "ADR 0027 §4's `coordinates` block: top-left points of the displayed box.",
+      "properties": {
+        "box": {
+          "description": "`\"CropBox\"`, or `\"default\"` when the page had no usable box and US Letter was used.",
+          "type": "string"
+        },
+        "origin": {
+          "description": "Always `\"top-left\"`.",
+          "type": "string"
+        },
+        "rotate": {
+          "description": "The `/Rotate` applied, in degrees clockwise.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unit": {
+          "description": "Always `\"pt\"`.",
+          "type": "string"
+        },
+        "userUnit": {
+          "description": "The `/UserUnit` applied.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "origin",
+        "unit",
+        "box",
+        "rotate",
+        "userUnit"
+      ],
+      "type": "object"
+    },
+    "DropReason": {
+      "description": "Why text was left out.",
+      "oneOf": [
+        {
+          "const": "invisible",
+          "description": "Text rendering mode 3 or 7.",
+          "type": "string"
+        },
+        {
+          "const": "off-page",
+          "description": "Outside the page.",
+          "type": "string"
+        },
+        {
+          "const": "tiny",
+          "description": "Below 1 pt.",
+          "type": "string"
+        },
+        {
+          "const": "clipped",
+          "description": "Outside the clip.",
+          "type": "string"
+        },
+        {
+          "const": "low-contrast",
+          "description": "Near white on nothing.",
+          "type": "string"
+        },
+        {
+          "const": "artifact",
+          "description": "Marked content tagged `Artifact`.",
+          "type": "string"
+        },
+        {
+          "const": "running-header",
+          "description": "A line repeated at the top of pages.",
+          "type": "string"
+        },
+        {
+          "const": "running-footer",
+          "description": "A line repeated at the bottom of pages.",
+          "type": "string"
+        },
+        {
+          "const": "page-number",
+          "description": "A page number.",
+          "type": "string"
+        }
+      ]
+    },
+    "Dropped": {
+      "description": "Text left out of the output ([ADR 0030] §4). It records a count, never the text, so a log of\nthe output can't leak what was hidden.\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+      "properties": {
+        "bbox": {
+          "description": "Where it was, in page space.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "chars": {
+          "description": "How many characters were left out.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "page": {
+          "description": "The page index.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reason": {
+          "$ref": "#/$defs/DropReason",
+          "description": "Why it was left out (the first reason when there are several)."
+        },
+        "spans": {
+          "description": "The run itself, only when [`DropOptions::keep_spans`](crate::DropOptions::keep_spans)\nasked for it.",
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "reason",
+        "page",
+        "bbox",
+        "chars"
+      ],
+      "type": "object"
+    },
+    "ExtractedPage": {
+      "description": "One extracted page ([ADR 0027] §4).\n\n[ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md",
+      "properties": {
+        "coordinates": {
+          "$ref": "#/$defs/Coordinates",
+          "description": "The frame the boxes are in."
+        },
+        "height": {
+          "description": "The displayed height in points.",
+          "format": "double",
+          "type": "number"
+        },
+        "index": {
+          "description": "0-based.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "label": {
+          "description": "The page label (`/PageLabels`), when there is one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "number": {
+          "description": "1-based, as people count.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "description": "The displayed width in points (after `/Rotate` and `/UserUnit`).",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "index",
+        "number",
+        "width",
+        "height",
+        "coordinates"
+      ],
+      "type": "object"
+    },
+    "ExtractedSource": {
+      "description": "The input, as ADR 0030 §1's `source` describes it.",
+      "properties": {
+        "pageCount": {
+          "description": "The document's page count.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "sha256": {
+          "description": "The input's SHA-256 in hex: filled by the caller that holds the bytes (the façade), since\na windowed source can't be hashed without reading it whole.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "structSource": {
+          "$ref": "#/$defs/StructSource",
+          "description": "Where the reading order came from."
+        },
+        "tagged": {
+          "description": "Whether the catalog's `/MarkInfo` says `/Marked true`.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pageCount",
+        "tagged",
+        "structSource"
+      ],
+      "type": "object"
+    },
+    "Flags": {
+      "items": {
+        "$ref": "#/$defs/DropReason"
+      },
+      "type": "array"
+    },
+    "Generator": {
+      "description": "Who made the extraction (ADR 0030 §1's `generator`).",
+      "properties": {
+        "mode": {
+          "description": "`\"rules\"`, or `\"rules+models\"` once plug-ins exist (L3c).",
+          "type": "string"
+        },
+        "models": {
+          "items": true,
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "mode",
+        "models"
+      ],
+      "type": "object"
+    },
+    "JsonBlock": {
+      "description": "A block and where its text sits in the Markdown.",
+      "oneOf": [
+        {
+          "description": "A heading, level 1 (the top) to 6.",
+          "properties": {
+            "level": {
+              "description": "1–6.",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "heading",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "level"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Running text.",
+          "properties": {
+            "type": {
+              "const": "paragraph",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "One item of a list.",
+          "properties": {
+            "depth": {
+              "description": "0 for the outermost list.",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "marker": {
+              "description": "The bullet or number that starts it.",
+              "type": "string"
+            },
+            "type": {
+              "const": "list-item",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "marker",
+            "depth"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A figure's or table's caption.",
+          "properties": {
+            "type": {
+              "const": "caption",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A footnote.",
+          "properties": {
+            "type": {
+              "const": "footnote",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Anything else.",
+          "properties": {
+            "type": {
+              "const": "other",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A table: its text is the cells', a tab between cells and a line break between rows, and\nthe block's `cells` hold them.",
+          "properties": {
+            "cols": {
+              "description": "The grid's columns.",
+              "format": "uint",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "detector": {
+              "$ref": "#/$defs/TableDetector",
+              "description": "What found it."
+            },
+            "rows": {
+              "description": "The grid's rows.",
+              "format": "uint",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": {
+              "const": "table",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "rows",
+            "cols",
+            "detector"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "bbox": {
+          "description": "The block's box in page space.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "bboxNorm": {
+          "description": "The box divided by the page's width and height, clamped to [0, 1]; `None` when the\nblock lies wholly outside the page.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cells": {
+          "description": "A table's cells, row by row; empty for every other block.",
+          "items": {
+            "$ref": "#/$defs/Cell"
+          },
+          "type": "array"
+        },
+        "confidence": {
+          "description": "In [0, 1]: 1 for structure from the tree, lower for structure inferred from layout.",
+          "format": "double",
+          "type": "number"
+        },
+        "id": {
+          "description": "`p<page index>-b<position in the page's reading order>`.",
+          "type": "string"
+        },
+        "page": {
+          "description": "The page index.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "spans": {
+          "description": "The runs of text, in reading order.",
+          "items": {
+            "$ref": "#/$defs/Span"
+          },
+          "type": "array"
+        },
+        "structPath": {
+          "description": "The structure types from the root down to the block; empty when untagged.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "structRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StructRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The structure element the block comes from, when it comes from one."
+        },
+        "text": {
+          "description": "The visible text, lines joined by a space after the text fixes (ADR 0030 §5).",
+          "type": "string"
+        },
+        "textRange": {
+          "$ref": "#/$defs/TextRange"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "page",
+        "bbox",
+        "structPath",
+        "spans",
+        "confidence",
+        "textRange"
+      ],
+      "type": "object"
+    },
+    "Region": {
+      "description": "A chunk's area on one page.",
+      "properties": {
+        "bbox": {
+          "description": "The union of the chunk's blocks' boxes on that page, in page space.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "page": {
+          "description": "The page index.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "bbox"
+      ],
+      "type": "object"
+    },
+    "Span": {
+      "description": "One run of text in a block or a dropped entry.",
+      "properties": {
+        "baseline": {
+          "description": "The baseline's y in page space (ADR 0027 §5).",
+          "format": "double",
+          "type": "number"
+        },
+        "bbox": {
+          "description": "Its box in page space.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "flags": {
+          "$ref": "#/$defs/Flags",
+          "description": "Why the run would be hidden; empty for visible text."
+        },
+        "font": {
+          "description": "The font's `/BaseFont`.",
+          "type": "string"
+        },
+        "size": {
+          "description": "The glyph size in points.",
+          "format": "double",
+          "type": "number"
+        },
+        "text": {
+          "description": "The run's text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "bbox",
+        "baseline",
+        "font",
+        "size",
+        "flags"
+      ],
+      "type": "object"
+    },
+    "StructRef": {
+      "description": "A structure element ([ADR 0030] §1's `structRef`).\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+      "properties": {
+        "gen": {
+          "description": "Its generation.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mcids": {
+          "description": "The marked-content identifiers it covers on the page.",
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "obj": {
+          "description": "The element's object number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "obj",
+        "gen",
+        "mcids"
+      ],
+      "type": "object"
+    },
+    "StructSource": {
+      "description": "Where the reading order came from ([ADR 0030] §2).\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+      "oneOf": [
+        {
+          "const": "tagged",
+          "description": "The structure tree.",
+          "type": "string"
+        },
+        {
+          "const": "xycut",
+          "description": "XY-Cut++ over the blocks' boxes.",
+          "type": "string"
+        },
+        {
+          "const": "content",
+          "description": "The order the content stream draws.",
+          "type": "string"
+        }
+      ]
+    },
+    "TableDetector": {
+      "description": "What found a table.",
+      "oneOf": [
+        {
+          "const": "lattice",
+          "description": "The lines that rule it.",
+          "type": "string"
+        },
+        {
+          "const": "stream",
+          "description": "Text lined up in columns, with no lines.",
+          "type": "string"
+        }
+      ]
+    },
+    "TextRange": {
+      "description": "Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`\ninclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a\nrendering with them as they are; [`Rendered::slice`] does it in Rust.",
+      "properties": {
+        "end": {
+          "description": "One past the last character.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "start": {
+          "description": "The first character.",
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://docs.laminapdf.com/schemas/extract-1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The whole document.",
+  "properties": {
+    "blocks": {
+      "items": {
+        "$ref": "#/$defs/JsonBlock"
+      },
+      "type": "array"
+    },
+    "chunks": {
+      "items": {
+        "$ref": "#/$defs/Chunk"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "dropped": {
+      "items": {
+        "$ref": "#/$defs/Dropped"
+      },
+      "type": "array"
+    },
+    "generator": {
+      "$ref": "#/$defs/Generator"
+    },
+    "pages": {
+      "items": {
+        "$ref": "#/$defs/ExtractedPage"
+      },
+      "type": "array"
+    },
+    "schema": {
+      "description": "Always `\"laminapdf.extract/1\"`.",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/ExtractedSource"
+    },
+    "warnings": {
+      "items": true,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "generator",
+    "source",
+    "pages",
+    "blocks",
+    "dropped",
+    "warnings"
+  ],
+  "title": "laminapdf.extract/1",
+  "type": "object"
+}

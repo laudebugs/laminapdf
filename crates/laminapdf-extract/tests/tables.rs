@@ -241,3 +241,21 @@ fn tables_off_gives_text_blocks_only() {
     assert!(out.blocks.iter().all(|b| b.cells.is_empty()));
     assert!(out.blocks.iter().any(|b| b.text.contains("Tea")));
 }
+
+#[test]
+fn a_table_is_a_pipe_table_in_markdown_between_its_paragraphs() {
+    let mut c = String::new();
+    text(&mut c, "Prices this week", 50.0, 740.0, false);
+    grid(
+        &mut c,
+        &XS,
+        &YS,
+        &[&["Item", "Price"], &["Tea", "2.50"], &["Cake", "4.00"]],
+    );
+    let out = run(&pages(&[c]), &ExtractOptions::new());
+    let markdown = out.to_markdown(&laminapdf_extract::MarkdownOptions::new()).text;
+    assert_eq!(
+        markdown,
+        "Prices this week\n\n| Item | Price |\n| --- | --- |\n| Tea | 2.50 |\n| Cake | 4.00 |\n"
+    );
+}

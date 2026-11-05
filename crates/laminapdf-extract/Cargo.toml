@@ -20,8 +20,11 @@ categories = ["text-processing"]
 layer = "core"
 
 [features]
-# serde derives on the output types (laminapdf.extract/1 names); L3b's serialisers turn them on.
-serde = ["dep:serde"]
+# serde derives on the output types (laminapdf.extract/1 names) and the JSON serialiser.
+serde = ["dep:serde", "dep:serde_json"]
+# JSON Schema derives (schemars) on the output types: tests/json_schema.rs writes and checks
+# schemas/extract.schema.json with it. No shipped surface needs it at run time.
+schema = ["serde", "dep:schemars"]
 
 [dependencies]
 laminapdf-content = { workspace = true }
@@ -31,12 +34,15 @@ laminapdf-syntax = { workspace = true }
 laminapdf-text = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+schemars = { workspace = true, optional = true }
 
 [dev-dependencies]
 # The test helpers every crate shares, by path only (code-organization.md §6).
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
+boon = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]
