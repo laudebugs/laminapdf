@@ -1,0 +1,54 @@
+/* Badges and tags (§7.23): 20 high, 12/600, the status colour on its tint; neutral is the text-3
+   colour on the surface with a chip border. */
+@layer paper.components {
+  .paper-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+    block-size: var(--paper-badge-height);
+    padding-block: 0;
+    padding-inline: var(--paper-space-8);
+    border: var(--paper-border-width) solid transparent;
+    border-radius: var(--paper-radius-3);
+    font: var(--paper-type-label);
+    white-space: nowrap;
+  }
+
+  .paper-badge svg {
+    inline-size: var(--paper-badge-icon-size);
+    block-size: var(--paper-badge-icon-size);
+    flex: none;
+  }
+
+  .paper-badge[data-tone="neutral"] {
+    background: var(--paper-surface);
+    border-color: var(--paper-chip-border);
+    color: var(--paper-text-3);
+  }
+
+  .paper-badge[data-tone="accent"] {
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
+  }
+
+  .paper-badge[data-tone="positive"] {
+    background: var(--paper-positive-tint);
+    color: var(--paper-positive);
+  }
+
+  .paper-badge[data-tone="warning"] {
+    background: var(--paper-warning-tint);
+    color: var(--paper-warning);
+  }
+
+  .paper-badge[data-tone="danger"] {
+    background: var(--paper-danger-tint);
+    color: var(--paper-danger);
+  }
+
+  @media (forced-colors: active) {
+    .paper-badge {
+      border-color: CanvasText;
+    }
+  }
+}

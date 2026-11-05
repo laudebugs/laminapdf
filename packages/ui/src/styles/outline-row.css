@@ -1,0 +1,83 @@
+/* An outline row (§7.7): a 15 px serif link with its page number at the far end; level 2 is 14 px
+   in text-3, indented 22; the current row is accent 600 on the accent tint. The chevron button
+   comes before the link and grows to 44 on touch. */
+@layer paper.components {
+  .paper-outline-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .paper-outline-toggle {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    inline-size: var(--ui-target);
+    block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text-3);
+    cursor: default;
+  }
+
+  .paper-outline-toggle[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  /* The chevron points the way text runs. */
+  .paper-outline-toggle[aria-expanded="false"] svg:dir(rtl) {
+    transform: scaleX(-1);
+  }
+
+  .paper-outline-link {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    min-block-size: var(--ui-target);
+    padding-block: var(--paper-space-6);
+    padding-inline: var(--paper-space-8);
+    border-radius: var(--paper-radius-4);
+    color: var(--paper-text);
+    font: var(--paper-type-outline);
+    text-decoration: none;
+    cursor: default;
+  }
+
+  .paper-outline-row[data-level="2"] .paper-outline-link {
+    padding-block: var(--paper-outline-row-padding-block-nested);
+    padding-inline-start: var(--paper-space-22);
+    color: var(--paper-text-3);
+    font: var(--paper-type-outline-nested);
+  }
+
+  .paper-outline-link[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-outline-row[data-current] .paper-outline-link {
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
+    font-weight: 600;
+  }
+
+  .paper-outline-page {
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+    color: var(--paper-muted);
+  }
+
+  .paper-outline-row[data-current] .paper-outline-page {
+    color: inherit;
+  }
+
+  @media (forced-colors: active) {
+    .paper-outline-row[data-current] .paper-outline-link {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
+}

@@ -26,6 +26,7 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `text-3` | `field` | text ≥ 4.5 | 9.49 | 9.49 | 9.49 | 9.49 |  |
 | `text-3` | `accent-tint` | text ≥ 4.5 | 7.52 | 7.44 | 7.43 | 7.52 |  |
 | `text-3` | `pressed` | text ≥ 4.5 | 7.12 | 7.12 | 7.12 | 7.12 |  |
+| `text-3` | `hover` | text ≥ 4.5 | 7.69 | 7.69 | 7.69 | 7.69 |  |
 | `muted` | `ground` | text ≥ 4.5 | 5.32 | 5.32 | 5.32 | 5.32 |  |
 | `muted` | `surface` | text ≥ 4.5 | 5.55 | 5.55 | 5.55 | 5.55 |  |
 | `muted` | `raised` | text ≥ 4.5 | 5.55 | 5.55 | 5.55 | 5.55 |  |
@@ -58,6 +59,8 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `warning` | `field` | text ≥ 4.5 | 6.33 | 6.33 | 6.33 | 6.33 |  |
 | `warning` | `gutter` | text ≥ 4.5 | 5.14 | 5.14 | 5.14 | 5.14 |  |
 | `warning` | `warning-tint` | text ≥ 4.5 | 5.21 | 5.21 | 5.21 | 5.21 |  |
+| `warning` | `hover` | text ≥ 4.5 | 5.13 | 5.13 | 5.13 | 5.13 |  |
+| `warning` | `pressed` | text ≥ 4.5 | 4.75 | 4.75 | 4.75 | 4.75 |  |
 | `disabled` | `surface` | text ≥ 4.5 | 2.59 | 2.59 | 2.59 | 2.59 | disabled controls are exempt (WCAG 1.4.3) |
 | `on-pill` | `pill` | text ≥ 4.5 | 8.95 | 8.95 | 8.95 | 8.95 |  |
 | `outline-blue` | `ground` | text ≥ 4.5 | 8.31 | 8.31 | 8.31 | 8.31 |  |
@@ -70,6 +73,7 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `accent` | `field` | text ≥ 4.5 | 7.58 | 9.12 | 9.20 | 7.98 |  |
 | `accent` | `gutter` | text ≥ 4.5 | 6.16 | 7.40 | 7.47 | 6.48 |  |
 | `accent` | `accent-tint` | text ≥ 4.5 | 6.00 | 7.14 | 7.20 | 6.32 |  |
+| `accent` | `hairline` | boundary ≥ 3 | 5.66 | 6.81 | 6.87 | 5.96 |  |
 | `accent-strong` | `ground` | text ≥ 4.5 | 9.63 | 11.07 | 11.21 | 10.04 |  |
 | `accent-strong` | `surface` | text ≥ 4.5 | 10.05 | 11.56 | 11.71 | 10.49 |  |
 | `focus` | `ground` | focus ≥ 3 | 6.91 | 8.31 | 8.38 | 7.27 |  |
@@ -101,6 +105,7 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `text-3` | `surface` | text ≥ 4.5 | 9.32 | 9.32 | 9.32 | 9.32 |  |
 | `text-3` | `raised` | text ≥ 4.5 | 8.39 | 8.39 | 8.39 | 8.39 |  |
 | `text-3` | `pressed` | text ≥ 4.5 | 6.94 | 6.94 | 6.94 | 6.94 |  |
+| `text-3` | `hover` | text ≥ 4.5 | 8.29 | 8.29 | 8.29 | 8.29 |  |
 | `muted` | `ground` | text ≥ 4.5 | 6.13 | 6.13 | 6.13 | 6.13 |  |
 | `muted` | `surface` | text ≥ 4.5 | 5.63 | 5.63 | 5.63 | 5.63 |  |
 | `muted` | `raised` | text ≥ 4.5 | 5.07 | 5.07 | 5.07 | 5.07 |  |
@@ -124,6 +129,8 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `warning` | `ground` | text ≥ 4.5 | 8.32 | 8.32 | 8.32 | 8.32 |  |
 | `warning` | `surface` | text ≥ 4.5 | 7.64 | 7.64 | 7.64 | 7.64 |  |
 | `warning` | `warning-tint` | text ≥ 4.5 | 5.50 | 5.50 | 5.50 | 5.50 |  |
+| `warning` | `hover` | text ≥ 4.5 | 6.80 | 6.80 | 6.80 | 6.80 |  |
+| `warning` | `pressed` | text ≥ 4.5 | 5.69 | 5.69 | 5.69 | 5.69 |  |
 | `disabled` | `surface` | text ≥ 4.5 | 2.64 | 2.64 | 2.64 | 2.64 | disabled controls are exempt (WCAG 1.4.3) |
 | `on-pill` | `pill` | text ≥ 4.5 | 17.18 | 17.18 | 17.18 | 17.18 |  |
 | `outline-blue` | `ground` | text ≥ 4.5 | 7.77 | 7.77 | 7.77 | 7.77 |  |
@@ -135,6 +142,7 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `accent` | `raised` | text ≥ 4.5 | 6.59 | 6.43 | 6.19 | 6.53 |  |
 | `accent` | `field` | text ≥ 4.5 | 7.97 | 7.77 | 7.49 | 7.89 |  |
 | `accent` | `accent-tint` | text ≥ 4.5 | 5.35 | 5.21 | 5.06 | 5.23 |  |
+| `accent` | `hairline` | boundary ≥ 3 | 5.60 | 5.46 | 5.27 | 5.55 |  |
 | `accent-strong` | `ground` | text ≥ 4.5 | 9.84 | 9.68 | 9.39 | 9.77 |  |
 | `accent-strong` | `surface` | text ≥ 4.5 | 9.04 | 8.89 | 8.63 | 8.98 |  |
 | `focus` | `ground` | focus ≥ 3 | 7.97 | 7.77 | 7.49 | 7.89 |  |

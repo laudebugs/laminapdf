@@ -96,10 +96,12 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   (./react, React 19 optional peer); gallery/ (`pnpm … gallery`); test/ (lint + fixtures, §5 tables,
 │                        #   entry graph; browser/: <Icon>, gallery with axe)
 ├── packages/ui/         # @laminapdf/ui (private, outside Changesets): the Paper components for React 19 on React Aria Components:
-│                        #   src/components/ (Button, IconButton, ToggleButton, ToolToggle, ModeSwitcher, SegmentedTabs, TextInput,
-│                        #   TextArea, Select, Checkbox, RadioGroup, Switch, SwatchGroup, PageAppearanceChips), src/density.tsx
-│                        #   (DensityProvider), src/styles/ (./styles.css: tokens only, @layer paper.*); test/ (states.tsx; Node: CSS
-│                        #   tokens only, import boundary, §7 map; browser/: keyboard, axe in 3 themes × 2 directions, target sizes)
+│                        #   src/components/ (controls: Button, IconButton, ToggleButton, ToolToggle, ModeSwitcher, SegmentedTabs,
+│                        #   TextInput, TextArea, Select, Checkbox, RadioGroup, Switch, SwatchGroup, PageAppearanceChips; display: Badge,
+│                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
+│                        #   Thumbnail, OutlineRow, ShortcutChip), src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
+│                        #   only, @layer paper.*); test/ (states.tsx; Node: CSS tokens only, import boundary, §7 map; browser/: keyboard,
+│                        #   ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens, self-hosted
 │                        #   fonts in src/fonts/): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example

@@ -4,20 +4,33 @@
 
 import type { ReactElement } from "react";
 import {
+  Badge,
   Button,
   Checkbox,
+  EmptyState,
   IconButton,
   ModeSwitcher,
+  NetworkIndicator,
+  Notice,
+  OutlineRow,
   PageAppearanceChips,
+  PageLabel,
+  ProgressBar,
   Radio,
   RadioGroup,
+  RepairedNotice,
   SegmentedTabs,
   Select,
+  ShortcutChip,
+  Skeleton,
+  StatusBarItem,
   SwatchGroup,
   Switch,
   TabPanel,
   TextArea,
   TextInput,
+  Thumbnail,
+  Toast,
   ToggleButton,
   ToolToggle,
 } from "../src/index.ts";
@@ -229,5 +242,163 @@ const pickers: Example[] = [
   },
 ];
 
+const page = () => <span style={{ display: "block", blockSize: "100%", background: "var(--paper-page-paper)" }} />;
+const rail: Example[] = [
+  {
+    component: "Thumbnail",
+    state: "current",
+    element: () => (
+      <Thumbnail label="Page 3, 3 of 24" number="3" isCurrent>
+        {page()}
+      </Thumbnail>
+    ),
+  },
+  { component: "Thumbnail", state: "other page", element: () => <Thumbnail label="Page A-1, 22 of 24" number="A-1" /> },
+  {
+    component: "Thumbnail",
+    state: "phone",
+    element: () => <Thumbnail label="Page 4, 4 of 24" number="4" size="phone" />,
+  },
+  {
+    component: "OutlineRow",
+    state: "current, expanded",
+    element: () => (
+      <OutlineRow
+        title="2. Repairs backlog"
+        page="3"
+        href="#repairs"
+        isCurrent
+        toggle={{ isExpanded: true, onExpandedChange: noop, label: "Sections in 2. Repairs backlog" }}
+      />
+    ),
+  },
+  {
+    component: "OutlineRow",
+    state: "level 2",
+    element: () => <OutlineRow title="Open repairs by region" page="3" level={2} onPress={noop} toggle="space" />,
+  },
+  {
+    component: "OutlineRow",
+    state: "collapsed",
+    element: () => (
+      <OutlineRow
+        title="3. Budget"
+        page="7"
+        href="#budget"
+        toggle={{ isExpanded: false, onExpandedChange: noop, label: "Sections in 3. Budget" }}
+      />
+    ),
+  },
+];
+
+const status: Example[] = [
+  {
+    component: "StatusBarItem",
+    state: "with an icon",
+    element: () => (
+      <StatusBarItem icon="sync" onPress={noop}>
+        Comments synced 10:32
+      </StatusBarItem>
+    ),
+  },
+  {
+    component: "NetworkIndicator",
+    state: "nothing sent",
+    element: () => (
+      <NetworkIndicator
+        count="0 network requests for this document"
+        explanation="· Offline-safe: nothing uploaded"
+        onPress={noop}
+      />
+    ),
+  },
+  {
+    component: "NetworkIndicator",
+    state: "warning",
+    element: () => (
+      <NetworkIndicator count="2 network requests" explanation="· to files.example.org" warning onPress={noop} />
+    ),
+  },
+  {
+    component: "RepairedNotice",
+    state: "default",
+    element: () => <RepairedNotice label="Repaired on open" details="Details" onPress={noop} />,
+  },
+  { component: "PageLabel", state: "default", element: () => <PageLabel>Page 3 · Repairs backlog</PageLabel> },
+  {
+    component: "ShortcutChip",
+    state: "macOS",
+    element: () => <ShortcutChip keys={{ mac: "Mod+Alt+E", other: "Mod+Shift+E" }} platform="mac" />,
+  },
+  {
+    component: "ShortcutChip",
+    state: "Windows and Linux",
+    element: () => <ShortcutChip keys={{ mac: "Mod+Alt+E", other: "Mod+Shift+E" }} platform="other" />,
+  },
+];
+
+const feedback: Example[] = [
+  ...(["neutral", "positive", "warning", "danger"] as const).map((tone) => ({
+    component: "Notice",
+    state: tone,
+    element: () => (
+      <Notice tone={tone} title="Approximate layout.">
+        This file has no tags, so the reading order is a guess.
+      </Notice>
+    ),
+  })),
+  { component: "Toast", state: "plain", element: () => <Toast>Copied</Toast> },
+  {
+    component: "Toast",
+    state: "with an action",
+    element: () => <Toast action={{ label: "Undo", onPress: noop }}>Highlight deleted</Toast>,
+  },
+  {
+    component: "EmptyState",
+    state: "with an action",
+    element: () => (
+      <EmptyState icon="list" title="This file has no outline" actions={<Button variant="ghost">Show pages</Button>}>
+        Use Pages to move through it.
+      </EmptyState>
+    ),
+  },
+  { component: "EmptyState", state: "title only", element: () => <EmptyState title="No attachments" /> },
+  { component: "ProgressBar", state: "62%", element: () => <ProgressBar label="Saving…" value={62} /> },
+  { component: "ProgressBar", state: "indeterminate", element: () => <ProgressBar label="Opening…" /> },
+  {
+    component: "Skeleton",
+    state: "lines",
+    element: () => (
+      <div aria-busy="true">
+        <Skeleton inlineSize="60%" />
+        <Skeleton />
+      </div>
+    ),
+  },
+  ...(["neutral", "accent", "warning", "danger"] as const).map((tone) => ({
+    component: "Badge",
+    state: tone,
+    element: () => <Badge tone={tone}>Approximate</Badge>,
+  })),
+  {
+    component: "Badge",
+    state: "positive with an icon",
+    element: () => (
+      <Badge tone="positive" icon="check">
+        Signature valid
+      </Badge>
+    ),
+  },
+];
+
 /** Every example, grouped as the design language's §7 orders the components. */
-export const EXAMPLES: readonly Example[] = [...buttons, ...toggles, ...fields, ...choices, ...pickers];
+export const EXAMPLES: readonly Example[] = [
+  ...buttons,
+  ...toggles,
+  ...rail,
+  ...status,
+  ...fields,
+  ...choices,
+  ...pickers,
+  ...feedback,
+];

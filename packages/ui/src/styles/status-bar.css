@@ -1,0 +1,63 @@
+/* Status bar items (§7.8): 12 px muted buttons at least 24 high; the network count in the text
+   colour beside an accent shield, both warning when a request went somewhere unexpected; the
+   page label in tabular numerals. */
+@layer paper.components {
+  .paper-status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    min-block-size: var(--ui-target);
+    min-inline-size: var(--ui-target);
+    padding-block: 0;
+    padding-inline: var(--paper-space-4);
+    border: 0;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    cursor: default;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .paper-status-item svg {
+    flex: none;
+  }
+
+  .paper-status-item[data-focus-visible] {
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  .paper-status-item[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  /* Pressed, the label darkens to text-3 as §7.0's ghost controls do: muted is under 4.5 there. */
+  .paper-status-item[data-pressed] {
+    background: var(--paper-pressed);
+    color: var(--paper-text-3);
+  }
+
+  .paper-network-indicator svg {
+    color: var(--paper-accent);
+  }
+
+  .paper-network-count {
+    color: var(--paper-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-network-indicator[data-warning] svg,
+  .paper-network-indicator[data-warning] .paper-network-count {
+    color: var(--paper-warning);
+  }
+
+  .paper-status-details {
+    text-decoration: underline;
+  }
+
+  .paper-page-label {
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+    color: var(--paper-muted);
+  }
+}

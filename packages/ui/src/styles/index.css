@@ -11,3 +11,11 @@
 @import "./choice.css";
 @import "./swatches.css";
 @import "./appearance-chips.css";
+@import "./badge.css";
+@import "./notice.css";
+@import "./progress.css";
+@import "./empty-state.css";
+@import "./status-bar.css";
+@import "./thumbnail.css";
+@import "./outline-row.css";
+@import "./shortcut-chip.css";

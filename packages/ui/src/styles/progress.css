@@ -1,0 +1,80 @@
+/* Progress (§7.22): a 4 px hairline track with an accent fill and the label above. Indeterminate
+   slides a 30% segment across; under reduced motion the segment stands still. Skeletons are flat
+   blocks with no shimmer. */
+@layer paper.components {
+  .paper-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-progress-label {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+    color: var(--paper-muted);
+  }
+
+  .paper-progress-track {
+    position: relative;
+    overflow: hidden;
+    block-size: var(--paper-progress-height);
+    border-radius: calc(var(--paper-progress-height) / 2);
+    background: var(--paper-hairline);
+  }
+
+  .paper-progress-fill {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: var(--progress);
+    border-radius: inherit;
+    background: var(--paper-accent);
+  }
+
+  .paper-progress:not([aria-valuenow]) .paper-progress-fill {
+    inline-size: 30%;
+    animation: paper-progress-slide var(--paper-duration-progress-cycle) linear infinite;
+  }
+
+  @keyframes paper-progress-slide {
+    from {
+      inset-inline-start: -30%;
+    }
+
+    to {
+      inset-inline-start: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .paper-progress:not([aria-valuenow]) .paper-progress-fill {
+      animation: none;
+    }
+  }
+
+  .paper-skeleton {
+    display: block;
+    inline-size: 100%;
+    block-size: 1lh;
+    border-radius: var(--paper-radius-3);
+    background: var(--paper-hairline);
+  }
+
+  @media (forced-colors: active) {
+    .paper-progress-track {
+      border: var(--paper-border-width) solid CanvasText;
+    }
+
+    .paper-progress-fill {
+      forced-color-adjust: none;
+      background: Highlight;
+    }
+
+    .paper-skeleton {
+      border: var(--paper-border-width) solid GrayText;
+    }
+  }
+}

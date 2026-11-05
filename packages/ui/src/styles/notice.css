@@ -1,0 +1,95 @@
+/* Notices and the toast's look (§7.20). A notice is a tinted strip with a hairline edge and no
+   accent stripe; a toast inverts the text and surface colours, so it reads in every theme. */
+@layer paper.components {
+  .paper-notice {
+    display: flex;
+    gap: var(--paper-space-10);
+    padding-block: var(--paper-space-10);
+    padding-inline: var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-surface);
+    color: var(--paper-text);
+    font: var(--paper-type-control);
+  }
+
+  .paper-notice svg {
+    flex: none;
+    inline-size: var(--paper-icon-size-label);
+    block-size: var(--paper-icon-size-label);
+  }
+
+  .paper-notice-text {
+    margin: 0;
+  }
+
+  .paper-notice-title {
+    font-weight: 600;
+  }
+
+  .paper-notice[data-tone="positive"] {
+    background: var(--paper-positive-tint);
+  }
+
+  .paper-notice[data-tone="positive"] svg {
+    color: var(--paper-positive);
+  }
+
+  .paper-notice[data-tone="warning"] {
+    background: var(--paper-warning-tint);
+  }
+
+  .paper-notice[data-tone="warning"] svg {
+    color: var(--paper-warning);
+  }
+
+  .paper-notice[data-tone="danger"] {
+    background: var(--paper-danger-tint);
+  }
+
+  .paper-notice[data-tone="danger"] svg {
+    color: var(--paper-danger);
+  }
+
+  .paper-notice[data-tone="neutral"] svg {
+    color: var(--paper-muted);
+  }
+
+  .paper-toast {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-12);
+    padding-block: var(--paper-space-8);
+    padding-inline: var(--paper-space-14);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-text);
+    color: var(--paper-surface);
+    box-shadow: var(--paper-shadow-float);
+    font: var(--paper-type-control);
+  }
+
+  .paper-toast-action {
+    min-block-size: var(--ui-target);
+    min-inline-size: var(--ui-target);
+    padding-block: 0;
+    padding-inline: var(--paper-space-4);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    cursor: default;
+  }
+
+  /* The focus colour is too dark on the toast, so its ring takes the toast's text colour. */
+  .paper-toast-action[data-focus-visible] {
+    outline-color: currentColor;
+  }
+
+  @media (forced-colors: active) {
+    .paper-notice,
+    .paper-toast {
+      border: var(--paper-border-width) solid CanvasText;
+    }
+  }
+}

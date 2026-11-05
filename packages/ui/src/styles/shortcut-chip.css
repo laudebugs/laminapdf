@@ -1,0 +1,15 @@
+/* The shortcut chip (§7.10): 11 px tabular text-3 in a white box with a chip border, radius 3. */
+@layer paper.components {
+  .paper-shortcut-chip {
+    display: inline-block;
+    padding-block: var(--paper-shortcut-chip-padding-block);
+    padding-inline: var(--paper-space-6);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-3);
+    background: var(--paper-field);
+    color: var(--paper-text-3);
+    font: var(--paper-type-chip);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
