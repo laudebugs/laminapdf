@@ -4,11 +4,14 @@
 // belongs where it happened, in a notice or a field.
 
 import { MOTION } from "@laminapdf/tokens";
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Toast, type ToastAction } from "../components/notice.js";
 
 /** At most this many toasts show; a new one pushes the oldest out. */
 const MAX_VISIBLE = 3;
+
+/** The longest delay `setTimeout` keeps; a longer one would fire at once. */
+const LONGEST_TIMER = 2 ** 31 - 1;
 
 /** What a toast says. */
 export interface ToastOptions {
@@ -16,7 +19,7 @@ export interface ToastOptions {
   message: string;
   /** One action, such as "Undo"; also offer it elsewhere (a menu, a shortcut), since a toast goes away. */
   action?: ToastAction;
-  /** How long it stays, in ms; 4 s when left out. */
+  /** How long it stays, in ms; 4 s when left out. `Infinity` keeps it until it is dismissed. */
   timeout?: number;
 }
 
@@ -85,8 +88,20 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const paused = hovered || focused;
+  const region = useRef<HTMLElement>(null);
+  const returnTo = useRef<HTMLElement | null>(null);
+  // A toast that leaves takes its focused action with it, and the browser sends no blur: notice
+  // that focus fell out of the region, resume the timers and put focus back where it came from.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: entries changing is what to check after.
+  useLayoutEffect(() => {
+    if (!focused || region.current?.contains(document.activeElement) === true) return;
+    setFocused(false);
+    if (returnTo.current?.isConnected === true) returnTo.current.focus();
+    returnTo.current = null;
+  }, [entries, focused]);
   return (
     <section
+      ref={region}
       aria-label={label}
       className="paper-toast-region"
       // React Aria leaves elements marked as its top layer outside a modal's inert, so a toast
@@ -94,9 +109,15 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
       data-react-aria-top-layer=""
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
+      onFocus={(e) => {
+        const from = e.relatedTarget;
+        if (!focused && from instanceof HTMLElement && !e.currentTarget.contains(from)) returnTo.current = from;
+        setFocused(true);
+      }}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        setFocused(false);
+        returnTo.current = null;
       }}
     >
       <div role="status" className="paper-toast-list">
@@ -114,7 +135,7 @@ function TimedToast({ entry, paused, onDone }: { entry: Entry; paused: boolean; 
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
-    if (paused) return;
+    if (paused || !(remaining.current <= LONGEST_TIMER)) return;
     const started = performance.now();
     const timer = setTimeout(() => done.current(), remaining.current);
     return () => {

@@ -42,3 +42,32 @@ describe("LayerStack", () => {
     expect(stack.escape()).toBe(false);
   });
 });
+
+describe("LayerStack order", () => {
+  it("keeps a layer beneath the layers opened from it, whichever registers first", () => {
+    const stack = new LayerStack();
+    const dialog = { dismiss: vi.fn(), dismissable: true };
+    const menu = { dismiss: vi.fn(), dismissable: true, parent: dialog };
+    stack.open(menu);
+    stack.open(dialog);
+    expect(stack.isTopmost(menu)).toBe(true);
+    stack.escape();
+    expect(menu.dismiss).toHaveBeenCalledOnce();
+    expect(dialog.dismiss).not.toHaveBeenCalled();
+  });
+
+  it("reads whether a layer may be dismissed when Escape comes, not when it opened", () => {
+    const stack = new LayerStack();
+    let dismissable = true;
+    const dialog = {
+      dismiss: vi.fn(),
+      get dismissable() {
+        return dismissable;
+      },
+    };
+    stack.open(dialog);
+    dismissable = false;
+    stack.escape();
+    expect(dialog.dismiss).not.toHaveBeenCalled();
+  });
+});

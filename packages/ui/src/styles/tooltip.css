@@ -1,8 +1,7 @@
 /* Tooltips (§7.27): the surface with a chip border, radius 6, the float shadow, 12 px text and a
-   shortcut chip, in the popover layer. */
+   shortcut chip (the popover layer's z-index is an inline style: React Aria writes one there). */
 @layer paper.components {
   .paper-tooltip {
-    z-index: var(--paper-z-popover);
     display: inline-flex;
     align-items: center;
     gap: var(--paper-space-8);

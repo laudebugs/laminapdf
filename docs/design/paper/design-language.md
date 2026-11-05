@@ -1071,7 +1071,7 @@ From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; prev
 
 ### 7.26 Menu
 
-In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigger` for the popover dialog. **Deviations (U6e):** menus and popovers draw in the z-order's popover layer (50), above whatever opened them, rather than z 30. A disabled item is skipped by the arrow keys, as React Aria's menu does, and shows its reason as a second line, linked with `aria-describedby`; a tooltip on an item the keyboard can't reach would be unreadable.
+In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigger` for the popover dialog. **Deviations (U6e):** menus and popovers draw in the z-order's popover layer (50), above whatever opened them, rather than z 30. A disabled item is skipped by the arrow keys, as React Aria's menu does, and shows its reason as a second line, linked with `aria-describedby`; a tooltip on an item the keyboard can't reach would be unreadable. The popover dialog follows React Aria's popovers: while open it is modal, so the page behind is hidden from assistive technology and holds still, and a click outside closes it.
 
 One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, Filter), More menus, the More tabs menu, context menus and the tab overflow menu. Native menus (the macOS menu bar, Windows and Linux menu bars) are drawn by the OS; the desktop boards only sketch them.
 

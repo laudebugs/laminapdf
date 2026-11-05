@@ -6,35 +6,42 @@ import { COMPONENT, MOTION } from "@laminapdf/tokens";
 import type { ReactElement, ReactNode } from "react";
 import { Tooltip as AriaTooltip, type Placement, TooltipTrigger } from "react-aria-components";
 import { type KeyPlatform, ShortcutChip, type ShortcutKeys } from "../components/shortcut-chip.js";
+import { POPOVER_LAYER } from "./popover.js";
 
-/** Props of `Tooltip`. */
-export interface TooltipProps {
+interface TooltipBase {
   /** The control it describes: a `Button`, `IconButton` or another focusable component. */
   children: ReactElement;
   /** The text: usually the control's name. */
   text: string;
-  /** The control's shortcut, shown as a chip. */
-  shortcut?: ShortcutKeys;
-  /** How the chip is written; needed with `shortcut`. */
-  platform?: KeyPlatform;
   /** Where it sits; below when left out. */
   placement?: Placement;
 }
 
+/** Props of `Tooltip`: a shortcut comes with the platform that says how to write it. */
+export type TooltipProps = TooltipBase &
+  (
+    | { shortcut?: never; platform?: never }
+    | {
+        /** The control's shortcut, shown as a chip. */
+        shortcut: ShortcutKeys;
+        /** The platform the app runs on, from its `Platform` adapter. */
+        platform: KeyPlatform;
+      }
+  );
+
 /** A tooltip on `children`. */
-export function Tooltip({
-  children,
-  text,
-  shortcut,
-  platform = "other",
-  placement = "bottom",
-}: TooltipProps): ReactNode {
+export function Tooltip({ children, text, shortcut, platform, placement = "bottom" }: TooltipProps): ReactNode {
   return (
     <TooltipTrigger delay={MOTION["tooltip-delay"]}>
       {children}
-      <AriaTooltip className="paper-tooltip" placement={placement} offset={COMPONENT["tooltip-offset"]}>
+      <AriaTooltip
+        className="paper-tooltip"
+        placement={placement}
+        offset={COMPONENT["tooltip-offset"]}
+        style={POPOVER_LAYER}
+      >
         {text}
-        {shortcut === undefined ? null : <ShortcutChip keys={shortcut} platform={platform} />}
+        {shortcut === undefined || platform === undefined ? null : <ShortcutChip keys={shortcut} platform={platform} />}
       </AriaTooltip>
     </TooltipTrigger>
   );

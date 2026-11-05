@@ -2,10 +2,10 @@
 // opener, Escape and scrim clicks closing it unless it asks a required question, the page behind
 // inert and its scrolling held still.
 
-import { type ReactNode, useEffect, useId, useRef } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useRef } from "react";
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "../components/button.js";
-import { LayerRegistration } from "./layers.js";
+import { LayerScope } from "./layers.js";
 
 /** How wide a dialog may grow: 440 by default, 560 for a form, 820 for a preview or two panes. */
 export type DialogSize = "default" | "form" | "wide";
@@ -71,8 +71,7 @@ export function Dialog(props: DialogProps): ReactNode {
           {...(description === undefined ? {} : { "aria-describedby": descriptionId })}
         >
           {({ close }) => (
-            <>
-              <LayerRegistration dismiss={close} dismissable={!required} />
+            <LayerScope dismiss={close} dismissable={!required}>
               <Heading slot="title" className="paper-dialog-title">
                 {title}
               </Heading>
@@ -90,7 +89,7 @@ export function Dialog(props: DialogProps): ReactNode {
                   <IconButton label={props.closeLabel} icon="close" size={28} onPress={close} />
                 </span>
               )}
-            </>
+            </LayerScope>
           )}
         </AriaDialog>
       </Modal>
@@ -99,6 +98,16 @@ export function Dialog(props: DialogProps): ReactNode {
 }
 
 const FIELDS = "input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled)";
+
+/** The first field to focus: a radio group counts by its checked radio when it has one. */
+function firstField(dialog: HTMLElement): HTMLElement | undefined {
+  for (const field of dialog.querySelectorAll<HTMLElement>(FIELDS)) {
+    if (!(field instanceof HTMLInputElement) || field.type !== "radio" || field.checked) return field;
+    const group = field.name === "" ? [] : [...dialog.querySelectorAll<HTMLInputElement>("input[type=radio]")];
+    if (!group.some((r) => r.name === field.name && r.checked)) return field;
+  }
+  return undefined;
+}
 
 /**
  * Focuses the dialog's first field as it opens, unless something inside already has focus (a
@@ -110,7 +119,7 @@ function FirstFieldFocus(): ReactNode {
   useEffect(() => {
     const dialog = marker.current?.closest<HTMLElement>("[role=dialog], [role=alertdialog]");
     if (dialog === null || dialog === undefined || dialog.contains(document.activeElement)) return;
-    dialog.querySelector<HTMLElement>(FIELDS)?.focus();
+    firstField(dialog)?.focus();
   }, []);
   return <span ref={marker} hidden />;
 }
@@ -119,21 +128,33 @@ function markModal(element: HTMLElement | null): void {
   element?.setAttribute("aria-modal", "true");
 }
 
-/** After the dialog closes, focuses `fallback` when focus came back to nothing (its opener is gone). */
+/**
+ * After the dialog closes, focuses `fallback` when focus came back to nothing (its opener is
+ * gone), whether the dialog closed through `isOpen` or by unmounting.
+ */
 function useFocusFallback(isOpen: boolean, fallback: (() => HTMLElement | null) | undefined): void {
+  const latest = useRef(fallback);
+  latest.current = fallback;
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (isOpen) {
-      wasOpen.current = true;
-      return;
+    if (isOpen) wasOpen.current = true;
+    else if (wasOpen.current) {
+      wasOpen.current = false;
+      focusFallbackLater(latest);
     }
-    if (!wasOpen.current || fallback === undefined) return;
-    wasOpen.current = false;
-    // React Aria restores focus as the dialog unmounts; check once that has happened.
-    const frame = requestAnimationFrame(() => {
-      const active = document.activeElement;
-      if (active === null || active === document.body || !active.isConnected) fallback()?.focus();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [isOpen, fallback]);
+  }, [isOpen]);
+  useEffect(
+    () => () => {
+      if (wasOpen.current) focusFallbackLater(latest);
+    },
+    [],
+  );
+}
+
+// React Aria restores focus as the dialog unmounts; check once a frame has passed.
+function focusFallbackLater(fallback: RefObject<(() => HTMLElement | null) | undefined>): void {
+  requestAnimationFrame(() => {
+    const active = document.activeElement;
+    if (active === null || active === document.body || !active.isConnected) fallback.current?.()?.focus();
+  });
 }

@@ -4,22 +4,21 @@
 
 import type { IconName } from "@laminapdf/icons";
 import { Icon } from "@laminapdf/icons/react";
-import { COMPONENT } from "@laminapdf/tokens";
-import { type ReactNode, useContext } from "react";
+import { SPACE } from "@laminapdf/tokens";
+import { type CSSProperties, type ReactNode, useContext } from "react";
 import {
   Dialog as AriaDialog,
   Menu as AriaMenu,
   MenuTrigger as AriaMenuTrigger,
   Popover as AriaPopover,
   DialogTrigger,
-  Keyboard,
   MenuItem,
   OverlayTriggerStateContext,
   type Placement,
   Text,
 } from "react-aria-components";
-import { type KeyPlatform, keysText, type ShortcutKeys } from "../components/shortcut-chip.js";
-import { LayerRegistration } from "./layers.js";
+import { type KeyPlatform, ShortcutChip, type ShortcutKeys } from "../components/shortcut-chip.js";
+import { LayerScope } from "./layers.js";
 
 /**
  * Pairs a button with the `Popover` after it: `<PopoverTrigger><Button>View</Button><Popover …/></PopoverTrigger>`.
@@ -30,10 +29,19 @@ export const PopoverTrigger = DialogTrigger;
 /** Pairs a button with the `Menu` after it, as the menu button pattern: `aria-haspopup`, `aria-expanded`, arrows open it. */
 export const MenuTrigger = AriaMenuTrigger;
 
-/** Registers the open popover on the layer stack, closing it through its trigger's state. */
-function PopoverLayer(): ReactNode {
+/** The gap between a button and the popover or menu it opens. */
+const OFFSET = SPACE["4"];
+
+/**
+ * React Aria writes an inline z-index of 100000 on every popover; an inline style of our own is
+ * spread after it, so the z-order's popover layer wins.
+ */
+export const POPOVER_LAYER: CSSProperties = { zIndex: "var(--paper-z-popover)" };
+
+/** Puts the open popover on the layer stack, closing it through its trigger's state. */
+function PopoverLayer({ children }: { children: ReactNode }): ReactNode {
   const state = useContext(OverlayTriggerStateContext);
-  return state === null ? null : <LayerRegistration dismiss={() => state.close()} />;
+  return state === null ? children : <LayerScope dismiss={() => state.close()}>{children}</LayerScope>;
 }
 
 /** Props of `Popover`. */
@@ -46,14 +54,19 @@ export interface PopoverProps {
   placement?: Placement;
 }
 
-/** A popover dialog anchored to the button of its `PopoverTrigger`. */
+/**
+ * A popover dialog anchored to the button of its `PopoverTrigger`. As React Aria's popovers are,
+ * it is modal while open: the page behind is hidden from assistive technology and holds still,
+ * and a click outside closes it.
+ */
 export function Popover({ "aria-label": label, children, placement = "bottom start" }: PopoverProps): ReactNode {
   return (
-    <AriaPopover className="paper-popover" placement={placement} offset={COMPONENT["tooltip-offset"]}>
-      <PopoverLayer />
-      <AriaDialog className="paper-popover-dialog" aria-label={label}>
-        {children}
-      </AriaDialog>
+    <AriaPopover className="paper-popover" placement={placement} offset={OFFSET} style={POPOVER_LAYER}>
+      <PopoverLayer>
+        <AriaDialog className="paper-popover-dialog" aria-label={label}>
+          {children}
+        </AriaDialog>
+      </PopoverLayer>
     </AriaPopover>
   );
 }
@@ -102,39 +115,39 @@ export function Menu<Id extends string>({
     <AriaPopover
       className="paper-popover paper-menu-popover"
       placement={placement}
-      offset={COMPONENT["tooltip-offset"]}
+      offset={OFFSET}
+      style={POPOVER_LAYER}
     >
-      <PopoverLayer />
-      <AriaMenu
-        className="paper-menu"
-        aria-label={label}
-        items={items}
-        disabledKeys={items.filter((i) => i.isDisabled === true).map((i) => i.id)}
-        onAction={(key) => onAction(key as Id)}
-      >
-        {(item) => (
-          <MenuItem
-            id={item.id}
-            textValue={item.label}
-            className="paper-menu-item"
-            data-destructive={item.isDestructive === true || undefined}
-          >
-            {item.icon === undefined ? <span className="paper-menu-icon" /> : <Icon name={item.icon} />}
-            <Text slot="label" className="paper-menu-label">
-              {item.label}
-            </Text>
-            {/* React Aria's Keyboard slot links the chip to the item with aria-describedby. */}
-            {item.shortcut === undefined ? null : (
-              <Keyboard className="paper-shortcut-chip">{keysText(item.shortcut[platform], platform)}</Keyboard>
-            )}
-            {item.disabledReason === undefined ? null : (
-              <Text slot="description" className="paper-menu-reason">
-                {item.disabledReason}
+      <PopoverLayer>
+        <AriaMenu
+          className="paper-menu"
+          aria-label={label}
+          items={items}
+          disabledKeys={items.filter((i) => i.isDisabled === true).map((i) => i.id)}
+          onAction={(key) => onAction(key as Id)}
+        >
+          {(item) => (
+            <MenuItem
+              id={item.id}
+              textValue={item.label}
+              className="paper-menu-item"
+              data-destructive={item.isDestructive === true || undefined}
+            >
+              {item.icon === undefined ? <span className="paper-menu-icon" /> : <Icon name={item.icon} />}
+              <Text slot="label" className="paper-menu-label">
+                {item.label}
               </Text>
-            )}
-          </MenuItem>
-        )}
-      </AriaMenu>
+              {/* The chip is React Aria's Keyboard, which a menu item links with aria-describedby. */}
+              {item.shortcut === undefined ? null : <ShortcutChip keys={item.shortcut} platform={platform} />}
+              {item.disabledReason === undefined ? null : (
+                <Text slot="description" className="paper-menu-reason">
+                  {item.disabledReason}
+                </Text>
+              )}
+            </MenuItem>
+          )}
+        </AriaMenu>
+      </PopoverLayer>
     </AriaPopover>
   );
 }

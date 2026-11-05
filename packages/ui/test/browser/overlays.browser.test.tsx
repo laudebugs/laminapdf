@@ -11,6 +11,8 @@ import {
   MenuTrigger,
   Popover,
   PopoverTrigger,
+  Radio,
+  RadioGroup,
   TextInput,
   ToastQueue,
   ToastRegion,
@@ -119,6 +121,37 @@ describe("Dialog", () => {
     await openDialog({ returnFocusTo: () => fallback });
     const opener = [...document.querySelectorAll("button")].find((b) => b.textContent === "Move pages");
     opener?.remove();
+    await userEvent.keyboard("{Escape}");
+    await frame();
+    await frame();
+    expect(focused()).toBe(fallback);
+  });
+
+  it("starts on a radio group's checked radio", () => {
+    function Radios() {
+      return (
+        <Dialog isOpen onOpenChange={() => {}} title="Print" closeLabel="Close">
+          <RadioGroup label="Pages" defaultValue="current">
+            <Radio value="all">All pages</Radio>
+            <Radio value="current">Current page</Radio>
+          </RadioGroup>
+        </Dialog>
+      );
+    }
+    renderIn(<Radios />);
+    expect((focused() as HTMLInputElement).value).toBe("current");
+  });
+
+  it("sends focus to the fallback when it closes by unmounting and its opener is gone", async () => {
+    const fallback = document.createElement("button");
+    document.body.append(fallback);
+    function Conditional() {
+      const [open, setOpen] = useState(true);
+      return open ? (
+        <Dialog isOpen onOpenChange={setOpen} title="Move" closeLabel="Close" returnFocusTo={() => fallback} />
+      ) : null;
+    }
+    renderIn(<Conditional />);
     await userEvent.keyboard("{Escape}");
     await frame();
     await frame();
@@ -265,6 +298,7 @@ describe("Tooltip", () => {
     );
     await userEvent.tab();
     const tip = role("tooltip");
+    expect(Number(getComputedStyle(tip as HTMLElement).zIndex)).toBe(50);
     expect(tip?.textContent).toBe("Find in document⌘F");
     expect(focused().getAttribute("aria-describedby")).toBe(tip?.id);
     await userEvent.keyboard("{Escape}");
@@ -317,6 +351,27 @@ describe("ToastRegion", () => {
     expect(host.querySelector(".paper-toast")).toBeNull();
   });
 
+  it("keeps an endless toast, and resumes the timers once a pressed action takes focus away", async () => {
+    const queue = new ToastQueue();
+    const host = renderIn(
+      <>
+        <Button>Before</Button>
+        <ToastRegion queue={queue} aria-label="Notifications" />
+      </>,
+    );
+    queue.add({ message: "Update ready", timeout: Number.POSITIVE_INFINITY });
+    queue.add({ message: "Highlight deleted", action: { label: "Undo", onPress: () => {} }, timeout: 60_000 });
+    await frame();
+    await userEvent.tab();
+    await userEvent.tab();
+    expect(focused().textContent).toBe("Undo");
+    await userEvent.keyboard("{Enter}");
+    expect(focused().textContent).toBe("Before");
+    queue.add({ message: "Copied", timeout: 100 });
+    await new Promise((r) => setTimeout(r, 300));
+    expect([...host.querySelectorAll(".paper-toast")].map((t) => t.textContent)).toEqual(["Update ready"]);
+  });
+
   it("sits above dialogs and menus, and stays reachable while a dialog is open", async () => {
     const queue = new ToastQueue();
     renderIn(
@@ -331,9 +386,21 @@ describe("ToastRegion", () => {
     await frame();
     const region = document.querySelector(".paper-toast-region") as HTMLElement;
     expect(region.closest("[inert]")).toBeNull();
-    expect(Number(getComputedStyle(region).zIndex)).toBeGreaterThan(
-      Number(getComputedStyle(document.querySelector(".paper-modal-overlay") as Element).zIndex),
+    const z = (el: Element | null) => Number(getComputedStyle(el as Element).zIndex);
+    expect(z(region)).toBeGreaterThan(z(document.querySelector(".paper-modal-overlay")));
+    // A menu in the dialog sits between the two.
+    cleanup();
+    renderIn(
+      <>
+        <MoreMenu onAction={() => {}} />
+        <ToastRegion queue={queue} aria-label="Notifications" />
+      </>,
     );
+    await userEvent.tab();
+    await userEvent.keyboard("{Enter}");
+    const menu = role("menu")?.closest(".paper-popover") ?? null;
+    expect(z(menu)).toBe(50);
+    expect(z(document.querySelector(".paper-toast-region"))).toBeGreaterThan(z(menu));
   });
 });
 
