@@ -6,7 +6,9 @@
 //! lines at a line's pitch make blocks; XY-Cut++ orders the blocks (or the content stream, on
 //! request). Words hyphenated across lines are joined and Latin ligatures spelled out. Text
 //! drawn invisibly, off the page or below 1 pt is never in a block's text; each such run is a
-//! [`Dropped`] entry that counts its characters.
+//! [`Dropped`] entry that counts its characters. Once every page is read, running headers,
+//! footers, page numbers and artifact-marked text move to `dropped` too, and headings (from
+//! font sizes and bold) and list items (from bullets and numbers) get their kinds.
 //!
 //! ```
 //! # fn sample() -> Vec<u8> { std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/golden/text-std14.pdf")).unwrap() }
@@ -21,9 +23,8 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
-//! What the rules can't do: they don't read structure trees, headings, lists or running
-//! headers yet, flag clipped or low-contrast text, or untangle magazines, sidebars and
-//! floating figures (the crate README says more).
+//! What the rules can't do: they don't read structure trees yet, flag clipped or low-contrast
+//! text, or untangle magazines, sidebars and floating figures (the crate README says more).
 //!
 //! [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 //! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
@@ -32,8 +33,11 @@
 
 mod blocks;
 mod error;
+mod furniture;
+mod headings;
 mod job;
 mod lines;
+mod lists;
 mod model;
 mod options;
 mod output;
