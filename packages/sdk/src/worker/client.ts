@@ -3,7 +3,8 @@
 // handshake, and returns a WorkerClient whose documents and pages are remote handles: proxies
 // whose methods post typed calls. Calls get monotonically increasing IDs; an aborted call is
 // rejected at once (`cancelled`, with the signal's reason as `cause`) and a `cancel` is posted;
-// a late answer is dropped. Errors come back as ADR 0026 objects and are rebuilt as LaminaPdfError.
+// a late answer is dropped (the worker frees a document it opened when that cancel arrives).
+// Errors come back as ADR 0026 objects and are rebuilt as LaminaPdfError.
 // A worker `error` or `messageerror`, or a trap the worker reports, rejects every pending call
 // with `worker-crashed` and emits `crashed`; `restart()` starts a new worker. No heartbeat.
 
@@ -403,7 +404,8 @@ export class WorkerClient {
   /**
    * Opens `bytes` in the worker. They are copied unless `transfer: true` (then the caller's
    * buffer is detached). Opening is one synchronous call there: `signal` drops it if it hasn't
-   * started, but can't stop it midway (`terminate()` is the hard stop).
+   * started, but can't stop it midway (`terminate()` is the hard stop). An open aborted midway
+   * still rejects with `cancelled`, and the worker frees the document it opened.
    */
   async open(bytes: Uint8Array | ArrayBuffer, options: OpenOptions & CallOptions = {}): Promise<RemoteDocument> {
     const { signal, onProgress, transfer, ...open } = options;
