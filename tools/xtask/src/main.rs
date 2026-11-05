@@ -235,7 +235,8 @@ tasks:
   semver [--baseline <version>]
                     the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
                     Extractor, after `wasm`) against the newest published version; breaking changes
-                    fail unless a pending changeset bumps the fixed group's minor version
+                    fail unless the changesets give the fixed group a minor bump (pending ones, or
+                    those a version PR consumed while its version awaits npm)
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]

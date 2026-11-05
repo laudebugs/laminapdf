@@ -148,7 +148,13 @@ fn api_lines(report: &str) -> BTreeSet<String> {
         }
         let (opens, closes) = (line.matches('{').count(), line.matches('}').count());
         if !matches!(line, "}" | "};") {
-            let key = |text: &str| scope.iter().map(|s| format!("{s} › ")).collect::<String>() + text;
+            let key = |text: &str| {
+                let mut key = String::new();
+                for label in &scope {
+                    let _ = write!(key, "{label} › ");
+                }
+                key + text
+            };
             match literal_union(line) {
                 Some((head, members)) => lines.extend(members.into_iter().map(|m| key(&format!("{head} = {m}")))),
                 None if opens > closes => {
@@ -245,7 +251,7 @@ fn entry_points(package: &Path) -> Result<Vec<Entry>> {
         for (condition, types) in plain.into_iter().chain(named) {
             let Some(file) = types.as_str() else { continue };
             match files.iter_mut().find(|(f, _)| *f == file) {
-                Some((_, names)) if !names.iter().any(|n| n == condition) => names.push(condition.to_owned()),
+                Some((_, known)) if !known.iter().any(|n| n == condition) => known.push(condition.to_owned()),
                 Some(_) => {}
                 None => files.push((file, vec![condition.to_owned()])),
             }
