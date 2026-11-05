@@ -503,6 +503,11 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
+      # Node only, no `pnpm install`: `publish crates` writes the crate's docs/ with
+      # apps/docs/scripts/package-docs.mjs, which needs no packages without --api.
+      - uses: ./.github/actions/node-pnpm
+        with:
+          install: ""
       - name: Get a crates.io token (trusted publishing)
         if: github.event_name == 'push' && github.ref_type == 'tag'
         id: crates-io
