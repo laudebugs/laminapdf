@@ -376,4 +376,27 @@ mod tests {
             })
         );
     }
+
+    /// release.yml's `publish-npm` reads publish.json with jq, so its keys must be the ones
+    /// [`publish_manifest`] writes: a rename on either side would fail only in a release.
+    #[test]
+    fn publish_npm_should_read_the_keys_publish_manifest_writes() {
+        const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
+        let manifest = publish_manifest("0.2.0", &strings(&["@laminapdf/wasm"]));
+        let keys = |value: &serde_json::Value| -> Vec<String> {
+            value
+                .as_object()
+                .map(|o| o.keys().cloned().collect())
+                .unwrap_or_default()
+        };
+        assert_eq!(keys(&manifest), ["packages", "tag", "version"]);
+        assert_eq!(keys(&manifest["packages"][0]), ["name", "tarball"]);
+        for read in [
+            "jq -r .version publish.json",
+            "jq -r .tag publish.json",
+            r#"jq -r '.packages[] | "\(.name) \(.tarball)"' publish.json"#,
+        ] {
+            assert!(WORKFLOW.contains(read), "publish-npm no longer reads `{read}`");
+        }
+    }
 }
