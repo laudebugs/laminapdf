@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [website §4](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) |
 | Depends on | [W1c](../done/W1c-home-page.md) |
