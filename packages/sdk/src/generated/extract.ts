@@ -113,6 +113,7 @@ export type ExtractedSource = {
   tagged: boolean;
 };
 
+/** Why a run would be hidden from a reader; empty for visible text. */
 export type Flags = DropReason[];
 
 /** Who made the extraction (ADR 0030 §1's `generator`). */
