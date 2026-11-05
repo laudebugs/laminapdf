@@ -9,7 +9,7 @@ A page's ruling lines would have made a table with more cells than `ExtractLimit
 
 ## Why
 
-A page drawn with thousands of lines, such as a large grid, a chart's gridlines or a file built to slow extraction down. Finding a table compares every horizontal line with every vertical one, so the work grows with the square of the line count.
+A page drawn with thousands of lines, such as a large grid, a chart's gridlines or a file built to slow extraction down. To find a table, extraction compares every horizontal line with every vertical one, so the work grows with the square of the line count.
 
 ## How to fix
 

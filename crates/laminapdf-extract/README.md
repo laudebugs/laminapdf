@@ -28,11 +28,11 @@ With the `serde` feature, `to_json` writes the `laminapdf.extract/1` document, a
 
 ## Tables
 
-Tables drawn with lines are found from the page's paths: stroked lines and rectangles, and filled rectangles thin enough to be a rule. Rules within 3 pt share a coordinate; collinear rules that nearly meet are joined; rules that cross form a group, and a group's distinct coordinates are the grid. A missing inner rule merges the cells on either side. Each cell takes the glyphs whose centres it holds, and a first row in bold or shaded is a header.
+Extraction finds tables drawn with lines from the page's paths: stroked lines and rectangles, and filled rectangles thin enough to be a rule. Rules within 3 pt share a coordinate; collinear rules that nearly meet are joined; rules that cross form a group, and a group's distinct coordinates are the grid. A missing inner rule merges the cells on either side. Each cell takes the glyphs whose centres it holds, and a first row in bold or shaded is a header.
 
 The rules refuse what isn't a grid of text: a page border, a form's separate field boxes, a one-row strip and an empty grid give no table. When the merged cells aren't rectangles, the table keeps one cell per square of the grid and raises `extract-table-ambiguous`.
 
-`TableMode::LatticeAndStream` also finds tables drawn without lines: three or more lines that split at wide gaps into the same two or more columns. It is off by default because it sometimes takes two columns of text for a table; such tables carry a lower `confidence`.
+`TableMode::LatticeAndStream` also finds tables drawn without lines: three or more lines that split at wide gaps into the same two or more columns. Stream detection is off by default because it sometimes takes two columns of text for a table; such tables carry a lower `confidence`.
 
 ## How it reads a page
 

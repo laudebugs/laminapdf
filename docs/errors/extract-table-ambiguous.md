@@ -5,7 +5,7 @@
 
 ## What happened
 
-Extraction found a table drawn with lines, but where a line was missing, the cells it would join didn't make a rectangle. Extraction kept the table and gave it one cell per square of its grid, so a merged cell's text sits in the first of the squares it covers.
+Extraction found a table drawn with lines, but the cells its missing lines would join don't make a rectangle. Extraction kept the table and gave it one cell per square of its grid, so a merged cell's text sits in the first of the squares it covers.
 
 ## Why
 

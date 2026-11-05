@@ -5,7 +5,7 @@ description: Turn a PDF into Markdown in reading order, JSON with a box for ever
 
 import Snippet from "../../../components/Snippet.astro";
 
-You'll turn a PDF into three files an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and chunks of about 400 tokens. You need this to feed a PDF to a model. Rust only for now.
+You'll turn a PDF into three files an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks. You need this to feed a PDF to a model from Rust; TypeScript gets it later.
 
 The program opens the file, extracts it once and writes the three outputs from that one extraction:
 

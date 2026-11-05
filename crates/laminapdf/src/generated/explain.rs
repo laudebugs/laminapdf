@@ -1213,7 +1213,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-Extraction found a table drawn with lines, but where a line was missing, the cells it would join didn't make a rectangle. Extraction kept the table and gave it one cell per square of its grid, so a merged cell's text sits in the first of the squares it covers.
+Extraction found a table drawn with lines, but the cells its missing lines would join don't make a rectangle. Extraction kept the table and gave it one cell per square of its grid, so a merged cell's text sits in the first of the squares it covers.
 
 ## Why
 
@@ -1250,7 +1250,7 @@ A page's ruling lines would have made a table with more cells than `ExtractLimit
 
 ## Why
 
-A page drawn with thousands of lines, such as a large grid, a chart's gridlines or a file built to slow extraction down. Finding a table compares every horizontal line with every vertical one, so the work grows with the square of the line count.
+A page drawn with thousands of lines, such as a large grid, a chart's gridlines or a file built to slow extraction down. To find a table, extraction compares every horizontal line with every vertical one, so the work grows with the square of the line count.
 
 ## How to fix
 
