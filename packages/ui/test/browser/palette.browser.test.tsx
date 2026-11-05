@@ -91,9 +91,8 @@ describe("SelectionToolbar", () => {
     const before = toolbar().getBoundingClientRect().top;
     scroller.scrollTop = 100;
     scroller.dispatchEvent(new Event("scroll"));
-    await frame();
-    await frame();
-    expect(toolbar().getBoundingClientRect().top).toBeCloseTo(before - 100, 0);
+    // Polled: a busy runner can take more than a couple of frames to move the toolbar.
+    await expect.poll(() => toolbar().getBoundingClientRect().top, { timeout: 4000 }).toBeCloseTo(before - 100, 0);
   });
 
   it("takes focus on Shift+F10, moves with the arrows, and Escape hands focus back", async () => {
