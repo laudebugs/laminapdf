@@ -11,13 +11,13 @@ import { Button as AriaButton, Dialog as AriaDialog, Modal, ModalOverlay } from 
 import { createPortal } from "react-dom";
 import { IconButton } from "../components/button.js";
 import { markModal } from "./aria-modal.js";
-import { LayerScope } from "./layers.js";
+import { LayerScope, useLayerOpenedHere } from "./layers.js";
 
 /** Where an open sheet rests. Closing it is the third, collapsed position. */
 export type SheetDetent = "medium" | "large";
 
-/** Props of `BottomSheet`. */
-export interface BottomSheetProps {
+/** Props every `BottomSheet` takes. */
+interface SheetProps {
   /** Whether the sheet is open. */
   isOpen: boolean;
   /** Called with `false` when the sheet asks to close: the close button, Escape, a drag down, the scrim. */
@@ -26,8 +26,6 @@ export interface BottomSheetProps {
   title: string;
   /** A first paragraph under the title, read with the name (`aria-describedby`). */
   description?: string;
-  /** `alertdialog` for a destructive confirm in a modal sheet. */
-  role?: "dialog" | "alertdialog";
   /** A count beside the title: "24 pages". */
   count?: string;
   /** The close button's name: "Close pages". Leave it out only with `isRequired`. */
@@ -40,8 +38,6 @@ export interface BottomSheetProps {
   defaultDetent?: SheetDetent;
   /** Called when the grabber or a drag moves the sheet to another detent. */
   onDetentChange?: (detent: SheetDetent) => void;
-  /** A modal sheet asks something: focus stays inside and the page waits. True when left out. */
-  isModal?: boolean;
   /** A required question: no close button, and Escape, the scrim and a drag down leave it open. */
   isRequired?: boolean;
   /** The sheet's content, which scrolls. */
@@ -49,6 +45,22 @@ export interface BottomSheetProps {
   /** Actions below the content, full width: a dialog's buttons on the phone. */
   footer?: ReactNode;
 }
+
+/** Props of `BottomSheet`. Only a modal sheet is a dialog, so only it takes a `role`. */
+export type BottomSheetProps = SheetProps &
+  (
+    | {
+        /** A modal sheet asks something: focus stays inside and the page waits. True when left out. */
+        isModal?: true;
+        /** `alertdialog` for a destructive confirm. */
+        role?: "dialog" | "alertdialog";
+      }
+    | {
+        /** A non-modal sheet: a labelled region beside a page that stays in use. */
+        isModal: false;
+        role?: never;
+      }
+  );
 
 /** A drag moves this far, in CSS px per ms, before it counts as a flick towards the next detent. */
 const FLICK = 0.5;
@@ -133,9 +145,9 @@ function FreeSheet(props: BottomSheetProps & Placed): ReactNode {
   const ref = useRef<HTMLElement>(null);
   const titleId = useId();
   useKeyboardInset(ref);
-  useFocusClear(ref);
   return (
     <LayerScope dismiss={props.close} dismissable={props.isRequired !== true}>
+      <FocusClear sheet={ref} detent={props.detent} />
       <section
         ref={ref}
         className="paper-sheet"
@@ -253,13 +265,21 @@ function useSheetDrag(
   const move = (dy: number) => sheet.current?.style.setProperty("--sheet-drag", `${dy}px`);
   const end = (e: PointerEvent<HTMLElement>) => {
     const drag = start.current;
+    // Another pointer's release leaves this drag going.
+    if (drag === null || drag.id !== e.pointerId) return;
     start.current = null;
-    if (drag === null || drag.id !== e.pointerId || !drag.moved) return;
+    if (!drag.moved) return;
+    // Where the sheet is drawn now, keyboard inset and drag included.
+    const top = sheet.current?.getBoundingClientRect().top ?? topOf(detent) + (e.clientY - drag.y);
     move(0);
     sheet.current?.removeAttribute("data-dragging");
+    // The grabber's press that may follow this release is not a tap; any later press is.
     dragged.current = true;
+    setTimeout(() => {
+      dragged.current = false;
+    }, 0);
     const velocity = e.timeStamp - drag.lastT < FLICK_HOLD ? drag.velocity : 0;
-    const next = settle(detent, topOf(detent) + (e.clientY - drag.y), velocity);
+    const next = settle(detent, top, velocity);
     if (next === "closed") close();
     else if (next !== detent) setDetent(next);
   };
@@ -274,7 +294,8 @@ function useSheetDrag(
       ? {
           // In the capture phase: the grabber's press handling stops `pointerdown` from bubbling.
           onPointerDownCapture: (e: PointerEvent<HTMLElement>) => {
-            if (e.button !== 0) return;
+            // A second finger doesn't take over a drag in progress.
+            if (e.button !== 0 || start.current?.moved === true) return;
             start.current = {
               id: e.pointerId,
               y: e.clientY,
@@ -298,39 +319,70 @@ function useSheetDrag(
   };
 }
 
-/** Raises the sheet above an on-screen keyboard, which shrinks the visual viewport. */
+/**
+ * Lifts the sheet above an on-screen keyboard, which shrinks the visual viewport: sheet.css raises
+ * its bottom to the keyboard's top and its top by as much, up to the large detent.
+ */
 function useKeyboardInset(sheet: RefObject<HTMLElement | null>): void {
   useEffect(() => {
     const viewport = window.visualViewport;
-    if (viewport === null) return;
     const update = () => {
-      const hidden = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      const hidden = viewport === null ? 0 : Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
       sheet.current?.style.setProperty("--sheet-keyboard", `${hidden}px`);
     };
     update();
-    viewport.addEventListener("resize", update);
-    return () => viewport.removeEventListener("resize", update);
+    // The visual viewport also scrolls on its own while the keyboard is up, moving its offsetTop.
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
   }, [sheet]);
 }
 
 /**
- * Scrolls an element that takes focus out from under a non-modal sheet, so the sheet never
- * covers what has focus (WCAG 2.4.11).
+ * In a non-modal sheet: scrolls the page's focused element out from under the sheet, when it takes
+ * focus and when the sheet moves to another detent, so the sheet never covers what has focus
+ * (WCAG 2.4.11). Focus in a layer opened from the sheet, such as its menu, is left alone.
  */
-function useFocusClear(sheet: RefObject<HTMLElement | null>): void {
+function FocusClear({ sheet, detent }: { sheet: RefObject<HTMLElement | null>; detent: SheetDetent }): ReactNode {
+  const menuOpen = useLayerOpenedHere();
+  const latest = useRef(menuOpen);
+  latest.current = menuOpen;
   useEffect(() => {
     const onFocus = (event: FocusEvent) => {
-      const target = event.target;
-      const panel = sheet.current;
-      if (!(target instanceof HTMLElement) || panel === null || panel.contains(target)) return;
-      requestAnimationFrame(() => {
-        const covered = target.getBoundingClientRect().bottom - panel.getBoundingClientRect().top;
-        if (covered > 0) scrollerOf(target).scrollBy({ top: covered + SPACE["16"] });
-      });
+      if (event.target instanceof HTMLElement) clearLater(event.target, sheet, latest);
     };
     document.addEventListener("focusin", onFocus);
     return () => document.removeEventListener("focusin", onFocus);
   }, [sheet]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new detent can cover the focused element, so it checks again.
+  useEffect(() => {
+    if (document.activeElement instanceof HTMLElement) clearLater(document.activeElement, sheet, latest);
+  }, [sheet, detent]);
+  return null;
+}
+
+/**
+ * After the next frame (once layers have registered and the sheet has moved), scrolls `target`
+ * clear of the sheet, by no more than keeps its top inside the viewport.
+ */
+function clearLater(
+  target: HTMLElement,
+  sheet: RefObject<HTMLElement | null>,
+  menuOpen: RefObject<() => boolean>,
+): void {
+  requestAnimationFrame(() => {
+    const panel = sheet.current;
+    if (panel === null || panel.contains(target) || !target.isConnected || menuOpen.current()) return;
+    const box = target.getBoundingClientRect();
+    const covered = box.bottom - panel.getBoundingClientRect().top;
+    if (covered <= 0) return;
+    // A field taller than the space above the sheet keeps its top in view rather than its bottom.
+    const by = Math.min(covered + SPACE["16"], box.top - SPACE["16"]);
+    if (by > 0) scrollerOf(target).scrollBy({ top: by });
+  });
 }
 
 /** The nearest ancestor of `element` that scrolls vertically, else the page. */

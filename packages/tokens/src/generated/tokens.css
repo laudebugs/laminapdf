@@ -151,7 +151,7 @@
   --paper-menu-item-height: 32px;
   --paper-tooltip-offset: 6px;
   --paper-toast-region-offset: 24px;
-  --paper-sheet-detent-large: 56px;
+  --paper-sheet-detent-large: var(--paper-phone-top-bar-height);
   --paper-sheet-detent-medium: 0.48;
   --paper-annotation-yellow: #F2D675;
   --paper-annotation-green: #B7D9A8;

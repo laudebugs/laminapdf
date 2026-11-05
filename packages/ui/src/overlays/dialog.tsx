@@ -3,7 +3,7 @@
 // inert and its scrolling held still.
 
 import { BREAKPOINTS } from "@laminapdf/tokens";
-import { type ReactNode, type RefObject, useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "../components/button.js";
 import { markModal } from "./aria-modal.js";
@@ -50,22 +50,33 @@ const FRAME: Record<DialogSize, string> = {
   wide: "paper-dialog-frame paper-dialog-frame-wide",
 };
 
-/** The phone's width, where a dialog becomes a bottom sheet (§7.18). */
-const PHONE = `(max-width: ${BREAKPOINTS["phone-max"]}px)`;
-
-function subscribePhone(onChange: () => void): () => void {
-  const query = window.matchMedia(PHONE);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
+/** The phone's width, where a dialog becomes a bottom sheet (§7.18); one list for every dialog. */
+let phoneQuery: MediaQueryList | undefined;
+function phone(): MediaQueryList {
+  phoneQuery ??= window.matchMedia(`(max-width: ${BREAKPOINTS["phone-max"]}px)`);
+  return phoneQuery;
 }
 
-/** Whether the viewport is phone-wide. */
-function usePhone(): boolean {
-  return useSyncExternalStore(
+function subscribePhone(onChange: () => void): () => void {
+  phone().addEventListener("change", onChange);
+  return () => phone().removeEventListener("change", onChange);
+}
+
+/**
+ * Whether the dialog lays out as a phone's sheet: the viewport's width when it opens, kept until
+ * it closes, so turning the phone doesn't rebuild an open dialog and lose what was typed in it.
+ */
+function usePhoneLayout(isOpen: boolean): boolean {
+  const live = useSyncExternalStore(
     subscribePhone,
-    () => window.matchMedia(PHONE).matches,
+    () => phone().matches,
     () => false,
   );
+  const [opened, setOpened] = useState(live);
+  useEffect(() => {
+    if (!isOpen) setOpened(live);
+  }, [isOpen, live]);
+  return isOpen ? opened : live;
 }
 
 /** A modal dialog; on a phone-wide viewport, a bottom sheet at the large detent with full-width actions. */
@@ -73,9 +84,9 @@ export function Dialog(props: DialogProps): ReactNode {
   const { isOpen, onOpenChange, title, description, children, actions, size = "default", role, returnFocusTo } = props;
   const required = props.isRequired === true;
   const descriptionId = useId();
-  const phone = usePhone();
+  const asSheet = usePhoneLayout(isOpen);
   useFocusFallback(isOpen, returnFocusTo);
-  if (phone) {
+  if (asSheet) {
     return (
       <BottomSheet
         isOpen={isOpen}

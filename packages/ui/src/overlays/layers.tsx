@@ -24,6 +24,15 @@ interface LayerScopeProps {
   children: ReactNode;
 }
 
+/**
+ * Inside a `LayerScope`: a function telling whether a layer opened from that scope, such as a menu
+ * in a sheet, is open now. Effects register layers, so read it after they have run.
+ */
+export function useLayerOpenedHere(): () => boolean {
+  const layer = useContext(ParentLayer);
+  return () => layer !== undefined && STACK.hasOpenedFrom(layer);
+}
+
 /** Keeps a layer on the stack for as long as it is mounted, and is the parent of layers opened inside it. */
 export function LayerScope({ dismiss, dismissable = true, children }: LayerScopeProps): ReactNode {
   const parent = useContext(ParentLayer);

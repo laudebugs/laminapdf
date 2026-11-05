@@ -43,6 +43,11 @@ export class LayerStack {
     return this.#layers.length;
   }
 
+  /** Whether an open layer was opened, directly or not, from `layer`: a menu inside a sheet. */
+  hasOpenedFrom(layer: Layer): boolean {
+    return this.#layers.some((l) => within(l, layer));
+  }
+
   /** Whether `layer` is the innermost open layer. */
   isTopmost(layer: Layer): boolean {
     return this.#layers.at(-1) === layer;

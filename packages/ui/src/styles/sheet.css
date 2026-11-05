@@ -1,20 +1,26 @@
 /* Bottom sheets (§7.16, §6.2): the surface with a hairline top, 12 px top corners and the sheet
-   shadow, its top at the medium (48% down) or large (56 px down) detent, raised above an
-   on-screen keyboard and the safe area; a 64 × 44 grabber holding a 36 × 5 bar; a header with the
+   shadow, its top at the medium (48% down) or large (56 px down) detent, lifted whole above an
+   on-screen keyboard (its top no higher than the large detent) and kept clear of the safe area; a 64 × 44 grabber holding a 36 × 5 bar; a header with the
    20/500 title, a 13 px muted count and a 44 px close button; content that scrolls; a footer of
    full-width actions. It moves without a slide, so reduced motion needs nothing more. */
 @layer paper.components {
+  /* A modal sheet is a dialog, so it takes the modal layer, above every non-modal sheet. */
   .paper-sheet-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--paper-z-sheet);
+    z-index: var(--paper-z-modal);
     background: var(--paper-scrim);
   }
 
   .paper-sheet {
     position: fixed;
     inset-inline: 0;
-    inset-block-start: calc(var(--paper-sheet-detent-medium) * 100dvh);
+    /* --sheet-keyboard is the part of the viewport the on-screen keyboard covers (useKeyboardInset);
+       a calc() needs a zero with a unit until the script sets it. */
+    inset-block-start: max(
+      var(--paper-sheet-detent-large),
+      calc(var(--paper-sheet-detent-medium) * 100dvh - var(--sheet-keyboard, 0vh))
+    );
     inset-block-end: var(--sheet-keyboard, 0);
     z-index: var(--paper-z-sheet);
     display: flex;
