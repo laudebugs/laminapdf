@@ -12,7 +12,7 @@
 | Branch | `feat/u6h-display-components` |
 | PR title | `feat(ui): add the paper display components with all states and axe tests` |
 | Size | M (≈ 500–700 lines of components and tests) |
-| PR | — |
+| PR | [#239](https://github.com/laudebugs/laminapdf/pull/239) |
 
 ## Goal
 
