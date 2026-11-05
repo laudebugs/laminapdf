@@ -2,7 +2,7 @@
 
 - **Status:** Draft
 - **Date:** 2026-11-05
-- **Asked for by:** the project owner (2026-11-05): "the app rests on app.laminapdf.com and laminapdf.com is the landing page"; then, for the home page: "the home page will contain the roadmap for now, including a dashboard on what's coming up next", and "this dashboard will be updated from time to time"
+- **Asked for by:** the project owner (2026-11-05): "the app rests on app.laminapdf.com and laminapdf.com is the landing page"; then, for the home page: "the home page will contain the roadmap for now, including a dashboard on what's coming up next", "this dashboard will be updated from time to time", and "the landing page will also contain information on the packages"
 - **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex; [W1a](../todos/done/W1a-domain-map.md) amends its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and HSTS preload (§4)
 - **Builds on:**
   - the [web reader plan](web-app.md) (C4's deploys, C7's launch pages)
@@ -71,12 +71,16 @@ Until the reader launches, the home page is mostly the roadmap. The page follows
 - **In progress:** the todos an open pull request has claimed.
 - **Next up:** the todos whose dependencies are all done, the board's "Can start now" list.
 - **Recently merged:** the last ten pull requests merged into `main`, by title.
-- **Where each part lives:** the docs, the SDK's install line and the Rust crate. The reader and the desktop app point at their milestones until they ship.
+- **A first PDF in code:** a panel with three tabs, TypeScript, Rust and the command line, each showing the same small program from the tested examples.
+- **The packages:** every published package, its registry and what it holds (the docs site's install table), the two install lines (`npm install @laminapdf/sdk@alpha`, `cargo add laminapdf@0.2.0-alpha`), and the `laminapdf` command-line tool with its MCP server, marked as not yet released until its binaries ship ([L4d](../todos/ready/L4d-cli-distribution.md)).
+- **Where each part lives:** the docs, the packages and the Rust crate. The reader and the desktop app point at their milestones until they ship.
 - **The snapshot's date,** so a visitor can tell how fresh the numbers are.
 
 The dashboard reads one committed file, `apps/site/src/data/progress.json`. `cargo xtask progress` writes it from the todo files (with the board's own parser), the roadmap's milestone table, `git log` on `main` and the open pull requests. The build reads only that file, so it never needs the network or GitHub, and a preview shows exactly what production will.
 
 Someone refreshes the dashboard from time to time: they run the command and merge the new file as an exempt PR, like a change to the todo board ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board) gains that case). A scheduled workflow could open that PR every week, but it needs the owner to commit a workflow file, so it stays optional.
+
+**The design** (chosen by the owner on 2026-11-05 from three samples): the whole page is one document page resting on the reader's paper ground, as a PDF sits in the reader, with Newsreader headings and Source Sans 3 text. The milestones run down a vertical timeline, the dashboard follows, and the packages sit in a table. The opening section carries the code panel. The site header stays §7.39's, the same on both sites.
 
 The page shows titles and counts only. It names no person and links nothing in the repository, which is private. Rounds get plain names ("Core library", "Web reader") from one table in the site, and todo titles appear as the board writes them.
 
