@@ -214,6 +214,10 @@ The [recipes](https://docs.laminapdf.com/recipes/) show each example with what i
 
 A Cloudflare Worker example generates a PDF per request: `/?name=Ada` returns a letter in Helvetica, and `/embedded?name=Ada` the same letter in a font bundled with the Cloudflare Worker. A name the font can't draw gets a 400 with the error as JSON. The [Cloudflare Workers quick start](https://docs.laminapdf.com/quick-start/workers/) shows it and how to run it.
 
+## Docs for coding agents
+
+The package carries these docs as Markdown in `docs/`, for the version you installed: `docs/llms.txt` lists every page, `docs/api/` holds the API reference, `docs/errors/` explains each error code and `docs/renames.json` says what renamed items are called now. Paste `docs/AGENTS.md` into your project's `AGENTS.md` or `CLAUDE.md` to point your coding agent at them. The [coding agents page](https://docs.laminapdf.com/start/coding-agents/) has the details.
+
 ## Working on this package
 
 How the package is built and tested in every runtime is in `CONTRIBUTING.md`, next to this README in the repository.

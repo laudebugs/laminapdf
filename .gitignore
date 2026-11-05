@@ -80,3 +80,7 @@ __diff_output__/
 
 # Packed packages for a project outside the checkout (docs: Your first PDF).
 /packs/
+
+# The docs that ship inside the packages (L5a), written by apps/docs/scripts/package-docs.mjs.
+/packages/sdk/docs/
+/crates/laminapdf/docs/
