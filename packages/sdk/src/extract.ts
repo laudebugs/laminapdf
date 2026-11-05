@@ -57,8 +57,11 @@ export interface ExtractOptions<F extends ExtractFormat = ExtractFormat> {
   readonly pages?: readonly number[];
   /** Where the reading order comes from; `"auto"` by default. */
   readonly readingOrder?: ReadingOrder;
-  /** `keepSpans` keeps each hidden run's text in its `dropped` entry (JSON), for auditing a file. */
-  readonly drop?: { readonly keepSpans?: boolean };
+  /**
+   * `keepSpans` keeps each dropped run's text in its `dropped` entry (JSON), for auditing a file.
+   * `furniture` (on by default) drops running headers, footers, page numbers and artifact-marked text too.
+   */
+  readonly drop?: { readonly keepSpans?: boolean; readonly furniture?: boolean };
   /** Which table detectors run; `"lattice"` by default. */
   readonly tables?: TableMode;
   /** Join words hyphenated across lines; on by default. */

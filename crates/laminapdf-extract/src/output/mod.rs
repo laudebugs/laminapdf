@@ -14,7 +14,7 @@ pub use json::json_schema;
 pub use json::{JsonOptions, chunks_jsonl, to_json};
 pub use markdown::MarkdownOptions;
 
-use crate::model::Extraction;
+use crate::model::{BlockKind, Extraction};
 
 /// Where a piece of text sits in a rendering, in Unicode scalar values (`char`s), `start`
 /// inclusive and `end` exclusive. Code points, not bytes or UTF-16 units, so Python slices a
@@ -103,8 +103,8 @@ impl Extraction {
         markdown::render(self, *options)
     }
 
-    /// The blocks' text in reading order, a blank line between blocks; a table is its rows,
-    /// a tab between cells.
+    /// The blocks' text in reading order, a blank line between blocks; a list item starts with
+    /// its marker, and a table is its rows, a tab between cells.
     #[must_use]
     pub fn to_text(&self) -> Rendered {
         let mut w = Writer::default();
@@ -112,7 +112,10 @@ impl Extraction {
             if i > 0 {
                 w.push("\n\n");
             }
-            w.block(&block.text);
+            match &block.kind {
+                BlockKind::ListItem { marker, .. } => w.block(&format!("{marker} {}", block.text)),
+                _ => w.block(&block.text),
+            }
         }
         w.finish()
     }
