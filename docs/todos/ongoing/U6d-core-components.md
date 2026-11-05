@@ -12,7 +12,7 @@
 | Branch | `feat/u6d-core-components` |
 | PR title | `feat(ui): add the paper core components with all states, keyboard and axe tests` |
 | Size | L (≈ 700–800 lines of components and tests; split into U6d controls and U6d display items if it grows past 800) |
-| PR | — |
+| PR | [#237](https://github.com/laudebugs/laminapdf/pull/237) |
 
 ## Goal
 
@@ -65,7 +65,7 @@ Build the Paper component library the shells and editor modes compose: every con
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load the project's TypeScript guidelines; check whether `packages/ui` exists (C4a may have landed) and extend it rather than re-scaffolding.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load the project's TypeScript guidelines; check whether `packages/ui` exists (C4a may have landed) and extend it rather than re-scaffolding.
 - [ ] Scaffold or extend `packages/ui` as in Scope; import `@laminapdf/tokens/tokens.css` once in a `styles/base.css` (root font, colour, `button { font: inherit; color: inherit }`).
 - [ ] Licence-check new dependencies (`react-aria-components` and its `@react-aria/*`/`@internationalized/*` packages, `axe-core` MPL-2.0 as a dev dependency only, Testing Library MIT); `cargo xtask npm-licenses` passes.
 - [ ] For each component: types first (`index.ts` exports reviewed in the PR), then implementation, CSS from tokens only (a test greps component CSS for hex colours and `px` values that are not tokens, except the 1 px border width), then tests.
