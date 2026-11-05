@@ -52,8 +52,9 @@ const config: KnipConfig = {
     ...Object.fromEntries(
       packageDirs(".").map((dir) => [`packages/${dir}`, { entry: entries(dir), project: project(dir) }]),
     ),
-    // Starlight loads the tokens' stylesheet by name (astro.config.mjs's `customCss`), which knip can't see.
-    "apps/docs": { ignoreDependencies: ["@laminapdf/tokens"] },
+    // Starlight loads the tokens' and fonts' stylesheets by name (astro.config.mjs's `customCss`),
+    // which knip can't see.
+    "apps/docs": { ignoreDependencies: ["@laminapdf/tokens", "@laminapdf/fonts"] },
   },
   ignore: ["**/src/generated/**"],
   // knip finds pnpm's workspaces itself; the generated package is left out here too.

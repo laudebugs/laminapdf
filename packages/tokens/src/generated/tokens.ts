@@ -756,7 +756,7 @@ export const CONTENT_COLOURS = {
 
 /** Font stacks, as CSS `font-family` values. */
 export const FONTS = {
-  "sans": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+  "sans": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
   "serif": "\"Newsreader\", \"Georgia\", serif",
   "page": "\"Source Serif 4\", \"Georgia\", serif",
   "mono": "ui-monospace, \"SF Mono\", \"Menlo\", \"Consolas\", \"Liberation Mono\", monospace",
@@ -766,7 +766,7 @@ export const FONTS = {
 /** The type scale: size in px, unitless line height, letter spacing in px. */
 export const TYPE = {
   "site-display": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 48,
     "fontWeight": 700,
     "lineHeight": 1.1,
@@ -829,56 +829,56 @@ export const TYPE = {
     "letterSpacing": 0
   },
   "input-large": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 16,
     "fontWeight": 400,
     "lineHeight": 1.25,
     "letterSpacing": 0
   },
   "body": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 14,
     "fontWeight": 400,
     "lineHeight": 1.4286,
     "letterSpacing": 0
   },
   "control": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 13,
     "fontWeight": 400,
     "lineHeight": 1.3846,
     "letterSpacing": 0
   },
   "label": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 12,
     "fontWeight": 600,
     "lineHeight": 1.3333,
     "letterSpacing": 0
   },
   "caption": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 12,
     "fontWeight": 400,
     "lineHeight": 1.3333,
     "letterSpacing": 0
   },
   "overline": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 11,
     "fontWeight": 400,
     "lineHeight": 1.2727,
     "letterSpacing": 0.66
   },
   "chip": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 11,
     "fontWeight": 400,
     "lineHeight": 1.2727,
     "letterSpacing": 0
   },
   "tab-label": {
-    "fontFamily": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif",
+    "fontFamily": "\"Lamina Sans\", \"Lamina Sans Fallback\", \"Segoe UI\", system-ui, sans-serif",
     "fontSize": 11.5,
     "fontWeight": 400,
     "lineHeight": 1.2174,

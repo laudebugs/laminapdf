@@ -1,0 +1,24 @@
+import { firefoxProvider } from "@laminapdf/test-utils/firefox";
+import { playwright } from "@vitest/browser-playwright";
+import { defineConfig } from "vitest/config";
+
+// fonts.css in Chromium, Firefox and WebKit: which files a page fetches for Latin, Latin Extended
+// and other scripts, and that every request stays on the page's own origin. Firefox gets its own
+// data folder (firefoxProvider in @laminapdf/test-utils). A default export because Vitest reads one.
+const firefox = firefoxProvider(new URL("./", import.meta.url));
+
+export default defineConfig({
+  test: {
+    include: ["test/browser/*.browser.test.ts"],
+    browser: {
+      enabled: true,
+      headless: true,
+      provider: playwright(),
+      instances: [
+        { browser: "chromium", name: "chromium" },
+        { browser: "firefox", name: "firefox", provider: firefox },
+        { browser: "webkit", name: "webkit" },
+      ],
+    },
+  },
+});

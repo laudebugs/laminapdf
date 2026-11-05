@@ -24,7 +24,7 @@
   --paper-radius-6: 6px;
   --paper-radius-12: 12px;
   --paper-radius-pill: 9999px;
-  --paper-font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --paper-font-sans: "Lamina Sans", "Lamina Sans Fallback", "Segoe UI", system-ui, sans-serif;
   --paper-font-serif: "Newsreader", "Georgia", serif;
   --paper-font-page: "Source Serif 4", "Georgia", serif;
   --paper-font-mono: ui-monospace, "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
