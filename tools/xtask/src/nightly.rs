@@ -32,7 +32,7 @@ const BENCHES: [(&str, &str); 3] = [
 const RENDER_DIFF_PAGES: u32 = 20;
 
 /// The baseline is the median of this many previous records from the same runner.
-const BASELINE_RUNS: usize = 5;
+pub(crate) const BASELINE_RUNS: usize = 5;
 
 /// The release-mode `#[ignore]`d tests: scaling ratios and anything else too slow or
 /// timing-sensitive for the PR lanes.
@@ -122,7 +122,7 @@ fn median(mut values: Vec<u64>) -> Option<u64> {
 /// `(name, baseline ns, current ns)` for every benchmark slower than its baseline by more
 /// than [`REGRESSION_RATIO`]; the baseline is the median of the last [`BASELINE_RUNS`] records
 /// from the same runner, of the same kind (quick or full), that have the benchmark.
-fn regressions(
+pub(crate) fn regressions(
     history: &[Value],
     runner: &str,
     quick: bool,
@@ -377,6 +377,9 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         "pdf-runtimes",
         crate::wasm(ws).and_then(|()| pdf_runtimes::run(ws, &pdf_runtimes::Args::default())),
     );
+    // After `wasm` (in pdf-runtimes' part): the harness runs over the built viewer.
+    let viewer_args = crate::viewer_perf::parse_args(&if quick { vec!["--quick".to_owned()] } else { Vec::new() })?;
+    part("viewer-perf", crate::viewer_perf::run(ws, &viewer_args));
     if failed.is_empty() {
         step("Nightly lane passed");
         Ok(())

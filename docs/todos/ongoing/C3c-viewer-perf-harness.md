@@ -43,21 +43,21 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 ## Tasks
 
 - [x] Claim: the work PR's first commit moves this file to `ongoing/` (git workflow §2), from a fresh worktree off `main`.
-- [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@laminapdf/sdk` builder, seeded; cached in a gitignored dir.
-- [ ] Instrumentation hook in the demo: expose `window.__laminaPerf` (only in the demo/perf build) collecting `renderstats`, long tasks, memory samples every 500 ms.
-- [ ] Scenario specs `perf/*.perf.ts` with deterministic scrolling (`mouse.wheel` steps at fixed intervals) and network throttling for the cold scenario.
-- [ ] Reporter writing `perf-results/<browser>.json` and `perf-results/summary.md` comparing to §4 targets (pass/fail columns, informational).
-- [ ] Memory stability check: memory after the second end-to-end pass ≤ memory after the first + 5 % (detects leaks).
-- [ ] GitHub Actions: `perf` job (PR, non-required, path-filtered inside the job per ADR 0018 §2 pattern) and nightly schedule with history kept as a workflow artifact or a branch-free data store; regression >10 % → open an issue automatically.
-- [ ] Tune C3b defaults (margin, pool size, cache budget, tile size) based on results and record the chosen values in the viewer README.
+- [x] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@laminapdf/sdk` builder, seeded; cached in a gitignored dir.
+- [x] Instrumentation hook (on the harness's own page, `perf/page/`, not the demo): expose `window.__laminaPerf` (only in the demo/perf build) collecting `renderstats`, long tasks, memory samples every 500 ms.
+- [x] Scenarios (`perf/scenarios.ts`) with deterministic scrolling (`mouse.wheel` steps at fixed intervals) and network throttling for the cold scenario.
+- [x] Reporter writing `target/viewer-perf/<browser>.json` and `summary.md` comparing to §4 targets (pass/fail columns, informational).
+- [x] Memory stability check: memory after the second end-to-end pass ≤ memory after the first + 5 % (detects leaks).
+- [x] GitHub Actions (written; the owner commits them, see Notes): `perf` job (PR, non-required, path-filtered inside the job per ADR 0018 §2 pattern) and nightly schedule with history kept as a workflow artifact or a branch-free data store; regression >10 % → open an issue automatically.
+- [x] Tune C3b defaults (margin, pool size, cache budget, tile size) based on results and record the chosen values in the viewer README.
 
 ## Acceptance criteria
 
-- [ ] The harness runs locally with one command (`pnpm --filter @laminapdf/viewer perf`) and in CI for Chromium, Firefox and WebKit.
-- [ ] On the reference machine, the report shows for the 1,000-page fixture: no main-thread task > 50 ms during scroll; visible pages sharp within 300 ms of stopping; total memory ≤ 600 MB and stable on the second pass; cancelled-render paints = 0. Any target missed is listed with an issue link (C7c must close it).
-- [ ] First page visible for the 10-page file reported (target ≤ 700 ms warm, ≤ 3 s cold Fast 4G).
-- [ ] The nightly job's steps run on the PR branch (the `perf` PR job, or the same script invoked locally with the nightly flags) and produce a history entry; the regression-issue step is exercised once against a forced regression (a dry-run mode that prints the issue it would open is enough before merge).
-- [ ] PR lanes contain no wall-clock assertions (ADR 0018).
+- [ ] The harness runs locally with one command (`pnpm --filter @laminapdf/viewer perf`) and in CI for Chromium, Firefox and WebKit. **Partly:** it runs locally in Chromium (the only browser here); Firefox and WebKit run in CI once the owner commits the workflows.
+- [ ] On the reference machine, the report shows for the 1,000-page fixture: no main-thread task > 50 ms during scroll; visible pages sharp within 300 ms of stopping; total memory ≤ 600 MB and stable on the second pass; cancelled-render paints = 0. Any target missed is listed with an issue link (C7c must close it). **Not yet:** the reference machine's numbers come from the first nightly run with the workflow on `main`. A CI container's full Chromium run met these four; its misses (the cold first page, zooming in) are in C7c's context.
+- [x] First page visible for the 10-page file reported (target ≤ 700 ms warm, ≤ 3 s cold Fast 4G): 66 ms warm, 4.2 s cold in Chromium on a CI container.
+- [x] The nightly job's steps run on the PR branch (the `perf` PR job, or the same script invoked locally with the nightly flags) and produce a history entry; the regression-issue step is exercised once against a forced regression (a dry-run mode that prints the issue it would open is enough before merge). Done locally: `cargo xtask viewer-perf chromium --quick --history <forced> --runner local --dry-run` against a history whose baselines were far lower printed the issue's table; the history record is unit-tested (`a_record_should_become_the_next_runs_baseline`).
+- [x] PR lanes contain no wall-clock assertions (ADR 0018).
 
 ## Post-merge checks
 
@@ -76,6 +76,14 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 - **CI runner noise**: shared runners vary widely; use them for trends and relative regressions only, and record official numbers on the reference machine (who owns it? — the maintainer, documented in the README).
 - **Firefox/WebKit lack long-task and memory APIs**; the rAF-gap proxy and our own byte accounting are approximations; say so in the report.
 - **Generating 1,000 pages** in test setup needs B6's builder in Node/browser; if slow, cache by seed hash.
+
+## Notes from the work
+
+- **The harness** is `packages/viewer/perf/`: `fixtures.ts` (seeded, cached by a hash of its own source), `page/` (Vite, over the built package; `globalThis.__laminaPerf`), `scenarios.ts` (Playwright, real wheel input), `report.ts` (the §4 checks, the summary, history entries) with `report.test.ts`, `serve.ts` (gzip, as Cloudflare compresses the app; a plain Vite preview made the cold figure 7.6 s instead of 4.2) and `run.ts`. `cargo xtask viewer-perf` wraps it with the job summary and the nightly history (bench's regression rule, `viewer/<browser>/<figure>` keys, `--dry-run`).
+- **Two viewer changes.** The document worker answers `memory` (`client.memory()`: the backend's and Lamina PDF's WebAssembly memories), so total memory includes the worker in every browser. And a zoom now marks stretched pages `low` instead of leaving them `sharp` until the new pass paints, which is what made "time to sharp after a zoom" measurable (a browser test pins it).
+- **Time to sharp** runs from the last frame that moved or zoomed the view. Timing from three still frames read 0 ms, because the pages were sharp before the clock started.
+- **CI.** Workflow files can't be pushed from here, so the PR description carries them: a `viewer-perf` job in `nightly.yml` after `pdf-runtimes` (history, a regression issue from `report`), and `viewer-perf.yml`, a non-required PR workflow with a path filter, in its own file so the PR lanes' gates are unchanged. `release.rs`' check of the nightly's record gates now accepts any number of recording jobs.
+- **Not done here:** the reference machine's numbers (the first nightly run on `main`), and Firefox and WebKit, which only CI has.
 
 ## Definition of done
 

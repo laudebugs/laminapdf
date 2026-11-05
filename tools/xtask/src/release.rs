@@ -606,8 +606,9 @@ mod tests {
             .lines()
             .filter(|l| l.trim_start().starts_with("RECORD: "))
             .collect::<Vec<_>>();
+        // Every recording job's gate, however many jobs record (bench, pdf-runtimes, …).
         assert!(
-            record_env.len() == 3
+            !record_env.is_empty()
                 && record_env
                     .iter()
                     .all(|l| l.contains("toJSON(inputs.record) != 'false'")),

@@ -44,7 +44,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 **Layers.** Each page shell stacks a canvas and three slots above it: `div.lamina-layer-text`, `div.lamina-layer-annot` and `div.lamina-layer-highlight`. The coming text layer, find highlights and links will mount there through `addLayer`. A layer with another name gets its own slot on top.
 
-**Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are starting values, and may change once they are measured.
+**Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
 ## The document Web Worker
 
@@ -117,6 +117,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `closeDocument` | — | — | document |
 | `pageInfo` | `index` | `PageInfo` (displayed size in points, rotation, ID, label) | document |
 | `render` | ADR 0004 `RenderRequest` | `{ bitmap: ImageBitmap, width, height }` (transferred) | `visible` > `prefetch` > `background` |
+| `memory` | — | `WorkerMemory`: the bytes of the backend's and Lamina PDF's WebAssembly memories | document. `client.memory()`; the perf harness samples it. |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).
 
@@ -140,4 +141,37 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
   - crashes, including an encrypted file;
   - the password count.
 - Unit tests sit next to their modules (`src/**/*.test.ts`) and run in Node. They cover the layout's cost, counted in steps, and the fit modes for portrait, landscape and rotated pages. They also cover zoom anchoring, tiles, cache eviction and the pool's caps. `test/dependencies.test.ts` checks that `src/` imports no UI framework, and `test/types.test.ts` checks the RPC types.
-- Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons, and C3c's harness uses it; `examples/rpc-demo.html` draws page 1 through the RPC alone.
+- Two demo pages are manual checks: run `pnpm --filter @laminapdf/viewer exec vite examples`. `examples/viewer-demo.html` is the viewer, with zoom buttons; `examples/rpc-demo.html` draws page 1 through the RPC alone. The perf harness has its own page, `perf/page/` ([Performance](#performance)).
+
+### Performance
+
+The viewer is measured against the [web plan's targets](../../docs/plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) in Chromium, Firefox and WebKit by a harness in `perf/`:
+
+```sh
+cargo xtask wasm                                   # once: the package the harness runs
+pnpm --filter @laminapdf/viewer perf               # every browser; -- --browsers chromium --quick for a short run
+cargo xtask viewer-perf [chromium|firefox|webkit]  # the same, plus the job summary and the nightly history
+```
+
+It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails on a missed target: no pull request lane asserts a duration ([ADR 0018](../../docs/decisions/0018-test-strategy.md#2-ci-lanes)).
+
+**What it does.** Three seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 1,000 pages of text, and 300 pages of full-page images. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves it gzipped, as Cloudflare compresses the app. Playwright drives real input, so every run scrolls the same way:
+
+| Scenario | Measures | Target |
+| --- | --- | --- |
+| Open the 10-page file, warm (after a reload) | time to the first page's first paint | ≤ 700 ms |
+| The same, cold, on Chrome DevTools' Fast 4G (Chromium only) | time from navigation to the first page | ≤ 3 s |
+| Scroll the 1,000-page file end to end, twice, with wheel steps every 20 ms; stop at a quarter, a half and three quarters | the longest main-thread task, time to sharp after each stop, peak memory, memory after each pass, cancelled renders that painted | no task > 50 ms; sharp ≤ 300 ms; ≤ 600 MB; second pass ≤ first + 5 %; 0 |
+| Fling across the 300 image pages, then stop | time to sharp | ≤ 300 ms |
+| Three ctrl+wheel bursts in and out on the 10-page file | the longest frame, time to sharp after each burst | reported |
+
+"Time to sharp" runs from the last frame that moved or zoomed the view until every visible page is sharp. Memory is the page's JS heap (Chromium only), the document Web Worker's WebAssembly memories (`client.memory()`), the bitmap cache and the canvases' pixels. Firefox and WebKit have no Long Tasks API, so their longest task is the longest gap between frames, which is an upper bound.
+
+**History.** The nightly lane runs `cargo xtask viewer-perf --history … --record` on `main` and keeps each browser's figures in the benchmark history (`viewer/<browser>/<figure>`: nanoseconds, or bytes for memory). A figure more than 10 % worse than the median of its last five runs on the same runner opens an issue, as a benchmark does; `--dry-run` prints that issue. `--quick` covers 100 pages and is never recorded.
+
+**The reference machine.** The official numbers are the nightly lane's, from the Mac that hosts the self-hosted runners, with nothing else running on it. Each report ends with the machine it ran on (CPU, cores, memory, OS). Numbers from other machines, CI containers included, are relative: compare them with each other, not with the targets.
+
+**First measurements and tuning.** The first full run (Chromium 153 on a 4-core Linux container, 2026-11-05) met every scrolling and memory target. It had no long task while scrolling, pages were sharp 43–49 ms after a stop, memory peaked at 302 MB, the second pass ended 0.8 % above the first, and no cancelled render painted. So the defaults above stay: a margin of 2 pages or one viewport, a pool of 12 canvases and 64 million pixels, a 256 MB bitmap cache, 512 CSS px tiles and a 150 ms settle. It missed two marks, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) takes on:
+
+- **The cold first page took 4.2 s on Fast 4G (target 3 s).** The download alone takes about 3.7 s at Fast 4G's 1 MB/s: PDFium's WebAssembly (2.2 MB gzipped), Lamina PDF's base module (0.4 MB) and the 1 MB file.
+- **Zooming in took about 1.1 s to sharp, with a 350 ms frame.** Zooming out took 250–285 ms. The plan sets no zoom target.

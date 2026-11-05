@@ -182,7 +182,7 @@ Ticked by the PR that completes them.
 - [x] Implement the prefix-sum virtualiser and canvas pool ([C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md))
 - [x] Implement low-res then tiled sharp rendering with `ImageBitmap` transfer ([C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md))
 - [x] Implement zoom modes and anchor-preserving zoom ([C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md))
-- [ ] Add a perf harness: long tasks, memory, time-to-first-page, run in CI on a 1,000-page fixture
+- [x] Add a perf harness: long tasks, memory, time-to-first-page, run in CI on a 1,000-page fixture
 
 ### C4. App shell on Cloudflare
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
