@@ -33,6 +33,8 @@ mod convert;
 mod document;
 mod dto;
 mod error;
+#[cfg(feature = "extract")]
+mod extract;
 mod memory;
 mod source;
 #[cfg(feature = "extract")]

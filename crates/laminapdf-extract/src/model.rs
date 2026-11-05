@@ -405,7 +405,12 @@ impl schemars::JsonSchema for Flags {
     }
 
     fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        generator.subschema_for::<Vec<DropReason>>()
+        let mut schema = generator.subschema_for::<Vec<DropReason>>();
+        schema.insert(
+            "description".to_owned(),
+            "Why a run would be hidden from a reader; empty for visible text.".into(),
+        );
+        schema
     }
 }
 

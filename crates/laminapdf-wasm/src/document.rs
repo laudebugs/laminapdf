@@ -43,6 +43,12 @@ impl WasmDocument {
             doc: Rc::new(RefCell::new(doc)),
         }
     }
+
+    /// The document, for the bindings that live in other modules (`extract`).
+    #[cfg(feature = "extract")]
+    pub(crate) const fn shared(&self) -> &Shared {
+        &self.doc
+    }
 }
 
 /// `{ bytes, report }`: a save's output (a `Uint8Array`, F7) and its report.

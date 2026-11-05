@@ -80,3 +80,42 @@ fn the_json_carries_the_documents_warnings() {
     assert!(!codes.is_empty(), "the repaired file's warnings are in the JSON");
     assert!(json.get("chunks").is_none(), "no chunks unless they were made");
 }
+
+/// The files whose JSON `@laminapdf/sdk` must reproduce byte for byte (its `extract` test reads
+/// the same goldens): a ruled table, two columns, and a repaired file with warnings.
+const SHARED: [&str; 3] = [
+    "reading-order/table-ordered.pdf",
+    "reading-order/two-columns-ordered.pdf",
+    "corpus/hello-broken.pdf",
+];
+
+/// The JSON with the generator's version replaced by `*`, so a release doesn't stale the goldens.
+fn without_version(json: &str) -> String {
+    json.replacen(
+        &format!("\"version\":\"{}\"", env!("CARGO_PKG_VERSION")),
+        "\"version\":\"*\"",
+        1,
+    )
+}
+
+/// `doc.extract({ format: "json", pageMarkers: true, chunk: { maxTokens: 400 } })` in
+/// TypeScript gives these files. `UPDATE_GOLDEN=1` rewrites them.
+#[test]
+fn the_json_matches_the_goldens_the_sdk_shares() {
+    use laminapdf::extract::ChunkOptions;
+    for rel in SHARED {
+        let doc = open(rel);
+        let extraction = doc.extract(&ExtractOptions::new()).unwrap();
+        let markdown = extraction.to_markdown(&MarkdownOptions::new().with_page_markers(true));
+        let chunks = extraction.chunks(&markdown, &ChunkOptions::new().with_max_tokens(400));
+        let json = without_version(&doc.extract_json(&extraction, &markdown, Some(chunks)));
+        let stem = rel.rsplit('/').next().unwrap().trim_end_matches(".pdf");
+        let golden = laminapdf_test_fixtures::fixtures_dir().join(format!("extract/json/{stem}.json"));
+        if std::env::var_os("UPDATE_GOLDEN").is_some() {
+            std::fs::create_dir_all(golden.parent().unwrap()).unwrap();
+            std::fs::write(&golden, &json).unwrap();
+        }
+        let want = std::fs::read_to_string(&golden).unwrap_or_default();
+        assert!(json == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
+    }
+}

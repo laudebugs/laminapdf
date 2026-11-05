@@ -2,33 +2,32 @@
   "baseline": {
     "base": {
       "top": [
-        [107708, "data segments"],
-        [12024, "<laminapdf_build::page::PageBuilder>::write"],
+        [113154, "data segments"],
+        [17237, "<laminapdf_build::page::PageBuilder>::write"],
+        [13994, "laminapdf_build::finish::new_document"],
         [10062, "sha2::sha512::compress512"],
-        [8932, "<laminapdf_build::builder::Builder>::finish"],
-        [8313, "<laminapdf_save::planner::SavePlanner>::new"],
+        [8281, "<laminapdf_save::planner::SavePlanner>::new"],
         [7949, "sha2::sha256::compress256"],
+        [7757, "<laminapdf::error::Error>::diagnostic"],
         [7111, "miniz_oxide::inflate::core::decompress_with_limit"],
         [5752, "core::num::imp::flt2dec::strategy::dragon::format_shortest"],
-        [5485, "<laminapdf::error::Error>::diagnostic"],
-        [5141, "<laminapdf_cos::reader::Document>::pages"],
-        [4975, "<laminapdf_ops::tx::Tx>::run_op"],
-        [4832, "<laminapdf_build::surface::image::Image>::png_with"],
-        [4808, "<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::malloc"],
         [4804, "core::num::imp::flt2dec::strategy::dragon::format_exact"],
+        [4563, "<laminapdf_cos::reader::Document>::pages"],
+        [4546, "<laminapdf_build::surface::image::Image>::png_with"],
         [4447, "<laminapdf_cos::reader::Document>::read_security"],
         [4415, "miniz_oxide::deflate::core::compress_inner"],
+        [3887, "<laminapdf_ops::tx::Tx>::run_op"],
         [
           3857,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::dto::LimitsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [3429, "<laminapdf_cos::reader::Document>::open::<laminapdf_cos::source::Source>"],
-        [3394, "<laminapdf_cos::reader::Document>::open::<alloc::sync::Arc<dyn laminapdf_cos::source::ByteSource>>"],
-        [3392, "<laminapdf_cos::reader::Document>::open::<alloc::vec::Vec<u8>>"],
+        [3406, "<laminapdf_cos::reader::Document>::open::<laminapdf_cos::source::Source>"],
+        [3371, "<laminapdf_cos::reader::Document>::open::<alloc::sync::Arc<dyn laminapdf_cos::source::ByteSource>>"],
         [
           3370,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::MetadataInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
+        [3369, "<laminapdf_cos::reader::Document>::open::<alloc::vec::Vec<u8>>"],
         [3137, "<laminapdf_syntax::lexer::Lexer>::next_token"],
         [2957, "<laminapdf_save::full::FullWriter>::write::<laminapdf::document::Output>"],
         [2866, "<laminapdf_model::labels::PageLabels>::new"],
@@ -43,106 +42,247 @@
           2677,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::OutlineEntryInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [2623, "<laminapdf_save::incremental::IncrementalWriter>::revision"],
+        [2635, "<laminapdf_save::incremental::IncrementalWriter>::revision"],
         [2618, "laminapdf_cos::reader::repair::scan"],
+        [2536, "<laminapdf_syntax::parser::Parser>::object_from"],
         [2439, "<laminapdf_cos::reader::repair::Scan>::finish"],
-        [2439, "<laminapdf_syntax::parser::Parser>::object_from"],
+        [
+          2405,
+          "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::BuildOptionsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
+        ],
         [2405, "miniz_oxide::deflate::core::compress_block"],
+        [2402, "<laminapdf_wasm::builder::document::WasmBuilder>::new"],
         [
           2361,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_ops::info::InfoPatch as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [2360, "laminapdf_syntax::filters::decode"],
         [2358, "laminapdf_model::tree::walk::<laminapdf_model::tree::Nums>"],
         [2319, "<laminapdf_cos::source::Source>::read"],
         [2311, "laminapdf_cos::reader::window::read_indirect"],
         [2279, "md5::compress::compress"]
       ],
-      "wasmGzip": 380834
+      "wasmGzip": 398578
     },
     "extract": {
       "top": [
-        [293510, "data segments"],
-        [12024, "<laminapdf_build::page::PageBuilder>::write"],
-        [11582, "<laminapdf_text::extract::font::FontCache>::get"],
+        [302806, "data segments"],
+        [17237, "<laminapdf_build::page::PageBuilder>::write"],
+        [16125, "laminapdf_extract::page::extract_page"],
+        [13995, "laminapdf_build::finish::new_document"],
+        [11904, "<laminapdf_text::extract::font::FontCache>::get"],
+        [10989, "<laminapdf::error::Error>::diagnostic"],
         [10062, "sha2::sha512::compress512"],
-        [8933, "<laminapdf_build::builder::Builder>::finish"],
-        [8586, "<laminapdf::error::Error>::diagnostic"],
-        [8313, "<laminapdf_save::planner::SavePlanner>::new"],
+        [8281, "<laminapdf_save::planner::SavePlanner>::new"],
         [7949, "sha2::sha256::compress256"],
-        [7111, "miniz_oxide::inflate::core::decompress_with_limit"],
-        [6317, "\"data names\" subsection"],
+        [7112, "miniz_oxide::inflate::core::decompress_with_limit"],
+        [6821, "\"data names\" subsection"],
         [5752, "core::num::imp::flt2dec::strategy::dragon::format_shortest"],
-        [5141, "<laminapdf_cos::reader::Document>::pages"],
-        [4975, "<laminapdf_ops::tx::Tx>::run_op"],
-        [4832, "<laminapdf_build::surface::image::Image>::png_with"],
-        [4808, "<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::malloc"],
         [4804, "core::num::imp::flt2dec::strategy::dragon::format_exact"],
-        [4713, "<laminapdf_content::interp::Interpreter<laminapdf_text::extract::Collector>>::execute"],
+        [4563, "<laminapdf_cos::reader::Document>::pages"],
+        [4546, "<laminapdf_build::surface::image::Image>::png_with"],
         [4447, "<laminapdf_cos::reader::Document>::read_security"],
         [4415, "miniz_oxide::deflate::core::compress_inner"],
-        [4229, "<laminapdf_content::lexer::ContentIter as core::iter::traits::iterator::Iterator>::next"],
+        [4231, "<laminapdf_content::lexer::ContentIter as core::iter::traits::iterator::Iterator>::next"],
+        [3960, "<laminapdf_text::extract::Collector as laminapdf_content::visitor::Visitor>::show_text"],
+        [3887, "<laminapdf_ops::tx::Tx>::run_op"],
         [
           3857,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::dto::LimitsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [3430, "<laminapdf_cos::reader::Document>::open::<laminapdf_cos::source::Source>"],
-        [3428, "<laminapdf_text::extract::cmap::CMap>::parse"],
-        [3395, "<laminapdf_cos::reader::Document>::open::<alloc::sync::Arc<dyn laminapdf_cos::source::ByteSource>>"],
-        [3393, "<laminapdf_cos::reader::Document>::open::<alloc::vec::Vec<u8>>"],
+        [3486, "<laminapdf_text::extract::cmap::CMap>::parse"],
+        [3407, "<laminapdf_cos::reader::Document>::open::<laminapdf_cos::source::Source>"],
+        [3372, "<laminapdf_cos::reader::Document>::open::<alloc::sync::Arc<dyn laminapdf_cos::source::ByteSource>>"],
         [
           3370,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::MetadataInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
+        [3370, "<laminapdf_cos::reader::Document>::open::<alloc::vec::Vec<u8>>"],
         [3137, "<laminapdf_syntax::lexer::Lexer>::next_token"],
-        [3107, "<laminapdf_text::extract::Collector as laminapdf_content::visitor::Visitor>::show_text"],
         [2958, "<laminapdf_save::full::FullWriter>::write::<laminapdf::document::Output>"],
+        [2869, "<laminapdf_content::interp::Interpreter<laminapdf_text::extract::Collector>>::execute"],
         [2869, "laminapdf_content::resources::initial_components"],
         [2866, "<laminapdf_model::labels::PageLabels>::new"],
         [2835, "unicode_bidi::prepare::isolating_run_sequences"],
         [2789, "<miniz_oxide::deflate::core::HuffmanOxide>::optimize_table"],
         [
-          2783,
+          2784,
           "laminapdf_cos::reader::window::parse_syntax_at::<core::option::Option<(alloc::collections::btree::map::BTreeMap<u32, laminapdf_cos::reader::xref::XrefEntry>, laminapdf_syntax::object::Dict, core::option::Option<u32>)>, laminapdf_cos::reader::xref::parse_section::{closure#0}>::{closure#0}"
         ],
         [2781, "<laminapdf_ops::document::Document>::revert"],
-        [2778, "<laminapdf_wasm::document::WasmPage>::text"],
         [2772, "<laminapdf_cos::reader::Document>::load"],
+        [2738, "<laminapdf_wasm::document::WasmPage>::text"],
         [
           2677,
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<laminapdf_wasm::build_dto::OutlineEntryInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
-        [2623, "<laminapdf_save::incremental::IncrementalWriter>::revision"],
+        [2635, "<laminapdf_save::incremental::IncrementalWriter>::revision"],
         [2618, "laminapdf_cos::reader::repair::scan"]
       ],
-      "wasmGzip": 526184
+      "wasmGzip": 588769
+    },
+    "render_hayro": {
+      "top": [
+        [1202156, "data segments"],
+        [
+          453467,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<peniko::blend::BlendMode as vello_cpu::fine::lowp::compose::ComposeExt>::compose<fearless_simd::generated::fallback::Fallback>::{closure#0}, fearless_simd::generated::simd_types::u8x32<fearless_simd::generated::fallback::Fallback>>"
+        ],
+        [
+          151538,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::common::rounded_blurred_rect::BlurredRoundedRectFiller<fearless_simd::generated::fallback::Fallback> as vello_cpu::fine::Painter>::paint_u8::{closure#0}, ()>"
+        ],
+        [
+          103690,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::lowp::blend::mix<fearless_simd::generated::fallback::Fallback>::{closure#0}, fearless_simd::generated::simd_types::u8x32<fearless_simd::generated::fallback::Fallback>>"
+        ],
+        [
+          76317,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_common::flatten::fill<&kurbo::bezpath::BezPath>::{closure#0}, ()>"
+        ],
+        [
+          58568,
+          "<vello_cpu::fine::lowp::blend::Overlay>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          58564,
+          "<vello_cpu::fine::lowp::blend::HardLight>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          57717,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_common::flatten::fill<core::iter::adapters::copied::Copied<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>::{closure#0}, ()>"
+        ],
+        [
+          57715,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::common::image::FilteredImagePainter<fearless_simd::generated::fallback::Fallback, 2u8> as vello_cpu::fine::Painter>::paint_u8::{closure#0}, ()>"
+        ],
+        [
+          56327,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::highp::blend::mix<fearless_simd::generated::fallback::Fallback>::{closure#0}, fearless_simd::generated::simd_types::f32x16<fearless_simd::generated::fallback::Fallback>>"
+        ],
+        [
+          48235,
+          "<vello_cpu::fine::lowp::blend::Difference>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          42697,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::lowp::gradient::GradientPainter<fearless_simd::generated::fallback::Fallback> as vello_cpu::fine::Painter>::paint_u8::{closure#0}, ()>"
+        ],
+        [
+          42368,
+          "<vello_cpu::fine::lowp::blend::Darken>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          42368,
+          "<vello_cpu::fine::lowp::blend::Lighten>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          40699,
+          "<vello_cpu::fine::lowp::blend::Exclusion>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          36798,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::common::gradient::calculate_t_vals<fearless_simd::generated::fallback::Fallback, vello_cpu::fine::common::gradient::radial::SimdRadialKind<fearless_simd::generated::fallback::Fallback>>::{closure#0}, ()>"
+        ],
+        [
+          35917,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::common::gradient::GradientPainter<fearless_simd::generated::fallback::Fallback> as vello_cpu::fine::Painter>::paint_u8::{closure#0}, ()>"
+        ],
+        [
+          35849,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::lowp::alpha_fill::alpha_composite_inner<fearless_simd::generated::fallback::Fallback>::{closure#0}, ()>"
+        ],
+        [33031, "hayro_jbig2::decode::text::decode_symbol_instance_bitmap"],
+        [
+          31929,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::lowp::image::BilinearImagePainter<fearless_simd::generated::fallback::Fallback> as vello_cpu::fine::Painter>::paint_u8::{closure#0}, ()>"
+        ],
+        [
+          31001,
+          "<vello_cpu::fine::lowp::blend::Screen>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [30998, "hayro_jbig2::decode::symbol::decode"],
+        [
+          30566,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::lowp::image::PlainBilinearImagePainter<fearless_simd::generated::fallback::Fallback> as vello_cpu::fine::Painter>::paint_u8::{closure#0}, ()>"
+        ],
+        [
+          29778,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_common::rect::render::{closure#0}, ()>"
+        ],
+        [
+          29550,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::lowp::fill::alpha_composite_solid<fearless_simd::generated::fallback::Fallback>::{closure#0}, ()>"
+        ],
+        [29023, "<skrifa::outline::glyf::hint::engine::Engine>::dispatch_inner"],
+        [
+          28480,
+          "<vello_common::encode::GradientLut<u8>>::new_inner::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          28371,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::common::gradient::calculate_t_vals<fearless_simd::generated::fallback::Fallback, vello_cpu::fine::common::gradient::sweep::SimdSweepKind<fearless_simd::generated::fallback::Fallback>>::{closure#0}, ()>"
+        ],
+        [
+          28002,
+          "<vello_cpu::fine::lowp::blend::Multiply>::mix::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          26495,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<hayro_jpeg2000::j2c::idwt::filter_vertical::{closure#0}, ()>"
+        ],
+        [
+          25628,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::fallback::Fallback>>::apply_tint::{closure#1}, ()>"
+        ],
+        [22065, "hayro_jpeg2000::j2c::decode::decode"],
+        [21889, "\"data names\" subsection"],
+        [21016, "hayro_jbig2::decode::text::decode_with"],
+        [
+          20324,
+          "<vello_common::encode::GradientLut<f32>>::new_inner::<fearless_simd::generated::fallback::Fallback>::{closure#0}"
+        ],
+        [
+          18614,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<<vello_cpu::fine::common::gradient::GradientPainter<fearless_simd::generated::fallback::Fallback> as vello_cpu::fine::Painter>::paint_u8::{closure#1}, ()>"
+        ],
+        [17177, "hayro_jpeg2000::j2c::bitplane::fast_path::cleanup_pass"],
+        [
+          16191,
+          "<fearless_simd::generated::fallback::Fallback as fearless_simd::generated::simd_trait::Simd>::vectorize::vectorize_inner::<vello_cpu::fine::lowp::fill::alpha_composite<fearless_simd::generated::fallback::Fallback, core::iter::adapters::map::Map<core::slice::iter::ChunksExact<u8>, <vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::fallback::Fallback>>::alpha_composite_buffer::{closure#0}>>::{closure#0}, ()>"
+        ],
+        [15804, "hayro_jbig2::decode::generic::decode_bitmap_arithmetic_coding"],
+        [14616, "hayro_jbig2::decode::symbol::decode_refinement_bitmap"]
+      ],
+      "wasmGzip": 1781566
     },
     "text": {
       "top": [
-        [557973, "data segments"],
+        [565051, "data segments"],
         [28913, "<skrifa::outline::glyf::hint::engine::Engine>::dispatch_inner"],
-        [17719, "\"data names\" subsection"],
+        [19635, "<laminapdf_build::page::PageBuilder>::write"],
+        [18289, "\"data names\" subsection"],
         [17233, "<subsetter::Context>::process"],
-        [14574, "<laminapdf_build::page::PageBuilder>::write"],
-        [13876, "<laminapdf_text::embed::FontRegistry>::finish_fonts"],
+        [16125, "laminapdf_extract::page::extract_page"],
+        [14576, "laminapdf_build::finish::new_document"],
         [13203, "<harfrust::hb::ot_shape::OtShapeContext>::shape_internal"],
         [13183, "<harfrust::hb::ot_shape_plan::hb_ot_shape_plan_t>::new"],
+        [12578, "<laminapdf_text::embed::FontRegistry>::finish_fonts"],
         [12295, "harfrust::hb::ot_shaper_vowel_constraints::preprocess_text_vowel_constraints"],
         [12257, "<harfrust::hb::ot_shape::OtShapeContext>::position_by_plan"],
+        [11906, "<laminapdf_text::extract::font::FontCache>::get"],
         [11592, "harfrust::hb::aat::layout::substitute"],
-        [11584, "<laminapdf_text::extract::font::FontCache>::get"],
         [10881, "skrifa::outline::autohint::hint::hint_outline"],
         [10461, "harfrust::hb::tag_table::tags_from_complex_language"],
         [10062, "sha2::sha512::compress512"],
         [9045, "<write_fonts::graph::Graph>::pack_objects"],
-        [8866, "<laminapdf_build::builder::Builder>::finish_inner"],
         [8372, "skrifa::outline::autohint::metrics::scale::compute_unscaled_style_metrics"],
-        [8316, "<laminapdf_save::planner::SavePlanner>::new"],
+        [8284, "<laminapdf_save::planner::SavePlanner>::new"],
         [7949, "sha2::sha256::compress256"],
+        [7776, "<laminapdf::error::Error>::diagnostic"],
         [7157, "write_fonts::graph::splitting::pairpos::split_pair_pos_subtable"],
         [7115, "miniz_oxide::inflate::core::decompress_with_limit"],
-        [6883, "laminapdf_text::pdfpos::pdf_run"],
         [6285, "<harfrust::hb::face::ShaperData>::new"],
+        [6251, "laminapdf_text::pdfpos::pdf_run"],
         [
           5836,
           "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<read_fonts::model::pen::ControlBoundsPen>>>>>>::evaluate_operator"
@@ -150,6 +290,14 @@
         [
           5836,
           "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::unscaled::UnscaledPenAdapter<skrifa::outline::autohint::outline::Outline>>>>>>>::evaluate_operator"
+        ],
+        [
+          5836,
+          "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::unscaled::UnscaledPenAdapter<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize>>>>>>>>::evaluate_operator"
+        ],
+        [
+          5836,
+          "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::varc::TransformPen<dyn read_fonts::model::pen::OutlinePen>>>>>>>::evaluate_operator"
         ],
         [
           5835,
@@ -173,14 +321,6 @@
         ],
         [
           5835,
-          "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::unscaled::UnscaledPenAdapter<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize>>>>>>>>::evaluate_operator"
-        ],
-        [
-          5835,
-          "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::varc::TransformPen<dyn read_fonts::model::pen::OutlinePen>>>>>>>::evaluate_operator"
-        ],
-        [
-          5835,
           "<read_fonts::ps::cs::Evaluator<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<subsetter::interjector::skrifa::OutlinePath>>>>>>::evaluate_operator"
         ],
         [
@@ -198,14 +338,9 @@
         [
           5757,
           "<read_fonts::ps::cs::Evaluator<read_fonts::ps::cs::TransformSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::varc::TransformPen<dyn read_fonts::model::pen::OutlinePen>>>>>>::evaluate_operator"
-        ],
-        [
-          5757,
-          "<read_fonts::ps::cs::Evaluator<read_fonts::ps::cs::TransformSink<read_fonts::ps::cs::NopFilterSink<skrifa::outline::cff::PenSink<subsetter::interjector::skrifa::OutlinePath>>>>>::evaluate_operator"
-        ],
-        [5756, "core::num::imp::flt2dec::strategy::dragon::format_shortest"]
+        ]
       ],
-      "wasmGzip": 1008844
+      "wasmGzip": 1074722
     }
   },
   "budgets": {
@@ -215,15 +350,15 @@
     },
     "extract": {
       "glueGzip": 5000,
-      "wasmGzip": 560000
-    },
-    "text": {
-      "glueGzip": 5000,
-      "wasmGzip": 1070000
+      "wasmGzip": 620000
     },
     "render_hayro": {
       "glueGzip": 5000,
       "wasmGzip": 1855000
+    },
+    "text": {
+      "glueGzip": 5000,
+      "wasmGzip": 1130000
     }
   },
   "packages": {
