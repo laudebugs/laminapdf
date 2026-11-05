@@ -70,9 +70,16 @@ describe("Button", () => {
     const listener = (e: KeyboardEvent) => e.key === "Escape" && onEscape();
     document.addEventListener("keydown", listener);
     onTestFinished(() => document.removeEventListener("keydown", listener));
-    const host = renderIn(<Button onPress={onPress}>Save</Button>);
+    const host = renderIn(
+      <>
+        <input aria-label="Before" />
+        <Button onPress={onPress}>Save</Button>
+      </>,
+    );
+    // Tab from a known place: Firefox may start from wherever the last test left focus.
+    get(host, "input").focus();
     await userEvent.tab();
-    expect(focused()).toBe(get(host, "button"));
+    await expect.poll(focused).toBe(get(host, "button"));
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard(" ");
     expect(onPress).toHaveBeenCalledTimes(2);
