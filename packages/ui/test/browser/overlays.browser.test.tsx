@@ -25,17 +25,34 @@ afterEach(() => {
   document.documentElement.removeAttribute("data-theme");
 });
 
+// Focus returns to a menu's or popover's button as it closes; WebKit does it a frame later, so
+// those checks poll.
 const role = (name: string) => document.querySelector(`[role=${name}]`) as HTMLElement | null;
 const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-type Options = Partial<Pick<DialogProps, "role" | "returnFocusTo">> & { required?: boolean; children?: ReactNode };
+type Options = Partial<Pick<DialogProps, "role" | "returnFocusTo">> & {
+  required?: boolean;
+  children?: ReactNode;
+  /** The opener unmounts once pressed, as a control can that goes away while its dialog is open. */
+  vanish?: boolean;
+};
 
-function Opener({ required = false, children, ...rest }: Options) {
+function Opener({ required = false, children, vanish = false, ...rest }: Options) {
   const [open, setOpen] = useState(false);
+  const [used, setUsed] = useState(false);
   const closing = required ? { isRequired: true as const } : { closeLabel: "Close" };
   return (
     <>
-      <Button onPress={() => setOpen(true)}>Move pages</Button>
+      {vanish && used ? null : (
+        <Button
+          onPress={() => {
+            setUsed(true);
+            setOpen(true);
+          }}
+        >
+          Move pages
+        </Button>
+      )}
       <Button>Outside</Button>
       <Dialog
         {...rest}
@@ -136,14 +153,13 @@ describe("Dialog", () => {
   it("sends focus to the fallback when its opener is gone", async () => {
     const fallback = document.createElement("button");
     fallback.textContent = "Fallback";
+    expect(await openDialog({ returnFocusTo: () => fallback, vanish: true })).not.toBeNull();
     document.body.append(fallback);
-    await openDialog({ returnFocusTo: () => fallback });
-    const opener = [...document.querySelectorAll("button")].find((b) => b.textContent === "Move pages");
-    opener?.remove();
+    await expect
+      .poll(() => [...document.querySelectorAll("button")].some((b) => b.textContent === "Move pages"))
+      .toBe(false);
     await userEvent.keyboard("{Escape}");
-    await frame();
-    await frame();
-    expect(focused()).toBe(fallback);
+    await expect.poll(focused).toBe(fallback);
   });
 
   it("starts on a radio group's checked radio", () => {
@@ -189,7 +205,7 @@ describe("Dialog", () => {
     await userEvent.keyboard("{Escape}");
     expect(role("menu")).toBeNull();
     expect(role("dialog")).not.toBeNull();
-    expect(focused()).toBe(position);
+    await expect.poll(focused).toBe(position);
     await userEvent.keyboard("{Escape}");
     expect(role("dialog")).toBeNull();
   });
@@ -235,7 +251,7 @@ describe("Menu", () => {
     await userEvent.keyboard("{Enter}");
     expect(onAction).toHaveBeenCalledWith("rename");
     expect(role("menu")).toBeNull();
-    expect(focused()).toBe(button);
+    await expect.poll(focused).toBe(button);
   });
 
   it("shows shortcut chips and the disabled item's reason, and Escape returns focus to the button", async () => {
@@ -249,7 +265,7 @@ describe("Menu", () => {
     expect(exportItem?.textContent).toContain("Nothing to export yet");
     await userEvent.keyboard("{Escape}");
     expect(role("menu")).toBeNull();
-    expect(focused()).toBe(host.querySelector("button"));
+    await expect.poll(focused).toBe(host.querySelector("button"));
   });
 });
 
@@ -268,7 +284,7 @@ describe("Popover", () => {
     expect(role("dialog")?.getAttribute("aria-label")).toBe("View settings");
     await userEvent.keyboard("{Escape}");
     expect(role("dialog")).toBeNull();
-    expect(focused()).toBe(host.querySelector("button"));
+    await expect.poll(focused).toBe(host.querySelector("button"));
   });
 });
 
