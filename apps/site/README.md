@@ -1,6 +1,6 @@
 # `apps/site`: the website at laminapdf.com
 
-Lamina PDF's website is a static [Astro](https://astro.build/) site served from Cloudflare Workers static assets at **https://laminapdf.com** ([website plan §4](../../docs/plans/website.md#4-the-website), [todo W1b](../../docs/todos/done/W1b-site-scaffold-and-deploys.md)). It holds pages of text in the [Paper design language](../../docs/design/paper/design-language.md), and every build checks each page against the website's rules in [ADR 0011 §3](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). The home page is a placeholder until [W1c](../../docs/todos/ready/W1c-home-page.md) writes it.
+Lamina PDF's website is a static [Astro](https://astro.build/) site served from Cloudflare Workers static assets at **https://laminapdf.com** ([website plan §4](../../docs/plans/website.md#4-the-website), [todo W1b](../../docs/todos/done/W1b-site-scaffold-and-deploys.md)). It holds pages of text in the [Paper design language](../../docs/design/paper/design-language.md), and every build checks each page against the website's rules in [ADR 0011 §3](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). The home page is a placeholder until [W1c](../../docs/todos/ongoing/W1c-home-page.md) writes it.
 
 ```sh
 pnpm install                          # once per worktree

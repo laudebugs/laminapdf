@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md), [W1e](../done/W1e-progress-snapshot.md) |
@@ -48,13 +48,13 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 **Out of scope**
 
 - The snapshot and its command → [W1e](../done/W1e-progress-snapshot.md).
-- The privacy promises: [C7c](./C7c-performance-gates-and-launch.md) adds them to the home page when it publishes `/privacy`.
+- The privacy promises: [C7c](../ready/C7c-performance-gates-and-launch.md) adds them to the home page when it publishes `/privacy`.
 - Moving the roadmap to `/roadmap` at the reader's launch ([plan §7](../../plans/website.md#7-open-questions), question 3).
 - The other pages (W1a names their todos); the shared header → [W1d](../done/W1d-one-site-header.md).
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
+- [x] Claim: the first commit moves this file to `ongoing/`.
 - [ ] Design the screen; add it to `screens.md` and the design docs.
 - [ ] Draft the copy with `/writing`; mark the headline, the paragraph and each claim `[OWNER TO APPROVE]` until the owner approves them in the PR.
 - [ ] Build the page from the snapshot, the metadata and the share image; the code panel and the install lines come from tested example files and the published package list, never typed by hand.
