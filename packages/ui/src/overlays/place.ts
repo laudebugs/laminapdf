@@ -55,3 +55,15 @@ export function placeAbove(
 function clamp(value: number, low: number, high: number): number {
   return Math.max(low, Math.min(value, high));
 }
+
+/** The part of `a` inside `b`. */
+export function intersect(a: Box, b: Box): Box {
+  const top = Math.max(a.top, b.top);
+  const left = Math.max(a.left, b.left);
+  return {
+    top,
+    left,
+    width: Math.max(0, Math.min(a.left + a.width, b.left + b.width) - left),
+    height: Math.max(0, Math.min(a.top + a.height, b.top + b.height) - top),
+  };
+}

@@ -147,6 +147,21 @@ describe("SelectionToolbar", () => {
     expect(focused()).toBe(text);
   });
 
+  it("gives focus back when the selection leaves view while focus is in the toolbar", async () => {
+    let top = 300;
+    const host = renderIn(<Selection anchor={() => rect(top, 300)} />);
+    const text = host.querySelector("textarea") as HTMLTextAreaElement;
+    text.focus();
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    expect(focused().textContent).toBe("Copy");
+    top = -1700;
+    window.dispatchEvent(new Event("resize"));
+    await frame();
+    await frame();
+    expect(toolbar().style.visibility).toBe("hidden");
+    expect(focused()).toBe(text);
+  });
+
   it("returns focus to where it came from after a Tab into it", async () => {
     const onDismiss = vi.fn();
     const host = renderIn(<Selection anchor={() => rect(300, 300)} onDismiss={onDismiss} />);
@@ -242,6 +257,18 @@ const input = () => document.querySelector("[role=combobox]") as HTMLInputElemen
 const active = () => document.getElementById(input().getAttribute("aria-activedescendant") ?? "");
 
 describe("CommandPalette", () => {
+  it("keeps a long list inside the window and scrolls it", async () => {
+    const items = Array.from({ length: 60 }, (_, n) => ({ id: `command.${n}`, title: `Command ${n}` }));
+    renderIn(<Palette sections={[{ id: "all", title: "All", items }]} />);
+    const list = document.querySelector(".paper-palette-list") as HTMLElement;
+    const palette = document.querySelector(".paper-palette") as HTMLElement;
+    expect(palette.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
+    expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+    await userEvent.keyboard("{End}");
+    const row = active()?.getBoundingClientRect();
+    expect(row?.bottom).toBeLessThanOrEqual(list.getBoundingClientRect().bottom + 1);
+  });
+
   it("keeps focus in its combobox input while the arrows move the active row", async () => {
     renderIn(<Palette />);
     await frame();
@@ -294,6 +321,23 @@ describe("CommandPalette", () => {
       "Commands",
     ]);
     expect(document.querySelector(".paper-palette-match")?.textContent).toBe("Fit");
+  });
+
+  it("lists one command in two sections, and runs it from either", async () => {
+    const onAction = vi.fn();
+    const copy = { id: "edit.copy", title: "Copy", group: "Edit" };
+    const sections = [
+      { id: "recent", title: "Recent", items: [copy] },
+      { id: "commands", title: "Commands", items: [copy] },
+    ];
+    renderIn(<Palette onAction={onAction} sections={sections} />);
+    await frame();
+    const rows = [...document.querySelectorAll("[role=option]")];
+    expect(new Set(rows.map((row) => row.id)).size).toBe(2);
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    expect(active()).toBe(rows[1]);
+    await userEvent.keyboard("{Enter}");
+    expect(onAction).toHaveBeenCalledWith("edit.copy");
   });
 
   it("runs the active row on Enter, and Escape closes it", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { placeAbove } from "../src/overlays/place.ts";
+import { intersect, placeAbove } from "../src/overlays/place.ts";
 
 const viewport = { top: 0, left: 0, width: 800, height: 600 };
 const line = (top: number, left = 300) => ({ top, left, width: 200, height: 20 });
@@ -34,5 +34,19 @@ describe("placeAbove", () => {
   it("keeps inside a canvas that isn't the whole viewport", () => {
     const canvas = { top: 100, left: 200, width: 400, height: 400 };
     expect(placeAbove(line(110, 200), 100, 40, canvas, 8, 8)).toEqual({ top: 138, left: 250, side: "below" });
+  });
+});
+
+describe("intersect", () => {
+  it("keeps the part of a box inside another", () => {
+    const canvas = { top: 100, left: 200, width: 1000, height: 300 };
+    expect(intersect(viewport, canvas)).toEqual({ top: 100, left: 200, width: 600, height: 300 });
+  });
+
+  it("is empty when the boxes don't meet, so nothing can be placed in it", () => {
+    const away = { top: 700, left: 900, width: 50, height: 50 };
+    const empty = intersect(viewport, away);
+    expect(empty).toEqual({ top: 700, left: 900, width: 0, height: 0 });
+    expect(placeAbove(line(300), 100, 40, empty, 8, 8)).toBeNull();
   });
 });

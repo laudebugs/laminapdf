@@ -26,7 +26,7 @@ import { LayerScope } from "./layers.js";
 
 /** One row of the palette. */
 export interface PaletteItem {
-  /** Its id, passed to `onAction`. */
+  /** Its id, passed to `onAction`. The same id may appear in two sections, as in Recent and Commands. */
   id: string;
   /** The command's title, which is also its name. */
   title: string;
@@ -38,7 +38,7 @@ export interface PaletteItem {
   isDisabled?: boolean;
   /** Why it can't run now, shown in place of the group (the group stays when this is left out). */
   disabledReason?: string;
-  /** The parts of the title the query matched, as [start, end) offsets: drawn in 600. */
+  /** The parts of the title the query matched, drawn in 600: [start, end) in UTF-16 code units, as `slice` counts them. */
   matches?: readonly (readonly [number, number])[];
 }
 
@@ -108,13 +108,18 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
                   aria-label={label}
                   // A section the query emptied shows no overline, and no rows at all shows `empty`.
                   items={sections.filter((section) => section.items.length > 0)}
-                  onAction={(key) => props.onAction(String(key))}
+                  // The rows draw their chips for `platform`: React Aria re-renders cached rows when it changes.
+                  dependencies={[platform]}
                   renderEmptyState={() => props.empty ?? null}
                 >
                   {(section) => (
                     <ListBoxSection id={section.id} className="paper-palette-section">
                       <Header className="paper-palette-overline">{section.title}</Header>
-                      <Collection items={section.items}>{(item) => <Row item={item} platform={platform} />}</Collection>
+                      <Collection items={section.items} dependencies={[platform]}>
+                        {(item) => (
+                          <Row item={item} section={section.id} platform={platform} onAction={props.onAction} />
+                        )}
+                      </Collection>
                     </ListBoxSection>
                   )}
                 </ListBox>
@@ -128,12 +133,21 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
   );
 }
 
+interface RowProps {
+  item: PaletteItem;
+  /** The section's id: with the item's, the row's key, so one command can sit in two sections. */
+  section: string;
+  platform: KeyPlatform;
+  onAction: (id: string) => void;
+}
+
 /** One row: the title with its matches in 600, then the group (or why it is disabled) and the chip. */
-function Row({ item, platform }: { item: PaletteItem; platform: KeyPlatform }): ReactNode {
+function Row({ item, section, platform, onAction }: RowProps): ReactNode {
   const note = item.isDisabled === true ? (item.disabledReason ?? item.group) : item.group;
   return (
     <ListBoxItem
-      id={item.id}
+      id={`${section}/${item.id}`}
+      onAction={() => onAction(item.id)}
       textValue={item.title}
       className="paper-palette-row"
       {...(item.isDisabled === true ? { isDisabled: true } : {})}

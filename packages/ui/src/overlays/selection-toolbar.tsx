@@ -8,7 +8,7 @@ import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, use
 import { Separator, Toolbar } from "react-aria-components";
 import { createPortal } from "react-dom";
 import { LayerScope } from "./layers.js";
-import { type Box, type Placement, placeAbove } from "./place.js";
+import { type Box, intersect, type Placement, placeAbove } from "./place.js";
 
 /** Props of `SelectionToolbar`. */
 export interface SelectionToolbarProps {
@@ -43,6 +43,10 @@ export function SelectionToolbar({
   const place = useAnchoredPlacement(ref, anchor, bounds);
   const returnTo = useRef<HTMLElement | null>(null);
   useShiftF10(ref, returnTo);
+  useLayoutEffect(() => {
+    // Hiding the toolbar would drop the focus inside it to the page: it goes back where it came from.
+    if (place === null && ref.current?.contains(document.activeElement) === true) returnTo.current?.focus();
+  }, [place]);
   const dismiss = () => {
     // Focus goes back only when Escape came from inside the toolbar; from elsewhere it stays put.
     const inside = ref.current?.contains(document.activeElement) === true;
@@ -120,18 +124,6 @@ function useAnchoredPlacement(
 
 function samePlace(a: Placement, b: Placement): boolean {
   return a.top === b.top && a.left === b.left && a.side === b.side;
-}
-
-/** The part of `a` inside `b`. */
-function intersect(a: Box, b: Box): Box {
-  const top = Math.max(a.top, b.top);
-  const left = Math.max(a.left, b.left);
-  return {
-    top,
-    left,
-    width: Math.max(0, Math.min(a.left + a.width, b.left + b.width) - left),
-    height: Math.max(0, Math.min(a.top + a.height, b.top + b.height) - top),
-  };
 }
 
 /**

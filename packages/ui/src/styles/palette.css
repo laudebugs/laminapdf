@@ -18,7 +18,11 @@
     background: var(--paper-scrim);
   }
 
+  /* A column, so the palette shrinks to the frame's cap and its list scrolls: a percentage height
+     inside a frame of automatic height would cap nothing. */
   .paper-palette-frame {
+    display: flex;
+    flex-direction: column;
     inline-size: 100%;
     max-inline-size: var(--paper-palette-width);
     max-block-size: 100%;
@@ -163,6 +167,13 @@
     .paper-palette-row[data-focused] {
       forced-color-adjust: none;
       background: Highlight;
+      color: HighlightText;
+    }
+
+    /* The row opts out of forced colours, so its group and chip would keep their own colours on
+       Highlight: they take the highlight's text colour instead. */
+    .paper-palette-row[data-focused] :is(.paper-palette-group, .paper-shortcut-chip) {
+      border-color: HighlightText;
       color: HighlightText;
     }
   }
