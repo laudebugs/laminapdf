@@ -55,7 +55,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 
 - [ ] The harness runs locally with one command (`pnpm --filter @laminapdf/viewer perf`) and in CI for Chromium, Firefox and WebKit. **Partly:** it runs locally in Chromium (the only browser here); Firefox and WebKit run in CI once the owner commits the workflows.
 - [ ] On the reference machine, the report shows for the 1,000-page fixture: no main-thread task > 50 ms during scroll; visible pages sharp within 300 ms of stopping; total memory ≤ 600 MB and stable on the second pass; cancelled-render paints = 0. Any target missed is listed with an issue link (C7c must close it). **Not yet:** the reference machine's numbers come from the first nightly run with the workflow on `main`. A CI container's full Chromium run met these four; its misses (the cold first page, zooming in) are in C7c's context.
-- [x] First page visible for the 10-page file reported (target ≤ 700 ms warm, ≤ 3 s cold Fast 4G): 66 ms warm, 4.2 s cold in Chromium on a CI container.
+- [x] First page visible for the 10-page file reported (target ≤ 700 ms warm, ≤ 3 s cold Fast 4G): 77 ms warm, 4.2 s cold in Chromium on a CI container.
 - [x] The nightly job's steps run on the PR branch (the `perf` PR job, or the same script invoked locally with the nightly flags) and produce a history entry; the regression-issue step is exercised once against a forced regression (a dry-run mode that prints the issue it would open is enough before merge). Done locally: `cargo xtask viewer-perf chromium --quick --history <forced> --runner local --dry-run` against a history whose baselines were far lower printed the issue's table; the history record is unit-tested (`a_record_should_become_the_next_runs_baseline`).
 - [x] PR lanes contain no wall-clock assertions (ADR 0018).
 
@@ -79,10 +79,16 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 
 ## Notes from the work
 
-- **The harness** is `packages/viewer/perf/`: `fixtures.ts` (seeded, cached by a hash of its own source), `page/` (Vite, over the built package; `globalThis.__laminaPerf`), `scenarios.ts` (Playwright, real wheel input), `report.ts` (the §4 checks, the summary, history entries) with `report.test.ts`, `serve.ts` (gzip, as Cloudflare compresses the app; a plain Vite preview made the cold figure 7.6 s instead of 4.2) and `run.ts`. `cargo xtask viewer-perf` wraps it with the job summary and the nightly history (bench's regression rule, `viewer/<browser>/<figure>` keys, `--dry-run`).
+- **The harness** is `packages/viewer/perf/`, and `cargo xtask viewer-perf` wraps it with the job summary and the nightly history (bench's regression rule, `viewer/<browser>/<figure>` keys, `--dry-run`):
+  - `fixtures.ts`: seeded, cached by a hash of its source and of the text module that writes them;
+  - `page/`: Vite, over the built package, with `globalThis.__laminaPerf`;
+  - `scenarios.ts`: Playwright, with real wheel input;
+  - `report.ts` and `report.test.ts`: the §4 checks, the summary and the history entries;
+  - `serve.ts`: gzip, as Cloudflare serves the app (a plain Vite preview made the cold figure 7.6 s instead of 4.2);
+  - `run.ts`: the command.
 - **Two viewer changes.** The document worker answers `memory` (`client.memory()`: the backend's and Lamina PDF's WebAssembly memories), so total memory includes the worker in every browser. And a zoom now marks stretched pages `low` instead of leaving them `sharp` until the new pass paints, which is what made "time to sharp after a zoom" measurable (a browser test pins it).
-- **Time to sharp** runs from the last frame that moved or zoomed the view. Timing from three still frames read 0 ms, because the pages were sharp before the clock started.
-- **CI.** Workflow files can't be pushed from here, so the PR description carries them: a `viewer-perf` job in `nightly.yml` after `pdf-runtimes` (history, a regression issue from `report`), and `viewer-perf.yml`, a non-required PR workflow with a path filter, in its own file so the PR lanes' gates are unchanged. `release.rs`' check of the nightly's record gates now accepts any number of recording jobs.
+- **Time to sharp** runs from the last scroll or zoom event to the moment every visible page turned sharp, caught on `renderstats`. Timing from the harness's own polling read 0 ms, and then a 50 ms floor.
+- **CI.** Workflow files can't be pushed from here, so the PR description carries them: a `viewer-perf` job in `nightly.yml` after `pdf-runtimes` (history, a regression issue from `report`), and `viewer-perf.yml`, a non-required PR workflow with a path filter, in its own file so the PR lanes' gates are unchanged. `release.rs`' check now requires one gated `RECORD` per job that pushes to the history.
 - **Not done here:** the reference machine's numbers (the first nightly run on `main`), and Firefox and WebKit, which only CI has.
 
 ## Definition of done

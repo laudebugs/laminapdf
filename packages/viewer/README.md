@@ -145,7 +145,7 @@ The browser suites run in Chromium, Firefox and WebKit over the built package: r
 
 ### Performance
 
-The viewer is measured against the [web plan's targets](../../docs/plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) in Chromium, Firefox and WebKit by a harness in `perf/`:
+A harness in `perf/` measures the viewer against the [web plan's targets](../../docs/plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) in Chromium, Firefox and WebKit:
 
 ```sh
 cargo xtask wasm                                   # once: the package the harness runs
@@ -155,7 +155,7 @@ cargo xtask viewer-perf [chromium|firefox|webkit]  # the same, plus the job summ
 
 It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails on a missed target: no pull request lane asserts a duration ([ADR 0018](../../docs/decisions/0018-test-strategy.md#2-ci-lanes)).
 
-**What it does.** Three seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 1,000 pages of text, and 300 pages of full-page images. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves it gzipped, as Cloudflare compresses the app. Playwright drives real input, so every run scrolls the same way:
+**What it does.** It opens three seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 1,000 pages of text, and 300 pages of full-page images. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves that page gzipped, as Cloudflare serves the app. Playwright drives real input, so every run scrolls the same way:
 
 | Scenario | Measures | Target |
 | --- | --- | --- |
@@ -165,13 +165,13 @@ It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails 
 | Fling across the 300 image pages, then stop | time to sharp | ≤ 300 ms |
 | Three ctrl+wheel bursts in and out on the 10-page file | the longest frame, time to sharp after each burst | reported |
 
-"Time to sharp" runs from the last frame that moved or zoomed the view until every visible page is sharp. Memory is the page's JS heap (Chromium only), the document Web Worker's WebAssembly memories (`client.memory()`), the bitmap cache and the canvases' pixels. Firefox and WebKit have no Long Tasks API, so their longest task is the longest gap between frames, which is an upper bound.
+"Time to sharp" runs from the last scroll or zoom event to the moment every visible page turned sharp. Memory is the page's JS heap (Chromium only), the document Web Worker's WebAssembly memories (`client.memory()`), the bitmap cache and the canvases' pixels. Firefox and WebKit have no Long Tasks API, so their longest task is the longest gap between frames, which is an upper bound.
 
 **History.** The nightly lane runs `cargo xtask viewer-perf --history … --record` on `main` and keeps each browser's figures in the benchmark history (`viewer/<browser>/<figure>`: nanoseconds, or bytes for memory). A figure more than 10 % worse than the median of its last five runs on the same runner opens an issue, as a benchmark does; `--dry-run` prints that issue. `--quick` covers 100 pages and is never recorded.
 
 **The reference machine.** The official numbers are the nightly lane's, from the Mac that hosts the self-hosted runners, with nothing else running on it. Each report ends with the machine it ran on (CPU, cores, memory, OS). Numbers from other machines, CI containers included, are relative: compare them with each other, not with the targets.
 
-**First measurements and tuning.** The first full run (Chromium 153 on a 4-core Linux container, 2026-11-05) met every scrolling and memory target. It had no long task while scrolling, pages were sharp 43–49 ms after a stop, memory peaked at 302 MB, the second pass ended 0.8 % above the first, and no cancelled render painted. So the defaults above stay: a margin of 2 pages or one viewport, a pool of 12 canvases and 64 million pixels, a 256 MB bitmap cache, 512 CSS px tiles and a 150 ms settle. It missed two marks, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) takes on:
+**First measurements and tuning.** The first full run (Chromium 153 on a 4-core Linux container, 2026-11-05) came in under every scrolling and memory target, a first reading until the reference machine's numbers arrive. It had no long task while scrolling, pages were sharp 0–17 ms after a scroll stopped and 33 ms after a fling, memory peaked at 302 MB, the second pass ended 0.5 % above the first, and no cancelled render painted. So the defaults above stay: a margin of 2 pages or one viewport, a pool of 12 canvases and 64 million pixels, a 256 MB bitmap cache, 512 CSS px tiles and a 150 ms settle. It missed one target and found one slow spot, both for [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md):
 
 - **The cold first page took 4.2 s on Fast 4G (target 3 s).** The download alone takes about 3.7 s at Fast 4G's 1 MB/s: PDFium's WebAssembly (2.2 MB gzipped), Lamina PDF's base module (0.4 MB) and the 1 MB file.
-- **Zooming in took about 1.1 s to sharp, with a 350 ms frame.** Zooming out took 250–285 ms. The plan sets no zoom target.
+- **Zooming in took about 1.2 s to sharp, with a 317 ms frame.** Zooming out took about 300 ms. The plan sets no zoom target.
