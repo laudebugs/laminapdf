@@ -12,7 +12,7 @@
 | Branch | `feat/u6c-icon-set` |
 | PR title | `feat(icons): add @laminapdf/icons with the paper stroke icon set and grid lint` |
 | Size | M (≈ 300–400 lines of generator, `<Icon>`, lint and tests; the SVG sources and generated module don't count) |
-| PR | — |
+| PR | [#232](https://github.com/laudebugs/laminapdf/pull/232) |
 
 ## Goal
 
@@ -49,7 +49,7 @@ Make the design language's icons a typed, tested package so every screen uses th
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Scaffold `packages/icons` (`package.json` with `exports`, `"sideEffects": false`, `"private": true`, scripts `generate`, `lint:icons`, `typecheck`, `test`; `tsconfig.json`; README).
 - [ ] Copy the 22 icons from [§5](../../design/paper/design-language.md#5-iconography) into `svg/` byte-for-byte inside the standard wrapper; name files after the table (`sidebar.svg`, `find.svg`, `zoom-out.svg`, `zoom-in.svg`, `more.svg`, `close.svg`, `back.svg`, `copy.svg`, `highlight.svg`, `comment.svg`, `underline.svg`, `ink.svg`, `shapes.svg`, `share.svg`, `pages.svg`, `reader.svg`, `network-shield.svg`, `repaired.svg`, `signed-file.svg`, `warning.svg`, `chevron-down.svg`, `check.svg`).
 - [ ] Draw the icons the reader v0.1 and U6d/U6e need that the design language lacks, on the same grid, and add each to the design language's §5 table with **(proposed)**: chevron right/left/up (outline expand, menus, back/forward), forward, open file (folder), download, print, rotate clockwise, fit width, fit page, info, error (circle with bar), positive (circle check), lock (password), eye and eye-off (show/hide password), settings, help, keyboard, external link, bookmark, attachment, undo, redo, clear (in search fields). The sheet grabber is a drawn bar, not an icon. Show each new icon to the owner (screenshot in the PR) and get it approved before merge.
