@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 184 ready · 111 done** (295 total).
+**1 ongoing · 183 ready · 111 done** (295 total).
 
 ## Can start now
 
@@ -20,7 +20,6 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 - [L3c](ready/L3c-model-plugins.md): Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate
 - [L3d](ready/L3d-extract-structure-and-furniture.md): Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags
-- [L3e](ready/L3e-extract-bindings-and-benchmark.md): Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark
 - [L4b](ready/L4b-cli-batch-render-schema.md): CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
@@ -33,7 +32,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [L3e](ongoing/L3e-extract-bindings-and-benchmark.md): Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark
 
 ## Architecture — Round A
 
@@ -93,7 +92,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`](done/L3b-extract-tables-and-serialisers.md) | done | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](done/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](done/L3b-extract-tables-and-serialisers.md) |
 | L3d | [Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags](ready/L3d-extract-structure-and-furniture.md) | ready | [L3a](done/L3a-lamina-extract-reading-order.md), [L3b](done/L3b-extract-tables-and-serialisers.md) |
-| L3e | [Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark](ready/L3e-extract-bindings-and-benchmark.md) | ready | [L3b](done/L3b-extract-tables-and-serialisers.md) |
+| L3e | [Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark](ongoing/L3e-extract-bindings-and-benchmark.md) | ongoing | [L3b](done/L3b-extract-tables-and-serialisers.md) |
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](done/L4a-lamina-cli.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](done/L3b-extract-tables-and-serialisers.md), [L4a](done/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](done/L4c-mcp-mode.md) | done | [L4a](done/L4a-lamina-cli.md) |

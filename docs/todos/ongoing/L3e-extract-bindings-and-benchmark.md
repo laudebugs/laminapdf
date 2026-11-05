@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (5, 6) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3b](../done/L3b-extract-tables-and-serialisers.md) |
@@ -36,8 +36,8 @@ Give TypeScript the extraction Rust has since [L3b](../done/L3b-extract-tables-a
 
 **Out of scope** (and which todo covers it)
 
-- Structure-tree order, headings, lists, tagged tables: [L3d](./L3d-extract-structure-and-furniture.md).
-- `laminapdf extract` output formats in the CLI: [L4b](./L4b-cli-batch-render-schema.md).
+- Structure-tree order, headings, lists, tagged tables: [L3d](../ready/L3d-extract-structure-and-furniture.md).
+- `laminapdf extract` output formats in the CLI: [L4b](../ready/L4b-cli-batch-render-schema.md).
 
 ## Tasks
 
