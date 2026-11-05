@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4a](../ongoing/C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
+| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
 | Blocks | [C4f](./C4f-reader-home-repairs-and-demo.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer); follows 0010 (UI branches only on capability flags) and 0024 (the shell's slots) |
 | Branch | `feat/c4e-reader-chrome` |
@@ -16,12 +16,12 @@
 
 ## Goal
 
-Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell layout, the top bar with its page indicator and zoom control, and the password prompt. The chrome reads `@laminapdf/viewer`'s store and [C4a](../ongoing/C4a-ui-chrome-and-platform.md)'s `ReaderController` through `useStoreState`. It asks the `Platform` only for capability flags, so the desktop app (D2) drops in its own `Platform` without touching a component. This todo was split from C4a when C4a was claimed, because the platform layer and the chrome together passed the 1,500-line budget; [C4f](./C4f-reader-home-repairs-and-demo.md) builds the rest of the chrome on this frame.
+Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell layout, the top bar with its page indicator and zoom control, and the password prompt. The chrome reads `@laminapdf/viewer`'s store and [C4a](../done/C4a-ui-chrome-and-platform.md)'s `ReaderController` through `useStoreState`. It asks the `Platform` only for capability flags, so the desktop app (D2) drops in its own `Platform` without touching a component. This todo was split from C4a when C4a was claimed, because the platform layer and the chrome together passed the 1,500-line budget; [C4f](./C4f-reader-home-repairs-and-demo.md) builds the rest of the chrome on this frame.
 
 ## Context
 
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [C4a](../ongoing/C4a-ui-chrome-and-platform.md): `Platform`, `PlatformProvider`, `useCapability`, `ReaderController` and its machine, `useStoreState`, the message catalogue and `test/fakes.ts`'s `fakePlatform`.
+- [C4a](../done/C4a-ui-chrome-and-platform.md): `Platform`, `PlatformProvider`, `useCapability`, `ReaderController` and its machine, `useStoreState`, the message catalogue and `test/fakes.ts`'s `fakePlatform`.
 - [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](./U1c-inverted-l-shell-and-modes.md) fills; toolbar buttons become command ids in [U1b](./U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §1 (accessible primitives), §7 (a11y, theming via CSS custom properties).
 - [web-app.md §4 functional 1, 8, 10](../../plans/web-app.md#functional) — open affordances, keyboard, error handling.
@@ -38,7 +38,7 @@ Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell l
 **Out of scope** (and which todo covers it)
 
 - The home screen's drop zone, the repair and failure UI, the loading state, the debug menu, the demo page and the React Compiler → [C4f](./C4f-reader-home-repairs-and-demo.md).
-- The `Platform`, the reader machine and controller, the hooks and the catalogue → [C4a](../ongoing/C4a-ui-chrome-and-platform.md).
+- The `Platform`, the reader machine and controller, the hooks and the catalogue → [C4a](../done/C4a-ui-chrome-and-platform.md).
 - History buttons (C6b), Find (C5b), View and Reader (U4b), Undo/Redo and the mode switcher (E1d).
 
 ## Tasks

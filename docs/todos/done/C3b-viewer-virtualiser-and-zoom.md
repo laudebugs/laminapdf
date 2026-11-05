@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3a](./C3a-viewer-worker-rpc.md) |
-| Blocks | [C3c](../ready/C3c-viewer-perf-harness.md), [C4a](../ongoing/C4a-ui-chrome-and-platform.md), [C4e](../ready/C4e-reader-chrome.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md), [D2d](../ready/D2d-tile-transport-and-first-document.md) |
+| Blocks | [C3c](../ready/C3c-viewer-perf-harness.md), [C4a](./C4a-ui-chrome-and-platform.md), [C4e](../ready/C4e-reader-chrome.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md), [D2d](../ready/D2d-tile-transport-and-first-document.md) |
 | ADRs | Implements 0009 (framework-free viewer core, `ImageBitmap` transfer, pooled canvases) |
 | Branch | `feat/c3b-viewer-virtualiser` |
 | PR title | `feat(viewer): add the page virtualiser, canvas pool, progressive tiles and anchored zoom` |
@@ -41,7 +41,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 **Out of scope** (and which todo covers it)
 
 - Perf harness and CI budgets → [C3c](../ready/C3c-viewer-perf-harness.md), [C7c](../ready/C7c-performance-gates-and-launch.md).
-- Toolbar/UI → [C4a](../ongoing/C4a-ui-chrome-and-platform.md).
+- Toolbar/UI → [C4a](./C4a-ui-chrome-and-platform.md).
 - Text, link and highlight layers → [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6b](../ready/C6b-links-and-history.md) (this PR provides the per-page layer slots they mount into).
 - Thumbnails → [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
 

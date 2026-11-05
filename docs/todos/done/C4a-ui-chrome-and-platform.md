@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
+| Depends on | [C2a](./C2a-render-adrs.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [C4e](../ready/C4e-reader-chrome.md), [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md), [E10e](../ready/E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0010 (`Platform` interface, capability flags, web implementation, rule 1's check) and 0009's state side (the viewer's store read through `useSyncExternalStore`) |
 | Branch | `feat/c4a-ui-chrome` |
@@ -20,7 +20,7 @@ Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platfo
 
 ## Context
 
-- ADR 0009 and ADR 0010 (from [C2a](../done/C2a-render-adrs.md)).
+- ADR 0009 and ADR 0010 (from [C2a](./C2a-render-adrs.md)).
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — interaction modes in a state machine; view state in an external store; `Platform` flags (`canWriteInPlace`, `canWatchFiles`, `hasNativePrint`, `multiWindow`).
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §4 (state), §6 (`showOpenFilePicker` not Baseline; input + drag-drop fallback).
 - [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — toolbar buttons become command ids in [U1b](../ready/U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
@@ -30,7 +30,7 @@ Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platfo
 
 **In scope**
 
-- The platform and state modules in `packages/ui` (`@laminapdf/ui`), which [U6d](../done/U6d-core-components.md) creates and [U6e](../done/U6e-overlays-and-sheets.md) extends; no new scaffold.
+- The platform and state modules in `packages/ui` (`@laminapdf/ui`), which [U6d](./U6d-core-components.md) creates and [U6e](./U6e-overlays-and-sheets.md) extends; no new scaffold.
 - `Platform` interface + `createWebPlatform()`: `openFiles()` (`showOpenFilePicker` when available, else hidden `<input type=file>`), drops and pastes, the launch queue, `saveAs(bytes, name)` (download via `Blob` URL; `showSaveFilePicker` where available), `saveInPlace`, `print(job)` (stub until C6c), `copyText`, `openExternal(url)`, capability flags with web values, `storage` (OPFS/IndexedDB, used by C7b), recent files.
 - `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
 - `ReaderController`, which owns the reader's state machine (`empty → opening → needs-password → open → error`, `select` mode only), and the store hooks over `useSyncExternalStore`.
@@ -45,21 +45,21 @@ Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platfo
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] `src/platform/types.ts`: `Platform`, `Capabilities` exactly as ADR 0010; `src/platform/web.ts`: web implementation with feature detection (no UA sniffing); `src/platform/context.tsx`: `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
-- [ ] `src/state/reader-machine.ts`: a small typed state machine (hand-written or a tiny lib; justify) for the reader lifecycle and interaction mode (`select` only in v0.1); unit tests for every transition.
-- [ ] `src/state/hooks.ts`: `useStoreState(store, selector)` with `useSyncExternalStore`, for the viewer and the controller; no re-render on every scroll frame (selectors return stable primitives).
-- [ ] `src/messages.ts`: the catalogue and `message(id, values)`.
-- [ ] A fake `Platform` with any combination of flags in `packages/ui/test/fakes.ts`.
-- [ ] The platform boundary check in `cargo xtask check ts`.
-- [ ] README: how a shell supplies its `Platform`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] `src/platform/types.ts`: `Platform`, `Capabilities` exactly as ADR 0010; `src/platform/web.ts`: web implementation with feature detection (no UA sniffing); `src/platform/context.tsx`: `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
+- [x] `src/state/reader-machine.ts`: a small typed state machine (hand-written or a tiny lib; justify) for the reader lifecycle and interaction mode (`select` only in v0.1); unit tests for every transition.
+- [x] `src/state/hooks.ts`: `useStoreState(store, selector)` with `useSyncExternalStore`, for the viewer and the controller; no re-render on every scroll frame (selectors return stable primitives).
+- [x] `src/messages.ts`: the catalogue and `message(id, values)`.
+- [x] A fake `Platform` with any combination of flags in `packages/ui/test/fakes.ts`.
+- [x] The platform boundary check in `cargo xtask check ts`.
+- [x] README: how a shell supplies its `Platform`.
 
 ## Acceptance criteria
 
-- [ ] Unit tests cover every transition of the reader machine, and the controller's open, password, cancel, failure and superseded-open paths.
-- [ ] The web platform's tests cover its capability detection, `howToEnable`, both save paths, `saveInPlace`'s two gates, `openExternal`'s schemes and recent files, with fake windows and in three browsers.
-- [ ] No package imports `@tauri-apps/*`, calls `isTauri()` or reads Tauri's globals or UA strings (`cargo xtask check ts`); UI branches only on `Capabilities`.
-- [ ] All platform strings come from the message catalogue.
+- [x] Unit tests cover every transition of the reader machine, and the controller's open, password, cancel, failure and superseded-open paths.
+- [x] The web platform's tests cover its capability detection, `howToEnable`, both save paths, `saveInPlace`'s two gates, `openExternal`'s schemes and recent files, with fake windows and in three browsers.
+- [x] No package imports `@tauri-apps/*`, calls `isTauri()` or reads Tauri's globals or UA strings (`cargo xtask check ts`); UI branches only on `Capabilities`.
+- [x] All platform strings come from the message catalogue.
 
 ## Post-merge checks
 
@@ -79,8 +79,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

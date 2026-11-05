@@ -21,7 +21,7 @@ Finish the reader chrome on [C4e](./C4e-reader-chrome.md)'s frame: the home scre
 ## Context
 
 - **Design (Paper):** [R01](../../design/paper/reader-a.md#r01-home--open), [R02](../../design/paper/reader-a.md#r02-loading-states), [R04](../../design/paper/reader-a.md#r04-repaired--damaged-file).
-- [C4a](../ongoing/C4a-ui-chrome-and-platform.md)'s platform, controller and catalogue, and C4e's shell, top bar and `fakePlatform`/`FakeViewer` in `packages/ui/test/fakes.ts`.
+- [C4a](../done/C4a-ui-chrome-and-platform.md)'s platform, controller and catalogue, and C4e's shell, top bar and `fakePlatform`/`FakeViewer` in `packages/ui/test/fakes.ts`.
 - `fixtures/codes.json` for the warning and error codes (ADR 0003, ADR 0026).
 
 ## Scope

@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 182 ready · 122 done** (305 total).
+**0 ongoing · 182 ready · 123 done** (305 total).
 
 ## Can start now
 
@@ -24,6 +24,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
+- [C4e](ready/C4e-reader-chrome.md): `@laminapdf/ui`: the reader shell, the top bar and the password prompt
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6f](ready/U6f-gallery-and-visual-tests.md): Component gallery, screenshot tests, axe on every page and the screens docs check
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
@@ -31,7 +32,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [C4a](ongoing/C4a-ui-chrome-and-platform.md): `@laminapdf/ui`: the `Platform` adapter, the reader controller and the message catalogue
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -114,11 +115,11 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@laminapdf/ui`: the `Platform` adapter, the reader controller and the message catalogue](ongoing/C4a-ui-chrome-and-platform.md) | ongoing | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
+| C4a | [`@laminapdf/ui`: the `Platform` adapter, the reader controller and the message catalogue](done/C4a-ui-chrome-and-platform.md) | done | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4f](ready/C4f-reader-home-repairs-and-demo.md), [U6b](done/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
-| C4e | [`@laminapdf/ui`: the reader shell, the top bar and the password prompt](ready/C4e-reader-chrome.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4a](ongoing/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
+| C4e | [`@laminapdf/ui`: the reader shell, the top bar and the password prompt](ready/C4e-reader-chrome.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4a](done/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
 | C4f | [`@laminapdf/ui`: the home screen's drop zone, repairs and failures, and the demo page](ready/C4f-reader-home-repairs-and-demo.md) | ready | [C4e](ready/C4e-reader-chrome.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
@@ -145,7 +146,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | --- | --- | --- | --- |
 | D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
 | D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
-| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ongoing/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](done/U6b-self-hosted-fonts.md) |
+| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](done/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](done/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
 | D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4f](ready/C4f-reader-home-repairs-and-demo.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
@@ -274,7 +275,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | E10b | [Signatures: feature plan](ready/E10b-signatures-feature-plan.md) | ready | [E9a](ready/E9a-form-authoring-feature-plan.md), [E10a](ready/E10a-adr-0020-signatures.md) |
 | E10c | [Visual signatures: image, drawn and typed (non-cryptographic)](ready/E10c-visual-signatures.md) | ready | [E4d](ready/E4d-appearances-ink-and-shapes.md), [E5c](ready/E5c-stamps-and-attachments.md), [E6b](ready/E6b-place-images-and-shapes.md), [E10b](ready/E10b-signatures-feature-plan.md) |
 | E10d | [PAdES B-B signing core with two-phase external signing](ready/E10d-pades-signing-core.md) | ready | [E9b](ready/E9b-field-creation-ops.md), [E10b](ready/E10b-signatures-feature-plan.md) |
-| E10e | [Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker](ready/E10e-timestamps-and-tsa-proxy.md) | ready | [C4a](ongoing/C4a-ui-chrome-and-platform.md), [E10d](ready/E10d-pades-signing-core.md) |
+| E10e | [Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker](ready/E10e-timestamps-and-tsa-proxy.md) | ready | [C4a](done/C4a-ui-chrome-and-platform.md), [E10d](ready/E10d-pades-signing-core.md) |
 | E10f | [Certification (DocMDP), field locking (FieldMDP) and allowed changes](ready/E10f-certification-and-locking.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10g | [Signature validation: integrity, chain, revocation, signer inspection](ready/E10g-signature-validation.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10h | [Revision diff analysis, modification warnings and attack-catalogue tests](ready/E10h-revision-diff-and-attacks.md) | ready | [E10f](ready/E10f-certification-and-locking.md), [E10g](ready/E10g-signature-validation.md) |

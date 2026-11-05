@@ -23,7 +23,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 - **Design (Paper):** [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R12 Keyboard shortcuts](../../design/paper/reader-b.md#r12-keyboard-shortcuts). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) and ADR 0024 (from [U1a](../done/U1a-adr-0024-app-shell-ux.md)).
 - [Research: command palette](../../research/product/pdf-app-product-and-ux.md#a-command-palette-built-on-one-command-registry) — cmdk (MIT, React 18+, custom filter, async items, no built-in nested pages); kbar less active.
-- [C4a](../ongoing/C4a-ui-chrome-and-platform.md) — `ReaderController`, whose actions become commands here; [C4e](./C4e-reader-chrome.md) — the toolbar that calls them.
+- [C4a](../done/C4a-ui-chrome-and-platform.md) — `ReaderController`, whose actions become commands here; [C4e](./C4e-reader-chrome.md) — the toolbar that calls them.
 - [TypeScript guidelines](../../guidelines/typescript.md) — named exports, strict types.
 
 ## Scope
