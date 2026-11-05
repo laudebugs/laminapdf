@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C4b](./C4b-web-app-shell.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](./W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
+| Depends on | [C4b](./C4b-web-app-shell.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](../ongoing/W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
 | Blocks | [D7c](./D7c-desktop-beta-release.md) |
-| Dependency notes | [D7a](D7a-crash-reporting.md) (settings sections for crash reports), [D6b](D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](./W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
+| Dependency notes | [D7a](D7a-crash-reporting.md) (settings sections for crash reports), [D6b](D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](../ongoing/W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
 | ADRs | Follows ADR 0008 (Linux fallback: renderer switch), ADR 0014 (downloads domain, channels), ADR 0011 (privacy page) |
 | Branch | `feat/d7b-settings-and-download-page` |
 | PR title | `feat(desktop): finish the settings page and add the download page` |
@@ -25,7 +25,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [Desktop plan §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) and [§7 risks](../../plans/desktop-app.md#7-risks) (renderer switch, documented env workarounds).
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users) and [Tauri Linux graphics](https://v2.tauri.app/develop/debug/linux-graphics/): `WEBKIT_DISABLE_DMABUF_RENDERER=1`, `WEBKIT_DISABLE_COMPOSITING_MODE=1` (last resort), `__NV_DISABLE_EXPLICIT_SYNC=1`; these are **process environment variables** that must be set before WebKitGTK initialises, i.e. before the Tauri builder runs.
 - D5b settings store and window; D3b/D4a/D4c settings flags.
-- The website (`apps/site`, [W1b](./W1b-site-scaffold-and-deploys.md): static assets, `_headers`/CSP) and web plan C7 (launch, privacy page).
+- The website (`apps/site`, [W1b](../ongoing/W1b-site-scaffold-and-deploys.md): static assets, `_headers`/CSP) and web plan C7 (launch, privacy page).
 - ADR 0014: `downloads.laminapdf.com` custom domain, R2 layout, `SHA256SUMS`, GPG key location.
 
 ## Scope

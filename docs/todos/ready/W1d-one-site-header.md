@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Website §4 The website](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](./W1b-site-scaffold-and-deploys.md) |
+| Depends on | [W1b](../ongoing/W1b-site-scaffold-and-deploys.md) |
 | Blocks | None |
 | ADRs | — |
 | Branch | `feat/w1d-site-header` |

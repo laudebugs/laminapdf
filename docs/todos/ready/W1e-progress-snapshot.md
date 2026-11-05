@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](./W1b-site-scaffold-and-deploys.md) |
+| Depends on | [W1b](../ongoing/W1b-site-scaffold-and-deploys.md) |
 | Blocks | [W1c](./W1c-home-page.md) |
 | ADRs | — |
 | Branch | `feat/w1e-progress-snapshot` |

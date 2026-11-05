@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Website §4 The website](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | [W1a](../done/W1a-domain-map.md), [U6a](../done/U6a-paper-tokens.md), [U6b](../done/U6b-self-hosted-fonts.md) |
-| Blocks | [C7c](./C7c-performance-gates-and-launch.md), [W1c](./W1c-home-page.md), [W1d](./W1d-one-site-header.md), [W1e](./W1e-progress-snapshot.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [U5a](./U5a-pricing-and-promises-page.md), [U5b](./U5b-reader-benchmark.md) |
+| Blocks | [C7c](../ready/C7c-performance-gates-and-launch.md), [W1c](../ready/W1c-home-page.md), [W1d](../ready/W1d-one-site-header.md), [W1e](../ready/W1e-progress-snapshot.md), [D7b](../ready/D7b-settings-renderer-switch-and-download-page.md), [U5a](../ready/U5a-pricing-and-promises-page.md), [U5b](../ready/U5b-reader-benchmark.md) |
 | ADRs | Implements 0011 §1 and §4 as W1a amends them; follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (Astro for sites, pnpm workspace) and [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, least-privilege tokens) |
 | Branch | `feat/w1b-site` |
 | PR title | `feat(site): the website at laminapdf.com, with a preview per pull request` |
@@ -38,12 +38,12 @@
 
 **Out of scope**
 
-- The home page's content → [W1c](./W1c-home-page.md); the shared header with the docs site → [W1d](./W1d-one-site-header.md).
+- The home page's content → [W1c](../ready/W1c-home-page.md); the shared header with the docs site → [W1d](../ready/W1d-one-site-header.md).
 - `/download`, `/privacy`, `/pricing`, `/performance` → their todos (W1a lists them).
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
+- [x] Claim: the first commit moves this file to `ongoing/`.
 - [ ] Scaffold `apps/site` with the layout and placeholder pages; add it to the workspace and to `check ts`.
 - [ ] `_headers` template and the post-build checks, each with a test that fails on a bad page (a third-party script, a cookie, a missing title).
 - [ ] `wrangler.toml` and `site.yml`; preview deploy verified on this PR (once the owner commits the workflow).
