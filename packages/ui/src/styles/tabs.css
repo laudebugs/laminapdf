@@ -1,0 +1,45 @@
+/* Segmented tabs (§7.5): 13 px tabs, gap 16, a 2 px accent line under the selected one, and a
+   hairline under the row. */
+@layer paper.components {
+  .paper-tab-list {
+    display: flex;
+    gap: var(--paper-space-16);
+    padding-block: var(--paper-space-14) 0;
+    padding-inline: var(--paper-space-18);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-tab {
+    display: flex;
+    align-items: center;
+    min-block-size: var(--ui-target);
+    border-block-end: var(--paper-selected-underline-width) solid transparent;
+    color: var(--paper-muted);
+    font: var(--paper-type-control);
+    cursor: default;
+  }
+
+  .paper-tab[data-hovered] {
+    color: var(--paper-text);
+  }
+
+  .paper-tab[data-selected] {
+    color: var(--paper-text);
+    font-weight: 600;
+    border-block-end-color: var(--paper-accent);
+  }
+
+  .paper-tab[data-disabled] {
+    color: var(--paper-disabled);
+  }
+
+  .paper-tab-panel[data-focus-visible] {
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  @media (forced-colors: active) {
+    .paper-tab[data-selected] {
+      border-block-end-color: Highlight;
+    }
+  }
+}

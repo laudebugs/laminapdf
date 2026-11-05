@@ -593,6 +593,8 @@ Variants **(proposed)**:
 
 ### 7.2 Mode switcher
 
+In `@laminapdf/ui`: `ModeSwitcher`. **Keyboard (decided, U6d):** each mode button is its own Tab stop, with Enter or Space to switch, because a `role="group"` gives no hint that arrow keys work. The secondary toolbars below use the toolbar pattern instead (ADR 0024 §8).
+
 Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, not a panel). Active: `text` 600 + 2 px `accent` underline; inactive: `muted`, transparent underline (keeps height stable). Hover **(proposed)**: label turns `text`. Gap 22, height 40 (fills the top bar).
 
 ```html
@@ -607,6 +609,8 @@ Buttons with `aria-pressed` in a `role="group"` (not tabs: modes change tools, n
 
 ### 7.3 Icon button
 
+In `@laminapdf/ui`: `IconButton`, which requires its `label`.
+
 Desktop 28×28 (top bar, inspector close), 26×26 (zoom), 32×32 (style tile); phone 44×44 with 22 px icon, radius 6. Radius 4, transparent, `text-3`.
 
 ```html
@@ -614,6 +618,8 @@ Desktop 28×28 (top bar, inspector close), 26×26 (zoom), 32×32 (style tile); p
 ```
 
 ### 7.4 Text buttons
+
+In `@laminapdf/ui`: `Button`.
 
 Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, padding 0 12, 13 px); phone ≥ 44 **(proposed)**. Radius 4. One primary per view.
 
@@ -627,6 +633,8 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 ```
 
 ### 7.5 Segmented tabs (rail tabs)
+
+In `@laminapdf/ui`: `SegmentedTabs` and `TabPanel`. **Activation (decided, U6d):** automatic, so an arrow key selects the tab it moves to, because a rail panel shows at once; a slow panel passes `keyboardActivation="manual"`.
 
 `role="tablist"` with `role="tab"`/`aria-selected`; 13 px, gap 16, padding `14px 18px 0`, 2 px `accent` underline on the selected tab, `hairline` under the row. Arrow keys move between tabs. Which tabs appear is in §8.10.
 
@@ -810,6 +818,8 @@ The same shell **(proposed)** serves the **details panel** (a document-level exp
 
 ### 7.12 Colour swatches
 
+In `@laminapdf/ui`: `SwatchGroup`, whose colours are token names.
+
 Circles with `aria-label` (colour name) and `aria-pressed`; 24 px in the secondary toolbar (gap 4, preceded by a 12 `muted` "Colour" label), 28 px in the inspector (gap 8). Edge 1 px `control-border`; selected `outline: 2px solid #1F1D1A` (offset 1 / 2). On touch **(proposed)**, the 26 px swatch sits centred in a 44 × 44 button and the selected ring is a `box-shadow` (2 px `surface` gap, 2 px `text`) so it doesn't change the layout. The same circles carry the other palettes of §2.7.
 
 ```html
@@ -920,6 +930,8 @@ Rules **(proposed)**:
 
 ### 7.19 Form controls (consistent with the page input and note field)
 
+In `@laminapdf/ui`: `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup` with `Radio`, and `Switch`. The switch is a visually hidden `<input type="checkbox" role="switch">` inside its label, like the checkbox below, rather than a `<button role="switch">`: it reports the same role and state, and keeps the whole row as its target.
+
 All: `control-border` 1 px, white fill, radius 4, 14 px text (16 on touch), label above (12/600 `text-3`) with gap 8, help text below (12 `muted`), error text below (12 `danger`, with `aria-describedby` and `aria-invalid="true"`; the border turns `danger`). Focus: the 2 px `accent` ring, offset 1.
 
 | Control | Size | Details |
@@ -1013,6 +1025,8 @@ Badge sets **(proposed)**, all at this size:
 
 ### 7.24 Secondary-toolbar tool toggle
 
+In `@laminapdf/ui`: `ToolToggle`, and `ToggleButton` for other pressed buttons.
+
 From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon + 13 px label, 1 px transparent border; selected = `accent` border, `accent-tint`, `accent` 600. Right end: a 12 `muted` context note ("1 comment on this page").
 
 ```html
@@ -1024,6 +1038,8 @@ From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon
 **Tool toolbar (proposed):** the secondary toolbar of a tool that works inside a mode (Redact, Protect, Form design, Accessibility, Print production, Measure). Same metrics; it starts with the tool's 16 px icon and its name in Newsreader 15/500 and ends with a context note and **Done** (secondary), which returns to the mode's own toolbar.
 
 ### 7.25 Page-appearance chips
+
+In `@laminapdf/ui`: `PageAppearanceChips`.
 
 From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. `role="group"` + `aria-pressed`.
 

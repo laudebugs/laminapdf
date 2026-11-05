@@ -1,0 +1,47 @@
+/* Toggle buttons and tool toggles (§7.0's toggle column, §7.24). */
+@layer paper.components {
+  .paper-toggle,
+  .paper-tool-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--paper-space-6);
+    min-block-size: max(var(--paper-tool-toggle-height), var(--ui-target));
+    min-inline-size: var(--ui-target);
+    padding-block: 0;
+    padding-inline: var(--paper-space-10);
+    border: var(--paper-border-width) solid transparent;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text-3);
+    font: var(--paper-type-control);
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .paper-toggle[data-hovered],
+  .paper-tool-toggle[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-toggle[data-selected],
+  .paper-tool-toggle[data-selected] {
+    border-color: var(--paper-accent);
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent);
+    font-weight: 600;
+  }
+
+  .paper-toggle[data-disabled],
+  .paper-tool-toggle[data-disabled] {
+    color: var(--paper-disabled);
+    background: transparent;
+  }
+
+  @media (forced-colors: active) {
+    .paper-toggle[data-selected],
+    .paper-tool-toggle[data-selected] {
+      border-color: Highlight;
+    }
+  }
+}

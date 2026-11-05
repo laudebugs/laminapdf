@@ -1,0 +1,72 @@
+/* Colour swatches (§7.12): circles with a control-border edge; the chosen one has a 2 px ring in
+   the text colour (offset 1 at 24 px, 2 at 28 px). On touch the circle is 26 px, centred in a
+   44 px button, and the ring is a box-shadow so the layout doesn't move. */
+@layer paper.components {
+  .paper-swatch-group {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-swatch-group[data-size="28"] {
+    gap: var(--paper-space-8);
+  }
+
+  .paper-swatch-group-label {
+    margin-inline-end: var(--paper-space-4);
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-swatch {
+    --dot: var(--ui-swatch);
+    display: inline-grid;
+    place-items: center;
+    inline-size: max(var(--dot), var(--ui-target));
+    block-size: max(var(--dot), var(--ui-target));
+    padding: 0;
+    border: 0;
+    border-radius: var(--paper-radius-pill);
+    background: transparent;
+    cursor: default;
+  }
+
+  .paper-swatch-group[data-size="28"] .paper-swatch {
+    --dot: var(--paper-swatch-size-inspector);
+  }
+
+  .paper-swatch-dot {
+    inline-size: var(--dot);
+    block-size: var(--dot);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-pill);
+    background: var(--swatch);
+  }
+
+  .paper-swatch[data-selected] .paper-swatch-dot {
+    outline: var(--paper-focus-ring-width) solid var(--paper-text);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  :where([data-density="touch"]) .paper-swatch[data-selected] .paper-swatch-dot {
+    outline: none;
+    box-shadow:
+      0 0 0 var(--paper-focus-ring-width) var(--paper-surface),
+      0 0 0 calc(2 * var(--paper-focus-ring-width)) var(--paper-text);
+  }
+
+  .paper-swatch-group[data-size="28"] .paper-swatch[data-selected] .paper-swatch-dot {
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+
+  @media (forced-colors: active) {
+    .paper-swatch-dot {
+      forced-color-adjust: none;
+      border-color: CanvasText;
+    }
+
+    .paper-swatch[data-selected] .paper-swatch-dot {
+      outline-color: Highlight;
+    }
+  }
+}

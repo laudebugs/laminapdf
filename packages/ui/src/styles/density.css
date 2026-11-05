@@ -1,0 +1,38 @@
+/* The sizes that change with density (§8.7). Desktop first, then a coarse pointer, then an
+   explicit DensityProvider, which wins over the pointer. `--ui-touch-icon` is unset on desktop, so
+   each control falls back to its own icon size there. */
+@layer paper.base {
+  :where(:root) {
+    --ui-target: var(--paper-target-min);
+    --ui-field-height: var(--paper-field-height);
+    --ui-field-font: var(--paper-type-body);
+    --ui-touch-icon: initial;
+    --ui-swatch: var(--paper-swatch-size-toolbar);
+  }
+
+  @media (pointer: coarse) {
+    :where(:root) {
+      --ui-target: var(--paper-target-min-touch);
+      --ui-field-height: var(--paper-target-min-touch);
+      --ui-field-font: var(--paper-type-input-large);
+      --ui-touch-icon: var(--paper-icon-size-touch);
+      --ui-swatch: var(--paper-swatch-size-touch);
+    }
+  }
+
+  :where([data-density="touch"]) {
+    --ui-target: var(--paper-target-min-touch);
+    --ui-field-height: var(--paper-target-min-touch);
+    --ui-field-font: var(--paper-type-input-large);
+    --ui-touch-icon: var(--paper-icon-size-touch);
+    --ui-swatch: var(--paper-swatch-size-touch);
+  }
+
+  :where([data-density="desktop"]) {
+    --ui-target: var(--paper-target-min);
+    --ui-field-height: var(--paper-field-height);
+    --ui-field-font: var(--paper-type-body);
+    --ui-touch-icon: initial;
+    --ui-swatch: var(--paper-swatch-size-toolbar);
+  }
+}
