@@ -44,7 +44,7 @@ The rules refuse what isn't a grid of text: a page border, a form's separate fie
 
 On the reading-order corpus in `fixtures/reading-order/`, every file reads in order, including the copies drawn in reverse: one, two and three columns, an academic page, a sidebar, a table, a rotated page, and Arabic, Hebrew and Chinese text.
 
-## Benchmark
+## How it scores on a public benchmark
 
 On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
 
@@ -59,8 +59,8 @@ On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rul
 
 Three things explain most of the failures:
 
-- **Pages with no text.** 89 of the 685 pages give no text. Most are scans inside these subsets, which need OCR, and they count against the score as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
-- **No headers, footers or structure yet.** Running headers and page numbers stay in the text, which fails the third subset, until the extractor reads them and the structure tree.
+- **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR; they stay in these subsets and count against the score, as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
+- **No headers, footers or structure yet.** Running headers and page numbers stay in the text until the extractor learns to recognise them, so most of the third subset fails.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 
 The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
