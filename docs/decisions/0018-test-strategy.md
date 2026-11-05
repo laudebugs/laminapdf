@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Amended 2026-11-05 (owner): the release lane skips its own nightly run when the release commit differs from a commit a full nightly passed on only in version files, as the daily release's commits do ([ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane); [P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md)).
 - Amended 2026-11-02 (owner): the release guard also accepts a dispatched nightly run on `main` with every input at its default; until then the Release row counted only scheduled runs ([implementation note](#release-guard-accepts-a-full-dispatched-nightly-2026-11-02)).
 
 ## Context
@@ -37,7 +38,7 @@ The test layout rules (unit tests in-file, integration tests on the public API, 
 | **Fast** | Every PR and push to `main` (exists, `.github/workflows/ci.yml`) | fmt, clippy `-D warnings` (native + wasm32), portability, tiers 1–5, doc tests, wasm build and size budget, TS checks, cargo-deny and npm licences, MSRV | ~10 min |
 | **Full** | Every PR and push to `main` (added in B2); a required check. Runs its suites only when the change touches `crates/`, `packages/`, `apps/`, `fixtures/`, `fuzz/`, `tools/` or `Cargo.lock`, otherwise passes in seconds | Fast lane on Linux, macOS and Windows; the 500-mutant differential set; each fuzz target for 2 min; round-trip with qpdf; render goldens and Playwright from Round C | ~30 min |
 | **Nightly** | Scheduled on `main` | Differential against live pdf.js, PDFium, qpdf and pypdf over the external corpus and all mutants; fuzz 10 min per target; veraPDF; hayro vs PDFium render diffs; perf and scaling | hours |
-| **Release** | Tags (`.github/workflows/release.yml`, B7b; [ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane)) | Full + nightly suites on the release commit, packaging checks (publint, attw), clean-install smoke tests in each runtime (`cargo xtask verify-install`); refused unless the latest full nightly on `main` (scheduled, or dispatched with every input at its default; amended 2026-11-02) passed on the release commit or an ancestor (`cargo xtask release-guard`) | hours |
+| **Release** | Tags (`.github/workflows/release.yml`, B7b; [ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane)) | Full + nightly suites on the release commit (the nightly suites skipped for a version-only commit on top of a nightly-passed one; amended 2026-11-05), packaging checks (publint, attw), clean-install smoke tests in each runtime (`cargo xtask verify-install`); refused unless the latest full nightly on `main` (scheduled, or dispatched with every input at its default; amended 2026-11-02) passed on the release commit or an ancestor (`cargo xtask release-guard`) | hours |
 
 The Full lane is never skipped by a workflow-level `paths` filter: GitHub keeps a required check whose workflow didn't run as "Expected — waiting", which would block docs-only PRs. Instead the workflow always runs; a first job computes the changed paths (`git diff --name-only` against the merge base) and a final gate job, the one marked required, succeeds when the suites passed or were not needed. Pushes to `main` always run everything.
 
