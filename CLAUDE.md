@@ -275,10 +275,11 @@ cargo xtask docs-links --external  # nightly: every http(s) URL in tracked *.md 
                              #   missing pages/sites reported (missing.md, with reasons), never a failure; report in target/nightly/links/)
 cargo xtask todos            # regenerate docs/todos/README.md and each todo's Blocks from its Depends on links
 cargo xtask todos --check    # fail if the board or a Blocks field is stale, or the todo graph is inconsistent
-cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the website's roadmap and dashboard: the board's
-                             #   counts per section and "Can start now" (todos.rs's parser), the roadmap's milestones and their
-                             #   state, merged PRs from `git log` on main (titles without numbers) and the todos open PRs claim
-                             #   (gh api; --offline or a gh failure keeps the last snapshot's list); refreshing it is an exempt PR
+cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the website's roadmap and dashboard, from main
+                             #   (origin/main) whatever the checkout: the board's counts per section and "Can start now" (todos.rs's
+                             #   parser), the roadmap's milestones and their state, merged PRs from `git log` (titles without
+                             #   numbers) and the todos open PRs claim, which move from next up to in progress (gh api; --offline
+                             #   or a gh failure keeps the last list); refreshing it is an exempt PR
 cargo xtask capabilities     # run the tests tagged `/// capability: <ID> <surface> <status>`, regenerate docs/capabilities/README.md
 cargo xtask capabilities --check  # full lane: fail if that page differs from what the passing tagged tests prove
 cargo xtask golden --update  # regenerate every golden in fixtures/golden/ (and fixtures/reading-order/) from its source, print the list
