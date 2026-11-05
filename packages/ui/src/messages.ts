@@ -27,6 +27,18 @@ const EN = {
   "reader.zoom.actualSize": "Actual size",
   "reader.commands": "Commands",
   "reader.more": "More",
+  "reader.password.title": "Enter the password",
+  "reader.password.body": "{name} is encrypted. Enter its password to show the pages.",
+  "reader.password.field": "Password",
+  "reader.password.show": "Show",
+  "reader.password.showName": "Show password",
+  "reader.password.help": "Lamina PDF uses it once to open the file on this device and doesn't save it.",
+  "reader.password.wrong":
+    "That password didn't open the file. Passwords are case-sensitive; check Caps Lock and try again.",
+  "reader.password.cancel": "Cancel",
+  "reader.password.close": "Close",
+  "reader.password.open": "Open",
+  "reader.password.opening": "Opening…",
 } as const;
 
 /** A message's key in the catalogue. */

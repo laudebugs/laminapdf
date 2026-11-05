@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import {
   type MenuEntry,
+  PasswordDialog,
   PlatformProvider,
   ReaderController,
   ReaderShell,
@@ -264,5 +265,114 @@ describe("ReaderShell", () => {
     expect(canvas.left).toBeCloseTo(rail.right, 0);
     expect(canvas.right).toBeCloseTo(inspector.left, 0);
     expect(canvas.height).toBeGreaterThan(400);
+  });
+});
+
+/** A reader whose document needs a password: `answers` are the opener's replies to each try. */
+function lockedReader(...answers: ("wrong" | "open" | "wait")[]) {
+  const tried: (string | undefined)[] = [];
+  const opener = (_file: unknown, password: string | undefined) => {
+    tried.push(password);
+    if (password === undefined) return Promise.reject(Object.assign(new Error(), { code: "password-required" }));
+    const answer = answers.shift();
+    if (answer === "wait") return new Promise<{ pageCount: number }>(() => undefined);
+    if (answer === "wrong") return Promise.reject(Object.assign(new Error(), { code: "wrong-password" }));
+    return Promise.resolve({ pageCount: 24 });
+  };
+  return { reader: new ReaderController(fakePlatform(), opener), tried };
+}
+
+const passwordField = () => document.querySelector(".paper-password-input") as HTMLInputElement;
+
+describe("PasswordDialog", () => {
+  it("asks for the password when the document needs one, focused on the field", async () => {
+    const { reader } = lockedReader();
+    renderIn(<PasswordDialog reader={reader} />);
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    await reader.open(fakeFile("Q3-board-report.pdf"));
+    await frame();
+    const dialog = document.querySelector("[role=dialog]") as HTMLElement;
+    expect(dialog.getAttribute("aria-labelledby")).not.toBeNull();
+    expect(dialog.textContent).toContain("Q3-board-report.pdf is encrypted.");
+    expect(focused()).toBe(passwordField());
+    expect(passwordField().type).toBe("password");
+    expect(passwordField().autocomplete).toBe("current-password");
+  });
+
+  it("sends the password on Enter, shows Opening while it is tried, and closes once open", async () => {
+    const { reader, tried } = lockedReader("open");
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.keyboard("hunter2{Enter}");
+    await frame();
+    expect(tried).toEqual([undefined, "hunter2"]);
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
+    expect(reader.getState().phase).toBe("open");
+  });
+
+  it("keeps Open disabled as Opening while a try runs", async () => {
+    const { reader } = lockedReader("wait");
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.keyboard("hunter2{Enter}");
+    await frame();
+    const open = button("Opening…") as HTMLButtonElement;
+    expect(open.disabled).toBe(true);
+  });
+
+  it("says a password was wrong under the field, which keeps focus with its text selected", async () => {
+    const { reader } = lockedReader("wrong");
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.keyboard("hunter3{Enter}");
+    await expect.poll(() => document.querySelector("[role=alert]")?.textContent).toContain("didn't open the file");
+    const field = passwordField();
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(field.getAttribute("aria-describedby") ?? "")?.getAttribute("role")).toBe("alert");
+    expect(focused()).toBe(field);
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, 7]);
+  });
+
+  it("shows the password while Show is pressed", async () => {
+    const { reader } = lockedReader();
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    const show = button("Show password") as HTMLButtonElement;
+    expect(show.textContent).toBe("Show");
+    await userEvent.click(show);
+    expect(show.getAttribute("aria-pressed")).toBe("true");
+    expect(passwordField().type).toBe("text");
+  });
+
+  it.each(["Cancel", "Escape"])("goes back to the home screen on %s, forgetting what was typed", async (how) => {
+    const { reader } = lockedReader();
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.keyboard("secret");
+    if (how === "Cancel") await userEvent.click(button("Cancel") as HTMLButtonElement);
+    else await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
+    expect(reader.getState().phase).toBe("empty");
+    await reader.open(fakeFile());
+    await frame();
+    expect(passwordField().value).toBe("");
+  });
+
+  it("passes axe, wrong password shown", async () => {
+    const { reader } = lockedReader("wrong");
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.keyboard("x{Enter}");
+    await expect.poll(() => document.querySelector("[role=alert]")).not.toBeNull();
+    const { violations } = await axe.run(document.querySelector("[role=dialog]") as HTMLElement, {
+      resultTypes: ["violations"],
+    });
+    expect(violations.map((v) => v.id)).toEqual([]);
   });
 });

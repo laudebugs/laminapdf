@@ -202,3 +202,83 @@
     white-space: nowrap;
   }
 }
+
+/* The password prompt (R03): a field with Show inside it, its error under it in `danger` with the
+   warning icon, and the help line in 12 muted. */
+@layer paper.components {
+  .paper-password {
+    display: grid;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-password-field {
+    display: flex;
+    align-items: center;
+    min-block-size: var(--ui-field-height);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+  }
+
+  .paper-password-field:focus-within {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  .paper-password-field[data-invalid] {
+    border-color: var(--paper-danger);
+  }
+
+  .paper-password-input {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    align-self: stretch;
+    padding-inline: var(--paper-space-10);
+    border: 0;
+    background: transparent;
+    color: var(--paper-text);
+    font: var(--ui-field-font);
+  }
+
+  .paper-password-input:focus {
+    outline: none;
+  }
+
+  .paper-password-show {
+    flex: none;
+    min-block-size: var(--ui-target);
+    margin-inline-end: var(--paper-space-4);
+    padding-inline: var(--paper-space-8);
+    border: 0;
+    border-radius: var(--paper-radius-3);
+    background: transparent;
+    color: var(--paper-accent-strong);
+    font: var(--paper-type-control);
+  }
+
+  .paper-password-show[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-password-show[data-selected] {
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-password-error {
+    display: flex;
+    gap: var(--paper-space-6);
+    margin: 0;
+    font: var(--paper-type-caption);
+    color: var(--paper-danger);
+  }
+
+  .paper-password-error > svg {
+    flex: none;
+  }
+
+  .paper-password-help {
+    margin: 0;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+}

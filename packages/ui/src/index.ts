@@ -120,6 +120,7 @@ export type {
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
 export { useGatedEntry } from "./reader/gate.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
+export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
 export {
