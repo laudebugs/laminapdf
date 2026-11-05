@@ -41,7 +41,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
   - [ ] Privacy page updated (update endpoint data, install ID and reset, crash reports opt-in and 30-day retention, local recent files).
   - [ ] Third-party notices bundled; SBOMs and attestations generated.
   - [ ] Owner confirms: domain, product name, bundle identifier, default channel for new installs (open question 4), default-handler behaviour (open question 5).
-- Version `0.1.0` in `apps/desktop/package.json` (single source; `tauri.conf.json` reads it), changelog `apps/desktop/CHANGELOG.md`, release notes page content (features, known issues, SmartScreen note if OV, Linux graphics note, how to report bugs, how to verify downloads).
+- Version `0.1.0` in `apps/desktop/package.json` (single source; `tauri.conf.json` reads it), changelog `apps/desktop/CHANGELOG.md`, release notes page content at `/desktop/releases/<version>` on the website (`apps/site`; the updater's `notes` URL, [D5a](./D5a-update-worker-and-adr-0014.md)) (features, known issues, SmartScreen note if OV, Linux graphics note, how to report bugs, how to verify downloads).
 - Release: tag `desktop-v0.1.0` → workflow publishes to `beta` at the rollout chosen per ADR 0014 (for a first beta, 100 % of a small audience is fine — record), downloads JSON updated, download page shows Beta.
 - Announcement text (README badge/section, project site) — no external posting required by this todo.
 - **Update cycle**: after ≥ 3 days, release `0.1.1` (real fixes from beta feedback, or a small change) through the same pipeline with staged rollout 10 % → 50 % → 100 % on `beta`, observing the Worker's 200/204 counts (aggregate only) and crash reports; confirm on each OS that a `0.1.0` install updated to `0.1.1` without user action beyond the restart prompt (owner/maintainer machines plus at least one external tester per OS if available).
@@ -66,7 +66,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 ## Acceptance criteria
 
-- [ ] `desktop v0.1.0` is downloadable from `laminapdf.com/download` for macOS, Windows and Linux; each artefact passes the runbook's signature checks (Gatekeeper, Authenticode with the owner as publisher, GPG/debsig/rpm, AppImage) and `gh attestation verify`.
+- [ ] `desktop v0.1.0` is downloadable from `laminapdf.com/download` (the website) for macOS, Windows and Linux; each artefact passes the runbook's signature checks (Gatekeeper, Authenticode with the owner as publisher, GPG/debsig/rpm, AppImage) and `gh attestation verify`.
 - [ ] The 0.1.1 update-cycle and kill-switch rehearsal procedure (below) is written in the runbook and linked from the PR.
 - [ ] Crash reporting: zero reports sent without consent (no reports at all is fine); any received reports triaged into follow-up todos.
 - [ ] Known issues and target misses are listed in the release notes and have follow-up todos.

@@ -5,7 +5,7 @@
 - **Inventory:** [screens.md, section H](screens.md#h-account-cloud-collaboration-and-product-pages-h-e18-u5) · **Look and components:** [design-language.md](design-language.md)
 - **Plans:** [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) and [optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features), [roadmap: decisions made](../../plans/roadmap.md#decisions-made), [UI/UX principle 10](../../plans/ui-ux.md#4-principles) and [§5.9](../../plans/ui-ux.md#59-product-promises-r18-r19)
 
-This area covers everything that involves our server or our prices: the optional account (H01, H02), cloud documents and sync (H03, H04), shared review (H05–H07), the product pages on the docs site (H08, H09), opt-in usage counts (H10) and the upgrade prompt (H11).
+This area covers everything that involves our server or our prices: the optional account (H01, H02), cloud documents and sync (H03, H04), shared review (H05–H07), the product pages on the website (H08, H09), opt-in usage counts (H10) and the upgrade prompt (H11).
 
 Rules every screen here follows:
 
@@ -19,7 +19,7 @@ Rules every screen here follows:
 - Command ids use the shared namespaces (`file.*`, `account.*`, `licence.*`, `settings.*`, `comment.*`, `edit.*`); the cloud, sync and sharing commands live under `file.*` because they act on the open or listed file.
 - Other undecided values are bracketed too: `[REGION]` (data residency), `[N]` (days to delete an account), `[RETENTION]` (usage counts), `[LAMINA DOMAIN]`, `[VERSION]`, `[SPEC]`, and every benchmark number (`[n ms]`, `[n MB]`).
 
-Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; the docs-site pages H08 and H09 are 1900 and 1680 high because they are long pages), phone boards are 390 × 844. Every board has the `accent` tweak (Teal, Blue, Plum, Green, [design language §2.8](design-language.md#28-accent-colours)).
+Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; the website pages H08 and H09 are 1900 and 1680 high because they are long pages), phone boards are 390 × 844. Every board has the `accent` tweak (Teal, Blue, Plum, Green, [design language §2.8](design-language.md#28-accent-colours)).
 
 ## H01 Sign in / create account
 
@@ -257,11 +257,11 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 ## H08 Pricing and promises page
 
-**Purpose.** The docs-site page that publishes the plans and prices the owner sets, the fair-pricing promises, and what needs an account.
+**Purpose.** The website page (`laminapdf.com/pricing`, `apps/site`) that publishes the plans and prices the owner sets, the fair-pricing promises, and what needs an account.
 
 **Entry points.** Site navigation "Pricing"; links from H02 ("Pricing and promises"), H11 ("Compare plans") and the app’s About dialog.
 
-**Layout.** Docs-site page (not the app shell): the docs-site header of design language [§7.39](design-language.md#739-site-and-product-pages-proposed) (64 px, wordmark Source Sans 3 24/700, 15 px nav, one secondary button) with the one site nav list for every docs-site page: Download · Docs · Pricing · Performance · Privacy, plus "Open the web app"; the download page (S09) uses §7.39's 56 px variant of the same header and should carry the same list. Footer 12 `muted` with the licence line. Content max 1120 px. Sections: heading and lead; two plan cards; a terms line; "Our promises" band on `surface`; "What needs an account" table; footer. The H08/H09 boards predate the sans-only docs site and still show Newsreader; this text wins.
+**Layout.** Website page (not the app shell): the site header of design language [§7.39](design-language.md#739-site-and-product-pages-proposed) (64 px, wordmark Source Sans 3 24/700, 15 px nav, one secondary button) with the one site nav list for every page of the website and the docs site: Download · Docs · Pricing · Performance · Privacy, plus "Open the web app"; the download page (S09) uses §7.39's 56 px variant of the same header and should carry the same list. Footer 12 `muted` with the licence line. Content max 1120 px. Sections: heading and lead; two plan cards; a terms line; "Our promises" band on `surface`; "What needs an account" table; footer. The H08/H09 boards predate the sans-only docs site and still show Newsreader; this text wins.
 
 **Content and controls.**
 
@@ -288,7 +288,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 **Entry points.** Site navigation "Performance"; link from H08.
 
-**Layout.** Same docs-site frame as H08. Sections: heading and lead; "Release gates" table; "Reader benchmark" with file tabs, a machine select and a results table; "Method" and "Rerun it" side by side.
+**Layout.** Same website frame as H08. Sections: heading and lead; "Release gates" table; "Reader benchmark" with file tabs, a machine select and a results table; "Method" and "Rerun it" side by side.
 
 **Content and controls.**
 
