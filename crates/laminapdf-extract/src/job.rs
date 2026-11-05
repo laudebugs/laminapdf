@@ -12,6 +12,7 @@ use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
 use crate::tables::{Collector, TableMode};
+use crate::{furniture, headings, lists};
 
 /// An extraction in progress. Step it with the document it was made from until it returns
 /// [`Step::Done`]; an error or a cancellation ends it with no partial result. The core document
@@ -83,6 +84,22 @@ pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -
     }
 }
 
+/// The rules that need every page: running headers and footers leave the blocks, then
+/// headings (whose body size is the document's) and list items are marked, and each page's
+/// blocks are numbered again.
+fn finish(out: &mut Extraction, options: &ExtractOptions) {
+    if options.drop.furniture {
+        furniture::remove(out, options.drop.keep_spans);
+    }
+    headings::assign(&mut out.blocks);
+    lists::assign(&mut out.blocks);
+    for page in out.blocks.chunk_by_mut(|a, b| a.page == b.page) {
+        for (n, block) in page.iter_mut().enumerate() {
+            block.id = format!("p{}-b{n}", block.page);
+        }
+    }
+}
+
 impl ExtractJob {
     /// A token that cancels this job from another thread or callback.
     #[must_use]
@@ -138,7 +155,9 @@ impl ExtractJob {
             self.next += 1;
         }
         if self.next >= self.todo.len() {
-            return Ok(Step::Done(std::mem::take(&mut self.out)));
+            let mut out = std::mem::take(&mut self.out);
+            finish(&mut out, &self.options);
+            return Ok(Step::Done(out));
         }
         Ok(Step::Progress {
             done: u32::try_from(self.next).unwrap_or(u32::MAX),
