@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../ongoing/U6e-overlays-and-sheets.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2d](./D2d-tile-transport-and-first-document.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md), [E10e](./E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer) and 0010 (`Platform` interface, capability flags, web implementation) |
 | Branch | `feat/c4a-ui-chrome` |
@@ -32,7 +32,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 
 **In scope**
 
-- The reader shell in `packages/ui` (`@laminapdf/ui`), which [U6d](../done/U6d-core-components.md) creates (package scaffold, React 19, tests, Biome config) and [U6e](../ongoing/U6e-overlays-and-sheets.md) extends; C4a adds the shell and platform modules to it and does not re-scaffold the package.
+- The reader shell in `packages/ui` (`@laminapdf/ui`), which [U6d](../done/U6d-core-components.md) creates (package scaffold, React 19, tests, Biome config) and [U6e](../done/U6e-overlays-and-sheets.md) extends; C4a adds the shell and platform modules to it and does not re-scaffold the package.
 - Accessible primitives library chosen per ADR 0009 (recommendation: React Aria Components for i18n/RTL/keyboard) — licence checked (Apache-2.0).
 - Components: `ReaderShell` (layout: toolbar, optional sidebar slot, viewer slot, status region), `Toolbar` (open, page indicator with input, prev/next, zoom out/in, zoom menu with fit width / fit page / actual size / presets, rotate, download/print placeholders disabled by capability, overflow menu), `OpenDropZone` (empty state with "Open a file", drag-and-drop target, paste hint), `PasswordDialog`, `ErrorBanner` / `RepairNotice` (ADR 0003 warnings in plain words, list of unsupported features), `LoadingState`, `DebugMenu` slot (backend switch hayro/PDFium for diffing — hidden behind `#debug`, a fragment per ADR 0011 §3.6).
 - `useViewer(viewer)` hooks over the store (`useSyncExternalStore`), `ReaderController` that owns the interaction state machine (`empty → opening → needs-password → open → error`).
@@ -59,7 +59,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 - [ ] Zoom control: percentage input + menu; keyboard operable; reflects viewer state.
 - [ ] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password; `autocomplete="off"`.
 - [ ] Error/repair UI: maps ADR 0003 warning and error codes (`fixtures/codes.json`) to messages; "repaired" notice is dismissible; unsupported-feature list expandable.
-- [ ] Use `@laminapdf/tokens` ([U6a](../done/U6a-paper-tokens.md)) for all styles and compose the shell from `@laminapdf/ui`'s Paper components and overlays ([U6d](../done/U6d-core-components.md), [U6e](../ongoing/U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
+- [ ] Use `@laminapdf/tokens` ([U6a](../done/U6a-paper-tokens.md)) for all styles and compose the shell from `@laminapdf/ui`'s Paper components and overlays ([U6d](../done/U6d-core-components.md), [U6e](../done/U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
 - [ ] README with the component map and how desktop supplies its own `Platform`.
 
 ## Acceptance criteria

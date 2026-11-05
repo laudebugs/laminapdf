@@ -47,8 +47,8 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 **Out of scope** (and which todo covers it)
 
 - Fonts themselves (files, `@font-face`, preload) → [U6b](../ready/U6b-self-hosted-fonts.md); this package only names the families.
-- Icons → [U6c](../done/U6c-icon-set.md). Z-order tokens → [U6e](../ongoing/U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
-- Components using the tokens → [U6d](../done/U6d-core-components.md), [U6e](../ongoing/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- Icons → [U6c](../done/U6c-icon-set.md). Z-order tokens → [U6e](../done/U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
+- Components using the tokens → [U6d](../done/U6d-core-components.md), [U6e](../done/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 - The theme switch UI, `forced-colors` component styles, stored user preference and the settings dialog → [C7a](../ready/C7a-accessibility-and-theming.md).
 - Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](../ready/U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](../ready/C7a-accessibility-and-theming.md) / [U2c](../ready/U2c-page-appearance-modes.md).
 - Mockup-only document colours ([§2.5](../../design/paper/design-language.md#25-mockup-only-colours-document-content)) and the drawn macOS `window` colours: not product tokens.

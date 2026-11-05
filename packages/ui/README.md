@@ -72,10 +72,12 @@ const toasts = new ToastQueue();
 
 <ToastRegion queue={toasts} aria-label="Notifications" />
 
-const shown = toasts.add({ message: "Highlight deleted", action: { label: "Undo", onPress: undo } });
+const toast = toasts.add({ message: "Highlight deleted", action: { label: "Undo", onPress: undo } });
 ```
 
-Overlays stack in the order the design language's z-order sets, from the tokens: docked chrome, then sheets, then dialogs over the scrim, then menus, popovers and tooltips, then toasts. A menu opened from a dialog draws above it. Escape closes the innermost open layer only, and focus goes back to the control that opened it. A dialog that asks a required question stays open, and so does everything beneath it.
+`add` returns a handle whose `dismiss()` removes the toast early.
+
+Overlays stack in the design language's z-order, which the tokens hold: docked chrome, then sheets, then dialogs over the scrim, then menus, popovers and tooltips, then toasts. A menu opened from a dialog draws above it. Escape closes the innermost open layer only, and focus goes back to the control that opened it. A dialog that asks a required question stays open, and so does everything beneath it.
 
 ## Adding a component
 

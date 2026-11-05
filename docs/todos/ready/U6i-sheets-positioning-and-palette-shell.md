@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6e](../ongoing/U6e-overlays-and-sheets.md) |
+| Depends on | [U6e](../done/U6e-overlays-and-sheets.md) |
 | Blocks | [U1b](./U1b-command-registry-and-palette.md), [U6f](./U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows 0024 (selection surfaces per pointer type, sheets with detents, palette as an APG combobox, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for any positioning dependency |
 | Branch | `feat/u6i-sheets-positioning-and-palette-shell` |
@@ -16,14 +16,14 @@
 
 ## Goal
 
-Finish the overlays that [U6e](../ongoing/U6e-overlays-and-sheets.md) starts. U6e builds the layer stack, the z-order tokens, dialogs, menus, tooltips and the toast region; this todo builds the three layers with their own geometry on that stack: phone bottom sheets with detents whose grabber is a real button (a single-pointer alternative to dragging), the dialog shown as a sheet on the phone, the positioning of the desktop selection mini toolbar (above the selection, flipping on collision, reachable with Shift+F10), and the command palette's shell (an APG combobox with a listbox) that [U1b](./U1b-command-registry-and-palette.md) fills with commands. This todo was split from U6e when U6e was claimed, because the two together passed the 800-line budget.
+Finish the overlays that [U6e](../done/U6e-overlays-and-sheets.md) starts. U6e builds the layer stack, the z-order tokens, dialogs, menus, tooltips and the toast region; this todo builds the three layers with their own geometry on that stack: phone bottom sheets with detents whose grabber is a real button (a single-pointer alternative to dragging), the dialog shown as a sheet on the phone, the positioning of the desktop selection mini toolbar (above the selection, flipping on collision, reachable with Shift+F10), and the command palette's shell (an APG combobox with a listbox) that [U1b](./U1b-command-registry-and-palette.md) fills with commands. This todo was split from U6e when U6e was claimed, because the two together passed the 800-line budget.
 
 ## Context
 
 - Design language [§7.9 selection mini toolbar](../../design/paper/design-language.md#79-selection-mini-toolbar-desktop-fine-pointer), [§7.10 command palette](../../design/paper/design-language.md#710-command-palette), [§7.16 bottom sheet](../../design/paper/design-language.md#716-bottom-sheet), [§6.2 phone shell](../../design/paper/design-language.md#62-phone-shell-390--844-artboard) (sheet detents: medium, large, collapsed; grabber 64 × 44 button), [§8.7 touch rules](../../design/paper/design-language.md#87-touch-rules), [§8.8 keyboard](../../design/paper/design-language.md#88-keyboard-and-shortcuts) (Shift+F10, Escape order).
 - Design: F01 (mini toolbar), F02 (palette), F04 (Pages sheet) in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards).
 - [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) (palette), [§5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) (selection surfaces), [§5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (sheets, safe areas).
-- [U6e](../ongoing/U6e-overlays-and-sheets.md): the layer stack, z-order tokens and `Dialog` these join; [U6d](../done/U6d-core-components.md) and [U6h](../done/U6h-display-components.md): the density context, `ShortcutChip`, `EmptyState` and the test helpers.
+- [U6e](../done/U6e-overlays-and-sheets.md): the layer stack, z-order tokens and `Dialog` these join; [U6d](../done/U6d-core-components.md) and [U6h](../done/U6h-display-components.md): the density context, `ShortcutChip`, `EmptyState` and the test helpers.
 - Consumers: [U1b](./U1b-command-registry-and-palette.md) (palette contents, ranking and argument parsing), [U2a](./U2a-selection-surfaces-and-copy-modes.md) (when the mini toolbar shows and what it holds), [U3a](./U3a-responsive-mobile-and-touch.md) (which panels become sheets).
 - WCAG 2.2 SC 2.4.11 (focus not obscured), 2.5.7 (dragging movements); WAI-ARIA APG: combobox with listbox popup, toolbar.
 
@@ -39,7 +39,7 @@ Finish the overlays that [U6e](../ongoing/U6e-overlays-and-sheets.md) starts. U6
 
 **Out of scope** (and which todo covers it)
 
-- The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../ongoing/U6e-overlays-and-sheets.md).
+- The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../done/U6e-overlays-and-sheets.md).
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](./U1b-command-registry-and-palette.md).
 - When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](./U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](./U3a-responsive-mobile-and-touch.md).
 - Which panels become sheets on the phone → [U3a](./U3a-responsive-mobile-and-touch.md).
