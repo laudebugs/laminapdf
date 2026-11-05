@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6a](../done/U6a-paper-tokens.md) |
+| Depends on | [U6a](./U6a-paper-tokens.md) |
 | Blocks | [C4b](../ready/C4b-web-app-shell.md), [W1b](../ready/W1b-site-scaffold-and-deploys.md), [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md), [U6f](../ready/U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) (bundled fonts OFL-1.1 or Apache-2.0 only, listed with their licence in the notices), 0024 (typography tokens; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6b-self-hosted-fonts` |
@@ -69,12 +69,12 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 
 ## Acceptance criteria
 
-- [ ] `@laminapdf/fonts` ships WOFF2 files for Source Sans 3 (400/500/600) and Newsreader (400/500/600 + italic 400) in Latin and Latin Extended subsets, with both OFL texts and `fonts.lock.json`; re-running `tools/fonts/subset.sh` reproduces byte-identical files (or the README explains why not and the lock records output hashes).
-- [ ] **Size budget** (recommendation; adjust once measured, in this PR, with the owner's agreement): the preloaded Source Sans 3 Latin 400 file ≤ 30 KB; all Latin files together ≤ 200 KB; Latin Extended files are loaded only when used (verified in the browser test by checking `document.fonts` after rendering Latin-only text).
-- [ ] A Playwright (or Vitest browser) test loads a page using the fonts (the gallery stub or a test page) and records every request: all font requests are same-origin and there are **zero** requests to any other host.
-- [ ] The guard test fails if a product source file references a font CDN (shown once in the PR description).
-- [ ] Text in Greek, Cyrillic and CJK on the test page renders with system fallback fonts (non-zero glyph widths, no tofu in a screenshot attached to the PR).
-- [ ] `cargo xtask check` passes, including `npm-licenses` with the fonts package's licence.
+- [x] `@laminapdf/fonts` ships WOFF2 files for Source Sans 3 (400/500/600) and Newsreader (400/500/600 + italic 400) in Latin and Latin Extended subsets, with both OFL texts and `fonts.lock.json`; re-running `tools/fonts/subset.sh` reproduces byte-identical files (or the README explains why not and the lock records output hashes).
+- [x] **Size budget** (recommendation; adjust once measured, in this PR, with the owner's agreement): the preloaded Source Sans 3 Latin 400 file ≤ 30 KB; all Latin files together ≤ 200 KB; Latin Extended files are loaded only when used (verified in the browser test by checking `document.fonts` after rendering Latin-only text).
+- [x] A Playwright (or Vitest browser) test loads a page using the fonts (the gallery stub or a test page) and records every request: all font requests are same-origin and there are **zero** requests to any other host.
+- [x] The guard test fails if a product source file references a font CDN (shown once in the PR description).
+- [x] Text in Greek, Cyrillic and CJK on the test page renders with system fallback fonts (non-zero glyph widths, no tofu in a screenshot attached to the PR).
+- [x] `cargo xtask check` passes, including `npm-licenses` with the fonts package's licence.
 
 ## Post-merge checks
 
@@ -105,12 +105,13 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - **Sources from npm.** The official GitHub repositories aren't reachable from the build environment, so the sources are npm tarballs: Adobe's own `source-sans@3.52.0`, and Fontsource's packages of Google Fonts' builds of Newsreader and Caveat. `fonts.lock.json` records each package, version and file hash, and the script reads the tarballs offline.
 - **A Python script, not `subset.sh`.** The subsetting has real logic (instancing, renaming, fallback metrics, the lock), which code organization §10 keeps out of shell; `tools/fonts/subset.py` follows `tools/fixtures/fonts.py` (fontTools, pinned, run by hand).
 - **Measured.** Newsreader's optical-size axis is pinned at 18: its Latin file is 37 KB without the axis and 90 KB with it. The fraction features are left out of Lamina Sans, which keeps its preloaded Latin file at 30,640 bytes, under the 30 KB budget. The Latin files together come to 169 KB, under 200 KB.
+- **No screenshot.** The browser test checks Greek, Cyrillic and CJK text by width and by the files fetched (none for that text), in Chromium here and in Firefox and WebKit in CI, instead of a screenshot in the PR.
 - **Source Serif 4** isn't shipped (the page-appearance chips fall back to Georgia); the open question above stays with the owner.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

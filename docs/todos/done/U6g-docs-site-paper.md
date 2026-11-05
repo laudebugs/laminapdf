@@ -16,13 +16,13 @@
 
 ## Goal
 
-The owner asked (2026-10-31) for the docs site to look like the app before it moves to `laminapdf.com`. Theme the Starlight site (`apps/docs`) in the Paper design language: Paper's light and proposed dark themes, Newsreader titles and Source Sans 3 text, self-hosted because the CSP allows fonts from `'self'` only. It is an interim copy: [U6a](../done/U6a-paper-tokens.md) and [U6b](../ongoing/U6b-self-hosted-fonts.md) build the shared packages, and the docs site switches to them there.
+The owner asked (2026-10-31) for the docs site to look like the app before it moves to `laminapdf.com`. Theme the Starlight site (`apps/docs`) in the Paper design language: Paper's light and proposed dark themes, Newsreader titles and Source Sans 3 text, self-hosted because the CSP allows fonts from `'self'` only. It is an interim copy: [U6a](../done/U6a-paper-tokens.md) and [U6b](../done/U6b-self-hosted-fonts.md) build the shared packages, and the docs site switches to them there.
 
 ## Context
 
 - [Paper design language](../../design/paper/design-language.md) §2 (colour, light §2.1, dark §2.3, accents §2.8) and §3 (typography).
 - [B7a](./B7a-docs-site.md) — the docs site and its `public/_headers` CSP.
-- [U6a](../done/U6a-paper-tokens.md), [U6b](../ongoing/U6b-self-hosted-fonts.md) — the packages that replace this copy.
+- [U6a](../done/U6a-paper-tokens.md), [U6b](../done/U6b-self-hosted-fonts.md) — the packages that replace this copy.
 
 ## Scope
 
@@ -35,7 +35,7 @@ The owner asked (2026-10-31) for the docs site to look like the app before it mo
 **Out of scope** (and which todo covers it)
 
 - The shared tokens and their contrast test → [U6a](../done/U6a-paper-tokens.md).
-- Fonts subsetted from upstream sources, fallback metrics (`size-adjust`) and a preload → [U6b](../ongoing/U6b-self-hosted-fonts.md).
+- Fonts subsetted from upstream sources, fallback metrics (`size-adjust`) and a preload → [U6b](../done/U6b-self-hosted-fonts.md).
 - Moving the site to `laminapdf.com` → a separate PR.
 
 ## Tasks
