@@ -12,14 +12,13 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 182 ready · 121 done** (303 total).
+**1 ongoing · 181 ready · 121 done** (303 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done (an open PR may already have claimed one: check `gh pr list`):
 
 - [L3c](ready/L3c-model-plugins.md): Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate
-- [L3d](ready/L3d-extract-structure-and-furniture.md): Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags
 - [L4b](ready/L4b-cli-batch-render-schema.md): CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
@@ -32,7 +31,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [L3d](ongoing/L3d-extract-structure-and-furniture.md): Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags
 
 ## Architecture — Round A
 
@@ -91,7 +90,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L3a | [ADR 0030 and `laminapdf-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](done/L3a-lamina-extract-reading-order.md) | done | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`](done/L3b-extract-tables-and-serialisers.md) | done | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](done/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](done/L3b-extract-tables-and-serialisers.md) |
-| L3d | [Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags](ready/L3d-extract-structure-and-furniture.md) | ready | [L3a](done/L3a-lamina-extract-reading-order.md), [L3b](done/L3b-extract-tables-and-serialisers.md) |
+| L3d | [Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags](ongoing/L3d-extract-structure-and-furniture.md) | ongoing | [L3a](done/L3a-lamina-extract-reading-order.md), [L3b](done/L3b-extract-tables-and-serialisers.md) |
 | L3e | [Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark](done/L3e-extract-bindings-and-benchmark.md) | done | [L3b](done/L3b-extract-tables-and-serialisers.md) |
 | L3f | [The extraction benchmark: reading order and tables on a licence-clean public subset](done/L3f-extraction-benchmark.md) | done | [L3e](done/L3e-extract-bindings-and-benchmark.md) |
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](done/L4a-lamina-cli.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |

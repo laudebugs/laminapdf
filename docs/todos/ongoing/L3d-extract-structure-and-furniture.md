@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
 | Depends on | [L3a](../done/L3a-lamina-extract-reading-order.md), [L3b](../done/L3b-extract-tables-and-serialisers.md) |
@@ -38,7 +38,7 @@
 **Out of scope** (and which todo covers it)
 
 - Ruled and unruled tables, serialisers, the JSON Schema and the Rust façade: [L3b](../done/L3b-extract-tables-and-serialisers.md); WASM, TypeScript and the benchmark: [L3e](../done/L3e-extract-bindings-and-benchmark.md).
-- Model plug-ins: [L3c](./L3c-model-plugins.md).
+- Model plug-ins: [L3c](../ready/L3c-model-plugins.md).
 
 ## Tasks
 
