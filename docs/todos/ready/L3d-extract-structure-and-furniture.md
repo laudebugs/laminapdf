@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
-| Depends on | [L3a](../done/L3a-lamina-extract-reading-order.md) |
+| Depends on | [L3a](../done/L3a-lamina-extract-reading-order.md), [L3b](../done/L3b-extract-tables-and-serialisers.md) |
 | Blocks | None |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) §2–§4 (this todo implements what its §9 lists as L3d's); [0023](../../decisions/0023-content-stream-reading.md) for the clip and fill colour |
 | Branch | `feat/l3d-extract-structure` |
@@ -32,11 +32,12 @@
 - **Headings** from font-metric clusters and tagged `H`/`H1`–`H6`; **list items** from bullets and numbering with a hanging indent, and tagged `L`/`LI`/`Lbl`/`LBody`.
 - **Running headers, footers and page numbers** (ADR 0030 §4) and `Artifact` marked content (`artifact`): `laminapdf-text`'s runs carry whether they are in an artifact; `ExtractOptions::headers_footers` turns removal off.
 - **`clipped` and `low-contrast`:** `laminapdf-content` tracks the clip's bounding box and `laminapdf-text`'s runs carry it and the fill colour (small changes in those crates, own commits); the heuristics as ADR 0030 §4 describes, leaning towards keeping text.
-- Fixtures built with `laminapdf-build`: `headings-lists`, `running-headers` (5 pages), `tagged-reordered`, `tagged-broken`, and clipped and white-on-white text added to the hidden-text test; the reading-order corpus's header-footer files then drop their headers and footers.
+- **Tagged tables:** a `Table` element with `TR`/`TH`/`TD` (and `/RowSpan`, `/ColSpan`) gives a table block's rows, cells, spans and header flags, ahead of the ruled grid L3b detects; `detector: "tagged"` and confidence 1 (ISO 32000-2 §14.8.4.8.3).
+- Fixtures built with `laminapdf-build`: `headings-lists`, `tagged-table`, `running-headers` (5 pages), `tagged-reordered`, `tagged-broken`, and clipped and white-on-white text added to the hidden-text test; the reading-order corpus's header-footer files then drop their headers and footers.
 
 **Out of scope** (and which todo covers it)
 
-- Tables, serialisers, the JSON Schema, façade, WASM and TypeScript: [L3b](./L3b-extract-tables-and-serialisers.md).
+- Ruled and unruled tables, serialisers, the JSON Schema and the Rust façade: [L3b](../done/L3b-extract-tables-and-serialisers.md); WASM, TypeScript and the benchmark: [L3e](./L3e-extract-bindings-and-benchmark.md).
 - Model plug-ins: [L3c](./L3c-model-plugins.md).
 
 ## Tasks

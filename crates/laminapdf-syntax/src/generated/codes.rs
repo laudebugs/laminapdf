@@ -900,6 +900,10 @@ pub enum WarningCode {
     ExtractLimitBlocks,
     /// `extract-reading-order-ambiguous`: a page mixes horizontal and vertical writing, so the order of its blocks is a guess.
     ExtractReadingOrderAmbiguous,
+    /// `extract-table-ambiguous`: a table's rules marked out merged cells that aren't rectangles, so its cells were kept unmerged.
+    ExtractTableAmbiguous,
+    /// `extract-table-limit`: a page's ruling lines would make a table bigger than the extraction's cell limit; those lines gave no table.
+    ExtractTableLimit,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -945,6 +949,8 @@ impl WarningCode {
         Self::UnmappedGlyph,
         Self::ExtractLimitBlocks,
         Self::ExtractReadingOrderAmbiguous,
+        Self::ExtractTableAmbiguous,
+        Self::ExtractTableLimit,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
     ];
@@ -989,6 +995,8 @@ impl WarningCode {
             b"unmapped-glyph" => Self::UnmappedGlyph,
             b"extract-limit-blocks" => Self::ExtractLimitBlocks,
             b"extract-reading-order-ambiguous" => Self::ExtractReadingOrderAmbiguous,
+            b"extract-table-ambiguous" => Self::ExtractTableAmbiguous,
+            b"extract-table-limit" => Self::ExtractTableLimit,
             b"tounicode-conflict" => Self::TounicodeConflict,
             b"whole-font-rebuilt" => Self::WholeFontRebuilt,
             _ => return None,
@@ -1035,6 +1043,8 @@ impl WarningCode {
             Self::UnmappedGlyph => "unmapped-glyph",
             Self::ExtractLimitBlocks => "extract-limit-blocks",
             Self::ExtractReadingOrderAmbiguous => "extract-reading-order-ambiguous",
+            Self::ExtractTableAmbiguous => "extract-table-ambiguous",
+            Self::ExtractTableLimit => "extract-table-limit",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
         }
@@ -1080,6 +1090,8 @@ impl WarningCode {
             Self::UnmappedGlyph => ErrorKind::Input,
             Self::ExtractLimitBlocks => ErrorKind::Limit,
             Self::ExtractReadingOrderAmbiguous => ErrorKind::Unsupported,
+            Self::ExtractTableAmbiguous => ErrorKind::Unsupported,
+            Self::ExtractTableLimit => ErrorKind::Limit,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
         }
@@ -1125,6 +1137,8 @@ impl WarningCode {
             Self::UnmappedGlyph => "a font shows glyphs that nothing maps to text",
             Self::ExtractLimitBlocks => "a page had more runs of text than the extraction block limit; the runs past it were left out",
             Self::ExtractReadingOrderAmbiguous => "a page mixes horizontal and vertical writing, so the order of its blocks is a guess",
+            Self::ExtractTableAmbiguous => "a table's rules marked out merged cells that aren't rectangles, so its cells were kept unmerged",
+            Self::ExtractTableLimit => "a page's ruling lines would make a table bigger than the extraction's cell limit; those lines gave no table",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
         }
@@ -1170,6 +1184,8 @@ impl WarningCode {
             Self::UnmappedGlyph => "nothing to do; those glyphs extract as U+FFFD (the file needs a ToUnicode CMap)",
             Self::ExtractLimitBlocks => "raise ExtractLimits::max_blocks_per_page if the page really has that many blocks",
             Self::ExtractReadingOrderAmbiguous => "nothing to do; check the order of that page's blocks, or ask for content order",
+            Self::ExtractTableAmbiguous => "nothing to do; check that table's cells, whose text may be split across neighbours",
+            Self::ExtractTableLimit => "raise ExtractLimits::max_table_cells if the page really has a table that big",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
         }

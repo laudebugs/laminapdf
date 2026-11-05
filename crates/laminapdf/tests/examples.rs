@@ -7,6 +7,9 @@
 #![expect(clippy::panic, reason = "test helper: a panic is a test failure")]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/extract_markdown.rs"]
+mod extract_markdown;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/generate_then_edit.rs"]
 mod generate_then_edit;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -212,7 +215,25 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
         .iter()
         .map(|(name, _)| name.split_once('-').map_or(*name, |(stem, _)| stem).to_owned())
         .collect();
+    // Examples that read a PDF and write text have no PDF golden; each has its own test.
+    here.extend(READERS.iter().map(|r| (*r).to_owned()));
     here.sort();
     here.dedup();
     assert_eq!((&here, &in_manifest), (&files, &files));
+}
+
+/// The examples that read a PDF instead of building one.
+const READERS: [&str; 1] = ["extract_markdown"];
+
+#[test]
+fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
+    let out = std::env::temp_dir().join(format!("laminapdf-extract-example-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap_or_else(|e| panic!("{e}"));
+    let invoice = fixture("golden/examples/invoice.pdf");
+    extract_markdown::write_outputs(&invoice, &out, "invoice").unwrap_or_else(|e| panic!("{e}"));
+    let read = |name: &str| std::fs::read_to_string(out.join(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
+    assert!(read("invoice.md").starts_with("<!-- page 1 -->\n\nInvoice 42\n"));
+    assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
+    assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
+    let _ = std::fs::remove_dir_all(&out);
 }

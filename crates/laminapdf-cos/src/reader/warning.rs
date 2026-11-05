@@ -260,6 +260,21 @@ pub enum Warning {
         /// The page's index.
         page: u64,
     },
+    /// `extract-table-ambiguous`: a table's rules marked out merged cells that aren't
+    /// rectangles, so its cells were taken from the grid unmerged. Raised by `laminapdf-extract`.
+    ExtractTableAmbiguous {
+        /// The page's index.
+        page: u64,
+    },
+    /// `extract-table-limit`: a page's rules would make a table with more cells than the
+    /// extraction's limit (or more crossings than it allows to test); those rules gave no
+    /// table. Raised by `laminapdf-extract`.
+    ExtractTableLimit {
+        /// The page's index.
+        page: u64,
+        /// The limit that was reached.
+        limit: u32,
+    },
 }
 
 impl Warning {
@@ -301,6 +316,8 @@ impl Warning {
         "unmapped-glyph",
         "extract-limit-blocks",
         "extract-reading-order-ambiguous",
+        "extract-table-ambiguous",
+        "extract-table-limit",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -343,6 +360,8 @@ impl Warning {
             Self::UnmappedGlyph { .. } => "unmapped-glyph",
             Self::ExtractLimitBlocks { .. } => "extract-limit-blocks",
             Self::ExtractReadingOrderAmbiguous { .. } => "extract-reading-order-ambiguous",
+            Self::ExtractTableAmbiguous { .. } => "extract-table-ambiguous",
+            Self::ExtractTableLimit { .. } => "extract-table-limit",
         }
     }
 
@@ -385,7 +404,9 @@ impl Warning {
             | Self::WarningsTruncated
             | Self::InvalidPageLabel { .. }
             | Self::ExtractLimitBlocks { .. }
-            | Self::ExtractReadingOrderAmbiguous { .. } => None,
+            | Self::ExtractReadingOrderAmbiguous { .. }
+            | Self::ExtractTableAmbiguous { .. }
+            | Self::ExtractTableLimit { .. } => None,
         }
     }
 
@@ -426,7 +447,8 @@ impl Warning {
             | Self::FontInvalid { .. }
             | Self::CMapInvalid { .. }
             | Self::UnmappedGlyph { .. } => ErrorKind::Input,
-            Self::ExtractReadingOrderAmbiguous { .. } => ErrorKind::Unsupported,
+            Self::ExtractReadingOrderAmbiguous { .. } | Self::ExtractTableAmbiguous { .. } => ErrorKind::Unsupported,
+            Self::ExtractTableLimit { .. } => ErrorKind::Limit,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
             }
@@ -457,7 +479,9 @@ impl Warning {
             Self::InvalidBox { page, .. }
             | Self::InvalidRotate { page, .. }
             | Self::ExtractLimitBlocks { page, .. }
-            | Self::ExtractReadingOrderAmbiguous { page } => Some(page),
+            | Self::ExtractReadingOrderAmbiguous { page }
+            | Self::ExtractTableAmbiguous { page }
+            | Self::ExtractTableLimit { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
         };
@@ -475,7 +499,9 @@ impl Warning {
             Self::InvalidBox { page, .. }
             | Self::InvalidRotate { page, .. }
             | Self::ExtractLimitBlocks { page, .. }
-            | Self::ExtractReadingOrderAmbiguous { page } => Some(page as i128),
+            | Self::ExtractReadingOrderAmbiguous { page }
+            | Self::ExtractTableAmbiguous { page }
+            | Self::ExtractTableLimit { page, .. } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
             | Self::ContentBadOperands { offset, .. }
@@ -622,6 +648,8 @@ mod tests {
             Warning::UnmappedGlyph { object: None },
             Warning::ExtractLimitBlocks { page: 0, limit: 1 },
             Warning::ExtractReadingOrderAmbiguous { page: 0 },
+            Warning::ExtractTableAmbiguous { page: 0 },
+            Warning::ExtractTableLimit { page: 0, limit: 1 },
         ];
         for w in &all {
             match w {
@@ -660,7 +688,9 @@ mod tests {
                 | Warning::CMapInvalid { .. }
                 | Warning::UnmappedGlyph { .. }
                 | Warning::ExtractLimitBlocks { .. }
-                | Warning::ExtractReadingOrderAmbiguous { .. } => {}
+                | Warning::ExtractReadingOrderAmbiguous { .. }
+                | Warning::ExtractTableAmbiguous { .. }
+                | Warning::ExtractTableLimit { .. } => {}
             }
         }
         all

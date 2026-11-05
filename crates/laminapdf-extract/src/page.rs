@@ -12,6 +12,7 @@ use crate::error::ExtractError;
 use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
 use crate::model::{Block, BlockKind, Coordinates, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
+use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::text_fix::{decompose_ligatures, join_lines};
 use crate::visibility::{flags, normalised};
 use crate::xycut;
@@ -151,41 +152,85 @@ fn is_vertical(line: &Line, pieces: &[Piece]) -> bool {
         .is_some_and(|p| p.vertical)
 }
 
-/// The drafts in reading order.
+/// A block to be: text grouped into lines, or a table (an index into the page's tables).
+enum Item {
+    Text(Draft),
+    Table(usize),
+}
+
+/// The items in reading order. `first` is each item's first run in drawing order (for
+/// [`ReadingOrder::ContentStream`]), `lines` its line count (a table counts its rows).
 fn ordered(
-    drafts: Vec<Draft>,
-    lines: &[Line],
+    items: Vec<Item>,
+    boxes: &[RectPt],
+    lines: &[usize],
+    first: &[usize],
     rtl: bool,
     options: &ExtractOptions,
     cancel: &CancelToken,
-) -> Result<Vec<Draft>, ExtractError> {
+) -> Result<Vec<Item>, ExtractError> {
     let order: Vec<usize> = match options.reading_order {
         ReadingOrder::ContentStream => {
-            // The first run each block holds, in the order the content stream drew the runs.
-            let first = |d: &Draft| {
-                d.lines
-                    .iter()
-                    .filter_map(|&l| lines.get(l))
-                    .flat_map(|l| l.pieces.iter().copied())
-                    .min()
-                    .unwrap_or(usize::MAX)
-            };
-            let mut order: Vec<usize> = (0..drafts.len()).collect();
-            order.sort_by_key(|&i| drafts.get(i).map_or(usize::MAX, first));
+            let mut order: Vec<usize> = (0..items.len()).collect();
+            order.sort_by_key(|&i| first.get(i).copied().unwrap_or(usize::MAX));
             order
         }
         ReadingOrder::Auto | ReadingOrder::Layout => {
-            let boxes: Vec<_> = drafts.iter().map(|d| d.bbox).collect();
-            let counts: Vec<_> = drafts.iter().map(|d| d.lines.len()).collect();
-            xycut::order(&boxes, &counts, rtl, options.limits.max_xycut_depth, cancel)
+            xycut::order(boxes, lines, rtl, options.limits.max_xycut_depth, cancel)
                 .map_err(|xycut::Cancelled| ExtractError::Cancelled)?
         }
     };
-    let mut slots: Vec<Option<Draft>> = drafts.into_iter().map(Some).collect();
+    let mut slots: Vec<Option<Item>> = items.into_iter().map(Some).collect();
     Ok(order
         .into_iter()
         .filter_map(|i| slots.get_mut(i).and_then(Option::take))
         .collect())
+}
+
+/// The page's tables, from its rules (`edges`, collected while its text was read) and, on
+/// request, its aligned text. Their units are the paragraph pieces, so a table's text is the
+/// same text (ligatures spelled out, `ActualText` applied) and each piece lands in exactly one
+/// of a cell and the paragraph flow.
+fn find_tables(
+    doc: &Document,
+    index: usize,
+    edges: Option<&Edges>,
+    pieces: &[Piece],
+    options: &ExtractOptions,
+) -> Result<Vec<Table>, ExtractError> {
+    let Some(edges) = edges.filter(|_| options.tables != TableMode::Off && !pieces.is_empty()) else {
+        return Ok(Vec::new());
+    };
+    let glyphs: Vec<Glyph> = pieces
+        .iter()
+        .map(|p| Glyph {
+            text: p.text.clone(),
+            bbox: p.bbox,
+            size: p.size.get(),
+            bold: is_bold(&p.font),
+        })
+        .collect();
+    let max_cells = usize::try_from(options.limits.max_table_cells).unwrap_or(usize::MAX);
+    let mut limited = false;
+    let tables = tables::detect(options.tables, edges, &glyphs, max_cells, &mut limited);
+    if limited {
+        doc.report(Warning::ExtractTableLimit {
+            page: u64::try_from(index).unwrap_or(u64::MAX),
+            limit: options.limits.max_table_cells,
+        })?;
+    }
+    Ok(tables)
+}
+
+/// A table block's text: a tab between cells, a line break between rows.
+fn table_text(table: &Table) -> String {
+    let mut rows: Vec<Vec<&str>> = vec![Vec::new(); table.rows];
+    for cell in &table.cells {
+        if let Some(row) = rows.get_mut(cell.row) {
+            row.push(&cell.text);
+        }
+    }
+    rows.iter().map(|r| r.join("\t")).collect::<Vec<_>>().join("\n")
 }
 
 /// Extracts page `index`, whose text is `text`.
@@ -194,6 +239,7 @@ pub(crate) fn extract_page(
     page: &Page<'_>,
     index: usize,
     text: &PageText,
+    edges: Option<&Edges>,
     options: &ExtractOptions,
     cancel: &CancelToken,
 ) -> Result<PageOut, ExtractError> {
@@ -223,43 +269,161 @@ pub(crate) fn extract_page(
         pieces.truncate(kept);
         spans.truncate(kept);
     }
-    let lines = lines(&pieces);
-    let vertical = lines.iter().filter(|l| is_vertical(l, &pieces)).count();
+    let tables = find_tables(doc, index, edges, &pieces, options)?;
+    if tables.iter().any(|t| t.ambiguous) {
+        doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
+    }
+    let flow = Flow::split(pieces, spans, &tables);
+    let lines = lines(&flow.pieces);
+    let vertical = lines.iter().filter(|l| is_vertical(l, &flow.pieces)).count();
     if vertical > 0 && vertical < lines.len() {
         doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
     }
-    let drafts = blocks(&lines, |l| is_vertical(l, &pieces));
+    let drafts = blocks(&lines, |l| is_vertical(l, &flow.pieces));
     // Vertical writing (Chinese, Japanese) sets its columns right to left, as do right-to-left
     // scripts.
     let rtl = 2 * vertical > lines.len() || mostly_rtl(&lines.iter().map(|l| l.text.as_str()).collect::<String>());
-    let drafts = ordered(drafts, &lines, rtl, options, cancel)?;
+    let mut items: Vec<Item> = drafts.into_iter().map(Item::Text).collect();
+    items.extend((0..tables.len()).map(Item::Table));
+    let (mut boxes, mut counts, mut first) = (Vec::new(), Vec::new(), Vec::new());
+    for item in &items {
+        let (bbox, count, start) = match item {
+            Item::Text(d) => (d.bbox, d.lines.len(), flow.first_run(&d.lines, &lines)),
+            Item::Table(t) => match tables.get(*t) {
+                Some(table) => (
+                    table.bbox,
+                    table.rows.max(2),
+                    flow.table_first.get(*t).copied().unwrap_or(usize::MAX),
+                ),
+                None => continue,
+            },
+        };
+        boxes.push(bbox);
+        counts.push(count);
+        first.push(start);
+    }
+    let items = ordered(items, &boxes, &counts, &first, rtl, options, cancel)?;
     let confidence = match options.reading_order {
         ReadingOrder::ContentStream => CONTENT_CONFIDENCE,
         ReadingOrder::Auto | ReadingOrder::Layout => LAYOUT_CONFIDENCE,
     };
-    let blocks = drafts
+    let blocks = items
         .into_iter()
         .enumerate()
-        .map(|(n, draft)| {
-            let block_lines: Vec<&Line> = draft.lines.iter().filter_map(|&l| lines.get(l)).collect();
-            let text = join_lines(block_lines.iter().map(|l| l.text.as_str()), options.dehyphenate);
-            let spans = block_lines
-                .iter()
-                .flat_map(|l| l.pieces.iter().filter_map(|&p| spans.get(p).cloned()))
-                .collect();
-            Block {
-                id: format!("p{index}-b{n}"),
-                kind: BlockKind::Paragraph,
-                text,
-                page: index,
-                bbox: draft.bbox,
-                bbox_norm: normalised(&draft.bbox, info.width, info.height),
-                struct_path: Vec::new(),
-                struct_ref: None,
-                spans,
-                confidence,
+        .filter_map(|(n, item)| {
+            let id = format!("p{index}-b{n}");
+            match item {
+                Item::Text(draft) => Some(text_block(id, &draft, &lines, &flow, &info, options, confidence)),
+                Item::Table(t) => Some(table_block(id, tables.get(t)?, flow.table_spans.get(t)?, &info)),
             }
         })
         .collect();
     Ok(PageOut { info, blocks, dropped })
+}
+
+/// The page's pieces and spans with the tables' taken out, and the tables' own spans.
+struct Flow {
+    pieces: Vec<Piece>,
+    spans: Vec<Span>,
+    /// Each kept piece's index among all the page's pieces (its drawing order).
+    order: Vec<usize>,
+    table_spans: Vec<Vec<Span>>,
+    /// Each table's first piece in drawing order.
+    table_first: Vec<usize>,
+}
+
+impl Flow {
+    fn split(pieces: Vec<Piece>, spans: Vec<Span>, tables: &[Table]) -> Self {
+        let mut flow = Self {
+            pieces: Vec::with_capacity(pieces.len()),
+            spans: Vec::with_capacity(spans.len()),
+            order: Vec::with_capacity(pieces.len()),
+            table_spans: vec![Vec::new(); tables.len()],
+            table_first: vec![usize::MAX; tables.len()],
+        };
+        // Each piece's table, if a cell took it.
+        let mut owner: Vec<Option<usize>> = vec![None; pieces.len()];
+        for (t, table) in tables.iter().enumerate() {
+            for &g in &table.glyphs {
+                if let Some(slot) = owner.get_mut(g) {
+                    *slot = Some(t);
+                }
+            }
+        }
+        for (i, (piece, span)) in pieces.into_iter().zip(spans).enumerate() {
+            if let Some(t) = owner.get(i).copied().flatten() {
+                if let Some(list) = flow.table_spans.get_mut(t) {
+                    list.push(span);
+                }
+                if let Some(f) = flow.table_first.get_mut(t) {
+                    *f = (*f).min(i);
+                }
+            } else {
+                flow.pieces.push(piece);
+                flow.spans.push(span);
+                flow.order.push(i);
+            }
+        }
+        flow
+    }
+
+    /// The first run in drawing order among a block's lines.
+    fn first_run(&self, block_lines: &[usize], lines: &[Line]) -> usize {
+        block_lines
+            .iter()
+            .filter_map(|&l| lines.get(l))
+            .flat_map(|l| l.pieces.iter().filter_map(|&p| self.order.get(p).copied()))
+            .min()
+            .unwrap_or(usize::MAX)
+    }
+}
+
+fn text_block(
+    id: String,
+    draft: &Draft,
+    lines: &[Line],
+    flow: &Flow,
+    info: &ExtractedPage,
+    options: &ExtractOptions,
+    confidence: f64,
+) -> Block {
+    let block_lines: Vec<&Line> = draft.lines.iter().filter_map(|&l| lines.get(l)).collect();
+    let text = join_lines(block_lines.iter().map(|l| l.text.as_str()), options.dehyphenate);
+    let spans = block_lines
+        .iter()
+        .flat_map(|l| l.pieces.iter().filter_map(|&p| flow.spans.get(p).cloned()))
+        .collect();
+    Block {
+        id,
+        kind: BlockKind::Paragraph,
+        text,
+        page: info.index,
+        bbox: draft.bbox,
+        bbox_norm: normalised(&draft.bbox, info.width, info.height),
+        struct_path: Vec::new(),
+        struct_ref: None,
+        spans,
+        confidence,
+        cells: Vec::new(),
+    }
+}
+
+fn table_block(id: String, table: &Table, spans: &[Span], info: &ExtractedPage) -> Block {
+    Block {
+        id,
+        kind: BlockKind::Table {
+            rows: table.rows,
+            cols: table.cols,
+            detector: table.detector,
+        },
+        text: table_text(table),
+        page: info.index,
+        bbox: table.bbox,
+        bbox_norm: normalised(&table.bbox, info.width, info.height),
+        struct_path: Vec::new(),
+        struct_ref: None,
+        spans: spans.to_vec(),
+        confidence: table.confidence,
+        cells: table.cells.clone(),
+    }
 }

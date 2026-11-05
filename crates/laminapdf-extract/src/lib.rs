@@ -36,7 +36,9 @@ mod job;
 mod lines;
 mod model;
 mod options;
+mod output;
 mod page;
+mod tables;
 mod text_fix;
 mod visibility;
 mod xycut;
@@ -44,7 +46,13 @@ mod xycut;
 pub use error::ExtractError;
 pub use job::{ExtractJob, extract, extract_job};
 pub use model::{
-    Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags, SCHEMA,
-    Span, StructRef, StructSource,
+    Block, BlockKind, Cell, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags,
+    SCHEMA, Span, StructRef, StructSource, TableDetector,
 };
 pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder};
+#[cfg(feature = "schema")]
+pub use output::json_schema;
+pub use output::{Chunk, ChunkOptions, MarkdownOptions, Region, Rendered, SplitOn, TextRange, tokens_approx};
+#[cfg(feature = "serde")]
+pub use output::{JsonOptions, chunks_jsonl, to_json};
+pub use tables::TableMode;

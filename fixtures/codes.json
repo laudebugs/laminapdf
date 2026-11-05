@@ -256,6 +256,20 @@
       "summary": "a page mixes horizontal and vertical writing, so the order of its blocks is a guess",
       "hint": "nothing to do; check the order of that page's blocks, or ask for content order",
       "since": "0.2.0"
+    },
+    {
+      "code": "extract-table-ambiguous",
+      "kind": "unsupported",
+      "summary": "a table's rules marked out merged cells that aren't rectangles, so its cells were kept unmerged",
+      "hint": "nothing to do; check that table's cells, whose text may be split across neighbours",
+      "since": "0.2.0"
+    },
+    {
+      "code": "extract-table-limit",
+      "kind": "limit",
+      "summary": "a page's ruling lines would make a table bigger than the extraction's cell limit; those lines gave no table",
+      "hint": "raise ExtractLimits::max_table_cells if the page really has a table that big",
+      "since": "0.2.0"
     }
   ],
   "errors": [
