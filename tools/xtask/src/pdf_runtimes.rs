@@ -188,7 +188,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// `lamina_pdf_render_hayro.wasm`), each with the native render goldens, `@laminapdf/viewer`'s document worker and RPC
 /// (C3a, built first), `@laminapdf/tokens`' high-contrast theme, whose system colours only a browser resolves
 /// (U6a), `@laminapdf/fonts`' faces (U6b: what a page fetches, all from its own origin), `@laminapdf/icons`'
-/// React `<Icon>` and gallery (U6c), and `@laminapdf/ui`'s components (U6d). They record no measurements.
+/// React `<Icon>` and gallery (U6c), `@laminapdf/ui`'s components (U6d), and `@laminapdf/site-kit`'s site
+/// header (W1d: keyboard order, the current page, phone width, axe). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
     // The viewer's document worker and RPC (C3a), over the built package.
@@ -218,6 +219,7 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "@laminapdf/fonts",
         "@laminapdf/icons",
         "@laminapdf/ui",
+        "@laminapdf/site-kit",
     ] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));

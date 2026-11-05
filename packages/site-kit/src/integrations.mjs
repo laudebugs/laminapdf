@@ -1,6 +1,7 @@
 // Build steps that Lamina PDF's Astro sites share (the docs site and the website). Each runs after
 // the build, on the files in dist/. Node-only: it runs at build time, never in a page.
 import { createHash } from "node:crypto";
+import { readdirSync } from "node:fs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 
 /** The token in public/_headers that {@link fillInlineScriptHashes} replaces. */
@@ -22,6 +23,21 @@ const MAX_HEADER_LINE = 1_900;
 export async function filesIn(dir, extension) {
   const entries = await readdir(dir, { recursive: true });
   return entries.filter((name) => name.endsWith(extension)).map((name) => new URL(name, dir));
+}
+
+/**
+ * The page files under `dir` (a site's src/pages folder, a file: URL), as `/src/pages/…` paths: the
+ * pages the header may link to (nav.mjs). A site's astro.config.mjs reads them once per build.
+ * Like Astro, it leaves out files and folders whose names start with `_`, which serve no page.
+ *
+ * @param {URL} dir
+ * @returns {string[]}
+ */
+export function pageFiles(dir) {
+  return readdirSync(dir, { recursive: true })
+    .map((file) => `/src/pages/${String(file).replaceAll("\\", "/")}`)
+    .filter((file) => /\.(astro|md)$/.test(file) && !file.split("/").some((part) => part.startsWith("_")))
+    .sort();
 }
 
 /**

@@ -1,0 +1,15 @@
+---
+// The foot of the docs site's phone menu (Starlight's `MobileMenuFooter` override, W1d): below
+// 50 rem the header hides the site's links, so the menu lists them, above Starlight's own social
+// icons and theme switch.
+import Default from "@astrojs/starlight/components/MobileMenuFooter.astro";
+import { siteNav } from "@laminapdf/site-kit/nav";
+import SiteNav from "@laminapdf/site-kit/SiteNav.astro";
+
+const links = siteNav(__SITE_PAGES__, { site: "docs", path: Astro.url.pathname });
+---
+
+<div class="docs-menu-site-nav">
+  <SiteNav links={links} />
+</div>
+<Default />
