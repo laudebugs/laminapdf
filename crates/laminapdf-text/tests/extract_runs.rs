@@ -189,6 +189,16 @@ fn mcids_split_runs() {
 }
 
 #[test]
+fn text_inside_artifact_marked_content_is_flagged_and_splits_runs() {
+    let text = text(
+        b"BT /F1 10 Tf 72 700 Td /Artifact << /Type /Pagination >> BDC /Span BMC (1) Tj EMC EMC (A) Tj
+          /Artifact BMC (2) Tj EMC ET",
+    );
+    let runs: Vec<(&str, bool)> = text.runs.iter().map(|r| (r.text.as_str(), r.artifact)).collect();
+    assert_eq!(runs, [("1", true), ("A", false), ("2", true)]);
+}
+
+#[test]
 fn invisible_text_is_flagged_and_visible_drops_it() {
     let text = text(b"BT /F1 10 Tf 72 700 Td 3 Tr (OCR) Tj 0 Tr ( drawn) Tj ET");
     let flags: Vec<(&str, bool)> = text.runs.iter().map(|r| (r.text.as_str(), r.invisible)).collect();
