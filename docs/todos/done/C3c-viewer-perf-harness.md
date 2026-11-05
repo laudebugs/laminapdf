@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
+| Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
 | Blocks | [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [C6c](../ready/C6c-print-download-properties.md), [C7b](../ready/C7b-offline-pwa.md), [C7c](../ready/C7c-performance-gates-and-launch.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) tier 11 and §2 lanes (no wall-clock assertions in PR lanes; perf in nightly; regressions open issues) and §4 (flaky tests are bugs) |
 | Branch | `test/c3c-viewer-perf-harness` |
@@ -95,6 +95,6 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 
 - [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

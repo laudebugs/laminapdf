@@ -23,7 +23,7 @@ Users quote SumatraPDF-class speed as the bar and complain about Acrobat's cold 
 - **Design (Paper):** [H09 Benchmark page](../../design/paper/account-cloud-product.md#h09-benchmark-page). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — targets; [research gaps](../../research/product/pdf-app-product-and-ux.md#several-primary-sources-were-unreachable-and-the-gaps-matter) — no competitor benchmarks found.
 - [Competitive teardown](../../research/product/notes/competitive-teardown.md) — Acrobat footprint and iPad drawing reports; Sumatra praise.
-- [C3c](../ongoing/C3c-viewer-perf-harness.md) — lamina's own harness; [D7c](./D7c-desktop-beta-release.md) — the signed, packaged desktop beta, so cold start and installer size are measured on a release build, not a dev build.
+- [C3c](../done/C3c-viewer-perf-harness.md) — lamina's own harness; [D7c](./D7c-desktop-beta-release.md) — the signed, packaged desktop beta, so cold start and installer size are measured on a release build, not a dev build.
 
 ## Scope
 

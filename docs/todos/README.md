@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 180 ready · 122 done** (303 total).
+**0 ongoing · 180 ready · 123 done** (303 total).
 
 ## Can start now
 
@@ -31,7 +31,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [C3c](ongoing/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -113,19 +113,19 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | C2c | [`@laminapdf/render-pdfium` and `@laminapdf/render-hayro`: the web render adapters](done/C2c-render-packages.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [C2b](done/C2b-lamina-render-crate.md) |
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
-| C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ongoing/C3c-viewer-perf-harness.md) | ongoing | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
+| C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](done/C3c-viewer-perf-harness.md) | done | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
 | C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](done/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
-| C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ongoing/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
-| C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ongoing/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
-| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](done/B6b-lamina-pdf-package.md), [C3c](ongoing/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
+| C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](done/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
+| C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](done/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
+| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](done/B6b-lamina-pdf-package.md), [C3c](done/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | C6b | [Link layer (internal, named and external links) and back/forward history](ready/C6b-links-and-history.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md) |
-| C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ongoing/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
+| C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](done/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C7a | [Accessibility: keyboard map and help, focus, landmarks, announcements, themes and axe in CI](ready/C7a-accessibility-and-theming.md) | ready | [C5b](ready/C5b-find-in-document.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md), [C6b](ready/C6b-links-and-history.md), [C6c](ready/C6c-print-download-properties.md), [U1b](ready/U1b-command-registry-and-palette.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
-| C7b | [Offline and PWA: service worker, manifest with `file_handlers`, OPFS cache and recent files](ready/C7b-offline-pwa.md) | ready | [C3c](ongoing/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C5b](ready/C5b-find-in-document.md), [C7a](ready/C7a-accessibility-and-theming.md) |
-| C7c | [Performance budgets as CI gates, privacy page, and the `web v0.1` launch](ready/C7c-performance-gates-and-launch.md) | ready | [C3c](ongoing/C3c-viewer-perf-harness.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C6c](ready/C6c-print-download-properties.md), [C7a](ready/C7a-accessibility-and-theming.md), [C7b](ready/C7b-offline-pwa.md), [W1b](done/W1b-site-scaffold-and-deploys.md), [U2a](ready/U2a-selection-surfaces-and-copy-modes.md), [U2c](ready/U2c-page-appearance-modes.md), [U3a](ready/U3a-responsive-mobile-and-touch.md), [U4a](ready/U4a-network-indicator-and-privacy-proof.md) |
+| C7b | [Offline and PWA: service worker, manifest with `file_handlers`, OPFS cache and recent files](ready/C7b-offline-pwa.md) | ready | [C3c](done/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C5b](ready/C5b-find-in-document.md), [C7a](ready/C7a-accessibility-and-theming.md) |
+| C7c | [Performance budgets as CI gates, privacy page, and the `web v0.1` launch](ready/C7c-performance-gates-and-launch.md) | ready | [C3c](done/C3c-viewer-perf-harness.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C6c](ready/C6c-print-download-properties.md), [C7a](ready/C7a-accessibility-and-theming.md), [C7b](ready/C7b-offline-pwa.md), [W1b](done/W1b-site-scaffold-and-deploys.md), [U2a](ready/U2a-selection-surfaces-and-copy-modes.md), [U2c](ready/U2c-page-appearance-modes.md), [U3a](ready/U3a-responsive-mobile-and-touch.md), [U4a](ready/U4a-network-indicator-and-privacy-proof.md) |
 
 ## Website — Round W
 

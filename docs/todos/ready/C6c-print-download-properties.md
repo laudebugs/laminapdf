@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../ongoing/C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
 | Blocks | [C7a](./C7a-accessibility-and-theming.md), [C7c](./C7c-performance-gates-and-launch.md), [D4c](./D4c-native-printing.md) |
-| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](./C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../ongoing/C3c-viewer-perf-harness.md) (print preparation measured within the harness budget) |
+| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](./C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../done/C3c-viewer-perf-harness.md) (print preparation measured within the harness budget) |
 | ADRs | Follows 0004 (print rendering via `RenderBackend` with print intent), 0010 (`Platform.print`, `Platform.saveAs`, `hasNativePrint` flag), 0011 (no upload: print and download are local) |
 | Branch | `feat/c6c-print-download-properties` |
 | PR title | `feat(web): add printing, original-bytes download and the document properties dialog` |
