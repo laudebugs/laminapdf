@@ -60,6 +60,25 @@ function Opener({ required = false, children, ...rest }: Options) {
   );
 }
 
+function Radios() {
+  return (
+    <Dialog isOpen onOpenChange={() => {}} title="Print" closeLabel="Close">
+      <RadioGroup label="Pages" defaultValue="current">
+        <Radio value="all">All pages</Radio>
+        <Radio value="current">Current page</Radio>
+      </RadioGroup>
+    </Dialog>
+  );
+}
+
+/** A dialog that closes by unmounting. */
+function Conditional({ fallback }: { fallback: HTMLElement }) {
+  const [open, setOpen] = useState(true);
+  return open ? (
+    <Dialog isOpen onOpenChange={setOpen} title="Move" closeLabel="Close" returnFocusTo={() => fallback} />
+  ) : null;
+}
+
 async function openDialog(options: Options = {}) {
   renderIn(<Opener {...options} />);
   await userEvent.tab();
@@ -128,16 +147,6 @@ describe("Dialog", () => {
   });
 
   it("starts on a radio group's checked radio", () => {
-    function Radios() {
-      return (
-        <Dialog isOpen onOpenChange={() => {}} title="Print" closeLabel="Close">
-          <RadioGroup label="Pages" defaultValue="current">
-            <Radio value="all">All pages</Radio>
-            <Radio value="current">Current page</Radio>
-          </RadioGroup>
-        </Dialog>
-      );
-    }
     renderIn(<Radios />);
     expect((focused() as HTMLInputElement).value).toBe("current");
   });
@@ -145,13 +154,7 @@ describe("Dialog", () => {
   it("sends focus to the fallback when it closes by unmounting and its opener is gone", async () => {
     const fallback = document.createElement("button");
     document.body.append(fallback);
-    function Conditional() {
-      const [open, setOpen] = useState(true);
-      return open ? (
-        <Dialog isOpen onOpenChange={setOpen} title="Move" closeLabel="Close" returnFocusTo={() => fallback} />
-      ) : null;
-    }
-    renderIn(<Conditional />);
+    renderIn(<Conditional fallback={fallback} />);
     await userEvent.keyboard("{Escape}");
     await frame();
     await frame();
