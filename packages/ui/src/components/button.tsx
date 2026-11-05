@@ -54,7 +54,8 @@ export interface IconButtonProps extends Omit<AriaButtonProps, "children" | "cla
 export function IconButton({ label, icon, size = 28, ...rest }: IconButtonProps): ReactNode {
   return (
     <AriaButton {...rest} aria-label={label} className="paper-icon-button" data-size={size}>
-      <Icon name={icon} size={size === 26 ? 16 : 18} />
+      {/* button.css sizes the icon: 16 px at 26, 18 px otherwise, 22 px on touch. */}
+      <Icon name={icon} />
     </AriaButton>
   );
 }

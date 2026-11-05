@@ -4,6 +4,7 @@
 
 import type { ReactNode } from "react";
 import { ToggleButton } from "react-aria-components";
+import { chooseOnPress, PressedGroup } from "./pressed-group.js";
 
 /** One mode: its id, used in `onChange`, and its visible name. */
 export interface Mode<Id extends string> {
@@ -33,20 +34,17 @@ export function ModeSwitcher<Id extends string>({
   "aria-label": label,
 }: ModeSwitcherProps<Id>): ReactNode {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: a group of pressed buttons, as §7.2 specifies; <fieldset> holds form controls.
-    <div role="group" aria-label={label} className="paper-mode-switcher">
+    <PressedGroup label={label} className="paper-mode-switcher">
       {modes.map((mode) => (
         <ToggleButton
           key={mode.id}
           className="paper-mode"
           isSelected={mode.id === value}
-          onChange={(selected) => {
-            if (selected) onChange(mode.id);
-          }}
+          onChange={chooseOnPress(mode.id, onChange)}
         >
           {mode.label}
         </ToggleButton>
       ))}
-    </div>
+    </PressedGroup>
   );
 }

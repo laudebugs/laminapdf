@@ -12,7 +12,9 @@
   .paper-tab {
     display: flex;
     align-items: center;
+    justify-content: center;
     min-block-size: var(--ui-target);
+    min-inline-size: var(--ui-target);
     border-block-end: var(--paper-selected-underline-width) solid transparent;
     color: var(--paper-muted);
     font: var(--paper-type-control);

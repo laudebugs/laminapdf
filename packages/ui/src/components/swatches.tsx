@@ -4,6 +4,7 @@
 import type { TokenName } from "@laminapdf/tokens";
 import type { CSSProperties, ReactNode } from "react";
 import { ToggleButton } from "react-aria-components";
+import { chooseOnPress, PressedGroup } from "./pressed-group.js";
 
 /** One swatch: its id, its accessible name and the token it shows. */
 export interface Swatch<Id extends string> {
@@ -38,8 +39,7 @@ export function SwatchGroup<Id extends string>({
   size = 24,
 }: SwatchGroupProps<Id>): ReactNode {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: a group of pressed buttons, as §7.12 specifies; <fieldset> holds form controls.
-    <div role="group" aria-label={label} className="paper-swatch-group" data-size={size}>
+    <PressedGroup label={label} className="paper-swatch-group" data-size={size}>
       <span className="paper-swatch-group-label" aria-hidden="true">
         {label}
       </span>
@@ -49,14 +49,12 @@ export function SwatchGroup<Id extends string>({
           aria-label={swatch.label}
           className="paper-swatch"
           isSelected={swatch.id === value}
-          onChange={(selected) => {
-            if (selected) onChange(swatch.id);
-          }}
+          onChange={chooseOnPress(swatch.id, onChange)}
           style={{ "--swatch": `var(--paper-${swatch.color})` } as CSSProperties}
         >
           <span className="paper-swatch-dot" />
         </ToggleButton>
       ))}
-    </div>
+    </PressedGroup>
   );
 }

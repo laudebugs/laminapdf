@@ -40,7 +40,7 @@ export function cleanup(): void {
 export function targets(host: HTMLElement): HTMLElement[] {
   return [
     ...host.querySelectorAll<HTMLElement>(
-      "button, select, input:not([type=checkbox]):not([type=radio]), textarea, label:has(input)",
+      "button, [role=tab], select, input:not([type=checkbox]):not([type=radio]), textarea, label:has(input)",
     ),
   ];
 }

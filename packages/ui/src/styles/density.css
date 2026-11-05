@@ -1,6 +1,7 @@
 /* The sizes that change with density (§8.7). Desktop first, then a coarse pointer, then an
    explicit DensityProvider, which wins over the pointer. `--ui-touch-icon` is unset on desktop, so
-   each control falls back to its own icon size there. */
+   each control falls back to its own icon size there. Only lengths live here: a colour would be
+   resolved where it is declared, in the root's theme, not the control's. */
 @layer paper.base {
   :where(:root) {
     --ui-target: var(--paper-target-min);
@@ -8,6 +9,9 @@
     --ui-field-font: var(--paper-type-body);
     --ui-touch-icon: initial;
     --ui-swatch: var(--paper-swatch-size-toolbar);
+    --ui-icon-button-radius: var(--paper-radius-4);
+    --ui-ring-outline: var(--paper-focus-ring-width);
+    --ui-ring-shadow: 0;
   }
 
   @media (pointer: coarse) {
@@ -17,6 +21,9 @@
       --ui-field-font: var(--paper-type-input-large);
       --ui-touch-icon: var(--paper-icon-size-touch);
       --ui-swatch: var(--paper-swatch-size-touch);
+      --ui-icon-button-radius: var(--paper-icon-button-radius-touch);
+      --ui-ring-outline: 0;
+      --ui-ring-shadow: var(--paper-focus-ring-width);
     }
   }
 
@@ -26,6 +33,9 @@
     --ui-field-font: var(--paper-type-input-large);
     --ui-touch-icon: var(--paper-icon-size-touch);
     --ui-swatch: var(--paper-swatch-size-touch);
+    --ui-icon-button-radius: var(--paper-icon-button-radius-touch);
+    --ui-ring-outline: 0;
+    --ui-ring-shadow: var(--paper-focus-ring-width);
   }
 
   :where([data-density="desktop"]) {
@@ -34,5 +44,8 @@
     --ui-field-font: var(--paper-type-body);
     --ui-touch-icon: initial;
     --ui-swatch: var(--paper-swatch-size-toolbar);
+    --ui-icon-button-radius: var(--paper-radius-4);
+    --ui-ring-outline: var(--paper-focus-ring-width);
+    --ui-ring-shadow: 0;
   }
 }

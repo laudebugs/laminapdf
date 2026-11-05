@@ -112,6 +112,7 @@
   }
 
   .paper-icon-button {
+    border-radius: var(--ui-icon-button-radius);
     inline-size: max(var(--paper-icon-button-size), var(--ui-target));
     block-size: max(var(--paper-icon-button-size), var(--ui-target));
     padding: 0;
@@ -125,10 +126,6 @@
   .paper-icon-button[data-size="32"] {
     inline-size: max(var(--paper-icon-button-size-large), var(--ui-target));
     block-size: max(var(--paper-icon-button-size-large), var(--ui-target));
-  }
-
-  :where([data-density="touch"]) .paper-icon-button {
-    border-radius: var(--paper-icon-button-radius-touch);
   }
 
   .paper-icon-button svg {

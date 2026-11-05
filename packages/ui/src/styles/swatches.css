@@ -44,15 +44,11 @@
   }
 
   .paper-swatch[data-selected] .paper-swatch-dot {
-    outline: var(--paper-focus-ring-width) solid var(--paper-text);
+    outline: var(--ui-ring-outline) solid var(--paper-text);
     outline-offset: var(--paper-focus-ring-offset-tight);
-  }
-
-  :where([data-density="touch"]) .paper-swatch[data-selected] .paper-swatch-dot {
-    outline: none;
     box-shadow:
-      0 0 0 var(--paper-focus-ring-width) var(--paper-surface),
-      0 0 0 calc(2 * var(--paper-focus-ring-width)) var(--paper-text);
+      0 0 0 var(--ui-ring-shadow) var(--paper-surface),
+      0 0 0 calc(2 * var(--ui-ring-shadow)) var(--paper-text);
   }
 
   .paper-swatch-group[data-size="28"] .paper-swatch[data-selected] .paper-swatch-dot {

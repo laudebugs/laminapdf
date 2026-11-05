@@ -71,7 +71,8 @@ describe("Button", () => {
   it("presses on Enter and Space, and lets Escape through", async () => {
     const onPress = vi.fn();
     const onEscape = vi.fn();
-    document.addEventListener("keydown", (e) => e.key === "Escape" && onEscape(), { once: true });
+    const listener = (e: KeyboardEvent) => e.key === "Escape" && onEscape();
+    document.addEventListener("keydown", listener);
     const host = renderIn(<Button onPress={onPress}>Save</Button>);
     await userEvent.tab();
     expect(focused()).toBe(get(host, "button"));
@@ -79,6 +80,7 @@ describe("Button", () => {
     await userEvent.keyboard(" ");
     expect(onPress).toHaveBeenCalledTimes(2);
     await userEvent.keyboard("{Escape}");
+    document.removeEventListener("keydown", listener);
     expect(onEscape).toHaveBeenCalledTimes(1);
   });
 
