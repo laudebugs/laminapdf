@@ -16,7 +16,7 @@
 
 ## Goal
 
-Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](../ready/C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](../ready/U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](../ready/C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
+Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](../ready/U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](../ready/C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
 
 ## Context
 
@@ -24,7 +24,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - Design language [§8.7 touch rules](../../design/paper/design-language.md#87-touch-rules), [§8.8 keyboard](../../design/paper/design-language.md#88-keyboard-and-shortcuts), [§8.9 accessibility checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa), [§9 writing style](../../design/paper/design-language.md#9-writing-style).
 - Design: the Paper foundation boards F01–F05 in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards) (F05 is the style tile).
 - [U6a](./U6a-paper-tokens.md) (tokens; components read only semantic and component tokens through `var(--paper-…)`), [U6c](./U6c-icon-set.md) (`<Icon>`), [U6b](../done/U6b-self-hosted-fonts.md) (fonts; not a dependency, the fallback stack works until it lands).
-- [C4a](../ready/C4a-ui-chrome-and-platform.md) — plans `packages/ui` with React 19, the React Compiler, the primitives library (recommendation React Aria Components), a message catalogue and a `tokens.css`; see Risks for the order between C4a and this todo.
+- [C4a](./C4a-ui-chrome-and-platform.md) — plans `packages/ui` with React 19, the React Compiler, the primitives library (recommendation React Aria Components), a message catalogue and a `tokens.css`; see Risks for the order between C4a and this todo.
 - [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) and [§5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (24 px desktop and 44 px touch targets); [TypeScript guidelines](../../guidelines/typescript.md); [code organization §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction).
 - WCAG 2.2 SC 1.4.11, 2.4.7, 2.4.11, 2.5.8 and 4.1.2; WAI-ARIA APG patterns: button and toggle button, tabs, radio group, checkbox, switch.
 
@@ -47,12 +47,12 @@ Build the Paper component library the shells and editor modes compose: every con
 - RTL: every component lays out correctly under `dir="rtl"` (logical properties: `margin-inline-start`, `padding-inline`, `inset-inline-end`; chevrons mirror where direction matters).
 - Touch: a `pointer: coarse` media query and a `density` context (`"desktop" | "touch"`) that switch to 44 px targets and 16 px inputs.
 - `forced-colors: active`: real borders and outlines remain (tested by screenshots in [U6f](../ready/U6f-gallery-and-visual-tests.md); styles here).
-- Strings: components take visible text and labels as props; any built-in text (e.g. "Details") comes from the message catalogue (create the minimal catalogue if [C4a](../ready/C4a-ui-chrome-and-platform.md) hasn't).
+- Strings: components take visible text and labels as props; any built-in text (e.g. "Details") comes from the message catalogue (create the minimal catalogue if [C4a](./C4a-ui-chrome-and-platform.md) hasn't).
 
 **Out of scope** (and which todo covers it)
 
 - Dialogs, bottom sheets, popovers, menus, tooltips, the selection mini toolbar, the command palette shell, the toast region and z-order → [U6e](../done/U6e-overlays-and-sheets.md).
-- Reader chrome built from these (toolbar, page indicator, zoom control, drop zone, password dialog, error and repair banners), the `Platform` interface and `ReaderController` → [C4a](../ready/C4a-ui-chrome-and-platform.md).
+- Reader chrome built from these (toolbar, page indicator, zoom control, drop zone, password dialog, error and repair banners), the `Platform` interface and `ReaderController` → [C4a](./C4a-ui-chrome-and-platform.md).
 - Layout regions (top bar, left rail, inspector, status bar, focus mode) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md); phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md); command wiring and shortcut map → [U1b](../ready/U1b-command-registry-and-palette.md).
 - Theme switching UI and settings → [C7a](../ready/C7a-accessibility-and-theming.md); the gallery and screenshot tests → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 - Inspector panel and save banner (§7.11, §7.13) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md) and [E1e](../ready/E1e-save-and-constraint-banner.md), built from these components.
