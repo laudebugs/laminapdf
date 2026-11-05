@@ -733,7 +733,7 @@ More items **(proposed)**; all keep the 2 px `focus` outline with a 1 px offset 
 
 ### 7.9 Selection mini toolbar (desktop, fine pointer)
 
-In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed against a rectangle the app supplies (the first selected line) and kept inside the viewport and an optional canvas. It follows its anchor through any scroll or resize and after every render, so the app renders it again when a zoom moves the selection without a scroll; it hides while the selection is out of view. The app decides when it shows and what it holds.
+In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed against a rectangle the app gives (the first selected line) and kept inside the viewport and an optional canvas. It follows its anchor through any scroll or resize and after every render, so the app renders it again when a zoom moves the selection without a scroll. While the selection is out of view, the toolbar hides. The app decides when it shows and what it holds.
 
 `role="toolbar"`, above the first selected line (flips below on collision), `surface`, `chip-border` edge, radius 6, padding 4, gap 2, floating shadow, 13 px. Buttons 30 high, padding `0 10px`, 16 px icon + label; a 1×18 `hairline` divider before More (30×30 icon). Shown on `pointerup`, Shift+F10 reaches it, Escape dismisses.
 
@@ -749,7 +749,7 @@ In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed ag
 
 ### 7.10 Command palette
 
-In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. A disabled row shows its reason in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
+In `@laminapdf/ui`: `CommandPalette`, the shell only: the app passes the rows already ranked, with the matched parts of each title. A disabled row shows its reason, when it has one, in place of its group and is skipped by the arrow keys; the group and the shortcut chip describe a row (`aria-describedby`) rather than name it. **Combobox (U6j):** the input carries `role="combobox"` and `aria-expanded`, which React Aria's autocomplete leaves out.
 
 Modal over `scrim` (from below the window title bar), 96 px from the top, `max-width: 600px`, `surface`, `chip-border` edge, radius 6, palette shadow. Input: 44 high, inset 10, `control-border`, white, radius 4, 18 px search icon `muted`, 16 px text, `esc` chip; keeps focus (APG combobox: `role="combobox"`, `aria-activedescendant`). List: `role="listbox"`, padding `0 6px 8px`; section overlines ("Recent" first, then "Commands"); rows 40 high, padding `0 12px`, gap 12: title (query match in 600) · group name (12 `muted`) · shortcut chip. Active row: `accent-tint` fill, `inset 0 0 0 1px` `accent` ring, group `text-3`, chip border `accent`. Footer: 12 `muted` hints over a `hairline`.
 
