@@ -37,11 +37,12 @@ impl State {
 }
 
 /// The ID letters in board order: plan sections in the order the board lists them.
-const SECTIONS: [(char, &str); 11] = [
+const SECTIONS: [(char, &str); 12] = [
     ('A', "Architecture — Round A"),
     ('B', "Library — Round B"),
     ('L', "Shareable libraries — Rounds L1–L6"),
     ('C', "Web reader — Round C"),
+    ('W', "Website — Round W"),
     ('D', "Desktop reader — Round D"),
     ('U', "UI/UX — Round U"),
     ('H', "Hosted service"),
@@ -52,7 +53,7 @@ const SECTIONS: [(char, &str); 11] = [
 ];
 
 /// The order IDs sort in (`order_key` in the original board script): letter, number, suffix.
-const LETTER_ORDER: &str = "ABLCDUEHPQX";
+const LETTER_ORDER: &str = "ABLCWDUEHPQX";
 
 const BOARD_HEADER: &str = "\
 # Todo board
