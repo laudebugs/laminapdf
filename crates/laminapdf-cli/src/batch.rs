@@ -163,7 +163,7 @@ pub struct BatchSummary {
 pub enum SummaryKind {
     /// `summary`.
     #[default]
-    BatchSummary,
+    Summary,
 }
 
 fn summary_type(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
