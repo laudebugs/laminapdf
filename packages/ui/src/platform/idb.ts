@@ -27,6 +27,8 @@ export function createStore(factory: IDBFactory | undefined): KeyValueStore {
         request.onupgradeneeded = () => request.result.createObjectStore(STORE);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => resolve(null);
+        // Another tab holds an older version open: the session keeps its values in memory.
+        request.onblocked = () => resolve(null);
       } catch {
         resolve(null);
       }

@@ -69,7 +69,7 @@ export class ReaderController {
     this.#dispatch({ type: "cancel" });
   }
 
-  /** Closes the open document, or the error, back to empty. */
+  /** Closes the document, whether open, opening, asking for a password or failed, back to empty. */
   close(): void {
     this.#attempt += 1;
     this.#release();

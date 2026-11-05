@@ -96,7 +96,7 @@ const platform = createWebPlatform();
 
 `ReaderController` holds the reader's lifecycle: empty, opening, asking for a password, open, or failed. It asks the platform for files and hands each one to the opener the shell gives it, such as the viewer client's `open`. A password goes to the opener and is never kept. When nothing will show a document any more, because it was closed, replaced or overtaken by a later open, the controller calls the `close` the opener returned with it.
 
-Toolbars and menus call the controller's methods, so commands can call the same ones. Components read the controller and the viewer through `useStoreState(store, select)`, which re-renders only when the selected value changes:
+Toolbars and menus call the controller's methods, so commands can call the same ones. Components read the controller and the viewer through `useStoreState(store, select)`, which re-renders only when the selected value changes. The selector must return a primitive, or an object that stays the same while its contents do; a new object on every call would re-render on every update:
 
 ```ts
 const page = useStoreState(viewer, (state) => state.currentPage);

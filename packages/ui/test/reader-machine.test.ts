@@ -34,10 +34,12 @@ const CHANGES: Partial<Record<ReaderState["phase"], Partial<Record<ReaderEvent["
     "wrong-password": { phase: "needs-password", file, wrong: true },
     failed: { phase: "error", file, error },
     cancel: EMPTY,
+    close: EMPTY,
   },
   "needs-password": {
     "submit-password": { phase: "opening", file },
     cancel: EMPTY,
+    close: EMPTY,
   },
   open: { close: EMPTY },
   error: { close: EMPTY },

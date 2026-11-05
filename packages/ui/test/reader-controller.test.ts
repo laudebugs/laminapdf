@@ -127,6 +127,16 @@ describe("ReaderController", () => {
     expect(controller.getState()).toEqual({ phase: "open", file: later, pageCount: 9, mode: "select" });
   });
 
+  it("goes back to empty when closed while still opening", async () => {
+    const pending = deferred<OpenedDocument>();
+    const controller = new ReaderController(fakePlatform(), () => pending.promise);
+    const done = controller.open(fakeFile());
+    controller.close();
+    pending.resolve({ pageCount: 2 });
+    await done;
+    expect(controller.getState().phase).toBe("empty");
+  });
+
   it("drops an open's outcome once it was cancelled", async () => {
     const pending = deferred<OpenedDocument>();
     const controller = new ReaderController(fakePlatform(), () => pending.promise);

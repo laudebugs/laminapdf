@@ -298,8 +298,11 @@ describe("storage and recent files on the web", () => {
     expect(await storage.persist()).toBe(false);
   });
 
-  it("keeps values in memory when IndexedDB won't open, as in some private modes", async () => {
-    const { storage } = createWebPlatform(fakeScope({ indexedDB: fakeIndexedDb({ failOpen: true }) }));
+  it.each([
+    ["won't open, as in some private modes", { failOpen: true }],
+    ["is held at an older version by another tab", { blockOpen: true }],
+  ])("keeps values in memory when IndexedDB %s", async (_, options) => {
+    const { storage } = createWebPlatform(fakeScope({ indexedDB: fakeIndexedDb(options) }));
     await storage.set("theme", "dark");
     expect(await storage.get("theme")).toBe("dark");
   });

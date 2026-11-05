@@ -38,8 +38,9 @@ export const EMPTY: ReaderState = { phase: "empty" };
 
 /** The state after `event`; the same state when `event` doesn't apply to it. */
 export function transition(state: ReaderState, event: ReaderEvent): ReaderState {
-  // Opening a document replaces whatever was there, from any state.
+  // Opening a document replaces whatever was there, and closing ends it, from any state.
   if (event.type === "open") return { phase: "opening", file: event.file };
+  if (event.type === "close") return state.phase === "empty" ? state : EMPTY;
   switch (state.phase) {
     case "empty":
       return state;
@@ -50,11 +51,10 @@ export function transition(state: ReaderState, event: ReaderEvent): ReaderState 
       if (event.type === "cancel") return EMPTY;
       return state;
     case "open":
-      if (event.type === "close") return EMPTY;
       if (event.type === "set-mode") return event.mode === state.mode ? state : { ...state, mode: event.mode };
       return state;
     case "error":
-      return event.type === "close" ? EMPTY : state;
+      return state;
   }
 }
 
