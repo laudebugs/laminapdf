@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (3, 5, 7) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [B8a](./B8a-structure-tree.md), [B9d](./B9d-text-runs-quads-and-page-text.md), [L1a](./L1a-contract-adrs.md), [U2b](./U2b-reading-order-ground-truth.md) |
-| Blocks | [L3b](./L3b-extract-tables-and-serialisers.md), [L3d](../ongoing/L3d-extract-structure-and-furniture.md) |
+| Blocks | [L3b](./L3b-extract-tables-and-serialisers.md), [L3d](./L3d-extract-structure-and-furniture.md) |
 | ADRs | Writes **0030** (extraction output `laminapdf.extract/1` and model plug-in policy); follows 0026 (errors), 0027 (coordinates, top-left points), 0028 (jobs, cancellation) from [L1a](../done/L1a-contract-adrs.md), 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)), [0001](../../decisions/0001-core-language-and-licence.md) (licences, bytes in / bytes out), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (warnings, `Limits`), [0018](../../decisions/0018-test-strategy.md) (goldens, fuzz) |
 | Branch | `feat/l3a-lamina-extract` |
 | PR title | `feat(extract): ADR 0030 and laminapdf-extract with blocks, reading order and hidden-text flags` |
@@ -16,7 +16,7 @@
 
 ## Outcome
 
-Split as the Risks section foresaw. This PR delivers ADR 0030 (Accepted, with a §9 saying what lands when), the `laminapdf-extract` crate with its output model, lines, blocks, XY-Cut++ and content orders, the `invisible`, `off-page` and `tiny` flags with `dropped`, de-hyphenation and ligatures, the job with cancellation, two warning codes, and the `extract` fuzz target. [L3d](../ongoing/L3d-extract-structure-and-furniture.md) takes structure-tree order, headings, lists, running headers and footers, and the `clipped` and `low-contrast` flags, with the acceptance criteria that cover them.
+Split as the Risks section foresaw. This PR delivers ADR 0030 (Accepted, with a §9 saying what lands when), the `laminapdf-extract` crate with its output model, lines, blocks, XY-Cut++ and content orders, the `invisible`, `off-page` and `tiny` flags with `dropped`, de-hyphenation and ligatures, the job with cancellation, two warning codes, and the `extract` fuzz target. [L3d](./L3d-extract-structure-and-furniture.md) takes structure-tree order, headings, lists, running headers and footers, and the `clipped` and `low-contrast` flags, with the acceptance criteria that cover them.
 
 Changes from the plan: `Budget`, `Step` and `Phase` moved to `laminapdf-syntax` so the core job and the façade share them; `is_tagged` moved to `laminapdf-model`; `RectPt::union` joined it. The tests build their files with `laminapdf-build` in memory and score the existing reading-order corpus instead of committing new fixtures and JSON goldens: serialised goldens come with L3b's serialisers. The crate is `publish = false` until L3b exposes it through the façade.
 
@@ -72,8 +72,8 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 - [x] Confirm ADR number 0030 is still free on the board; write `docs/decisions/0030-extraction-output-and-model-plugins.md` (status Proposed → Accepted in this PR); add it to `docs/decisions/README.md` and the [architecture §3 table](../../plans/architecture.md#3-decisions-to-record-adrs)
 - [x] Create `crates/laminapdf-extract` (`Cargo.toml` with workspace fields, `[lints] workspace = true`, `[package.metadata.laminapdf] layer = "core"`, feature `serde`); register it in the root `Cargo.toml`
 - [x] Modules: `model.rs` (output types), `options.rs`, `job.rs` (ADR 0028 job), `lines.rs`, `blocks.rs`, `order/{mod,tagged,xycut}.rs`, `headings.rs`, `lists.rs`, `furniture.rs` (headers, footers, page numbers), `text_fix.rs` (de-hyphenation, ligatures), `visibility.rs`, `coords.rs` (`order/tagged.rs`, `headings.rs`, `lists.rs` and `furniture.rs` moved to L3d; `coords.rs` folded into `visibility.rs`)
-- [x] Moved to [L3d](../ongoing/L3d-extract-structure-and-furniture.md): If B9b's `TextRun` lacks fill colour, clip bbox or render mode per glyph, add them in `laminapdf-text` (small change, its own commit) rather than re-interpreting content here
-- [x] Moved to [L3d](../ongoing/L3d-extract-structure-and-furniture.md): Extend B8a's read-only `StructTree` view only if needed (`RoleMap` resolution, `/K` with MCR/OBJR kids, `/Pg` inheritance), keeping it read-only
+- [x] Moved to [L3d](./L3d-extract-structure-and-furniture.md): If B9b's `TextRun` lacks fill colour, clip bbox or render mode per glyph, add them in `laminapdf-text` (small change, its own commit) rather than re-interpreting content here
+- [x] Moved to [L3d](./L3d-extract-structure-and-furniture.md): Extend B8a's read-only `StructTree` view only if needed (`RoleMap` resolution, `/K` with MCR/OBJR kids, `/Pg` inheritance), keeping it read-only
 - [x] Add warning codes to `fixtures/codes.json` and the Rust enums; paired tests per soft limit
 - [x] Fixtures (see Tests), with provenance in `fixtures/README.md` (built in memory by the tests, and the existing reading-order corpus; no new committed fixtures)
 - [x] `fuzz/fuzz_targets/extract.rs` with seeds from `fixtures/corpus` and the new fixtures; run 10 min locally
@@ -84,9 +84,9 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 - [x] ADR 0030 is merged with status Accepted and defines every top-level key of `laminapdf.extract/1`, the versioning rule and the model licence rule
 - [x] Every block on every fixture has a `bbox` in top-left points within the page's CropBox and a `bboxNorm` in [0, 1]; rotated (`/Rotate 90`) and `UserUnit` fixtures produce the hand-computed boxes
 - [x] Two-column untagged fixture: blocks come out column by column (expected order in the golden), not line across both columns
-- [x] Moved to [L3d](../ongoing/L3d-extract-structure-and-furniture.md): Tagged fixture whose content order differs from its structure order: output follows the structure tree and reports `structSource: "tagged"`; the same file with a deliberately broken tree falls back to XY-Cut++ with `extract-struct-tree-ignored`
-- [x] Moved to [L3d](../ongoing/L3d-extract-structure-and-furniture.md): Headings, list items (with depth) and paragraphs match the golden on the heading and list fixtures
-- [x] Moved to [L3d](../ongoing/L3d-extract-structure-and-furniture.md): Running headers, footers and page numbers on a 5-page fixture are absent from `blocks` and listed in `dropped` with their reasons; artifact-marked headers are dropped as `artifact`
+- [x] Moved to [L3d](./L3d-extract-structure-and-furniture.md): Tagged fixture whose content order differs from its structure order: output follows the structure tree and reports `structSource: "tagged"`; the same file with a deliberately broken tree falls back to XY-Cut++ with `extract-struct-tree-ignored`
+- [x] Moved to [L3d](./L3d-extract-structure-and-furniture.md): Headings, list items (with depth) and paragraphs match the golden on the heading and list fixtures
+- [x] Moved to [L3d](./L3d-extract-structure-and-furniture.md): Running headers, footers and page numbers on a 5-page fixture are absent from `blocks` and listed in `dropped` with their reasons; artifact-marked headers are dropped as `artifact`
 - [x] Hidden-text fixture (`Tr 3`, white on white, off-page, clipped, 1 pt text): none of the hidden strings appear in any `Block::text`; each appears in `dropped` with the right reason (`Tr 3`, off-page and sub-1 pt here; white on white and clipped moved to L3d)
 - [x] De-hyphenation joins `extrac-` / `tion` and keeps `well-` / `Known`
 - [x] Extracting the same file twice gives identical output; native and `wasm32` builds produce the same output on the fixtures (via the portability check plus one wasm test run, or a recorded comparison if wasm tests are not yet wired) (portability and wasm32 clippy pass; the wasm run comes with L3b's bindings)

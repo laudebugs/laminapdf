@@ -8,12 +8,17 @@ use std::cmp::Ordering;
 use laminapdf_model::{Pt, RectPt};
 use laminapdf_text::is_right_to_left;
 
+use crate::lists::is_marker;
+
 /// Baselines closer than this fraction of the size are one line (superscripts stay on it).
 const SAME_BASELINE: f64 = 0.5;
 
 /// A gap wider than this fraction of the size between two runs on one baseline is a column
 /// gutter, so the runs are on two lines. Word spaces stay well below it, even in justified text.
 pub(crate) const GUTTER: f64 = 1.0;
+
+/// A lone list marker joins the text up to this many sizes to its right on one line.
+const MARKER_GAP: f64 = 4.0;
 
 /// A gap wider than this fraction of the size between two runs is a space (as `laminapdf-text`
 /// uses within a run).
@@ -97,7 +102,10 @@ fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
         let next = entry.1;
         let gutter = part.last().is_some_and(|(_, prev)| {
             let size = prev.size.get().max(next.size.get());
-            next.bbox.x0.get() - prev.bbox.x1.get() > GUTTER * size
+            let gap = next.bbox.x0.get() - prev.bbox.x1.get();
+            // A list's bullet or number is often set a tab away from its text.
+            let marker = part.len() == 1 && is_marker(prev.text.trim()) && gap <= MARKER_GAP * size;
+            gap > GUTTER * size && !marker
         });
         if gutter {
             out.push(line(std::mem::take(&mut part)));

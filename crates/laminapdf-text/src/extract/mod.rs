@@ -31,6 +31,10 @@ pub type Quad = [PointPt; 4];
 /// One shown glyph.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about one glyph, each read on its own"
+)]
 pub struct Glyph {
     /// The text it stands for: possibly several characters (a ligature), possibly none (a
     /// glyph mapped to no text), U+FFFD when nothing maps it (`mapped` is `false`). Not
@@ -267,9 +271,7 @@ impl Collector<'_, '_> {
         let state = &show.state.text;
         let vertical = font.vertical();
         let invisible = matches!(state.render_mode, 3 | 7);
-        let mcid = self.marked.iter().rev().find_map(|m| m.mcid);
-        let actual_text = self.marked.iter().find_map(|m| m.actual_text);
-        let artifact = self.marked.iter().any(|m| m.artifact);
+        let (mcid, actual_text, artifact) = self.marks();
         let (ascent, descent) = font.extent;
         let mut tm = show.tm;
         let mut total = TextAdvance::default();
@@ -362,6 +364,14 @@ impl Collector<'_, '_> {
             })?;
         }
         Ok(total)
+    }
+
+    /// What the open marked content says of a glyph shown now: the innermost MCID, the
+    /// outermost `ActualText` span, and whether any sequence is an artifact.
+    fn marks(&self) -> (Option<i64>, Option<usize>, bool) {
+        let mcid = self.marked.iter().rev().find_map(|m| m.mcid);
+        let actual_text = self.marked.iter().find_map(|m| m.actual_text);
+        (mcid, actual_text, self.marked.iter().any(|m| m.artifact))
     }
 
     /// The `/ActualText` of a property list, decoded as a text string (§7.9.2.2).

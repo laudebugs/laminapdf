@@ -10,7 +10,7 @@ use laminapdf_text::{PageText, PageTextRun, Quad, is_right_to_left};
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
 use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
-use crate::model::{Block, BlockKind, Coordinates, Dropped, ExtractedPage, Span};
+use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::text_fix::{decompose_ligatures, join_lines};
@@ -61,7 +61,9 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
             size,
             flags: span_flags,
         };
-        if let Some(&reason) = span_flags.reasons().first() {
+        // Artifacts are furniture by the file's own word (ISO 32000-2 §14.8.2.2).
+        let artifact = (run.artifact && options.headers_footers).then_some(DropReason::Artifact);
+        if let Some(reason) = span_flags.reasons().first().copied().or(artifact) {
             out.dropped.push(Dropped {
                 reason,
                 page: index,

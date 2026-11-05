@@ -16,6 +16,10 @@ use crate::{BidiParagraph, grapheme_boundaries};
 /// and visibility, one after the other on one baseline.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about one run, each read on its own"
+)]
 pub struct PageTextRun {
     /// The run's text in logical order: the span's `ActualText` (the span's first run; its
     /// later runs have none), else the glyphs' text with gap spaces, put in logical order

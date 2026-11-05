@@ -108,6 +108,10 @@ pub(crate) struct ExtractInit {
     /// Join words hyphenated across lines; on by default.
     #[tsify(optional)]
     pub dehyphenate: Option<bool>,
+    /// Leave running headers, footers, page numbers and artifact-marked text out of the
+    /// blocks (listed in `dropped` instead); on by default.
+    #[tsify(optional)]
+    pub headers_footers: Option<bool>,
     /// Write `<!-- page N -->` before each page's first block (Markdown, chunks and JSON).
     #[tsify(optional)]
     pub page_markers: Option<bool>,
@@ -143,6 +147,9 @@ impl ExtractInit {
         }
         if let Some(on) = self.dehyphenate {
             options.dehyphenate = on;
+        }
+        if let Some(on) = self.headers_footers {
+            options = options.with_headers_footers(on);
         }
         options
     }

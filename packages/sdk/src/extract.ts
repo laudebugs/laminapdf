@@ -63,6 +63,8 @@ export interface ExtractOptions<F extends ExtractFormat = ExtractFormat> {
   readonly tables?: TableMode;
   /** Join words hyphenated across lines; on by default. */
   readonly dehyphenate?: boolean;
+  /** Leave running headers, footers, page numbers and artifact-marked text out of the blocks (listed in `dropped` instead); on by default. */
+  readonly headersFooters?: boolean;
   /** Write `<!-- page N -->` before each page's first block (Markdown, chunks and the JSON's text ranges). */
   readonly pageMarkers?: boolean;
   /** How chunks are cut (`"chunks"`, and `"json"` to include them). */

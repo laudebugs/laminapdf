@@ -19,6 +19,10 @@ pub struct ExtractOptions {
     pub limits: ExtractLimits,
     /// Which table detectors run.
     pub tables: TableMode,
+    /// Leave page furniture out of the blocks (ADR 0030 §4): text marked as an `Artifact`,
+    /// running headers and footers, and page numbers, each listed in `dropped` instead. On by
+    /// default; off keeps them as blocks.
+    pub headers_footers: bool,
 }
 
 impl Default for ExtractOptions {
@@ -30,13 +34,14 @@ impl Default for ExtractOptions {
             dehyphenate: true,
             limits: ExtractLimits::default(),
             tables: TableMode::default(),
+            headers_footers: true,
         }
     }
 }
 
 impl ExtractOptions {
-    /// The defaults: every page, reading order from the layout, hidden text dropped,
-    /// de-hyphenation on.
+    /// The defaults: every page, reading order from the layout, hidden text and page furniture
+    /// dropped, de-hyphenation on.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -53,6 +58,14 @@ impl ExtractOptions {
     #[must_use]
     pub const fn with_reading_order(mut self, order: ReadingOrder) -> Self {
         self.reading_order = order;
+        self
+    }
+
+    /// Whether page furniture (artifacts, running headers and footers, page numbers) is left
+    /// out of the blocks.
+    #[must_use]
+    pub const fn with_headers_footers(mut self, drop: bool) -> Self {
+        self.headers_footers = drop;
         self
     }
 
