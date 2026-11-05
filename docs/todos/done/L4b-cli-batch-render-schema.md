@@ -18,7 +18,7 @@
 
 Make the CLI useful at scale and self-describing for agents. Commands accept many inputs and run them in parallel with `--jobs`, printing one NDJSON result per file in argument order and a summary line. `render` turns pages into PNG through `laminapdf-render`. `extract --format md|json` emits the `laminapdf.extract/1` output from `laminapdf-extract`. `schema [command]` prints the JSON Schema 2020-12 of each command's input and output, generated from the same Rust types the commands use, so agents and the MCP mode never drift from the CLI. Shell completions and man pages come from the clap definitions.
 
-> **Split (2026-11-05).** This PR ships batch mode, `extract --format md|json|chunks`, `schema`, completions and man pages. `render` needs a backend choice, PNG encoding and render goldens of its own, so it moved to [L4e](../ready/L4e-cli-render.md) with the output templates (only `render` writes many files) and the MCP tools for `render` and the new extraction formats. The acceptance criteria and tasks for those are ticked as moved.
+> **Split (2026-11-05).** This PR ships batch mode, `extract --format md|json|chunks`, `schema`, completions and man pages. `render` needs a backend choice, PNG encoding and render goldens of its own, so it moved to [L4e](../ready/L4e-cli-render.md) with the output templates (only `render` writes many files) and the MCP tools for `render` and the new extraction formats. Their acceptance criteria and tasks stay ticked here, each marked "Moved to L4e"; L4e tracks them.
 
 ## Context
 
@@ -104,7 +104,7 @@ None.
 ## Docs to update
 
 - [x] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Batch and NDJSON, `--jobs`, `render`, …"
-- [x] ADR 0031 amendment (batch exit codes, templates)
+- [x] ADR 0031 amendment (batch exit codes; templates moved to L4e)
 - [x] `crates/laminapdf-cli/README.md` (batch, render, extract, schema, completions); `CLAUDE.md` (`cargo xtask cli-docs`)
 
 ## Risks and open questions

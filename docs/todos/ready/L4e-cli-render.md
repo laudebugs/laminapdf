@@ -14,9 +14,11 @@
 | Size | M |
 | PR | — |
 
+> **Split from [L4b](../done/L4b-cli-batch-render-schema.md)**, which shipped batch mode, the extraction formats, `schema`, completions and man pages; this todo takes the rest of its scope.
+
 ## Goal
 
-Add `laminapdf render`, which turns pages into PNG files through `laminapdf-render`, with the output templates that let one command write many files. Then give `laminapdf mcp` tools for `render` and for `extract`'s Markdown, JSON and chunk formats. [L4b](../done/L4b-cli-batch-render-schema.md) was split in two: it shipped batch mode, the extraction formats, `schema`, completions and man pages, and this todo takes the rest of its scope.
+Add `laminapdf render`, which turns pages into PNG files through `laminapdf-render`, with the output templates that let one command write many files. Then give `laminapdf mcp` tools for `render` and for `extract`'s Markdown, JSON and chunk formats.
 
 ## Context
 
