@@ -69,8 +69,11 @@ export interface PrintJob {
 export interface PlatformStorage {
   /** The origin-private file system's root, or undefined where there is none. */
   opfs(): Promise<FileSystemDirectoryHandle | undefined>;
+  /** The value stored under `key`, or undefined when there is none. */
   get(key: string): Promise<unknown>;
+  /** Stores `value` under `key`; resolves once it is saved. */
   set(key: string, value: unknown): Promise<void>;
+  /** Removes the value under `key`, if any. */
   delete(key: string): Promise<void>;
   /** Asks for persistent storage; resolves to whether it was granted. */
   persist(): Promise<boolean>;
@@ -91,8 +94,11 @@ export interface RecentFile {
 export interface RecentFiles {
   /** Newest first. */
   list(): Promise<readonly RecentFile[]>;
+  /** Puts `file` first, replacing an older entry for the same document. */
   add(file: PlatformFile): Promise<void>;
+  /** Forgets one document. */
   remove(id: string): Promise<void>;
+  /** Forgets every document. */
   clear(): Promise<void>;
   /** Reads a recent document again without a picker. Only when capabilities.canReopenRecent. */
   reopen?(id: string): Promise<PlatformFile | undefined>;

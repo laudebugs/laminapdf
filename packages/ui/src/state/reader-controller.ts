@@ -35,8 +35,10 @@ export class ReaderController {
     this.#opener = opener;
   }
 
+  /** The reader's current state. */
   getState = (): ReaderState => this.#state;
 
+  /** Calls `listener` after each transition; returns the function that stops it. */
   subscribe = (listener: () => void): (() => void) => {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);

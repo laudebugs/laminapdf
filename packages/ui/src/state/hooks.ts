@@ -9,7 +9,9 @@ import type { ReaderState } from "./reader-machine.js";
 
 /** A store React can subscribe to: the shape of `@laminapdf/viewer`'s viewer and of the controller. */
 export interface ExternalStore<State> {
+  /** The current state; the same object until it changes. */
   getState(): State;
+  /** Calls `listener` after each change; returns the function that stops it. */
   subscribe(listener: () => void): () => void;
 }
 

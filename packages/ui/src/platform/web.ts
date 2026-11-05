@@ -21,15 +21,26 @@ export interface WebScope {
   readonly navigator: Navigator;
   readonly indexedDB?: IDBFactory;
   readonly crossOriginIsolated?: boolean;
+  /** Media queries, which tell an installed app (display mode standalone) from a tab. */
   readonly matchMedia?: (query: string) => { readonly matches: boolean };
+  /** The File System Access open picker, where the browser has one. */
   readonly showOpenFilePicker?: (options?: object) => Promise<FileSystemFileHandle[]>;
+  /** The File System Access save picker, where the browser has one. */
   readonly showSaveFilePicker?: (options?: object) => Promise<FileSystemFileHandle>;
+  /** The installed app's launch queue: files the operating system opened with it. */
   readonly launchQueue?: {
+    /** Registers the function that receives each launch's files. */
     setConsumer(consumer: (params: { readonly files: readonly FileSystemHandle[] }) => void): void;
   };
   readonly FileSystemFileHandle?: { readonly prototype: object };
   readonly FileSystemHandle?: { readonly prototype: object };
-  readonly URL: { createObjectURL(blob: Blob): string; revokeObjectURL(url: string): void };
+  readonly URL: {
+    /** A `blob:` URL for a download. */
+    createObjectURL(blob: Blob): string;
+    /** Frees a URL from `createObjectURL`. */
+    revokeObjectURL(url: string): void;
+  };
+  /** Opens a link in a new browsing context (`window.open`). */
   readonly open: (url: string, target: string, features: string) => unknown;
 }
 
