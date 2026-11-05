@@ -1,8 +1,8 @@
 # @laminapdf/fonts
 
-The typefaces of Lamina PDF's interface, served from the app's own origin so that no page ever fetches a font from another host. The package holds the font files, one style sheet that declares them, and the list of files worth preloading. The web reader, the desktop app, the docs site and the website all load their fonts from here.
+This package serves the typefaces of Lamina PDF's interface from the app's own origin, so no page ever fetches a font from another host. It holds the font files, one style sheet that declares them, and the list of files worth preloading. The web reader, the desktop app, the docs site and the website all load their fonts from here.
 
-It is a workspace package for now: it isn't published.
+For now it is a workspace package, not published to npm.
 
 ## Use it
 
@@ -42,9 +42,9 @@ Each face comes as two files. The Latin file covers English and most Western Eur
 
 Greek, Cyrillic, CJK, Arabic, Hebrew, Indic and every other script fall back to the system's fonts, character by character: the token stacks end in `system-ui` and `sans-serif` (or `Georgia, serif`). The return symbol ↵ isn't in the fonts either, and draws in the system font too.
 
-**Lamina Sans is Source Sans 3**, Adobe's typeface, under another name. Its licence reserves the name "Source" for the font as Adobe ships it, and these files are subsets, which the licence counts as modified copies, so they can't keep that name. The design is unchanged; Adobe's copyright notice stays in every file.
+**Lamina Sans is Source Sans 3**, Adobe's typeface, under another name. Its licence reserves the name "Source" for the font as Adobe ships it. These files are subsets, which the licence counts as modified copies, so they take another name. The design is unchanged; Adobe's copyright notice stays in every file.
 
-**The fallback faces** are Arial in its regular, bold, italic and bold italic styles (or Liberation Sans or Arimo, which share its widths). Each is scaled so that its text takes the space Lamina Sans' text will take at the same weight and style: 94.23% for regular text. The stack names them right after Lamina Sans, so the swap when the font arrives moves no line. Weights 500 and 600 use the nearer of the two.
+**The fallback faces** are Arial in its regular, bold, italic and bold italic styles (or Liberation Sans or Arimo, which share its widths). The script scales each so that its text takes the space Lamina Sans' text will take at the same weight and style: 94.23% for regular text. The stack names them right after Lamina Sans, so the swap when the font arrives moves no line. Text at weight 500 uses the regular faces, and text at 600 the bold ones.
 
 **Newsreader's optical size** is fixed at its default, 18. The variable optical-size axis would more than double its Latin file (90 KB instead of 37 KB), and the interface's titles, from 15 to 40 px, read well at one size.
 
