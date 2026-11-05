@@ -2,10 +2,10 @@
   "version": 1,
   "date": "2026-11-05",
   "totals": {
-    "todos": 300,
-    "done": 113,
+    "todos": 301,
+    "done": 115,
     "inProgress": 3,
-    "ready": 184
+    "ready": 183
   },
   "rounds": [
     {
@@ -44,9 +44,9 @@
       "letter": "W",
       "heading": "Website — Round W",
       "todos": 5,
-      "done": 1,
+      "done": 2,
       "inProgress": 1,
-      "ready": 3
+      "ready": 2
     },
     {
       "letter": "D",
@@ -59,8 +59,8 @@
     {
       "letter": "U",
       "heading": "UI/UX — Round U",
-      "todos": 22,
-      "done": 8,
+      "todos": 23,
+      "done": 9,
       "inProgress": 1,
       "ready": 13
     },
@@ -193,12 +193,12 @@
         "title": "Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark"
       },
       {
-        "id": "W1b",
-        "title": "`apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`"
+        "id": "W1e",
+        "title": "The progress snapshot: `cargo xtask progress` writes the home page's roadmap data"
       },
       {
-        "id": "U6e",
-        "title": "`@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order"
+        "id": "U6i",
+        "title": "`@laminapdf/ui` bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell"
       }
     ]
   },
@@ -232,12 +232,20 @@
       "title": "Viewer performance harness: long tasks, memory and time-to-first-page in CI"
     },
     {
+      "id": "C4a",
+      "title": "`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter"
+    },
+    {
+      "id": "W1d",
+      "title": "One header for the website and the docs site"
+    },
+    {
       "id": "D1a",
       "title": "`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews"
     },
     {
-      "id": "U6e",
-      "title": "`@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order"
+      "id": "U6i",
+      "title": "`@laminapdf/ui` bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell"
     },
     {
       "id": "P3",
@@ -249,18 +257,18 @@
     }
   ],
   "merged": {
-    "count": 87,
+    "count": 90,
     "recent": [
+      "feat(site): the website at laminapdf.com, with a preview per pull request",
+      "feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts",
+      "feat(fonts): self-host subsetted Lamina Sans, Newsreader and Caveat woff2 files",
       "docs(plans): the home page's design, code panel and packages",
       "docs: the website at laminapdf.com and the reader at app.laminapdf.com",
       "docs(plans): the website at laminapdf.com and the reader at app.laminapdf.com",
       "feat(extract): tables, Markdown/JSON/chunk output and doc.extract() in Rust",
       "feat(ui): add the paper display components with all states and axe tests",
       "feat(ui): add the paper core controls with all states, keyboard and axe tests",
-      "docs(site): llms.txt, Markdown twins, docs in packages, rename log and agent eval",
-      "feat(icons): add @laminapdf/icons with the paper stroke icon set and grid lint",
-      "feat(tokens): add @laminapdf/tokens with paper light, dark and high-contrast themes",
-      "docs(adr): 0024 app shell ux: layout, modes, command registry and page appearance"
+      "docs(site): llms.txt, Markdown twins, docs in packages, rename log and agent eval"
     ]
   }
 }
