@@ -2,7 +2,9 @@
 //! job of ci.yml is in `fast-gate`'s `needs`, and every job of full.yml is in `gate`'s, since a
 //! job left out of them would not block a merge when it fails. In nightly.yml, `report` needs
 //! every job (else that job's failure opens no issue) and `bench` needs every job that doesn't
-//! depend on it (why: the comment on nightly.yml's `bench` job).
+//! depend on it (why: the comment on nightly.yml's `bench` job). The macOS runners' rustup
+//! (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so one bump
+//! changes both.
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs are
 //! two-space-indented keys under `jobs:`, and a job lists its `needs` on one line, as `[a, b]`
@@ -136,6 +138,25 @@ mod tests {
         ] {
             assert!(condition.contains(part), "report's `if` lacks {part}: {condition}");
         }
+    }
+
+    /// The value after `key` on the first line that starts with it, indentation and quotes trimmed.
+    fn pinned<'a>(file: &'a str, key: &str) -> Option<&'a str> {
+        file.lines()
+            .find_map(|l| l.trim_start().strip_prefix(key))
+            .map(|v| v.trim().trim_matches('"'))
+    }
+
+    #[test]
+    fn isolate_rust_home_should_install_the_linux_runner_images_rustup() {
+        const ACTION: &str = include_str!("../../../.github/actions/isolate-rust-home/action.yml");
+        const IMAGE: &str = include_str!("../../../tools/ci-runner/linux/Dockerfile");
+        let image = pinned(IMAGE, "ARG RUSTUP_VERSION=");
+        assert!(
+            image.is_some(),
+            "the Linux runner's Dockerfile has no `ARG RUSTUP_VERSION=`"
+        );
+        assert_eq!(pinned(ACTION, "RUSTUP_VERSION:"), image);
     }
 
     #[test]
