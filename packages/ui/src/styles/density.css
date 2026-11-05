@@ -1,7 +1,8 @@
 /* The sizes that change with density (§8.7). Desktop first, then a coarse pointer, then an
    explicit DensityProvider, which wins over the pointer. `--ui-touch-icon` is unset on desktop, so
    each control falls back to its own icon size there. Only lengths live here: a colour would be
-   resolved where it is declared, in the root's theme, not the control's. */
+   resolved where it is declared, in the root's theme, not the control's. A zero ring is `0em`, not
+   `0`, so the swatch's calc() still gives a length. */
 @layer paper.base {
   :where(:root) {
     --ui-target: var(--paper-target-min);
@@ -11,7 +12,7 @@
     --ui-swatch: var(--paper-swatch-size-toolbar);
     --ui-icon-button-radius: var(--paper-radius-4);
     --ui-ring-outline: var(--paper-focus-ring-width);
-    --ui-ring-shadow: 0;
+    --ui-ring-shadow: 0em;
   }
 
   @media (pointer: coarse) {
@@ -46,6 +47,6 @@
     --ui-swatch: var(--paper-swatch-size-toolbar);
     --ui-icon-button-radius: var(--paper-radius-4);
     --ui-ring-outline: var(--paper-focus-ring-width);
-    --ui-ring-shadow: 0;
+    --ui-ring-shadow: 0em;
   }
 }

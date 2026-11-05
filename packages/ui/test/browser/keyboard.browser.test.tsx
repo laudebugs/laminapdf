@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import {
   Button,
@@ -73,6 +73,7 @@ describe("Button", () => {
     const onEscape = vi.fn();
     const listener = (e: KeyboardEvent) => e.key === "Escape" && onEscape();
     document.addEventListener("keydown", listener);
+    onTestFinished(() => document.removeEventListener("keydown", listener));
     const host = renderIn(<Button onPress={onPress}>Save</Button>);
     await userEvent.tab();
     expect(focused()).toBe(get(host, "button"));
@@ -80,7 +81,6 @@ describe("Button", () => {
     await userEvent.keyboard(" ");
     expect(onPress).toHaveBeenCalledTimes(2);
     await userEvent.keyboard("{Escape}");
-    document.removeEventListener("keydown", listener);
     expect(onEscape).toHaveBeenCalledTimes(1);
   });
 
