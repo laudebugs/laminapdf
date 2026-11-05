@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-11-05
 - **Asked for by:** the project owner (2026-11-05): "the app rests on app.laminapdf.com and laminapdf.com is the landing page"; then, for the home page: "the home page will contain the roadmap for now, including a dashboard on what's coming up next", and "this dashboard will be updated from time to time"
-- **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex; [W1a](../todos/ready/W1a-domain-map.md) amends its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and HSTS preload (§4)
+- **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex; [W1a](../todos/done/W1a-domain-map.md) amends its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and HSTS preload (§4)
 - **Builds on:**
   - the [web reader plan](web-app.md) (C4's deploys, C7's launch pages)
   - the [Paper design plan](paper-design.md) and [design language §7.39](../design/paper/design-language.md#739-site-and-product-pages-proposed) (the site's header and product pages)
@@ -60,7 +60,7 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
 - **Look.** Paper, through `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` ([U6b](../todos/ready/U6b-self-hosted-fonts.md)), the one copy that the reader, the desktop app and both sites share. The header is §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". [W1d](../todos/ready/W1d-one-site-header.md) gives the website and the docs site one header, built from one list of links.
 - **Privacy.** The website keeps the reader's promises that apply to a page of text. It sets no cookies, loads nothing from a third party and sends no analytics. ADR 0011's amendment states these rules and the website's headers, and W1b checks every built page against them.
 - **Before the reader launches.** The website can go live first, with the roadmap, the SDK, the library and the docs. "Open the web app" appears once C7c deploys the reader to production, behind one build setting that C7c turns on.
-- **HSTS preload.** ADR 0011 §4 holds the preload submission until the reader serves the apex. After the move, the website serves the apex, so the preload follows W1b's first production deploy, once every subdomain is known to be HTTPS-only. Then a one-line PR adds `preload` to the website's `Strict-Transport-Security` header, which the preload list requires, and the owner submits the domain.
+- **HSTS preload.** ADR 0011 §4 held the preload submission until the reader served the apex. After the move, the website serves the apex, so the preload follows W1b's first production deploy, once every subdomain is known to be HTTPS-only. Then a one-line PR adds `preload` to the website's `Strict-Transport-Security` header, which the preload list requires, and the owner submits the domain.
 
 ### The home page, for now: the roadmap
 
@@ -93,7 +93,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [W1a](../todos/ready/W1a-domain-map.md) | The domain map: amend ADR 0011, move the reader to `app.laminapdf.com` in every plan, todo and design doc | — |
+| [W1a](../todos/done/W1a-domain-map.md) | The domain map: amend ADR 0011, move the reader to `app.laminapdf.com` in every plan, todo and design doc | — |
 | [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md) | `apps/site`: the Astro site in Paper, its headers, a preview per PR and production at `laminapdf.com` | W1a, U6b |
 | [W1c](../todos/ready/W1c-home-page.md) | The home page for now: what Lamina PDF is, the roadmap and the dashboard; design, copy approved by the owner, metadata and share images | W1b, W1e |
 | [W1d](../todos/ready/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
@@ -109,7 +109,7 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 
 ## 8. To-dos
 
-- [ ] Amend ADR 0011 and move the reader to `app.laminapdf.com` everywhere ([W1a](../todos/ready/W1a-domain-map.md))
+- [x] Amend ADR 0011 and move the reader to `app.laminapdf.com` everywhere ([W1a](../todos/done/W1a-domain-map.md))
 - [ ] Serve `apps/site` at `laminapdf.com`, with previews per PR ([W1b](../todos/ready/W1b-site-scaffold-and-deploys.md))
 - [ ] Publish the home page with the roadmap and the dashboard ([W1c](../todos/ready/W1c-home-page.md))
 - [ ] Share one header between the website and the docs site ([W1d](../todos/ready/W1d-one-site-header.md))

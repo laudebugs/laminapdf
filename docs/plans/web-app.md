@@ -38,7 +38,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 | --- | --- |
 | Anyone with a PDF | Read a file without installing anything and without uploading it |
 | Privacy-conscious users, legal/medical/finance | Open sensitive documents with a guarantee that bytes stay on the device |
-| Developers and sites | Link to `https://laminapdf.com/#url=…` to show a PDF; later embed `@laminapdf/viewer` |
+| Developers and sites | Link to `https://app.laminapdf.com/#url=…` to show a PDF; later embed `@laminapdf/viewer` |
 | Users of assistive technology | Read tagged PDFs with a screen reader; navigate by keyboard |
 | Users with huge files | Scroll a 1,000-page manual or a 500 MB scan without the tab crashing |
 
@@ -85,7 +85,7 @@ Architecture details live in [architecture.md](architecture.md) and the research
 - **Packages**: `@laminapdf/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@laminapdf/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@laminapdf/render-pdfium` (PDFium WASM adapter) and `@laminapdf/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@laminapdf/sdk` stays small.
 - **Worker**: one document worker running `laminapdf-wasm` plus PDFium-WASM, a typed RPC with request IDs, priorities, transfer lists and `AbortSignal` cancellation (ADR 0009).
 - **Platform adapter** (ADR 0010): the web implementation provides file open/save, print, clipboard and capability flags (`canWriteInPlace: false` on most browsers, `multiWindow: false`).
-- **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `laminapdf.com` (deployed only from `web-v*` release tags), staging from `main`, previews per PR via Workers preview URLs.
+- **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `app.laminapdf.com` (deployed only from `web-v*` release tags), staging at `staging-app.laminapdf.com` from `main`, previews per PR via Workers preview URLs.
 - **Storage**: OPFS as the random-access cache for large files and the "recent files" list (IndexedDB holds metadata only; files stay on the device and can be cleared in settings).
 
 ## 6. Rounds
@@ -149,7 +149,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 ## 8. Open questions
 
-1. ~~Domain and product name for the hosted reader?~~ **Domain answered 2026-10-31 (project owner):** `laminapdf.com`, with the docs at `docs.laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)). The product name stays lamina unless the owner says otherwise.
+1. ~~Domain and product name for the hosted reader?~~ **Domain answered 2026-10-31 (project owner):** `laminapdf.com`, with the docs at `docs.laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)). The product name stays lamina unless the owner says otherwise. **Hosts amended 2026-11-05 (project owner):** the reader is at `app.laminapdf.com` (staging `staging-app.laminapdf.com`) and a website holds `laminapdf.com` ([website plan](website.md), [ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)).
 2. Do we offer an opt-in CORS proxy for remote URLs, given it sees the bytes?
 3. ~~Any telemetry at all in v0.1, or none until there is a privacy review?~~ **Answered 2026-10-29:** none in v0.1; afterwards optional and opt-in ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)).
 4. Should `@laminapdf/viewer` be published for embedding in v0.1, or after the API settles?
