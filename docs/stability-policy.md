@@ -22,7 +22,7 @@ Lamina PDF is one library with one version: every crate and the npm packages `@l
 
 - The low-level COS and model APIs re-exported by the façade are public but may change in any minor `0.x` release ([pdf-library §9, question 6](plans/pdf-library.md#9-open-questions)).
 - Size budgets and performance targets are tracked, not promised.
-- `cargo-semver-checks` and a public API report are enabled against the first published version ([P3](todos/ready/P3-registry-checks.md)); until then reviews check breaking changes by hand.
+- `cargo-semver-checks` and a public API report are enabled against the first published version ([P3](todos/ongoing/P3-registry-checks.md)); until then reviews check breaking changes by hand.
 - The minimum Rust version follows rust.md's N-2 policy (now 1.97): raising it is a minor-version change, noted in the changelog.
 
 ## Changelog

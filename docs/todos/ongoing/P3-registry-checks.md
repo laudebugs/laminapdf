@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `P3` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing |
 | Depends on | [P2](../done/P2-first-registry-prerelease.md) |
-| Blocks | [P4](./P4-docs-match-the-release.md) |
+| Blocks | [P4](../ready/P4-docs-match-the-release.md) |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §6–§7, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p3-registry-checks` |
 | PR title | `build: check registry installs and semver against the published version` |
