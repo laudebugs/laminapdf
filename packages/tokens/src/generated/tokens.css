@@ -43,6 +43,8 @@
   --paper-type-document-name-letter-spacing: 0;
   --paper-type-outline: 400 15px/1.4 var(--paper-font-serif);
   --paper-type-outline-letter-spacing: 0;
+  --paper-type-outline-nested: 400 14px/1.4 var(--paper-font-serif);
+  --paper-type-outline-nested-letter-spacing: 0;
   --paper-type-quote: 400 15px/1.5 var(--paper-font-serif);
   --paper-type-quote-letter-spacing: 0;
   --paper-type-input-large: 400 16px/1.25 var(--paper-font-sans);
@@ -126,6 +128,13 @@
   --paper-icon-size-label: 16px;
   --paper-icon-size-toolbar: 18px;
   --paper-icon-size-touch: 22px;
+  --paper-badge-height: 20px;
+  --paper-badge-icon-size: 12px;
+  --paper-progress-height: 4px;
+  --paper-empty-state-width: 360px;
+  --paper-thumbnail-current-offset: 3px;
+  --paper-outline-row-padding-block-nested: 5px;
+  --paper-shortcut-chip-padding-block: 1px;
   --paper-annotation-yellow: #F2D675;
   --paper-annotation-green: #B7D9A8;
   --paper-annotation-blue: #A9C8E8;

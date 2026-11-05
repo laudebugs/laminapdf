@@ -2,6 +2,7 @@
 // `@laminapdf/ui/styles.css` once for their look.
 
 export { PageAppearanceChips, type PageAppearanceChipsProps } from "./components/appearance-chips.js";
+export { Badge, type BadgeProps, type BadgeTone } from "./components/badge.js";
 export {
   Button,
   type ButtonProps,
@@ -21,6 +22,7 @@ export {
   Switch,
   type SwitchProps,
 } from "./components/choice.js";
+export { EmptyState, type EmptyStateProps } from "./components/empty-state.js";
 export {
   type FieldText,
   Select,
@@ -31,6 +33,32 @@ export {
   type TextInputProps,
 } from "./components/field.js";
 export { type Mode, ModeSwitcher, type ModeSwitcherProps } from "./components/mode-switcher.js";
+export {
+  Notice,
+  type NoticeProps,
+  type NoticeTone,
+  Toast,
+  type ToastAction,
+  type ToastProps,
+} from "./components/notice.js";
+export { OutlineRow, type OutlineRowProps, type OutlineToggle } from "./components/outline-row.js";
+export { ProgressBar, type ProgressBarProps, Skeleton, type SkeletonProps } from "./components/progress.js";
+export {
+  type KeyPlatform,
+  ShortcutChip,
+  type ShortcutChipProps,
+  type ShortcutKeys,
+} from "./components/shortcut-chip.js";
+export {
+  NetworkIndicator,
+  type NetworkIndicatorProps,
+  PageLabel,
+  type PageLabelProps,
+  RepairedNotice,
+  type RepairedNoticeProps,
+  StatusBarItem,
+  type StatusBarItemProps,
+} from "./components/status-bar.js";
 export { type Swatch, SwatchGroup, type SwatchGroupProps } from "./components/swatches.js";
 export {
   SegmentedTabs,
@@ -39,5 +67,6 @@ export {
   TabPanel,
   type TabPanelProps,
 } from "./components/tabs.js";
+export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components/thumbnail.js";
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";

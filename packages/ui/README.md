@@ -1,6 +1,8 @@
 # @laminapdf/ui
 
-The Paper components that Lamina PDF's reader and editor are built from: buttons, toggles, the mode switcher, tabs, form controls, colour swatches and page-appearance chips. Each component shows every state the design language defines, works from the keyboard, lays out right to left, and grows to touch size on a coarse pointer. The components are presentational: they take props and report events, and never reach a viewer, a store or the command registry. The package is private to this repository for now.
+The Paper components that Lamina PDF's reader and editor are built from: buttons, toggles, the mode switcher, tabs, form controls, colour swatches and page-appearance chips. Beside them sit the items that show state: thumbnails, outline rows, status-bar items, shortcut chips, notices, toasts, progress, empty states and badges.
+
+Each component shows every state the design language defines, works from the keyboard, lays out right to left, and grows to touch size on a coarse pointer. The components are presentational: they take props and report events, and never reach a viewer, a store or the command registry. The package is private to this repository for now.
 
 ## Using the components
 
@@ -36,12 +38,20 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.3 Icon button | `IconButton` | 26, 28 or 32 px; 44 px with a 22 px icon on touch |
 | §7.4 Text buttons | `Button` | `primary`, `secondary`, `ghost`, `danger`, `danger-filled`; 32, 30 or 26 px; `isPending` keeps the width |
 | §7.5 Segmented tabs | `SegmentedTabs`, `TabPanel` | Arrow keys select as they move; `keyboardActivation="manual"` waits for Enter |
+| §7.6 Thumbnail | `Thumbnail` | `aria-current="page"` on the current page; the viewer's image goes in as `children` |
+| §7.7 Outline row | `OutlineRow` | `aria-current="location"`; a chevron button with `aria-expanded` for a row with children |
+| §7.8 Status bar items | `StatusBarItem`, `NetworkIndicator`, `RepairedNotice`, `PageLabel` | The app supplies the counts and wording |
+| §7.10 Command palette | `ShortcutChip` | `⌥⌘E` on macOS, `Ctrl Shift E` elsewhere, from the platform the app names |
 | §7.12 Colour swatches | `SwatchGroup` | Colours are token names, so only design-language colours appear |
 | §7.19 Form controls | `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup`, `Radio`, `Switch` | Label above, help or error below, wired with `aria-describedby` and `aria-invalid` |
+| §7.20 Toast and notice | `Notice`, `Toast` | Status messages; the toast region and timing come with the overlays |
+| §7.21 Empty state | `EmptyState` | A title, one sentence and at most two actions |
+| §7.22 Progress | `ProgressBar`, `Skeleton` | Indeterminate without a `value`; it stands still under reduced motion |
+| §7.23 Badge and tag | `Badge` | Always a word, never colour alone |
 | §7.24 Secondary-toolbar tool toggle | `ToolToggle`, `ToggleButton` | `aria-pressed` |
 | §7.25 Page-appearance chips | `PageAppearanceChips` | Each preview draws "Aa" in its appearance's paper and ink |
 
-Badges, notices, progress, the empty state, status-bar items, thumbnails, outline rows and shortcut chips come next, in the same package.
+Dialogs, sheets, menus, tooltips and the toast region come next, in the same package.
 
 ## Adding a component
 

@@ -1,0 +1,36 @@
+/* The empty state (§7.21): centred, at most 360 wide, gap 12; a muted icon, a 20/500 serif title,
+   one 14 px muted sentence and the actions. */
+@layer paper.components {
+  .paper-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--paper-space-12);
+    max-inline-size: var(--paper-empty-state-width);
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .paper-empty-state > svg {
+    color: var(--paper-muted);
+  }
+
+  .paper-empty-state-title {
+    margin: 0;
+    font: var(--paper-type-title);
+    color: var(--paper-text);
+  }
+
+  .paper-empty-state-text {
+    margin: 0;
+    font: var(--paper-type-body);
+    color: var(--paper-muted);
+  }
+
+  .paper-empty-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--paper-space-8);
+  }
+}
