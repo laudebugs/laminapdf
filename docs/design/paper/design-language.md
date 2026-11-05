@@ -2,7 +2,7 @@
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
 - **Source of truth:** [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`) holds the values of §2–§4 and the component sizes of §6; the tables here are a readable copy, and a change goes into that file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
-- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ready/U6e-overlays-and-sheets.md).
+- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. On the same day the owner approved every icon of §5 (U6c). Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ready/U6e-overlays-and-sheets.md).
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
@@ -322,32 +322,32 @@ Rules:
 - Always `aria-hidden="true"` on the SVG. Icon-only buttons carry `aria-label` (a verb phrase: "Find in document", "Close inspector"); buttons with a visible label need nothing extra.
 - Hit area is the button, not the glyph: ≥ 24 px desktop (files use 26–32), ≥ 44 px touch.
 
-Icons drawn so far (copy exactly):
+Each icon's markup lives in `packages/icons/svg/<file>.svg` (`@laminapdf/icons`), which is the source of truth. The tables below are a readable copy, and a test compares them with the files:
 
-| Name | Markup |
-| --- | --- |
-| Sidebar | `<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path>` |
-| Find / Search | `<circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path>` |
-| Zoom out | `<path d="M6 12h12"></path>` |
-| Zoom in | `<path d="M6 12h12M12 6v12"></path>` |
-| More (⋯) | `<circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle>` |
-| Close | `<path d="M6 6l12 12M18 6L6 18"></path>` |
-| Back | `<path d="M15 5l-7 7 7 7"></path>` |
-| Copy | `<rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path>` |
-| Highlight / Annotate | `<path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path>` |
-| Comment / Note | `<path d="M5 5.5h14v10H10l-4 3.5v-3.5H5z"></path>` |
-| Underline | `<path d="M7 4.5v6a5 5 0 0 0 10 0v-6"></path><path d="M5 20h14"></path>` |
-| Ink | `<path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path>` |
-| Shapes | `<rect x="4" y="4" width="10" height="10" rx="1"></rect><circle cx="15.5" cy="15.5" r="4.5"></circle>` |
-| Share | `<path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path>` |
-| Pages | `<rect x="4.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="4.5" y="14" width="6" height="5.5" rx="1"></rect><rect x="13.5" y="14" width="6" height="5.5" rx="1"></rect>` |
-| Reader (book) | `<path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path>` |
-| Network shield | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path>` |
-| Repaired (wrench) | `<path d="M14.5 5.5a4 4 0 0 0-5 5L4.5 15.5l4 4 5-5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"></path>` |
-| Signed file | `<path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path>` |
-| Warning **(proposed)** | `<path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path>` |
-| Chevron down **(proposed)** | `<path d="M7 10l5 5 5-5"></path>` |
-| Check **(proposed; stroke 2 inside checkboxes)** | `<path d="M6 12.5l4 4 8-9"></path>` |
+| Name | File | Markup |
+| --- | --- | --- |
+| Sidebar | `sidebar` | `<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path>` |
+| Find / Search | `find` | `<circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path>` |
+| Zoom out | `zoom-out` | `<path d="M6 12h12"></path>` |
+| Zoom in | `zoom-in` | `<path d="M6 12h12M12 6v12"></path>` |
+| More (⋯) | `more` | `<circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle>` |
+| Close | `close` | `<path d="M6 6l12 12M18 6L6 18"></path>` |
+| Back | `back` | `<path d="M15 5l-7 7 7 7"></path>` |
+| Copy | `copy` | `<rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path>` |
+| Highlight / Annotate | `highlight` | `<path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path>` |
+| Comment / Note | `comment` | `<path d="M5 5.5h14v10H10l-4 3.5v-3.5H5z"></path>` |
+| Underline | `underline` | `<path d="M7 4.5v6a5 5 0 0 0 10 0v-6"></path><path d="M5 20h14"></path>` |
+| Ink | `ink` | `<path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path>` |
+| Shapes | `shapes` | `<rect x="4" y="4" width="10" height="10" rx="1"></rect><circle cx="15.5" cy="15.5" r="4.5"></circle>` |
+| Share | `share` | `<path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path>` |
+| Pages | `pages` | `<rect x="4.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="4.5" y="14" width="6" height="5.5" rx="1"></rect><rect x="13.5" y="14" width="6" height="5.5" rx="1"></rect>` |
+| Reader (book) | `reader` | `<path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path>` |
+| Network shield | `network-shield` | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path>` |
+| Repaired (wrench) | `repaired` | `<path d="M14.5 5.5a4 4 0 0 0-5 5L4.5 15.5l4 4 5-5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"></path>` |
+| Signed file | `signed-file` | `<path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path>` |
+| Warning | `warning` | `<path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path>` |
+| Chevron down | `chevron-down` | `<path d="M7 10l5 5 5-5"></path>` |
+| Check (stroke 2 inside checkboxes) | `check` | `<path d="M6 12.5l4 4 8-9"></path>` |
 
 Wrap each in:
 
@@ -355,97 +355,133 @@ Wrap each in:
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">…</svg>
 ```
 
-New icons follow the same grid and stroke; add them to this table when a board introduces one.
+`iconSvg(name, { size })` and the React `<Icon name size />` from `@laminapdf/icons` write this wrapper. New icons follow the same grid and stroke: add the SVG to `@laminapdf/icons`, whose lint enforces the rules, and a row to a table here.
 
-**Icons from the area boards (proposed).** One drawing per name; where two areas drew the same name differently, the version below won (see [Decisions on area proposals](#decisions-on-area-proposals)). All stroke 1.5, no fills.
+**Icons from the area boards.** One drawing per name; where two areas drew the same name differently, the version below won (see [Decisions on area proposals](#decisions-on-area-proposals)). All stroke 1.5, no fills.
 
-| Name | Markup | Used for |
-| --- | --- | --- |
-| File | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` | Files, attachments, “View on page”, the Windows title-bar document glyph |
-| Folder | `<path d="M3.5 6.5h6l2 2h9v10h-17z"></path>` | Folders, Save as |
-| Link | `<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path>` | Links, review links, “Keep proportions” |
-| External link | `<path d="M13.5 4.5h6v6"></path><path d="M19.5 4.5L11 13"></path><path d="M17 13.5v6H4.5V7h6"></path>` | Opening a website |
-| Lock | `<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` | Password, Protect, read-only fields, layer lock |
-| Paperclip | `<path d="M16.5 7.5l-7 7a2 2 0 0 0 2.8 2.8l7.2-7.2a4 4 0 0 0-5.7-5.7l-7.2 7.2a6 6 0 0 0 8.5 8.5l5.4-5.4"></path>` | Attachments, Attach file |
-| Download | `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path>` | Download, Import, Update ready, drop hints |
-| Upload | the Share icon (§5 above) | Upload to cloud, upload a signature image |
-| Printer | `<path d="M7 9V4.5h10V9"></path><rect x="4.5" y="9" width="15" height="7" rx="1"></rect><path d="M7 14h10v5.5H7z"></path>` | Print, print production |
-| Info | `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>` | Properties, info notes |
-| Help | `<circle cx="12" cy="12" r="8"></circle><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.5M12 16.5v.5"></path>` | Help, shortcuts |
-| Forward | `<path d="M9 5l7 7-7 7"></path>` | History forward, Next field (mirror of Back) |
-| Chevron up | `<path d="M7 14l5-5 5 5"></path>` | Previous match, collapse |
-| Chevron right | `<path d="M10 7l5 5-5 5"></path>` | Collapsed tree rows, submenus (mirror of Chevron down); Chevron left is Back |
-| Arrow up / down | `<path d="M12 18.5V5.5M7 10.5l5-5 5 5"></path>` / `<path d="M12 5.5v13M7 13.5l5 5 5-5"></path>` | Move up / down in ordered lists |
-| Plus | the Zoom in icon (§5 above) | Add tab, Add option, Add bookmark |
-| List | `<path d="M5 7h14M5 12h14M5 17h9"></path>` | Results, contents |
-| Comments list | `<path d="M9 7h11M9 12h11M9 17h11"></path><path d="M4.5 7h1M4.5 12h1M4.5 17h1"></path>` | The Comments panel toggle |
-| Filter | `<path d="M4 6h16M7 12h10M10 18h4"></path>` | Filters |
-| Undo / Redo | `<path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path>` / `<path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path>` | Top bar, toasts |
-| Reset | `<path d="M5 8.5A7.5 7.5 0 1 1 4.5 13"></path><path d="M5 4v4.5h4.5"></path>` | Reset form fields |
-| Reload / update | `<path d="M19 12a7 7 0 1 1-2.05-4.95"></path><path d="M19 4.5v4h-4"></path>` | Reload from disk, updates |
-| Sync | `<path d="M5 11a7 7 0 0 1 12.5-3.5M19 13a7 7 0 0 1-12.5 3.5"></path><path d="M17.5 4v3.5H14M6.5 20v-3.5H10"></path>` | Cloud sync status |
-| Cloud / Cloud off | `<path d="M7.5 18.5h9.5a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 6.8 10 4.3 4.3 0 0 0 7.5 18.5z"></path>` (+ `<path d="M4 4l16 16"></path>`) | Cloud files, offline edits |
-| Offline | `<path d="M7 17.5h10a3.5 3.5 0 0 0 .5-7 5.5 5.5 0 0 0-10.6-1A4 4 0 0 0 7 17.5z"></path><path d="M4 4l16 16"></path>` | Offline strip (web app) |
-| Server | `<rect x="4.5" y="5" width="15" height="6" rx="1"></rect><rect x="4.5" y="13" width="15" height="6" rx="1"></rect><path d="M8 8h.5M8 16h.5"></path>` | Server jobs |
-| Bell | `<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"></path><path d="M10 20.5h4"></path>` | Notifications |
-| Laptop / Phone | `<rect x="5" y="5.5" width="14" height="10" rx="1"></rect><path d="M3 18.5h18"></path>` / `<rect x="7.5" y="3.5" width="9" height="17" rx="1.5"></rect><path d="M11 17.5h2"></path>` | Signed-in devices |
-| Add to home screen | `<rect x="7" y="3.5" width="10" height="17" rx="2"></rect><path d="M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"></path>` | Install the web app |
-| View settings | `<circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path>` | View settings popover |
-| Single page / Two pages | `<rect x="7" y="4.5" width="10" height="15" rx="1"></rect>` / `<rect x="3.5" y="5.5" width="8" height="13" rx="1"></rect><rect x="12.5" y="5.5" width="8" height="13" rx="1"></rect>` | Page layout |
-| Focus mode | `<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"></path>` | Focus mode |
-| Clock | `<circle cx="12" cy="12" r="7.5"></circle><path d="M12 8v4l3 2"></path>` | Revisions |
-| Replace / Swap | `<path d="M5 9h12l-3-3M19 15H7l3 3"></path>` | Replace…, swap the two sides of a compare |
-| Eye / Eye off | `<path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle>` (+ `<path d="M4 4l16 16"></path>`) | Preview result, show or hide a layer |
-| Layers | `<path d="M12 4.5l8 4-8 4-8-4z"></path><path d="M4 12.5l8 4 8-4M4 16.5l8 4 8-4"></path>` | Layers |
-| Flatten | `<path d="M12 4.5l8 4-8 4-8-4z"></path><path d="M4 15.5l8 4 8-4"></path>` | Flatten fields or comments |
-| Tag | `<path d="M4.5 4.5h7l8 8-7 7-8-8z"></path><circle cx="8.5" cy="8.5" r="1"></circle>` | Tags |
-| Structure | `<path d="M5 5h6v4H5zM13 15h6v4h-6zM5 15h6v4H5z"></path><path d="M8 9v6M8 12h8v3"></path>` | Structure and conformance |
-| Accessibility | `<circle cx="12" cy="5.5" r="1.5"></circle><path d="M5 9l7 1.5L19 9M12 10.5v4l-3 5.5M12 14.5l3 5.5"></path>` | Accessibility tool |
-| Action | `<path d="M13 3.5L6 13h5l-1 7.5L17 11h-5z"></path>` | Actions |
-| Play | `<path d="M8 5.5v13l10-6.5z"></path>` | Media |
-| 3D cube | `<path d="M12 3.5l7.5 4v9L12 20.5l-7.5-4v-9z"></path><path d="M4.5 7.5L12 11.5l7.5-4M12 11.5v9"></path>` | 3D content |
-| Ruler | `<path d="M3.5 15.5l12-12 5 5-12 12z"></path><path d="M7 12l2 2M10 9l2 2M13 6l2 2"></path>` | Measure |
-| Distance / Perimeter / Area | `<path d="M4 12h16M4 9v6M20 9v6"></path>` / `<path d="M5 6l12-1 2 12-13 2z"></path>` / Perimeter + `<path d="M9 10l6 6M8 14l3 3M12 8l5 5"></path>` | Measure tools |
-| Rotate left / right | `<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"></path><path d="M4.5 4.5v3h3"></path>` / `<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"></path><path d="M19.5 4.5v3h-3"></path>` | Organise |
-| Insert page | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M12 10.5v6M9 13.5h6"></path>` | Organise |
-| Extract | `<path d="M6.5 3.5h7l4 4v4"></path><path d="M6.5 3.5v17h6"></path><path d="M15 17.5h6M18 14.5l3 3-3 3"></path>` | Organise |
-| Delete | `<path d="M4.5 6.5h15"></path><path d="M9.5 6.5V4.5h5v2"></path><path d="M6.5 6.5l1 13h9l1-13"></path>` | Delete pages, files, marks |
-| Crop | `<path d="M7 3.5V17h13.5"></path><path d="M3.5 7H17v13.5"></path>` | Crop |
-| Resize | `<path d="M4.5 9.5v-5h5M19.5 14.5v5h-5"></path><path d="M4.5 4.5l6 6M19.5 19.5l-6-6"></path>` | Resize pages |
-| Move to page | `<path d="M4.5 12h11M12 8l4 4-4 4"></path><path d="M19.5 5v14"></path>` | Move to page… |
-| Move | `<path d="M12 4v16M4 12h16M12 4l-2.5 2.5M12 4l2.5 2.5M12 20l-2.5-2.5M12 20l2.5-2.5M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5"></path>` | Move a signature or object |
-| Bookmark | `<path d="M7 4.5h10v15l-5-4-5 4z"></path>` | Bookmarks |
-| Rename | `<path d="M14.5 4.5l5 5L9 20H4v-5z"></path>` | Rename |
-| Drag grip | six `<circle r="0.9">` at x 9 / 15, y 7 / 12 / 17 (stroked, like More) | Reorderable rows |
-| Select | `<path d="M6 4l12 7-5.5 1.5L10 18z"></path>` | Select tools |
-| Edit text | `<path d="M4 7.5V5.5h10v2M9 5.5V18.5M7 18.5h4"></path><path d="M18 8.5v11M16.5 8.5h3M16.5 19.5h3"></path>` | Edit text tool |
-| Text not editable | Edit text + `<path d="M15 14l5 5M20 14l-5 5"></path>` | Text that can't be edited in place |
-| Add text | `<path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path>` | Add text (Edit) and Text (Fill & Sign) |
-| Image | `<rect x="4" y="5" width="16" height="14" rx="1.5"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M4.5 17l5-5 4 4 2.5-2.5 3.5 3.5"></path>` | Image tool |
-| Page marks | `<path d="M6 3.5h8.5L18 7v13.5H6z"></path><path d="M9 16.5l6-6"></path>` | Watermark, header and footer |
-| Tools | `<rect x="4.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="4.5" y="13.5" width="6" height="6" rx="1"></rect><path d="M16.5 13.5v6M13.5 16.5h6"></path>` | Tools ▾ in the Edit toolbar |
-| Align left / centre / right | `<path d="M5 6h14M5 10h9M5 14h14M5 18h9"></path>` / `<path d="M5 6h14M7.5 10h9M5 14h14M7.5 18h9"></path>` / `<path d="M5 6h14M10 10h9M5 14h14M10 18h9"></path>` | Text alignment (Edit and Comment) |
-| Strike | `<path d="M5 12h14"></path><path d="M16 7.5c-.6-1.8-2.2-3-4.2-3-2.4 0-4.1 1.3-4.1 3.2 0 1.4.9 2.4 2.6 3"></path><path d="M8 16.5c.6 1.8 2.2 3 4.3 3 2.5 0 4.2-1.3 4.2-3.3 0-.9-.4-1.7-1.1-2.3"></path>` | Strike |
-| Caret | `<path d="M6 17l6-10 6 10"></path><path d="M4 20.5h16"></path>` | Caret |
-| Text box | `<rect x="3.5" y="5.5" width="17" height="13" rx="1"></rect><path d="M8 9.5h8M12 9.5v6"></path>` | Text box |
-| Callout | `<path d="M4.5 4.5h15v10h-9l-4 5v-5h-2z"></path><path d="M8 8.5h8M8 11.5h5"></path>` | Callout |
-| Stamp | `<path d="M9.5 4.5h5l-1 6h-3z"></path><path d="M5 14a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.5H5z"></path><path d="M6 20h12"></path>` | Stamps |
-| Rectangle / Ellipse / Line / Arrow | `<rect x="4.5" y="6.5" width="15" height="11" rx="1"></rect>` / `<ellipse cx="12" cy="12" rx="8" ry="6"></ellipse>` / `<path d="M5 19L19 5"></path>` / `<path d="M5 19L19 5"></path><path d="M11 5h8v8"></path>` | Shapes |
-| Polygon / Polyline | `<path d="M12 4l8 6-3 9H7l-3-9z"></path>` / `<path d="M4 18l5-8 5 5 6-10"></path>` | Shapes |
-| Pen / Eraser / Lasso | `<path d="M15 4.5l4.5 4.5L9 19.5H4.5V15z"></path><path d="M13 6.5l4.5 4.5"></path>` / `<path d="M14 4.5l6 6-9 9H6l-2.5-2.5z"></path><path d="M9 9.5l6 6"></path><path d="M11 19.5h9"></path>` / `<ellipse cx="12" cy="10" rx="8" ry="5.5"></ellipse><path d="M8 14.5c-1 1.5-1 3.5 1 4.5"></path>` | Stylus tools |
-| Text field / Check box / Radio group | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path>` / `<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"></rect><path d="M8 12.5l3 3 5-6"></path>` / `<circle cx="12" cy="12" r="7.5"></circle><circle cx="12" cy="12" r="3"></circle>` | Form design |
-| Dropdown / List box / Push button | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M13 11l2 2 2-2"></path>` / `<rect x="4.5" y="4.5" width="15" height="15" rx="1"></rect><path d="M8 9h8M8 12h8M8 15h5"></path>` / `<path d="M8 7.5h8a4.5 4.5 0 0 1 0 9H8a4.5 4.5 0 0 1 0-9z"></path>` | Form design |
-| Date | `<rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path>` | Date fields |
-| Calculated | `<path d="M17 5.5H7l5 6.5-5 6.5h10"></path>` | Calculated fields |
-| Tab order | `<path d="M10 7h10M10 12h10M10 17h10M5 5.5v3M4 17h2"></path>` | Tab order |
-| Detect fields | `<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"></path><path d="M8 12h8"></path>` | Detect fields |
-| Certificate | `<rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path>` | Sign with a certificate, chain of trust |
-| Signature image | the Ink icon (§5 above) | Add a signature image; signature fields use Signed file |
-| Shield cross | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path>` | Signature not trusted |
-| Redact | `<rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path>` | Redact |
-| Mark text / Mark area | `<path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path>` / `<rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect>` **(proposed, Sign/protect/redact: a dashed rectangle with a square corner handle, so it no longer looks like Focus mode)** | Redact tools |
-| Keyboard / Key / Smart card | `<rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path>` / `<circle cx="8" cy="12" r="3.5"></circle><path d="M11.5 12H20M17 12v3M20 12v2"></path>` / `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` | Type a signature, keychain, smart card |
-| Snap to grid **(proposed, Forms P05)** | `<path d="M4.5 9h15M4.5 15h15M9 4.5v15M15 4.5v15"></path>` | Form design toolbar |
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
+| File | `file` | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` | Files, attachments, “View on page”, the Windows title-bar document glyph |
+| Folder | `folder` | `<path d="M3.5 6.5h6l2 2h9v10h-17z"></path>` | Folders, Save as |
+| Link | `link` | `<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path>` | Links, review links, “Keep proportions” |
+| External link | `external-link` | `<path d="M13.5 4.5h6v6"></path><path d="M19.5 4.5L11 13"></path><path d="M17 13.5v6H4.5V7h6"></path>` | Opening a website |
+| Lock | `lock` | `<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` | Password, Protect, read-only fields, layer lock |
+| Paperclip | `paperclip` | `<path d="M16.5 7.5l-7 7a2 2 0 0 0 2.8 2.8l7.2-7.2a4 4 0 0 0-5.7-5.7l-7.2 7.2a6 6 0 0 0 8.5 8.5l5.4-5.4"></path>` | Attachments, Attach file |
+| Download | `download` | `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path>` | Download, Import, Update ready, drop hints |
+| Upload | `upload` | the `share` icon | Upload to cloud, upload a signature image |
+| Printer | `printer` | `<path d="M7 9V4.5h10V9"></path><rect x="4.5" y="9" width="15" height="7" rx="1"></rect><path d="M7 14h10v5.5H7z"></path>` | Print, print production |
+| Info | `info` | `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>` | Properties, info notes |
+| Help | `help` | `<circle cx="12" cy="12" r="8"></circle><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.5M12 16.5v.5"></path>` | Help, shortcuts |
+| Forward | `forward` | `<path d="M9 5l7 7-7 7"></path>` | History forward, Next field (mirror of Back) |
+| Chevron up | `chevron-up` | `<path d="M7 14l5-5 5 5"></path>` | Previous match, collapse |
+| Chevron right | `chevron-right` | `<path d="M10 7l5 5-5 5"></path>` | Collapsed tree rows, submenus (mirror of Chevron down); Chevron left is Back |
+| Chevron left | `chevron-left` | the `back` icon | Previous, where a chevron pairs with Chevron right |
+| Arrow up | `arrow-up` | `<path d="M12 18.5V5.5M7 10.5l5-5 5 5"></path>` | Move up in ordered lists |
+| Arrow down | `arrow-down` | `<path d="M12 5.5v13M7 13.5l5 5 5-5"></path>` | Move down in ordered lists |
+| Plus | `plus` | the `zoom-in` icon | Add tab, Add option, Add bookmark |
+| List | `list` | `<path d="M5 7h14M5 12h14M5 17h9"></path>` | Results, contents |
+| Comments list | `comments-list` | `<path d="M9 7h11M9 12h11M9 17h11"></path><path d="M4.5 7h1M4.5 12h1M4.5 17h1"></path>` | The Comments panel toggle |
+| Filter | `filter` | `<path d="M4 6h16M7 12h10M10 18h4"></path>` | Filters |
+| Undo | `undo` | `<path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path>` | Top bar, toasts |
+| Redo | `redo` | `<path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path>` | Top bar, toasts |
+| Reset | `reset` | `<path d="M5 8.5A7.5 7.5 0 1 1 4.5 13"></path><path d="M5 4v4.5h4.5"></path>` | Reset form fields |
+| Reload / update | `reload` | `<path d="M19 12a7 7 0 1 1-2.05-4.95"></path><path d="M19 4.5v4h-4"></path>` | Reload from disk, updates |
+| Sync | `sync` | `<path d="M5 11a7 7 0 0 1 12.5-3.5M19 13a7 7 0 0 1-12.5 3.5"></path><path d="M17.5 4v3.5H14M6.5 20v-3.5H10"></path>` | Cloud sync status |
+| Cloud | `cloud` | `<path d="M7.5 18.5h9.5a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 6.8 10 4.3 4.3 0 0 0 7.5 18.5z"></path>` | Cloud files |
+| Cloud off | `cloud-off` | `<path d="M7.5 18.5h9.5a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 6.8 10 4.3 4.3 0 0 0 7.5 18.5z"></path><path d="M4 4l16 16"></path>` | Offline edits |
+| Offline | `offline` | `<path d="M7 17.5h10a3.5 3.5 0 0 0 .5-7 5.5 5.5 0 0 0-10.6-1A4 4 0 0 0 7 17.5z"></path><path d="M4 4l16 16"></path>` | Offline strip (web app) |
+| Server | `server` | `<rect x="4.5" y="5" width="15" height="6" rx="1"></rect><rect x="4.5" y="13" width="15" height="6" rx="1"></rect><path d="M8 8h.5M8 16h.5"></path>` | Server jobs |
+| Bell | `bell` | `<path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"></path><path d="M10 20.5h4"></path>` | Notifications |
+| Laptop | `laptop` | `<rect x="5" y="5.5" width="14" height="10" rx="1"></rect><path d="M3 18.5h18"></path>` | Signed-in devices |
+| Phone | `phone` | `<rect x="7.5" y="3.5" width="9" height="17" rx="1.5"></rect><path d="M11 17.5h2"></path>` | Signed-in devices |
+| Add to home screen | `add-to-home-screen` | `<rect x="7" y="3.5" width="10" height="17" rx="2"></rect><path d="M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"></path>` | Install the web app |
+| View settings | `view-settings` | `<circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path>` | View settings popover |
+| Single page | `single-page` | `<rect x="7" y="4.5" width="10" height="15" rx="1"></rect>` | Page layout |
+| Two pages | `two-pages` | `<rect x="3.5" y="5.5" width="8" height="13" rx="1"></rect><rect x="12.5" y="5.5" width="8" height="13" rx="1"></rect>` | Page layout |
+| Focus mode | `focus-mode` | `<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"></path>` | Focus mode |
+| Clock | `clock` | `<circle cx="12" cy="12" r="7.5"></circle><path d="M12 8v4l3 2"></path>` | Revisions |
+| Replace / Swap | `replace` | `<path d="M5 9h12l-3-3M19 15H7l3 3"></path>` | Replace…, swap the two sides of a compare |
+| Eye | `eye` | `<path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle>` | Preview result, show a layer, show a password |
+| Eye off | `eye-off` | `<path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle><path d="M4 4l16 16"></path>` | Hide a layer, hide a password |
+| Layers | `layers` | `<path d="M12 4.5l8 4-8 4-8-4z"></path><path d="M4 12.5l8 4 8-4M4 16.5l8 4 8-4"></path>` | Layers |
+| Flatten | `flatten` | `<path d="M12 4.5l8 4-8 4-8-4z"></path><path d="M4 15.5l8 4 8-4"></path>` | Flatten fields or comments |
+| Tag | `tag` | `<path d="M4.5 4.5h7l8 8-7 7-8-8z"></path><circle cx="8.5" cy="8.5" r="1"></circle>` | Tags |
+| Structure | `structure` | `<path d="M5 5h6v4H5zM13 15h6v4h-6zM5 15h6v4H5z"></path><path d="M8 9v6M8 12h8v3"></path>` | Structure and conformance |
+| Accessibility | `accessibility` | `<circle cx="12" cy="5.5" r="1.5"></circle><path d="M5 9l7 1.5L19 9M12 10.5v4l-3 5.5M12 14.5l3 5.5"></path>` | Accessibility tool |
+| Action | `action` | `<path d="M13 3.5L6 13h5l-1 7.5L17 11h-5z"></path>` | Actions |
+| Play | `play` | `<path d="M8 5.5v13l10-6.5z"></path>` | Media |
+| 3D cube | `cube` | `<path d="M12 3.5l7.5 4v9L12 20.5l-7.5-4v-9z"></path><path d="M4.5 7.5L12 11.5l7.5-4M12 11.5v9"></path>` | 3D content |
+| Ruler | `ruler` | `<path d="M3.5 15.5l12-12 5 5-12 12z"></path><path d="M7 12l2 2M10 9l2 2M13 6l2 2"></path>` | Measure |
+| Distance | `distance` | `<path d="M4 12h16M4 9v6M20 9v6"></path>` | Measure tools |
+| Perimeter | `perimeter` | `<path d="M5 6l12-1 2 12-13 2z"></path>` | Measure tools |
+| Area | `area` | `<path d="M5 6l12-1 2 12-13 2z"></path><path d="M9 10l6 6M8 14l3 3M12 8l5 5"></path>` | Measure tools |
+| Rotate left | `rotate-left` | `<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"></path><path d="M4.5 4.5v3h3"></path>` | Organise |
+| Rotate right | `rotate-right` | `<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"></path><path d="M19.5 4.5v3h-3"></path>` | Organise, rotate the view clockwise |
+| Insert page | `insert-page` | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M12 10.5v6M9 13.5h6"></path>` | Organise |
+| Extract | `extract` | `<path d="M6.5 3.5h7l4 4v4"></path><path d="M6.5 3.5v17h6"></path><path d="M15 17.5h6M18 14.5l3 3-3 3"></path>` | Organise |
+| Delete | `delete` | `<path d="M4.5 6.5h15"></path><path d="M9.5 6.5V4.5h5v2"></path><path d="M6.5 6.5l1 13h9l1-13"></path>` | Delete pages, files, marks |
+| Crop | `crop` | `<path d="M7 3.5V17h13.5"></path><path d="M3.5 7H17v13.5"></path>` | Crop |
+| Resize | `resize` | `<path d="M4.5 9.5v-5h5M19.5 14.5v5h-5"></path><path d="M4.5 4.5l6 6M19.5 19.5l-6-6"></path>` | Resize pages |
+| Move to page | `move-to-page` | `<path d="M4.5 12h11M12 8l4 4-4 4"></path><path d="M19.5 5v14"></path>` | Move to page… |
+| Move | `move` | `<path d="M12 4v16M4 12h16M12 4l-2.5 2.5M12 4l2.5 2.5M12 20l-2.5-2.5M12 20l2.5-2.5M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5"></path>` | Move a signature or object |
+| Bookmark | `bookmark` | `<path d="M7 4.5h10v15l-5-4-5 4z"></path>` | Bookmarks |
+| Rename | `rename` | `<path d="M14.5 4.5l5 5L9 20H4v-5z"></path>` | Rename |
+| Drag grip | `drag-grip` | `<circle cx="9" cy="7" r="0.9"></circle><circle cx="15" cy="7" r="0.9"></circle><circle cx="9" cy="12" r="0.9"></circle><circle cx="15" cy="12" r="0.9"></circle><circle cx="9" cy="17" r="0.9"></circle><circle cx="15" cy="17" r="0.9"></circle>` | Reorderable rows |
+| Select | `select` | `<path d="M6 4l12 7-5.5 1.5L10 18z"></path>` | Select tools |
+| Edit text | `edit-text` | `<path d="M4 7.5V5.5h10v2M9 5.5V18.5M7 18.5h4"></path><path d="M18 8.5v11M16.5 8.5h3M16.5 19.5h3"></path>` | Edit text tool |
+| Text not editable | `text-not-editable` | `<path d="M4 7.5V5.5h10v2M9 5.5V18.5M7 18.5h4"></path><path d="M18 8.5v11M16.5 8.5h3M16.5 19.5h3"></path><path d="M15 14l5 5M20 14l-5 5"></path>` | Text that can't be edited in place |
+| Add text | `add-text` | `<path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path>` | Add text (Edit) and Text (Fill & Sign) |
+| Image | `image` | `<rect x="4" y="5" width="16" height="14" rx="1.5"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M4.5 17l5-5 4 4 2.5-2.5 3.5 3.5"></path>` | Image tool |
+| Page marks | `page-marks` | `<path d="M6 3.5h8.5L18 7v13.5H6z"></path><path d="M9 16.5l6-6"></path>` | Watermark, header and footer |
+| Tools | `tools` | `<rect x="4.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="4.5" y="13.5" width="6" height="6" rx="1"></rect><path d="M16.5 13.5v6M13.5 16.5h6"></path>` | Tools ▾ in the Edit toolbar |
+| Align left | `align-left` | `<path d="M5 6h14M5 10h9M5 14h14M5 18h9"></path>` | Text alignment (Edit and Comment) |
+| Align centre | `align-centre` | `<path d="M5 6h14M7.5 10h9M5 14h14M7.5 18h9"></path>` | Text alignment (Edit and Comment) |
+| Align right | `align-right` | `<path d="M5 6h14M10 10h9M5 14h14M10 18h9"></path>` | Text alignment (Edit and Comment) |
+| Strike | `strike` | `<path d="M5 12h14"></path><path d="M16 7.5c-.6-1.8-2.2-3-4.2-3-2.4 0-4.1 1.3-4.1 3.2 0 1.4.9 2.4 2.6 3"></path><path d="M8 16.5c.6 1.8 2.2 3 4.3 3 2.5 0 4.2-1.3 4.2-3.3 0-.9-.4-1.7-1.1-2.3"></path>` | Strike |
+| Caret | `caret` | `<path d="M6 17l6-10 6 10"></path><path d="M4 20.5h16"></path>` | Caret |
+| Text box | `text-box` | `<rect x="3.5" y="5.5" width="17" height="13" rx="1"></rect><path d="M8 9.5h8M12 9.5v6"></path>` | Text box |
+| Callout | `callout` | `<path d="M4.5 4.5h15v10h-9l-4 5v-5h-2z"></path><path d="M8 8.5h8M8 11.5h5"></path>` | Callout |
+| Stamp | `stamp` | `<path d="M9.5 4.5h5l-1 6h-3z"></path><path d="M5 14a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.5H5z"></path><path d="M6 20h12"></path>` | Stamps |
+| Rectangle | `rectangle` | `<rect x="4.5" y="6.5" width="15" height="11" rx="1"></rect>` | Shapes |
+| Ellipse | `ellipse` | `<ellipse cx="12" cy="12" rx="8" ry="6"></ellipse>` | Shapes |
+| Line | `line` | `<path d="M5 19L19 5"></path>` | Shapes |
+| Arrow | `arrow` | `<path d="M5 19L19 5"></path><path d="M11 5h8v8"></path>` | Shapes |
+| Polygon | `polygon` | `<path d="M12 4l8 6-3 9H7l-3-9z"></path>` | Shapes |
+| Polyline | `polyline` | `<path d="M4 18l5-8 5 5 6-10"></path>` | Shapes |
+| Pen | `pen` | `<path d="M15 4.5l4.5 4.5L9 19.5H4.5V15z"></path><path d="M13 6.5l4.5 4.5"></path>` | Stylus tools |
+| Eraser | `eraser` | `<path d="M14 4.5l6 6-9 9H6l-2.5-2.5z"></path><path d="M9 9.5l6 6"></path><path d="M11 19.5h9"></path>` | Stylus tools |
+| Lasso | `lasso` | `<ellipse cx="12" cy="10" rx="8" ry="5.5"></ellipse><path d="M8 14.5c-1 1.5-1 3.5 1 4.5"></path>` | Stylus tools |
+| Text field | `text-field` | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path>` | Form design |
+| Check box | `check-box` | `<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"></rect><path d="M8 12.5l3 3 5-6"></path>` | Form design |
+| Radio group | `radio-group` | `<circle cx="12" cy="12" r="7.5"></circle><circle cx="12" cy="12" r="3"></circle>` | Form design |
+| Dropdown | `dropdown` | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M13 11l2 2 2-2"></path>` | Form design |
+| List box | `list-box` | `<rect x="4.5" y="4.5" width="15" height="15" rx="1"></rect><path d="M8 9h8M8 12h8M8 15h5"></path>` | Form design |
+| Push button | `push-button` | `<path d="M8 7.5h8a4.5 4.5 0 0 1 0 9H8a4.5 4.5 0 0 1 0-9z"></path>` | Form design |
+| Date | `date` | `<rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path>` | Date fields |
+| Calculated | `calculated` | `<path d="M17 5.5H7l5 6.5-5 6.5h10"></path>` | Calculated fields |
+| Tab order | `tab-order` | `<path d="M10 7h10M10 12h10M10 17h10M5 5.5v3M4 17h2"></path>` | Tab order |
+| Detect fields | `detect-fields` | `<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"></path><path d="M8 12h8"></path>` | Detect fields |
+| Certificate | `certificate` | `<rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path>` | Sign with a certificate, chain of trust |
+| Signature image | `signature-image` | the `ink` icon | Add a signature image; signature fields use Signed file |
+| Shield cross | `shield-cross` | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path>` | Signature not trusted |
+| Redact | `redact` | `<rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path>` | Redact |
+| Mark text | `mark-text` | `<path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path>` | Redact tools |
+| Mark area | `mark-area` | `<rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect>` | Redact tools (a dashed rectangle with a square corner handle, so it no longer looks like Focus mode) |
+| Keyboard | `keyboard` | `<rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path>` | Type a signature, keyboard shortcuts |
+| Key | `key` | `<circle cx="8" cy="12" r="3.5"></circle><path d="M11.5 12H20M17 12v3M20 12v2"></path>` | Keychain |
+| Smart card | `smart-card` | `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` | Smart card |
+| Snap to grid | `snap-to-grid` | `<path d="M4.5 9h15M4.5 15h15M9 4.5v15M15 4.5v15"></path>` | Form design toolbar |
+
+**Icons for the reader and the core components (U6c).** U6c drew these on the same grid, because the reader v0.1 and the core components need them and no board had drawn them.
+
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
+| Fit width | `fit-width` | `<path d="M4.5 4.5v15M19.5 4.5v15"></path><path d="M8 12h8M10.5 9.5L8 12l2.5 2.5M13.5 9.5L16 12l-2.5 2.5"></path>` | Zoom to the page width |
+| Fit page | `fit-page` | `<path d="M4.5 4.5h15M4.5 19.5h15"></path><path d="M12 8v8M9.5 10.5L12 8l2.5 2.5M9.5 13.5L12 16l2.5-2.5"></path>` | Zoom to the whole page |
+| Error | `error` | `<circle cx="12" cy="12" r="8"></circle><path d="M12 7.5v5.5M12 16v.5"></path>` | Error notices and field errors (the mirror of Info) |
+| Positive | `positive` | `<circle cx="12" cy="12" r="8"></circle><path d="M8.5 12.5l2.5 2.5 4.5-5"></path>` | Success notices, a valid result |
+| Settings | `settings` | `<path d="M4.5 8h8M16.5 8h3M4.5 16h3M11.5 16h8"></path><circle cx="14.5" cy="8" r="2"></circle><circle cx="9.5" cy="16" r="2"></circle>` | Settings (two sliders, not a gear) |
+| Clear | `clear` | `<circle cx="12" cy="12" r="8"></circle><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path>` | Clear a search or text field |
 
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
 

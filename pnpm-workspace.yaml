@@ -22,10 +22,17 @@ catalog:
   # the crates. Dev-only, MIT (its @changesets/*, @manypkg/*, cac, semver, tinyexec: MIT/ISC).
   "@changesets/cli": 3.0.3
   "@types/node": 26.6.5
+  # @laminapdf/icons' React entry (an optional peer) and its browser tests; React 19 per ADR 0009.
+  # MIT. Each pinned to a release at least two weeks old when added.
+  "@types/react": 19.3.0
+  "@types/react-dom": 19.3.0
   "@vitest/browser-playwright": 5.0.5
   # JSON Schema 2020-12 validation of LaminaPdfError.toJSON() against laminapdf.error/1 (tests only).
   # MIT (fast-deep-equal, json-schema-traverse, require-from-string: MIT; fast-uri: BSD-3-Clause)
   ajv: 8.20.0
+  # Accessibility checks in browser tests (@laminapdf/icons' gallery). MPL-2.0, dev-only: never
+  # shipped (ADR 0019).
+  axe-core: 4.14.0
   bun: 1.4.4
   deno: 2.9.6
   # Maintainability checks in `cargo xtask check ts` (Q2u): import cycles and cross-package
@@ -37,6 +44,8 @@ catalog:
   knip: 6.43.0
   playwright: 1.64.1
   publint: 0.3.25
+  react: 19.3.1
+  react-dom: 19.3.1
   typescript: 7.0.2
   vite: 8.3.5
   vitest: 5.0.5
