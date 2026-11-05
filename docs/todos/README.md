@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 186 ready · 116 done** (302 total).
+**0 ongoing · 185 ready · 117 done** (302 total).
 
 ## Can start now
 
@@ -26,8 +26,8 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [C4a](ready/C4a-ui-chrome-and-platform.md): `@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter
+- [W1c](ready/W1c-home-page.md): The home page for now: what Lamina PDF is, the roadmap and what's coming next
 - [W1d](ready/W1d-one-site-header.md): One header for the website and the docs site
-- [W1e](ready/W1e-progress-snapshot.md): The progress snapshot: `cargo xtask progress` writes the home page's roadmap data
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6j](ready/U6j-positioning-and-palette-shell.md): `@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
@@ -136,9 +136,9 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | --- | --- | --- | --- |
 | W1a | [The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`](done/W1a-domain-map.md) | done | — |
 | W1b | [`apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`](done/W1b-site-scaffold-and-deploys.md) | done | [W1a](done/W1a-domain-map.md), [U6a](done/U6a-paper-tokens.md), [U6b](done/U6b-self-hosted-fonts.md) |
-| W1c | [The home page for now: what Lamina PDF is, the roadmap and what's coming next](ready/W1c-home-page.md) | ready | [W1b](done/W1b-site-scaffold-and-deploys.md), [W1e](ready/W1e-progress-snapshot.md) |
+| W1c | [The home page for now: what Lamina PDF is, the roadmap and what's coming next](ready/W1c-home-page.md) | ready | [W1b](done/W1b-site-scaffold-and-deploys.md), [W1e](done/W1e-progress-snapshot.md) |
 | W1d | [One header for the website and the docs site](ready/W1d-one-site-header.md) | ready | [W1b](done/W1b-site-scaffold-and-deploys.md) |
-| W1e | [The progress snapshot: `cargo xtask progress` writes the home page's roadmap data](ready/W1e-progress-snapshot.md) | ready | [W1b](done/W1b-site-scaffold-and-deploys.md) |
+| W1e | [The progress snapshot: `cargo xtask progress` writes the home page's roadmap data](done/W1e-progress-snapshot.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md) |
 
 ## Desktop reader — Round D
 

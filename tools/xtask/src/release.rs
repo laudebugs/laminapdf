@@ -17,8 +17,7 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
-use crate::program_path;
-use crate::util::git_stdout;
+use crate::util::{gh, git_stdout};
 
 /// The fields read from `gh run list` / `gh run view`.
 const FIELDS: &str = "databaseId,conclusion,status,event,displayTitle,headSha,headBranch,workflowName,url,createdAt";
@@ -64,21 +63,24 @@ pub(crate) fn guard(root: &Path, args: &Args) -> Result<()> {
     let release = git_stdout(root, &["rev-parse", "--verify", &format!("{}^{{commit}}", args.commit)])
         .with_context(|| format!("{:?} is not a commit in this clone", args.commit))?;
     let json = match &args.run {
-        Some(id) => gh(&["run", "view", id, "--json", FIELDS])?,
-        None => gh(&[
-            "run",
-            "list",
-            "--workflow",
-            "nightly.yml",
-            "--branch",
-            "main",
-            "--status",
-            "completed",
-            "--limit",
-            LIST_LIMIT,
-            "--json",
-            FIELDS,
-        ])?,
+        Some(id) => gh(root, &["run", "view", id, "--json", FIELDS])?,
+        None => gh(
+            root,
+            &[
+                "run",
+                "list",
+                "--workflow",
+                "nightly.yml",
+                "--branch",
+                "main",
+                "--status",
+                "completed",
+                "--limit",
+                LIST_LIMIT,
+                "--json",
+                FIELDS,
+            ],
+        )?,
     };
     let verdict = verdict(&json, &release, &|nightly: &str| is_ancestor(root, nightly, &release))?;
     println!("{verdict}");
@@ -98,21 +100,6 @@ fn is_ancestor(root: &Path, ancestor: &str, commit: &str) -> Result<bool> {
         Some(1) => Ok(false),
         _ => bail!("git merge-base --is-ancestor {ancestor} {commit} failed: is the clone shallow? (fetch-depth: 0)"),
     }
-}
-
-fn gh(args: &[&str]) -> Result<String> {
-    let output = Command::new(program_path("gh"))
-        .args(args)
-        .output()
-        .context("failed to run gh; is the GitHub CLI installed (and GH_TOKEN set in Actions)?")?;
-    if !output.status.success() {
-        bail!(
-            "`gh {}` failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&output.stderr).trim()
-        );
-    }
-    String::from_utf8(output.stdout).context("gh printed non-UTF-8 output")
 }
 
 /// The string field `name` of a run object, if it has one.

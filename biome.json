@@ -12,6 +12,7 @@
       "!!**/target",
       "!!**/dist",
       "!!**/src/generated",
+      "!!apps/site/src/data/progress.json",
       "!!**/schemas/*.schema.json",
       "!!**/pnpm-lock.yaml"
     ]

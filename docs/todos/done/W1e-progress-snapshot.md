@@ -3,20 +3,20 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1e` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md) |
-| Blocks | [W1c](./W1c-home-page.md) |
+| Depends on | [W1b](./W1b-site-scaffold-and-deploys.md) |
+| Blocks | [W1c](../ready/W1c-home-page.md) |
 | ADRs | — |
 | Branch | `feat/w1e-progress-snapshot` |
 | PR title | `feat(xtask): cargo xtask progress, the snapshot behind the website's roadmap` |
 | Size | M (200–400 lines of Rust and tests, plus the first snapshot) |
-| PR | — |
+| PR | [#248](https://github.com/laudebugs/laminapdf/pull/248) |
 
 ## Goal
 
-`cargo xtask progress` writes `apps/site/src/data/progress.json`, the one file the home page's roadmap and dashboard read ([W1c](./W1c-home-page.md)). It counts the todo board with the board's own parser, so the dashboard and `docs/todos/README.md` never disagree. Anyone can refresh it from time to time with one command and an exempt PR.
+`cargo xtask progress` writes `apps/site/src/data/progress.json`, the one file the home page's roadmap and dashboard read ([W1c](../ready/W1c-home-page.md)). It counts the todo board with the board's own parser, so the dashboard and `docs/todos/README.md` never disagree. Anyone can refresh it from time to time with one command and an exempt PR.
 
 ## Context
 
@@ -41,24 +41,24 @@
 
 **Out of scope**
 
-- The page → [W1c](./W1c-home-page.md).
+- The page → [W1c](../ready/W1c-home-page.md).
 - A scheduled refresh workflow (optional; it needs the owner to commit a workflow file).
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Expose what the snapshot needs from `todos.rs` (counts per round, the startable and ongoing todos) without a second parser.
-- [ ] The milestone table reader and the state rule.
-- [ ] The `git log` and `gh` readers behind functions the tests replace with fixtures.
-- [ ] Write the file; the TypeScript type and its test; the first snapshot.
-- [ ] Git workflow §2 and `CLAUDE.md`.
+- [x] Claim: the first commit moves this file to `ongoing/`.
+- [x] Expose what the snapshot needs from `todos.rs` (counts per round, the startable and ongoing todos) without a second parser.
+- [x] The milestone table reader and the state rule.
+- [x] The `git log` and `gh` readers behind functions the tests replace with fixtures.
+- [x] Write the file; the TypeScript type and its test; the first snapshot.
+- [x] Git workflow §2 and `CLAUDE.md`.
 
 ## Acceptance criteria
 
-- [ ] For one set of fixture todo files, the snapshot's counts per round and its "Can start now" list equal the board's.
-- [ ] `--offline` writes a valid file with neither the network nor `gh`.
-- [ ] The milestone states for the fixture board match a hand-checked table, including a range (`C1–C7`) and a single todo (`U3a`).
-- [ ] The file holds no author, no session name and no PR number.
+- [x] For one set of fixture todo files, the snapshot's counts per round and its "Can start now" list equal the board's.
+- [x] `--offline` writes a valid file with neither the network nor `gh`.
+- [x] The milestone states for the fixture board match a hand-checked table, including a range (`C1–C7`) and a single todo (`U3a`).
+- [x] The file holds no author, no session name and no PR number.
 
 ## Tests
 
@@ -72,10 +72,18 @@ Unit tests over fixture todo files and a fixture milestone table; merge-subject 
 
 - **Milestone rows mix rounds and todos.** Parse both forms, and fail on a token that matches no todo, so a renamed round can't silently drop out of its milestone.
 
+## Notes from the work
+
+- **Claims come from the files a pull request moves, not its branch.** A pull request claims a todo when it adds the todo's file under `ongoing/` or `done/`, which is what claiming means on the board. The **Branch** field turned out to be unreliable: on 2026-11-05 neither U6e's pull request (`claude/working-session-9g3nst`) nor L3e's (`feat/l3e-extract-bindings`) used the branch its todo names. The open pull requests are read with `gh api` (REST), one call for the list and one per pull request for its files.
+- **"Rounds" in the file are the board's sections** (`A`, `B`, `L` …), each with its heading, because the dashboard draws one bar per section. A ready todo that an open pull request claims counts as in progress, so a section's `todos` is `done + inProgress + ready`.
+- **The roadmap's Rounds cells** mix four forms: a section letter (`A`), a range (`B1–B7`), a round (`U1`) and a todo (`U3a`). A token that matches no todo fails the command.
+- **It reads the board and the roadmap from `main`** (`origin/main` when there is one, with `git show`), not from the checkout, so a branch's own todo moves never reach the snapshot, and "Next up" leaves out the todos already in progress.
+- **`gh` moved to `util.rs`**, shared with `release-guard`, and runs in the repository's folder so `{owner}/{repo}` resolves.
+
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the guideline and `CLAUDE.md` text
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the guideline and `CLAUDE.md` text
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

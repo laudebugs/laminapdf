@@ -23,6 +23,7 @@ mod package_docs;
 mod pdf_runtimes;
 mod pdfium;
 mod portable_paths;
+mod progress;
 mod publish;
 mod release;
 mod renames;
@@ -123,6 +124,10 @@ tasks:
                     allowlist in .config/link-check.toml, report in target/nightly/links/)
   todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
                     field from the Depends on links; --check only verifies
+  progress [--offline]
+                    write apps/site/src/data/progress.json, the website's roadmap and dashboard:
+                    the board's counts, the roadmap's milestones, merged and open pull requests
+                    (gh); --offline keeps the last snapshot's in-progress list
   capabilities [--check]
                     run every test tagged `/// capability: <ID> <surface> <status>` and
                     rewrite docs/capabilities/README.md from what they prove; --check only
@@ -319,6 +324,7 @@ fn main() -> Result<()> {
         }
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
+        ("progress", args) => progress::run(&ws.root, progress::offline(args)?),
         ("capabilities", []) => capabilities::run(&ws.root, false),
         ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
