@@ -15,6 +15,8 @@ use crate::io::Io;
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CheckArgs {
     /// The PDF to check, or `-` for standard input.
+    // The command line takes several inputs, so the front end fills this in per input.
+    #[arg(skip)]
     pub input: String,
 }
 

@@ -30,11 +30,13 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
             "The documentation page of a Lamina PDF error or warning code.",
             read(),
         ),
-        tool::<ExtractArgs, TextReport>(
+        Tool::new(
             "laminapdf_extract",
             "A PDF's text, page by page; `pages` takes a range such as 1-3, z (the last page) or 1-z,x2.",
-            read(),
-        ),
+            text_only(schema::<ExtractArgs>()),
+        )
+        .with_raw_output_schema(schema::<TextReport>())
+        .with_annotations(read()),
         tool::<InfoArgs, InfoReport>(
             "laminapdf_info",
             "What a PDF is: its version, pages and their sizes, file size, encryption, tagging, metadata and warnings.",
@@ -62,6 +64,23 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
         );
     }
     tools
+}
+
+/// `extract`'s arguments as the tool takes them: the text format only, since the tool answers
+/// with the text report (the Markdown, JSON and chunk formats are the command line's for now).
+fn text_only(schema: Arc<Map<String, Value>>) -> Arc<Map<String, Value>> {
+    let mut schema = Arc::unwrap_or_clone(schema);
+    if let Some(Value::Object(properties)) = schema.get_mut("properties") {
+        properties.remove("maxChars");
+        properties.insert(
+            "format".to_owned(),
+            serde_json::json!({ "const": "text", "default": "text", "description": "The output format: plain text." }),
+        );
+    }
+    if let Some(Value::Object(defs)) = schema.get_mut("$defs") {
+        defs.remove("Format");
+    }
+    Arc::new(schema)
 }
 
 /// One read tool: `T` its arguments, `R` its report.

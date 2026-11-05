@@ -1,0 +1,51 @@
+{
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/summary-line.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The counts a batch ends with: its last NDJSON line.",
+  "properties": {
+    "elapsedMs": {
+      "description": "How long the batch took, in milliseconds.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "failed": {
+      "description": "Inputs that failed.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "ok": {
+      "description": "Inputs whose report had no warnings.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "skipped": {
+      "description": "Inputs `--fail-fast` never started.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "type": {
+      "const": "summary",
+      "description": "Always `summary`."
+    },
+    "warnings": {
+      "description": "Inputs whose report had warnings.",
+      "format": "uint",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "type",
+    "ok",
+    "warnings",
+    "failed",
+    "skipped",
+    "elapsedMs"
+  ],
+  "title": "laminapdf batch summary line",
+  "type": "object"
+}

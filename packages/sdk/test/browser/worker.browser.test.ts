@@ -20,6 +20,13 @@ async function read(path: string): Promise<Uint8Array> {
   return new Uint8Array(await (await fetch(url)).arrayBuffer());
 }
 
+/** The absolute URL a fixture is served at, for `openUrl` (the worker resolves no page URLs). */
+function served(path: string): string {
+  const url = urls[`../../../../${path}`];
+  if (url === undefined) throw new Error(`${path} is not served`);
+  return new URL(url, globalThis.location.href).href;
+}
+
 async function rejection(p: Promise<unknown>): Promise<unknown> {
   try {
     await p;
@@ -107,9 +114,8 @@ describe("the worker client", () => {
 
   it("opens a remote file by range requests in the worker (openUrl)", async () => {
     const path = "fixtures/corpus/text-example.pdf";
-    const url = new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
     const sync = Document.open(await read(path));
-    await using doc = await client.openUrl(url);
+    await using doc = await client.openUrl(served(path));
     expect(await doc.pageCount()).toBe(sync.pageCount);
     expect(await doc.info()).toEqual(sync.info);
     sync.free();
@@ -245,23 +251,58 @@ describe("the worker client's lifecycle", () => {
     await doc.close();
   });
 
-  it("frees the document of an openUrl aborted while it fetches", async () => {
+  it("leaves no document behind when an openUrl is aborted while it fetches", async () => {
     const before = (await stats()).handles;
-    const path = "fixtures/corpus/text-example.pdf";
-    const url = new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
+    // The test worker stalls a fetch of a `#hold` URL until its signal aborts, and says when it
+    // started: aborting then lands mid-fetch, however fast the file would have come.
+    const url = `${served("fixtures/corpus/text-example.pdf")}#hold`;
     const controller = new AbortController();
+    const held = nextEvent(client, "fetch-held");
     const opening = client.openUrl(url, { signal: controller.signal });
-    setTimeout(() => controller.abort(), 0);
+    await held;
+    controller.abort();
     expect(isLaminaPdfError(await rejection(opening), "cancelled")).toBe(true);
-    // Calls run one at a time, so this answers after the aborted open has finished.
+    // Calls run one at a time, so this answers after the aborted open has finished. (If the abort
+    // never reached the fetch, this call would wait behind it: the 10 s timeout fails it sooner.)
     expect((await stats()).handles).toBe(before);
-  });
+  }, 10_000);
+
+  it.each(["open", "openUrl"] as const)(
+    "frees the document of an %s whose abort crosses its answer",
+    async (method) => {
+      // The abort lands after the worker answered and before the client reads the answer, as when
+      // a page aborts just as the open finishes. Listeners run in the order they were added, so
+      // this one, added before connect() sets the client's onmessage, sees the answer first.
+      const controller = new AbortController();
+      let armed = false;
+      let answer: unknown;
+      const worker = testWorker();
+      worker.addEventListener("message", (event: MessageEvent<{ kind: string }>) => {
+        if (!armed || event.data.kind !== "result") return;
+        armed = false;
+        answer = event.data;
+        controller.abort();
+      });
+      const crossing = await connect({ worker });
+      others.push(crossing);
+      const path = "fixtures/corpus/text-example.pdf";
+      const bytes = await read(path);
+      const before = (await stats(crossing)).handles;
+      armed = true;
+      const { signal } = controller;
+      const opening = method === "open" ? crossing.open(bytes, { signal }) : crossing.openUrl(served(path), { signal });
+      expect(isLaminaPdfError(await rejection(opening), "cancelled")).toBe(true);
+      // The worker did open the document, and answered with it.
+      expect(answer).toMatchObject({ ok: true, result: { type: "document" } });
+      // The cancel reached the worker before this call, and freed that document.
+      expect((await stats(crossing)).handles).toBe(before);
+    },
+  );
 });
 
 describe("the worker client, second review", () => {
   it("passes openRange's budget through openUrl", async () => {
-    const path = "fixtures/corpus/text-example.pdf";
-    const url = new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
+    const url = served("fixtures/corpus/text-example.pdf");
     const e = await rejection(client.openUrl(url, { budget: 1024, blockSize: 1024 }));
     expect(isLaminaPdfError(e, "source-budget-exceeded")).toBe(true);
   });
@@ -303,15 +344,26 @@ describe("the worker client, second review", () => {
   });
 });
 
-/** One of the test worker's hooks (`__stats`, `__crash`). */
-function internal(method: string, params: unknown[] = []): Promise<unknown> {
-  return (client as unknown as { call: (h: number, m: string, p: unknown[]) => Promise<unknown> }).call(
+/** One of the test worker's hooks (`__stats`, `__crash`), on `target`'s worker. */
+function internal(method: string, params: unknown[] = [], target = client): Promise<unknown> {
+  return (target as unknown as { call: (h: number, m: string, p: unknown[]) => Promise<unknown> }).call(
     0,
     method,
     params,
   );
 }
 
-async function stats(): Promise<{ started: number; handles: number; queued: number }> {
-  return (await internal("__stats")) as { started: number; handles: number; queued: number };
+async function stats(target = client): Promise<{ started: number; handles: number; queued: number }> {
+  return (await internal("__stats", [], target)) as { started: number; handles: number; queued: number };
+}
+
+/** Resolves on `target`'s next event called `name` (`emit()` in the test worker). */
+function nextEvent(target: WorkerClient, name: string): Promise<void> {
+  return new Promise((resolve) => {
+    const off = target.on("event", (event) => {
+      if (event !== name) return;
+      off();
+      resolve();
+    });
+  });
 }

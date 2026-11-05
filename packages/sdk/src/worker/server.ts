@@ -9,8 +9,9 @@
 // its own reply (an extension's `reply` builds one per caller, so transferables aren't shared). A
 // queued call can be cancelled before it starts; a running one sees its AbortSignal trip once all
 // its callers cancelled: `save` and `saveWithReport` run as stepped jobs that yield between steps
-// (ADR 0028), and a range document's fetches take the signal. A WebAssembly trap is reported as a
-// crash and ends the worker.
+// (ADR 0028), and a range document's fetches take the signal. A cancel that arrives after the
+// answer frees the document the call opened, since the page drops that answer. A WebAssembly trap
+// is reported as a crash and ends the worker.
 
 import { defined } from "../defined.js";
 import { Document, PageRef } from "../document.js";
@@ -97,6 +98,11 @@ const handles = new Map<number, Entry>();
 /** Each document's page handles by page ID: `page(i)` again returns the same handle. */
 const pageHandles = new Map<number, Map<string, number>>();
 let nextHandle = 1;
+/**
+ * Each open document's handle by the ID of the call that made it (`open`, `openUrl`). A cancel
+ * for a call already answered means the page dropped that answer, so nobody holds the document.
+ */
+const madeBy = new Map<number, number>();
 
 /** One run of a call, and every caller waiting for it (more than one when coalesced). */
 interface Job {
@@ -213,6 +219,7 @@ function release(handle: number): void {
   if (entry.type === "document") {
     for (const h of pageHandles.get(handle)?.values() ?? []) handles.delete(h);
     pageHandles.delete(handle);
+    for (const [id, h] of madeBy) if (h === handle) madeBy.delete(id);
     entry.value.free();
   }
 }
@@ -354,6 +361,9 @@ async function execute(job: Job): Promise<void> {
     // The result is in: no caller joins this job any more (a reply can take a while, and a caller
     // that joined now would get none); a same-key call from here on runs again.
     current = undefined;
+    // The caller's cancel may still arrive after this answer: cancel() then frees the document.
+    const opened = openedFor(job, result);
+    if (opened !== undefined) madeBy.set(...opened);
     await replyAll(job, result);
   } catch (e) {
     if (isTrap(e)) {
@@ -370,6 +380,17 @@ async function execute(job: Job): Promise<void> {
   } finally {
     current = undefined;
   }
+}
+
+/**
+ * `[call ID, document handle]` when `job` is an `open` or `openUrl` that answered one caller
+ * alone (one coalesced by a `key` shares its document, so no single cancel may free it).
+ */
+function openedFor(job: Job, result: unknown): [number, number] | undefined {
+  const { handle, method } = job.first;
+  if (handle !== 0 || (method !== "open" && method !== "openUrl") || !isHandleRef(result)) return undefined;
+  const [only, ...others] = job.waiters;
+  return only !== undefined && others.length === 0 ? [only.id, result.$handle] : undefined;
 }
 
 /** Runs the call: a client method, or a method of the document or page its handle names. */
@@ -465,12 +486,18 @@ function call(request: Request): void {
 }
 
 function cancel(id: number): void {
-  // Only a call still queued or running can be cancelled; a cancel that crossed its answer is
-  // ignored (and leaves nothing behind).
+  // Only a call still queued or running can be cancelled. A cancel can also cross its answer: the
+  // page aborted after the worker answered, before it read the answer. Such a cancel finds no job,
+  // and the page drops that answer, so a document the call made is freed here. (A crossed
+  // `page(i)` keeps its page handle, which `page(i)` reuses and closing the document frees.)
   const job = current?.waiters.some((w) => w.id === id)
     ? current
     : queue.find((j) => j.waiters.some((w) => w.id === id));
-  if (job === undefined) return;
+  if (job === undefined) {
+    const made = madeBy.get(id);
+    if (made !== undefined) release(made);
+    return;
+  }
   job.waiters.splice(
     job.waiters.findIndex((w) => w.id === id),
     1,

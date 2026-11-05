@@ -342,16 +342,19 @@ describe("ToastRegion", () => {
   it("removes a toast after its timeout, unless the region is hovered", async () => {
     const queue = new ToastQueue();
     const host = renderIn(<ToastRegion queue={queue} aria-label="Notifications" />);
-    // Long enough that the hover lands first on a busy runner, where Firefox can take over 150 ms
-    // to deliver it; the waits are twice the timeout, so each check is past it either way.
-    queue.add({ message: "Copied", timeout: 1000 });
+    const messages = () => [...host.querySelectorAll(".paper-toast")].map((t) => t.textContent);
+    // The region is hovered before the timed toast exists, so its timer never starts unpaused: a
+    // busy runner can't let it run out before the hover lands. The endless toast is what to hover.
+    queue.add({ message: "Update ready", timeout: Number.POSITIVE_INFINITY });
     await frame();
-    const toast = host.querySelector(".paper-toast") as HTMLElement;
-    await userEvent.hover(toast);
-    await new Promise((r) => setTimeout(r, 2000));
-    expect(host.querySelector(".paper-toast")).not.toBeNull();
-    await userEvent.unhover(toast);
-    await expect.poll(() => host.querySelector(".paper-toast"), { timeout: 4000 }).toBeNull();
+    const anchor = host.querySelector(".paper-toast") as HTMLElement;
+    await userEvent.hover(anchor);
+    queue.add({ message: "Copied", timeout: 100 });
+    await frame();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(messages()).toEqual(["Update ready", "Copied"]);
+    await userEvent.unhover(anchor);
+    await expect.poll(messages, { timeout: 4000 }).toEqual(["Update ready"]);
   });
 
   it("runs the action from the keyboard and dismisses the toast; a handle dismisses too", async () => {
@@ -378,6 +381,9 @@ describe("ToastRegion", () => {
         <ToastRegion queue={queue} aria-label="Notifications" />
       </>,
     );
+    // The pointer on Before, off the region: a hover left over from a failed test would pause
+    // the timers this test waits for.
+    await userEvent.hover(host.querySelector("button") as HTMLElement);
     queue.add({ message: "Update ready", timeout: Number.POSITIVE_INFINITY });
     queue.add({ message: "Highlight deleted", action: { label: "Undo", onPress: () => {} }, timeout: 60_000 });
     await frame();
@@ -386,8 +392,11 @@ describe("ToastRegion", () => {
     expect(focused().textContent).toBe("Undo");
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => focused().textContent).toBe("Before");
+    // Polled, not slept: the timers resume, but a busy runner can take longer than any fixed wait.
+    // The queue is polled, not the page, which may not show "Copied" yet when the poll first looks.
     queue.add({ message: "Copied", timeout: 100 });
-    await new Promise((r) => setTimeout(r, 300));
+    await expect.poll(() => queue.entries().length, { timeout: 4000 }).toBe(1);
+    await frame();
     expect([...host.querySelectorAll(".paper-toast")].map((t) => t.textContent)).toEqual(["Update ready"]);
   });
 
