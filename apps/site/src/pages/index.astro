@@ -1,0 +1,15 @@
+---
+// The home page (W1c): for now the roadmap and what's coming next, from the progress snapshot
+// that `cargo xtask progress` writes (src/data/progress.json).
+import Home from "../components/home/Home.astro";
+import { META } from "../data/copy.js";
+import { readProgress } from "../data/progress.js";
+import snapshot from "../data/progress.json";
+import Base from "../layouts/Base.astro";
+
+const progress = readProgress(snapshot);
+---
+
+<Base title={META.title} description={META.description}>
+  <Home progress={progress} />
+</Base>

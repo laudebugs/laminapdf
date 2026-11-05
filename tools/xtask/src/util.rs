@@ -1,5 +1,5 @@
-//! Small helpers the nightly tasks share: GitHub Actions outputs and job summaries, appending
-//! to files, and reading one line from git.
+//! Small helpers the tasks share: GitHub Actions outputs and job summaries, appending to files,
+//! reading one line from git, and running the GitHub CLI.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -7,8 +7,10 @@ use std::io::Write as _;
 use std::path::Path;
 use std::process::Command;
 
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use sha2::{Digest, Sha256};
+
+use crate::program_path;
 
 /// Appends `text` to `path`, creating it if needed.
 pub(crate) fn append(path: &Path, text: &str) -> Result<()> {
@@ -40,6 +42,24 @@ pub(crate) fn git_stdout(dir: &Path, args: &[&str]) -> Option<String> {
         .status
         .success()
         .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+}
+
+/// The stdout of `gh args…` run in `dir`, so `{owner}/{repo}` in a `gh api` path names the
+/// repository `dir` belongs to; fails when gh is missing or exits unsuccessfully.
+pub(crate) fn gh(dir: &Path, args: &[&str]) -> Result<String> {
+    let output = Command::new(program_path("gh"))
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .context("failed to run gh; is the GitHub CLI installed (and GH_TOKEN set in Actions)?")?;
+    if !output.status.success() {
+        bail!(
+            "`gh {}` failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    String::from_utf8(output.stdout).context("gh printed non-UTF-8 output")
 }
 
 /// The SHA-256 of `bytes` as lowercase hex.

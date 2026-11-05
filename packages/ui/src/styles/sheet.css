@@ -1,0 +1,156 @@
+/* Bottom sheets (§7.16, §6.2): the surface with a hairline top, 12 px top corners and the sheet
+   shadow, its top at the medium (48% down) or large (56 px down) detent, lifted whole above an
+   on-screen keyboard (its top no higher than the large detent) and kept clear of the safe area; a 64 × 44 grabber holding a 36 × 5 bar; a header with the
+   20/500 title, a 13 px muted count and a 44 px close button; content that scrolls; a footer of
+   full-width actions. It moves without a slide, so reduced motion needs nothing more. */
+@layer paper.components {
+  /* A modal sheet is a dialog, so it takes the modal layer, above every non-modal sheet. */
+  .paper-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--paper-z-modal);
+    background: var(--paper-scrim);
+  }
+
+  .paper-sheet {
+    position: fixed;
+    inset-inline: 0;
+    /* --sheet-keyboard is the part of the viewport the on-screen keyboard covers (useKeyboardInset);
+       a calc() needs a zero with a unit until the script sets it. */
+    inset-block-start: max(
+      var(--paper-sheet-detent-large),
+      calc(var(--paper-sheet-detent-medium) * 100dvh - var(--sheet-keyboard, 0vh))
+    );
+    inset-block-end: var(--sheet-keyboard, 0);
+    z-index: var(--paper-z-sheet);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    translate: 0 var(--sheet-drag, 0);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    border-start-start-radius: var(--paper-sheet-radius);
+    border-start-end-radius: var(--paper-sheet-radius);
+    background: var(--paper-surface);
+    box-shadow: var(--paper-shadow-sheet);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+  }
+
+  .paper-sheet[data-detent="large"] {
+    inset-block-start: var(--paper-sheet-detent-large);
+  }
+
+  .paper-sheet-dialog {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-block-size: 0;
+    outline: none;
+  }
+
+  .paper-sheet-handle {
+    display: flex;
+    flex-direction: column;
+    touch-action: none;
+  }
+
+  /* Above the header, which tucks up into the grabber's lower half, so the whole 64 × 44 takes the press. */
+  .paper-sheet-grabber {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-self: center;
+    justify-content: center;
+    inline-size: var(--paper-sheet-grabber-width);
+    block-size: var(--paper-sheet-grabber-height);
+    padding: var(--paper-space-8) 0 0;
+    border: 0;
+    border-radius: var(--paper-radius-6);
+    background: transparent;
+    cursor: grab;
+  }
+
+  .paper-sheet[data-dragging] .paper-sheet-grabber {
+    cursor: grabbing;
+  }
+
+  .paper-sheet-grabber-bar {
+    inline-size: var(--paper-sheet-grabber-bar-width);
+    block-size: var(--paper-sheet-grabber-bar-height);
+    border-radius: var(--paper-radius-3);
+    background: var(--paper-control-border);
+  }
+
+  .paper-sheet-header {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-10);
+    padding-block: var(--paper-space-8);
+    padding-inline: var(--paper-space-20) var(--paper-space-8);
+  }
+
+  /* With a grabber, the header tucks up beside it, as on the phone board. */
+  .paper-sheet-header[data-grabber] {
+    margin-block-start: calc(-1 * var(--paper-space-18));
+    padding-block-start: 0;
+  }
+
+  .paper-sheet-title {
+    margin: 0;
+    font: var(--paper-type-title);
+  }
+
+  .paper-sheet-count {
+    font: var(--paper-type-control);
+    font-variant-numeric: tabular-nums;
+    color: var(--paper-muted);
+  }
+
+  .paper-sheet-description {
+    margin: 0 0 var(--paper-space-16);
+  }
+
+  .paper-sheet-close {
+    margin-inline-start: auto;
+  }
+
+  .paper-sheet-close .paper-icon-button {
+    inline-size: var(--paper-target-min-touch);
+    block-size: var(--paper-target-min-touch);
+  }
+
+  .paper-sheet-body {
+    flex: 1;
+    min-block-size: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-inline: var(--paper-space-16);
+  }
+
+  .paper-sheet-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-8) var(--paper-space-16) calc(var(--paper-space-16) + env(safe-area-inset-bottom, 0));
+  }
+
+  .paper-sheet-footer .paper-button {
+    inline-size: 100%;
+    min-block-size: var(--paper-target-min-touch);
+  }
+
+  .paper-sheet:not(:has(.paper-sheet-footer)) .paper-sheet-body {
+    padding-block-end: env(safe-area-inset-bottom, 0);
+  }
+
+  @media (forced-colors: active) {
+    .paper-sheet {
+      border: var(--paper-border-width) solid CanvasText;
+    }
+
+    .paper-sheet-grabber-bar {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+  }
+}

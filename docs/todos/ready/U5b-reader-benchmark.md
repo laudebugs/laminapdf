@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [W1b](./W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
+| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D7c](./D7c-desktop-beta-release.md) |
 | Blocks | None |
 | ADRs | Follows 0018 (test strategy) for reproducibility |
 | Branch | `test/u5b-reader-benchmark` |
@@ -32,7 +32,7 @@ Users quote SumatraPDF-class speed as the bar and complain about Acrobat's cold 
 - Reference files: 10-page text, 1,000-page textbook, vector-heavy architectural drawing, 500 MB scan, tagged multi-column paper (permissive licences; provenance recorded).
 - Metrics: cold start to first page, warm open, scroll through 100 pages (dropped frames or long tasks), peak memory, installer/app size.
 - Method per reader: scripted where possible (Playwright for browser viewers, OS automation for desktop apps), otherwise a screen recording with frame timing; three runs, median reported; machine specs and versions recorded.
-- `bench/readers/` scripts, a results JSON, and a docs-site page (linked from U5a's performance page if it exists).
+- `bench/readers/` scripts, a results JSON, and the website's `/performance` page (`apps/site`, [website plan §4](../../plans/website.md#4-the-website); shared with U5a's performance targets if it exists).
 
 **Out of scope** (and which todo covers it)
 
@@ -60,7 +60,7 @@ The scripts themselves; no CI gate.
 
 ## Docs to update
 
-`bench/readers/README.md`; docs-site performance page; tick the benchmark item in [UI/UX §9](../../plans/ui-ux.md#9-to-dos).
+`bench/readers/README.md`; the website's `/performance` page; tick the benchmark item in [UI/UX §9](../../plans/ui-ux.md#9-to-dos).
 
 ## Risks and open questions
 

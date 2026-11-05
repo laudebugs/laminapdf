@@ -1,0 +1,25 @@
+---
+// The home page, for now the roadmap (website plan §4): one page on paper with the opening, the
+// milestones, the dashboard, the packages and where each part lives. Every number and list comes
+// from `progress`; test/home.test.ts renders it from a fixture.
+import type { Progress } from "../../data/progress.js";
+import Dashboard from "./Dashboard.astro";
+import Opening from "./Opening.astro";
+import Packages from "./Packages.astro";
+import Parts from "./Parts.astro";
+import Roadmap from "./Roadmap.astro";
+
+interface Props {
+  progress: Progress;
+}
+
+const { progress } = Astro.props;
+---
+
+<article class="sheet home">
+  <Opening date={progress.date} />
+  <Roadmap milestones={progress.milestones} />
+  <Dashboard progress={progress} />
+  <Packages />
+  <Parts milestones={progress.milestones} />
+</article>

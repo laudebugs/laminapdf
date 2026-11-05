@@ -31,7 +31,7 @@ The sidebar is an explicit list in `astro.config.mjs`, in the order of the [qual
 
 `src/styles/paper.css` (Starlight's `customCss`) maps the design language's tokens (`--paper-*`) onto Starlight's `--sl-*` properties:
 - **Colours:** asides use Paper's accent, Plum, `warning` and `danger`, and the sidebar marks the current page as a selected row.
-- **Fonts:** self-hosted from `src/fonts/` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [`src/fonts/README.md`](src/fonts/README.md).
+- **Fonts:** self-hosted from `@laminapdf/fonts` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [its README](../../packages/fonts/README.md).
 
 When the design language's tokens change, change them here too.
 
@@ -44,11 +44,15 @@ When the design language's tokens change, change them here too.
 - **The example PDFs** are the goldens in `fixtures/golden/examples/`, copied into `dist/examples/pdf/` after the build (`plugins/integrations.mjs`).
 - **Links the validator can't see:** `starlight-links-validator` checks the Starlight pages. After the build, `plugins/integrations.mjs` checks every link on every built page to `/examples/pdf/…` and `/reference/codes/…` against the files the build wrote.
 
+## The site header
+
+The docs site shows the header the website shows, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): the wordmark links to https://laminapdf.com, and "Docs" is marked on every page. `src/components/Header.astro`, Starlight's `Header` override, keeps Starlight's search, social icons, theme switch and language switch beside the shared links. The menu button stays where Starlight draws it. A link to a website page appears once the page exists: `astro.config.mjs` reads `apps/site/src/pages/` at build time. Below Starlight's 50 rem breakpoint the header shows only search and the menu button. The menu lists the links instead, above the theme switch, from `src/components/MobileMenuFooter.astro` (Starlight's `MobileMenuFooter` override).
+
 ## Headers
 
 `public/_headers` applies [ADR 0011 §4](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-)'s headers to every response, with these differences for a static docs site:
 
-- **`script-src` lists hashes.** After the build, `plugins/integrations.mjs` replaces `'inline-script-hashes'` with the SHA-256 of every inline script the build wrote (Starlight's theme and tabs, Expressive Code's copy button), so there is no `'unsafe-inline'` for scripts. `'wasm-unsafe-eval'` is for search (Pagefind). The build fails if the CSP line passes 1,900 characters, because Cloudflare's limit for a `_headers` line is 2,000.
+- **`script-src` lists hashes.** After the build, `@laminapdf/site-kit` (the build steps both sites share) replaces `'inline-script-hashes'` with the SHA-256 of every inline script the build wrote (Starlight's theme and tabs, Expressive Code's copy button), so there is no `'unsafe-inline'` for scripts. `'wasm-unsafe-eval'` is for search (Pagefind). The build fails if the CSP line passes 1,900 characters, because Cloudflare's limit for a `_headers` line is 2,000.
 - **`style-src` allows `'unsafe-inline'`,** because Expressive Code colours code tokens with style attributes.
 - **`connect-src` is `'self'` only.**
 

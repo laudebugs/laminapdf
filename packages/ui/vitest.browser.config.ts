@@ -20,6 +20,8 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
+      // Desktop-sized, wider than the phone breakpoint; tests of the phone layout set their own.
+      viewport: { width: 1280, height: 800 },
       commands: { reducedMotion },
       provider: playwright(),
       instances: [

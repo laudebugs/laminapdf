@@ -19,3 +19,8 @@
 @import "./thumbnail.css";
 @import "./outline-row.css";
 @import "./shortcut-chip.css";
+@import "./dialog.css";
+@import "./popover.css";
+@import "./tooltip.css";
+@import "./toast-region.css";
+@import "./sheet.css";

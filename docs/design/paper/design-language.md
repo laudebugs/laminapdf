@@ -2,7 +2,7 @@
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
 - **Source of truth:** [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`) holds the values of §2–§4 and the component sizes of §6; the tables here are a readable copy, and a change goes into that file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
-- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. On the same day the owner approved every icon of §5 (U6c). Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ready/U6e-overlays-and-sheets.md).
+- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. On the same day the owner approved every icon of §5 (U6c). Later the same day the owner approved the §4 z-order table, the wide dialog of §7.18, the menu of §7.26 and the tooltip of §7.27 (U6e). The **(proposed)** markers of everything approved are gone; those left in this document still wait for a decision.
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
@@ -252,13 +252,13 @@ The link line used in every file (keep it byte-identical, inside `<helmet>`):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
 ```
 
-The product will self-host these fonts (no third-party requests: principle 7); the link is for mockups.
+The product self-hosts these fonts from `@laminapdf/fonts` and never loads this link (no third-party requests: principle 7); the link is for mockups. The package ships Source Sans 3 as **Lamina Sans**: the font's licence reserves the name "Source", and a subset is a modified copy, so it takes another name. The design is unchanged. The `--paper-font-sans` stack names Lamina Sans first, then fallback faces that size Arial to its widths. Source Serif 4 isn't shipped, so the page-appearance chips (§7.25) draw "Aa" in Georgia until the owner chooses (U6b's open question).
 
 ### Type scale
 
 | Name | Family | Size / line height / weight | Usage |
 | --- | --- | --- | --- |
-| Site display | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 700) | Docs-site pages: pricing, benchmark, download |
+| Site display | Source Sans 3 | 48 / 1.1 / 700 (section headings 30–34 / 700) | Website pages: pricing, benchmark, download |
 | Display | Newsreader | 40 / 44 / 400 | Empty states, home screen heading |
 | Page heading | Newsreader | 28 / 34 / 500 | `h1` of settings and list pages (Account, Cloud files, Telemetry) |
 | Title | Newsreader | 20 / 24–26 / 500 | Inspector title, sheet title, dialog title |
@@ -302,7 +302,7 @@ Rules:
 | Bottom sheet | `0 -8px 28px rgba(60,48,30,0.12)` |
 | Command palette; dialog | `0 18px 48px rgba(31,29,26,0.22)` over `scrim` |
 
-**Z-order (proposed):**
+**Z-order** (`--paper-z-*`, `Z_ORDER` in `@laminapdf/tokens`):
 
 | Layer | z-index |
 | --- | --- |
@@ -884,6 +884,8 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 ### 7.16 Bottom sheet
 
+In `@laminapdf/ui`: `BottomSheet`, modal by default and non-modal with `isModal={false}`. **Behaviour (U6i):** the grabber switches between the medium and large detents on a press, Enter or Space. A drag of the grabber or header snaps to the nearest detent; a flick goes one detent in its direction, and a flick down from medium closes the sheet. The sheet moves without a slide, so reduced motion changes nothing. A non-modal sheet scrolls the page's focused element out from under itself when that element takes focus and when the sheet grows, but leaves focus in its own menus alone. An on-screen keyboard lifts the whole sheet, its top no higher than the large detent, and the sheet keeps clear of the safe area. **Layers (U6i):** a modal sheet is a dialog over the scrim, so it draws in the scrim's layer (40, the z-order's "Scrim + palette / dialog" row); a non-modal sheet draws at 30. **Deviation (U6i):** the sheet runs to the viewport's bottom, where F04 stops it above the phone bottom bar; the phone shell places that bar.
+
 ```html
 <section aria-label="Pages" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 76px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
   <div style="display: flex; justify-content: center">
@@ -912,7 +914,9 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 ### 7.18 Dialog
 
-Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide, proposed:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
+In `@laminapdf/ui`: `Dialog`. **Focus (U6e):** it starts on the first field, or on a control given `autoFocus` (Cancel in a destructive confirm); React Aria alone would focus the dialog itself. The close button comes last in the tab order, though it sits top right. `aria-modal` is set, and the page behind is inert. On a phone-wide viewport (599 px or less) it is a `BottomSheet` at the large detent, with its actions full width below the content. It keeps the layout it opened with until it closes, so turning a phone never rebuilds an open dialog.
+
+Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
 
 Rules **(proposed)**:
 
@@ -985,7 +989,7 @@ More controls **(proposed)**:
 
 ### 7.20 Toast and notice
 
-In `@laminapdf/ui`: `Notice`, and `Toast` for the toast's look. The toast region, which comes with the overlays, is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
+In `@laminapdf/ui`: `Notice`, `Toast` for the toast's look, and `ToastRegion` with `ToastQueue`. The region is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Stacking (U6e):** at most three show, newest at the bottom, and a fourth pushes the oldest out. The region stays outside a dialog's inert page, so a toast shown over a dialog is still announced and its action still reachable. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
 
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
 - **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.
@@ -1067,7 +1071,9 @@ From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; prev
 
 **Accent swatches (proposed, second review):** under Theme, a `role="radiogroup"` named “Accent” of four 32 px round swatches (44 px targets on touch) named Teal, Blue, Plum and Green, with the §7.12 selected ring and the selected name beside the row; disabled in High contrast with the help line “High contrast uses your system colours” (§2.8).
 
-### 7.26 Menu (proposed)
+### 7.26 Menu
+
+In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigger` for the popover dialog. **Deviations (U6e):** menus and popovers draw in the z-order's popover layer (50), above whatever opened them, rather than z 30. A disabled item is skipped by the arrow keys, as React Aria's menu does, and shows its reason as a second line, linked with `aria-describedby`; a tooltip on an item the keyboard can't reach would be unreadable. The popover dialog follows React Aria's popovers: while open it is modal, so the page behind is hidden from assistive technology and holds still, and a click outside closes it.
 
 One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, Filter), More menus, the More tabs menu, context menus and the tab overflow menu. Native menus (the macOS menu bar, Windows and Linux menu bars) are drawn by the OS; the desktop boards only sketch them.
 
@@ -1080,10 +1086,12 @@ One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, 
 - **Listbox popup:** a dropdown field's open list; as the menu, with items 28 high and `role="listbox"`.
 - **Menu sheet (phone):** a sheet holding a `role="menu"` list of 52–56 px rows: 22 px icon, 16 px label, optional 13 px `muted` subline or value on the right.
 
-### 7.27 Tooltip and link preview (proposed)
+### 7.27 Tooltip and link preview
+
+In `@laminapdf/ui`: `Tooltip`, in the popover layer. The link preview stays proposed.
 
 - **Tooltip:** `surface`, `chip-border` edge, radius 6, floating shadow, 12 px text plus a shortcut chip, 6 px below the control; `role="tooltip"`; shown on hover after 500 ms and on keyboard focus; hoverable; Escape dismisses.
-- **Link preview:** popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page's top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). Shown after 300 ms on hover or focus; `role="tooltip"`, hoverable, Escape dismisses.
+- **Link preview (proposed):** popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page's top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). Shown after 300 ms on hover or focus; `role="tooltip"`, hoverable, Escape dismisses.
 - **Address box:** a URL shown before acting on it: white, `hairline` edge, radius 4, padding `10px 12px`, wraps anywhere, host in 600 `text` (punycode for international hosts), the rest `text-3`.
 
 ### 7.28 Popover (proposed)
@@ -1190,9 +1198,9 @@ Drawn over the page (layer 1, §4) and `aria-hidden` unless stated. Every overla
 
 ### 7.39 Site and product pages (proposed)
 
-- **Docs-site header:** 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every docs-site page (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app”. The download page uses a 56 px variant with a 22 px Source Sans 3 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
+- **Site header** (the website at `laminapdf.com` and the docs site): 64 px, max 1120 px: wordmark Source Sans 3 24/700 (the docs site is sans-only, §3), the one site nav for every page of both sites (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app” (shown once the reader launches, [website plan §4](../../plans/website.md#4-the-website)). The download page uses a 56 px variant with a 22 px Source Sans 3 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
 - **Large primary link:** 40 px primary button styling on an `<a>`, with the Download icon (“Download for macOS”).
-- **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (docs site): `surface`, padding 28, name 26, price 40 Source Sans 3 700.
+- **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (website): `surface`, padding 28, name 26, price 40 Source Sans 3 700.
 
 ### 7.40 Media poster (proposed)
 

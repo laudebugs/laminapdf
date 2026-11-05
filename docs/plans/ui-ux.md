@@ -203,14 +203,14 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 ### U5. Product promises
 
-**Deliverable:** the pricing, promises and targets pages on the docs site; the reader benchmark; optional, opt-in usage telemetry.
+**Deliverable:** the pricing, promises and targets pages on the website (`apps/site`, [website plan §4](website.md#4-the-website)); the reader benchmark; optional, opt-in usage telemetry.
 **Accepted when:** the owner has approved the pricing page; the benchmark is reproducible from a script with published raw numbers; telemetry is off by default and its payload is documented and tested to carry no document data.
 **Todos:** [U5a](../todos/ready/U5a-pricing-and-promises-page.md), [U5b](../todos/ready/U5b-reader-benchmark.md), [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)
 
 ### U6. Paper design system
 
 Planned in the [Paper design plan §6](paper-design.md#6-round-u6-paper-in-code): tokens, self-hosted fonts, icons, core components, overlays and a gallery with visual tests.
-**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/ready/U6b-self-hosted-fonts.md), [U6c](../todos/done/U6c-icon-set.md), [U6d](../todos/done/U6d-core-components.md), [U6h](../todos/done/U6h-display-components.md), [U6e](../todos/ready/U6e-overlays-and-sheets.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
+**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/done/U6b-self-hosted-fonts.md), [U6c](../todos/done/U6c-icon-set.md), [U6d](../todos/done/U6d-core-components.md), [U6h](../todos/done/U6h-display-components.md), [U6e](../todos/done/U6e-overlays-and-sheets.md), [U6i](../todos/done/U6i-sheets-positioning-and-palette-shell.md), [U6j](../todos/ready/U6j-positioning-and-palette-shell.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
 
 ### Changes to existing todos
 

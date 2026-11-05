@@ -3,6 +3,7 @@
 // plugins/integrations.mjs for what it can't see). Code on the pages is read from the tested
 // example files (src/components/Snippet.astro), the code table from fixtures/codes.json, and the
 // code pages from docs/errors/ (src/pages/reference/codes/[code].astro, plugins/error-pages.mjs).
+// @laminapdf/site-kit fills the CSP's inline-script hashes into dist/_headers, as for the website.
 //
 // Build-time settings (environment variables):
 // - LAMINA_PDF_DOCS_GITHUB=1 adds the links to GitHub (the repository in the header, "Edit page",
@@ -12,15 +13,18 @@
 //   so the TypeScript checks generate the reference only once, in the build).
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
+import { inlineScriptHashes, pageFiles } from "@laminapdf/site-kit/integrations";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs } from "./plugins/agent-docs.mjs";
-import { checkedLinks, examplePdfs, inlineScriptHashes } from "./plugins/integrations.mjs";
+import { checkedLinks, examplePdfs } from "./plugins/integrations.mjs";
 import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
+/** The website's pages: the shared header links to one only once it exists (W1d). */
+const WEBSITE_PAGES = pageFiles(new URL("apps/site/src/pages/", ROOT));
 const TYPEDOC = process.env.LAMINA_PDF_DOCS_TYPEDOC !== "0";
 
 const typeDoc = starlightTypeDoc({
@@ -46,6 +50,7 @@ export default defineConfig({
   site: "https://docs.laminapdf.com",
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
+  vite: { define: { __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES) } },
   // Moved pages keep their old URLs (static redirects; Workers static assets ignore _redirects).
   redirects: {
     "/guides/errors-and-warnings/": "/concepts/errors-and-warnings/",
@@ -67,9 +72,15 @@ export default defineConfig({
           }
         : {}),
       lastUpdated: false,
-      // The Paper design language (docs/design/paper/design-language.md): its tokens, then the
-      // fonts and Starlight's colours mapped onto them.
-      customCss: ["@laminapdf/tokens/tokens.css", "./src/styles/paper.css"],
+      // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
+      // on phones, where the header hides the site's links, the menu lists them.
+      components: {
+        Header: "./src/components/Header.astro",
+        MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
+      },
+      // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
+      // then Starlight's colours and fonts mapped onto them.
+      customCss: ["@laminapdf/tokens/tokens.css", "@laminapdf/fonts/fonts.css", "./src/styles/paper.css"],
       plugins: [
         starlightLinksValidator({
           errorOnLocalLinks: true,

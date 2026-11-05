@@ -1,0 +1,43 @@
+{
+  "name": "@laminapdf/fonts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lamina PDF's UI typefaces, self-hosted: Lamina Sans (Source Sans 3, renamed), Newsreader and Caveat as Latin and Latin Extended WOFF2 subsets, with fonts.css, a metric-adjusted fallback face and the preload list. Workspace-only for now.",
+  "license": "(MIT OR Apache-2.0) AND OFL-1.1",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "files": [
+    "dist",
+    "files",
+    "fonts.css",
+    "LICENSES"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./fonts.css": "./fonts.css",
+    "./files/*": "./files/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test": "tsc -p tsconfig.build.json && vitest run -c vitest.node.config.ts"
+  },
+  "devDependencies": {
+    "@laminapdf/test-utils": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

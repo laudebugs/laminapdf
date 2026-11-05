@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "date": "2026-11-05",
+  "totals": {
+    "todos": 302,
+    "done": 118,
+    "inProgress": 3,
+    "ready": 181
+  },
+  "rounds": [
+    {
+      "letter": "A",
+      "heading": "Architecture — Round A",
+      "todos": 3,
+      "done": 3,
+      "inProgress": 0,
+      "ready": 0
+    },
+    {
+      "letter": "B",
+      "heading": "Library — Round B",
+      "todos": 31,
+      "done": 31,
+      "inProgress": 0,
+      "ready": 0
+    },
+    {
+      "letter": "L",
+      "heading": "Shareable libraries — Rounds L1–L6",
+      "todos": 19,
+      "done": 12,
+      "inProgress": 1,
+      "ready": 6
+    },
+    {
+      "letter": "C",
+      "heading": "Web reader — Round C",
+      "todos": 20,
+      "done": 7,
+      "inProgress": 0,
+      "ready": 13
+    },
+    {
+      "letter": "W",
+      "heading": "Website — Round W",
+      "todos": 5,
+      "done": 4,
+      "inProgress": 1,
+      "ready": 0
+    },
+    {
+      "letter": "D",
+      "heading": "Desktop reader — Round D",
+      "todos": 21,
+      "done": 0,
+      "inProgress": 0,
+      "ready": 21
+    },
+    {
+      "letter": "U",
+      "heading": "UI/UX — Round U",
+      "todos": 24,
+      "done": 10,
+      "inProgress": 1,
+      "ready": 13
+    },
+    {
+      "letter": "H",
+      "heading": "Hosted service",
+      "todos": 4,
+      "done": 0,
+      "inProgress": 0,
+      "ready": 4
+    },
+    {
+      "letter": "E",
+      "heading": "Editor — Rounds E1–E18",
+      "todos": 122,
+      "done": 0,
+      "inProgress": 0,
+      "ready": 122
+    },
+    {
+      "letter": "P",
+      "heading": "Publishing (later)",
+      "todos": 6,
+      "done": 5,
+      "inProgress": 0,
+      "ready": 1
+    },
+    {
+      "letter": "Q",
+      "heading": "Docs and code quality — Round Q",
+      "todos": 38,
+      "done": 38,
+      "inProgress": 0,
+      "ready": 0
+    },
+    {
+      "letter": "X",
+      "heading": "Cross-cutting",
+      "todos": 9,
+      "done": 8,
+      "inProgress": 0,
+      "ready": 1
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "Foundations",
+      "rounds": "A",
+      "ships": "Monorepo, CI fast lane, `laminapdf-syntax` + `laminapdf-cos`, ADRs 0001/0002/0015/0019",
+      "state": "done"
+    },
+    {
+      "id": "M1",
+      "name": "Library alpha",
+      "rounds": "B1–B7",
+      "ships": "`laminapdf` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site",
+      "state": "done"
+    },
+    {
+      "id": "M2",
+      "name": "Web reader v0.1",
+      "rounds": "B9, C1–C7, U1, U2, U3a, U4a",
+      "ships": "Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator",
+      "state": "under-way"
+    },
+    {
+      "id": "M3",
+      "name": "Desktop reader beta",
+      "rounds": "D1–D7",
+      "ships": "Signed installers for three OSes, file associations, tabs, auto-update channels",
+      "state": "not-started"
+    },
+    {
+      "id": "M4",
+      "name": "Library 0.2",
+      "rounds": "B8",
+      "ships": "Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean",
+      "state": "done"
+    },
+    {
+      "id": "M5",
+      "name": "Organiser",
+      "rounds": "E1–E3",
+      "ships": "Save/undo, page organisation, bookmarks, attachments, metadata, extraction",
+      "state": "not-started"
+    },
+    {
+      "id": "M6",
+      "name": "Annotator",
+      "rounds": "E4–E5",
+      "ships": "Markup, drawing, review threads, stamps, XFDF",
+      "state": "not-started"
+    },
+    {
+      "id": "M7",
+      "name": "Content editor",
+      "rounds": "E6–E7",
+      "ships": "Add and edit text, images and vectors",
+      "state": "not-started"
+    },
+    {
+      "id": "M8",
+      "name": "Forms and signing",
+      "rounds": "E8–E10",
+      "ships": "Fill and author forms, PAdES signing and validation",
+      "state": "not-started"
+    },
+    {
+      "id": "M9",
+      "name": "Advanced",
+      "rounds": "E11–E17",
+      "ships": "Encryption on write, sanitisation, redaction, OCR/conversion, compare, accessibility, print production, advanced interactions",
+      "state": "not-started"
+    },
+    {
+      "id": "M10",
+      "name": "Collaboration (optional)",
+      "rounds": "E18",
+      "ships": "Shared review on Durable Objects",
+      "state": "not-started"
+    }
+  ],
+  "inProgress": {
+    "source": "pull-requests",
+    "checked": "2026-11-05",
+    "todos": [
+      {
+        "id": "L3e",
+        "title": "Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark"
+      },
+      {
+        "id": "W1c",
+        "title": "The home page for now: what Lamina PDF is, the roadmap and what's coming next"
+      },
+      {
+        "id": "U6j",
+        "title": "`@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell"
+      }
+    ]
+  },
+  "nextUp": [
+    {
+      "id": "L3c",
+      "title": "Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate"
+    },
+    {
+      "id": "L3d",
+      "title": "Extraction: structure-tree order, headings, lists, running headers and the last two hidden-text flags"
+    },
+    {
+      "id": "L4b",
+      "title": "CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages"
+    },
+    {
+      "id": "L4d",
+      "title": "CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper"
+    },
+    {
+      "id": "L5b",
+      "title": "Agent-eval baseline: run the agent eval with and without the shipped docs and record it"
+    },
+    {
+      "id": "C3c",
+      "title": "Viewer performance harness: long tasks, memory and time-to-first-page in CI"
+    },
+    {
+      "id": "C4a",
+      "title": "`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter"
+    },
+    {
+      "id": "D1a",
+      "title": "`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews"
+    },
+    {
+      "id": "P3",
+      "title": "Registry checks after the first release: installs, semver, docs"
+    },
+    {
+      "id": "X6",
+      "title": "Windows CI coverage"
+    }
+  ],
+  "merged": {
+    "count": 95,
+    "recent": [
+      "feat(site): one header for the website and the docs site",
+      "feat(ui): add paper bottom sheets and the phone dialog",
+      "feat(xtask): cargo xtask progress, the snapshot behind the website's roadmap",
+      "feat(site): the website at laminapdf.com, with a preview per pull request",
+      "feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts",
+      "feat(fonts): self-host subsetted Lamina Sans, Newsreader and Caveat woff2 files",
+      "docs(plans): the home page's design, code panel and packages",
+      "docs: the website at laminapdf.com and the reader at app.laminapdf.com",
+      "docs(plans): the website at laminapdf.com and the reader at app.laminapdf.com",
+      "feat(extract): tables, Markdown/JSON/chunk output and doc.extract() in Rust"
+    ]
+  }
+}

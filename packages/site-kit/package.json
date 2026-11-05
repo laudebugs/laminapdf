@@ -1,0 +1,38 @@
+{
+  "name": "@laminapdf/site-kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "What Lamina PDF's two Astro sites share: the build steps (the CSP's inline-script hashes, noindex outside production, the website's checks of every built page) and the site header with its one list of links. Runs at build time only; workspace-only, consumed as source.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    "./integrations": "./src/integrations.mjs",
+    "./nav": "./src/nav.mjs",
+    "./SiteHeader.astro": "./src/SiteHeader.astro",
+    "./SiteNav.astro": "./src/SiteNav.astro",
+    "./header.css": "./src/header.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/test-utils": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "astro": "7.4.2",
+    "axe-core": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

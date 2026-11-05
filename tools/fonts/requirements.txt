@@ -1,0 +1,5 @@
+# tools/fonts/subset.py: fontTools (MIT), with brotli (MIT) for WOFF2. The same fontTools pin as
+# tools/fixtures/requirements.txt. Tools only: nothing here ships; the WOFF2 files and fonts.css it
+# writes are committed in packages/fonts/, and packages/fonts/fonts.lock.json records these versions.
+fonttools==4.68.0
+brotli==1.2.1

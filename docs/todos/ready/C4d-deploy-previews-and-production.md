@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C4b](./C4b-web-app-shell.md), [W1a](./W1a-domain-map.md) |
+| Depends on | [C4b](./C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
 | Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D2b](./D2b-engine-process.md), [D5a](./D5a-update-worker-and-adr-0014.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [H1](./H1-auth-spike.md) |
 | ADRs | Implements 0011 (Wrangler pinned in CI, previews per PR, staging on `main`, production from `web-v*` tags); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, least-privilege tokens) |
 | Branch | `ci/c4d-web-deploys` |
@@ -20,7 +20,7 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 
 ## Context
 
-- ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — production at `laminapdf.com`, previews per PR via Workers preview URLs, Wrangler pinned.
+- ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — production at `app.laminapdf.com`, staging at `staging-app.laminapdf.com`, previews per PR via Workers preview URLs, Wrangler pinned.
 - [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — Workers needs `preview_urls: true` and a `previews` block; previews at `<preview-name>.<your-domain>`; custom domain must be a Cloudflare zone; unverified whether Workers Builds creates PR previews automatically; `cf` CLI is beta (try later).
 - [Git workflow §5–7](../../guidelines/git-workflow.md#5-pull-requests) — PR process; CI must be green.
 - [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) — path-filtering inside jobs, never workflow-level `paths` on required checks.
@@ -30,7 +30,7 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 **In scope**
 
 - `.github/workflows/web-deploy.yml`: on `pull_request` (same-repo branches only; forks get no secrets → skip with a note) build `apps/web` and `wrangler versions upload` with a preview alias derived from the PR number (e.g. `pr-123`), then comment (create or update a single sticky comment) with the preview URL; on `push` to `main` build and deploy **staging** (a stable `staging` preview alias or a separate `lamina-pdf-web-staging` Worker — decide by what the pinned Wrangler supports); on `push` of a tag `web-v*` deploy **production**, with the production job `needs:` the release-lane gate jobs (C7c adds the runtime/Lighthouse/installability gates to that lane; until then it needs the build + e2e jobs) so a failing gate means no production deploy; concurrency groups per PR, for staging and for production. Nothing deploys production from a branch push.
-- `wrangler.jsonc`: `preview_urls: true`, environment/route config for the custom domains `laminapdf.com` and `staging.laminapdf.com` ([web-app §8 Q1](../../plans/web-app.md#8-open-questions); the docs site's `apps/docs/wrangler.toml` shows the `custom_domain` route), `workers_dev` policy.
+- `wrangler.jsonc`: `preview_urls: true`, environment/route config for the custom domains `app.laminapdf.com` and `staging-app.laminapdf.com` ([web-app §8 Q1](../../plans/web-app.md#8-open-questions); the docs site's `apps/docs/wrangler.toml` shows the `custom_domain` route), `workers_dev` policy.
 - Secrets: `CLOUDFLARE_API_TOKEN` (scoped to Workers Scripts edit on the one account) and `CLOUDFLARE_ACCOUNT_ID`, documented; GitHub environment `production` with required reviewers optional.
 - Post-deploy smoke (`apps/web/e2e/smoke.spec.ts` with `BASE_URL`): headers match ADR 0011, SPA fallback works, `hello.pdf` (served from the test, opened via file input) renders page 1.
 - Preview cleanup policy (previews expire or are deleted when the PR closes, if the API allows; otherwise document retention).
@@ -78,7 +78,7 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 
 ## Risks and open questions
 
-- **Domain** (`laminapdf.com`, [§8 Q1](../../plans/web-app.md#8-open-questions)): the zone is on Cloudflare; the deploy token needs Zone → Workers Routes → Edit on it, as the docs site's does.
+- **Domain** (`laminapdf.com`, [§8 Q1](../../plans/web-app.md#8-open-questions); the reader's hosts are `app.` and `staging-app.`, the apex is the website's, [ADR 0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)): the zone is on Cloudflare; the deploy token needs Zone → Workers Routes → Edit on it, as the docs site's does.
 - **Plan wording**: [web-app.md](../../plans/web-app.md) still says "production on `main`"; this todo supersedes that with staging on `main` + production from tags; tick the §9 item with a note.
 - **Preview-URL mechanics** for Workers changed recently and are partly unverified in the notes; follow current Wrangler docs for the pinned version and record exact commands.
 - **Secrets on PRs**: only same-repo branches deploy; never use `pull_request_target` with checkout of PR code.

@@ -1,0 +1,11 @@
+---
+// Text with Markdown code spans (`…`), as todo titles, milestones and package notes write them,
+// shown with <code> for each span.
+interface Props {
+  text: string;
+}
+
+const parts = Astro.props.text.split("`");
+---
+
+{parts.map((part, i) => (i % 2 === 1 ? <code>{part}</code> : part))}

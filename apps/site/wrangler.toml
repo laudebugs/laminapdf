@@ -1,0 +1,26 @@
+# The website on Cloudflare Workers static assets (todo W1b; ADR 0011 §1): no Worker script, every
+# request answered by the asset server from `astro build`'s dist/, with public/_headers' headers.
+# Deployed by .github/workflows/site.yml: a preview version per PR (`wrangler versions upload
+# --preview-alias pr-<n>`) and production from main (`wrangler deploy`), at https://laminapdf.com.
+name = "lamina-pdf-site"
+compatibility_date = "2026-10-01"
+# A Workers custom domain on the laminapdf.com zone, the apex itself: `wrangler deploy` creates the
+# DNS record and certificate for it. The deploy token needs Zone → Workers Routes → Edit on that zone.
+routes = [{ pattern = "laminapdf.com", custom_domain = true }]
+# No production copy on workers.dev: a second host serving production's pages without noindex
+# would be a duplicate for search engines to find.
+workers_dev = false
+# Preview URLs for uploaded versions (the per-PR previews), on workers.dev. With workers_dev off
+# they are off by default, so this turns them on (developers.cloudflare.com/workers/configuration/previews/).
+preview_urls = true
+
+[assets]
+directory = "./dist"
+# Unknown paths get the site's 404 page with a 404 status.
+not_found_handling = "404-page"
+# Answer /privacy without its trailing slash too (Astro writes /privacy/index.html).
+html_handling = "auto-trailing-slash"
+
+# No Worker code runs, so there are no Worker logs to keep (ADR 0011 §5).
+[observability]
+enabled = false

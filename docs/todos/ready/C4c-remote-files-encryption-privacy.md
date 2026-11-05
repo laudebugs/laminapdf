@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [C4b](./C4b-web-app-shell.md), [W1a](./W1a-domain-map.md) |
+| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [C4b](./C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
 | Blocks | [C5a](./C5a-text-layer-and-selection.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6c](./C6c-print-download-properties.md), [C7b](./C7b-offline-pwa.md), [D2b](./D2b-engine-process.md), [U4a](./U4a-network-indicator-and-privacy-proof.md) |
 | Dependency notes | [C4b](./C4b-web-app-shell.md); library B2 (standard security handler decryption and encrypted fixtures; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)), exposed through **B6** |
 | ADRs | Implements 0011's privacy guarantees (fragment URLs, no upload, no referrer) as tests; follows [0005](../../decisions/0005-document-model.md) §2 (`ByteSource`), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (wrong-password and repair codes) |
@@ -17,13 +17,13 @@
 
 ## Goal
 
-Complete the reader's opening story and prove its privacy promise. Remote PDFs open from `https://laminapdf.com/#url=<encoded URL>` — a fragment, so browsers never send it to our server — fetched **directly** from their host with HTTP range requests through a `ByteSource`. Password-protected PDFs prompt for a password that stays in the worker. And a Playwright privacy suite asserts, on every PR, that no request body carries document bytes and no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
+Complete the reader's opening story and prove its privacy promise. Remote PDFs open from `https://app.laminapdf.com/#url=<encoded URL>` — a fragment, so browsers never send it to our server — fetched **directly** from their host with HTTP range requests through a `ByteSource`. Password-protected PDFs prompt for a password that stays in the worker. And a Playwright privacy suite asserts, on every PR, that no request body carries document bytes and no request to our origin, `app.laminapdf.com` (URL, request line or headers, including `Referer`), contains the remote document URL.
 
 ## Context
 
 - **Range loading exists:** `httpRangeSource` and `Document.openRange` / `doc.ensure` in `@laminapdf/sdk` ([L2c](../done/L2c-range-byte-source.md)): Range requests with tail-first probing, `If-Range` + `ETag` checks (`source-changed`), the `200` fallback and `AbortSignal`. Wrap it (OPFS block cache, privacy fetch options) rather than writing a second HTTP source.
 - **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open), [R03 Password prompt](../../design/paper/reader-a.md#r03-password-prompt). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [web-app.md §4 functional 1](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) — exact requirements; [§3 users](../../plans/web-app.md#3-users-and-use-cases) (`https://laminapdf.com/#url=…` links).
+- [web-app.md §4 functional 1](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) — exact requirements; [§3 users](../../plans/web-app.md#3-users-and-use-cases) (`https://app.laminapdf.com/#url=…` links).
 - ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — testable privacy statements; no CORS proxy in v0.1 ([§8 Q2](../../plans/web-app.md#8-open-questions)).
 - [04 §7 encryption](../../research/pdf/04-interactive-security.md#7-encryption-76) — standard security handler; user vs owner passwords.
 - [pdf-library B2](../../plans/pdf-library.md#b2-document-model) — `OpenOptions` password, wrong-password error code, encrypted fixtures for every revision.

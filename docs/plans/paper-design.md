@@ -66,7 +66,7 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 
 **Deliverable:** tokens package (light, dark, high contrast, page appearances), self-hosted fonts, the icon set, core components and overlays in `@laminapdf/ui`, and a component gallery with visual and accessibility tests.
 **Accepted when:** every component in the design language exists with its states; contrast pairs are tested in CI; the gallery renders each component in each theme and screenshot tests guard them; no font or icon is fetched from a third-party host at runtime (the network indicator stays at 0).
-**Todos:** [U6a](../todos/done/U6a-paper-tokens.md) (tokens), [U6b](../todos/ready/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/done/U6c-icon-set.md) (icons), [U6d](../todos/done/U6d-core-components.md) (core controls), [U6h](../todos/done/U6h-display-components.md) (display components), [U6e](../todos/ready/U6e-overlays-and-sheets.md) (dialogs, sheets, menus, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
+**Todos:** [U6a](../todos/done/U6a-paper-tokens.md) (tokens), [U6b](../todos/done/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/done/U6c-icon-set.md) (icons), [U6d](../todos/done/U6d-core-components.md) (core controls), [U6h](../todos/done/U6h-display-components.md) (display components), [U6e](../todos/done/U6e-overlays-and-sheets.md) (layer stack, dialogs, menus, tooltips, toasts), [U6i](../todos/done/U6i-sheets-positioning-and-palette-shell.md) (bottom sheets, the phone dialog), [U6j](../todos/ready/U6j-positioning-and-palette-shell.md) (selection toolbar shell, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
 
 ### Changes to existing todos
 
@@ -106,5 +106,5 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 - [x] Second review with a visual pass on every board at its artboard size with the real fonts, with fixes (2026-10-29): shells kept inside the board, no wrapping counts or chips, drawn check boxes, accent tweak on every board
 - [x] Accent colours: Teal, Blue, Plum and Green in light and dark, synced with the account ([design language §2.8](../design/paper/design-language.md#28-accent-colours)); owner decision 2026-10-29
 - [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)
-- [ ] U6a tokens, U6b fonts, U6c icons, U6d core controls, U6h display components, U6e overlays, U6f gallery and visual tests
+- [ ] U6a tokens, U6b fonts, U6c icons, U6d core controls, U6h display components, U6e overlays, U6i bottom sheets, U6j palette and selection toolbar shells, U6f gallery and visual tests
 - [x] Owner sign-off on proposed values (U6a, 2026-11-05)

@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 189 ready · 112 done** (301 total).
+**0 ongoing · 183 ready · 120 done** (303 total).
 
 ## Can start now
 
@@ -25,10 +25,9 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
-- [W1a](ready/W1a-domain-map.md): The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`
+- [C4a](ready/C4a-ui-chrome-and-platform.md): `@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
-- [U6b](ready/U6b-self-hosted-fonts.md): `@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3
-- [U6e](ready/U6e-overlays-and-sheets.md): `@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order
+- [U6j](ready/U6j-positioning-and-palette-shell.md): `@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
@@ -117,10 +116,10 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
-| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
-| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](ready/W1a-domain-map.md) |
-| C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](ready/W1a-domain-map.md) |
+| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
+| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](done/U6b-self-hosted-fonts.md) |
+| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
+| C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](done/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
@@ -128,17 +127,17 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C7a | [Accessibility: keyboard map and help, focus, landmarks, announcements, themes and axe in CI](ready/C7a-accessibility-and-theming.md) | ready | [C5b](ready/C5b-find-in-document.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md), [C6b](ready/C6b-links-and-history.md), [C6c](ready/C6c-print-download-properties.md), [U1b](ready/U1b-command-registry-and-palette.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | C7b | [Offline and PWA: service worker, manifest with `file_handlers`, OPFS cache and recent files](ready/C7b-offline-pwa.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C5b](ready/C5b-find-in-document.md), [C7a](ready/C7a-accessibility-and-theming.md) |
-| C7c | [Performance budgets as CI gates, privacy page, and the `web v0.1` launch](ready/C7c-performance-gates-and-launch.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C6c](ready/C6c-print-download-properties.md), [C7a](ready/C7a-accessibility-and-theming.md), [C7b](ready/C7b-offline-pwa.md), [W1b](ready/W1b-site-scaffold-and-deploys.md), [U2a](ready/U2a-selection-surfaces-and-copy-modes.md), [U2c](ready/U2c-page-appearance-modes.md), [U3a](ready/U3a-responsive-mobile-and-touch.md), [U4a](ready/U4a-network-indicator-and-privacy-proof.md) |
+| C7c | [Performance budgets as CI gates, privacy page, and the `web v0.1` launch](ready/C7c-performance-gates-and-launch.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C6c](ready/C6c-print-download-properties.md), [C7a](ready/C7a-accessibility-and-theming.md), [C7b](ready/C7b-offline-pwa.md), [W1b](done/W1b-site-scaffold-and-deploys.md), [U2a](ready/U2a-selection-surfaces-and-copy-modes.md), [U2c](ready/U2c-page-appearance-modes.md), [U3a](ready/U3a-responsive-mobile-and-touch.md), [U4a](ready/U4a-network-indicator-and-privacy-proof.md) |
 
 ## Website — Round W
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| W1a | [The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`](ready/W1a-domain-map.md) | ready | — |
-| W1b | [`apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`](ready/W1b-site-scaffold-and-deploys.md) | ready | [W1a](ready/W1a-domain-map.md), [U6a](done/U6a-paper-tokens.md), [U6b](ready/U6b-self-hosted-fonts.md) |
-| W1c | [The home page for now: what Lamina PDF is, the roadmap and what's coming next](ready/W1c-home-page.md) | ready | [W1b](ready/W1b-site-scaffold-and-deploys.md), [W1e](ready/W1e-progress-snapshot.md) |
-| W1d | [One header for the website and the docs site](ready/W1d-one-site-header.md) | ready | [W1b](ready/W1b-site-scaffold-and-deploys.md) |
-| W1e | [The progress snapshot: `cargo xtask progress` writes the home page's roadmap data](ready/W1e-progress-snapshot.md) | ready | [W1b](ready/W1b-site-scaffold-and-deploys.md) |
+| W1a | [The domain map: the website at `laminapdf.com`, the reader at `app.laminapdf.com`](done/W1a-domain-map.md) | done | — |
+| W1b | [`apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`](done/W1b-site-scaffold-and-deploys.md) | done | [W1a](done/W1a-domain-map.md), [U6a](done/U6a-paper-tokens.md), [U6b](done/U6b-self-hosted-fonts.md) |
+| W1c | [The home page for now: what Lamina PDF is, the roadmap and what's coming next](done/W1c-home-page.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md), [W1e](done/W1e-progress-snapshot.md) |
+| W1d | [One header for the website and the docs site](done/W1d-one-site-header.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md) |
+| W1e | [The progress snapshot: `cargo xtask progress` writes the home page's roadmap data](done/W1e-progress-snapshot.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md) |
 
 ## Desktop reader — Round D
 
@@ -146,7 +145,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | --- | --- | --- | --- |
 | D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
 | D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
-| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
+| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](done/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
 | D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
@@ -163,7 +162,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | D6c | [macOS: Developer ID signing, hardened runtime, notarisation and stapling](ready/D6c-macos-signing-and-notarisation.md) | ready | [D6a](ready/D6a-signing-runbook-and-owner-setup.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md) |
 | D6d | [Windows: Authenticode signing (Artifact Signing or OV in a cloud HSM), MSI and NSIS](ready/D6d-windows-signing.md) | ready | [D6a](ready/D6a-signing-runbook-and-owner-setup.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md) |
 | D7a | [Opt-in crash and panic reporting with scrubbing](ready/D7a-crash-reporting.md) | ready | [D5a](ready/D5a-update-worker-and-adr-0014.md), [D5b](ready/D5b-updater-in-app.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md) |
-| D7b | [Complete settings (renderer switch) and the download page](ready/D7b-settings-renderer-switch-and-download-page.md) | ready | [C4b](ready/C4b-web-app-shell.md), [C4d](ready/C4d-deploy-previews-and-production.md), [W1b](ready/W1b-site-scaffold-and-deploys.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md), [D7a](ready/D7a-crash-reporting.md) |
+| D7b | [Complete settings (renderer switch) and the download page](ready/D7b-settings-renderer-switch-and-download-page.md) | ready | [C4b](ready/C4b-web-app-shell.md), [C4d](ready/C4d-deploy-previews-and-production.md), [W1b](done/W1b-site-scaffold-and-deploys.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md), [D7a](ready/D7a-crash-reporting.md) |
 | D7c | [Ship `desktop v0.1` on the beta channel and complete one auto-update cycle](ready/D7c-desktop-beta-release.md) | ready | [D4c](ready/D4c-native-printing.md), [D6c](ready/D6c-macos-signing-and-notarisation.md), [D6d](ready/D6d-windows-signing.md), [D7a](ready/D7a-crash-reporting.md), [D7b](ready/D7b-settings-renderer-switch-and-download-page.md) |
 
 ## UI/UX — Round U
@@ -171,7 +170,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](done/U1a-adr-0024-app-shell-ux.md) | done | [C2a](done/C2a-render-adrs.md) |
-| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md), [U6j](ready/U6j-positioning-and-palette-shell.md) |
 | U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](done/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U2b | [Reading-order ground-truth corpus and metric](done/U2b-reading-order-ground-truth.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md) |
@@ -181,17 +180,19 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | U4a | [Network indicator and CSP-backed privacy proof](ready/U4a-network-indicator-and-privacy-proof.md) | ready | [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | U4b | [Reader mode (reflow) from the structure tree](ready/U4b-reader-mode-from-structure-tree.md) | ready | [B8a](done/B8a-structure-tree.md), [C5a](ready/C5a-text-layer-and-selection.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | U4c | [Approximate reader mode for untagged PDFs](ready/U4c-approximate-reader-mode.md) | ready | [U4b](ready/U4b-reader-mode-from-structure-tree.md) |
-| U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](done/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [W1b](ready/W1b-site-scaffold-and-deploys.md), [D7c](ready/D7c-desktop-beta-release.md) |
-| U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [W1b](ready/W1b-site-scaffold-and-deploys.md), [D7c](ready/D7c-desktop-beta-release.md) |
+| U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](done/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [W1b](done/W1b-site-scaffold-and-deploys.md), [D7c](ready/D7c-desktop-beta-release.md) |
+| U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [W1b](done/W1b-site-scaffold-and-deploys.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7a](ready/D7a-crash-reporting.md) |
 | U6a | [`@laminapdf/tokens`: Paper design tokens, themes, page appearances and a contrast test](done/U6a-paper-tokens.md) | done | [U1a](done/U1a-adr-0024-app-shell-ux.md) |
-| U6b | [`@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3](ready/U6b-self-hosted-fonts.md) | ready | [U6a](done/U6a-paper-tokens.md) |
+| U6b | [`@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3](done/U6b-self-hosted-fonts.md) | done | [U6a](done/U6a-paper-tokens.md) |
 | U6c | [`@laminapdf/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint](done/U6c-icon-set.md) | done | [U6a](done/U6a-paper-tokens.md) |
 | U6d | [`@laminapdf/ui` core controls: buttons, toggles, mode switcher, tabs, form controls, swatches, appearance chips](done/U6d-core-components.md) | done | [U6a](done/U6a-paper-tokens.md), [U6c](done/U6c-icon-set.md) |
-| U6e | [`@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order](ready/U6e-overlays-and-sheets.md) | ready | [U6d](done/U6d-core-components.md), [U6h](done/U6h-display-components.md) |
-| U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](ready/U6b-self-hosted-fonts.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| U6e | [`@laminapdf/ui` overlays: the layer stack, z-order, dialogs, popovers, menus, tooltips and the toast region](done/U6e-overlays-and-sheets.md) | done | [U6d](done/U6d-core-components.md), [U6h](done/U6h-display-components.md) |
+| U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](done/U6b-self-hosted-fonts.md), [U6e](done/U6e-overlays-and-sheets.md), [U6j](ready/U6j-positioning-and-palette-shell.md) |
 | U6g | [The docs site in the Paper design language (interim, before `@lamina/tokens` and `@lamina/fonts`)](done/U6g-docs-site-paper.md) | done | [B7a](done/B7a-docs-site.md) |
 | U6h | [`@laminapdf/ui` display components: badges, notices, progress, empty state, status items, thumbnail, outline row, shortcut chip](done/U6h-display-components.md) | done | [U6d](done/U6d-core-components.md) |
+| U6i | [`@laminapdf/ui` bottom sheets and the dialog as a sheet on the phone](done/U6i-sheets-positioning-and-palette-shell.md) | done | [U6e](done/U6e-overlays-and-sheets.md) |
+| U6j | [`@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell](ready/U6j-positioning-and-palette-shell.md) | ready | [U6i](done/U6i-sheets-positioning-and-palette-shell.md) |
 
 ## Hosted service
 

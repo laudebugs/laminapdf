@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C4b](./C4b-web-app-shell.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](./W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
+| Depends on | [C4b](./C4b-web-app-shell.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
 | Blocks | [D7c](./D7c-desktop-beta-release.md) |
-| Dependency notes | [D7a](D7a-crash-reporting.md) (settings sections for crash reports), [D6b](D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives in `apps/web` from web **C4** ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)). |
+| Dependency notes | [D7a](D7a-crash-reporting.md) (settings sections for crash reports), [D6b](D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](../done/W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
 | ADRs | Follows ADR 0008 (Linux fallback: renderer switch), ADR 0014 (downloads domain, channels), ADR 0011 (privacy page) |
 | Branch | `feat/d7b-settings-and-download-page` |
 | PR title | `feat(desktop): finish the settings page and add the download page` |
@@ -25,7 +25,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [Desktop plan §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) and [§7 risks](../../plans/desktop-app.md#7-risks) (renderer switch, documented env workarounds).
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users) and [Tauri Linux graphics](https://v2.tauri.app/develop/debug/linux-graphics/): `WEBKIT_DISABLE_DMABUF_RENDERER=1`, `WEBKIT_DISABLE_COMPOSITING_MODE=1` (last resort), `__NV_DISABLE_EXPLICIT_SYNC=1`; these are **process environment variables** that must be set before WebKitGTK initialises, i.e. before the Tauri builder runs.
 - D5b settings store and window; D3b/D4a/D4c settings flags.
-- Web plan C4 (`apps/web`, static assets, `_headers`/CSP) and C7 (launch, privacy page).
+- The website (`apps/site`, [W1b](../done/W1b-site-scaffold-and-deploys.md): static assets, `_headers`/CSP) and web plan C7 (launch, privacy page).
 - ADR 0014: `downloads.laminapdf.com` custom domain, R2 layout, `SHA256SUMS`, GPG key location.
 
 ## Scope
@@ -38,7 +38,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
   - Command-line override `--safe-graphics` documented for users who can't reach settings.
 - **Settings page completion** (`@laminapdf/ui` settings route for the `settings` window): sections General (open in tabs/windows, reopen last session, reload when file changes, remember recent files + clear), Updates (D5b), Privacy (crash reports from D7a, reset anonymous ID, link to privacy page), Graphics (Linux only; hidden elsewhere), Printing (system vs compatibility from D4c), About (version, channel, licences). Accessible (labels, keyboard, axe clean).
 - Optional per plan open question 5: "Set Lamina as the default PDF app…" button that opens the OS's default-apps settings (`ms-settings:defaultapps` on Windows via the opener plugin from Rust; macOS: instructions — no API to set default without user action besides `LSSetDefaultRoleHandlerForContentType`, which we don't call silently; Linux: `xdg-mime default lamina.desktop application/pdf` only on explicit click) — only if D3a's decision says so.
-- **Download page** in `apps/web`: route `/download` (static page, part of the SPA or a static HTML asset), detecting the visitor's OS/arch with `navigator.userAgentData.getHighEntropyValues(['platform','architecture'])` where available, else UA parsing, offering the matching installer first and all others below: macOS dmg (arm64/x64 or universal), Windows NSIS `.exe` and `.msi` (x64/arm64), Linux AppImage, `.deb`, `.rpm` (x64/arm64); each with size, SHA-256 and links to `.asc`/`SHA256SUMS`, the GPG key, and attestation verification instructions (`gh attestation verify`); channel tabs (Stable when it exists, Beta). Data source: a small `downloads/{channel}.json` written by D6b's publish job to R2 and fetched from `downloads.laminapdf.com` at runtime (CORS allowing the web origin) — or built into the page at deploy time (decide; runtime fetch avoids redeploying the site per release).
+- **Download page** on the website (`apps/site`): `/download`, a static Astro page, detecting the visitor's OS/arch with `navigator.userAgentData.getHighEntropyValues(['platform','architecture'])` where available, else UA parsing, offering the matching installer first and all others below: macOS dmg (arm64/x64 or universal), Windows NSIS `.exe` and `.msi` (x64/arm64), Linux AppImage, `.deb`, `.rpm` (x64/arm64); each with size, SHA-256 and links to `.asc`/`SHA256SUMS`, the GPG key, and attestation verification instructions (`gh attestation verify`); channel tabs (Stable when it exists, Beta). Data source: a small `downloads/{channel}.json` written by D6b's publish job to R2 and built into the page at deploy time, or fetched from `downloads.laminapdf.com` at runtime (decide). The website's CSP is `connect-src 'self'` ([ADR 0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-)), so a runtime fetch first needs an amendment naming that host, with CORS allowing `https://laminapdf.com`. Building the data in instead redeploys the website for each release.
 - SmartScreen/Gatekeeper/Linux notes on the page (from the runbook), system requirements (macOS 13+, Windows 11, Ubuntu 22.04+/Fedora), and a link to the privacy page.
 
 **Out of scope** (and which todo covers it)
@@ -53,7 +53,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [ ] Renderer switch: early-startup env application, auto-detection, crash-loop guard, `--safe-graphics`; unit tests for the decision function (`fn graphics_env(settings, env_probe) -> Vec<(&str, &str)>`).
 - [ ] Settings UI sections + desktop `Platform` methods; capability for the `settings` window updated (only the commands it uses).
 - [ ] D6b publish job: write `downloads/{channel}.json` (version, files with size/sha256/url) to R2; R2 CORS rule for the web origin (owner action if done in the dashboard).
-- [ ] `apps/web` download route + components; Playwright test (web suite) with a mocked `downloads/beta.json`.
+- [ ] `apps/site` download page; Playwright test (the website's suite) with a mocked `downloads/beta.json`.
 - [ ] Manual check on Linux with NVIDIA + Wayland if hardware is available (else record the gap and ask beta testers).
 
 ## Acceptance criteria
@@ -62,7 +62,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [ ] Two abnormal exits within 10 s on Linux trigger the automatic fallback and a notice (unit test of the guard).
 - [ ] Every setting stored by D3b, D4a, D4c, D5b and D7a is visible and changeable in the settings page; axe reports zero serious violations on the settings route.
 - [ ] `/download` on the PR's preview deploy offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
-- [ ] The download page works without JavaScript errors in Chromium, Firefox and WebKit (web Playwright suite).
+- [ ] The download page works without JavaScript errors in Chromium, Firefox and WebKit (the website's Playwright suite).
 
 ## Post-merge checks
 
@@ -72,7 +72,7 @@ None.
 
 - Rust unit tests: graphics env decision, crash-loop guard state.
 - Vitest: settings sections, conditional Graphics section, managed-policy states.
-- Playwright (web): download page OS detection, artefact list rendering, links.
+- Playwright (the website): download page OS detection, artefact list rendering, links.
 - WebdriverIO (desktop): settings window opens from the menu (`CmdOrCtrl+,`), toggles persist across restart.
 
 ## Docs to update
@@ -86,7 +86,7 @@ None.
 - **Env vars after start** have no effect on WebKitGTK — must be applied before the builder; a relaunch-based approach is safest if `set_var`'s unsafety is a concern in a multi-threaded start-up.
 - **OS/arch detection** via client hints is Chromium-only; Safari/Firefox fall back to UA (arm64 Macs report Intel in UA) — show both macOS builds clearly if universal isn't used.
 - **R2 CORS** for the downloads JSON must allow only the web origin.
-- **Domain** still a placeholder until the owner decides (web plan §8 Q1); the download page needs it before D7c.
+- **Domain** settled: the download page is `https://laminapdf.com/download`, on the website ([ADR 0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)).
 
 ## Definition of done
 

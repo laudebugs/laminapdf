@@ -23,6 +23,7 @@ mod package_docs;
 mod pdf_runtimes;
 mod pdfium;
 mod portable_paths;
+mod progress;
 mod publish;
 mod release;
 mod renames;
@@ -67,7 +68,8 @@ tasks:
                     rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
                           tests, rustdoc, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
-                          workspace, the docs site's build (apps/docs), npm licences
+                          workspace, the docs site's and the website's builds (apps/docs,
+                          apps/site), npm licences
   check maintainability
                     docs/guidelines/maintainability.md's Rust rules, without a build: modules of at most 800
                     lines of non-test code and no more size-lint #[expect]s than
@@ -122,6 +124,10 @@ tasks:
                     allowlist in .config/link-check.toml, report in target/nightly/links/)
   todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
                     field from the Depends on links; --check only verifies
+  progress [--offline]
+                    write apps/site/src/data/progress.json, the website's roadmap and dashboard:
+                    the board's counts, the roadmap's milestones, merged and open pull requests
+                    (gh); --offline keeps the last snapshot's in-progress list
   capabilities [--check]
                     run every test tagged `/// capability: <ID> <surface> <status>` and
                     rewrite docs/capabilities/README.md from what they prove; --check only
@@ -318,6 +324,7 @@ fn main() -> Result<()> {
         }
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
+        ("progress", args) => progress::run(&ws.root, progress::offline(args)?),
         ("capabilities", []) => capabilities::run(&ws.root, false),
         ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
@@ -450,6 +457,7 @@ fn check_ts(ws: &Workspace) -> Result<()> {
     api_docs(ws)?;
     ts_structure::check(ws)?;
     docs_site(ws)?;
+    website(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");
     Ok(())
@@ -634,6 +642,14 @@ fn ts_tests(ws: &Workspace) -> Result<()> {
 fn docs_site(ws: &Workspace) -> Result<()> {
     step("docs site: astro build of apps/docs (TypeDoc, snippets, code table, link check)");
     ws.pnpm(&["--filter", "@laminapdf/docs", "run", "build"])
+}
+
+/// Builds the website (`apps/site`), whose post-build checks fail on a page that breaks the
+/// website's rules (ADR 0011 §3): a file from another origin, a cookie, a missing title,
+/// description or canonical URL, a broken internal link.
+fn website(ws: &Workspace) -> Result<()> {
+    step("website: astro build of apps/site (the website's rules, internal links)");
+    ws.pnpm(&["--filter", "@laminapdf/site", "run", "build"])
 }
 
 pub(crate) fn step(message: &str) {
