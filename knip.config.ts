@@ -19,8 +19,14 @@ const RUNS_UNEXPORTED: Record<string, string[]> = {
   scripts: ["scripts/**/*.mjs"],
 };
 
+/** Whether `packages/<dir>/<sub>` holds a file ending in `ext`. */
+function holds(dir: string, sub: string, ext: string): boolean {
+  const path = `packages/${dir}/${sub}`;
+  return existsSync(path) && readdirSync(path).some((f) => f.endsWith(ext));
+}
+
 function entries(dir: string): string[] {
-  const at = (p: string) => existsSync(`packages/${dir}/${p}`);
+  const at = (p: string) => (p === "scripts" ? holds(dir, p, ".mjs") : existsSync(`packages/${dir}/${p}`));
   const runs = Object.entries(RUNS_UNEXPORTED).flatMap(([p, globs]) => (at(p) ? globs : []));
   const vitest = readdirSync(`packages/${dir}`).some((f) => /^vitest\..*config\.ts$/.test(f))
     ? ["vitest.*config.ts"]
@@ -29,9 +35,14 @@ function entries(dir: string): string[] {
 }
 
 function project(dir: string): string[] {
-  return ["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
-    existsSync(`packages/${dir}/${g.split("/")[0]}`),
-  );
+  // A TypeScript script (run by a package.json script, which knip reads as the entry) is project code.
+  const tsScripts = holds(dir, "scripts", ".ts");
+  return [
+    ...["src/**/*.ts", "test/**/*.ts", "examples/**/*.{ts,mjs}"].filter((g) =>
+      existsSync(`packages/${dir}/${g.split("/")[0]}`),
+    ),
+    ...(tsScripts ? ["scripts/**/*.ts"] : []),
+  ];
 }
 
 const config: KnipConfig = {
@@ -41,7 +52,8 @@ const config: KnipConfig = {
     ...Object.fromEntries(
       packageDirs(".").map((dir) => [`packages/${dir}`, { entry: entries(dir), project: project(dir) }]),
     ),
-    "apps/docs": {},
+    // Starlight loads the tokens' stylesheet by name (astro.config.mjs's `customCss`), which knip can't see.
+    "apps/docs": { ignoreDependencies: ["@laminapdf/tokens"] },
   },
   ignore: ["**/src/generated/**"],
   // knip finds pnpm's workspaces itself; the generated package is left out here too.

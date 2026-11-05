@@ -228,7 +228,7 @@ Everything else in the area is identical on web and desktop.
 - Palette: "Add watermark", "Add page numbers".
 - "Manage page marks…" (`edit.manage-page-marks`) lists the marks lamina added, to edit or remove them.
 
-**Layout.** One **Page marks** dialog, the 820 px wide dialog of [§7.18](design-language.md#718-dialog-proposed), over the full Edit-mode shell (Page marks ▾ shown open in the toolbar), dimmed and inert. The dialog has:
+**Layout.** One **Page marks** dialog, the 820 px wide dialog of [§7.18](design-language.md#718-dialog), over the full Edit-mode shell (Page marks ▾ shown open in the toolbar), dimmed and inert. The dialog has:
 
 - a title, a subtitle ("Stamped onto the pages as content, not as comments") and "Close page marks";
 - tabs: Watermark · Header & footer · Bates numbers;
@@ -238,7 +238,7 @@ Everything else in the area is identical on web and desktop.
 **Content and controls.**
 
 - **Watermark tab** (left artboard):
-  - **Use:** Text or Image… (radios built as in [§7.19](design-language.md#719-form-controls-proposed-consistent-with-the-page-input-and-note-field)).
+  - **Use:** Text or Image… (radios built as in [§7.19](design-language.md#719-form-controls-consistent-with-the-page-input-and-note-field)).
   - **Text** (focus ring drawn).
   - **Font** and **Size**.
   - **Colour**: Grey, Red, Teal, Ink.
@@ -441,7 +441,7 @@ Everything else in the area is identical on web and desktop.
   - Matches are grouped by page headings, 12/600 `text-3` as R05: "Page 3 · Repairs backlog", "Page 7 · Rent collection" (2), "Page 9 · Rent collection", "Page 11 · Surveyor capacity", "Page 16 · Risk register". Each match is a checkbox row whose context shows the old words struck through in `muted` and the new words 600 in `accent`.
   - Unchecked rows say "Skipped: stays as it is".
   - The current match has the selected-row style.
-- **On the page:** matches use the `find-match` and `find-current` tokens ([§2.6](design-language.md#26-find-marks-proposed)): other matches `#F6E3BC` with a 1 px `#8A5300` bottom edge, and the current match `#EDBF6A` with a 2 px `accent` outline (drawn on page 3).
+- **On the page:** matches use the `find-match` and `find-current` tokens ([§2.6](design-language.md#26-find-marks)): other matches `#F6E3BC` with a 1 px `#8A5300` bottom edge, and the current match `#EDBF6A` with a 2 px `accent` outline (drawn on page 3).
 
 **States.**
 
@@ -466,7 +466,7 @@ Everything else in the area is identical on web and desktop.
 **Accessibility.**
 
 - The bar is a `search` landmark and the count is a live region.
-- Results are real checkboxes, built as in [§7.19](design-language.md#719-form-controls-proposed-consistent-with-the-page-input-and-note-field): a native input visually hidden inside its label, with a drawn box. The tri-state one is the same native checkbox with its `indeterminate` property set (the mixed state can't be written in markup, so the board draws the dash), described by "5 of 6 checked".
+- Results are real checkboxes, built as in [§7.19](design-language.md#719-form-controls-consistent-with-the-page-input-and-note-field): a native input visually hidden inside its label, with a drawn box. The tri-state one is the same native checkbox with its `indeterminate` property set (the mixed state can't be written in markup, so the board draws the dash), described by "5 of 6 checked".
 - The report notice is `role="status"`.
 - Enter in Find goes to the next match; Enter in Replace with replaces this one.
 
@@ -505,7 +505,7 @@ Its explanation: "If you save now, lamina removes the PDF/UA-1 claim from the fi
 - **Fix it first** (primary): closes the dialog, selects the image and focuses Alternative text;
 - "Close check before saving" (the close button's name): keep editing without saving.
 
-The dialog is 560 px wide (the form width of [§7.18](design-language.md#718-dialog-proposed)) over the A07 shell, dimmed and inert.
+The dialog is 560 px wide (the form width of [§7.18](design-language.md#718-dialog)) over the A07 shell, dimmed and inert.
 
 The same dialog serves the PDF/A case from the Edit session area (E1c, "Save without the PDF/A claim?").
 

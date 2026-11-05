@@ -1,0 +1,40 @@
+{
+  "name": "@laminapdf/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lamina PDF's Paper design tokens: the design language's colours, type, space and sizes as CSS custom properties (--paper-*) and typed constants, with the light, dark and high-contrast themes, four accents and four page appearances. Workspace-only for now.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "files": [
+    "dist",
+    "src/generated/tokens.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./tokens.css": "./src/generated/tokens.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "generate": "node scripts/generate.ts",
+    "typecheck": "tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/generate.ts --check && tsc -p tsconfig.build.json && vitest run -c vitest.node.config.ts"
+  },
+  "devDependencies": {
+    "@laminapdf/test-utils": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}
