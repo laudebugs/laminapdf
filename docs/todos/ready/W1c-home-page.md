@@ -16,7 +16,7 @@
 
 ## Goal
 
-A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees where the work stands: the roadmap's milestones, what is being built now, what comes next and what merged lately. They also find the parts that exist today: the docs, the packages and the command-line tool, with a first PDF in each language. The dashboard is a dated snapshot that W1e's command refreshes from time to time, and the owner approves the page's words.
+A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees where the work stands: the roadmap's milestones, what is being built now, what comes next and what merged lately. They also find the parts that exist today: the docs, the packages and the command-line tool, with a first PDF in TypeScript and Rust. The dashboard is a dated snapshot that W1e's command refreshes from time to time, and the owner approves the page's words.
 
 ## Context
 
@@ -38,7 +38,7 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
   - a headline and one paragraph on what Lamina PDF is;
   - the milestones, M0 to M10, each with what it ships and its state;
   - the dashboard: totals (todos done of all, pull requests merged), progress by round as bars split into done, in progress and ready, with the counts in text beside each bar; in progress; next up; recently merged; the snapshot's date;
-  - a code panel with TypeScript, Rust and command-line tabs, each the same first PDF from a tested example (the command-line tab from the CLI README's commands), keyboard-operable as a tab list;
+  - a code panel with TypeScript, Rust and command-line tabs, keyboard-operable as a tab list: the first two show the same first PDF from the tested examples, the third the CLI README's example commands;
   - the packages: each published package with its registry and what it holds, the install lines (`npm install @laminapdf/sdk@alpha`, `cargo add laminapdf@0.2.0-alpha`), and the command-line tool marked as not yet released;
   - where each part lives: the docs, the packages and the Rust crate; the reader and the desktop app link to their milestones;
   - "Open the web app", behind the build setting from the plan.
@@ -70,7 +70,7 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 
 ## Tests
 
-The site's post-build checks (W1b); the fixture-snapshot test; a test that each tab of the code panel matches its example file, and that the package table lists every published package (the docs site's install table) at the snapshot's version.
+The site's post-build checks (W1b); the fixture-snapshot test; a test that each tab of the code panel matches its source (the example files, the CLI README), and that the package table lists every published package (the docs site's install table) at the snapshot's version.
 
 ## Docs to update
 
