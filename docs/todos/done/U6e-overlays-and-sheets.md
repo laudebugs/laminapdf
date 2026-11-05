@@ -7,22 +7,22 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6d](./U6d-core-components.md), [U6h](./U6h-display-components.md) |
-| Blocks | [C4a](../ready/C4a-ui-chrome-and-platform.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md), [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md) |
+| Blocks | [C4a](../ready/C4a-ui-chrome-and-platform.md), [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md), [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) |
 | ADRs | Follows 0024 (Escape order; from [U1a](./U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/u6e-overlays-and-sheets` |
 | PR title | `feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts` |
-| Size | L (≈ 600–800 lines of components and tests; split on 2026-11-05 as its size required: bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell moved to [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md)) |
+| Size | L (≈ 600–800 lines of components and tests; split on 2026-11-05 as its size required: bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell moved to [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md)) |
 | PR | [#240](https://github.com/laudebugs/laminapdf/pull/240) |
 
 ## Goal
 
-Give every short-lived layer in lamina one implementation with correct focus, keyboard, pointer and stacking behaviour: one stack of open layers so Escape closes the innermost first; modal dialogs that trap and return focus; popovers, menus and tooltips; and a toast region that stacks and times messages. Z-order tokens make the layering rules explicit. [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md) builds the bottom sheets, the selection toolbar's positioning and the palette shell on this layer stack.
+Give every short-lived layer in lamina one implementation with correct focus, keyboard, pointer and stacking behaviour: one stack of open layers so Escape closes the innermost first; modal dialogs that trap and return focus; popovers, menus and tooltips; and a toast region that stacks and times messages. Z-order tokens make the layering rules explicit. [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) builds the bottom sheets, the selection toolbar's positioning and the palette shell on this layer stack.
 
 ## Context
 
 - Design language [§7.18 dialog](../../design/paper/design-language.md#718-dialog), [§7.20 toast and notice](../../design/paper/design-language.md#720-toast-and-notice); [§4](../../design/paper/design-language.md#4-space-shape-depth) (floating shadows, `scrim`, and the z-order table); [§8.8 keyboard](../../design/paper/design-language.md#88-keyboard-and-shortcuts) (Escape closes the innermost layer); [§8.9 checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa).
 - [U6d](./U6d-core-components.md) and [U6h](./U6h-display-components.md): the buttons, icon buttons, `Toast` look, `ShortcutChip` and the shared test helpers this todo builds on.
-- Consumers: [C4a](../ready/C4a-ui-chrome-and-platform.md) (password dialog, zoom menu, overflow menu) and [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md) (sheets, the mini toolbar and the palette on the same layer stack).
+- Consumers: [C4a](../ready/C4a-ui-chrome-and-platform.md) (password dialog, zoom menu, overflow menu) and [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) (sheets, the mini toolbar and the palette on the same layer stack).
 - WCAG 2.2 SC 2.1.2 (no keyboard trap), 2.4.3 (focus order), 2.4.11 (focus not obscured), 4.1.3 (status messages); WAI-ARIA APG: dialog (modal), menu button and menu, tooltip.
 
 ## Scope
@@ -37,7 +37,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 
 **Out of scope** (and which todo covers it)
 
-- Bottom sheets and the phone dialog as a sheet, anchored positioning with virtual rectangles and the selection mini toolbar shell, and the command palette shell → [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md).
+- Bottom sheets and the phone dialog as a sheet, anchored positioning with virtual rectangles and the selection mini toolbar shell, and the command palette shell → [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md).
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../ready/U1b-command-registry-and-palette.md).
 - When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar components → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
 - Which panels become sheets on the phone (outline, find, view settings) → [U3a](../ready/U3a-responsive-mobile-and-touch.md); the inspector as a sheet → [U3a](../ready/U3a-responsive-mobile-and-touch.md) / [U1c](../ready/U1c-inverted-l-shell-and-modes.md).
@@ -93,7 +93,7 @@ None.
 - Decisions, recorded in the design language: a dialog starts on its first field (a checked radio counts for its group) rather than on itself; its close button is last in the tab order; `aria-modal` is set on the element, since React Aria drops the prop. Menus and popovers draw at z 50 rather than the menu spec's 30. Disabled menu items are skipped by the arrows and show their reason as a second line. The popover is modal while open, as React Aria's popovers are. At most three toasts show, and a fourth pushes the oldest out.
 - React Aria writes an inline z-index of 100000 on popovers and tooltips; each overlay sets its own inline z-index from the token, which React Aria spreads after its own.
 - The toast region is not a toast library: no error variant, and its action must also live in a menu or a shortcut, since F6 region cycling is [C7a](../ready/C7a-accessibility-and-theming.md)'s.
-- Bottom sheets, the phone dialog as a sheet, anchored positioning with the selection toolbar shell and the palette shell moved to [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md) when this todo was claimed.
+- Bottom sheets, the phone dialog as a sheet, anchored positioning with the selection toolbar shell and the palette shell moved to [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) when this todo was claimed.
 
 ## Definition of done
 
