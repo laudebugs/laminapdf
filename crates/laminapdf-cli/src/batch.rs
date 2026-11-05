@@ -82,7 +82,7 @@ pub struct BatchOptions {
 
 /// Runs `work` on each input on up to `options.jobs` threads, and hands each result to `emit`
 /// in argument order as soon as every input before it has been handed over. No input starts
-/// more than [`LOOKAHEAD_PER_JOB`] × jobs past the oldest one not handed over, so a slow input
+/// more than 4 × jobs past the oldest one not handed over, so a slow input
 /// holds back a bounded number of finished results. With `fail_fast`, no input starts after a
 /// failure; those never started aren't handed over. Returns how many inputs were skipped.
 pub fn run<T, W, E>(inputs: &[String], options: BatchOptions, work: W, mut emit: E) -> usize
