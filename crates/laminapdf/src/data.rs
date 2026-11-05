@@ -28,6 +28,8 @@ pub(crate) fn of_error(error: &Error) -> Data {
             Inner::Text(e) => text(e),
             #[cfg(feature = "build")]
             Inner::Build(e) => build(e),
+            #[cfg(feature = "extract")]
+            Inner::Extract(_) => Data::new(),
         },
         Error::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         Error::Cancelled | Error::JobFinished | Error::DocumentChanged => Data::new(),
@@ -262,7 +264,7 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
         | W::InlineImageUnterminated { offset, .. }
         | W::ContentPathUnpainted { offset, .. } => data([("offset", json!(offset))]),
         W::XObjectCycle { object } => data([("object", json!(object))]),
-        W::ExtractLimitBlocks { limit, .. } => data([("limit", json!(limit))]),
+        W::ExtractLimitBlocks { limit, .. } | W::ExtractTableLimit { limit, .. } => data([("limit", json!(limit))]),
         _ => Data::new(),
     }
 }

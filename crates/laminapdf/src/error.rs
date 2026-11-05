@@ -86,6 +86,10 @@ pub(crate) enum Inner {
     #[cfg(feature = "build")]
     #[error(transparent)]
     Build(laminapdf_build::Error),
+    /// An extraction error the façade has no variant of its own for.
+    #[cfg(feature = "extract")]
+    #[error(transparent)]
+    Extract(laminapdf_extract::ExtractError),
 }
 
 impl Error {
@@ -130,6 +134,8 @@ impl Error {
                 Inner::Text(e) => codes::error_code(e.code()),
                 #[cfg(feature = "build")]
                 Inner::Build(e) => codes::error_code(e.code()),
+                #[cfg(feature = "extract")]
+                Inner::Extract(e) => codes::error_code(e.code()),
             },
             Self::PageIndexOutOfRange { .. } => ErrorCode::PageIndexOutOfRange,
             Self::Cancelled => ErrorCode::Cancelled,
@@ -161,6 +167,8 @@ impl Error {
                 Inner::Text(e) => e.location(),
                 #[cfg(feature = "build")]
                 Inner::Build(e) => e.location(),
+                #[cfg(feature = "extract")]
+                Inner::Extract(e) => e.location(),
             },
             Self::PageIndexOutOfRange { .. } | Self::Cancelled | Self::JobFinished | Self::DocumentChanged => {
                 Location::NONE
@@ -287,6 +295,23 @@ impl From<laminapdf_text::Error> for Error {
         match e {
             laminapdf_text::Error::Cos(e) => Self::core(Inner::Cos(e)),
             other => Self::core(Inner::Text(other)),
+        }
+    }
+}
+
+#[cfg(feature = "extract")]
+impl From<laminapdf_extract::ExtractError> for Error {
+    fn from(e: laminapdf_extract::ExtractError) -> Self {
+        use laminapdf_extract::ExtractError as E;
+        match e {
+            E::Cancelled => Self::Cancelled,
+            E::JobFinished => Self::JobFinished,
+            E::PageIndexOutOfRange { index, count } => Self::PageIndexOutOfRange {
+                index: u32::try_from(index).unwrap_or(u32::MAX),
+                count: u32::try_from(count).unwrap_or(u32::MAX),
+            },
+            E::Document(e) => Self::core(Inner::Cos(e)),
+            other => Self::core(Inner::Extract(other)),
         }
     }
 }

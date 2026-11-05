@@ -71,6 +71,7 @@ export function sidebar(typeDoc) {
         { label: "Images and vectors", slug: "recipes/images-and-vectors" },
         { label: "Links and outlines", slug: "recipes/links-and-outlines" },
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
+        { label: "Extract text for an LLM", slug: "recipes/extract-markdown" },
         { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
         { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },
         { label: "A PDF/A-3 invoice with XML", slug: "recipes/pdf-a3-invoice-with-xml" },

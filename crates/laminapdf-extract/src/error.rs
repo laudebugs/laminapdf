@@ -32,7 +32,7 @@ pub enum ExtractError {
 impl ExtractError {
     /// The error's code in `fixtures/codes.json`.
     #[must_use]
-    pub fn code(&self) -> &'static str {
+    pub const fn code(&self) -> &'static str {
         match self {
             Self::Cancelled => "cancelled",
             Self::JobFinished => "job-finished",

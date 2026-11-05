@@ -13,7 +13,7 @@ pub use runs::{PageTextRun, is_right_to_left};
 
 use std::sync::Arc;
 
-use laminapdf_content::{MarkedContent, Matrix, TextAdvance, TextItem, TextShow, Visitor};
+use laminapdf_content::{MarkedContent, Matrix, PathPaint, PathSegment, TextAdvance, TextItem, TextShow, Visitor};
 use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
 use laminapdf_model::{PageFrame, PointPt, UserSpacePoint};
 use laminapdf_syntax::{ObjRef, Object};
@@ -176,6 +176,31 @@ impl TextExtractor {
     /// boxes, the errors [`laminapdf_cos::absent_if_malformed`] returns: a reference cycle,
     /// [`Error::LimitExceeded`], [`Error::Strict`], [`Error::DataPending`] and [`Error::Source`].
     pub fn page(&mut self, doc: &laminapdf_model::Document, page: &laminapdf_model::Page<'_>) -> Result<PageText> {
+        self.read(doc, page, None)
+    }
+
+    /// [`TextExtractor::page`], also passing the page's path events
+    /// ([`Visitor::path_segment`], [`Visitor::paint_path`]) to `paths` in the same walk of the
+    /// content, so a caller that needs the page's lines (table rules) doesn't interpret the
+    /// page twice.
+    ///
+    /// # Errors
+    /// As [`TextExtractor::page`].
+    pub fn page_with(
+        &mut self,
+        doc: &laminapdf_model::Document,
+        page: &laminapdf_model::Page<'_>,
+        paths: &mut dyn Visitor,
+    ) -> Result<PageText> {
+        self.read(doc, page, Some(paths))
+    }
+
+    fn read(
+        &mut self,
+        doc: &laminapdf_model::Document,
+        page: &laminapdf_model::Page<'_>,
+        paths: Option<&mut dyn Visitor>,
+    ) -> Result<PageText> {
         let frame = page.frame()?;
         let mut collector = Collector {
             doc,
@@ -186,6 +211,7 @@ impl TextExtractor {
             marked: Vec::new(),
             unmapped: 0,
             error: None,
+            paths,
         };
         laminapdf_content::interpret_page(doc, page, &mut collector)?;
         if let Some(error) = collector.error {
@@ -209,7 +235,7 @@ struct Marked {
     actual_text: Option<usize>,
 }
 
-struct Collector<'a> {
+struct Collector<'a, 'p> {
     doc: &'a laminapdf_cos::Document,
     fonts: &'a mut FontCache,
     frame: PageFrame,
@@ -220,9 +246,11 @@ struct Collector<'a> {
     /// The first error met inside a visitor call (which can't return one); the walk goes on
     /// and [`TextExtractor::page`] returns it.
     error: Option<Error>,
+    /// Where path events go besides ([`TextExtractor::page_with`]).
+    paths: Option<&'p mut dyn Visitor>,
 }
 
-impl Collector<'_> {
+impl Collector<'_, '_> {
     fn show(&mut self, show: &TextShow<'_>) -> Result<TextAdvance> {
         let Some(font_ref) = show.font() else {
             return Ok(TextAdvance::default());
@@ -345,7 +373,19 @@ impl Collector<'_> {
     }
 }
 
-impl Visitor for Collector<'_> {
+impl Visitor for Collector<'_, '_> {
+    fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.path_segment(segment, ctm);
+        }
+    }
+
+    fn paint_path(&mut self, paint: &PathPaint<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.paint_path(paint);
+        }
+    }
+
     fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
         match self.show(show) {
             Ok(advance) => advance,

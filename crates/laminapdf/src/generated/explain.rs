@@ -1206,6 +1206,75 @@ The decisions and todos behind this code:
 
 - [L3a](../todos/done/L3a-lamina-extract-reading-order.md): blocks and reading order
 ",
+        "extract-table-ambiguous" => r"# `extract-table-ambiguous`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF doesn't implement)
+
+## What happened
+
+Extraction found a table drawn with lines, but the cells its missing lines would join don't make a rectangle. Extraction kept the table and gave it one cell per square of its grid, so a merged cell's text sits in the first of the squares it covers.
+
+## Why
+
+A table's lines tell where cells are merged: a missing line between two squares joins them. Joined squares that form an L or a T shape don't describe a cell, usually because a line is drawn slightly short, drawn twice in different places, or covered by a white rectangle.
+
+## How to fix
+
+Nothing to do in Lamina PDF; the file is valid. Like every warning, it fails the call in strict mode. Check that table's cells: the text of a merged cell may be split across its neighbours.
+
+## Example
+
+A table whose header spans two columns over the first row only, but whose line under that header stops halfway.
+
+## Data fields
+
+None.
+
+The `location` has the page's `pageIndex`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L3b](../todos/done/L3b-extract-tables-and-serialisers.md): tables and extraction output
+",
+        "extract-table-limit" => r"# `extract-table-limit`
+
+- Type: warning
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+A page's ruling lines would have made a table with more cells than `ExtractLimits::max_table_cells` allows, or the page drew so many lines that matching them all would cost too much. Extraction made no table from those lines; their text is still in the page's paragraphs.
+
+## Why
+
+A page drawn with thousands of lines, such as a large grid, a chart's gridlines or a file built to slow extraction down. To find a table, extraction compares every horizontal line with every vertical one, so the work grows with the square of the line count.
+
+## How to fix
+
+Raise `max_table_cells` if the page really holds a table that big.
+
+## Example
+
+```rust
+let mut options = laminapdf_extract::ExtractOptions::default();
+options.limits.max_table_cells = 50_000;
+```
+
+## Data fields
+
+- `limit`: the limit that was reached.
+
+The `location` has the page's `pageIndex`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [L3b](../todos/done/L3b-extract-tables-and-serialisers.md): tables and extraction output
+",
         "not-pdf" => r#"# `not-pdf`
 
 - Type: error

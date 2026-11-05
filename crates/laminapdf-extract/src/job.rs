@@ -11,6 +11,7 @@ use crate::error::ExtractError;
 use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
+use crate::tables::{Collector, TableMode};
 
 /// An extraction in progress. Step it with the document it was made from until it returns
 /// [`Step::Done`]; an error or a cancellation ends it with no partial result. The core document
@@ -121,8 +122,16 @@ impl ExtractJob {
             let page = pages
                 .get(index)
                 .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
-            let text = self.extractor.page(doc, &page)?;
-            let out = extract_page(doc, &page, index, &text, &self.options, &self.cancel)?;
+            // The table rules are collected in the same walk of the content as the text.
+            let (text, edges) = if self.options.tables == TableMode::Off {
+                (self.extractor.page(doc, &page)?, None)
+            } else {
+                let frame = page.frame()?;
+                let mut rules = Collector::new(&frame);
+                let text = self.extractor.page_with(doc, &page, &mut rules)?;
+                (text, Some(rules.finish()))
+            };
+            let out = extract_page(doc, &page, index, &text, edges.as_ref(), &self.options, &self.cancel)?;
             self.out.pages.push(out.info);
             self.out.blocks.extend(out.blocks);
             self.out.dropped.extend(out.dropped);
