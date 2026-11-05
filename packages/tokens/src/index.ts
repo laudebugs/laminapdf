@@ -17,6 +17,7 @@ export {
   THEMES,
   type TokenName,
   TYPE,
+  Z_ORDER,
 } from "./generated/tokens.js";
 
 /** A UI theme: `data-theme` on the root (no attribute follows the system's light or dark). */

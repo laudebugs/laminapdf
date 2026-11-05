@@ -2,7 +2,7 @@
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
 - **Source of truth:** [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`) holds the values of §2–§4 and the component sizes of §6; the tables here are a readable copy, and a change goes into that file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
-- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. On the same day the owner approved every icon of §5 (U6c). Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ongoing/U6e-overlays-and-sheets.md).
+- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. On the same day the owner approved every icon of §5 (U6c). Their **(proposed)** markers are gone. Later the same day the owner approved the §4 z-order table, the wide dialog of §7.18, the menu of §7.26 and the tooltip of §7.27 (U6e). The markers left in this document still wait for a decision.
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
@@ -302,7 +302,7 @@ Rules:
 | Bottom sheet | `0 -8px 28px rgba(60,48,30,0.12)` |
 | Command palette; dialog | `0 18px 48px rgba(31,29,26,0.22)` over `scrim` |
 
-**Z-order (proposed):**
+**Z-order** (`--paper-z-*`, `Z_ORDER` in `@laminapdf/tokens`):
 
 | Layer | z-index |
 | --- | --- |
@@ -912,7 +912,9 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 ### 7.18 Dialog
 
-Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide, proposed:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
+In `@laminapdf/ui`: `Dialog`. **Focus (U6e):** it starts on the first field, or on a control given `autoFocus` (Cancel in a destructive confirm); React Aria alone would focus the dialog itself. The close button comes last in the tab order, though it sits top right. `aria-modal` is set, and the page behind is inert. The phone's sheet form comes with the bottom sheet.
+
+Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
 
 Rules **(proposed)**:
 
@@ -985,7 +987,7 @@ More controls **(proposed)**:
 
 ### 7.20 Toast and notice
 
-In `@laminapdf/ui`: `Notice`, and `Toast` for the toast's look. The toast region, which comes with the overlays, is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
+In `@laminapdf/ui`: `Notice`, `Toast` for the toast's look, and `ToastRegion` with `ToastQueue`. The region is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Stacking (U6e):** at most three show, newest at the bottom, and a fourth pushes the oldest out. The region stays outside a dialog's inert page, so a toast shown over a dialog is still announced and its action still reachable. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
 
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
 - **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.
@@ -1067,7 +1069,9 @@ From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; prev
 
 **Accent swatches (proposed, second review):** under Theme, a `role="radiogroup"` named “Accent” of four 32 px round swatches (44 px targets on touch) named Teal, Blue, Plum and Green, with the §7.12 selected ring and the selected name beside the row; disabled in High contrast with the help line “High contrast uses your system colours” (§2.8).
 
-### 7.26 Menu (proposed)
+### 7.26 Menu
+
+In `@laminapdf/ui`: `Menu` with `MenuTrigger`, and `Popover` with `PopoverTrigger` for the popover dialog. **Deviations (U6e):** menus and popovers draw in the z-order's popover layer (50), above whatever opened them, rather than z 30. A disabled item is skipped by the arrow keys, as React Aria's menu does, and shows its reason as a second line, linked with `aria-describedby`; a tooltip on an item the keyboard can't reach would be unreadable.
 
 One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, Filter), More menus, the More tabs menu, context menus and the tab overflow menu. Native menus (the macOS menu bar, Windows and Linux menu bars) are drawn by the OS; the desktop boards only sketch them.
 
@@ -1080,10 +1084,12 @@ One menu for every lamina-drawn menu: toolbar menus (Shapes, Insert, Form data, 
 - **Listbox popup:** a dropdown field's open list; as the menu, with items 28 high and `role="listbox"`.
 - **Menu sheet (phone):** a sheet holding a `role="menu"` list of 52–56 px rows: 22 px icon, 16 px label, optional 13 px `muted` subline or value on the right.
 
-### 7.27 Tooltip and link preview (proposed)
+### 7.27 Tooltip and link preview
+
+In `@laminapdf/ui`: `Tooltip`, in the popover layer. The link preview stays proposed.
 
 - **Tooltip:** `surface`, `chip-border` edge, radius 6, floating shadow, 12 px text plus a shortcut chip, 6 px below the control; `role="tooltip"`; shown on hover after 500 ms and on keyboard focus; hoverable; Escape dismisses.
-- **Link preview:** popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page's top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). Shown after 300 ms on hover or focus; `role="tooltip"`, hoverable, Escape dismisses.
+- **Link preview (proposed):** popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page's top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line (“Link to page 11 · Enter to go”). Shown after 300 ms on hover or focus; `role="tooltip"`, hoverable, Escape dismisses.
 - **Address box:** a URL shown before acting on it: white, `hairline` edge, radius 4, padding `10px 12px`, wraps anywhere, host in 600 `text` (punycode for international hosts), the rest `text-3`.
 
 ### 7.28 Popover (proposed)

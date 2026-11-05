@@ -61,7 +61,7 @@ const KEYS: Record<string, { mac: string; other: string }> = {
  * `"Mod+Shift+E"` written for `platform`: `⇧⌘E` or `Ctrl Shift E`. A modifier this table doesn't
  * know is kept, as written, before the key, so the chip never shows fewer keys than the binding.
  */
-function keysText(keys: string, platform: KeyPlatform): string {
+export function keysText(keys: string, platform: KeyPlatform): string {
   // Split on each "+" that has something after it, so "Mod++" is Mod and "+".
   const parts = keys.split(/\+(?=.)/);
   const key = parts.pop() ?? "";

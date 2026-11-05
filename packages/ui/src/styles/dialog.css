@@ -1,0 +1,78 @@
+/* Dialogs (§7.18): the scrim over everything below the modal layer, a centred card at most 440
+   wide (560 for forms, 820 wide), raised with a chip border, radius 6, the overlay shadow, padding
+   24 and gap 16; a 20/500 serif title with the close button at its end; actions last. */
+@layer paper.components {
+  .paper-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--paper-z-modal);
+    display: grid;
+    place-items: center;
+    padding: var(--paper-space-16);
+    background: var(--paper-scrim);
+  }
+
+  .paper-dialog-frame {
+    inline-size: 100%;
+    max-inline-size: var(--paper-dialog-width);
+    max-block-size: 100%;
+  }
+
+  .paper-dialog-frame-form {
+    max-inline-size: var(--paper-dialog-width-form);
+  }
+
+  .paper-dialog-frame-wide {
+    max-inline-size: var(--paper-dialog-width-wide);
+  }
+
+  .paper-dialog {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-16);
+    max-block-size: 100%;
+    overflow: auto;
+    padding: var(--paper-space-24);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-raised);
+    box-shadow: var(--paper-shadow-overlay);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+    outline: none;
+  }
+
+  .paper-dialog-title {
+    margin: 0;
+    font: var(--paper-type-title);
+  }
+
+  /* The close button sits top right, beside the title, though it comes last in the tab order. */
+  .paper-dialog:has(.paper-dialog-close) .paper-dialog-title {
+    padding-inline-end: var(--paper-space-32);
+  }
+
+  .paper-dialog-close {
+    position: absolute;
+    inset-block-start: var(--paper-space-18);
+    inset-inline-end: var(--paper-space-18);
+  }
+
+  .paper-dialog-description {
+    margin: 0;
+  }
+
+  .paper-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--paper-space-8);
+  }
+
+  @media (forced-colors: active) {
+    .paper-dialog {
+      border-color: CanvasText;
+    }
+  }
+}

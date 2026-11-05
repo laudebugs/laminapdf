@@ -99,7 +99,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/components/ (controls: Button, IconButton, ToggleButton, ToolToggle, ModeSwitcher, SegmentedTabs,
 │                        #   TextInput, TextArea, Select, Checkbox, RadioGroup, Switch, SwatchGroup, PageAppearanceChips; display: Badge,
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
-│                        #   Thumbnail, OutlineRow, ShortcutChip), src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
+│                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
+│                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue; z-order from --paper-z-*),
+│                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
 │                        #   only, @layer paper.*); test/ (states.tsx; Node: CSS tokens only, import boundary, §7 map; browser/: keyboard,
 │                        #   ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens, self-hosted

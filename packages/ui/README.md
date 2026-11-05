@@ -44,14 +44,38 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.10 Command palette | `ShortcutChip` | `⌥⌘E` on macOS, `Ctrl Shift E` elsewhere, from the platform the app names |
 | §7.12 Colour swatches | `SwatchGroup` | Colours are token names, so only design-language colours appear |
 | §7.19 Form controls | `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup`, `Radio`, `Switch` | Label above, help or error below, wired with `aria-describedby` and `aria-invalid` |
-| §7.20 Toast and notice | `Notice`, `Toast` | A notice is a status message; the toast region, which comes with the overlays, announces a toast |
+| §7.18 Dialog | `Dialog` | Modal; `isRequired` for a question that must be answered |
+| §7.20 Toast and notice | `Notice`, `Toast`, `ToastRegion`, `ToastQueue` | A notice is a status message; the region announces each toast |
 | §7.21 Empty state | `EmptyState` | A title, one sentence and at most two actions |
 | §7.22 Progress | `ProgressBar`, `Skeleton` | Indeterminate without a `value`; it stands still under reduced motion |
 | §7.23 Badge and tag | `Badge` | Always a word, never colour alone |
 | §7.24 Secondary-toolbar tool toggle | `ToolToggle`, `ToggleButton` | `aria-pressed` |
 | §7.25 Page-appearance chips | `PageAppearanceChips` | Each preview draws "Aa" in its appearance's paper and ink |
+| §7.26 Menu | `Menu`, `MenuTrigger`, `Popover`, `PopoverTrigger` | The menu button pattern; a popover is a named dialog |
+| §7.27 Tooltip | `Tooltip` | After 500 ms of hover, at once on keyboard focus |
 
-Dialogs, sheets, menus, tooltips and the toast region come next, in the same package.
+Bottom sheets, the selection toolbar and the command palette's shell come next, in the same package.
+
+## Overlays
+
+Pick the layer by what it asks of people:
+
+- A **notice** for a state that lasts, inside the panel it concerns.
+- A **toast** to confirm something that already happened. It goes away, so it never carries an error, and its action (such as Undo) must also be in a menu or a shortcut.
+- A **popover** or **menu** for a short choice next to the button that opened it.
+- A **dialog** when the work must stop for an answer.
+
+Render one `ToastRegion` near the root before any toast arrives, so screen readers announce each one, and show toasts through its queue:
+
+```ts
+const toasts = new ToastQueue();
+
+<ToastRegion queue={toasts} aria-label="Notifications" />
+
+const shown = toasts.add({ message: "Highlight deleted", action: { label: "Undo", onPress: undo } });
+```
+
+Overlays stack in the order the design language's z-order sets, from the tokens: docked chrome, then sheets, then dialogs over the scrim, then menus, popovers and tooltips, then toasts. A menu opened from a dialog draws above it. Escape closes the innermost open layer only, and focus goes back to the control that opened it. A dialog that asks a required question stays open, and so does everything beneath it.
 
 ## Adding a component
 

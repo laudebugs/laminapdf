@@ -74,9 +74,13 @@ const SECTIONS: Record<string, string[]> = {
   "7.20 Toast and notice": ["Notice", "Toast"],
   "7.21 Empty state": ["EmptyState"],
   "7.22 Progress": ["ProgressBar", "Skeleton"],
+  "7.18 Dialog": ["Dialog"],
+  "7.20 Toast and notice: the region": ["ToastRegion"],
   "7.23 Badge and tag": ["Badge"],
   "7.24 Secondary-toolbar tool toggle": ["ToolToggle", "ToggleButton"],
   "7.25 Page-appearance chips": ["PageAppearanceChips"],
+  "7.26 Menu": ["Menu", "MenuTrigger", "Popover", "PopoverTrigger"],
+  "7.27 Tooltip": ["Tooltip"],
 };
 
 describe("the design language's §7", () => {
@@ -89,7 +93,19 @@ describe("the design language's §7", () => {
 
   it("shows every component of a section in the states the tests render", () => {
     const shown = new Set(EXAMPLES.map((e) => e.component));
-    const parts = new Set(["TabPanel", "Radio"]); // rendered inside their parents' examples
+    // Rendered inside their parents' examples, or tested open in overlays.browser.test.tsx, since
+    // overlays portal outside the host the static examples render into.
+    const parts = new Set([
+      "TabPanel",
+      "Radio",
+      "Dialog",
+      "ToastRegion",
+      "Menu",
+      "MenuTrigger",
+      "Popover",
+      "PopoverTrigger",
+      "Tooltip",
+    ]);
     const missing = Object.values(SECTIONS)
       .flat()
       .filter((n) => !shown.has(n) && !parts.has(n));

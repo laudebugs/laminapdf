@@ -1,0 +1,85 @@
+/* Popovers and menus (§7.26): raised with a chip border, radius 6, the float shadow and padding 4,
+   in the popover layer; menu items 32 high (44 on touch) with a 16 px icon column, the label and
+   the shortcut chip; the active item takes the palette's active row, accent tint with an inset
+   accent ring; disabled items are the disabled colour with their reason below, destructive ones
+   the danger colour. */
+@layer paper.components {
+  .paper-popover {
+    z-index: var(--paper-z-popover);
+    padding: var(--paper-space-4);
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-raised);
+    box-shadow: var(--paper-shadow-float);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+  }
+
+  .paper-popover-dialog {
+    padding: var(--paper-space-8);
+    outline: none;
+  }
+
+  .paper-menu {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: var(--paper-menu-width);
+    outline: none;
+  }
+
+  .paper-menu-item {
+    display: grid;
+    grid-template-columns: var(--paper-icon-size-label) 1fr auto;
+    align-items: center;
+    column-gap: var(--paper-space-10);
+    min-block-size: max(var(--paper-menu-item-height), var(--ui-target));
+    padding-inline: var(--paper-space-10);
+    border-radius: var(--paper-radius-4);
+    color: var(--paper-text);
+    cursor: default;
+    outline: none;
+  }
+
+  .paper-menu-item > svg,
+  .paper-menu-icon {
+    inline-size: var(--paper-icon-size-label);
+    block-size: var(--paper-icon-size-label);
+    color: var(--paper-text-3);
+  }
+
+  .paper-menu-item[data-focused] {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+  }
+
+  .paper-menu-item[data-destructive] {
+    color: var(--paper-danger);
+  }
+
+  .paper-menu-item[data-disabled] {
+    color: var(--paper-disabled);
+  }
+
+  .paper-menu-item[data-disabled] > svg {
+    color: var(--paper-disabled);
+  }
+
+  .paper-menu-reason {
+    grid-column: 2 / -1;
+    padding-block-end: var(--paper-space-6);
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  @media (forced-colors: active) {
+    .paper-popover {
+      border-color: CanvasText;
+    }
+
+    .paper-menu-item[data-focused] {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
+}
