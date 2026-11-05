@@ -37,6 +37,9 @@ rmcp = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 anstream = { workspace = true }
 clap = { workspace = true }
+clap_complete = { workspace = true }
+clap_mangen = { workspace = true }
+indicatif = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

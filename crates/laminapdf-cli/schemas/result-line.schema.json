@@ -1,0 +1,90 @@
+{
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/result-line.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "One input's outcome over several inputs (--json): `status` ok or warnings with the report's keys, or error with `error`.",
+  "if": {
+    "properties": {
+      "status": {
+        "const": "error"
+      }
+    }
+  },
+  "properties": {
+    "error": {
+      "allOf": [
+        {
+          "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/error"
+        },
+        {
+          "properties": {
+            "exitCode": {
+              "maximum": 5,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "input": {
+              "description": "The input as given: a path, or -.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "exitCode"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "index": {
+      "description": "The input's position, from 0.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "input": {
+      "description": "The input as given: a path, or -.",
+      "type": "string"
+    },
+    "schema": {
+      "description": "The schema id of the command's report.",
+      "type": "string"
+    },
+    "status": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "How one input ended.",
+      "oneOf": [
+        {
+          "const": "ok",
+          "description": "Its report, with no warnings.",
+          "type": "string"
+        },
+        {
+          "const": "warnings",
+          "description": "Its report, with warnings.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "An error instead of a report.",
+          "type": "string"
+        }
+      ],
+      "title": "Status"
+    },
+    "type": {
+      "const": "result"
+    }
+  },
+  "required": [
+    "type",
+    "schema",
+    "index",
+    "input",
+    "status"
+  ],
+  "then": {
+    "required": [
+      "error"
+    ]
+  },
+  "title": "laminapdf batch result line",
+  "type": "object"
+}
