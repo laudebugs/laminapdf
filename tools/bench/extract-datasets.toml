@@ -4,8 +4,9 @@
 # SHA-256 in its `lock` (`cargo xtask extract-bench --update-lock` rewrites it after a deliberate
 # change of revision). The files go to target/bench/datasets/ and are never committed: the
 # licences below allow use and redistribution with attribution, but the repository doesn't need
-# a copy. Only born-digital PDFs are scored: a rule-based extractor reads a PDF's text layer and
-# can't read a scan, so subsets of page images are left out, with the reason.
+# a copy. A rule-based extractor reads a PDF's text layer and can't read a scan, so the subsets
+# made of scans are left out, with the reason; the subsets scored are mostly born-digital, and
+# their few scanned pages count against the score, as they would for any user.
 #
 # [[refused]] lists the datasets looked at and not used, with the reason, so the choice can be
 # checked and revisited.
@@ -30,11 +31,11 @@ measures = "reading order: 884 tests that one passage comes before another, on 2
 
 [[dataset.subset]]
 name = "table_tests"
-measures = "tables: 1,020 tests that a cell's neighbours (up, down, left, right, headings) are right, on 188 pages"
+measures = "tables: 1,020 tests that a cell's neighbours (up, down, left, right, headings) are right, and 2 baseline tests, on 188 pages"
 
 [[dataset.subset]]
 name = "headers_footers"
-measures = "running headers, footers and page numbers left out: 753 tests on 266 pages"
+measures = "running headers, footers and page numbers left out: 753 tests, and 7 baseline tests, on 266 pages"
 
 [[dataset.excluded]]
 name = "long_tiny_text"

@@ -329,7 +329,6 @@ fn pdfs_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-/// `cargo xtask verapdf [--dir <dir>]`.
 /// `verapdf`'s arguments: nothing, or `--dir <dir>`.
 pub(crate) fn dir_arg(args: &[String]) -> Result<Option<&str>> {
     match args {
@@ -339,6 +338,7 @@ pub(crate) fn dir_arg(args: &[String]) -> Result<Option<&str>> {
     }
 }
 
+/// `cargo xtask verapdf [--dir <dir>]`.
 pub(crate) fn run(ws: &Workspace, dir: Option<&str>) -> Result<()> {
     let java = java(ws)?;
     let files = if let Some(d) = dir {

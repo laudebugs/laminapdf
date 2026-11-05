@@ -2,9 +2,12 @@
 
 `cargo xtask extract-bench` writes one Markdown file per PDF (`<candidate>/<pdf stem>_pg<page>_repeat1.md`)
 and runs this script, which loads each subset's tests (`olmocr.bench.tests.load_tests`, pinned in
-requirements.txt) and runs every test on its file, as olmOCR's `olmocr.bench.benchmark` does: a
-missing or empty file fails its tests. The report has, per subset, the pass rate and the count per
-test type, and the overall score as the benchmark reports it: the mean of the subsets' pass rates.
+requirements.txt) and runs every test on its file. Like olmOCR's `olmocr.bench.benchmark`, it adds a
+`baseline` test for every PDF that has none (the page gave some text, and no long run of repeats)
+as a group of its own, and the overall score is the mean of the groups' pass rates, the baseline
+group included. Unlike it, a missing Markdown file fails its tests rather than the whole run, since
+xtask writes an empty file for a PDF that failed; a run of the subsets scored here is the
+benchmark's `--dir` run over the same subsets.
 
     python -I tools/bench/olmocr_score.py <bench_data> <candidate> <report.json> <subset>...
 
@@ -18,11 +21,15 @@ from collections import defaultdict
 
 
 def score(bench_data, candidate, subsets):
-    from olmocr.bench.tests import load_tests
+    from olmocr.bench.tests import BaselineTest, load_tests
+
+    groups = {subset: load_tests(os.path.join(bench_data, f"{subset}.jsonl")) for subset in subsets}
+    has_baseline = {t.pdf for tests in groups.values() for t in tests if str(getattr(t.type, "value", t.type)) == "baseline"}
+    pdfs = sorted({t.pdf for tests in groups.values() for t in tests} - has_baseline)
+    groups["baseline"] = [BaselineTest(id=f"{pdf}_baseline", pdf=pdf, page=1, type="baseline") for pdf in pdfs]
 
     report = {"subsets": {}, "failures": []}
-    for subset in subsets:
-        tests = load_tests(os.path.join(bench_data, f"{subset}.jsonl"))
+    for subset, tests in groups.items():
         by_type = defaultdict(lambda: [0, 0])
         passed_all = 0
         for test in tests:
@@ -52,6 +59,8 @@ def score(bench_data, candidate, subsets):
         }
     scores = [s["score"] for s in report["subsets"].values()]
     report["overall"] = sum(scores) / len(scores) if scores else 0.0
+    without = [s["score"] for name, s in report["subsets"].items() if name != "baseline"]
+    report["overallWithoutBaseline"] = sum(without) / len(without) if without else 0.0
     return report
 
 

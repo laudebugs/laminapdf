@@ -18,7 +18,7 @@
 
 Measure what the rule-based extractor achieves, so users know before reaching for models (L3c). Run `laminapdf-extract` over a pinned public subset of born-digital PDFs with ground truth, score its reading order and its tables, and record the scores with the dataset, licence, subset, version and date.
 
-> **Outcome (2026-11-05).** olmOCR-bench (ODC-BY-1.0) is the dataset: its three born-digital subsets score 52.8 % (reading order), 24.1 % (tables) and 37.6 % (headers and footers left out), 38.2 % on average, with the default tables. The scores are the benchmark's own tests, run from its pinned package, rather than TEDS: no permissively licensed dataset with PDFs and table structure was reachable (FinTabNet's host refuses this environment). The manifest records every dataset and subset left out, with the reason. Two findings: 13 pages use filters `laminapdf-syntax` doesn't decode yet ([#108](https://github.com/laudebugs/laminapdf/issues/108)), and one undecodable page fails the whole document's extraction.
+> **Outcome (2026-11-05).** olmOCR-bench (ODC-BY-1.0) is the dataset: its three born-digital subsets score 52.8 % (reading order), 24.1 % (tables) and 37.6 % (headers and footers left out) with the default tables: 50.1 % as the benchmark averages them with its baseline group, 38.2 % without it. The scores are the benchmark's own tests, run from its pinned package, rather than TEDS: no permissively licensed dataset with PDFs and table structure was reachable (FinTabNet's host refuses this environment). The manifest records every dataset and subset left out, with the reason. Two findings: 13 pages use filters `laminapdf-syntax` doesn't decode yet ([#108](https://github.com/laudebugs/laminapdf/issues/108)), and one undecodable page fails the whole document's extraction.
 
 ## Context
 
@@ -40,7 +40,7 @@ Measure what the rule-based extractor achieves, so users know before reaching fo
 ## Tasks
 
 - [x] Check each candidate dataset's licence (OmniDocBench, olmOCR-Bench, OpenDataLoader's, PubTables-1M, FinTabNet, DocLayNet); record the decisions in the manifest
-- [x] The manifest, the fetch with SHA-256 checks, the metrics with unit tests on small hand-made cases
+- [x] The manifest and the fetch with SHA-256 checks; the metrics are the benchmark's own tests (olmOCR-bench's pinned package), so there is no metric code of ours to unit-test
 - [x] Run it; record the scores
 - [x] Not in the nightly lane: it fetches about 750 files and needs Python with the scorer, so it runs by hand (`CLAUDE.md`, `tools/bench/README.md`)
 
@@ -56,7 +56,7 @@ Measure what the rule-based extractor achieves, so users know before reaching fo
 
 ## Tests
 
-Unit tests for the edit distance and TEDS on small trees; the bench itself runs outside the PR lanes.
+`extract_bench`'s unit tests (arguments, sampling, the lock, the manifest); the metrics are the benchmark's own tests, and the bench itself runs outside the PR lanes.
 
 ## Docs to update
 

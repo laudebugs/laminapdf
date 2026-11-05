@@ -17,6 +17,7 @@ use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::runner;
 use crate::step;
 use crate::util::sha256_hex;
 use crate::workspace::Workspace;
@@ -106,6 +107,9 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
     if subsets.is_empty() {
         bail!("{}: none of the subsets {:?}", dataset.name, args.subsets);
     }
+    if args.update_lock && (!args.subsets.is_empty() || args.sample.is_some()) {
+        bail!("--update-lock rewrites the whole lock: run it without --subset and --sample");
+    }
     let cache = ws
         .root
         .join("target/bench/datasets")
@@ -126,7 +130,7 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
         tests.insert(subset.name.clone(), rows);
     }
     fetch(dataset, &cache, &wanted)?;
-    check_lock(ws, dataset, &cache, &wanted, &lock, args.update_lock)?;
+    verify(ws, dataset, &cache, &wanted, &lock, args.update_lock)?;
 
     let candidate = if args.stream { "laminapdf-stream" } else { "laminapdf" };
     let out = ws.root.join("target/bench/extract").join(&dataset.name);
@@ -136,7 +140,8 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
     }
     let bench = out.join("bench_data");
     fs::create_dir_all(&bench)?;
-    let mut list = String::new();
+    let mut inputs = Vec::new();
+    let mut pdf_counts = BTreeMap::new();
     for (subset, rows) in &tests {
         let mut jsonl = String::new();
         for row in rows {
@@ -145,58 +150,97 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
         }
         fs::write(bench.join(format!("{subset}.jsonl")), jsonl)?;
         let pdfs: BTreeSet<&str> = rows.iter().map(|r| r.pdf.as_str()).collect();
+        pdf_counts.insert(subset.clone(), pdfs.len());
         for pdf in pdfs {
             let stem = pdf.strip_suffix(".pdf").unwrap_or(pdf);
-            let source = cache.join("bench_data/pdfs").join(pdf);
             let target = md_dir.join(format!("{stem}_pg1_repeat1.md"));
-            let _ = writeln!(list, "{}\t{}", source.display(), target.display());
+            inputs.push((
+                target.to_string_lossy().into_owned(),
+                cache.join("bench_data/pdfs").join(pdf),
+            ));
         }
     }
-    let list_path = out.join(format!("{candidate}.tsv"));
-    fs::write(&list_path, list)?;
-    let summary = out.join(format!("{candidate}-extract.json"));
-    let list_arg = list_path.to_string_lossy().into_owned();
-    let summary_arg = summary.to_string_lossy().into_owned();
-    let mut cargo = vec![
-        "run",
-        "--locked",
+
+    let extracted = extract(ws, args.stream, &inputs, &out, candidate)?;
+    let report = out.join(format!("{candidate}-score.json"));
+    score(ws, dataset, &bench, &md_dir, &report, tests.keys())?;
+    let score_json: Value = serde_json::from_str(&fs::read_to_string(&report)?)?;
+    let md = render_report(dataset, &subsets, candidate, args, &extracted, &score_json, &pdf_counts);
+    fs::write(out.join(format!("{candidate}-report.md")), &md)?;
+    step(&format!("extract-bench: {} ({candidate})", dataset.title));
+    println!("{md}");
+    Ok(())
+}
+
+/// Lamina PDF's Markdown for every input (`<out.md>`, `<pdf>`) with the `extract-bench`
+/// example, under the differential runner: chunks of files under time limits, and a chunk that
+/// crashes or hangs again file by file, so a bad PDF costs its own tests only. Returns the
+/// report (`facts`: each file's outcome and time), also written next to the Markdown.
+fn extract(
+    ws: &Workspace,
+    stream: bool,
+    inputs: &[(String, std::path::PathBuf)],
+    out: &Path,
+    candidate: &str,
+) -> Result<Value> {
+    ws.cargo(&[
+        "build",
         "--release",
+        "--locked",
         "-q",
         "-p",
         "laminapdf",
         "--example",
         "extract-bench",
-        "--",
-        &list_arg,
-        &summary_arg,
-    ];
-    if args.stream {
-        cargo.extend(["--tables", "lattice-and-stream"]);
+    ])?;
+    let reader = runner::Reader {
+        name: "laminapdf",
+        program: crate::live::example_binary(ws, "extract-bench").into_os_string(),
+        args: if stream {
+            vec!["--tables".into(), "lattice-and-stream".into()]
+        } else {
+            Vec::new()
+        },
+        dir: ws.root.clone(),
+        reports_repair: false,
+    };
+    step(&format!(
+        "extract-bench: Markdown for {} PDFs ({candidate})",
+        inputs.len()
+    ));
+    let run = runner::run(&reader, inputs, out, runner::Limits::default())?;
+    if let Some(why) = run.broken {
+        bail!("extract-bench: the example broke: {why}");
     }
-    crate::run_env(&ws.root, "cargo", &cargo, &[])?;
+    fs::write(
+        out.join(format!("{candidate}-extract.json")),
+        serde_json::to_string_pretty(&run.report)? + "\n",
+    )?;
+    Ok(run.report)
+}
 
-    let report = out.join(format!("{candidate}-score.json"));
+/// Runs the dataset's scorer over the Markdown in `md_dir` and the tests in `bench`, writing
+/// `report`.
+fn score<'a>(
+    ws: &Workspace,
+    dataset: &Dataset,
+    bench: &Path,
+    md_dir: &Path,
+    report: &Path,
+    subsets: impl Iterator<Item = &'a String>,
+) -> Result<()> {
     let python = crate::harness::python();
-    let scorer = ws.root.join(&dataset.scorer).to_string_lossy().into_owned();
-    let mut score_args = vec![
+    let mut args = vec![
         "-I".to_owned(),
-        scorer,
+        ws.root.join(&dataset.scorer).to_string_lossy().into_owned(),
         bench.to_string_lossy().into_owned(),
         md_dir.to_string_lossy().into_owned(),
         report.to_string_lossy().into_owned(),
     ];
-    score_args.extend(tests.keys().cloned());
-    crate::run_env(&ws.root, &python, &score_args, &[]).with_context(|| {
+    args.extend(subsets.cloned());
+    crate::run_env(&ws.root, &python, &args, &[]).with_context(|| {
         format!("the scorer needs Python with {REQUIREMENTS}: `{python} -m pip install -r {REQUIREMENTS}`")
-    })?;
-
-    let extracted: Value = serde_json::from_str(&fs::read_to_string(&summary)?)?;
-    let score_json: Value = serde_json::from_str(&fs::read_to_string(&report)?)?;
-    let md = render_report(dataset, &subsets, candidate, args, &extracted, &score_json);
-    fs::write(out.join(format!("{candidate}-report.md")), &md)?;
-    step(&format!("extract-bench: {} ({candidate})", dataset.title));
-    println!("{md}");
-    Ok(())
+    })
 }
 
 /// One test of a subset: its PDF and its JSONL line, kept as written.
@@ -290,8 +334,10 @@ fn parse_lock(text: &str) -> BTreeMap<String, String> {
         .collect()
 }
 
-/// Checks every fetched file against the lock, or (`update`) records the hashes in it.
-fn check_lock(
+/// Checks every fetched file against the lock, downloading again a cached file that doesn't
+/// match (a partial or older download), or (`update`, a full run only) writes a new lock from
+/// the files this run read.
+fn verify(
     ws: &Workspace,
     dataset: &Dataset,
     cache: &Path,
@@ -299,36 +345,43 @@ fn check_lock(
     lock: &BTreeMap<String, String>,
     update: bool,
 ) -> Result<()> {
-    let mut hashes = lock.clone();
-    let mut wrong = Vec::new();
-    for path in wanted {
-        let bytes = fs::read(cache.join(path)).with_context(|| format!("reading {path}"))?;
-        let hash = sha256_hex(&bytes);
-        match lock.get(path) {
-            Some(want) if *want == hash => {}
-            _ if update => {
-                hashes.insert(path.clone(), hash);
-            }
-            Some(_) => wrong.push(format!("{path}: SHA-256 differs from the lock")),
-            None => wrong.push(format!("{path}: not in the lock")),
-        }
-    }
+    let hash_of = |path: &str| -> Result<String> {
+        Ok(sha256_hex(
+            &fs::read(cache.join(path)).with_context(|| format!("reading {path}"))?,
+        ))
+    };
     if update {
         let mut text = format!(
             "# SHA-256 of every {} file `cargo xtask extract-bench` reads, at revision {}.\n# Written by `cargo xtask extract-bench --update-lock`.\n",
             dataset.title, dataset.revision
         );
-        for (path, hash) in &hashes {
-            let _ = writeln!(text, "{hash}  {path}");
+        for path in wanted {
+            let _ = writeln!(text, "{}  {path}", hash_of(path)?);
         }
         fs::write(ws.root.join(&dataset.lock), text)?;
         return Ok(());
     }
+    let mut wrong = Vec::new();
+    for path in wanted {
+        let Some(want) = lock.get(path) else {
+            wrong.push(format!("{path}: not in the lock"));
+            continue;
+        };
+        if hash_of(path)? == *want {
+            continue;
+        }
+        fs::remove_file(cache.join(path))?;
+        fetch(dataset, cache, &BTreeSet::from([path.clone()]))?;
+        if hash_of(path)? != *want {
+            wrong.push(format!("{path}: SHA-256 differs from the lock, downloaded again"));
+        }
+    }
     if !wrong.is_empty() {
         bail!(
-            "{} files don't match {} (run with --update-lock after a deliberate change):\n  {}",
+            "{} files don't match {}, which pins revision {}:\n  {}\nIf the dataset's revision changed on purpose, run the full benchmark with --update-lock.",
             wrong.len(),
             dataset.lock,
+            dataset.revision,
             wrong.join("\n  ")
         );
     }
@@ -343,8 +396,9 @@ fn render_report(
     args: &Args,
     extracted: &Value,
     scores: &Value,
+    pdf_counts: &BTreeMap<String, usize>,
 ) -> String {
-    let files = at(extracted, "files").as_object();
+    let files = at(extracted, "facts").as_object();
     let count = |outcome: &str| files.map_or(0, |f| f.values().filter(|v| at(v, "outcome") == outcome).count());
     let millis: u64 = files.map_or(0, |f| f.values().filter_map(|v| at(v, "millis").as_u64()).sum());
     let mut md = format!(
@@ -358,11 +412,7 @@ fn render_report(
     );
     for subset in subsets {
         let s = &at(at(scores, "subsets"), &subset.name);
-        let pdfs = files.map_or(0, |f| {
-            f.keys()
-                .filter(|k| k.contains(&format!("/{}/", pdf_dir(&subset.name))))
-                .count()
-        });
+        let pdfs = pdf_counts.get(&subset.name).copied().unwrap_or(0);
         let _ = writeln!(
             md,
             "| `{}` | {} | {pdfs} | {} | {} | {:.1} % |",
@@ -373,14 +423,25 @@ fn render_report(
             at(s, "score").as_f64().unwrap_or(0.0) * 100.0
         );
     }
+    let baseline = at(at(scores, "subsets"), "baseline");
+    let _ = writeln!(
+        md,
+        "| baseline | the page gave text, without long repeats (one test per PDF the benchmark adds) | | {} | {} | {:.1} % |",
+        at(baseline, "tests"),
+        at(baseline, "passed"),
+        at(baseline, "score").as_f64().unwrap_or(0.0) * 100.0
+    );
     let _ = write!(
         md,
-        "\nOverall (the mean of the subsets' scores, as the benchmark reports it): {:.1} %.\n\
-         PDFs extracted: {}, failed: {}, panicked: {}; extraction time {}.{} s in all.\n\nData: {}.\n",
+        "\nOverall (the mean of the groups' scores, the baseline included, as the benchmark reports it): {:.1} %; \
+         without the baseline: {:.1} %.\n\
+         PDFs extracted: {}, failed: {}, panicked: {}, crashed or timed out: {}; extraction time {}.{} s in all.\n\nData: {}.\n",
         at(scores, "overall").as_f64().unwrap_or(0.0) * 100.0,
+        at(scores, "overallWithoutBaseline").as_f64().unwrap_or(0.0) * 100.0,
         count("extracted"),
         count("failed"),
         count("panic"),
+        count("crash") + count("timeout"),
         millis / 1000,
         millis % 1000 / 100,
         dataset.attribution
@@ -391,11 +452,6 @@ fn render_report(
 /// `value[key]`, or `null` when `value` has no such key.
 fn at<'a>(value: &'a Value, key: &str) -> &'a Value {
     value.get(key).unwrap_or(&Value::Null)
-}
-
-/// The folder of a subset's PDFs (`table_tests` keeps its PDFs in `tables/`).
-fn pdf_dir(subset: &str) -> &str {
-    if subset == "table_tests" { "tables" } else { subset }
 }
 
 #[cfg(test)]

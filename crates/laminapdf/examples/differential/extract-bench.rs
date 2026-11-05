@@ -2,16 +2,18 @@
 //! (`cargo xtask extract-bench`, todo L3f), which scores the files with the benchmark's own
 //! tests (`tools/bench/olmocr_score.py`).
 //!
-//! The list has one `<pdf>\t<out.md>` line per file. Each PDF is extracted with the defaults
-//! (`--tables lattice-and-stream` also looks for tables without lines) and written as Markdown
-//! without page markers; a file that fails to open or extract, or panics, gets an empty
-//! Markdown file, and its outcome goes in the summary (`<summary.json>`: `{outcome, error?,
-//! millis}` per PDF), so one bad file costs one file's tests. It is not one of the façade's
-//! golden examples (`examples/*.rs`), so it lives in a subfolder with its own `path` in
-//! `Cargo.toml`.
+//! The list has one `<out.md>\t<pdf>` line per file, the `<name>\t<path>` lines of xtask's
+//! differential runner (`tools/xtask/src/runner.rs`), which runs it in chunks under time limits
+//! and reruns a chunk that crashes or hangs one file at a time. Each PDF is extracted with the
+//! defaults (`--tables lattice-and-stream` also looks for tables without lines) and written as
+//! Markdown without page markers; a file that fails to open or extract, or panics, gets an
+//! empty Markdown file, and its outcome goes in the report (`facts`: `{outcome, error?,
+//! millis}` per Markdown file), so one bad file costs one file's tests. It is not one of the
+//! façade's golden examples (`examples/*.rs`), so it lives in a subfolder with its own `path`
+//! in `Cargo.toml`.
 //!
 //! ```sh
-//! cargo run --release -p laminapdf --example extract-bench -- <list.tsv> <summary.json> [--tables lattice-and-stream]
+//! cargo run --release -p laminapdf --example extract-bench -- [--tables lattice-and-stream] <list.tsv> <out.json>
 //! ```
 #![allow(
     clippy::unwrap_used,
@@ -38,17 +40,17 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let (list, summary, tables) = match args.as_slice() {
         [list, summary] => (list, summary, TableMode::Lattice),
-        [list, summary, flag, mode] if flag == "--tables" && mode == "lattice-and-stream" => {
+        [flag, mode, list, summary] if flag == "--tables" && mode == "lattice-and-stream" => {
             (list, summary, TableMode::LatticeAndStream)
         }
-        _ => panic!("usage: extract-bench <list.tsv> <summary.json> [--tables lattice-and-stream]"),
+        _ => panic!("usage: extract-bench [--tables lattice-and-stream] <list.tsv> <out.json>"),
     };
     let options = ExtractOptions::new().with_tables(tables);
     let list = std::fs::read_to_string(list).unwrap();
     let mut all = Map::new();
     // The panic message still goes to stderr; the run carries on with the next file.
     for line in list.lines().filter(|l| !l.is_empty()) {
-        let (pdf, out) = line.split_once('\t').expect("<pdf>\\t<out.md> lines");
+        let (out, pdf) = line.split_once('\t').expect("<out.md>\\t<pdf> lines");
         let bytes = std::fs::read(pdf).unwrap_or_else(|e| panic!("reading {pdf}: {e}"));
         let start = Instant::now();
         let result = catch_unwind(AssertUnwindSafe(|| markdown(bytes, &options)));
@@ -65,13 +67,14 @@ fn main() {
             std::fs::create_dir_all(dir).unwrap();
         }
         std::fs::write(out, text).unwrap();
-        all.insert(pdf.to_owned(), outcome);
+        all.insert(out.to_owned(), outcome);
     }
     let report = json!({
         "tool": "laminapdf",
         "version": env!("CARGO_PKG_VERSION"),
         "tables": if tables == TableMode::LatticeAndStream { "lattice-and-stream" } else { "lattice" },
-        "files": Value::Object(all),
+        "reports_repair": false,
+        "facts": Value::Object(all),
     });
     std::fs::write(summary, serde_json::to_string_pretty(&report).unwrap() + "\n").unwrap();
 }

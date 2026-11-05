@@ -46,18 +46,20 @@ On the reading-order corpus in `fixtures/reading-order/`, every file reads in or
 
 ## Benchmark
 
-On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets of born-digital pages. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
+On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
 
 | Subset | What it measures | Pages | Tests | Ruled tables (the default) | Also tables without lines |
 | --- | --- | ---: | ---: | ---: | ---: |
 | `multi_column` | one passage before another, on multi-column pages | 231 | 884 | 52.8 % | 15.0 % |
 | `table_tests` | a table cell's neighbours and headings | 188 | 1,022 | 24.1 % | 47.1 % |
 | `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 37.6 % | 37.2 % |
-| **Mean** | | | | **38.2 %** | **33.1 %** |
+| baseline | the page gave text (one test per page, added by the benchmark) | | 676 | 85.8 % | 85.8 % |
+| **Mean, as the benchmark reports it** | | | | **50.1 %** | **46.3 %** |
+| Mean of the three subsets | | | | 38.2 % | 33.1 % |
 
 Three things explain most of the failures:
 
-- **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
+- **Pages with no text.** 89 of the 685 pages give no text. Most are scans inside these subsets, which need OCR, and they count against the score as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
 - **No headers, footers or structure yet.** Running headers and page numbers stay in the text, which fails the third subset, until the extractor reads them and the structure tree.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 
