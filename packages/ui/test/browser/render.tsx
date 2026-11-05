@@ -4,7 +4,7 @@
 import "../../src/styles/index.css";
 import type { ReactElement } from "react";
 import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { type Density, DensityProvider } from "../../src/index.ts";
 
 /** Where to render. */
@@ -25,14 +25,18 @@ export function renderIn(element: ReactElement, { theme = "light", dir = "ltr", 
   host.style.font = "var(--paper-type-body)";
   document.body.append(host);
   const root = createRoot(host);
+  roots.push(root);
   flushSync(() =>
     root.render(density === undefined ? element : <DensityProvider density={density}>{element}</DensityProvider>),
   );
   return host;
 }
 
-/** Removes every host. */
+const roots: Root[] = [];
+
+/** Unmounts every rendered element, so overlays undo what they did to the page, then removes the hosts. */
 export function cleanup(): void {
+  for (const root of roots.splice(0)) flushSync(() => root.unmount());
   document.body.replaceChildren();
 }
 

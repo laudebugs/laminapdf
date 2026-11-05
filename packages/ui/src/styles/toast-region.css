@@ -1,0 +1,24 @@
+/* The toast region (§7.20): fixed at the bottom centre, 24 above the status bar, in the toast
+   layer; toasts stack with the newest at the bottom. The region itself lets clicks through. */
+@layer paper.components {
+  .paper-toast-region {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: calc(var(--paper-status-bar-height) + var(--paper-toast-region-offset));
+    z-index: var(--paper-z-toast);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .paper-toast-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-toast-list > * {
+    pointer-events: auto;
+  }
+}

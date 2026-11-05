@@ -3,6 +3,7 @@
 // (Ctrl Shift E). The app says which platform it runs on, so this component never checks.
 
 import type { ReactNode } from "react";
+import { Keyboard } from "react-aria-components";
 
 /**
  * A command's keys on each platform, as the command registry declares them (ADR 0024):
@@ -88,7 +89,10 @@ export interface ShortcutChipProps {
   platform: KeyPlatform;
 }
 
-/** A shortcut chip: the keys in a small bordered `<kbd>`, tabular. */
+/**
+ * A shortcut chip: the keys in a small bordered `<kbd>`, tabular. It is React Aria's `Keyboard`,
+ * so inside a menu item it describes the item (`aria-describedby`).
+ */
 export function ShortcutChip({ keys, platform }: ShortcutChipProps): ReactNode {
-  return <kbd className="paper-shortcut-chip">{keysText(keys[platform], platform)}</kbd>;
+  return <Keyboard className="paper-shortcut-chip">{keysText(keys[platform], platform)}</Keyboard>;
 }

@@ -368,7 +368,7 @@ Everything else in the area is identical on web and desktop.
 
 **Content and controls.**
 
-- **Context menu** (left), the [§7.26](design-language.md#726-menu-proposed) menu: 32 px items, 14 px labels indented to the icon column, shortcut chips, the palette's active-row style on Bring forward (focus ring drawn), disabled items in the `disabled` colour with the reason as a tooltip, Delete last in `danger`. Items: Cut ⌘X · Copy ⌘C · Duplicate │ Bring to front · Bring forward · Send backward · Send to back │ Edit points ↵ · Release clipping · Release mask (disabled: these paths have no mask) · Replace image… (disabled for paths) │ Delete shapes ⌫.
+- **Context menu** (left), the [§7.26](design-language.md#726-menu) menu: 32 px items, 14 px labels indented to the icon column, shortcut chips, the palette's active-row style on Bring forward (focus ring drawn), disabled items in the `disabled` colour with the reason as a tooltip, Delete last in `danger`. Items: Cut ⌘X · Copy ⌘C · Duplicate │ Bring to front · Bring forward · Send backward · Send to back │ Edit points ↵ · Release clipping · Release mask (disabled: these paths have no mask) · Replace image… (disabled for paths) │ Delete shapes ⌫.
   - It opens next to the pointer, flips to stay inside the canvas, and never covers the selection when there is room.
   - Commands: `edit.cut`, `edit.copy`, `edit.duplicate`, `edit.bring-to-front`, `edit.bring-forward`, `edit.send-backward`, `edit.send-to-back`, `edit.edit-points`, `edit.release-clip`, `edit.release-mask`, `edit.replace-image`, `edit.delete`.
 - **Inspector "4 shapes":**

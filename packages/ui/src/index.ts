@@ -70,3 +70,25 @@ export {
 export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components/thumbnail.js";
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";
+export {
+  Dialog,
+  type DialogProps,
+  type DialogSize,
+} from "./overlays/dialog.js";
+export {
+  Menu,
+  type MenuEntry,
+  type MenuProps,
+  MenuTrigger,
+  Popover,
+  type PopoverProps,
+  PopoverTrigger,
+} from "./overlays/popover.js";
+export {
+  type ToastHandle,
+  type ToastOptions,
+  ToastQueue,
+  ToastRegion,
+  type ToastRegionProps,
+} from "./overlays/toast-region.js";
+export { Tooltip, type TooltipProps } from "./overlays/tooltip.js";
