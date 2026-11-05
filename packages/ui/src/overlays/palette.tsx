@@ -36,7 +36,7 @@ export interface PaletteItem {
   shortcut?: ShortcutKeys;
   /** Whether it can't run now; give `disabledReason`. */
   isDisabled?: boolean;
-  /** Why it can't run now, shown in place of the group. */
+  /** Why it can't run now, shown in place of the group (the group stays when this is left out). */
   disabledReason?: string;
   /** The parts of the title the query matched, as [start, end) offsets: drawn in 600. */
   matches?: readonly (readonly [number, number])[];
@@ -106,7 +106,8 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
                 <ListBox
                   className="paper-palette-list"
                   aria-label={label}
-                  items={sections}
+                  // A section the query emptied shows no overline, and no rows at all shows `empty`.
+                  items={sections.filter((section) => section.items.length > 0)}
                   onAction={(key) => props.onAction(String(key))}
                   renderEmptyState={() => props.empty ?? null}
                 >
@@ -129,7 +130,7 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
 
 /** One row: the title with its matches in 600, then the group (or why it is disabled) and the chip. */
 function Row({ item, platform }: { item: PaletteItem; platform: KeyPlatform }): ReactNode {
-  const note = item.isDisabled === true ? item.disabledReason : item.group;
+  const note = item.isDisabled === true ? (item.disabledReason ?? item.group) : item.group;
   return (
     <ListBoxItem
       id={item.id}
@@ -151,12 +152,11 @@ function Row({ item, platform }: { item: PaletteItem; platform: KeyPlatform }): 
   );
 }
 
-/** `text` with the `matches` ranges in `<mark>`, which palette.css draws in 600. */
+/** `text` with the `matches` ranges in `<mark>`, which palette.css draws in 600; overlapping ranges merge. */
 function Matched({ text, matches }: { text: string; matches: readonly (readonly [number, number])[] }): ReactNode {
   const parts: ReactNode[] = [];
   let at = 0;
-  for (const [start, end] of [...matches].sort((a, b) => a[0] - b[0])) {
-    if (start < at || end <= start) continue;
+  for (const [start, end] of merged(matches)) {
     if (start > at) parts.push(text.slice(at, start));
     parts.push(
       <mark key={start} className="paper-palette-match">
@@ -167,4 +167,15 @@ function Matched({ text, matches }: { text: string; matches: readonly (readonly 
   }
   if (at < text.length) parts.push(text.slice(at));
   return parts;
+}
+
+/** The ranges sorted, with empty ones dropped and overlapping or touching ones joined. */
+function merged(ranges: readonly (readonly [number, number])[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [start, end] of [...ranges].filter(([s, e]) => e > s).sort((a, b) => a[0] - b[0])) {
+    const last = out.at(-1);
+    if (last !== undefined && start <= last[1]) last[1] = Math.max(last[1], end);
+    else out.push([start, end]);
+  }
+  return out;
 }

@@ -733,7 +733,7 @@ More items **(proposed)**; all keep the 2 px `focus` outline with a 1 px offset 
 
 ### 7.9 Selection mini toolbar (desktop, fine pointer)
 
-In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed against a rectangle the app supplies (the first selected line) and kept inside the viewport and an optional canvas. It follows its anchor through any scroll or resize. The app decides when it shows and what it holds.
+In `@laminapdf/ui`: `SelectionToolbar` with `SelectionToolbarDivider`, placed against a rectangle the app supplies (the first selected line) and kept inside the viewport and an optional canvas. It follows its anchor through any scroll or resize and after every render, so the app renders it again when a zoom moves the selection without a scroll; it hides while the selection is out of view. The app decides when it shows and what it holds.
 
 `role="toolbar"`, above the first selected line (flips below on collision), `surface`, `chip-border` edge, radius 6, padding 4, gap 2, floating shadow, 13 px. Buttons 30 high, padding `0 10px`, 16 px icon + label; a 1×18 `hairline` divider before More (30×30 icon). Shown on `pointerup`, Shift+F10 reaches it, Escape dismisses.
 

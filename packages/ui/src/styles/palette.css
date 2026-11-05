@@ -1,5 +1,6 @@
 /* The command palette (§7.10): over the scrim in the modal layer, 96 below the top, at most 600
-   wide; the surface with a chip border, radius 6 and the overlay shadow; a 44 px input with an 18
+   wide; `raised` (the surface in light, lifted in dark, as every floating layer) with a chip border,
+   radius 6 and the overlay shadow; a 44 px input with an 18
    px muted search icon, 16 px text and the esc chip; overlines over 40 px rows of title, group and
    chip; the active row in the accent tint with an inset accent ring; 12 px muted hints below a
    hairline. */
@@ -9,6 +10,9 @@
     inset: 0;
     z-index: var(--paper-z-modal);
     display: flex;
+    /* Not stretched: the frame is as tall as the palette (at most the overlay), so the scrim below a
+       short list is outside it and a click there closes the palette. */
+    align-items: flex-start;
     justify-content: center;
     padding: var(--paper-palette-offset) var(--paper-space-16) var(--paper-space-16);
     background: var(--paper-scrim);

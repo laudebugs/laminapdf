@@ -19,7 +19,9 @@ export interface Placement {
 
 /**
  * Places a layer of `width` × `height` above `anchor`, `gap` away, flipping below when there is no
- * room above; then shifts it to stay `margin` inside `bounds` on every side it can.
+ * room above; then shifts it to stay `margin` inside `bounds` on every side it can. Null when no
+ * part of the anchor is inside the bounds, as when the selection has scrolled away: the layer
+ * would point at nothing.
  */
 export function placeAbove(
   anchor: Box,
@@ -28,7 +30,13 @@ export function placeAbove(
   bounds: Box,
   gap: number,
   margin: number,
-): Placement {
+): Placement | null {
+  const outside =
+    anchor.top + anchor.height < bounds.top ||
+    anchor.top > bounds.top + bounds.height ||
+    anchor.left + anchor.width < bounds.left ||
+    anchor.left > bounds.left + bounds.width;
+  if (outside) return null;
   const top = bounds.top + margin;
   const bottom = bounds.top + bounds.height - margin;
   const above = anchor.top - gap - height;

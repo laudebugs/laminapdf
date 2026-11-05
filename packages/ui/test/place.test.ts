@@ -19,8 +19,16 @@ describe("placeAbove", () => {
   });
 
   it("shifts to stay inside the bounds at either edge", () => {
-    expect(placeAbove(line(300, -150), 100, 40, viewport, 8, 8).left).toBe(8);
-    expect(placeAbove(line(300, 760), 100, 40, viewport, 8, 8).left).toBe(692);
+    expect(placeAbove(line(300, -150), 100, 40, viewport, 8, 8)?.left).toBe(8);
+    expect(placeAbove(line(300, 760), 100, 40, viewport, 8, 8)?.left).toBe(692);
+  });
+
+  it("places nothing when the anchor has left the bounds, so the layer can hide", () => {
+    expect(placeAbove(line(-1700), 100, 40, viewport, 8, 8)).toBeNull();
+    expect(placeAbove(line(900), 100, 40, viewport, 8, 8)).toBeNull();
+    expect(placeAbove(line(300, 900), 100, 40, viewport, 8, 8)).toBeNull();
+    // Partly inside still counts: the toolbar stays with the visible part of the selection.
+    expect(placeAbove(line(-10), 100, 40, viewport, 8, 8)).not.toBeNull();
   });
 
   it("keeps inside a canvas that isn't the whole viewport", () => {

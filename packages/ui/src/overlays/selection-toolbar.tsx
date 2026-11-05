@@ -1,6 +1,6 @@
 // The selection mini toolbar's shell (§7.9): a toolbar above the first selected line, below it
-// when there is no room, inside the viewport and the canvas, following the selection as the page
-// scrolls or zooms. Shift+F10 moves focus into it, arrows move along it, and Escape dismisses it
+// when there is no room, inside the viewport and the canvas, following the selection as anything
+// scrolls and after every render, and hidden while the selection is out of view. Shift+F10 moves focus into it, arrows move along it, and Escape dismisses it
 // and puts focus back where it was. When it shows and what it holds are the app's.
 
 import { SPACE } from "@laminapdf/tokens";
@@ -14,7 +14,11 @@ import { type Box, type Placement, placeAbove } from "./place.js";
 export interface SelectionToolbarProps {
   /** The toolbar's name: "Selection". */
   "aria-label": string;
-  /** The first selected line's rectangle in viewport coordinates, read again whenever the page moves. */
+  /**
+   * The first selected line's rectangle in viewport coordinates, or null while there is none. It is
+   * read again after every render and whenever anything scrolls or the window resizes; when the
+   * selection moves any other way, as a zoom that doesn't scroll moves it, render the toolbar again.
+   */
   anchor: () => Box | null;
   /** The area the toolbar must stay in, such as the canvas; the viewport when left out. */
   bounds?: () => Box | null;
@@ -68,8 +72,8 @@ export function SelectionToolbarDivider(): ReactNode {
 
 /**
  * Keeps `layer` placed against `anchor`: before it first paints, after every render (a new
- * selection comes as a render), and on every scroll (of any scroller, so zooming the canvas
- * counts), resize and change of the layer's own size.
+ * selection or a zoom comes as a render), and on every scroll of any scroller, window resize and
+ * change of the layer's own size.
  */
 function useAnchoredPlacement(
   layer: RefObject<HTMLElement | null>,
@@ -85,7 +89,7 @@ function useAnchoredPlacement(
     const area = intersect(viewport, bounds?.() ?? viewport);
     const next = placeAbove(target, element.offsetWidth, element.offsetHeight, area, GAP, GAP);
     // The same placement keeps the same object, so measuring after a render doesn't render again.
-    setPlace((last) => (last !== null && samePlace(last, next) ? last : next));
+    setPlace((last) => (last !== null && next !== null && samePlace(last, next) ? last : next));
   };
   const latest = useRef(measure);
   latest.current = measure;
@@ -131,23 +135,28 @@ function intersect(a: Box, b: Box): Box {
 }
 
 /**
- * Shift+F10 from anywhere moves focus to the toolbar's first control, remembering where it was;
- * focus moving anywhere outside the toolbar forgets it, so a later Escape doesn't pull focus back.
+ * Shift+F10 moves focus to the toolbar's first control, unless something else took the key, a
+ * modal layer has made the toolbar inert, or the toolbar is hidden. However focus enters the
+ * toolbar (Shift+F10, Tab, a click), the element it came from is where Escape returns it; focus
+ * moving anywhere outside the toolbar forgets it.
  */
 function useShiftF10(toolbar: RefObject<HTMLElement | null>, returnTo: RefObject<HTMLElement | null>): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const element = toolbar.current;
-      if (event.key !== "F10" || !event.shiftKey || element === null) return;
-      if (element.contains(document.activeElement)) return;
+      if (event.key !== "F10" || !event.shiftKey || event.defaultPrevented || element === null) return;
+      if (element.contains(document.activeElement) || !reachable(element)) return;
       const first = element.querySelector<HTMLElement>("button:not(:disabled), [tabindex]:not([tabindex='-1'])");
       if (first === null) return;
       event.preventDefault();
-      returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       first.focus();
     };
     const onFocusIn = (event: FocusEvent) => {
-      if (!(event.target instanceof Node && toolbar.current?.contains(event.target) === true)) returnTo.current = null;
+      const element = toolbar.current;
+      const into = event.target instanceof Node && element?.contains(event.target) === true;
+      if (!into) returnTo.current = null;
+      else if (event.relatedTarget instanceof HTMLElement && element?.contains(event.relatedTarget) !== true)
+        returnTo.current = event.relatedTarget;
     };
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("focusin", onFocusIn);
@@ -156,4 +165,9 @@ function useShiftF10(toolbar: RefObject<HTMLElement | null>, returnTo: RefObject
       document.removeEventListener("focusin", onFocusIn);
     };
   }, [toolbar, returnTo]);
+}
+
+/** Whether the toolbar can take focus: shown (it has a placement) and not inert under a modal layer. */
+function reachable(toolbar: HTMLElement): boolean {
+  return toolbar.style.visibility !== "hidden" && toolbar.closest("[inert]") === null;
 }

@@ -1,4 +1,4 @@
-/* The selection mini toolbar (§7.9): the surface with a chip border, radius 6, padding 4, gap 2
+/* The selection mini toolbar (§7.9): `raised` (the surface in light, as every floating layer) with a chip border, radius 6, padding 4, gap 2
    and the float shadow, 13 px, in the floating-toolbar layer; buttons 30 high with 10 px sides; a
    1 × 18 hairline divider. */
 @layer paper.components {
@@ -11,7 +11,7 @@
     padding: var(--paper-space-4);
     border: var(--paper-border-width) solid var(--paper-chip-border);
     border-radius: var(--paper-radius-6);
-    background: var(--paper-surface);
+    background: var(--paper-raised);
     box-shadow: var(--paper-shadow-float);
     color: var(--paper-text);
     font: var(--paper-type-control);
@@ -24,6 +24,15 @@
     border-color: transparent;
     background: transparent;
     font: var(--paper-type-control);
+  }
+
+  /* Flat in every state: these come after button.css, so they win over a secondary button's field fill. */
+  .paper-selection-toolbar .paper-button[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-selection-toolbar .paper-button[data-pressed] {
+    background: var(--paper-pressed);
   }
 
   .paper-selection-toolbar-divider {

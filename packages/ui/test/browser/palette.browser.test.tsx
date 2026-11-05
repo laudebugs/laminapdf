@@ -1,15 +1,17 @@
 import axe from "axe-core";
 import { useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import {
   Button,
   CommandPalette,
   type CommandPaletteProps,
+  Dialog,
   EmptyState,
   type PaletteSection,
   SelectionToolbar,
   SelectionToolbarDivider,
+  TextInput,
 } from "../../src/index.ts";
 import { cleanup, focused, renderIn } from "./render.tsx";
 
@@ -128,6 +130,68 @@ describe("SelectionToolbar", () => {
     expect(focused()).toBe(note);
   });
 
+  it("hides while the selection is out of view, and Shift+F10 then leaves the key alone", async () => {
+    const host = renderIn(<Selection anchor={() => rect(-1700, 300)} />);
+    await frame();
+    expect(toolbar().style.visibility).toBe("hidden");
+    const text = host.querySelector("textarea") as HTMLTextAreaElement;
+    text.focus();
+    let prevented: boolean | undefined;
+    const seen = (e: KeyboardEvent) => {
+      if (e.key === "F10") prevented = e.defaultPrevented;
+    };
+    window.addEventListener("keydown", seen);
+    onTestFinished(() => window.removeEventListener("keydown", seen));
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    expect(prevented).toBe(false);
+    expect(focused()).toBe(text);
+  });
+
+  it("returns focus to where it came from after a Tab into it", async () => {
+    const onDismiss = vi.fn();
+    const host = renderIn(<Selection anchor={() => rect(300, 300)} onDismiss={onDismiss} />);
+    const text = host.querySelector("textarea") as HTMLTextAreaElement;
+    text.focus();
+    await userEvent.tab();
+    expect(focused().textContent).toBe("Copy");
+    await userEvent.keyboard("{Escape}");
+    expect(onDismiss).toHaveBeenCalledOnce();
+    expect(focused()).toBe(text);
+  });
+
+  it("leaves Shift+F10 to a modal dialog that is open over it", async () => {
+    renderIn(
+      <>
+        <Selection anchor={() => rect(300, 300)} />
+        <Dialog isOpen onOpenChange={() => {}} title="Rename" closeLabel="Close">
+          <TextInput label="Name" />
+        </Dialog>
+      </>,
+    );
+    await expect.poll(() => focused().tagName).toBe("INPUT");
+    const field = focused();
+    let prevented: boolean | undefined;
+    const seen = (e: KeyboardEvent) => {
+      if (e.key === "F10") prevented = e.defaultPrevented;
+    };
+    window.addEventListener("keydown", seen);
+    onTestFinished(() => window.removeEventListener("keydown", seen));
+    await userEvent.keyboard("{Shift>}{F10}{/Shift}");
+    // The toolbar behind the modal is inert, so it leaves the key alone.
+    expect(prevented).toBe(false);
+    expect(focused()).toBe(field);
+  });
+
+  it("keeps its buttons flat when hovered", async () => {
+    renderIn(<Selection anchor={() => rect(300, 300)} />);
+    await frame();
+    const copy = toolbar().querySelector("button") as HTMLElement;
+    await userEvent.hover(copy);
+    expect(copy.hasAttribute("data-hovered")).toBe(true);
+    // A secondary button's hover lays a tint over the field fill; in the toolbar it is the tint alone.
+    expect(getComputedStyle(copy).backgroundImage).toBe("none");
+  });
+
   it("moves when the app passes a new selection, without a scroll", async () => {
     const host = renderIn(<Extending />);
     await frame();
@@ -233,6 +297,59 @@ describe("CommandPalette", () => {
     await frame();
     expect(document.querySelector("[role=listbox]")).toBeNull();
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Go to page");
+  });
+
+  it("closes on a scrim click below a short list, inside its column", async () => {
+    renderIn(<Palette sections={SECTIONS.slice(0, 1)} />);
+    await frame();
+    const box = (document.querySelector(".paper-palette") as HTMLElement).getBoundingClientRect();
+    const overlay = document.querySelector(".paper-palette-overlay") as HTMLElement;
+    await userEvent.click(overlay, { position: { x: box.left + box.width / 2, y: box.bottom + 100 } });
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+  });
+
+  it("shows the empty state, and no overlines, when every section is empty", async () => {
+    renderIn(
+      <Palette
+        sections={[
+          { id: "recent", title: "Recent", items: [] },
+          { id: "commands", title: "Commands", items: [] },
+        ]}
+        empty={<EmptyState title="No commands match" />}
+      />,
+    );
+    await frame();
+    expect(document.querySelector("[role=listbox]")?.textContent).toContain("No commands match");
+    expect(document.querySelectorAll("[role=listbox] [role=group]")).toHaveLength(0);
+  });
+
+  it("keeps a disabled row's group without a reason, and merges overlapping matches", async () => {
+    renderIn(
+      <Palette
+        sections={[
+          {
+            id: "commands",
+            title: "Commands",
+            items: [
+              {
+                id: "file.export",
+                title: "Export PDF",
+                group: "File",
+                isDisabled: true,
+                matches: [
+                  [0, 3],
+                  [2, 6],
+                ],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await frame();
+    const row = document.querySelector("[role=option]") as HTMLElement;
+    expect(row.querySelector(".paper-palette-group")?.textContent).toBe("File");
+    expect([...row.querySelectorAll(".paper-palette-match")].map((m) => m.textContent)).toEqual(["Export"]);
   });
 
   it("sits 96 px from the top in the modal layer", async () => {
