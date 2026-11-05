@@ -1,0 +1,15 @@
+{
+  "agent": {
+    "name": "claude-code",
+    "package": "@anthropic-ai/claude-code",
+    "version": "2.1.316",
+    "disallowedTools": ["WebFetch", "WebSearch"]
+  },
+  "model": "claude-sonnet-5-5",
+  "maxTurns": 40,
+  "maxBudgetUsd": 2,
+  "timeoutSeconds": 900,
+  "checkerTimeoutSeconds": 120,
+  "packs": "target/xtask/npm-packs",
+  "preamble": "You are working in a Node.js project (ES modules, Node 22 or later) in the current directory. The PDF library @laminapdf/sdk is installed in node_modules; use it, and add no other dependencies. Write plain JavaScript (.mjs files run with `node`), run what you write, and leave the requested files in this directory."
+}

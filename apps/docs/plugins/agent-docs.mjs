@@ -1,0 +1,316 @@
+// Docs for agents (todo L5a), written after the build: a Markdown twin of every page
+// (`/guides/save-a-pdf/` is also `/guides/save-a-pdf.md`), `llms.txt` (llmstxt.org: an H1, a
+// one-paragraph summary, then sections of links to the twins) and `llms-full.txt` (every twin in
+// reading order). Twins come from the pages' sources, not their HTML: the MDX pages through
+// markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
+// build fails when an HTML page has no twin or a link in `llms.txt` has no file.
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { readerMarkdown, siteHref } from "./error-pages.mjs";
+import { frontMatter, mdxToMarkdown, rewriteLinks, SNIPPET, twin, twinHref } from "./markdown.mjs";
+
+const ROOT = new URL("../../../", import.meta.url);
+const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
+
+/** What `llms.txt` says the docs are about (its blockquote). */
+export const SUMMARY =
+  "Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, " +
+  "run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or " +
+  "natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page " +
+  "indexes start at 0; every error has a stable code with its own page.";
+
+/**
+ * The version every page describes: `@laminapdf/sdk`'s (one lockstep version, ADR 0017).
+ *
+ * @returns {Promise<string>}
+ */
+export async function packageVersion() {
+  const manifest = JSON.parse(await readFile(new URL("packages/sdk/package.json", ROOT), "utf8"));
+  return manifest.version;
+}
+
+/**
+ * The error and warning codes as Markdown tables, one per group of fixtures/codes.json (as the
+ * site's code table shows them).
+ *
+ * @returns {Promise<string>}
+ */
+async function codeTable() {
+  const codes = JSON.parse(await readFile(new URL("fixtures/codes.json", ROOT), "utf8"));
+  const schema = JSON.parse(await readFile(new URL("fixtures/codes.schema.json", ROOT), "utf8"));
+  const group = new RegExp(Object.keys(schema.patternProperties)[0] ?? "^$");
+  /** @param {unknown} text */
+  const cell = (text) => String(text).replaceAll("|", "\\|").replaceAll("\n", " ");
+  return Object.entries(codes)
+    .filter(([key, value]) => group.test(key) && Array.isArray(value))
+    .map(([key, value]) => {
+      const entries = /** @type {{ code: string, kind: string, summary: string, hint: string }[]} */ (value);
+      const words = key.replace(/([A-Z])/g, " $1").toLowerCase();
+      const title = words.charAt(0).toUpperCase() + words.slice(1);
+      const rows = entries.map(
+        (e) =>
+          `| [\`${e.code}\`](/reference/codes/${e.code}.md) | \`${e.kind}\` | ${cell(e.summary)} | ${cell(e.hint)} |`,
+      );
+      return [
+        `## ${title}`,
+        "",
+        "| Code | Kind | What happened | What to do |",
+        "| --- | --- | --- | --- |",
+        ...rows,
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
+/**
+ * Every HTML page the build wrote, as routes (`guides/save-a-pdf/`, `` for the home page):
+ * not the 404 page, nor the redirect pages Astro writes for moved URLs.
+ *
+ * @param {URL} dir
+ * @returns {Promise<string[]>}
+ */
+async function pageRoutes(dir) {
+  const routes = [];
+  for (const name of await readdir(dir, { recursive: true })) {
+    if (!name.endsWith(".html") || name === "404.html") continue;
+    const html = await readFile(new URL(name, dir), "utf8");
+    if (/<meta\s+http-equiv="refresh"/i.test(html)) continue;
+    routes.push(name.replace(/index\.html$/, "").replace(/\.html$/, "/"));
+  }
+  return routes.sort();
+}
+
+/**
+ * The file a route's twin is written to: `guides/x/` → `guides/x.md`, `` → `index.md`.
+ *
+ * @param {string} route
+ * @returns {string}
+ */
+export function twinPath(route) {
+  return route === "" ? "index.md" : `${route.replace(/\/$/, "")}.md`;
+}
+
+/**
+ * Reads `url`, or returns `undefined` when there is no such file.
+ *
+ * @param {URL} url
+ * @returns {Promise<string | undefined>}
+ */
+async function readMaybe(url) {
+  try {
+    return await readFile(url, "utf8");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A route's twin, from its source; `undefined` when the route has none.
+ *
+ * @param {string} route
+ * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string }} context
+ * @returns {Promise<{ title: string, description?: string | undefined, markdown: string } | undefined>}
+ */
+async function twinOf(route, context) {
+  const url = `${context.site}/${route}`;
+  const code = /^reference\/codes\/([a-z0-9-]+)\/$/.exec(route);
+  if (code) {
+    const id = code[1] ?? "";
+    const source = await readMaybe(new URL(`docs/errors/${id}.md`, ROOT));
+    if (source === undefined) return undefined;
+    const body = rewriteLinks(readerMarkdown(source).replace(/^# .*\n+/, ""), (href) => {
+      const target = siteHref(href);
+      return target === undefined ? undefined : twinHref(target);
+    });
+    const description = context.codes.get(id)?.summary;
+    return { title: id, description, markdown: twin({ title: id, description, version: context.version, url, body }) };
+  }
+  const base = route === "" ? "index" : route.replace(/\/$/, "");
+  const name = (await contentFiles()).get(base);
+  if (name !== undefined) {
+    const source = await readFile(new URL(name, CONTENT), "utf8");
+    const { data, body } = frontMatter(source);
+    const markdown = mdxToMarkdown(body, {
+      snippet: snippetText,
+      codeTable: () => context.table,
+    });
+    const title = data.title ?? base;
+    return {
+      title,
+      description: data.description,
+      markdown: twin({ title, description: data.description, version: context.version, url, body: markdown }),
+    };
+  }
+  return undefined;
+}
+
+/** @type {Map<string, string> | undefined} */
+let contentIndex;
+
+/**
+ * The pages under src/content/docs/ by route, as Starlight slugs them: lower case, without the
+ * extension or a trailing `index` (`reference/sdk/classes/Document.md` → `reference/sdk/classes/document`,
+ * `recipes/index.mdx` → `recipes`, TypeDoc's `README.md` → `reference/sdk/readme`).
+ *
+ * @returns {Promise<Map<string, string>>}
+ */
+export async function contentFiles() {
+  if (contentIndex === undefined) {
+    contentIndex = new Map();
+    for (const name of await readdir(CONTENT, { recursive: true })) {
+      if (!/\.mdx?$/.test(name)) continue;
+      const route = name
+        .replace(/\.mdx?$/, "")
+        .replace(/(^|\/)index$/, "")
+        .toLowerCase();
+      contentIndex.set(route === "" ? "index" : route, name);
+    }
+  }
+  return contentIndex;
+}
+
+/** The example files pages show, read once before the twins are written. */
+const snippetCache = new Map();
+
+/**
+ * The text of an example file a page shows, read by {@link readSnippets}; fails for any other.
+ * The site's twins and the package docs both read snippets through it.
+ *
+ * @param {string} file the path from the repository root
+ * @returns {string}
+ */
+export function snippetText(file) {
+  const text = snippetCache.get(file);
+  if (text === undefined) throw new Error(`agent docs: a page shows ${file}, which wasn't read`);
+  return text;
+}
+
+/**
+ * Reads every file a page's `<Snippet>` names, whatever its attributes' order.
+ *
+ * @returns {Promise<void>}
+ */
+export async function readSnippets() {
+  for (const name of await readdir(CONTENT, { recursive: true })) {
+    if (!/\.mdx?$/.test(name)) continue;
+    const source = await readFile(new URL(name, CONTENT), "utf8");
+    for (const [, file = ""] of source.matchAll(SNIPPET)) {
+      if (!snippetCache.has(file)) snippetCache.set(file, await readFile(new URL(file, ROOT), "utf8"));
+    }
+  }
+}
+
+/**
+ * `llms.txt`: the H1, the summary, the version, then one section per sidebar group with a link
+ * to each page's twin, the API reference, and the codes under "Optional" (llmstxt.org: links an
+ * agent may skip).
+ *
+ * @param {{ version: string, site: string, groups: { label: string, slugs: string[] }[], twins: Map<string, { title: string, description?: string | undefined }>, api: string[], codes: string[] }} input
+ * @returns {string}
+ */
+export function llmsTxt(input) {
+  /** @param {string} route */
+  const link = (route) => {
+    const page = input.twins.get(route);
+    const title = page?.title ?? route;
+    const description = page?.description ? `: ${page.description}` : "";
+    return `- [${title}](${input.site}/${twinPath(route)})${description}`;
+  };
+  const sections = input.groups.map((g) => [`## ${g.label}`, "", ...g.slugs.map(link)].join("\n"));
+  return [
+    "# Lamina PDF",
+    "",
+    `> ${SUMMARY}`,
+    "",
+    `These docs describe version ${input.version}. Every link is a Markdown page; ` +
+      `[llms-full.txt](${input.site}/llms-full.txt) holds them all in one file.`,
+    "",
+    ...sections.flatMap((s) => [s, ""]),
+    "## API reference",
+    "",
+    ...input.api.map(link),
+    "",
+    "## Optional",
+    "",
+    ...input.codes.map(link),
+    "",
+  ].join("\n");
+}
+
+/**
+ * The integration: twins, `llms.txt` and `llms-full.txt` after the build, in sidebar order.
+ *
+ * @param {() => { label: string, slugs: string[] }[]} groups the sidebar's groups as routes
+ * @returns {import("astro").AstroIntegration}
+ */
+export function agentDocs(groups) {
+  /** @type {string} */
+  let site = "";
+  return {
+    name: "lamina-agent-docs",
+    hooks: {
+      "astro:config:done": ({ config }) => {
+        site = String(config.site ?? "").replace(/\/$/, "");
+      },
+      "astro:build:done": async ({ dir }) => {
+        const version = await packageVersion();
+        const codesJson = JSON.parse(await readFile(new URL("fixtures/codes.json", ROOT), "utf8"));
+        const codes = new Map(
+          Object.values(codesJson)
+            .filter(Array.isArray)
+            .flat()
+            .map((e) => [e.code, e]),
+        );
+        const context = { version, site, codes, table: await codeTable() };
+        await readSnippets();
+        /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */
+        const twins = new Map();
+        const missing = [];
+        for (const route of await pageRoutes(dir)) {
+          const page = await twinOf(route, context);
+          if (page === undefined) {
+            missing.push(route || "/");
+            continue;
+          }
+          twins.set(route, page);
+          const out = new URL(twinPath(route), dir);
+          await mkdir(new URL(".", out), { recursive: true });
+          await writeFile(out, page.markdown);
+        }
+        if (missing.length > 0) throw new Error(`agent docs: no Markdown source for ${missing.join(", ")}`);
+        const sidebar = groups();
+        const listed = new Set(sidebar.flatMap((g) => g.slugs));
+        const routes = [...twins.keys()];
+        const api = routes.filter((r) => r.startsWith("reference/sdk/"));
+        const codeRoutes = routes.filter((r) => r.startsWith("reference/codes/") && r !== "reference/codes/");
+        const rest = routes.filter((r) => !listed.has(r) && !api.includes(r) && !codeRoutes.includes(r));
+        const all = [...sidebar, ...(rest.length > 0 ? [{ label: "More", slugs: rest }] : [])];
+        await writeFile(
+          new URL("llms.txt", dir),
+          llmsTxt({ version, site, groups: all, twins, api, codes: codeRoutes }),
+        );
+        const order = [...all.flatMap((g) => g.slugs), ...api, ...codeRoutes].filter((r) => twins.has(r));
+        const full = order.map((r) => (twins.get(r)?.markdown ?? "").replace(/^---\n[\s\S]*?\n---\n\n/, ""));
+        await writeFile(
+          new URL("llms-full.txt", dir),
+          `# Lamina PDF ${version}\n\n> ${SUMMARY}\n\n${full.join("\n\n---\n\n")}`,
+        );
+        const llms = await readFile(new URL("llms.txt", dir), "utf8");
+        const broken = [...llms.matchAll(/\]\((https?:\/\/[^)]+)\)/g)]
+          .map((m) => m[1] ?? "")
+          .filter((href) => href.startsWith(site) && href.endsWith(".md"))
+          .filter((href) => !twins.has(routeOfTwin(href.slice(site.length + 1))));
+        if (broken.length > 0) throw new Error(`agent docs: llms.txt links to missing twins: ${broken.join(", ")}`);
+      },
+    },
+  };
+}
+
+/**
+ * The route whose twin is `path` (the inverse of {@link twinPath}).
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+export function routeOfTwin(path) {
+  return path === "index.md" ? "" : `${path.replace(/\.md$/, "")}/`;
+}

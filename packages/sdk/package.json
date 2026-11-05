@@ -23,6 +23,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "schemas"
   ],
   "exports": {
@@ -64,6 +65,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "prepack": "node ../../apps/docs/scripts/package-docs.mjs docs --api",
     "build:wasm": "tsc -p tsconfig.build.json",
     "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
     "test:wasm": "pnpm run build:wasm && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts --project node --project small-memory",

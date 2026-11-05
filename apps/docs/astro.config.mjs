@@ -15,8 +15,10 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
+import { agentDocs } from "./plugins/agent-docs.mjs";
 import { checkedLinks, examplePdfs, inlineScriptHashes } from "./plugins/integrations.mjs";
 import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
+import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
 const TYPEDOC = process.env.LAMINA_PDF_DOCS_TYPEDOC !== "0";
@@ -77,91 +79,11 @@ export default defineConfig({
         ...(TYPEDOC ? [typeDoc] : []),
       ],
       // The docs as a story (quality plan §3): the order is a decision, so every page is listed.
-      sidebar: [
-        {
-          label: "Start here",
-          items: [
-            { label: "What is Lamina PDF", link: "/" },
-            { label: "Install", slug: "install" },
-            { label: "Your first PDF", slug: "start/first-pdf" },
-          ],
-        },
-        {
-          label: "Your runtime",
-          items: [
-            { label: "Browser and bundlers", slug: "quick-start/browser" },
-            { label: "Node", slug: "quick-start/node" },
-            { label: "Deno", slug: "quick-start/deno" },
-            { label: "Bun", slug: "quick-start/bun" },
-            { label: "Cloudflare Workers", slug: "quick-start/workers" },
-            { label: "Rust", slug: "quick-start/rust" },
-          ],
-        },
-        {
-          label: "Concepts",
-          items: [
-            { label: "How Lamina PDF thinks about a PDF", slug: "concepts/how-lamina-thinks" },
-            { label: "Pages and coordinates", slug: "concepts/pages-and-coordinates" },
-            { label: "Errors and warnings", slug: "concepts/errors-and-warnings" },
-            { label: "What Lamina PDF writes and what it borrows", slug: "concepts/dependencies" },
-          ],
-        },
-        {
-          label: "Create PDFs",
-          items: [
-            { label: "Text and fonts", slug: "guides/fonts-and-text" },
-            { label: "Shapes, colour and images", slug: "guides/images-and-vectors" },
-            { label: "Links, outlines and metadata", slug: "guides/links-outlines-and-metadata" },
-            { label: "Accessible PDFs", slug: "guides/accessible-pdfs" },
-            { label: "Archival PDFs", slug: "guides/archival-pdfs" },
-          ],
-        },
-        {
-          label: "Read and edit PDFs",
-          items: [
-            { label: "Edit a PDF", slug: "guides/edit-a-pdf" },
-            { label: "Save a PDF", slug: "guides/save-a-pdf" },
-            { label: "Open password-protected files", slug: "guides/password-protected-files" },
-            { label: "Open files you don't trust", slug: "guides/untrusted-files" },
-          ],
-        },
-        {
-          label: "Production",
-          items: [{ label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" }],
-        },
-        {
-          label: "Recipes",
-          items: [
-            { label: "All recipes", slug: "recipes" },
-            { label: "Hello, world", slug: "recipes/hello" },
-            { label: "An invoice", slug: "recipes/invoice" },
-            { label: "Multilingual text", slug: "recipes/multilingual" },
-            { label: "Images and vectors", slug: "recipes/images-and-vectors" },
-            { label: "Links and outlines", slug: "recipes/links-and-outlines" },
-            { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
-            { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
-            { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },
-            { label: "A PDF/A-3 invoice with XML", slug: "recipes/pdf-a3-invoice-with-xml" },
-            { label: "A 100-page report", slug: "recipes/report" },
-            { label: "Open someone else's file", slug: "recipes/open-untrusted" },
-            { label: "Save in a Web Worker", slug: "recipes/web-worker-client" },
-            { label: "A Cloudflare Worker", slug: "recipes/cloudflare-worker" },
-          ],
-        },
-        { label: "Troubleshooting", slug: "troubleshooting" },
-        {
-          label: "Reference",
-          items: [
-            ...(TYPEDOC ? [typeDocSidebarGroup] : []),
-            { label: "Rust API (rustdoc)", slug: "reference/rust" },
-            { label: "Error and warning codes", slug: "reference/codes" },
-            { label: "Glossary", slug: "reference/glossary" },
-          ],
-        },
-      ],
+      sidebar: sidebar(TYPEDOC ? typeDocSidebarGroup : undefined),
     }),
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
     checkedLinks,
     inlineScriptHashes,
+    agentDocs(sidebarRoutes),
   ],
 });
