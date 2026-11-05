@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6d](../done/U6d-core-components.md) |
-| Blocks | [U6e](./U6e-overlays-and-sheets.md) |
+| Blocks | [U6e](../ready/U6e-overlays-and-sheets.md) |
 | ADRs | Follows 0024 (component rules, touch targets; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, React Aria Components; from [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/u6h-display-components` |
 | PR title | `feat(ui): add the paper display components with all states and axe tests` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the Paper component library that [U6d](../done/U6d-core-components.md) starts. U6d builds the controls; this todo builds the items that show state rather than take input: badges and tags, notices and the toast's look, progress and skeletons, the empty state, status-bar items, the page thumbnail, the outline row and the shortcut chip. They follow U6d's rules, so the reader chrome ([C4a](./C4a-ui-chrome-and-platform.md)), the rail ([C6a](./C6a-thumbnails-outline-page-labels.md)), the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)) and the overlays ([U6e](./U6e-overlays-and-sheets.md)) compose the same look. This todo was split from U6d when U6d was claimed, because the two together passed the 800-line budget.
+Finish the Paper component library that [U6d](../done/U6d-core-components.md) starts. U6d builds the controls; this todo builds the items that show state rather than take input: badges and tags, notices and the toast's look, progress and skeletons, the empty state, status-bar items, the page thumbnail, the outline row and the shortcut chip. They follow U6d's rules, so the reader chrome ([C4a](../ready/C4a-ui-chrome-and-platform.md)), the rail ([C6a](../ready/C6a-thumbnails-outline-page-labels.md)), the network indicator ([U4a](../ready/U4a-network-indicator-and-privacy-proof.md)) and the overlays ([U6e](../ready/U6e-overlays-and-sheets.md)) compose the same look. This todo was split from U6d when U6d was claimed, because the two together passed the 800-line budget.
 
 ## Context
 
@@ -30,19 +30,19 @@ Finish the Paper component library that [U6d](../done/U6d-core-components.md) st
 
 - Components in `packages/ui`, each a named export with typed props, TSDoc and every state from §7.0:
   - **Badge** / **Tag** (§7.23): neutral, accent, positive, warning, danger; always with a word or an icon, never colour alone.
-  - **Notice** (inline strip, §7.20) and the **Toast** visual (§7.20). The toast region, queue and stacking are [U6e](./U6e-overlays-and-sheets.md)'s.
+  - **Notice** (inline strip, §7.20) and the **Toast** visual (§7.20). The toast region, queue and stacking are [U6e](../ready/U6e-overlays-and-sheets.md)'s.
   - **Progress**: a determinate bar (`role="progressbar"`, `aria-valuenow`, a label), an indeterminate bar (static under reduced motion), and a **Skeleton** block.
   - **EmptyState** (§7.21).
-  - **Status bar items** (§7.8): `StatusBarItem` (a button, minimum height 24), `NetworkIndicator` (presentational: a count, an explanation, and a `warning` state when a request went to an unexpected origin), `RepairedNotice`, `PageLabel` (tabular numerals). The data and panels are [U4a](./U4a-network-indicator-and-privacy-proof.md)'s and [C4b](./C4b-web-app-shell.md)'s.
+  - **Status bar items** (§7.8): `StatusBarItem` (a button, minimum height 24), `NetworkIndicator` (presentational: a count, an explanation, and a `warning` state when a request went to an unexpected origin), `RepairedNotice`, `PageLabel` (tabular numerals). The data and panels are [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s and [C4b](../ready/C4b-web-app-shell.md)'s.
   - **Thumbnail** (§7.6: rail and phone sizes, the current-page outline, `aria-current="page"`, the number below, and an image slot so the viewer supplies the bitmap) and **OutlineRow** (§7.7: two levels, the current row `aria-current="location"`, and an expand and collapse chevron button with `aria-expanded`).
   - **ShortcutChip** (§7.10's chip, used by buttons' tooltips and the palette): renders platform glyphs (`⌥⌘E`) or words (`Ctrl Shift E`) from a key description passed in.
 - Right-to-left layout, touch density, forced colours and focus rings as U6d sets them up.
 
 **Out of scope** (and which todo covers it)
 
-- The toast region, dialogs, sheets, menus and tooltips → [U6e](./U6e-overlays-and-sheets.md).
-- The data behind the status items, the thumbnails' bitmaps and the outline's tree → [U4a](./U4a-network-indicator-and-privacy-proof.md), [C4b](./C4b-web-app-shell.md), [C6a](./C6a-thumbnails-outline-page-labels.md).
-- Screenshots of every state → [U6f](./U6f-gallery-and-visual-tests.md).
+- The toast region, dialogs, sheets, menus and tooltips → [U6e](../ready/U6e-overlays-and-sheets.md).
+- The data behind the status items, the thumbnails' bitmaps and the outline's tree → [U4a](../ready/U4a-network-indicator-and-privacy-proof.md), [C4b](../ready/C4b-web-app-shell.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
+- Screenshots of every state → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
 
@@ -78,7 +78,7 @@ The components' browser tests in `packages/ui`, through U6d's `test/states.ts` a
 ## Risks and open questions
 
 - **Thumbnail images**: the viewer supplies an `ImageBitmap` or a canvas; the component takes a render prop or a child slot, so it never imports the viewer.
-- **Shortcut glyphs**: the key description's shape comes from [U1b](./U1b-command-registry-and-palette.md)'s `Shortcut` type (ADR 0024). Until U1b lands, take a minimal local type that U1b replaces.
+- **Shortcut glyphs**: the key description's shape comes from [U1b](../ready/U1b-command-registry-and-palette.md)'s `Shortcut` type (ADR 0024). Until U1b lands, take a minimal local type that U1b replaces.
 
 ## Definition of done
 
