@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md), [W1e](../done/W1e-progress-snapshot.md) |
+| Depends on | [W1b](./W1b-site-scaffold-and-deploys.md), [W1e](./W1e-progress-snapshot.md) |
 | Blocks | None |
 | ADRs | Follows 0011 (no third parties: the dashboard is static data in the build; each claim on the page ties to the rule behind it) |
 | Branch | `feat/w1c-home-page` |
 | PR title | `feat(site): the home page, with the roadmap and what's coming next` |
 | Size | M (design, copy and 300–500 lines of site) |
-| PR | — |
+| PR | [#250](https://github.com/laudebugs/laminapdf/pull/250) |
 
 ## Goal
 
@@ -48,25 +48,25 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 **Out of scope**
 
 - The snapshot and its command → [W1e](../done/W1e-progress-snapshot.md).
-- The privacy promises: [C7c](./C7c-performance-gates-and-launch.md) adds them to the home page when it publishes `/privacy`.
+- The privacy promises: [C7c](../ready/C7c-performance-gates-and-launch.md) adds them to the home page when it publishes `/privacy`.
 - Moving the roadmap to `/roadmap` at the reader's launch ([plan §7](../../plans/website.md#7-open-questions), question 3).
 - The other pages (W1a names their todos); the shared header → [W1d](../done/W1d-one-site-header.md).
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Design the screen; add it to `screens.md` and the design docs.
-- [ ] Draft the copy with `/writing`; mark the headline, the paragraph and each claim `[OWNER TO APPROVE]` until the owner approves them in the PR.
-- [ ] Build the page from the snapshot, the metadata and the share image; the code panel and the install lines come from tested example files and the published package list, never typed by hand.
-- [ ] `/writing-review` on the copy.
+- [x] Claim: the first commit moves this file to `ongoing/`.
+- [x] Design the screen; add it to `screens.md` and the design docs.
+- [x] Draft the copy with `/writing`; mark the headline, the paragraph and each claim `[OWNER TO APPROVE]` until the owner approves them in the PR.
+- [x] Build the page from the snapshot, the metadata and the share image; the code panel and the install lines come from tested example files and the published package list, never typed by hand.
+- [x] `/writing-review` on the copy.
 
 ## Acceptance criteria
 
-- [ ] The owner has approved the headline, every claim and what the dashboard shows.
-- [ ] Every number and list on the page comes from `progress.json`: a test builds the page from a fixture snapshot and finds each count, title and the date.
-- [ ] An empty list (nothing in progress, nothing merged) shows a sentence, not an empty box.
-- [ ] Lighthouse on the preview, phone and desktop: 100 for accessibility, best practices and SEO; axe finds nothing in light and dark.
-- [ ] The share image renders in the X and LinkedIn card validators against the preview.
+- [x] The owner has approved the headline, every claim and what the dashboard shows (2026-11-05, in the PR).
+- [x] Every number and list on the page comes from `progress.json`: a test builds the page from a fixture snapshot and finds each count, title and the date.
+- [x] An empty list (nothing in progress, nothing merged) shows a sentence, not an empty box.
+- [ ] Lighthouse on the preview, phone and desktop: 100 for accessibility, best practices and SEO; axe finds nothing in light and dark. **Partly:** axe finds nothing in light and dark at 375 and 1280 px on the built page in Chromium. Lighthouse waits for the website's first preview, which needs the first production deploy.
+- [ ] The share image renders in the X and LinkedIn card validators against the preview. **Not yet:** it waits for the same preview. The tags and the 1200 × 630 image are in the build.
 
 ## Tests
 
@@ -81,10 +81,18 @@ The site's post-build checks (W1b); the fixture-snapshot test; a test that each 
 - **Claims age.** A promise that stops being true is worse than none, so every claim links to the page or test that keeps it true.
 - **A stale snapshot.** The date sits beside the numbers; refreshing is W1e's command and an exempt PR.
 
+## Notes from the work
+
+- **Nothing on the page is typed by hand twice.** `src/data/sources.ts` reads the first PDF from the tested `hello` examples (the Rust tab keeps only the `use` lines its function needs), the command-line examples that succeed from the CLI README, and the install lines, the note on alpha releases and the package table from the docs site's install page. A test holds each to its file, so a change there fails the build or changes the page, never the other way round.
+- **The words live in `src/data/copy.ts`.** The owner approved them on 2026-11-05 after the writing review; a change to a claim goes back to the owner.
+- **The site redeploys when any of those files changes.** `.github/workflows/site.yml` lists them in its `paths`, and `apps/site/README.md` lists them for the next change.
+- **`.sheet :where(p)`** keeps the layout's paragraph margins at one class's weight, so a paragraph's own class sets its spacing.
+- **The share image and favicons come from `scripts/share-image.mjs`,** run by hand in Playwright's Chromium with the site's own tokens and fonts; screenshots keep their alpha channel, so the 32 px favicon is transparent.
+
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` and `/writing-review` followed (findings and fixes recorded in commit messages)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` and `/writing-review` followed (findings and fixes recorded in commit messages)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

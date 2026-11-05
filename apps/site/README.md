@@ -1,13 +1,14 @@
 # `apps/site`: the website at laminapdf.com
 
-Lamina PDF's website is a static [Astro](https://astro.build/) site served from Cloudflare Workers static assets at **https://laminapdf.com** ([website plan §4](../../docs/plans/website.md#4-the-website), [todo W1b](../../docs/todos/done/W1b-site-scaffold-and-deploys.md)). It holds pages of text in the [Paper design language](../../docs/design/paper/design-language.md), and every build checks each page against the website's rules in [ADR 0011 §3](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). The home page is a placeholder until [W1c](../../docs/todos/ready/W1c-home-page.md) writes it.
+Lamina PDF's website is a static [Astro](https://astro.build/) site served from Cloudflare Workers static assets at **https://laminapdf.com** ([website plan §4](../../docs/plans/website.md#4-the-website), [todo W1b](../../docs/todos/done/W1b-site-scaffold-and-deploys.md)). It holds pages of text in the [Paper design language](../../docs/design/paper/design-language.md), and every build checks each page against the website's rules in [ADR 0011 §3](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable). For now the home page is the roadmap: what Lamina PDF is, a first PDF in code, the milestones, a dashboard of the todo board and the packages.
 
 ```sh
 pnpm install                          # once per worktree
 pnpm --filter @laminapdf/site dev        # http://localhost:4321 (no headers in dev)
 pnpm --filter @laminapdf/site build      # dist/: what deploys; fails on a page that breaks the rules
-pnpm --filter @laminapdf/site test       # the headers against ADR 0011 §4, the header's links
+pnpm --filter @laminapdf/site test       # the headers against ADR 0011 §4, the header's links, the home page from a fixture
 pnpm --filter @laminapdf/site typecheck
+pnpm --filter @laminapdf/site share-image  # rewrites public/og.png and the PNG favicons (needs Playwright's Chromium)
 ```
 
 `cargo xtask check ts` runs the build, the tests and the typecheck, so CI fails on a page that breaks the rules.
@@ -38,6 +39,18 @@ After each build, `astro.config.mjs` runs three steps from `@laminapdf/site-kit`
 
 `test/headers.test.ts` compares the `/*` block with the ADR's text. A change to the headers is an amendment to the ADR, so the test fails until both say the same. The `/_astro/*` block caches Astro's hashed files for a year.
 
+## The home page
+
+The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12-website-home)) is one document sheet on the paper ground, the design the owner chose. Nothing on it is typed by hand twice:
+
+- **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
+- **Code and packages** come from the files CI tests (`src/data/sources.ts`): the first PDF from `packages/sdk/examples/hello.ts` and `crates/laminapdf/examples/hello.rs`, the command-line examples that succeed from the CLI's README, and the install lines, the note on alpha releases and the package table from the docs site's install page.
+- **Words** are in `src/data/copy.ts`, which the owner approved; a change to a claim goes back to the owner; the areas' plain names are in `src/data/rounds.ts`.
+
+`test/home.test.ts` renders the page from a fixture snapshot with Astro's container API and finds each count, title and the date; `test/sources.test.ts` holds the code panel and the package table to their files. The code panel's tabs come from `src/scripts/tabs.ts`, a file because the CSP allows no inline script; without it, each pane shows under its own heading.
+
+Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets search engines in only on the production build, and `sitemap.xml` lists every page but the 404 page.
+
 ## Look and header
 
 The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), with the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
@@ -53,6 +66,12 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 - **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
 - **`production`** (pushes to `main`): builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`.
+
+The workflow's `paths` must list everything the site builds from, or a change to one of those files reaches the site only at its next deploy:
+
+- `apps/site/**`;
+- the packages it imports: `packages/site-kit/**`, `packages/tokens/**` and `packages/fonts/**`;
+- the files `src/data/sources.ts` reads: `packages/sdk/examples/hello.ts`, `packages/sdk/package.json`, `crates/laminapdf/examples/hello.rs`, `crates/laminapdf-cli/README.md` and `apps/docs/src/content/docs/install.mdx`.
 
 Until the workflow is on `main`, the owner can upload a preview by hand: build the site, then run this from `apps/site` with the deploy token:
 

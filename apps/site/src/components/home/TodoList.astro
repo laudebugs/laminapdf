@@ -1,0 +1,30 @@
+---
+// One list of todos on the dashboard (in progress, next up), or a sentence when it is empty.
+import Inline from "./Inline.astro";
+
+interface Props {
+  heading: string;
+  todos: readonly { id: string; title: string }[];
+  /** Shown instead of an empty list. */
+  empty: string;
+}
+
+const { heading, todos, empty } = Astro.props;
+---
+
+<div class="todo-list">
+  <h3>{heading}</h3>
+  {
+    todos.length === 0 ? (
+      <p class="empty">{empty}</p>
+    ) : (
+      <ul>
+        {todos.map((todo) => (
+          <li>
+            <Inline text={todo.title} />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</div>

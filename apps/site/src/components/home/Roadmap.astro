@@ -1,0 +1,37 @@
+---
+// The roadmap's milestones, M0 to M10, down a timeline: each with what it ships and its state,
+// from progress.json.
+import { ROADMAP } from "../../data/copy.js";
+import type { Progress } from "../../data/progress.js";
+import Inline from "./Inline.astro";
+
+interface Props {
+  milestones: Progress["milestones"];
+}
+
+const { milestones } = Astro.props;
+const count = (state: Progress["milestones"][number]["state"]) => milestones.filter((m) => m.state === state).length;
+const summary = `${milestones.length} milestones: ${count("done")} done, ${count("under-way")} under way.`;
+---
+
+<section id="roadmap" class="home-section" aria-labelledby="roadmap-title">
+  <h2 id="roadmap-title">{ROADMAP.heading}</h2>
+  <p class="section-intro">{summary}</p>
+  <ol class="timeline">
+    {
+      milestones.map((milestone) => (
+        <li id={milestone.id.toLowerCase()} class={`milestone milestone-${milestone.state}`}>
+          <p class="milestone-head">
+            <strong class="milestone-name">
+              {milestone.id} · {milestone.name}
+            </strong>
+            <span class={`state state-${milestone.state}`}>{ROADMAP.states[milestone.state]}</span>
+          </p>
+          <p class="milestone-ships">
+            <Inline text={milestone.ships} />
+          </p>
+        </li>
+      ))
+    }
+  </ol>
+</section>

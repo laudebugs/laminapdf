@@ -1,0 +1,33 @@
+---
+// The opening: what Lamina PDF is, the two ways in (the docs, the packages) and the first PDF in
+// code. The words are in src/data/copy.ts; the code comes from the tested example files.
+
+import { APP_LAUNCHED, APP_URL, DOCS } from "@laminapdf/site-kit/nav";
+import { OPENING } from "../../data/copy.js";
+import { cliCommands, rustFirstPdf, typescriptFirstPdf, VERSION } from "../../data/sources.js";
+import CodePanel from "./CodePanel.astro";
+import DateText from "./DateText.astro";
+
+interface Props {
+  /** The snapshot's date, `YYYY-MM-DD`. */
+  date: string;
+}
+
+const tabs = [
+  { id: "typescript", label: "TypeScript", code: typescriptFirstPdf() },
+  { id: "rust", label: "Rust", code: rustFirstPdf() },
+  { id: "cli", label: "Command line", code: cliCommands() },
+];
+---
+
+<section class="opening" aria-labelledby="home-title">
+  <p class="overline">Lamina PDF · {VERSION} · roadmap of <DateText date={Astro.props.date} /></p>
+  <h1 id="home-title">{OPENING.headline}</h1>
+  <p class="lead">{OPENING.lead}</p>
+  <p class="actions">
+    <a class="button-primary" href={`${DOCS}/`}>{OPENING.docs}</a>
+    <a class="button-secondary" href="#packages">{OPENING.packages}</a>
+    {APP_LAUNCHED && <a class="button-secondary" href={APP_URL}>{OPENING.app}</a>}
+  </p>
+  <CodePanel tabs={tabs} caption={OPENING.caption} />
+</section>
