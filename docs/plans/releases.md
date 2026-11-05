@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Lamina PDF has published two alphas, `0.2.0-alpha.1` and `0.2.0-alpha.2`, and each one needed the owner twice: to push the tag, then to approve every npm package on npmjs.com. Between releases the docs site deploys every merge to `main`, so it describes code that no registry has yet, and a reader can't tell which version a page is about. This plan makes a release happen on its own once a day, when the nightly lane has passed and merged changes are waiting, and it ties the docs to that release: `docs.laminapdf.com` always documents the version on crates.io and npm, and `next.docs.laminapdf.com` documents what `main` holds beyond it.
+Lamina PDF has published two alphas, `0.2.0-alpha.1` and `0.2.0-alpha.2`, and each one needed the owner twice: to push the tag, then to approve every npm package on npmjs.com. Between releases the docs site deploys every merge to `main`, so it describes code that no registry has yet, and a reader can't tell which version a page is about. This plan makes a release happen on its own once a day, when the nightly lane has passed and merged changes are waiting. It also ties the docs to that release: `docs.laminapdf.com` always documents the version on crates.io and npm, and `next.docs.laminapdf.com` documents what `main` holds beyond it.
 
 ## 2. What a release needs today, and what changes
 
@@ -31,7 +31,7 @@ A new workflow, `release-train.yml`, runs when the nightly lane completes:
 5. **Publishing.** The lane publishes the crates (trusted publishing, as today) and the npm packages (trusted publishing from a GitHub-hosted runner), writes the GitHub release, and deploys the docs for the version.
 6. **Back to `main`.** The bot opens the version pull request from `release/v<version>` and, once the lane has published, turns on its auto-merge. The pull request runs the usual checks and merges like any other, which removes the consumed changesets and bumps `main`'s version.
 
-The tag sits on the version commit, which reaches `main` through the squash of the version pull request, so the tagged commit itself stays off `main`'s first-parent history. Its tree is the nightly's tree plus the version bump, which is exactly what was tested and published.
+The tag sits on the version commit, and the squash of the version pull request puts a copy of its change on `main`, so the tagged commit itself never lands on `main`: the tag is what keeps it once the branch is deleted. Its tree is the nightly's tree plus the version bump, which is exactly what was tested and published. Nothing reads tags from `main`'s history: the release guard compares the nightly's commit with the tagged one, and `cargo xtask progress` reads pull request titles.
 
 The cadence is at most one release a day, set by the nightly. A release on every merge would leave the pull request's checks as the only gate, since the lane takes hours and the project merges about ten pull requests a day. The repository variable `RELEASE_TRAIN` set to `off` stops the daily release, and the owner can still tag a release by hand.
 

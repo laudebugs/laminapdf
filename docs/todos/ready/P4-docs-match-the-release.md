@@ -16,7 +16,7 @@
 
 ## Goal
 
-Make every docs deployment match a package version. The docs site names the version it documents on every page, its install lines name that exact version, `docs.laminapdf.com` deploys from each release once the packages are on the registries, and `main`'s docs move to `next.docs.laminapdf.com`, marked as unreleased.
+Make every docs deployment match a package version. Every page of the docs site names the version it documents, and its install lines name that exact version. `docs.laminapdf.com` deploys from each release once the packages are on the registries, and `main`'s docs move to `next.docs.laminapdf.com`, marked as unreleased.
 
 ## Context
 
