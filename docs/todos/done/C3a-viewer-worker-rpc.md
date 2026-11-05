@@ -44,7 +44,7 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 **Out of scope** (and which todo covers it)
 
 - Virtualiser, canvas pool, tiles, zoom → [C3b](../done/C3b-viewer-virtualiser-and-zoom.md).
-- Performance harness → [C3c](../ready/C3c-viewer-perf-harness.md).
+- Performance harness → [C3c](../ongoing/C3c-viewer-perf-harness.md).
 - HTTP range `ByteSource` and password UI → [C4c](../ready/C4c-remote-files-encryption-privacy.md).
 - Text runs, struct tree, search RPC methods → [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md) (the protocol leaves room for them).
 - Threaded (SharedArrayBuffer) variant (ADR 0009: later).

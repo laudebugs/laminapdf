@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
-| Blocks | [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6c](./C6c-print-download-properties.md), [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md) |
+| Blocks | [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [C6c](../ready/C6c-print-download-properties.md), [C7b](../ready/C7b-offline-pwa.md), [C7c](../ready/C7c-performance-gates-and-launch.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) tier 11 and §2 lanes (no wall-clock assertions in PR lanes; perf in nightly; regressions open issues) and §4 (flaky tests are bugs) |
 | Branch | `test/c3c-viewer-perf-harness` |
 | PR title | `test(viewer): add a playwright performance harness for scrolling, memory and first page` |
@@ -37,12 +37,12 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 
 **Out of scope** (and which todo covers it)
 
-- Turning budgets into hard CI gates and adding the app-shell JS size budget → [C7c](./C7c-performance-gates-and-launch.md).
-- Search performance → measured in [C5b](./C5b-find-in-document.md) using this harness.
+- Turning budgets into hard CI gates and adding the app-shell JS size budget → [C7c](../ready/C7c-performance-gates-and-launch.md).
+- Search performance → measured in [C5b](../ready/C5b-find-in-document.md) using this harness.
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim: the work PR's first commit moves this file to `ongoing/` (git workflow §2), from a fresh worktree off `main`.
 - [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@laminapdf/sdk` builder, seeded; cached in a gitignored dir.
 - [ ] Instrumentation hook in the demo: expose `window.__laminaPerf` (only in the demo/perf build) collecting `renderstats`, long tasks, memory samples every 500 ms.
 - [ ] Scenario specs `perf/*.perf.ts` with deterministic scrolling (`mouse.wheel` steps at fixed intervals) and network throttling for the cold scenario.
@@ -79,7 +79,7 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated)
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
