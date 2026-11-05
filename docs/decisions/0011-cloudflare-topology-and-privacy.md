@@ -2,7 +2,7 @@
 
 - Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ready/H1-auth-spike.md).
 - Date: 2026-10-31
-- Amended: 2026-11-05 ([W1a](../todos/ongoing/W1a-domain-map.md), the [website plan](../plans/website.md)): the website is at `laminapdf.com` and the reader moves to `app.laminapdf.com`, with its staging at `staging-app.laminapdf.com`. Until then the reader was planned at the apex and its staging at `staging.laminapdf.com`; it had never been deployed, so nothing redirects. §1–§4 are edited in place: the hosts (§1), the `#url=` links (§2), the origin the guarantees name and the website's own rules (§3), and the website's headers and the HSTS preload (§4).
+- Amended: 2026-11-05 ([W1a](../todos/ongoing/W1a-domain-map.md), the [website plan](../plans/website.md)): the website is at `laminapdf.com` and the reader moves to `app.laminapdf.com`, with its staging at `staging-app.laminapdf.com`. Until then the plan put the reader at the apex and its staging at `staging.laminapdf.com`. The reader had never been deployed, so nothing redirects. This amendment edits §1–§4 in place: the hosts (§1), the `#url=` links (§2), the origin the guarantees name and the website's own rules (§3), and the website's headers and the HSTS preload (§4).
 
 ## Context
 
@@ -40,7 +40,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
   - The WASM modules are static assets of the same origin (ADR 0009 §2), never a CDN's.
-- **The website is a Worker of its own, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. It is deployed from `main`, with a preview per PR, and never serves the reader. It links to the reader but forwards nothing to it.
+- **The website is a Worker of its own, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. Every push to `main` deploys it, with a preview per PR. It never serves the reader: it links to the reader and forwards nothing.
 - **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). Since 2026-11-05 the website holds the apex and the reader `app.` ([website plan §2](../plans/website.md#2-the-domain-map)). Every host, its Worker and what deploys it:
 
   | Host | Serves | Worker | Deployed from |
@@ -111,7 +111,7 @@ Cross-Origin-Resource-Policy: same-origin
 - **`connect-src https:`** is what lets the worker fetch a remote document from any host (§2); everything else is `'self'`.
 - **`frame-src 'self'` with `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`** allow the same-origin print iframe (C6c) and refuse framing by every other site. Styles are set through the CSSOM, never through `style` attributes in markup.
 - **No COOP or COEP in v0.1** (ADR 0009 §5). The threaded variant would add them on its own route.
-- **`preload` is added to HSTS** after the website's first production deploy, once every subdomain is known to be HTTPS-only: the preload list checks the apex's header, which the website now serves. A one-line PR adds `preload` to the website's `Strict-Transport-Security` header (W1b's post-merge checks), and the owner then submits `laminapdf.com`.
+- **`preload` is added to HSTS** after the website's first production deploy, once every subdomain answers over HTTPS only. The preload list checks the apex's header, and the website now serves the apex. A one-line PR adds `preload` to the website's `Strict-Transport-Security` header (W1b's post-merge checks), and the owner then submits `laminapdf.com`.
 - **Changes are amendments:** a change that loosens any directive is an amendment to this ADR, and C4d's header test pins the exact values.
 
 **The website's headers** (`apps/site/public/_headers`, for `/*`; W1b) are the set above with two differences, each with its reason:
@@ -119,7 +119,7 @@ Cross-Origin-Resource-Policy: same-origin
 - **`script-src 'self'` plus one `'sha256-…'` hash per inline script the build writes**, filled in after the build as the docs site does, because Astro writes small inline scripts. No `'wasm-unsafe-eval'`: the website runs no WebAssembly.
 - **`connect-src 'self'`**: the website fetches nothing remote.
 
-`style-src 'self'` stays as it is: the build sets Astro's `build.inlineStylesheets: "never"`, so every style sheet is a file, and pages set no `style` attributes. Preview builds add `X-Robots-Tag: noindex`, as the reader's do (§1); the website has no staging.
+`style-src 'self'` stays as it is: the build sets Astro's `build.inlineStylesheets: "never"`, so every style sheet is a file, and pages set no `style` attributes. Preview builds add `X-Robots-Tag: noindex`, as the reader's do (§1). The website has no staging.
 
 Any other difference is added here, with its reason, before W1b ships it.
 
@@ -163,7 +163,7 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
 - **`connect-src https:`** is broader than `'self'`. It is required by direct fetching, and contained by allowing scripts from `'self'` only.
 - **Every later server feature starts from opt-in, per-document consent and fixed retention.** Its ADR has to justify any exception.
 - **One more governance task:** the domain choice touched every `<domain>` placeholder in a single PR (`laminapdf.com`, 2026-10-31).
-- **Two origins (amendment 2026-11-05):** the reader's storage, service worker and permissions live at `app.laminapdf.com`, apart from the website, so no website page can read or clear the reader's local data, and the reader's offline cache never captures a website page.
+- **Two origins (amendment 2026-11-05):** the reader's storage, service worker and permissions live at `app.laminapdf.com`, apart from the website. No website page can read or clear the reader's local data, and the reader's offline cache never captures a website page.
 
 ## Alternatives considered
 
