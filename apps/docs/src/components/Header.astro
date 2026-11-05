@@ -1,0 +1,23 @@
+---
+// The docs site's header (Starlight's `Header` override, W1d): the site header both sites share
+// (@laminapdf/site-kit: the wordmark to laminapdf.com and the one list of links, with "Docs" marked
+// on every page here), and Starlight's own search, social icons and theme switch beside it. The
+// mobile menu button stays where Starlight draws it.
+import Search from "@astrojs/starlight/components/Search.astro";
+import SocialIcons from "@astrojs/starlight/components/SocialIcons.astro";
+import ThemeSelect from "@astrojs/starlight/components/ThemeSelect.astro";
+import { siteNav, WEBSITE } from "@laminapdf/site-kit/nav";
+import SiteHeader from "@laminapdf/site-kit/SiteHeader.astro";
+
+const links = siteNav(__SITE_PAGES__, { site: "docs", path: Astro.url.pathname });
+---
+
+<SiteHeader links={links} home={`${WEBSITE}/`}>
+  <Fragment slot="tools">
+    <Search />
+    <div class="docs-header-extras sl-hidden md:sl-flex print:hidden">
+      <SocialIcons />
+      <ThemeSelect />
+    </div>
+  </Fragment>
+</SiteHeader>

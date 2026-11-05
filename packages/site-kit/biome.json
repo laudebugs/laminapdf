@@ -4,7 +4,18 @@
   "extends": "//",
   "overrides": [
     {
-      "includes": ["src/**"],
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/**", "test/browser/**"],
       "linter": {
         "rules": {
           "style": {

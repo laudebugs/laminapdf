@@ -1,0 +1,42 @@
+---
+// The site header (design language §7.39) of both sites: the wordmark, the one list of links from
+// nav.mjs (the current page's in 600 with the accent underline), any tools a site adds in the
+// `tools` slot (the docs site's search and theme switch), and "Open the web app" once the reader
+// is live. Its look is header.css; each site sizes it with header.css's variables.
+import "./header.css";
+import { APP_LAUNCHED, APP_URL } from "./nav.mjs";
+
+interface Props {
+  /** The links, as nav.mjs's `siteNav` resolves them for this site and page. */
+  links: readonly { label: string; href: string; current: "page" | "true" | undefined }[];
+  /** Where the wordmark goes: the website's home. */
+  home: string;
+}
+
+const { links, home } = Astro.props;
+---
+
+<div class="site-header-row">
+  <a class="site-wordmark" href={home}>Lamina PDF</a>
+  <nav class="site-nav" aria-label="Site">
+    <ul>
+      {
+        links.map((link) => (
+          <li>
+            <a href={link.href} aria-current={link.current}>
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  {
+    Astro.slots.has("tools") && (
+      <div class="site-header-tools">
+        <slot name="tools" />
+      </div>
+    )
+  }
+  {APP_LAUNCHED && <a class="site-header-app" href={APP_URL}>Open the web app</a>}
+</div>

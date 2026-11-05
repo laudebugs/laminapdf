@@ -58,6 +58,11 @@ const config: KnipConfig = {
     // The website deploys with `pnpm exec wrangler` in .github/workflows/site.yml, which knip reads
     // once the owner commits it (W1b's PR gives the file); until then knip can't see the use.
     "apps/site": { ignoreDependencies: ["wrangler"] },
+    // Its browser tests' config loads Astro, which knip can't, so its test entries are named here.
+    "packages/site-kit": {
+      entry: ["test/**/*.test.ts", "test/browser/render.ts", "vitest.config.ts", "vitest.browser.config.ts"],
+      vitest: false,
+    },
   },
   ignore: ["**/src/generated/**"],
   // knip finds pnpm's workspaces itself; the generated package is left out here too.

@@ -38,13 +38,13 @@ A visitor moving between `laminapdf.com` and `docs.laminapdf.com` sees the same 
 ## Tasks
 
 - [x] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Move the header and its links into the shared package; use it in both sites.
-- [ ] Browser tests: keyboard order, the current page's underline, phone width, light and dark, axe.
+- [x] Move the header and its links into the shared package; use it in both sites.
+- [x] Browser tests: keyboard order, the current page's underline, phone width, light and dark, axe.
 
 ## Acceptance criteria
 
-- [ ] Both sites' previews show the same header, and a link added to the list appears on both.
-- [ ] The docs site's search and theme switch still work beside the new header.
+- [ ] Both sites' previews show the same header, and a link added to the list appears on both. **Not yet:** the previews wait for the owner's website workflow. Locally both builds render the shared header, and the link test (`packages/site-kit/test/nav.test.ts`) adds a page's link on both sites from one list.
+- [x] The docs site's search and theme switch still work beside the new header (checked in Chromium: the search dialog opens, the theme switch is there, nothing scrolls sideways at 375 px).
 
 ## Tests
 
@@ -53,6 +53,14 @@ The shared package's browser tests; both sites' post-build link checks.
 ## Docs to update
 
 The shared package's README, `CLAUDE.md`'s layout, the [website plan §8](../../plans/website.md#8-to-dos).
+
+## Notes from the work
+
+- **The shared package is `@laminapdf/site-kit`,** which held the build steps both sites share; it now holds the header too (`src/nav.mjs`, `src/SiteHeader.astro`, `src/header.css`). The website's `src/nav.ts` and header component are gone.
+- **The docs site learns which website pages exist at build time:** its `astro.config.mjs` reads `apps/site/src/pages/` with `pageFiles()`, as the website's own config does, and passes the list as `__SITE_PAGES__`.
+- **The header sizes itself with CSS variables:** the website keeps §7.39's 64 px bar; the docs site fits it into Starlight's 56 px bar with a 22 px wordmark and hides the links below 50 rem, where Starlight's search and menu take over.
+- **`header.css` sets `box-sizing` itself.** The browser test caught 32 px of sideways scroll at phone width on a page without a global border-box reset.
+- **The browser tests render the header in Node** with Astro's container API in a Vitest global setup, then check it in each browser. Firefox and WebKit run only in CI here: this environment has Chromium alone.
 
 ## Definition of done
 

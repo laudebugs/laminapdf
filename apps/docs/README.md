@@ -44,6 +44,10 @@ When the design language's tokens change, change them here too.
 - **The example PDFs** are the goldens in `fixtures/golden/examples/`, copied into `dist/examples/pdf/` after the build (`plugins/integrations.mjs`).
 - **Links the validator can't see:** `starlight-links-validator` checks the Starlight pages. After the build, `plugins/integrations.mjs` checks every link on every built page to `/examples/pdf/…` and `/reference/codes/…` against the files the build wrote.
 
+## The site header
+
+The docs site shows the header the website shows, from [`@laminapdf/site-kit`](../../packages/site-kit/README.md#the-site-header): the wordmark links to https://laminapdf.com, and "Docs" is marked on every page. `src/components/Header.astro` is Starlight's `Header` override, which keeps Starlight's search, social icons and theme switch beside the shared links; the mobile menu button stays where Starlight draws it. A link to a website page appears once the page exists: `astro.config.mjs` reads `apps/site/src/pages/` at build time. Below Starlight's 50 rem breakpoint the links give way to search and the menu.
+
 ## Headers
 
 `public/_headers` applies [ADR 0011 §4](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-)'s headers to every response, with these differences for a static docs site:
