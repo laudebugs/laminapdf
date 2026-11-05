@@ -1,6 +1,6 @@
-// Notices and the toast's look (§7.20). A notice is a strip inside a panel for a lasting state; a
-// toast confirms something that already happened. Both are status messages (WCAG 4.1.3). The
-// toast region, its timing and its stacking belong to the overlays, not to this component.
+// Notices and the toast's look (§7.20). A notice is a strip inside a panel for a lasting state, and
+// a status message (WCAG 4.1.3). A toast confirms something that already happened; the toast
+// region announces it, and owns its timing and stacking, so the toast itself is not a live region.
 
 import type { IconName } from "@laminapdf/icons";
 import { Icon } from "@laminapdf/icons/react";
@@ -55,10 +55,14 @@ export interface ToastProps {
   action?: ToastAction;
 }
 
-/** A toast's look: dark, short and polite. Never the only place an error is reported. */
+/**
+ * A toast's look: dark and short. Put it inside the app's toast region, a polite live region that
+ * exists before the toast arrives, so screen readers announce it. Never the only place an error is
+ * reported.
+ */
 export function Toast({ children, action }: ToastProps): ReactNode {
   return (
-    <div role="status" className="paper-toast">
+    <div className="paper-toast">
       <span>{children}</span>
       {action === undefined ? null : (
         <AriaButton className="paper-toast-action" onPress={action.onPress}>

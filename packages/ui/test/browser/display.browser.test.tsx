@@ -11,7 +11,7 @@ import {
   Thumbnail,
   Toast,
 } from "../../src/index.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { cleanup, focused, get, renderIn } from "./render.tsx";
 
 afterEach(cleanup);
 
@@ -21,9 +21,6 @@ declare module "vitest/browser" {
     reducedMotion: (value: "reduce" | null) => Promise<void>;
   }
 }
-
-const get = (host: HTMLElement, selector: string) => host.querySelector(selector) as HTMLElement;
-const focused = () => document.activeElement as HTMLElement;
 
 describe("status bar items", () => {
   it("are Tab stops that press on Enter and Space", async () => {
@@ -46,10 +43,19 @@ describe("status bar items", () => {
   });
 
   it("name the network indicator by its count and explanation", () => {
-    const host = renderIn(<NetworkIndicator count="2 network requests" explanation="· to files.example.org" warning />);
-    const button = get(host, "button");
-    expect(button.textContent).toBe("2 network requests· to files.example.org");
-    expect(button.dataset.warning).toBe("true");
+    const host = renderIn(<NetworkIndicator count="0 network requests" explanation="· Offline-safe" />);
+    expect(get(host, "button").textContent).toBe("0 network requests · Offline-safe");
+  });
+
+  it("swap the shield for the warning sign, not only its colour, when a request was unexpected", () => {
+    const shape = (warning: boolean) =>
+      get(
+        renderIn(
+          <NetworkIndicator count="2 network requests" explanation="· to files.example.org" warning={warning} />,
+        ),
+        "svg",
+      ).innerHTML;
+    expect(shape(true)).not.toBe(shape(false));
   });
 });
 
@@ -153,10 +159,10 @@ describe("ProgressBar", () => {
 });
 
 describe("Toast", () => {
-  it("is a status message whose action is a button", async () => {
+  it("leaves announcing to the toast region, and its action is a button", async () => {
     const onPress = vi.fn();
     const host = renderIn(<Toast action={{ label: "Undo", onPress }}>Highlight deleted</Toast>);
-    expect(get(host, ".paper-toast").getAttribute("role")).toBe("status");
+    expect(get(host, ".paper-toast").hasAttribute("role")).toBe(false);
     await userEvent.tab();
     await userEvent.keyboard("{Enter}");
     expect(onPress).toHaveBeenCalledOnce();
@@ -179,5 +185,12 @@ describe("ShortcutChip", () => {
     expect(text("Mod++", "other")).toBe("Ctrl +");
     expect(text("F3", "other")).toBe("F3");
     expect(text("?", "mac")).toBe("?");
+  });
+
+  it("writes the Windows key, named keys and unknown modifiers as they are", () => {
+    expect(text("Meta+L", "other")).toBe("Win L");
+    expect(text("Mod+Space", "mac")).toBe("⌘Space");
+    expect(text("Shift+f3", "mac")).toBe("⇧F3");
+    expect(text("Hyper+K", "other")).toBe("Hyper K");
   });
 });

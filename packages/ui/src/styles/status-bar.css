@@ -31,8 +31,10 @@
     background: var(--paper-hover);
   }
 
+  /* Pressed, the label darkens to text-3 as §7.0's ghost controls do: muted is under 4.5 there. */
   .paper-status-item[data-pressed] {
     background: var(--paper-pressed);
+    color: var(--paper-text-3);
   }
 
   .paper-network-indicator svg {

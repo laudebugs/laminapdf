@@ -699,7 +699,7 @@ Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Ro
 
 ### 7.8 Status bar items
 
-In `@laminapdf/ui`: `StatusBarItem`, `NetworkIndicator`, `RepairedNotice` and `PageLabel`.
+In `@laminapdf/ui`: `StatusBarItem`, `NetworkIndicator`, `RepairedNotice` and `PageLabel`. **Unexpected origin (U6h):** the shield becomes the Warning sign as well as turning `warning`, so the state doesn't rest on colour alone, which forced colours would remove. A pressed item's label turns `text-3`, as §7.0's ghost controls do, because `muted` is under 4.5:1 on `pressed`.
 
 Each item is a button (min-height 24, 12 px, `muted`) that opens its panel. Network indicator: shield in `accent`, count in `text`, explanation in `muted`. Repaired notice: wrench + "Repaired on open · Details" (Details underlined). Page label: plain text, "Page 3 · Repairs backlog" or "Page 3 of 24". If requests > 0 **(proposed)**: count stays `text`, explanation names the host ("2 requests · to files.example.org only"); a request to an unexpected origin turns the shield and count `warning`. **Wording (decided, one form for every area):** with a document open the count is for that document: “0 network requests for this document · Offline-safe: nothing uploaded” when nothing was sent, otherwise “N network requests for this document · to lamina’s storage only” (the destination names of [Account and cloud](account-cloud-product.md); in shared review, “· live connection to lamina’s review server”). Screens without a document (start window, home, settings, product pages) drop “for this document”: “0 network requests · Offline-safe: nothing uploaded”, or the count plus the destination.
 
@@ -985,7 +985,7 @@ More controls **(proposed)**:
 
 ### 7.20 Toast and notice
 
-In `@laminapdf/ui`: `Notice`, and `Toast` for the toast's look; the toast region and its timing come with the overlays. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
+In `@laminapdf/ui`: `Notice`, and `Toast` for the toast's look. The toast region, which comes with the overlays, is the live region and owns the timing; the toast itself has no `role`, because a live region added together with its text is often not announced. **Toast colours (U6h):** the toast swaps the `text` and `surface` colours, so it is dark in the light theme, light in the dark theme and reads in high contrast; in the light theme its text is `surface` (`#FBF9F5`) rather than white.
 
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
 - **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.

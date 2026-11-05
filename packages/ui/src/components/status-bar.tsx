@@ -8,6 +8,25 @@ import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react
 
 type ItemButtonProps = Omit<AriaButtonProps, "children" | "className" | "style">;
 
+/** The button every status item is: the class, an optional icon at its size, then the content. */
+function ItemButton({
+  icon,
+  iconSize = 14,
+  extraClass,
+  children,
+  ...rest
+}: ItemButtonProps & { icon?: IconName; iconSize?: 14 | 15; extraClass?: string; children: ReactNode }): ReactNode {
+  return (
+    <AriaButton
+      {...rest}
+      className={extraClass === undefined ? "paper-status-item" : `paper-status-item ${extraClass}`}
+    >
+      {icon === undefined ? null : <Icon name={icon} size={iconSize} />}
+      {children}
+    </AriaButton>
+  );
+}
+
 /** Props of `StatusBarItem`. */
 export interface StatusBarItemProps extends ItemButtonProps {
   /** The visible text, which is also its name. */
@@ -19,10 +38,9 @@ export interface StatusBarItemProps extends ItemButtonProps {
 /** A status-bar button: 12 px muted text, at least 24 px high (44 on touch). */
 export function StatusBarItem({ children, icon, ...rest }: StatusBarItemProps): ReactNode {
   return (
-    <AriaButton {...rest} className="paper-status-item">
-      {icon === undefined ? null : <Icon name={icon} size={14} />}
+    <ItemButton {...rest} {...(icon === undefined ? {} : { icon })}>
       {children}
-    </AriaButton>
+    </ItemButton>
   );
 }
 
@@ -32,18 +50,25 @@ export interface NetworkIndicatorProps extends ItemButtonProps {
   count: string;
   /** What the count means: "· Offline-safe: nothing uploaded". */
   explanation: string;
-  /** A request went to an origin nobody expected: the shield and count turn the warning colour. */
+  /**
+   * A request went to an origin nobody expected: the shield becomes the warning sign and it and
+   * the count turn the warning colour. Name the origin in `explanation`.
+   */
   warning?: boolean;
 }
 
 /** The network indicator: a shield, the count in the text colour and an explanation. */
 export function NetworkIndicator({ count, explanation, warning = false, ...rest }: NetworkIndicatorProps): ReactNode {
   return (
-    <AriaButton {...rest} className="paper-status-item paper-network-indicator" data-warning={warning || undefined}>
-      <Icon name="network-shield" size={15} />
-      <span className="paper-network-count">{count}</span>
-      <span>{explanation}</span>
-    </AriaButton>
+    <ItemButton
+      {...rest}
+      icon={warning ? "warning" : "network-shield"}
+      iconSize={15}
+      extraClass="paper-network-indicator"
+      data-warning={warning || undefined}
+    >
+      <span className="paper-network-count">{count}</span> <span>{explanation}</span>
+    </ItemButton>
   );
 }
 
@@ -58,15 +83,13 @@ export interface RepairedNoticeProps extends ItemButtonProps {
 /** The repaired-file item: a wrench, what happened and an underlined "Details". */
 export function RepairedNotice({ label, details, ...rest }: RepairedNoticeProps): ReactNode {
   return (
-    <AriaButton {...rest} className="paper-status-item">
-      <Icon name="repaired" size={14} />
+    <ItemButton {...rest} icon="repaired">
       <span>
         {label} · <span className="paper-status-details">{details}</span>
       </span>
-    </AriaButton>
+    </ItemButton>
   );
 }
-
 /** Props of `PageLabel`. */
 export interface PageLabelProps {
   /** "Page 3 · Repairs backlog" or "Page 3 of 24". */

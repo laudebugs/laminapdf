@@ -16,13 +16,9 @@ import {
   TextInput,
   ToggleButton,
 } from "../../src/index.ts";
-import { cleanup, renderIn } from "./render.tsx";
+import { all, cleanup, focused, get, renderIn } from "./render.tsx";
 
 afterEach(cleanup);
-
-const get = (host: HTMLElement, selector: string) => host.querySelector(selector) as HTMLElement;
-const all = (host: HTMLElement, selector: string) => [...host.querySelectorAll<HTMLElement>(selector)];
-const focused = () => document.activeElement as HTMLElement;
 
 function Modes({ onChange }: { onChange: (m: string) => void }) {
   const [mode, setMode] = useState<"read" | "comment">("read");

@@ -72,4 +72,12 @@
   .paper-outline-row[data-current] .paper-outline-page {
     color: inherit;
   }
+
+  @media (forced-colors: active) {
+    .paper-outline-row[data-current] .paper-outline-link {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
 }

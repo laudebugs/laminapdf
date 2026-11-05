@@ -1,12 +1,14 @@
 /* A page thumbnail (§7.6): a white page box with the thumbnail shadow and a hairline outline, its
-   number 8 below; the current page gets a 2 px accent outline offset 3 and a bold number. */
+   number 8 below; the current page gets a 2 px accent outline offset 3 and a bold number. The
+   button pads them 8 by 10 with radius 6, so hover, press and the focus ring cover box and number. */
 @layer paper.components {
   .paper-thumbnail {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: var(--paper-space-8);
-    padding: 0;
+    padding-block: var(--paper-space-8);
+    padding-inline: var(--paper-space-10);
     border: 0;
     border-radius: var(--paper-radius-6);
     background: transparent;
@@ -57,9 +59,21 @@
     color: var(--paper-text);
   }
 
-  /* Keyboard focus rings the whole thumbnail, apart from the current page's outline. */
+  .paper-thumbnail[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-thumbnail[data-pressed] {
+    background: var(--paper-pressed);
+  }
+
+  .paper-thumbnail[data-pressed] .paper-thumbnail-number {
+    color: var(--paper-text-3);
+  }
+
+  /* Keyboard focus rings the padded thumbnail, apart from the current page's outline. */
   .paper-thumbnail[data-focus-visible] {
-    outline-offset: var(--paper-space-8);
+    outline-offset: 0;
   }
 
   @media (forced-colors: active) {

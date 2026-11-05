@@ -44,3 +44,12 @@ export function targets(host: HTMLElement): HTMLElement[] {
     ),
   ];
 }
+
+/** The first element under `host` that matches `selector`. */
+export const get = (host: HTMLElement, selector: string) => host.querySelector(selector) as HTMLElement;
+
+/** Every element under `host` that matches `selector`. */
+export const all = (host: HTMLElement, selector: string) => [...host.querySelectorAll<HTMLElement>(selector)];
+
+/** The element with keyboard focus. */
+export const focused = () => document.activeElement as HTMLElement;
