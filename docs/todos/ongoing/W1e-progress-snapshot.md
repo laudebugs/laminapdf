@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md) |
-| Blocks | [W1c](./W1c-home-page.md) |
+| Blocks | [W1c](../ready/W1c-home-page.md) |
 | ADRs | — |
 | Branch | `feat/w1e-progress-snapshot` |
 | PR title | `feat(xtask): cargo xtask progress, the snapshot behind the website's roadmap` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-`cargo xtask progress` writes `apps/site/src/data/progress.json`, the one file the home page's roadmap and dashboard read ([W1c](./W1c-home-page.md)). It counts the todo board with the board's own parser, so the dashboard and `docs/todos/README.md` never disagree. Anyone can refresh it from time to time with one command and an exempt PR.
+`cargo xtask progress` writes `apps/site/src/data/progress.json`, the one file the home page's roadmap and dashboard read ([W1c](../ready/W1c-home-page.md)). It counts the todo board with the board's own parser, so the dashboard and `docs/todos/README.md` never disagree. Anyone can refresh it from time to time with one command and an exempt PR.
 
 ## Context
 
@@ -41,12 +41,12 @@
 
 **Out of scope**
 
-- The page → [W1c](./W1c-home-page.md).
+- The page → [W1c](../ready/W1c-home-page.md).
 - A scheduled refresh workflow (optional; it needs the owner to commit a workflow file).
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
+- [x] Claim: the first commit moves this file to `ongoing/`.
 - [ ] Expose what the snapshot needs from `todos.rs` (counts per round, the startable and ongoing todos) without a second parser.
 - [ ] The milestone table reader and the state rule.
 - [ ] The `git log` and `gh` readers behind functions the tests replace with fixtures.
