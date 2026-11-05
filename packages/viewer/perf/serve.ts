@@ -17,15 +17,26 @@ const TYPES: Readonly<Record<string, string>> = {
 };
 const COMPRESS = new Set([".html", ".js", ".css", ".wasm"]);
 
+/** The file a request for `url` names under `base`: null for a malformed path, undefined for none. */
+function fileFor(base: string, url: string | undefined): string | null | undefined {
+  let path: string;
+  try {
+    path = decodeURIComponent(new URL(url ?? "/", "http://localhost").pathname);
+  } catch {
+    return null;
+  }
+  const file = normalize(join(base, path === "/" ? "index.html" : path));
+  return file.startsWith(base) && statSync(file, { throwIfNoEntry: false })?.isFile() ? file : undefined;
+}
+
 /** Serves `root` on a free local port until `close()`. */
 export async function serve(root: string): Promise<{ readonly url: string; close(): Promise<void> }> {
   const base = normalize(root.endsWith(sep) ? root : `${root}${sep}`);
   const gzipped = new Map<string, Uint8Array>();
   const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
-    const file = normalize(join(base, path === "/" ? "index.html" : path));
-    if (!file.startsWith(base) || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
-      response.writeHead(404).end();
+    const file = fileFor(base, request.url);
+    if (file === null || file === undefined) {
+      response.writeHead(file === null ? 400 : 404).end();
       return;
     }
     const type = extname(file);
