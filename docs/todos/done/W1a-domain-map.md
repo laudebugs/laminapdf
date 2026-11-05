@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Website §2 The domain map](../../plans/website.md#2-the-domain-map) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | None |
@@ -46,16 +46,16 @@ Every plan, ADR, todo and design doc says the same thing about who serves which 
 ## Tasks
 
 - [x] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Amend ADR 0011 as in Scope.
-- [ ] Search `docs/`, `CLAUDE.md` and `apps/` for `laminapdf.com` and `staging.laminapdf.com`; change every live reference, leaving `docs.`, `updates.` and `downloads.` as they are.
-- [ ] Regenerate the board.
-- [ ] `cargo xtask check docs`.
+- [x] Amend ADR 0011 as in Scope.
+- [x] Search `docs/`, `CLAUDE.md` and `apps/` for `laminapdf.com` and `staging.laminapdf.com`; change every live reference, leaving `docs.`, `updates.` and `downloads.` as they are.
+- [x] Regenerate the board.
+- [x] `cargo xtask check docs`.
 
 ## Acceptance criteria
 
-- [ ] A search of `docs/` (outside `done/`) and `CLAUDE.md` finds `staging.laminapdf.com`, or the reader at bare `laminapdf.com`, only where a document records the move: ADR 0011's amendment note and the website plan.
-- [ ] ADR 0011 names every host in the plan's table, with the Worker and the deploy trigger for each.
-- [ ] Each moved page or file (`/download`, `/privacy`, `/pricing`, `/performance`, release notes, the release key) names `apps/site` as its home in its todo.
+- [x] A search of `docs/` (outside `done/`) and `CLAUDE.md` finds `staging.laminapdf.com`, or the reader at bare `laminapdf.com`, only where a document records the move: ADR 0011's amendment note and the website plan.
+- [x] ADR 0011 names every host in the plan's table, with the Worker and the deploy trigger for each.
+- [x] Each moved page or file (`/download`, `/privacy`, `/pricing`, `/performance`, release notes, the release key) names `apps/site` as its home in its todo.
 
 ## Tests
 
@@ -71,8 +71,8 @@ All of Scope; [website plan §8](../../plans/website.md#8-to-dos): tick the firs
 
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` and `/writing-review` followed (findings and fixes recorded in commit messages)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` and `/writing-review` followed (findings and fixes recorded in commit messages)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-11-05
 - **Asked for by:** the project owner (2026-11-05): "the app rests on app.laminapdf.com and laminapdf.com is the landing page"; then, for the home page: "the home page will contain the roadmap for now, including a dashboard on what's coming up next", and "this dashboard will be updated from time to time"
-- **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex; [W1a](../todos/ongoing/W1a-domain-map.md) amends its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and HSTS preload (§4)
+- **Changes:** [ADR 0011 §1–§4](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), which put the reader at the apex; [W1a](../todos/done/W1a-domain-map.md) amends its hosts (§1), its `#url=` links (§2), the origin its guarantees name (§3), and its headers and HSTS preload (§4)
 - **Builds on:**
   - the [web reader plan](web-app.md) (C4's deploys, C7's launch pages)
   - the [Paper design plan](paper-design.md) and [design language §7.39](../design/paper/design-language.md#739-site-and-product-pages-proposed) (the site's header and product pages)
@@ -93,7 +93,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [W1a](../todos/ongoing/W1a-domain-map.md) | The domain map: amend ADR 0011, move the reader to `app.laminapdf.com` in every plan, todo and design doc | — |
+| [W1a](../todos/done/W1a-domain-map.md) | The domain map: amend ADR 0011, move the reader to `app.laminapdf.com` in every plan, todo and design doc | — |
 | [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md) | `apps/site`: the Astro site in Paper, its headers, a preview per PR and production at `laminapdf.com` | W1a, U6b |
 | [W1c](../todos/ready/W1c-home-page.md) | The home page for now: what Lamina PDF is, the roadmap and the dashboard; design, copy approved by the owner, metadata and share images | W1b, W1e |
 | [W1d](../todos/ready/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
@@ -109,7 +109,7 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 
 ## 8. To-dos
 
-- [ ] Amend ADR 0011 and move the reader to `app.laminapdf.com` everywhere ([W1a](../todos/ongoing/W1a-domain-map.md))
+- [x] Amend ADR 0011 and move the reader to `app.laminapdf.com` everywhere ([W1a](../todos/done/W1a-domain-map.md))
 - [ ] Serve `apps/site` at `laminapdf.com`, with previews per PR ([W1b](../todos/ready/W1b-site-scaffold-and-deploys.md))
 - [ ] Publish the home page with the roadmap and the dashboard ([W1c](../todos/ready/W1c-home-page.md))
 - [ ] Share one header between the website and the docs site ([W1d](../todos/ready/W1d-one-site-header.md))

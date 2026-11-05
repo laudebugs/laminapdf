@@ -2,7 +2,7 @@
 
 - Status: Accepted (2026-10-31, when C2a's PR merges). The login stack is added by amendment after the [`auth` spike (H1)](../todos/ready/H1-auth-spike.md).
 - Date: 2026-10-31
-- Amended: 2026-11-05 ([W1a](../todos/ongoing/W1a-domain-map.md), the [website plan](../plans/website.md)): the website is at `laminapdf.com` and the reader moves to `app.laminapdf.com`, with its staging at `staging-app.laminapdf.com`. Until then the plan put the reader at the apex and its staging at `staging.laminapdf.com`. The reader had never been deployed, so nothing redirects. This amendment edits §1–§4 in place: the hosts (§1), the `#url=` links (§2), the origin the guarantees name and the website's own rules (§3), and the website's headers and the HSTS preload (§4).
+- Amended: 2026-11-05 ([W1a](../todos/done/W1a-domain-map.md), the [website plan](../plans/website.md)): the website is at `laminapdf.com` and the reader moves to `app.laminapdf.com`, with its staging at `staging-app.laminapdf.com`. Until then the plan put the reader at the apex and its staging at `staging.laminapdf.com`. The reader had never been deployed, so nothing redirects. This amendment edits §1–§4 in place: the hosts (§1), the `#url=` links (§2), the origin the guarantees name and the website's own rules (§3), and the website's headers and the HSTS preload (§4).
 
 ## Context
 
