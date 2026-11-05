@@ -74,6 +74,7 @@ const SECTIONS: Record<string, string[]> = {
   "7.20 Toast and notice": ["Notice", "Toast"],
   "7.21 Empty state": ["EmptyState"],
   "7.22 Progress": ["ProgressBar", "Skeleton"],
+  "7.16 Bottom sheet": ["BottomSheet"],
   "7.18 Dialog": ["Dialog"],
   "7.20 Toast and notice: the region": ["ToastRegion"],
   "7.23 Badge and tag": ["Badge"],
@@ -105,6 +106,7 @@ describe("the design language's §7", () => {
       "Popover",
       "PopoverTrigger",
       "Tooltip",
+      "BottomSheet",
     ]);
     const missing = Object.values(SECTIONS)
       .flat()

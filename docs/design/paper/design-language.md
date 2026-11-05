@@ -884,6 +884,8 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 ### 7.16 Bottom sheet
 
+In `@laminapdf/ui`: `BottomSheet`, modal by default and non-modal with `isModal={false}`. **Behaviour (U6i):** the grabber switches between the medium and large detents on a press, Enter or Space; a drag of the grabber or header snaps to the nearest detent, a flick goes one detent in its direction, and a flick down from medium closes the sheet. The sheet moves without a slide, so reduced motion changes nothing. A non-modal sheet scrolls a focused element out from under itself. The sheet rises above an on-screen keyboard and keeps clear of the safe area.
+
 ```html
 <section aria-label="Pages" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 76px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
   <div style="display: flex; justify-content: center">
@@ -912,7 +914,7 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 
 ### 7.18 Dialog
 
-In `@laminapdf/ui`: `Dialog`. **Focus (U6e):** it starts on the first field, or on a control given `autoFocus` (Cancel in a destructive confirm); React Aria alone would focus the dialog itself. The close button comes last in the tab order, though it sits top right. `aria-modal` is set, and the page behind is inert. On the phone it will become a bottom sheet once the sheet exists ([U6i](../../todos/ongoing/U6i-sheets-positioning-and-palette-shell.md)).
+In `@laminapdf/ui`: `Dialog`. **Focus (U6e):** it starts on the first field, or on a control given `autoFocus` (Cancel in a destructive confirm); React Aria alone would focus the dialog itself. The close button comes last in the tab order, though it sits top right. `aria-modal` is set, and the page behind is inert. On a phone-wide viewport (599 px or less) it is a `BottomSheet` at the large detent, with its actions full width below the content.
 
 Built like the palette: `scrim`, centred card `max-width: 440px` (forms up to 560; **wide:** 820 for a live preview or a two-pane editor, with an options or tree column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px, header and footer over `hairline` rules, a summary at the left of the footer), `raised` = `surface` in light, `chip-border` edge, radius 6, palette shadow, padding 24, gap 16. Title Newsreader 20/500; body 14 `text`; actions right-aligned, gap 8, primary last (danger-filled for destructive). Close icon button top right unless the dialog asks a required question. `role="dialog"` (or `alertdialog` for destructive confirms), `aria-modal="true"`, `aria-labelledby` the title, focus trapped, Escape closes, focus returns to the opener. Phone: becomes a bottom sheet at the large detent with actions full width (44 px high).
 

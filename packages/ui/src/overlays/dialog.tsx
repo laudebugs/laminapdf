@@ -2,10 +2,13 @@
 // opener, Escape and scrim clicks closing it unless it asks a required question, the page behind
 // inert and its scrolling held still.
 
-import { type ReactNode, type RefObject, useEffect, useId, useRef } from "react";
+import { BREAKPOINTS } from "@laminapdf/tokens";
+import { type ReactNode, type RefObject, useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import { IconButton } from "../components/button.js";
+import { markModal } from "./aria-modal.js";
 import { LayerScope } from "./layers.js";
+import { BottomSheet } from "./sheet.js";
 
 /** How wide a dialog may grow: 440 by default, 560 for a form, 820 for a preview or two panes. */
 export type DialogSize = "default" | "form" | "wide";
@@ -47,12 +50,48 @@ const FRAME: Record<DialogSize, string> = {
   wide: "paper-dialog-frame paper-dialog-frame-wide",
 };
 
-/** A modal dialog. */
+/** The phone's width, where a dialog becomes a bottom sheet (§7.18). */
+const PHONE = `(max-width: ${BREAKPOINTS["phone-max"]}px)`;
+
+function subscribePhone(onChange: () => void): () => void {
+  const query = window.matchMedia(PHONE);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+/** Whether the viewport is phone-wide. */
+function usePhone(): boolean {
+  return useSyncExternalStore(
+    subscribePhone,
+    () => window.matchMedia(PHONE).matches,
+    () => false,
+  );
+}
+
+/** A modal dialog; on a phone-wide viewport, a bottom sheet at the large detent with full-width actions. */
 export function Dialog(props: DialogProps): ReactNode {
   const { isOpen, onOpenChange, title, description, children, actions, size = "default", role, returnFocusTo } = props;
   const required = props.isRequired === true;
   const descriptionId = useId();
+  const phone = usePhone();
   useFocusFallback(isOpen, returnFocusTo);
+  if (phone) {
+    return (
+      <BottomSheet
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        title={title}
+        defaultDetent="large"
+        {...(description === undefined ? {} : { description })}
+        {...(role === undefined ? {} : { role })}
+        {...(props.isRequired === true ? { isRequired: true } : { closeLabel: props.closeLabel })}
+        {...(actions === undefined ? {} : { footer: actions })}
+      >
+        {children}
+        <FirstFieldFocus />
+      </BottomSheet>
+    );
+  }
   return (
     <ModalOverlay
       isOpen={isOpen}
@@ -64,8 +103,6 @@ export function Dialog(props: DialogProps): ReactNode {
       <Modal className={FRAME[size]}>
         <AriaDialog
           className="paper-dialog"
-          // React Aria makes the page behind inert but leaves aria-modal out, and drops it as a
-          // prop; §7.18 asks for it, so it is set on the element.
           ref={markModal}
           {...(role === undefined ? {} : { role })}
           {...(description === undefined ? {} : { "aria-describedby": descriptionId })}
@@ -122,10 +159,6 @@ function FirstFieldFocus(): ReactNode {
     firstField(dialog)?.focus();
   }, []);
   return <span ref={marker} hidden />;
-}
-
-function markModal(element: HTMLElement | null): void {
-  element?.setAttribute("aria-modal", "true");
 }
 
 /**
