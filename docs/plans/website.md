@@ -76,9 +76,9 @@ Until the reader launches, the home page is mostly the roadmap. The page follows
 - **Where each part lives:** the docs, the packages and the Rust crate. The reader and the desktop app point at their milestones until they ship.
 - **The snapshot's date,** so a visitor can tell how fresh the numbers are.
 
-The dashboard reads one committed file, `apps/site/src/data/progress.json`. `cargo xtask progress` writes it from the todo files (with the board's own parser), the roadmap's milestone table, `git log` on `main` and the open pull requests. The build reads only that file, so it never needs the network or GitHub, and a preview shows exactly what production will.
+The dashboard reads one committed file, `apps/site/src/data/progress.json`. `cargo xtask progress` writes it from the todo files (with the board's own parser), the roadmap's milestone table, `git log` on `main` and the open pull requests. The build reads only that file, so it never needs the network or GitHub.
 
-Someone refreshes the dashboard from time to time: they run the command and merge the new file as an exempt PR, like a change to the todo board ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board) gains that case). A scheduled workflow could open that PR every week, but it needs the owner to commit a workflow file, so it stays optional.
+The production deploy refreshes the dashboard. It runs the command before every build, on each push to `main` and every three hours, so the live site follows the board and the open pull requests without a commit. The committed file is what previews and local builds show; anyone can refresh it in an exempt PR, like a change to the todo board ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board) lists that case).
 
 **The design** (chosen by the owner on 2026-11-05 from three samples): the whole page is one document page resting on the reader's paper ground, as a PDF sits in the reader, with Newsreader headings and Source Sans 3 text. The milestones run down a vertical timeline, the dashboard follows, and the packages sit in a table. The opening section carries the code panel. The site header stays §7.39's, the same on both sites.
 
@@ -91,7 +91,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 - **Plans and todos name the old hosts.** ADR 0011, the roadmap, the web reader plan, C4c and C4d say the reader is at `laminapdf.com` or `staging.laminapdf.com`, and C4c's privacy tests and C4d's deploy config would carry those names into code. W1a changes every one of them before C4b's app exists. Done todos keep their history.
 - **Two Astro sites drift apart.** Both sites share the tokens, the fonts and W1d's header. Anything else they both need moves to a shared workspace package the first time a second copy would appear, per the [maintainability guideline](../guidelines/maintainability.md).
 - **Home page copy makes promises.** "No upload" and "works offline" are claims a reader can test. Each claim on the page ties to the ADR rule or test behind it, and the owner approves the wording: W1c's in its PR, and C7c's privacy promises when it adds them with `/privacy`.
-- **The dashboard goes stale.** A snapshot nobody refreshes tells visitors the project has stopped. The page always shows the snapshot's date, and a refresh is one command and one exempt PR.
+- **The dashboard goes stale.** A snapshot nobody refreshes tells visitors the project has stopped. The page always shows the snapshot's date, and each production deploy writes a fresh one, every three hours at the latest while the runners are up.
 
 ## 6. Todos
 
