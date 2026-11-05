@@ -229,7 +229,8 @@ describe("BottomSheet", () => {
     await pause(0);
     grabber().focus();
     await userEvent.keyboard("{Enter}");
-    expect(sheet()?.dataset.detent).toBe("medium");
+    // The press commits on a busy runner a little after the key event returns.
+    await expect.poll(() => sheet()?.dataset.detent).toBe("medium");
   });
 
   it("is a modal dialog: labelled, described, the page inert, Escape closes and focus goes back", async () => {

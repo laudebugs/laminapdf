@@ -53,6 +53,12 @@ for (const theme of ["light", "dark"] as const) {
   describe(`the site header, ${theme}`, () => {
     it("tabs through the wordmark, then the links in §7.39's order, then the site's tools", async () => {
       mount(HEADERS.docs, theme);
+      // Start from a control just before the header: from nowhere, Firefox's first Tab can stop on
+      // the document itself, which would shift every step after it.
+      const start = document.createElement("button");
+      start.textContent = "Start";
+      document.body.prepend(start);
+      start.focus();
       const order: string[] = [];
       for (let i = 0; i < 5; i += 1) {
         await tabForward();
