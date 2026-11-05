@@ -13,10 +13,11 @@
 //!
 //! With `--version-only` it also says whether the release lane may skip its own run of the nightly
 //! lane (ADR 0017 §6): `nightly=skip` in `$GITHUB_OUTPUT` when the release commit differs from the
-//! commit the nightly passed on only by a version bump, else `nightly=run`. A bump writes the
-//! changelogs, `.changeset/` and `packages/sdk/src/version.ts` freely; in a `package.json`,
-//! `Cargo.toml` or `Cargo.lock` every changed line names the old or the new version. The daily
-//! release's commits (todo P6) are always such a bump.
+//! commit the nightly passed on only by a version bump, else `nightly=run`. A bump may write the
+//! changelogs, the changesets it consumes and the pre-mode files freely; in a `package.json`,
+//! `Cargo.toml`, `Cargo.lock` or `packages/sdk/src/version.ts`, each changed line's only change
+//! is the old version swapped for the new. The daily release's commits (todo P6) are always such
+//! a bump.
 
 use std::path::Path;
 use std::process::Command;
