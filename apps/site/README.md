@@ -45,7 +45,7 @@ The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12
 
 - **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
 - **Code and packages** come from the files CI tests (`src/data/sources.ts`): the first PDF from `packages/sdk/examples/hello.ts` and `crates/laminapdf/examples/hello.rs`, the command-line examples that succeed from the CLI's README, and the install lines, the note on alpha releases and the package table from the docs site's install page.
-- **Words** are in `src/data/copy.ts`, each claim marked until the owner approves it; the areas' plain names are in `src/data/rounds.ts`.
+- **Words** are in `src/data/copy.ts`, which the owner approved; a change to a claim goes back to the owner; the areas' plain names are in `src/data/rounds.ts`.
 
 `test/home.test.ts` renders the page from a fixture snapshot with Astro's container API and finds each count, title and the date; `test/sources.test.ts` holds the code panel and the package table to their files. The code panel's tabs come from `src/scripts/tabs.ts`, a file because the CSP allows no inline script; without it, each pane shows under its own heading.
 

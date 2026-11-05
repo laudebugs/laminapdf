@@ -372,7 +372,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 4. **The packages.** A sentence on the two packages with the install page's note on alpha releases, the two install lines, a table of every published package (from the docs site's install page) at the current version, then a sentence on the command-line tool, not released yet.
 5. **Where each part lives.** Links to the docs, the packages and the Rust crate; the reader and the desktop app link to their milestones, with each one's state.
 
-**Content and controls.** Every number and list comes from `apps/site/src/data/progress.json` ([W1e](../../todos/done/W1e-progress-snapshot.md)); the words are in `apps/site/src/data/copy.ts`, each claim `[OWNER TO APPROVE]` until the owner approves it. Areas take plain names ("Core library", "Web reader") from `rounds.ts`. Todo titles show as the board writes them, with their code spans.
+**Content and controls.** Every number and list comes from `apps/site/src/data/progress.json` ([W1e](../../todos/done/W1e-progress-snapshot.md)); the words are in `apps/site/src/data/copy.ts`, approved by the owner on 2026-11-05. Areas take plain names ("Core library", "Web reader") from `rounds.ts`. Todo titles show as the board writes them, with their code spans.
 
 **States.** One static page, rebuilt when the snapshot changes. An empty list (nothing in progress, nothing ready, nothing merged) shows a sentence instead.
 
@@ -384,7 +384,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 **Artboards.** `H12-home.dc.html`, `H12-home-phone.dc.html` (the chosen design), and the samples it was chosen from: `H12-sample-a.dc.html`, `H12-sample-a-phone.dc.html`, `H12-sample-c.dc.html`, in [`website-home/`](website-home/project/canvas.json).
 
-**Todos.** [W1c](../../todos/ongoing/W1c-home-page.md).
+**Todos.** [W1c](../../todos/done/W1c-home-page.md).
 
 ## New components
 

@@ -162,7 +162,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | H09 | Benchmark page | W | [U5b](../../todos/ready/U5b-reader-benchmark.md) |
 | H10 | Telemetry opt-in and what we collect | W, D | [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | H11 | Upgrade prompt before work starts (never after) | W | [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) |
-| H12 | Website home, for now the roadmap: what Lamina PDF is, a first PDF in code, the milestones, the dashboard, the packages | W, M | [W1c](../../todos/ongoing/W1c-home-page.md) |
+| H12 | Website home, for now the roadmap: what Lamina PDF is, a first PDF in code, the milestones, the dashboard, the packages | W, M | [W1c](../../todos/done/W1c-home-page.md) |
 
 ## Canvases
 
