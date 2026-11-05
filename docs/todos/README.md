@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 185 ready · 108 done** (293 total).
+**0 ongoing · 185 ready · 109 done** (294 total).
 
 ## Can start now
 
@@ -25,7 +25,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6b](ready/U6b-self-hosted-fonts.md): `@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3
-- [U6d](ready/U6d-core-components.md): `@laminapdf/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows
+- [U6h](ready/U6h-display-components.md): `@laminapdf/ui` display components: badges, notices, progress, empty state, status items, thumbnail, outline row, shortcut chip
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
@@ -172,10 +172,11 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | U6a | [`@laminapdf/tokens`: Paper design tokens, themes, page appearances and a contrast test](done/U6a-paper-tokens.md) | done | [U1a](done/U1a-adr-0024-app-shell-ux.md) |
 | U6b | [`@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3](ready/U6b-self-hosted-fonts.md) | ready | [U6a](done/U6a-paper-tokens.md) |
 | U6c | [`@laminapdf/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint](done/U6c-icon-set.md) | done | [U6a](done/U6a-paper-tokens.md) |
-| U6d | [`@laminapdf/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows](ready/U6d-core-components.md) | ready | [U6a](done/U6a-paper-tokens.md), [U6c](done/U6c-icon-set.md) |
-| U6e | [`@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order](ready/U6e-overlays-and-sheets.md) | ready | [U6d](ready/U6d-core-components.md) |
+| U6d | [`@laminapdf/ui` core controls: buttons, toggles, mode switcher, tabs, form controls, swatches, appearance chips](done/U6d-core-components.md) | done | [U6a](done/U6a-paper-tokens.md), [U6c](done/U6c-icon-set.md) |
+| U6e | [`@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order](ready/U6e-overlays-and-sheets.md) | ready | [U6d](done/U6d-core-components.md), [U6h](ready/U6h-display-components.md) |
 | U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](ready/U6b-self-hosted-fonts.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | U6g | [The docs site in the Paper design language (interim, before `@lamina/tokens` and `@lamina/fonts`)](done/U6g-docs-site-paper.md) | done | [B7a](done/B7a-docs-site.md) |
+| U6h | [`@laminapdf/ui` display components: badges, notices, progress, empty state, status items, thumbnail, outline row, shortcut chip](ready/U6h-display-components.md) | ready | [U6d](done/U6d-core-components.md) |
 
 ## Hosted service
 

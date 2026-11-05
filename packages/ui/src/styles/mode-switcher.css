@@ -1,0 +1,40 @@
+/* The mode switcher (§7.2): a stable 40 px row; the current mode bold over a 2 px accent line. */
+@layer paper.components {
+  .paper-mode-switcher {
+    display: flex;
+    align-items: stretch;
+    gap: var(--paper-space-22);
+    block-size: max(var(--paper-top-bar-height), var(--ui-target));
+  }
+
+  .paper-mode {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    border-block-end: var(--paper-selected-underline-width) solid transparent;
+    background: transparent;
+    color: var(--paper-muted);
+    font: var(--paper-type-body);
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  .paper-mode[data-hovered] {
+    color: var(--paper-text);
+  }
+
+  .paper-mode[data-selected] {
+    color: var(--paper-text);
+    font-weight: 600;
+    border-block-end-color: var(--paper-accent);
+  }
+
+  @media (forced-colors: active) {
+    .paper-mode[data-selected] {
+      border-block-end-color: Highlight;
+    }
+  }
+}

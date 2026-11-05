@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](./U6a-paper-tokens.md) |
-| Blocks | [U6d](../ready/U6d-core-components.md) |
+| Blocks | [U6d](./U6d-core-components.md) |
 | ADRs | Follows 0024 (component rules; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)), 0009 (React chrome around a framework-free viewer; from [C2a](../done/C2a-render-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence of any dev dependency) |
 | Branch | `feat/u6c-icon-set` |
 | PR title | `feat(icons): add @laminapdf/icons with the paper stroke icon set and grid lint` |
@@ -33,16 +33,16 @@ Make the design language's icons a typed, tested package so every screen uses th
 - **Decision: a separate package `packages/icons` (`@laminapdf/icons`, private)**, not a module of `@laminapdf/ui`, because the framework-free `@laminapdf/viewer` and non-React surfaces (desktop native menus' template images, the docs site) need the same glyphs without React. It has no runtime dependencies.
 - `packages/icons/svg/<kebab-name>.svg`: one file per icon, exactly the design language's markup wrapped in the standard `<svg>` element.
 - Generator `scripts/generate.ts` → committed `src/generated/icons.ts` (`@generated` header): `ICONS` (`as const` record of name → inner markup and optional `strokeWidth` override), `IconName` literal union, and `iconSvg(name, { size, title? })` returning a complete SVG string; `--check` mode for CI.
-- A React subpath `@laminapdf/icons/react` (React 19 as an *optional* peer dependency via `catalog:`, so the root entry stays framework-free): `src/react/icon.tsx` with `<Icon name size />` (decorative: `aria-hidden="true"`, `focusable="false"`) and `<Icon name size label="…" />` (labelled: `role="img"` + `aria-label`, used only where the icon stands alone and is not inside a labelled button); sizes typed as `14 | 15 | 16 | 18 | 20 | 22 | 32` (32 for empty states). `@laminapdf/ui` ([U6d](../ready/U6d-core-components.md)) re-exports it.
-- Accessibility helpers: `iconButtonProps(label)` or a lint rule/test that every `IconButton` has an accessible name (the button component itself is [U6d](../ready/U6d-core-components.md)'s; this todo provides the helper and the test utility).
+- A React subpath `@laminapdf/icons/react` (React 19 as an *optional* peer dependency via `catalog:`, so the root entry stays framework-free): `src/react/icon.tsx` with `<Icon name size />` (decorative: `aria-hidden="true"`, `focusable="false"`) and `<Icon name size label="…" />` (labelled: `role="img"` + `aria-label`, used only where the icon stands alone and is not inside a labelled button); sizes typed as `14 | 15 | 16 | 18 | 20 | 22 | 32` (32 for empty states). `@laminapdf/ui` ([U6d](../done/U6d-core-components.md)) re-exports it.
+- Accessibility helpers: `iconButtonProps(label)` or a lint rule/test that every `IconButton` has an accessible name (the button component itself is [U6d](../done/U6d-core-components.md)'s; this todo provides the helper and the test utility).
 - **Icon lint** (`src/lint.test.ts`, also runnable as `pnpm --filter @laminapdf/icons lint:icons`): parses every SVG and checks viewBox, root attributes, `stroke-width` 1.5 (or the declared override), no `fill` other than `none` (circles drawn as dots such as More's `r="0.9"` are allowed only through an explicit `dots` allowance), no `style`, `class`, `transform`, `id`, `stroke-linecap`/`stroke-linejoin` other than defaults, only `path`, `circle`, `rect`, `line`, `polyline`, `polygon`, `ellipse` elements, and a bounding box inside the 24 grid with ≥ 2 units of margin (warn when outside the 3.5–4.5 unit target, fail below 2).
 - **Icon gallery page** (a static page in `packages/icons/gallery/`, or the first page of [U6f](../ready/U6f-gallery-and-visual-tests.md)'s gallery if that lands first): every icon at 14, 16, 18, 20, 22 px in `text-3`, `accent` and dark-theme colours, with its name and the label convention.
-- **The icons each area needs**, in `packages/icons/README.md` (derived from the design language, [screens.md](../../design/paper/screens.md) and the area documents present at the time), marking which exist, which this PR draws, and which the area's own todo draws. This PR draws the reader v0.1 set and the icons [U6d](../ready/U6d-core-components.md) and [U6e](../ready/U6e-overlays-and-sheets.md) need (see Tasks).
+- **The icons each area needs**, in `packages/icons/README.md` (derived from the design language, [screens.md](../../design/paper/screens.md) and the area documents present at the time), marking which exist, which this PR draws, and which the area's own todo draws. This PR draws the reader v0.1 set and the icons [U6d](../done/U6d-core-components.md) and [U6e](../ready/U6e-overlays-and-sheets.md) need (see Tasks).
 
 **Out of scope** (and which todo covers it)
 
 - Icons for editor modes (Comment, Organise, Fill & Sign, Edit, Sign, Redact …) → the todo that builds each screen draws its icons by these rules and adds them to the design language table and this package (the README list says which).
-- Icon buttons, toggles and their states → [U6d](../ready/U6d-core-components.md).
+- Icon buttons, toggles and their states → [U6d](../done/U6d-core-components.md).
 - Brand mark and app icon → [Paper design plan §8 open question 2](../../plans/paper-design.md#8-open-questions) (not a stroke icon).
 - Desktop native menu template images → [D4b](../ready/D4b-native-menus.md) (may use `iconSvg`).
 - Screenshot tests of the icon gallery → [U6f](../ready/U6f-gallery-and-visual-tests.md).

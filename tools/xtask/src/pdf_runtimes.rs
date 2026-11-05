@@ -187,7 +187,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// built, then `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` (over the `wasm` job's
 /// `lamina_pdf_render_hayro.wasm`), each with the native render goldens, `@laminapdf/viewer`'s document worker and RPC
 /// (C3a, built first), `@laminapdf/tokens`' high-contrast theme, whose system colours only a browser resolves
-/// (U6a), and `@laminapdf/icons`' React `<Icon>` and gallery (U6c). They record no measurements.
+/// (U6a), `@laminapdf/icons`' React `<Icon>` and gallery (U6c), and `@laminapdf/ui`'s components (U6d). They record
+/// no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
     // The viewer's document worker and RPC (C3a), over the built package.
@@ -196,12 +197,26 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "pnpm",
         &["--filter", "@laminapdf/viewer", "run", "build:wasm"],
     )?;
+    // `@laminapdf/ui` imports the tokens and icons packages through their built `dist/` entries.
+    crate::run(
+        &ws.root,
+        "pnpm",
+        &[
+            "--filter",
+            "@laminapdf/tokens",
+            "--filter",
+            "@laminapdf/icons",
+            "run",
+            "build",
+        ],
+    )?;
     for package in [
         "@laminapdf/render-pdfium",
         "@laminapdf/render-hayro",
         "@laminapdf/viewer",
         "@laminapdf/tokens",
         "@laminapdf/icons",
+        "@laminapdf/ui",
     ] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));

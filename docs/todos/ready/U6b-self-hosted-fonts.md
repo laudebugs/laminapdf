@@ -49,7 +49,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - Fonts used to *render or generate PDFs* (Standard 14 substitutes, embedding) → library rounds ([B4c](../done/B4c-standard-14-and-simple-fonts.md)); this package is UI chrome only.
 - The CSP `font-src 'self'` header and the network indicator itself → [C4c](./C4c-remote-files-encryption-privacy.md), [U4a](./U4a-network-indicator-and-privacy-proof.md); this todo adds a test that the gallery makes no third-party request.
 - The generated third-party notices file shipped in apps → at first release ([ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release)); this todo commits the licence texts and a README table it can be generated from.
-- Using the fonts in components → [U6d](./U6d-core-components.md); screenshot stability with them → [U6f](./U6f-gallery-and-visual-tests.md).
+- Using the fonts in components → [U6d](../done/U6d-core-components.md); screenshot stability with them → [U6f](./U6f-gallery-and-visual-tests.md).
 - Desktop app wiring → [D2a](./D2a-adr-0008-and-desktop-scaffold.md) imports `@laminapdf/fonts/fonts.css` like the web app.
 
 ## Tasks
