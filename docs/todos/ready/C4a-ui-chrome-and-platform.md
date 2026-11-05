@@ -50,7 +50,7 @@ Build the reusable reader UI both shells share: `@laminapdf/ui`, a React 19 (Rea
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Add the shell and platform modules to `packages/ui` as created by U6d (no new scaffold; extend its `exports`).
-- [ ] Check licences of React, React Aria (or the chosen primitives) and icons (the Paper set in `@laminapdf/icons`, [U6c](./U6c-icon-set.md)); `cargo xtask npm-licenses` passes.
+- [ ] Check licences of React, React Aria (or the chosen primitives) and icons (the Paper set in `@laminapdf/icons`, [U6c](../ongoing/U6c-icon-set.md)); `cargo xtask npm-licenses` passes.
 - [ ] `src/platform/types.ts`: `Platform`, `Capabilities` exactly as ADR 0010; `src/platform/web.ts`: web implementation with feature detection (no UA sniffing); `src/platform/context.tsx`: `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
 - [ ] `src/state/reader-machine.ts`: a small typed state machine (hand-written or a tiny lib; justify) for the reader lifecycle and interaction mode (`select` only in v0.1); unit tests for every transition.
 - [ ] `src/hooks/use-viewer.ts`: `useViewerState(selector)` with `useSyncExternalStore`; no re-render on every scroll frame (selectors return stable primitives).
