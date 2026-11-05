@@ -36,7 +36,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- Tables, serialisers, the JSON Schema, façade, WASM and TypeScript: [L3b](./L3b-extract-tables-and-serialisers.md).
+- Tables, serialisers, the JSON Schema, façade, WASM and TypeScript: [L3b](../ongoing/L3b-extract-tables-and-serialisers.md).
 - Model plug-ins: [L3c](./L3c-model-plugins.md).
 
 ## Tasks
