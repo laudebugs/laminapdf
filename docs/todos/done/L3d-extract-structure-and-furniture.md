@@ -31,7 +31,7 @@
 
 - **Headings** from font-metric clusters: the body size covers the most characters; short blocks set larger, and bold at the body size, rank into up to six levels.
 - **List items** from bullets and numbering with a hanging indent; depth from the indent. A line starting with a marker starts a block, and a lone marker joins the text a tab to its right.
-- **Running headers, footers and page numbers** (ADR 0030 §4) and `Artifact` marked content (`artifact`): `laminapdf-text`'s runs carry whether they are in an artifact; `ExtractOptions::headers_footers` (`headersFooters` in TypeScript) turns removal off.
+- **Running headers, footers and page numbers** (ADR 0030 §4) and `Artifact` marked content (`artifact`): `laminapdf-text`'s runs carry whether they are in an artifact; `DropOptions::furniture` (`drop: { furniture }` in TypeScript) turns removal off.
 - Tests on files built with `laminapdf-build`: headings and lists, and a five-page file with running headers, footers, page numbers and artifacts.
 
 **Out of scope** (and which todo covers it)
@@ -51,7 +51,7 @@
 
 - [x] Headings, list items (with depth) and paragraphs match the expected kinds on the heading and list file
 - [x] Running headers, footers and page numbers on a five-page file are absent from `blocks` and listed in `dropped` with their reasons; artifact-marked text is dropped as `artifact`
-- [x] With `headers_footers` off they stay in the blocks
+- [x] With `DropOptions::furniture` off they stay in the blocks
 
 ## Post-merge checks
 

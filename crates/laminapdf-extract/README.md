@@ -39,35 +39,35 @@ The rules refuse what isn't a grid of text: a page border, a form's separate fie
 1. **Runs.** `laminapdf-text` gives the page's runs of glyphs with their boxes. Extraction leaves out any run drawn invisibly (text rendering mode 3 or 7), wholly off the page or below 1 pt, and any run the file marks as an `Artifact`: page furniture such as headers, page numbers and decoration. Each such run gets a `dropped` entry with its reason, its box and a character count, never its text. Ask for the hidden runs themselves with `DropOptions::keep_spans`.
 2. **Lines.** Runs whose baselines lie within half a font size join one line, in visual order, right to left when most of the line's letters are. A gap wider than one font size between two runs on one baseline is a column gutter, so it splits them into two lines.
    A list's bullet or number set a tab away from its text stays on the text's line.
-3. **Blocks.** A line joins the block above when it follows at most 1.6 font sizes lower, at a size within 20%, overlapping the block's last line by at least 30% of the narrower of the two. A line that starts with a list marker starts a block.
+3. **Blocks.** A line joins the block above when it follows at most 1.6 font sizes lower, at a size within 20%, overlapping the block's last line by at least 30% of the narrower of the two. A line that starts with a bullet starts a block, and so does one that starts with a dash or a number when the block above is a list item or ends in a colon.
 4. **Order.** XY-Cut++ orders the blocks. Blocks that span two columns (titles, abstracts, full-width figures) split the page into bands. Each band is cut at its widest gaps, columns first, so a two-column page reads column by column; a grid of one-line blocks (a table) reads row by row; right-to-left pages take their columns from the right. `ReadingOrder::ContentStream` keeps the order the page draws instead.
 5. **Text.** A block's lines are joined with spaces. A word hyphenated before a lowercase line is joined (`extrac-` / `tion`), while a hyphen before anything else stays (`well-` / `Known`). Latin ligatures are spelled out unless `/ActualText` gave the text.
 
 Once every page is read, three rules look across them:
 
-- **Running headers, footers and page numbers.** A block wholly in the top or bottom 10% of its page is a running header or footer when the same text, digits aside, sits at about the same height on at least three pages. A block there that holds only a page number (`12`, `xiv`, `- 12 -`, `Page 3 of 40`) is a page number. Each moves to `dropped` with its reason. `ExtractOptions::with_headers_footers(false)` keeps them, and artifact-marked text, in the blocks.
-- **Headings.** The body size is the size that sets the most characters. A block of at most three lines and 200 characters set at least 10% larger is a heading, and the larger its size, the higher its level; sizes within 10% of each other share a level. A bold block of one or two lines at the body size, not ending like a sentence, is a heading one level below the smallest larger size. There are at most six levels.
-- **List items.** A block that starts with a bullet (`•`, `◦`, `▪`, `–`, `*`, `●`, `○`, `■`) or a number (`1.`, `1)`, `(1)`, `a.`, `(a)`, `iv.`) followed by text is a list item when its later lines hang to the right of the marker. Its text leaves the marker out, which the block's `marker` holds. Consecutive items each further right than the one before go one level deeper; an item further left, or one above the last (the next column), closes the deeper levels.
+- **Running headers, footers and page numbers.** A block wholly in the top or bottom 10% of its page is a running header or footer when the same text, digits aside, sits at about the same height on at least three pages. A block there that holds only a page number (`12`, `xiv`, `- 12 -`, `Page 3 of 40`) is a page number; a bare number from 1900 to 2099 is taken for a year and kept. Each moves to `dropped` with its reason. Turning `DropOptions::furniture` off keeps them, and artifact-marked text, in the blocks.
+- **Headings.** The body size is the size that sets the most characters. A block of at most three lines and 200 characters set at least 10% larger is a heading, and the larger its size, the higher its level; sizes within 10% of each other share a level. A bold block of one or two lines at the body size, not ending like a sentence or starting with a list marker, is a heading one level below the smallest larger size. There are at most six levels, and a block that starts with a bullet is never a heading.
+- **List items.** A block that starts with a bullet (`•`, `◦`, `▪`, `–`, `*`, `●`, `○`, `■`) or a number (`1.`, `1)`, `(1)`, `a.`, `(a)`, `iv.`) followed by text is a list item when its later lines hang to the right of the marker. A one-line block after a dash or an asterisk is an item only beside another item, so a lone attribution (`– Mark Twain`) stays a paragraph. The block's text leaves the marker out, and its `marker` holds it; plain text writes it back. Consecutive items each further right than the one before go one level deeper; an item further left, or one above the last (the next column), closes the deeper levels.
 
 On the reading-order corpus in `fixtures/reading-order/`, every file reads in order, including the copies drawn in reverse: one, two and three columns, an academic page, a sidebar, a table, a rotated page, and Arabic, Hebrew and Chinese text.
 
 ## How it scores on a public benchmark
 
-On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
+On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests, three in five of the header and footer tests, and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
 
 | Subset | What it measures | Pages | Tests | Ruled tables (the default) | Also tables without lines |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `multi_column` | one passage before another, on multi-column pages | 231 | 884 | 52.8 % | 15.0 % |
+| `multi_column` | one passage before another, on multi-column pages | 231 | 884 | 52.1 % | 14.8 % |
 | `table_tests` | a table cell's neighbours and headings | 188 | 1,022 | 24.1 % | 47.1 % |
-| `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 37.6 % | 37.2 % |
-| baseline | the page gave text (one test per page, added by the benchmark) | | 676 | 85.8 % | 85.8 % |
-| **Mean, as the benchmark reports it** | | | | **50.1 %** | **46.3 %** |
-| Mean of the three subsets | | | | 38.2 % | 33.1 % |
+| `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 59.5 % | 59.3 % |
+| baseline | the page gave text (one test per page, added by the benchmark) | | 676 | 85.7 % | 85.7 % |
+| **Mean, as the benchmark reports it** | | | | **55.3 %** | **51.7 %** |
+| Mean of the three subsets | | | | 45.2 % | 40.4 % |
 
 Three things explain most of the failures:
 
 - **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR; they stay in these subsets and count against the score, as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
-- **No headers, footers or structure yet.** Running headers and page numbers stay in the text until the extractor learns to recognise them, so most of the third subset fails.
+- **Headers on one page.** Each of the benchmark's files is a single page, so the rule for running headers, which needs three pages, never applies. Page numbers and artifact-marked text are left out, which lifts the third subset from 37.6 % to 59.5 %; a header or footer that is neither stays in the text.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 
 The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
@@ -75,7 +75,7 @@ The benchmark's published table scores OCR and vision models on all seven subset
 ## What it can't do yet
 
 - **Structure trees.** It ignores structure trees, so a tagged file's headings, lists and tables come from the layout like any other file's, and `structSource` is never `tagged`. Reading order from the tree and its tagged elements come in a later release, with the flags for clipped and white-on-white text, which stays in the text until then.
-- **Headings and lists the rules can't see.** A heading set at the body size in a regular face reads as a paragraph, and a numbered heading in bold at the body size is a heading, not a list item. Uppercase letters (`A.`) aren't list markers, so a line that starts with an initial doesn't start a list. A header that changes on each page, other than its digits, stays in the text.
+- **Headings and lists the rules can't see.** A heading set at the body size in a regular face reads as a paragraph, and a numbered heading in bold at the body size is a heading, not a list item. Uppercase letters (`A.`) aren't list markers, so a line that starts with an initial doesn't start a list, and uppercase Roman numerals aren't page numbers. A header that changes on each page, other than its digits, stays in the text.
 - **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so; optional model plug-ins, planned for a later release, are the answer for those pages.
 - **Vertical writing.** Each vertical run is a block of its own, and a page that mixes vertical and horizontal writing raises `extract-reading-order-ambiguous`.
 - **Tables without lines or with structure.** Unruled tables need `TableMode::LatticeAndStream`, and the structure tree's `Table` elements aren't read yet.

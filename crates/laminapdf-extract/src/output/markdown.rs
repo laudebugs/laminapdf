@@ -33,6 +33,7 @@ impl MarkdownOptions {
 pub(super) fn render(extraction: &Extraction, options: MarkdownOptions) -> Rendered {
     let mut w = Writer::default();
     let mut page = None;
+    let mut list = ListIndent::default();
     for (i, block) in extraction.blocks.iter().enumerate() {
         if i > 0 {
             w.push("\n\n");
@@ -46,20 +47,41 @@ pub(super) fn render(extraction: &Extraction, options: MarkdownOptions) -> Rende
             w.push(&format!("<!-- page {number} -->\n\n"));
             page = Some(block.page);
         }
-        w.block(&block_markdown(block));
+        w.block(&block_markdown(block, &mut list));
     }
     w.finish()
 }
 
-fn block_markdown(block: &Block) -> String {
+/// Where each open level of a list puts its text, in spaces: `CommonMark` nests an item under
+/// another only when it is indented to the other's text (3 spaces under `1. `, 2 under `- `).
+#[derive(Debug, Default)]
+struct ListIndent {
+    columns: Vec<usize>,
+}
+
+impl ListIndent {
+    /// The indent of an item at `depth` whose marker is written as `marker`.
+    fn item(&mut self, depth: usize, marker: &str) -> usize {
+        self.columns.truncate(depth);
+        let indent = self.columns.last().copied().unwrap_or(0);
+        self.columns.push(indent + marker.chars().count() + 1);
+        indent
+    }
+}
+
+fn block_markdown(block: &Block, list: &mut ListIndent) -> String {
+    if !matches!(block.kind, BlockKind::ListItem { .. }) {
+        list.columns.clear();
+    }
     match &block.kind {
         BlockKind::Heading { level } => {
             let level = usize::from((*level).clamp(1, 6));
             format!("{} {}", "#".repeat(level), escape_inline(&block.text))
         }
         BlockKind::ListItem { marker, depth } => {
-            let indent = "  ".repeat(usize::from(*depth));
-            format!("{indent}{} {}", list_marker(marker), escape_inline(&block.text))
+            let marker = list_marker(marker);
+            let indent = " ".repeat(list.item(usize::from(*depth), marker));
+            format!("{indent}{marker} {}", escape_inline(&block.text))
         }
         BlockKind::Table { rows, cols, .. } => table(&block.cells, *rows, *cols),
         _ => escape_block(&block.text),

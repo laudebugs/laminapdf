@@ -4,7 +4,7 @@
 #![allow(clippy::unwrap_used, clippy::indexing_slicing, reason = "test code")]
 
 use laminapdf_build::{ArtifactKind, BuildOptions, Builder, PageSize, Standard14};
-use laminapdf_extract::{BlockKind, DropReason, ExtractOptions, Extraction, extract};
+use laminapdf_extract::{BlockKind, DropReason, ExtractOptions, Extraction, MarkdownOptions, extract};
 use laminapdf_model::{Document, OpenOptions, PointPt, Pt};
 use laminapdf_save::{Save as _, SaveOptions};
 use laminapdf_syntax::CancelToken;
@@ -97,6 +97,28 @@ fn headings_list_items_and_paragraphs_get_their_kinds() {
     assert_eq!(ids.last(), Some(&"p0-b9"));
 }
 
+#[test]
+fn list_items_keep_their_markers_in_text_and_nest_in_markdown() {
+    let page = vec![
+        (BODY, 72.0, 80.0, 11.0, false, false),
+        ("1. Prepare the soil", 72.0, 120.0, 11.0, false, false),
+        ("– Dig it over.", 86.0, 135.0, 11.0, false, false),
+        ("– Rake it level.", 86.0, 150.0, 11.0, false, false),
+        ("2. Sow the seed", 72.0, 165.0, 11.0, false, false),
+        // Prose that starts with a dash on its own is a paragraph.
+        ("– Mark Twain", 72.0, 220.0, 11.0, false, false),
+    ];
+    let out = run(&build(&[page]), &ExtractOptions::new());
+    let markdown = out.to_markdown(&MarkdownOptions::new()).text;
+    assert!(
+        markdown.contains("1. Prepare the soil\n\n   - Dig it over.\n\n   - Rake it level.\n\n2. Sow the seed"),
+        "{markdown}"
+    );
+    assert!(markdown.trim_end().ends_with("\n\n– Mark Twain"), "{markdown}");
+    let text = out.to_text().text;
+    assert!(text.contains("1. Prepare the soil\n\n– Dig it over."), "{text}");
+}
+
 /// Five pages: a running header with the chapter number, a footer, a page number and a
 /// pagination artifact, around one paragraph.
 fn five_pages() -> Document {
@@ -159,7 +181,9 @@ fn running_headers_footers_page_numbers_and_artifacts_move_to_dropped() {
 
 #[test]
 fn turning_furniture_off_keeps_it_in_the_blocks() {
-    let out = run(&five_pages(), &ExtractOptions::new().with_headers_footers(false));
+    let mut options = ExtractOptions::new();
+    options.drop.furniture = false;
+    let out = run(&five_pages(), &options);
     assert_eq!(out.dropped.len(), 0);
     let first: Vec<&str> = out
         .blocks

@@ -7,7 +7,7 @@
 use laminapdf_model::RectPt;
 
 use crate::lines::Line;
-use crate::lists::split_marker;
+use crate::lists::{Marker, split_marker};
 
 /// A line follows the one above in the same block when its baseline is at most this many
 /// sizes lower (a line pitch is about 1.2 sizes; paragraph spacing pushes past this).
@@ -34,9 +34,20 @@ fn overlap(a: &RectPt, b: &RectPt) -> f64 {
     if narrower <= 0.0 { 0.0 } else { shared / narrower }
 }
 
-/// Whether `next` continues the block whose last line is `last`. A line starting with a list
-/// marker starts a block: the next item of a list.
-fn continues(last: &Line, next: &Line) -> bool {
+/// Whether a line that starts with a list marker starts a block of its own (the next item of a
+/// list) rather than continuing the block whose first line is `first` and last `last`. A wrapped
+/// line of prose can start with `(a)` or a dash too, so only a bullet prose never uses, a block
+/// that is itself an item, or a line ending in a colon before it starts a list.
+fn starts_item(first: &Line, last: &Line, next: &Line) -> bool {
+    match split_marker(&next.text) {
+        Some((_, Marker::Bullet, _)) => true,
+        Some(_) => split_marker(&first.text).is_some() || last.text.trim_end().ends_with(':'),
+        None => false,
+    }
+}
+
+/// Whether `next` continues the block whose first line is `first` and last `last`.
+fn continues(first: &Line, last: &Line, next: &Line) -> bool {
     let size = last.size.get().max(next.size.get());
     let pitch = next.baseline.get() - last.baseline.get();
     let similar = (last.size.get() - next.size.get()).abs() <= SIZE_CHANGE * size;
@@ -44,7 +55,7 @@ fn continues(last: &Line, next: &Line) -> bool {
         && pitch <= PITCH * size
         && similar
         && overlap(&last.bbox, &next.bbox) >= OVERLAP
-        && split_marker(&next.text).is_none()
+        && !starts_item(first, last, next)
 }
 
 /// The blocks of `lines` (top to bottom, as `lines::lines` returns them). A vertical line is a
@@ -58,8 +69,9 @@ pub(crate) fn blocks(lines: &[Line], vertical: impl Fn(&Line) -> bool) -> Vec<Dr
             drafts
                 .iter_mut()
                 .filter_map(|draft| {
+                    let first = draft.lines.first().and_then(|&i| lines.get(i))?;
                     let last = draft.lines.last().and_then(|&i| lines.get(i))?;
-                    continues(last, line).then(|| (line.baseline.get() - last.baseline.get(), draft))
+                    continues(first, last, line).then(|| (line.baseline.get() - last.baseline.get(), draft))
                 })
                 .min_by(|(a, _), (b, _)| a.total_cmp(b))
                 .map(|(_, draft)| draft)
@@ -145,6 +157,16 @@ mod tests {
         lines[1].text = "and more".to_owned();
         lines[2].text = "2. Second".to_owned();
         assert_eq!(groups(&lines), [vec![0, 1], vec![2]]);
+    }
+
+    #[test]
+    fn a_wrapped_line_of_prose_starting_with_a_counter_stays_in_its_paragraph() {
+        let mut lines = [line(50.0, 100.0, 400.0, 10.0), line(50.0, 112.0, 400.0, 10.0)];
+        lines[0].text = "subject to paragraph".to_owned();
+        lines[1].text = "(a) of section 3".to_owned();
+        assert_eq!(groups(&lines), [vec![0, 1]]);
+        lines[0].text = "the steps are:".to_owned();
+        assert_eq!(groups(&lines), [vec![0], vec![1]]);
     }
 
     #[test]

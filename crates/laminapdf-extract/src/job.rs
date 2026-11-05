@@ -88,7 +88,7 @@ pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -
 /// headings (whose body size is the document's) and list items are marked, and each page's
 /// blocks are numbered again.
 fn finish(out: &mut Extraction, options: &ExtractOptions) {
-    if options.headers_footers {
+    if options.drop.furniture {
         furniture::remove(out, options.drop.keep_spans);
     }
     headings::assign(&mut out.blocks);

@@ -63,13 +63,17 @@ pub(crate) enum SplitOnName {
     Pages,
 }
 
-/// What happens to hidden text.
+/// What happens to hidden text and page furniture.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DropInit {
-    /// Keep each hidden run's text in its `dropped` entry (JSON only), for auditing a file.
+    /// Keep each dropped run's text in its `dropped` entry (JSON only), for auditing a file.
     #[tsify(optional)]
     pub keep_spans: Option<bool>,
+    /// Drop running headers, footers, page numbers and artifact-marked text too, listing them
+    /// in `dropped`; on by default.
+    #[tsify(optional)]
+    pub furniture: Option<bool>,
 }
 
 /// How the Markdown is cut into chunks.
@@ -108,10 +112,6 @@ pub(crate) struct ExtractInit {
     /// Join words hyphenated across lines; on by default.
     #[tsify(optional)]
     pub dehyphenate: Option<bool>,
-    /// Leave running headers, footers, page numbers and artifact-marked text out of the
-    /// blocks (listed in `dropped` instead); on by default.
-    #[tsify(optional)]
-    pub headers_footers: Option<bool>,
     /// Write `<!-- page N -->` before each page's first block (Markdown, chunks and JSON).
     #[tsify(optional)]
     pub page_markers: Option<bool>,
@@ -148,8 +148,8 @@ impl ExtractInit {
         if let Some(on) = self.dehyphenate {
             options.dehyphenate = on;
         }
-        if let Some(on) = self.headers_footers {
-            options = options.with_headers_footers(on);
+        if let Some(on) = self.drop.as_ref().and_then(|d| d.furniture) {
+            options.drop.furniture = on;
         }
         options
     }

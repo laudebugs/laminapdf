@@ -19,10 +19,6 @@ pub struct ExtractOptions {
     pub limits: ExtractLimits,
     /// Which table detectors run.
     pub tables: TableMode,
-    /// Leave page furniture out of the blocks (ADR 0030 §4): text marked as an `Artifact`,
-    /// running headers and footers, and page numbers, each listed in `dropped` instead. On by
-    /// default; off keeps them as blocks.
-    pub headers_footers: bool,
 }
 
 impl Default for ExtractOptions {
@@ -34,7 +30,6 @@ impl Default for ExtractOptions {
             dehyphenate: true,
             limits: ExtractLimits::default(),
             tables: TableMode::default(),
-            headers_footers: true,
         }
     }
 }
@@ -58,14 +53,6 @@ impl ExtractOptions {
     #[must_use]
     pub const fn with_reading_order(mut self, order: ReadingOrder) -> Self {
         self.reading_order = order;
-        self
-    }
-
-    /// Whether page furniture (artifacts, running headers and footers, page numbers) is left
-    /// out of the blocks.
-    #[must_use]
-    pub const fn with_headers_footers(mut self, drop: bool) -> Self {
-        self.headers_footers = drop;
         self
     }
 
@@ -93,14 +80,27 @@ pub enum ReadingOrder {
     ContentStream,
 }
 
-/// What happens to hidden text ([ADR 0030] §4). Hidden text is never in a block's text.
+/// What happens to hidden text and page furniture ([ADR 0030] §4). Hidden text is never in a
+/// block's text.
 ///
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct DropOptions {
-    /// Keep each hidden run, text included, in its `dropped` entry: for auditing a file.
+    /// Keep each dropped run, text included, in its `dropped` entry: for auditing a file.
     pub keep_spans: bool,
+    /// Drop page furniture too: text marked as an `Artifact`, running headers and footers, and
+    /// page numbers, each listed in `dropped` instead of the blocks. On by default.
+    pub furniture: bool,
+}
+
+impl Default for DropOptions {
+    fn default() -> Self {
+        Self {
+            keep_spans: false,
+            furniture: true,
+        }
+    }
 }
 
 /// Bounds on the work per page: soft limits that leave work out with a warning (ADR 0003).

@@ -97,15 +97,22 @@ pub(crate) fn lines(pieces: &[Piece]) -> Vec<Line> {
 /// `group` (one baseline) split at gutters, each part a line.
 fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
     group.sort_by(|(_, a), (_, b)| by_value(a.bbox.x0.get(), b.bbox.x0.get()));
+    // A right-to-left list's marker is its rightmost piece.
+    let rtl = mostly_rtl(&group.iter().map(|(_, p)| p.text.as_str()).collect::<String>());
+    let count = group.len();
     let mut part: Vec<Entry<'_>> = Vec::new();
-    for entry in group {
+    for (index, entry) in group.into_iter().enumerate() {
         let next = entry.1;
         let gutter = part.last().is_some_and(|(_, prev)| {
             let size = prev.size.get().max(next.size.get());
             let gap = next.bbox.x0.get() - prev.bbox.x1.get();
             // A list's bullet or number is often set a tab away from its text.
-            let marker = part.len() == 1 && is_marker(prev.text.trim()) && gap <= MARKER_GAP * size;
-            gap > GUTTER * size && !marker
+            let lone = if rtl {
+                index + 1 == count && is_marker(next.text.trim())
+            } else {
+                part.len() == 1 && is_marker(prev.text.trim())
+            };
+            gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size)
         });
         if gutter {
             out.push(line(std::mem::take(&mut part)));
@@ -194,6 +201,14 @@ mod tests {
     fn lines_come_top_to_bottom() {
         let got = lines(&[piece("second", 20.0, 130.0, 50.0), piece("first", 20.0, 100.0, 50.0)]);
         assert_eq!(texts(&got), ["first", "second"]);
+    }
+
+    #[test]
+    fn a_lone_marker_a_tab_from_its_text_joins_its_line_either_way() {
+        let got = lines(&[piece("•", 20.0, 100.0, 6.0), piece("Apples", 44.0, 100.0, 40.0)]);
+        assert_eq!(texts(&got), ["• Apples"]);
+        let got = lines(&[piece("שלום עולם", 20.0, 100.0, 60.0), piece("•", 100.0, 100.0, 6.0)]);
+        assert_eq!(texts(&got), ["• שלום עולם"]);
     }
 
     #[test]

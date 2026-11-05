@@ -7,7 +7,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::lists::roman;
 use crate::model::{Block, BlockKind, DropReason, Dropped, Extraction};
+use crate::text_fix::visible_chars;
 
 /// The share of the page's height at its top and bottom where headers and footers sit.
 const MARGIN: f64 = 0.1;
@@ -19,10 +21,10 @@ const SAME_HEIGHT: f64 = 0.02;
 const MIN_PAGES: usize = 3;
 
 /// The longest number taken as a page number, in digits.
-const MAX_DIGITS: usize = 5;
+const MAX_DIGITS: usize = 4;
 
-/// The longest Roman numeral taken as a page number (`xxviii`).
-const MAX_ROMAN: usize = 7;
+/// The largest Roman numeral taken as a page number: front matter runs to tens of pages.
+const MAX_ROMAN: u32 = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Zone {
@@ -30,30 +32,37 @@ enum Zone {
     Bottom,
 }
 
-/// Whether `word` (lowercase) is a page number: digits, or a Roman numeral.
-fn number(word: &str) -> bool {
-    let digits = word.len() <= MAX_DIGITS && word.chars().all(|c| c.is_ascii_digit());
-    let roman = word.len() <= MAX_ROMAN && word.chars().all(|c| matches!(c, 'i' | 'v' | 'x' | 'l' | 'c'));
-    !word.is_empty() && (digits || roman)
+/// Whether `word` is a page number: up to four digits, or a lowercase Roman numeral up to `c`
+/// (uppercase ones are left out: `LI` and `CLI` are more often names than page numbers). A
+/// bare four-digit number from 1900 to 2099 reads as a year (a letterhead's, a report's) unless
+/// `labelled`.
+fn number(word: &str, labelled: bool) -> bool {
+    if !word.is_empty() && word.len() <= MAX_DIGITS && word.chars().all(|c| c.is_ascii_digit()) {
+        let year = word.len() == 4 && word.parse::<u32>().is_ok_and(|y| (1900..2100).contains(&y));
+        return labelled || !year;
+    }
+    roman(word).is_some_and(|n| n <= MAX_ROMAN)
 }
 
 /// Whether `text` holds only a page number: `12`, `xiv`, `- 12 -`, `[12]`, `Page 12`,
 /// `12 of 40`, `12 / 40`, `p. 4`.
 pub(crate) fn is_page_number(text: &str) -> bool {
-    let lower = text
-        .trim_matches(|c: char| c.is_whitespace() || matches!(c, '-' | '–' | '—' | '[' | ']' | '(' | ')'))
-        .to_lowercase();
-    let rest = ["page ", "p. ", "p "]
-        .iter()
-        .find_map(|prefix| lower.strip_prefix(prefix))
-        .unwrap_or(&lower);
-    let words: Vec<&str> = rest.split_whitespace().collect();
+    let trimmed =
+        text.trim_matches(|c: char| c.is_whitespace() || matches!(c, '-' | '–' | '—' | '[' | ']' | '(' | ')'));
+    let label = ["page ", "p. ", "p "].iter().find_map(|prefix| {
+        trimmed
+            .get(..prefix.len())
+            .filter(|head| head.eq_ignore_ascii_case(prefix))
+            .and_then(|_| trimmed.get(prefix.len()..))
+    });
+    let words: Vec<&str> = label.unwrap_or(trimmed).split_whitespace().collect();
+    let pair = |a: &str, b: &str| number(a, true) && number(b, true);
     match words.as_slice() {
         [n] => match n.split_once('/') {
-            Some((a, b)) => number(a) && number(b),
-            None => number(n),
+            Some((a, b)) => pair(a, b),
+            None => number(n, label.is_some()),
         },
-        [a, "of" | "/", b] => number(a) && number(b),
+        [a, of, b] if of.eq_ignore_ascii_case("of") || *of == "/" => pair(a, b),
         _ => false,
     }
 }
@@ -164,11 +173,7 @@ pub(crate) fn remove(out: &mut Extraction, keep_spans: bool) {
             reason,
             page: block.page,
             bbox: block.bbox,
-            chars: block
-                .spans
-                .iter()
-                .map(|s| s.text.chars().filter(|c| !c.is_whitespace()).count())
-                .sum(),
+            chars: block.spans.iter().map(|s| visible_chars(&s.text)).sum(),
             spans: if keep_spans { block.spans } else { Vec::new() },
         });
     }
@@ -186,7 +191,7 @@ mod tests {
         for t in [
             "12",
             "xiv",
-            "IV",
+            "Page 2024",
             "- 12 -",
             "– 3 –",
             "[7]",
@@ -202,7 +207,19 @@ mod tests {
 
     #[test]
     fn text_with_a_number_is_not_a_page_number() {
-        for t in ["Chapter 3", "12 apples", "2024 Annual Report", "Page", "123456", ""] {
+        for t in [
+            "Chapter 3",
+            "12 apples",
+            "2024 Annual Report",
+            "Page",
+            "12345",
+            "",
+            "2024",
+            "civil",
+            "Li",
+            "CLI",
+            "IV",
+        ] {
             assert!(!is_page_number(t), "{t}");
         }
     }

@@ -6,8 +6,10 @@
 
 use std::collections::BTreeMap;
 
+use crate::lists::{Marker, split_marker};
 use crate::model::{Block, BlockKind, Span};
 use crate::tables::is_bold;
+use crate::text_fix::visible_chars;
 
 /// A heading is set at least this many times the body size, or bold at the body size.
 const LARGER: f64 = 1.1;
@@ -36,15 +38,11 @@ fn half_points(size: f64) -> i64 {
     (size * 2.0).round() as i64
 }
 
-fn visible(text: &str) -> usize {
-    text.chars().filter(|c| !c.is_whitespace()).count()
-}
-
 /// The size, in half points, that covers the most of `spans`' characters (the larger on a tie).
 fn dominant<'a>(spans: impl IntoIterator<Item = &'a Span>) -> Option<(i64, usize)> {
     let mut chars: BTreeMap<i64, usize> = BTreeMap::new();
     for span in spans {
-        *chars.entry(half_points(span.size.get())).or_default() += visible(&span.text);
+        *chars.entry(half_points(span.size.get())).or_default() += visible_chars(&span.text);
     }
     chars
         .into_iter()
@@ -79,9 +77,14 @@ fn candidate(block: &Block, body: i64) -> Option<Candidate> {
     if block.kind != BlockKind::Paragraph || !block.text.chars().any(char::is_alphabetic) {
         return None;
     }
+    // A bullet starts a list item, whatever its size or weight.
+    let marker = split_marker(&block.text).map(|(_, kind, _)| kind);
+    if matches!(marker, Some(Marker::Bullet | Marker::WeakBullet)) {
+        return None;
+    }
     let (size, _) = dominant(&block.spans)?;
     let lines = line_count(&block.spans);
-    if lines > MAX_LINES || visible(&block.text) > MAX_CHARS {
+    if lines > MAX_LINES || visible_chars(&block.text) > MAX_CHARS {
         return None;
     }
     #[expect(clippy::cast_precision_loss, reason = "sizes in half points, far below 2^52")]
@@ -91,7 +94,8 @@ fn candidate(block: &Block, body: i64) -> Option<Candidate> {
     }
     let bold = block.spans.iter().all(|s| is_bold(&s.font));
     let sentence = block.text.trim_end().ends_with(['.', ',', ';']);
-    (bold && size == body && lines <= MAX_BOLD_LINES && !sentence).then_some(Candidate::Bold)
+    // At the body size a numbered line is a list item, not a heading.
+    (bold && size == body && lines <= MAX_BOLD_LINES && !sentence && marker.is_none()).then_some(Candidate::Bold)
 }
 
 /// Marks the headings among `blocks` (paragraphs only), with their levels.

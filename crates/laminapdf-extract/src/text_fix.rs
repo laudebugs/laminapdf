@@ -3,6 +3,11 @@
 //!
 //! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 
+/// How many characters of `text` aren't white space: what a dropped entry counts.
+pub(crate) fn visible_chars(text: &str) -> usize {
+    text.chars().filter(|c| !c.is_whitespace()).count()
+}
+
 /// The soft hyphen, U+00AD.
 const SOFT_HYPHEN: char = '\u{AD}';
 
