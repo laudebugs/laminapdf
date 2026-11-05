@@ -12,7 +12,7 @@
 | Branch | `feat/u6i-sheets-positioning-and-palette-shell` |
 | PR title | `feat(ui): add paper bottom sheets and the phone dialog` |
 | Size | L (≈ 600–800 lines of components and tests; split on 2026-11-05 as its size required: anchored positioning with the selection toolbar shell, and the palette shell, moved to [U6j](../ready/U6j-positioning-and-palette-shell.md)) |
-| PR | — |
+| PR | [#247](https://github.com/laudebugs/laminapdf/pull/247) |
 
 ## Goal
 
