@@ -360,7 +360,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards (900 high; t
 
 ## New components
 
-None beyond the proposed additions below; the presence palette, `mono`, the sync status item, the Undo/Redo top bar, the bell, the licence key field, the plan block and card, the docs-site header and the code block were merged into the design language (§2.7, §3, §7.1, §7.19, §7.37–§7.39).
+None beyond the proposed additions below; the presence palette, `mono`, the sync status item, the Undo/Redo top bar, the bell, the licence key field, the plan block and card, the site header and the code block were merged into the design language (§2.7, §3, §7.1, §7.19, §7.37–§7.39).
 
 ## Proposed design-language additions
 

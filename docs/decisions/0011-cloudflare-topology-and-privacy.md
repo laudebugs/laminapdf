@@ -40,7 +40,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
   - The WASM modules are static assets of the same origin (ADR 0009 §2), never a CDN's.
-- **The website is a third Worker, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. It is deployed from `main`, with a preview per PR, and never serves the reader. It links to the reader but forwards nothing to it.
+- **The website is a Worker of its own, `lamina-pdf-site`** (`apps/site`, [W1b](../todos/ready/W1b-site-scaffold-and-deploys.md)): static assets from Astro's `dist/`, `not_found_handling: "404-page"` and no Worker code, like the docs site. It is deployed from `main`, with a preview per PR, and never serves the reader. It links to the reader but forwards nothing to it.
 - **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). Since 2026-11-05 the website holds the apex and the reader `app.` ([website plan §2](../plans/website.md#2-the-domain-map)). Every host, its Worker and what deploys it:
 
   | Host | Serves | Worker | Deployed from |
@@ -50,7 +50,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   | `app.laminapdf.com` | the reader (`apps/web`) | `lamina-pdf-web` | `web-v*` release tags only |
   | `staging-app.laminapdf.com` | the reader's staging | `lamina-pdf-web-staging` | every push to `main` |
   | `docs.laminapdf.com` | the docs site (`apps/docs`) | `lamina-pdf-docs` | `main`, with a preview per PR |
-  | `updates.laminapdf.com`, `downloads.laminapdf.com` | the desktop updater and downloads ([desktop plan §5](../plans/desktop-app.md#5-design-summary)) | ADR 0014, written in D5a | D5a, D6b |
+  | `updates.laminapdf.com`, `downloads.laminapdf.com`, `staging-downloads.laminapdf.com`, `nightly-downloads.laminapdf.com` | the desktop updater and the downloads of the release, staging and nightly channels ([desktop plan §5](../plans/desktop-app.md#5-design-summary), [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md)) | ADR 0014, written in D5a | D5a, D6b |
 
   Every name is one label deep, so the zone's universal certificate (the apex and `*.laminapdf.com`) covers it. The HSTS preload submission follows the website's first production deploy (§4).
 
@@ -114,11 +114,12 @@ Cross-Origin-Resource-Policy: same-origin
 - **`preload` is added to HSTS** after the website's first production deploy, once every subdomain is known to be HTTPS-only: the preload list checks the apex's header, which the website now serves. A one-line PR adds `preload` to the website's `Strict-Transport-Security` header (W1b's post-merge checks), and the owner then submits `laminapdf.com`.
 - **Changes are amendments:** a change that loosens any directive is an amendment to this ADR, and C4d's header test pins the exact values.
 
-**The website's headers** (`apps/site/public/_headers`, for `/*`; W1b) are the set above with three differences, each with its reason:
+**The website's headers** (`apps/site/public/_headers`, for `/*`; W1b) are the set above with two differences, each with its reason:
 
 - **`script-src 'self'` plus one `'sha256-…'` hash per inline script the build writes**, filled in after the build as the docs site does, because Astro writes small inline scripts. No `'wasm-unsafe-eval'`: the website runs no WebAssembly.
 - **`connect-src 'self'`**: the website fetches nothing remote.
-- **`X-Robots-Tag: noindex` on preview builds only**, as for the reader (§1).
+
+`style-src 'self'` stays as it is: the build sets Astro's `build.inlineStylesheets: "never"`, so every style sheet is a file, and pages set no `style` attributes. Preview builds add `X-Robots-Tag: noindex`, as the reader's do (§1); the website has no staging.
 
 Any other difference is added here, with its reason, before W1b ships it.
 
