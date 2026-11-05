@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, the z-order, dialogs, menus, tooltips and the toast region; this todo builds the bottom sheet on that stack: detents whose grabber is a real button (a single-pointer alternative to dragging), drag snapping, modal and non-modal modes, and the dialog shown as a sheet on the phone. [U6j](../ready/U6j-positioning-and-palette-shell.md) builds the selection toolbar's positioning and the palette shell.
+Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, the z-order, dialogs, menus, tooltips and the toast region. This todo builds the bottom sheet on that stack: detents whose grabber is a button (a single-pointer alternative to dragging), drag snapping, modal and non-modal modes, and the dialog shown as a sheet on the phone. [U6j](../ready/U6j-positioning-and-palette-shell.md) builds the selection toolbar's positioning and the palette shell.
 
 ## Context
 
@@ -31,7 +31,13 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 
 **In scope**
 
-- **BottomSheet** (§7.16, §6.2): detents `collapsed | medium | large` with the design language's positions; the grabber is a `<button aria-label="Resize sheet">` (label from props) that cycles medium → large → medium on click, Enter or Space (WCAG 2.5.7); dragging snaps to the nearest detent with velocity; header with title, count and a 44 × 44 close button; modal (focus trapped, scrim) or non-modal (page stays interactive above a medium sheet; focus not trapped, but the sheet never covers the focused element: SC 2.4.11) as a prop; `env(safe-area-inset-bottom)`; reduced motion → no slide, instant change. It joins U6e's layer stack and uses its z-order tokens.
+- **BottomSheet** (§7.16, §6.2), on U6e's layer stack and z-order tokens:
+  - detents `collapsed | medium | large` at the design language's positions;
+  - the grabber is a `<button aria-label="Resize sheet">` (label from props) that cycles medium → large → medium on click, Enter or Space (WCAG 2.5.7);
+  - dragging snaps to the nearest detent, and a fast drag goes one detent further;
+  - a header with the title, a count and a 44 × 44 close button;
+  - modal (focus trapped, scrim) or non-modal as a prop. A non-modal sheet leaves the page usable above it and doesn't trap focus, but never covers the focused element (SC 2.4.11);
+  - `env(safe-area-inset-bottom)`, and under reduced motion an instant change with no slide.
 - **Phone dialog**: U6e's `Dialog` renders as a large-detent `BottomSheet` on a phone-wide viewport, its actions full width.
 
 **Out of scope** (and which todo covers it)

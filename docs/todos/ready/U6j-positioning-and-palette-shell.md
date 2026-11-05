@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, dialogs, menus, tooltips and toasts, and [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) the bottom sheets; this todo builds the two layers with their own geometry and keyboard model: the positioning of the desktop selection mini toolbar (above the selection, flipping on collision, reachable with Shift+F10), and the command palette's shell (an APG combobox with a listbox) that [U1b](./U1b-command-registry-and-palette.md) fills with commands. It was split from U6i when U6i was claimed, because the two together passed the 800-line budget.
+Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, dialogs, menus, tooltips and toasts, and [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) the bottom sheets. This todo builds the two layers with their own geometry and keyboard model. The first is the positioning of the desktop selection mini toolbar: above the selection, flipping on collision, reachable with Shift+F10. The second is the command palette's shell, an APG combobox with a listbox, which [U1b](./U1b-command-registry-and-palette.md) fills with commands. It was split from U6i when U6i was claimed, because U6i's three parts together passed the 800-line budget.
 
 ## Context
 
