@@ -110,23 +110,27 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
 │                        #   only, @layer paper.*); test/ (states.tsx; Node: CSS tokens only, import boundary, §7 map; browser/: keyboard,
 │                        #   ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
-├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; Node-only, run at build time): the build steps both Astro sites
-│                        #   share, src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex
-│                        #   unless LAMINA_PDF_ENV=production, and the website's checks of every built page (ADR 0011 §3: same-origin
-│                        #   loads, no inline styles, cookies or beacons, title, description, canonical URL, internal links); test/
+├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; build time only): what both Astro sites share.
+│                        #   src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex unless
+│                        #   LAMINA_PDF_ENV=production, the website's checks of every built page (ADR 0011 §3: same-origin loads, no
+│                        #   inline styles, cookies or beacons, title, description, canonical URL, internal links), pageFiles, pageExists;
+│                        #   the site header (W1d): src/nav.mjs (the one list of links, siteNav per site and page, APP_LAUNCHED),
+│                        #   src/SiteHeader.astro, SiteNav.astro (the links alone) + header.css (sized per site by CSS variables); test/ (Node), test/browser/ (the
+│                        #   header rendered by Astro's container in a global setup, then Chromium, Firefox, WebKit: tab order,
+│                        #   current underline, phone width, axe; run by `cargo xtask pdf-runtimes`); README.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
 │                        #   files (src/components/Snippet.astro), the code table from fixtures/codes.json, code pages from
-│                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/); public/_headers
+│                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
+│                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
 │                        #   assets, docs.laminapdf.com); deployed by .github/workflows/docs.yml; README.md has the owner's setup;
 │                        #   for agents (L5a): a Markdown twin of every page, llms.txt and llms-full.txt (plugins/agent-docs.mjs,
 │                        #   plugins/markdown.mjs), and scripts/package-docs.mjs, which writes the docs/ folder the packages ship
 ├── apps/site/           # the website at laminapdf.com (Astro, static, W1b; website plan §4) in the Paper look: src/layouts/Base.astro (head,
-│                        #   font preload), §7.39's header (src/nav.ts: a link appears once its page exists; APP_LAUNCHED for "Open the web
-│                        #   app"), src/pages/ (a placeholder home page until W1c, 404), src/data/ (progress.json from `cargo xtask
-│                        #   progress`, its type and reader in progress.ts); public/_headers (ADR 0011 §4's website headers,
+│                        #   font preload, the shared header from @laminapdf/site-kit), src/pages/ (a placeholder home page until W1c, 404),
+│                        #   src/data/ (progress.json from `cargo xtask progress`, its type and reader in progress.ts); public/_headers (ADR 0011 §4's website headers,
 │                        #   test/headers.test.ts holds them to the ADR); @laminapdf/site-kit's checks after every build; wrangler.toml
 │                        #   (lamina-pdf-site, the apex as a custom domain); deployed by .github/workflows/site.yml, which W1b's PR gives
 │                        #   for the owner to commit; README.md has the owner's setup

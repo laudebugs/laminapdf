@@ -5,8 +5,7 @@
 //
 // Build setting (environment variable): LAMINA_PDF_ENV=production for the production deploy. Any
 // other value, or none (a local build, a PR preview), adds `X-Robots-Tag: noindex`.
-import { readdirSync } from "node:fs";
-import { inlineScriptHashes, previewNoindex, siteChecks } from "@laminapdf/site-kit/integrations";
+import { inlineScriptHashes, pageFiles, previewNoindex, siteChecks } from "@laminapdf/site-kit/integrations";
 import { defineConfig } from "astro/config";
 
 /** Production's address: canonical links use it, previews too (they're noindex). */
@@ -14,11 +13,10 @@ const ORIGIN = "https://laminapdf.com";
 
 /**
  * The page files, as `/src/pages/…` paths: the header links to a page of this site only once it
- * exists (src/nav.ts). Read here, once per build, so no component imports every page to list them.
+ * exists (@laminapdf/site-kit's nav.mjs). Read here, once per build, so no component imports every
+ * page to list them; the docs site reads the same folder.
  */
-const PAGES = readdirSync(new URL("./src/pages/", import.meta.url), { recursive: true })
-  .map((file) => `/src/pages/${String(file).replaceAll("\\", "/")}`)
-  .filter((file) => /\.(astro|md)$/.test(file));
+const PAGES = pageFiles(new URL("./src/pages/", import.meta.url));
 
 // A default export because that is how Astro reads its configuration.
 export default defineConfig({
