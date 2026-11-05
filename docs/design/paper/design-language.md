@@ -322,7 +322,7 @@ Rules:
 - Always `aria-hidden="true"` on the SVG. Icon-only buttons carry `aria-label` (a verb phrase: "Find in document", "Close inspector"); buttons with a visible label need nothing extra.
 - Hit area is the button, not the glyph: ≥ 24 px desktop (files use 26–32), ≥ 44 px touch.
 
-Icons drawn so far. Each icon's markup lives in `packages/icons/svg/<file>.svg` (`@laminapdf/icons`), the source of truth; these tables are a readable copy, and a test compares them with the files:
+Each icon's markup lives in `packages/icons/svg/<file>.svg` (`@laminapdf/icons`), which is the source of truth. The tables below are a readable copy, and a test compares them with the files:
 
 | Name | File | Markup |
 | --- | --- | --- |
@@ -472,7 +472,7 @@ Wrap each in:
 | Smart card | `smart-card` | `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` | Smart card |
 | Snap to grid **(proposed, Forms P05)** | `snap-to-grid` | `<path d="M4.5 9h15M4.5 15h15M9 4.5v15M15 4.5v15"></path>` | Form design toolbar |
 
-**Icons for the reader and the core components (proposed, U6c).** Drawn on the same grid when `@laminapdf/icons` was made; the reader v0.1 and the components need them, and no board had drawn them.
+**Icons for the reader and the core components (proposed, U6c).** U6c drew these on the same grid, because the reader v0.1 and the core components need them and no board had drawn them.
 
 | Name | File | Markup | Used for |
 | --- | --- | --- | --- |

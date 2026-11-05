@@ -1,6 +1,6 @@
 # @laminapdf/icons
 
-Every icon in Lamina PDF's Paper design language lives in this package as one SVG file, drawn on a 24-unit grid with a 1.5-unit stroke in `currentColor` and no fills. The package turns those files into two things the apps use: a framework-free module of their markup, which the viewer, native menus and plain pages can use, and a React `<Icon>` component on its own entry. A lint test checks every file against the design language's rules, so a new icon follows the grid by rule rather than by eye. The package is private to this repository for now.
+Every icon in Lamina PDF's Paper design language lives in this package as one SVG file, drawn on a 24-unit grid with a 1.5-unit stroke in `currentColor` and no fills. The package turns those files into two things the apps use. The root entry is a framework-free module of their markup, for the viewer, native menus and plain pages. A second entry holds a React `<Icon>` component. A lint test checks every file against the design language's rules, so a new icon follows the grid by rule rather than by eye. The package is private to this repository for now.
 
 ## Using the icons
 
@@ -22,7 +22,7 @@ import { Icon } from "@laminapdf/icons/react";
 
 An icon is decorative by default: it gets `aria-hidden="true"` and `focusable="false"`, because the button around it carries the name. Name an icon-only button with a verb phrase, such as "Find in document"; `iconButtonProps(label)` returns the `aria-label` and throws on an empty one. Only an icon that stands alone, outside any labelled control, takes a `label` (`title` in `iconSvg`), which makes it `role="img"` with that accessible name.
 
-Sizes are the ones the design language renders: 14 and 15 px in the status bar, 16 in buttons with a text label, 18 in the top bar, 20 in sheets, 22 on the phone, and 32 for empty states. The icon takes its colour from the text around it, so set `color` on the button: `text-3` in desktop chrome, `accent` when selected.
+Sizes are the ones the design language renders: 14 and 15 px in the status bar, 16 in buttons with a text label, 18 in the top bar, 20 in sheets, 22 on the phone, and 32 for empty states. The icon takes its colour from the text around it, so set `color` on the button: `text-3` in desktop chrome, `accent` when selected. Every icon draws at a 1.5-unit stroke except Check inside a checkbox, which takes `strokeWidth: 2`.
 
 The React component is a separate entry so the root one never loads React. React 19 is an optional peer dependency.
 
@@ -33,7 +33,7 @@ The React component is a separate entry so the root one never loads React. React
 3. Run `pnpm --filter @laminapdf/icons generate` to rewrite the module, then add a row to a table in the design language's iconography section. A test fails until the row's markup matches the file.
 4. For a second name of an existing icon, such as `upload` for `share`, add it to `aliases.json` instead of copying the file.
 
-The lint allows only `path`, `circle`, `ellipse`, `rect`, `line`, `polyline` and `polygon` elements, with their geometry and nothing else. It rejects any fill, style, class, transform, ID, or line cap and join setting. It also rejects shapes within 2 units of the edge. Two exceptions are written into the rules by icon name: the icons drawn with dots (More, Drag grip, Tag) may use circles smaller than 1.5 units, and Mark area may use a dashed rectangle. The bounding box follows each path's drawn curve, arcs included, not its control points.
+The lint allows only `path`, `circle`, `ellipse`, `rect`, `line`, `polyline` and `polygon` elements, with their geometry and nothing else, so any fill, style, class, transform, ID, or line cap and join setting fails. Shapes within 2 units of the edge fail too. Two exceptions are written into the rules by icon name: the icons drawn with dots (More, Drag grip, Tag) may use circles smaller than 1.5 units, and Mark area may use a dashed rectangle. The bounding box follows each path's drawn curve, arcs included, not its control points.
 
 To see every icon at every size, in both themes, run `pnpm --filter @laminapdf/icons gallery`.
 
