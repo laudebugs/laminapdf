@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6d](../ongoing/U6d-core-components.md) |
+| Depends on | [U6d](../done/U6d-core-components.md) |
 | Blocks | [U6e](./U6e-overlays-and-sheets.md) |
 | ADRs | Follows 0024 (component rules, touch targets; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, React Aria Components; from [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/u6h-display-components` |
@@ -16,12 +16,12 @@
 
 ## Goal
 
-Finish the Paper component library that [U6d](../ongoing/U6d-core-components.md) starts. U6d builds the controls; this todo builds the items that show state rather than take input: badges and tags, notices and the toast's look, progress and skeletons, the empty state, status-bar items, the page thumbnail, the outline row and the shortcut chip. They follow U6d's rules, so the reader chrome ([C4a](./C4a-ui-chrome-and-platform.md)), the rail ([C6a](./C6a-thumbnails-outline-page-labels.md)), the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)) and the overlays ([U6e](./U6e-overlays-and-sheets.md)) compose the same look. This todo was split from U6d when U6d was claimed, because the two together passed the 800-line budget.
+Finish the Paper component library that [U6d](../done/U6d-core-components.md) starts. U6d builds the controls; this todo builds the items that show state rather than take input: badges and tags, notices and the toast's look, progress and skeletons, the empty state, status-bar items, the page thumbnail, the outline row and the shortcut chip. They follow U6d's rules, so the reader chrome ([C4a](./C4a-ui-chrome-and-platform.md)), the rail ([C6a](./C6a-thumbnails-outline-page-labels.md)), the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)) and the overlays ([U6e](./U6e-overlays-and-sheets.md)) compose the same look. This todo was split from U6d when U6d was claimed, because the two together passed the 800-line budget.
 
 ## Context
 
 - Design language [§7 Components](../../design/paper/design-language.md#7-components): [§7.0 shared states](../../design/paper/design-language.md#70-shared-states), [§7.6 thumbnail](../../design/paper/design-language.md#76-thumbnail), [§7.7 outline row](../../design/paper/design-language.md#77-outline-row), [§7.8 status bar items](../../design/paper/design-language.md#78-status-bar-items), [§7.10 command palette](../../design/paper/design-language.md#710-command-palette) (its shortcut chip), [§7.20 toast and notice](../../design/paper/design-language.md#720-toast-and-notice), [§7.21 empty state](../../design/paper/design-language.md#721-empty-state), [§7.22 progress](../../design/paper/design-language.md#722-progress), [§7.23 badge and tag](../../design/paper/design-language.md#723-badge-and-tag); the HTML snippets there are the reference markup.
-- [U6d](../ongoing/U6d-core-components.md): `packages/ui`, its CSS rules, the `density` context, the test helpers (`test/states.ts`, `test/axe.ts`) and the literal-colour and import-boundary tests. This todo adds to them; it doesn't set up its own.
+- [U6d](../done/U6d-core-components.md): `packages/ui`, its CSS rules, the `density` context, the test helpers (`test/states.ts`, `test/axe.ts`) and the literal-colour and import-boundary tests. This todo adds to them; it doesn't set up its own.
 - Design language [§8.7 touch rules](../../design/paper/design-language.md#87-touch-rules), [§8.9 accessibility checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa); WCAG 2.2 SC 1.4.11, 2.3.3 (reduced motion), 4.1.2, 4.1.3 (status messages).
 
 ## Scope

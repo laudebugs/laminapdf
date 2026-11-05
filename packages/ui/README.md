@@ -14,7 +14,7 @@ import { Button, IconButton, ModeSwitcher } from "@laminapdf/ui";
 <IconButton icon="find" label="Find in document" onPress={openFind} />
 ```
 
-The stylesheet brings in the tokens, so themes, accents and page appearances work as `@laminapdf/tokens` describes. Every rule sits in a CSS layer, so an app's own rules win without `!important`. The components are built on React Aria Components, which handle press, focus, keyboard and right-to-left behaviour.
+The stylesheet brings in the tokens, so themes, accents and page appearances work as `@laminapdf/tokens` describes. Every rule sits in a CSS layer, so an app's unlayered rules win without `!important`. The components are built on React Aria Components, which handle press, focus, keyboard and right-to-left behaviour.
 
 Text and labels always come in as props, so the app translates them. An icon-only control requires its accessible name: `IconButton` won't type-check without `label`.
 
@@ -38,7 +38,7 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.5 Segmented tabs | `SegmentedTabs`, `TabPanel` | Arrow keys select as they move; `keyboardActivation="manual"` waits for Enter |
 | §7.12 Colour swatches | `SwatchGroup` | Colours are token names, so only design-language colours appear |
 | §7.19 Form controls | `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup`, `Radio`, `Switch` | Label above, help or error below, wired with `aria-describedby` and `aria-invalid` |
-| §7.24 Tool toggle | `ToolToggle`, `ToggleButton` | `aria-pressed` |
+| §7.24 Secondary-toolbar tool toggle | `ToolToggle`, `ToggleButton` | `aria-pressed` |
 | §7.25 Page-appearance chips | `PageAppearanceChips` | Each preview draws "Aa" in its appearance's paper and ink |
 
 Badges, notices, progress, the empty state, status-bar items, thumbnails, outline rows and shortcut chips come next, in the same package.
