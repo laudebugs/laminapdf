@@ -432,11 +432,16 @@ export class Viewer {
     this.#root.scrollLeft = scroll.left;
     // Renders for the old geometry are stale: abort them (a page that failed gets another try);
     // the canvases stretch until the gesture settles and the new pass paints, so no page is sharp.
+    let unsharpened = false;
     for (const view of this.#pages.values()) {
       this.#abort(view);
       if (view.state === "error") view.state = "placeholder";
-      if (view.state === "sharp") view.state = "low";
+      if (view.state === "sharp") {
+        view.state = "low";
+        unsharpened = true;
+      }
     }
+    if (unsharpened) this.#emit("renderstats", this.stats());
     clearTimeout(this.#settling);
     this.#settling = setTimeout(() => {
       this.#settling = undefined;

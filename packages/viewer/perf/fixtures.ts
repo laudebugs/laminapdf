@@ -3,9 +3,14 @@
 // - `ten`: 10 pages of text with one image each, about 1 MB (first page, zoom);
 // - `thousand`: 1,000 pages of text (the scroll);
 // - `images`: 300 pages, each one full-page image (the fling).
+// The cache key also hashes the WebAssembly module that writes them, so a builder change rebuilds
+// them after `cargo xtask wasm`.
 
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Builder, Font, Image, init } from "@laminapdf/sdk";
 
 /** The fixtures by name, in the order the harness builds them. */
@@ -91,10 +96,18 @@ function build(name: FixtureName): Uint8Array {
   return bytes;
 }
 
+/** The built text module, found from @laminapdf/sdk, which loads it. */
+function textModule(): string {
+  const sdk = fileURLToPath(import.meta.resolve("@laminapdf/sdk"));
+  const wasm = createRequire(sdk).resolve("@laminapdf/wasm/package.json");
+  return join(dirname(wasm), "dist/lamina_pdf_text.wasm");
+}
+
 /** Writes every fixture missing from `dir` (a file: URL ending in `/`); returns `dir`. */
 export async function ensureFixtures(dir: URL): Promise<URL> {
   const recipe = createHash("sha256")
     .update(readFileSync(new URL(import.meta.url)))
+    .update(readFileSync(textModule()))
     .digest("hex")
     .slice(0, 12);
   mkdirSync(dir, { recursive: true });

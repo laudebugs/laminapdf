@@ -40,11 +40,19 @@ async function opened(page: Page, name: string, zoom: string): Promise<void> {
 
 const scrollTop = (page: Page) => page.evaluate(() => globalThis.__laminaPerf.scroll());
 
-/** Wheels down until `fraction` of the scroll height, checking the position every 10 steps. */
+/**
+ * Wheels down until `fraction` of the scroll height, checking the position every 10 steps; fails
+ * if 50 steps in a row don't move the view (the wheel missed it, or the browser ignored it).
+ */
 async function wheelTo(page: Page, fraction: number): Promise<void> {
+  let previous = -1;
+  let stuck = 0;
   for (;;) {
     const { top, max } = await scrollTop(page);
     if (top >= max * fraction - 1) return;
+    stuck = top === previous ? stuck + 1 : 0;
+    if (stuck >= 5) throw new Error(`the wheel stopped scrolling the view at ${top} of ${max} px`);
+    previous = top;
     for (let i = 0; i < 10; i++) {
       await page.mouse.wheel(0, STEP_PX);
       await page.waitForTimeout(STEP_MS);
@@ -63,7 +71,12 @@ async function firstPageWarm(context: BrowserContext, url: string): Promise<numb
   return ms;
 }
 
-/** Chromium only: a new context with the cache off and Fast 4G, opening the file during startup. */
+/**
+ * Chromium only: a new context with the cache off and Fast 4G, opening the file during startup.
+ * The throttling reaches the document Web Worker's downloads too: serving the WebAssembly
+ * compressed (serve.ts) cut this figure from 7.6 s to 4.2 s, what 3.2 MB fewer bytes take at
+ * Fast 4G's 1 MB/s.
+ */
 async function firstPageCold(browser: Browser, url: string): Promise<number> {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
   const page = await context.newPage();

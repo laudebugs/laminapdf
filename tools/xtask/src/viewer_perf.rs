@@ -14,11 +14,10 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
-use serde_json::{Value, json};
+use serde_json::Value;
 
-use crate::nightly::{BASELINE_RUNS, read_history, regressions};
-use crate::step;
-use crate::util::{append, git_stdout, github_output, summary};
+use crate::nightly::{BASELINE_RUNS, append_record, history_record, read_history, regression_rows, regressions};
+use crate::util::{github_output, summary};
 use crate::workspace::Workspace;
 
 const BROWSERS: [&str; 3] = ["chromium", "firefox", "webkit"];
@@ -35,6 +34,16 @@ pub(crate) struct Args {
     runner: Option<String>,
     record: bool,
     dry_run: bool,
+}
+
+impl Args {
+    /// Every browser, recording nothing: the local nightly lane's run.
+    pub(crate) fn every_browser(quick: bool) -> Self {
+        Self {
+            quick,
+            ..Self::default()
+        }
+    }
 }
 
 pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
@@ -87,10 +96,18 @@ fn entries(results: &[(String, Value)]) -> Result<BTreeMap<String, u64>> {
     Ok(out)
 }
 
-/// One line of `history.jsonl` (`cargo xtask bench`'s record format): never quick, since a quick
-/// run is never recorded.
-fn history_record(commit: &str, date: &str, runner: &str, current: &BTreeMap<String, u64>) -> Value {
-    json!({ "commit": commit, "date": date, "runner": runner, "quick": false, "benches": current })
+/// The earlier records on `runner` that hold viewer figures: the runs a baseline comes from
+/// (the shared history also holds the benchmarks', the SDK's and the render diff's).
+fn viewer_runs(history: &[Value], runner: &str) -> usize {
+    history
+        .iter()
+        .filter(|r| r.get("runner").and_then(Value::as_str) == Some(runner))
+        .filter(|r| {
+            r.get("benches")
+                .and_then(Value::as_object)
+                .is_some_and(|b| b.keys().any(|k| k.starts_with("viewer/")))
+        })
+        .count()
 }
 
 /// The Markdown table of the figures more than 10 % worse than their baseline ("" when none).
@@ -98,16 +115,11 @@ fn regression_report(found: &[(String, u64, u64)], runner: &str) -> String {
     if found.is_empty() {
         return String::new();
     }
-    let mut report = format!(
+    format!(
         "Viewer figures more than 10% worse than the median of their last {BASELINE_RUNS} runs on `{runner}` \
-         (times in ns, memory in bytes):\n\n| Figure | Baseline | Now | Change |\n| --- | --- | --- | --- |\n"
-    );
-    for (name, baseline, now) in found {
-        #[expect(clippy::cast_precision_loss, reason = "timings and sizes far below 2^52")]
-        let change = 100.0 * (*now as f64 / (*baseline).max(1) as f64 - 1.0);
-        let _ = writeln!(report, "| `{name}` | {baseline} | {now} | +{change:.1}% |");
-    }
-    report
+         (times in ns, memory in bytes):\n\n| Figure | Baseline | Now | Change |\n| --- | --- | --- | --- |\n{}",
+        regression_rows(found)
+    )
 }
 
 /// `cargo xtask viewer-perf [browser…] [--quick] [--history <dir> --runner <label> [--record] [--dry-run]]`:
@@ -173,8 +185,8 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         let _ = writeln!(
             table,
             "\nNo figure is more than 10% worse than the median of its last {BASELINE_RUNS} runs on `{runner}` \
-             ({} earlier records).",
-            history.len()
+             ({} earlier viewer runs there).",
+            viewer_runs(&history, runner)
         );
     } else {
         let _ = writeln!(table, "\n{report}");
@@ -188,22 +200,19 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         }
     }
     if args.record {
-        let git = |a: &[&str]| git_stdout(&ws.root, a).unwrap_or_else(|| "unknown".to_owned());
-        let record = history_record(
-            &git(&["rev-parse", "HEAD"]),
-            &git(&["show", "-s", "--format=%cI", "HEAD"]),
-            runner,
-            &current,
-        );
-        fs::create_dir_all(history_dir)?;
-        append(&history_path, &(serde_json::to_string(&record)? + "\n"))?;
-        step(&format!("Appended the viewer figures to {}", history_path.display()));
+        // Never quick: parse_args refuses --record with --quick.
+        append_record(
+            Path::new(history_dir),
+            &history_record(&ws.root, runner, false, &current),
+        )?;
     }
     summary(&table)
 }
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
 
     fn args(list: &[&str]) -> Vec<String> {
@@ -265,7 +274,7 @@ mod tests {
     #[test]
     fn a_record_should_become_the_next_runs_baseline() {
         let current = BTreeMap::from([("viewer/firefox/to-sharp".to_owned(), 60_000_000)]);
-        let record = history_record("abc", "2026-11-05T12:00:00Z", "mac", &current);
+        let record = history_record(Path::new("."), "mac", false, &current);
         assert_eq!(
             record.pointer("/benches/viewer~1firefox~1to-sharp"),
             Some(&json!(60_000_000))
@@ -275,6 +284,17 @@ mod tests {
         assert_eq!(regressions(&history, "mac", false, &slower).len(), 1);
         let within = BTreeMap::from([("viewer/firefox/to-sharp".to_owned(), 66_000_000)]);
         assert_eq!(regressions(&history, "mac", false, &within), Vec::new());
+        assert_eq!(viewer_runs(&history, "mac"), 5);
+    }
+
+    #[test]
+    fn viewer_runs_should_count_only_this_runners_viewer_records() {
+        let history = vec![
+            json!({"runner": "mac", "benches": {"viewer/webkit/to-sharp": 1}}),
+            json!({"runner": "mac", "benches": {"decode/flate": 1}}),
+            json!({"runner": "other", "benches": {"viewer/webkit/to-sharp": 1}}),
+        ];
+        assert_eq!(viewer_runs(&history, "mac"), 1);
     }
 
     #[test]

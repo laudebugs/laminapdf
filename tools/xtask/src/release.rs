@@ -606,13 +606,19 @@ mod tests {
             .lines()
             .filter(|l| l.trim_start().starts_with("RECORD: "))
             .collect::<Vec<_>>();
-        // Every recording job's gate, however many jobs record (bench, pdf-runtimes, …).
+        // One gated RECORD per job that pushes to the history (bench, pdf-runtimes, …): a job that
+        // lost its RECORD would never record, so its push step would never run.
+        let pushes = steps
+            .iter()
+            .filter(|step| step.contains("bench-history") && step.contains("mode: push"))
+            .count();
         assert!(
-            !record_env.is_empty()
+            pushes > 0
+                && record_env.len() == pushes
                 && record_env
                     .iter()
                     .all(|l| l.contains("toJSON(inputs.record) != 'false'")),
-            "{record_env:?}"
+            "{pushes} history pushes, RECORD lines: {record_env:?}"
         );
         assert!(NIGHTLY.contains("NIGHTLY_RECORD: ${{ toJSON(inputs.record) != 'false' }}"));
         let report = NIGHTLY.split("\n  report:\n").nth(1).unwrap_or_default();

@@ -187,9 +187,13 @@ describe("zoom", () => {
   it("reports no page sharp while a zoom's canvases are stretched, then sharpens them", async () => {
     const v = await opened({ zoom: "actual-size" });
     await until(() => v.stats().pages[0] === "sharp");
+    const reported: string[] = [];
+    v.on("renderstats", (stats) => reported.push(stats.pages[0] ?? ""));
     v.setZoom(200);
-    // The canvas still holds the old zoom's pixels, stretched: not sharp until the new pass paints.
+    // The canvas still holds the old zoom's pixels, stretched: not sharp until the new pass
+    // paints, and `renderstats` says so at once.
     expect(v.stats().pages[0]).not.toBe("sharp");
+    expect(reported[0]).toBe("low");
     await until(() => v.stats().pages[0] === "sharp");
     v.destroy();
   });

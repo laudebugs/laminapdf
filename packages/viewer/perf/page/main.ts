@@ -25,14 +25,13 @@ viewer.mount(host);
 
 const frame = () => new Promise<number>((resolve) => requestAnimationFrame(resolve));
 
-/** Resolves once `done()` holds, checking each frame; false if `limitMs` passes first. */
-async function until(done: () => boolean, limitMs: number): Promise<boolean> {
+/** Resolves once `done()` holds, checking each frame; throws `what` if `limitMs` passes first. */
+async function until(done: () => boolean, limitMs: number, what: string): Promise<void> {
   const start = performance.now();
   while (!done()) {
-    if (performance.now() - start > limitMs) return false;
+    if (performance.now() - start > limitMs) throw new Error(`${what} within ${limitMs} ms`);
     await frame();
   }
-  return true;
 }
 
 const firstPainted = () => {
@@ -49,6 +48,30 @@ function allSharp(): boolean {
   }
   return last >= first;
 }
+
+// When the view last scrolled or zoomed, and since when every visible page has been sharp (null
+// while one isn't). Checked on each event and each frame, so the moment a page turns sharp is
+// caught when `renderstats` reports it, not when the harness next asks.
+let lastChange = performance.now();
+let sharpSince: number | null = null;
+function checkSharp(): void {
+  if (!allSharp()) sharpSince = null;
+  else sharpSince ??= performance.now();
+}
+viewer.element.addEventListener("scroll", () => {
+  lastChange = performance.now();
+  checkSharp();
+});
+viewer.on("zoomchange", () => {
+  lastChange = performance.now();
+  checkSharp();
+});
+viewer.on("renderstats", checkSharp);
+function watch(): void {
+  checkSharp();
+  requestAnimationFrame(watch);
+}
+requestAnimationFrame(watch);
 
 async function memory(): Promise<MemorySample> {
   const reported = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory;
@@ -95,7 +118,7 @@ const hook: PerfHook = {
     const file = await fixture(name);
     const start = performance.now();
     viewer.open(await client.open(file));
-    await until(firstPainted, 60_000);
+    await until(firstPainted, 60_000, `${name}: the first page didn't paint`);
     return performance.now() - start;
   },
   setZoom: (zoom) => viewer.setZoom(zoom as Zoom),
@@ -119,20 +142,11 @@ const hook: PerfHook = {
     };
   },
   async untilSharp(limitMs = 20_000) {
-    // The view has stopped once its scroll position and zoom hold for three frames; the clock
-    // runs from the last frame that changed either, so a smooth scroll's tail counts.
-    let previous = "";
-    let changed = performance.now();
-    let still = 0;
-    await until(() => {
-      const { scrollTop, percent } = viewer.getState();
-      const now = `${scrollTop}:${percent}`;
-      if (now === previous) still++;
-      else [previous, changed, still] = [now, performance.now(), 0];
-      return still >= 3;
-    }, limitMs);
-    await until(allSharp, limitMs);
-    return Math.min(performance.now() - changed, limitMs);
+    // The view has stopped once nothing moved or zoomed it for 50 ms; then wait for the pages.
+    await until(() => performance.now() - lastChange >= 50, limitMs, "the view didn't stop moving");
+    await until(() => sharpSince !== null, limitMs, "the visible pages weren't sharp");
+    // Pages sharp before the last change (a scroll within sharp pages) took no time.
+    return Math.max(0, (sharpSince ?? lastChange) - lastChange);
   },
   memory,
   counters() {
@@ -143,7 +157,7 @@ const hook: PerfHook = {
 
 if (autoFile !== undefined) {
   viewer.open(await client.open(await autoFile));
-  await until(firstPainted, 60_000);
+  await until(firstPainted, 60_000, `${auto}: the first page didn't paint`);
   hook.firstPaintMs = performance.now();
 }
 globalThis.__laminaPerf = hook;

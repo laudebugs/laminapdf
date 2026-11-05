@@ -55,7 +55,7 @@ export interface PerfHook {
   stop(): Promise<Recording>;
   /**
    * Waits for the view to stop scrolling and zooming, then returns ms from its last change until
-   * every visible page is sharp (capped at `limitMs`).
+   * every visible page was sharp; throws if either takes over `limitMs`.
    */
   untilSharp(limitMs?: number): Promise<number>;
   memory(): Promise<MemorySample>;
