@@ -123,6 +123,11 @@ function Pages({ isModal, ...props }: PagesProps) {
   );
 }
 
+// A flick: two moves 5 ms apart. Firefox and WebKit coarsen event.timeStamp, so moves dispatched
+// in the same millisecond carry no speed; 40 px per move stays past a flick's 0.5 px/ms even when a
+// busy runner stretches the wait to 60 ms.
+const FLICK = { steps: 2, gap: 5 };
+
 /** Drags from the grabber (or `from`) by `dy` CSS px in `steps` moves `gap` ms apart, held `hold` ms before the release. */
 async function drag(dy: number, { steps = 6, gap = 40, hold = 0, from = grabber() } = {}) {
   const target = from;
@@ -184,11 +189,11 @@ describe("BottomSheet", () => {
     const onClosed = vi.fn();
     renderIn(<Pages defaultDetent="large" onClosed={onClosed} />);
     // A fast drag that stops before the release is no flick: it snaps back to the nearest detent.
-    await drag(80, { gap: 0, hold: 150 });
+    await drag(80, { ...FLICK, hold: 150 });
     expect(sheet()?.dataset.detent).toBe("large");
-    await drag(80, { gap: 0 });
+    await drag(80, FLICK);
     expect(sheet()?.dataset.detent).toBe("medium");
-    await drag(80, { gap: 0 });
+    await drag(80, FLICK);
     expect(sheet()).toBeNull();
     expect(onClosed).toHaveBeenCalledOnce();
   });
@@ -247,7 +252,7 @@ describe("BottomSheet", () => {
     renderIn(<Pages isRequired />);
     expect(document.querySelector("[aria-label='Close pages']")).toBeNull();
     await userEvent.keyboard("{Escape}");
-    await drag(120, { gap: 0 });
+    await drag(120, FLICK);
     expect(sheet()).not.toBeNull();
   });
 
