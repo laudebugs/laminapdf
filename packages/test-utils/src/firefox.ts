@@ -5,13 +5,19 @@ import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 
 /**
- * Firefox (Playwright's build, 155 and later) reads the user's Firefox data folder even with its
- * own profile, and fails with "Could not find profile folder." where it can't (macOS refuses it
- * on the self-hosted runners). MOZ_APP_DATA and MOZ_LOCAL_APP_DATA point it at a folder of its
- * own, in the package's node_modules (so runners sharing a machine don't share it).
+ * The environment to launch Firefox with. Firefox (Playwright's build, 155 and later) reads the
+ * user's Firefox data folder even with its own profile, and fails with "Could not find profile
+ * folder." where it can't (macOS refuses it on the self-hosted runners). MOZ_APP_DATA and
+ * MOZ_LOCAL_APP_DATA point it at a folder of its own, in the package's node_modules (so runners
+ * sharing a machine don't share it).
  */
-export function firefoxProvider(packageDir: URL) {
+export function firefoxEnv(packageDir: URL): Record<string, string | undefined> {
   const data = fileURLToPath(new URL("node_modules/.cache/lamina-firefox/", packageDir));
   mkdirSync(data, { recursive: true });
-  return playwright({ launchOptions: { env: { ...env, MOZ_APP_DATA: data, MOZ_LOCAL_APP_DATA: data } } });
+  return { ...env, MOZ_APP_DATA: data, MOZ_LOCAL_APP_DATA: data };
+}
+
+/** Vitest's Playwright provider with Firefox launched in {@link firefoxEnv}. */
+export function firefoxProvider(packageDir: URL) {
+  return playwright({ launchOptions: { env: firefoxEnv(packageDir) } });
 }

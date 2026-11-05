@@ -71,14 +71,16 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/test-utils/ # @laminapdf/test-utils (private, workspace-only, outside Changesets): the test helpers the
 │                        #   packages share, exported as TypeScript source: render-contract (the RenderBackend suite both
 │                        #   adapters run, Node + browsers), browser-harness, browser-config (renderBrowserConfig),
-│                        #   firefox (firefoxProvider), root (fromRoot)
+│                        #   firefox (firefoxProvider, firefoxEnv), root (fromRoot)
 ├── packages/render-pdfium/  # @laminapdf/render-pdfium: @embedpdf/pdfium 2.15.1 (pdfium.wasm SHA-256 checked by
 │                        #   scripts/verify-pdfium.mjs) behind RenderBackend; THIRD_PARTY_NOTICES.md
 ├── packages/render-hayro/   # @laminapdf/render-hayro: lamina_pdf_render_hayro behind RenderBackend
 ├── packages/viewer/     # @laminapdf/viewer: the viewer core (ADR 0009); C3a: ViewerClient (typed RPC over
 │                        #   @laminapdf/sdk/worker's request(), timers, restart), src/worker/ (serve() with the viewer's
 │                        #   methods: openDocument, render → ImageBitmap); C3b: createViewer (src/layout/, view/, canvas/,
-│                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit)
+│                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
+│                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
+│                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
 ├── packages/sdk/        # @laminapdf/sdk: the TS API over @laminapdf/wasm (init(), Builder, Document, Font, LaminaPdfError);
 │                        #   entries per export condition (src/index.ts, src/entry/), src/generated/ (codes, explain text),
 │                        #   src/explain.ts (the ./explain subpath), src/worker/ (the ./worker subpath: the worker client), schemas/ (laminapdf.error/1),
@@ -266,6 +268,12 @@ cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--l
                              #   Deno, Bun, wrangler and Playwright are dev deps (`playwright install` runs first);
                              #   --history <dir> --runner <label> --record appends them to history.jsonl (nightly);
                              #   --label <name> writes measurements-<name>.json instead of measurements.json
+cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> --runner <label> [--record] [--dry-run]]
+                             # after `wasm`: @laminapdf/viewer's perf harness (packages/viewer/perf/): first page warm and
+                             #   cold (Fast 4G, Chromium), 1,000 pages scrolled twice, memory, fling, zoom vs web-app §4,
+                             #   in target/viewer-perf/ and the job summary (reported, never asserted); --history flags
+                             #   figures >10% worse (bench's rule, `viewer/<browser>/<figure>` keys), --record appends,
+                             #   --dry-run prints the issue; --quick: 100 pages, never recorded
 cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against codes.schema.json, then write the error contract:
                              #   ErrorCode/WarningCode (crates/laminapdf-syntax/src/generated/codes.rs; the façade re-exports
                              #   them), the façade's explain pages (crates/laminapdf/src/generated/explain.rs), @laminapdf/sdk's

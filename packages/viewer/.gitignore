@@ -1,0 +1,3 @@
+# The perf harness's cached fixtures and its built page (perf/run.ts).
+perf/.fixtures/
+perf/.dist/

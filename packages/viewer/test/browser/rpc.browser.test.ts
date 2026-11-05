@@ -47,6 +47,14 @@ describe("open", () => {
     bitmap.close();
   });
 
+  it("reports the worker's WebAssembly memory, the backend's and Lamina PDF's", async () => {
+    const client = await track(viewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    const memory = await client.memory();
+    expect(memory.backend).toBeGreaterThan(0);
+    expect(memory.sdk).toBeGreaterThan(0);
+  });
+
   it("fails a file over the limits with limit-exceeded, not a hang", async () => {
     const client = await track(viewer());
     const e = await rejection(client.open(await read("fixtures/corpus/hello.pdf"), { limits: { maxNestingDepth: 1 } }));

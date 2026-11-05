@@ -214,6 +214,11 @@ export class ViewerClient {
     await this.call("closeDocument", []);
   }
 
+  /** The worker's WebAssembly memory in bytes (see `WorkerMemory`), for measuring. */
+  memory(options?: ViewerCallOptions) {
+    return this.call("memory", [], options);
+  }
+
   /** Page `index`'s size, rotation, ID and label. */
   pageInfo(index: number, options?: ViewerCallOptions) {
     return this.call("pageInfo", [index], options);
