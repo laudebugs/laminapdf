@@ -92,6 +92,13 @@ const EN = {
     "Lamina PDF couldn't read this file, even after trying to repair it. It may be damaged: ask the sender for a new copy, or download it again.",
   "failure.tryAnother": "Try another file",
   "failure.copy": "Copy error details",
+  "loading.title": "Downloading the whole file",
+  "loading.why": "This site sends the file only in one piece, so the pages show once all of it has arrived.",
+  "loading.progress": "{loaded} of {total} MB",
+  "loading.progressUnknown": "{loaded} MB",
+  "loading.cancel": "Cancel",
+  "debug.menu": "Debug",
+  "debug.backend": "Render with {backend}",
 } as const;
 
 /** A message's key in the catalogue. */

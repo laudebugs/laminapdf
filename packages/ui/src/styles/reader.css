@@ -451,3 +451,41 @@
     margin-block-start: var(--paper-space-8);
   }
 }
+
+/* The whole-file download (R02): a `raised` card a dialog wide, its title, the reason in muted
+   text, the bar and Cancel. */
+@layer paper.components {
+  /* Centred in the canvas, which is positioned, whatever its own layout. */
+  .paper-download {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    justify-items: start;
+    gap: var(--paper-space-12);
+    inline-size: min(100%, var(--paper-dialog-width));
+    block-size: fit-content;
+    margin: auto;
+    padding: var(--paper-space-24);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-raised);
+  }
+
+  .paper-download > .paper-progress {
+    justify-self: stretch;
+  }
+
+  .paper-download-title,
+  .paper-download-why {
+    margin: 0;
+  }
+
+  .paper-download-title {
+    font: var(--paper-type-title);
+    letter-spacing: var(--paper-type-title-letter-spacing);
+  }
+
+  .paper-download-why {
+    color: var(--paper-muted);
+  }
+}

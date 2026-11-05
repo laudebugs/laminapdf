@@ -38,6 +38,7 @@ import {
   Toast,
   ToggleButton,
   ToolToggle,
+  WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
 import { FakeViewer, fakeFile } from "./fakes.ts";
@@ -445,6 +446,11 @@ const topBar: Example[] = [
 ];
 
 const repairs: Example[] = [
+  {
+    component: "WholeFileDownload",
+    state: "62% of a known size",
+    element: () => <WholeFileDownload loaded={29.8 * 1024 * 1024} total={48 * 1024 * 1024} onCancel={noop} />,
+  },
   {
     component: "RepairDetails",
     state: "repairs and a feature not run",

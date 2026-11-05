@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import {
+  DebugMenu,
   type MenuEntry,
   OpenDropZone,
   OpenFailure,
@@ -13,6 +14,7 @@ import {
   type ReaderTopBarProps,
   RepairDetails,
   useGatedEntries,
+  WholeFileDownload,
 } from "../../src/index.ts";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
 import { cleanup, focused, renderIn } from "./render.tsx";
@@ -615,5 +617,41 @@ describe("OpenFailure", () => {
     );
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });
     expect(violations.map((v) => v.id)).toEqual([]);
+  });
+});
+
+describe("WholeFileDownload", () => {
+  it("shows megabytes and the percentage, and cancels", async () => {
+    const onCancel = vi.fn();
+    const host = renderIn(
+      <div style={{ position: "relative", blockSize: "400px" }}>
+        <WholeFileDownload loaded={29.8 * 1024 * 1024} total={48 * 1024 * 1024} onCancel={onCancel} />
+      </div>,
+    );
+    const bar = host.querySelector("[role=progressbar]") as HTMLElement;
+    expect(bar.getAttribute("aria-valuenow")).toBe("62");
+    expect(host.textContent).toContain("29.8 of 48.0 MB");
+    await userEvent.click(button("Cancel") as HTMLButtonElement);
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("is indeterminate when the host didn't say the size", () => {
+    const host = renderIn(<WholeFileDownload loaded={3 * 1024 * 1024} onCancel={() => {}} />);
+    expect(host.querySelector("[role=progressbar]")?.hasAttribute("aria-valuenow")).toBe(false);
+    expect(host.textContent).toContain("3.0 MB");
+  });
+});
+
+describe("DebugMenu", () => {
+  it("lists the backends, checks the current one, and switches", async () => {
+    const onBackendChange = vi.fn();
+    renderIn(<DebugMenu backend="pdfium" onBackendChange={onBackendChange} keys="other" />);
+    await userEvent.click(button("Debug") as HTMLButtonElement);
+    await frame();
+    const items = [...document.querySelectorAll("[role=menuitem]")];
+    expect(items.map((item) => item.textContent)).toEqual(["Render with PDFium", "Render with hayro"]);
+    expect(items[0]?.querySelector("svg")).not.toBeNull();
+    await userEvent.click(items[1] as HTMLElement);
+    expect(onBackendChange).toHaveBeenCalledWith("hayro");
   });
 });
