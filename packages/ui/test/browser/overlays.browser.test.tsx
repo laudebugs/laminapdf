@@ -381,6 +381,9 @@ describe("ToastRegion", () => {
         <ToastRegion queue={queue} aria-label="Notifications" />
       </>,
     );
+    // The pointer on Before, off the region: a hover left over from a failed test would pause
+    // the timers this test waits for.
+    await userEvent.hover(host.querySelector("button") as HTMLElement);
     queue.add({ message: "Update ready", timeout: Number.POSITIVE_INFINITY });
     queue.add({ message: "Highlight deleted", action: { label: "Undo", onPress: () => {} }, timeout: 60_000 });
     await frame();
@@ -390,10 +393,11 @@ describe("ToastRegion", () => {
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => focused().textContent).toBe("Before");
     // Polled, not slept: the timers resume, but a busy runner can take longer than any fixed wait.
+    // The queue is polled, not the page, which may not show "Copied" yet when the poll first looks.
     queue.add({ message: "Copied", timeout: 100 });
-    await expect
-      .poll(() => [...host.querySelectorAll(".paper-toast")].map((t) => t.textContent), { timeout: 4000 })
-      .toEqual(["Update ready"]);
+    await expect.poll(() => queue.entries().length, { timeout: 4000 }).toBe(1);
+    await frame();
+    expect([...host.querySelectorAll(".paper-toast")].map((t) => t.textContent)).toEqual(["Update ready"]);
   });
 
   it("sits above dialogs and menus, and stays reachable while a dialog is open", async () => {
