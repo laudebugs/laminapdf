@@ -28,7 +28,10 @@ export default defineConfig({
   vite: {
     // Every asset is a file too: font-src 'self' refuses fonts inlined as data: URLs.
     build: { assetsInlineLimit: 0 },
-    define: { __SITE_PAGES__: JSON.stringify(PAGES) },
+    define: {
+      __SITE_PAGES__: JSON.stringify(PAGES),
+      __PRODUCTION__: JSON.stringify(process.env.LAMINA_PDF_ENV === "production"),
+    },
   },
   integrations: [siteChecks({ origin: ORIGIN }), inlineScriptHashes, previewNoindex(process.env.LAMINA_PDF_ENV)],
 });

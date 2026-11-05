@@ -1,15 +1,15 @@
 ---
-// The home page, a placeholder until W1c writes it: what Lamina PDF is, and where the docs are.
+// The home page (W1c): for now the roadmap and what's coming next, from the progress snapshot
+// that `cargo xtask progress` writes (src/data/progress.json).
+import Home from "../components/home/Home.astro";
+import { META } from "../data/copy.js";
+import { readProgress } from "../data/progress.js";
+import snapshot from "../data/progress.json";
 import Base from "../layouts/Base.astro";
 
-const description =
-  "Create, read, edit and save PDFs from Rust and TypeScript: one Rust core, as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers.";
+const progress = readProgress(snapshot);
 ---
 
-<Base title="Lamina PDF" description={description}>
-  <article class="sheet">
-    <h1>Lamina PDF</h1>
-    <p class="lead">{description}</p>
-    <p><a href="https://docs.laminapdf.com/">Read the docs</a></p>
-  </article>
+<Base title={META.title} description={META.description}>
+  <Home progress={progress} />
 </Base>

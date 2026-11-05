@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lamina PDF: a page on paper</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;family=Source+Sans+3:wght@400;600;700&amp;display=swap">
+<style>
+body { margin: 0; }
+.pp { --ground: #F7F4EE; --surface: #FBF9F5; --field: #FFFFFF; --gutter: #ECE7DE; --text: #1F1D1A; --text2: #3A3631; --muted: #6B645A; --hairline: #E4DED3; --chip: #D8D1C5; --positive: #2F6A45; --positive-tint: #E7EBE3; --warning: #8A5300; --warning-tint: #F0E8DC; --bar-ready: #D8D1C5; --on-accent: #FFFFFF; --shadow: 0 1px 2px 0 rgba(60,48,30,.08), 0 8px 28px 0 rgba(60,48,30,.1); --sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif; --serif: "Newsreader", Georgia, serif; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.pp[data-theme="dark"] { --ground: #1E1D1A; --surface: #262421; --field: #2C2A26; --gutter: #141311; --text: #ECE7DE; --text2: #CFC8BC; --muted: #A39B8E; --hairline: #3A3732; --chip: #4A463F; --positive: #86C49A; --positive-tint: #353E34; --warning: #E0AE5A; --warning-tint: #443A2A; --bar-ready: #4A463F; --on-accent: #141311; --shadow: 0 1px 2px 0 rgba(0,0,0,.4), 0 8px 28px 0 rgba(0,0,0,.45); }
+.pp[data-accent="teal"] { --accent: #1F5C63; --accent-strong: #16454B; --accent-tint: #E1E6E3; }
+.pp[data-accent="blue"] { --accent: #2D4A6B; --accent-strong: #1A3757; --accent-tint: #E2E4E4; }
+.pp[data-accent="plum"] { --accent: #5B3B6B; --accent-strong: #472856; --accent-tint: #E8E2E4; }
+.pp[data-accent="green"] { --accent: #495533; --accent-strong: #35401F; --accent-tint: #E6E5DE; }
+.pp[data-theme="dark"][data-accent="teal"] { --accent: #7DBDC2; --accent-strong: #9BCFD3; --accent-tint: #343C3B; }
+.pp[data-theme="dark"][data-accent="blue"] { --accent: #91B3DC; --accent-strong: #AAC7E9; --accent-tint: #373B3F; }
+.pp[data-theme="dark"][data-accent="plum"] { --accent: #C59FD9; --accent-strong: #D6B6E7; --accent-tint: #3F383E; }
+.pp[data-theme="dark"][data-accent="green"] { --accent: #A8B78F; --accent-strong: #BDCAA8; --accent-tint: #3B3C33; }
+.pp a { color: var(--accent); }
+.pp a:hover { color: var(--accent-strong); }
+.pp a:focus-visible, .pp button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.tab { font: 600 13px/1 var(--sans); color: var(--text2); background: transparent; border: 0; padding: 12px 14px; min-height: 44px; cursor: pointer; box-shadow: inset 0 -2px 0 transparent; }
+.tab-on { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+.dot-done { background: var(--accent); box-shadow: 0 0 0 3px var(--surface); }
+.dot-now { background: var(--surface); box-shadow: inset 0 0 0 3px var(--warning), 0 0 0 3px var(--surface); }
+.dot-later { background: var(--surface); box-shadow: inset 0 0 0 2px var(--chip), 0 0 0 3px var(--surface); }
+.lab-done { color: var(--positive); }
+.lab-now { color: var(--warning); }
+.lab-later { color: var(--muted); }
+.seg-done { background: var(--accent); }
+.seg-now { background: var(--warning); }
+.seg-ready { background: var(--bar-ready); }
+</style>
+</helmet>
+<div class="pp" data-theme="{{theme}}" data-accent="{{accent}}" style="background: var(--ground); color: var(--text); font: 400 16px/1.5 var(--sans); min-height: 100vh; padding: 0 clamp(16px, 4vw, 40px) 56px">
+
+  <header style="max-width: 920px; margin: 0 auto; min-height: 72px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px">
+    <a href="#top" style="font: 500 22px/1 var(--serif); color: var(--text); text-decoration: none">Lamina PDF</a>
+    <nav aria-label="Site" style="display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 15px">
+      <a href="#roadmap" style="color: var(--text2); text-decoration: none; padding: 12px 0">Roadmap</a>
+      <a href="#packages" style="color: var(--text2); text-decoration: none; padding: 12px 0">Packages</a>
+      <a href="https://docs.laminapdf.com" style="color: var(--text2); text-decoration: none; padding: 12px 0">Docs</a>
+    </nav>
+  </header>
+
+  <main id="top" style="max-width: 920px; margin: 0 auto; background: var(--surface); box-shadow: var(--shadow); border-radius: 3px; padding: clamp(24px, 6vw, 72px); display: grid; gap: 56px">
+
+    <section aria-labelledby="pp-title" style="display: grid; gap: 18px">
+      <span style="font-size: 11px; letter-spacing: .66px; text-transform: uppercase; color: var(--muted)">Lamina PDF · alpha 0.2.0-alpha.2 · {{snapshot}}</span>
+      <h1 id="pp-title" style="margin: 0; font: 400 clamp(34px, 5vw, 48px)/1.1 var(--serif); text-wrap: balance">Create, read and edit PDFs from one Rust core, in every language you ship.</h1>
+      <p style="margin: 0; font-size: 18px; line-height: 1.6; color: var(--text2); max-width: 60ch">Lamina PDF is a library for Rust and TypeScript today, and a web reader and a desktop app next. This page shows the plan and how far it has come.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 6px">
+        <a href="https://docs.laminapdf.com" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 4px; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 600">Read the docs</a>
+        <a href="#packages" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--chip); color: var(--text); text-decoration: none; font-weight: 600">Install a package</a>
+      </div>
+      <figure style="margin: 14px 0 0; background: var(--field); border: 1px solid var(--hairline); border-radius: 6px; overflow: hidden">
+        <div role="tablist" aria-label="Language" style="display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--hairline); padding: 0 6px">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+            <button type="button" role="tab" aria-selected="{{t.selected}}" class="{{t.cls}}" onClick="{{t.pick}}">{{t.label}}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{showTs}}" hint-placeholder-val="{{true}}">
+          <pre style="margin: 0; padding: 18px 20px; overflow-x: auto; font: 400 13.5px/1.7 var(--mono); color: var(--text)"><code><span style="color: var(--muted)">// npm install @laminapdf/sdk@alpha</span>
+import { Builder, Font, init } from "@laminapdf/sdk";
+
+await init({ text: true });
+using b = new Builder();
+const page = b.page("A4");
+page.surface().text("Hello, world!", {
+  font: Font.standard("Helvetica"), size: 24, at: [72, 96],
+});
+page.finish();
+const bytes = b.finish().save();</code></pre>
+        </sc-if>
+        <sc-if value="{{showRust}}" hint-placeholder-val="{{false}}">
+          <pre style="margin: 0; padding: 18px 20px; overflow-x: auto; font: 400 13.5px/1.7 var(--mono); color: var(--text)"><code><span style="color: var(--muted)">// cargo add laminapdf@0.2.0-alpha</span>
+use laminapdf::{BuildOptions, Builder, PageSize, PointPt, Pt, SaveOptions, Standard14};
+
+let mut b = Builder::new(BuildOptions::new());
+let helvetica = b.standard_font(Standard14::Helvetica)?;
+let mut page = b.page(PageSize::A4);
+page.surface().text("Hello, world!", &amp;helvetica,
+    Pt::new(24.0), PointPt::from_points(72.0, 96.0))?;
+page.finish()?;
+let bytes = b.finish()?.save(&amp;SaveOptions::new())?.bytes;</code></pre>
+        </sc-if>
+        <sc-if value="{{showCli}}" hint-placeholder-val="{{false}}">
+          <pre style="margin: 0; padding: 18px 20px; overflow-x: auto; font: 400 13.5px/1.7 var(--mono); color: var(--text)"><code><span style="color: var(--muted)"># release binaries come next; build it from a checkout today</span>
+$ laminapdf info report.pdf
+$ laminapdf info scan.pdf --json --fields pages,encrypted,warnings
+$ laminapdf pages rotate scan.pdf 90:z --in-place
+$ laminapdf extract report.pdf --pages 1-3
+
+<span style="color: var(--muted)"># the same commands for an AI agent, read-only</span>
+$ laminapdf mcp --root ./documents</code></pre>
+        </sc-if>
+        <figcaption style="padding: 10px 20px; border-top: 1px solid var(--hairline); font-size: 12.5px; color: var(--muted)">The same first PDF in each language: one A4 page with a line of text.</figcaption>
+      </figure>
+    </section>
+
+    <section id="roadmap" aria-labelledby="ms-title" style="display: grid; gap: 20px">
+      <div style="display: grid; gap: 4px">
+        <h2 id="ms-title" style="margin: 0; font: 500 28px/1.2 var(--serif)">The roadmap</h2>
+        <p style="margin: 0; color: var(--muted); font-size: 14px">Eleven milestones. Three are done, and the web reader is under way.</p>
+      </div>
+      <ol style="list-style: none; margin: 0; padding: 0 0 0 4px; display: grid; gap: 0; border-left: 2px solid var(--hairline); margin-left: 8px">
+        <sc-for list="{{milestones}}" as="m" hint-placeholder-count="11">
+          <li style="display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 0 0 22px; margin-left: -13px">
+            <i class="{{m.dot}}" style="display: block; width: 16px; height: 16px; border-radius: 50%; margin-top: 5px"></i>
+            <div style="display: grid; gap: 2px">
+              <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px">
+                <strong style="font: 500 19px/1.3 var(--serif)">{{m.id}} · {{m.name}}</strong>
+                <span class="{{m.lab}}" style="font-size: 12px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase">{{m.stateLabel}}</span>
+              </div>
+              <span style="font-size: 14.5px; color: var(--text2)">{{m.ships}}</span>
+            </div>
+          </li>
+        </sc-for>
+      </ol>
+    </section>
+
+    <section aria-labelledby="dash-title" style="display: grid; gap: 28px; padding-top: 8px; border-top: 1px solid var(--hairline)">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 20px; padding-top: 28px">
+        <h2 id="dash-title" style="margin: 0; font: 500 28px/1.2 var(--serif)">What's happening now</h2>
+        <span style="font-size: 13px; color: var(--muted)">Snapshot of the todo board, {{snapshot}}</span>
+      </div>
+
+      <p style="margin: 0; font: 400 21px/1.45 var(--serif); color: var(--text); max-width: 46ch"><b style="font-weight: 500">111 of 300</b> planned pieces of work are done, across <b style="font-weight: 500">219</b> merged pull requests. One is in progress and eleven are ready to start.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 40px">
+        <div style="flex: 1.3 1 400px; min-width: 0; display: grid; gap: 10px; align-content: start">
+          <h3 style="margin: 0 0 4px; font: 500 18px/1.3 var(--serif)">By round</h3>
+          <sc-for list="{{rounds}}" as="r" hint-placeholder-count="12">
+            <div style="display: grid; grid-template-columns: minmax(130px, 200px) minmax(0, 1fr) 60px; gap: 10px; align-items: center">
+              <span style="font-size: 13.5px; color: var(--text2)">{{r.name}}</span>
+              <div role="img" aria-label="{{r.aria}}" style="display: flex; height: 8px; border-radius: 2px; overflow: hidden; background: var(--gutter)">
+                <i class="seg-done" style="display: block; width: {{r.donePct}}"></i>
+                <i class="seg-now" style="display: block; width: {{r.nowPct}}"></i>
+                <i class="seg-ready" style="display: block; width: {{r.readyPct}}"></i>
+              </div>
+              <span style="font-size: 12.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums">{{r.count}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex: 1 1 280px; min-width: 0; display: grid; gap: 22px; align-content: start">
+          <div style="display: grid; gap: 8px">
+            <h3 style="margin: 0; font: 500 18px/1.3 var(--serif)">In progress</h3>
+            <p style="margin: 0; padding-left: 12px; box-shadow: inset 2px 0 0 var(--warning); color: var(--text)">Paper overlays: dialogs, menus, tooltips and toasts</p>
+          </div>
+          <div style="display: grid; gap: 8px">
+            <h3 style="margin: 0; font: 500 18px/1.3 var(--serif)">Next up</h3>
+            <ul style="margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--text2); font-size: 14.5px">
+              <sc-for list="{{nextUp}}" as="n" hint-placeholder-count="11">
+                <li>{{n}}</li>
+              </sc-for>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; gap: 6px">
+        <h3 style="margin: 0 0 4px; font: 500 18px/1.3 var(--serif)">Merged most recently</h3>
+        <sc-for list="{{recent}}" as="m" hint-placeholder-count="8">
+          <div style="display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline); font-size: 14.5px">
+            <span style="color: var(--muted); font-variant-numeric: tabular-nums">{{m.date}}</span>
+            <span>{{m.title}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="packages" aria-labelledby="pk-title" style="display: grid; gap: 20px; border-top: 1px solid var(--hairline); padding-top: 36px">
+      <div style="display: grid; gap: 6px">
+        <h2 id="pk-title" style="margin: 0; font: 500 28px/1.2 var(--serif)">The packages</h2>
+        <p style="margin: 0; color: var(--text2); max-width: 62ch">Two packages cover most projects. Name the alpha when you install; a plain install picks a placeholder that only reserves the name.</p>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px">
+        <div style="display: grid; gap: 6px">
+          <span style="font-size: 12px; font-weight: 600; color: var(--muted)">TypeScript, every JavaScript runtime</span>
+          <code style="display: block; font: 400 14px/1.6 var(--mono); background: var(--field); border: 1px solid var(--hairline); border-radius: 4px; padding: 10px 14px">npm install @laminapdf/sdk@alpha</code>
+        </div>
+        <div style="display: grid; gap: 6px">
+          <span style="font-size: 12px; font-weight: 600; color: var(--muted)">Rust</span>
+          <code style="display: block; font: 400 14px/1.6 var(--mono); background: var(--field); border: 1px solid var(--hairline); border-radius: 4px; padding: 10px 14px">cargo add laminapdf@0.2.0-alpha</code>
+        </div>
+      </div>
+      <div style="overflow-x: auto; border: 1px solid var(--hairline); border-radius: 4px">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px">
+          <caption style="text-align: left; padding: 12px 14px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--hairline)">Every published package, at version 0.2.0-alpha.2</caption>
+          <thead>
+            <tr style="text-align: left; color: var(--muted); font-size: 12px">
+              <th scope="col" style="padding: 10px 14px; font-weight: 600">Package</th>
+              <th scope="col" style="padding: 10px 14px; font-weight: 600">Registry</th>
+              <th scope="col" style="padding: 10px 14px; font-weight: 600">What it holds</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{packages}}" as="p" hint-placeholder-count="10">
+              <tr style="border-top: 1px solid var(--hairline)">
+                <td style="padding: 9px 14px; font: 600 13px/1.4 var(--mono); white-space: nowrap">{{p.name}}</td>
+                <td style="padding: 9px 14px; color: var(--text2)">{{p.registry}}</td>
+                <td style="padding: 9px 14px; color: var(--text2)">{{p.what}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 0; font-size: 14px; color: var(--text2)">The <span style="font-family: var(--mono); font-size: 13px">laminapdf</span> command line inspects, checks and changes PDFs, and serves the same commands to AI agents over MCP. Its release binaries come next.</p>
+    </section>
+
+    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 20px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--hairline); padding-top: 16px">
+      <span>Lamina PDF · MIT or Apache-2.0 · No cookies, no trackers</span>
+      <span style="font-variant-numeric: tabular-nums">laminapdf.com · 1 / 1</span>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light","section":"Look"},"accent":{"editor":"enum","options":["teal","blue","plum","green"],"default":"teal","section":"Look"},"$preview":{"width":1280,"height":3750}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: "ts" };
+  }
+  renderVals() {
+    const tab = this.state.tab;
+    const tabs = [["ts", "TypeScript"], ["rust", "Rust"], ["cli", "Command line"]].map(([id, label]) => ({
+      label,
+      selected: tab === id ? "true" : "false",
+      cls: tab === id ? "tab tab-on" : "tab",
+      pick: () => this.setState({ tab: id }),
+    }));
+    const pct = (n, t) => `${((n / t) * 100).toFixed(2)}%`;
+    const rounds = [
+      ["Foundations", 3, 0, 0],
+      ["Core library", 31, 0, 0],
+      ["Docs and code quality", 38, 0, 0],
+      ["CI and tooling", 8, 0, 1],
+      ["Publishing", 5, 0, 1],
+      ["Shared libraries", 12, 0, 7],
+      ["Design system and UX", 7, 1, 14],
+      ["Web reader", 7, 0, 13],
+      ["Website", 0, 0, 5],
+      ["Desktop app", 0, 0, 21],
+      ["Hosted service", 0, 0, 4],
+      ["Full editor", 0, 0, 122],
+    ].map(([name, done, now, ready]) => {
+      const t = done + now + ready;
+      return {
+        name, donePct: pct(done, t), nowPct: pct(now, t), readyPct: pct(ready, t),
+        count: `${done} / ${t}`,
+        aria: `${name}: ${done} done, ${now} in progress, ${ready} planned, of ${t}`,
+      };
+    });
+    const st = { done: ["dot-done", "lab-done", "Done"], now: ["dot-now", "lab-now", "Under way"], later: ["dot-later", "lab-later", "Not started"] };
+    const milestones = [
+      ["M0", "Foundations", "The monorepo, CI and the first core crates.", "done"],
+      ["M1", "Library alpha", "laminapdf and @laminapdf/sdk generate, open, edit and save PDFs.", "done"],
+      ["M2", "Web reader", "A reader in the browser that never uploads your file: render, search, select, print, offline.", "now"],
+      ["M3", "Desktop reader beta", "Signed apps for macOS, Windows and Linux, with auto-update.", "later"],
+      ["M4", "Library 0.2", "Tagged PDF, PDF/UA-1, and PDF/A-2 and 3.", "done"],
+      ["M5", "Organiser", "Pages, bookmarks, attachments and metadata.", "later"],
+      ["M6", "Annotator", "Markup, drawing, review threads and stamps.", "later"],
+      ["M7", "Content editor", "Add and edit text, images and vectors.", "later"],
+      ["M8", "Forms and signing", "Fill and build forms; PAdES signatures.", "later"],
+      ["M9", "Advanced", "Redaction, OCR, compare, accessibility and print production.", "later"],
+      ["M10", "Collaboration", "Shared review, if it's wanted.", "later"],
+    ].map(([id, name, ships, s]) => ({ id, name, ships, dot: st[s][0], lab: st[s][1], stateLabel: st[s][2] }));
+    return {
+      theme: this.props.theme ?? "light",
+      accent: this.props.accent ?? "teal",
+      snapshot: "5 November 2026",
+      tabs,
+      showTs: tab === "ts",
+      showRust: tab === "rust",
+      showCli: tab === "cli",
+      milestones,
+      rounds,
+      nextUp: [
+        "Extraction: headings, lists and running headers",
+        "Extraction in WebAssembly and the SDK",
+        "Layout and OCR model plug-ins",
+        "CLI batch mode, rendering, Markdown and JSON",
+        "CLI release binaries, Homebrew and npm",
+        "Viewer performance harness",
+        "The website at laminapdf.com",
+        "Self-hosted fonts",
+        "Desktop IPC spike",
+        "Registry checks after the first release",
+        "Windows CI",
+      ],
+      recent: [
+        { date: "4 Nov", title: "Tables, Markdown, JSON and chunk output from extraction" },
+        { date: "4 Nov", title: "Paper display components, with every state tested" },
+        { date: "4 Nov", title: "Paper core controls, with keyboard and accessibility tests" },
+        { date: "4 Nov", title: "Docs for coding agents: llms.txt and Markdown copies of every page" },
+        { date: "4 Nov", title: "The Paper icon set" },
+        { date: "4 Nov", title: "Paper design tokens: light, dark and high-contrast themes" },
+        { date: "4 Nov", title: "The app shell's layout, modes and command registry" },
+        { date: "4 Nov", title: "Text extraction for retrieval: blocks in reading order" },
+      ],
+      packages: [
+        { name: "@laminapdf/sdk", registry: "npm", what: "The TypeScript API, for every JavaScript runtime" },
+        { name: "@laminapdf/wasm", registry: "npm", what: "The WebAssembly modules under the SDK" },
+        { name: "@laminapdf/viewer", registry: "npm", what: "The core of a web PDF viewer, one worker per document" },
+        { name: "@laminapdf/render-pdfium", registry: "npm", what: "The default web renderer, built on PDFium" },
+        { name: "@laminapdf/render-hayro", registry: "npm", what: "A second web renderer, built on hayro" },
+        { name: "@laminapdf/render", registry: "npm", what: "The interface that page renderers implement" },
+        { name: "laminapdf", registry: "crates.io", what: "The Rust API: open, read, edit, save and build PDFs" },
+        { name: "laminapdf-build, -text", registry: "crates.io", what: "The builder, fonts, shaping and line breaking" },
+        { name: "laminapdf-cos, -model, -ops, -save", registry: "crates.io", what: "Tolerant reading, typed views, undoable edits, saving" },
+        { name: "laminapdf-render, -render-pdfium", registry: "crates.io", what: "Page rendering, and the native PDFium renderer" },
+        { name: "laminapdf-syntax, -content, -source", registry: "crates.io", what: "Objects and filters, content streams, remote byte sources" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

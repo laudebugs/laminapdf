@@ -1,0 +1,39 @@
+---
+// A code panel with one tab per language (design: the owner's sample C). The tabs come from
+// src/scripts/tabs.ts; without it every pane shows under its own heading, so the code is readable
+// with no script at all.
+interface Props {
+  /** One pane per tab: its ID, its label and its code. */
+  tabs: readonly { id: string; label: string; code: string }[];
+  caption: string;
+}
+
+const { tabs, caption } = Astro.props;
+---
+
+<figure class="code-panel" data-tabs>
+  <div class="code-tabs" data-tablist aria-label="Language" hidden>
+    {
+      tabs.map((tab) => (
+        <button type="button" class="code-tab" id={`tab-${tab.id}`} data-tab>
+          {tab.label}
+        </button>
+      ))
+    }
+  </div>
+  {
+    tabs.map((tab) => (
+      <section class="code-pane" id={`pane-${tab.id}`} data-pane aria-labelledby={`label-${tab.id}`}>
+        <h3 class="code-label" id={`label-${tab.id}`}>
+          {tab.label}
+        </h3>
+        <pre tabindex="0"><code>{tab.code}</code></pre>
+      </section>
+    ))
+  }
+  <figcaption>{caption}</figcaption>
+</figure>
+
+<script>
+  import "../../scripts/tabs.js";
+</script>

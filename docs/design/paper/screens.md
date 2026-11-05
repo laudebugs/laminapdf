@@ -147,7 +147,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | X11 | Layers and actions (optional content panel, actions editor) | D | [E17c](../../todos/ready/E17c-layers.md), [E17b](../../todos/ready/E17b-action-editor.md) |
 | X12 | Measurement and media (distance, area, scale; media and 3D placeholders) | D | [E17e](../../todos/ready/E17e-measurement.md), [E17d](../../todos/ready/E17d-media.md), [E17f](../../todos/ready/E17f-3d-detection.md) |
 
-## H. Account, cloud, collaboration and product pages (H, E18, U5)
+## H. Account, cloud, collaboration and product pages (H, E18, U5, W1)
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
@@ -162,6 +162,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | H09 | Benchmark page | W | [U5b](../../todos/ready/U5b-reader-benchmark.md) |
 | H10 | Telemetry opt-in and what we collect | W, D | [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md) |
 | H11 | Upgrade prompt before work starts (never after) | W | [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) |
+| H12 | Website home, for now the roadmap: what Lamina PDF is, a first PDF in code, the milestones, the dashboard, the packages | W, M | [W1c](../../todos/ongoing/W1c-home-page.md) |
 
 ## Canvases
 
@@ -181,3 +182,4 @@ Each canvas is private to the owner until shared. Its source files are committed
 | G | Sign, protect and redact | [sign-protect-redact.md](sign-protect-redact.md) | [canvas](https://claude.ai/artifact/QbwnMXXDikC4Fe8gwede5P) | [`sign-protect-redact/`](sign-protect-redact/project/canvas.json) |
 | X | Convert, compare and produce | [convert-compare-produce.md](convert-compare-produce.md) | [canvas](https://claude.ai/artifact/GwyjtEGo2D2wMo4VUubKKZ) | [`convert-compare-produce/`](convert-compare-produce/project/canvas.json) |
 | H | Account, cloud and product | [account-cloud-product.md](account-cloud-product.md) | [canvas](https://claude.ai/artifact/Ronx2eZUMeMbgZGbx8CYhX) | [`account-cloud-product/`](account-cloud-product/project/canvas.json) |
+| H12 | Website home | [account-cloud-product.md](account-cloud-product.md#h12-website-home) | [canvas](https://claude.ai/artifact/2doFGoyD8t9KJZZnLAwGAQ) | [`website-home/`](website-home/project/canvas.json) |
