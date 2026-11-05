@@ -37,7 +37,7 @@ impl State {
 }
 
 /// The ID letters in board order: plan sections in the order the board lists them.
-const SECTIONS: [(char, &str); 12] = [
+pub(crate) const SECTIONS: [(char, &str); 12] = [
     ('A', "Architecture — Round A"),
     ('B', "Library — Round B"),
     ('L', "Shareable libraries — Rounds L1–L6"),
@@ -83,12 +83,12 @@ pub(crate) struct TodoFile {
 
 /// A parsed todo.
 #[derive(Debug)]
-struct Todo {
-    id: String,
-    state: State,
-    file: String,
-    title: String,
-    deps: Vec<String>,
+pub(crate) struct Todo {
+    pub(crate) id: String,
+    pub(crate) state: State,
+    pub(crate) file: String,
+    pub(crate) title: String,
+    pub(crate) deps: Vec<String>,
 }
 
 /// What the todo files should contain: each todo's text (same order as the input) and the board.
@@ -145,7 +145,7 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<()> {
 
 /// Every tracked `*.md` in the state folders, by state then file name. Untracked drafts are
 /// left out, as GitHub never shows them: `git add` a new todo before running `cargo xtask todos`.
-fn load(root: &Path, tracked: &Tracked) -> Result<Vec<TodoFile>> {
+pub(crate) fn load(root: &Path, tracked: &Tracked) -> Result<Vec<TodoFile>> {
     let mut files = Vec::new();
     for state in State::ALL {
         let folder = Path::new("docs/todos").join(state.name());
@@ -181,8 +181,10 @@ pub(crate) fn stale_files(files: &[TodoFile], current_board: &str, generated: &G
     stale
 }
 
-/// Checks the todo graph and generates the files, or lists every problem found.
-pub(crate) fn generate(files: &[TodoFile]) -> Result<Generated, Vec<String>> {
+/// The todos of `files`, in the files' order, once the graph is consistent: well-formed IDs and
+/// fields, Status matching the folder, no duplicate IDs, known dependencies, no cycles, and done
+/// todos depending only on done ones. Otherwise every problem found.
+pub(crate) fn checked(files: &[TodoFile]) -> Result<Vec<Todo>, Vec<String>> {
     let mut problems = Vec::new();
     let todos: Vec<Todo> = files.iter().filter_map(|f| parse(f, &mut problems)).collect();
     if !problems.is_empty() {
@@ -215,7 +217,30 @@ pub(crate) fn generate(files: &[TodoFile]) -> Result<Generated, Vec<String>> {
     if !problems.is_empty() {
         return Err(problems);
     }
+    Ok(todos)
+}
 
+/// The board's "Can start now": the ready todos whose dependencies are all done, in board order.
+/// `by_id` maps each of `todos` by its ID.
+pub(crate) fn startable<'a>(todos: &'a [Todo], by_id: &BTreeMap<&str, &Todo>) -> Vec<&'a Todo> {
+    let mut startable: Vec<&Todo> = todos
+        .iter()
+        .filter(|t| {
+            t.state == State::Ready
+                && t.deps
+                    .iter()
+                    .all(|d| by_id.get(d.as_str()).is_some_and(|d| d.state == State::Done))
+        })
+        .collect();
+    startable.sort_by_key(|t| order_key(&t.id));
+    startable
+}
+
+/// Checks the todo graph and generates the files, or lists every problem found.
+pub(crate) fn generate(files: &[TodoFile]) -> Result<Generated, Vec<String>> {
+    let todos = checked(files)?;
+    let by_id: BTreeMap<&str, &Todo> = todos.iter().map(|t| (t.id.as_str(), t)).collect();
+    let mut problems = Vec::new();
     let mut blocks: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for todo in &todos {
         for dep in &todo.deps {
@@ -378,14 +403,28 @@ fn is_todo_id(id: &str) -> bool {
     looks_like_id(id) && id.chars().next().is_some_and(|c| LETTER_ORDER.contains(c))
 }
 
-/// Sort key: section letter, round number, suffix.
-fn order_key(id: &str) -> (usize, u64, String) {
+/// An ID's letter, round number and suffix (`B2a` → `('B', 2, "a")`), or `None` if it isn't one.
+pub(crate) fn id_parts(id: &str) -> Option<(char, u64, &str)> {
+    if !looks_like_id(id) {
+        return None;
+    }
     let mut chars = id.chars();
-    let letter = chars.next().and_then(|c| LETTER_ORDER.find(c)).unwrap_or(usize::MAX);
+    let letter = chars.next()?;
     let rest = chars.as_str();
     let digits = rest.trim_end_matches(|c: char| c.is_ascii_lowercase());
-    let suffix = rest.get(digits.len()..).unwrap_or_default();
-    (letter, digits.parse().unwrap_or(u64::MAX), suffix.to_owned())
+    Some((letter, digits.parse().ok()?, rest.get(digits.len()..)?))
+}
+
+/// Sort key: section letter, round number, suffix.
+pub(crate) fn order_key(id: &str) -> (usize, u64, String) {
+    match id_parts(id) {
+        Some((letter, round, suffix)) => (
+            LETTER_ORDER.find(letter).unwrap_or(usize::MAX),
+            round,
+            suffix.to_owned(),
+        ),
+        None => (usize::MAX, u64::MAX, String::new()),
+    }
 }
 
 /// Every dependency cycle, as `cycle: A -> B -> A`.
@@ -446,16 +485,7 @@ fn board(todos: &[Todo], by_id: &BTreeMap<&str, &Todo>) -> (String, String) {
     sorted.sort_by_key(|t| order_key(&t.id));
     let count = |state: State| todos.iter().filter(|t| t.state == state).count();
     let (ongoing, ready, done) = (count(State::Ongoing), count(State::Ready), count(State::Done));
-    let startable: Vec<&Todo> = sorted
-        .iter()
-        .copied()
-        .filter(|t| {
-            t.state == State::Ready
-                && t.deps
-                    .iter()
-                    .all(|d| by_id.get(d.as_str()).is_some_and(|d| d.state == State::Done))
-        })
-        .collect();
+    let startable = startable(todos, by_id);
 
     let mut out = String::from(BOARD_HEADER);
     let _ = writeln!(
@@ -524,14 +554,14 @@ fn board(todos: &[Todo], by_id: &BTreeMap<&str, &Todo>) -> (String, String) {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::{
         Generated, LETTER_ORDER, SECTIONS, State, TodoFile, generate, load, order_key, parse_links, stale_files,
     };
     use crate::tracked::{TempTree, Tracked};
 
     /// A minimal todo file. `deps` and `blocks` are the raw field values.
-    fn todo(state: State, id: &str, deps: &str, blocks: &str) -> TodoFile {
+    pub(crate) fn todo(state: State, id: &str, deps: &str, blocks: &str) -> TodoFile {
         let status = match state {
             State::Ready => "ready",
             State::Ongoing => "ongoing",
