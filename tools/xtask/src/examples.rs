@@ -16,7 +16,8 @@ use crate::workspace::Workspace;
 /// The façade's examples: every `crates/laminapdf/examples/<name>.rs`, each writing `<name>.pdf`
 /// or, for an example with variants (`pdf_a_archive`: PDF/A-2b and PDF/A-2u), one
 /// `<name>-<variant>.pdf` per variant ([`outputs_of`]), in name order. Discovered, not listed, so a new example is a golden without an xtask edit
-/// (`crates/laminapdf/tests/examples.rs` checks its own list against the same folder).
+/// (`crates/laminapdf/tests/examples.rs` checks its own list against the same folder). The
+/// examples in [`READERS`] read a document instead of writing one, so they have no golden.
 pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
     let dir = root.join("crates/laminapdf/examples");
     let mut names = Vec::new();
@@ -24,6 +25,7 @@ pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
         let path = entry?.path();
         if path.extension().is_some_and(|e| e == "rs")
             && let Some(stem) = path.file_stem()
+            && !READERS.contains(&stem.to_string_lossy().as_ref())
         {
             names.push(stem.to_string_lossy().into_owned());
         }
@@ -34,6 +36,10 @@ pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
     }
     Ok(names)
 }
+
+/// The examples that write no PDF (the same list as `READERS` in
+/// `crates/laminapdf/tests/examples.rs`).
+const READERS: [&str; 1] = ["extract_markdown"];
 
 /// Where `cargo xtask examples` writes the outputs.
 pub(crate) const OUT_DIR: &str = "target/examples-out";
@@ -147,6 +153,7 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let names = names(&root).unwrap();
         assert!(names.iter().any(|n| n == "invoice"), "{names:?}");
+        assert!(!names.iter().any(|n| READERS.contains(&n.as_str())), "{names:?}");
     }
 
     #[test]

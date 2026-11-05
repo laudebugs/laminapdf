@@ -14,6 +14,7 @@ pub const SCHEMA: &str = "laminapdf.extract/1";
 /// serialiser adds them as `warnings`.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct Extraction {
     /// What was read.
@@ -29,6 +30,7 @@ pub struct Extraction {
 /// The input, as ADR 0030 §1's `source` describes it.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct ExtractedSource {
     /// The input's SHA-256 in hex: filled by the caller that holds the bytes (the façade), since
@@ -48,6 +50,7 @@ pub struct ExtractedSource {
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub enum StructSource {
     /// The structure tree.
@@ -65,6 +68,7 @@ pub enum StructSource {
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct ExtractedPage {
     /// 0-based.
@@ -76,9 +80,11 @@ pub struct ExtractedPage {
     pub label: Option<String>,
     /// The displayed width in points (after `/Rotate` and `/UserUnit`).
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::pt"))]
+    #[cfg_attr(feature = "schema", schemars(with = "f64"))]
     pub width: Pt,
     /// The displayed height in points.
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::pt"))]
+    #[cfg_attr(feature = "schema", schemars(with = "f64"))]
     pub height: Pt,
     /// The frame the boxes are in.
     pub coordinates: Coordinates,
@@ -87,6 +93,7 @@ pub struct ExtractedPage {
 /// ADR 0027 §4's `coordinates` block: top-left points of the displayed box.
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct Coordinates {
     /// Always `"top-left"`.
@@ -121,6 +128,7 @@ impl Coordinates {
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct Block {
     /// `p<page index>-b<position in the page's reading order>`.
@@ -134,10 +142,12 @@ pub struct Block {
     pub page: usize,
     /// The block's box in page space.
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::rect"))]
+    #[cfg_attr(feature = "schema", schemars(with = "[f64; 4]"))]
     pub bbox: RectPt,
     /// The box divided by the page's width and height, clamped to [0, 1]; `None` when the
     /// block lies wholly outside the page.
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::norm"))]
+    #[cfg_attr(feature = "schema", schemars(with = "Option<[f64; 4]>"))]
     pub bbox_norm: Option<[f64; 4]>,
     /// The structure types from the root down to the block; empty when untagged.
     pub struct_path: Vec<String>,
@@ -148,6 +158,46 @@ pub struct Block {
     pub spans: Vec<Span>,
     /// In [0, 1]: 1 for structure from the tree, lower for structure inferred from layout.
     pub confidence: f64,
+    /// A table's cells, row by row; empty for every other block.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Vec::is_empty"))]
+    #[cfg_attr(feature = "schema", schemars(default))]
+    pub cells: Vec<Cell>,
+}
+
+/// One cell of a table block.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[non_exhaustive]
+pub struct Cell {
+    /// The first row it covers, 0 at the top.
+    pub row: usize,
+    /// The first column it covers, 0 at the left.
+    pub col: usize,
+    /// How many rows it covers.
+    pub row_span: usize,
+    /// How many columns it covers.
+    pub col_span: usize,
+    /// Whether it is in a header row.
+    pub header: bool,
+    /// Its visible text, lines joined by a space.
+    pub text: String,
+    /// Its box in page space.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "ser::rect"))]
+    #[cfg_attr(feature = "schema", schemars(with = "[f64; 4]"))]
+    pub bbox: RectPt,
+}
+
+/// What found a table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[non_exhaustive]
+pub enum TableDetector {
+    /// The lines that rule it.
+    Lattice,
+    /// Text lined up in columns, with no lines.
+    Stream,
 }
 
 /// What a block is.
@@ -157,6 +207,7 @@ pub struct Block {
     derive(serde::Serialize),
     serde(tag = "type", rename_all = "kebab-case", rename_all_fields = "camelCase")
 )]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub enum BlockKind {
     /// A heading, level 1 (the top) to 6.
@@ -179,6 +230,16 @@ pub enum BlockKind {
     Footnote,
     /// Anything else.
     Other,
+    /// A table: its text is the cells', a tab between cells and a line break between rows, and
+    /// the block's `cells` hold them.
+    Table {
+        /// The grid's rows.
+        rows: usize,
+        /// The grid's columns.
+        cols: usize,
+        /// What found it.
+        detector: TableDetector,
+    },
 }
 
 /// A structure element ([ADR 0030] §1's `structRef`).
@@ -186,6 +247,7 @@ pub enum BlockKind {
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct StructRef {
     /// The element's object number.
@@ -199,20 +261,24 @@ pub struct StructRef {
 /// One run of text in a block or a dropped entry.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct Span {
     /// The run's text.
     pub text: String,
     /// Its box in page space.
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::rect"))]
+    #[cfg_attr(feature = "schema", schemars(with = "[f64; 4]"))]
     pub bbox: RectPt,
     /// The baseline's y in page space (ADR 0027 §5).
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::pt"))]
+    #[cfg_attr(feature = "schema", schemars(with = "f64"))]
     pub baseline: Pt,
     /// The font's `/BaseFont`.
     pub font: String,
     /// The glyph size in points.
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::pt"))]
+    #[cfg_attr(feature = "schema", schemars(with = "f64"))]
     pub size: Pt,
     /// Why the run would be hidden; empty for visible text.
     pub flags: Flags,
@@ -278,6 +344,7 @@ impl Flags {
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub struct Dropped {
     /// Why it was left out (the first reason when there are several).
@@ -286,18 +353,21 @@ pub struct Dropped {
     pub page: usize,
     /// Where it was, in page space.
     #[cfg_attr(feature = "serde", serde(serialize_with = "ser::rect"))]
+    #[cfg_attr(feature = "schema", schemars(with = "[f64; 4]"))]
     pub bbox: RectPt,
     /// How many characters were left out.
     pub chars: usize,
     /// The run itself, only when [`DropOptions::keep_spans`](crate::DropOptions::keep_spans)
     /// asked for it.
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Vec::is_empty"))]
+    #[cfg_attr(feature = "schema", schemars(default))]
     pub spans: Vec<Span>,
 }
 
 /// Why text was left out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[non_exhaustive]
 pub enum DropReason {
     /// Text rendering mode 3 or 7.
@@ -327,8 +397,20 @@ impl serde::Serialize for Flags {
     }
 }
 
+/// `flags` is a list of [`DropReason`] names in JSON.
+#[cfg(feature = "schema")]
+impl schemars::JsonSchema for Flags {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Flags".into()
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        generator.subschema_for::<Vec<DropReason>>()
+    }
+}
+
 #[cfg(feature = "serde")]
-mod ser {
+pub(crate) mod ser {
     //! Boxes as `[x, y, width, height]` and lengths, rounded to 1/1000 of a point (ADR 0030 §7).
 
     use laminapdf_model::{Pt, RectPt};
@@ -345,17 +427,17 @@ mod ser {
             reason = "serde's serialize_with passes a reference (as wide as a Pt here)"
         )
     )]
-    pub(super) fn pt<S: Serializer>(v: &Pt, serializer: S) -> Result<S::Ok, S::Error> {
+    pub(crate) fn pt<S: Serializer>(v: &Pt, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(round(v.get()))
     }
 
-    pub(super) fn rect<S: Serializer>(r: &RectPt, serializer: S) -> Result<S::Ok, S::Error> {
+    pub(crate) fn rect<S: Serializer>(r: &RectPt, serializer: S) -> Result<S::Ok, S::Error> {
         let values = [r.x0.get(), r.y0.get(), r.width().get(), r.height().get()];
         serializer.collect_seq(values.map(round))
     }
 
     #[expect(clippy::ref_option, reason = "serde's serialize_with passes a reference")]
-    pub(super) fn norm<S: Serializer>(v: &Option<[f64; 4]>, serializer: S) -> Result<S::Ok, S::Error> {
+    pub(crate) fn norm<S: Serializer>(v: &Option<[f64; 4]>, serializer: S) -> Result<S::Ok, S::Error> {
         match v {
             Some(values) => serializer.collect_seq(values.map(round)),
             None => serializer.serialize_none(),

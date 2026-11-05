@@ -1,0 +1,33 @@
+---
+title: Extract text for an LLM
+description: Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval.
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+You'll turn a PDF into three files an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks. You need this to feed a PDF to a model from Rust; TypeScript gets it later.
+
+The program opens the file, extracts it once and writes the three outputs from that one extraction:
+
+<Snippet file="crates/laminapdf/examples/extract_markdown.rs" />
+
+Run it on any PDF: `cargo run -p laminapdf --example extract_markdown -- report.pdf out`.
+
+## How it works
+
+- `extract` reads every page's text, joins it into lines and paragraphs, and puts the paragraphs in reading order. A two-column page reads down the left column, then the right; a title across both columns comes first.
+- Tables drawn with lines become table blocks with their cells, and Markdown writes them as tables. A cell that spans columns or rows makes the table HTML, since Markdown tables can't span.
+- Text a reader can't see never reaches the outputs: invisible text (such as the hidden layer of a scanned page), text off the page and text too small to read. The JSON lists each such run under `dropped`, with the reason and how many characters it held.
+- `to_markdown` writes headings, paragraphs and tables, with a `<!-- page N -->` comment before each page, so a passage can be traced to its page.
+- `chunks` groups whole paragraphs and tables up to the budget, starting a new chunk at each heading. Each chunk records the blocks, pages and boxes it came from, and where its text sits in the Markdown.
+- `extract_json` writes the `laminapdf.extract/1` document: the pages, every block with its box in points from the top-left corner, the dropped text, the file's warnings and the chunks.
+
+## What to change
+
+- **Only some pages:** `ExtractOptions::new().with_pages(vec![0, 1])` (page indexes start at 0).
+- **Tables without lines:** `.with_tables(TableMode::LatticeAndStream)` also looks for text lined up in columns. It finds more tables, and now and then a pair of columns that isn't one.
+- **Bigger or smaller chunks:** change `with_max_tokens`. A token here is about four characters, a rough count that runs low for code, numbers and scripts other than Latin, so leave room.
+- **Overlap between chunks:** `.with_overlap(80)` repeats up to about 80 tokens of whole paragraphs from the end of the previous chunk.
+- **A long file in steps:** `doc.extract_job(&options)` and `step` do a page per unit of work, so a long file can report progress or stop between steps.
+
+Next: [all recipes](/recipes/).

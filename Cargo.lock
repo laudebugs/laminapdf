@@ -1244,6 +1244,7 @@ dependencies = [
  "criterion",
  "laminapdf-build",
  "laminapdf-cos",
+ "laminapdf-extract",
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-save",
@@ -1323,13 +1324,16 @@ dependencies = [
 name = "laminapdf-extract"
 version = "0.2.0-alpha.2"
 dependencies = [
+ "boon",
  "laminapdf-build",
+ "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
  "laminapdf-text",
+ "schemars",
  "serde",
  "serde_json",
  "thiserror",

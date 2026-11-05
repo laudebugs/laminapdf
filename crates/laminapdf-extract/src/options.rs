@@ -1,6 +1,8 @@
 //! What an extraction does: [`ExtractOptions`], plain owned data with a `Default` so it crosses
 //! `UniFFI` and WASM as a record (ADR 0028 §1).
 
+use crate::tables::TableMode;
+
 /// How an extraction runs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -15,6 +17,8 @@ pub struct ExtractOptions {
     pub dehyphenate: bool,
     /// Bounds on the work per page.
     pub limits: ExtractLimits,
+    /// Which table detectors run.
+    pub tables: TableMode,
 }
 
 impl Default for ExtractOptions {
@@ -25,6 +29,7 @@ impl Default for ExtractOptions {
             drop: DropOptions::default(),
             dehyphenate: true,
             limits: ExtractLimits::default(),
+            tables: TableMode::default(),
         }
     }
 }
@@ -48,6 +53,13 @@ impl ExtractOptions {
     #[must_use]
     pub const fn with_reading_order(mut self, order: ReadingOrder) -> Self {
         self.reading_order = order;
+        self
+    }
+
+    /// Which table detectors run.
+    #[must_use]
+    pub const fn with_tables(mut self, mode: TableMode) -> Self {
+        self.tables = mode;
         self
     }
 }
@@ -88,6 +100,10 @@ pub struct ExtractLimits {
     pub max_blocks_per_page: u32,
     /// How deep XY-Cut recurses; deeper groups keep top-to-bottom order.
     pub max_xycut_depth: u32,
+    /// Cells per ruled table, and (times 16) crossings of a page's rules tried: past it the
+    /// rules give no table (`extract-table-limit`), as a file drawing thousands of lines would
+    /// otherwise cost time and memory in proportion to their square.
+    pub max_table_cells: u32,
 }
 
 impl Default for ExtractLimits {
@@ -95,6 +111,7 @@ impl Default for ExtractLimits {
         Self {
             max_blocks_per_page: 10_000,
             max_xycut_depth: 64,
+            max_table_cells: 10_000,
         }
     }
 }
