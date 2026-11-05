@@ -28,7 +28,11 @@ export type CapabilityState =
 
 /** The state of a control gated by `flag`. */
 export function useCapability(flag: Capability): CapabilityState {
-  const platform = usePlatform();
+  return capabilityState(usePlatform(), flag);
+}
+
+/** The state of a control gated by `flag` on `platform`. */
+export function capabilityState(platform: Platform, flag: Capability): CapabilityState {
   if (platform.capabilities[flag]) return { state: "available" };
   const reason = platform.howToEnable(flag);
   return reason === undefined ? { state: "hidden" } : { state: "disabled", reason };

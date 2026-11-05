@@ -2,7 +2,7 @@
 // fit width, fit page, actual size and the presets. Every part is reachable from the keyboard,
 // and the buttons stop at the viewer's range.
 
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import { Button as AriaButton, Group } from "react-aria-components";
 import { IconButton } from "../components/button.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
@@ -28,21 +28,24 @@ export interface ZoomControlProps {
 
 type ZoomId = "fit-width" | "fit-page" | "actual-size" | `${number}`;
 
-const MODES: readonly MenuEntry<ZoomId>[] = [
-  { id: "fit-width", label: message("reader.zoom.fitWidth"), icon: "fit-width" },
-  { id: "fit-page", label: message("reader.zoom.fitPage"), icon: "fit-page" },
-  { id: "actual-size", label: message("reader.zoom.actualSize") },
-];
-
-const PRESETS: readonly MenuEntry<ZoomId>[] = ZOOM_PRESETS.map((percent) => ({
-  id: `${percent}`,
-  label: message("reader.zoom.percent", { percent }),
-}));
+/** The menu's entries: the fit modes, then the presets. Built when rendered, in the catalogue's words. */
+function zoomEntries(): MenuEntry<ZoomId>[] {
+  return [
+    { id: "fit-width", label: message("reader.zoom.fitWidth"), icon: "fit-width" },
+    { id: "fit-page", label: message("reader.zoom.fitPage"), icon: "fit-page" },
+    { id: "actual-size", label: message("reader.zoom.actualSize") },
+    ...ZOOM_PRESETS.map((percent) => ({
+      id: `${percent}` as const,
+      label: message("reader.zoom.percent", { percent }),
+    })),
+  ];
+}
 
 /** Zoom out, the percentage with its menu, and zoom in. */
 export function ZoomControl({ viewer, keys }: ZoomControlProps): ReactNode {
   const percent = Math.round(useStoreState(viewer, (state) => state.percent));
   const choose = (id: ZoomId) => viewer.setZoom(asZoom(id));
+  const entries = useMemo(zoomEntries, []);
   return (
     <Group className="paper-zoom-control" aria-label={message("reader.zoom")}>
       <IconButton
@@ -56,7 +59,7 @@ export function ZoomControl({ viewer, keys }: ZoomControlProps): ReactNode {
         <AriaButton className="paper-zoom-percent" aria-label={message("reader.zoom.current", { percent })}>
           {message("reader.zoom.percent", { percent })}
         </AriaButton>
-        <Menu aria-label={message("reader.zoom")} items={[...MODES, ...PRESETS]} onAction={choose} platform={keys} />
+        <Menu aria-label={message("reader.zoom")} items={entries} onAction={choose} platform={keys} />
       </MenuTrigger>
       <IconButton
         icon="zoom-in"

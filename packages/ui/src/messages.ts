@@ -15,6 +15,7 @@ const EN = {
   "reader.locked": "Locked",
   "reader.page": "Page",
   "reader.page.total": "/ {total}",
+  "reader.page.unknown": "/ –",
   "reader.page.position": "({page} / {total})",
   "reader.page.invalid": "There is no page {value}. Enter a page from 1 to {total}.",
   "reader.zoom": "Zoom",
@@ -36,7 +37,6 @@ const EN = {
   "reader.password.wrong":
     "That password didn't open the file. Passwords are case-sensitive; check Caps Lock and try again.",
   "reader.password.cancel": "Cancel",
-  "reader.password.close": "Close",
   "reader.password.open": "Open",
   "reader.password.opening": "Opening…",
 } as const;

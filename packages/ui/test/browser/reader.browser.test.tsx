@@ -1,5 +1,4 @@
 import axe from "axe-core";
-import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import {
@@ -10,7 +9,7 @@ import {
   ReaderShell,
   ReaderTopBar,
   type ReaderTopBarProps,
-  useGatedEntry,
+  useGatedEntries,
 } from "../../src/index.ts";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
 import { cleanup, focused, renderIn } from "./render.tsx";
@@ -56,6 +55,14 @@ describe("ReaderTopBar", () => {
     cleanup();
     const open = renderIn(<TopBar reader={await openedController()} viewer={new FakeViewer()} />);
     expect(open.querySelector(".paper-top-bar-note")).toBeNull();
+  });
+
+  it("keeps a disabled page field, still announced, while the document is locked", async () => {
+    const host = renderIn(<TopBar reader={await openedController("needs-password")} viewer={new FakeViewer()} />);
+    expect(input().getAttribute("aria-disabled")).toBe("true");
+    expect(host.querySelector(".paper-page-input-total")?.textContent).toBe("/ –");
+    expect(host.querySelector(".paper-zoom-control")).toBeNull();
+    expect(button("Sidebar")).toBeUndefined();
   });
 
   it("shows the shell's home content, and no document controls, without a document", () => {
@@ -154,6 +161,29 @@ describe("PageInput", () => {
     expect(onKeyDown).not.toHaveBeenCalled();
   });
 
+  it("puts the current page back, announcing nothing, when the field is emptied", async () => {
+    const viewer = new FakeViewer();
+    renderIn(<TopBar reader={await openedController()} viewer={viewer} />);
+    await userEvent.click(input());
+    await userEvent.keyboard("{Backspace}{Enter}");
+    expect(input().value).toBe("3");
+    expect(input().getAttribute("aria-invalid")).toBeNull();
+    expect(viewer.calls).toEqual([]);
+  });
+
+  it("announces the same mistake twice, and drops it on leaving the field", async () => {
+    renderIn(<TopBar reader={await openedController()} viewer={new FakeViewer()} />);
+    await userEvent.click(input());
+    await userEvent.keyboard("99{Enter}");
+    const first = document.querySelector("[role=status] > span");
+    await userEvent.keyboard("99{Enter}");
+    const second = document.querySelector("[role=status] > span");
+    expect(second?.textContent).toBe(first?.textContent);
+    expect(second).not.toBe(first);
+    await userEvent.tab();
+    expect(input().getAttribute("aria-invalid")).toBeNull();
+  });
+
   it("shows a page label with its position, and goes to a typed label", async () => {
     const labels = [...Array.from({ length: 21 }, (_, n) => String(n + 1)), "A-1", "A-2", "A-3"];
     const viewer = new FakeViewer({ currentPage: 21 });
@@ -209,18 +239,25 @@ describe("ZoomControl", () => {
 
 /** A More menu whose Save item needs the save dialog. */
 function GatedMore({ onItems }: { onItems: (items: MenuEntry<"open" | "save">[]) => void }) {
-  const save = useGatedEntry("canSaveAsDialog", { id: "save", label: "Save a copy…" });
-  const [items] = useState(() => [{ id: "open" as const, label: "Open another file…" }]);
-  onItems(save === undefined ? items : [...items, save]);
+  onItems(
+    useGatedEntries<"open" | "save">([
+      { id: "open", label: "Open another file…" },
+      { id: "save", label: "Save a copy…", needs: "canSaveAsDialog" },
+    ]),
+  );
   return null;
 }
 
-describe("useGatedEntry", () => {
+describe("useGatedEntries", () => {
   const itemsFor = (platform: ReturnType<typeof fakePlatform>) => {
     let seen: MenuEntry<"open" | "save">[] = [];
     renderIn(
       <PlatformProvider platform={platform}>
-        <GatedMore onItems={(items) => (seen = items)} />
+        <GatedMore
+          onItems={(items) => {
+            seen = items;
+          }}
+        />
       </PlatformProvider>,
     );
     return seen;
@@ -311,15 +348,54 @@ describe("PasswordDialog", () => {
     expect(reader.getState().phase).toBe("open");
   });
 
-  it("keeps Open disabled as Opening while a try runs", async () => {
-    const { reader } = lockedReader("wait");
+  it("keeps Open focused and pending as Opening while a try runs", async () => {
+    const { reader, tried } = lockedReader("wait");
     renderIn(<PasswordDialog reader={reader} />);
     await reader.open(fakeFile());
     await frame();
-    await userEvent.keyboard("hunter2{Enter}");
+    await userEvent.keyboard("hunter2");
+    await userEvent.click(button("Open") as HTMLButtonElement);
     await frame();
     const open = button("Opening…") as HTMLButtonElement;
-    expect(open.disabled).toBe(true);
+    expect(focused()).toBe(open);
+    expect(open.getAttribute("aria-disabled")).toBe("true");
+    await userEvent.keyboard("{Enter}");
+    expect(tried).toEqual([undefined, "hunter2"]);
+  });
+
+  it("puts focus back in the field, text selected, when a clicked Open finds the password wrong", async () => {
+    const { reader } = lockedReader("wrong");
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.keyboard("hunter3");
+    await userEvent.click(button("Open") as HTMLButtonElement);
+    await expect.poll(() => focused()).toBe(passwordField());
+    expect([passwordField().selectionStart, passwordField().selectionEnd]).toEqual([0, 7]);
+  });
+
+  it("stays open on a click outside it, since the question needs an answer", async () => {
+    const { reader } = lockedReader();
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile());
+    await frame();
+    await userEvent.click(document.body, { position: { x: 5, y: 5 } });
+    await frame();
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+    expect(reader.getState().phase).toBe("needs-password");
+  });
+
+  it("forgets what was typed when another document opens during a try", async () => {
+    const { reader } = lockedReader("wait");
+    renderIn(<PasswordDialog reader={reader} />);
+    await reader.open(fakeFile("first.pdf"));
+    await frame();
+    await userEvent.keyboard("first-secret{Enter}");
+    await frame();
+    await reader.open(fakeFile("second.pdf"));
+    await frame();
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("second.pdf is encrypted.");
+    expect(passwordField().value).toBe("");
   });
 
   it("says a password was wrong under the field, which keeps focus with its text selected", async () => {

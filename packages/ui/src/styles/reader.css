@@ -135,7 +135,7 @@
     outline-offset: var(--paper-focus-ring-offset-tight);
   }
 
-  .paper-page-input-field:disabled {
+  .paper-page-input-field[aria-disabled="true"] {
     border-color: var(--paper-hairline);
     color: var(--paper-disabled);
   }

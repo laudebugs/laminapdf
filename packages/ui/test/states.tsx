@@ -434,11 +434,6 @@ const topBar: Example[] = [
     state: "a page label and its position",
     element: () => <PageInput viewer={new FakeViewer({ currentPage: 21 })} labels={LABELS} />,
   },
-  {
-    component: "PageInput",
-    state: "disabled",
-    element: () => <PageInput viewer={new FakeViewer()} isDisabled />,
-  },
   { component: "ZoomControl", state: "at 110%", element: () => <ZoomControl viewer={new FakeViewer()} keys="other" /> },
   {
     component: "ZoomControl",

@@ -1,7 +1,8 @@
-// The password prompt (R03): a dialog over the reader while an encrypted document waits for its
-// password. The password goes to the controller once per try and lives only in this field; a
-// wrong one is announced under the field, which keeps focus with its text selected. Open shows
-// "Opening…" while the try runs; Cancel, Escape or Close go back to the home screen.
+// The password prompt (R03): a required question over the reader while an encrypted document waits
+// for its password. The password goes to the controller once per try and lives only in this field,
+// which empties when the document changes; a wrong one is announced under the field, which keeps
+// focus with its text selected. Open reads "Opening…" while the try runs. Cancel and Escape go
+// back to the home screen; a click outside or a swipe doesn't, since the question needs an answer.
 
 import { Icon } from "@laminapdf/icons/react";
 import { type FormEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
@@ -9,6 +10,7 @@ import { ToggleButton as AriaToggleButton } from "react-aria-components";
 import { Button } from "../components/button.js";
 import { message } from "../messages.js";
 import { Dialog } from "../overlays/dialog.js";
+import type { PlatformFile } from "../platform/types.js";
 import { useStoreState } from "../state/hooks.js";
 import type { ReaderController } from "../state/reader-controller.js";
 
@@ -21,40 +23,48 @@ export interface PasswordDialogProps {
 /** Asks for an encrypted document's password whenever the reader needs one. */
 export function PasswordDialog({ reader }: PasswordDialogProps): ReactNode {
   const state = useStoreState(reader, (s) => s);
+  const file = state.phase === "empty" ? undefined : state.file;
   const [password, setPassword] = useState("");
   const [shown, setShown] = useState(false);
-  const [checking, setChecking] = useState(false);
+  // The document whose password is being tried: another one opening ends the try.
+  const [trying, setTrying] = useState<PlatformFile | undefined>(undefined);
   const field = useRef<HTMLInputElement>(null);
   const errorId = useId();
-  const asking = state.phase === "needs-password";
-  const wrong = asking && state.wrong;
-  const isOpen = asking || (checking && state.phase === "opening");
+  const checking = trying !== undefined && state.phase === "opening" && trying === file;
+  const wrong = state.phase === "needs-password" && state.wrong;
+  const isOpen = state.phase === "needs-password" || checking;
   useEffect(() => {
-    if (state.phase !== "opening") setChecking(false);
-    if (state.phase === "needs-password" && state.wrong) field.current?.select();
+    if (state.phase !== "opening") setTrying(undefined);
+    if (state.phase === "needs-password" && state.wrong) {
+      field.current?.focus();
+      field.current?.select();
+    }
   }, [state]);
+  // A different document, or none, never sees what was typed for this one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the document changes
   useEffect(() => {
-    if (isOpen) return;
     setPassword("");
     setShown(false);
-  }, [isOpen]);
+  }, [file]);
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
     if (password === "" || checking) return;
-    setChecking(true);
+    setTrying(file);
     void reader.submitPassword(password);
   };
   return (
     <Dialog
       isOpen={isOpen}
       onOpenChange={(open) => open || reader.cancel()}
+      isRequired
+      onEscape={() => reader.cancel()}
       title={message("reader.password.title")}
-      description={message("reader.password.body", { name: state.phase === "empty" ? "" : state.file.name })}
-      closeLabel={message("reader.password.close")}
+      description={message("reader.password.body", { name: file?.name ?? "" })}
       actions={
         <>
           <Button onPress={() => reader.cancel()}>{message("reader.password.cancel")}</Button>
-          <Button variant="primary" isDisabled={checking} onPress={() => submit()}>
+          {/* Pending rather than disabled, so a press keeps focus on it while the try runs. */}
+          <Button variant="primary" isPending={checking} onPress={() => submit()}>
             {message(checking ? "reader.password.opening" : "reader.password.open")}
           </Button>
         </>

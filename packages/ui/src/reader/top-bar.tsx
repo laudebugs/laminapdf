@@ -12,7 +12,7 @@ import { message } from "../messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 import type { ReaderState } from "../state/reader-machine.js";
-import { PageInput } from "./page-input.js";
+import { LockedPageInput, PageInput } from "./page-input.js";
 import type { ViewerControls } from "./viewer-controls.js";
 import { ZoomControl } from "./zoom-control.js";
 
@@ -28,13 +28,13 @@ export interface ReaderTopBarProps<Id extends string> {
   isLoading?: boolean;
   /** The document's page labels, one per page, when it has any. */
   labels?: readonly string[];
-  /** The sidebar toggle, shown with a document. */
+  /** The sidebar toggle, shown while a document is open. */
   sidebar?: { readonly isOpen: boolean; readonly onChange: (isOpen: boolean) => void };
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** Opens the command palette; the Commands button shows only with it. */
   commands?: { readonly onPress: () => void; readonly shortcut: ShortcutKeys };
-  /** The More menu's items, gated by capability where they need one (`useGatedEntry`). */
+  /** The More menu's items, gated by capability where they need one (`useGatedEntries`). */
   more: { readonly items: readonly MenuEntry<Id>[]; readonly onAction: (id: Id) => void };
 }
 
@@ -45,7 +45,7 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
   return (
     <header className="paper-top-bar">
       <div className="paper-top-bar-file">
-        {state.phase === "empty" || sidebar === undefined ? null : (
+        {state.phase !== "open" || sidebar === undefined ? null : (
           <ToggleButton
             icon="sidebar"
             aria-label={message("reader.sidebar")}
@@ -56,6 +56,7 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
       </div>
       <div className="paper-top-bar-tools">
+        {state.phase === "needs-password" ? <LockedPageInput /> : null}
         {viewer === undefined || state.phase !== "open" ? null : (
           <>
             <PageInput viewer={viewer} {...(props.labels === undefined ? {} : { labels: props.labels })} />
@@ -87,12 +88,9 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
 function FileArea({ state, isLoading, home }: { state: ReaderState; isLoading: boolean; home: ReactNode }): ReactNode {
   if (state.phase === "empty")
     return home ?? <span className="paper-top-bar-empty">{message("reader.noDocument")}</span>;
+  const loading = state.phase === "opening" || (state.phase === "open" && isLoading);
   const note =
-    state.phase === "needs-password"
-      ? message("reader.locked")
-      : state.phase === "opening" || isLoading
-        ? message("reader.loadingPages")
-        : undefined;
+    state.phase === "needs-password" ? message("reader.locked") : loading ? message("reader.loadingPages") : undefined;
   return (
     <>
       <span className="paper-top-bar-name" title={state.file.name}>
