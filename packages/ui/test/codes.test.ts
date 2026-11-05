@@ -24,4 +24,17 @@ describe("the reader's sentences for codes", () => {
     expect(failureSentence("missing-root")).toContain("couldn't find the document's list of pages");
     expect(failureSentence("decompress")).toBe(failureSentence("a-code-from-the-future"));
   });
+
+  it("say to try again, not to ask for a new copy, when opening failed for reasons outside the file", () => {
+    for (const code of ["fetch-failed", "out-of-memory", "worker-crashed", "unknown"]) {
+      expect(failureSentence(code)).toBe(
+        "Lamina PDF couldn't finish opening this file. Try again, or reload the page.",
+      );
+    }
+  });
+
+  it("can't mistake a label for a code's sentence", () => {
+    expect(repairSentence("title")).toBe(repairSentence("a-code-from-the-future"));
+    expect(failureSentence("copy")).toBe(failureSentence("a-code-from-the-future"));
+  });
 });

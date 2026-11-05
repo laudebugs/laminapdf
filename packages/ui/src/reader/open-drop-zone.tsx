@@ -1,10 +1,10 @@
 // The home screen's way in (R01): a heading, the drop zone that explains the window takes a
 // dropped or pasted PDF, and Choose a file. While files are dragged over the window, an overlay
-// says a drop will open them. A file that isn't a PDF is refused with a message, and the reader
-// stays on the home screen. The recent list and the privacy line come from the shell, under it.
+// says a drop will open them. A file that isn't a PDF, by its name or its header, is refused with a
+// message, and the reader stays on the home screen. The recent list and the privacy line come from the shell, under it.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import { Button } from "../components/button.js";
 import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
@@ -30,20 +30,23 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
   const heading = useId();
   const [dragging, setDragging] = useState(false);
   const [problem, setProblem] = useState("");
-  useEffect(() => {
-    const accept = async (files: PlatformFile[]) => {
-      const [file] = files;
-      if (file === undefined) return;
-      if (!(await isPdf(file))) return setProblem(message("reader.open.notPdf"));
-      setProblem("");
-      await reader.open(file);
-    };
-    return listenForFiles(window, {
-      onDragging: setDragging,
-      // The platform reads the transfer before anything awaits, while its items are still there.
-      onFiles: (data) => void platform.filesFromDataTransfer(data).then(accept),
-    });
-  }, [platform, reader]);
+  // Each choice, drop or paste supersedes the last; a slow check of an earlier one opens nothing.
+  const latest = useRef(0);
+  const accept = async (files: PlatformFile[]) => {
+    const [file] = files;
+    if (file === undefined) return;
+    latest.current += 1;
+    const turn = latest.current;
+    const refused = await refusal(file);
+    if (turn !== latest.current || reader.getState().phase !== "empty") return;
+    setProblem(refused ?? "");
+    if (refused === undefined) await reader.open(file);
+  };
+  const take = (files: Promise<PlatformFile[]>) =>
+    void files.then(accept).catch(() => setProblem(message("reader.open.unreadable")));
+  // The platform reads the transfer before anything awaits, while its items are still there.
+  const onFiles = useEffectEvent((data: DataTransfer) => take(platform.filesFromDataTransfer(data)));
+  useEffect(() => listenForFiles(window, { onDragging: setDragging, onFiles }), []);
   return (
     <section className="paper-open" aria-labelledby={heading}>
       <h1 id={heading} className="paper-open-heading">
@@ -55,7 +58,8 @@ export function OpenDropZone({ reader, keys, children }: OpenDropZoneProps): Rea
         <p className="paper-open-hint">
           {message("reader.open.paste")} <ShortcutChip keys={PASTE} platform={keys} />
         </p>
-        <Button variant="primary" onPress={() => void reader.openFromPicker()}>
+        {/* The picker's files take the same check as a drop's, so a file is never treated two ways. */}
+        <Button variant="primary" onPress={() => take(platform.openFiles({ multiple: false }))}>
           {message("reader.open.choose")}
         </Button>
         {problem === "" ? null : (
@@ -124,9 +128,22 @@ function listenForFiles(
   };
 }
 
-/** Whether `file` is a PDF: its header, "%PDF-", within its first 1024 bytes (ISO 32000-2 §7.5.2 allows leading bytes). */
-async function isPdf(file: PlatformFile): Promise<boolean> {
+/** Why `file` can't be opened from the home screen, or undefined when it can. */
+async function refusal(file: PlatformFile): Promise<string | undefined> {
+  try {
+    return (await looksLikePdf(file)) ? undefined : message("reader.open.notPdf");
+  } catch {
+    return message("reader.open.unreadable");
+  }
+}
+
+/**
+ * Whether `file` looks like a PDF: named `.pdf`, or with "%PDF-" in its first 1,024 bytes (ISO
+ * 32000-2 §7.5.2 allows leading bytes). A `.pdf` without a header still goes to the reader, which
+ * repairs what it can (ADR 0003, `missing-header`).
+ */
+async function looksLikePdf(file: PlatformFile): Promise<boolean> {
+  if (/\.pdf$/i.test(file.name)) return true;
   const head = await file.read(0, Math.min(1024, file.size));
-  const text = String.fromCharCode(...head);
-  return text.includes("%PDF-");
+  return String.fromCharCode(...head).includes("%PDF-");
 }

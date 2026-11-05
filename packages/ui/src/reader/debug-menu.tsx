@@ -25,7 +25,8 @@ const NAMES: Record<DebugBackend, string> = { pdfium: "PDFium", hayro: "hayro" }
 export function DebugMenu({ backend, onBackendChange, keys }: DebugMenuProps): ReactNode {
   const entries: MenuEntry<DebugBackend>[] = (Object.keys(NAMES) as DebugBackend[]).map((id) => ({
     id,
-    label: message("debug.backend", { backend: NAMES[id] }),
+    // The current one says so in words, which a screen reader reads, as well as with the check.
+    label: message(id === backend ? "debug.backendCurrent" : "debug.backend", { backend: NAMES[id] }),
     ...(id === backend ? { icon: "check" as const } : {}),
   }));
   return (

@@ -487,14 +487,16 @@ describe("OpenDropZone", () => {
     return { reader, opened, platform };
   }
 
-  it("is a labelled section whose only stop is Choose a file, which asks the platform", async () => {
-    const { platform } = home();
+  it("is a labelled section whose only stop is Choose a file, which asks the platform and opens the PDF", async () => {
+    const report = { name: "report.pdf", size: 5, read: async () => new Uint8Array(), writable: false };
+    const { platform, opened } = home(fakePlatform({ picked: [report] }));
     const section = document.querySelector("section.paper-open") as HTMLElement;
     expect(section.getAttribute("aria-labelledby")).not.toBeNull();
     await userEvent.tab();
     expect(focused().textContent).toBe("Choose a file");
     await userEvent.keyboard("{Enter}");
     expect(platform.calls.openFiles).toEqual([{ multiple: false }]);
+    await expect.poll(() => opened).toEqual(["report.pdf"]);
   });
 
   it("covers the window while a file is dragged over it, and opens a dropped PDF", async () => {
@@ -505,6 +507,37 @@ describe("OpenDropZone", () => {
     drop();
     await expect.poll(() => opened).toEqual(["Q3-board-report.pdf"]);
     expect(document.querySelector(".paper-open-overlay")).toBeNull();
+  });
+
+  it("opens a file named .pdf without a header, which the reader may repair", async () => {
+    const { opened } = home();
+    dropFiles(new File(["damaged bytes"], "Minutes-september.PDF"))();
+    await expect.poll(() => opened).toEqual(["Minutes-september.PDF"]);
+  });
+
+  it("checks a picked file as it checks a dropped one", async () => {
+    const notes = {
+      name: "notes.txt",
+      size: 5,
+      read: async () => new Uint8Array([104, 101, 108, 108, 111]),
+      writable: false,
+    };
+    const { opened } = home(fakePlatform({ picked: [notes] }));
+    await userEvent.click(button("Choose a file") as HTMLButtonElement);
+    await expect.poll(() => document.querySelector("[role=alert]")?.textContent).toContain("That isn't a PDF.");
+    expect(opened).toEqual([]);
+  });
+
+  it("says a file couldn't be read, rather than failing silently", async () => {
+    const gone = {
+      name: "moved.bin",
+      size: 5,
+      read: () => Promise.reject(new DOMException("gone", "NotFoundError")),
+      writable: false,
+    };
+    home(fakePlatform({ picked: [gone] }));
+    await userEvent.click(button("Choose a file") as HTMLButtonElement);
+    await expect.poll(() => document.querySelector("[role=alert]")?.textContent).toContain("couldn't be read");
   });
 
   it("refuses a file that isn't a PDF, with a message, and opens nothing", async () => {
@@ -553,6 +586,7 @@ describe("RepairDetails", () => {
     expect(rows()[1]).toBe("Measured page data whose stated length was wrongstream-length-recovered · pages 3, 4, 9");
     await userEvent.click(button("Show all 7") as HTMLButtonElement);
     expect(rows()).toHaveLength(7);
+    expect(focused().textContent).toBe(rows()[5]);
     expect(rows()[6]).toBe("Repaired a problem in the filea-code-from-the-future");
   });
 
@@ -649,7 +683,7 @@ describe("DebugMenu", () => {
     await userEvent.click(button("Debug") as HTMLButtonElement);
     await frame();
     const items = [...document.querySelectorAll("[role=menuitem]")];
-    expect(items.map((item) => item.textContent)).toEqual(["Render with PDFium", "Render with hayro"]);
+    expect(items.map((item) => item.textContent)).toEqual(["Render with PDFium (in use)", "Render with hayro"]);
     expect(items[0]?.querySelector("svg")).not.toBeNull();
     await userEvent.click(items[1] as HTMLElement);
     expect(onBackendChange).toHaveBeenCalledWith("hayro");

@@ -37,7 +37,12 @@ const SHOWN = 5;
 export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy }: RepairDetailsProps): ReactNode {
   const title = useId();
   const [all, setAll] = useState(false);
+  const firstMore = useRef<HTMLLIElement>(null);
   const shown = all ? repairs : repairs.slice(0, SHOWN);
+  // "Show all" goes away once pressed: focus moves to the first row it revealed.
+  useEffect(() => {
+    if (all) firstMore.current?.focus();
+  }, [all]);
   return (
     <aside
       className="paper-repair"
@@ -62,8 +67,12 @@ export function RepairDetails({ fileName, repairs, notRun = [], onClose, onCopy 
       </Notice>
       <h3 className="paper-repair-overline">{message("repair.done")}</h3>
       <ul className="paper-repair-list">
-        {shown.map((repair) => (
-          <li key={repair.code} className="paper-repair-row">
+        {shown.map((repair, index) => (
+          <li
+            key={repair.code}
+            className="paper-repair-row"
+            {...(index === SHOWN ? { ref: firstMore, tabIndex: -1 } : {})}
+          >
             <span>{repairSentence(repair.code)}</span>
             <code className="paper-repair-code">
               {repair.pages === undefined || repair.pages.length === 0
@@ -114,9 +123,11 @@ export interface OpenFailureProps {
 /** The page the canvas holds when a document can't be opened; announced, its primary action focused. */
 export function OpenFailure({ error, detail, onTryAnother, onCopy }: OpenFailureProps): ReactNode {
   const page = useRef<HTMLDivElement>(null);
+  // Focus goes to Try another file, the primary action, whenever a new failure shows.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs again for each new failure's code
   useEffect(() => {
-    page.current?.querySelector<HTMLElement>("[data-primary] button, button")?.focus();
-  }, []);
+    page.current?.querySelector<HTMLElement>(".paper-button[data-variant='primary']")?.focus();
+  }, [error.code]);
   return (
     <div ref={page} role="alert" className="paper-failure">
       <Icon name="warning" size={32} />

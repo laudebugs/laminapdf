@@ -128,7 +128,7 @@ The shell builds the More menu, and marks each item that needs a capability with
 
 ## The home screen, repairs and failures
 
-`OpenDropZone` is the home screen's way in. Its Choose a file button asks the platform's picker, and while it shows, the whole window takes a dropped or pasted PDF. A file is opened only when "%PDF-" appears in its first kilobyte, so anything else is refused with a message. The shell passes the recent list and the privacy line as its children.
+`OpenDropZone` is the home screen's way in. Its Choose a file button asks the platform's picker, and while it shows, the whole window takes a dropped or pasted PDF. Whichever way a file arrives, it opens when its name ends in `.pdf` or "%PDF-" appears in its first kilobyte; anything else is refused with a message. The shell passes the recent list and the privacy line as its children.
 
 When opening repaired a damaged file, `RepairDetails` goes in the inspector slot: one plain sentence for each kind of repair, over its code. When nothing could be recovered, `OpenFailure` takes the canvas and focuses Try another file. Every warning and error in `fixtures/codes.json` has a sentence, or shares its family's, and a test keeps it that way. `WholeFileDownload` fills the canvas while a host without range support sends the whole file. `DebugMenu` switches the render backend; the shell puts it in the top bar's debug slot for `#debug` only.
 

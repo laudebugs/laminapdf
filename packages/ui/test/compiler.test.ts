@@ -3,18 +3,16 @@ import { transformAsync } from "@babel/core";
 import reactCompiler from "babel-plugin-react-compiler";
 import { describe, expect, it } from "vitest";
 
-/** Every component file of the chrome: what the demo page's React Compiler build memoises. */
-const FOLDERS = ["components", "overlays", "reader", "platform", "state"];
-const sources = FOLDERS.flatMap((folder) =>
-  readdirSync(new URL(`../src/${folder}/`, import.meta.url))
-    .filter((name) => name.endsWith(".tsx"))
-    .map((name) => `src/${folder}/${name}`),
-);
+/** Every source file the demo's build compiles: components, overlays, the reader, hooks. */
+const sources = readdirSync(new URL("../src/", import.meta.url), { recursive: true, encoding: "utf8" })
+  .filter((name) => /\.tsx?$/.test(name) && !name.endsWith(".d.ts"))
+  .map((name) => `src/${name}`)
+  .sort();
 
 /** A compiler event: what happened to one function, where it starts, and why when it gave up. */
 interface CompilerEvent {
   kind: string;
-  fnLoc?: { start: { line: number } } | null;
+  fnLoc?: { start: { line: number }; end: { line: number } } | null;
   detail?: unknown;
 }
 
@@ -34,10 +32,12 @@ async function bailOuts(path: string): Promise<string[]> {
     parserOpts: { plugins: ["typescript", "jsx"] },
     plugins: [[reactCompiler, { logger }]],
   });
-  const optedOut = (line: number) => lines.slice(line - 1, line + 6).some((l) => l.includes('"use no memo"'));
+  // The directive opens the function's body: within its first lines, and inside the function.
+  const optedOut = ({ start, end }: { start: { line: number }; end: { line: number } }) =>
+    lines.slice(start.line - 1, Math.min(start.line + 6, end.line)).some((l) => l.trim() === '"use no memo";');
   return events
     .filter((event) => event.kind === "CompileError" || event.kind === "PipelineError")
-    .filter((event) => event.fnLoc == null || !optedOut(event.fnLoc.start.line))
+    .filter((event) => event.fnLoc == null || !optedOut(event.fnLoc))
     .map((event) => `line ${event.fnLoc?.start.line ?? "?"}: ${JSON.stringify(event.detail).slice(0, 300)}`);
 }
 

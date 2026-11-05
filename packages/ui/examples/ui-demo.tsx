@@ -117,9 +117,11 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
 
 const root = document.getElementById("demo");
 if (root !== null) {
+  // One platform for the page: two would each open the store and take the launch queue.
+  const platform = createWebPlatform();
   createRoot(root).render(
-    <PlatformProvider platform={createWebPlatform()}>
-      <Demo platform={createWebPlatform()} debug={location.hash === "#debug"} />
+    <PlatformProvider platform={platform}>
+      <Demo platform={platform} debug={location.hash === "#debug"} />
     </PlatformProvider>,
   );
 }
