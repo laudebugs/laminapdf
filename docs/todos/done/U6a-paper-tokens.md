@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U1a](../done/U1a-adr-0024-app-shell-ux.md) |
+| Depends on | [U1a](./U1a-adr-0024-app-shell-ux.md) |
 | Blocks | [U6b](../ready/U6b-self-hosted-fonts.md), [U6c](../ready/U6c-icon-set.md), [U6d](../ready/U6d-core-components.md) |
 | ADRs | Follows 0024 (token layers: primitive → semantic → component; page appearance separate from UI theme; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (pnpm workspace, `catalog:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence check for any new dev dependency) |
 | Branch | `feat/u6a-paper-tokens` |
@@ -56,31 +56,31 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main` (`git worktree add -b feat/u6a-paper-tokens feat-u6a-paper-tokens main`), `pnpm install`.
-- [ ] **Ask for sign-off first** (it gates merge, so start it on day one): open a short issue or PR comment listing every **(proposed)** value in the design language, grouped (dark theme; `warning` and the three tints; `hover`/`pressed`/`disabled`; `accent-strong` for buttons; dialog/menu/toast shadows; breakpoints and rail rule; sheet large detent; page pill fade; page-appearance selection tints; the dark page shadow; component styles of §7.18–§7.23), each with its value and contrast. Link it from the PR description.
-- [ ] Re-read ADR 0024 as merged; note its layer names and any naming rule (e.g. `--paper-` prefix) and follow it.
-- [ ] Scaffold `packages/tokens`: `package.json` (`"type": "module"`, `"private": true`, `exports` with `types` first and `"./tokens.css"`, `"files"`, `"engines"`, scripts `generate`, `typecheck`, `test`), `tsconfig.json` extending `../../tsconfig.base.json`, `README.md`. No runtime dependencies.
-- [ ] Write `tokens.json`: primitives first, then semantic tokens per theme (`theme.light`, `theme.dark`, `theme.high-contrast`), page appearances, annotation colours, then component tokens; copy every value from the design language exactly, with `$description` = the role column and `status` from the document (*from the files* vs **(proposed)**).
-- [ ] Declare contrast pairs under each text and boundary token (`{ "on": "{surface}", "min": 4.5 }`, `{ "on": "{ground}", "min": 3, "kind": "boundary" }`, `{ "decorative": true }` …), at least every pair the design language's §2 tables list, plus page ink on each paper and on each selection tint, `on-accent` on `accent` and on `accent-strong`, white on primary pressed, `danger` on `danger-tint` etc.
-- [ ] Generator `scripts/generate.ts` (hand-written, ≈ 150 lines, no Style Dictionary unless the hand-written one gets unwieldy; if you add it, check its licence, Apache-2.0): resolves aliases, refuses cycles and unknown references, emits `tokens.css` (one block per theme and appearance, primitives not emitted as custom properties unless a semantic token needs them) and `tokens.ts` (`as const` objects and literal-union types such as `ThemeName`, `PageAppearance`, `AnnotationColour`, `SemanticColour`). `--check` mode exits non-zero when the committed output differs.
-- [ ] `src/index.ts`: named exports only (`THEMES`, `PAGE_APPEARANCES`, `ANNOTATION_COLOURS`, `SPACE`, `RADIUS`, `TYPE`, `BREAKPOINTS`, `MOTION`, `cssVar(name)` returning `var(--paper-…)` typed by `SemanticColour | …`), each with TSDoc.
-- [ ] `src/contrast.ts`: WCAG 2.x relative luminance and ratio, alpha compositing over an opaque background; unit-tested against known values (black/white 21:1, `#767676` on white 4.54:1) and a few design-language numbers.
-- [ ] `src/contrast.test.ts`: iterates every declared pair in every theme and appearance; fails with a table of failing pairs (token, background, ratio, required).
-- [ ] `src/high-contrast.browser.test.ts` (Vitest browser mode, Chromium, Firefox, WebKit): applies `[data-theme="high-contrast"]`, reads computed system colours with `getComputedStyle`, and checks the same pairs; forced-colors rendering itself is screenshot-tested in [U6f](../ready/U6f-gallery-and-visual-tests.md).
-- [ ] Tests that annotation colours are identical in every theme and appearance block, that every semantic token exists in every theme (no missing key falls back silently), and that no component token points at a primitive directly when a semantic one exists.
-- [ ] Wire `pnpm --filter @laminapdf/tokens generate --check` into the package's `test` script so `cargo xtask check ts` catches stale output; add the generated paths to `.gitattributes`.
-- [ ] Apply the owner's answers: approved values get `status: "approved"`; changed values are changed in the JSON, the design language and (noted for the next canvas edit) the canvases; refused values are replaced before merge.
-- [ ] Update the design language (see Docs to update) and the package README (layers, how to add a token, how to declare a pair, the generated table of pairs and ratios).
-- [ ] Switch the docs site to `@laminapdf/tokens` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete its `--paper-*` block in `apps/docs/src/styles/paper.css`.
+- [x] **Ask for sign-off first** (it gates merge, so start it on day one): open a short issue or PR comment listing every **(proposed)** value in the design language, grouped (dark theme; `warning` and the three tints; `hover`/`pressed`/`disabled`; `accent-strong` for buttons; dialog/menu/toast shadows; breakpoints and rail rule; sheet large detent; page pill fade; page-appearance selection tints; the dark page shadow; component styles of §7.18–§7.23), each with its value and contrast. Link it from the PR description.
+- [x] Re-read ADR 0024 as merged; note its layer names and any naming rule (e.g. `--paper-` prefix) and follow it.
+- [x] Scaffold `packages/tokens`: `package.json` (`"type": "module"`, `"private": true`, `exports` with `types` first and `"./tokens.css"`, `"files"`, `"engines"`, scripts `generate`, `typecheck`, `test`), `tsconfig.json` extending `../../tsconfig.base.json`, `README.md`. No runtime dependencies.
+- [x] Write `tokens.json`: primitives first, then semantic tokens per theme (`theme.light`, `theme.dark`, `theme.high-contrast`), page appearances, annotation colours, then component tokens; copy every value from the design language exactly, with `$description` = the role column and `status` from the document (*from the files* vs **(proposed)**).
+- [x] Declare contrast pairs under each text and boundary token (`{ "on": "{surface}", "min": 4.5 }`, `{ "on": "{ground}", "min": 3, "kind": "boundary" }`, `{ "decorative": true }` …), at least every pair the design language's §2 tables list, plus page ink on each paper and on each selection tint, `on-accent` on `accent` and on `accent-strong`, white on primary pressed, `danger` on `danger-tint` etc.
+- [x] Generator `scripts/generate.ts` (hand-written, ≈ 150 lines, no Style Dictionary unless the hand-written one gets unwieldy; if you add it, check its licence, Apache-2.0): resolves aliases, refuses cycles and unknown references, emits `tokens.css` (one block per theme and appearance, primitives not emitted as custom properties unless a semantic token needs them) and `tokens.ts` (`as const` objects and literal-union types such as `ThemeName`, `PageAppearance`, `AnnotationColour`, `SemanticColour`). `--check` mode exits non-zero when the committed output differs.
+- [x] `src/index.ts`: named exports only (`THEMES`, `PAGE_APPEARANCES`, `ANNOTATION_COLOURS`, `SPACE`, `RADIUS`, `TYPE`, `BREAKPOINTS`, `MOTION`, `cssVar(name)` returning `var(--paper-…)` typed by `SemanticColour | …`), each with TSDoc.
+- [x] `src/contrast.ts`: WCAG 2.x relative luminance and ratio, alpha compositing over an opaque background; unit-tested against known values (black/white 21:1, `#767676` on white 4.54:1) and a few design-language numbers.
+- [x] `src/contrast.test.ts`: iterates every declared pair in every theme and appearance; fails with a table of failing pairs (token, background, ratio, required).
+- [x] `src/high-contrast.browser.test.ts` (Vitest browser mode, Chromium, Firefox, WebKit): applies `[data-theme="high-contrast"]`, reads computed system colours with `getComputedStyle`, and checks the same pairs; forced-colors rendering itself is screenshot-tested in [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- [x] Tests that annotation colours are identical in every theme and appearance block, that every semantic token exists in every theme (no missing key falls back silently), and that no component token points at a primitive directly when a semantic one exists.
+- [x] Wire `pnpm --filter @laminapdf/tokens generate --check` into the package's `test` script so `cargo xtask check ts` catches stale output; add the generated paths to `.gitattributes`.
+- [x] Apply the owner's answers: approved values get `status: "approved"`; changed values are changed in the JSON, the design language and (noted for the next canvas edit) the canvases; refused values are replaced before merge.
+- [x] Update the design language (see Docs to update) and the package README (layers, how to add a token, how to declare a pair, the generated table of pairs and ratios).
+- [x] Switch the docs site to `@laminapdf/tokens` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete its `--paper-*` block in `apps/docs/src/styles/paper.css`.
 
 ## Acceptance criteria
 
-- [ ] `@laminapdf/tokens` exists with `tokens.json`, committed generated CSS and TS, and `generate --check` passing in CI.
-- [ ] Every value in design-language [§2](../../design/paper/design-language.md#2-colour)–[§4](../../design/paper/design-language.md#4-space-shape-depth) (except §2.5 and `window`) has a token; a test lists any colour hex in §2.1–§2.4 and §2.8 that is missing from `tokens.json` (parsed from the Markdown tables).
-- [ ] The contrast test passes for Paper light and Paper dark with each of the four accents (8 combinations) and the four page appearances; every text pair ≥ 4.5:1 and every boundary/focus/state pair ≥ 3:1, apart from pairs declared decorative or exempt with a reason; the high-contrast browser test passes in three engines.
-- [ ] Changing any text token to a failing value (e.g. `muted` to `#8A8174`) makes CI fail (shown once in the PR description).
-- [ ] Annotation colours are byte-identical across all theme and appearance outputs (test).
-- [ ] No token in `tokens.json` has `status: "proposed"` (test); the owner's sign-off is linked in the PR.
-- [ ] `cargo xtask check` passes, including `npm-licenses`.
+- [x] `@laminapdf/tokens` exists with `tokens.json`, committed generated CSS and TS, and `generate --check` passing in CI.
+- [x] Every value in design-language [§2](../../design/paper/design-language.md#2-colour)–[§4](../../design/paper/design-language.md#4-space-shape-depth) (except §2.5 and `window`) has a token; a test lists any colour hex in §2.1–§2.4 and §2.8 that is missing from `tokens.json` (parsed from the Markdown tables).
+- [x] The contrast test passes for Paper light and Paper dark with each of the four accents (8 combinations) and the four page appearances; every text pair ≥ 4.5:1 and every boundary/focus/state pair ≥ 3:1, apart from pairs declared decorative or exempt with a reason; the high-contrast browser test passes in three engines.
+- [x] Changing any text token to a failing value (e.g. `muted` to `#8A8174`) makes CI fail (shown once in the PR description).
+- [x] Annotation colours are byte-identical across all theme and appearance outputs (test).
+- [x] No token in `tokens.json` has `status: "proposed"` (test); the owner's sign-off is linked in the PR.
+- [x] `cargo xtask check` passes, including `npm-licenses`.
 
 ## Post-merge checks
 
@@ -105,10 +105,19 @@ None.
 - **Token names in ADR 0024 vs the design language** may differ (e.g. `text-2` vs `text-secondary`); the ADR wins, and the design language is updated in this PR.
 - **The canvases keep literal hex values**; they drift when tokens change. The paper-design plan's §5 rule 3 makes the canvas follow the tokens at its next edit; list changed values in the PR so the canvas owner can update them.
 
+## Outcome
+
+- `@laminapdf/tokens` holds 172 approved values in `tokens.json` (Design Tokens Format Module 2025.10, ADR 0024's three layers). `scripts/generate.ts` writes `tokens.css`, `tokens.ts` and `CONTRAST.md`, and the package's tests run it with `--check` first.
+- The CSS sets the theme and accent with `data-theme` and `data-accent` on one element, and the page appearance with `data-page-appearance`. Every selector is wrapped in `:where()`, so the blocks win by order. Each accent's dark values apply under Match system too, and forced colours switch to high contrast. The TypeScript gives `THEMES[theme][accent]` and `PAGE_APPEARANCES[appearance][accent]` with every value resolved.
+- Every colour has a role, and text, boundary and focus colours declare their pairs; the tests measure them in both themes with all four accents and in every page appearance. The high-contrast theme maps to `Canvas`, `CanvasText`, `LinkText` and `GrayText`; its browser test resolves them in Chromium, Firefox and WebKit. `accent` maps to `LinkText`, and `focus` and `control-border` to `CanvasText`, because Chromium's default `Highlight` is translucent.
+- Paths differ from the plan: the tests live in `test/` (`contrast.test.ts`, `tokens.test.ts`, `browser/high-contrast.browser.test.ts`), not `src/`, so `tsc` builds only shipped code. The generated table of pairs and ratios is `CONTRAST.md`, linked from the README. Z-order tokens stay in U6e.
+- Values the design language lacked were derived with its own rules and signed off with the rest: light `raised` (= `surface`), `on-pill`, the dark tints, `pressed`, primary pressed and phone shadows, the high-contrast mapping, the outline Blue per theme (`#91B3DC` in dark), the selected swatch outline as `text`, and the High contrast page's find marks as its ink. The owner approved every value on 2026-11-05.
+- The docs site reads the tokens and drops its copied values; its asides use the tint tokens. One follow-up for the owner: `.github/workflows/docs.yml` should list `packages/tokens/**` in its `paths` (this session can't push workflow files).
+
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

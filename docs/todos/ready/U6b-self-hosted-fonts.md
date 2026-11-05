@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6a](../ongoing/U6a-paper-tokens.md) |
+| Depends on | [U6a](../done/U6a-paper-tokens.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [U6f](./U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) (bundled fonts OFL-1.1 or Apache-2.0 only, listed with their licence in the notices), 0024 (typography tokens; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6b-self-hosted-fonts` |
@@ -25,7 +25,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - [ADR 0019, fonts](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) and [npm licence check](../../decisions/0019-supply-chain-and-licence-hygiene.md#npm-licence-check): bundled fonts are OFL-1.1 or Apache-2.0, each listed with its licence in the third-party notices.
 - [UI/UX plan §5.7 trust surfaces](../../plans/ui-ux.md#57-trust-surfaces-r9r13) and [U4a](./U4a-network-indicator-and-privacy-proof.md) (network indicator and a CSP-backed privacy test): a font CDN request would be counted and would break the "0 network requests" claim.
 - The docs site uses only Source Sans 3 ([Q1a](../done/Q1a-docs-font-source-sans.md), [quality plan §5](../../plans/quality.md#5-the-font)), so when it moves to this package it imports only that family. Its headings use weight 700, so ship Source Sans 3's variable `wght` file or add a 700 instance.
-- [U6a](../ongoing/U6a-paper-tokens.md): the font family tokens (`--paper-font-ui`, `--paper-font-display`) this package must match by name.
+- [U6a](../done/U6a-paper-tokens.md): the font family tokens (`--paper-font-sans`, `--paper-font-serif`, `--paper-font-page`, `--paper-font-mono`, `--paper-font-signature`; `FONTS` in TypeScript) this package must match by name.
 - [Code organization §9](../../guidelines/code-organization.md#9-generated-code) (commit outputs that need special tools, with a reproducible generator) and [§10 scripts](../../guidelines/code-organization.md#10-scripts).
 - Upstream: Newsreader by Production Type (Google Fonts repository `productiontype/Newsreader`), Source Sans 3 by Adobe (`adobe-fonts/source-sans`); both SIL Open Font License 1.1. The OFL allows subsetting and redistribution; a subset is a Modified Version, so it must not use a Reserved Font Name if the licence declares one (check each `OFL.txt`; neither is expected to, but record what you found).
 
@@ -59,7 +59,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - [ ] Licence check per ADR 0019: OFL-1.1 is on the allow-list for bundled fonts; if the npm licence check reads `package.json` `license`, set `"license": "OFL-1.1"` for `@laminapdf/fonts` and make sure the allow-list accepts it for this package (or document the exception in the xtask's licence config).
 - [ ] Write `tools/fonts/subset.sh` (`set -euo pipefail`, `shellcheck` clean) and `requirements.txt`: one `pyftsubset` call per face × range with `--flavor=woff2 --layout-features='kern,liga,calt,tnum,lnum,case,ss01…'` (keep the features the type scale needs; check which the fonts have), `--unicodes` for Latin and Latin Extended, `--no-hinting` unless hinting visibly helps on Windows at 12 px (compare in the gallery), and name-table licence entries kept.
 - [ ] Measure variable vs static files for both families; pick the smaller set that meets the budget and record the numbers in the README.
-- [ ] Write `fonts.css`: one `@font-face` per file with `font-family` names matching [U6a](../ongoing/U6a-paper-tokens.md)'s tokens, `font-weight` ranges for variable files, `font-style`, `unicode-range`, `font-display`; plus metric-adjusted fallback faces.
+- [ ] Write `fonts.css`: one `@font-face` per file with `font-family` names matching [U6a](../done/U6a-paper-tokens.md)'s tokens, `font-weight` ranges for variable files, `font-style`, `unicode-range`, `font-display`; plus metric-adjusted fallback faces.
 - [ ] Export `FONT_PRELOADS` (typed array of `{ href, type }` resolved with `new URL("./files/….woff2", import.meta.url)`) from `src/index.ts` with TSDoc.
 - [ ] Add a guard test (in this package, scanning the repository's `packages/` and `apps/` sources) that fails on `fonts.googleapis.com`, `fonts.gstatic.com`, `use.typekit.net` or any `@import url(http…)` for fonts; `docs/design/` (the canvases) is excluded.
 - [ ] Add a size test: total of all WOFF2 files and the preloaded file each under budget (see Acceptance).
@@ -93,7 +93,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 
 ## Risks and open questions
 
-- **Source Serif 4 in the page-appearance chips** ([§7.25](../../design/paper/design-language.md#725-page-appearance-chips)): shipping a third family for one "Aa" is wasteful. Recommendation: draw the chip preview in Newsreader (or ship a two-glyph Source Serif 4 subset, < 3 KB). The owner decides as part of [U6a](../ongoing/U6a-paper-tokens.md)'s sign-off; this PR implements the answer.
+- **Source Serif 4 in the page-appearance chips** ([§7.25](../../design/paper/design-language.md#725-page-appearance-chips)): shipping a third family for one "Aa" is wasteful. Recommendation: draw the chip preview in Newsreader (or ship a two-glyph Source Serif 4 subset, < 3 KB). The owner decides as part of [U6a](../done/U6a-paper-tokens.md)'s sign-off; this PR implements the answer.
 - **Variable Newsreader with the optical-size axis** may be too large for the budget; static instances at 15, 16, 20 and 40 px lose little. Measure before deciding.
 - **Unhinted fonts at 12 px on Windows** can look soft; compare in the gallery on Windows ([X6](./X6-windows-ci.md) runners or a manual check) before choosing `--no-hinting`.
 - **OFL Reserved Font Names**: if a family declares one, the subset must be renamed; check the licence texts rather than assuming.

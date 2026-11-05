@@ -66,7 +66,7 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 
 **Deliverable:** tokens package (light, dark, high contrast, page appearances), self-hosted fonts, the icon set, core components and overlays in `@laminapdf/ui`, and a component gallery with visual and accessibility tests.
 **Accepted when:** every component in the design language exists with its states; contrast pairs are tested in CI; the gallery renders each component in each theme and screenshot tests guard them; no font or icon is fetched from a third-party host at runtime (the network indicator stays at 0).
-**Todos:** [U6a](../todos/ongoing/U6a-paper-tokens.md) (tokens), [U6b](../todos/ready/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/ready/U6c-icon-set.md) (icons), [U6d](../todos/ready/U6d-core-components.md) (core components), [U6e](../todos/ready/U6e-overlays-and-sheets.md) (dialogs, sheets, menus, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
+**Todos:** [U6a](../todos/done/U6a-paper-tokens.md) (tokens), [U6b](../todos/ready/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/ready/U6c-icon-set.md) (icons), [U6d](../todos/ready/U6d-core-components.md) (core components), [U6e](../todos/ready/U6e-overlays-and-sheets.md) (dialogs, sheets, menus, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
 
 ### Changes to existing todos
 
@@ -86,7 +86,7 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 
 ## 8. Open questions
 
-1. ~~Owner sign-off on the proposed values in the design language (dark theme, warning, dialog and form-control styles) — in U6a.~~ Signed off on 2026-11-05 ([U6a](../todos/ongoing/U6a-paper-tokens.md)).
+1. ~~Owner sign-off on the proposed values in the design language (dark theme, warning, dialog and form-control styles) — in U6a.~~ Signed off on 2026-11-05 ([U6a](../todos/done/U6a-paper-tokens.md)).
 2. A logo and wordmark: the boards use a simple placeholder mark. Who designs the brand mark, and when?
 3. Tablet layouts are drawn only for reading and stylus ink; do other modes need tablet-specific designs before E-rounds start?
 4. Restricted printing: does the reader ask for confirmation (C6c) or only show the restriction (C4c)? (reader-a R09)
