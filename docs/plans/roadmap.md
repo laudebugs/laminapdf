@@ -119,6 +119,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | E16 | [editor](full-editor.md#e16-optimisation-and-print-production) | Optimisation, print production | — |
 | E17 | [editor](full-editor.md#e17-advanced-interactions) | Advanced interactions | — |
 | E18 | [editor](full-editor.md#e18-collaboration-hosted-service) | Collaboration | 0012; `auth` |
+| W | [website](website.md) | The website at `laminapdf.com`, with the roadmap and a progress dashboard on its home page; the reader moves to `app.laminapdf.com` | 0011 (amended) |
 | Q | [quality](quality.md) | Docs as a story, readable examples, maintainability checks, reuse | — |
 
 ## How we track progress
