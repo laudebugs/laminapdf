@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6i` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6e](../done/U6e-overlays-and-sheets.md) |
+| Depends on | [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [U6j](../ready/U6j-positioning-and-palette-shell.md) |
 | ADRs | Follows 0024 (the phone shell, sheets with detents, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/u6i-sheets-positioning-and-palette-shell` |
@@ -51,19 +51,19 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Re-read ADR 0024's phone-shell section and design language §6.2 and §7.16; note any gap with the primitives library's components and how this PR closes it.
-- [ ] `BottomSheet`: pointer handling with `pointerdown/move/up` and `setPointerCapture`, detent snapping, grabber button, modal and non-modal modes, resize on virtual keyboard (`visualViewport`), safe-area padding; tests for click-cycling, keyboard activation of the grabber, drag snapping (synthetic pointer events), reduced motion.
-- [ ] `Dialog` as a large-detent sheet on a phone-wide viewport.
-- [ ] README: the sheet in the overlays section.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Re-read ADR 0024's phone-shell section and design language §6.2 and §7.16; note any gap with the primitives library's components and how this PR closes it.
+- [x] `BottomSheet`: pointer handling with `pointerdown/move/up` and `setPointerCapture`, detent snapping, grabber button, modal and non-modal modes, resize on virtual keyboard (`visualViewport`), safe-area padding; tests for click-cycling, keyboard activation of the grabber, drag snapping (synthetic pointer events), reduced motion.
+- [x] `Dialog` as a large-detent sheet on a phone-wide viewport.
+- [x] README: the sheet in the overlays section.
 
 ## Acceptance criteria
 
-- [ ] Bottom sheet: the grabber is a button that changes detent on click, Enter and Space without any drag (SC 2.5.7 test); dragging snaps to a detent; in non-modal mode the focused element is never covered by the sheet (test scrolls a focused input under the sheet and asserts it stays visible).
-- [ ] A sheet, a menu inside it and a toast stack in the z-order tokens' order, and Escape closes the innermost first (test).
-- [ ] axe reports zero violations for each overlay open, in light, dark and high contrast.
-- [ ] Matches the linked Paper screen (F04); any deviation is recorded in the design language.
-- [ ] `cargo xtask check` passes.
+- [x] Bottom sheet: the grabber is a button that changes detent on click, Enter and Space without any drag (SC 2.5.7 test); dragging snaps to a detent; in non-modal mode the focused element is never covered by the sheet (test scrolls a focused input under the sheet and asserts it stays visible).
+- [x] A sheet, a menu inside it and a toast stack in the z-order tokens' order, and Escape closes the innermost first (test).
+- [x] axe reports zero violations for each overlay open, in light, dark and high contrast.
+- [x] Matches the linked Paper screen (F04); any deviation is recorded in the design language.
+- [x] `cargo xtask check` passes.
 
 ## Post-merge checks
 
@@ -82,10 +82,19 @@ The overlays' browser tests in `packages/ui` (Vitest browser mode, Chromium, Fir
 
 - **Bottom sheet gestures vs the viewer's**: the viewer owns pan and pinch on the canvas (UI/UX §5.4); the sheet only handles drags that start on the sheet or the grabber. Test on real iOS Safari and Android Chrome before [U3a](../ready/U3a-responsive-mobile-and-touch.md) relies on it.
 
+## Outcome
+
+- `@laminapdf/ui` gains `BottomSheet`: medium (48 % down) and large (under the phone top bar) detents; a 64 × 44 grabber button that switches detent on a press, Enter or Space; drags of the grabber or header that snap, flick one detent further, or close from medium; a header with title, count and close button; a footer of full-width actions. It is modal by default, on React Aria's modal (scrim, inert page, `aria-modal`), and non-modal with `isModal={false}`, when it scrolls the page's focused element clear of itself unless focus is in a layer opened from it (`LayerStack.hasOpenedFrom`). An on-screen keyboard lifts the whole sheet.
+- `Dialog` renders as a large-detent `BottomSheet` at 599 px or less, and keeps the layout it opened with until it closes.
+- Tokens: `sheet-detent-large` (an alias of `phone-top-bar-height`, approved) and `sheet-detent-medium` (0.48).
+- Decisions, recorded in the design language (§7.16, §7.18): a modal sheet draws in the scrim's layer (40), a non-modal one at 30; the sheet moves without a slide, so reduced motion changes nothing; it runs to the viewport's bottom, where F04 stops it above the phone bottom bar, which [U3a](../ready/U3a-responsive-mobile-and-touch.md) places.
+- The browser tests run at 1280 × 800, since Vitest's default viewport is phone-wide; focus checks after an open or a close poll, for WebKit.
+- The selection toolbar's positioning and the palette shell moved to [U6j](../ready/U6j-positioning-and-palette-shell.md) when this todo was claimed.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

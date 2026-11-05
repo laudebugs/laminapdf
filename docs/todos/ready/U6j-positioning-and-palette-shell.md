@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) |
+| Depends on | [U6i](../done/U6i-sheets-positioning-and-palette-shell.md) |
 | Blocks | [U1b](./U1b-command-registry-and-palette.md), [U6f](./U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows 0024 (selection surfaces per pointer type, sheets with detents, palette as an APG combobox, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for any positioning dependency |
 | Branch | `feat/u6j-positioning-and-palette-shell` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, dialogs, menus, tooltips and toasts, and [U6i](../ongoing/U6i-sheets-positioning-and-palette-shell.md) the bottom sheets. This todo builds the two layers with their own geometry and keyboard model. The first is the positioning of the desktop selection mini toolbar: above the selection, flipping on collision, reachable with Shift+F10. The second is the command palette's shell, an APG combobox with a listbox, which [U1b](./U1b-command-registry-and-palette.md) fills with commands. It was split from U6i when U6i was claimed, because U6i's three parts together passed the 800-line budget.
+Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, dialogs, menus, tooltips and toasts, and [U6i](../done/U6i-sheets-positioning-and-palette-shell.md) the bottom sheets. This todo builds the two layers with their own geometry and keyboard model. The first is the positioning of the desktop selection mini toolbar: above the selection, flipping on collision, reachable with Shift+F10. The second is the command palette's shell, an APG combobox with a listbox, which [U1b](./U1b-command-registry-and-palette.md) fills with commands. It was split from U6i when U6i was claimed, because U6i's three parts together passed the 800-line budget.
 
 ## Context
 

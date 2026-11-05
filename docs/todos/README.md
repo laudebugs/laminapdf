@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 187 ready · 114 done** (302 total).
+**0 ongoing · 187 ready · 115 done** (302 total).
 
 ## Can start now
 
@@ -28,12 +28,13 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [C4a](ready/C4a-ui-chrome-and-platform.md): `@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter
 - [W1b](ready/W1b-site-scaffold-and-deploys.md): `apps/site`: the website in Paper, its headers, a preview per PR and production at `laminapdf.com`
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
+- [U6j](ready/U6j-positioning-and-palette-shell.md): `@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [U6i](ongoing/U6i-sheets-positioning-and-palette-shell.md): `@laminapdf/ui` bottom sheets and the dialog as a sheet on the phone
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -190,8 +191,8 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](done/U6b-self-hosted-fonts.md), [U6e](done/U6e-overlays-and-sheets.md), [U6j](ready/U6j-positioning-and-palette-shell.md) |
 | U6g | [The docs site in the Paper design language (interim, before `@lamina/tokens` and `@lamina/fonts`)](done/U6g-docs-site-paper.md) | done | [B7a](done/B7a-docs-site.md) |
 | U6h | [`@laminapdf/ui` display components: badges, notices, progress, empty state, status items, thumbnail, outline row, shortcut chip](done/U6h-display-components.md) | done | [U6d](done/U6d-core-components.md) |
-| U6i | [`@laminapdf/ui` bottom sheets and the dialog as a sheet on the phone](ongoing/U6i-sheets-positioning-and-palette-shell.md) | ongoing | [U6e](done/U6e-overlays-and-sheets.md) |
-| U6j | [`@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell](ready/U6j-positioning-and-palette-shell.md) | ready | [U6i](ongoing/U6i-sheets-positioning-and-palette-shell.md) |
+| U6i | [`@laminapdf/ui` bottom sheets and the dialog as a sheet on the phone](done/U6i-sheets-positioning-and-palette-shell.md) | done | [U6e](done/U6e-overlays-and-sheets.md) |
+| U6j | [`@laminapdf/ui` anchored positioning, the selection toolbar shell and the command palette shell](ready/U6j-positioning-and-palette-shell.md) | ready | [U6i](done/U6i-sheets-positioning-and-palette-shell.md) |
 
 ## Hosted service
 
