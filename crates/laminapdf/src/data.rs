@@ -28,6 +28,8 @@ pub(crate) fn of_error(error: &Error) -> Data {
             Inner::Text(e) => text(e),
             #[cfg(feature = "build")]
             Inner::Build(e) => build(e),
+            #[cfg(feature = "extract")]
+            Inner::Extract(_) => Data::new(),
         },
         Error::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         Error::Cancelled | Error::JobFinished | Error::DocumentChanged => Data::new(),

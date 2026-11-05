@@ -34,7 +34,7 @@ saslprep = ["laminapdf-cos/saslprep"]
 build = ["dep:laminapdf-build"]
 # Text extraction alone (laminapdf-text's extractor: `page_text`, `laminapdf::extract`), without the
 # builder: what a reader needs (B9c; ADR 0016 §4 places it by size).
-extract = ["dep:laminapdf-text"]
+extract = ["dep:laminapdf-text", "dep:laminapdf-extract"]
 # Fonts and text on top of the builder (laminapdf-text: shaping, bidi, line breaking, subsetting).
 text = ["build", "extract", "laminapdf-build/text"]
 # `laminapdf::explain(code)`: every code's explain page (docs/errors/<code>.md, ADR 0026 §6), about
@@ -48,6 +48,7 @@ laminapdf-ops = { workspace = true }
 laminapdf-save = { workspace = true }
 laminapdf-syntax = { workspace = true, features = ["json"] }
 laminapdf-text = { workspace = true, optional = true }
+laminapdf-extract = { workspace = true, optional = true, features = ["serde"] }
 laminapdf-build = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -71,6 +72,10 @@ sha2 = { workspace = true }
 [[example]]
 name = "hello"
 required-features = ["text"]
+
+[[example]]
+name = "extract_markdown"
+required-features = ["extract"]
 
 [[example]]
 name = "invoice"

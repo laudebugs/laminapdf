@@ -37,6 +37,7 @@ laminapdf-source = { version = "0.2.0-alpha.2", path = "crates/laminapdf-source"
 laminapdf-save = { version = "0.2.0-alpha.2", path = "crates/laminapdf-save" }
 laminapdf-content = { version = "0.2.0-alpha.2", path = "crates/laminapdf-content" }
 laminapdf-text = { version = "0.2.0-alpha.2", path = "crates/laminapdf-text" }
+laminapdf-extract = { version = "0.2.0-alpha.2", path = "crates/laminapdf-extract" }
 # No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
 laminapdf-build = { version = "0.2.0-alpha.2", path = "crates/laminapdf-build", default-features = false }
 laminapdf = { version = "0.2.0-alpha.2", path = "crates/laminapdf", default-features = false }
