@@ -7,9 +7,13 @@
 #   takes wrangler.toml and the Wrangler version from the default branch, installs that exact
 #   Wrangler into a fresh npm cache, uploads the artifact as a preview version under the alias
 #   pr-<number> and comments its URL on the PR (one comment, updated on every push).
-# Pushes to main (and manual runs on main) build with LAMINA_PDF_ENV=production and deploy in one
-# job (`production`): main is trusted. Production is https://laminapdf.com (the custom domain route
-# in wrangler.toml).
+# Every push to main, a schedule and manual runs on main build with LAMINA_PDF_ENV=production and
+# deploy in one job (`production`): main is trusted. Production is https://laminapdf.com (the
+# custom domain route in wrangler.toml). Before building, it regenerates the roadmap
+# (apps/site/src/data/progress.json) with `cargo xtask progress`: any merge can move a todo,
+# whatever files it touches, so pushes have no path filter, and the schedule picks up the pull
+# requests opened since the last deploy, whose todos show as in progress. The committed snapshot
+# is what PR previews and local builds show.
 #
 # Fork PRs are skipped (they must never run on self-hosted runners or see the secrets). Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
@@ -40,7 +44,9 @@ on:
       - .github/workflows/site.yml
   push:
     branches: [main]
-    paths: *inputs
+  schedule:
+    # Every six hours, at a minute other workflows don't use.
+    - cron: "41 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -200,6 +206,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      # `cargo xtask progress` reads the open pull requests and their files.
+      pull-requests: read
     steps:
       - name: Check for the Cloudflare secrets
         id: secrets
@@ -217,6 +225,22 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # `cargo xtask progress` reads origin/main's history (the merged pull requests).
+          fetch-depth: 0
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: xtask
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - name: Refresh the roadmap
+        if: steps.secrets.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: cargo xtask progress
       - if: steps.secrets.outputs.enabled == 'true'
         uses: ./.github/actions/node-pnpm
       - name: Build the site
