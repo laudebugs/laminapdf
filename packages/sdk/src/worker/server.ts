@@ -361,12 +361,9 @@ async function execute(job: Job): Promise<void> {
     // The result is in: no caller joins this job any more (a reply can take a while, and a caller
     // that joined now would get none); a same-key call from here on runs again.
     current = undefined;
-    const [only, ...others] = job.waiters;
-    // A document opened for one caller (opens carry no key, so they are never coalesced): that
-    // caller's cancel may still arrive after this answer, and then frees it (cancel()).
-    if (only !== undefined && others.length === 0 && isHandleRef(result) && result.type === "document") {
-      madeBy.set(only.id, result.$handle);
-    }
+    // The caller's cancel may still arrive after this answer: cancel() then frees the document.
+    const opened = openedFor(job, result);
+    if (opened !== undefined) madeBy.set(...opened);
     await replyAll(job, result);
   } catch (e) {
     if (isTrap(e)) {
@@ -383,6 +380,17 @@ async function execute(job: Job): Promise<void> {
   } finally {
     current = undefined;
   }
+}
+
+/**
+ * `[call ID, document handle]` when `job` is an `open` or `openUrl` that answered one caller
+ * alone (one coalesced by a `key` shares its document, so no single cancel may free it).
+ */
+function openedFor(job: Job, result: unknown): [number, number] | undefined {
+  const { handle, method } = job.first;
+  if (handle !== 0 || (method !== "open" && method !== "openUrl") || !isHandleRef(result)) return undefined;
+  const [only, ...others] = job.waiters;
+  return only !== undefined && others.length === 0 ? [only.id, result.$handle] : undefined;
 }
 
 /** Runs the call: a client method, or a method of the document or page its handle names. */
