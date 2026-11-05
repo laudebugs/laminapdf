@@ -44,7 +44,8 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.10 Command palette | `ShortcutChip` | `⌥⌘E` on macOS, `Ctrl Shift E` elsewhere, from the platform the app names |
 | §7.12 Colour swatches | `SwatchGroup` | Colours are token names, so only design-language colours appear |
 | §7.19 Form controls | `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup`, `Radio`, `Switch` | Label above, help or error below, wired with `aria-describedby` and `aria-invalid` |
-| §7.18 Dialog | `Dialog` | Modal; `isRequired` for a question that must be answered |
+| §7.16 Bottom sheet | `BottomSheet` | Medium and large detents; the grabber is a button; modal or not |
+| §7.18 Dialog | `Dialog` | Modal; `isRequired` for a question that must be answered; a bottom sheet on a phone |
 | §7.20 Toast and notice | `Notice`, `Toast`, `ToastRegion`, `ToastQueue` | A notice is a status message; the region announces each toast |
 | §7.21 Empty state | `EmptyState` | A title, one sentence and at most two actions |
 | §7.22 Progress | `ProgressBar`, `Skeleton` | Indeterminate without a `value`; it stands still under reduced motion |
@@ -54,7 +55,7 @@ On desktop every target is at least 24 × 24 px. On touch every target is at lea
 | §7.26 Menu | `Menu`, `MenuTrigger`, `Popover`, `PopoverTrigger` | The menu button pattern; a popover is a named dialog |
 | §7.27 Tooltip | `Tooltip` | After 500 ms of hover, at once on keyboard focus |
 
-Bottom sheets, the selection toolbar and the command palette's shell come next, in the same package.
+The selection toolbar and the command palette's shell come next, in the same package.
 
 ## Overlays
 
@@ -63,7 +64,8 @@ Pick the layer by what it asks of people:
 - A **notice** for a state that lasts, inside the panel it concerns.
 - A **toast** to confirm something that already happened. It goes away, so it never carries an error, and its action (such as Undo) must also be in a menu or a shortcut.
 - A **popover** or **menu** for a short choice next to the button that opened it.
-- A **dialog** when the work must stop for an answer.
+- A **dialog** when the work must stop for an answer. On a phone it rises as a bottom sheet.
+- A **bottom sheet** for a panel on the phone: modal when it asks something, non-modal when the page stays in use beside it.
 
 Render one `ToastRegion` near the root before any toast arrives, so screen readers announce each one, and show toasts through its queue:
 

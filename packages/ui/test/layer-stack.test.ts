@@ -44,6 +44,23 @@ describe("LayerStack", () => {
 });
 
 describe("LayerStack order", () => {
+  it("knows whether a layer opened from another is open, through any depth", () => {
+    const stack = new LayerStack();
+    const sheet = { dismiss: vi.fn(), dismissable: true };
+    const menu = { dismiss: vi.fn(), dismissable: true, parent: sheet };
+    const submenu = { dismiss: vi.fn(), dismissable: true, parent: menu };
+    const toolbar = { dismiss: vi.fn(), dismissable: true };
+    stack.open(sheet);
+    stack.open(toolbar);
+    expect(stack.hasOpenedFrom(sheet)).toBe(false);
+    const closeMenu = stack.open(menu);
+    const closeSubmenu = stack.open(submenu);
+    closeMenu();
+    expect(stack.hasOpenedFrom(sheet)).toBe(true);
+    closeSubmenu();
+    expect(stack.hasOpenedFrom(sheet)).toBe(false);
+  });
+
   it("keeps a layer beneath the layers opened from it, whichever registers first", () => {
     const stack = new LayerStack();
     const dialog = { dismiss: vi.fn(), dismissable: true };

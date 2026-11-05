@@ -84,6 +84,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./overlays/popover.js";
+export { BottomSheet, type BottomSheetProps, type SheetDetent } from "./overlays/sheet.js";
 export {
   type ToastHandle,
   type ToastOptions,
