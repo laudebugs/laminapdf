@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6a](../done/U6a-paper-tokens.md) |
+| Depends on | [U6a](./U6a-paper-tokens.md) |
 | Blocks | [U6d](../ready/U6d-core-components.md) |
 | ADRs | Follows 0024 (component rules; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)), 0009 (React chrome around a framework-free viewer; from [C2a](../done/C2a-render-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence of any dev dependency) |
 | Branch | `feat/u6c-icon-set` |
@@ -50,24 +50,24 @@ Make the design language's icons a typed, tested package so every screen uses th
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Scaffold `packages/icons` (`package.json` with `exports`, `"sideEffects": false`, `"private": true`, scripts `generate`, `lint:icons`, `typecheck`, `test`; `tsconfig.json`; README).
-- [ ] Copy the 22 icons from [§5](../../design/paper/design-language.md#5-iconography) into `svg/` byte-for-byte inside the standard wrapper; name files after the table (`sidebar.svg`, `find.svg`, `zoom-out.svg`, `zoom-in.svg`, `more.svg`, `close.svg`, `back.svg`, `copy.svg`, `highlight.svg`, `comment.svg`, `underline.svg`, `ink.svg`, `shapes.svg`, `share.svg`, `pages.svg`, `reader.svg`, `network-shield.svg`, `repaired.svg`, `signed-file.svg`, `warning.svg`, `chevron-down.svg`, `check.svg`).
-- [ ] Draw the icons the reader v0.1 and U6d/U6e need that the design language lacks, on the same grid, and add each to the design language's §5 table with **(proposed)**: chevron right/left/up (outline expand, menus, back/forward), forward, open file (folder), download, print, rotate clockwise, fit width, fit page, info, error (circle with bar), positive (circle check), lock (password), eye and eye-off (show/hide password), settings, help, keyboard, external link, bookmark, attachment, undo, redo, clear (in search fields). The sheet grabber is a drawn bar, not an icon. Show each new icon to the owner (screenshot in the PR) and get it approved before merge.
-- [ ] Write the generator and `--check`; wire `--check` and the lint into `test`.
-- [ ] Write the lint with a small SVG path parser (M/L/H/V/C/S/Q/T/A/Z, relative and absolute) computing a conservative bounding box from endpoints and control points (arcs: endpoints ± radius). If you pick a library instead (for example `svg-path-bbox`), check its licence and keep it a dev dependency.
-- [ ] `<Icon>` in `src/react/icon.tsx` (nested `biome.json` allowing DOM globals for `src/react/` only) with tests: decorative by default; `label` switches to `role="img"`; size sets `width`/`height` only; colour comes from `currentColor`.
-- [ ] Gallery page and a test that it lists every `IconName` (no icon missing from the gallery).
-- [ ] Per-area icon list in the README: Foundations/Reader (this PR), Desktop shell, Edit session and organise (insert, rotate left/right, extract, delete, duplicate, history), Comment and review (strike, caret, arrow, text box, eraser, pen, stamp, reply, filter), Add and edit content (text, image, link, transform), Forms (text field, checkbox field, date, required), Sign, protect and redact (signature, certificate, timestamp, lock, redact, sanitise), Convert and compare (OCR, compare, batch, layers, measure), Account and cloud (person, cloud, sync, share link, bell); each with its owning todo from [screens.md](../../design/paper/screens.md).
+- [x] Scaffold `packages/icons` (`package.json` with `exports`, `"sideEffects": false`, `"private": true`, scripts `generate`, `lint:icons`, `typecheck`, `test`; `tsconfig.json`; README).
+- [x] Copy the 22 icons from [§5](../../design/paper/design-language.md#5-iconography) into `svg/` byte-for-byte inside the standard wrapper; name files after the table (`sidebar.svg`, `find.svg`, `zoom-out.svg`, `zoom-in.svg`, `more.svg`, `close.svg`, `back.svg`, `copy.svg`, `highlight.svg`, `comment.svg`, `underline.svg`, `ink.svg`, `shapes.svg`, `share.svg`, `pages.svg`, `reader.svg`, `network-shield.svg`, `repaired.svg`, `signed-file.svg`, `warning.svg`, `chevron-down.svg`, `check.svg`).
+- [x] Draw the icons the reader v0.1 and U6d/U6e need that the design language lacks, on the same grid, and add each to the design language's §5 table with **(proposed)**: chevron right/left/up (outline expand, menus, back/forward), forward, open file (folder), download, print, rotate clockwise, fit width, fit page, info, error (circle with bar), positive (circle check), lock (password), eye and eye-off (show/hide password), settings, help, keyboard, external link, bookmark, attachment, undo, redo, clear (in search fields). The sheet grabber is a drawn bar, not an icon. Show each new icon to the owner (screenshot in the PR) and get it approved before merge.
+- [x] Write the generator and `--check`; wire `--check` and the lint into `test`.
+- [x] Write the lint with a small SVG path parser (M/L/H/V/C/S/Q/T/A/Z, relative and absolute) computing a conservative bounding box from endpoints and control points (arcs: endpoints ± radius). If you pick a library instead (for example `svg-path-bbox`), check its licence and keep it a dev dependency.
+- [x] `<Icon>` in `src/react/icon.tsx` (nested `biome.json` allowing DOM globals for `src/react/` only) with tests: decorative by default; `label` switches to `role="img"`; size sets `width`/`height` only; colour comes from `currentColor`.
+- [x] Gallery page and a test that it lists every `IconName` (no icon missing from the gallery).
+- [x] Per-area icon list in the README: Foundations/Reader (this PR), Desktop shell, Edit session and organise (insert, rotate left/right, extract, delete, duplicate, history), Comment and review (strike, caret, arrow, text box, eraser, pen, stamp, reply, filter), Add and edit content (text, image, link, transform), Forms (text field, checkbox field, date, required), Sign, protect and redact (signature, certificate, timestamp, lock, redact, sanitise), Convert and compare (OCR, compare, batch, layers, measure), Account and cloud (person, cloud, sync, share link, bell); each with its owning todo from [screens.md](../../design/paper/screens.md).
 
 ## Acceptance criteria
 
-- [ ] Every icon in the design language's §5 table exists in `@laminapdf/icons` with identical path data (test compares against the Markdown table).
-- [ ] The lint passes for every icon, and fails for a fixture SVG with stroke 2, a fill, a `transform` and a shape touching the edge (negative tests in `test/fixtures/`).
-- [ ] `IconName` is a literal union; `<Icon name="nope" />` fails to type-check (a `@ts-expect-error` test).
-- [ ] `<Icon>` renders `aria-hidden="true"` without `label`, and `role="img"` with an accessible name with `label` (Testing Library); axe reports no violation on the gallery page.
-- [ ] Every icon added in this PR is in the design language's §5 table and was approved by the owner (linked in the PR).
-- [ ] The root entry `@laminapdf/icons` imports nothing from React (a test resolves its module graph); `@laminapdf/viewer` can use `iconSvg` without React.
-- [ ] `cargo xtask check` passes.
+- [x] Every icon in the design language's §5 table exists in `@laminapdf/icons` with identical path data (test compares against the Markdown table).
+- [x] The lint passes for every icon, and fails for a fixture SVG with stroke 2, a fill, a `transform` and a shape touching the edge (negative tests in `test/fixtures/`).
+- [x] `IconName` is a literal union; `<Icon name="nope" />` fails to type-check (a `@ts-expect-error` test).
+- [x] `<Icon>` renders `aria-hidden="true"` without `label`, and `role="img"` with an accessible name with `label` (Testing Library); axe reports no violation on the gallery page.
+- [x] Every icon added in this PR is in the design language's §5 table and was approved by the owner (linked in the PR).
+- [x] The root entry `@laminapdf/icons` imports nothing from React (a test resolves its module graph); `@laminapdf/viewer` can use `iconSvg` without React.
+- [x] `cargo xtask check` passes.
 
 ## Post-merge checks
 
@@ -89,10 +89,18 @@ None.
 - **The 0.9-radius dots in More** are drawn as stroked circles that read as filled dots; the lint needs an explicit allowance rather than accepting small circles everywhere.
 - **Area documents** listed in the plan may not be in the repository yet; the per-area list is then derived from screens.md and the design language, and each area's first UI todo completes its row.
 
+## Outcome
+
+- `@laminapdf/icons` holds 134 drawings in `svg/` and four aliases in `aliases.json` (`upload`, `plus`, `signature-image`, `chevron-left`). The drawings are the design language's 22, the 106 the area boards drew (the design language had added them since the todo was written) and six drawn here: fit width, fit page, error, positive, settings (two sliders) and clear. Most of the icons the todo listed to draw already existed on the boards. The owner approved every icon on 2026-11-05.
+- The root entry (`ICONS`, `IconName`, `ICON_SIZES`, `iconSvg`, `iconButtonProps`) imports nothing outside the package, and a test follows its imports to prove it. `<Icon>` is at `./react`, with React 19 as an optional peer. Both take `strokeWidth` (1.5 or 2, for Check inside a checkbox).
+- The lint (`scripts/rules.ts` over `scripts/svg.ts`) runs in `lint:icons`, the generator and the tests. Its bounding box follows each path's drawn curve, with arcs in centre form and compact flags read. It warns only on margins under 3.5 units, because wider ones are deliberate on single strokes.
+- The design language's §5 lists one icon per row with its file, and a test compares every row with its file. The README says how to add an icon and lists what each area still lacks: duplicate, reply, required field, sanitise, OCR, compare, batch and person.
+- Paths differ from the plan: the React entry is `src/react/index.ts` (built with `createElement`), because the entry checks expect `.ts` sources, and the tests live in `test/`. The gallery's screenshots stay with U6f.
+
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

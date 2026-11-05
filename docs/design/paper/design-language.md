@@ -2,7 +2,7 @@
 
 - **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
 - **Source of truth:** [`packages/tokens/tokens.json`](../../../packages/tokens/tokens.json) (`@laminapdf/tokens`) holds the values of §2–§4 and the component sizes of §6; the tables here are a readable copy, and a change goes into that file first. Those values came from the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile), which stays the source for everything else. Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
-- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ready/U6e-overlays-and-sheets.md).
+- **Owner sign-off (2026-11-05):** the owner approved every value `@laminapdf/tokens` holds: §2 (but §2.5's mockup-only colours), §3, §4's shadows, §6's rail and panel widths, breakpoints, page pill fade and large sheet detent, and the styles of §7.18–§7.23. On the same day the owner approved every icon of §5 (U6c). Their **(proposed)** markers are gone. The markers left in this document still wait for a decision; the z-order table waits for [U6e](../../todos/ready/U6e-overlays-and-sheets.md).
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
@@ -345,9 +345,9 @@ Each icon's markup lives in `packages/icons/svg/<file>.svg` (`@laminapdf/icons`)
 | Network shield | `network-shield` | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path>` |
 | Repaired (wrench) | `repaired` | `<path d="M14.5 5.5a4 4 0 0 0-5 5L4.5 15.5l4 4 5-5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"></path>` |
 | Signed file | `signed-file` | `<path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path>` |
-| Warning **(proposed)** | `warning` | `<path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path>` |
-| Chevron down **(proposed)** | `chevron-down` | `<path d="M7 10l5 5 5-5"></path>` |
-| Check **(proposed; stroke 2 inside checkboxes)** | `check` | `<path d="M6 12.5l4 4 8-9"></path>` |
+| Warning | `warning` | `<path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path>` |
+| Chevron down | `chevron-down` | `<path d="M7 10l5 5 5-5"></path>` |
+| Check (stroke 2 inside checkboxes) | `check` | `<path d="M6 12.5l4 4 8-9"></path>` |
 
 Wrap each in:
 
@@ -357,7 +357,7 @@ Wrap each in:
 
 `iconSvg(name, { size })` and the React `<Icon name size />` from `@laminapdf/icons` write this wrapper. New icons follow the same grid and stroke: add the SVG to `@laminapdf/icons`, whose lint enforces the rules, and a row to a table here.
 
-**Icons from the area boards (proposed).** One drawing per name; where two areas drew the same name differently, the version below won (see [Decisions on area proposals](#decisions-on-area-proposals)). All stroke 1.5, no fills.
+**Icons from the area boards.** One drawing per name; where two areas drew the same name differently, the version below won (see [Decisions on area proposals](#decisions-on-area-proposals)). All stroke 1.5, no fills.
 
 | Name | File | Markup | Used for |
 | --- | --- | --- | --- |
@@ -470,9 +470,9 @@ Wrap each in:
 | Keyboard | `keyboard` | `<rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path>` | Type a signature, keyboard shortcuts |
 | Key | `key` | `<circle cx="8" cy="12" r="3.5"></circle><path d="M11.5 12H20M17 12v3M20 12v2"></path>` | Keychain |
 | Smart card | `smart-card` | `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` | Smart card |
-| Snap to grid **(proposed, Forms P05)** | `snap-to-grid` | `<path d="M4.5 9h15M4.5 15h15M9 4.5v15M15 4.5v15"></path>` | Form design toolbar |
+| Snap to grid | `snap-to-grid` | `<path d="M4.5 9h15M4.5 15h15M9 4.5v15M15 4.5v15"></path>` | Form design toolbar |
 
-**Icons for the reader and the core components (proposed, U6c).** U6c drew these on the same grid, because the reader v0.1 and the core components need them and no board had drawn them.
+**Icons for the reader and the core components (U6c).** U6c drew these on the same grid, because the reader v0.1 and the core components need them and no board had drawn them.
 
 | Name | File | Markup | Used for |
 | --- | --- | --- | --- |
