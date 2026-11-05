@@ -12,7 +12,7 @@
 | Branch | `feat/u6b-self-hosted-fonts` |
 | PR title | `feat(fonts): self-host subsetted newsreader and source sans 3 woff2 files` |
 | Size | S (≈ 150–200 lines of script, CSS and tests; the font binaries and licence texts don't count) |
-| PR | — |
+| PR | [#245](https://github.com/laudebugs/laminapdf/pull/245) |
 
 ## Goal
 
