@@ -30,7 +30,7 @@ export async function filesIn(dir, extension) {
  * @param {URL} url
  * @returns {Promise<boolean>}
  */
-export async function isFile(url) {
+async function isFile(url) {
   try {
     return (await stat(url)).isFile();
   } catch {
@@ -124,95 +124,166 @@ export function previewNoindex(env) {
   return { name: "lamina-preview-noindex", hooks: { "astro:build:done": ({ dir }) => markNoindex(dir, env) } };
 }
 
-/** Elements whose address the page loads (not a link the reader follows), with their attributes. */
-const LOADED = /<(script|link|img|source|video|audio|iframe|embed|object|track|input)\b([^>]*)>/gi;
-const ADDRESS = /\s(src|href|srcset|data|poster)\s*=\s*["']([^"']+)["']/gi;
+/** Elements whose address the page loads (not a link the reader follows). */
+const LOADING = new Set([
+  "script",
+  "link",
+  "img",
+  "source",
+  "video",
+  "audio",
+  "iframe",
+  "embed",
+  "object",
+  "track",
+  "input",
+]);
+/** The attributes that hold an address an element loads. */
+const ADDRESSES = ["src", "href", "srcset", "data", "poster"];
+/** `<link>` relations that only name a page, not load it. */
+const NAMES_A_PAGE = /\b(canonical|alternate|me|author)\b/i;
 /** A style sheet or font from another origin, in CSS: `url(https://…)`, `url(//…)`, `@import "…"`. */
 const REMOTE_CSS = /(?:url\(\s*["']?|@import\s+(?:url\(\s*)?["']?)(?:https?:)?\/\//i;
-/** Script that sets a cookie or sends a beacon (ADR 0011 §3: no cookies, no analytics). */
-const COOKIE = /document\.cookie\s*=/;
+/** Script that sets a cookie (`document.cookie =`, `document["cookie"] =`, the Cookie Store API). */
+const COOKIE =
+  /\bdocument\s*(?:\.\s*cookie|\[\s*["'`]cookie["'`]\s*\])\s*=(?!=)|\bcookieStore\s*\.\s*(?:set|delete)\s*\(/;
+/** Script that sends a beacon (ADR 0011 §3: no analytics). */
 const BEACON = /\bsendBeacon\s*\(/;
 /** A module imported from another origin: Astro bundles `<script src="https://…">` into one. */
 const REMOTE_IMPORT = /(?:\bimport\s*(?:\(\s*)?|\bfrom\s*)["'`](?:https?:)?\/\//;
 
 /**
- * What is wrong with one built HTML page, as messages: a file it loads from another origin, an
- * inline style (`style-src 'self'` blocks it), a missing title, description or canonical URL on
- * `origin`, a ping on a link, or an inline script that sets a cookie or sends a beacon.
+ * `html` with comments removed and the bodies of `<script>` elements emptied, so the markup
+ * checks see only markup, never text inside a script or a comment.
+ *
+ * @param {string} html
+ * @returns {string}
+ */
+function markupOf(html) {
+  return html.replace(/<!--[\s\S]*?-->/g, "").replace(/(<script\b[^>]*>)[\s\S]*?<\/script>/gi, "$1</script>");
+}
+
+/**
+ * Every start tag in `markup` (from {@link markupOf}): its lowercase name and attributes, with
+ * names lowercased and values in double, single or no quotes.
+ *
+ * @param {string} markup
+ * @returns {{ name: string, attributes: Map<string, string> }[]}
+ */
+function tags(markup) {
+  return [...markup.matchAll(/<([a-z][a-z0-9-]*)\b([^>]*)>/gi)].map(([, name = "", text = ""]) => {
+    const attributes = new Map();
+    for (const [, key = "", ...values] of text.matchAll(
+      /([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g,
+    )) {
+      attributes.set(key.toLowerCase(), values.find((v) => v !== undefined) ?? "");
+    }
+    return { name: name.toLowerCase(), attributes };
+  });
+}
+
+/**
+ * Every address the page loads: `src`, `href`, `srcset`, `data` and `poster` of the elements that
+ * load what they name. Links the reader follows don't count, nor do the `<link>`s that only name a
+ * page (canonical, alternate, me, author), nor `data:` addresses.
+ *
+ * @param {{ name: string, attributes: Map<string, string> }[]} found
+ * @returns {string[]}
+ */
+function loadedAddresses(found) {
+  const addresses = [];
+  for (const { name, attributes } of found) {
+    if (!LOADING.has(name) || (name === "link" && NAMES_A_PAGE.test(attributes.get("rel") ?? ""))) continue;
+    for (const attribute of ADDRESSES) {
+      // A srcset lists `address width` pairs, separated by commas.
+      const value = attributes.get(attribute) ?? "";
+      addresses.push(...value.split(",").map((part) => part.trim().split(/\s+/)[0] ?? ""));
+    }
+  }
+  return addresses.filter((address) => address !== "" && !/^data:/i.test(address));
+}
+
+/**
+ * What is wrong with one built HTML page, as messages: a file it loads from another origin, or
+ * from its own origin by full address (a preview's `'self'` is another host); an inline style
+ * (`style-src 'self'` blocks it); a link that pings; a missing title or description; no canonical
+ * URL on `origin` (unless the page is `noindex`); or an inline script that imports a module from
+ * another origin, sets a cookie or sends a beacon.
  *
  * @param {string} html
  * @param {string} origin the site's production origin, such as `https://laminapdf.com`
  * @returns {string[]}
  */
 export function pageProblems(html, origin) {
+  const markup = markupOf(html);
+  const found = tags(markup);
   return [
-    ...remoteLoads(html, origin).map((address) => `loads ${address} from another origin`),
-    ...markupProblems(html),
-    ...headProblems(html, origin),
+    ...absoluteLoads(found, origin),
+    ...markupProblems(markup, found),
+    ...headProblems(markup, found, origin),
     ...inlineScripts(html).flatMap(scriptProblems),
   ];
 }
 
 /**
- * Every address `html` loads: `src`, `href`, `srcset`, `data` and `poster` of the elements that
- * load what they name. Links the reader follows don't count, nor do the `<link>`s that only name a
- * page (canonical, alternate, me, author).
+ * The loads by full address: from another origin, or from `origin` itself, which works in
+ * production but not on a preview, whose `'self'` is another host.
  *
- * @param {string} html
- * @returns {string[]}
- */
-function loadedAddresses(html) {
-  const addresses = [];
-  for (const [, tag = "", attributes = ""] of html.matchAll(LOADED)) {
-    const relation = attributes.match(/\srel\s*=\s*["']([^"']+)["']/i)?.[1] ?? "";
-    if (tag.toLowerCase() === "link" && /\b(canonical|alternate|me|author)\b/i.test(relation)) continue;
-    for (const [, , value = ""] of attributes.matchAll(ADDRESS)) {
-      // A srcset lists `address width` pairs, separated by commas.
-      addresses.push(...value.split(",").map((part) => part.trim().split(/\s+/)[0] ?? ""));
-    }
-  }
-  return addresses;
-}
-
-/**
- * The addresses `html` loads from an origin other than `origin`.
- *
- * @param {string} html
+ * @param {{ name: string, attributes: Map<string, string> }[]} found
  * @param {string} origin
  * @returns {string[]}
  */
-function remoteLoads(html, origin) {
-  return loadedAddresses(html).filter((a) => /^(https?:)?\/\//i.test(a) && !a.startsWith(`${origin}/`));
+function absoluteLoads(found, origin) {
+  return loadedAddresses(found)
+    .filter((address) => /^([a-z][a-z0-9+.-]*:)?\/\//i.test(address))
+    .map((address) =>
+      address.startsWith(`${origin}/`)
+        ? `loads ${address} by its full address, which a preview's CSP refuses: use the path`
+        : `loads ${address} from another origin`,
+    );
 }
 
 /**
- * What the markup of `html` does that the website refuses: an inline style (`style-src 'self'`
- * blocks it) or a link that pings.
+ * What the markup does that the website refuses: an inline style (`style-src 'self'` blocks it)
+ * or a link that pings.
  *
- * @param {string} html
+ * @param {string} markup
+ * @param {{ name: string, attributes: Map<string, string> }[]} found
  * @returns {string[]}
  */
-function markupProblems(html) {
-  const inlineStyle = /<style[\s>]/i.test(html) || /<[a-z][^>]*\sstyle\s*=/i.test(html);
+function markupProblems(markup, found) {
+  const inlineStyle = /<style[\s>]/i.test(markup) || found.some(({ attributes }) => attributes.has("style"));
+  const ping = found.some(({ name, attributes }) => name === "a" && attributes.has("ping"));
   return [
     ...(inlineStyle ? ["has an inline style, which style-src 'self' blocks"] : []),
-    ...(/<a\s[^>]*\bping\s*=/i.test(html) ? ["has a link with a ping"] : []),
+    ...(ping ? ["has a link with a ping"] : []),
   ];
 }
 
 /**
- * What the head of `html` lacks: a title, a description or a canonical URL on `origin`.
+ * What the head lacks: a title, a description, or a canonical URL on `origin`. A page marked
+ * `<meta name="robots" content="noindex">`, such as the 404 page, needs no canonical URL.
  *
- * @param {string} html
+ * @param {string} markup
+ * @param {{ name: string, attributes: Map<string, string> }[]} found
  * @param {string} origin
  * @returns {string[]}
  */
-function headProblems(html, origin) {
-  const canonical = html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/)?.[1];
+function headProblems(markup, found, origin) {
+  const meta = (/** @type {string} */ key) =>
+    found
+      .find(({ name, attributes }) => name === "meta" && attributes.get("name")?.toLowerCase() === key)
+      ?.attributes.get("content") ?? "";
+  const canonical = found.find(
+    ({ name, attributes }) => name === "link" && /\bcanonical\b/i.test(attributes.get("rel") ?? ""),
+  );
+  const noindex = /\bnoindex\b/i.test(meta("robots"));
   return [
-    ...(/<title>[^<]+<\/title>/.test(html) ? [] : ["has no <title>"]),
-    ...(/<meta\s+name="description"\s+content="[^"]+"/.test(html) ? [] : ["has no description"]),
-    ...(canonical?.startsWith(`${origin}/`) ? [] : [`has no canonical URL on ${origin}`]),
+    ...(/<title>[^<]*\S[^<]*<\/title>/.test(markup) ? [] : ["has no <title>"]),
+    ...(meta("description").trim() ? [] : ["has no description"]),
+    ...(noindex || canonical?.attributes.get("href")?.startsWith(`${origin}/`)
+      ? []
+      : [`has no canonical URL on ${origin}`]),
   ];
 }
 
@@ -233,10 +304,11 @@ function scriptProblems(text) {
 
 /**
  * Fails the build when it breaks the website's rules (ADR 0011 §3): a page loads a file from
- * another origin or one the build didn't write, links to a page the build didn't write, has an
- * inline style or a link that pings, or lacks a title, a description or a canonical URL on
- * `origin`; a script imports a module from another origin, sets a cookie or sends a beacon; a
- * style sheet loads a file from another origin; or `_headers` sets a cookie.
+ * another origin, by its full address, or one the build didn't write; links to a page of this
+ * site the build didn't write; has an inline style or a link that pings; or lacks a title, a
+ * description or a canonical URL on `origin`. It also fails when a script imports a module from
+ * another origin, sets a cookie or sends a beacon; a style sheet loads a file from another origin;
+ * or `_headers` sets a cookie.
  *
  * @param {{ origin: string }} options
  * @returns {import("astro").AstroIntegration}
@@ -265,9 +337,9 @@ export async function builtSiteProblems(dir, origin) {
   const relative = (/** @type {URL} */ url) => url.pathname.slice(dir.pathname.length);
   for (const file of await filesIn(dir, ".html")) {
     const html = await readFile(file, "utf8");
-    for (const problem of pageProblems(html, origin)) problems.push(`${relative(file)}: ${problem}`);
-    for (const path of await missingLinks(html, dir)) problems.push(`${relative(file)}: links to missing ${path}`);
-    for (const path of await missingLoads(html, dir)) problems.push(`${relative(file)}: loads missing ${path}`);
+    const page = relative(file);
+    for (const problem of pageProblems(html, origin)) problems.push(`${page}: ${problem}`);
+    for (const problem of await missingTargets(html, page, dir, origin)) problems.push(`${page}: ${problem}`);
   }
   for (const file of await filesIn(dir, ".js")) {
     for (const problem of scriptProblems(await readFile(file, "utf8"))) problems.push(`${relative(file)}: ${problem}`);
@@ -283,35 +355,47 @@ export async function builtSiteProblems(dir, origin) {
 }
 
 /**
- * The site paths `html` links to (`<a href="/…">`) that the build in `dir` didn't write, either
- * as the file itself or as a page (`index.html`).
+ * The links and loads of the page at `page` (its path in `dir`) whose target on `origin` the build
+ * didn't write. Each address resolves as a browser would against the page's own address, so a
+ * relative (`pricing/`), root (`/pricing/`) or full (`https://laminapdf.com/pricing/`) address
+ * all count; addresses on other hosts and in other schemes don't.
  *
  * @param {string} html
+ * @param {string} page
  * @param {URL} dir
+ * @param {string} origin
  * @returns {Promise<string[]>}
  */
-async function missingLinks(html, dir) {
+async function missingTargets(html, page, dir, origin) {
+  const found = tags(markupOf(html));
+  const base = new URL(page, `${origin}/`);
+  const links = found.filter(({ name }) => name === "a").map(({ attributes }) => attributes.get("href") ?? "");
   const missing = [];
-  for (const [, path = ""] of html.matchAll(/<a\s[^>]*href="(\/(?!\/)[^"#?]*)/g)) {
-    const page = new URL(`.${path.replace(/\/?$/, "/")}index.html`, dir);
-    if (!(await isFile(new URL(`.${path}`, dir))) && !(await isFile(page))) missing.push(path);
+  for (const [kind, addresses] of /** @type {const} */ ([
+    ["links to", links],
+    ["loads", loadedAddresses(found)],
+  ])) {
+    for (const address of addresses) {
+      if (address === "" || address.startsWith("#")) continue;
+      const url = URL.parse(address, base);
+      if (url?.origin !== origin || (await pageExists(dir, url.pathname))) continue;
+      missing.push(`${kind} missing ${url.pathname}`);
+    }
   }
   return missing;
 }
 
 /**
- * The site paths `html` loads (a script, style sheet, font or image at `/…`) that the build in
- * `dir` didn't write.
+ * Whether the build in `dir` serves `path` (a URL path such as `/privacy/`): the file itself,
+ * the folder's `index.html`, or `path.html`, the three forms Workers static assets answer with
+ * `html_handling = "auto-trailing-slash"`.
  *
- * @param {string} html
  * @param {URL} dir
- * @returns {Promise<string[]>}
+ * @param {string} path
+ * @returns {Promise<boolean>}
  */
-async function missingLoads(html, dir) {
-  const missing = [];
-  for (const address of loadedAddresses(html)) {
-    const path = address.split(/[?#]/)[0] ?? "";
-    if (/^\/(?!\/)/.test(path) && !(await isFile(new URL(`.${path}`, dir)))) missing.push(path);
-  }
-  return missing;
+export async function pageExists(dir, path) {
+  const at = (/** @type {string} */ p) => isFile(new URL(`.${p}`, dir));
+  if (path.endsWith("/")) return at(`${path}index.html`);
+  return (await at(path)) || (await at(`${path}/index.html`)) || at(`${path}.html`);
 }

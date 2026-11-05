@@ -1,7 +1,7 @@
 // The site header's links: §7.39's order, and a page's link only once the page exists.
 
 import { describe, expect, it } from "vitest";
-import { routeOf, siteNav } from "../src/nav";
+import { routeOf, siteNav } from "../src/nav.js";
 
 describe("routeOf", () => {
   it("serves a page file at its folder's path", () => {

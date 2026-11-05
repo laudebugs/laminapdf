@@ -7,7 +7,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { builtSiteProblems, fillInlineScriptHashes, markNoindex, pageProblems } from "../src/integrations.mjs";
+import {
+  builtSiteProblems,
+  fillInlineScriptHashes,
+  markNoindex,
+  pageExists,
+  pageProblems,
+} from "../src/integrations.mjs";
 
 const ORIGIN = "https://laminapdf.com";
 const HEADERS = `/*\n  Content-Security-Policy: default-src 'none'; script-src 'self' 'inline-script-hashes'; style-src 'self'\n  Referrer-Policy: no-referrer\n`;
@@ -47,9 +53,47 @@ describe("pageProblems", () => {
   it("passes a page that loads only its own files", () => {
     const html = page(
       '<img src="/logo.svg" alt=""><img srcset="/a.png 1x, /b.png 2x" alt=""><a href="https://github.com/">out</a>',
-      `<link rel="preload" href="${ORIGIN}/_astro/sans.woff2" as="font"><script type="module" src="/_astro/x.js"></script>`,
+      '<link rel="preload" href="/_astro/sans.woff2" as="font"><script type="module" src="/_astro/x.js"></script>',
     );
     expect(pageProblems(html, ORIGIN)).toEqual([]);
+  });
+
+  it("names a file loaded from the site's own origin by its full address, which a preview refuses", () => {
+    expect(pageProblems(page("", `<link rel="preload" href="${ORIGIN}/_astro/sans.woff2" as="font">`), ORIGIN)).toEqual(
+      [`loads ${ORIGIN}/_astro/sans.woff2 by its full address, which a preview's CSP refuses: use the path`],
+    );
+  });
+
+  it("reads attributes in any order and quoting", () => {
+    const html = [
+      "<html><head><title>Lamina PDF</title>",
+      "<meta content='PDFs from code' name=description>",
+      `<link href='${ORIGIN}/' rel="canonical">`,
+      "</head><body><img alt='' SRC='https://cdn.example/x.png'></body></html>",
+    ].join("");
+    expect(pageProblems(html, ORIGIN)).toEqual(["loads https://cdn.example/x.png from another origin"]);
+  });
+
+  it("ignores markup inside scripts and comments", () => {
+    const script = `<script type="application/ld+json">{"x": "<p style='a'>"}</script>`;
+    expect(
+      pageProblems(page(`${script}<!-- <style>p{}</style> <img src="https://cdn.example/x.png"> -->`), ORIGIN),
+    ).toEqual([]);
+  });
+
+  it("lets a noindex page go without a canonical URL", () => {
+    const notFound = page().replace(
+      `<link rel="canonical" href="${ORIGIN}/">`,
+      '<meta name="robots" content="noindex">',
+    );
+    expect(pageProblems(notFound, ORIGIN)).toEqual([]);
+  });
+
+  it("names each way a script sets a cookie, but not a comparison", () => {
+    const script = (body: string) => pageProblems(page(`<script>${body}</script>`), ORIGIN);
+    expect(script('if (document.cookie == "") {}')).toEqual([]);
+    expect(script('document["cookie"] = "id=1"')).toEqual(["sets a cookie"]);
+    expect(script('cookieStore.set("id", "1")')).toEqual(["sets a cookie"]);
   });
 
   it("names a script, font, image or frame from another origin", () => {
@@ -107,6 +151,23 @@ describe("builtSiteProblems", () => {
     expect(await builtSiteProblems(dir, ORIGIN)).toEqual([]);
   });
 
+  it("resolves relative and full addresses on the site, and skips other hosts and schemes", async () => {
+    const links = [
+      '<a href="pricing/">relative</a>',
+      `<a href="${ORIGIN}/download/">full</a>`,
+      '<a href="../">up</a>',
+      '<a href="/404">not found</a>',
+      '<a href="mailto:hello@example.com">mail</a>',
+      '<a href="https://docs.laminapdf.com/x/">docs</a>',
+      '<a href="#top">top</a>',
+    ].join("");
+    const dir = await site({ "privacy/index.html": page(links), "index.html": page(), "404.html": page() });
+    expect(await builtSiteProblems(dir, ORIGIN)).toEqual([
+      "privacy/index.html: links to missing /privacy/pricing/",
+      "privacy/index.html: links to missing /download/",
+    ]);
+  });
+
   it("names a link to a page the build didn't write, and a folder without a page", async () => {
     const dir = await site({
       "index.html": page('<a href="/pricing/">x</a><a href="/keys">y</a><a href="//example.com/">z</a>'),
@@ -154,6 +215,24 @@ describe("builtSiteProblems", () => {
     expect(problems.sort()).toEqual([
       "a/index.html: loads https://cdn.example/x.png from another origin",
       "b/index.html: loads https://cdn.example/x.png from another origin",
+    ]);
+  });
+});
+
+describe("pageExists", () => {
+  it("serves a file, a folder's index.html, or path.html, as auto-trailing-slash does", async () => {
+    const dir = await site({ "404.html": "", "privacy/index.html": "", "keys/k.asc": "" });
+    const served = async (path: string) => [path, await pageExists(dir, path)];
+    expect(
+      await Promise.all(["/404", "/privacy", "/privacy/", "/keys/k.asc", "/keys", "/keys/", "/x"].map(served)),
+    ).toEqual([
+      ["/404", true],
+      ["/privacy", true],
+      ["/privacy/", true],
+      ["/keys/k.asc", true],
+      ["/keys", false],
+      ["/keys/", false],
+      ["/x", false],
     ]);
   });
 });

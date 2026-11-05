@@ -1,6 +1,7 @@
 ---
-// Every page's frame: the head (title, description, canonical URL on https://laminapdf.com, the
-// first paint's font preloaded), the site header and footer, and the page between them.
+// Every page's frame: the head (title, description, canonical URL on https://laminapdf.com, or
+// noindex for a page search engines should skip; the first paint's font preloaded), the site
+// header and footer, and the page between them.
 import "@laminapdf/tokens/tokens.css";
 import "@laminapdf/fonts/fonts.css";
 import "../styles/site.css";
@@ -14,9 +15,11 @@ interface Props {
   title: string;
   /** One or two sentences for search results and link previews. */
   description: string;
+  /** Keeps the page out of search results, with no canonical URL: the 404 page. */
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -27,7 +30,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical.href} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical.href} />}
     <link rel="preload" href={sans} as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>

@@ -17,13 +17,13 @@ pnpm --filter @laminapdf/site typecheck
 After the build, three steps from `@laminapdf/site-kit` (`astro.config.mjs`) run on `dist/`, in this order:
 
 1. **The website's rules** (`siteChecks`). The build fails, naming each page and problem, when a page:
-   - loads a file from another origin, or one the build didn't write;
-   - links to a page of this site that the build didn't write;
+   - loads a file from another origin, from its own origin by full address (a preview's `'self'` is another host), or one the build didn't write;
+   - links to a page of this site that the build didn't write, whether the link is relative, starts with `/` or names `https://laminapdf.com`;
    - has a `<style>` element or a `style` attribute, which `style-src 'self'` would block;
-   - lacks a `<title>`, a description, or a canonical URL on `https://laminapdf.com`;
+   - lacks a `<title>`, a description, or a canonical URL on `https://laminapdf.com`, unless it is marked `noindex`, as the 404 page is;
    - runs a script that imports a module from another origin, sets a cookie or sends a beacon.
 
-   It checks the scripts and style sheets the build wrote in the same way, and fails if `_headers` sets a cookie. Astro bundles a `<script src="https://…">` into a module that imports the address, so the check of the build's scripts catches that one.
+   It checks the scripts and style sheets the build wrote in the same way, and fails if `_headers` sets a cookie. Astro bundles a `<script src="https://…">` into a module that imports the address, so the check of the build's scripts catches that one. A page exists when the build wrote the file, the folder's `index.html` or `<path>.html`, the three forms the asset server answers.
 2. **The CSP's inline-script hashes** (`inlineScriptHashes`). The step replaces `'inline-script-hashes'` in `_headers` with the SHA-256 of each inline script the build wrote. When the build wrote none, as now, `script-src` is just `'self'`.
 3. **`noindex` outside production** (`previewNoindex`). Every build adds `X-Robots-Tag: noindex` to `_headers` unless `LAMINA_PDF_ENV` is `production`. Local builds and PR previews are therefore never indexed, and only the production deploy sets the variable.
 
@@ -42,11 +42,11 @@ Fonts and images are files too: `assetsInlineLimit: 0` keeps Vite from inlining 
 
 The pages use the tokens of `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` (Lamina Sans and Newsreader), with the layout's style sheet in `src/styles/site.css`. The theme follows the visitor's system, so the site needs no script. `src/layouts/Base.astro` writes each page's head and preloads Lamina Sans' Latin file, the face of the first paint.
 
-The header is design language §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". A link to a page of this site appears once the page exists. `src/nav.ts` checks the files in `src/pages/`, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in `src/nav.ts` is `true`, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) sets when the reader goes live. [W1d](../../docs/todos/ready/W1d-one-site-header.md) gives the docs site the same header.
+The header is design language §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". A link to a page of this site appears once the page exists. `astro.config.mjs` lists the files in `src/pages/` once per build for `src/nav.ts`, so the todo that writes `/privacy/` adds its link by adding the page. "Open the web app" appears once `APP_LAUNCHED` in `src/nav.ts` is `true`, which [C7c](../../docs/todos/ready/C7c-performance-gates-and-launch.md) sets when the reader goes live. [W1d](../../docs/todos/ready/W1d-one-site-header.md) gives the docs site the same header.
 
 ## Deploying
 
-`wrangler.toml` is the Worker `lamina-pdf-site`: static assets only, no script, served at `laminapdf.com` (a Workers custom domain on the apex), with `preview_urls` on for the per-PR previews on workers.dev. Unknown paths get `404.html` with a 404 status.
+`wrangler.toml` is the Worker `lamina-pdf-site`: static assets only, no script, served at `laminapdf.com` (a Workers custom domain on the apex). Production has no workers.dev address, so search engines find one copy of the site, but `preview_urls` stays on for the per-PR previews on workers.dev. Unknown paths get `404.html` with a 404 status.
 
 `.github/workflows/site.yml` deploys it, following the docs site's workflow ([`apps/docs/README.md`](../docs/README.md#deploying)):
 
@@ -64,6 +64,6 @@ CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… pnpm exec wrangler versions u
 
 1. **Commit `.github/workflows/site.yml`.** W1b's pull request gives the file, because the session that wrote it can't push workflow files.
 2. **Check the API token.** The docs site's token works if its **Zone → Workers Routes → Edit** permission covers the `laminapdf.com` zone, since the apex is a custom domain on the same zone. The secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are shared with the docs workflow. Without them, the deploy steps skip with a notice.
-3. **Run the first production deploy.** After this site is on `main`, run the **Website** workflow there once (Actions → Website → Run workflow). The first `wrangler deploy` creates the Worker, which previews need, and attaches `laminapdf.com`. It fails if the apex already has a DNS record: delete that record first, or attach the domain once in the dashboard (Worker → Settings → Domains & Routes).
+3. **Run the first production deploy.** After this site is on `main`, run the **Website** workflow there once (Actions → Website → Run workflow). The first `wrangler deploy` creates the Worker, which previews need, and attaches `laminapdf.com`. It fails if the apex already has a DNS record: delete that record first, or attach the domain once in the dashboard (Worker → Settings → Domains & Routes). If no preview URL appears on the next PR, turn on Version URLs in the same Domains & Routes page: Cloudflare's docs say `preview_urls = true` enables them with workers.dev off, but don't show that combination.
 4. **Redirect `www` to the apex.** Add a proxied DNS record for `www` (an `AAAA` record to `100::` is enough, since nothing answers there). Then add a redirect rule (Rules → Redirect Rules → the "Redirect from WWW to root" template): requests whose hostname is `www.laminapdf.com` go to `https://laminapdf.com` with the same path and query string, status 301.
 5. **Preload HSTS, once every subdomain answers over HTTPS only.** A small PR adds `preload` to `Strict-Transport-Security` in `public/_headers`, as a third difference in ADR 0011 §4 and in `test/headers.test.ts`. After it deploys, submit `laminapdf.com` at <https://hstspreload.org/>.

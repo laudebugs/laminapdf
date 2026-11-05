@@ -2,7 +2,7 @@
 // the links validator can't see. Each runs after the build, on the files in dist/. The steps both
 // sites share, such as the CSP's inline-script hashes, are in @laminapdf/site-kit.
 import { copyFile, mkdir, readdir, readFile } from "node:fs/promises";
-import { filesIn, isFile } from "@laminapdf/site-kit/integrations";
+import { filesIn, pageExists } from "@laminapdf/site-kit/integrations";
 
 /**
  * Copies the examples' golden PDFs (`goldens`, a directory URL) into the site at /examples/pdf/.
@@ -40,8 +40,7 @@ export const checkedLinks = {
       for (const file of await filesIn(dir, ".html")) {
         const html = await readFile(file, "utf8");
         for (const [, path = ""] of html.matchAll(/href="(\/(?:examples\/pdf|reference\/codes)\/[^"#?]+)/g)) {
-          const target = new URL(`.${path.endsWith("/") ? `${path}index.html` : path}`, dir);
-          if (!(await isFile(target))) broken.add(path);
+          if (!(await pageExists(dir, path))) broken.add(path);
         }
       }
       if (broken.size > 0) throw new Error(`links to files the build didn't write: ${[...broken].sort().join(", ")}`);

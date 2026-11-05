@@ -7,9 +7,11 @@ compatibility_date = "2026-10-01"
 # A Workers custom domain on the laminapdf.com zone, the apex itself: `wrangler deploy` creates the
 # DNS record and certificate for it. The deploy token needs Zone → Workers Routes → Edit on that zone.
 routes = [{ pattern = "laminapdf.com", custom_domain = true }]
-# The workers.dev route stays on: the per-PR preview URLs live under it.
-workers_dev = true
-# Preview URLs for uploaded versions (the per-PR previews), on workers.dev.
+# No production copy on workers.dev: a second host serving production's pages without noindex
+# would be a duplicate for search engines to find.
+workers_dev = false
+# Preview URLs for uploaded versions (the per-PR previews), on workers.dev. With workers_dev off
+# they are off by default, so this turns them on (developers.cloudflare.com/workers/configuration/previews/).
 preview_urls = true
 
 [assets]

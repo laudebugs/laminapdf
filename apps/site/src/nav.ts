@@ -30,7 +30,7 @@ export const APP_LAUNCHED = false as boolean;
  * The path a page file under src/pages is served at: `/src/pages/privacy.astro` and
  * `/src/pages/privacy/index.astro` are both `/privacy/`.
  *
- * @param file a key of `import.meta.glob("/src/pages/**")`
+ * @param file one of `__SITE_PAGES__` (astro.config.mjs)
  */
 export function routeOf(file: string): string {
   const path = file
@@ -44,7 +44,7 @@ export function routeOf(file: string): string {
  * The header's links, given the site's page files: every link to another host, and each link to
  * a page of this site that one of `pages` serves.
  *
- * @param pages the keys of `import.meta.glob("/src/pages/**")`
+ * @param pages `__SITE_PAGES__`, the files in src/pages (astro.config.mjs)
  */
 export function siteNav(pages: readonly string[]): NavLink[] {
   const routes = new Set(pages.map(routeOf));
