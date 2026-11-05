@@ -19,7 +19,7 @@ use std::process::{Command, Stdio};
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
-use crate::util::{append, git_stdout, summary};
+use crate::util::summary;
 use crate::workspace::Workspace;
 use crate::{program_path, step};
 
@@ -432,22 +432,8 @@ fn history_entries(measurements: &[Measurement]) -> BTreeMap<String, u64> {
 /// Appends one record to `<history>/history.jsonl` (`cargo xtask bench`'s format; its
 /// regression check only compares benchmarks a record has, so these never mix with criterion's).
 fn record(ws: &Workspace, history: &Path, runner: &str, measurements: &[Measurement]) -> Result<()> {
-    let git = |args: &[&str]| git_stdout(&ws.root, args).unwrap_or_else(|| "unknown".to_owned());
-    let record = json!({
-        "commit": git(&["rev-parse", "HEAD"]),
-        "date": git(&["show", "-s", "--format=%cI", "HEAD"]),
-        "runner": runner,
-        "quick": false,
-        "benches": history_entries(measurements),
-    });
-    fs::create_dir_all(history)?;
-    let path = history.join("history.jsonl");
-    append(&path, &(serde_json::to_string(&record)? + "\n"))?;
-    step(&format!(
-        "Appended the @laminapdf/sdk measurements to {}",
-        path.display()
-    ));
-    Ok(())
+    let record = crate::nightly::history_record(&ws.root, runner, false, &history_entries(measurements));
+    crate::nightly::append_record(history, &record)
 }
 
 #[cfg(test)]

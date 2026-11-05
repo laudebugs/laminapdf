@@ -32,7 +32,7 @@ const BENCHES: [(&str, &str); 3] = [
 const RENDER_DIFF_PAGES: u32 = 20;
 
 /// The baseline is the median of this many previous records from the same runner.
-const BASELINE_RUNS: usize = 5;
+pub(crate) const BASELINE_RUNS: usize = 5;
 
 /// The release-mode `#[ignore]`d tests: scaling ratios and anything else too slow or
 /// timing-sensitive for the PR lanes.
@@ -122,7 +122,7 @@ fn median(mut values: Vec<u64>) -> Option<u64> {
 /// `(name, baseline ns, current ns)` for every benchmark slower than its baseline by more
 /// than [`REGRESSION_RATIO`]; the baseline is the median of the last [`BASELINE_RUNS`] records
 /// from the same runner, of the same kind (quick or full), that have the benchmark.
-fn regressions(
+pub(crate) fn regressions(
     history: &[Value],
     runner: &str,
     quick: bool,
@@ -195,13 +195,7 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
         bail!("cargo bench printed no `test … bench:` lines");
     }
     let runner = args.runner.clone().unwrap_or_else(|| "local".to_owned());
-    let record = json!({
-        "commit": git(ws, &["rev-parse", "HEAD"]),
-        "date": git(ws, &["show", "-s", "--format=%cI", "HEAD"]),
-        "runner": runner,
-        "quick": args.quick,
-        "benches": benches,
-    });
+    let record = history_record(&ws.root, &runner, args.quick, &benches);
     fs::write(
         out_dir.join("results.json"),
         serde_json::to_string_pretty(&record)? + "\n",
@@ -230,22 +224,50 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
             "Benchmarks more than 10% slower than the median of their last {BASELINE_RUNS} runs on `{runner}`:\n\n\
              | Benchmark | Baseline ns/iter | Now ns/iter | Change |\n| --- | --- | --- | --- |"
         );
-        for (name, baseline, now) in &found {
-            #[expect(clippy::cast_precision_loss, reason = "nanosecond timings are far below 2^52")]
-            let change = 100.0 * (*now as f64 / (*baseline).max(1) as f64 - 1.0);
-            let _ = writeln!(report, "| `{name}` | {baseline} | {now} | +{change:.1}% |");
-        }
+        report.push_str(&regression_rows(&found));
         let _ = writeln!(table, "\n{report}");
         println!("::warning::{} benchmarks regressed by more than 10%", found.len());
     }
     fs::write(out_dir.join("regressions.md"), &report)?;
     github_output("regression", if found.is_empty() { "false" } else { "true" })?;
     if args.record {
-        fs::create_dir_all(history_dir)?;
-        append(&history_path, &(serde_json::to_string(&record)? + "\n"))?;
-        step(&format!("Appended this run to {}", history_path.display()));
+        append_record(Path::new(history_dir), &record)?;
     }
     summary(&table)
+}
+
+/// One record of `history.jsonl`, the format every recording task shares: this commit and its
+/// date, the runner, whether the run was quick, and the figures (`benches`).
+pub(crate) fn history_record(root: &Path, runner: &str, quick: bool, benches: &BTreeMap<String, u64>) -> Value {
+    let git = |args: &[&str]| crate::util::git_stdout(root, args).unwrap_or_else(|| "unknown".to_owned());
+    json!({
+        "commit": git(&["rev-parse", "HEAD"]),
+        "date": git(&["show", "-s", "--format=%cI", "HEAD"]),
+        "runner": runner,
+        "quick": quick,
+        "benches": benches,
+    })
+}
+
+/// Appends `record` to `<dir>/history.jsonl`, making `dir` if it is missing.
+pub(crate) fn append_record(dir: &Path, record: &Value) -> Result<()> {
+    fs::create_dir_all(dir)?;
+    let path = dir.join("history.jsonl");
+    append(&path, &(serde_json::to_string(record)? + "\n"))?;
+    step(&format!("Appended this run to {}", path.display()));
+    Ok(())
+}
+
+/// The rows of a regression table, one per entry of [`regressions`]' result: the name in code,
+/// the baseline, the figure now and the change in percent.
+pub(crate) fn regression_rows(found: &[(String, u64, u64)]) -> String {
+    let mut rows = String::new();
+    for (name, baseline, now) in found {
+        #[expect(clippy::cast_precision_loss, reason = "timings and sizes are far below 2^52")]
+        let change = 100.0 * (*now as f64 / (*baseline).max(1) as f64 - 1.0);
+        let _ = writeln!(rows, "| `{name}` | {baseline} | {now} | +{change:.1}% |");
+    }
+    rows
 }
 
 /// The records in `history.jsonl`: none when the file doesn't exist yet (the first run);
@@ -261,10 +283,6 @@ pub(crate) fn read_history(path: &Path) -> Result<Vec<Value>> {
         .map(serde_json::from_str)
         .collect::<Result<_, _>>()
         .with_context(|| format!("parsing {}", path.display()))
-}
-
-fn git(ws: &Workspace, args: &[&str]) -> String {
-    crate::util::git_stdout(&ws.root, args).unwrap_or_else(|| "unknown".to_owned())
 }
 
 /// The libFuzzer limits of every run (`cargo xtask fuzz`), so `tmin` minimises a timeout or an
@@ -376,6 +394,11 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
     part(
         "pdf-runtimes",
         crate::wasm(ws).and_then(|()| pdf_runtimes::run(ws, &pdf_runtimes::Args::default())),
+    );
+    // After `wasm` (in pdf-runtimes' part): the harness runs over the built viewer.
+    part(
+        "viewer-perf",
+        crate::viewer_perf::run(ws, &crate::viewer_perf::Args::every_browser(quick)),
     );
     if failed.is_empty() {
         step("Nightly lane passed");
