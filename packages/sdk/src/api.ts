@@ -34,6 +34,8 @@ export type {
   Extraction,
   ExtractOptions,
   ExtractResult,
+  Flags,
+  Generator,
   ReadingOrder,
   Region,
   Span,

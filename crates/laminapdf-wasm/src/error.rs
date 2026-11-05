@@ -101,6 +101,7 @@ pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_m
 
 /// A failure that is a bug in Lamina PDF (kind `internal`): the façade's own fallback code,
 /// whose hint says to report it.
+#[cfg(feature = "extract")]
 pub(crate) fn internal(message: &'static str) -> JsValue {
     to_js(&Diagnostic::error(ErrorCode::UnsetObject, message))
 }
