@@ -76,6 +76,12 @@ export {
   type DialogSize,
 } from "./overlays/dialog.js";
 export {
+  CommandPalette,
+  type CommandPaletteProps,
+  type PaletteItem,
+  type PaletteSection,
+} from "./overlays/palette.js";
+export {
   Menu,
   type MenuEntry,
   type MenuProps,
@@ -84,6 +90,11 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./overlays/popover.js";
+export {
+  SelectionToolbar,
+  SelectionToolbarDivider,
+  type SelectionToolbarProps,
+} from "./overlays/selection-toolbar.js";
 export { BottomSheet, type BottomSheetProps, type SheetDetent } from "./overlays/sheet.js";
 export {
   type ToastHandle,

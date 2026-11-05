@@ -74,6 +74,8 @@ const SECTIONS: Record<string, string[]> = {
   "7.20 Toast and notice": ["Notice", "Toast"],
   "7.21 Empty state": ["EmptyState"],
   "7.22 Progress": ["ProgressBar", "Skeleton"],
+  "7.9 Selection mini toolbar": ["SelectionToolbar", "SelectionToolbarDivider"],
+  "7.10 Command palette": ["CommandPalette"],
   "7.16 Bottom sheet": ["BottomSheet"],
   "7.18 Dialog": ["Dialog"],
   "7.20 Toast and notice: the region": ["ToastRegion"],
@@ -107,6 +109,9 @@ describe("the design language's §7", () => {
       "PopoverTrigger",
       "Tooltip",
       "BottomSheet",
+      "SelectionToolbar",
+      "SelectionToolbarDivider",
+      "CommandPalette",
     ]);
     const missing = Object.values(SECTIONS)
       .flat()

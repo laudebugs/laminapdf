@@ -1,0 +1,180 @@
+/* The command palette (§7.10): over the scrim in the modal layer, 96 below the top, at most 600
+   wide; `raised` (the surface in light, lifted in dark, as every floating layer) with a chip border,
+   radius 6 and the overlay shadow; a 44 px input with an 18
+   px muted search icon, 16 px text and the esc chip; overlines over 40 px rows of title, group and
+   chip; the active row in the accent tint with an inset accent ring; 12 px muted hints below a
+   hairline. */
+@layer paper.components {
+  .paper-palette-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--paper-z-modal);
+    display: flex;
+    /* Not stretched: the frame is as tall as the palette (at most the overlay), so the scrim below a
+       short list is outside it and a click there closes the palette. */
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--paper-palette-offset) var(--paper-space-16) var(--paper-space-16);
+    background: var(--paper-scrim);
+  }
+
+  /* A column, so the palette shrinks to the frame's cap and its list scrolls: a percentage height
+     inside a frame of automatic height would cap nothing. */
+  .paper-palette-frame {
+    display: flex;
+    flex-direction: column;
+    inline-size: 100%;
+    max-inline-size: var(--paper-palette-width);
+    max-block-size: 100%;
+  }
+
+  .paper-palette {
+    display: flex;
+    flex-direction: column;
+    max-block-size: 100%;
+    overflow: hidden;
+    border: var(--paper-border-width) solid var(--paper-chip-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-raised);
+    box-shadow: var(--paper-shadow-overlay);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+    outline: none;
+  }
+
+  .paper-palette-field {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+    min-block-size: var(--paper-palette-input-height);
+    margin: var(--paper-space-10);
+    padding-inline: var(--paper-space-10);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+  }
+
+  .paper-palette-field > svg {
+    flex: none;
+    color: var(--paper-muted);
+  }
+
+  .paper-palette-field:focus-within {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  .paper-palette-input {
+    flex: 1;
+    min-inline-size: 0;
+    border: 0;
+    background: transparent;
+    color: var(--paper-text);
+    font: var(--paper-type-input-large);
+    outline: none;
+  }
+
+  .paper-palette-input::placeholder {
+    color: var(--paper-muted);
+    opacity: 1;
+  }
+
+  .paper-palette-list {
+    overflow: auto;
+    padding: 0 var(--paper-space-6) var(--paper-space-8);
+    outline: none;
+  }
+
+  .paper-palette-overline {
+    padding: var(--paper-space-8) var(--paper-space-12) var(--paper-space-4);
+    font: var(--paper-type-overline);
+    letter-spacing: var(--paper-type-overline-letter-spacing);
+    text-transform: uppercase;
+    color: var(--paper-muted);
+  }
+
+  .paper-palette-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    column-gap: var(--paper-space-12);
+    min-block-size: var(--paper-palette-row-height);
+    padding-inline: var(--paper-space-12);
+    border-radius: var(--paper-radius-4);
+    cursor: default;
+    outline: none;
+  }
+
+  .paper-palette-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .paper-palette-match {
+    background: transparent;
+    color: inherit;
+    font-weight: 600;
+  }
+
+  .paper-palette-meta {
+    display: contents;
+  }
+
+  .paper-palette-group {
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-palette-row[data-focused] {
+    background: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+  }
+
+  /* The input keeps DOM focus and shows the focus ring; the active row is only its
+     aria-activedescendant, marked by the tint and inset ring above (§7.10, F02), not a second ring. */
+  .paper-palette-row[data-focus-visible] {
+    outline: none;
+  }
+
+  .paper-palette-row[data-focused] .paper-palette-group {
+    color: var(--paper-text-3);
+  }
+
+  .paper-palette-row[data-focused] .paper-shortcut-chip {
+    border-color: var(--paper-accent);
+  }
+
+  .paper-palette-row[data-disabled] {
+    color: var(--paper-disabled);
+  }
+
+  .paper-palette-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-16);
+    padding: var(--paper-space-8) var(--paper-space-16);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  @media (forced-colors: active) {
+    .paper-palette {
+      border-color: CanvasText;
+    }
+
+    .paper-palette-row[data-focused] {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
+
+    /* The row opts out of forced colours, so its group and chip would keep their own colours on
+       Highlight: they take the highlight's text colour instead. */
+    .paper-palette-row[data-focused] :is(.paper-palette-group, .paper-shortcut-chip) {
+      border-color: HighlightText;
+      color: HighlightText;
+    }
+  }
+}
