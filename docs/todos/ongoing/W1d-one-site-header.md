@@ -12,7 +12,7 @@
 | Branch | `feat/w1d-site-header` |
 | PR title | `feat(site): one header for the website and the docs site` |
 | Size | S (100–300 lines) |
-| PR | — |
+| PR | [#249](https://github.com/laudebugs/laminapdf/pull/249) |
 
 ## Goal
 
@@ -64,8 +64,8 @@ The shared package's README, `CLAUDE.md`'s layout, the [website plan §8](../../
 
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the package README
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
