@@ -105,8 +105,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   TextInput, TextArea, Select, Checkbox, RadioGroup, Switch, SwatchGroup, PageAppearanceChips; display: Badge,
 │                        #   Notice, Toast, ProgressBar, Skeleton, EmptyState, StatusBarItem, NetworkIndicator, RepairedNotice, PageLabel,
 │                        #   Thumbnail, OutlineRow, ShortcutChip), src/overlays/ (the layer stack behind Escape, Dialog, Popover and
-│                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet;
-│                        #   z-order from --paper-z-*),
+│                        #   PopoverTrigger, Menu and MenuTrigger, Tooltip, ToastRegion with ToastQueue, BottomSheet, SelectionToolbar,
+│                        #   CommandPalette; z-order from --paper-z-*),
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
 │                        #   only, @layer paper.*); test/ (states.tsx; Node: CSS tokens only, import boundary, §7 map; browser/: keyboard,
 │                        #   ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
