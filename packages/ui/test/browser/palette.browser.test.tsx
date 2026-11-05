@@ -259,6 +259,29 @@ describe("CommandPalette", () => {
     expect(focused()).toBe(input());
   });
 
+  it("answers each APG combobox key from the input, which keeps focus", async () => {
+    renderIn(<Palette />);
+    await frame();
+    const keys: [string, string][] = [
+      ["{ArrowDown}", "Fit width"],
+      ["{ArrowDown}", "Copy"],
+      // The disabled Export row is skipped, and the arrows stop at either end.
+      ["{ArrowDown}", "Find"],
+      ["{ArrowDown}", "Find"],
+      ["{ArrowUp}", "Copy"],
+      ["{Home}", "Fit width"],
+      ["{ArrowUp}", "Fit width"],
+      ["{End}", "Find"],
+      ["{PageUp}", "Fit width"],
+      ["{PageDown}", "Find"],
+    ];
+    for (const [key, row] of keys) {
+      await userEvent.keyboard(key);
+      expect(focused(), key).toBe(input());
+      expect(active()?.textContent, key).toContain(row);
+    }
+  });
+
   it("announces a disabled row with its reason, skips it, and labels each section", async () => {
     renderIn(<Palette />);
     await frame();
@@ -350,6 +373,16 @@ describe("CommandPalette", () => {
     const row = document.querySelector("[role=option]") as HTMLElement;
     expect(row.querySelector(".paper-palette-group")?.textContent).toBe("File");
     expect([...row.querySelectorAll(".paper-palette-match")].map((m) => m.textContent)).toEqual(["Export"]);
+  });
+
+  it("marks the active row with the tint and an inset ring, the focus ring staying on the input", async () => {
+    renderIn(<Palette />);
+    await frame();
+    await userEvent.keyboard("{ArrowDown}");
+    const row = active() as HTMLElement;
+    expect(getComputedStyle(row).outlineStyle).toBe("none");
+    expect(getComputedStyle(row).boxShadow).toContain("inset");
+    expect(getComputedStyle(input().closest(".paper-palette-field") ?? input()).outlineStyle).not.toBe("none");
   });
 
   it("sits 96 px from the top in the modal layer", async () => {

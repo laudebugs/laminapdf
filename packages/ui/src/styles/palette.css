@@ -127,6 +127,12 @@
     box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
   }
 
+  /* The input keeps DOM focus and shows the focus ring; the active row is only its
+     aria-activedescendant, marked by the tint and inset ring above (§7.10, F02), not a second ring. */
+  .paper-palette-row[data-focus-visible] {
+    outline: none;
+  }
+
   .paper-palette-row[data-focused] .paper-palette-group {
     color: var(--paper-text-3);
   }
