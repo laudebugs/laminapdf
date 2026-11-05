@@ -131,6 +131,8 @@ export function ToastRegion({ queue, "aria-label": label }: ToastRegionProps): R
 
 /** One toast with its own timer, which stops while `paused` and resumes with the time it had left. */
 function TimedToast({ entry, paused, onDone }: { entry: Entry; paused: boolean; onDone: () => void }): ReactNode {
+  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
+  "use no memo";
   const remaining = useRef(entry.options.timeout ?? MOTION.toast);
   const done = useRef(onDone);
   done.current = onDone;

@@ -112,10 +112,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
 │                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar, PageInput, ZoomControl,
-│                        #   PasswordDialog, useGatedEntries; the viewer as a shape), src/messages.ts (the message catalogue),
+│                        #   PasswordDialog, useGatedEntries, OpenDropZone, RepairDetails, OpenFailure, WholeFileDownload, DebugMenu;
+│                        #   codes.ts: a sentence per codes.json warning and error; the viewer as a shape), src/messages.ts (the catalogue),
+│                        #   examples/ui-demo.{html,tsx} (`pnpm --filter @laminapdf/ui demo`: the chrome over a stand-in viewer, built with
+│                        #   the React Compiler through Babel, vite.demo.config.ts),
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
 │                        #   only, @layer paper.*); test/ (states.tsx, fakes.ts (fakePlatform with any flags); Node: CSS tokens only,
-│                        #   import boundary, §7 map, the reader machine and controller, the web platform over fake windows; browser/:
+│                        #   import boundary, §7 map, the reader machine and controller, the web platform over fake windows, the React
+│                        #   Compiler over every component (compiler.test.ts); browser/: the demo page with axe,
 │                        #   keyboard, ARIA values, reduced motion (a Playwright command), axe in 3 themes × 2 directions, target sizes)
 ├── packages/site-kit/   # @laminapdf/site-kit (private, outside Changesets; build time only): what both Astro sites share.
 │                        #   src/integrations.mjs: the CSP's inline-script hashes into dist/_headers, X-Robots-Tag noindex unless
