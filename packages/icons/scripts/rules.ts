@@ -59,8 +59,15 @@ export function lintIcon(name: string, text: string): Finding {
   if (svg.shapes.length === 0) errors.push(`${name}: no shapes`);
   for (const shape of svg.shapes) errors.push(...shapeErrors(name, shape));
   if (errors.length > 0) return { errors, warnings };
-  const box = boundingBox(svg.shapes);
-  const margin = Math.min(box.minX, box.minY, 24 - box.maxX, 24 - box.maxY);
+  let margin: number;
+  try {
+    const box = boundingBox(svg.shapes);
+    margin = Math.min(box.minX, box.minY, 24 - box.maxX, 24 - box.maxY);
+  } catch (e) {
+    return { errors: [`${name}: ${(e as Error).message}`], warnings };
+  }
+  // NaN (a number that isn't one) and Infinity (a shape with no points) never compare below 2.
+  if (!Number.isFinite(margin)) return { errors: [`${name}: a shape's geometry isn't a set of numbers`], warnings };
   const round = Math.round(margin * 100) / 100;
   // A margin over the target is a small glyph (a chevron, a minus) and drawn so on purpose; only a
   // tight one is worth a look.

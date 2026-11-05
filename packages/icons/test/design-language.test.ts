@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { aliases, iconFiles, readRepo } from "./helpers.ts";
+import { aliases, iconFiles } from "../scripts/files.ts";
+import { innerMarkup } from "../scripts/icons.ts";
+import { readRepo } from "./helpers.ts";
 
 /** Every row of §5's icon tables: its file name and its markup, or the icon it repeats. */
 function tableRows(): { file: string; markup?: string; same?: string }[] {
@@ -17,11 +19,9 @@ function tableRows(): { file: string; markup?: string; same?: string }[] {
     });
 }
 
-const inner = (text: string) => /^<svg [^>]*>(.*)<\/svg>$/s.exec(text.trim())?.[1];
-
 describe("the design language's §5 tables", () => {
   const rows = tableRows();
-  const files = new Map(iconFiles().map(([name, text]) => [name, inner(text)]));
+  const files = new Map(iconFiles().map(([name, text]) => [name, innerMarkup(text)]));
 
   it("list every icon file once, with its markup exactly", () => {
     const drawn = rows.filter((r) => r.markup !== undefined);
@@ -31,7 +31,6 @@ describe("the design language's §5 tables", () => {
 
   it("list every alias as the icon it repeats", () => {
     const repeats = Object.fromEntries(rows.filter((r) => r.same !== undefined).map((r) => [r.file, r.same]));
-    const { "chevron-left": _documentedAsBack, ...rest } = aliases();
-    expect(repeats).toEqual(rest);
+    expect(repeats).toEqual(aliases());
   });
 });

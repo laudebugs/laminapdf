@@ -359,8 +359,8 @@ Wrap each in:
 
 **Icons from the area boards (proposed).** One drawing per name; where two areas drew the same name differently, the version below won (see [Decisions on area proposals](#decisions-on-area-proposals)). All stroke 1.5, no fills.
 
-| Name | File | Markup |
-| --- | --- | --- |
+| Name | File | Markup | Used for |
+| --- | --- | --- | --- |
 | File | `file` | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` | Files, attachments, “View on page”, the Windows title-bar document glyph |
 | Folder | `folder` | `<path d="M3.5 6.5h6l2 2h9v10h-17z"></path>` | Folders, Save as |
 | Link | `link` | `<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path>` | Links, review links, “Keep proportions” |
@@ -375,6 +375,7 @@ Wrap each in:
 | Forward | `forward` | `<path d="M9 5l7 7-7 7"></path>` | History forward, Next field (mirror of Back) |
 | Chevron up | `chevron-up` | `<path d="M7 14l5-5 5 5"></path>` | Previous match, collapse |
 | Chevron right | `chevron-right` | `<path d="M10 7l5 5-5 5"></path>` | Collapsed tree rows, submenus (mirror of Chevron down); Chevron left is Back |
+| Chevron left | `chevron-left` | the `back` icon | Previous, where a chevron pairs with Chevron right |
 | Arrow up | `arrow-up` | `<path d="M12 18.5V5.5M7 10.5l5-5 5 5"></path>` | Move up in ordered lists |
 | Arrow down | `arrow-down` | `<path d="M12 5.5v13M7 13.5l5 5 5-5"></path>` | Move down in ordered lists |
 | Plus | `plus` | the `zoom-in` icon | Add tab, Add option, Add bookmark |

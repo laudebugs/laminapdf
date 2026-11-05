@@ -9,20 +9,32 @@ export type IconSet = Map<string, string>;
 const INNER = /^<svg [^>]*>(.*)<\/svg>$/s;
 const NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/** Lints every file (throwing with every error found) and adds each alias under its own name. */
+/** The shapes inside a file's `<svg>`, as written. */
+export function innerMarkup(text: string): string {
+  return INNER.exec(text.trim())?.[1] ?? "";
+}
+
+/** Every rule an icon file or alias breaks: the lint's, the file name's and the aliases'. */
+export function checkIcons(files: [string, string][], aliases: Record<string, string>): string[] {
+  const names = new Set(files.map(([name]) => name));
+  return [
+    ...files.flatMap(([name, text]) => [
+      ...lintIcon(name, text).errors,
+      ...(NAME.test(name) ? [] : [`${name}: file names are lowercase words joined by hyphens`]),
+    ]),
+    ...Object.entries(aliases).flatMap(([alias, target]) => [
+      ...(names.has(target) ? [] : [`alias ${alias} names ${target}, which isn't an icon`]),
+      ...(names.has(alias) ? [`alias ${alias} is also an icon file`] : []),
+    ]),
+  ];
+}
+
+/** The icon set (every alias added under its own name); throws listing every rule broken. */
 export function readIcons(files: [string, string][], aliases: Record<string, string>): IconSet {
-  const errors = files.flatMap(([name, text]) => [
-    ...lintIcon(name, text).errors,
-    ...(NAME.test(name) ? [] : [`${name}: file names are lowercase words joined by hyphens`]),
-  ]);
+  const errors = checkIcons(files, aliases);
   if (errors.length > 0) throw new Error(`icons that break the rules:\n${errors.join("\n")}`);
-  const icons: IconSet = new Map(files.map(([name, text]) => [name, INNER.exec(text.trim())?.[1] ?? ""]));
-  for (const [alias, target] of Object.entries(aliases)) {
-    const markup = icons.get(target);
-    if (markup === undefined) throw new Error(`alias ${alias} names ${target}, which isn't an icon`);
-    if (icons.has(alias)) throw new Error(`alias ${alias} is also an icon file`);
-    icons.set(alias, markup);
-  }
+  const icons: IconSet = new Map(files.map(([name, text]) => [name, innerMarkup(text)]));
+  for (const [alias, target] of Object.entries(aliases)) icons.set(alias, icons.get(target) ?? "");
   return new Map([...icons].sort(([a], [b]) => (a < b ? -1 : 1)));
 }
 

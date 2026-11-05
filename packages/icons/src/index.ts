@@ -12,6 +12,9 @@ export const ICON_SIZES = [14, 15, 16, 18, 20, 22, 32] as const;
 /** A size the design language renders icons at. */
 export type IconSize = (typeof ICON_SIZES)[number];
 
+/** Stroke widths: 1.5 everywhere, 2 for Check inside a checkbox (design language §5). */
+export type IconStroke = 1.5 | 2;
+
 /** Options for `iconSvg`. */
 export interface IconSvgOptions {
   /** Width and height in CSS px; 16 when left out. */
@@ -21,6 +24,8 @@ export interface IconSvgOptions {
    * labelled button: the icon is then hidden from assistive technology.
    */
   title?: string;
+  /** The stroke width; 1.5 when left out. */
+  strokeWidth?: IconStroke;
 }
 
 const escapeAttribute = (text: string) =>
@@ -33,7 +38,8 @@ export function iconSvg(name: IconName, options: IconSvgOptions = {}): string {
     options.title === undefined
       ? 'aria-hidden="true" focusable="false"'
       : `role="img" aria-label="${escapeAttribute(accessibleName(options.title))}"`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" ${a11y}>${ICONS[name]}</svg>`;
+  const stroke = options.strokeWidth ?? 1.5;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" ${a11y}>${ICONS[name]}</svg>`;
 }
 
 /**

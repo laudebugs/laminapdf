@@ -7,7 +7,8 @@ function imports(url: URL, seen = new Set<string>()): [string, string][] {
   seen.add(url.href);
   const text = readFileSync(url, "utf8");
   const out: [string, string][] = [];
-  for (const m of text.matchAll(/^(?:import|export)\b[^;]*?from\s+"([^"]+)"/gm)) {
+  // `from "x"`, a side-effect `import "x"` and a dynamic `import("x")` all name a module.
+  for (const m of text.matchAll(/\b(?:from|import)\s*\(?\s*"([^"]+)"/g)) {
     const spec = m[1] ?? "";
     out.push([url.pathname.replace(/.*\/packages\/icons\//, ""), spec]);
     if (spec.startsWith(".")) out.push(...imports(new URL(spec.replace(/\.js$/, ".ts"), url), seen));

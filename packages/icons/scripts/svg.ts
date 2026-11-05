@@ -132,9 +132,29 @@ const STEPS = 32;
 
 /** Every command of a path with its numbers, implicit repeats split out (`M1 2 3 4` is a move then a line). */
 function commands(d: string): [string, number[]][] {
-  return [...d.matchAll(/([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)/g)].flatMap((m) =>
-    segments(m[1] ?? "", numbers(m[2] ?? "")),
-  );
+  return [...d.matchAll(/([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)/g)].flatMap((m) => {
+    const cmd = m[1] ?? "";
+    return segments(cmd, cmd.toLowerCase() === "a" ? arcNumbers(m[2] ?? "") : numbers(m[2] ?? ""));
+  });
+}
+
+/**
+ * An arc's numbers, where the two flags are single `0` or `1` digits that may run into the next
+ * number (`a2 2 0 012 2`, as optimisers write them; SVG 1.1 §8.3.9's grammar).
+ */
+function arcNumbers(text: string): number[] {
+  const out: number[] = [];
+  const number = /^[\s,]*([-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)/i;
+  const flag = /^[\s,]*([01])/;
+  let rest = text;
+  while (rest.trim() !== "") {
+    const pattern = out.length % 7 === 3 || out.length % 7 === 4 ? flag : number;
+    const m = pattern.exec(rest);
+    if (m === null) throw new Error(`can't read the arc's numbers at "${rest.trim().slice(0, 12)}"`);
+    out.push(Number(m[1]));
+    rest = rest.slice(m[0].length);
+  }
+  return out;
 }
 
 /** One command's numbers cut into segments; a move's extra pairs are line-tos. */
@@ -230,6 +250,8 @@ function curve(ctrl: Point[]): Point[] {
 /** Points along an elliptical arc, from the endpoint form to the centre form (SVG 1.1 F.6.5). */
 function arc(p1: Point, rxIn: number, ryIn: number, angle: number, large: boolean, sweep: boolean, p2: Point): Point[] {
   let [rx, ry] = [Math.abs(rxIn), Math.abs(ryIn)];
+  // Coincident endpoints draw nothing; zero radii draw a line (SVG 1.1 F.6.2).
+  if (p1[0] === p2[0] && p1[1] === p2[1]) return [p1];
   if (rx === 0 || ry === 0) return [p1, p2];
   const phi = (angle * Math.PI) / 180;
   const [cos, sin] = [Math.cos(phi), Math.sin(phi)];

@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { iconFiles } from "../scripts/files.ts";
 import { lintIcon } from "../scripts/rules.ts";
 import { boundingBox, parseSvg, pathPoints } from "../scripts/svg.ts";
-import { iconFiles } from "./helpers.ts";
 
 const fixture = (name: string) => readFileSync(new URL(`fixtures/${name}.svg`, import.meta.url), "utf8");
 
@@ -26,6 +26,28 @@ describe("the icon lint", () => {
   it("has a negative fixture for each of those cases", () => {
     const names = readdirSync(new URL("fixtures/", import.meta.url)).map((f) => f.replace(/\.svg$/, ""));
     expect(names.sort()).toEqual(["dot", "edge", "fill", "stroke-2", "style", "transform"]);
+  });
+
+  it("reports bad geometry by icon instead of throwing", () => {
+    const wrap = (inner: string) =>
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">${inner}</svg>`;
+    expect(lintIcon("words", wrap('<path d="hello"></path>')).errors).toEqual([
+      'words: "h" needs 1 numbers per segment',
+    ]);
+    expect(lintIcon("nan", wrap('<rect x="foo" y="0" width="30" height="30"></rect>')).errors).toEqual([
+      "nan: a shape's geometry isn't a set of numbers",
+    ]);
+    expect(lintIcon("empty", wrap('<path d=""></path>')).errors).toEqual([
+      "empty: a shape's geometry isn't a set of numbers",
+    ]);
+    // A zero-length arc draws nothing (SVG 1.1 F.6.2); the rest of the path still counts.
+    expect(lintIcon("arc", wrap('<path d="M0 0L30 30M5 5A3 3 0 0 1 5 5"></path>')).errors).toEqual([
+      "arc: margin -6 is under 2 units",
+    ]);
+  });
+
+  it("reads an arc's flags written without spaces", () => {
+    expect(pathPoints("M5 5a2 2 0 012 2").at(-1)).toEqual([7, 7]);
   });
 
   it("refuses text, nesting and other elements", () => {

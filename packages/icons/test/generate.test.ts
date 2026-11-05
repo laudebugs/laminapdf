@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { aliases, iconFiles } from "../scripts/files.ts";
 import { emitIcons, readIcons } from "../scripts/icons.ts";
 import { ICONS } from "../src/index.ts";
-import { aliases, iconFiles, readRepo } from "./helpers.ts";
+import { readRepo } from "./helpers.ts";
 
 describe("the generated module", () => {
   const icons = readIcons(iconFiles(), aliases());

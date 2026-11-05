@@ -2,7 +2,7 @@
 
 import { createElement, type ReactElement } from "react";
 import { ICONS, type IconName } from "../generated/icons.js";
-import { type IconSize, iconButtonProps } from "../index.js";
+import { type IconSize, type IconStroke, iconButtonProps } from "../index.js";
 
 /** Props of `<Icon>`. */
 export interface IconProps {
@@ -15,12 +15,14 @@ export interface IconProps {
    * labelled button: the icon is then decorative and hidden from assistive technology.
    */
   label?: string;
+  /** The stroke width; 1.5 when left out (2 for Check inside a checkbox). */
+  strokeWidth?: IconStroke;
   /** A class for the `<svg>`; the colour comes from the parent's `color` (`currentColor`). */
   className?: string;
 }
 
 /** A Paper icon: decorative by default, or an image with an accessible name when given a `label`. */
-export function Icon({ name, size = 16, label, className }: IconProps): ReactElement {
+export function Icon({ name, size = 16, label, strokeWidth = 1.5, className }: IconProps): ReactElement {
   const a11y =
     label === undefined
       ? { "aria-hidden": true, focusable: "false" }
@@ -32,7 +34,7 @@ export function Icon({ name, size = 16, label, className }: IconProps): ReactEle
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: 1.5,
+    strokeWidth,
     ...(className === undefined ? {} : { className }),
     ...a11y,
     // The markup comes from the package's own lint-checked files, never from input.

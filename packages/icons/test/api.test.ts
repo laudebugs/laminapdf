@@ -11,6 +11,10 @@ describe("iconSvg", () => {
     expect(svg).toContain(ICONS.find);
   });
 
+  it("draws Check at stroke 2 for a checkbox", () => {
+    expect(iconSvg("check", { strokeWidth: 2 })).toContain('stroke-width="2"');
+  });
+
   it("names an icon that stands alone, escaped", () => {
     const svg = iconSvg("warning", { size: 22, title: ' Repaired "file" ' });
     expect(svg).toContain('role="img" aria-label="Repaired &quot;file&quot;"');
@@ -31,6 +35,8 @@ describe("iconSvg", () => {
       iconSvg("find", { size: 17 });
       // @ts-expect-error: not an icon
       Icon({ name: "nope" });
+      // @ts-expect-error: not a stroke the design language uses
+      iconSvg("check", { strokeWidth: 3 });
     };
     expect(typeof wrong).toBe("function");
   });
