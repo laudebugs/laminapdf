@@ -151,7 +151,7 @@ const doc = Document.open(bytes);
 const chunks = doc.extract({ format: "chunks", chunk: { maxTokens: 400 } });
 ```
 
-`doc.extract()` runs to the end in one call. In a worker (`@laminapdf/sdk/worker`) the main thread stays free, but aborting the call's `signal` only rejects the promise: the worker finishes the extraction first.
+`doc.extract()` runs to the end in one call. In a Web Worker (`@laminapdf/sdk/worker`) the main thread stays free, but aborting the call's `signal` only rejects the promise: the Web Worker finishes the extraction first.
 
 ## Remote and large files
 
