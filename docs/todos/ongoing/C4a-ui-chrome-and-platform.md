@@ -12,7 +12,7 @@
 | Branch | `feat/c4a-ui-chrome` |
 | PR title | `feat(ui): add the platform adapter, the reader controller and the message catalogue` |
 | Size | L (≈ 1,700 lines, two-thirds of them tests; split on 2026-11-05 as its size required: the components, the demo page and the React Compiler moved to [C4e](../ready/C4e-reader-chrome.md)) |
-| PR | — |
+| PR | [#259](https://github.com/laudebugs/laminapdf/pull/259) |
 
 ## Goal
 
