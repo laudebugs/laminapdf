@@ -148,6 +148,42 @@ pub struct Block {
     pub spans: Vec<Span>,
     /// In [0, 1]: 1 for structure from the tree, lower for structure inferred from layout.
     pub confidence: f64,
+    /// A table's cells, row by row; empty for every other block.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Vec::is_empty"))]
+    pub cells: Vec<Cell>,
+}
+
+/// One cell of a table block.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "camelCase"))]
+#[non_exhaustive]
+pub struct Cell {
+    /// The first row it covers, 0 at the top.
+    pub row: usize,
+    /// The first column it covers, 0 at the left.
+    pub col: usize,
+    /// How many rows it covers.
+    pub row_span: usize,
+    /// How many columns it covers.
+    pub col_span: usize,
+    /// Whether it is in a header row.
+    pub header: bool,
+    /// Its visible text, lines joined by a space.
+    pub text: String,
+    /// Its box in page space.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "ser::rect"))]
+    pub bbox: RectPt,
+}
+
+/// What found a table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize), serde(rename_all = "kebab-case"))]
+#[non_exhaustive]
+pub enum TableDetector {
+    /// The lines that rule it.
+    Lattice,
+    /// Text lined up in columns, with no lines.
+    Stream,
 }
 
 /// What a block is.
@@ -179,6 +215,16 @@ pub enum BlockKind {
     Footnote,
     /// Anything else.
     Other,
+    /// A table: its text is the cells', a tab between cells and a line break between rows, and
+    /// the block's `cells` hold them.
+    Table {
+        /// The grid's rows.
+        rows: usize,
+        /// The grid's columns.
+        cols: usize,
+        /// What found it.
+        detector: TableDetector,
+    },
 }
 
 /// A structure element ([ADR 0030] §1's `structRef`).

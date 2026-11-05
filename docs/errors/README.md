@@ -53,6 +53,7 @@ A PR that adds a code adds:
 | [`unmapped-glyph`](unmapped-glyph.md) | `input` | a font shows glyphs that nothing maps to text |
 | [`extract-limit-blocks`](extract-limit-blocks.md) | `limit` | a page had more runs of text than the extraction block limit; the runs past it were left out |
 | [`extract-reading-order-ambiguous`](extract-reading-order-ambiguous.md) | `unsupported` | a page mixes horizontal and vertical writing, so the order of its blocks is a guess |
+| [`extract-table-ambiguous`](extract-table-ambiguous.md) | `unsupported` | a table's rules marked out merged cells that aren't rectangles, so its cells were kept unmerged |
 
 ## Errors
 

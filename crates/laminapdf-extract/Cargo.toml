@@ -24,6 +24,7 @@ layer = "core"
 serde = ["dep:serde"]
 
 [dependencies]
+laminapdf-content = { workspace = true }
 laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-syntax = { workspace = true }

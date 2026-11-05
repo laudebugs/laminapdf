@@ -1324,6 +1324,7 @@ name = "laminapdf-extract"
 version = "0.2.0-alpha.2"
 dependencies = [
  "laminapdf-build",
+ "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-save",

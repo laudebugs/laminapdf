@@ -160,6 +160,7 @@ export type WarningCode =
   | "unmapped-glyph"
   | "extract-limit-blocks"
   | "extract-reading-order-ambiguous"
+  | "extract-table-ambiguous"
   | "tounicode-conflict"
   | "whole-font-rebuilt";
 
@@ -326,6 +327,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "unmapped-glyph",
   "extract-limit-blocks",
   "extract-reading-order-ambiguous",
+  "extract-table-ambiguous",
   "tounicode-conflict",
   "whole-font-rebuilt",
 ];
@@ -368,6 +370,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unmapped-glyph": "input",
   "extract-limit-blocks": "limit",
   "extract-reading-order-ambiguous": "unsupported",
+  "extract-table-ambiguous": "unsupported",
   "not-pdf": "input",
   "missing-root": "input",
   "reference-cycle": "input",
@@ -516,6 +519,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unmapped-glyph": "nothing to do; those glyphs extract as U+FFFD (the file needs a ToUnicode CMap)",
   "extract-limit-blocks": "raise ExtractLimits::max_blocks_per_page if the page really has that many blocks",
   "extract-reading-order-ambiguous": "nothing to do; check the order of that page's blocks, or ask for content order",
+  "extract-table-ambiguous": "nothing to do; check that table's cells, whose text may be split across neighbours",
   "not-pdf": "check that the bytes passed to open are a PDF file",
   "missing-root": "use another copy of the file: this one has no usable catalog",
   "reference-cycle": "use another copy of the file, or repair it with another tool",

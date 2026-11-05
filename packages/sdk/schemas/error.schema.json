@@ -246,6 +246,7 @@
             "unmapped-glyph",
             "extract-limit-blocks",
             "extract-reading-order-ambiguous",
+            "extract-table-ambiguous",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]

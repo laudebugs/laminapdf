@@ -37,6 +37,7 @@ mod lines;
 mod model;
 mod options;
 mod page;
+mod tables;
 mod text_fix;
 mod visibility;
 mod xycut;
@@ -44,7 +45,8 @@ mod xycut;
 pub use error::ExtractError;
 pub use job::{ExtractJob, extract, extract_job};
 pub use model::{
-    Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags, SCHEMA,
-    Span, StructRef, StructSource,
+    Block, BlockKind, Cell, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags,
+    SCHEMA, Span, StructRef, StructSource, TableDetector,
 };
 pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder};
+pub use tables::TableMode;
