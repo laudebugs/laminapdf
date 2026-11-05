@@ -1,4 +1,4 @@
-# U6d — `@laminapdf/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows
+# U6d — `@laminapdf/ui` core controls: buttons, toggles, mode switcher, tabs, form controls, swatches, appearance chips
 
 | Field | Value |
 | --- | --- |
@@ -7,11 +7,11 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](../done/U6a-paper-tokens.md), [U6c](../done/U6c-icon-set.md) |
-| Blocks | [U6e](../ready/U6e-overlays-and-sheets.md) |
+| Blocks | [U6e](../ready/U6e-overlays-and-sheets.md), [U6h](../ready/U6h-display-components.md) |
 | ADRs | Follows 0024 (component rules, selection surfaces, touch targets; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, the accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for new dependencies |
 | Branch | `feat/u6d-core-components` |
 | PR title | `feat(ui): add the paper core components with all states, keyboard and axe tests` |
-| Size | L (≈ 700–800 lines of components and tests; split into U6d controls and U6d display items if it grows past 800) |
+| Size | L (≈ 700–800 lines of components and tests; split on 2026-11-05 as the Risks below allow: the display items moved to [U6h](../ready/U6h-display-components.md)) |
 | PR | [#237](https://github.com/laudebugs/laminapdf/pull/237) |
 
 ## Goal
@@ -42,13 +42,7 @@ Build the Paper component library the shells and editor modes compose: every con
   - **TextInput**, **TextArea**, **Select** (native `<select>` styled with `appearance: none` and the chevron icon), **Checkbox**, **RadioGroup** (with `<fieldset>`/`<legend>`), **Switch** (`role="switch"`, `aria-checked`): label above, help and error text below wired with `aria-describedby` and `aria-invalid`; 16 px text on coarse pointers.
   - **SwatchGroup** (§7.12): `aria-pressed` circles named by colour, 24 / 28 px, wrapped in 44 px targets on touch; colours from the annotation tokens.
   - **PageAppearanceChips** (§7.25): `role="group"` + `aria-pressed`.
-  - **Badge** / **Tag** (§7.23): neutral, accent, positive, warning, danger; always with a word or icon.
-  - **Notice** (inline strip, §7.20) and the **Toast** visual (§7.20; the toast region, queue and stacking are [U6e](../ready/U6e-overlays-and-sheets.md)'s).
-  - **Progress**: determinate bar (`role="progressbar"`, `aria-valuenow`, label), indeterminate bar (static under reduced motion), **Skeleton** block.
-  - **EmptyState** (§7.21).
-  - **Status bar items** (§7.8): `StatusBarItem` (button, min-height 24), `NetworkIndicator` (presentational: count, explanation, `warning` state when a request went to an unexpected origin), `RepairedNotice`, `PageLabel` (tabular numerals); the data and panels are [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s and [C4b](../ready/C4b-web-app-shell.md)'s.
-  - **Thumbnail** (§7.6: rail and phone sizes, current-page outline, `aria-current="page"`, number below; image slot so the viewer supplies the bitmap) and **OutlineRow** (§7.7: two levels, current row `aria-current="location"`, expand/collapse chevron button with `aria-expanded`).
-  - **ShortcutChip** (§7.10's chip, used by buttons' tooltips and the palette): renders platform glyphs (`⌥⌘E`) or words (`Ctrl Shift E`) from a key description passed in.
+- The display items (badge, tag, notice, the toast visual, progress, skeleton, empty state, status-bar items, thumbnail, outline row, shortcut chip) moved to [U6h](../ready/U6h-display-components.md), which builds them on this package.
 - Focus ring per §7.0 on every focusable component (`:focus-visible`, never removed; the 1 px and inset variants as props or contexts).
 - RTL: every component lays out correctly under `dir="rtl"` (logical properties: `margin-inline-start`, `padding-inline`, `inset-inline-end`; chevrons mirror where direction matters).
 - Touch: a `pointer: coarse` media query and a `density` context (`"desktop" | "touch"`) that switch to 44 px targets and 16 px inputs.
@@ -105,7 +99,7 @@ None.
 
 - **Order with C4a (decided here: U6d before C4a).** C4a creates `@laminapdf/ui` and its chrome; built first, its buttons, dialogs and `tokens.css` would be restyled and partly rewritten once U6d and [U6e](../ready/U6e-overlays-and-sheets.md) land. Building the components first avoids that rework at little schedule cost: C4a also waits for [C3b](../done/C3b-viewer-virtualiser-and-zoom.md)'s viewer, which is the longer path, and U6a–U6e need only U1a. So this todo does **not** depend on C4a; it creates `packages/ui` itself, and **C4a should depend on [U6e](../ready/U6e-overlays-and-sheets.md)** (which needs U6d), drop its own scaffold and `tokens.css` tasks, and compose these components (its `PasswordDialog` uses U6e's dialog). Update C4a's **Depends on** in the claim PR of this todo (or in a board-only PR) so the board shows the order.
 - **Primitives library**: if ADR 0009 does not name one, decide here (React Aria Components recommended) and amend ADR 0009 in this PR; it is a long-lived dependency.
-- **Size**: the list is long. If the PR passes ~800 lines, split into U6d-a (buttons, toggles, mode switcher, tabs, form controls, swatches, chips) and U6d-b (badges, notices, progress, empty state, status items, thumbnail, outline row) with a board-only PR.
+- **Size**: the list was long, so it was split when this todo was claimed: this todo keeps the controls, and [U6h](../ready/U6h-display-components.md) takes the display items.
 - **The styles of §7.18–§7.23** were signed off in [U6a](../done/U6a-paper-tokens.md) (2026-11-05); if a style changes later, only its CSS changes.
 - **Mode switcher keyboard model** (roving focus vs Tab stops) must match ADR 0024 and U1c; settle it in this PR and note it in the design language.
 
