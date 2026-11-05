@@ -11,16 +11,7 @@
 // Results: target/agent-eval/<date>/results.json and results.md, logs and each project's files
 // (without node_modules) under logs/<task>/<mode>/.
 import { spawnSync } from "node:child_process";
-import {
-  copyFileSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
