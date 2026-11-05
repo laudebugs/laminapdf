@@ -12,7 +12,7 @@
 | Branch | `feat/u6e-overlays-and-sheets` |
 | PR title | `feat(ui): add the paper layer stack, dialogs, menus, tooltips and toasts` |
 | Size | L (≈ 600–800 lines of components and tests; split on 2026-11-05 as its size required: bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell moved to [U6i](../ready/U6i-sheets-positioning-and-palette-shell.md)) |
-| PR | — |
+| PR | [#240](https://github.com/laudebugs/laminapdf/pull/240) |
 
 ## Goal
 
