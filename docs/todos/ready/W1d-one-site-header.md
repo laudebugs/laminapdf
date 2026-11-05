@@ -21,13 +21,13 @@ A visitor moving between `laminapdf.com` and `docs.laminapdf.com` sees the same 
 ## Context
 
 - [Design language §7.39](../../design/paper/design-language.md#739-site-and-product-pages-proposed): the header's sizes, links and button.
-- The docs site overrides Starlight's header in `apps/docs/src/components/`; the website's header comes from W1b.
+- The docs site uses Starlight's own header today: `apps/docs/astro.config.mjs` overrides no component, and `apps/docs/src/components/` holds only `CodeTable.astro` and `Snippet.astro`. The website's header comes from W1b.
 
 ## Scope
 
 **In scope**
 
-- One header component and one list of links in a shared workspace package, used by `apps/site`'s layout and the docs site's Starlight header override. Each link names its host, so the docs site links to the website's pages by full URL and the website to the docs.
+- One header component and one list of links in a shared workspace package, used by `apps/site`'s layout and by a new Starlight header override in the docs site (Starlight's `components: { Header }` option), which keeps Starlight's search, theme switch and mobile menu. Each link names its host, so the docs site links to the website's pages by full URL and the website to the docs.
 - A link appears only once its page exists, and "Open the web app" only with the build setting from the [plan](../../plans/website.md#4-the-website).
 - The docs site's wordmark links to `https://laminapdf.com`.
 
@@ -58,6 +58,6 @@ The shared package's README, `CLAUDE.md`'s layout, the [website plan §8](../../
 
 - [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the package README
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
