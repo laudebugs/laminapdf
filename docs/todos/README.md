@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 185 ready · 125 done** (310 total).
+**0 ongoing · 185 ready · 126 done** (311 total).
 
 ## Can start now
 
@@ -20,8 +20,8 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 - [L3c](ready/L3c-model-plugins.md): Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate
 - [L3g](ready/L3g-extract-structure-tree.md): Extraction: structure-tree order, tagged elements, clipped and low-contrast text
-- [L4b](ready/L4b-cli-batch-render-schema.md): CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
+- [L4e](ready/L4e-cli-render.md): CLI `render` to PNG, output templates, and MCP tools for `render` and the extraction formats
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
 - [C4e](ready/C4e-reader-chrome.md): `@laminapdf/ui`: the reader shell, the top bar and the password prompt
 - [W1f](ready/W1f-home-page-code-colouring.md): Code colouring on the home page
@@ -97,9 +97,10 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L3f | [The extraction benchmark: reading order and tables on a licence-clean public subset](done/L3f-extraction-benchmark.md) | done | [L3e](done/L3e-extract-bindings-and-benchmark.md) |
 | L3g | [Extraction: structure-tree order, tagged elements, clipped and low-contrast text](ready/L3g-extract-structure-tree.md) | ready | [L3d](done/L3d-extract-structure-and-furniture.md) |
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](done/L4a-lamina-cli.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
-| L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](done/L3b-extract-tables-and-serialisers.md), [L4a](done/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
+| L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](done/L4b-cli-batch-render-schema.md) | done | [L3b](done/L3b-extract-tables-and-serialisers.md), [L4a](done/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](done/L4c-mcp-mode.md) | done | [L4a](done/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](done/L4a-lamina-cli.md), [P1](done/P1-reserve-names-and-trusted-publishing.md) |
+| L4e | [CLI `render` to PNG, output templates, and MCP tools for `render` and the extraction formats](ready/L4e-cli-render.md) | ready | [L4b](done/L4b-cli-batch-render-schema.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](done/L5a-agent-docs.md) | done | [B7a](done/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L5b | [Agent-eval baseline: run the agent eval with and without the shipped docs and record it](ready/L5b-agent-eval-baseline.md) | ready | [L5a](done/L5a-agent-docs.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |

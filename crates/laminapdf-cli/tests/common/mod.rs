@@ -17,6 +17,8 @@ use std::process::{Command, Stdio};
 
 use serde_json::Value;
 
+pub mod schemas;
+
 /// A finished run.
 #[derive(Debug)]
 pub struct Run {
