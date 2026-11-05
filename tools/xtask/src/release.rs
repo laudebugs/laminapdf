@@ -115,9 +115,18 @@ pub(crate) fn guard(root: &Path, args: &Args) -> Result<()> {
     Ok(())
 }
 
-/// The paths the release commit changes since `nightly`, each with the lines it adds or removes
-/// when it is a manifest that [`only_a_version_bump`] reads line by line.
-fn changes_since(root: &Path, nightly: &str, release: &str) -> Result<Vec<(String, Vec<String>)>> {
+/// One path the release commit changes since the nightly's commit, with the lines it removes and
+/// adds (read only for the files a bump edits line by line).
+#[derive(Debug, Default)]
+struct Change {
+    path: String,
+    removed: Vec<String>,
+    added: Vec<String>,
+}
+
+/// The paths the release commit changes since `nightly`, each with its removed and added lines
+/// when [`bump_rule`] reads them.
+fn changes_since(root: &Path, nightly: &str, release: &str) -> Result<Vec<Change>> {
     // --no-renames: a rename lists both of its paths, so neither slips past as a bump.
     let names = git_stdout(root, &["diff", "--name-only", "--no-renames", nightly, release])
         .with_context(|| format!("git diff --name-only {nightly} {release} failed"))?;
@@ -125,20 +134,39 @@ fn changes_since(root: &Path, nightly: &str, release: &str) -> Result<Vec<(Strin
         .lines()
         .filter(|path| !path.is_empty())
         .map(|path| {
-            if !bump_edits_versions(path) {
-                return Ok((path.to_owned(), Vec::new()));
+            let mut change = Change {
+                path: path.to_owned(),
+                ..Change::default()
+            };
+            if bump_rule(path) == Some(BumpRule::VersionLines) {
+                let diff = git_stdout(root, &["diff", "-U0", "--no-renames", nightly, release, "--", path])
+                    .with_context(|| format!("git diff of {path} failed"))?;
+                (change.removed, change.added) = hunk_lines(&diff);
             }
-            let diff = git_stdout(root, &["diff", "-U0", nightly, release, "--", path])
-                .with_context(|| format!("git diff of {path} failed"))?;
-            let lines = diff
-                .lines()
-                .filter(|line| !line.starts_with("+++") && !line.starts_with("---"))
-                .filter_map(|line| line.strip_prefix('+').or_else(|| line.strip_prefix('-')))
-                .map(str::to_owned)
-                .collect();
-            Ok((path.to_owned(), lines))
+            Ok(change)
         })
         .collect()
+}
+
+/// The lines a `git diff` removes and adds: inside its hunks, after the first `@@`, so the
+/// `---`/`+++` file headers never count, while a content line that starts with them does.
+fn hunk_lines(diff: &str) -> (Vec<String>, Vec<String>) {
+    let (mut removed, mut added) = (Vec::new(), Vec::new());
+    let mut in_hunks = false;
+    for line in diff.lines() {
+        if line.starts_with("@@") {
+            in_hunks = true;
+        } else if line.starts_with("diff --git ") {
+            in_hunks = false;
+        } else if in_hunks {
+            if let Some(text) = line.strip_prefix('-') {
+                removed.push(text.to_owned());
+            } else if let Some(text) = line.strip_prefix('+') {
+                added.push(text.to_owned());
+            }
+        }
+    }
+    (removed, added)
 }
 
 /// The fixed group's version at `rev`, read from `@laminapdf/sdk`'s `package.json`.
@@ -153,30 +181,57 @@ fn sdk_version_at(root: &Path, rev: &str) -> Result<String> {
         .context("packages/sdk/package.json has no version")
 }
 
-/// The files a version bump writes whatever their lines.
-fn bump_writes_freely(path: &str) -> bool {
-    path.ends_with("CHANGELOG.md") || path.starts_with(".changeset/") || path == "packages/sdk/src/version.ts"
+/// What a version bump may do to a path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BumpRule {
+    /// Anything: the changelogs `version sync` and Changesets write, and the changesets a bump
+    /// consumes.
+    Free,
+    /// Only swap the quoted version on a line: the manifests, the lockfiles and the SDK's
+    /// `VERSION`.
+    VersionLines,
 }
 
-/// The manifests a version bump edits only on the lines that name a version.
-fn bump_edits_versions(path: &str) -> bool {
-    matches!(
-        path.rsplit('/').next(),
-        Some("package.json" | "Cargo.toml" | "Cargo.lock")
-    )
+/// What a bump may do to `path`, or `None` when a bump never touches it.
+fn bump_rule(path: &str) -> Option<BumpRule> {
+    let segments: Vec<&str> = path.split('/').collect();
+    let changelog = path == "CHANGELOG.md" || matches!(segments.as_slice(), ["packages", _, "CHANGELOG.md"]);
+    let changeset = matches!(segments.as_slice(), [".changeset", name] if Path::new(name).extension().is_some_and(|ext| ext == "md") && *name != "README.md")
+        || path == ".changeset/pre.json"
+        || path.starts_with(".changeset/pre/");
+    if changelog || changeset {
+        return Some(BumpRule::Free);
+    }
+    let manifest = matches!(segments.last(), Some(&("package.json" | "Cargo.toml" | "Cargo.lock")));
+    (manifest || path == "packages/sdk/src/version.ts").then_some(BumpRule::VersionLines)
 }
 
-/// Whether `changes` (each path with the manifest lines it adds or removes) are only a version
-/// bump from `old` to `new`: every path is one a bump writes, and every non-blank changed line of
-/// a manifest names one of the two versions. No change at all is a bump too: the nightly ran on
-/// the release commit itself.
-fn only_a_version_bump(changes: &[(String, Vec<String>)], old: &str, new: &str) -> bool {
-    changes.iter().all(|(path, lines)| {
-        bump_writes_freely(path)
-            || (bump_edits_versions(path)
-                && lines
-                    .iter()
-                    .all(|line| line.trim().is_empty() || line.contains(old) || line.contains(new)))
+/// `line` with its quoted `old` version, `"old"` or Cargo's `"=old"`, swapped for `new`.
+fn bump_line(line: &str, old: &str, new: &str) -> String {
+    line.replace(&format!("\"{old}\""), &format!("\"{new}\""))
+        .replace(&format!("\"={old}\""), &format!("\"={new}\""))
+}
+
+/// Whether `changes` are only a version bump from `old` to `new`: every path is one a bump
+/// writes ([`bump_rule`]), and in each file a bump edits line by line, every removed line names
+/// the quoted `old` version and the added lines are exactly the removed ones with it swapped for
+/// `new`. No change at all is a bump too: the nightly ran on the release commit itself.
+fn only_a_version_bump(changes: &[Change], old: &str, new: &str) -> bool {
+    changes.iter().all(|change| match bump_rule(&change.path) {
+        Some(BumpRule::Free) => true,
+        Some(BumpRule::VersionLines) => {
+            let mut expected: Vec<String> = change.removed.iter().map(|line| bump_line(line, old, new)).collect();
+            let every_line_bumped = change
+                .removed
+                .iter()
+                .zip(&expected)
+                .all(|(line, bumped)| line != bumped);
+            let mut added = change.added.clone();
+            expected.sort();
+            added.sort();
+            every_line_bumped && expected == added
+        }
+        None => false,
     })
 }
 
@@ -310,7 +365,7 @@ mod tests {
 
     use anyhow::Result;
 
-    use super::{Args, FULL_DISPATCH_TITLE, notes_for, only_a_version_bump, parse_args, verdict};
+    use super::{Args, Change, FULL_DISPATCH_TITLE, hunk_lines, notes_for, only_a_version_bump, parse_args, verdict};
 
     /// A successful scheduled nightly run on main, as `gh` prints it, with `fields` replaced.
     fn fixture(fields: &[(&str, &str)]) -> String {
@@ -558,13 +613,52 @@ mod tests {
         steps
     }
 
+    /// `publish-npm` (comment lines left out) runs on a GitHub-hosted runner, with no checkout, no
+    /// code from the repository and no `npx`, npm installed at an exact version, and `npm publish`
+    /// running no package's scripts.
+    fn assert_publish_npm_runs_only_npm(code: &[&str]) {
+        let text = code.join("\n");
+        assert!(
+            text.contains("runs-on: ubuntu-latest"),
+            "npm's trusted publishing needs a GitHub-hosted runner"
+        );
+        for code_from_the_repository in ["actions/checkout", "./.github/actions", "cargo ", "pnpm "] {
+            assert!(
+                !text.contains(code_from_the_repository),
+                "publish-npm runs code from the repository ({code_from_the_repository}) beside its OIDC token"
+            );
+        }
+        // npx would fetch whatever npm a name resolves to, beside the token.
+        assert!(!text.contains("npx"), "publish-npm runs npx");
+        let pinned = code.iter().any(|l| {
+            l.trim()
+                .strip_prefix("run: npm install --global npm@")
+                .is_some_and(|v| {
+                    !v.is_empty()
+                        && v.split('.')
+                            .all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+                })
+        });
+        assert!(pinned, "publish-npm must install npm at an exact version");
+        let publishes: Vec<&str> = code
+            .iter()
+            .copied()
+            .filter(|l| l.trim_start().starts_with("npm publish"))
+            .collect();
+        assert!(
+            !publishes.is_empty() && publishes.iter().all(|l| l.contains("--ignore-scripts")),
+            "publish-npm's npm publish must run no package's scripts: {publishes:?}"
+        );
+    }
+
     /// The release lane publishes only from its publish jobs (ADR 0017 §7, todos P1, P5): no
     /// other job runs a publish command, asks for an OIDC token or creates a release; only
     /// `publish-crates` and `publish-npm` ask for an OIDC token, and no job reads a stored npm
     /// token; `publish-npm` runs on a GitHub-hosted runner with no checkout, so no code from the
-    /// repository runs beside its token; each publish job waits for every check; and only a tag
-    /// push publishes or releases for real, a dispatch (even on a tag) being a dry run. Comments
-    /// may name anything.
+    /// repository runs beside its token, and with an npm installed at an exact version that runs
+    /// no package's scripts; each publish job waits for every check; and only a tag push publishes
+    /// or releases for real, a dispatch (even on a tag) being a dry run. Comments may name
+    /// anything.
     #[test]
     fn release_workflow_should_publish_only_from_its_publish_jobs_and_only_on_a_tag_push() {
         const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
@@ -614,16 +708,7 @@ mod tests {
             );
             assert!(!text.contains("NPM_TOKEN"), "{job} reads a stored npm token");
             if *job == "publish-npm" {
-                assert!(
-                    text.contains("runs-on: ubuntu-latest"),
-                    "npm's trusted publishing needs a GitHub-hosted runner"
-                );
-                for code_from_the_repository in ["actions/checkout", "./.github/actions", "cargo ", "pnpm "] {
-                    assert!(
-                        !text.contains(code_from_the_repository),
-                        "publish-npm runs code from the repository ({code_from_the_repository}) beside its OIDC token"
-                    );
-                }
+                assert_publish_npm_runs_only_npm(&code);
             }
             assert!(
                 code.iter()
@@ -654,7 +739,7 @@ mod tests {
                     "crates-io-auth-action",
                     "gh release",
                     "xtask publish crates",
-                    "\" publish ",
+                    "npm publish ",
                 ];
                 if real.iter().any(|p| step_text.contains(p)) {
                     assert!(
@@ -664,6 +749,51 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// The release lane skips its nightly run only on the guard's word (ADR 0017 §6, todo P5): the
+    /// guard step runs `release-guard --version-only`, whose `nightly` output the guard job
+    /// passes on; the nightly job runs unless that output is `skip`; and the release job, which
+    /// needs the nightly job, excuses a skipped nightly only then.
+    #[test]
+    fn release_lane_should_skip_its_nightly_run_only_when_the_guard_says_so() {
+        const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
+        let jobs = crate::workflows::jobs(WORKFLOW);
+        let job = |id: &str| {
+            jobs.iter()
+                .find(|(job, _)| *job == id)
+                .map(|(_, lines)| {
+                    lines
+                        .iter()
+                        .copied()
+                        .filter(|l| !l.trim_start().starts_with('#'))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                })
+                .unwrap_or_default()
+        };
+        let guard = job("guard");
+        let guard_step = guard
+            .split("\n      - ")
+            .find(|step| step.contains("cargo xtask release-guard"))
+            .unwrap_or_default();
+        assert!(
+            guard_step.contains("id: guard") && guard_step.contains("--version-only"),
+            "the guard step must run release-guard --version-only as `guard`:\n{guard_step}"
+        );
+        assert!(guard.contains("      nightly: ${{ steps.guard.outputs.nightly }}\n"));
+        let nightly = job("nightly");
+        assert!(nightly.contains("    if: ${{ needs.guard.outputs.nightly != 'skip' }}\n"));
+        let release = job("release");
+        assert!(
+            release.contains("        nightly,\n"),
+            "the release job must need the nightly job"
+        );
+        assert!(release.contains("NIGHTLY: ${{ needs.guard.outputs.nightly }}"));
+        assert!(
+            release.contains(r#"(.key == "nightly" and $nightly == "skip" and .value.result == "skipped") | not"#),
+            "the release job must excuse a skipped nightly only when the guard said skip"
+        );
     }
 
     /// The release lane calls nightly.yml with `record: false`, and every nightly step or job that
@@ -785,48 +915,89 @@ mod tests {
         );
     }
 
-    /// A path with the manifest lines a change adds or removes.
-    fn change(path: &str, lines: &[&str]) -> (String, Vec<String>) {
-        (path.to_owned(), lines.iter().map(|line| (*line).to_owned()).collect())
+    const OLD: &str = "0.2.0-alpha.2";
+    const NEW: &str = "0.2.0-alpha.3";
+
+    /// A change to `path` that removes `removed` and adds `added`.
+    fn change(path: &str, removed: &[&str], added: &[&str]) -> Change {
+        let lines = |list: &[&str]| list.iter().map(|line| (*line).to_owned()).collect();
+        Change {
+            path: path.to_owned(),
+            removed: lines(removed),
+            added: lines(added),
+        }
+    }
+
+    /// The same line before and after the bump.
+    fn bumped(path: &str, template: &str) -> Change {
+        change(path, &[&template.replace("{v}", OLD)], &[&template.replace("{v}", NEW)])
     }
 
     #[test]
     fn only_a_version_bump_should_accept_what_a_version_bump_writes() {
         let bump = [
-            change(
-                "packages/sdk/package.json",
-                &[r#"  "version": "0.2.0-alpha.2","#, r#"  "version": "0.2.0-alpha.3","#],
-            ),
-            change(
+            bumped("packages/sdk/package.json", r#"  "version": "{v}","#),
+            bumped("Cargo.toml", r#"version = "{v}""#),
+            bumped(
                 "Cargo.toml",
-                &[
-                    r#"version = "0.2.0-alpha.2""#,
-                    r#"laminapdf-cos = { version = "=0.2.0-alpha.3", path = "crates/laminapdf-cos" }"#,
-                ],
+                r#"laminapdf-cos = { version = "={v}", path = "crates/laminapdf-cos" }"#,
             ),
-            change("Cargo.lock", &[r#"version = "0.2.0-alpha.3""#, ""]),
-            change("CHANGELOG.md", &[]),
-            change("packages/sdk/CHANGELOG.md", &[]),
-            change(".changeset/extract-output.md", &[]),
-            change(".changeset/pre.json", &[]),
-            change("packages/sdk/src/version.ts", &[]),
+            bumped("Cargo.lock", r#"version = "{v}""#),
+            bumped("packages/sdk/src/version.ts", r#"export const VERSION = "{v}";"#),
+            change("CHANGELOG.md", &[], &[]),
+            change("packages/sdk/CHANGELOG.md", &[], &[]),
+            change(".changeset/extract-output.md", &[], &[]),
+            change(".changeset/pre.json", &[], &[]),
         ];
-        assert!(only_a_version_bump(&bump, "0.2.0-alpha.2", "0.2.0-alpha.3"));
-        assert!(only_a_version_bump(&[], "0.2.0-alpha.2", "0.2.0-alpha.2"));
+        assert!(only_a_version_bump(&bump, OLD, NEW));
+        assert!(only_a_version_bump(&[], OLD, OLD));
     }
 
     #[test]
     fn only_a_version_bump_should_refuse_any_other_change() {
-        let (old, new) = ("0.2.0-alpha.2", "0.2.0-alpha.3");
-        let source = [change("crates/laminapdf/src/lib.rs", &[])];
-        assert!(!only_a_version_bump(&source, old, new));
-        let dependency = [change("packages/sdk/package.json", &[r#"    "left-pad": "1.3.0","#])];
-        assert!(!only_a_version_bump(&dependency, old, new));
-        let lock = [change(
-            "Cargo.lock",
-            &[r#"version = "0.2.0-alpha.3""#, r#"name = "left-pad""#],
-        )];
-        assert!(!only_a_version_bump(&lock, old, new));
+        let refused = [
+            change("crates/laminapdf/src/lib.rs", &[], &[]),
+            change(".changeset/config.json", &[], &[]),
+            change("apps/docs/src/content/docs/CHANGELOG.md", &[], &[]),
+            change("packages/sdk/package.json", &[], &[r#"    "left-pad": "1.3.0","#]),
+            // A version line that changes more than the version.
+            change(
+                "Cargo.toml",
+                &[&format!(
+                    r#"laminapdf-cos = {{ version = "={OLD}", path = "crates/laminapdf-cos" }}"#
+                )],
+                &[&format!(
+                    r#"laminapdf-cos = {{ version = "={NEW}", path = "crates/other" }}"#
+                )],
+            ),
+            // A removed line without the version: a move, not a bump.
+            change("Cargo.toml", &[r#"serde = "1""#], &[r#"serde = "1""#]),
+            // Code beside the version.
+            change(
+                "packages/sdk/src/version.ts",
+                &[&format!(r#"export const VERSION = "{OLD}";"#)],
+                &[&format!(r#"export const VERSION = "{NEW}"; globalThis.x = 1;"#)],
+            ),
+        ];
+        for one in refused {
+            let path = one.path.clone();
+            assert!(!only_a_version_bump(&[one], OLD, NEW), "{path} passed as a bump");
+        }
+        // A longer version that only contains the old one is not it.
+        let longer = change(
+            "package.json",
+            &[r#""x": "0.2.0-alpha.10""#],
+            &[r#""x": "0.2.0-alpha.20""#],
+        );
+        assert!(!only_a_version_bump(&[longer], "0.2.0-alpha.1", "0.2.0-alpha.2"));
+    }
+
+    #[test]
+    fn hunk_lines_should_read_only_hunks_and_keep_content_that_looks_like_a_header() {
+        let diff = "diff --git a/x b/x\nindex 1..2 100644\n--- a/x\n+++ b/x\n@@ -1 +1 @@\n---- a removed line\n++++ an added line\n-old\n+new\n";
+        let (removed, added) = hunk_lines(diff);
+        assert_eq!(removed, ["--- a removed line", "old"]);
+        assert_eq!(added, ["+++ an added line", "new"]);
     }
 
     #[test]

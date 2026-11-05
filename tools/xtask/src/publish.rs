@@ -9,8 +9,8 @@
 //! - `npm-pack`: builds the four packages `cargo xtask wasm` doesn't (render, render-pdfium,
 //!   render-hayro, viewer), packs each member of `.changeset/config.json`'s fixed group with
 //!   `pnpm pack` (which turns `workspace:*` into the version), and writes `publish.json` beside
-//!   the tarballs: the version, its dist-tag (`alpha` for `0.2.0-alpha.1`, else `latest`), the npm
-//!   release that publishes and the tarballs in dependency order. npm's trusted publishing accepts
+//!   the tarballs: the version, its dist-tag (`alpha` for `0.2.0-alpha.1`, else `latest`) and the
+//!   tarballs in dependency order. npm's trusted publishing accepts
 //!   only cloud-hosted runners, so the release lane's `publish-npm` job, on a GitHub-hosted runner
 //!   with an OIDC token and no checkout, reads that file and runs `npm publish` for each tarball;
 //!   no npm token is stored, and nothing here publishes.
@@ -149,9 +149,6 @@ const BUILT_BY_WASM: [&str; 2] = ["packages/wasm/dist/lamina_pdf_base.wasm", "pa
 const PACKS: &str = "target/xtask/npm-packs";
 /// The file beside the tarballs that tells the publish job what to publish, in which order.
 const MANIFEST: &str = "publish.json";
-/// The npm CLI the publish job runs through `npx`: trusted publishing needs 11.5.1 or later,
-/// newer than the npm some Node releases bundle.
-const NPM_VERSION: &str = "11.17.0";
 
 fn npm_pack(ws: &Workspace) -> Result<()> {
     if let Some(missing) = BUILT_BY_WASM.iter().find(|path| !ws.root.join(path).is_file()) {
@@ -184,9 +181,10 @@ fn npm_pack(ws: &Workspace) -> Result<()> {
     Ok(())
 }
 
-/// What the publish job reads (ADR 0017 §7): the version, its dist-tag, the npm release that
-/// publishes, and each package's name and tarball in `names`' order, dependencies first. The job
-/// runs no code from the repository, so the order and the tag come from here.
+/// What the publish job reads (ADR 0017 §7): the version, its dist-tag, and each package's name
+/// and tarball in `names`' order, dependencies first. The job runs no code from the repository, so
+/// the order and the tag come from here; it checks every value before it uses one, and pins npm
+/// itself.
 fn publish_manifest(version: &str, names: &[String]) -> serde_json::Value {
     let packages: Vec<serde_json::Value> = names
         .iter()
@@ -195,7 +193,6 @@ fn publish_manifest(version: &str, names: &[String]) -> serde_json::Value {
     serde_json::json!({
         "version": version,
         "tag": dist_tag(version),
-        "npm": NPM_VERSION,
         "packages": packages,
     })
 }
@@ -372,7 +369,6 @@ mod tests {
             serde_json::json!({
                 "version": "0.2.0-alpha.3",
                 "tag": "alpha",
-                "npm": NPM_VERSION,
                 "packages": [
                     { "name": "@laminapdf/wasm", "tarball": "laminapdf-wasm-0.2.0-alpha.3.tgz" },
                     { "name": "@laminapdf/sdk", "tarball": "laminapdf-sdk-0.2.0-alpha.3.tgz" },
