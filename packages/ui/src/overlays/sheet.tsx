@@ -174,8 +174,9 @@ function SheetParts(
           <AriaButton
             className="paper-sheet-grabber"
             aria-label={resizeLabel}
-            onPress={() => {
-              if (drag.consumePress()) return;
+            onPress={(event) => {
+              // Only a pointer's press can be the release of a drag; a key press always resizes.
+              if (event.pointerType !== "keyboard" && event.pointerType !== "virtual" && drag.consumePress()) return;
               setDetent(detent === "large" ? "medium" : "large");
             }}
           >
