@@ -322,7 +322,22 @@ fn render_rust(codes: &Codes) -> String {
          /// The base of every `docsUrl` (ADR 0026 §6): `DOCS_URL_BASE` + code + `DOCS_URL_SUFFIX`.\n\
          pub const DOCS_URL_BASE: &str = {};\n\n\
          /// The suffix of every `docsUrl` (ADR 0026 §6).\n\
-         pub const DOCS_URL_SUFFIX: &str = {};\n",
+         pub const DOCS_URL_SUFFIX: &str = {};\n\n\
+         /// Whether two byte strings are equal, in a `const fn`.\n\
+         const fn bytes_eq(a: &[u8], b: &[u8]) -> bool {{\n    \
+         if a.len() != b.len() {{\n        \
+         return false;\n    \
+         }}\n    \
+         let (mut a, mut b) = (a, b);\n    \
+         while let ([x, a_rest @ ..], [y, b_rest @ ..]) = (a, b) {{\n        \
+         if *x != *y {{\n            \
+         return false;\n        \
+         }}\n        \
+         a = a_rest;\n        \
+         b = b_rest;\n    \
+         }}\n    \
+         true\n\
+         }}\n",
         rust_str(&codes.docs_base),
         rust_str(&codes.docs_suffix)
     );
@@ -414,17 +429,25 @@ fn rust_enum(out: &mut String, name: &str, doc: &str, entries: &[&Entry]) {
     for e in entries {
         let _ = writeln!(out, "        Self::{},", variant(&e.code));
     }
+    // A scan of `ALL`, not a `match` on the string: the match compiles to a table of string
+    // comparisons as large as every code, which WASM modules carry whenever a code is looked
+    // up at run time; the scan reuses `as_str`'s strings. It is still `const`, so the façade's
+    // compile-time checks run it.
     out.push_str(
         "    ];\n\n    \
          /// The code with this name, if there is one.\n    \
          #[must_use]\n    \
          pub const fn from_code(code: &str) -> Option<Self> {\n        \
-         Some(match code.as_bytes() {\n",
+         let mut rest = Self::ALL;\n        \
+         while let [first, tail @ ..] = rest {\n            \
+         if bytes_eq(first.as_str().as_bytes(), code.as_bytes()) {\n                \
+         return Some(*first);\n            \
+         }\n            \
+         rest = tail;\n        \
+         }\n        \
+         None\n    \
+         }\n",
     );
-    for e in entries {
-        let _ = writeln!(out, "            b{} => Self::{},", rust_str(&e.code), variant(&e.code));
-    }
-    out.push_str("            _ => return None,\n        })\n    }\n");
     let accessor = |out: &mut String, doc: &str, sig: &str, value: &dyn Fn(&Entry) -> String| {
         let _ = write!(
             out,

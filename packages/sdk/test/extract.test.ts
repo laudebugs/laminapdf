@@ -1,7 +1,8 @@
 // doc.extract(): each format, the JSON byte for byte as Rust writes it (the goldens
 // crates/laminapdf/tests/extract.rs shares), option errors, and the base module's refusal.
 import { Document, type ExtractOptions, init, isLaminaPdfError, loadExtract } from "@laminapdf/sdk";
-import { beforeAll, describe, expect, it } from "vitest";
+import * as glue from "@laminapdf/wasm/extract";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { extractForAnLlm } from "../examples/extract-markdown.js";
 import { read, readText, thrown } from "./helpers.js";
 
@@ -13,6 +14,22 @@ const SHARED = [
   "reading-order/two-columns-ordered.pdf",
   "corpus/hello-broken.pdf",
 ] as const;
+
+/**
+ * The strings the extract module's `WasmDocument.extract` returned, newest last: what
+ * `doc.extract` parsed, as Rust wrote it (JSON.stringify of the parsed object would write
+ * `1.0` as `1`).
+ */
+const raw: string[] = [];
+const original = glue.WasmDocument.prototype.extract;
+glue.WasmDocument.prototype.extract = function (this: glue.WasmDocument, options: never): string {
+  const out = original.call(this, options);
+  raw.push(out);
+  return out;
+};
+afterAll(() => {
+  glue.WasmDocument.prototype.extract = original;
+});
 
 /** The JSON with the generator's version replaced by `*`, as the Rust test writes it. */
 function withoutVersion(json: string): string {
@@ -34,23 +51,27 @@ describe("doc.extract() with the extract module", () => {
     for (const rel of SHARED) {
       const doc = Document.open(read(`fixtures/${rel}`));
       const extraction = doc.extract({ format: "json", pageMarkers: true, chunk: { maxTokens: 400 } });
-      const stem = rel.split("/").pop()?.replace(/\.pdf$/, "");
-      expect(withoutVersion(JSON.stringify(extraction)), rel).toBe(readText(`fixtures/extract/json/${stem}.json`));
+      const stem = rel
+        .split("/")
+        .pop()
+        ?.replace(/\.pdf$/, "");
+      const golden = readText(`fixtures/extract/json/${stem}.json`);
+      expect(withoutVersion(raw.at(-1) ?? ""), rel).toBe(golden);
+      expect({ ...extraction, generator: { ...extraction.generator, version: "*" } }, rel).toEqual(JSON.parse(golden));
     }
   });
 
   it("runs the recipe's example: the same JSON as the Rust example's options", () => {
     const out = extractForAnLlm(read("fixtures/reading-order/table-ordered.pdf"));
-    expect(withoutVersion(JSON.stringify(out.json))).toBe(readText("fixtures/extract/json/table-ordered.json"));
+    expect(withoutVersion(raw.at(-1) ?? "")).toBe(readText("fixtures/extract/json/table-ordered.json"));
     expect(out.markdown.startsWith("<!-- page 1 -->")).toBe(true);
     expect(out.chunks).toEqual(out.json.chunks);
   });
 
-  it("returns Markdown with the table as a pipe table", () => {
+  it("returns the Markdown Rust writes", () => {
     const doc = Document.open(read("fixtures/reading-order/table-ordered.pdf"));
-    const markdown: string = doc.extract({ format: "markdown" });
-    expect(markdown).toBe(readText("fixtures/extract/markdown/table-ordered.md").trimEnd());
-    expect(markdown).toContain("| --- |");
+    const markdown: string = doc.extract({ format: "markdown", pageMarkers: true });
+    expect(markdown).toBe(readText("fixtures/extract/markdown/table-ordered.md"));
   });
 
   it("returns plain text and typed chunks", () => {

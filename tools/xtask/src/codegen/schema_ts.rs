@@ -50,7 +50,7 @@ pub(crate) fn render(schema: &Value, root: &str, header: &str, source: &str) -> 
     Ok(out)
 }
 
-/// A JSDoc comment from `node`'s description, or nothing.
+/// A `JSDoc` comment from `node`'s description, or nothing.
 fn doc(node: &Value, indent: &str) -> String {
     match node.get("description").and_then(Value::as_str) {
         Some(d) => {

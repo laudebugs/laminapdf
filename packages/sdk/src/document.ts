@@ -385,7 +385,10 @@ export class Document extends Handle<BaseGlue> {
       );
     }
     const extract = doc.extract.bind(doc);
-    return parseExtract(options.format, this.call(() => extract(options)));
+    return parseExtract(
+      options.format,
+      this.call(() => extract(options)),
+    );
   }
 
   /** The Info dictionary's text entries (document text). @throws {@link LaminaPdfError} reading errors. */
