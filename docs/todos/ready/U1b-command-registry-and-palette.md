@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4a](./C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6j](./U6j-positioning-and-palette-shell.md) |
+| Depends on | [C4a](./C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6j](../ongoing/U6j-positioning-and-palette-shell.md) |
 | Blocks | [C7a](./C7a-accessibility-and-theming.md), [D4b](./D4b-native-menus.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0024 (command registry); follows 0009, 0010 |
 | Branch | `feat/u1b-command-registry-and-palette` |

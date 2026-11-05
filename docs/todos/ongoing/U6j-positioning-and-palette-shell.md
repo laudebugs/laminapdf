@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6i](../done/U6i-sheets-positioning-and-palette-shell.md) |
-| Blocks | [U1b](./U1b-command-registry-and-palette.md), [U6f](./U6f-gallery-and-visual-tests.md) |
+| Blocks | [U1b](../ready/U1b-command-registry-and-palette.md), [U6f](../ready/U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows 0024 (selection surfaces per pointer type, sheets with detents, palette as an APG combobox, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for any positioning dependency |
 | Branch | `feat/u6j-positioning-and-palette-shell` |
 | PR title | `feat(ui): add anchored positioning, the selection toolbar shell and the palette shell` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, dialogs, menus, tooltips and toasts, and [U6i](../done/U6i-sheets-positioning-and-palette-shell.md) the bottom sheets. This todo builds the two layers with their own geometry and keyboard model. The first is the positioning of the desktop selection mini toolbar: above the selection, flipping on collision, reachable with Shift+F10. The second is the command palette's shell, an APG combobox with a listbox, which [U1b](./U1b-command-registry-and-palette.md) fills with commands. It was split from U6i when U6i was claimed, because U6i's three parts together passed the 800-line budget.
+Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, dialogs, menus, tooltips and toasts, and [U6i](../done/U6i-sheets-positioning-and-palette-shell.md) the bottom sheets. This todo builds the two layers with their own geometry and keyboard model. The first is the positioning of the desktop selection mini toolbar: above the selection, flipping on collision, reachable with Shift+F10. The second is the command palette's shell, an APG combobox with a listbox, which [U1b](../ready/U1b-command-registry-and-palette.md) fills with commands. It was split from U6i when U6i was claimed, because U6i's three parts together passed the 800-line budget.
 
 ## Context
 
@@ -24,7 +24,7 @@ Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer s
 - Design: F01 (mini toolbar) and F02 (palette) in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards).
 - [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) (palette), [§5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) (selection surfaces), [§5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (sheets, safe areas).
 - [U6e](../done/U6e-overlays-and-sheets.md): the layer stack, z-order tokens and `Dialog` these join; [U6d](../done/U6d-core-components.md) and [U6h](../done/U6h-display-components.md): the density context, `ShortcutChip`, `EmptyState` and the test helpers.
-- Consumers: [U1b](./U1b-command-registry-and-palette.md) (palette contents, ranking and argument parsing), [U2a](./U2a-selection-surfaces-and-copy-modes.md) (when the mini toolbar shows and what it holds), [U3a](./U3a-responsive-mobile-and-touch.md) (which panels become sheets).
+- Consumers: [U1b](../ready/U1b-command-registry-and-palette.md) (palette contents, ranking and argument parsing), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md) (when the mini toolbar shows and what it holds), [U3a](../ready/U3a-responsive-mobile-and-touch.md) (which panels become sheets).
 - WCAG 2.2 SC 2.4.11 (focus not obscured); WAI-ARIA APG: combobox with listbox popup, toolbar.
 
 ## Scope
@@ -32,16 +32,16 @@ Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer s
 **In scope**
 
 - **Positioning**: one `useAnchoredPosition` (or the primitives library's overlay positioning) that places a layer against an element **or a virtual rectangle** (the selection's first line), flips on collision, shifts within the viewport and the canvas, and updates on scroll and zoom.
-- **Selection mini toolbar shell** (§7.9): above the first selected line, below on collision, `role="toolbar"` with roving focus; Shift+F10 moves focus into it; Escape dismisses and returns focus to the document. When it shows and what it contains are [U2a](./U2a-selection-surfaces-and-copy-modes.md)'s.
+- **Selection mini toolbar shell** (§7.9): above the first selected line, below on collision, `role="toolbar"` with roving focus; Shift+F10 moves focus into it; Escape dismisses and returns focus to the document. When it shows and what it contains are [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md)'s.
 - **Command palette shell** (§7.10): modal over the scrim, 96 px from the top, `max-width` 600; input with `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant` (focus stays in the input); `role="listbox"` with grouped options (section overlines "Recent", "Commands"), option rows (title with the matched part in 600, group name, shortcut chip, disabled with reason), empty state, a "pushed page" slot for commands that need arguments, and the hint footer; arrow keys, Home/End, Page Up/Down, Enter, Escape. It takes items and a filter result as props; no ranking or commands inside.
 
 **Out of scope** (and which todo covers it)
 
 - The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../done/U6e-overlays-and-sheets.md).
-- Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](./U1b-command-registry-and-palette.md).
-- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](./U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](./U3a-responsive-mobile-and-touch.md).
-- Which panels become sheets on the phone → [U3a](./U3a-responsive-mobile-and-touch.md).
-- Gallery pages and screenshots → [U6f](./U6f-gallery-and-visual-tests.md).
+- Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../ready/U1b-command-registry-and-palette.md).
+- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- Which panels become sheets on the phone → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- Gallery pages and screenshots → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
 
@@ -75,7 +75,7 @@ The overlays' browser tests in `packages/ui` (Vitest browser mode, Chromium, Fir
 
 ## Risks and open questions
 
-- **Palette library**: [U1b](./U1b-command-registry-and-palette.md) planned cmdk. cmdk renders its own input and list, so it would bypass this shell. Recommendation: the shell owns the ARIA and rendering, and U1b uses a ranking function only (cmdk's scoring or its own); agree this with whoever claims U1b and update U1b's text in this PR's claim or a board-only PR.
+- **Palette library**: [U1b](../ready/U1b-command-registry-and-palette.md) planned cmdk. cmdk renders its own input and list, so it would bypass this shell. Recommendation: the shell owns the ARIA and rendering, and U1b uses a ranking function only (cmdk's scoring or its own); agree this with whoever claims U1b and update U1b's text in this PR's claim or a board-only PR.
 
 ## Definition of done
 

@@ -7,16 +7,16 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6e](./U6e-overlays-and-sheets.md) |
-| Blocks | [U6j](../ready/U6j-positioning-and-palette-shell.md) |
+| Blocks | [U6j](../ongoing/U6j-positioning-and-palette-shell.md) |
 | ADRs | Follows 0024 (the phone shell, sheets with detents, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/u6i-sheets-positioning-and-palette-shell` |
 | PR title | `feat(ui): add paper bottom sheets and the phone dialog` |
-| Size | L (≈ 600–800 lines of components and tests; split on 2026-11-05 as its size required: anchored positioning with the selection toolbar shell, and the palette shell, moved to [U6j](../ready/U6j-positioning-and-palette-shell.md)) |
+| Size | L (≈ 600–800 lines of components and tests; split on 2026-11-05 as its size required: anchored positioning with the selection toolbar shell, and the palette shell, moved to [U6j](../ongoing/U6j-positioning-and-palette-shell.md)) |
 | PR | [#247](https://github.com/laudebugs/laminapdf/pull/247) |
 
 ## Goal
 
-Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, the z-order, dialogs, menus, tooltips and the toast region. This todo builds the bottom sheet on that stack: detents whose grabber is a button (a single-pointer alternative to dragging), drag snapping, modal and non-modal modes, and the dialog shown as a sheet on the phone. [U6j](../ready/U6j-positioning-and-palette-shell.md) builds the selection toolbar's positioning and the palette shell.
+Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) built the layer stack, the z-order, dialogs, menus, tooltips and the toast region. This todo builds the bottom sheet on that stack: detents whose grabber is a button (a single-pointer alternative to dragging), drag snapping, modal and non-modal modes, and the dialog shown as a sheet on the phone. [U6j](../ongoing/U6j-positioning-and-palette-shell.md) builds the selection toolbar's positioning and the palette shell.
 
 ## Context
 
@@ -24,7 +24,7 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 - Design: F04 (Pages sheet) in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards).
 - [UI/UX plan §5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (sheets, safe areas).
 - [U6e](../done/U6e-overlays-and-sheets.md): the layer stack, z-order tokens and `Dialog` the sheet joins; [U6d](../done/U6d-core-components.md) and [U6h](../done/U6h-display-components.md): the density context and the test helpers.
-- Consumers: [U3a](../ready/U3a-responsive-mobile-and-touch.md) (which panels become sheets), [U6j](../ready/U6j-positioning-and-palette-shell.md).
+- Consumers: [U3a](../ready/U3a-responsive-mobile-and-touch.md) (which panels become sheets), [U6j](../ongoing/U6j-positioning-and-palette-shell.md).
 - WCAG 2.2 SC 2.4.11 (focus not obscured), 2.5.7 (dragging movements).
 
 ## Scope
@@ -42,7 +42,7 @@ Finish the overlays' phone layer. [U6e](../done/U6e-overlays-and-sheets.md) buil
 
 **Out of scope** (and which todo covers it)
 
-- Anchored positioning, the selection mini toolbar shell and the command palette shell → [U6j](../ready/U6j-positioning-and-palette-shell.md).
+- Anchored positioning, the selection mini toolbar shell and the command palette shell → [U6j](../ongoing/U6j-positioning-and-palette-shell.md).
 - The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../done/U6e-overlays-and-sheets.md).
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../ready/U1b-command-registry-and-palette.md).
 - When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
@@ -89,7 +89,7 @@ The overlays' browser tests in `packages/ui` (Vitest browser mode, Chromium, Fir
 - Tokens: `sheet-detent-large` (an alias of `phone-top-bar-height`, approved) and `sheet-detent-medium` (0.48).
 - Decisions, recorded in the design language (§7.16, §7.18): a modal sheet draws in the scrim's layer (40), a non-modal one at 30; the sheet moves without a slide, so reduced motion changes nothing; it runs to the viewport's bottom, where F04 stops it above the phone bottom bar, which [U3a](../ready/U3a-responsive-mobile-and-touch.md) places.
 - The browser tests run at 1280 × 800, since Vitest's default viewport is phone-wide; focus checks after an open or a close poll, for WebKit.
-- The selection toolbar's positioning and the palette shell moved to [U6j](../ready/U6j-positioning-and-palette-shell.md) when this todo was claimed.
+- The selection toolbar's positioning and the palette shell moved to [U6j](../ongoing/U6j-positioning-and-palette-shell.md) when this todo was claimed.
 
 ## Definition of done
 
