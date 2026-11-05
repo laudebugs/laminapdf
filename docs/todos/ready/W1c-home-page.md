@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md), [W1e](../ongoing/W1e-progress-snapshot.md) |
+| Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md), [W1e](../done/W1e-progress-snapshot.md) |
 | Blocks | None |
 | ADRs | Follows 0011 (no third parties: the dashboard is static data in the build; each claim on the page ties to the rule behind it) |
 | Branch | `feat/w1c-home-page` |
@@ -21,7 +21,7 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 ## Context
 
 - [Website plan §4](../../plans/website.md#the-home-page-for-now-the-roadmap): what the home page shows for now, where its data comes from, and what it leaves out (people's names, links into the private repository); §7 for the owner's approval and when the roadmap leaves the home page.
-- [W1e](../ongoing/W1e-progress-snapshot.md): `apps/site/src/data/progress.json` and its TypeScript type, the page's only data.
+- [W1e](../done/W1e-progress-snapshot.md): `apps/site/src/data/progress.json` and its TypeScript type, the page's only data.
 - The build log the project keeps as a separate page: the model for the dashboard (totals, progress by round, in flight, ready to start, recently merged, the snapshot's date).
 - The owner's choice among three samples (2026-11-05): sample B, the page on paper, with sample C's tabbed code panel ([plan §4](../../plans/website.md#the-home-page-for-now-the-roadmap), "The design"). The samples' artboards are the starting point for this todo's design.
 - The docs site's [install page](../../../apps/docs/src/content/docs/install.mdx): the published packages and what each holds; the [CLI README](../../../crates/laminapdf-cli/README.md) for the command-line examples.
@@ -47,7 +47,7 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 
 **Out of scope**
 
-- The snapshot and its command → [W1e](../ongoing/W1e-progress-snapshot.md).
+- The snapshot and its command → [W1e](../done/W1e-progress-snapshot.md).
 - The privacy promises: [C7c](./C7c-performance-gates-and-launch.md) adds them to the home page when it publishes `/privacy`.
 - Moving the roadmap to `/roadmap` at the reader's launch ([plan §7](../../plans/website.md#7-open-questions), question 3).
 - The other pages (W1a names their todos); the shared header → [W1d](./W1d-one-site-header.md).

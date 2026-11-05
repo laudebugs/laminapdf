@@ -49,7 +49,7 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
 
   | Path | Page | Todo |
   | --- | --- | --- |
-  | `/` | home: what Lamina PDF is, and for now the roadmap with a dashboard of what's coming next ([below](#the-home-page-for-now-the-roadmap)) | [W1c](../todos/ready/W1c-home-page.md), [W1e](../todos/ongoing/W1e-progress-snapshot.md) |
+  | `/` | home: what Lamina PDF is, and for now the roadmap with a dashboard of what's coming next ([below](#the-home-page-for-now-the-roadmap)) | [W1c](../todos/ready/W1c-home-page.md), [W1e](../todos/done/W1e-progress-snapshot.md) |
   | `/download` | desktop downloads, detecting the visitor's system | [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md) |
   | `/privacy` | the privacy page, every statement tied to ADR 0011 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) |
   | `/pricing` | plans, prices and the fair-pricing promises | [U5a](../todos/ready/U5a-pricing-and-promises-page.md) |
@@ -84,7 +84,7 @@ Someone refreshes the dashboard from time to time: they run the command and merg
 
 The page shows titles and counts only. It names no person and links nothing in the repository, which is private. Rounds get plain names ("Core library", "Web reader") from one table in the site, and todo titles appear as the board writes them.
 
-[W1e](../todos/ongoing/W1e-progress-snapshot.md) builds the command and the first snapshot; [W1c](../todos/ready/W1c-home-page.md) designs and builds the page. When the reader launches, the product leads the home page and the roadmap moves to a page of its own ([§7](#7-open-questions), question 3).
+[W1e](../todos/done/W1e-progress-snapshot.md) builds the command and the first snapshot; [W1c](../todos/ready/W1c-home-page.md) designs and builds the page. When the reader launches, the product leads the home page and the roadmap moves to a page of its own ([§7](#7-open-questions), question 3).
 
 ## 5. Risks
 
@@ -101,7 +101,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 | [W1b](../todos/done/W1b-site-scaffold-and-deploys.md) | `apps/site`: the Astro site in Paper, its headers, a preview per PR and production at `laminapdf.com` | W1a, U6b |
 | [W1c](../todos/ready/W1c-home-page.md) | The home page for now: what Lamina PDF is, the roadmap and the dashboard; design, copy approved by the owner, metadata and share images | W1b, W1e |
 | [W1d](../todos/ready/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
-| [W1e](../todos/ongoing/W1e-progress-snapshot.md) | The progress snapshot: `cargo xtask progress` writes the dashboard's data from the board, the roadmap and `git log` | W1b |
+| [W1e](../todos/done/W1e-progress-snapshot.md) | The progress snapshot: `cargo xtask progress` writes the dashboard's data from the board, the roadmap and `git log` | W1b |
 
 C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a and U5b depend on W1b, because their pages move to the website. W1b depends on U6b for the fonts.
 
@@ -117,6 +117,6 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 - [x] Serve `apps/site` at `laminapdf.com`, with previews per PR ([W1b](../todos/done/W1b-site-scaffold-and-deploys.md))
 - [ ] Publish the home page with the roadmap and the dashboard ([W1c](../todos/ready/W1c-home-page.md))
 - [ ] Share one header between the website and the docs site ([W1d](../todos/ready/W1d-one-site-header.md))
-- [ ] Write the dashboard's data with one command ([W1e](../todos/ongoing/W1e-progress-snapshot.md))
+- [x] Write the dashboard's data with one command ([W1e](../todos/done/W1e-progress-snapshot.md))
 
 With these five todos done, `laminapdf.com` tells a visitor what Lamina PDF is, where the work stands and what comes next, and the reader launches at `app.laminapdf.com` on its own origin.

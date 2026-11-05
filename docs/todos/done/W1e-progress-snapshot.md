@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md) |
+| Depends on | [W1b](./W1b-site-scaffold-and-deploys.md) |
 | Blocks | [W1c](../ready/W1c-home-page.md) |
 | ADRs | — |
 | Branch | `feat/w1e-progress-snapshot` |
@@ -84,6 +84,6 @@ Unit tests over fixture todo files and a fixture milestone table; merge-subject 
 
 - [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the guideline and `CLAUDE.md` text
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the guideline and `CLAUDE.md` text
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
