@@ -12,7 +12,7 @@ mod pages;
 
 pub use check::{CheckArgs, CheckReport, check};
 pub use explain::{ExplainArgs, ExplainReport, explain};
-pub use extract::{ExtractArgs, Format, PageTextEntry, TextReport, extract};
+pub use extract::{ExtractArgs, ExtractedReport, Format, PageTextEntry, TextReport, extract, extract_document};
 pub use info::{InfoArgs, InfoMetadata, InfoReport, PageSummary, info};
 pub use pages::{PagesReport, RotateArgs, RotatedPage, rotate};
 
@@ -211,6 +211,8 @@ mod tests {
                     input: input.clone(),
                     format: Format::Text,
                     pages: None,
+                    max_chars: None,
+                    visible_only: false,
                 },
                 &settings,
                 &mut io,

@@ -5,7 +5,7 @@
 
 ## Context
 
-Lamina PDF needs one command-line tool for three readers: people at a shell, CI scripts, and AI coding agents. The [shareable-libraries report](../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it) concludes that the CLI, not MCP, is the primary agent interface. Playwright tells users that coding agents "increasingly favor CLI–based workflows exposed as SKILLs over MCP because CLI invocations are more token-efficient", so an MCP server should be a thin adapter over the same commands. Scripts and agents parse what a CLI prints and branch on its exit code, so both are a contract: once published, changing them breaks callers. This ADR fixes that contract before the first commands ship ([L4a](../todos/done/L4a-lamina-cli.md)) and more pile on ([L4b](../todos/ready/L4b-cli-batch-render-schema.md), [L4c](../todos/done/L4c-mcp-mode.md)).
+Lamina PDF needs one command-line tool for three readers: people at a shell, CI scripts, and AI coding agents. The [shareable-libraries report](../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it) concludes that the CLI, not MCP, is the primary agent interface. Playwright tells users that coding agents "increasingly favor CLI–based workflows exposed as SKILLs over MCP because CLI invocations are more token-efficient", so an MCP server should be a thin adapter over the same commands. Scripts and agents parse what a CLI prints and branch on its exit code, so both are a contract: once published, changing them breaks callers. This ADR fixes that contract before the first commands ship ([L4a](../todos/done/L4a-lamina-cli.md)) and more pile on ([L4b](../todos/done/L4b-cli-batch-render-schema.md), [L4c](../todos/done/L4c-mcp-mode.md)).
 
 The [CLI spec note](../research/libraries/notes/cli-spec.md) surveyed the existing tools:
 - **qpdf** has the best machine contract: exit codes 0, 2 and 3 (warnings only), a page-range grammar with `z`, `r3`, reverse ranges, `x` exclusions and `:odd`/`:even`, and versioned JSON whose consumers must ignore unknown keys ([§1](../research/libraries/notes/cli-spec.md#1-command-grammars-of-existing-pdf-clis-qpdf-mutool-pdftk-cpdf-poppler-ghostscript)). It can't read stdin.
@@ -94,6 +94,14 @@ The cli-spec note §4 and the filesystem MCP server's symlink CVEs set these, so
 - **Read-only by default:** `--allow-write` lists the write tools, and `--allow-in-place` on top lets them overwrite inputs.
 - **One tool per command**, with the command's schemas, in a fixed order, with honest annotations (`readOnlyHint` for reads; `destructiveHint` true only for in-place writes).
 - **Document text only in data fields**; argument errors are tool errors (`isError: true`) the model can correct.
+
+> **Amendment (L4b, 2026-11-05): batch.** `info`, `check` and `extract` take several inputs, from argv and `--files-from FILE|-` (newline-separated, or NUL-separated with `-0`). Standard input can be read once: `-` may appear once across argv and the list, and not at all when the list is read from it. `--jobs N` (by default the machine's parallelism, at most 8) runs them in parallel, and results are printed in argument order. One input named on argv keeps the single-document output; several, or any `--files-from` list, are a batch:
+>
+> - **Output:** with `--json`, stdout is NDJSON: one `{"type":"result","schema",…,"index","input","status"}` line per input (`status` is `ok`, `warnings` or `error`), carrying its report's keys or, for a failure, `error` (the §8 error object with `input` and `exitCode`, on stdout as data), then `{"type":"summary","ok","warnings","failed","skipped","elapsedMs"}`. In text mode each report comes under `==> input <==`, and errors and the counts go to stderr.
+> - **Exit codes:** `0` all ok; `3` warnings and no failure (`0` with `--warnings-ok`); `1` any failure; `5` when every failure is a missing or wrong password; `2` for a usage error found before any work (no input, `-` twice). `--fail-fast` starts no input after a failure, and `skipped` counts those.
+> - **Schemas:** the lines' are `result-line.schema.json` and `summary-line.schema.json`. `laminapdf schema [command]` prints a 2020-12 document whose `input`, `output`, `error`, `result` and `summary` properties embed those schemas; the arguments object is the shape `laminapdf mcp` takes too.
+>
+> Output templates for commands that write many files come with `render` ([L4e](../todos/ready/L4e-cli-render.md)).
 
 ## Consequences
 
