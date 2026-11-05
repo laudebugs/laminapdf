@@ -28,10 +28,10 @@ const THEME = createCssVariablesTheme({ name: "paper-code", variablePrefix: "--s
 
 /**
  * Scope prefixes and the kind each gives, `null` for plain, in the order they are tried. A token
- * inside a comment is a comment. Otherwise its innermost scope that a rule matches decides, then
- * the next scope out: operators, punctuation, variables and namespaces stay plain; types share the
- * constants' colour; a shell command is a function, its options are constants and its arguments
- * are plain.
+ * inside a comment is a comment. Otherwise the scopes are tried from the innermost out, and the
+ * first one a rule matches decides: operators, punctuation, variables and namespaces stay plain;
+ * types share the constants' colour; a shell command is a function, its options are constants and
+ * its arguments are plain.
  */
 const RULES: readonly (readonly [prefix: string, kind: CodeKind | null])[] = [
   ["keyword.operator.new", "keyword"],

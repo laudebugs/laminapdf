@@ -1,6 +1,7 @@
 // The code panel's colours, on the home page's own code: the highlighter keeps every character and
-// colours what it should in each language, the opening renders the panes as classed spans with no
-// inline style, and site.css colours each kind with its --paper-code-* token.
+// gives each language's keywords, strings, comments, names and numbers their kinds; the opening
+// renders the panes as classed spans with no inline style; and site.css colours each kind with its
+// --paper-code-* token.
 
 import { readFileSync } from "node:fs";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
