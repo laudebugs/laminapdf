@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Website §4 The website](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
-| Depends on | [W1b](../done/W1b-site-scaffold-and-deploys.md) |
+| Depends on | [W1b](./W1b-site-scaffold-and-deploys.md) |
 | Blocks | None |
 | ADRs | — |
 | Branch | `feat/w1d-site-header` |
@@ -44,7 +44,7 @@ A visitor moving between `laminapdf.com` and `docs.laminapdf.com` sees the same 
 ## Acceptance criteria
 
 - [ ] Both sites' previews show the same header, and a link added to the list appears on both. **Not yet:** the previews wait for the owner's website workflow. Locally both builds render the shared header, and the link test (`packages/site-kit/test/nav.test.ts`) adds a page's link on both sites from one list.
-- [x] The docs site's search and theme switch still work beside the new header (checked in Chromium: the search dialog opens, the theme switch is there, nothing scrolls sideways at 375 px).
+- [x] The docs site's search and theme switch still work beside the new header (checked in Chromium: the search dialog opens, the theme switch is there, nothing scrolls sideways at 375 px; at 800 px all five links fit beside search).
 
 ## Tests
 
@@ -58,7 +58,9 @@ The shared package's README, `CLAUDE.md`'s layout, the [website plan §8](../../
 
 - **The shared package is `@laminapdf/site-kit`,** which held the build steps both sites share; it now holds the header too (`src/nav.mjs`, `src/SiteHeader.astro`, `src/header.css`). The website's `src/nav.ts` and header component are gone.
 - **The docs site learns which website pages exist at build time:** its `astro.config.mjs` reads `apps/site/src/pages/` with `pageFiles()`, as the website's own config does, and passes the list as `__SITE_PAGES__`.
-- **The header sizes itself with CSS variables:** the website keeps §7.39's 64 px bar; the docs site fits it into Starlight's 56 px bar with a 22 px wordmark and hides the links below 50 rem, where Starlight's search and menu take over.
+- **Each site sizes the header with CSS variables:** the website keeps §7.39's 64 px bar; the docs site fits it into Starlight's 56 px bar with a 22 px wordmark. Above 50 rem the docs header's links scroll sideways when the bar is too narrow for them; below it the header hides them and a `MobileMenuFooter` override lists them in the phone menu, from `SiteNav.astro`, the links alone.
+- **The docs header imports Starlight's search, social icons, theme switch and language switch from `virtual:starlight/components/*`,** as Starlight's own header does, so an override of one of them still applies.
+- **A website link is current on the pages below its page too** (`aria-current="true"`, Download on `/download/linux/`), and `pageFiles()` leaves out `_` names, as Astro does, so a draft page never adds a link.
 - **`header.css` sets `box-sizing` itself.** The browser test caught 32 px of sideways scroll at phone width on a page without a global border-box reset.
 - **The browser tests render the header in Node** with Astro's container API in a Vitest global setup, then check it in each browser. Firefox and WebKit run only in CI here: this environment has Chromium alone.
 
@@ -66,6 +68,6 @@ The shared package's README, `CLAUDE.md`'s layout, the [website plan §8](../../
 
 - [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the package README
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the package README
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

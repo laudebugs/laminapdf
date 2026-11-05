@@ -50,7 +50,7 @@ A visitor to `laminapdf.com` learns in one screen what Lamina PDF is, then sees 
 - The snapshot and its command → [W1e](../done/W1e-progress-snapshot.md).
 - The privacy promises: [C7c](./C7c-performance-gates-and-launch.md) adds them to the home page when it publishes `/privacy`.
 - Moving the roadmap to `/roadmap` at the reader's launch ([plan §7](../../plans/website.md#7-open-questions), question 3).
-- The other pages (W1a names their todos); the shared header → [W1d](../ongoing/W1d-one-site-header.md).
+- The other pages (W1a names their todos); the shared header → [W1d](../done/W1d-one-site-header.md).
 
 ## Tasks
 

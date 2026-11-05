@@ -57,7 +57,7 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
   | `/desktop/releases/<version>` | desktop release notes, which the updater links to | [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) |
   | `/keys/lamina-release.asc` | the public key that signs the Linux packages | [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md) |
 
-- **Look.** Paper, through `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` ([U6b](../todos/done/U6b-self-hosted-fonts.md)), the one copy that the reader, the desktop app and both sites share. The header is §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". [W1d](../todos/ongoing/W1d-one-site-header.md) gives the website and the docs site one header, built from one list of links.
+- **Look.** Paper, through `@laminapdf/tokens` and the self-hosted fonts of `@laminapdf/fonts` ([U6b](../todos/done/U6b-self-hosted-fonts.md)), the one copy that the reader, the desktop app and both sites share. The header is §7.39's: the wordmark, the links Download · Docs · Pricing · Performance · Privacy, and "Open the web app". [W1d](../todos/done/W1d-one-site-header.md) gives the website and the docs site one header, built from one list of links.
 - **Privacy.** The website keeps the reader's promises that apply to a page of text. It sets no cookies, loads nothing from a third party and sends no analytics. ADR 0011's amendment states these rules and the website's headers, and W1b checks every built page against them.
 - **Before the reader launches.** The website can go live first, with the roadmap, the SDK, the library and the docs. "Open the web app" appears once C7c deploys the reader to production, behind one build setting that C7c turns on.
 - **HSTS preload.** ADR 0011 §4 held the preload submission until the reader served the apex. After the move, the website serves the apex, so the preload follows W1b's first production deploy, once every subdomain is known to be HTTPS-only. Then a one-line PR adds `preload` to the website's `Strict-Transport-Security` header, which the preload list requires, and the owner submits the domain.
@@ -100,7 +100,7 @@ The page shows titles and counts only. It names no person and links nothing in t
 | [W1a](../todos/done/W1a-domain-map.md) | The domain map: amend ADR 0011, move the reader to `app.laminapdf.com` in every plan, todo and design doc | — |
 | [W1b](../todos/done/W1b-site-scaffold-and-deploys.md) | `apps/site`: the Astro site in Paper, its headers, a preview per PR and production at `laminapdf.com` | W1a, U6b |
 | [W1c](../todos/ready/W1c-home-page.md) | The home page for now: what Lamina PDF is, the roadmap and the dashboard; design, copy approved by the owner, metadata and share images | W1b, W1e |
-| [W1d](../todos/ongoing/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
+| [W1d](../todos/done/W1d-one-site-header.md) | One header for the website and the docs site | W1b |
 | [W1e](../todos/done/W1e-progress-snapshot.md) | The progress snapshot: `cargo xtask progress` writes the dashboard's data from the board, the roadmap and `git log` | W1b |
 
 C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a and U5b depend on W1b, because their pages move to the website. W1b depends on U6b for the fonts.
@@ -116,7 +116,7 @@ C4c and C4d depend on W1a, because they turn the hosts into code. C7c, D7b, U5a 
 - [x] Amend ADR 0011 and move the reader to `app.laminapdf.com` everywhere ([W1a](../todos/done/W1a-domain-map.md))
 - [x] Serve `apps/site` at `laminapdf.com`, with previews per PR ([W1b](../todos/done/W1b-site-scaffold-and-deploys.md))
 - [ ] Publish the home page with the roadmap and the dashboard ([W1c](../todos/ready/W1c-home-page.md))
-- [ ] Share one header between the website and the docs site ([W1d](../todos/ongoing/W1d-one-site-header.md))
+- [x] Share one header between the website and the docs site ([W1d](../todos/done/W1d-one-site-header.md))
 - [x] Write the dashboard's data with one command ([W1e](../todos/done/W1e-progress-snapshot.md))
 
 With these five todos done, `laminapdf.com` tells a visitor what Lamina PDF is, where the work stands and what comes next, and the reader launches at `app.laminapdf.com` on its own origin.
