@@ -12,7 +12,7 @@
 | Branch | `feat/w1b-site` |
 | PR title | `feat(site): the website at laminapdf.com, with a preview per pull request` |
 | Size | M (300–600 lines of site, config, checks and workflow) |
-| PR | — |
+| PR | [#246](https://github.com/laudebugs/laminapdf/pull/246) |
 
 ## Goal
 
@@ -76,8 +76,8 @@ The post-build checks' own tests (Vitest); the docs site's link check pattern fo
 
 ## Definition of done
 
-- [ ] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: this file moved `ready/` → `ongoing/` in the work PR's first commit (Status `ongoing`, links updated)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the README and `CLAUDE.md` text
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
