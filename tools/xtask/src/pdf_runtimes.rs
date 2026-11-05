@@ -197,6 +197,19 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "pnpm",
         &["--filter", "@laminapdf/viewer", "run", "build:wasm"],
     )?;
+    // `@laminapdf/ui` imports the tokens and icons packages through their built `dist/` entries.
+    crate::run(
+        &ws.root,
+        "pnpm",
+        &[
+            "--filter",
+            "@laminapdf/tokens",
+            "--filter",
+            "@laminapdf/icons",
+            "run",
+            "build",
+        ],
+    )?;
     for package in [
         "@laminapdf/render-pdfium",
         "@laminapdf/render-hayro",
