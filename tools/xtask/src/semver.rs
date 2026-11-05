@@ -75,9 +75,13 @@ fn pending_bump(changesets: &[String], members: &[String]) -> Bump {
     bump
 }
 
-fn read_changesets(root: &Path) -> Result<Vec<String>> {
+/// The changesets in `dir` (none when it doesn't exist).
+fn read_changesets(dir: &Path) -> Result<Vec<String>> {
     let mut texts = Vec::new();
-    for entry in fs::read_dir(root.join(".changeset")).context("reading .changeset/")? {
+    if !dir.is_dir() {
+        return Ok(texts);
+    }
+    for entry in fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))? {
         let path = entry?.path();
         let is_changeset =
             path.extension().is_some_and(|e| e == "md") && path.file_name().is_some_and(|n| n != "README.md");
@@ -88,26 +92,96 @@ fn read_changesets(root: &Path) -> Result<Vec<String>> {
     Ok(texts)
 }
 
+/// The bump this checkout's version already makes over the published `baseline`: none when they
+/// are equal, else the first of major, minor and patch that differs (a pre-release step counts
+/// as a patch).
+fn version_step(baseline: &str, current: &str) -> Option<Bump> {
+    if baseline == current {
+        return None;
+    }
+    let numbers = |v: &str| -> Vec<u64> {
+        let core = v.split(['-', '+']).next().unwrap_or(v);
+        core.split('.').map(|n| n.parse().unwrap_or(0)).collect()
+    };
+    let (before, after) = (numbers(baseline), numbers(current));
+    Some(if before.first() != after.first() {
+        Bump::Major
+    } else if before.get(1) != after.get(1) {
+        Bump::Minor
+    } else {
+        Bump::Patch
+    })
+}
+
+/// The bump the next release may make: the pending changesets'. Between a version PR and the
+/// release reaching npm, the checkout's version is ahead of `baseline` and the version PR has
+/// consumed its changesets (moved to `.changeset/pre/` in pre mode); then that version's step and
+/// the consumed changesets count too. In pre mode `.changeset/pre/` also holds earlier alphas'
+/// changesets, so the check is lenient for that window, never stricter.
+fn allowed_bump(root: &Path, members: &[String], baseline: &str, version: &str) -> Result<Bump> {
+    let mut bump = pending_bump(&read_changesets(&root.join(".changeset"))?, members);
+    if let Some(step) = version_step(baseline, version) {
+        let consumed = pending_bump(&read_changesets(&root.join(".changeset/pre"))?, members);
+        bump = bump.max(step).max(consumed);
+    }
+    Ok(bump)
+}
+
 /// The lines of an API Extractor report that state API: no blank lines, comments, imports
-/// (where a type comes from is not API) or the header. A union of string literals on one line
-/// (`export type ErrorCode = "a" | "b";`) becomes one line per member, so a new member is an
-/// addition: new error codes are not breaking (the stability policy).
+/// (where a type comes from is not API), the header or closing braces. Each line is prefixed with
+/// the declarations it sits in (`export class PageRef › free(): void;`), and a line opening a
+/// declaration is cut after its name (see [`scope_label`]). So a member removed from one class is
+/// found while another class keeps the same line, and a class that gains `extends` or
+/// `implements` keeps its members. A union of string literals
+/// on one line (`export type ErrorCode = "a" | "b";`) becomes one line per member, so a new member
+/// is an addition: new error codes are not breaking (the stability policy). Any changed line
+/// counts as removed, an added optional parameter too: the check errs towards a minor bump.
 fn api_lines(report: &str) -> BTreeSet<String> {
     let mut lines = BTreeSet::new();
-    for line in report.lines().map(str::trim_end) {
-        let t = line.trim_start();
-        let skip = t.is_empty() || ["//", "##", ">", "```", "import "].iter().any(|p| t.starts_with(p));
+    let mut scope: Vec<&str> = Vec::new();
+    for line in report.lines().map(str::trim) {
+        let skip = line.is_empty() || ["//", "##", ">", "```", "import "].iter().any(|p| line.starts_with(p));
         if skip {
             continue;
         }
-        match literal_union(t) {
-            Some((head, members)) => lines.extend(members.into_iter().map(|m| format!("{head} = {m}"))),
+        if line.starts_with('}') {
+            scope.pop();
+            continue;
+        }
+        let key = |text: &str| scope.iter().map(|s| format!("{s} › ")).collect::<String>() + text;
+        match literal_union(line) {
+            Some((head, members)) => lines.extend(members.into_iter().map(|m| key(&format!("{head} = {m}")))),
+            None if line.ends_with('{') => {
+                let label = scope_label(line);
+                lines.insert(key(label));
+                scope.push(label);
+            }
             None => {
-                lines.insert(line.to_owned());
+                lines.insert(key(line));
             }
         }
     }
     lines
+}
+
+/// A line opening a block, cut after the name it declares: `export class Builder` for
+/// `export class Builder extends Handle<BaseGlue> {` (a class, interface, namespace, enum or type
+/// alias), else the line itself, such as a member whose type is an object literal.
+fn scope_label(line: &str) -> &str {
+    let mut rest = line;
+    for modifier in ["export ", "declare ", "default ", "abstract "] {
+        rest = rest.strip_prefix(modifier).unwrap_or(rest);
+    }
+    for kind in ["class ", "interface ", "namespace ", "enum ", "type "] {
+        if let Some(after) = rest.strip_prefix(kind) {
+            let name = after
+                .find(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$'))
+                .unwrap_or(after.len());
+            let end = line.len() - rest.len() + kind.len() + name;
+            return &line[..end];
+        }
+    }
+    line
 }
 
 /// `export type Name = "a" | "b";` as (`export type Name`, its members); None for any other line.
@@ -129,8 +203,9 @@ fn compare(published: &str, local: &str) -> (Vec<String>, Vec<String>) {
     (removed, added)
 }
 
-/// The `.d.ts` of each entry point in `package` (its `package.json`'s `exports`, the plain
-/// `types` or the `default` condition's), by subpath.
+/// Every `.d.ts` an entry point of `package` declares (its `package.json`'s `exports`: the plain
+/// `types` and each condition's, so the `node` and `workerd` entries of `.` are compared too),
+/// labelled `<subpath>` or, where a subpath has several, `<subpath> <types file>`.
 fn entry_points(package: &Path) -> Result<Vec<(String, PathBuf)>> {
     let manifest: Value = serde_json::from_str(&fs::read_to_string(package.join("package.json"))?)?;
     let exports = manifest
@@ -139,25 +214,41 @@ fn entry_points(package: &Path) -> Result<Vec<(String, PathBuf)>> {
         .context("package.json has no exports")?;
     let mut entries = Vec::new();
     for (subpath, target) in exports {
-        let types = target
-            .get("types")
-            .or_else(|| target.pointer("/default/types"))
-            .and_then(Value::as_str);
-        if let Some(types) = types {
-            entries.push((subpath.clone(), package.join(types)));
+        let mut types: Vec<&str> = Vec::new();
+        let conditions = target.as_object().into_iter().flat_map(|c| c.values());
+        for found in std::iter::once(target.get("types")).chain(conditions.map(|c| c.get("types"))) {
+            if let Some(file) = found.and_then(Value::as_str)
+                && !types.contains(&file)
+            {
+                types.push(file);
+            }
+        }
+        for file in &types {
+            let label = if types.len() == 1 {
+                subpath.clone()
+            } else {
+                format!("{subpath} {file}")
+            };
+            entries.push((label, package.join(file)));
         }
     }
     Ok(entries)
 }
 
-/// The report's file name for entry point `subpath`: `.` → `index`, `./worker/server` →
-/// `worker-server`.
-fn report_name(subpath: &str) -> String {
-    let name = subpath.trim_start_matches("./").replace('/', "-");
-    if name.is_empty() || name == "." {
+/// The report's file name for an entry point's label: `.` → `index`, `./worker/server` →
+/// `worker-server`, `. ./dist/entry/node.d.ts` → `dist-entry-node-d-ts`.
+fn report_name(label: &str) -> String {
+    let name: String = label
+        .trim_start_matches(". ")
+        .trim_start_matches("./")
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    let name = name.trim_matches('-');
+    if name.is_empty() {
         "index".to_owned()
     } else {
-        name
+        name.to_owned()
     }
 }
 
@@ -251,7 +342,18 @@ fn newest_published(ws: &Workspace) -> Result<String> {
         .current_dir(&ws.root)
         .output()
         .context("running npm view")?;
-    let versions: Vec<String> = serde_json::from_slice(&output.stdout).context("npm view printed no version list")?;
+    if !output.status.success() {
+        bail!(
+            "`npm view {SDK} versions` failed ({}): {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    // npm prints a single version as a string, several as an array.
+    let versions = match serde_json::from_slice(&output.stdout).context("npm view printed no JSON")? {
+        Value::String(version) => vec![version],
+        list => serde_json::from_value::<Vec<String>>(list).context("npm view printed no version list")?,
+    };
     versions
         .into_iter()
         .rfind(|v| !v.starts_with("0.0.0"))
@@ -268,9 +370,6 @@ struct Outcome {
 /// The TypeScript check: every entry point's report, published against this checkout.
 fn typescript(ws: &Workspace, work: &Path, version: &str) -> Result<Vec<Outcome>> {
     let local = ws.root.join("packages/sdk");
-    if !local.join("dist/index.d.ts").is_file() {
-        bail!("packages/sdk/dist is missing: run `cargo xtask wasm` first");
-    }
     let published = install_published(work, version)?;
     let (before, after) = (entry_points(&published)?, entry_points(&local)?);
     let mut outcomes = Vec::new();
@@ -361,15 +460,17 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
         [flag, version] if flag == "--baseline" => version.clone(),
         _ => bail!("usage: cargo xtask semver [--baseline <version>]"),
     };
-    let members: Vec<String> = crate::version::fixed_group_version(&ws.root)?
-        .members
-        .into_iter()
-        .map(|(name, _)| name)
-        .collect();
-    let bump = pending_bump(&read_changesets(&ws.root)?, &members);
+    // Checked first: the Rust check takes minutes.
+    if !ws.root.join("packages/sdk/dist/index.d.ts").is_file() {
+        bail!("packages/sdk/dist is missing: run `cargo xtask wasm` first");
+    }
+    let fixed = crate::version::fixed_group_version(&ws.root)?;
+    let members: Vec<String> = fixed.members.into_iter().map(|(name, _)| name).collect();
+    let bump = allowed_bump(&ws.root, &members, &baseline, &fixed.version)?;
     let breaking_allowed = bump >= Bump::Minor;
     step(&format!(
-        "semver: against the published {baseline}; the pending changesets make the next release a {} one",
+        "semver: {} against the published {baseline}; the changesets make the next release a {} one",
+        fixed.version,
         bump.release_type()
     ));
     let work = ws.root.join("target/semver");
@@ -471,6 +572,7 @@ mod tests {
         assert_eq!(report_name("."), "index");
         assert_eq!(report_name("./explain"), "explain");
         assert_eq!(report_name("./worker/server"), "worker-server");
+        assert_eq!(report_name(". ./dist/entry/node.d.ts"), "dist-entry-node-d-ts");
     }
 
     #[test]
@@ -492,6 +594,73 @@ mod tests {
                 )
             })
             .collect();
-        assert_eq!(names, [(".", "i.d.ts".to_owned()), ("./explain", "e.d.ts".to_owned())]);
+        assert_eq!(
+            names,
+            [
+                (". ./i.d.ts", "i.d.ts".to_owned()),
+                (". ./w.d.ts", "w.d.ts".to_owned()),
+                ("./explain", "e.d.ts".to_owned())
+            ]
+        );
+    }
+
+    #[test]
+    fn compare_should_find_a_member_removed_from_one_declaration_of_several() {
+        let published = "```ts
+export class A {
+    free(): void;
+}
+
+export class B {
+    free(): void;
+}
+```
+";
+        let local = "```ts
+export class A {
+    free(): void;
+}
+
+export class B {
+}
+```
+";
+        let (removed, added) = compare(published, local);
+        assert_eq!(removed, ["export class B › free(): void;"]);
+        assert_eq!(added, Vec::<String>::new());
+    }
+
+    #[test]
+    fn compare_should_keep_a_class_s_members_when_it_gains_extends() {
+        let published = "```ts\nclass Document_2 {\n    free(): void;\n}\n```\n";
+        let local = "```ts\nclass Document_2 extends Handle<BaseGlue> {\n    free(): void;\n}\n```\n";
+        assert_eq!(compare(published, local), (Vec::new(), Vec::new()));
+        assert_eq!(
+            scope_label("export declare abstract class A<T> implements B {"),
+            "export declare abstract class A"
+        );
+        assert_eq!(
+            scope_label("ensure<T>(f: () => T, options?: {"),
+            "ensure<T>(f: () => T, options?: {"
+        );
+    }
+
+    #[test]
+    fn version_step_should_name_the_first_part_that_moved() {
+        assert_eq!(version_step("0.2.0-alpha.2", "0.2.0-alpha.2"), None);
+        assert_eq!(version_step("0.2.0-alpha.2", "0.2.0-alpha.3"), Some(Bump::Patch));
+        assert_eq!(version_step("0.2.0", "0.2.1"), Some(Bump::Patch));
+        assert_eq!(version_step("0.2.0-alpha.2", "0.3.0"), Some(Bump::Minor));
+        assert_eq!(version_step("0.9.1", "1.0.0"), Some(Bump::Major));
+    }
+
+    #[test]
+    fn allowed_bump_should_count_consumed_changesets_only_while_the_version_is_unpublished() {
+        let minor = "---\n\"@laminapdf/sdk\": minor\n---\n\nA break.\n";
+        let tree = crate::tracked::TempTree::new("semver-allowed", &[(".changeset/pre/old.md", minor)]);
+        let allowed = |baseline: &str, version: &str| allowed_bump(&tree.0, &members(), baseline, version).ok();
+        assert_eq!(allowed("0.2.0-alpha.2", "0.2.0-alpha.2"), Some(Bump::Patch));
+        assert_eq!(allowed("0.2.0-alpha.2", "0.2.0-alpha.3"), Some(Bump::Minor));
+        assert_eq!(allowed("0.2.1", "0.3.0"), Some(Bump::Minor));
     }
 }

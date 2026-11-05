@@ -17,7 +17,7 @@ page.finish();
 const bytes = builder.finish().save(); // a Uint8Array holding the PDF
 ```
 
-> **Status:** alpha. Install `@laminapdf/sdk@alpha` from npm or `laminapdf@0.2.0-alpha` from crates.io. Anything can change between alphas, so pin the exact version; the [stability policy](https://docs.laminapdf.com/reference/stability/) says what each version promises.
+> **Status:** alpha, published on npm as `@laminapdf/sdk` (the `alpha` tag) and on crates.io as `laminapdf`. Anything can change between alphas, so pin the exact version you use; the [stability policy](https://docs.laminapdf.com/reference/stability/) shows how and says what each version promises.
 
 ## What's here
 

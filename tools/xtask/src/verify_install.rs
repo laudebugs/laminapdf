@@ -202,10 +202,15 @@ fn unpublished(ws: &Workspace, version: &str) -> Result<Vec<String>> {
     Ok(missing)
 }
 
-/// Polls the registries every minute, for up to `minutes`, until `version` is on both.
+/// Polls the registries every minute, for up to `minutes`, until `version` is on both. A
+/// registry that fails to answer (a 429, a 5xx, no network) costs one more minute, not the wait.
 fn wait_for_registries(ws: &Workspace, version: &str, minutes: u64) -> Result<()> {
     for attempt in 0..=minutes {
-        let missing = unpublished(ws, version)?;
+        let missing = match unpublished(ws, version) {
+            Ok(missing) => missing,
+            Err(error) if attempt < minutes => vec![format!("{error:#}")],
+            Err(error) => return Err(error),
+        };
         if missing.is_empty() {
             return Ok(());
         }
@@ -262,10 +267,11 @@ fn source(ws: &Workspace, args: &Args) -> Result<Source> {
 /// failures are listed at the end, with a table on stdout and in the job summary.
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let golden = sha256_hex(&fs::read(ws.root.join(GOLDEN)).with_context(|| format!("reading {GOLDEN}"))?);
+    // Before the work folder, so a failed wait leaves no folder behind.
+    let source = source(ws, args)?;
     let work = work_dir(ws)?;
     step(&format!("verify-install: projects in {}", work.display()));
 
-    let source = source(ws, args)?;
     let js = args.runtimes.iter().any(|r| *r != "rust");
     let mut outcomes = Vec::new();
     let installed = if js { Some(install_js(ws, &work, &source)) } else { None };
@@ -275,7 +281,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                 Source::Checkout => outcomes.extend(rust(ws, &work, args, &golden)),
                 Source::Registry(version) => outcomes.push(Outcome {
                     label: format!("Rust binary, `{FACADE_CRATE} = \"={version}\"` from crates.io"),
-                    result: rust_project(ws, &work, "rust-registry", &format!("\"={version}\""), &golden),
+                    result: rust_project(ws, &work, "rust-registry", &format!("\"={version}\""), &golden, false),
                 }),
             },
             (_, Some(Err(error))) => outcomes.push(Outcome {
@@ -682,7 +688,7 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
     let (kind, value) = spec.as_ref().map_or(("rev", git_ref.clone()), |(k, v)| (*k, v.clone()));
     let mut outcomes = vec![Outcome {
         label: format!("Rust binary, `{FACADE_CRATE} = {{ path = … }}`"),
-        result: rust_project(ws, work, "rust-path", &path_dep, golden),
+        result: rust_project(ws, work, "rust-path", &path_dep, golden, true),
     }];
     outcomes.push(Outcome {
         label: format!(
@@ -696,6 +702,7 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
                 "rust-git",
                 &format!("{{ git = {url:?}, {kind} = {value:?} }}"),
                 golden,
+                true,
             ),
             (None, _) => Err(anyhow::anyhow!("no git URL: pass --git-url")),
             (_, Err(error)) => Err(error),
@@ -704,7 +711,18 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
     outcomes
 }
 
-fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golden: &str) -> Result<String> {
+/// Builds and runs the quick start in `<work>/<name>` with `dependency` on Lamina PDF. `locked`
+/// copies the repository's `Cargo.lock`, so the third-party crates are the versions CI tests
+/// (Cargo drops the entries this project doesn't use); without it Cargo resolves afresh, as a
+/// user's project does.
+fn rust_project(
+    ws: &Workspace,
+    work: &Path,
+    name: &str,
+    dependency: &str,
+    golden: &str,
+    locked: bool,
+) -> Result<String> {
     let dir = work.join(name);
     write(&dir.join("Cargo.toml"), &rust_manifest(name, dependency))?;
     write(
@@ -712,9 +730,9 @@ fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golde
         &fs::read_to_string(ws.root.join(HELLO_RS)).with_context(|| format!("reading {HELLO_RS}"))?,
     )?;
     write(&dir.join("src/main.rs"), RUST_MAIN)?;
-    // The repository's lockfile, so the third-party crates are the versions CI tests (Cargo
-    // drops the entries this project doesn't use).
-    fs::copy(ws.root.join("Cargo.lock"), dir.join("Cargo.lock")).context("copying Cargo.lock")?;
+    if locked {
+        fs::copy(ws.root.join("Cargo.lock"), dir.join("Cargo.lock")).context("copying Cargo.lock")?;
+    }
     let toolchain = crate::doctor::toolchain_channel(ws)?;
     let target = work.join("rust-target").to_string_lossy().into_owned();
     let out = dir.join("out");
