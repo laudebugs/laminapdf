@@ -1,0 +1,13 @@
+---
+// The page for an address the site doesn't have, served with a 404 status (wrangler.toml's
+// not_found_handling).
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="Page not found · Lamina PDF" description="There is no page at this address on the Lamina PDF website.">
+  <article class="sheet">
+    <h1>Page not found</h1>
+    <p class="lead">There is no page at this address.</p>
+    <p><a href="/">Go to the home page</a></p>
+  </article>
+</Base>

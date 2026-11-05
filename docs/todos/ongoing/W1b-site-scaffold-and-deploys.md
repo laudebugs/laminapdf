@@ -44,17 +44,17 @@
 ## Tasks
 
 - [x] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Scaffold `apps/site` with the layout and placeholder pages; add it to the workspace and to `check ts`.
-- [ ] `_headers` template and the post-build checks, each with a test that fails on a bad page (a third-party script, a cookie, a missing title).
-- [ ] `wrangler.toml` and `site.yml`; preview deploy verified on this PR (once the owner commits the workflow).
-- [ ] Owner actions in the PR: token scope on the zone, the `www.laminapdf.com` redirect rule, the first production deploy.
-- [ ] `apps/site/README.md`; `CLAUDE.md`'s layout and commands.
+- [x] Scaffold `apps/site` with the layout and placeholder pages; add it to the workspace and to `check ts`.
+- [x] `_headers` template and the post-build checks, each with a test that fails on a bad page (a third-party script, a cookie, a missing title). The checks live in `@laminapdf/site-kit`, with the inline-script hashing moved there from the docs site.
+- [ ] `wrangler.toml` and `site.yml`; preview deploy verified on this PR (once the owner commits the workflow). **Not yet:** `wrangler.toml` is in place, and the PR gives `site.yml` for the owner to commit, since this session can't push workflow files. Tick this once a PR shows its preview comment.
+- [x] Owner actions in the PR: token scope on the zone, the `www.laminapdf.com` redirect rule, the first production deploy (also in [`apps/site/README.md`](../../../apps/site/README.md#what-the-owner-needs-to-do)).
+- [x] `apps/site/README.md`; `CLAUDE.md`'s layout and commands.
 
 ## Acceptance criteria
 
-- [ ] This PR gets a preview URL, and its pages carry the website's headers with `noindex`.
-- [ ] The post-build checks fail on a page that loads a third-party file or sets a cookie.
-- [ ] Lighthouse on the preview: 100 for accessibility and best practices on `/`.
+- [ ] This PR gets a preview URL, and its pages carry the website's headers with `noindex`. **Not yet:** waits for the owner to commit `site.yml`. Locally, `wrangler dev` serves the build with the website's headers and `X-Robots-Tag: noindex`, and an unknown path answers 404.
+- [x] The post-build checks fail on a page that loads a third-party file or sets a cookie.
+- [ ] Lighthouse on the preview: 100 for accessibility and best practices on `/`. **Not yet:** waits for the preview. Locally, axe finds no violations on `/` and the 404 page in Chromium, light and dark, at 1280 and 375 px wide.
 
 ## Post-merge checks
 

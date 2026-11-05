@@ -1,0 +1,28 @@
+---
+// The site header (design language §7.39): the wordmark, the site's links, the current page's in
+// 600 with the accent underline, and "Open the web app" once the reader is live.
+import { APP_LAUNCHED, APP_URL, siteNav } from "../nav";
+
+const links = siteNav(Object.keys(import.meta.glob("/src/pages/**/*.{astro,md}")));
+const here = Astro.url.pathname.replace(/\/?$/, "/");
+---
+
+<header class="site-header">
+  <div class="site-header-row">
+    <a class="wordmark" href="/">Lamina PDF</a>
+    <nav class="site-nav" aria-label="Site">
+      <ul>
+        {
+          links.map((link) => (
+            <li>
+              <a href={link.href} aria-current={link.href === here ? "page" : undefined}>
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    {APP_LAUNCHED && <a class="button-secondary" href={APP_URL}>Open the web app</a>}
+  </div>
+</header>

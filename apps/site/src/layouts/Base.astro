@@ -1,0 +1,42 @@
+---
+// Every page's frame: the head (title, description, canonical URL on https://laminapdf.com, the
+// first paint's font preloaded), the site header and footer, and the page between them.
+import "@laminapdf/tokens/tokens.css";
+import "@laminapdf/fonts/fonts.css";
+import "../styles/site.css";
+// Lamina Sans' Latin file, the one face worth preloading (@laminapdf/fonts' FONT_PRELOADS).
+import sans from "@laminapdf/fonts/files/lamina-sans-latin-wght-normal.woff2?url";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+
+interface Props {
+  /** The page's title, as the browser tab and search results show it. */
+  title: string;
+  /** One or two sentences for search results and link previews. */
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+    <link rel="preload" href={sans} as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to the content</a>
+    <SiteHeader />
+    <main id="content">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

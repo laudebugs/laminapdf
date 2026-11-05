@@ -3,6 +3,7 @@
 // plugins/integrations.mjs for what it can't see). Code on the pages is read from the tested
 // example files (src/components/Snippet.astro), the code table from fixtures/codes.json, and the
 // code pages from docs/errors/ (src/pages/reference/codes/[code].astro, plugins/error-pages.mjs).
+// @laminapdf/site-kit fills the CSP's inline-script hashes into dist/_headers, as for the website.
 //
 // Build-time settings (environment variables):
 // - LAMINA_PDF_DOCS_GITHUB=1 adds the links to GitHub (the repository in the header, "Edit page",
@@ -12,11 +13,12 @@
 //   so the TypeScript checks generate the reference only once, in the build).
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
+import { inlineScriptHashes } from "@laminapdf/site-kit/integrations";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs } from "./plugins/agent-docs.mjs";
-import { checkedLinks, examplePdfs, inlineScriptHashes } from "./plugins/integrations.mjs";
+import { checkedLinks, examplePdfs } from "./plugins/integrations.mjs";
 import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
 

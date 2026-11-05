@@ -1,0 +1,28 @@
+{
+  "name": "@laminapdf/site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lamina PDF's website at laminapdf.com (Astro, static pages in the Paper look), deployed to Cloudflare Workers static assets.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "typecheck": "ASTRO_TELEMETRY_DISABLED=1 astro sync && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/site-kit": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
+    "@types/node": "catalog:",
+    "astro": "7.4.2",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}
