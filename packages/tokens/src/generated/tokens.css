@@ -95,6 +95,10 @@
   --paper-swatch-size-inspector: 28px;
   --paper-top-bar-height: 40px;
   --paper-secondary-toolbar-height: 40px;
+  --paper-top-bar-group-basis: 220px;
+  --paper-zoom-percent-min-width: 40px;
+  --paper-page-input-height: 24px;
+  --paper-page-input-min-width: 30px;
   --paper-status-bar-height: 28px;
   --paper-rail-width: 220px;
   --paper-rail-width-min: 196px;

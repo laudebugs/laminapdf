@@ -61,6 +61,7 @@ describe("component sources", () => {
 
 /** Each design-language §7 section this package builds, and the components that build it. */
 const SECTIONS: Record<string, string[]> = {
+  "7.1 Top bar": ["ReaderTopBar", "PageInput", "ZoomControl"],
   "7.2 Mode switcher": ["ModeSwitcher"],
   "7.3 Icon button": ["IconButton"],
   "7.4 Text buttons": ["Button"],

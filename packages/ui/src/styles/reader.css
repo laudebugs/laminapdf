@@ -1,0 +1,204 @@
+/* The reader chrome: the shell's grid (§5.1), the top bar (§7.1: 40 tall on `surface` over a
+   hairline, the file name in Newsreader 16/500 with an ellipsis, its note in 12 muted), the page
+   input (24 tall; 30 wide for a page number, a character wider than a label such as A-1, as the
+   44 px of §7.1; tabular figures; "/ N" muted), the zoom
+   percentage between its 26 px buttons, and the Commands button with its chip. */
+@layer paper.components {
+  .paper-reader-shell {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    block-size: 100%;
+    background: var(--paper-ground);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+  }
+
+  .paper-reader-body {
+    grid-row: 3;
+    display: flex;
+    min-block-size: 0;
+  }
+
+  .paper-reader-rail {
+    flex: none;
+    inline-size: var(--paper-rail-width);
+    border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+    overflow: auto;
+  }
+
+  .paper-reader-canvas {
+    position: relative;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+  }
+
+  .paper-reader-inspector {
+    flex: none;
+    inline-size: var(--paper-inspector-width);
+    border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+    overflow: auto;
+  }
+
+  .paper-reader-secondary {
+    min-block-size: var(--paper-secondary-toolbar-height);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+  }
+
+  .paper-reader-status {
+    grid-row: 4;
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-16);
+    min-block-size: var(--paper-status-bar-height);
+    padding-inline: var(--paper-space-16);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+  }
+
+  .paper-top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8) var(--paper-space-20);
+    min-block-size: var(--paper-top-bar-height);
+    padding-inline: var(--paper-space-16);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+  }
+
+  .paper-top-bar-file {
+    display: flex;
+    flex: 1 1 var(--paper-top-bar-group-basis);
+    align-items: center;
+    gap: var(--paper-space-10);
+    min-inline-size: 0;
+  }
+
+  .paper-top-bar-name {
+    overflow: hidden;
+    font: var(--paper-type-document-name);
+    letter-spacing: var(--paper-type-document-name-letter-spacing);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .paper-top-bar-note,
+  .paper-top-bar-empty {
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+    white-space: nowrap;
+  }
+
+  .paper-top-bar-tools {
+    display: flex;
+    flex: 1 1 var(--paper-top-bar-group-basis);
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--paper-space-14);
+  }
+
+  .paper-page-input {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-page-input-field {
+    box-sizing: border-box;
+    inline-size: max(
+      var(--paper-page-input-min-width),
+      var(--ui-target),
+      calc((var(--page-input-chars, 1) + 1) * 1ch + 2 * (var(--paper-space-4) + var(--paper-border-width)))
+    );
+    min-block-size: max(var(--paper-page-input-height), var(--ui-target));
+    padding-inline: var(--paper-space-4);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+    color: var(--paper-text);
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .paper-page-input-field[aria-invalid="true"] {
+    border-color: var(--paper-danger);
+  }
+
+  .paper-page-input-field:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  .paper-page-input-field:disabled {
+    border-color: var(--paper-hairline);
+    color: var(--paper-disabled);
+  }
+
+  .paper-page-input-total {
+    color: var(--paper-muted);
+    white-space: nowrap;
+  }
+
+  .paper-zoom-control {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-zoom-percent {
+    min-inline-size: var(--paper-zoom-percent-min-width);
+    min-block-size: max(var(--paper-icon-button-size-zoom), var(--ui-target));
+    padding-inline: var(--paper-space-4);
+    border: var(--paper-border-width) solid transparent;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text);
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .paper-zoom-percent[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  .paper-zoom-percent[data-pressed] {
+    background: var(--paper-pressed);
+  }
+
+  .paper-commands-button {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--paper-space-8);
+    min-block-size: max(var(--paper-button-height-top-bar), var(--ui-target));
+    padding-block: 0;
+    padding-inline: var(--paper-space-10) var(--paper-space-6);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-raised);
+    color: var(--paper-muted);
+    font: var(--paper-type-control);
+    white-space: nowrap;
+  }
+
+  .paper-commands-button[data-hovered] {
+    background: var(--paper-hover);
+  }
+
+  /* Read by screen readers, not drawn: a box one border wide, clipped away. */
+  .paper-visually-hidden {
+    position: absolute;
+    inline-size: var(--paper-border-width);
+    block-size: var(--paper-border-width);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
