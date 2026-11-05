@@ -189,6 +189,10 @@ The reading-order corpus (todo [U2b](../docs/todos/done/U2b-reading-order-ground
 
 The metric (defined in `crates/laminapdf/tests/reading_order.rs`): text is tokenized once per file (words, or characters when no block has a space); extracted lines are split into the longest stretches that occur in one block as whole tokens and assigned to it; **order** is 1 − (Levenshtein distance between the sequence of blocks met and 0 … n−1) / the longer length; **text** is the mean per block of 1 − character Levenshtein distance / the longer length; a file's **score** is their mean, the corpus score the mean over files. First run (B9d's content-order extraction, 2026-10-30): mean **0.787**. Every `-ordered` file scores 1.000; the `-reversed` files lose order (0.000–0.333) and keep their text (1.000), except `table-reversed` (text 0.572: cells drawn right to left on one baseline came out joined without a space). [B9e](../docs/todos/done/B9e-separators-at-backward-jumps.md) fixed that: mean **0.797** (`table-reversed` text 1.000).
 
+### `extract/`
+
+`markdown/<layout>-{ordered,reversed}.md`: `laminapdf-extract`'s Markdown for each reading-order file, with page markers. Written by `crates/laminapdf-extract/tests/output.rs` with `UPDATE_GOLDEN=1`, checked by the same test without it; a change to the rules or the renderer shows up as a diff here.
+
 Not here yet: real-world files with hand-checked order (they need a second annotator), tagged variants (B8a writes the structure tree), vertical CJK (the builder lays out horizontally).
 
 ### `shaping/`

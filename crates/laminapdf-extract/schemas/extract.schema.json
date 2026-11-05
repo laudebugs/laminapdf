@@ -341,7 +341,7 @@
       "description": "Who made the extraction (ADR 0030 §1's `generator`).",
       "properties": {
         "mode": {
-          "description": "`\"rules\"`, or `\"rules+models\"` once plug-ins exist (L3c).",
+          "description": "`\"rules\"`, or `\"rules+models\"` once model plug-ins exist.",
           "type": "string"
         },
         "models": {

@@ -259,3 +259,24 @@ fn a_table_is_a_pipe_table_in_markdown_between_its_paragraphs() {
         "Prices this week\n\n| Item | Price |\n| --- | --- |\n| Tea | 2.50 |\n| Cake | 4.00 |\n"
     );
 }
+
+#[test]
+fn a_grid_past_the_cell_limit_gives_no_table_and_a_warning() {
+    let mut c = String::new();
+    grid(
+        &mut c,
+        &XS,
+        &YS,
+        &[&["Item", "Price"], &["Tea", "2.50"], &["Cake", "4.00"]],
+    );
+    let doc = pages(&[c]);
+    let mut options = ExtractOptions::new();
+    options.limits.max_table_cells = 4;
+    let out = run(&doc, &options);
+    assert!(out.blocks.iter().all(|b| b.cells.is_empty()));
+    assert!(
+        out.blocks.iter().any(|b| b.text.contains("Tea")),
+        "the text stays in the paragraphs"
+    );
+    assert!(doc.warnings().iter().any(|w| w.code() == "extract-table-limit"));
+}

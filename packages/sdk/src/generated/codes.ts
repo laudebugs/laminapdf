@@ -161,6 +161,7 @@ export type WarningCode =
   | "extract-limit-blocks"
   | "extract-reading-order-ambiguous"
   | "extract-table-ambiguous"
+  | "extract-table-limit"
   | "tounicode-conflict"
   | "whole-font-rebuilt";
 
@@ -328,6 +329,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "extract-limit-blocks",
   "extract-reading-order-ambiguous",
   "extract-table-ambiguous",
+  "extract-table-limit",
   "tounicode-conflict",
   "whole-font-rebuilt",
 ];
@@ -371,6 +373,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "extract-limit-blocks": "limit",
   "extract-reading-order-ambiguous": "unsupported",
   "extract-table-ambiguous": "unsupported",
+  "extract-table-limit": "limit",
   "not-pdf": "input",
   "missing-root": "input",
   "reference-cycle": "input",
@@ -520,6 +523,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "extract-limit-blocks": "raise ExtractLimits::max_blocks_per_page if the page really has that many blocks",
   "extract-reading-order-ambiguous": "nothing to do; check the order of that page's blocks, or ask for content order",
   "extract-table-ambiguous": "nothing to do; check that table's cells, whose text may be split across neighbours",
+  "extract-table-limit": "raise ExtractLimits::max_table_cells if the page really has a table that big",
   "not-pdf": "check that the bytes passed to open are a PDF file",
   "missing-root": "use another copy of the file: this one has no usable catalog",
   "reference-cycle": "use another copy of the file, or repair it with another tool",

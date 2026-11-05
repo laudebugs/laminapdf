@@ -202,6 +202,7 @@ fn ordered(
 fn find_tables(
     doc: &Document,
     page: &Page<'_>,
+    index: usize,
     text: &PageText,
     glyphs: &[Glyph],
     options: &ExtractOptions,
@@ -211,7 +212,17 @@ fn find_tables(
     }
     let mut collector = Collector::new(&text.frame);
     laminapdf_content::interpret_page(doc, page, &mut collector)?;
-    Ok(tables::detect(options.tables, &collector.finish(), glyphs))
+    let max_cells = usize::try_from(options.limits.max_table_cells).unwrap_or(usize::MAX);
+    let mut limited = false;
+    let tables = tables::detect(options.tables, &collector.finish(), glyphs, max_cells, &mut limited);
+    if limited {
+        let page = u64::try_from(index).unwrap_or(u64::MAX);
+        doc.report(Warning::ExtractTableLimit {
+            page,
+            limit: options.limits.max_table_cells,
+        })?;
+    }
+    Ok(tables)
 }
 
 /// A table block's text: a tab between cells, a line break between rows.
@@ -261,7 +272,7 @@ pub(crate) fn extract_page(
         pieces.truncate(kept);
         spans.truncate(kept);
     }
-    let tables = find_tables(doc, page, text, &glyphs, options)?;
+    let tables = find_tables(doc, page, index, text, &glyphs, options)?;
     if tables.iter().any(|t| t.ambiguous) {
         doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
     }

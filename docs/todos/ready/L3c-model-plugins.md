@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principle [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) 7 (rules in core, models as plug-ins) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
-| Depends on | [L3b](../ongoing/L3b-extract-tables-and-serialisers.md) |
+| Depends on | [L3b](../done/L3b-extract-tables-and-serialisers.md) |
 | Blocks | None |
 | ADRs | Implements 0030's plug-in policy (from [L3a](../done/L3a-lamina-extract-reading-order.md)); follows 0028 (jobs; from [L1a](../done/L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](./E13a-adr-0013-heavy-jobs.md)) |
 | Branch | `feat/l3c-model-plugins` |

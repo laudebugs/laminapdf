@@ -168,15 +168,26 @@ fn spans(h: &[Rule], v: &[Rule], xs: &[f64], ys: &[f64]) -> Option<Vec<(usize, u
 
 /// The tables the page's rules draw, each with the glyphs inside its cells. `ambiguous` is set
 /// on a table whose merged cells weren't rectangles; its cells are then the grid's, unmerged.
-pub(crate) fn tables(edges: &Edges, glyphs: &[Glyph]) -> Vec<Table> {
+/// `limited` is set when the page had more rules, or a grid more cells, than `max_cells`
+/// allows; what was past the limit gave no table.
+pub(crate) fn tables(edges: &Edges, glyphs: &[Glyph], max_cells: usize, limited: &mut bool) -> Vec<Table> {
     let (mut h, mut v) = (edges.horizontal.clone(), edges.vertical.clone());
     snap(&mut h);
     snap(&mut v);
     let (h, v) = (join(h), join(v));
+    // Grouping compares every horizontal rule with every vertical one.
+    if h.len().saturating_mul(v.len()) > max_cells.saturating_mul(16) {
+        *limited = true;
+        return Vec::new();
+    }
     let mut out = Vec::new();
     for (gh, gv) in components(&h, &v) {
         let (ys, xs) = (coordinates(&gh), coordinates(&gv));
         if ys.len() < 3 || xs.len() < 3 {
+            continue;
+        }
+        if (ys.len() - 1).saturating_mul(xs.len() - 1) > max_cells {
+            *limited = true;
             continue;
         }
         if let Some(table) = grid(&gh, &gv, &xs, &ys, edges, glyphs) {

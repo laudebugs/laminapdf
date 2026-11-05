@@ -58,11 +58,18 @@ pub enum TableMode {
 
 /// The page's tables, ruled ones first, then (with [`TableMode::LatticeAndStream`]) unruled
 /// ones in what the ruled ones left.
-pub(crate) fn detect(mode: TableMode, edges: &Edges, glyphs: &[Glyph]) -> Vec<Table> {
+/// `limited` is set when [`lattice::tables`] stopped at `max_cells`.
+pub(crate) fn detect(
+    mode: TableMode,
+    edges: &Edges,
+    glyphs: &[Glyph],
+    max_cells: usize,
+    limited: &mut bool,
+) -> Vec<Table> {
     if mode == TableMode::Off {
         return Vec::new();
     }
-    let mut tables = lattice::tables(edges, glyphs);
+    let mut tables = lattice::tables(edges, glyphs, max_cells, limited);
     if mode == TableMode::LatticeAndStream {
         let taken: std::collections::BTreeSet<usize> = tables.iter().flat_map(|t| t.glyphs.iter().copied()).collect();
         let free: Vec<usize> = (0..glyphs.len()).filter(|i| !taken.contains(i)).collect();

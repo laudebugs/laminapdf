@@ -264,7 +264,7 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
         | W::InlineImageUnterminated { offset, .. }
         | W::ContentPathUnpainted { offset, .. } => data([("offset", json!(offset))]),
         W::XObjectCycle { object } => data([("object", json!(object))]),
-        W::ExtractLimitBlocks { limit, .. } => data([("limit", json!(limit))]),
+        W::ExtractLimitBlocks { limit, .. } | W::ExtractTableLimit { limit, .. } => data([("limit", json!(limit))]),
         _ => Data::new(),
     }
 }

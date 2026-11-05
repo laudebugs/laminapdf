@@ -9,7 +9,7 @@ Text extraction ([B9b](../todos/done/B9b-text-extraction-core.md), [B9d](../todo
 
 Hidden text is a security problem as much as a quality one. A person reading the page never sees text drawn in render mode 3, white on white, clipped away or off the page. An LLM reading the extracted text sees all of it, which makes hidden text a prompt-injection channel. Extraction is where to stop it.
 
-The output is a contract. Pipelines will store it, index it and compare it across versions, so its keys, its coordinates and its determinism have to be fixed before the first serialiser ships ([L3b](../todos/ongoing/L3b-extract-tables-and-serialisers.md)). [ADR 0026](0026-error-and-diagnostic-contract.md) (errors), [ADR 0027](0027-coordinates-units-and-page-indexing.md) (coordinates) and [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) (jobs) already constrain it. This ADR fixes the `laminapdf.extract/1` model, the rules that build it, and the policy that keeps models out of the core.
+The output is a contract. Pipelines will store it, index it and compare it across versions, so its keys, its coordinates and its determinism have to be fixed before the first serialiser ships ([L3b](../todos/done/L3b-extract-tables-and-serialisers.md)). [ADR 0026](0026-error-and-diagnostic-contract.md) (errors), [ADR 0027](0027-coordinates-units-and-page-indexing.md) (coordinates) and [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) (jobs) already constrain it. This ADR fixes the `laminapdf.extract/1` model, the rules that build it, and the policy that keeps models out of the core.
 
 ## Decision
 
@@ -97,6 +97,8 @@ The last two are approximations, and both lean towards keeping text: a false neg
 ### 9. What lands when
 
 [L3a](../todos/done/L3a-lamina-extract-reading-order.md) builds §1's model, the layout and content orders of §2, §3's lines and blocks, the `invisible`, `off-page` and `tiny` flags of §4, and §5–§8. [L3d](../todos/ready/L3d-extract-structure-and-furniture.md) adds structure-tree order, headings and lists, the `clipped` and `low-contrast` flags, and running headers, footers and page numbers. Until then every block is a `paragraph` and `structSource` is never `tagged`.
+
+> **Implementation note (L3b, 2026-11-05).** [L3b](../todos/done/L3b-extract-tables-and-serialisers.md) adds the block type `"table"` (with `rows`, `cols` and `detector`, `"lattice"` or `"stream"`, and a `cells` array of `{ row, col, rowSpan, colSpan, header, text, bbox }`), a `textRange` on every block (`{ start, end }` into the Markdown rendering, counted in Unicode code points) and the `chunks` key (`{ id, text, blockIds, headingPath, pages, regions, textRange, tokensApprox }`), all within `/1` as §7 allows. The JSON Schema is `crates/laminapdf-extract/schemas/extract.schema.json`, generated from the Rust types; its `$id` uses `https://docs.laminapdf.com/schemas/extract-1.json` until the docs site serves it.
 
 ## Consequences
 

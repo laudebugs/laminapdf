@@ -100,6 +100,10 @@ pub struct ExtractLimits {
     pub max_blocks_per_page: u32,
     /// How deep XY-Cut recurses; deeper groups keep top-to-bottom order.
     pub max_xycut_depth: u32,
+    /// Cells per ruled table, and (times 16) crossings of a page's rules tried: past it the
+    /// rules give no table (`extract-table-limit`), as a file drawing thousands of lines would
+    /// otherwise cost time and memory in proportion to their square.
+    pub max_table_cells: u32,
 }
 
 impl Default for ExtractLimits {
@@ -107,6 +111,7 @@ impl Default for ExtractLimits {
         Self {
             max_blocks_per_page: 10_000,
             max_xycut_depth: 64,
+            max_table_cells: 10_000,
         }
     }
 }

@@ -29,4 +29,4 @@ The `location` has the page's `pageIndex`.
 
 The decisions and todos behind this code:
 
-- [L3b](../todos/ongoing/L3b-extract-tables-and-serialisers.md): tables and extraction output
+- [L3b](../todos/done/L3b-extract-tables-and-serialisers.md): tables and extraction output

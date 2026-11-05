@@ -247,6 +247,7 @@
             "extract-limit-blocks",
             "extract-reading-order-ambiguous",
             "extract-table-ambiguous",
+            "extract-table-limit",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]
