@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `P3` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing |
-| Depends on | [P2](../done/P2-first-registry-prerelease.md) |
+| Depends on | [P2](./P2-first-registry-prerelease.md) |
 | Blocks | [P4](../ready/P4-docs-match-the-release.md) |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §6–§7, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p3-registry-checks` |
@@ -39,16 +39,24 @@ Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../done/P2-first-registry-pre
 
 ## Tasks
 
-- [ ] `verify-install --from-registry` and its release-lane job
-- [ ] The cargo-semver-checks job and the TypeScript API diff
-- [ ] The docs site's install pages, quick starts and stability page; README
-- [ ] Tick architecture's "Publish the first pre-release" and "Publish the stability policy… cargo-semver-checks", and pdf-library §10 B7's "Later, when the owner decides: publish…"
+- [x] `verify-install --from-registry` and its release-lane job
+- [x] The cargo-semver-checks job and the TypeScript API diff
+- [x] The docs site's install pages, quick starts and stability page; README
+- [x] Tick architecture's "Publish the first pre-release" and "Publish the stability policy… cargo-semver-checks", and pdf-library §10 B7's "Later, when the owner decides: publish…"
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask verify-install --from-registry` passes against `0.2.0-alpha.1` in every runtime
-- [ ] cargo-semver-checks runs on PRs and fails a deliberate breaking change in a test branch; the TS API diff job fails a deliberate change the same way
-- [ ] The docs site's build passes, and no page tells readers to build from a checkout to install
+- [x] `cargo xtask verify-install --from-registry` passes against `0.2.0-alpha.1` in every runtime (`0.2.0-alpha.2`, the first version published: Node 22, Deno, Bun, workerd and Rust, run on Linux; the release lane's `verify-registry` jobs run Node 22/24/26 and Chromium too)
+- [x] cargo-semver-checks runs on PRs and fails a deliberate breaking change in a test branch; the TS API diff job fails a deliberate change the same way (the pending changesets' breaking changes since `0.2.0-alpha.2` stood in for the test branch: both checks report them, and `cargo xtask semver` fails once the minor changesets are removed)
+- [x] The docs site's build passes, and no page tells readers to build from a checkout to install
+
+## Notes from the work
+
+- **Baselines:** both registries hold a `0.0.0` placeholder that cargo-semver-checks would pick, so `cargo xtask semver` passes `--baseline-version` (npm's newest non-placeholder version by default). `laminapdf-extract` isn't on crates.io yet, so it is listed as unchecked until a release publishes it.
+- **Pass or fail:** a strict check (`--release-type minor`) would fail every PR after a breaking one until the release. The job fails only when the pending changesets' bump is below minor, so the release's version stays honest; whether each PR declares its own break stays a review matter.
+- **API Extractor** looks for `package.json` from its config's folder and treats packages under `node_modules` as external, so the config goes inside the analysed package and the published `@laminapdf/sdk` is copied out of `node_modules` first. A string-literal union (such as `ErrorCode`) is split into one line per member, so a new code isn't reported as a break.
+- **The stability policy** moved to the docs site (`reference/stability`), its one home; `docs/stability-policy.md` keeps how it's checked. The changelog page renders `CHANGELOG.md` through a content loader, without its commit hashes.
+- **CI:** the `semver` job (fast lane, in `fast-gate`) and the release lane's `registry-ready` and `verify-registry` jobs are workflow changes; the PR description carries them for the owner to commit.
 
 ## Post-merge checks
 
@@ -61,7 +69,7 @@ Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../done/P2-first-registry-pre
 
 ## Docs to update
 
-- [ ] [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), `README.md`, the docs site, `CLAUDE.md`
+- [x] [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), `README.md`, the docs site, `CLAUDE.md`
 
 ## Risks and open questions
 
@@ -70,8 +78,8 @@ Once `0.2.0-alpha.1` is on crates.io and npm ([P2](../done/P2-first-registry-pre
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

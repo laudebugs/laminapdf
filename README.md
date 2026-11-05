@@ -1,5 +1,7 @@
 # Lamina PDF
 
+[![npm](https://img.shields.io/npm/v/@laminapdf/sdk/alpha)](https://www.npmjs.com/package/@laminapdf/sdk) [![crates.io](https://img.shields.io/crates/v/laminapdf)](https://crates.io/crates/laminapdf)
+
 Lamina PDF creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime.
 
 **Documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, examples and the API reference.
@@ -15,7 +17,7 @@ page.finish();
 const bytes = builder.finish().save(); // a Uint8Array holding the PDF
 ```
 
-> **Status:** early, and nothing is published yet. The packages are private until the first release.
+> **Status:** alpha. Install `@laminapdf/sdk@alpha` from npm or `laminapdf@0.2.0-alpha` from crates.io. Anything can change between alphas, so pin the exact version; the [stability policy](https://docs.laminapdf.com/reference/stability/) says what each version promises.
 
 ## What's here
 
