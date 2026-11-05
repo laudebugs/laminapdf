@@ -42,7 +42,7 @@ Let MCP clients use laminapdf without a second implementation. `laminapdf mcp` i
 
 **Out of scope** (and which todo covers it)
 
-- The `laminapdf_render` tool and the Markdown/JSON formats of `laminapdf_extract`: added when [L4b](../ready/L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
+- The `laminapdf_render` tool and the Markdown/JSON formats of `laminapdf_extract`: added when [L4b](../ongoing/L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
 - HTTP transports, auth, resources and prompts: not planned; stdio only.
 - MCP tasks extension for long jobs: later, if render or extract calls need it.
 

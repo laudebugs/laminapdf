@@ -7,7 +7,7 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md) |
-| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](../ready/L4d-cli-distribution.md) |
+| Blocks | [L4b](../ongoing/L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](../ready/L4d-cli-distribution.md) |
 | ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](./L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
 | PR title | `feat(cli): ADR 0031 and the laminapdf CLI with info, check, pages rotate, extract and explain` |
@@ -40,7 +40,7 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
   - File handles: pdftk style `A=fronts.pdf B=backs.pdf`, then `A1-5`, `Bz-1`; `file.pdf:1-z:odd` for an inline range. The grammar is fixed now, even though merge and shuffle land later.
   - Stdin and stdout: `-` as an input reads stdin (at most one `-` per command); `-o -` writes stdout. Binary output is never written to a stdout that is a TTY (usage error instead).
   - Exit codes: `0` ok; `1` failure; `2` usage error; `3` completed with warnings only (`--warnings-ok` maps it to 0); `4` refused a destructive action that needs `--force` (overwrite an existing file, `--in-place`); `5` password required or wrong. When several apply, the highest-priority wins: `2` > `5` > `4` > `1` > `3` > `0`. `laminapdf help exit-codes` prints the table.
-  - JSON: every document has a `schema` id (`laminapdf.info/1`, `laminapdf.check/1`, `laminapdf.pages/1`, `laminapdf.text/1`, `laminapdf.explain/1`, `laminapdf.error/1`). New keys may appear within a version; consumers must ignore unknown keys; the number is bumped only on a breaking change (qpdf's rule). NDJSON (one document per line, `type` field) is the batch format, specified here and built in [L4b](../ready/L4b-cli-batch-render-schema.md). Key casing follows ADR 0026.
+  - JSON: every document has a `schema` id (`laminapdf.info/1`, `laminapdf.check/1`, `laminapdf.pages/1`, `laminapdf.text/1`, `laminapdf.explain/1`, `laminapdf.error/1`). New keys may appear within a version; consumers must ignore unknown keys; the number is bumped only on a breaking change (qpdf's rule). NDJSON (one document per line, `type` field) is the batch format, specified here and built in [L4b](../ongoing/L4b-cli-batch-render-schema.md). Key casing follows ADR 0026.
   - Streams: data on stdout; progress, warnings and human diagnostics on stderr. Colour only when the stream is a TTY and `NO_COLOR` is unset or empty (`--color` overrides). Progress only when stderr is a TTY.
   - No prompts when stdin is not a TTY or `--no-input` is set; anything that would prompt fails with exit 4 or 5 and a hint. Passwords come from `--password-file` or `LAMINA_PDF_PASSWORD`, never from argv.
   - Errors: the ADR 0026 shape wrapped as `laminapdf.error/1`, plus CLI fields `exitCode` and `input`. Document text never appears in `message` or `hint`.
@@ -56,7 +56,7 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
   - `info <input> [--fields a,b] [--json]`: version, page count, page sizes (top-left points per ADR 0027), encryption, Info dictionary, tagged or not, counts of form fields and signatures if the façade exposes them, warnings. `--fields` keeps only the named top-level keys (gh-style, to save agent tokens).
   - `check <input> [--strict] [--json]`: open, resolve every object and page, decode every content stream within `Limits`; report warnings and errors; exit 3 on warnings only.
   - `pages rotate <input> <angle>[:<range>] [-o OUT | --in-place]`: `+90`, `-90`, `180`, absolute `90`; uses `RotatePage` and the B3c save planner (incremental save).
-  - `extract <input> [--format text] [--pages RANGE] [--json]`: plain text per page from the façade's `page.text()`; with `--json`, `laminapdf.text/1` with one entry per page (`index`, `number`, `text`). `--format` is part of the grammar now so scripts never change: this PR accepts only `text` (the default); [L4b](../ready/L4b-cli-batch-render-schema.md) adds `md`, `json` and `chunks`. There is no `extract text` subcommand, so a file named `text` is never ambiguous.
+  - `extract <input> [--format text] [--pages RANGE] [--json]`: plain text per page from the façade's `page.text()`; with `--json`, `laminapdf.text/1` with one entry per page (`index`, `number`, `text`). `--format` is part of the grammar now so scripts never change: this PR accepts only `text` (the default); [L4b](../ongoing/L4b-cli-batch-render-schema.md) adds `md`, `json` and `chunks`. There is no `extract text` subcommand, so a file named `text` is never ambiguous.
   - `explain <code> [--json]`: the L1b text for a warning or error code (`laminapdf::explain`, with the façade's `explain` feature on); unknown code is exit 2 with the list of close matches.
   - `help exit-codes` and `--version` (`--version --json` gives the CLI, core and schema versions).
 - Limit flags mapped onto `Limits` (`--max-stream-decoded`, `--max-decoded-total`, …, names from `fixtures/codes.json` `limits`), and `--strict` onto strict mode.
@@ -64,7 +64,7 @@ Give shell users, CI pipelines and AI agents one binary, `laminapdf`, with a sta
 
 **Out of scope** (and which todo covers it)
 
-- Several inputs per command, `--jobs`, NDJSON, `render`, `extract --format md|json`, the `schema` command, completions and man pages: [L4b](../ready/L4b-cli-batch-render-schema.md).
+- Several inputs per command, `--jobs`, NDJSON, `render`, `extract --format md|json`, the `schema` command, completions and man pages: [L4b](../ongoing/L4b-cli-batch-render-schema.md).
 - `laminapdf mcp`: [L4c](./L4c-mcp-mode.md).
 - Release binaries, Homebrew and npm: [L4d](../ready/L4d-cli-distribution.md).
 - `pages select|delete|reorder|reverse` (need [E2b](../ready/E2b-page-structure-ops.md)), `pages merge|split|shuffle` (need [E2c](../ready/E2c-cross-document-pages.md) and [E2d](../ready/E2d-merge-and-split.md)): a follow-up CLI todo is added when E2b is claimed. This PR parses the full range and handle grammar so those commands only add wiring.
