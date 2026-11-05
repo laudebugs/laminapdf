@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6b](./U6b-self-hosted-fonts.md), [U6e](./U6e-overlays-and-sheets.md) |
+| Depends on | [U6b](./U6b-self-hosted-fonts.md), [U6e](../ongoing/U6e-overlays-and-sheets.md), [U6i](./U6i-sheets-positioning-and-palette-shell.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md#2-ci-lanes) (CI lanes, flaky tests), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (`cargo xtask` as the single entry point), 0024 (from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6f-gallery-and-visual-tests` |
@@ -23,7 +23,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 - [Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used) (every UI todo links its screens; designs change in the same PR as behaviour) and [§7 risks](../../plans/paper-design.md#7-risks) ("designs drift from code": U6f's screenshots are the mitigation); [§6 U6 acceptance](../../plans/paper-design.md#u6-design-system) ("the gallery renders each component in each theme and screenshot tests guard them").
 - [Screen inventory](../../design/paper/screens.md) (IDs such as `F01`, `R05`; the area documents in [plan §4](../../plans/paper-design.md#4-areas); the canvases table at the end, with each area's committed files under `docs/design/paper/<area>/`).
 - Design language [§8.6 page appearance vs UI theme](../../design/paper/design-language.md#86-page-appearance-vs-ui-theme), [§8.9 checklist](../../design/paper/design-language.md#89-accessibility-checklist-wcag-22-aa) (forced colours, reduced motion, 200% zoom, 320 px reflow), [§10 authoring notes](../../design/paper/design-language.md#10-authoring-notes-for-the-design-canvas) (artboard file names and `canvas.json`).
-- Inputs: [U6a](../done/U6a-paper-tokens.md) tokens, [U6b](./U6b-self-hosted-fonts.md) fonts (needed for stable screenshots), [U6c](../done/U6c-icon-set.md) icons, [U6d](../done/U6d-core-components.md) components and its `test/states.ts` helper, [U6e](./U6e-overlays-and-sheets.md) overlays.
+- Inputs: [U6a](../done/U6a-paper-tokens.md) tokens, [U6b](./U6b-self-hosted-fonts.md) fonts (needed for stable screenshots), [U6c](../done/U6c-icon-set.md) icons, [U6d](../done/U6d-core-components.md) components and its `test/states.ts` helper, [U6e](../ongoing/U6e-overlays-and-sheets.md) overlays.
 - [ADR 0018](../../decisions/0018-test-strategy.md) (lanes; [flaky tests](../../decisions/0018-test-strategy.md#4-flaky-tests) are quarantined, not retried silently); [code organization §1](../../guidelines/code-organization.md#1-top-level-layout) (apps are never depended on) and [§6](../../guidelines/code-organization.md#6-tests-and-fixtures) (goldens change only through an explicit command and are reviewed like code).
 - [C7a](./C7a-accessibility-and-theming.md) runs axe on the *app's* states; this todo runs it on the components in isolation, so both exist and neither replaces the other.
 

@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 184 ready · 110 done** (294 total).
+**1 ongoing · 184 ready · 110 done** (295 total).
 
 ## Can start now
 
@@ -25,13 +25,12 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6b](ready/U6b-self-hosted-fonts.md): `@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3
-- [U6e](ready/U6e-overlays-and-sheets.md): `@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order
 - [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [U6e](ongoing/U6e-overlays-and-sheets.md): `@laminapdf/ui` overlays: the layer stack, z-order, dialogs, popovers, menus, tooltips and the toast region
 
 ## Architecture — Round A
 
@@ -112,7 +111,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ongoing/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
@@ -156,7 +155,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](done/U1a-adr-0024-app-shell-ux.md) | done | [C2a](done/C2a-render-adrs.md) |
-| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](ongoing/U6e-overlays-and-sheets.md), [U6i](ready/U6i-sheets-positioning-and-palette-shell.md) |
 | U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](done/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U2b | [Reading-order ground-truth corpus and metric](done/U2b-reading-order-ground-truth.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md) |
@@ -173,10 +172,11 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | U6b | [`@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3](ready/U6b-self-hosted-fonts.md) | ready | [U6a](done/U6a-paper-tokens.md) |
 | U6c | [`@laminapdf/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint](done/U6c-icon-set.md) | done | [U6a](done/U6a-paper-tokens.md) |
 | U6d | [`@laminapdf/ui` core controls: buttons, toggles, mode switcher, tabs, form controls, swatches, appearance chips](done/U6d-core-components.md) | done | [U6a](done/U6a-paper-tokens.md), [U6c](done/U6c-icon-set.md) |
-| U6e | [`@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order](ready/U6e-overlays-and-sheets.md) | ready | [U6d](done/U6d-core-components.md), [U6h](done/U6h-display-components.md) |
-| U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](ready/U6b-self-hosted-fonts.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| U6e | [`@laminapdf/ui` overlays: the layer stack, z-order, dialogs, popovers, menus, tooltips and the toast region](ongoing/U6e-overlays-and-sheets.md) | ongoing | [U6d](done/U6d-core-components.md), [U6h](done/U6h-display-components.md) |
+| U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](ready/U6b-self-hosted-fonts.md), [U6e](ongoing/U6e-overlays-and-sheets.md), [U6i](ready/U6i-sheets-positioning-and-palette-shell.md) |
 | U6g | [The docs site in the Paper design language (interim, before `@lamina/tokens` and `@lamina/fonts`)](done/U6g-docs-site-paper.md) | done | [B7a](done/B7a-docs-site.md) |
 | U6h | [`@laminapdf/ui` display components: badges, notices, progress, empty state, status items, thumbnail, outline row, shortcut chip](done/U6h-display-components.md) | done | [U6d](done/U6d-core-components.md) |
+| U6i | [`@laminapdf/ui` bottom sheets, anchored positioning with the selection toolbar shell, and the palette shell](ready/U6i-sheets-positioning-and-palette-shell.md) | ready | [U6e](ongoing/U6e-overlays-and-sheets.md) |
 
 ## Hosted service
 

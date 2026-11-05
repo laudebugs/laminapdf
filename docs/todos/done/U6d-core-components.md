@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](./U6a-paper-tokens.md), [U6c](./U6c-icon-set.md) |
-| Blocks | [U6e](../ready/U6e-overlays-and-sheets.md), [U6h](./U6h-display-components.md) |
+| Blocks | [U6e](../ongoing/U6e-overlays-and-sheets.md), [U6h](./U6h-display-components.md) |
 | ADRs | Follows 0024 (component rules, selection surfaces, touch targets; from [U1a](./U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, the accessible-primitives library; from [C2a](./C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for new dependencies |
 | Branch | `feat/u6d-core-components` |
 | PR title | `feat(ui): add the paper core components with all states, keyboard and axe tests` |
@@ -51,7 +51,7 @@ Build the Paper component library the shells and editor modes compose: every con
 
 **Out of scope** (and which todo covers it)
 
-- Dialogs, bottom sheets, popovers, menus, tooltips, the selection mini toolbar, the command palette shell, the toast region and z-order → [U6e](../ready/U6e-overlays-and-sheets.md).
+- Dialogs, bottom sheets, popovers, menus, tooltips, the selection mini toolbar, the command palette shell, the toast region and z-order → [U6e](../ongoing/U6e-overlays-and-sheets.md).
 - Reader chrome built from these (toolbar, page indicator, zoom control, drop zone, password dialog, error and repair banners), the `Platform` interface and `ReaderController` → [C4a](../ready/C4a-ui-chrome-and-platform.md).
 - Layout regions (top bar, left rail, inspector, status bar, focus mode) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md); phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md); command wiring and shortcut map → [U1b](../ready/U1b-command-registry-and-palette.md).
 - Theme switching UI and settings → [C7a](../ready/C7a-accessibility-and-theming.md); the gallery and screenshot tests → [U6f](../ready/U6f-gallery-and-visual-tests.md).
@@ -87,7 +87,7 @@ None.
 
 ## Tests
 
-`packages/ui/src/components/**/*.test.tsx` (Vitest browser mode, three engines, Testing Library, `axe-core`): states, keyboard, ARIA, RTL, target sizes; `packages/ui/test/states.ts` and `test/axe.ts` helpers shared with [U6e](../ready/U6e-overlays-and-sheets.md) and [U6f](../ready/U6f-gallery-and-visual-tests.md); import-boundary and literal-colour lint tests.
+`packages/ui/src/components/**/*.test.tsx` (Vitest browser mode, three engines, Testing Library, `axe-core`): states, keyboard, ARIA, RTL, target sizes; `packages/ui/test/states.ts` and `test/axe.ts` helpers shared with [U6e](../ongoing/U6e-overlays-and-sheets.md) and [U6f](../ready/U6f-gallery-and-visual-tests.md); import-boundary and literal-colour lint tests.
 
 ## Docs to update
 
@@ -97,7 +97,7 @@ None.
 
 ## Risks and open questions
 
-- **Order with C4a (decided here: U6d before C4a).** C4a creates `@laminapdf/ui` and its chrome; built first, its buttons, dialogs and `tokens.css` would be restyled and partly rewritten once U6d and [U6e](../ready/U6e-overlays-and-sheets.md) land. Building the components first avoids that rework at little schedule cost: C4a also waits for [C3b](./C3b-viewer-virtualiser-and-zoom.md)'s viewer, which is the longer path, and U6a–U6e need only U1a. So this todo does **not** depend on C4a; it creates `packages/ui` itself, and **C4a should depend on [U6e](../ready/U6e-overlays-and-sheets.md)** (which needs U6d), drop its own scaffold and `tokens.css` tasks, and compose these components (its `PasswordDialog` uses U6e's dialog). Update C4a's **Depends on** in the claim PR of this todo (or in a board-only PR) so the board shows the order.
+- **Order with C4a (decided here: U6d before C4a).** C4a creates `@laminapdf/ui` and its chrome; built first, its buttons, dialogs and `tokens.css` would be restyled and partly rewritten once U6d and [U6e](../ongoing/U6e-overlays-and-sheets.md) land. Building the components first avoids that rework at little schedule cost: C4a also waits for [C3b](./C3b-viewer-virtualiser-and-zoom.md)'s viewer, which is the longer path, and U6a–U6e need only U1a. So this todo does **not** depend on C4a; it creates `packages/ui` itself, and **C4a should depend on [U6e](../ongoing/U6e-overlays-and-sheets.md)** (which needs U6d), drop its own scaffold and `tokens.css` tasks, and compose these components (its `PasswordDialog` uses U6e's dialog). Update C4a's **Depends on** in the claim PR of this todo (or in a board-only PR) so the board shows the order.
 - **Primitives library**: if ADR 0009 does not name one, decide here (React Aria Components recommended) and amend ADR 0009 in this PR; it is a long-lived dependency.
 - **Size**: the list was long, so it was split when this todo was claimed: this todo keeps the controls, and [U6h](../done/U6h-display-components.md) takes the display items.
 - **The styles of §7.18–§7.23** were signed off in [U6a](./U6a-paper-tokens.md) (2026-11-05); if a style changes later, only its CSS changes.
