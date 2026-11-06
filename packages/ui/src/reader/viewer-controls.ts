@@ -21,17 +21,20 @@ export interface ViewerSlice {
 export interface ViewerControls extends ExternalStore<ViewerSlice> {
   /** Scrolls to page `index`, 0-based. */
   goToPage(index: number): void;
+  /** Sets the zoom: a percentage, or a fit mode. */
   setZoom(zoom: Zoom): void;
   /** Rotates the view by a multiple of 90 degrees. */
   rotate(delta: number): void;
 }
 
-/** The viewer's zoom range, in percent. */
+/** The smallest zoom the viewer takes, in percent. */
 export const MIN_ZOOM = 10;
+/** The largest zoom the viewer takes, in percent. */
 export const MAX_ZOOM = 800;
 
-/** The percentages zoom out and zoom in step through, and the zoom menu's presets among them. */
+/** The percentages zoom out and zoom in step through. */
 const STEPS = [10, 25, 33, 50, 67, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500, 600, 800];
+/** The zoom menu's presets, in percent. */
 export const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200, 400] as const;
 
 /** The next step above `percent` (a fit mode's percentage need not be a step). */

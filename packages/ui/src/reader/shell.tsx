@@ -1,6 +1,6 @@
 // The reader's layout (§5.1 of the UI/UX plan): the top bar across the top, an optional secondary
 // toolbar under it, then the rail, the canvas and the inspector side by side, and the status bar
-// along the bottom. Each is a slot: U1c fills the rail, the modes' toolbars and the inspector.
+// along the bottom. Each is a slot, which the app shell fills with the rail, the modes' toolbars and the inspector.
 
 import type { ReactNode } from "react";
 

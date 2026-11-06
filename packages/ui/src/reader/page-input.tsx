@@ -12,7 +12,7 @@ import { pageFromInput, type ViewerControls } from "./viewer-controls.js";
 /** Props of `PageInput`. */
 export interface PageInputProps {
   viewer: ViewerControls;
-  /** The document's page labels, one per page, when it has any (C6a reads them). */
+  /** The document's page labels, one per page, when it has any (read by the reader once it shows page labels). */
   labels?: readonly string[];
 }
 

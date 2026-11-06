@@ -29,13 +29,28 @@ export interface ReaderTopBarProps<Id extends string> {
   /** The document's page labels, one per page, when it has any. */
   labels?: readonly string[];
   /** The sidebar toggle, shown while a document is open. */
-  sidebar?: { readonly isOpen: boolean; readonly onChange: (isOpen: boolean) => void };
+  sidebar?: {
+    /** Whether the sidebar is open. */
+    readonly isOpen: boolean;
+    /** Called with the new state when the toggle is pressed. */
+    readonly onChange: (isOpen: boolean) => void;
+  };
   /** The file area without a document: the wordmark, or Back. "No document open" when left out. */
   home?: ReactNode;
   /** Opens the command palette; the Commands button shows only with it. */
-  commands?: { readonly onPress: () => void; readonly shortcut: ShortcutKeys };
+  commands?: {
+    /** Opens the palette. */
+    readonly onPress: () => void;
+    /** The palette's shortcut, shown on the button. */
+    readonly shortcut: ShortcutKeys;
+  };
   /** The More menu's items, gated by capability where they need one (`useGatedEntries`). */
-  more: { readonly items: readonly MenuEntry<Id>[]; readonly onAction: (id: Id) => void };
+  more: {
+    /** The menu's entries. */
+    readonly items: readonly MenuEntry<Id>[];
+    /** Called with the chosen entry's id. */
+    readonly onAction: (id: Id) => void;
+  };
 }
 
 /** The reader's top bar. */
