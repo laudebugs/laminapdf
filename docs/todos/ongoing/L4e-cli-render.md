@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4b](../done/L4b-cli-batch-render-schema.md), [C2b](../done/C2b-lamina-render-crate.md) |

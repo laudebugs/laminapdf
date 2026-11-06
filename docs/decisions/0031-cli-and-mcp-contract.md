@@ -101,7 +101,7 @@ The cli-spec note §4 and the filesystem MCP server's symlink CVEs set these, so
 > - **Exit codes:** `0` all ok; `3` warnings and no failure (`0` with `--warnings-ok`); `1` any failure; `5` when every failure is a missing or wrong password; `2` for a usage error found before any work (no input, `-` twice). `--fail-fast` starts no input after a failure, and `skipped` counts those.
 > - **Schemas:** the lines' are `result-line.schema.json` and `summary-line.schema.json`. `laminapdf schema [command]` prints a 2020-12 document whose `input`, `output`, `error`, `result` and `summary` properties embed those schemas; the arguments object is the shape `laminapdf mcp` takes too.
 >
-> Output templates for commands that write many files come with `render` ([L4e](../todos/ready/L4e-cli-render.md)).
+> Output templates for commands that write many files come with `render` ([L4e](../todos/ongoing/L4e-cli-render.md)).
 
 ## Consequences
 
