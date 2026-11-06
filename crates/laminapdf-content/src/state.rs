@@ -71,20 +71,17 @@ impl CurrentColor {
         }
     }
 
-    /// The colour as RGB in [0, 1], approximately: device spaces by §10.4's conversions, a named
-    /// space by its component count (1 gray, 3 RGB, 4 CMYK), which is right for `ICCBased`
-    /// spaces and near enough to tell light from dark. `None` for a pattern, or a space whose
-    /// components can't be read that way (separations, `Indexed`, `Lab`).
+    /// The colour as RGB in [0, 1], approximately: the device spaces by §10.4's conversions.
+    /// `None` for a pattern and for a named space: the interpreter doesn't read what it is, and
+    /// its components mean different things in an `ICCBased`, `Separation` (1 is full ink),
+    /// `Indexed` or `Lab` space.
     #[must_use]
     pub fn approx_rgb(&self) -> Option<[f64; 3]> {
-        if matches!(self.space, ColorSpace::Pattern) {
-            return None;
-        }
         let c = |i: usize| self.components.get(i).copied().map(|v| v.clamp(0.0, 1.0));
-        match (&self.space, self.components.len()) {
-            (ColorSpace::DeviceGray, _) | (ColorSpace::Named(_), 1) => c(0).map(|g| [g, g, g]),
-            (ColorSpace::DeviceRgb, _) | (ColorSpace::Named(_), 3) => Some([c(0)?, c(1)?, c(2)?]),
-            (ColorSpace::DeviceCmyk, _) | (ColorSpace::Named(_), 4) => {
+        match self.space {
+            ColorSpace::DeviceGray => c(0).map(|g| [g, g, g]),
+            ColorSpace::DeviceRgb => Some([c(0)?, c(1)?, c(2)?]),
+            ColorSpace::DeviceCmyk => {
                 let k = c(3)?;
                 Some([
                     (1.0 - c(0)?) * (1.0 - k),
@@ -92,7 +89,7 @@ impl CurrentColor {
                     (1.0 - c(2)?) * (1.0 - k),
                 ])
             }
-            _ => None,
+            ColorSpace::Pattern | ColorSpace::Named(_) => None,
         }
     }
 }

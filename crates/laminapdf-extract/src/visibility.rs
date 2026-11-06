@@ -5,7 +5,7 @@
 //!
 //! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 
-use laminapdf_content::{ImageDraw, Matrix, Paint, PathPaint, PathSegment, ShadingPaint, Visitor, transformed_box};
+use laminapdf_content::{ImageDraw, Paint, PathPaint, ShadingPaint, Visitor, transformed_box};
 use laminapdf_model::{PageFrame, Pt, RectPt, UserSpaceRect};
 use laminapdf_text::PageTextRun;
 
@@ -27,8 +27,6 @@ fn near_white(rgb: [f64; 3]) -> bool {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Backdrops {
     frame: Option<PageFrame>,
-    /// The current path's box in default user space.
-    path: Option<UserSpaceRect>,
     boxes: Vec<RectPt>,
 }
 
@@ -57,29 +55,31 @@ fn overlaps(a: &RectPt, b: &RectPt) -> bool {
 }
 
 impl Visitor for Backdrops {
-    fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
-        let points: &[(f64, f64)] = &match *segment {
-            PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } => vec![(x, y)],
-            PathSegment::Rect { x, y, width, height } => vec![(x, y), (x + width, y + height)],
-            PathSegment::CurveTo { c1, c2, end } => vec![c1, c2, end],
-            PathSegment::ClosePath => Vec::new(),
-        };
-        for &(x, y) in points {
-            let (x, y) = ctm.apply(x, y);
-            let point = UserSpaceRect::from_corners(x, y, x, y);
-            self.path = Some(self.path.map_or(point, |b| {
-                UserSpaceRect::from_corners(b.x0.min(x), b.y0.min(y), b.x1.max(x), b.y1.max(y))
-            }));
-        }
-    }
-
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
-        let path = self.path.take();
-        let filled = matches!(paint.paint, Paint::Fill(_) | Paint::FillStroke { .. });
+        let Some(bounds) = paint.bounds else {
+            return;
+        };
+        let (filled, stroked) = match paint.paint {
+            Paint::Fill(_) => (true, false),
+            Paint::FillStroke { .. } => (true, true),
+            Paint::Stroke { .. } => (false, true),
+            _ => (false, false),
+        };
         // A pattern or a space read no other way counts as dark: keep the text.
-        let light = paint.state.fill.approx_rgb().is_some_and(near_white);
-        if let (true, false, Some(path)) = (filled, light, path) {
-            self.add(path);
+        let dark = |c: &laminapdf_content::CurrentColor| !c.approx_rgb().is_some_and(near_white);
+        if filled && dark(&paint.state.fill) {
+            self.add(bounds);
+        }
+        if stroked && dark(&paint.state.stroke) {
+            // A stroke reaches half its width past the path (§8.5.3.2).
+            let m = &paint.state.ctm;
+            let half = paint.state.line_width * m.a.hypot(m.b).max(m.c.hypot(m.d)) / 2.0;
+            self.add(UserSpaceRect::from_corners(
+                bounds.x0 - half,
+                bounds.y0 - half,
+                bounds.x1 + half,
+                bounds.y1 + half,
+            ));
         }
     }
 

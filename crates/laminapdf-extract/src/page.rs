@@ -119,6 +119,7 @@ fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractO
                 font: span.font.clone(),
                 vertical: run.vertical,
                 mcid: run.mcid,
+                artifact: run.artifact,
             });
             out.spans.push(Span {
                 text: words,

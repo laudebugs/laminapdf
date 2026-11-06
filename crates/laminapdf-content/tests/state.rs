@@ -524,4 +524,7 @@ fn approximate_rgb_follows_the_device_spaces() {
         Some([0.0; 3])
     );
     assert_eq!(color(ColorSpace::Pattern, &[]).approx_rgb(), None);
+    // A separation's tint 1 is full ink, not white: a named space isn't read.
+    let named = color(ColorSpace::Named(laminapdf_syntax::Name::from("CS0")), &[1.0]);
+    assert_eq!(named.approx_rgb(), None);
 }

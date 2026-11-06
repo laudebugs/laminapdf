@@ -75,7 +75,9 @@ enum Candidate {
 
 fn candidate(block: &Block, body: i64) -> Option<Candidate> {
     // A block from the structure tree has the kind the tree gives it.
-    if block.kind != BlockKind::Paragraph || block.struct_ref.is_some() || !block.text.chars().any(char::is_alphabetic)
+    if block.kind != BlockKind::Paragraph
+        || !block.struct_path.is_empty()
+        || !block.text.chars().any(char::is_alphabetic)
     {
         return None;
     }

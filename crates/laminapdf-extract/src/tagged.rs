@@ -169,7 +169,11 @@ struct Builder<'a> {
     tables: Vec<TableWalk>,
 }
 
-/// The integer `/A` attribute `key` of `elem` (`RowSpan`, `ColSpan`), at least 1.
+/// The most rows or columns one tagged cell may span: spans bound the grid's size, so a file
+/// can't make one cell cost more than this squared.
+const MAX_SPAN: usize = 64;
+
+/// The integer `/A` attribute `key` of `elem` (`RowSpan`, `ColSpan`), from 1 to [`MAX_SPAN`].
 fn span(doc: &Document, elem: &StructElem, key: &str) -> Result<usize, ExtractError> {
     let Some(object) = elem.object else {
         return Ok(1);
@@ -188,13 +192,27 @@ fn span(doc: &Document, elem: &StructElem, key: &str) -> Result<usize, ExtractEr
     for list in lists {
         let list = doc.deref(list)?;
         if let Some(n) = list.as_dict().and_then(|d| d.get(key)).and_then(Object::as_int) {
-            return Ok(usize::try_from(n).unwrap_or(1).clamp(1, 1000));
+            return Ok(usize::try_from(n).unwrap_or(1).clamp(1, MAX_SPAN));
         }
     }
     Ok(1)
 }
 
 impl Builder<'_> {
+    /// Whether an element of type `kind` read in `ctx` starts a block: outside any block, or as
+    /// a list item nested in another's body, or as a table's caption.
+    fn starts_block(&self, ctx: &Context, kind: &str) -> bool {
+        if GROUPING.contains(&kind) {
+            return false;
+        }
+        match ctx.unit.and_then(|u| self.index.units.get(u)).map(|u| u.kind) {
+            None => true,
+            Some(UnitKind::ListItem { .. }) => kind == "LI",
+            Some(UnitKind::Table) => kind == "Caption",
+            Some(_) => false,
+        }
+    }
+
     fn unit(&mut self, kind: UnitKind, ctx: &Context, elem: &StructElem) -> usize {
         self.index.units.push(Unit {
             kind,
@@ -228,8 +246,11 @@ impl Builder<'_> {
             {
                 ctx.role = Some(Role::Label);
             }
-            _ if ctx.unit.is_none() && !GROUPING.contains(&kind.as_str()) => {
+            _ if self.starts_block(&ctx, &kind) => {
                 if let Some(block) = block_kind(&kind, ctx.list_depth) {
+                    // A block inside another (a nested item, a table's caption) is its own.
+                    ctx.role = None;
+                    ctx.table = None;
                     ctx.unit = Some(self.unit(block, &ctx, elem));
                     if block == UnitKind::Table {
                         self.tables.push(TableWalk::default());
@@ -370,7 +391,6 @@ pub(crate) struct TreeBlocks {
 /// One block's pieces, in the tree's order, with their roles.
 struct Group {
     unit: usize,
-    first: usize,
     pieces: Vec<(Role, Piece, Span)>,
     mcids: Vec<i64>,
 }
@@ -426,7 +446,17 @@ fn table(items: &[(Role, Piece, Span)], dehyphenate: bool) -> (Vec<Cell>, usize,
             row.push(&cell.text);
         }
     }
-    let text = text_rows.iter().map(|r| r.join("\t")).collect::<Vec<_>>().join("\n");
+    let mut text = text_rows.iter().map(|r| r.join("\t")).collect::<Vec<_>>().join("\n");
+    // Content in the table but in no cell (directly in a row, say) keeps its text, after the rows.
+    let loose: Vec<Piece> = items
+        .iter()
+        .filter(|(r, _, _)| !matches!(r, Role::Cell(_)))
+        .map(|(_, p, _)| p.clone())
+        .collect();
+    if !loose.is_empty() {
+        text.push('\n');
+        text.push_str(&read(&loose, dehyphenate));
+    }
     (cells, rows, cols, text)
 }
 
@@ -504,11 +534,13 @@ pub(crate) fn tree_blocks(
         .iter()
         .map(|p| p.mcid.and_then(|m| tree.mark(info.index, m)))
         .collect();
-    let total: usize = pieces.iter().map(|p| visible_chars(&p.text)).sum();
+    // Artifacts (kept when furniture isn't dropped) are neither tagged nor untagged content.
+    let content = |p: &&Piece| !p.artifact;
+    let total: usize = pieces.iter().filter(content).map(|p| visible_chars(&p.text)).sum();
     let tagged: usize = pieces
         .iter()
         .zip(&marks)
-        .filter(|(_, m)| m.is_some())
+        .filter(|(p, m)| m.is_some() && !p.artifact)
         .map(|(p, _)| visible_chars(&p.text))
         .sum();
     if tagged == 0 {
@@ -519,44 +551,50 @@ pub(crate) fn tree_blocks(
             tagged: false,
         });
     }
-    let mut groups: BTreeMap<usize, Group> = BTreeMap::new();
-    let (mut rest_pieces, mut rest_spans) = (Vec::new(), Vec::new());
-    let mut originals = (Vec::new(), Vec::new());
-    for ((piece, span), mark) in pieces.into_iter().zip(spans).zip(marks) {
-        if check {
-            originals.0.push(piece.clone());
-            originals.1.push(span.clone());
-        }
+    // The blocks, by their first marked content, each with its pieces' indices.
+    let mut units: BTreeMap<usize, (usize, Vec<usize>)> = BTreeMap::new();
+    for (i, mark) in marks.iter().enumerate() {
         if let Some(mark) = mark {
-            let group = groups.entry(mark.unit).or_insert_with(|| Group {
-                unit: mark.unit,
-                first: mark.order,
+            let entry = units.entry(mark.unit).or_insert((mark.order, Vec::new()));
+            entry.0 = entry.0.min(mark.order);
+            entry.1.push(i);
+        }
+    }
+    let mut order: Vec<(usize, usize, Vec<usize>)> =
+        units.into_iter().map(|(u, (first, idx))| (first, u, idx)).collect();
+    order.sort_by_key(|(first, _, _)| *first);
+    if check {
+        let boxes: Vec<RectPt> = order
+            .iter()
+            .map(|(_, _, idx)| union(idx.iter().filter_map(|&i| pieces.get(i)).map(|p| p.bbox)))
+            .collect();
+        let text: String = pieces.iter().map(|p| p.text.as_str()).collect();
+        if let Err(why) = plausible(tagged, total, &boxes, mostly_rtl(&text)) {
+            return Err((why, (pieces, spans)));
+        }
+    }
+    let mut slots: Vec<Option<(Piece, Span)>> = pieces.into_iter().zip(spans).map(Some).collect();
+    let groups: Vec<Group> = order
+        .into_iter()
+        .map(|(_, unit, idx)| {
+            let mut group = Group {
+                unit,
                 pieces: Vec::new(),
                 mcids: Vec::new(),
-            });
-            group.first = group.first.min(mark.order);
-            group.mcids.extend(piece.mcid);
-            group.pieces.push((mark.role, piece, span));
-        } else {
-            rest_pieces.push(piece);
-            rest_spans.push(span);
-        }
-    }
-    let mut groups: Vec<Group> = groups.into_values().collect();
-    groups.sort_by_key(|g| g.first);
-    if check {
-        let boxes: Vec<RectPt> = groups
-            .iter()
-            .map(|g| union(g.pieces.iter().map(|(_, p, _)| p.bbox)))
-            .collect();
-        let text: String = groups
-            .iter()
-            .flat_map(|g| g.pieces.iter().map(|(_, p, _)| p.text.as_str()))
-            .collect();
-        if let Err(why) = plausible(tagged, total, &boxes, mostly_rtl(&text)) {
-            return Err((why, originals));
-        }
-    }
+            };
+            for i in idx {
+                let (Some(Some((piece, span))), Some(Some(mark))) = (slots.get_mut(i).map(Option::take), marks.get(i))
+                else {
+                    continue;
+                };
+                group.mcids.extend(piece.mcid);
+                group.pieces.push((mark.role, piece, span));
+            }
+            group
+        })
+        .collect();
+    let (rest_pieces, rest_spans): (Vec<Piece>, Vec<Span>) = slots.into_iter().flatten().unzip();
+    let untagged = rest_pieces.iter().filter(content).map(|p| visible_chars(&p.text)).sum();
     let blocks = groups
         .iter()
         .enumerate()
@@ -565,7 +603,7 @@ pub(crate) fn tree_blocks(
     Ok(TreeBlocks {
         blocks,
         rest: (rest_pieces, rest_spans),
-        untagged: total - tagged,
+        untagged,
         tagged: true,
     })
 }

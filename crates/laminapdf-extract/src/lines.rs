@@ -35,6 +35,8 @@ pub(crate) struct Piece {
     pub(crate) vertical: bool,
     /// The marked-content identifier its run is in, for the structure tree.
     pub(crate) mcid: Option<i64>,
+    /// Inside `Artifact` marked content (kept when furniture isn't dropped).
+    pub(crate) artifact: bool,
 }
 
 /// One line: pieces left to right on one baseline (right to left when the line is).
@@ -181,6 +183,7 @@ mod tests {
             font: "F".to_owned(),
             vertical: false,
             mcid: None,
+            artifact: false,
         }
     }
 

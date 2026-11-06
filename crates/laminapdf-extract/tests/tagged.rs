@@ -173,3 +173,90 @@ fn tagged_lists_and_tables_keep_their_structure() {
         ]
     );
 }
+
+#[test]
+fn a_list_nested_in_an_items_body_and_a_tables_caption_are_blocks_of_their_own() {
+    let doc = build(|s, font| {
+        s.tag(TagKind::L, |s| {
+            s.tag(TagKind::LI, |s| {
+                tagged(s, font, TagKind::Lbl, "1.", 72.0, 100.0);
+                s.tag(TagKind::LBody, |s| {
+                    s.text("Fruit", font, Pt::new(11.0), PointPt::from_points(90.0, 100.0))?;
+                    s.tag(TagKind::L, |s| {
+                        s.tag(TagKind::LI, |s| {
+                            tagged(s, font, TagKind::Lbl, "a.", 90.0, 120.0);
+                            tagged(s, font, TagKind::LBody, "Apples", 110.0, 120.0);
+                            Ok(())
+                        })
+                    })
+                })
+            })
+        })
+        .unwrap();
+        s.tag(TagKind::Table, |s| {
+            tagged(s, font, TagKind::Caption, "Yields by crop", 72.0, 180.0);
+            s.tag(TagKind::TR, |s| {
+                tagged(s, font, TagKind::TD, "Beans", 72.0, 200.0);
+                tagged(s, font, TagKind::TD, "12", 200.0, 200.0);
+                Ok(())
+            })
+        })
+        .unwrap();
+    });
+    let out = run(&doc, ReadingOrder::Auto);
+    let got: Vec<(&BlockKind, &str)> = out.blocks.iter().map(|b| (&b.kind, b.text.as_str())).collect();
+    assert_eq!(
+        got,
+        [
+            (
+                &BlockKind::ListItem {
+                    marker: "1.".to_owned(),
+                    depth: 0
+                },
+                "Fruit"
+            ),
+            (
+                &BlockKind::ListItem {
+                    marker: "a.".to_owned(),
+                    depth: 1
+                },
+                "Apples"
+            ),
+            (&BlockKind::Caption, "Yields by crop"),
+            (
+                &BlockKind::Table {
+                    rows: 1,
+                    cols: 2,
+                    detector: TableDetector::Tagged
+                },
+                "Beans\t12"
+            ),
+        ]
+    );
+}
+
+#[test]
+fn artifacts_kept_in_the_blocks_are_neither_tagged_nor_untagged_content() {
+    use laminapdf_build::ArtifactKind;
+    let doc = build(|s, font| {
+        s.artifact(ArtifactKind::Pagination, |s| {
+            for y in [40.0, 60.0, 80.0] {
+                s.text(
+                    "Running header text here",
+                    font,
+                    Pt::new(11.0),
+                    PointPt::from_points(72.0, y),
+                )?;
+            }
+            Ok(())
+        })
+        .unwrap();
+        tagged(s, font, TagKind::P, "Short body.", 72.0, 200.0);
+    });
+    let mut options = ExtractOptions::new();
+    options.drop.furniture = false;
+    let out = extract(&doc, &options, &CancelToken::new()).unwrap();
+    assert_eq!(out.source.struct_source, StructSource::Tagged);
+    assert_eq!(out.blocks[0].text, "Short body.");
+    assert!(!codes(&doc).contains(&"extract-untagged-content"), "{:?}", codes(&doc));
+}

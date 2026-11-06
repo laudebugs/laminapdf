@@ -138,7 +138,7 @@ fn shape(block: &Block) -> Shape {
 /// The marker of a paragraph that could be a list item, and whether it could be one on its
 /// own (`false`: one line after a dash or an asterisk, an item only beside another such line).
 fn candidate(block: &Block) -> Option<(&str, bool)> {
-    if block.kind != BlockKind::Paragraph || block.struct_ref.is_some() {
+    if block.kind != BlockKind::Paragraph || !block.struct_path.is_empty() {
         return None;
     }
     let (marker, kind, _) = split_marker(&block.text)?;

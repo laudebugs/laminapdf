@@ -276,6 +276,18 @@ fn clipped_and_white_on_white_text_is_dropped_and_white_on_dark_is_kept() {
     s.text("White on dark.", &font, Pt::new(12.0), at(72.0, 180.0))
         .unwrap()
         .fill(Color::gray(1.0));
+    // White text on a thick dark stroke: readable too.
+    s.stroke_color(Color::gray(0.1))
+        .path(|p| {
+            p.move_to(at(60.0, 216.0)).line_to(at(400.0, 216.0));
+        })
+        .stroke(&laminapdf_build::StrokeStyle {
+            width: Pt::new(20.0),
+            ..laminapdf_build::StrokeStyle::default()
+        });
+    s.text("White on a stroke.", &font, Pt::new(12.0), at(72.0, 220.0))
+        .unwrap()
+        .fill(Color::gray(1.0));
     // Text drawn outside a clip that leaves only the top-left corner.
     s.save()
         .path(|p| {
@@ -290,7 +302,10 @@ fn clipped_and_white_on_white_text_is_dropped_and_white_on_dark_is_kept() {
     doc.save(&mut bytes, &SaveOptions::new()).unwrap();
     let doc = Document::open(bytes, OpenOptions::default()).unwrap();
     let out = run(&doc, &ExtractOptions::new());
-    assert_eq!(texts(&out), ["Visible words here.", "White on dark."]);
+    assert_eq!(
+        texts(&out),
+        ["Visible words here.", "White on dark.", "White on a stroke."]
+    );
     let reasons: Vec<(DropReason, usize)> = out.dropped.iter().map(|d| (d.reason, d.chars)).collect();
     assert_eq!(reasons, [(DropReason::LowContrast, 12), (DropReason::Clipped, 11)]);
 }

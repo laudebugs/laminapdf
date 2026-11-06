@@ -112,7 +112,6 @@ impl Visitor for Painted<'_> {
         if let Some(rules) = &mut self.rules {
             rules.path_segment(segment, ctm);
         }
-        self.backdrops.path_segment(segment, ctm);
     }
 
     fn paint_path(&mut self, paint: &PathPaint<'_>) {

@@ -12,8 +12,10 @@ use icu_properties::props::CanonicalCombiningClass;
 use super::Glyph;
 use crate::{BidiParagraph, grapheme_boundaries};
 
-/// Consecutive glyphs drawn alike: one font, size, writing direction, MCID, `ActualText` span
-/// and visibility, one after the other on one baseline.
+/// Consecutive glyphs drawn alike: one font, size, writing direction, MCID, `ActualText` span,
+/// visibility, artifact marking, clip box and colour, one after the other on one baseline. A
+/// word in another colour, or text crossing a clip's edge, starts a run of its own, so each run
+/// is either all hidden or all visible.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 #[expect(
