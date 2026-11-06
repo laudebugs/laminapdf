@@ -23,7 +23,7 @@ Each area's scripts read the data folder from `HN_DATA` (the generation scripts 
 
 | Area | Scripts | Note |
 | --- | --- | --- |
-| Readers | [`counts/readers/`](counts/readers/): `themes.py`, `tools.py`, `extras.py`, the hand labels in `sentiment_labels.json`, the quotes in `quotes.py` and `verify_quotes.py` | [readers](../../docs/research/hacker-news/notes/readers.md) |
+| Readers | [`counts/readers/`](counts/readers/): `themes.py`, `tools.py`, `extras.py` and the hand labels in `sentiment_labels.json` | [readers](../../docs/research/hacker-news/notes/readers.md) |
 | Editors | [`counts/editors/editors_counts.py`](counts/editors/editors_counts.py) | [editors](../../docs/research/hacker-news/notes/editors.md) |
 | Extraction | [`counts/extraction/extraction_counts.py`](counts/extraction/extraction_counts.py); its output in `output.txt` | [extraction](../../docs/research/hacker-news/notes/extraction.md) |
 | Generation | [`counts/generation/`](counts/generation/): `generation_counts.py` over the core set of `generation_core.py`, `generation_extra.py`, `generation_stories.py`, `generation_read_thread.py`; output in `output.txt` | [generation](../../docs/research/hacker-news/notes/generation.md) |
@@ -39,8 +39,9 @@ python3 -I tools/hn-research/counts/generation/generation_counts.py "$HN"
 
 ## Check the quotes
 
-Every quote line in the notes and the report cites a comment by ID. `verify_quotes.py` checks that each quote appears word for word in that comment, runs 40 words or fewer and carries the comment's date:
+Every quote in the notes, the report, the trust and proof plan and its todos cites a comment by ID. `verify_quotes.py` checks each one, whether it opens a line or sits inside a sentence: it must appear word for word in that comment, run 40 words or fewer and carry the comment's date, and an ID that names nothing collected fails. It exits 1 on any problem:
 
 ```sh
-python3 -I tools/hn-research/verify_quotes.py "$HN" docs/research/hacker-news
+python3 -I tools/hn-research/verify_quotes.py "$HN"                     # the research, the plan and the todos
+python3 -I tools/hn-research/verify_quotes.py "$HN" docs/todos/ready/T2a-covered-text-flag.md
 ```

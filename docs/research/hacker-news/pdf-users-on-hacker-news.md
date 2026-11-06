@@ -18,7 +18,7 @@ The scripts collected every story with "PDF" or a PDF tool's name in its title, 
 | Comments in the 307 stories with 20 or more comments | 27,185 |
 | Comments found by 42 keyword searches across the site | 37,771 |
 | Unique comments of 40 characters or more | 56,907 |
-| Quotes in the notes and this report, each checked word for word against its comment | 414 |
+| Quotes in the notes and this report, each checked word for word against its comment | 472 |
 
 ### PDF stories per year
 
@@ -366,7 +366,7 @@ The [product and UX research](../product/pdf-app-product-and-ux.md) of October 2
 
 ## Method and limits
 
-Scripts in [`tools/hn-research/`](../../../tools/hn-research/README.md) collected the stories and comments through the HN Search API, sorted the comments into five areas, and counted themes with regular expressions. Five agents each read 900 to 1,400 comments of one area, wrote the theme patterns, and read 6 to 20 random matches per theme to measure how many were on topic. A script checked all 414 quotes, 388 in the notes and 26 here, word for word against their comments. [The method note](notes/method.md) gives every step.
+Scripts in [`tools/hn-research/`](../../../tools/hn-research/README.md) collected the stories and comments through the HN Search API, sorted the comments into five areas, and counted themes with regular expressions. Five agents each read 900 to 1,400 comments of one area, wrote the theme patterns, and read 6 to 20 random matches per theme to measure how many were on topic. A script checked all 472 quotes, 446 in the notes and 26 here, word for word against their comments. [The method note](notes/method.md) gives every step.
 
 The limits matter for how to read the numbers:
 

@@ -68,11 +68,13 @@ def flatten(node: dict, story: dict, depth: int, out: list) -> None:
         flatten(c, story, depth + 1, out)
 
 
-def thread(story: dict) -> list:
+def thread(story: dict) -> list | None:
+    """The story's comments, or None when the request failed after its retries."""
     tree = fetch(f"https://hn.algolia.com/api/v1/items/{story['objectID']}")
+    if not tree:
+        return None
     out: list = []
-    if tree:
-        flatten(tree, story, 0, out)
+    flatten(tree, story, 0, out)
     return out
 
 
@@ -89,7 +91,7 @@ def search(term: str, y: int, a: int, b: int):
                   numericFilters=f"created_at_i>={a},created_at_i<{b}", hitsPerPage=1000)
     d = fetch("https://hn.algolia.com/api/v1/search?" + urllib.parse.urlencode(params))
     if not d:
-        return term, y, 0, []
+        return term, y, None, []  # failed after its retries: recorded as null, and main() fails
     rows = [{
         "id": int(h["objectID"]), "story_id": h.get("story_id"), "story_title": h.get("story_title"),
         "parent_id": h.get("parent_id"), "author": h.get("author"), "created_at": h.get("created_at"),
@@ -101,9 +103,13 @@ def search(term: str, y: int, a: int, b: int):
 def main() -> None:
     stories = [json.loads(l) for l in open(DATA / "stories.jsonl")]
     big = [s for s in stories if (s.get("num_comments") or 0) >= MIN_COMMENTS]
+    failed: list[str] = []
     with ThreadPoolExecutor(8) as pool, open(DATA / "threads.jsonl", "w") as f:
         n = 0
-        for rows in pool.map(thread, big):
+        for story, rows in zip(big, pool.map(thread, big)):
+            if rows is None:
+                failed.append(f"thread {story['objectID']}")
+                continue
             for r in rows:
                 f.write(json.dumps(r) + "\n")
                 n += 1
@@ -115,14 +121,19 @@ def main() -> None:
     with ThreadPoolExecutor(6) as pool, open(DATA / "comment_hits.jsonl", "w") as f:
         for term, y, nb, rows in pool.map(lambda j: search(*j), jobs):
             counts.setdefault(term, {})[y] = nb
+            if nb is None:
+                failed.append(f"search {term!r} {y}")
             for r in rows:
                 if r["id"] in seen:
                     continue
                 seen.add(r["id"])
                 f.write(json.dumps(r) + "\n")
     (DATA / "comment_counts.json").write_text(json.dumps(counts, indent=1))
-    capped = [(t, y, n) for t, ys in counts.items() for y, n in ys.items() if n > 1000]
+    capped = [(t, y, n) for t, ys in counts.items() for y, n in ys.items() if n is not None and n > 1000]
     print("comment hits (unique):", len(seen), "capped windows:", capped, file=sys.stderr)
+    if failed:
+        print(f"{len(failed)} request(s) failed after retries; run again:", *failed, sep="\n  ", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

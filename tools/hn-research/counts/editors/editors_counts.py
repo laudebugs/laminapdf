@@ -23,6 +23,7 @@ from multiprocessing import Pool
 
 ROOT = os.environ.get("HN_DATA", ".")
 
+# The same filter as prep.py, kept as run (see its comment on "acrobat" and "itext").
 PDF = re.compile(r"\bpdfs?\b|pdf\.js|pdfjs|pdfium|mupdf|poppler|acrobat|ghostscript|wkhtmltopdf|weasyprint|typst|"
                  r"sumatra|okular|zathura|foxit|pdfbox|itext|qpdf|pdftk|docling|pdfplumber|pymupdf", re.I)
 PDFISH = re.compile(PDF.pattern + r"|\bpreview\b|\bxfa\b|acroform|docusign|stirling|xournal|smallpdf|ilovepdf|pdf24", re.I)

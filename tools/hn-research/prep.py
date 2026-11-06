@@ -16,6 +16,10 @@ DATA, AREAS, STATS = ROOT / "data", ROOT / "areas", ROOT / "stats"
 AREAS.mkdir(exist_ok=True)
 STATS.mkdir(exist_ok=True)
 
+# Kept as run on 6 November 2026, so the notes' counts reproduce from the collected data: "acrobat"
+# and "itext" also match inside words ("acrobatics", "Peritext"), which admits 716 extra comments
+# (1.3% of 56,722; docs/research/hacker-news/notes/method.md §7). For a new collection, use
+# r"\bacrobat(?!ic)" and r"\bitext".
 PDF = re.compile(r"\bpdfs?\b|pdf\.js|pdfjs|pdfium|mupdf|poppler|acrobat|ghostscript|wkhtmltopdf|weasyprint|typst|"
                  r"sumatra|okular|zathura|foxit|pdfbox|itext|qpdf|pdftk|docling|pdfplumber|pymupdf", re.I)
 

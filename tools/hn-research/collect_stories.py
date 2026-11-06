@@ -67,12 +67,15 @@ KEEP = ("objectID", "title", "url", "author", "points", "num_comments", "created
 TAG = re.compile(r"[\[(][^\])]*\bpdfs?\b[^\])]*[\])]", re.I)
 
 
+# A tool name counts at the start of a word only, and never as "acrobatic(s)". The collection of
+# 6 November 2026 matched names anywhere in a word, which kept 43 stories about acrobatics and
+# names such as "Peritext" (docs/research/hacker-news/notes/method.md §7 gives the effect).
+TOOL = re.compile(r"\b(?:" + "|".join(re.escape(t) for t in TOOLS) + r")(?!ic)", re.I)
+
+
 def is_about_pdf(title: str) -> bool:
     t = title or ""
-    if re.search(r"\bpdf", TAG.sub(" ", t), re.I):
-        return True
-    low = t.lower()
-    return any(tool in low for tool in TOOLS)
+    return bool(re.search(r"\bpdf", TAG.sub(" ", t), re.I) or TOOL.search(t))
 
 
 def main() -> None:

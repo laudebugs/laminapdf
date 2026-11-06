@@ -11,7 +11,7 @@ The research rests on 3,755 stories and 56,907 comments from Hacker News, posted
 - **"pdf" by month.** One query per month from November 2016 to November 2026. Monthly windows keep each request under the API's cap of 1,000 hits.
 - **31 tool names by year.** Names that the search engine doesn't split into "pdf", or that lack it: MuPDF, PyMuPDF, Poppler, Ghostscript, Acrobat, PDFBox, iText, wkhtmltopdf, WeasyPrint, Docling, pdfplumber, pdftk, qpdf, Okular, SumatraPDF, Zathura, Typst, LlamaParse, olmOCR, PDFium, pdf.js, Mistral OCR, Paged.js, Prince XML, Foxit, Preview.app, PDFKit, ReportLab, Unstructured, Tesseract and OCRmyPDF.
 
-Together they returned 53,144 distinct stories (`data/stories_raw.jsonl`). Most were links to papers: Hacker News marks a link to a PDF file with "[pdf]" in the title, and about nine in ten hits matched only that tag. The script keeps a story only when "pdf" appears outside a bracketed tag such as "[pdf]" or "(PDF, 2 pages)", or when the title names one of the tools. That rule kept 3,755 stories (`data/stories.jsonl`): 3,352 from the "pdf" query and 403 from tool names. The tool rule also drops the search engine's fuzzy matches, such as "Acrobatics" for "acrobat".
+Together they returned 53,144 distinct stories (`data/stories_raw.jsonl`). Most were links to papers: Hacker News marks a link to a PDF file with "[pdf]" in the title, and about nine in ten hits matched only that tag. The script keeps a story only when "pdf" appears outside a bracketed tag such as "[pdf]" or "(PDF, 2 pages)", or when the title names one of the tools. That rule kept 3,755 stories (`data/stories.jsonl`): 3,352 from the "pdf" query and 403 from tool names. The tool rule also drops the search engine's typo-tolerant matches, whose titles don't contain the name at all. As run, though, it matched a name anywhere inside a word, so 43 of the kept stories are about acrobatics or names such as "Peritext" (§7).
 
 ## 2. Comments
 
@@ -20,7 +20,7 @@ Together they returned 53,144 distinct stories (`data/stories_raw.jsonl`). Most 
 1. **Whole threads.** For each of the 307 kept stories with 20 or more comments, the API's `items` endpoint returns the full comment tree, which the script flattens: 27,185 comments (`data/threads.jsonl`).
 2. **Keyword searches across all of Hacker News.** 42 terms, searched in comment text one year at a time with typo tolerance off, find PDF talk in threads whose titles don't mention PDF: 37,771 comments (`data/comment_hits.jsonl`). The terms cover the five areas: "pdf reader", "pdf viewer", "pdf editor", "acrobat", "pdf library", "pdf parsing", "parse pdf", "pdf extraction", "extract text pdf", "pdf tables", "pdf generation", "generate pdf", "html to pdf", "pdf forms", "fill pdf", "sign pdf", "redact pdf", "annotate pdf", "pdf ocr", "pdf markdown", and 22 tool names. `data/comment_counts.json` records the API's hit count for each term and year; none exceeded 1,000, so no search was cut short.
 
-Comment HTML becomes plain text. The latest comment collected was posted at 01:15 UTC on 6 November 2026.
+Comment HTML becomes plain text. The latest comment collected was posted at 01:15 UTC on 6 November 2026. The 32 term-years with no hits are tools searched before they existed or caught on (Docling, Typst and Stirling-PDF in their early years, PyMuPDF in quiet years) or the two months of 2016; the committed collector records a request that fails after its retries as null and exits with an error, so a failure can't pass for an empty year.
 
 ## 3. Areas
 
@@ -54,7 +54,7 @@ Sentiment came from reading. A word-list score rated Acrobat neutral, against wh
 
 ## 6. Quotes
 
-Every quote cites its comment by ID and links to it. [`verify_quotes.py`](../../../../tools/hn-research/verify_quotes.py) checks that each quote line appears word for word in its comment (whitespace aside, with "…" allowed between pieces in order), runs 40 words or fewer and carries the comment's date. It passed all 388 quotes in the five notes before they were committed.
+Every quote cites its comment by ID and links to it. [`verify_quotes.py`](../../../../tools/hn-research/verify_quotes.py) checks each one, whether it opens a line or sits inside a sentence: the quote must appear word for word in its comment (whitespace and curly versus straight quote marks aside, with "…" allowed between pieces in order), run 40 words or fewer and carry the comment's date. An ID that names no collected comment or story counts as a failure. It passed all 472 quotes in the notes and the report, and the 30 in the trust and proof plan and its todos, before they were committed.
 
 ## 7. Limits
 
@@ -64,7 +64,7 @@ Every quote cites its comment by ID and links to it. [`verify_quotes.py`](../../
 - **Events.** The pandemic lifted signing in 2020–22, and the Epstein releases lifted redaction in December 2025.
 - **Titles.** The story set comes from title searches, so stories that don't name PDF or a listed tool are missing, along with their points. Their comments enter only through the keyword searches.
 - **Cut text.** Area files cut each comment at 1,500 characters, so later mentions in long comments are missed. The editors note counted over the full text.
-- **Acrobat.** The first `prep.py` matched "acrobat" without word boundaries, so 166 of its 523 Acrobat comments in 2016–19 were about acrobatics. The committed version uses `\bacrobat\b`; the notes' Acrobat figures come from the agents' own patterns, which always used word boundaries.
+- **Names inside words.** As run, the story filter and `prep.py`'s comment filter matched tool names anywhere inside a word, so "acrobat" caught "acrobatics" and "itext" caught "Peritext". The effect is small: 43 extra stories (1.1%), at most 9 in any year, which change the Show HN counts by one story in 2017 and 2026 and each area's yearly story count by at most 2; 200 comments (0.35%) from the five of them with 20 or more comments; and 716 comments (1.3%) admitted to the areas by the comment filter. The agents' theme patterns require PDF terms nearby, and their Acrobat figures use word boundaries, so the notes' themes are barely touched. The committed collector matches names only at the start of a word and never as "acrobatic". `prep.py`'s comment filter and the editors script's copy of it stay as run, so the notes' numbers reproduce from the collected data; their comments give the fix for a new collection. `prep.py`'s tool count now matches `\bacrobat\b`, which changes only its Acrobat column, and no note uses that column.
 - **A moving source.** The API's points and comment counts change, and deleted comments drop out, so a rerun gives slightly different numbers.
 
 ## 8. Data handling

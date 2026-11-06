@@ -6,8 +6,8 @@ Usage: python3 -I generation_counts.py <hn_dir>                      # tables
 A theme is a case-insensitive regex A, optionally with a regex B that must match within WINDOW characters of a
 match of A (either side). A comment counts once per theme. Periods: 2016-19, 2020-22, 2023-26 (Nov 2016 - Nov 2026).
 """
-import collections, random, re, sys
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
+import collections, os, random, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import generation_core as gen_core
 
 BROWSER = r"puppeteer|playwright|headless|chrom(e|ium)|electron|browserless|gotenberg|\bbrowsers?\b"

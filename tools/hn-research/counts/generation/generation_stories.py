@@ -1,8 +1,8 @@
 """Stories per generation family and period from data/stories.jsonl (title regex), with total points.
 Usage: python3 -I generation_stories.py <hn_dir>
 """
-import collections, json, re, sys
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
+import collections, json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from generation_core import period
 FAM = {
     "Typst": r"typst",

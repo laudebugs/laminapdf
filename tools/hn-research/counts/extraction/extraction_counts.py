@@ -28,8 +28,8 @@ def period(d):
     return "2016-19" if y <= 2019 else ("2020-22" if y <= 2022 else "2023-26")
 
 PERIODS = ["2016-19", "2020-22", "2023-26"]
-base = [r for r in rows if not NOISE.search(r["story"])]
-rel = [r for r in base if REL.search(r["text"]) or REL.search(r["story"])]
+base = [r for r in rows if not NOISE.search(r["story"] or "")]
+rel = [r for r in base if REL.search(r["text"]) or REL.search(r["story"] or "")]
 
 W = r"(?:\w+\W+){0,4}?"
 THEMES = {
@@ -273,6 +273,8 @@ def main():
             sel = [r for r in rel if near_match(rx, r["text"])]
         else:
             rx = TH.get(key) or TL.get(key)
+            if rx is None:
+                sys.exit(f"unknown theme {key!r}; themes: {', '.join(sorted({*NR, *TH, *TL}))}")
             sel = [r for r in rel if rx.search(r["text"])]
         random.seed(1)
         for r in random.sample(sel, min(n, len(sel))):

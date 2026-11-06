@@ -1,8 +1,8 @@
 """Extra counts for the generation findings: tool mentions per year, and a few cross-cutting signals by period.
 Usage: python3 -I generation_extra.py <hn_dir>
 """
-import collections, re, sys
-sys.path.insert(0, __file__.rsplit("/", 1)[0])
+import collections, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import generation_core as gen_core
 from generation_counts import TOOLS, matcher, PERIODS
 
