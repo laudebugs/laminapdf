@@ -27,7 +27,7 @@ fn main() {
                 continue;
             }
             for (i, bitmap) in common::render_file(backend.as_ref(), &file).iter().enumerate() {
-                common::write_png(&dir.join(common::golden_name(&file, i)), bitmap);
+                laminapdf_test_fixtures::image::write_png(&dir.join(common::golden_name(&file, i)), bitmap);
                 written += 1;
             }
         }
