@@ -39,7 +39,7 @@ python3 -I tools/hn-research/counts/generation/generation_counts.py "$HN"
 
 ## Check the quotes
 
-Every quote in the notes, the report, the trust and proof plan and its todos cites a comment by ID. `verify_quotes.py` checks each one, whether it opens a line or sits inside a sentence: it must appear word for word in that comment, run 40 words or fewer and carry the comment's date, and an ID that names nothing collected fails. It exits 1 on any problem:
+Every quote in the notes, the report, the trust and proof plan and its todos cites a comment by ID. `verify_quotes.py` checks each one, whether it opens a line or sits inside a sentence. A quote must appear word for word in its comment, run 40 words or fewer and carry the comment's date; an ID that names nothing collected fails. The script exits 1 on any problem:
 
 ```sh
 python3 -I tools/hn-research/verify_quotes.py "$HN"                     # the research, the plan and the todos

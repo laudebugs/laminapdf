@@ -20,6 +20,8 @@ The scripts collected every story with "PDF" or a PDF tool's name in its title, 
 | Unique comments of 40 characters or more | 56,907 |
 | Quotes in the notes and this report, each checked word for word against its comment | 472 |
 
+The story filter, as run, matched tool names inside longer words, so 43 of the 3,755 stories are about acrobatics or names such as "Peritext". They move no year's count by more than 9, so the tables below keep them; [the method note §7](notes/method.md#7-limits) gives the full effect.
+
 ### PDF stories per year
 
 | Year | PDF stories | Show HN launches | Show HN share | Median Show HN points |
@@ -133,7 +135,7 @@ Readers want a quick, quiet viewer that handles long documents on any screen. Su
 | Search, outline, link previews, last position | 47–87 each | Forms that open only in Acrobat | 62 |
 | A dark page that keeps images (rising) | 90 | AI features nobody asked for (all since 2023) | 26 |
 
-The biggest reader threads: Firefox 81's form filling (1,093 points), [SumatraPDF](https://news.ycombinator.com/item?id=37993575) (586), [Google Scholar PDF Reader](https://news.ycombinator.com/item?id=39768438) (422), [EmbedPDF](https://news.ycombinator.com/item?id=44901683), a PDFium viewer in WebAssembly (357), and three launches of [Sioyek](https://news.ycombinator.com/item?id=40313143), a viewer for papers (272, 238 and 336). AI readers drew little: of 27 Show HN reader posts in 2023–26, the 11 with AI, chat or MCP in the title had a median of 2 points and a top score of 8, against a median of 4 and a top of 357 for the rest.
+The biggest reader threads: Firefox 81's form filling (1,093 points), [SumatraPDF](https://news.ycombinator.com/item?id=37993575) (586), [Google Scholar PDF Reader](https://news.ycombinator.com/item?id=39768438) (422), [EmbedPDF](https://news.ycombinator.com/item?id=44901683), a PDFium viewer in WebAssembly (357), and three launches of [Sioyek](https://news.ycombinator.com/item?id=40313143), a viewer for papers (272, 238 and 336). AI readers drew little. Of 27 Show HN reader posts in 2023–26, the 11 with AI, chat or MCP in the title had a median of 2 points and a top score of 8. The other 16 had a median of 4 and a top of 357.
 
 > "I like my reader to simply be a reader instead of a 13GB bloated piece of garbage." ([2025-10-16](https://news.ycombinator.com/item?id=45604604))
 
@@ -193,7 +195,7 @@ Developers want to write Markdown or fill a template from JSON and get correctly
 | Control over page breaks and headers | ~345 | Inaccessible output | ~89 |
 | Tagged, accessible output | ~200 | Arabic and Devanagari set wrong | ~50 |
 
-The biggest generation threads: 130 Typst stories in 2023–26, led by ["Typst: A Possible LaTeX Replacement"](https://news.ycombinator.com/item?id=45393842) (786 points); ["Show HN: PDFs from HTML"](https://news.ycombinator.com/item?id=26691626) (742); [Invoice Dragon](https://news.ycombinator.com/item?id=36860898) (564); [TinyPDF](https://news.ycombinator.com/item?id=46316968), which commenters found handles ASCII only (253); and [PaperPilot](https://news.ycombinator.com/item?id=50238739), a pure-Rust engine with WASM and MCP whose pitch is the closest to Lamina PDF's (236).
+Typst drew 130 stories in 2023–26, led by ["Typst: A Possible LaTeX Replacement"](https://news.ycombinator.com/item?id=45393842) (786 points). The other big generation threads: ["Show HN: PDFs from HTML"](https://news.ycombinator.com/item?id=26691626) (742), [Invoice Dragon](https://news.ycombinator.com/item?id=36860898) (564), [TinyPDF](https://news.ycombinator.com/item?id=46316968) (253), which commenters found handles ASCII only, and [PaperPilot](https://news.ycombinator.com/item?id=50238739) (236), a pure-Rust engine with WASM and MCP whose pitch is the closest to Lamina PDF's.
 
 > "The holy grail of PDF generators, sensible page breaks. Never been done and makes peace in the middle east seem like an easy task." ([2017-08-22](https://news.ycombinator.com/item?id=15071383))
 
@@ -233,7 +235,14 @@ Features no longer set a PDF tool apart: 359 Show HN PDF posts appeared in 2026,
 
 > "Only three of them can process all 2500 files i tried" ([2025-08-04](https://news.ycombinator.com/item?id=44785629))
 
-- **Lamina PDF today:** tolerant reading with repair warnings (ADR 0003); incremental saves that keep the original bytes (ADR 0007); byte-identical output; the nightly differential against pdf.js, PDFium, qpdf and pypdf; fuzzing; round trips checked by qpdf, pdf.js and PDFium; veraPDF on every example that claims a profile.
+- **Lamina PDF today:**
+  - byte-identical output
+  - fuzzing
+  - tolerant reading with repair warnings (ADR 0003)
+  - incremental saves that keep the original bytes (ADR 0007)
+  - veraPDF on every example that claims a profile
+  - round trips checked by qpdf, pdf.js and PDFium
+  - the nightly differential against pdf.js, PDFium, qpdf and pypdf
 - **The gap:** none of this evidence reaches users.
 - **Work:** [T1a](../../todos/ready/T1a-nightly-proof-figures.md) records the nightly's figures as data, and [T1b](../../todos/ready/T1b-how-we-test-page.md) publishes them on the website with the licence and where the code comes from. [U5b](../../todos/ready/U5b-reader-benchmark.md) compares the reader with others.
 
@@ -271,7 +280,13 @@ Users once asked whether a tool could get the text at all; they now ask whether 
 
 > "we’ve found bounding box based attribution to be a non-negotiable for many of our current customers." ([2025-02-05](https://news.ycombinator.com/item?id=42954289))
 
-- **Lamina PDF today:** native extraction with XY-Cut++ reading order, ruled and unruled tables, running headers and footers removed, boxes on blocks, cells and chunk regions, JSON that matches its goldens byte for byte, and `cargo xtask extract-bench` (ADR 0030).
+- **Lamina PDF today** (ADR 0030):
+  - native extraction with XY-Cut++ reading order
+  - ruled and unruled tables
+  - running headers and footers removed
+  - boxes on blocks, cells and chunk regions
+  - JSON that matches its goldens byte for byte
+  - an extraction benchmark, `cargo xtask extract-bench`
 - **The gap:** a pipeline can't tell which pages need OCR, can't see when the column order is a guess, and gets a table split in two at every page break. The benchmark scores sit in a crate README.
 - **Work:** [T3a](../../todos/ready/T3a-text-layer-status.md) adds a per-page text-layer status, [T3b](../../todos/ready/T3b-reading-order-confidence.md) a warning when the column order is uncertain, [T3c](../../todos/ready/T3c-tables-across-pages.md) joins tables across pages, and [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes the scores and speed.
 
@@ -309,7 +324,7 @@ Reflow for phones comes up in 501 reader comments, and dark mode in 90, a rising
 
 > "when you re-open a PDF, opens it at the position you were last time(!!!)." ([2017-07-24](https://news.ycombinator.com/item?id=14839643))
 
-- **Lamina PDF today:** ADR 0024 §5 fixes a dark page that recolours text and paths and never images ([U2c](../../todos/ready/U2c-page-appearance-modes.md)). Reader mode comes from the structure tree, then by approximation ([U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md)). Find lists every match ([C5b](../../todos/ready/C5b-find-in-document.md)), and the outline and links with history are planned ([C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../../todos/ready/C6b-links-and-history.md)). The performance harness already scrolls 1,000 pages.
+- **Lamina PDF today:** ADR 0024 §5 fixes a dark page that recolours text and paths and never images ([U2c](../../todos/ready/U2c-page-appearance-modes.md)). Reader mode comes from the structure tree, then by approximation ([U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md)). Find lists every match ([C5b](../../todos/ready/C5b-find-in-document.md)), and [C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md) and [C6b](../../todos/ready/C6b-links-and-history.md) plan the outline and links with history. The performance harness already scrolls 1,000 pages.
 - **The gap:** previews of internal links and citations, and reopening each file at its last position.
 - **Work:** [T5a](../../todos/ready/T5a-link-previews.md) and [T5b](../../todos/ready/T5b-reopen-at-last-position.md).
 
@@ -335,7 +350,13 @@ Licences decide which library people pick (~150 comments), and warnings about AG
 
 > "every single release changed something in the output." ([2018-07-19](https://news.ycombinator.com/item?id=17567576))
 
-- **Lamina PDF today:** `MIT OR Apache-2.0` with no AGPL or GPL dependencies (ADR 0001); MuPDF prohibited (ADR 0004); PDF/UA-1 and PDF/A-2b, 2u and 3b profiles checked by veraPDF every night; an invoice with embedded XML (`pdf_a3_invoice_with_xml`); HarfRust shaping and the `multilingual` example; byte-identical output.
+- **Lamina PDF today:**
+  - byte-identical output
+  - MuPDF prohibited (ADR 0004)
+  - `MIT OR Apache-2.0` with no AGPL or GPL dependencies (ADR 0001)
+  - HarfRust shaping and the `multilingual` example
+  - an invoice with embedded XML (`pdf_a3_invoice_with_xml`)
+  - PDF/UA-1 and PDF/A-2b, 2u and 3b profiles, checked by veraPDF every night
 - **The gap:** the website and docs don't say so where people decide.
 - **Work:** [T1b](../../todos/ready/T1b-how-we-test-page.md) states the licence and where the code comes from; [T1d](../../todos/ready/T1d-snapshot-testing-guide.md) shows users how to snapshot-test their own PDFs. Whether tagged output becomes the default is an open question in the [plan](../../plans/trust-and-proof.md).
 
@@ -349,7 +370,7 @@ Developers already script pdftk, qpdf and Ghostscript (433 comments) and ask for
 
 > "every “shrink” tool we tried barely compressed the size, and some even made it larger!" ([2025-05-04](https://news.ycombinator.com/item?id=43884344))
 
-- **Lamina PDF today:** the `laminapdf` CLI's `info`, `check`, `pages rotate`, `extract` and `explain`; the MCP server, read-only unless started with `--allow-write` (ADR 0031). Merge and split (E2), the optimiser (E16) and batch runs (E14) are planned in the library.
+- **Lamina PDF today:** the `laminapdf` CLI's `info`, `check`, `pages rotate`, `extract` and `explain`; the MCP server, read-only unless started with `--allow-write` (ADR 0031). The library plans merge and split (E2), the optimiser (E16) and batch runs (E14).
 - **The gap:** none of the planned page and size operations reaches the CLI.
 - **Work:** [T6a](../../todos/ready/T6a-cli-page-commands.md) adds `laminapdf pages` merge, split, delete, extract, reorder and insert; [T6b](../../todos/ready/T6b-cli-optimize-target-size.md) adds `laminapdf optimize --target-size`. MCP tools that fill forms or generate files need an ADR first (an open question in the plan).
 
@@ -373,7 +394,7 @@ The limits matter for how to read the numbers:
 - Hacker News leans towards developers on Mac and Linux. Office workers, lawyers, government staff and blind readers appear mostly second-hand, so forms, signing and phone reading likely matter more to all users than these counts show.
 - Counts measure comments, not people, and patterns miss paraphrases. Spot checks found between a third and all of the matches on topic, depending on the theme.
 - Single events drive spikes: the pandemic lifted signing in 2020–22, and the Epstein releases lifted redaction in December 2025.
-- The story set comes from title searches, so it misses stories that don't name PDF or a listed tool.
+- The story set comes from title searches, so it misses stories that don't name PDF or a listed tool, and it includes 43 stories (1.1%) whose titles hold a tool's name inside another word.
 - 2016 covers only November and December, and 2026 runs to 6 November.
 
 ## Conclusion: publish the proof, then close the trust gaps
