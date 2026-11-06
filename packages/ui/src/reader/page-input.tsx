@@ -32,6 +32,7 @@ export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
   const [problem, setProblem] = useState<Problem | undefined>(undefined);
   const help = useId();
   const field = useRef<HTMLInputElement>(null);
+  const selectOnMouseUp = useRef(false);
   // After a mistake the field shows the current page again, selected, so typing replaces it.
   useEffect(() => {
     if (problem !== undefined) field.current?.select();
@@ -71,6 +72,15 @@ export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
           setProblem(undefined);
         }}
         onFocus={(event) => event.target.select()}
+        // Safari clears the selection on the mouseup that ends a click into the field, so typing
+        // would add to the page instead of replacing it: that one mouseup keeps the selection.
+        onPointerDown={(event) => {
+          selectOnMouseUp.current = document.activeElement !== event.currentTarget;
+        }}
+        onMouseUp={(event) => {
+          if (selectOnMouseUp.current) event.preventDefault();
+          selectOnMouseUp.current = false;
+        }}
         onBlur={() => {
           setDraft(undefined);
           setProblem(undefined);

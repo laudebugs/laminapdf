@@ -338,7 +338,8 @@ describe("PasswordDialog", () => {
     expect(dialog.textContent).toContain("Q3-board-report.pdf is encrypted.");
     expect(focused()).toBe(passwordField());
     expect(passwordField().type).toBe("password");
-    expect(passwordField().autocomplete).toBe("current-password");
+    // The attribute: Firefox reflects autofill names in the property only with form autofill on.
+    expect(passwordField().getAttribute("autocomplete")).toBe("current-password");
   });
 
   it("sends the password on Enter, shows Opening while it is tried, and closes once open", async () => {
