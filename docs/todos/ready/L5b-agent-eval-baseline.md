@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L5](../../plans/shareable-libraries.md#l5-docs-for-agents) |
 | Round / milestone | Round L5 (shareable libraries) |
 | Depends on | [L5a](../done/L5a-agent-docs.md) |
-| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5b-agent-eval-baseline` |
 | PR title | `docs(research): record the agent-eval baseline` |

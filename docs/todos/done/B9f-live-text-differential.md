@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (hardening) |
 | Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [X3a](./X3a-nightly-lane.md) |
-| Blocks | None |
 | ADRs | [0018](../../decisions/0018-test-strategy.md) tier 6 (differential); [0003](../../decisions/0003-reader-tolerance-and-limits.md) (exception classes carry their rule) |
 | Branch | `test/b9f-live-text-differential` |
 | PR title | `test(text): live text differential in the nightly lane` |

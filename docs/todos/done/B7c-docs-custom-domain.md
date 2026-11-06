@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B7a](./B7a-docs-site.md) |
-| Blocks | None |
 | ADRs | Fills in [0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)'s `<domain>` placeholders, as it asks |
 | Branch | `docs/domain-laminapdf` |
 | PR title | `docs: laminapdf.com, with the docs site at docs.laminapdf.com` |

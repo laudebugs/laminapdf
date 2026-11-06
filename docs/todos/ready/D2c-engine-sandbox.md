@@ -7,7 +7,6 @@
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D2b](./D2b-engine-process.md) |
-| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md), [E10i](./E10i-platform-signers.md) |
 | ADRs | Implements and amends ADR 0008 §sandboxing (records what is actually enforced per OS). Follows [Rust guidelines](../../guidelines/rust.md) (`unsafe` only with `// SAFETY:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2c-engine-sandbox` |
 | PR title | `feat(desktop): sandbox the engine process per OS` |

@@ -124,7 +124,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 
 ## How we track progress
 
-- **The [todo board](../todos/README.md)** is the work queue: one file per PR in `ready/`, `ongoing/` or `done/`, each with explicit **Depends on** / **Blocks**. Every round below is split into todos there (for example B2 → B2a, B2b, B2c). Pick only todos whose dependencies are all done ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board)).
+- **The [todo board](../todos/README.md)** is the work queue: one file per PR in `ready/`, `ongoing/` or `done/`, each with explicit **Depends on** links (`cargo xtask todos` builds the board from them, with what each todo blocks). Every round below is split into todos there (for example B2 → B2a, B2b, B2c). Pick only todos whose dependencies are all done ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board)).
 - **Plans** hold the to-do checklists and link each round to its todos; tick them in the PR that completes them.
 - **The capability matrix** ([full-editor §3](full-editor.md#3-tracking-the-capability-matrix)) is the source of truth for which of the ~180 operations work on which surface.
 - **ADRs** in `docs/decisions/` record each decision in the round listed above.

@@ -7,7 +7,6 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing |
 | Depends on | [P1](./P1-reserve-names-and-trusted-publishing.md) |
-| Blocks | [P3](./P3-registry-checks.md), [P5](../ready/P5-npm-trusted-publishing-and-version-only-releases.md) |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §2 and §7, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p2-first-prerelease` |
 | PR title | `build: release 0.2.0-alpha.1, the first registry pre-release` |

@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C2a](../done/C2a-render-adrs.md), [C4f](./C4f-reader-home-repairs-and-demo.md), [U6b](../done/U6b-self-hosted-fonts.md) |
-| Blocks | [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0011 (Worker with static assets, `_headers`, CSP, no `/api`), 0009 (Vite 8, module worker), 0010 (web `Platform`) |
 | Branch | `feat/c4b-web-app-shell` |
 | PR title | `feat(web): add the web reader app on workers static assets with local file opening` |

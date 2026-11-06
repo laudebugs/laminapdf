@@ -7,7 +7,6 @@
 | Plan | [releases §4](../../plans/releases.md#4-docs-that-match-a-version) |
 | Round / milestone | Publishing |
 | Depends on | [P3](./P3-registry-checks.md) |
-| Blocks | [P6](../ready/P6-daily-release.md) |
 | ADRs | Implements [0017 §7](../../decisions/0017-versioning-and-release.md#7-publishing)'s docs item and [0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)'s docs hosts (amended 2026-11-05) |
 | Branch | `docs/p4-docs-match-the-release` |
 | PR title | `docs: name the version on every page and serve main's docs at next.docs.laminapdf.com` |

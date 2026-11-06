@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md) |
-| Blocks | None |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges), [0001](../../decisions/0001-core-language-and-licence.md) (determinism) |
 | Branch | `feat/b4d-per-text-cids` |
 | PR title | `feat(text): one CID per glyph and text, so shaped text extracts exactly` |

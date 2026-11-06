@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
-| Blocks | [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [C6c](../ready/C6c-print-download-properties.md), [C7b](../ready/C7b-offline-pwa.md), [C7c](../ready/C7c-performance-gates-and-launch.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) tier 11 and §2 lanes (no wall-clock assertions in PR lanes; perf in nightly; regressions open issues) and §4 (flaky tests are bugs) |
 | Branch | `test/c3c-viewer-perf-harness` |
 | PR title | `test(viewer): add a playwright performance harness for scrolling, memory and first page` |

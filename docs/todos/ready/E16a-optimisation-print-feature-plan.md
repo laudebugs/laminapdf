@@ -7,7 +7,6 @@
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E15a](./E15a-accessibility-feature-plan.md) |
-| Blocks | [E16b](./E16b-structural-optimiser.md), [E16d](./E16d-colour.md), [E16f](./E16f-imposition.md), [E17a](./E17a-advanced-interactions-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e16a-optimisation-print-feature-plan` |
 | PR title | `docs(editor): E16 feature plan (optimisation and print production)` |

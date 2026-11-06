@@ -7,7 +7,6 @@
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E1e](./E1e-save-and-constraint-banner.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md) |
-| Blocks | [E4g](./E4g-appearance-parity-suite.md), [E5b](./E5b-comment-threads-and-review.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4f-annotation-tools-ui` |
 | PR title | `feat(ui): annotation tools and properties panel` |

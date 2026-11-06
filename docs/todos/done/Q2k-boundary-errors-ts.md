@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2j](./Q2j-boundary-errors-rust.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2k-boundary-errors-ts` |
 | PR title | `fix(sdk,render,viewer): one error wire shape; render data-pending keeps its ranges across the worker` |

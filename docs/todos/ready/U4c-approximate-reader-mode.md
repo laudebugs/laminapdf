@@ -7,7 +7,6 @@
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — after M2 |
 | Depends on | [U4b](./U4b-reader-mode-from-structure-tree.md) |
-| Blocks | None |
 | ADRs | Follows 0024; records any model or heuristic choice in the PR (no ML model without a licence check of its weights) |
 | Branch | `feat/u4c-approximate-reader-mode` |
 | PR title | `feat(reflow): add the approximate reader mode for untagged pdfs` |

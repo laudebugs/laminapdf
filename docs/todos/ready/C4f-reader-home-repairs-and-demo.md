@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C4e](./C4e-reader-chrome.md) |
-| Blocks | [C4b](./C4b-web-app-shell.md), [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer); follows 0003 (repairs in plain words) and 0010 (UI branches only on capability flags) |
 | Branch | `feat/c4f-reader-home-repairs-and-demo` |
 | PR title | `feat(ui): add the drop zone, the repair and failure ui, and the reader demo` |

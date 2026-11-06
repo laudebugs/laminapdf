@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [architecture: Publishing (later)](../../plans/architecture.md#publishing-later) |
 | Round / milestone | Round B (library) — **M1 Library alpha** |
 | Depends on | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [X3a](./X3a-nightly-lane.md) |
-| Blocks | [B8b](./B8b-conformance-profiles-and-verapdf.md), [P1](./P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Writes **0017** (versioning and release: lockstep core, Changesets, version sync; publishing part deferred to [P1](../done/P1-reserve-names-and-trusted-publishing.md)); follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/b7b-versioning` |
 | PR title | `build: Changesets with Cargo version sync, ADR 0017 and the local 0.1.0-alpha.0 tag` |

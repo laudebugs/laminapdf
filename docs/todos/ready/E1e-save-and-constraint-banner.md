@@ -7,7 +7,6 @@
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
-| Blocks | [E1f](./E1f-metadata-ui-capability-page.md), [E2h](./E2h-page-organiser-ui.md), [E4f](./E4f-annotation-tools-ui.md), [E8e](./E8e-field-widgets-ui.md), [H3](./H3-cloud-document-storage.md) |
 | Dependency notes | [E1c](E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](E1d-edit-session-undo-ui.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1e-save-and-constraint-banner` |
