@@ -199,6 +199,29 @@ fn text_inside_artifact_marked_content_is_flagged_and_splits_runs() {
 }
 
 #[test]
+fn runs_carry_their_colour_and_clip_box() {
+    let text = text(
+        b"BT /F1 10 Tf 72 700 Td (A) Tj 1 1 1 rg (B) Tj ET q 0 0 100 100 re W n BT /F1 10 Tf 20 20 Td (C) Tj ET Q",
+    );
+    let runs: Vec<(&str, Option<[f64; 3]>, bool)> = text
+        .runs
+        .iter()
+        .map(|r| (r.text.as_str(), r.color, r.clip.is_some()))
+        .collect();
+    assert_eq!(
+        runs,
+        [
+            ("A", Some([0.0; 3]), false),
+            ("B", Some([1.0; 3]), false),
+            ("C", Some([1.0; 3]), true)
+        ]
+    );
+    // Letter, unrotated: the clip 0 0 100 100 is page-space x 0..100, y 692..792.
+    let clip = text.runs[2].clip.expect("clip");
+    assert_eq!((clip.x1.get(), clip.y0.get()), (100.0, 692.0));
+}
+
+#[test]
 fn invisible_text_is_flagged_and_visible_drops_it() {
     let text = text(b"BT /F1 10 Tf 72 700 Td 3 Tr (OCR) Tj 0 Tr ( drawn) Tj ET");
     let flags: Vec<(&str, bool)> = text.runs.iter().map(|r| (r.text.as_str(), r.invisible)).collect();

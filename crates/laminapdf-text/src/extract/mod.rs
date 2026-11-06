@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use laminapdf_content::{MarkedContent, Matrix, PathPaint, PathSegment, TextAdvance, TextItem, TextShow, Visitor};
 use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
-use laminapdf_model::{PageFrame, PointPt, UserSpacePoint};
+use laminapdf_model::{PageFrame, PointPt, RectPt, UserSpacePoint};
 use laminapdf_syntax::{ObjRef, Object};
 
 use font::FontCache;
@@ -69,6 +69,13 @@ pub struct Glyph {
     /// Inside marked content tagged `Artifact` (§14.8.2.2): page furniture such as running
     /// headers, page numbers and decoration, not part of the document's content.
     pub artifact: bool,
+    /// The clip's bounding box when the glyph was shown, in page space (§8.5.4; a box, not
+    /// the clip path); `None` when nothing clipped.
+    pub clip: Option<RectPt>,
+    /// The colour the glyph is painted in, as approximate RGB in [0, 1]: the fill colour, the
+    /// stroke colour for stroked-only text, the darker of the two for both (text rendering
+    /// mode, §9.3.6). `None` for invisible text, a pattern or a colour space read no other way.
+    pub color: Option<[f64; 3]>,
 }
 
 /// The text a page shows, in content order.
@@ -235,6 +242,28 @@ impl TextExtractor {
     }
 }
 
+/// How light a colour is: the luminance weights of ITU-R BT.601.
+fn luminance([r, g, b]: [f64; 3]) -> f64 {
+    0.299 * r + 0.587 * g + 0.114 * b
+}
+
+/// The colour a glyph is painted in under the state's text rendering mode (§9.3.6).
+fn paint_color(state: &laminapdf_content::GraphicsState) -> Option<[f64; 3]> {
+    match state.text.render_mode {
+        0 | 4 => state.fill.approx_rgb(),
+        1 | 5 => state.stroke.approx_rgb(),
+        2 | 6 => match (state.fill.approx_rgb(), state.stroke.approx_rgb()) {
+            (Some(fill), Some(stroke)) => Some(if luminance(fill) <= luminance(stroke) {
+                fill
+            } else {
+                stroke
+            }),
+            (one, other) => one.or(other),
+        },
+        _ => None,
+    }
+}
+
 /// One open marked-content sequence.
 #[derive(Debug, Clone, Copy)]
 struct Marked {
@@ -271,6 +300,8 @@ impl Collector<'_, '_> {
         let state = &show.state.text;
         let vertical = font.vertical();
         let invisible = matches!(state.render_mode, 3 | 7);
+        let color = paint_color(show.state);
+        let clip = show.state.clip_box.map(|b| self.frame.rect_to_page(&b));
         let (mcid, actual_text, artifact) = self.marks();
         let (ascent, descent) = font.extent;
         let mut tm = show.tm;
@@ -352,6 +383,8 @@ impl Collector<'_, '_> {
                             actual_text,
                             invisible,
                             artifact,
+                            clip,
+                            color,
                         });
                         step(advance, &mut tm, &mut total);
                     }
