@@ -445,7 +445,8 @@ jobs:
           # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
           cargo xtask verify-install $RUNTIMES --git-ref "$GIT_REF" --git-url "file://$GITHUB_WORKSPACE"
 
-  # The checks' result: every job passed (check-linux may be skipped while that runner is off).
+  # The checks' result: every job passed (check-linux may be skipped while that runner is off, and
+  # nightly when the guard found the release commit is only a version bump on a nightly-tested one).
   # The publish jobs below need it.
   release:
     name: Release checks passed
@@ -532,9 +533,7 @@ jobs:
           # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
           cargo xtask publish crates $DRY_RUN
 
-  # npm's trusted publishing rejects self-hosted runners, so npm gets a granular token limited to
-  # @laminapdf that can stage but not publish: each version waits for the owner's 2FA approval
-  # on npmjs.com (npm staged publishing).
+  # The npm tarballs, built and packed on our runner; publish-npm publishes them.
   pack-npm:
     name: Pack the npm packages
     needs: [guard, fast, release]
@@ -558,7 +557,7 @@ jobs:
           cache: false
       - uses: ./.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
-      # The tarballs and publish.json (the order, the dist-tag and the npm release to publish with).
+      # The tarballs and publish.json (the version, its dist-tag and the order).
       - run: cargo xtask publish npm-pack
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -568,12 +567,13 @@ jobs:
           retention-days: 7
 
   # npm's trusted publishing accepts only cloud-hosted runners (ADR 0017 §7), so this one job runs
-  # on GitHub's. It checks out nothing and runs no code from the repository: it downloads the
-  # tarballs, and npm exchanges the job's OIDC token for a short-lived publish token. A re-run
-  # leaves out the packages npm already has at the version.
+  # on GitHub's. It checks out nothing and runs no code from the repository or the tarballs: it
+  # downloads them, checks every value it reads from publish.json, and npm exchanges the job's OIDC
+  # token for a short-lived publish token. A re-run leaves out the packages npm already has at the
+  # version.
   publish-npm:
     name: Publish the npm packages${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
-    needs: [release, pack-npm]
+    needs: [guard, release, pack-npm]
     if: ${{ !cancelled() && needs.release.result == 'success' && needs.pack-npm.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -589,23 +589,36 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      # Trusted publishing needs npm 11.5.1 or later, newer than the npm some Node releases bundle.
+      - name: Install npm 11.17.0
+        run: npm install --global npm@11.17.0
       - name: npm publish, dependencies first
         working-directory: packs
         env:
+          REF: ${{ needs.guard.outputs.ref }}
           DRY_RUN: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') && '--dry-run' || '' }}
         run: |
           set -euo pipefail
-          npm_version=$(jq -r .npm publish.json)
+          fail() { echo "::error::$1"; exit 1; }
           version=$(jq -r .version publish.json)
           tag=$(jq -r .tag publish.json)
-          jq -r '.packages[] | "\(.name) \(.tarball)"' publish.json | while read -r name tarball; do
-            if [ "$(npx --yes "npm@$npm_version" view "$name@$version" version 2>/dev/null || true)" = "$version" ]; then
+          entries=$(jq -r '.packages[] | "\(.name) \(.tarball)"' publish.json)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || fail "publish.json's version: $version"
+          [[ "$tag" =~ ^[a-z]+$ ]] || fail "publish.json's dist-tag: $tag"
+          case "$REF" in
+            v*) [ "$REF" = "v$version" ] || fail "publish.json is $version, the tag $REF" ;;
+          esac
+          [ -n "$entries" ] || fail "publish.json lists no packages"
+          while read -r name tarball; do
+            [[ "$name" =~ ^@laminapdf/[a-z0-9-]+$ ]] || fail "publish.json's package name: $name"
+            [[ "$tarball" =~ ^[a-z0-9.-]+\.tgz$ && -f "$tarball" ]] || fail "publish.json's tarball for $name: $tarball"
+            if [ "$(npm view "$name@$version" version 2>/dev/null || true)" = "$version" ]; then
               echo "$name@$version is on npm already: skipped"
               continue
             fi
             # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
-            npx --yes "npm@$npm_version" publish "./$tarball" --access public --tag "$tag" $DRY_RUN
-          done
+            npm publish "./$tarball" --access public --tag "$tag" --ignore-scripts $DRY_RUN
+          done <<<"$entries"
 
   # SBOMs for every published crate and package; for a tag, the GitHub release that carries them
   # with the version's changelog. A dry run uploads the SBOMs as an artifact instead.
