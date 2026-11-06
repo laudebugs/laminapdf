@@ -102,7 +102,7 @@ SumatraPDF is the most-loved reader of the decade on Hacker News, and its saved 
 - [R01](../../design/paper/reader-a.md#r01-home--open): the **Continue reading** row, recorded as a deviation ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)). The design language's [command appendix](../../design/paper/design-language.md#appendix-command-ids): `file.clear-reading-positions`, and `positions.enabled` in its list of preference keys.
 - `apps/web/README.md` (what the reader stores on the device and how to clear it) and `packages/ui/README.md` (`Platform.positions`).
 - [D3b](./D3b-recent-files-and-file-watching.md) and [D4a](./D4a-windows-tabs-and-session-restore.md), if still in `ready/`: D3b's recent entries store the fingerprint and read page and zoom from `Platform.positions` instead of their own fields; D4a's tabs keep their own view, and a document opened outside a restored tab uses `Platform.positions`.
-- [Trust and proof §10](../../plans/trust-and-proof.md#10-to-dos): tick T5b.
+- [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): tick T5b.
 
 ## Risks and open questions
 

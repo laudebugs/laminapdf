@@ -135,7 +135,7 @@ None.
 - ADR 0031: an amendment section (the page subcommands, `--output-dir`, split's template fields, the new `laminapdf.pages/1` keys, write commands in a batch).
 - `crates/laminapdf-cli/README.md` (Commands, Many inputs, Page ranges: drop "for the page commands to come"); CLAUDE.md (the `laminapdf-cli` layout line and the CLI paragraph: the commands and their MCP tools).
 - `fixtures/README.md` (the two new goldens).
-- [Trust and proof §10](../../plans/trust-and-proof.md#10-to-dos): tick T6a.
+- [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): tick T6a.
 
 ## Risks and open questions
 

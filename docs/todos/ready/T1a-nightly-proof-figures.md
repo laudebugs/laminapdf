@@ -114,7 +114,7 @@ Unit tests in `proof.rs` over inline fixture JSON (one per input, the way `rende
 - [ADR 0018](../../decisions/0018-test-strategy.md#nightly-lane-x3a-2026-10-29)'s nightly implementation note: one paragraph on the proof record, what it holds and that only full runs on `main` append it.
 - The header comments of `nightly.yml` and `.github/actions/bench-history/action.yml` (its callers now include `render-diff` and `proof`).
 - `fuzz/README.md`: the per-target summary files.
-- [Trust and proof §10](../../plans/trust-and-proof.md#10-to-dos): leave T1 unticked until T1b–T1d merge.
+- [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): leave T1 unticked until T1b–T1d merge.
 
 ## Risks and open questions
 

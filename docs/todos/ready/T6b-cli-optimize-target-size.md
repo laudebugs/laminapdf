@@ -127,7 +127,7 @@ None.
 - ADR 0031: an amendment section (`optimize`, its flags and units, `laminapdf.optimize/1` in §6's list).
 - `fixtures/codes.json` and `docs/errors/target-size-unreachable.md`; the generated tables (`cargo xtask gen codes`).
 - `crates/laminapdf-cli/README.md` (the command, the ladder table, "use `--lossless` for print") and CLAUDE.md (the `laminapdf-cli` layout line and the CLI paragraph).
-- [Trust and proof §10](../../plans/trust-and-proof.md#10-to-dos): tick T6b.
+- [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): tick T6b.
 
 ## Risks and open questions
 

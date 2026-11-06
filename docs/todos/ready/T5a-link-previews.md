@@ -108,7 +108,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 - [R07](../../design/paper/reader-a.md#r07-links-and-history): add T5a to its **Todos** line, and record the region preview (card up to 480 × 180 CSS px, crop at the reader's zoom clamped to 100–150 %) as a deviation.
 - [Design language §7.27](../../design/paper/design-language.md#727-tooltip-and-link-preview): the link preview is built (no longer proposed), with the region preview's sizes.
 - `packages/viewer/README.md` (link previews, `Viewer.preview`) and CLAUDE.md's `packages/viewer` entry.
-- [Trust and proof §10](../../plans/trust-and-proof.md#10-to-dos): tick T5a.
+- [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): tick T5a.
 
 ## Risks and open questions
 

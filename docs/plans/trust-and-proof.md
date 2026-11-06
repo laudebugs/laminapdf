@@ -73,9 +73,9 @@ A black box over live text is the classic failed redaction, and incremental save
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T2a](../todos/ready/T2a-covered-text-flag.md) | Extraction flags text hidden under later shapes and images (`covered`) | M | L3g |
-| [T2b](../todos/ready/T2b-check-failed-redactions.md) | `laminapdf check` warns about failed redactions | M | T2a |
-| [T2c](../todos/ready/T2c-reveal-command.md) | `laminapdf reveal`: what a file discloses, in the CLI and MCP | M | T2b |
+| [T2a](../todos/ready/T2a-covered-text-flag.md) | Extraction flags text hidden under later shapes, images and annotations (`covered`) | L | L3g |
+| [T2b](../todos/ready/T2b-check-failed-redactions.md) | `laminapdf check` warns about failed redactions: covered text, unapplied redaction annotations, text left in earlier revisions | L | T2a |
+| [T2c](../todos/ready/T2c-reveal-command.md) | `laminapdf reveal`: what a file discloses, in the CLI and MCP | L | T2b |
 
 ### T3. Extraction users can check
 
@@ -132,28 +132,76 @@ Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top 
 
 ## 7. Changes to existing todos and plans
 
-This plan's PR also changes these files, so the evidence reaches work that is already on the board:
+This plan's PR also changes these files, so the evidence and the new todos reach work that is already on the board:
 
-- [E4f](../todos/ready/E4f-annotation-tools-ui.md): a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists.
-- [E7f](../todos/ready/E7f-font-handling-and-styling.md): no silent font substitution; the edit names the missing characters and the substitute before it is committed.
-- [E8b](../todos/ready/E8b-form-filling-feature-plan.md), [E10b](../todos/ready/E10b-signatures-feature-plan.md), [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md), [E12a](../todos/ready/E12a-redaction-feature-plan.md), [U5b](../todos/ready/U5b-reader-benchmark.md): a Context line with the research's evidence.
-- The [library plan](pdf-library.md)'s open question 4 points to T4a; the [architecture plan §3](architecture.md#3-decisions-to-record-adrs) reserves ADR 0032 for it.
-- The [roadmap](roadmap.md), the [plans index](README.md), the [todo board's ID list](../todos/README.md) and CLAUDE.md name Round T.
+- **The board:** `tools/xtask/src/todos.rs` accepts the letter T, and the website's dashboard names the section (`apps/site/src/data/rounds.ts`).
+- **Editor rules from the research:** [E4f](../todos/ready/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ready/E7f-font-handling-and-styling.md) never substitutes a font silently.
+- **Todos that now build on Round T:**
+  - [L3c](../todos/ready/L3c-model-plugins.md)'s OCR plug-in runs on T3a's `needs-ocr` pages; [E13c](../todos/ready/E13c-ocr-text-layer.md) checks that its layer reads as `ocr-layer`.
+  - [E3g](../todos/ready/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.
+  - [E11d](../todos/ready/E11d-sanitiser.md)'s sanitiser removes what `laminapdf reveal` lists, by its category names, and [E12f](../todos/ready/E12f-leak-tests.md)'s redacted fixtures must pass T2b's checks.
+  - [E6d](../todos/ready/E6d-watermarks-headers-footers.md) uses T4b's page-number fields.
+- **Out-of-scope pointers:** [C6b](../todos/ready/C6b-links-and-history.md) and the reader design's R07 point the link preview at T5a; [C7b](../todos/ready/C7b-offline-pwa.md) points the remembered position at T5b; E2b–E2d point the CLI's page commands at T6a; E16b and E16c point `optimize --target-size` at T6b.
+- **Evidence:** [E8b](../todos/ready/E8b-form-filling-feature-plan.md), [E10b](../todos/ready/E10b-signatures-feature-plan.md), [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md), [E12a](../todos/ready/E12a-redaction-feature-plan.md), [U5a](../todos/ready/U5a-pricing-and-promises-page.md) and [U5b](../todos/ready/U5b-reader-benchmark.md) gain a Context line; U5a and U5b link T1b's and T1c's pages rather than repeating their numbers.
+- **Plans:** the [library plan](pdf-library.md)'s open question 4 points to T4a; the [architecture plan §3](architecture.md#3-decisions-to-record-adrs) reserves ADR 0032 for it; the [website plan](website.md) lists `/how-we-test`; the [roadmap](roadmap.md), the [plans index](README.md), the [todo board's ID list](../todos/README.md) and CLAUDE.md name Round T.
 
 ## 8. Risks
 
 - **Published figures can embarrass.** A low share of corpus files opened, or a slow benchmark, would be public. The answer is to publish anyway, with the method and the trend, and fix what the numbers show; hiding them would contradict the round's point. The owner approves the page's copy (T1b).
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
 - **ADR 0032 may choose Typst,** whose output is finished bytes (via krilla), not Lamina PDF's object graph ([`krilla-fit` spike](../../spikes/krilla-fit/README.md)). T4b–T4e would then change shape; their files say so.
-- **Round T competes for time with the launch rounds.** Only T1 and T3 sit near the critical path, and both are M-sized or smaller.
+- **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2 waits on L3g, and T5 and T6 wait on the rounds they extend.
+- **Parallel todos touch the same files.** T1c, T3a and T3b all edit the extraction benchmark (`crates/laminapdf/examples/differential/extract-bench.rs`, `tools/xtask/src/extract_bench.rs`); T2a and T3a both forward image events through `TextExtractor::page_with`. Each todo says so, and whichever lands second extends the first's code.
+- **The WASM text module is near its size budget.** It has about 5% headroom; the flow layer, Markdown and the document schema will likely need an ADR 0016 §6 budget change or a fourth module (T4a decides).
 
 ## 9. Open questions
 
-1. **Tagged output by default.** Accessibility advocates beg generators for tagged output, and the PDF/UA-1 profile exists. Should `BuildOptions` tag documents unless asked not to? Tagging changes the byte goldens and adds structure to every file. The owner decides; if yes, it is one small todo.
-2. **MCP tools that write.** Users have started to fill forms with AI tools. ADR 0031 keeps the MCP server read-only unless started with `--allow-write`. Should form filling or generation become MCP tools? That needs an ADR 0031 amendment first.
-3. **Where the proof lives.** T1b proposes a "How we test" page on `laminapdf.com`; it could instead sit in the docs. The owner decides with the copy.
+The owner decides these; the todo named in each holds the details and a recommendation.
 
-## 10. To-dos
+**Across the round**
+
+1. **Tagged output by default.** Should `BuildOptions` tag documents unless asked not to, or at least flowing output (T4b)? Tagging changes the byte goldens and adds structure to every file.
+2. **MCP tools that write.** ADR 0031 keeps the MCP server read-only unless started with `--allow-write`. T4d proposes a `laminapdf_build` tool and T6a write tools under that flag; form filling would be next. Each needs an ADR 0031 amendment.
+3. **Where the proof lives,** on `laminapdf.com` (T1b's proposal) or in the docs, and whether "How we test" joins the site header's links.
+
+**Proof (T1)**
+
+4. **Where the code comes from.** Many commits carry `Co-Authored-By: Claude` trailers. T1b's statement must describe the AI coding agents' part truthfully; only the owner can write or approve it.
+5. **Which quiet machine** publishes the benchmark numbers (T1c), and whether a two-page invoice case is needed beside the one-page invoice and the 100-page report.
+6. **Examples that import the render packages** (T1d's page-comparison example), or a separate example folder in `@laminapdf/render-hayro`.
+
+**What files hide (T2)**
+
+7. **Exit codes.** `laminapdf reveal --fail-on` exits 6 (T2c's recommendation) or reuses 3; `check`'s new findings exit 3 and are exempt from `--strict` (T2b), which ADR 0003 §2 may need to say.
+8. **A new warning group and kind.** T2b adds `facadeWarnings` with kind `security`; a new kind for disclosures would amend ADR 0026.
+9. **Document text in `reveal`.** It shows Info values, comments and form values in data fields, and `--include-hidden-text` on the command line only. Is that acceptable under ADR 0026's rule against document text in messages?
+
+**Extraction (T3)**
+
+10. **OCR layers.** ADR 0030 §4 drops invisible text, so a page made searchable by OCRmyPDF or Acrobat extracts as nothing. Should an opt-in keep the layer's text on `ocr-layer` pages (an ADR 0030 amendment)?
+11. **Strict mode.** Should `extract-needs-ocr` fail strict extractions, as every other warning does?
+12. **The reading-order corpus.** T3b adds hard layouts and resets the U2b score with a history entry; the alternative keeps them in a set the score ignores.
+
+**Layout (T4)**
+
+13. **ADR 0032's route:** an engine of our own, Typst, or a hybrid; and the template language for T4e (placeholders in the JSON, MiniJinja or Typst).
+14. **The default font** when a caller gives none: the standard 14 fonts set Latin only and fail PDF/UA-1, while a bundled Noto face costs size (the library plan's open question 2).
+
+**Reader and CLI (T5, T6)**
+
+15. **Remembered positions for `#url=` documents,** by content hash only (T5b's recommendation) or off by default like C7b's remembered URLs; and the cap of 500 documents.
+16. **Signed files in the CLI.** T6a and T6b refuse them with no override flag; and "MB" in `--target-size` reads as decimal.
+
+## 10. Later
+
+Work the agents found while writing the todos, left out of Round T for now:
+
+- More covers for T2a: strokes, shadings and rotated shapes; a flag for text in optional-content layers that are off.
+- WASM and TypeScript bindings, and a reader panel, for `check`'s findings and `reveal`.
+- `extract`'s MCP tool answering in JSON, so agents see T3a's `textLayer`; extraction thresholds as `doc.extract()` options; a per-page reading-order confidence key; a switch to turn off table joining.
+- A home-page sample of Arabic, Devanagari and Chinese text (R9), beside the licence statement.
+
+## 11. To-dos
 
 - [x] Research what PDF users want on Hacker News, 2016–2026 ([report](../research/hacker-news/pdf-users-on-hacker-news.md), [notes](../research/hacker-news/README.md), [scripts](../../tools/hn-research/README.md))
 - [x] Write the Round T todos and amend E4f, E7f and the feature-plan todos (§7)

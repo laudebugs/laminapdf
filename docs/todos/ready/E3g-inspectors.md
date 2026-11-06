@@ -28,7 +28,7 @@ Give power users and developers read-only inspection: header/catalog version and
 
 **In scope**
 
-- Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary
+- Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary (from [T2c](./T2c-reveal-command.md)'s `revision_index`)
 - Inspector panels in `@laminapdf/ui`: Properties → Conformance; Fonts; Colour; Object browser (tree from trailer, jump to ref, hex/text stream views with size caps)
 - Bindings for all of the above in `laminapdf-wasm` / `@laminapdf/sdk`
 
