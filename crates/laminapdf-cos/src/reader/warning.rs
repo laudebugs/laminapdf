@@ -275,6 +275,24 @@ pub enum Warning {
         /// The limit that was reached.
         limit: u32,
     },
+    /// `extract-struct-tree-ignored`: a tagged page's structure tree failed a plausibility check,
+    /// so its reading order came from the layout instead. Raised by `laminapdf-extract`.
+    ExtractStructTreeIgnored {
+        /// The page's index.
+        page: u64,
+        /// Which check failed: `coverage` (the tree covers too little of the page's text) or
+        /// `order` (its order jumps back across columns too often).
+        reason: &'static str,
+    },
+    /// `extract-untagged-content`: a page read in structure-tree order has visible text outside
+    /// the tree and outside artifacts; it follows the tree's blocks, in layout order. Raised by
+    /// `laminapdf-extract`.
+    ExtractUntaggedContent {
+        /// The page's index.
+        page: u64,
+        /// How many characters (spaces left out) lie outside the tree.
+        chars: u64,
+    },
 }
 
 impl Warning {
@@ -318,6 +336,8 @@ impl Warning {
         "extract-reading-order-ambiguous",
         "extract-table-ambiguous",
         "extract-table-limit",
+        "extract-struct-tree-ignored",
+        "extract-untagged-content",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -362,6 +382,8 @@ impl Warning {
             Self::ExtractReadingOrderAmbiguous { .. } => "extract-reading-order-ambiguous",
             Self::ExtractTableAmbiguous { .. } => "extract-table-ambiguous",
             Self::ExtractTableLimit { .. } => "extract-table-limit",
+            Self::ExtractStructTreeIgnored { .. } => "extract-struct-tree-ignored",
+            Self::ExtractUntaggedContent { .. } => "extract-untagged-content",
         }
     }
 
@@ -406,7 +428,9 @@ impl Warning {
             | Self::ExtractLimitBlocks { .. }
             | Self::ExtractReadingOrderAmbiguous { .. }
             | Self::ExtractTableAmbiguous { .. }
-            | Self::ExtractTableLimit { .. } => None,
+            | Self::ExtractTableLimit { .. }
+            | Self::ExtractStructTreeIgnored { .. }
+            | Self::ExtractUntaggedContent { .. } => None,
         }
     }
 
@@ -449,6 +473,7 @@ impl Warning {
             | Self::UnmappedGlyph { .. } => ErrorKind::Input,
             Self::ExtractReadingOrderAmbiguous { .. } | Self::ExtractTableAmbiguous { .. } => ErrorKind::Unsupported,
             Self::ExtractTableLimit { .. } => ErrorKind::Limit,
+            Self::ExtractStructTreeIgnored { .. } | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
             }
@@ -481,7 +506,9 @@ impl Warning {
             | Self::ExtractLimitBlocks { page, .. }
             | Self::ExtractReadingOrderAmbiguous { page }
             | Self::ExtractTableAmbiguous { page }
-            | Self::ExtractTableLimit { page, .. } => Some(page),
+            | Self::ExtractTableLimit { page, .. }
+            | Self::ExtractStructTreeIgnored { page, .. }
+            | Self::ExtractUntaggedContent { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
         };
@@ -501,7 +528,9 @@ impl Warning {
             | Self::ExtractLimitBlocks { page, .. }
             | Self::ExtractReadingOrderAmbiguous { page }
             | Self::ExtractTableAmbiguous { page }
-            | Self::ExtractTableLimit { page, .. } => Some(page as i128),
+            | Self::ExtractTableLimit { page, .. }
+            | Self::ExtractStructTreeIgnored { page, .. }
+            | Self::ExtractUntaggedContent { page, .. } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
             | Self::ContentBadOperands { offset, .. }
@@ -650,6 +679,8 @@ mod tests {
             Warning::ExtractReadingOrderAmbiguous { page: 0 },
             Warning::ExtractTableAmbiguous { page: 0 },
             Warning::ExtractTableLimit { page: 0, limit: 1 },
+            Warning::ExtractStructTreeIgnored { page: 0, reason: "coverage" },
+            Warning::ExtractUntaggedContent { page: 0, chars: 1 },
         ];
         for w in &all {
             match w {
@@ -690,7 +721,9 @@ mod tests {
                 | Warning::ExtractLimitBlocks { .. }
                 | Warning::ExtractReadingOrderAmbiguous { .. }
                 | Warning::ExtractTableAmbiguous { .. }
-                | Warning::ExtractTableLimit { .. } => {}
+                | Warning::ExtractTableLimit { .. }
+                | Warning::ExtractStructTreeIgnored { .. }
+                | Warning::ExtractUntaggedContent { .. } => {}
             }
         }
         all
