@@ -20,6 +20,7 @@ use laminapdf_render::{
     ByteSource, CancelToken, HayroBackend, RenderBackend, RenderDocument, RenderError, RenderOpenOptions, RenderRequest,
 };
 use laminapdf_render_pdfium::PdfiumBackend;
+pub use laminapdf_test_fixtures::image::Bitmap;
 use laminapdf_test_fixtures::{fixture, fixtures_dir};
 
 /// Render goldens' resolution.
@@ -77,14 +78,6 @@ pub fn open(
     backend.open(source, options)
 }
 
-/// One rendered bitmap.
-pub struct Bitmap {
-    pub width: u32,
-    pub height: u32,
-    /// Straight RGBA8.
-    pub rgba: Vec<u8>,
-}
-
 pub fn render(doc: &dyn RenderDocument, req: &RenderRequest) -> Result<Bitmap, RenderError> {
     let plan = doc.plan(req)?;
     let mut rgba = vec![0; plan.byte_len()];
@@ -111,70 +104,4 @@ pub fn render_file(backend: &dyn RenderBackend, file: &str) -> Vec<Bitmap> {
 /// `<stem>-p<N>.png`, N 1-based.
 pub fn golden_name(file: &str, index: usize) -> String {
     format!("{}-p{}.png", file.trim_end_matches(".pdf"), index + 1)
-}
-
-pub fn write_png(path: &Path, bitmap: &Bitmap) {
-    let file = std::fs::File::create(path).unwrap();
-    let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), bitmap.width, bitmap.height);
-    encoder.set_color(png::ColorType::Rgba);
-    encoder.set_depth(png::BitDepth::Eight);
-    encoder.set_compression(png::Compression::High);
-    encoder.write_header().unwrap().write_image_data(&bitmap.rgba).unwrap();
-}
-
-pub fn read_png(path: &Path) -> Bitmap {
-    let decoder = png::Decoder::new(std::io::BufReader::new(
-        std::fs::File::open(path).unwrap_or_else(|e| panic!("{}: {e}", path.display())),
-    ));
-    let mut reader = decoder.read_info().unwrap();
-    let mut rgba = vec![0; reader.output_buffer_size().unwrap()];
-    let info = reader.next_frame(&mut rgba).unwrap();
-    assert_eq!(info.color_type, png::ColorType::Rgba, "{}", path.display());
-    rgba.truncate(info.buffer_size());
-    Bitmap {
-        width: info.width,
-        height: info.height,
-        rgba,
-    }
-}
-
-/// Mean SSIM of the two bitmaps' luma over 8 × 8 windows (stride 4). 1.0 is identical.
-pub fn ssim(a: &Bitmap, b: &Bitmap) -> f64 {
-    assert_eq!((a.width, a.height), (b.width, b.height), "sizes differ");
-    let luma = |bm: &Bitmap| -> Vec<f64> {
-        bm.rgba
-            .chunks(4)
-            .map(|p| 0.299 * f64::from(p[0]) + 0.587 * f64::from(p[1]) + 0.114 * f64::from(p[2]))
-            .collect()
-    };
-    let (la, lb) = (luma(a), luma(b));
-    let (w, h) = (a.width as usize, a.height as usize);
-    let (c1, c2) = ((0.01 * 255.0f64).powi(2), (0.03 * 255.0f64).powi(2));
-    let (mut total, mut windows) = (0.0, 0usize);
-    let size = 8.min(w).min(h);
-    let mut y = 0;
-    while y + size <= h {
-        let mut x = 0;
-        while x + size <= w {
-            let n = (size * size) as f64;
-            let (mut sa, mut sb, mut saa, mut sbb, mut sab) = (0.0, 0.0, 0.0, 0.0, 0.0);
-            for yy in y..y + size {
-                for xx in x..x + size {
-                    let (p, q) = (la[yy * w + xx], lb[yy * w + xx]);
-                    sa += p;
-                    sb += q;
-                    saa += p * p;
-                    sbb += q * q;
-                    sab += p * q;
-                }
-            }
-            let (ma, mb) = (sa / n, sb / n);
-            let (va, vb, cov) = (saa / n - ma * ma, sbb / n - mb * mb, sab / n - ma * mb);
-            total += ((2.0 * ma * mb + c1) * (2.0 * cov + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2));
-            windows += 1;
-            x += 4;
-        }
-        y += 4;
-    }
-    if windows == 0 { 1.0 } else { total / windows as f64 }
 }

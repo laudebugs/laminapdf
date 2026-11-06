@@ -128,7 +128,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/done/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/done/L4b-cli-batch-render-schema.md) (batch, extract, schema, completions), [L4e](../todos/ready/L4e-cli-render.md) (render, output templates, MCP tools for both), [L4c](../todos/done/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
+**Todos:** [L4a](../todos/done/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/done/L4b-cli-batch-render-schema.md) (batch, extract, schema, completions), [L4e](../todos/done/L4e-cli-render.md) (render, output templates, MCP tools for both), [L4c](../todos/done/L4c-mcp-mode.md) (`laminapdf mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
 **Deliverable:** the `laminapdf` binary (`crates/laminapdf-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
@@ -189,7 +189,7 @@ This plan adjusts these todos (edited in the same PR):
 
 - [x] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain` ([L4a](../todos/done/L4a-lamina-cli.md))
 - [x] Batch and NDJSON, `--jobs`, Markdown/JSON extraction, `schema`, completions, man pages ([L4b](../todos/done/L4b-cli-batch-render-schema.md))
-- [ ] `render` to PNG, output templates, MCP tools for `render` and the extraction formats ([L4e](../todos/ready/L4e-cli-render.md))
+- [x] `render` to PNG, output templates, MCP tools for `render` and the extraction formats ([L4e](../todos/done/L4e-cli-render.md))
 - [x] `laminapdf mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations ([L4c](../todos/done/L4c-mcp-mode.md))
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages
 

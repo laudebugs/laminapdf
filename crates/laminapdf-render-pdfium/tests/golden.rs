@@ -9,7 +9,8 @@
 
 mod common;
 
-use common::{golden_dir, golden_name, read_png, render_file, ssim};
+use common::{golden_dir, golden_name, render_file};
+use laminapdf_test_fixtures::image::{read_png, ssim};
 
 /// The SSIM a render must reach against its own backend's golden.
 const MIN_SSIM: f64 = 0.99;

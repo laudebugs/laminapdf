@@ -101,7 +101,13 @@ The cli-spec note §4 and the filesystem MCP server's symlink CVEs set these, so
 > - **Exit codes:** `0` all ok; `3` warnings and no failure (`0` with `--warnings-ok`); `1` any failure; `5` when every failure is a missing or wrong password; `2` for a usage error found before any work (no input, `-` twice). `--fail-fast` starts no input after a failure, and `skipped` counts those.
 > - **Schemas:** the lines' are `result-line.schema.json` and `summary-line.schema.json`. `laminapdf schema [command]` prints a 2020-12 document whose `input`, `output`, `error`, `result` and `summary` properties embed those schemas; the arguments object is the shape `laminapdf mcp` takes too.
 >
-> Output templates for commands that write many files come with `render` ([L4e](../todos/ready/L4e-cli-render.md)).
+> **Amendment (L4e, 2026-11-06): output templates and `render`.** `render` is batch-capable like `info`, `check` and `extract`, and writes one PNG per page through the same `Io` as every write. Its `-o` is a template ([L4e](../todos/done/L4e-cli-render.md)):
+>
+> - **Fields:** `{stem}` (the input's file name without its extension; `stdin` for `-`), `{name}` (the file name), `{index}` (the input's position, from 0) and `{n}` (the page number, from 1). A zero-padded width follows a colon, up to 9 digits (`{n:03}`); only `{index}` and `{n}` take one. `{{` and `}}` are braces. An unknown field, a bad width or a lone brace is `invalid-command-line` with `didYouMean`.
+> - **Clashes before work:** with several inputs, a template that names no input field, or two inputs whose page 1 would share a path, are refused before any is read; at run time each input claims its paths in a set the batch shares, so no two inputs write one file whatever their page counts. `-` takes one page of one input named on argv (never a batch). Within an input, two pages that would share a path are refused once its page count is known, before any page is written.
+> - **Reading flags:** the renderer parses the file itself, so `render` refuses `--strict` and the limit flags rather than ignoring them.
+> - **Refusals before writes:** every output is checked against `--force` (`overwrite-refused`, exit 4) before the first page is written, so a refusal leaves no partial set of files. Folders are not created.
+> - **MCP:** `laminapdf_render` is a write tool (listed with `--allow-write`), never destructive: it writes only new files inside the roots and never to standard output. `laminapdf_extract` takes every format; its `outputSchema` is one object schema over the text report and `laminapdf.extract/1`.
 
 ## Consequences
 
