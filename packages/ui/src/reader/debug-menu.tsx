@@ -15,6 +15,7 @@ export type DebugBackend = "pdfium" | "hayro";
 export interface DebugMenuProps {
   /** The backend rendering now; its entry shows a check. */
   backend: DebugBackend;
+  /** Called with the backend chosen from the menu. */
   onBackendChange: (backend: DebugBackend) => void;
   keys: KeyPlatform;
 }
