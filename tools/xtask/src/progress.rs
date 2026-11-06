@@ -171,7 +171,13 @@ pub(crate) fn run(root: &Path, offline: bool) -> Result<()> {
         None
     } else {
         open_pull_request_paths(root)
-            .inspect_err(|error| eprintln!("warning: couldn't read the open pull requests: {error:#}"))
+            .inspect_err(|error| {
+                // The website's deploy runs this: say so where the run shows it, since the job passes.
+                if std::env::var_os("GITHUB_ACTIONS").is_some() {
+                    println!("::warning title=progress::couldn't read the open pull requests, so in progress is the last snapshot's list");
+                }
+                eprintln!("warning: couldn't read the open pull requests: {error:#}");
+            })
             .ok()
     };
     if claims.is_none() {

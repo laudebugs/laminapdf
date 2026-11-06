@@ -43,7 +43,7 @@ After each build, `astro.config.mjs` runs three steps from `@laminapdf/site-kit`
 
 The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12-website-home)) is one document sheet on the paper ground, the design the owner chose. Nothing on it is typed by hand twice:
 
-- **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
+- **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Each production deploy runs the command before it builds, so the live site follows `main`. The committed file is what previews and local builds show, and refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
 - **Code and packages** come from the files CI tests (`src/data/sources.ts`): the first PDF from `packages/sdk/examples/hello.ts` and `crates/laminapdf/examples/hello.rs`, the command-line examples that succeed from the CLI's README, and the install lines, the note on alpha releases and the package table from the docs site's install page.
 - **Words** are in `src/data/copy.ts`, which the owner approved; a change to a claim goes back to the owner; the areas' plain names are in `src/data/rounds.ts`.
 
@@ -65,9 +65,9 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 - **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
-- **`production`** (pushes to `main`): builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`.
+- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule catches pull requests opened since the last merge, so the todos they claim show as in progress.
 
-The workflow's `paths` must list everything the site builds from, or a change to one of those files reaches the site only at its next deploy:
+Pushes to `main` deploy whatever they change, because any merge can move a todo. The pull request trigger's `paths` must list everything the site builds from, or a pull request that changes one of those files gets no preview:
 
 - `apps/site/**`;
 - the packages it imports: `packages/site-kit/**`, `packages/tokens/**` and `packages/fonts/**`;

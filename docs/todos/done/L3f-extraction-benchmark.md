@@ -34,7 +34,7 @@ Measure what the rule-based extractor achieves, so users know before reaching fo
 
 **Out of scope**
 
-- Model plug-ins → [L3c](../ready/L3c-model-plugins.md); structure-tree order → [L3d](../ready/L3d-extract-structure-and-furniture.md).
+- Model plug-ins → [L3c](../ready/L3c-model-plugins.md); structure-tree order → [L3d](./L3d-extract-structure-and-furniture.md).
 
 ## Tasks
 

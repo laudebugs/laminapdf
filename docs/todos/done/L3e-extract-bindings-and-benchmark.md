@@ -37,8 +37,8 @@ Give TypeScript the extraction Rust has since [L3b](./L3b-extract-tables-and-ser
 
 **Out of scope** (and which todo covers it)
 
-- Structure-tree order, headings, lists, tagged tables: [L3d](../ready/L3d-extract-structure-and-furniture.md).
-- `laminapdf extract` output formats in the CLI: [L4b](../ready/L4b-cli-batch-render-schema.md).
+- Structure-tree order, headings, lists, tagged tables: [L3d](./L3d-extract-structure-and-furniture.md).
+- `laminapdf extract` output formats in the CLI: [L4b](./L4b-cli-batch-render-schema.md).
 
 ## Tasks
 
