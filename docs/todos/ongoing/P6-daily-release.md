@@ -11,7 +11,7 @@
 | Branch | `build/p6-daily-release` |
 | PR title | `build: release once a day after the nightly passes` |
 | Size | M (≈ 400–600 lines: xtask, a workflow for the owner, tests, docs) |
-| PR | — |
+| PR | [#271](https://github.com/laudebugs/laminapdf/pull/271) |
 
 ## Goal
 
