@@ -255,6 +255,38 @@ jobs:
           path: target/xtask/pdf-runtimes/
           if-no-files-found: ignore
 
+  # Todo P3: the published crates (cargo-semver-checks) and @laminapdf/sdk's public API (API
+  # Extractor) against the newest published version, over the `wasm` job's build. A breaking
+  # change fails unless a pending changeset bumps the fixed group's minor version (the stability
+  # policy); the job summary lists every change found either way (`cargo xtask semver`).
+  semver:
+    name: Semver against the published version
+    needs: [changes, wasm]
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the built packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: lamina-pdf-dist
+          path: packages/
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: ci-semver
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # Same version as tools/xtask/src/doctor.rs.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-semver-checks@0.51.0
+      - uses: ./.github/actions/node-pnpm
+      - run: cargo xtask semver
+
   # Two short checks in one job, since each takes about a minute, less than waiting for a runner.
   # MSRV: the workspace builds on the declared rust-version. The pdf-basics spike is frozen
   # research code outside both workspaces, but its tests are the evidence behind several
@@ -354,7 +386,7 @@ jobs:
   fast-gate:
     name: fast-gate
     if: always()
-    needs: [changes, rust, wasm, pdf-runtimes, msrv-and-spike, typescript]
+    needs: [changes, rust, wasm, pdf-runtimes, semver, msrv-and-spike, typescript]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:
