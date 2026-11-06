@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
+| Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [C4a](./C4a-ui-chrome-and-platform.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer); follows 0010 (UI branches only on capability flags) and 0024 (the shell's slots) |
 | Branch | `feat/c4e-reader-chrome` |
 | PR title | `feat(ui): add the reader shell, the top bar and the password prompt` |
@@ -42,17 +42,17 @@ Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell l
 
 ## Tasks
 
-- [ ] The shell and the top bar's components, each control focusable and labelled.
-- [ ] Page indicator: shows `n / total`, a page label with its position (`A-1 (22 / 24)`), accepts typed page numbers or labels, Enter jumps, invalid input is announced.
-- [ ] Zoom control: steps and a menu; keyboard operable; reflects viewer state.
-- [ ] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password.
-- [ ] README: the reader chrome's map.
+- [x] The shell and the top bar's components, each control focusable and labelled.
+- [x] Page indicator: shows `n / total`, a page label with its position (`A-1 (22 / 24)`), accepts typed page numbers or labels, Enter jumps, invalid input is announced.
+- [x] Zoom control: steps and a menu; keyboard operable; reflects viewer state.
+- [x] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password.
+- [x] README: the reader chrome's map.
 
 ## Acceptance criteria
 
-- [ ] Component tests (Vitest browser mode, three engines) cover: password dialog submit/cancel/wrong-password; toolbar reflects and changes viewer zoom/page; capability-gated items hidden or disabled correctly.
-- [ ] The top bar's states pass axe in the three themes and both directions, and meet the target sizes.
-- [ ] All user-visible strings come from the message catalogue.
+- [x] Component tests (Vitest browser mode, three engines) cover: password dialog submit/cancel/wrong-password; toolbar reflects and changes viewer zoom/page; capability-gated items hidden or disabled correctly.
+- [x] The top bar's states pass axe in the three themes and both directions, and meet the target sizes.
+- [x] All user-visible strings come from the message catalogue.
 
 ## Post-merge checks
 
@@ -72,8 +72,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
