@@ -80,7 +80,7 @@ pub struct BatchOptions {
     pub fail_fast: bool,
 }
 
-/// Runs `work` on each input on up to `options.jobs` threads, and hands each result to `emit`
+/// Runs `work` on each input (with its index) on up to `options.jobs` threads, and hands each result to `emit`
 /// in argument order as soon as every input before it has been handed over. No input starts
 /// more than 4 × jobs past the oldest one not handed over, so a slow input
 /// holds back a bounded number of finished results. With `fail_fast`, no input starts after a
@@ -88,7 +88,7 @@ pub struct BatchOptions {
 pub fn run<T, W, E>(inputs: &[String], options: BatchOptions, work: W, mut emit: E) -> usize
 where
     T: Send,
-    W: Fn(&str) -> Result<T, CliError> + Sync,
+    W: Fn(usize, &str) -> Result<T, CliError> + Sync,
     E: FnMut(usize, &str, Result<T, CliError>),
 {
     let next = AtomicUsize::new(0);
@@ -116,7 +116,7 @@ where
                     let Some(input) = inputs.get(index) else {
                         break;
                     };
-                    let result = work(input);
+                    let result = work(index, input);
                     if options.fail_fast && result.is_err() {
                         stop.store(true, Ordering::Release);
                     }
@@ -243,7 +243,7 @@ mod tests {
                 jobs: 4,
                 fail_fast: false,
             },
-            |input| {
+            |_, input| {
                 // The first inputs take longest.
                 let n: u64 = input
                     .trim_start_matches("in")
@@ -270,7 +270,7 @@ mod tests {
                 jobs: 2,
                 fail_fast: false,
             },
-            |input| {
+            |_, input| {
                 let n = started.fetch_add(1, Ordering::AcqRel);
                 if input == "in0.pdf" {
                     // While the first input runs, the other worker may run ahead only so far.
@@ -295,7 +295,7 @@ mod tests {
                 jobs: 1,
                 fail_fast: true,
             },
-            |input| {
+            |_, input| {
                 *started.lock().unwrap_or_else(std::sync::PoisonError::into_inner) += 1;
                 if input == "in2.pdf" {
                     Err(CliError::new(ErrorCode::InputUnreadable, "no such file"))
