@@ -528,3 +528,10 @@ fn approximate_rgb_follows_the_device_spaces() {
     let named = color(ColorSpace::Named(laminapdf_syntax::Name::from("CS0")), &[1.0]);
     assert_eq!(named.approx_rgb(), None);
 }
+
+#[test]
+fn a_rotated_rectangle_clips_to_the_box_of_all_four_corners() {
+    // Rotated 90°: (x, y) → (−y, x), so the rectangle 0 0 10 20 covers x −20..0, y 0..10.
+    let got = clips(b"0 1 -1 0 0 0 cm 0 0 10 20 re W n BT (a) Tj ET");
+    assert_eq!(got, [Some([-20.0, 0.0, 0.0, 10.0])]);
+}

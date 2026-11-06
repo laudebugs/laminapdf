@@ -59,12 +59,15 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
     /// Reports a path segment and moves the current point.
     pub(super) fn segment(&mut self, frame: &mut Frame, op: &Op<'_>, segment: PathSegment) {
         frame.path.get_or_insert(op.offset);
-        // At most three points a segment: no allocation on this hot path.
+        // At most four points a segment, so no allocation on this hot path; a rectangle's four
+        // corners, since a rotated or skewed CTM moves each one.
         let (points, used) = match segment {
-            PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } => ([(x, y); 3], 1),
-            PathSegment::Rect { x, y, width, height } => ([(x, y), (x + width, y + height), (x, y)], 2),
-            PathSegment::CurveTo { c1, c2, end } => ([c1, c2, end], 3),
-            PathSegment::ClosePath => ([(0.0, 0.0); 3], 0),
+            PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } => ([(x, y); 4], 1),
+            PathSegment::Rect { x, y, width, height } => {
+                ([(x, y), (x + width, y), (x, y + height), (x + width, y + height)], 4)
+            }
+            PathSegment::CurveTo { c1, c2, end } => ([c1, c2, end, end], 3),
+            PathSegment::ClosePath => ([(0.0, 0.0); 4], 0),
         };
         for &(x, y) in points.iter().take(used) {
             let (x, y) = frame.gs.ctm.apply(x, y);

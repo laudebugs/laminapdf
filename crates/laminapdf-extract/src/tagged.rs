@@ -568,7 +568,11 @@ pub(crate) fn tree_blocks(
             .iter()
             .map(|(_, _, idx)| union(idx.iter().filter_map(|&i| pieces.get(i)).map(|p| p.bbox)))
             .collect();
-        let text: String = pieces.iter().map(|p| p.text.as_str()).collect();
+        // The direction of the tree's own text decides which way a column jump goes back.
+        let text: String = order
+            .iter()
+            .flat_map(|(_, _, idx)| idx.iter().filter_map(|&i| pieces.get(i)).map(|p| p.text.as_str()))
+            .collect();
         if let Err(why) = plausible(tagged, total, &boxes, mostly_rtl(&text)) {
             return Err((why, (pieces, spans)));
         }
