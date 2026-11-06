@@ -1,18 +1,20 @@
-# Release lane (ADR 0018 §2, ADR 0017; todos B7b, P1): on a `v*` tag, everything the PR lanes and
+# Release lane (ADR 0018 §2, ADR 0017; todos B7b, P1, P5): on a `v*` tag, everything the PR lanes and
 # the nightly lane run, on the release commit, plus the packaging checks and clean installs; then,
 # only when every one of them passed, the publish jobs (ADR 0017 §7). Only a tag push publishes:
-# a `workflow_dispatch` run, even on a tag, does the same with `--dry-run`, so it uploads and
-# stages nothing and creates no release.
+# a `workflow_dispatch` run, even on a tag, does the same with `--dry-run`, so it uploads
+# nothing and creates no release.
 #
 #   guard           refuses to go on unless the latest completed full nightly.yml run on main
 #                   (scheduled, or dispatched with every input at its default) succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
-#                   (`cargo xtask version check-tag`)
+#                   (`cargo xtask version check-tag`); `--version-only` sets `nightly` to `skip` when
+#                   the release commit adds only a version bump to the commit that nightly tested
 #   fast            the fast lane: `cargo xtask check` (with `version sync --check`) and `size`,
 #                   over `cargo xtask wasm` (which runs publint and attw on @laminapdf/sdk)
 #   full suites     the full lane's: the full differential set, every fuzz target, the round
 #                   trip, the examples and render goldens, the capability matrix, @laminapdf/sdk in
 #                   every runtime, and `cargo xtask check` on Linux while that runner is on
-#   nightly         nightly.yml itself, called as a reusable workflow on the release commit
+#   nightly         nightly.yml itself, called as a reusable workflow on the release commit, unless
+#                   the guard found a version-only commit on top of a nightly-passed one
 #   verify-install  `cargo xtask verify-install`: the `pnpm pack` tarballs and the `laminapdf` crate
 #                   (path and git dependencies, the git one pinned to the tag) in clean projects
 #                   outside the checkout: Node 22, 24 and 26, Deno, Bun, Chromium (a Vite app),
@@ -20,13 +22,15 @@
 #   release         passes when every job above passed
 #   publish-crates  `cargo xtask publish crates`: every `publish = true` crate, with a crates.io token
 #                   from trusted publishing (rust-lang/crates-io-auth-action; no stored token)
-#   publish-npm     `cargo xtask publish npm-pack`, then `npm-stage`: the fixed group packed
-#                   without the token, then staged on npm with the NPM_TOKEN secret (stage-only;
-#                   the owner approves each version on npmjs.com)
+#   pack-npm        `cargo xtask publish npm-pack`: the fixed group built and packed, with
+#                   publish.json (version, dist-tag, order), uploaded as an artifact
+#   publish-npm     on a GitHub-hosted runner (npm's trusted publishing accepts no other) with an
+#                   OIDC token and no checkout: `npm publish` of each tarball in publish.json's order;
+#                   no stored npm token and no approval step
 #   github-release  CycloneDX SBOMs (`cargo xtask sbom`) and, for a tag, the GitHub release with them
 #   registry        after a tag's publish jobs (todo P3): `cargo xtask verify-install --from-registry`,
 #                   the published version from npm and crates.io in the same runtimes. One job waits
-#                   for the version on both registries (npm's goes public once the owner approves
+#                   for the version on both registries (a registry can take a few minutes to serve
 #                   it) and checks the Rust binary; then Node 22, 24 and 26 and the rest run
 # The repository is private, so there is no npm provenance and no artifact attestation yet
 # (ADR 0017 §7).
@@ -78,6 +82,7 @@ jobs:
     outputs:
       ref: ${{ steps.ref.outputs.ref }}
       linux: ${{ steps.linux.outputs.linux }}
+      nightly: ${{ steps.guard.outputs.nightly }}
     steps:
       # A tag push tests the tag; a dispatch tests `inputs.ref`, else the dispatched commit.
       - name: The ref under test
@@ -122,11 +127,14 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
+      # --version-only: `nightly=skip` when HEAD adds only a version bump to the commit that
+      # nightly tested (the daily release's commits), so the lane doesn't run it again.
       - name: Refuse unless the latest full nightly on main is green on an ancestor
+        id: guard
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: cargo xtask release-guard --commit HEAD
+        run: cargo xtask release-guard --commit HEAD --version-only
       - name: A tag must name the version (v<version>)
         env:
           REF: ${{ steps.ref.outputs.ref }}
@@ -385,6 +393,7 @@ jobs:
   nightly:
     name: Nightly suites
     needs: guard
+    if: ${{ needs.guard.outputs.nightly != 'skip' }}
     permissions:
       contents: write
       issues: write
@@ -440,7 +449,8 @@ jobs:
           # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
           cargo xtask verify-install $RUNTIMES --git-ref "$GIT_REF" --git-url "file://$GITHUB_WORKSPACE"
 
-  # The checks' result: every job passed (check-linux may be skipped while that runner is off).
+  # The checks' result: every job passed (check-linux may be skipped while that runner is off, and
+  # nightly when the guard found the release commit is only a version bump on a nightly-tested one).
   # The publish jobs below need it.
   release:
     name: Release checks passed
@@ -466,11 +476,14 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           LINUX: ${{ needs.guard.outputs.linux }}
+          NIGHTLY: ${{ needs.guard.outputs.nightly }}
           REF: ${{ needs.guard.outputs.ref }}
         run: |
           set -euo pipefail
-          failed=$(jq -r --arg linux "$LINUX" 'to_entries
-            | map(select(.value.result != "success" and ((.key == "check-linux" and $linux != "true" and .value.result == "skipped") | not)))
+          failed=$(jq -r --arg linux "$LINUX" --arg nightly "$NIGHTLY" 'to_entries
+            | map(select(.value.result != "success"
+                and ((.key == "check-linux" and $linux != "true" and .value.result == "skipped") | not)
+                and ((.key == "nightly" and $nightly == "skip" and .value.result == "skipped") | not)))
             | map("\(.key): \(.value.result)") | join(", ")' <<<"$NEEDS")
           if [ -n "$failed" ]; then
             echo "::error::release checks failed: $failed"
@@ -524,11 +537,9 @@ jobs:
           # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
           cargo xtask publish crates $DRY_RUN
 
-  # npm's trusted publishing rejects self-hosted runners, so npm gets a granular token limited to
-  # @laminapdf that can stage but not publish: each version waits for the owner's 2FA approval
-  # on npmjs.com (npm staged publishing).
-  publish-npm:
-    name: Stage the npm packages${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
+  # The npm tarballs, built and packed on our runner; publish-npm publishes them.
+  pack-npm:
+    name: Pack the npm packages
     needs: [guard, fast, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -550,15 +561,68 @@ jobs:
           cache: false
       - uses: ./.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
-      # Built and packed without the token, so no build script or dependency can read it.
+      # The tarballs and publish.json (the version, its dist-tag and the order).
       - run: cargo xtask publish npm-pack
-      - name: cargo xtask publish npm-stage
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-npm-packs
+          path: target/xtask/npm-packs/
+          if-no-files-found: error
+          retention-days: 7
+
+  # npm's trusted publishing accepts only cloud-hosted runners (ADR 0017 §7), so this one job runs
+  # on GitHub's. It checks out nothing and runs no code from the repository or the tarballs: it
+  # downloads them, checks every value it reads from publish.json, and npm exchanges the job's OIDC
+  # token for a short-lived publish token. A re-run leaves out the packages npm already has at the
+  # version.
+  publish-npm:
+    name: Publish the npm packages${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
+    needs: [guard, release, pack-npm]
+    if: ${{ !cancelled() && needs.release.result == 'success' && needs.pack-npm.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # npm's trusted publishing.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-npm-packs
+          path: packs/
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # Trusted publishing needs npm 11.5.1 or later, newer than the npm some Node releases bundle.
+      - name: Install npm 11.17.0
+        run: npm install --global npm@11.17.0
+      - name: npm publish, dependencies first
+        working-directory: packs
         env:
-          NPM_TOKEN: ${{ github.event_name == 'push' && github.ref_type == 'tag' && secrets.NPM_TOKEN || '' }}
+          REF: ${{ needs.guard.outputs.ref }}
           DRY_RUN: ${{ !(github.event_name == 'push' && github.ref_type == 'tag') && '--dry-run' || '' }}
         run: |
-          # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
-          cargo xtask publish npm-stage $DRY_RUN
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          version=$(jq -r .version publish.json)
+          tag=$(jq -r .tag publish.json)
+          entries=$(jq -r '.packages[] | "\(.name) \(.tarball)"' publish.json)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || fail "publish.json's version: $version"
+          [[ "$tag" =~ ^[a-z]+$ ]] || fail "publish.json's dist-tag: $tag"
+          case "$REF" in
+            v*) [ "$REF" = "v$version" ] || fail "publish.json is $version, the tag $REF" ;;
+          esac
+          [ -n "$entries" ] || fail "publish.json lists no packages"
+          while read -r name tarball; do
+            [[ "$name" =~ ^@laminapdf/[a-z0-9-]+$ ]] || fail "publish.json's package name: $name"
+            [[ "$tarball" =~ ^[a-z0-9.-]+\.tgz$ && -f "$tarball" ]] || fail "publish.json's tarball for $name: $tarball"
+            if [ "$(npm view "$name@$version" version 2>/dev/null || true)" = "$version" ]; then
+              echo "$name@$version is on npm already: skipped"
+              continue
+            fi
+            # shellcheck disable=SC2086 # DRY_RUN is empty or one flag.
+            npm publish "./$tarball" --access public --tag "$tag" --ignore-scripts $DRY_RUN
+          done <<<"$entries"
 
   # SBOMs for every published crate and package; for a tag, the GitHub release that carries them
   # with the version's changelog. A dry run uploads the SBOMs as an artifact instead.
@@ -610,10 +674,9 @@ jobs:
 
   # Todo P3: the published version, installed from npm and crates.io as the install page tells
   # users to, in every runtime verify-install covers. Tag pushes only: a dry run publishes
-  # nothing. npm's versions go public once the owner approves them on npmjs.com, so this job
+  # nothing. A registry can take a few minutes to serve a version just published, so this job
   # polls both registries for up to two hours first (one runner waits, not the whole matrix),
-  # then checks the Rust binary from crates.io. If the wait times out, approve the versions and
-  # re-run the failed jobs.
+  # then checks the Rust binary from crates.io. If the wait times out, re-run the failed jobs.
   registry-ready:
     name: The published version on npm and crates.io (Rust binary)
     needs: [guard, publish-crates, publish-npm]

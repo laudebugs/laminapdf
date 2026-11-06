@@ -7,8 +7,6 @@
 //! the suites instead of slipping through.
 
 use std::collections::BTreeMap;
-use std::fs::OpenOptions;
-use std::io::Write as _;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -32,14 +30,7 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         println!("  {kind}  {path}");
     }
     println!("code={code}");
-    if let Some(out) = std::env::var_os("GITHUB_OUTPUT") {
-        let mut file = OpenOptions::new()
-            .append(true)
-            .open(&out)
-            .with_context(|| format!("opening $GITHUB_OUTPUT ({})", Path::new(&out).display()))?;
-        writeln!(file, "code={code}").context("writing $GITHUB_OUTPUT")?;
-    }
-    Ok(())
+    crate::util::github_output("code", &code.to_string())
 }
 
 /// Old path → new path for each file renamed between `merge_base` and the working tree.
