@@ -66,7 +66,7 @@ fn every_example_at_72_dpi_should_match_its_render_golden() {
     let goldens = fixtures_dir().join("render-golden");
     let mut examples: Vec<String> = std::fs::read_dir(&goldens)
         .unwrap()
-        .filter_map(|e| e.ok())
+        .filter_map(Result::ok)
         .filter(|e| e.path().is_dir())
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();

@@ -209,9 +209,10 @@ mod tests {
     use super::{Fill, Template};
 
     fn expand(template: &str, input: &str, index: usize, page: u32) -> String {
-        Template::parse(template)
-            .map(|t| t.expand(Fill { input, index, page }))
-            .unwrap_or_else(|e| e.diagnostic().message.clone())
+        Template::parse(template).map_or_else(
+            |e| e.diagnostic().message.clone(),
+            |t| t.expand(Fill { input, index, page }),
+        )
     }
 
     #[test]

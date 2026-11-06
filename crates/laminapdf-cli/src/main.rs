@@ -258,7 +258,7 @@ macro_rules! for_input {
         impl ForInput for $ty {
             fn for_input(&self, input: &str, _: usize) -> Self {
                 let mut args = self.clone();
-                args.input = input.to_owned();
+                input.clone_into(&mut args.input);
                 args
             }
         }
@@ -270,7 +270,7 @@ for_input!(InfoArgs, CheckArgs, ExtractArgs);
 impl ForInput for RenderArgs {
     fn for_input(&self, input: &str, index: usize) -> Self {
         let mut args = self.clone();
-        args.input = input.to_owned();
+        input.clone_into(&mut args.input);
         args.index = index;
         args
     }
