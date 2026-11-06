@@ -7,7 +7,6 @@
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E10c](./E10c-visual-signatures.md), [E10e](./E10e-timestamps-and-tsa-proxy.md), [E10h](./E10h-revision-diff-and-attacks.md), [E10i](./E10i-platform-signers.md) |
-| Blocks | None |
 | ADRs | Implements ADR 0020; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10j-signature-ui` |
 | PR title | `feat(ui): signing flow and signature status panel` |

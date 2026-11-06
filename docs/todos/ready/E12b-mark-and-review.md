@@ -7,7 +7,6 @@
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E4b](./E4b-annotation-model-and-overlay.md), [E12a](./E12a-redaction-feature-plan.md) |
-| Blocks | [E12c](./E12c-apply-content-removal.md), [E12e](./E12e-sensitive-search.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e12b-mark-and-review` |
 | PR title | `feat(redact): mark redactions and preview them` |

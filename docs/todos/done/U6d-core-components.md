@@ -7,7 +7,6 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](./U6a-paper-tokens.md), [U6c](./U6c-icon-set.md) |
-| Blocks | [U6e](./U6e-overlays-and-sheets.md), [U6h](./U6h-display-components.md) |
 | ADRs | Follows 0024 (component rules, selection surfaces, touch targets; from [U1a](./U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, the accessible-primitives library; from [C2a](./C2a-render-adrs.md)); [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) for new dependencies |
 | Branch | `feat/u6d-core-components` |
 | PR title | `feat(ui): add the paper core components with all states, keyboard and axe tests` |

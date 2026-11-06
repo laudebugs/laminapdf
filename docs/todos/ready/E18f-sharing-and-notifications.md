@@ -7,7 +7,6 @@
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
 | Depends on | [E18d](./E18d-durable-object-server.md), [H3](./H3-cloud-document-storage.md) |
-| Blocks | [E18h](./E18h-load-test.md) |
 | ADRs | Implements ADR 0012 and ADR 0011 |
 | Branch | `feat/e18f-sharing-and-notifications` |
 | PR title | `feat(collab): sharing links, roles and notifications` |

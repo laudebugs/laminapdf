@@ -7,7 +7,6 @@
 | Plan | [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8b](./E8b-form-filling-feature-plan.md) |
-| Blocks | [E9b](./E9b-field-creation-ops.md), [E10a](./E10a-adr-0020-signatures.md), [E10b](./E10b-signatures-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e9a-form-authoring-feature-plan` |
 | PR title | `docs(editor): E9 feature plan (form authoring)` |

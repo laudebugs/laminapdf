@@ -7,7 +7,6 @@
 | Plan | [Desktop app §6 D1](../../plans/desktop-app.md#d1-ipc-and-print-spikes) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2c](../done/C2c-render-packages.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [D1a](./D1a-desktop-ipc-spike.md) |
-| Blocks | [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D4c](./D4c-native-printing.md) |
 | Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) — same start gate as D1a per the plan; the spike renders pages with C2's `laminapdf-render` (PDFium adapter), which C3 already requires. Starts after [D1a](D1a-desktop-ipc-spike.md) (see Depends on), not in parallel, so it reuses D1a's spike scaffold (a Tauri 2 app outside both workspaces) and its lessons instead of building a second one at the same time. |
 | ADRs | Informs ADR 0008 (D2a) and the `hasNativePrint` capability flag of ADR 0010 (web plan C2). Follows [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL: no Ghostscript/Poppler linkage), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/d1b-desktop-print` |

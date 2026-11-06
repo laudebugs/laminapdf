@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B3](../../plans/pdf-library.md#b3-ops-and-save), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B3a](./B3a-overlay-and-ops.md) |
-| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B4a](./B4a-font-loading-and-subsetting.md) |
 | ADRs | Implements [0007](../../decisions/0007-save-planner.md) §5–§7 and [0005](../../decisions/0005-document-model.md) §3 (rebase, states); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
 | Branch | `feat/b3b-lamina-save` (the claim named `feat/b3b-lamina-save-writers`) |
 | PR title | `feat(core): lamina-save: WriteSink, incremental and full writers over the overlay (B3b)` |

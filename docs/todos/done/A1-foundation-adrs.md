@@ -7,7 +7,6 @@
 | Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
 | Round / milestone | Round A (foundations) — M0 |
 | Depends on | None |
-| Blocks | [A2](./A2-monorepo-skeleton.md) |
 | ADRs | Writes [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `docs/round-a-adrs` |
 | PR title | `docs(decisions): ADRs 0001, 0002, 0015, 0019 and record signing + hosted-service decisions` |

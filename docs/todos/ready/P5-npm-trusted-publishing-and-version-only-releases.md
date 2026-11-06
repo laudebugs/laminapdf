@@ -7,7 +7,6 @@
 | Plan | [releases §2](../../plans/releases.md#2-what-a-release-needs-today-and-what-changes) |
 | Round / milestone | Publishing |
 | Depends on | [P2](../done/P2-first-registry-prerelease.md) |
-| Blocks | [P6](./P6-daily-release.md) |
 | ADRs | Implements [0017 §6–§7](../../decisions/0017-versioning-and-release.md#6-the-release-lane) and [0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes)'s Release row (amended 2026-11-05) |
 | Branch | `build/p5-npm-trusted-publishing` |
 | PR title | `build: publish to npm with trusted publishing and skip the release lane's nightly run for a version-only commit` |

@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2n](./Q2n-render-adapter-shared.md) |
 | ADRs | None |
 | Branch | `refactor/q2m-ts-test-utils` |
 | PR title | `refactor(test): @laminapdf/test-utils for shared TS test helpers` |

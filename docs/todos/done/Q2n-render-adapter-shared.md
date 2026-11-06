@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2m](./Q2m-ts-test-utils.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2n-render-adapter-shared` |
 | PR title | `refactor(render): shared adapter helpers, one WasmSource type, memory() on RenderBackend` |
