@@ -3,19 +3,19 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
+| Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [C4a](./C4a-ui-chrome-and-platform.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer); follows 0010 (UI branches only on capability flags) and 0024 (the shell's slots) |
 | Branch | `feat/c4e-reader-chrome` |
 | PR title | `feat(ui): add the reader shell, the top bar and the password prompt` |
-| Size | L (≈ 1,400 lines of components, tokens and tests; split from C4a on 2026-11-05, then the home screen's parts, the repair and failure UI, the demo page and the React Compiler moved to [C4f](../ongoing/C4f-reader-home-repairs-and-demo.md)) |
+| Size | L (≈ 1,400 lines of components, tokens and tests; split from C4a on 2026-11-05, then the home screen's parts, the repair and failure UI, the demo page and the React Compiler moved to [C4f](../done/C4f-reader-home-repairs-and-demo.md)) |
 | PR | [#269](https://github.com/laudebugs/laminapdf/pull/269) |
 
 ## Goal
 
-Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell layout, the top bar with its page indicator and zoom control, and the password prompt. The chrome reads `@laminapdf/viewer`'s store and [C4a](../done/C4a-ui-chrome-and-platform.md)'s `ReaderController` through `useStoreState`. It asks the `Platform` only for capability flags, so the desktop app (D2) drops in its own `Platform` without touching a component. This todo was split from C4a when C4a was claimed, because the platform layer and the chrome together passed the 1,500-line budget; [C4f](../ongoing/C4f-reader-home-repairs-and-demo.md) builds the rest of the chrome on this frame.
+Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell layout, the top bar with its page indicator and zoom control, and the password prompt. The chrome reads `@laminapdf/viewer`'s store and [C4a](../done/C4a-ui-chrome-and-platform.md)'s `ReaderController` through `useStoreState`. It asks the `Platform` only for capability flags, so the desktop app (D2) drops in its own `Platform` without touching a component. This todo was split from C4a when C4a was claimed, because the platform layer and the chrome together passed the 1,500-line budget; [C4f](../done/C4f-reader-home-repairs-and-demo.md) builds the rest of the chrome on this frame.
 
 ## Context
 
@@ -36,23 +36,23 @@ Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell l
 
 **Out of scope** (and which todo covers it)
 
-- The home screen's drop zone, the repair and failure UI, the loading state, the debug menu, the demo page and the React Compiler → [C4f](../ongoing/C4f-reader-home-repairs-and-demo.md).
+- The home screen's drop zone, the repair and failure UI, the loading state, the debug menu, the demo page and the React Compiler → [C4f](../done/C4f-reader-home-repairs-and-demo.md).
 - The `Platform`, the reader machine and controller, the hooks and the catalogue → [C4a](../done/C4a-ui-chrome-and-platform.md).
 - History buttons (C6b), Find (C5b), View and Reader (U4b), Undo/Redo and the mode switcher (E1d).
 
 ## Tasks
 
-- [ ] The shell and the top bar's components, each control focusable and labelled.
-- [ ] Page indicator: shows `n / total`, a page label with its position (`A-1 (22 / 24)`), accepts typed page numbers or labels, Enter jumps, invalid input is announced.
-- [ ] Zoom control: steps and a menu; keyboard operable; reflects viewer state.
-- [ ] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password.
-- [ ] README: the reader chrome's map.
+- [x] The shell and the top bar's components, each control focusable and labelled.
+- [x] Page indicator: shows `n / total`, a page label with its position (`A-1 (22 / 24)`), accepts typed page numbers or labels, Enter jumps, invalid input is announced.
+- [x] Zoom control: steps and a menu; keyboard operable; reflects viewer state.
+- [x] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password.
+- [x] README: the reader chrome's map.
 
 ## Acceptance criteria
 
-- [ ] Component tests (Vitest browser mode, three engines) cover: password dialog submit/cancel/wrong-password; toolbar reflects and changes viewer zoom/page; capability-gated items hidden or disabled correctly.
-- [ ] The top bar's states pass axe in the three themes and both directions, and meet the target sizes.
-- [ ] All user-visible strings come from the message catalogue.
+- [x] Component tests (Vitest browser mode, three engines) cover: password dialog submit/cancel/wrong-password; toolbar reflects and changes viewer zoom/page; capability-gated items hidden or disabled correctly.
+- [x] The top bar's states pass axe in the three themes and both directions, and meet the target sizes.
+- [x] All user-visible strings come from the message catalogue.
 
 ## Post-merge checks
 
@@ -72,8 +72,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

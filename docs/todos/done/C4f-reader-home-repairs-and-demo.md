@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C4e](./C4e-reader-chrome.md) |
@@ -39,15 +39,15 @@ Finish the reader chrome on [C4e](./C4e-reader-chrome.md)'s frame: the home scre
 
 ## Tasks
 
-- [ ] The components in scope, each control focusable and labelled, every string from the catalogue.
-- [ ] Error/repair UI: maps ADR 0003 warning and error codes (`fixtures/codes.json`) to messages; "repaired" panel closes with Escape; unsupported-feature list.
-- [ ] The demo page and its React Compiler build.
+- [x] The components in scope, each control focusable and labelled, every string from the catalogue.
+- [x] Error/repair UI: maps ADR 0003 warning and error codes (`fixtures/codes.json`) to messages; "repaired" panel closes with Escape; unsupported-feature list.
+- [x] The demo page and its React Compiler build.
 
 ## Acceptance criteria
 
-- [ ] Component tests (Vitest browser mode, three engines) cover: open button calls `platform.openFiles`; drop zone accepts a dropped PDF and rejects non-PDF with a message; the repair panel and the failure page.
-- [ ] axe-core run on the demo page reports zero serious/critical violations for the chrome.
-- [ ] React Compiler builds the package's demo without bail-out warnings for components in `src/components/` and `src/reader/` (or bail-outs are justified in code comments).
+- [x] Component tests (Vitest browser mode, three engines) cover: open button calls `platform.openFiles`; drop zone accepts a dropped PDF and rejects non-PDF with a message; the repair panel and the failure page.
+- [x] axe-core run on the demo page reports zero serious/critical violations for the chrome.
+- [x] React Compiler builds the package's demo without bail-out warnings for components in `src/components/` and `src/reader/` (or bail-outs are justified in code comments).
 
 ## Post-merge checks
 
@@ -67,8 +67,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
