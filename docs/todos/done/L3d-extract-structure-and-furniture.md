@@ -17,7 +17,7 @@
 
 Add ADR 0030 §3–§4's layout rules to `laminapdf-extract`: headings and list items from font sizes, bold and markers, and running headers, footers, page numbers and artifact-marked text moved to `dropped`. [L3a](../done/L3a-lamina-extract-reading-order.md) already reads blocks in layout order and drops invisible, off-page and tiny text.
 
-> **Split (2026-11-05).** Structure-tree order and the clipped and low-contrast flags need work in three crates (the clip in `laminapdf-content`, run fields in `laminapdf-text`, the tree walk in `laminapdf-extract`), so the rest moved to [L3g](../ready/L3g-extract-structure-tree.md): reading order from the structure tree, tagged headings, lists and tables, and the `clipped` and `low-contrast` flags.
+> **Split (2026-11-05).** Structure-tree order and the clipped and low-contrast flags need work in three crates (the clip in `laminapdf-content`, run fields in `laminapdf-text`, the tree walk in `laminapdf-extract`), so the rest moved to [L3g](./L3g-extract-structure-tree.md): reading order from the structure tree, tagged headings, lists and tables, and the `clipped` and `low-contrast` flags.
 
 ## Context
 
@@ -35,7 +35,7 @@ Add ADR 0030 §3–§4's layout rules to `laminapdf-extract`: headings and list 
 
 **Out of scope** (and which todo covers it)
 
-- Structure-tree order, tagged headings, lists and tables, `clipped` and `low-contrast`: [L3g](../ready/L3g-extract-structure-tree.md).
+- Structure-tree order, tagged headings, lists and tables, `clipped` and `low-contrast`: [L3g](./L3g-extract-structure-tree.md).
 - Model plug-ins: [L3c](../ready/L3c-model-plugins.md).
 
 ## Tasks

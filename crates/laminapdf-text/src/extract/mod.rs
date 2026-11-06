@@ -13,9 +13,11 @@ pub use runs::{PageTextRun, is_right_to_left};
 
 use std::sync::Arc;
 
-use laminapdf_content::{MarkedContent, Matrix, PathPaint, PathSegment, TextAdvance, TextItem, TextShow, Visitor};
+use laminapdf_content::{
+    ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, TextAdvance, TextItem, TextShow, Visitor,
+};
 use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
-use laminapdf_model::{PageFrame, PointPt, UserSpacePoint};
+use laminapdf_model::{PageFrame, PointPt, RectPt, UserSpacePoint};
 use laminapdf_syntax::{ObjRef, Object};
 
 use font::FontCache;
@@ -69,6 +71,14 @@ pub struct Glyph {
     /// Inside marked content tagged `Artifact` (§14.8.2.2): page furniture such as running
     /// headers, page numbers and decoration, not part of the document's content.
     pub artifact: bool,
+    /// The clip's bounding box when the glyph was shown, in page space (§8.5.4; a box, not
+    /// the clip path); `None` when nothing clipped.
+    pub clip: Option<RectPt>,
+    /// The colour the glyph is painted in, as approximate RGB in [0, 1]: the fill colour, the
+    /// stroke colour for stroked-only text, the darker of the two for both (text rendering
+    /// mode, §9.3.6). `None` for invisible text, a pattern or a colour space read no other way
+    /// (for text both filled and stroked, when either colour is one).
+    pub color: Option<[f64; 3]>,
 }
 
 /// The text a page shows, in content order.
@@ -186,10 +196,11 @@ impl TextExtractor {
         self.read(doc, page, None)
     }
 
-    /// [`TextExtractor::page`], also passing the page's path events
-    /// ([`Visitor::path_segment`], [`Visitor::paint_path`]) to `paths` in the same walk of the
-    /// content, so a caller that needs the page's lines (table rules) doesn't interpret the
-    /// page twice.
+    /// [`TextExtractor::page`], also passing the page's painting events
+    /// ([`Visitor::path_segment`], [`Visitor::paint_path`], [`Visitor::image`],
+    /// [`Visitor::paint_shading`]) to `paths` in the same walk of the content, so a caller that
+    /// needs the page's lines (table rules) or what is painted under its text doesn't interpret
+    /// the page twice.
     ///
     /// # Errors
     /// As [`TextExtractor::page`].
@@ -235,6 +246,42 @@ impl TextExtractor {
     }
 }
 
+/// How far a `TJ` number moves the pen: −n/1000 · Tfs, and Th horizontally (§9.4.3).
+fn adjustment(n: f64, state: &laminapdf_content::TextState, vertical: bool) -> TextAdvance {
+    let shift = -n / 1000.0 * state.font_size;
+    if vertical {
+        TextAdvance { tx: 0.0, ty: shift }
+    } else {
+        TextAdvance {
+            tx: shift * state.horizontal_scaling,
+            ty: 0.0,
+        }
+    }
+}
+
+/// How light a colour is: the luminance weights of ITU-R BT.601.
+fn luminance([r, g, b]: [f64; 3]) -> f64 {
+    0.299 * r + 0.587 * g + 0.114 * b
+}
+
+/// The colour a glyph is painted in under the state's text rendering mode (§9.3.6).
+fn paint_color(state: &laminapdf_content::GraphicsState) -> Option<[f64; 3]> {
+    match state.text.render_mode {
+        0 | 4 => state.fill.approx_rgb(),
+        1 | 5 => state.stroke.approx_rgb(),
+        2 | 6 => match (state.fill.approx_rgb(), state.stroke.approx_rgb()) {
+            (Some(fill), Some(stroke)) => Some(if luminance(fill) <= luminance(stroke) {
+                fill
+            } else {
+                stroke
+            }),
+            // A colour we can't read on either side may be the dark one: keep the text.
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// One open marked-content sequence.
 #[derive(Debug, Clone, Copy)]
 struct Marked {
@@ -271,6 +318,8 @@ impl Collector<'_, '_> {
         let state = &show.state.text;
         let vertical = font.vertical();
         let invisible = matches!(state.render_mode, 3 | 7);
+        let color = paint_color(show.state);
+        let clip = show.state.clip_box.map(|b| self.frame.rect_to_page(&b));
         let (mcid, actual_text, artifact) = self.marks();
         let (ascent, descent) = font.extent;
         let mut tm = show.tm;
@@ -282,19 +331,7 @@ impl Collector<'_, '_> {
         };
         for item in show.items() {
             match item {
-                TextItem::Adjust(n) => {
-                    // A `TJ` number moves by −n/1000 · Tfs (and Th horizontally), §9.4.3.
-                    let shift = -n / 1000.0 * state.font_size;
-                    let advance = if vertical {
-                        TextAdvance { tx: 0.0, ty: shift }
-                    } else {
-                        TextAdvance {
-                            tx: shift * state.horizontal_scaling,
-                            ty: 0.0,
-                        }
-                    };
-                    step(advance, &mut tm, &mut total);
-                }
+                TextItem::Adjust(n) => step(adjustment(n, state, vertical), &mut tm, &mut total),
                 TextItem::Text(bytes) => {
                     let mut rest = bytes;
                     while let Some((code, used)) = font.next_code(rest) {
@@ -352,6 +389,8 @@ impl Collector<'_, '_> {
                             actual_text,
                             invisible,
                             artifact,
+                            clip,
+                            color,
                         });
                         step(advance, &mut tm, &mut total);
                     }
@@ -399,6 +438,18 @@ impl Visitor for Collector<'_, '_> {
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
         if let Some(paths) = self.paths.as_deref_mut() {
             paths.paint_path(paint);
+        }
+    }
+
+    fn image(&mut self, image: &ImageDraw<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.image(image);
+        }
+    }
+
+    fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.paint_shading(shading);
         }
     }
 

@@ -270,6 +270,20 @@
       "summary": "a page's ruling lines would make a table bigger than the extraction's cell limit; those lines gave no table",
       "hint": "raise ExtractLimits::max_table_cells if the page really has a table that big",
       "since": "0.2.0"
+    },
+    {
+      "code": "extract-struct-tree-ignored",
+      "kind": "input",
+      "summary": "a tagged page's structure tree covered too little of its text, or its order jumped back across columns too often, so the layout gave the reading order",
+      "hint": "nothing to do; ReadingOrder::Tagged uses the tree anyway",
+      "since": "0.2.0"
+    },
+    {
+      "code": "extract-untagged-content",
+      "kind": "input",
+      "summary": "a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order",
+      "hint": "nothing to do; tag that text in the file to give it a place in the reading order",
+      "since": "0.2.0"
     }
   ],
   "errors": [

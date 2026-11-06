@@ -124,6 +124,10 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
         let resources = own.or_else(|| frame.resources.clone());
         let mut gs = frame.gs.clone();
         gs.ctm = matrix.then(&gs.ctm);
+        // The form's content is drawn inside its /BBox (§8.10.1).
+        if let Some(bbox) = &bbox {
+            gs.clip_to(crate::state::transformed_box(bbox, &gs.ctm));
+        }
         let entry = gs.clone();
         let enter = FormXObject {
             name: n,
