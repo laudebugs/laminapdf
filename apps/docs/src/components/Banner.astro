@@ -5,13 +5,13 @@
 import Default from "@astrojs/starlight/components/Banner.astro";
 import { DOCS } from "@laminapdf/site-kit/nav";
 
-const { version, release } = __DOCS_RELEASE__;
+const { release } = __DOCS_RELEASE__;
 ---
 
 {
   !release && (
     <p class="docs-unreleased" role="note" data-docs-unreleased data-pagefind-ignore>
-      These docs describe changes that aren’t released yet. For {version}, the newest release, see the{" "}
+      These docs describe changes that aren’t released yet. For the newest release, see the{" "}
       <a href={`${DOCS}/`}>released docs</a>.
     </p>
   )

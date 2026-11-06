@@ -198,8 +198,7 @@ function asides(text) {
 
 /**
  * One Markdown twin: front matter (title, description, version, the page's URL), the title as
- * the H1, the description as a lead paragraph, then the body, with the install lines'
- * `{{version}}` filled in.
+ * the H1, the description as a lead paragraph, then the body, with `{{version}}` filled in.
  *
  * @param {{ title: string, description?: string | undefined, version: string, url: string, body: string }} page
  * @returns {string}

@@ -210,10 +210,13 @@ mod tests {
             "docs.yml lacks a `next` or `production` job"
         );
         let has = |lines: &[&str], want: &str| lines.iter().any(|l| l.trim() == want);
+        // A deploy, and a dry run of the same Worker for the `dry-run` input.
         let deploys = |lines: &[&str], args: &str| {
-            lines
-                .iter()
-                .any(|l| l.trim().starts_with(&format!("run: pnpm exec wrangler deploy {args} ")))
+            let command = format!("pnpm exec wrangler deploy {args} ");
+            lines.iter().any(|l| {
+                let l = l.trim();
+                l.starts_with(&command) && !l.ends_with("--dry-run")
+            }) && has(lines, &format!("pnpm exec wrangler deploy {args} --dry-run"))
         };
         assert!(
             has(
@@ -245,9 +248,14 @@ mod tests {
             ["production"],
             "only the release build may be indexed"
         );
+        let call = lines_of(DOCS, "on", "workflow_call");
         assert!(
-            lines_of(DOCS, "on", "workflow_call").iter().any(|l| l.trim() == "tag:"),
-            "the release lane can't call docs.yml with a tag"
+            has(&call, "tag:") && has(&call, "dry-run:"),
+            "the release lane can't call docs.yml with a tag, or as a dry run"
+        );
+        assert!(
+            has(&lines_of(DOCS, "on", "workflow_dispatch"), "dry-run:"),
+            "a manual run can't be a dry run"
         );
         assert!(
             !DOCS.contains("X-Robots-Tag"),

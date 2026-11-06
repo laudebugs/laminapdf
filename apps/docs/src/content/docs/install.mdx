@@ -13,7 +13,7 @@ Install the version these docs describe:
 npm install @laminapdf/sdk@{{version}}
 ```
 
-The `alpha` tag names the newest alpha, so `npm install @laminapdf/sdk@alpha` gets the same release until the next one comes out. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+The `alpha` tag names the newest alpha, whichever version that is: `npm install @laminapdf/sdk@alpha` gets it. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
 

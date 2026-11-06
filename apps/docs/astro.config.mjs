@@ -58,7 +58,7 @@ export default defineConfig({
   devToolbar: { enabled: false },
   vite: {
     define: { __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES), __DOCS_RELEASE__: JSON.stringify(DOCS_RELEASE) },
-    // Install lines write `{{version}}` in their code; this fills it in.
+    // Pages write `{{version}}` where they name the version; this fills it in.
     plugins: [versionInPages(DOCS_RELEASE.version)],
   },
   // Moved pages keep their old URLs (static redirects; Workers static assets ignore _redirects).

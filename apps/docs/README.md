@@ -61,12 +61,16 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. Every 
 
 ## Versions
 
-Every page names the version it documents: the fixed group's version (`packages/sdk/package.json`, ADR 0017's one lockstep version), read at build time (`plugins/release.mjs`).
+Every page names the version it documents: the fixed group's version (`packages/sdk/package.json`, ADR 0017's one lockstep version), read at build time (`plugins/release.mjs`). On `main` that version is always a published one, because the pull request that bumps it merges only after its release is published, so the unreleased docs name the newest release too.
 
 - **The header** shows the version on the released docs, linked to the changelog, and "Unreleased" on every other build, linked to the released docs.
 - **The notice** (`src/components/Banner.astro`, Starlight's `Banner` override) says above every unreleased page that it describes changes that aren't released yet, and links to the released docs.
-- **Install lines** write `{{version}}` in their code (`npm install @laminapdf/sdk@{{version}}`, `cargo add laminapdf@={{version}}`), and the build fills it in, in the pages and their Markdown twins. Write it only inside code: in MDX's prose, braces start an expression. The website copies the install page's two install lines and fills in the same placeholder (`@laminapdf/site-kit/version`).
-- **The build fails** on a page that names another version in an install command (the `alpha` tag aside), a placeholder left unfilled, a released page without the version in its header, or an unreleased page without the notice (`releaseChecks`).
+- **Pages write `{{version}}`** where they name the version: install lines (`npm install @laminapdf/sdk@{{version}}`, `cargo add laminapdf@={{version}}`) and docs.rs links. The build fills it in, in the pages and their Markdown twins. On an `.mdx` page it may stand anywhere, prose and links included, because a Vite plugin fills it in before MDX reads the page. The `.md` pages (the TypeDoc reference, the changelog) can't use it. The website copies the install page's two install lines and fills in the same placeholder (`@laminapdf/site-kit/version`).
+- **The build fails** (`releaseChecks`) on:
+  - a placeholder left unfilled;
+  - an install command that names another version (the `alpha` tag aside; the changelog, a page of history, is not checked);
+  - a released page without the version in its header, or an unreleased page without the notice;
+  - a `_headers` file that sends `X-Robots-Tag: noindex` on the released docs, or doesn't on any other build.
 
 ## Deploying
 
@@ -81,6 +85,8 @@ The workflow runs for changes to the site or anything it's built from (`apps/doc
 - **`preview-deploy`** (pull requests): holds the secrets and never checks out or runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch, installs that exact Wrangler with `npx` into a fresh npm cache, and uploads the artifact as a preview version (`--preview-alias pr-<n>`). Then it posts one comment with the URL and updates it on each push. It skips with a notice until the default branch has `apps/docs/wrangler.toml`.
 - **`next`** (pushes to `main`, or a manual run on `main` without a tag): builds `main` as unreleased docs and deploys them in one job (`wrangler deploy --env next`), because `main` is trusted.
 - **`production`** (a release tag): checks out the tag, checks that it names the docs' version, builds with `LAMINA_PDF_ENV=production` and deploys `docs.laminapdf.com`. The release lane calls it with the tag once the packages are published; a manual run with a tag (Actions → Docs site → Run workflow → `tag`) redeploys a release by hand.
+- **Dry runs:** with `dry-run` (a manual run, or the release lane's own dry runs), `next` and `production` build and check the site and run `wrangler deploy --dry-run`, which deploys nothing and needs no secrets.
+- **One deploy at a time:** production deploys share one concurrency group whatever the tag, and `next` has its own, so two deploys of one Worker never overlap.
 - **Forks and missing secrets:** PRs from forks are skipped. Without the secrets, every deploy step skips with a notice and the jobs pass.
 
 ### What the owner needs to do
