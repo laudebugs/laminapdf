@@ -41,8 +41,9 @@ use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
-use crate::commands::{self, CheckArgs, ExplainArgs, ExtractArgs, InfoArgs, RotateArgs, Settings};
+use crate::commands::{self, CheckArgs, ExplainArgs, ExtractArgs, Format, InfoArgs, RenderArgs, RotateArgs, Settings};
 use crate::exit::CliError;
+use crate::template::Template;
 use roots::{RootedIo, Roots};
 
 /// `laminapdf mcp`.
@@ -51,7 +52,7 @@ pub struct McpArgs {
     /// A folder the tools may read and write; repeat for more. Relative paths start at the first.
     #[arg(long = "root", value_name = "DIR", required = true)]
     pub roots: Vec<PathBuf>,
-    /// List the write tool (`laminapdf_pages_rotate`), which writes new files only.
+    /// List the write tools (`laminapdf_pages_rotate`, `laminapdf_render`), which write new files only.
     #[arg(long)]
     pub allow_write: bool,
     /// Let the write tool replace its input (`inPlace`); needs --allow-write.
@@ -245,13 +246,29 @@ fn run_tool(
         }
         "laminapdf_extract" => {
             let args: ExtractArgs = parse(arguments)?;
-            report(commands::extract(&args, &settings, &mut io), Some(&args.input))
+            if args.format == Format::Text {
+                report(commands::extract(&args, &settings, &mut io), Some(&args.input))
+            } else {
+                report(commands::extract_document(&args, &settings, &mut io), Some(&args.input))
+            }
         }
         "laminapdf_info" => {
             let args: InfoArgs = parse(arguments)?;
             report(commands::info(&args, &settings, &mut io), Some(&args.input))
         }
-        // `call` checked the name against the listed tools; the write tool is the last.
+        "laminapdf_render" => {
+            let args: RenderArgs = parse(arguments)?;
+            if Template::parse(&args.output).is_ok_and(|t| t.is_stdout()) {
+                let error = CliError::new(
+                    ErrorCode::InvalidCommandLine,
+                    "the render tool writes files, not standard output",
+                )
+                .with("output", args.output.as_str());
+                return Err((error, Some(args.input)));
+            }
+            report(commands::render(&args, &settings, &mut io), Some(&args.input))
+        }
+        // `call` checked the name against the listed tools; the rotate tool is the one left.
         _ => {
             let args: RotateArgs = parse(arguments)?;
             if args.in_place && !allow_in_place {

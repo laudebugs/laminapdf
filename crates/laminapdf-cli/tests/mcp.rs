@@ -70,7 +70,7 @@ async fn call(client: &RunningService<RoleClient, ()>, tool: &str, arguments: Va
 
 /// The structured content of a successful call.
 fn ok(result: &CallToolResult) -> &Value {
-    assert_eq!(result.is_error, Some(false), "{:?}", result.structured_content);
+    assert_eq!(result.is_error, Some(false), "{:?}", result.content);
     result.structured_content.as_ref().unwrap()
 }
 
@@ -129,10 +129,8 @@ async fn the_tool_list_should_be_fixed_and_read_only_by_default() {
     );
     let writer = connect(&base, &["--allow-write"]).await;
     let tools = writer.list_all_tools().await.unwrap();
-    assert_eq!(
-        tools.last().map(|t| t.name.to_string()).as_deref(),
-        Some("laminapdf_pages_rotate")
-    );
+    let last: Vec<String> = tools.iter().rev().take(2).map(|t| t.name.to_string()).collect();
+    assert_eq!(last, ["laminapdf_render", "laminapdf_pages_rotate"]);
     assert!(client.peer_info().is_some(), "the server answered discovery");
 }
 
@@ -146,6 +144,12 @@ async fn every_tool_should_answer_with_its_output_schema() {
         ("laminapdf_info", json!({ "input": "hello.pdf" })),
         ("laminapdf_check", json!({ "input": "hello.pdf" })),
         ("laminapdf_extract", json!({ "input": "hello.pdf", "pages": "1" })),
+        ("laminapdf_extract", json!({ "input": "hello.pdf", "format": "md" })),
+        ("laminapdf_extract", json!({ "input": "hello.pdf", "format": "json" })),
+        (
+            "laminapdf_render",
+            json!({ "input": "hello.pdf", "output": "{stem}-{n}.png", "dpi": 36 }),
+        ),
         ("laminapdf_explain", json!({ "code": "xref-repaired" })),
         (
             "laminapdf_pages_rotate",
@@ -159,6 +163,11 @@ async fn every_tool_should_answer_with_its_output_schema() {
     assert_eq!(
         std::fs::read(base.join("root/rotated.pdf")).unwrap(),
         laminapdf_test_fixtures::fixture("golden/cli-rotate-hello.pdf")
+    );
+    assert!(
+        std::fs::read(base.join("root/hello-1.png"))
+            .unwrap()
+            .starts_with(b"\x89PNG")
     );
 }
 
@@ -177,6 +186,12 @@ async fn paths_outside_the_roots_should_be_tool_errors_and_touch_nothing() {
             &client,
             "laminapdf_pages_rotate",
             json!({ "input": "hello.pdf", "rotation": "90", "output": "../outside/secret.pdf" }),
+        )
+        .await,
+        call(
+            &client,
+            "laminapdf_render",
+            json!({ "input": "hello.pdf", "output": "../outside/{n}.png" }),
         )
         .await,
     ];

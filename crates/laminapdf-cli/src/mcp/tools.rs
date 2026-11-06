@@ -8,8 +8,8 @@ use schemars::JsonSchema;
 use serde_json::{Map, Value};
 
 use crate::commands::{
-    CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, InfoArgs, InfoReport,
-    PagesReport, RotateArgs, TextReport,
+    CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
+    InfoReport, PagesReport, RenderArgs, RenderReport, RotateArgs, TextReport,
 };
 
 /// What the copied `laminapdf.error/1` definitions are named after in a tool's `$defs`, so they
@@ -32,10 +32,10 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
         ),
         Tool::new(
             "laminapdf_extract",
-            "A PDF's text, page by page; `pages` takes a range such as 1-3, z (the last page) or 1-z,x2.",
-            text_only(schema::<ExtractArgs>()),
+            "A PDF's text: page by page (format text), or its blocks in reading order as Markdown (md), the laminapdf.extract/1 JSON (json) or retrieval chunks (chunks); `pages` takes a range such as 1-3, z (the last page) or 1-z,x2.",
+            schema::<ExtractArgs>(),
         )
-        .with_raw_output_schema(schema::<TextReport>())
+        .with_raw_output_schema(extract_output())
         .with_annotations(read()),
         tool::<InfoArgs, InfoReport>(
             "laminapdf_info",
@@ -62,25 +62,84 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
                 .with_raw_output_schema(schema::<PagesReport>())
                 .with_annotations(annotations),
         );
+        let render = ToolAnnotations::new()
+            .read_only(false)
+            .destructive(false)
+            .open_world(false);
+        tools.push(
+            Tool::new(
+                "laminapdf_render",
+                "Render pages of a PDF as PNG images. `output` is a path template: {stem}, {name}, {index} and {n} (the page number; {n:03} pads it) fill in, and each file must be new.",
+                schema::<RenderArgs>(),
+            )
+            .with_raw_output_schema(schema::<RenderReport>())
+            .with_annotations(render),
+        );
     }
     tools
 }
 
-/// `extract`'s arguments as the tool takes them: the text format only, since the tool answers
-/// with the text report (the Markdown, JSON and chunk formats are the command line's for now).
-fn text_only(schema: Arc<Map<String, Value>>) -> Arc<Map<String, Value>> {
-    let mut schema = Arc::unwrap_or_clone(schema);
-    if let Some(Value::Object(properties)) = schema.get_mut("properties") {
-        properties.remove("maxChars");
-        properties.insert(
-            "format".to_owned(),
-            serde_json::json!({ "const": "text", "default": "text", "description": "The output format: plain text." }),
-        );
+/// The prefix of the `laminapdf.extract/1` definitions copied into the extract tool's
+/// `$defs`, so they can never collide with the text report's.
+const EXTRACT_DEFS: &str = "laminapdf-extract-";
+
+/// The extract tool's output: the text report for `format: text`, the `laminapdf.extract/1`
+/// document for the others. One self-contained object schema, `laminapdf.extract/1`'s
+/// definitions hoisted into its `$defs` under [`EXTRACT_DEFS`].
+fn extract_output() -> Arc<Map<String, Value>> {
+    let mut text = Arc::unwrap_or_clone(schema::<TextReport>());
+    let mut defs = match text.remove("$defs") {
+        Some(Value::Object(defs)) => defs,
+        _ => Map::new(),
+    };
+    text.remove("$schema");
+    let mut document = schemars::schema_for!(ExtractedReport).to_value();
+    let mut own = Map::new();
+    let mut strip = |embedded: Option<&mut Value>| {
+        if let Some(map) = embedded.and_then(Value::as_object_mut) {
+            map.remove("$id");
+            map.remove("$schema");
+            if let Some(Value::Object(found)) = map.remove("$defs") {
+                own.extend(found);
+            }
+        }
+    };
+    strip(document.pointer_mut("/allOf/0"));
+    strip(Some(&mut document));
+    prefix_refs(&mut document);
+    for (name, mut definition) in own {
+        prefix_refs(&mut definition);
+        defs.insert(format!("{EXTRACT_DEFS}{name}"), definition);
     }
-    if let Some(Value::Object(defs)) = schema.get_mut("$defs") {
-        defs.remove("Format");
+    let mut out = Map::new();
+    out.insert(
+        "$schema".to_owned(),
+        "https://json-schema.org/draft/2020-12/schema".into(),
+    );
+    out.insert("type".to_owned(), "object".into());
+    out.insert("anyOf".to_owned(), Value::Array(vec![Value::Object(text), document]));
+    out.insert("$defs".to_owned(), Value::Object(defs));
+    Arc::new(out)
+}
+
+/// Rewrites every local `$ref` (`#/$defs/<name>`) to `#/$defs/<EXTRACT_DEFS><name>`.
+fn prefix_refs(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map.iter_mut() {
+                match child {
+                    Value::String(target) if key == "$ref" => {
+                        if let Some(name) = target.strip_prefix("#/$defs/") {
+                            *target = format!("#/$defs/{EXTRACT_DEFS}{name}");
+                        }
+                    }
+                    _ => prefix_refs(child),
+                }
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(prefix_refs),
+        _ => {}
     }
-    Arc::new(schema)
 }
 
 /// One read tool: `T` its arguments, `R` its report.
@@ -182,16 +241,30 @@ mod tests {
             ]
         );
         let write = tools(true, false);
-        assert_eq!(names(&write).last().map(String::as_str), Some("laminapdf_pages_rotate"));
-        let destructive = |tools: &[Tool]| {
+        assert_eq!(
+            names(&write)
+                .iter()
+                .rev()
+                .take(2)
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            ["laminapdf_render", "laminapdf_pages_rotate"]
+        );
+        let destructive = |tools: &[Tool], name: &str| {
             tools
-                .last()
+                .iter()
+                .find(|t| t.name == name)
                 .and_then(|t| t.annotations.clone())
                 .and_then(|a| a.destructive_hint)
         };
+        let in_place = tools(true, true);
         assert_eq!(
-            (destructive(&write), destructive(&tools(true, true))),
-            (Some(false), Some(true))
+            (
+                destructive(&write, "laminapdf_pages_rotate"),
+                destructive(&in_place, "laminapdf_pages_rotate"),
+                destructive(&in_place, "laminapdf_render")
+            ),
+            (Some(false), Some(true), Some(false))
         );
     }
 
