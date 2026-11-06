@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
 | Depends on | [L3a](./L3a-lamina-extract-reading-order.md), [L3b](./L3b-extract-tables-and-serialisers.md) |
-| Blocks | [L3g](../ongoing/L3g-extract-structure-tree.md) |
+| Blocks | [L3g](./L3g-extract-structure-tree.md) |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) §3–§4 (the layout half of what its §9 lists as L3d's) |
 | Branch | `feat/l3d-extract-structure` |
 | PR title | `feat(extract): headings, lists, running headers, footers, page numbers and artifacts` |
@@ -18,7 +18,7 @@
 
 Add ADR 0030 §3–§4's layout rules to `laminapdf-extract`: headings and list items from font sizes, bold and markers, and running headers, footers, page numbers and artifact-marked text moved to `dropped`. [L3a](../done/L3a-lamina-extract-reading-order.md) already reads blocks in layout order and drops invisible, off-page and tiny text.
 
-> **Split (2026-11-05).** Structure-tree order and the clipped and low-contrast flags need work in three crates (the clip in `laminapdf-content`, run fields in `laminapdf-text`, the tree walk in `laminapdf-extract`), so the rest moved to [L3g](../ongoing/L3g-extract-structure-tree.md): reading order from the structure tree, tagged headings, lists and tables, and the `clipped` and `low-contrast` flags.
+> **Split (2026-11-05).** Structure-tree order and the clipped and low-contrast flags need work in three crates (the clip in `laminapdf-content`, run fields in `laminapdf-text`, the tree walk in `laminapdf-extract`), so the rest moved to [L3g](./L3g-extract-structure-tree.md): reading order from the structure tree, tagged headings, lists and tables, and the `clipped` and `low-contrast` flags.
 
 ## Context
 
@@ -36,7 +36,7 @@ Add ADR 0030 §3–§4's layout rules to `laminapdf-extract`: headings and list 
 
 **Out of scope** (and which todo covers it)
 
-- Structure-tree order, tagged headings, lists and tables, `clipped` and `low-contrast`: [L3g](../ongoing/L3g-extract-structure-tree.md).
+- Structure-tree order, tagged headings, lists and tables, `clipped` and `low-contrast`: [L3g](./L3g-extract-structure-tree.md).
 - Model plug-ins: [L3c](../ready/L3c-model-plugins.md).
 
 ## Tasks

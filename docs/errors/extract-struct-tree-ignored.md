@@ -9,7 +9,7 @@ The page is tagged, but its structure tree didn't pass the checks that decide wh
 
 ## Why
 
-A structure tree gives a page's reading order, but trees are often incomplete or wrong. Extraction uses a page's tree only when its elements cover at least 80% of the page's visible text (artifacts left out), and when moving from one block to the next jumps back up into an earlier column at most once in ten moves. A tree written by a tool that tags only some of the text, or that tags it in drawing order, fails one of the checks.
+A structure tree gives a page's reading order, but trees are often incomplete or wrong. Extraction uses a page's tree only when its elements cover at least 80% of the page's visible text, artifacts left out. Its order must also jump back up into an earlier column at most once in ten moves from block to block. A tree written by a tool that tags only some of the text, or that tags it in drawing order, fails one of the checks.
 
 ## How to fix
 

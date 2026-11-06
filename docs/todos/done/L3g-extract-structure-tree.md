@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
-| Depends on | [L3d](../done/L3d-extract-structure-and-furniture.md) |
+| Depends on | [L3d](./L3d-extract-structure-and-furniture.md) |
 | Blocks | None |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) §2–§4 (the rest of what its §9 lists as L3d's); [0023](../../decisions/0023-content-stream-reading.md) for the clip and fill colour |
 | Branch | `feat/l3g-extract-structure-tree` |
 | PR title | `feat(extract): structure-tree order, tagged headings, lists and tables, clipped and low-contrast text` |
 | Size | L |
-| PR | — |
+| PR | [#265](https://github.com/laudebugs/laminapdf/pull/265) |
 
 ## Goal
 
@@ -32,7 +32,7 @@ Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tre
 - **Tagged headings and lists:** `H`/`H1`–`H6` and `L`/`LI`/`Lbl`/`LBody` win over L3d's layout rules when the tree is used.
 - **Tagged tables:** a `Table` element with `TR`/`TH`/`TD` (and `/RowSpan`, `/ColSpan`) gives a table block's rows, cells, spans and header flags, ahead of the ruled grid L3b detects; `detector: "tagged"` and confidence 1.
 - **`clipped` and `low-contrast`:** `laminapdf-content` tracks the clip's bounding box, and `laminapdf-text`'s runs carry it and the fill colour (small changes in those crates, in their own commits). The heuristics follow ADR 0030 §4 and lean towards keeping text.
-- Fixtures built with `laminapdf-build`: `tagged-reordered`, `tagged-broken`, `tagged-table`, and clipped and white-on-white text added to the hidden-text test.
+- Tests on files built with `laminapdf-build` (`tests/tagged.rs`): a tree whose order differs from the layout's, one that covers too little, untagged text beside a tree, tagged lists and a tagged table; clipped and white-on-white text added to the hidden-text tests.
 
 **Out of scope** (and which todo covers it)
 
@@ -41,17 +41,17 @@ Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tre
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`
-- [ ] The clip box in `laminapdf-content`, then the run fields in `laminapdf-text` (clip box, fill colour)
-- [ ] `order/tagged.rs` and the tagged tables in `laminapdf-extract`; the new warning codes
-- [ ] Fixtures and tests; the thresholds tuned on the corpus and recorded in ADR 0030 §2
-- [ ] README: what the rules handle now
+- [x] Claim via its work PR; a fresh worktree off `main`
+- [x] The clip box in `laminapdf-content`, then the run fields in `laminapdf-text` (clip box, fill colour)
+- [x] `order/tagged.rs` and the tagged tables in `laminapdf-extract`; the new warning codes
+- [x] Fixtures and tests; the thresholds tuned on the corpus and recorded in ADR 0030 §2
+- [x] README: what the rules handle now
 
 ## Acceptance criteria
 
-- [ ] A tagged fixture whose content order differs from its structure order comes out in structure order with `structSource: "tagged"`; the same file with a broken tree falls back to layout order with `extract-struct-tree-ignored`
-- [ ] Tagged headings, list items and a tagged table come out with the kinds, levels, depths and cells the tree gives
-- [ ] Clipped and white-on-white text is in no block and is in `dropped` as `clipped` and `low-contrast`
+- [x] A tagged fixture whose content order differs from its structure order comes out in structure order with `structSource: "tagged"`; the same file with a broken tree falls back to layout order with `extract-struct-tree-ignored`
+- [x] Tagged headings, list items and a tagged table come out with the kinds, levels, depths and cells the tree gives
+- [x] Clipped and white-on-white text is in no block and is in `dropped` as `clipped` and `low-contrast`
 
 ## Post-merge checks
 
@@ -59,16 +59,16 @@ None.
 
 ## Tests
 
-Unit tests per module; integration tests on the fixtures above; the `extract` fuzz target keeps running.
+Unit tests per module (`tagged.rs`'s checks, cell placement and kinds; `visibility.rs`'s flags; the clip box in `laminapdf-content`; colour and clip on runs in `laminapdf-text`); integration tests in `crates/laminapdf-extract/tests/tagged.rs` and `tests/extract.rs`; the `extract` fuzz target keeps running.
 
 ## Docs to update
 
-- [ ] ADR 0030 §2 (tuned thresholds) and §9
-- [ ] `laminapdf-extract`'s README
+- [x] ADR 0030 §2 (tuned thresholds) and §9
+- [x] `laminapdf-extract`'s README
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ready/` → `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ready/` → `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
