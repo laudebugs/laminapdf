@@ -183,7 +183,7 @@ Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
 
 Decided 2026-10-28 by the project owner: crates and npm packages stay local (workspace and path dependencies, `pnpm pack` tarballs, git tags) until the owner decides to publish. The owner decided to publish on 2026-11-01, from the repository while it stays private.
 
-Todos: [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md) (the publish jobs), [P2](../todos/done/P2-first-registry-prerelease.md) (the first release, `0.2.0-alpha.1`) and [P3](../todos/ready/P3-registry-checks.md) (registry installs, semver checks and the docs site after it).
+Todos: [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md) (the publish jobs), [P2](../todos/done/P2-first-registry-prerelease.md) (the first release, `0.2.0-alpha.1`) and [P3](../todos/done/P3-registry-checks.md) (registry installs, semver checks and the docs site after it).
 
 - [x] Choose the npm scope: `@laminapdf` (2026-10-31; [P0](../todos/done/P0-npm-scope-laminapdf.md))
 - [x] Rename the crates `laminapdf-*` and the façade `laminapdf`, whose names are free on crates.io (2026-11-01; [P0b](../todos/done/P0b-crate-names-laminapdf.md))
@@ -192,8 +192,8 @@ Todos: [P1](../todos/done/P1-reserve-names-and-trusted-publishing.md) (the publi
 - [x] Add the publish jobs to the release workflow, which publish on a `v*` tag and dry-run on a dispatch; each crate has its trusted publisher ([P1](../todos/done/P1-reserve-names-and-trusted-publishing.md)). The version PR stays `pnpm changeset version` and `cargo xtask version sync` by hand (ADR 0017 §2)
 - [ ] Once the repository is public: npm provenance, GitHub artifact attestations and a `release` environment that keeps the release bot's key from other workflows (ADR 0017 §7)
 - [ ] Release once a day after the nightly, with npm trusted publishing and docs that match the release (the [releases plan](releases.md): [P4](../todos/ready/P4-docs-match-the-release.md), [P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md), [P6](../todos/ready/P6-daily-release.md))
-- [ ] Publish the first pre-release, `0.2.0-alpha.1` ([P2](../todos/done/P2-first-registry-prerelease.md)); verify install and quick start from the registries in each runtime ([P3](../todos/ready/P3-registry-checks.md))
-- [ ] Publish the stability policy and changelog ([P2](../todos/done/P2-first-registry-prerelease.md)); enable cargo-semver-checks against the published version ([P3](../todos/ready/P3-registry-checks.md))
+- [x] Publish the first pre-release, `0.2.0-alpha.1` ([P2](../todos/done/P2-first-registry-prerelease.md)); verify install and quick start from the registries in each runtime ([P3](../todos/done/P3-registry-checks.md))
+- [x] Publish the stability policy and changelog ([P2](../todos/done/P2-first-registry-prerelease.md)); enable cargo-semver-checks against the published version ([P3](../todos/done/P3-registry-checks.md))
 
 ### Cross-cutting
 - [x] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip) ([X2](../todos/done/X2-capability-matrix.md), [`docs/capabilities/`](../capabilities/README.md))

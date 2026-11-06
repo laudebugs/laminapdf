@@ -128,8 +128,8 @@ function outsideFences(markdown, transform) {
  * A page's MDX body as Markdown.
  *
  * @param {string} body the page without its front matter
- * @param {{ snippet: (file: string) => string, codeTable: () => string }} components
- *   `snippet` reads an example file; `codeTable` writes the code table
+ * @param {{ snippet: (file: string) => string, codeTable: () => string, changelog: () => string }} components
+ *   `snippet` reads an example file; `codeTable` writes the code table; `changelog` the releases
  * @returns {string}
  */
 export function mdxToMarkdown(body, components) {
@@ -139,6 +139,7 @@ export function mdxToMarkdown(body, components) {
       .replace(/^import\s.+?;?\s*$/gm, "")
       .replace(SNIPPET, (_, file) => codeBlock(file, components.snippet(file)))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
+      .replace(/<Changelog\s*\/>/g, () => components.changelog())
       .replace(/^[ \t]*<Tabs[^>]*>[ \t]*$/gm, "")
       .replace(/^[ \t]*<\/Tabs>[ \t]*$/gm, "")
       .replace(/^[ \t]*<TabItem\s+label="([^"]+)"[^>]*>[ \t]*$/gm, "**$1**\n")

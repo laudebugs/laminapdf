@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (5, 6) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [L3a](./L3a-lamina-extract-reading-order.md) |
-| Blocks | [L3c](../ready/L3c-model-plugins.md), [L3d](./L3d-extract-structure-and-furniture.md), [L3e](./L3e-extract-bindings-and-benchmark.md), [L4b](./L4b-cli-batch-render-schema.md) |
 | ADRs | Implements 0030 (from [L3a](../done/L3a-lamina-extract-reading-order.md)); follows 0026, 0027, 0028 (from [L1a](../done/L1a-contract-adrs.md)), 0016 (from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md): separate extract module and its budget), [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), [0001](../../decisions/0001-core-language-and-licence.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/l3b-extract-tables-and-output` |
 | PR title | `feat(extract): lattice tables, Markdown/JSON/chunk output and doc.extract() in Rust, WASM and TS` |

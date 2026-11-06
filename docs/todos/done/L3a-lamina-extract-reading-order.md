@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (3, 5, 7) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [B8a](./B8a-structure-tree.md), [B9d](./B9d-text-runs-quads-and-page-text.md), [L1a](./L1a-contract-adrs.md), [U2b](./U2b-reading-order-ground-truth.md) |
-| Blocks | [L3b](./L3b-extract-tables-and-serialisers.md), [L3d](./L3d-extract-structure-and-furniture.md) |
 | ADRs | Writes **0030** (extraction output `laminapdf.extract/1` and model plug-in policy); follows 0026 (errors), 0027 (coordinates, top-left points), 0028 (jobs, cancellation) from [L1a](../done/L1a-contract-adrs.md), 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)), [0001](../../decisions/0001-core-language-and-licence.md) (licences, bytes in / bytes out), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (warnings, `Limits`), [0018](../../decisions/0018-test-strategy.md) (goldens, fuzz) |
 | Branch | `feat/l3a-lamina-extract` |
 | PR title | `feat(extract): ADR 0030 and laminapdf-extract with blocks, reading order and hidden-text flags` |

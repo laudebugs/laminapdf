@@ -7,7 +7,6 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6e](./U6e-overlays-and-sheets.md) |
-| Blocks | [U6j](./U6j-positioning-and-palette-shell.md) |
 | ADRs | Follows 0024 (the phone shell, sheets with detents, Escape order; from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) and 0009 (accessible-primitives library; from [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/u6i-sheets-positioning-and-palette-shell` |
 | PR title | `feat(ui): add paper bottom sheets and the phone dialog` |

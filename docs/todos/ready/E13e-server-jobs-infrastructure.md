@@ -7,7 +7,6 @@
 | Plan | [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [C7c](./C7c-performance-gates-and-launch.md), [E13c](./E13c-ocr-text-layer.md) |
-| Blocks | [E13f](./E13f-office-and-html-to-pdf.md), [E13g](./E13g-pdf-to-word-excel.md), [E14e](./E14e-server-batch.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | Dependency notes | [E13c](E13c-ocr-text-layer.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1) |
 | ADRs | Implements ADR 0013 and ADR 0011; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e13e-server-jobs-infrastructure` |

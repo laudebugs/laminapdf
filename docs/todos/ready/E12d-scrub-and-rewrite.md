@@ -7,7 +7,6 @@
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E8c](./E8c-acroform-field-model.md), [E10d](./E10d-pades-signing-core.md), [E11d](./E11d-sanitiser.md), [E12c](./E12c-apply-content-removal.md) |
-| Blocks | [E12e](./E12e-sensitive-search.md), [E12f](./E12f-leak-tests.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e12d-scrub-and-rewrite` |
 | PR title | `feat(redact): scrub metadata, annotations, fields and structure; verification report` |

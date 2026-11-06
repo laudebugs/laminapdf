@@ -7,7 +7,6 @@
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2a](./E2a-page-organisation-feature-plan.md) |
-| Blocks | [E3b](./E3b-bookmarks-and-destinations.md), [E3c](./E3c-links.md), [E3d](./E3d-initial-view-and-threads.md), [E3e](./E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E3g](./E3g-inspectors.md), [E3h](./E3h-images-to-pdf-and-page-export.md), [E3i](./E3i-extraction.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e3a-navigation-attachments-inspection-feature-plan` |
 | PR title | `docs(editor): E3 feature plan (navigation, attachments, inspection and extraction)` |

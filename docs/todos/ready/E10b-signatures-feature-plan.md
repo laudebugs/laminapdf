@@ -7,7 +7,6 @@
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E9a](./E9a-form-authoring-feature-plan.md), [E10a](./E10a-adr-0020-signatures.md) |
-| Blocks | [E10c](./E10c-visual-signatures.md), [E10d](./E10d-pades-signing-core.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e10b-signatures-feature-plan` |
 | PR title | `docs(editor): E10 feature plan (signatures)` |

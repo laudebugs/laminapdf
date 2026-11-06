@@ -18,6 +18,13 @@
 //! Every runtime's output must be byte-identical to `fixtures/golden/examples/hello.pdf`, and the
 //! JavaScript ones reopen it and count its pages. The vite, Playwright and wrangler tools are the
 //! repository's (pinned); the projects' own dependencies are only what they verify.
+//!
+//! With `--from-registry` (todo P3) the projects install the published packages instead, as the
+//! install page tells users to: `@laminapdf/sdk` from npm (which brings `@laminapdf/wasm`) and
+//! `laminapdf` from crates.io, at the fixed group's version (`--version` for another). One Rust
+//! binary depends on the crate from crates.io in place of the path and git ones. `--wait
+//! <minutes>` first polls both registries until the version is there: an npm version goes public
+//! only once the owner approves it (ADR 0017 §7).
 
 use std::fmt::Write as _;
 use std::fs;
@@ -80,7 +87,8 @@ const WORKERD_RUNNER: &str = include_str!("verify_install/worker/workerd.mjs");
 const RUST_MAIN: &str = include_str!("verify_install/rust/main.rs.in");
 
 const USAGE: &str = "usage: cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… \
-                     [--node <binary>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep]";
+                     [--node <binary>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep] \
+                     [--from-registry [--version <version>] [--wait <minutes>]]";
 
 /// What `cargo xtask verify-install` was asked to do.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -90,6 +98,9 @@ pub(crate) struct Args {
     git_ref: Option<String>,
     git_url: Option<String>,
     keep: bool,
+    from_registry: bool,
+    version: Option<String>,
+    wait_minutes: u64,
 }
 
 pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
@@ -101,6 +112,14 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             "--git-ref" => parsed.git_ref = Some(rest.next().context(USAGE)?.clone()),
             "--git-url" => parsed.git_url = Some(rest.next().context(USAGE)?.clone()),
             "--keep" => parsed.keep = true,
+            "--from-registry" => parsed.from_registry = true,
+            "--version" => parsed.version = Some(rest.next().context(USAGE)?.clone()),
+            "--wait" => {
+                let minutes = rest.next().context(USAGE)?;
+                parsed.wait_minutes = minutes
+                    .parse()
+                    .with_context(|| format!("--wait takes whole minutes, not {minutes:?}; {USAGE}"))?;
+            }
             name => {
                 let Some(&runtime) = RUNTIMES.iter().find(|r| **r == name) else {
                     bail!("unknown runtime or argument {name:?}; {USAGE}");
@@ -110,6 +129,12 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
                 }
             }
         }
+    }
+    if !parsed.from_registry && (parsed.version.is_some() || parsed.wait_minutes > 0) {
+        bail!("--version and --wait go with --from-registry; {USAGE}");
+    }
+    if parsed.from_registry && (parsed.git_ref.is_some() || parsed.git_url.is_some()) {
+        bail!("--from-registry builds the Rust binary from crates.io: --git-ref and --git-url don't apply; {USAGE}");
     }
     if parsed.runtimes.is_empty() {
         parsed.runtimes = RUNTIMES.to_vec();
@@ -140,16 +165,72 @@ fn git_spec(root: &Path, git_ref: &str) -> Result<(&'static str, String)> {
     Ok(("rev", sha))
 }
 
+/// Where the projects get Lamina PDF from.
+enum Source {
+    /// The `pnpm pack` tarballs, and the crate by path and by git.
+    Checkout,
+    /// npm and crates.io, at this version.
+    Registry(String),
+}
+
+impl Source {
+    fn heading(&self) -> String {
+        match self {
+            Self::Checkout => "clean projects outside the repository".to_owned(),
+            Self::Registry(version) => format!("the published {version} from npm and crates.io"),
+        }
+    }
+}
+
+/// The packages the registry check needs on npm (`@laminapdf/sdk` and the module package it
+/// depends on) and the crate on crates.io.
+const NPM_PACKAGES: [&str; 2] = ["@laminapdf/sdk", "@laminapdf/wasm"];
+
+/// Which of the packages aren't published at `version` yet, as readable lines (none: all are).
+fn unpublished(ws: &Workspace, version: &str) -> Result<Vec<String>> {
+    let mut missing = Vec::new();
+    for name in NPM_PACKAGES {
+        if !crate::publish::on_npm(ws, name, version)? {
+            missing.push(format!(
+                "{name}@{version} is not on npm (staged versions wait for approval on npmjs.com)"
+            ));
+        }
+    }
+    if !crate::publish::on_crates_io(FACADE_CRATE, version)? {
+        missing.push(format!("{FACADE_CRATE} {version} is not on crates.io"));
+    }
+    Ok(missing)
+}
+
+/// Polls the registries every minute, for up to `minutes`, until `version` is on both. A
+/// registry that fails to answer (a 429, a 5xx, no network) costs one more minute, not the wait.
+fn wait_for_registries(ws: &Workspace, version: &str, minutes: u64) -> Result<()> {
+    for attempt in 0..=minutes {
+        let missing = match unpublished(ws, version) {
+            Ok(missing) => missing,
+            Err(error) if attempt < minutes => vec![format!("{error:#}")],
+            Err(error) => return Err(error),
+        };
+        if missing.is_empty() {
+            return Ok(());
+        }
+        if attempt == minutes {
+            bail!("after {minutes} minutes of waiting: {}", missing.join("; "));
+        }
+        step(&format!("verify-install: waiting a minute: {}", missing.join("; ")));
+        std::thread::sleep(std::time::Duration::from_secs(60));
+    }
+    Ok(())
+}
+
 /// One runtime's result: its label (with the version found) and what went wrong, if anything.
 struct Outcome {
     label: String,
     result: Result<String>,
 }
 
-/// `cargo xtask verify-install …`: every runtime runs even when an earlier one failed; the
-/// failures are listed at the end, with a table on stdout and in the job summary.
-pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
-    let golden = sha256_hex(&fs::read(ws.root.join(GOLDEN)).with_context(|| format!("reading {GOLDEN}"))?);
+/// A fresh folder for the projects, in the system temp directory and outside the repository.
+fn work_dir(ws: &Workspace) -> Result<PathBuf> {
     let work = std::env::temp_dir().join(format!("lamina-verify-install-{}", std::process::id()));
     let root = ws.root.canonicalize().unwrap_or_else(|_| ws.root.clone());
     let parent = std::env::temp_dir()
@@ -165,17 +246,47 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         fs::remove_dir_all(&work).with_context(|| format!("removing {}", work.display()))?;
     }
     fs::create_dir_all(&work)?;
+    Ok(work)
+}
+
+/// Where the projects get Lamina PDF from: the checkout, or the registries once `--wait` sees the
+/// version on both.
+fn source(ws: &Workspace, args: &Args) -> Result<Source> {
+    if !args.from_registry {
+        return Ok(Source::Checkout);
+    }
+    let version = match &args.version {
+        Some(version) => version.clone(),
+        None => crate::version::fixed_group_version(&ws.root)?.version,
+    };
+    wait_for_registries(ws, &version, args.wait_minutes)?;
+    Ok(Source::Registry(version))
+}
+
+/// `cargo xtask verify-install …`: every runtime runs even when an earlier one failed; the
+/// failures are listed at the end, with a table on stdout and in the job summary.
+pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
+    let golden = sha256_hex(&fs::read(ws.root.join(GOLDEN)).with_context(|| format!("reading {GOLDEN}"))?);
+    // Before the work folder, so a failed wait leaves no folder behind.
+    let source = source(ws, args)?;
+    let work = work_dir(ws)?;
     step(&format!("verify-install: projects in {}", work.display()));
 
     let js = args.runtimes.iter().any(|r| *r != "rust");
     let mut outcomes = Vec::new();
-    let installed = if js { Some(install_js(ws, &work)) } else { None };
+    let installed = if js { Some(install_js(ws, &work, &source)) } else { None };
     for &runtime in &args.runtimes {
         match (runtime, &installed) {
-            ("rust", _) => outcomes.extend(rust(ws, &work, args, &golden)),
+            ("rust", _) => match &source {
+                Source::Checkout => outcomes.extend(rust(ws, &work, args, &golden)),
+                Source::Registry(version) => outcomes.push(Outcome {
+                    label: format!("Rust binary, `{FACADE_CRATE} = \"={version}\"` from crates.io"),
+                    result: rust_project(ws, &work, "rust-registry", &format!("\"={version}\""), &golden, false),
+                }),
+            },
             (_, Some(Err(error))) => outcomes.push(Outcome {
                 label: runtime.to_owned(),
-                result: Err(anyhow::anyhow!("packing or installing the tarballs failed: {error:#}")),
+                result: Err(anyhow::anyhow!("installing the packages failed: {error:#}")),
             }),
             ("node", _) => {
                 let mut compiled = None;
@@ -223,7 +334,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         }
     }
 
-    let table = table(&outcomes);
+    let table = table(&source.heading(), &outcomes);
     println!("\n{table}");
     summary(&table)?;
     if args.keep {
@@ -249,11 +360,9 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     }
 }
 
-/// The Markdown table of `outcomes`.
-fn table(outcomes: &[Outcome]) -> String {
-    let mut out = String::from(
-        "### verify-install (clean projects outside the repository)\n\n| Runtime | Result |\n| --- | --- |\n",
-    );
+/// The Markdown table of `outcomes`, under a heading that says what was installed.
+fn table(heading: &str, outcomes: &[Outcome]) -> String {
+    let mut out = format!("### verify-install ({heading})\n\n| Runtime | Result |\n| --- | --- |\n");
     for outcome in outcomes {
         let result = match &outcome.result {
             Ok(detail) => format!("pass: {detail}"),
@@ -355,9 +464,62 @@ fn reported_version(output: &str) -> Option<String> {
         .map(str::to_owned)
 }
 
-/// Packs both packages into `<work>/tarballs` and installs them with npm into `<work>/js`, with
-/// the quick start and the checks: `js/` (Node, Deno, Bun), `js/vite/` and `js/worker/`.
-fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
+/// Installs Lamina PDF with npm into `<work>/js` from `source` (the packed tarballs, or npm),
+/// with the quick start and the checks: `js/` (Node, Deno, Bun), `js/vite/` and `js/worker/`.
+fn install_js(ws: &Workspace, work: &Path, source: &Source) -> Result<()> {
+    let dependencies = match source {
+        Source::Checkout => pack(ws, work)?,
+        Source::Registry(version) => serde_json::json!({ "@laminapdf/sdk": version }),
+    };
+    let js = work.join("js");
+    let package = serde_json::json!({
+        "name": "lamina-verify-install",
+        "private": true,
+        "type": "module",
+        "dependencies": dependencies,
+    });
+    write(
+        &js.join("package.json"),
+        &(serde_json::to_string_pretty(&package)? + "\n"),
+    )?;
+    write_projects(ws, &js)?;
+    // npm, not pnpm: a plain project, as a user would set one up. The tarballs need nothing from
+    // a registry (@laminapdf/sdk's one dependency is the @laminapdf/wasm tarball beside it).
+    crate::run(
+        &js,
+        "npm",
+        &[
+            "install",
+            "--no-audit",
+            "--no-fund",
+            "--ignore-scripts",
+            "--no-package-lock",
+        ],
+    )?;
+    match source {
+        Source::Checkout => Ok(()),
+        Source::Registry(version) => check_installed(&js, version),
+    }
+}
+
+/// Every npm package of the registry check installed at `version`: npm's resolution, not a
+/// stale tag, gave the projects what they test.
+fn check_installed(js: &Path, version: &str) -> Result<()> {
+    for name in NPM_PACKAGES {
+        let path = js.join("node_modules").join(name).join("package.json");
+        let text = fs::read_to_string(&path).with_context(|| format!("{name} wasn't installed"))?;
+        let package: Value = serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
+        let installed = package.get("version").and_then(Value::as_str).unwrap_or("?");
+        if installed != version {
+            bail!("npm installed {name} {installed}, not {version}");
+        }
+    }
+    Ok(())
+}
+
+/// Packs `@laminapdf/wasm` and `@laminapdf/sdk` into `<work>/tarballs`; returns the project's
+/// dependencies on the two tarballs.
+fn pack(ws: &Workspace, work: &Path) -> Result<Value> {
     for dist in ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/index.js"] {
         if !ws.root.join(dist).is_file() {
             bail!("{dist} is missing: run `cargo xtask wasm` first");
@@ -376,25 +538,18 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
     let wasm = find_tarball(&tarballs, "laminapdf-wasm-")?;
     let pdf = find_tarball(&tarballs, "laminapdf-sdk-")?;
     check_packed_dependency(&pdf)?;
+    Ok(serde_json::json!({
+        "@laminapdf/sdk": format!("file:{}", pdf.display()),
+        "@laminapdf/wasm": format!("file:{}", wasm.display()),
+    }))
+}
 
-    let js = work.join("js");
-    let package = serde_json::json!({
-        "name": "lamina-verify-install",
-        "private": true,
-        "type": "module",
-        "dependencies": {
-            "@laminapdf/sdk": format!("file:{}", pdf.display()),
-            "@laminapdf/wasm": format!("file:{}", wasm.display()),
-        },
-    });
-    write(
-        &js.join("package.json"),
-        &(serde_json::to_string_pretty(&package)? + "\n"),
-    )?;
+/// The quick start, its options and the checks, copied into each project of `js`.
+fn write_projects(ws: &Workspace, js: &Path) -> Result<()> {
     let hello = fs::read_to_string(ws.root.join(HELLO_TS)).with_context(|| format!("reading {HELLO_TS}"))?;
     let hello_options =
         fs::read_to_string(ws.root.join(HELLO_OPTIONS_TS)).with_context(|| format!("reading {HELLO_OPTIONS_TS}"))?;
-    for dir in [js.clone(), js.join("vite"), js.join("worker/src")] {
+    for dir in [js.to_path_buf(), js.join("vite"), js.join("worker/src")] {
         write(&dir.join("hello.ts"), &hello)?;
         write(&dir.join("hello-options.ts"), &hello_options)?;
         write(&dir.join("report.ts"), REPORT_TS)?;
@@ -408,20 +563,7 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
     }
     write(&js.join("worker/src/index.ts"), WORKER_INDEX)?;
     write(&js.join("worker/wrangler.toml"), WRANGLER_TOML)?;
-    write(&js.join("worker/workerd.mjs"), WORKERD_RUNNER)?;
-    // npm, not pnpm: a plain project, as a user would set one up; the tarballs need nothing from
-    // a registry (@laminapdf/sdk's one dependency is the @laminapdf/wasm tarball beside it).
-    crate::run(
-        &js,
-        "npm",
-        &[
-            "install",
-            "--no-audit",
-            "--no-fund",
-            "--ignore-scripts",
-            "--no-package-lock",
-        ],
-    )
+    write(&js.join("worker/workerd.mjs"), WORKERD_RUNNER)
 }
 
 fn write(path: &Path, text: &str) -> Result<()> {
@@ -546,7 +688,7 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
     let (kind, value) = spec.as_ref().map_or(("rev", git_ref.clone()), |(k, v)| (*k, v.clone()));
     let mut outcomes = vec![Outcome {
         label: format!("Rust binary, `{FACADE_CRATE} = {{ path = … }}`"),
-        result: rust_project(ws, work, "rust-path", &path_dep, golden),
+        result: rust_project(ws, work, "rust-path", &path_dep, golden, true),
     }];
     outcomes.push(Outcome {
         label: format!(
@@ -560,6 +702,7 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
                 "rust-git",
                 &format!("{{ git = {url:?}, {kind} = {value:?} }}"),
                 golden,
+                true,
             ),
             (None, _) => Err(anyhow::anyhow!("no git URL: pass --git-url")),
             (_, Err(error)) => Err(error),
@@ -568,7 +711,18 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
     outcomes
 }
 
-fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golden: &str) -> Result<String> {
+/// Builds and runs the quick start in `<work>/<name>` with `dependency` on Lamina PDF. `locked`
+/// copies the repository's `Cargo.lock`, so the third-party crates are the versions CI tests
+/// (Cargo drops the entries this project doesn't use); without it Cargo resolves afresh, as a
+/// user's project does.
+fn rust_project(
+    ws: &Workspace,
+    work: &Path,
+    name: &str,
+    dependency: &str,
+    golden: &str,
+    locked: bool,
+) -> Result<String> {
     let dir = work.join(name);
     write(&dir.join("Cargo.toml"), &rust_manifest(name, dependency))?;
     write(
@@ -576,9 +730,9 @@ fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golde
         &fs::read_to_string(ws.root.join(HELLO_RS)).with_context(|| format!("reading {HELLO_RS}"))?,
     )?;
     write(&dir.join("src/main.rs"), RUST_MAIN)?;
-    // The repository's lockfile, so the third-party crates are the versions CI tests (Cargo
-    // drops the entries this project doesn't use).
-    fs::copy(ws.root.join("Cargo.lock"), dir.join("Cargo.lock")).context("copying Cargo.lock")?;
+    if locked {
+        fs::copy(ws.root.join("Cargo.lock"), dir.join("Cargo.lock")).context("copying Cargo.lock")?;
+    }
     let toolchain = crate::doctor::toolchain_channel(ws)?;
     let target = work.join("rust-target").to_string_lossy().into_owned();
     let out = dir.join("out");
@@ -711,6 +865,35 @@ mod tests {
     #[test]
     fn parse_args_should_reject_unknown_runtimes() {
         assert!(parse_args(&["firefox".to_owned()]).is_err());
+    }
+
+    #[test]
+    fn parse_args_should_read_the_registry_flags() {
+        let parsed = args(&["node", "--from-registry", "--version", "0.2.0-alpha.2", "--wait", "45"]);
+        assert!(parsed.from_registry);
+        assert_eq!(parsed.version.as_deref(), Some("0.2.0-alpha.2"));
+        assert_eq!(parsed.wait_minutes, 45);
+    }
+
+    #[test]
+    fn parse_args_should_keep_the_registry_flags_together() {
+        let fails = |list: &[&str]| parse_args(&list.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>()).is_err();
+        assert!(
+            fails(&["--version", "0.2.0-alpha.2"]),
+            "--version without --from-registry"
+        );
+        assert!(fails(&["--wait", "5"]), "--wait without --from-registry");
+        assert!(fails(&["--from-registry", "--wait", "soon"]), "--wait takes minutes");
+        assert!(
+            fails(&["--from-registry", "--git-ref", "v0.2.0"]),
+            "no git dependency from the registry"
+        );
+    }
+
+    #[test]
+    fn a_registry_manifest_should_pin_the_published_version() {
+        let manifest: toml::Table = toml::from_str(&rust_manifest("rust-registry", "\"=0.2.0-alpha.2\"")).unwrap();
+        assert_eq!(manifest["dependencies"][FACADE_CRATE].as_str(), Some("=0.2.0-alpha.2"));
     }
 
     /// A scratch repository with two commits, a branch and a tag on the first commit.

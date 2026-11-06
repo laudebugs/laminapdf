@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | None |
-| Blocks | [C1b](./C1b-pdfium-wasm-spike.md), [C2a](./C2a-render-adrs.md) |
 | Dependency notes | None (needs only the merged Round A workspace; it does not load any lamina crate, so it can start before B6 merges) |
 | ADRs | Informs ADR 0004 (`RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited). Must follow [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, so no MuPDF even as a comparison), [0018](../../decisions/0018-test-strategy.md) §3 (corpora stay out of git, pinned by SHA-256), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/c1a-hayro-parity` |

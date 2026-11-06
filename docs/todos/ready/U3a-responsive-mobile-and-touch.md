@@ -7,7 +7,6 @@
 | Plan | [UI/UX §6 U3. Mobile and touch](../../plans/ui-ux.md#u3-mobile-and-touch) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4b](./C4b-web-app-shell.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
-| Blocks | [C7c](./C7c-performance-gates-and-launch.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U3b](./U3b-mobile-shell-spike.md) |
 | ADRs | Implements 0024 (phone layout); follows 0009, 0010 |
 | Branch | `feat/u3a-mobile-and-touch` |
 | PR title | `feat(ui): add the phone and tablet layout with viewer-owned gestures` |

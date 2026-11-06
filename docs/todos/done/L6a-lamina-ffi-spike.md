@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (1, 4), open questions [§11](../../plans/shareable-libraries.md#11-open-questions) (1, 2) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [L1a](./L1a-contract-adrs.md) |
-| Blocks | [L6b](../ready/L6b-mobile-sdk-plan.md) |
 | ADRs | Writes **0029** (mobile bindings and packaging); fills in [0002 §5](../../decisions/0002-binding-strategy.md#decision) without changing it; follows 0028 (façade rules, jobs, cancellation) and 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), [0001](../../decisions/0001-core-language-and-licence.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/l6a-lamina-ffi` |
 | PR title | `spike(ffi): bind the lamina façade with UniFFI for Swift and Kotlin; ADR 0029` |

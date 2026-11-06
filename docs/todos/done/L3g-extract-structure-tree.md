@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
 | Depends on | [L3d](./L3d-extract-structure-and-furniture.md) |
-| Blocks | None |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) §2–§4 (the rest of what its §9 lists as L3d's); [0023](../../decisions/0023-content-stream-reading.md) for the clip and fill colour |
 | Branch | `feat/l3g-extract-structure-tree` |
 | PR title | `feat(extract): structure-tree order, tagged headings, lists and tables, clipped and low-contrast text` |
@@ -16,11 +15,11 @@
 
 ## Goal
 
-Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tree, tagged headings, lists and tables that win over the layout rules, and the `clipped` and `low-contrast` flags. [L3d](../done/L3d-extract-structure-and-furniture.md), which this todo was split from, finds headings and lists from the layout and drops running headers, footers, page numbers and artifacts.
+Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tree, tagged headings, lists and tables that win over the layout rules, and the `clipped` and `low-contrast` flags. [L3d](./L3d-extract-structure-and-furniture.md), which this todo was split from, finds headings and lists from the layout and drops running headers, footers, page numbers and artifacts.
 
 ## Context
 
-- [L3d's todo](../done/L3d-extract-structure-and-furniture.md) and ADR 0030 §2–§4, §9.
+- [L3d's todo](./L3d-extract-structure-and-furniture.md) and ADR 0030 §2–§4, §9.
 - ISO 32000-2 §14.7 (logical structure, `/K`, `/ParentTree`, `RoleMap`), §14.8.4 (standard structure types), §14.8.4.8.3 (tables), §8.5.4 (clipping), §8.6.8 (current colour).
 - `laminapdf-model`'s `StructTree` view (B8a), the MCID each `laminapdf-text` run carries, and `laminapdf-content`'s graphics state (no clip tracked yet).
 
@@ -36,7 +35,7 @@ Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tre
 
 **Out of scope** (and which todo covers it)
 
-- Layout headings and lists, running headers, footers, page numbers and artifacts: [L3d](../done/L3d-extract-structure-and-furniture.md).
+- Layout headings and lists, running headers, footers, page numbers and artifacts: [L3d](./L3d-extract-structure-and-furniture.md).
 - Model plug-ins: [L3c](../ready/L3c-model-plugins.md).
 
 ## Tasks

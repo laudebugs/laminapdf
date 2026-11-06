@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B9b](./B9b-text-extraction-core.md) |
 | ADRs | Writes **0023** (content-stream reading: `lamina-content` crate, operator and XObject-depth limits); uses [0003](../../decisions/0003-reader-tolerance-and-limits.md) reserved limits `max_content_operators` and `max_xobject_depth`; [0018](../../decisions/0018-test-strategy.md) fuzz target `content` |
 | Branch | `feat/b9a-lamina-content` |
 | PR title | `feat(content): ADR 0023 and a read-only content-stream interpreter (B9a)` |

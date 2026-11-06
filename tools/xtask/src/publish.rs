@@ -134,7 +134,7 @@ fn crate_docs(ws: &Workspace) -> Result<()> {
 }
 
 /// Whether crates.io has `name` at `version` (its API answers 200 for a published version).
-fn on_crates_io(name: &str, version: &str) -> Result<bool> {
+pub(crate) fn on_crates_io(name: &str, version: &str) -> Result<bool> {
     let url = format!("https://crates.io/api/v1/crates/{name}/{version}");
     let status = std::process::Command::new(crate::program_path("curl"))
         .args([
@@ -222,7 +222,7 @@ fn npm_stage(ws: &Workspace, dry_run: bool) -> Result<()> {
 
 /// Whether npm has published `name` at `version` (`npm view` prints the version, else nothing).
 /// A version staged but not yet approved is not on npm: stage it again or approve the staged one.
-fn on_npm(ws: &Workspace, name: &str, version: &str) -> Result<bool> {
+pub(crate) fn on_npm(ws: &Workspace, name: &str, version: &str) -> Result<bool> {
     let output = std::process::Command::new(crate::program_path("npm"))
         .args(["view", &format!("{name}@{version}"), "version"])
         .current_dir(&ws.root)

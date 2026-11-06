@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2b](./Q2b-ts-lint-rules.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2p-ts-complexity-splits` |
 | PR title | `refactor(ts): split the functions over the complexity limit` |

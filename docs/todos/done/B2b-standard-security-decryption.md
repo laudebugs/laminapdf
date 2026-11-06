@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), requirement [§4 F7](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2a](./B2a-limits-owned-document.md) |
-| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [B7a](./B7a-docs-site.md), [B9b](./B9b-text-extraction-core.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md), [E11b](../ready/E11b-encrypt-on-write.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (encrypted files open; password in `OpenOptions`), [0001](../../decisions/0001-core-language-and-licence.md) (no C crypto, permissive licences), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crypto crates through cargo-deny) |
 | Branch | `feat/b2b-decryption` |
 | PR title | `feat(core): standard security handler decryption (R2–R6, crypt filters)` |
