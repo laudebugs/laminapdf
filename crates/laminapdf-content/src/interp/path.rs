@@ -1,7 +1,7 @@
 //! The path operators: construction (§8.5.2), painting (§8.5.3) and clipping (§8.5.4).
 
 use laminapdf_cos::{Object, Result, Warning};
-use laminapdf_model::FillRule;
+use laminapdf_model::{FillRule, UserSpaceRect};
 
 use super::{Frame, Interpreter, numbers, offset_u64};
 use crate::lexer::Op;
@@ -59,6 +59,19 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
     /// Reports a path segment and moves the current point.
     pub(super) fn segment(&mut self, frame: &mut Frame, op: &Op<'_>, segment: PathSegment) {
         frame.path.get_or_insert(op.offset);
+        let points: &[(f64, f64)] = &match segment {
+            PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } => vec![(x, y)],
+            PathSegment::Rect { x, y, width, height } => vec![(x, y), (x + width, y + height)],
+            PathSegment::CurveTo { c1, c2, end } => vec![c1, c2, end],
+            PathSegment::ClosePath => Vec::new(),
+        };
+        for &(x, y) in points {
+            let (x, y) = frame.gs.ctm.apply(x, y);
+            let point = UserSpaceRect::from_corners(x, y, x, y);
+            frame.bounds = Some(frame.bounds.map_or(point, |b| {
+                UserSpaceRect::from_corners(b.x0.min(x), b.y0.min(y), b.x1.max(x), b.y1.max(y))
+            }));
+        }
         match segment {
             PathSegment::MoveTo { x, y } | PathSegment::Rect { x, y, .. } => {
                 frame.current = Some((x, y));
@@ -88,11 +101,19 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
         frame.current = None;
         frame.subpath_start = None;
         let clip = frame.clip.take();
+        let bounds = frame.bounds.take();
         self.visitor.paint_path(&PathPaint {
             paint,
             clip,
             state: &frame.gs,
         });
+        // The clip takes effect after the painting (§8.5.4); a path with no points clips
+        // everything.
+        if clip.is_some() {
+            frame
+                .gs
+                .clip_to(bounds.unwrap_or(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0)));
+        }
     }
 
     /// Drops the unpainted path whose first segment is at `offset`.
