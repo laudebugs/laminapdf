@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `P6` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [releases §3](../../plans/releases.md#3-the-daily-release) |
 | Round / milestone | Publishing |
 | Depends on | [P4](../done/P4-docs-match-the-release.md), [P5](../done/P5-npm-trusted-publishing-and-version-only-releases.md) |
