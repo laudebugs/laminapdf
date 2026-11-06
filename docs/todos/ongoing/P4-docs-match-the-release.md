@@ -12,7 +12,7 @@
 | Branch | `docs/p4-docs-match-the-release` |
 | PR title | `docs: name the version on every page and serve main's docs at next.docs.laminapdf.com` |
 | Size | M (≈ 300–500 lines: the docs site's header and install lines, workflow changes for the owner, tests) |
-| PR | — |
+| PR | [#267](https://github.com/laudebugs/laminapdf/pull/267) |
 
 ## Goal
 
