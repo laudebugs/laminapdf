@@ -166,6 +166,9 @@ pub struct PathPaint<'s> {
     pub clip: Option<FillRule>,
     /// The graphics state.
     pub state: &'s GraphicsState,
+    /// The path's bounding box (its points and control points) in the page's default user
+    /// space; `None` for a path with no points.
+    pub bounds: Option<UserSpaceRect>,
 }
 
 /// One element of a text-showing operator.

@@ -139,6 +139,9 @@ struct Frame {
     /// The current point and the start of the current subpath (§8.5.2.1).
     current: Option<(f64, f64)>,
     subpath_start: Option<(f64, f64)>,
+    /// The bounding box of the path so far (its points and control points) in default user
+    /// space, for a clip it sets.
+    bounds: Option<laminapdf_model::UserSpaceRect>,
 }
 
 impl Frame {
@@ -157,6 +160,7 @@ impl Frame {
             path: None,
             current: None,
             subpath_start: None,
+            bounds: None,
         }
     }
 }
