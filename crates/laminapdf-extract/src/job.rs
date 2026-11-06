@@ -3,6 +3,7 @@
 //!
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 
+use laminapdf_content::{ImageDraw, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor};
 use laminapdf_model::Document;
 use laminapdf_syntax::{Budget, CancelToken, Phase, Step};
 use laminapdf_text::TextExtractor;
@@ -11,7 +12,10 @@ use crate::error::ExtractError;
 use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
+use crate::page::{PageInput, TreeUse};
 use crate::tables::{Collector, TableMode};
+use crate::tagged::TaggedIndex;
+use crate::visibility::Backdrops;
 use crate::{furniture, headings, lists};
 
 /// An extraction in progress. Step it with the document it was made from until it returns
@@ -29,10 +33,15 @@ pub struct ExtractJob {
     extractor: TextExtractor,
     out: Extraction,
     finished: bool,
+    /// The structure tree, when the reading order may come from it.
+    tree: Option<TaggedIndex>,
+    /// Pages the tree ordered, and pages whose tree failed a check.
+    tree_pages: (usize, usize),
 }
 
-/// Starts an extraction of `doc`: checks the pages asked for and reads whether the document is
-/// tagged; the pages are read by [`ExtractJob::step`].
+/// Starts an extraction of `doc`: checks the pages asked for, reads whether the document is
+/// tagged and, when the reading order may come from it, its structure tree; the pages are read
+/// by [`ExtractJob::step`].
 ///
 /// # Errors
 /// `page-index-out-of-range` for a page past the last; reading errors (the page tree, the
@@ -48,7 +57,13 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
     }
     let struct_source = match options.reading_order {
         ReadingOrder::ContentStream => StructSource::Content,
-        ReadingOrder::Auto | ReadingOrder::Layout => StructSource::XyCut,
+        ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => StructSource::XyCut,
+    };
+    // The tree is read once, here; each page checks its own part of it.
+    let tree = match options.reading_order {
+        ReadingOrder::Tagged => TaggedIndex::read(doc)?,
+        ReadingOrder::Auto if doc.is_tagged()? => TaggedIndex::read(doc)?,
+        ReadingOrder::Auto | ReadingOrder::Layout | ReadingOrder::ContentStream => None,
     };
     let source = ExtractedSource {
         sha256: None,
@@ -67,6 +82,8 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
             ..Extraction::default()
         },
         finished: false,
+        tree,
+        tree_pages: (0, 0),
     })
 }
 
@@ -81,6 +98,35 @@ pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -
         if let Step::Done(extraction) = job.step(doc, Budget::UNLIMITED)? {
             return Ok(extraction);
         }
+    }
+}
+
+/// A page's painting, seen once: the table rules (when tables are looked for) and the backdrops.
+struct Painted<'f> {
+    rules: Option<Collector<'f>>,
+    backdrops: Backdrops,
+}
+
+impl Visitor for Painted<'_> {
+    fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
+        if let Some(rules) = &mut self.rules {
+            rules.path_segment(segment, ctm);
+        }
+    }
+
+    fn paint_path(&mut self, paint: &PathPaint<'_>) {
+        if let Some(rules) = &mut self.rules {
+            rules.paint_path(paint);
+        }
+        self.backdrops.paint_path(paint);
+    }
+
+    fn image(&mut self, image: &ImageDraw<'_>) {
+        self.backdrops.image(image);
+    }
+
+    fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        self.backdrops.paint_shading(shading);
     }
 }
 
@@ -139,16 +185,33 @@ impl ExtractJob {
             let page = pages
                 .get(index)
                 .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
-            // The table rules are collected in the same walk of the content as the text.
-            let (text, edges) = if self.options.tables == TableMode::Off {
-                (self.extractor.page(doc, &page)?, None)
-            } else {
-                let frame = page.frame()?;
-                let mut rules = Collector::new(&frame);
-                let text = self.extractor.page_with(doc, &page, &mut rules)?;
-                (text, Some(rules.finish()))
+            // The table rules and what is painted under the text are collected in the same walk
+            // of the content as the text.
+            let frame = page.frame()?;
+            let mut painted = Painted {
+                rules: (self.options.tables != TableMode::Off).then(|| Collector::new(&frame)),
+                backdrops: Backdrops::new(&frame),
             };
-            let out = extract_page(doc, &page, index, &text, edges.as_ref(), &self.options, &self.cancel)?;
+            let text = self.extractor.page_with(doc, &page, &mut painted)?;
+            let edges = painted.rules.map(Collector::finish);
+            let out = extract_page(
+                doc,
+                &page,
+                index,
+                &text,
+                &PageInput {
+                    edges: edges.as_ref(),
+                    backdrops: &painted.backdrops,
+                    tree: self.tree.as_ref(),
+                },
+                &self.options,
+                &self.cancel,
+            )?;
+            match out.tree {
+                TreeUse::Used => self.tree_pages.0 += 1,
+                TreeUse::Ignored => self.tree_pages.1 += 1,
+                TreeUse::None => {}
+            }
             self.out.pages.push(out.info);
             self.out.blocks.extend(out.blocks);
             self.out.dropped.extend(out.dropped);
@@ -156,6 +219,12 @@ impl ExtractJob {
         }
         if self.next >= self.todo.len() {
             let mut out = std::mem::take(&mut self.out);
+            // Tagged only when the tree gave every page it covers its order.
+            if let (true, (used, 0)) = (out.source.struct_source == StructSource::XyCut, self.tree_pages)
+                && used > 0
+            {
+                out.source.struct_source = StructSource::Tagged;
+            }
             finish(&mut out, &self.options);
             return Ok(Step::Done(out));
         }

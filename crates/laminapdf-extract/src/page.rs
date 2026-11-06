@@ -13,8 +13,9 @@ use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
 use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
+use crate::tagged::{self, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
-use crate::visibility::{flags, normalised};
+use crate::visibility::{Backdrops, Look, flags, normalised};
 use crate::xycut;
 
 /// What one page gave.
@@ -23,6 +24,19 @@ pub(crate) struct PageOut {
     pub(crate) info: ExtractedPage,
     pub(crate) blocks: Vec<Block>,
     pub(crate) dropped: Vec<Dropped>,
+    /// How the page used the structure tree.
+    pub(crate) tree: TreeUse,
+}
+
+/// How a page used the structure tree.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TreeUse {
+    /// The tree gave its order.
+    Used,
+    /// It had tagged content, but the tree failed a check.
+    Ignored,
+    /// No tree, or nothing of the tree on this page.
+    None,
 }
 
 /// How sure the layout rules are of a block (ADR 0030 §1: below the structure tree's 1).
@@ -38,7 +52,18 @@ struct Runs {
     dropped: Vec<Dropped>,
 }
 
-fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
+/// What extraction reads of a page besides its text: what it painted, seen in the same walk of
+/// its content, and the document's structure tree.
+pub(crate) struct PageInput<'a> {
+    /// The table rules, when tables are looked for.
+    pub(crate) edges: Option<&'a Edges>,
+    /// What text can stand on, for the low-contrast flag.
+    pub(crate) backdrops: &'a Backdrops,
+    /// The structure tree, when the reading order may come from it.
+    pub(crate) tree: Option<&'a TaggedIndex>,
+}
+
+fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> Runs {
     let frame = &text.frame;
     let (width, height, unit) = (frame.width(), frame.height(), frame.user_unit());
     let mut out = Runs {
@@ -52,7 +77,7 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
             .glyphs
             .get(run.glyphs.start)
             .map_or(run.bounds.y1, |g| frame.to_page(g.origin).y);
-        let span_flags = flags(run.invisible, &run.bounds, size, width, height);
+        let span_flags = flags(&Look::of(run), &run.bounds, size, width, height, backdrops);
         let span = Span {
             text: run.text.clone(),
             bbox: run.bounds,
@@ -93,6 +118,8 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
                 size,
                 font: span.font.clone(),
                 vertical: run.vertical,
+                mcid: run.mcid,
+                artifact: run.artifact,
             });
             out.spans.push(Span {
                 text: words,
@@ -177,7 +204,7 @@ fn ordered(
             order.sort_by_key(|&i| first.get(i).copied().unwrap_or(usize::MAX));
             order
         }
-        ReadingOrder::Auto | ReadingOrder::Layout => {
+        ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => {
             xycut::order(boxes, lines, rtl, options.limits.max_xycut_depth, cancel)
                 .map_err(|xycut::Cancelled| ExtractError::Cancelled)?
         }
@@ -241,7 +268,7 @@ pub(crate) fn extract_page(
     page: &Page<'_>,
     index: usize,
     text: &PageText,
-    edges: Option<&Edges>,
+    painting: &PageInput<'_>,
     options: &ExtractOptions,
     cancel: &CancelToken,
 ) -> Result<PageOut, ExtractError> {
@@ -258,7 +285,7 @@ pub(crate) fn extract_page(
         mut pieces,
         mut spans,
         dropped,
-    } = runs(index, text, options);
+    } = runs(index, text, painting.backdrops, options);
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
     // Before the grouping and the cuts, whose work grows faster than the runs do.
     let limit = options.limits.max_blocks_per_page;
@@ -271,7 +298,79 @@ pub(crate) fn extract_page(
         pieces.truncate(kept);
         spans.truncate(kept);
     }
-    let tables = find_tables(doc, index, edges, &pieces, options)?;
+    let cx = PageContext {
+        doc,
+        info: &info,
+        painting,
+        options,
+        cancel,
+    };
+    let (blocks, tree_use) = match painting
+        .tree
+        .filter(|_| options.reading_order != ReadingOrder::ContentStream)
+    {
+        Some(tree) => {
+            let check = options.reading_order != ReadingOrder::Tagged;
+            match tagged::tree_blocks(tree, &info, pieces, spans, options.dehyphenate, check) {
+                Ok(TreeBlocks {
+                    mut blocks,
+                    rest,
+                    untagged,
+                    tagged: true,
+                }) => {
+                    if untagged > 0 {
+                        doc.report(Warning::ExtractUntaggedContent {
+                            page: page_number,
+                            chars: u64::try_from(untagged).unwrap_or(u64::MAX),
+                        })?;
+                    }
+                    let (pieces, spans) = rest;
+                    blocks.extend(layout(&cx, pieces, spans, blocks.len())?);
+                    (blocks, TreeUse::Used)
+                }
+                Ok(TreeBlocks {
+                    rest: (pieces, spans), ..
+                }) => (layout(&cx, pieces, spans, 0)?, TreeUse::None),
+                Err((implausible, (pieces, spans))) => {
+                    doc.report(Warning::ExtractStructTreeIgnored {
+                        page: page_number,
+                        reason: implausible.reason(),
+                    })?;
+                    (layout(&cx, pieces, spans, 0)?, TreeUse::Ignored)
+                }
+            }
+        }
+        None => (layout(&cx, pieces, spans, 0)?, TreeUse::None),
+    };
+    Ok(PageOut {
+        info,
+        blocks,
+        dropped,
+        tree: tree_use,
+    })
+}
+
+/// What a page's layout reads besides its pieces.
+struct PageContext<'a> {
+    doc: &'a Document,
+    info: &'a ExtractedPage,
+    painting: &'a PageInput<'a>,
+    options: &'a ExtractOptions,
+    cancel: &'a CancelToken,
+}
+
+/// The layout's blocks of `pieces` (with their `spans`): lines, blocks, tables, XY-Cut++ order.
+/// Their IDs count from `id_from`.
+fn layout(
+    cx: &PageContext<'_>,
+    pieces: Vec<Piece>,
+    spans: Vec<Span>,
+    id_from: usize,
+) -> Result<Vec<Block>, ExtractError> {
+    let (doc, info, painting, options, cancel) = (cx.doc, cx.info, cx.painting, cx.options, cx.cancel);
+    let index = info.index;
+    let page_number = u64::try_from(index).unwrap_or(u64::MAX);
+    let tables = find_tables(doc, index, painting.edges, &pieces, options)?;
     if tables.iter().any(|t| t.ambiguous) {
         doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
     }
@@ -307,20 +406,20 @@ pub(crate) fn extract_page(
     let items = ordered(items, &boxes, &counts, &first, rtl, options, cancel)?;
     let confidence = match options.reading_order {
         ReadingOrder::ContentStream => CONTENT_CONFIDENCE,
-        ReadingOrder::Auto | ReadingOrder::Layout => LAYOUT_CONFIDENCE,
+        ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => LAYOUT_CONFIDENCE,
     };
     let blocks = items
         .into_iter()
         .enumerate()
         .filter_map(|(n, item)| {
-            let id = format!("p{index}-b{n}");
+            let id = format!("p{index}-b{}", n + id_from);
             match item {
-                Item::Text(draft) => Some(text_block(id, &draft, &lines, &flow, &info, options, confidence)),
-                Item::Table(t) => Some(table_block(id, tables.get(t)?, flow.table_spans.get(t)?, &info)),
+                Item::Text(draft) => Some(text_block(id, &draft, &lines, &flow, info, options, confidence)),
+                Item::Table(t) => Some(table_block(id, tables.get(t)?, flow.table_spans.get(t)?, info)),
             }
         })
         .collect();
-    Ok(PageOut { info, blocks, dropped })
+    Ok(blocks)
 }
 
 /// The page's pieces and spans with the tables' taken out, and the tables' own spans.

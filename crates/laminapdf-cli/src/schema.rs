@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use crate::batch::{BatchSummary, Status};
 use crate::commands::{
     CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
-    InfoReport, PagesReport, RotateArgs, TextReport,
+    InfoReport, PagesReport, RenderArgs, RenderReport, RotateArgs, TextReport,
 };
 
 /// Where the committed schemas are published; a schema's `$id` is this plus its file name.
@@ -25,6 +25,7 @@ pub fn all() -> Vec<(&'static str, Value)> {
         ("pages.schema.json", report::<PagesReport>(PagesReport::SCHEMA)),
         ("text.schema.json", report::<TextReport>(TextReport::SCHEMA)),
         ("explain.schema.json", report::<ExplainReport>(ExplainReport::SCHEMA)),
+        ("render.schema.json", report::<RenderReport>(RenderReport::SCHEMA)),
         ("error-line.schema.json", error_line()),
         ("result-line.schema.json", result_line()),
         ("summary-line.schema.json", summary_line()),
@@ -32,7 +33,7 @@ pub fn all() -> Vec<(&'static str, Value)> {
 }
 
 /// The commands `laminapdf schema` describes, by the name it takes.
-pub const COMMANDS: [&str; 5] = ["check", "explain", "extract", "info", "pages-rotate"];
+pub const COMMANDS: [&str; 6] = ["check", "explain", "extract", "info", "pages-rotate", "render"];
 
 /// The committed schema `file`.
 fn committed(file: &str) -> Value {
@@ -70,10 +71,11 @@ pub fn command(name: &str) -> Option<Value> {
         ),
         "info" => (input::<InfoArgs>(name), committed("info.schema.json")),
         "pages-rotate" => (input::<RotateArgs>(name), committed("pages.schema.json")),
+        "render" => (input::<RenderArgs>(name), committed("render.schema.json")),
         _ => return None,
     };
     let mut properties = json!({ "input": input, "output": output, "error": committed("error-line.schema.json") });
-    if matches!(name, "check" | "extract" | "info")
+    if matches!(name, "check" | "extract" | "info" | "render")
         && let Some(map) = properties.as_object_mut()
     {
         map.insert("result".to_owned(), committed("result-line.schema.json"));

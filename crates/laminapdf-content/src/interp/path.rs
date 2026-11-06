@@ -1,7 +1,7 @@
 //! The path operators: construction (§8.5.2), painting (§8.5.3) and clipping (§8.5.4).
 
 use laminapdf_cos::{Object, Result, Warning};
-use laminapdf_model::FillRule;
+use laminapdf_model::{FillRule, UserSpaceRect};
 
 use super::{Frame, Interpreter, numbers, offset_u64};
 use crate::lexer::Op;
@@ -59,6 +59,23 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
     /// Reports a path segment and moves the current point.
     pub(super) fn segment(&mut self, frame: &mut Frame, op: &Op<'_>, segment: PathSegment) {
         frame.path.get_or_insert(op.offset);
+        // At most four points a segment, so no allocation on this hot path; a rectangle's four
+        // corners, since a rotated or skewed CTM moves each one.
+        let (points, used) = match segment {
+            PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } => ([(x, y); 4], 1),
+            PathSegment::Rect { x, y, width, height } => {
+                ([(x, y), (x + width, y), (x, y + height), (x + width, y + height)], 4)
+            }
+            PathSegment::CurveTo { c1, c2, end } => ([c1, c2, end, end], 3),
+            PathSegment::ClosePath => ([(0.0, 0.0); 4], 0),
+        };
+        for &(x, y) in points.iter().take(used) {
+            let (x, y) = frame.gs.ctm.apply(x, y);
+            frame.bounds = Some(match frame.bounds {
+                Some(b) => UserSpaceRect::from_corners(b.x0.min(x), b.y0.min(y), b.x1.max(x), b.y1.max(y)),
+                None => UserSpaceRect::from_corners(x, y, x, y),
+            });
+        }
         match segment {
             PathSegment::MoveTo { x, y } | PathSegment::Rect { x, y, .. } => {
                 frame.current = Some((x, y));
@@ -88,11 +105,20 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
         frame.current = None;
         frame.subpath_start = None;
         let clip = frame.clip.take();
+        let bounds = frame.bounds.take();
         self.visitor.paint_path(&PathPaint {
             paint,
             clip,
             state: &frame.gs,
+            bounds,
         });
+        // The clip takes effect after the painting (§8.5.4); a path with no points clips
+        // everything.
+        if clip.is_some() {
+            frame
+                .gs
+                .clip_to(bounds.unwrap_or(UserSpaceRect::from_corners(0.0, 0.0, 0.0, 0.0)));
+        }
     }
 
     /// Drops the unpainted path whose first segment is at `offset`.

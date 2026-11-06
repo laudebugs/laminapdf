@@ -12,6 +12,9 @@ use std::fmt;
 use laminapdf::{Diagnostic, ErrorCode, ErrorKind};
 use serde_json::{Map, Value};
 
+/// The hint for a missing or wrong password, in flags.
+const PASSWORD_HINT: &str = "pass the password in a file with --password-file FILE, or set LAMINA_PDF_PASSWORD";
+
 /// How a command ended, as the process's exit status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ExitCode {
@@ -177,9 +180,7 @@ impl From<laminapdf::Error> for CliError {
         let code = error.error_code();
         let diagnostic = error.diagnostic();
         let hint = match code {
-            ErrorCode::PasswordRequired | ErrorCode::WrongPassword => {
-                Some("pass the password in a file with --password-file FILE, or set LAMINA_PDF_PASSWORD".to_owned())
-            }
+            ErrorCode::PasswordRequired | ErrorCode::WrongPassword => Some(PASSWORD_HINT.to_owned()),
             ErrorCode::LimitExceeded => diagnostic.data.get("limit").and_then(Value::as_str).map(|limit| {
                 format!(
                     "the input exceeds a safety limit; raise it with --{} only if you trust the input",
@@ -191,6 +192,24 @@ impl From<laminapdf::Error> for CliError {
         let diagnostic = match hint {
             Some(hint) => diagnostic.with_hint(Some(hint)),
             None => diagnostic,
+        };
+        Self {
+            exit: exit_code_for(code),
+            diagnostic: Box::new(diagnostic),
+        }
+    }
+}
+
+impl From<laminapdf_render::RenderError> for CliError {
+    /// A renderer's error, with the password hint said in flags as for the façade's.
+    fn from(error: laminapdf_render::RenderError) -> Self {
+        let code = error.error_code();
+        let diagnostic = error.diagnostic();
+        let diagnostic = match code {
+            ErrorCode::PasswordRequired | ErrorCode::WrongPassword => {
+                diagnostic.with_hint(Some(PASSWORD_HINT.to_owned()))
+            }
+            _ => diagnostic,
         };
         Self {
             exit: exit_code_for(code),

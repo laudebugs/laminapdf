@@ -726,6 +726,11 @@
           "const": "stream",
           "description": "Text lined up in columns, with no lines.",
           "type": "string"
+        },
+        {
+          "const": "tagged",
+          "description": "The structure tree's `Table` element (ISO 32000-2 §14.8.4.8.3).",
+          "type": "string"
         }
       ]
     },

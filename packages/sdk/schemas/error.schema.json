@@ -248,6 +248,8 @@
             "extract-reading-order-ambiguous",
             "extract-table-ambiguous",
             "extract-table-limit",
+            "extract-struct-tree-ignored",
+            "extract-untagged-content",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]

@@ -42,6 +42,10 @@ clap = { workspace = true }
 clap_complete = { workspace = true }
 clap_mangen = { workspace = true }
 indicatif = { workspace = true }
+# `laminapdf render`: hayro built in, PDFium bound at run time from LAMINA_PDF_PDFIUM_DIR, PNG out.
+laminapdf-render = { workspace = true, features = ["hayro"] }
+laminapdf-render-pdfium = { workspace = true }
+png = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -20,6 +20,7 @@ $ echo $?
 4
 $ curl -sL https://example.org/a.pdf | laminapdf extract - --pages 1-3 | rg -i invoice
 $ laminapdf extract invoice.pdf --format md > invoice.md
+$ laminapdf render report.pdf --pages 1-3 --dpi 72 -o 'thumbs/{stem}-{n:03}.png'
 $ laminapdf check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and .status!="ok")'
 $ laminapdf explain xref-repaired
 ```
@@ -29,8 +30,9 @@ $ laminapdf explain xref-repaired
 - **`info <inputs…>`**: the PDF version, page count and sizes, file size, encryption, whether the document is tagged, its Info dictionary and the warnings reading it raised. `--fields a,b` keeps only those keys of the JSON report.
 - **`check <inputs…>`**: reads every object, every page and every content stream within the limits, and reports what a tolerant read had to repair. It exits 3 when there were repairs, and 1 with `--strict` at the first one.
 - **`pages rotate <input> <angle>[:<range>] (-o OUT | --in-place)`**: `+90` and `-90` turn pages from their current rotation, `90` sets it; the range names the pages. The result is an incremental update where the file allows one, so the input's bytes come first.
-- **`extract <inputs…> [--pages RANGE] [--format text|md|json|chunks]`**: by default each page's text, pages separated by a form feed, as `pdftotext` does (`--visible-only` leaves out invisible text). The other formats read the blocks in reading order: `md` is Markdown with headings, lists and tables, `json` the `laminapdf.extract/1` document (every block with its box, and what was dropped), `chunks` the Markdown cut for retrieval, one JSON object per line. They never contain hidden text. `--max-chars N` keeps whole blocks up to N characters of Markdown and adds `"truncated": true` to the JSON.
+- **`extract <inputs…> [--pages RANGE] [--format text|md|json|chunks]`**: by default each page's text, pages separated by a form feed, as `pdftotext` does (`--visible-only` leaves out invisible text). The other formats read the blocks in reading order: `md` is Markdown with headings, lists and tables, `json` the `laminapdf.extract/1` document (every block with its box, and what was dropped; with `--format md --json`, the document carries the Markdown too, as `markdown`), `chunks` the Markdown cut for retrieval, one JSON object per line. They never contain hidden text. `--max-chars N` keeps whole blocks up to N characters of Markdown and adds `"truncated": true` to the JSON.
 - **`explain <code>`**: the page of an error or warning code, as in [`docs/errors/`](../../docs/errors/README.md).
+- **`render <inputs…> -o TEMPLATE [--pages RANGE] [--dpi N | --scale F] [--backend hayro|pdfium]`**: each page as a PNG image, 150 dpi unless `--dpi` or `--scale` (pixels per point) says otherwise. The output is a template, described under Output templates; `-o -` writes one page to standard output. The built-in renderer is hayro. `--backend pdfium` uses PDFium instead, loaded from the folder `LAMINA_PDF_PDFIUM_DIR` names. With `--json`, the `laminapdf.render/1` report lists each page's pixel size and file. The renderer reads the file itself, so `render` refuses `--strict` and the limit flags.
 - **`schema [command]`**: the JSON Schema of a command's arguments, its `--json` report, its error line and its batch lines, from the same types the commands and `laminapdf mcp` use; without a command, the list of schemas.
 - **`completions bash|zsh|fish|powershell|elvish`**: a shell completion script, such as `laminapdf completions zsh > ~/.zfunc/_laminapdf`.
 - **`help exit-codes`**, `help <command>` and `--version` (with `--json`, the versions and schema ids).
@@ -39,7 +41,7 @@ $ laminapdf explain xref-repaired
 
 ## Many inputs
 
-`info`, `check` and `extract` take several inputs, from the command line and from `--files-from FILE` (one per line, or separated by NUL bytes with `-0`, as `find -print0` writes them; `-` reads the list from standard input). They run in parallel on `--jobs N` threads (by default, one per CPU core, up to 8), and the results come out in the order you named the inputs. A single input named on the command line prints its usual report, as described under Commands and JSON; several inputs, or any list, print as a batch. With `--json` each result is one line, then a summary:
+`info`, `check`, `extract` and `render` take several inputs, from the command line and from `--files-from FILE` (one per line, or separated by NUL bytes with `-0`, as `find -print0` writes them; `-` reads the list from standard input). They run in parallel on `--jobs N` threads (by default, one per CPU core, up to 8), and the results come out in the order you named the inputs. A single input named on the command line prints its usual report, as described under Commands and JSON; several inputs, or any list, print as a batch. With `--json` each result is one line, then a summary:
 
 ```console
 $ fd -e pdf -0 | laminapdf info --files-from - -0 --json --fields pages
@@ -51,6 +53,21 @@ $ fd -e pdf -0 | laminapdf info --files-from - -0 --json --fields pages
 With `--json`, a failed input is a `result` line with an `error` on standard output, not a line on standard error. In text mode each report comes under a `==> input <==` line, and errors and the counts go to standard error. When standard error is a terminal, a progress bar shows there; `--quiet` hides it.
 
 A batch exits 0 when every input succeeded, 3 when some had warnings (0 with `--warnings-ok`), 1 when any failed, and 5 when every failure was a missing or wrong password. `--fail-fast` starts no input after the first failure, and the summary counts those skipped.
+
+## Output templates
+
+One `-o` names every file `render` writes. In a template such as `out/{stem}-{n:03}.png`, these fields are filled in for each input and page:
+
+| Field | Value |
+| --- | --- |
+| `{stem}` | the input's file name without its extension (`report` for `docs/report.pdf`; `stdin` for `-`) |
+| `{name}` | the input's file name (`report.pdf`) |
+| `{index}` | the input's position on the command line, from 0 |
+| `{n}` | the page number, from 1 |
+
+A width after a colon, written with a leading zero, pads a number with zeros: `{n:03}` is `007`. `{{` and `}}` write braces.
+
+The command works out every path before it writes anything. It refuses, with exit 2, a template that would give two pages or two inputs the same file, such as one without `{n}` for a document of several pages, or one without `{stem}`, `{name}` or `{index}` for several inputs. `-o -` takes one page of one input named on the command line. Without `--force`, an existing file stops it with exit 4, also before any page is written. It doesn't create folders, so make them first.
 
 ## Page ranges
 
@@ -79,7 +96,7 @@ For clients that speak only the Model Context Protocol, `laminapdf mcp` serves t
 
 ```console
 $ laminapdf mcp --root ./docs                  # read-only: laminapdf_check, laminapdf_explain, laminapdf_extract, laminapdf_info
-$ laminapdf mcp --root ./docs --allow-write    # adds laminapdf_pages_rotate, which writes new files only
+$ laminapdf mcp --root ./docs --allow-write    # adds laminapdf_pages_rotate and laminapdf_render, which write new files only
 ```
 
 A client starts it as a command. In Claude Code, add it with `claude mcp add laminapdf -- laminapdf mcp --root /home/me/docs`; Claude Desktop and most other clients take the same command in their configuration file:
@@ -88,12 +105,12 @@ A client starts it as a command. In Claude Code, add it with `claude mcp add lam
 { "mcpServers": { "laminapdf": { "command": "laminapdf", "args": ["mcp", "--root", "/home/me/docs"] } } }
 ```
 
-Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. A failure is a tool error whose text is the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call. The line goes in the text rather than in `structuredContent`, which has to match the report's schema.
+Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages": "1-3"}`) and answers with the command's report as `structuredContent`, so its `outputSchema` is the report's schema. `laminapdf_extract` takes every `format` the command does; its `outputSchema` covers both the text report and `laminapdf.extract/1`. A failure is a tool error whose text is the same `laminapdf.error/1` line the CLI writes under `--json`, so the model can read the code and correct its call. The line goes in the text rather than in `structuredContent`, which has to match the report's schema.
 
 The server is safe without flags, because a model may follow instructions planted in a document:
 
 - **Roots.** Tools touch only files under the `--root` folders. A relative path starts at the first root. Before it checks a path, the server resolves it and follows its links. So `..`, an absolute path elsewhere and a link that leads out all get `path-outside-roots`. Outside the roots, a missing file gets the same answer as one that exists, so a call can't probe for files.
-- **Read-only by default.** The server lists the write tool only with `--allow-write`. It writes new files only, unless the server also has `--allow-in-place`, which lets it replace its input.
+- **Read-only by default.** The server lists the write tools only with `--allow-write`. They write new files only, with one exception: when the server also has `--allow-in-place`, the rotate tool can replace its input. The render tool never replaces a file or writes to standard output.
 - **Document text stays in data.** Titles and extracted text appear only in report fields. Error messages and hints never quote the document, and tool descriptions are fixed text.
 - **Bounded calls.** At most one call per CPU runs at a time. The server stops a call that runs past `--timeout` (60 s by default) at its next step and answers `cancelled`. A step that can't stop, such as opening a large file, gets 5 more seconds. After that the server answers anyway, and the call keeps its CPU slot until the step ends.
 - **Bounded output.** A report over `--max-output-bytes` (1 MiB by default, 1 KiB at least) loses items from the end of its lists, then text, and gets `"truncated": true`. The cut report still matches the tool's `outputSchema`.
@@ -102,9 +119,9 @@ The server opens documents with the command line's settings: `--strict`, the lim
 
 ## Code
 
-`src/commands/` holds one function per command, which takes its arguments, the settings and an `Io`, and returns a report or a `CliError`. Commands never print, so `laminapdf mcp` can call the same functions. `src/main.rs` is the clap front end and `src/render.rs` the text and JSON output. `src/mcp/` is the MCP server (`mcp` feature): the server in `mod.rs`, the tool list and its schemas in `tools.rs`, the output limit in `truncate.rs` and the path policy in `roots.rs`. The rest is shared: `src/ranges.rs` (the range grammar), `src/exit.rs` (exit codes and errors), `src/io.rs` (stdin, stdout, atomic writes), `src/schema.rs` (the schemas) and `src/batch.rs` (inputs, the thread pool that hands results back in order, the batch exit code). The front end's `src/many.rs` prints a batch, and `src/docs.rs` serves `schema`, `completions` and the man pages.
+`src/commands/` holds one function per command, which takes its arguments, the settings and an `Io`, and returns a report or a `CliError`. Commands never print, so `laminapdf mcp` can call the same functions. `src/main.rs` is the clap front end and `src/render.rs` the text and JSON output. `src/mcp/` is the MCP server (`mcp` feature): the server in `mod.rs`, the tool list and its schemas in `tools.rs`, the output limit in `truncate.rs` and the path policy in `roots.rs`. The rest is shared: `src/ranges.rs` (the range grammar), `src/exit.rs` (exit codes and errors), `src/io.rs` (stdin, stdout, atomic writes), `src/schema.rs` (the schemas) and `src/batch.rs` (inputs, the thread pool that hands results back in order, the batch exit code). The front end's `src/many.rs` prints a batch, and `src/docs.rs` serves `schema`, `completions` and the man pages. `src/template.rs` parses and fills in output templates, and `src/commands/render.rs` renders through `laminapdf-render` and writes PNGs with the `png` crate.
 
-Tests (`tests/`, reading the shared [`fixtures/`](../../fixtures/README.md)): one file per command (`info.rs`, `check.rs`, `pages.rs`, `extract.rs`, `explain.rs`), and `exit_codes.rs` (every code from a real run), `pipes.rs`, `json_schemas.rs` (the committed schemas are the generated ones, and every `--json` output validates), `no_prompt.rs` (nothing waits for input), `injection.rs` (document text stays in data fields, and colour reaches only a terminal), `io.rs`, `batch.rs` (argument order over 50 files, NDJSON against its schemas, the exit codes, `--fail-fast`, `--files-from`), `schema.rs` (every command's schema compiles as 2020-12 and embeds the committed ones), `completions.rs`, and with the `mcp` feature `mcp.rs` (the server through rmcp's client: the tool list, schemas, roots, write flags and injection). `examples/golden.rs` writes `fixtures/golden/cli-rotate-hello.pdf` for `cargo xtask golden --update`.
+Tests (`tests/`, reading the shared [`fixtures/`](../../fixtures/README.md)): one file per command (`info.rs`, `check.rs`, `pages.rs`, `extract.rs`, `explain.rs`), and `exit_codes.rs` (every code from a real run), `pipes.rs`, `json_schemas.rs` (the committed schemas are the generated ones, and every `--json` output validates), `no_prompt.rs` (nothing waits for input), `injection.rs` (document text stays in data fields, and colour reaches only a terminal), `io.rs`, `batch.rs` (argument order over 50 files, NDJSON against its schemas, the exit codes, `--fail-fast`, `--files-from`), `schema.rs` (every command's schema compiles as 2020-12 and embeds the committed ones), `completions.rs`, `render.rs` (every example's pages against the render goldens, templates, clashes and refusals before any write, standard output), and with the `mcp` feature `mcp.rs` (the server through rmcp's client: the tool list, schemas, roots, write flags and injection). `examples/golden.rs` writes `fixtures/golden/cli-rotate-hello.pdf` for `cargo xtask golden --update`.
 
 ```sh
 cargo run -p laminapdf-cli -- info fixtures/corpus/hello.pdf

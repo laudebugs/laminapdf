@@ -23,8 +23,8 @@
 //! install page tells users to: `@laminapdf/sdk` from npm (which brings `@laminapdf/wasm`) and
 //! `laminapdf` from crates.io, at the fixed group's version (`--version` for another). One Rust
 //! binary depends on the crate from crates.io in place of the path and git ones. `--wait
-//! <minutes>` first polls both registries until the version is there: an npm version goes public
-//! only once the owner approves it (ADR 0017 §7).
+//! <minutes>` first polls both registries until the version is there: a registry can take a few
+//! minutes to serve a version the release lane has just published (ADR 0017 §7).
 
 use std::fmt::Write as _;
 use std::fs;
@@ -191,9 +191,7 @@ fn unpublished(ws: &Workspace, version: &str) -> Result<Vec<String>> {
     let mut missing = Vec::new();
     for name in NPM_PACKAGES {
         if !crate::publish::on_npm(ws, name, version)? {
-            missing.push(format!(
-                "{name}@{version} is not on npm (staged versions wait for approval on npmjs.com)"
-            ));
+            missing.push(format!("{name}@{version} is not on npm"));
         }
     }
     if !crate::publish::on_crates_io(FACADE_CRATE, version)? {

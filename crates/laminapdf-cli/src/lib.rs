@@ -13,3 +13,4 @@ pub mod io;
 pub mod mcp;
 pub mod ranges;
 pub mod schema;
+pub mod template;

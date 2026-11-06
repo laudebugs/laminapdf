@@ -56,7 +56,7 @@ The cadence is at most one release a day, set by the nightly. A release on every
 | ID | Todo | Depends on |
 | --- | --- | --- |
 | [P4](../todos/done/P4-docs-match-the-release.md) | Docs that match the release: the version on every page, exact install lines, `main` at `next.docs.laminapdf.com`, production docs from the release lane | P3 |
-| [P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md) | npm trusted publishing from a GitHub-hosted runner, and a release lane that skips its nightly run for a version-only commit | P2 |
+| [P5](../todos/done/P5-npm-trusted-publishing-and-version-only-releases.md) | npm trusted publishing from a GitHub-hosted runner, and a release lane that skips its nightly run for a version-only commit | P2 |
 | [P6](../todos/ready/P6-daily-release.md) | The daily release: `release-train.yml`, `cargo xtask release prepare`, the release bot and its version pull request | P4, P5 |
 
 Workflow files can't be pushed by the agents' GitHub access, so each todo's pull request carries its workflow changes for the owner to commit.
@@ -64,7 +64,7 @@ Workflow files can't be pushed by the agents' GitHub access, so each todo's pull
 ## 7. To-dos
 
 - [x] Show the released version on every docs page, and serve `main`'s docs at `next.docs.laminapdf.com` ([P4](../todos/done/P4-docs-match-the-release.md))
-- [ ] Publish to npm without a stored token or an approval step, and skip the release lane's second nightly run for a version-only commit ([P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md))
+- [x] Publish to npm without a stored token or an approval step, and skip the release lane's second nightly run for a version-only commit ([P5](../todos/done/P5-npm-trusted-publishing-and-version-only-releases.md))
 - [ ] Release once a day, after the nightly passes, with no human step ([P6](../todos/ready/P6-daily-release.md))
 
 With these three done, a merged change with a changeset reaches crates.io, npm and `docs.laminapdf.com` by the next day's release, and every docs page names the version it documents.

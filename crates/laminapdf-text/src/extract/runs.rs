@@ -12,8 +12,10 @@ use icu_properties::props::CanonicalCombiningClass;
 use super::Glyph;
 use crate::{BidiParagraph, grapheme_boundaries};
 
-/// Consecutive glyphs drawn alike: one font, size, writing direction, MCID, `ActualText` span
-/// and visibility, one after the other on one baseline.
+/// Consecutive glyphs drawn alike: one font, size, writing direction, MCID, `ActualText` span,
+/// visibility, artifact marking, clip box and colour, one after the other on one baseline. A
+/// word in another colour, or text crossing a clip's edge, starts a run of its own, so each run
+/// is either all hidden or all visible.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 #[expect(
@@ -43,6 +45,10 @@ pub struct PageTextRun {
     pub invisible: bool,
     /// Inside marked content tagged `Artifact` (§14.8.2.2).
     pub artifact: bool,
+    /// The clip's bounding box in page space, as [`Glyph::clip`](super::Glyph::clip).
+    pub clip: Option<RectPt>,
+    /// The colour it is painted in, as [`Glyph::color`](super::Glyph::color).
+    pub color: Option<[f64; 3]>,
     /// The union of the glyphs' boxes, in page space.
     pub bounds: RectPt,
 }
@@ -89,6 +95,8 @@ fn alike(a: &Glyph, b: &Glyph) -> bool {
         && a.actual_text == b.actual_text
         && a.invisible == b.invisible
         && a.artifact == b.artifact
+        && a.clip == b.clip
+        && a.color == b.color
 }
 
 /// Groups `glyphs` into runs.
@@ -168,6 +176,8 @@ pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<PageTextRun
                 actual_text: first.actual_text.is_some(),
                 invisible: first.invisible,
                 artifact: first.artifact,
+                clip: first.clip,
+                color: first.color,
                 bounds: bounds(run),
             })
         })
