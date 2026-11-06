@@ -11,7 +11,7 @@
 | Branch | `feat/c4e-reader-chrome` |
 | PR title | `feat(ui): add the reader shell, the top bar and the password prompt` |
 | Size | L (≈ 1,400 lines of components, tokens and tests; split from C4a on 2026-11-05, then the home screen's parts, the repair and failure UI, the demo page and the React Compiler moved to [C4f](../ready/C4f-reader-home-repairs-and-demo.md)) |
-| PR | — |
+| PR | [#269](https://github.com/laudebugs/laminapdf/pull/269) |
 
 ## Goal
 
