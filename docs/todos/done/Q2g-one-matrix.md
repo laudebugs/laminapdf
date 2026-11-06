@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2g-one-matrix` |
 | PR title | `refactor(model): one Matrix, FillRule and Dash for building and reading` |

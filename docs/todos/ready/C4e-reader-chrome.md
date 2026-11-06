@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [C4a](../done/C4a-ui-chrome-and-platform.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md) |
-| Blocks | [C4f](./C4f-reader-home-repairs-and-demo.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer); follows 0010 (UI branches only on capability flags) and 0024 (the shell's slots) |
 | Branch | `feat/c4e-reader-chrome` |
 | PR title | `feat(ui): add the reader shell, the top bar and the password prompt` |

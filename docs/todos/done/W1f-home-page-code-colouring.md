@@ -7,7 +7,6 @@
 | Plan | [website §4](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) |
 | Depends on | [W1c](./W1c-home-page.md) |
-| Blocks | None |
 | ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-) (the website's `style-src 'self'`) and [0024 §7](../../decisions/0024-app-shell-ux.md) (`--paper-` tokens) |
 | Branch | `feat/w1f-code-colouring` |
 | PR title | `feat(site): colour the home page's code` |

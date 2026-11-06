@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q2k](./Q2k-boundary-errors-ts.md) |
 | ADRs | Follows 0026 |
 | Branch | `refactor/q2j-boundary-errors-rust` |
 | PR title | `refactor(errors): every Rust boundary error is the ADR 0026 object from one serialiser` |

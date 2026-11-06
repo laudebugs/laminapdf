@@ -7,7 +7,6 @@
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C2a](./C2a-render-adrs.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
-| Blocks | [C4e](../ready/C4e-reader-chrome.md), [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md), [E10e](../ready/E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0010 (`Platform` interface, capability flags, web implementation, rule 1's check) and 0009's state side (the viewer's store read through `useSyncExternalStore`) |
 | Branch | `feat/c4a-ui-chrome` |
 | PR title | `feat(ui): add the platform adapter, the reader controller and the message catalogue` |

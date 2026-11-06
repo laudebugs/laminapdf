@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2l-boundary-lists-generated` |
 | PR title | `refactor(wasm,sdk,render): generate every list shared by Rust and TypeScript` |

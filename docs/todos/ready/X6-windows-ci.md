@@ -7,7 +7,6 @@
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting — before the first Windows desktop release (Round D) |
 | Depends on | [X5](../done/X5-linux-ci-container.md) |
-| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (CI lanes) |
 | Branch | `ci/x6-windows-ci` |
 | PR title | `ci: Windows check (X6)` |

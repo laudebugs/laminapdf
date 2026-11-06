@@ -7,7 +7,6 @@
 | Plan | [full-editor §E14](../../plans/full-editor.md#e14-compare-revisions-and-batch) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E13b](./E13b-ocr-and-conversion-feature-plan.md) |
-| Blocks | [E14b](./E14b-revision-browser.md), [E14d](./E14d-batch-runner.md), [E15a](./E15a-accessibility-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e14a-compare-revisions-batch-feature-plan` |
 | PR title | `docs(editor): E14 feature plan (compare, revisions and batch)` |

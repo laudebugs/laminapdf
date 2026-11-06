@@ -7,7 +7,6 @@
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting |
 | Depends on | [X3a](./X3a-nightly-lane.md) |
-| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (network-dependent checks run nightly, not in the PR lanes) and §4 (the nightly lane may retry once only to report flakiness) |
 | Branch | `ci/x3c-link-check` |
 | PR title | `ci: nightly external link check of the docs` |

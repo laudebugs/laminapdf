@@ -7,7 +7,6 @@
 | Plan | [full-editor §E14](../../plans/full-editor.md#e14-compare-revisions-and-batch) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E13e](./E13e-server-jobs-infrastructure.md), [E14d](./E14d-batch-runner.md) |
-| Blocks | [E16g](./E16g-server-batch-optimise.md) |
 | ADRs | Implements ADR 0013; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e14e-server-batch` |
 | PR title | `feat(jobs): opt-in server batch jobs` |

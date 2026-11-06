@@ -7,7 +7,6 @@
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2b](./E2b-page-structure-ops.md), [E2e](./E2e-content-append-api.md) |
-| Blocks | [E2h](./E2h-page-organiser-ui.md), [E16d](./E16d-colour.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2f-page-geometry` |
 | PR title | `feat(ops): page boxes, crop with warning, resize via content scaling` |
