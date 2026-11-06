@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries): AI-ready extraction |
 | Depends on | [L3d](../done/L3d-extract-structure-and-furniture.md) |

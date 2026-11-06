@@ -12,14 +12,13 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 185 ready · 126 done** (311 total).
+**1 ongoing · 184 ready · 126 done** (311 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done (an open PR may already have claimed one: check `gh pr list`):
 
 - [L3c](ready/L3c-model-plugins.md): Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate
-- [L3g](ready/L3g-extract-structure-tree.md): Extraction: structure-tree order, tagged elements, clipped and low-contrast text
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L4e](ready/L4e-cli-render.md): CLI `render` to PNG, output templates, and MCP tools for `render` and the extraction formats
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
@@ -33,7 +32,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-Nothing on `main`; open PRs may hold claims (`gh pr list`).
+- [L3g](ongoing/L3g-extract-structure-tree.md): Extraction: structure-tree order, tagged elements, clipped and low-contrast text
 
 ## Architecture — Round A
 
@@ -95,7 +94,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L3d | [Extraction: headings, lists, running headers, footers and artifacts](done/L3d-extract-structure-and-furniture.md) | done | [L3a](done/L3a-lamina-extract-reading-order.md), [L3b](done/L3b-extract-tables-and-serialisers.md) |
 | L3e | [Extraction in WASM and `@laminapdf/sdk`, and the extraction benchmark](done/L3e-extract-bindings-and-benchmark.md) | done | [L3b](done/L3b-extract-tables-and-serialisers.md) |
 | L3f | [The extraction benchmark: reading order and tables on a licence-clean public subset](done/L3f-extraction-benchmark.md) | done | [L3e](done/L3e-extract-bindings-and-benchmark.md) |
-| L3g | [Extraction: structure-tree order, tagged elements, clipped and low-contrast text](ready/L3g-extract-structure-tree.md) | ready | [L3d](done/L3d-extract-structure-and-furniture.md) |
+| L3g | [Extraction: structure-tree order, tagged elements, clipped and low-contrast text](ongoing/L3g-extract-structure-tree.md) | ongoing | [L3d](done/L3d-extract-structure-and-furniture.md) |
 | L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](done/L4a-lamina-cli.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](done/L4b-cli-batch-render-schema.md) | done | [L3b](done/L3b-extract-tables-and-serialisers.md), [L4a](done/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L4c | [`laminapdf mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](done/L4c-mcp-mode.md) | done | [L4a](done/L4a-lamina-cli.md) |
