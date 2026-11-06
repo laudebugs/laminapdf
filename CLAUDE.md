@@ -383,6 +383,13 @@ cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin
                              #   (npm-installed tarballs; a Vite app in Playwright's Chromium; a Worker under wrangler dev
                              #   --local; Rust binaries with path and git deps on Lamina PDF, git default HEAD of this clone);
                              #   each output must equal fixtures/golden/examples/hello.pdf
+cargo xtask verify-install … --from-registry [--version <v>] [--wait <minutes>]  # the same runtimes, installed from npm
+                             #   (@laminapdf/sdk and @laminapdf/wasm at <v>, default the checkout's) and crates.io (laminapdf = "=<v>");
+                             #   --wait polls the registries every minute until both have <v> (the release lane, after publishing)
+cargo xtask semver [--baseline <v>]  # after `wasm`: is the pending changesets' bump big enough? cargo-semver-checks (pinned in
+                             #   doctor.rs) on every published crate vs crates.io at <v> (default the newest published), crates missing there
+                             #   listed as unchecked; API Extractor reports of @laminapdf/sdk's entry points vs the published package;
+                             #   breaking changes fail unless a pending changeset of the fixed group is minor or major
 cargo xtask release-guard [--run <id>] [--commit <rev>]  # fail unless the latest completed full nightly.yml run on main, or run <id>, succeeded on <rev>
                              #   (default HEAD) or an ancestor (gh, git merge-base); full: scheduled, or dispatched with every
                              #   input at its default, titled "Nightly (full budgets)"

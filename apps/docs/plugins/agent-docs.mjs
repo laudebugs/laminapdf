@@ -5,6 +5,7 @@
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, SNIPPET, twin, twinHref } from "./markdown.mjs";
 
@@ -107,7 +108,7 @@ async function readMaybe(url) {
  * A route's twin, from its source; `undefined` when the route has none.
  *
  * @param {string} route
- * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string }} context
+ * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string }} context
  * @returns {Promise<{ title: string, description?: string | undefined, markdown: string } | undefined>}
  */
 async function twinOf(route, context) {
@@ -132,6 +133,7 @@ async function twinOf(route, context) {
     const markdown = mdxToMarkdown(body, {
       snippet: snippetText,
       codeTable: () => context.table,
+      changelog: () => context.changelog,
     });
     const title = data.title ?? base;
     return {
@@ -260,7 +262,8 @@ export function agentDocs(groups) {
             .flat()
             .map((e) => [e.code, e]),
         );
-        const context = { version, site, codes, table: await codeTable() };
+        const changelog = releaseNotes(await readFile(new URL("CHANGELOG.md", ROOT), "utf8"));
+        const context = { version, site, codes, table: await codeTable(), changelog };
         await readSnippets();
         /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */
         const twins = new Map();

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [releases §4](../../plans/releases.md#4-docs-that-match-a-version) |
 | Round / milestone | Publishing |
-| Depends on | [P3](./P3-registry-checks.md) |
+| Depends on | [P3](../done/P3-registry-checks.md) |
 | ADRs | Implements [0017 §7](../../decisions/0017-versioning-and-release.md#7-publishing)'s docs item and [0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)'s docs hosts (amended 2026-11-05) |
 | Branch | `docs/p4-docs-match-the-release` |
 | PR title | `docs: name the version on every page and serve main's docs at next.docs.laminapdf.com` |
@@ -20,7 +20,7 @@ Make every docs deployment match a package version. Every page of the docs site 
 ## Context
 
 - [Releases plan §4](../../plans/releases.md#4-docs-that-match-a-version), and §5's certificate risk.
-- [P3](./P3-registry-checks.md) rewrites the install pages, quick starts and Your first PDF to install from the registries; this todo pins their versions.
+- [P3](../done/P3-registry-checks.md) rewrites the install pages, quick starts and Your first PDF to install from the registries; this todo pins their versions.
 - `.github/workflows/docs.yml` (previews per pull request, production on pushes to `main`) and `apps/docs/README.md` (the owner's setup).
 - The shared site header (`apps/docs/src/components/Header.astro`, `@laminapdf/site-kit`).
 

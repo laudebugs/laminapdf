@@ -1,0 +1,9 @@
+---
+// CHANGELOG.md's releases (plugins/changelog.mjs), rendered when the site is built.
+import { getEntry } from "astro:content";
+
+const entry = await getEntry("changelog", "releases");
+if (entry?.rendered === undefined) throw new Error("the changelog collection has no rendered releases");
+---
+
+<Fragment set:html={entry.rendered.html} />

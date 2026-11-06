@@ -24,6 +24,10 @@
 #                   without the token, then staged on npm with the NPM_TOKEN secret (stage-only;
 #                   the owner approves each version on npmjs.com)
 #   github-release  CycloneDX SBOMs (`cargo xtask sbom`) and, for a tag, the GitHub release with them
+#   registry        after a tag's publish jobs (todo P3): `cargo xtask verify-install --from-registry`,
+#                   the published version from npm and crates.io in the same runtimes. One job waits
+#                   for the version on both registries (npm's goes public once the owner approves
+#                   it) and checks the Rust binary; then Node 22, 24 and 26 and the rest run
 # The repository is private, so there is no npm provenance and no artifact attestation yet
 # (ADR 0017 §7).
 #
@@ -603,3 +607,69 @@ jobs:
           if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
           gh release create "$TAG" --title "$TAG" --notes-file target/release-notes.md --verify-tag \
             "${prerelease[@]}" target/sbom/*.json
+
+  # Todo P3: the published version, installed from npm and crates.io as the install page tells
+  # users to, in every runtime verify-install covers. Tag pushes only: a dry run publishes
+  # nothing. npm's versions go public once the owner approves them on npmjs.com, so this job
+  # polls both registries for up to two hours first (one runner waits, not the whole matrix),
+  # then checks the Rust binary from crates.io. If the wait times out, approve the versions and
+  # re-run the failed jobs.
+  registry-ready:
+    name: The published version on npm and crates.io (Rust binary)
+    needs: [guard, publish-crates, publish-npm]
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: release-verify-registry
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - uses: ./.github/actions/node-pnpm
+      - env:
+          TMPDIR: ${{ runner.temp }}
+        run: cargo xtask verify-install rust --from-registry --wait 120
+
+  verify-registry:
+    name: verify-install from the registries (${{ matrix.name }})
+    needs: [guard, registry-ready]
+    if: ${{ !cancelled() && needs.registry-ready.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Node 22, node: "22", runtimes: node }
+          - { name: Node 24, node: "24", runtimes: node }
+          - { name: Node 26, node: "26", runtimes: node }
+          - { name: "Deno, Bun, Chromium, workerd", node: "", runtimes: deno bun chromium workerd }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: release-verify-registry
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
+      - uses: ./.github/actions/node-pnpm
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Keep the Playwright browsers in the runner's tool cache
+        run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+      - env:
+          RUNTIMES: ${{ matrix.runtimes }}
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
+          cargo xtask verify-install $RUNTIMES --from-registry
