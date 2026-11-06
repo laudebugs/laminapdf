@@ -1,8 +1,9 @@
 # The docs site on Cloudflare Workers static assets (todo B7a; ADR 0011 §1's conventions): no
 # Worker script, every request answered by the asset server from `astro build`'s dist/, with
 # public/_headers' headers. Deployed by .github/workflows/docs.yml: a preview version per PR
-# (`wrangler versions upload --preview-alias pr-<n>`) and production from main (`wrangler
-# deploy`). Production is at https://docs.laminapdf.com (the owner's choice, 2026-10-31).
+# (`wrangler versions upload --preview-alias pr-<n>`), the released docs from each release tag
+# (`wrangler deploy`) at https://docs.laminapdf.com (the owner's choice, 2026-10-31), and main's
+# docs at next.docs.laminapdf.com ([env.next] below).
 name = "lamina-pdf-docs"
 compatibility_date = "2026-10-01"
 # A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates the DNS record and
@@ -22,4 +23,24 @@ html_handling = "auto-trailing-slash"
 
 # No Worker code runs, so there are no Worker logs to keep (ADR 0011 §5).
 [observability]
+enabled = false
+
+# next.docs.laminapdf.com (todo P4): main's docs, deployed by .github/workflows/docs.yml on every
+# push to main with `wrangler deploy --env next`, as the Worker lamina-pdf-docs-next. Its pages say
+# they describe unreleased changes and every response is noindex (plugins/release.mjs). The
+# production Worker above serves the latest release only. Each key is set here, not inherited, so
+# the two Workers can't drift into sharing a route.
+[env.next]
+name = "lamina-pdf-docs-next"
+routes = [{ pattern = "next.docs.laminapdf.com", custom_domain = true }]
+# No previews here: the per-PR previews stay on the production Worker's workers.dev URLs.
+workers_dev = false
+preview_urls = false
+
+[env.next.assets]
+directory = "./dist"
+not_found_handling = "404-page"
+html_handling = "auto-trailing-slash"
+
+[env.next.observability]
 enabled = false

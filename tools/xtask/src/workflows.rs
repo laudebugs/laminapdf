@@ -4,7 +4,8 @@
 //! every job (else that job's failure opens no issue) and `bench` needs every job that doesn't
 //! depend on it (why: the comment on nightly.yml's `bench` job). site.yml's production job
 //! regenerates the website's roadmap before every build, and runs on every push to main and on
-//! a schedule, so the site follows the board without a refresh PR.
+//! a schedule, so the site follows the board without a refresh PR. docs.yml deploys main's docs to
+//! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4).
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -111,6 +112,7 @@ mod tests {
     const FULL: &str = include_str!("../../../.github/workflows/full.yml");
     const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
     const SITE: &str = include_str!("../../../.github/workflows/site.yml");
+    const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -194,6 +196,71 @@ mod tests {
         let paths: Vec<&str> = push.iter().copied().filter(|l| l.trim().starts_with("paths")).collect();
         assert_eq!(paths, Vec::<&str>::new(), "site.yml's push trigger is filtered by path");
         assert!(lines_of(SITE, "on", "schedule").iter().any(|l| l.contains("cron:")));
+    }
+
+    /// main's docs go to next.docs.laminapdf.com as unreleased (no `LAMINA_PDF_ENV=production`, so
+    /// noindex and the notice); docs.laminapdf.com gets only a release tag's, built as production,
+    /// when the release lane calls with the tag (or by hand with one). Only that build is indexed.
+    #[test]
+    fn docs_should_deploy_main_to_next_and_only_release_tags_to_production() {
+        let next = lines_of(DOCS, "jobs", "next");
+        let production = lines_of(DOCS, "jobs", "production");
+        assert!(
+            !next.is_empty() && !production.is_empty(),
+            "docs.yml lacks a `next` or `production` job"
+        );
+        let has = |lines: &[&str], want: &str| lines.iter().any(|l| l.trim() == want);
+        // A deploy, and a dry run of the same Worker for the `dry-run` input.
+        let deploys = |lines: &[&str], args: &str| {
+            let command = format!("pnpm exec wrangler deploy {args} ");
+            lines.iter().any(|l| {
+                let l = l.trim();
+                l.starts_with(&command) && !l.ends_with("--dry-run")
+            }) && has(lines, &format!("pnpm exec wrangler deploy {args} --dry-run"))
+        };
+        assert!(
+            has(
+                &next,
+                "if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tag == '')) }}"
+            ),
+            "next must run on pushes to main"
+        );
+        assert!(deploys(&next, "--env next"), "next must deploy the next Worker");
+        assert!(
+            has(&production, "if: ${{ inputs.tag != '' }}"),
+            "production must run only with a tag"
+        );
+        assert!(
+            has(&production, "ref: refs/tags/${{ inputs.tag }}"),
+            "production must build the tag"
+        );
+        assert!(
+            deploys(&production, "--env=\"\""),
+            "production must deploy the top-level Worker"
+        );
+        let production_builds: Vec<&str> = jobs(DOCS)
+            .into_iter()
+            .filter(|(_, lines)| has(lines, "LAMINA_PDF_ENV: production"))
+            .map(|(id, _)| id)
+            .collect();
+        assert_eq!(
+            production_builds,
+            ["production"],
+            "only the release build may be indexed"
+        );
+        let call = lines_of(DOCS, "on", "workflow_call");
+        assert!(
+            has(&call, "tag:") && has(&call, "dry-run:"),
+            "the release lane can't call docs.yml with a tag, or as a dry run"
+        );
+        assert!(
+            has(&lines_of(DOCS, "on", "workflow_dispatch"), "dry-run:"),
+            "a manual run can't be a dry run"
+        );
+        assert!(
+            !DOCS.contains("X-Robots-Tag"),
+            "the build marks noindex; the workflow shouldn't"
+        );
     }
 
     #[test]

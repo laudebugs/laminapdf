@@ -2,6 +2,8 @@
 // page is typed by hand: the first PDF in TypeScript and Rust (examples CI runs and checks against
 // their goldens), the command-line tool's example commands (its README), and the docs site's
 // install lines and package table (the install page).
+
+import { withVersion } from "@laminapdf/site-kit/version";
 import helloRs from "../../../../crates/laminapdf/examples/hello.rs?raw";
 import cliReadme from "../../../../crates/laminapdf-cli/README.md?raw";
 import helloTs from "../../../../packages/sdk/examples/hello.ts?raw";
@@ -86,11 +88,14 @@ export function cliCommands(readme: string = cliReadme): string {
   return commands.join("\n");
 }
 
-/** The install page's install commands: `npm install …` and `cargo add …`. */
+/**
+ * The install page's install commands, `npm install …` and `cargo add …`, with the version the page
+ * writes as `{{version}}` filled in, as the docs site fills it in.
+ */
 export function installLines(page: string = installPage): readonly string[] {
   const lines = page.split("\n").filter((line) => /^(npm install|cargo add) /.test(line));
   if (lines.length !== 2) throw new Error("install.mdx: expected one `npm install` and one `cargo add` line");
-  return lines;
+  return lines.map((line) => withVersion(line, VERSION));
 }
 
 /**

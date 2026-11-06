@@ -13,10 +13,11 @@ pnpm --filter @laminapdf/docs typecheck
 
 ## Build settings
 
-Two environment variables change what the build writes (`astro.config.mjs`):
+Three environment variables change what the build writes (`astro.config.mjs`):
 
 | Variable | Default | Effect |
 | --- | --- | --- |
+| `LAMINA_PDF_ENV` | unset | `production` builds the released docs for `docs.laminapdf.com`: the header names the version, and search engines may index the pages. Every other build (`next.docs.laminapdf.com`, the previews, a local build) says on every page that it describes unreleased changes, links to the released docs, and sends `X-Robots-Tag: noindex` with every response. |
 | `LAMINA_PDF_DOCS_GITHUB` | off | `1` adds every link to GitHub: the repository in the header, "Edit page", TypeDoc's "Defined in" source links, and links to the repository inside the code pages. Off while the repository is private, since those links would 404 for readers. Turn it on (in `.github/workflows/docs.yml`'s build steps) when the repository is public. |
 | `LAMINA_PDF_DOCS_TYPEDOC` | on | `0` leaves the TypeDoc reference out. `typecheck` uses it, so each lane runs TypeDoc once, in the build. |
 
@@ -56,15 +57,36 @@ The docs site shows the header the website shows, from [`@laminapdf/site-kit`](.
 - **`style-src` allows `'unsafe-inline'`,** because Expressive Code colours code tokens with style attributes.
 - **`connect-src` is `'self'` only.**
 
-The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR previews add `X-Robots-Tag: noindex`. `apps/docs/biome.json` turns off Biome's unused-import and unused-variable rules for `.astro` files, because Biome sees only their frontmatter and not the template that uses them. It also allows Node's globals (`process`) in `astro.config.mjs` and `plugins/`, which run only in the Node build, never in a browser.
+The example PDFs drop the CSP, so the browser's PDF viewer can open them. Every build but the released docs' adds `X-Robots-Tag: noindex` (`LAMINA_PDF_ENV`, above). `apps/docs/biome.json` turns off Biome's unused-import and unused-variable rules for `.astro` files, because Biome sees only their frontmatter and not the template that uses them. It also allows Node's globals (`process`) in `astro.config.mjs` and `plugins/`, which run only in the Node build, never in a browser.
+
+## Versions
+
+Every page names the version it documents: the fixed group's version (`packages/sdk/package.json`, ADR 0017's one lockstep version), read at build time (`plugins/release.mjs`). On `main` that version is always a published one: the pull request that bumps it merges only after its release is published. So the unreleased docs name the newest release too.
+
+- **The header** shows the version on the released docs, linked to the changelog, and "Unreleased" on every other build, linked to the released docs.
+- **The notice** (`src/components/Banner.astro`, Starlight's `Banner` override) says above every unreleased page that it describes changes that aren't released yet, and links to the released docs.
+- **Pages write `{{version}}`** where they name the version: install lines (`npm install @laminapdf/sdk@{{version}}`, `cargo add laminapdf@={{version}}`) and docs.rs links. The build fills it in on the pages and in their Markdown twins. On an `.mdx` page it may stand anywhere, prose and links included, because a Vite plugin fills it in before MDX reads the page. The `.md` pages (the TypeDoc reference, the changelog) can't use it. The website copies the install page's two install lines and fills in the same placeholder (`@laminapdf/site-kit/version`).
+- **The build fails** (`releaseChecks`) on:
+  - a placeholder left unfilled;
+  - an install command that names another version, the `alpha` tag aside, on any page but the changelog (a page of history);
+  - a released page without the version in its header, or an unreleased page without the notice;
+  - a `_headers` file that sends `X-Robots-Tag: noindex` on the released docs, or doesn't on any other build.
 
 ## Deploying
 
-`wrangler.toml` is the Worker `lamina-pdf-docs`: static assets only, no script, served at **https://docs.laminapdf.com** (a Workers custom domain) with `preview_urls` on for the per-PR previews on workers.dev. `.github/workflows/docs.yml` deploys it. It runs for changes to the site or anything it's built from (`apps/docs/`, `packages/sdk/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
+`wrangler.toml` describes two Workers, both static assets with no script, and `.github/workflows/docs.yml` deploys them:
+
+- **`lamina-pdf-docs`**, at **https://docs.laminapdf.com** (a Workers custom domain): the latest release's docs, with `preview_urls` on for the per-PR previews on workers.dev.
+- **`lamina-pdf-docs-next`** (`[env.next]`), at **https://next.docs.laminapdf.com**: `main`'s docs, unreleased and noindex.
+
+The workflow runs for changes to the site or anything it's built from (`apps/docs/`, `packages/sdk/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
 
 - **`preview-build`** (pull requests): builds the PR's site with no secrets and uploads `dist/` as an artifact.
 - **`preview-deploy`** (pull requests): holds the secrets and never checks out or runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch, installs that exact Wrangler with `npx` into a fresh npm cache, and uploads the artifact as a preview version (`--preview-alias pr-<n>`). Then it posts one comment with the URL and updates it on each push. It skips with a notice until the default branch has `apps/docs/wrangler.toml`.
-- **`production`** (pushes to `main`, or a manual run on `main`): builds and deploys in one job (`wrangler deploy`), because `main` is trusted.
+- **`next`** (pushes to `main`, or a manual run on `main` without a tag): builds `main` as unreleased docs and deploys them in one job (`wrangler deploy --env next`), because `main` is trusted.
+- **`production`** (a release tag): checks out the tag, checks that it names the docs' version, builds with `LAMINA_PDF_ENV=production` and deploys `docs.laminapdf.com`. The release lane calls it with the tag once the packages are published; a manual run with a tag (Actions → Docs site → Run workflow → `tag`) redeploys a release by hand.
+- **Dry runs:** with the `dry-run` input, `next` and `production` build and check the site, then run `wrangler deploy --dry-run`, which deploys nothing and needs no secrets. A manual run can set it, and so do the release lane's own dry runs.
+- **One deploy at a time:** production deploys share one concurrency group whatever the tag, and `next` has its own, so two deploys of one Worker never overlap.
 - **Forks and missing secrets:** PRs from forks are skipped. Without the secrets, every deploy step skips with a notice and the jobs pass.
 
 ### What the owner needs to do
@@ -80,3 +102,5 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR pre
 3. After this site is on `main`, run the **Docs site** workflow there once (Actions → Docs site → Run workflow). The first `wrangler deploy` creates the Worker, and previews need it to exist. The account also needs a workers.dev subdomain, which the dashboard asks for on first use of Workers.
 4. When the repository becomes public, set `LAMINA_PDF_DOCS_GITHUB: "1"` in the workflow's `env` so the site links to GitHub.
 5. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).
+6. `next.docs.laminapdf.com`: the first push to `main` after this setup creates the Worker `lamina-pdf-docs-next`, its DNS record and its certificate, with the same token. A Workers custom domain gets its own certificate, so the two-level name needs no advanced certificate ([Cloudflare's custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)).
+7. From then on, a push to `main` no longer changes `docs.laminapdf.com`. Until the release lane deploys it after each release, put the latest release's docs there by hand: run the **Docs site** workflow with `tag` set to that release's tag (for example `v0.2.0-alpha.2`).
