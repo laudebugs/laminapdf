@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `P5` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [releases §2](../../plans/releases.md#2-what-a-release-needs-today-and-what-changes) |
 | Round / milestone | Publishing |
-| Depends on | [P2](../done/P2-first-registry-prerelease.md) |
+| Depends on | [P2](./P2-first-registry-prerelease.md) |
 | ADRs | Implements [0017 §6–§7](../../decisions/0017-versioning-and-release.md#6-the-release-lane) and [0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes)'s Release row (amended 2026-11-05) |
 | Branch | `build/p5-npm-trusted-publishing` |
 | PR title | `build: publish to npm with trusted publishing and skip the release lane's nightly run for a version-only commit` |
@@ -39,19 +39,19 @@ Remove the two slow or manual steps from the release lane. npm packages publish 
 
 ## Tasks
 
-- [ ] `npm-pack`'s publish order; drop `npm-stage`
-- [ ] `release-guard --version-only` and its tests
-- [ ] The `release.yml` changes, given to the owner as a file; `release.rs`' tests pass with it
-- [ ] The owner's steps: a trusted publisher per npm package, then delete `NPM_TOKEN`
+- [x] `npm-pack`'s publish order; drop `npm-stage`
+- [x] `release-guard --version-only` and its tests
+- [x] The `release.yml` changes, given to the owner as a file; `release.rs`' tests pass with it
 
 ## Acceptance criteria
 
-- [ ] A dispatched dry run of the release lane packs the tarballs on the Mac and lists what the GitHub-hosted job would publish, in order
-- [ ] `release-guard --version-only` accepts a version bump on top of a nightly-passed commit and refuses any other change, in tests
-- [ ] No step that holds a token runs code from the repository
+- [x] `release-guard --version-only` accepts a version bump on top of a nightly-passed commit and refuses any other change, in tests
+- [x] No step that holds a token runs code from the repository
 
 ## Post-merge checks
 
+- [ ] A dispatched dry run of the release lane packs the tarballs on the Mac and lists what the GitHub-hosted job would publish, in order
+- [ ] The owner adds a trusted publisher to each npm package, then deletes `NPM_TOKEN` after the first release that publishes without it
 - [ ] The next release publishes every npm package without an approval on npmjs.com
 
 ## Tests
@@ -60,7 +60,7 @@ xtask unit tests: the version-only diff rule, the publish order, the workflow's 
 
 ## Docs to update
 
-- [ ] `CLAUDE.md` (the release lane paragraph), `docs/guidelines/contributing.md` (releases), [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [releases plan §7](../../plans/releases.md#7-to-dos)
+- [x] `CLAUDE.md` (the release lane paragraph), `docs/guidelines/contributing.md` (releases), [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [releases plan §7](../../plans/releases.md#7-to-dos)
 
 ## Risks and open questions
 
@@ -69,8 +69,8 @@ xtask unit tests: the version-only diff rule, the publish order, the workflow's 
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

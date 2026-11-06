@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [releases §3](../../plans/releases.md#3-the-daily-release) |
 | Round / milestone | Publishing |
-| Depends on | [P4](./P4-docs-match-the-release.md), [P5](../ongoing/P5-npm-trusted-publishing-and-version-only-releases.md) |
+| Depends on | [P4](./P4-docs-match-the-release.md), [P5](../done/P5-npm-trusted-publishing-and-version-only-releases.md) |
 | ADRs | Implements [0017 §5](../../decisions/0017-versioning-and-release.md#5-tags) (amended 2026-11-05) |
 | Branch | `build/p6-daily-release` |
 | PR title | `build: release once a day after the nightly passes` |
@@ -20,7 +20,7 @@ Release on its own once a day. When a full nightly passes on `main` and changese
 ## Context
 
 - [Releases plan §3](../../plans/releases.md#3-the-daily-release) and §5's risks; ADR 0017 §5 as amended.
-- [P5](../ongoing/P5-npm-trusted-publishing-and-version-only-releases.md)'s version-only guard, which lets the lane skip its nightly run on the version commit; [P4](./P4-docs-match-the-release.md)'s docs deploy, which the lane calls after publishing.
+- [P5](../done/P5-npm-trusted-publishing-and-version-only-releases.md)'s version-only guard, which lets the lane skip its nightly run on the version commit; [P4](./P4-docs-match-the-release.md)'s docs deploy, which the lane calls after publishing.
 - The owner's setup (2026-11-05): a GitHub App with contents and pull-request write on this repository, its ID and key as the secrets `RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY`, and auto-merge allowed.
 
 ## Scope
