@@ -15,7 +15,7 @@ use clap::{Args, CommandFactory as _, Parser, Subcommand, ValueEnum};
 use laminapdf::{Diagnostic, ErrorCode};
 use laminapdf_cli::commands::{
     self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format, InfoArgs,
-    InfoReport, OpenArgs, PagesReport, RotateArgs, Settings, TextReport,
+    InfoReport, OpenArgs, PagesReport, RenderArgs, RenderReport, RotateArgs, Settings, TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
 use laminapdf_cli::io::{Io, ProcessIo, STDIO};
@@ -95,6 +95,8 @@ enum Command {
     Pages(PagesCommand),
     /// A PDF's text page by page, or its blocks in reading order as Markdown, JSON or chunks.
     Extract(Many<ExtractArgs>),
+    /// Pages as PNG images.
+    Render(Many<RenderArgs>),
     /// The page of an error or warning code.
     Explain(ExplainArgs),
     /// The JSON Schema of a command's arguments and output, or the list of schemas.
@@ -213,6 +215,17 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
     match command {
         Command::Info(many) => return each(streams, global, many, &settings, &mut io, InfoReport::SCHEMA, info),
         Command::Check(many) => return each(streams, global, many, &settings, &mut io, CheckReport::SCHEMA, check),
+        Command::Render(many) => {
+            return each(
+                streams,
+                global,
+                many,
+                &settings,
+                &mut io,
+                RenderReport::SCHEMA,
+                render_pages,
+            );
+        }
         Command::Extract(many) => {
             let schema = if many.args.format == Format::Text {
                 TextReport::SCHEMA
@@ -230,14 +243,20 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
 
 /// A command's arguments for one of its inputs.
 trait ForInput: Clone {
-    /// These arguments with `input` as the input.
-    fn for_input(&self, input: &str) -> Self;
+    /// These arguments with `input`, the command's input number `index`, as the input.
+    fn for_input(&self, input: &str, index: usize) -> Self;
+
+    /// Refuses, before any input is read, what can't work for these `inputs` together.
+    fn check_inputs(&self, inputs: &[String]) -> Result<(), CliError> {
+        let _ = inputs;
+        Ok(())
+    }
 }
 
 macro_rules! for_input {
     ($($ty:ty),*) => {$(
         impl ForInput for $ty {
-            fn for_input(&self, input: &str) -> Self {
+            fn for_input(&self, input: &str, _: usize) -> Self {
                 let mut args = self.clone();
                 args.input = input.to_owned();
                 args
@@ -247,6 +266,19 @@ macro_rules! for_input {
 }
 
 for_input!(InfoArgs, CheckArgs, ExtractArgs);
+
+impl ForInput for RenderArgs {
+    fn for_input(&self, input: &str, index: usize) -> Self {
+        let mut args = self.clone();
+        args.input = input.to_owned();
+        args.index = index;
+        args
+    }
+
+    fn check_inputs(&self, inputs: &[String]) -> Result<(), CliError> {
+        commands::check_outputs(self, inputs)
+    }
+}
 
 /// Runs `one` on each input of `many`: one input prints as before, several as a batch.
 fn each<A, F>(
@@ -262,7 +294,10 @@ where
     A: Args + ForInput + Sync,
     F: Fn(&A, &Settings, &mut dyn Io) -> Result<Outcome, CliError> + Sync,
 {
-    let inputs = match many.expand(io) {
+    let inputs = match many
+        .expand(io)
+        .and_then(|inputs| many.args.check_inputs(&inputs).map(|()| inputs))
+    {
         Ok(inputs) => inputs,
         Err(error) => {
             render::error(streams, &error, None, global.json);
@@ -271,11 +306,11 @@ where
     };
     // A list may hold one file or many, so a list always prints as a batch.
     if let ([input], None) = (inputs.as_slice(), &many.batch.files_from) {
-        let outcome = one(&many.args.for_input(input), settings, io);
+        let outcome = one(&many.args.for_input(input, 0), settings, io);
         return finish(streams, global, outcome, Some(input));
     }
-    many::run(streams, global, &many.batch, &inputs, schema, |input| {
-        one(&many.args.for_input(input), settings, &mut ProcessIo::default())
+    many::run(streams, global, &many.batch, &inputs, schema, |index, input| {
+        one(&many.args.for_input(input, index), settings, &mut ProcessIo::default())
     })
 }
 
@@ -292,6 +327,14 @@ fn check(args: &CheckArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outco
         render::check_text(&report),
         report.warnings,
     ))
+}
+
+fn render_pages(args: &RenderArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
+    let report = commands::render(args, settings, io)?;
+    let mut outcome = Outcome::new(to_json(&report), render::render_text(&report), Vec::new());
+    // A PNG on standard output: the report goes to standard error.
+    outcome.stdout_taken = report.pages.iter().any(|p| p.output == STDIO) && !settings.dry_run;
+    Ok(outcome)
 }
 
 fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
@@ -387,7 +430,7 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
     };
     Ok(match command {
         // `run` sends these to `each`, which runs them per input.
-        Command::Info(_) | Command::Check(_) | Command::Extract(_) => {
+        Command::Info(_) | Command::Check(_) | Command::Extract(_) | Command::Render(_) => {
             return Err(CliError::new(
                 ErrorCode::InvalidCommandLine,
                 "this command takes its inputs one by one",
@@ -498,6 +541,7 @@ fn version(streams: &mut Streams, json: bool) -> ExitCode {
     let text = if json {
         let schemas = [
             InfoReport::SCHEMA,
+            RenderReport::SCHEMA,
             CheckReport::SCHEMA,
             PagesReport::SCHEMA,
             TextReport::SCHEMA,

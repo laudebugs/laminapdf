@@ -9,12 +9,14 @@ mod explain;
 mod extract;
 mod info;
 mod pages;
+mod render;
 
 pub use check::{CheckArgs, CheckReport, check};
 pub use explain::{ExplainArgs, ExplainReport, explain};
 pub use extract::{ExtractArgs, ExtractedReport, Format, PageTextEntry, TextReport, extract, extract_document};
 pub use info::{InfoArgs, InfoMetadata, InfoReport, PageSummary, info};
 pub use pages::{PagesReport, RotateArgs, RotatedPage, rotate};
+pub use render::{Backend, DEFAULT_DPI, RenderArgs, RenderReport, RenderedPage, check_outputs, render};
 
 use laminapdf::{CancelToken, Diagnostic, Document, ErrorCode, Limits, OpenOptions};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
