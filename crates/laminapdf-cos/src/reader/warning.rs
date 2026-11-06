@@ -470,10 +470,11 @@ impl Warning {
             | Self::ContentPathUnpainted { .. }
             | Self::FontInvalid { .. }
             | Self::CMapInvalid { .. }
-            | Self::UnmappedGlyph { .. } => ErrorKind::Input,
+            | Self::UnmappedGlyph { .. }
+            | Self::ExtractStructTreeIgnored { .. }
+            | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
             Self::ExtractReadingOrderAmbiguous { .. } | Self::ExtractTableAmbiguous { .. } => ErrorKind::Unsupported,
             Self::ExtractTableLimit { .. } => ErrorKind::Limit,
-            Self::ExtractStructTreeIgnored { .. } | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
             }
@@ -679,7 +680,10 @@ mod tests {
             Warning::ExtractReadingOrderAmbiguous { page: 0 },
             Warning::ExtractTableAmbiguous { page: 0 },
             Warning::ExtractTableLimit { page: 0, limit: 1 },
-            Warning::ExtractStructTreeIgnored { page: 0, reason: "coverage" },
+            Warning::ExtractStructTreeIgnored {
+                page: 0,
+                reason: "coverage",
+            },
             Warning::ExtractUntaggedContent { page: 0, chars: 1 },
         ];
         for w in &all {

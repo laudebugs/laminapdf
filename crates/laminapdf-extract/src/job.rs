@@ -11,9 +11,10 @@ use laminapdf_text::TextExtractor;
 use crate::error::ExtractError;
 use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
-use crate::page::Painting;
 use crate::page::extract_page;
+use crate::page::{PageInput, TreeUse};
 use crate::tables::{Collector, TableMode};
+use crate::tagged::TaggedIndex;
 use crate::visibility::Backdrops;
 use crate::{furniture, headings, lists};
 
@@ -32,10 +33,15 @@ pub struct ExtractJob {
     extractor: TextExtractor,
     out: Extraction,
     finished: bool,
+    /// The structure tree, when the reading order may come from it.
+    tree: Option<TaggedIndex>,
+    /// Pages the tree ordered, and pages whose tree failed a check.
+    tree_pages: (usize, usize),
 }
 
-/// Starts an extraction of `doc`: checks the pages asked for and reads whether the document is
-/// tagged; the pages are read by [`ExtractJob::step`].
+/// Starts an extraction of `doc`: checks the pages asked for, reads whether the document is
+/// tagged and, when the reading order may come from it, its structure tree; the pages are read
+/// by [`ExtractJob::step`].
 ///
 /// # Errors
 /// `page-index-out-of-range` for a page past the last; reading errors (the page tree, the
@@ -51,7 +57,13 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
     }
     let struct_source = match options.reading_order {
         ReadingOrder::ContentStream => StructSource::Content,
-        ReadingOrder::Auto | ReadingOrder::Layout => StructSource::XyCut,
+        ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => StructSource::XyCut,
+    };
+    // The tree is read once, here; each page checks its own part of it.
+    let tree = match options.reading_order {
+        ReadingOrder::Tagged => TaggedIndex::read(doc)?,
+        ReadingOrder::Auto if doc.is_tagged()? => TaggedIndex::read(doc)?,
+        ReadingOrder::Auto | ReadingOrder::Layout | ReadingOrder::ContentStream => None,
     };
     let source = ExtractedSource {
         sha256: None,
@@ -70,6 +82,8 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
             ..Extraction::default()
         },
         finished: false,
+        tree,
+        tree_pages: (0, 0),
     })
 }
 
@@ -186,13 +200,19 @@ impl ExtractJob {
                 &page,
                 index,
                 &text,
-                &Painting {
+                &PageInput {
                     edges: edges.as_ref(),
                     backdrops: &painted.backdrops,
+                    tree: self.tree.as_ref(),
                 },
                 &self.options,
                 &self.cancel,
             )?;
+            match out.tree {
+                TreeUse::Used => self.tree_pages.0 += 1,
+                TreeUse::Ignored => self.tree_pages.1 += 1,
+                TreeUse::None => {}
+            }
             self.out.pages.push(out.info);
             self.out.blocks.extend(out.blocks);
             self.out.dropped.extend(out.dropped);
@@ -200,6 +220,12 @@ impl ExtractJob {
         }
         if self.next >= self.todo.len() {
             let mut out = std::mem::take(&mut self.out);
+            // Tagged only when the tree gave every page it covers its order.
+            if let (true, (used, 0)) = (out.source.struct_source == StructSource::XyCut, self.tree_pages)
+                && used > 0
+            {
+                out.source.struct_source = StructSource::Tagged;
+            }
             finish(&mut out, &self.options);
             return Ok(Step::Done(out));
         }

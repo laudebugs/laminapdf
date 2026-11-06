@@ -43,6 +43,7 @@ mod options;
 mod output;
 mod page;
 mod tables;
+mod tagged;
 mod text_fix;
 mod visibility;
 mod xycut;

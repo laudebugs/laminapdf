@@ -245,6 +245,19 @@ impl TextExtractor {
     }
 }
 
+/// How far a `TJ` number moves the pen: −n/1000 · Tfs, and Th horizontally (§9.4.3).
+fn adjustment(n: f64, state: &laminapdf_content::TextState, vertical: bool) -> TextAdvance {
+    let shift = -n / 1000.0 * state.font_size;
+    if vertical {
+        TextAdvance { tx: 0.0, ty: shift }
+    } else {
+        TextAdvance {
+            tx: shift * state.horizontal_scaling,
+            ty: 0.0,
+        }
+    }
+}
+
 /// How light a colour is: the luminance weights of ITU-R BT.601.
 fn luminance([r, g, b]: [f64; 3]) -> f64 {
     0.299 * r + 0.587 * g + 0.114 * b
@@ -316,19 +329,7 @@ impl Collector<'_, '_> {
         };
         for item in show.items() {
             match item {
-                TextItem::Adjust(n) => {
-                    // A `TJ` number moves by −n/1000 · Tfs (and Th horizontally), §9.4.3.
-                    let shift = -n / 1000.0 * state.font_size;
-                    let advance = if vertical {
-                        TextAdvance { tx: 0.0, ty: shift }
-                    } else {
-                        TextAdvance {
-                            tx: shift * state.horizontal_scaling,
-                            ty: 0.0,
-                        }
-                    };
-                    step(advance, &mut tm, &mut total);
-                }
+                TextItem::Adjust(n) => step(adjustment(n, state, vertical), &mut tm, &mut total),
                 TextItem::Text(bytes) => {
                     let mut rest = bytes;
                     while let Some((code, used)) = font.next_code(rest) {

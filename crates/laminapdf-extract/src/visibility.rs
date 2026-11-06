@@ -62,7 +62,7 @@ impl Visitor for Backdrops {
             PathSegment::MoveTo { x, y } | PathSegment::LineTo { x, y } => vec![(x, y)],
             PathSegment::Rect { x, y, width, height } => vec![(x, y), (x + width, y + height)],
             PathSegment::CurveTo { c1, c2, end } => vec![c1, c2, end],
-            _ => Vec::new(),
+            PathSegment::ClosePath => Vec::new(),
         };
         for &(x, y) in points {
             let (x, y) = ctm.apply(x, y);

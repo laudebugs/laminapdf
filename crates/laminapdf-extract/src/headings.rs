@@ -74,7 +74,9 @@ enum Candidate {
 }
 
 fn candidate(block: &Block, body: i64) -> Option<Candidate> {
-    if block.kind != BlockKind::Paragraph || !block.text.chars().any(char::is_alphabetic) {
+    // A block from the structure tree has the kind the tree gives it.
+    if block.kind != BlockKind::Paragraph || block.struct_ref.is_some() || !block.text.chars().any(char::is_alphabetic)
+    {
         return None;
     }
     // A bullet starts a list item, whatever its size or weight.

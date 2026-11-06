@@ -31,8 +31,10 @@ pub(crate) enum ExtractFormat {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Tsify)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ReadingOrderName {
-    /// The best source available (today the layout).
+    /// The best source available: a plausible structure tree, else the layout.
     Auto,
+    /// The structure tree wherever there is one, plausible or not.
+    Tagged,
     /// The layout, by XY-Cut++.
     Layout,
     /// The order the content stream draws.
@@ -128,6 +130,7 @@ impl ExtractInit {
         if let Some(order) = self.reading_order {
             options = options.with_reading_order(match order {
                 ReadingOrderName::Auto => ReadingOrder::Auto,
+                ReadingOrderName::Tagged => ReadingOrder::Tagged,
                 ReadingOrderName::Layout => ReadingOrder::Layout,
                 ReadingOrderName::ContentStream => ReadingOrder::ContentStream,
             });
