@@ -62,7 +62,14 @@ export function fakePlatform(
       calls.openFiles.push({ ...request });
       return options.picked ?? [];
     },
-    filesFromDataTransfer: async () => [],
+    filesFromDataTransfer: async (data) =>
+      [...data.files].map((file) => ({
+        name: file.name,
+        size: file.size,
+        read: async (offset, length) => new Uint8Array(await file.slice(offset, offset + length).arrayBuffer()),
+        handle: file,
+        writable: false,
+      })),
     onOpenRequest: () => () => undefined,
     saveAs: async (_bytes, name) => ({ saved: true, name }),
     saveInPlace: async (file) => ({ saved: true, name: file.name }),

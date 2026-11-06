@@ -282,3 +282,210 @@
     color: var(--paper-muted);
   }
 }
+
+/* The home screen (R01): one centred column on `ground`, a display heading, the drop zone (a
+   dashed hairline box explaining the window takes drops), and the overlay while files are dragged
+   over the window: `accent-tint` with a 2 px dashed `accent` inset border. */
+@layer paper.components {
+  .paper-open {
+    display: grid;
+    gap: var(--paper-space-24);
+    inline-size: 100%;
+    max-inline-size: var(--paper-open-column-width);
+    margin-inline: auto;
+    padding: var(--paper-space-48) var(--paper-space-16);
+  }
+
+  .paper-open-heading {
+    margin: 0;
+    font: var(--paper-type-display);
+    letter-spacing: var(--paper-type-display-letter-spacing);
+  }
+
+  .paper-open-zone {
+    display: grid;
+    justify-items: center;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-32) var(--paper-space-16);
+    border: var(--paper-border-width) dashed var(--paper-control-border);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-surface);
+    color: var(--paper-text-2);
+    text-align: center;
+  }
+
+  .paper-open-zone > svg {
+    color: var(--paper-muted);
+  }
+
+  .paper-open-drop,
+  .paper-open-hint,
+  .paper-open-problem {
+    margin: 0;
+  }
+
+  .paper-open-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    margin-block-end: var(--paper-space-8);
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-open-problem {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    color: var(--paper-danger);
+  }
+
+  .paper-open-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--paper-z-modal);
+    display: grid;
+    place-items: center;
+    border: var(--paper-drop-border-width) dashed var(--paper-accent);
+    background: var(--paper-accent-tint);
+    color: var(--paper-accent-strong);
+    font: var(--paper-type-heading);
+    pointer-events: none;
+  }
+}
+
+/* Repairs and failures (R04): the docked panel's header, notice, overlines over rows of a sentence
+   above its code in 12 muted mono, and Copy details; the failure page centred in the canvas with
+   the `danger` warning icon, a heading, its sentence, the code and two actions. */
+@layer paper.components {
+  .paper-repair {
+    display: grid;
+    align-content: start;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-16);
+  }
+
+  .paper-repair-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-repair-title,
+  .paper-repair-file,
+  .paper-repair-overline,
+  .paper-failure-title,
+  .paper-failure-body,
+  .paper-failure-code {
+    margin: 0;
+  }
+
+  .paper-repair-title {
+    font: var(--paper-type-title);
+    letter-spacing: var(--paper-type-title-letter-spacing);
+  }
+
+  .paper-repair-file {
+    overflow-wrap: anywhere;
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
+  .paper-repair-overline {
+    font: var(--paper-type-overline);
+    letter-spacing: var(--paper-type-overline-letter-spacing);
+    color: var(--paper-muted);
+    text-transform: uppercase;
+  }
+
+  .paper-repair-list {
+    display: grid;
+    gap: var(--paper-space-10);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-repair-row {
+    display: grid;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-repair-code,
+  .paper-failure-code {
+    font: var(--paper-type-mono);
+    color: var(--paper-muted);
+  }
+
+  .paper-repair-actions,
+  .paper-failure-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-failure {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: var(--paper-space-10);
+    block-size: 100%;
+    max-inline-size: var(--paper-dialog-width-form);
+    margin-inline: auto;
+    padding: var(--paper-space-24);
+    text-align: center;
+  }
+
+  .paper-failure > svg {
+    color: var(--paper-danger);
+  }
+
+  .paper-failure-title {
+    font: var(--paper-type-heading);
+    letter-spacing: var(--paper-type-heading-letter-spacing);
+  }
+
+  .paper-failure-actions {
+    justify-content: center;
+    margin-block-start: var(--paper-space-8);
+  }
+}
+
+/* The whole-file download (R02): a `raised` card a dialog wide, its title, the reason in muted
+   text, the bar and Cancel. */
+@layer paper.components {
+  /* Centred in the canvas, which is positioned, whatever its own layout. */
+  .paper-download {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    justify-items: start;
+    gap: var(--paper-space-12);
+    inline-size: min(100%, var(--paper-dialog-width));
+    block-size: fit-content;
+    margin: auto;
+    padding: var(--paper-space-24);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+    background: var(--paper-raised);
+  }
+
+  .paper-download > .paper-progress {
+    justify-self: stretch;
+  }
+
+  .paper-download-title,
+  .paper-download-why {
+    margin: 0;
+  }
+
+  .paper-download-title {
+    font: var(--paper-type-title);
+    letter-spacing: var(--paper-type-title-letter-spacing);
+  }
+
+  .paper-download-why {
+    color: var(--paper-muted);
+  }
+}

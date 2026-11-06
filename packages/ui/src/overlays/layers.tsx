@@ -35,6 +35,8 @@ export function useLayerOpenedHere(): () => boolean {
 
 /** Keeps a layer on the stack for as long as it is mounted, and is the parent of layers opened inside it. */
 export function LayerScope({ dismiss, dismissable = true, children }: LayerScopeProps): ReactNode {
+  // The compiler can't lower the layer's getter, nor follow the latest-value ref it reads.
+  "use no memo";
   const parent = useContext(ParentLayer);
   const latest = useRef({ dismiss, dismissable });
   latest.current = { dismiss, dismissable };

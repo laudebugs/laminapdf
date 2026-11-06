@@ -126,6 +126,18 @@ The viewer comes in as any object with its store and three calls (`goToPage`, `s
 
 The shell builds the More menu, and marks each item that needs a capability with `needs`. `useGatedEntries` then keeps the item, disables it with how to get the capability, or leaves it out on a platform that never has it.
 
+## The home screen, repairs and failures
+
+`OpenDropZone` is the home screen's way in. While the zone shows, the whole window takes a dropped or pasted PDF, and Choose a file asks the platform's picker. Whichever way a file arrives, it opens when its name ends in `.pdf` or "%PDF-" appears in its first kilobyte; anything else is refused with a message. The shell passes the recent list and the privacy line as its children.
+
+When the reader had to repair a damaged file to open it, `RepairDetails` goes in the inspector slot: one plain sentence for each kind of repair, over its code. When nothing could be recovered, `OpenFailure` takes the canvas and focuses Try another file. Every warning and error in `fixtures/codes.json` has a sentence, or shares its family's, and a test keeps it that way.
+
+Two more parts cover special cases: a whole-file download and debugging. `WholeFileDownload` fills the canvas while a host without range support sends the whole file. `DebugMenu` switches the render backend; the shell puts it in the top bar's debug slot for `#debug` only.
+
+## Trying the chrome
+
+`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. A browser test runs axe on the page in each of these states. A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
+
 ## Adding a component
 
 1. Write its props type first, with TSDoc, and export it from `src/index.ts`.

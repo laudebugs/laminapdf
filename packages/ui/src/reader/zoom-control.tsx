@@ -45,7 +45,7 @@ function zoomEntries(): MenuEntry<ZoomId>[] {
 export function ZoomControl({ viewer, keys }: ZoomControlProps): ReactNode {
   const percent = Math.round(useStoreState(viewer, (state) => state.percent));
   const choose = (id: ZoomId) => viewer.setZoom(asZoom(id));
-  const entries = useMemo(zoomEntries, []);
+  const entries = useMemo(() => zoomEntries(), []);
   return (
     <Group className="paper-zoom-control" aria-label={message("reader.zoom")}>
       <IconButton

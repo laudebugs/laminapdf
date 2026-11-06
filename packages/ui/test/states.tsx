@@ -12,6 +12,7 @@ import {
   ModeSwitcher,
   NetworkIndicator,
   Notice,
+  OpenFailure,
   OutlineRow,
   PageAppearanceChips,
   PageInput,
@@ -21,6 +22,7 @@ import {
   RadioGroup,
   type ReaderState,
   ReaderTopBar,
+  RepairDetails,
   RepairedNotice,
   SegmentedTabs,
   Select,
@@ -36,6 +38,7 @@ import {
   Toast,
   ToggleButton,
   ToolToggle,
+  WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
 import { FakeViewer, fakeFile } from "./fakes.ts";
@@ -442,6 +445,39 @@ const topBar: Example[] = [
   },
 ];
 
+const repairs: Example[] = [
+  {
+    component: "WholeFileDownload",
+    state: "62% of a known size",
+    element: () => <WholeFileDownload loaded={29.8 * 1024 * 1024} total={48 * 1024 * 1024} onCancel={noop} />,
+  },
+  {
+    component: "RepairDetails",
+    state: "repairs and a feature not run",
+    element: () => (
+      <RepairDetails
+        fileName="Q3-board-report.pdf"
+        repairs={[{ code: "xref-repaired" }, { code: "stream-length-recovered", pages: [3, 4, 9] }]}
+        notRun={["This file contains JavaScript. Lamina PDF never runs it."]}
+        onClose={noop}
+        onCopy={noop}
+      />
+    ),
+  },
+  {
+    component: "OpenFailure",
+    state: "missing root",
+    element: () => (
+      <OpenFailure
+        error={{ code: "missing-root", message: "" }}
+        detail="1.8 MB read"
+        onTryAnother={noop}
+        onCopy={noop}
+      />
+    ),
+  },
+];
+
 /** Every example, grouped as the design language's §7 orders the components. */
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
@@ -453,4 +489,5 @@ export const EXAMPLES: readonly Example[] = [
   ...choices,
   ...pickers,
   ...feedback,
+  ...repairs,
 ];

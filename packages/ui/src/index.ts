@@ -118,9 +118,19 @@ export type {
   SaveResult,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
 export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
+export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
+export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
+export {
+  OpenFailure,
+  type OpenFailureProps,
+  RepairDetails,
+  type RepairDetailsProps,
+  type RepairKind,
+} from "./reader/repair.js";
 export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
 export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
 export {

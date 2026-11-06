@@ -182,6 +182,8 @@ function FirstFieldFocus(): ReactNode {
  * gone), whether the dialog closed through `isOpen` or by unmounting.
  */
 function useFocusFallback(isOpen: boolean, fallback: (() => HTMLElement | null) | undefined): void {
+  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
+  "use no memo";
   const latest = useRef(fallback);
   latest.current = fallback;
   const wasOpen = useRef(false);

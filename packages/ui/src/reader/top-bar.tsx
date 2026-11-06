@@ -44,6 +44,8 @@ export interface ReaderTopBarProps<Id extends string> {
     /** The palette's shortcut, shown on the button. */
     readonly shortcut: ShortcutKeys;
   };
+  /** A `DebugMenu`, which the shell shows only for `#debug`. */
+  debug?: ReactNode;
   /** The More menu's items, gated by capability where they need one (`useGatedEntries`). */
   more: {
     /** The menu's entries. */
@@ -84,6 +86,7 @@ export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): R
             <ShortcutChip keys={commands.shortcut} platform={keys} />
           </AriaButton>
         )}
+        {props.debug}
         <MenuTrigger>
           <IconButton icon="more" label={message("reader.more")} />
           <Menu

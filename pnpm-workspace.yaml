@@ -27,6 +27,14 @@ catalog:
   # the crates. Dev-only, MIT (its @changesets/*, @manypkg/*, cac, semver, tinyexec: MIT/ISC).
   "@changesets/cli": 3.0.3
   "@types/node": 26.6.5
+  # @laminapdf/ui's demo page, built with the React Compiler through Babel (C4f): the compiler and
+  # its check of the chrome's components. Dev-only, MIT (@babel/* and their dependencies: MIT).
+  # Each pinned to a release at least two weeks old when added.
+  "@babel/core": 7.29.7
+  "@rolldown/plugin-babel": 0.2.4
+  "@types/babel__core": 7.20.5
+  "@vitejs/plugin-react": 6.1.2
+  babel-plugin-react-compiler: 1.0.0
   # @laminapdf/icons' React entry (an optional peer) and its browser tests; React 19 per ADR 0009.
   # MIT. Each pinned to a release at least two weeks old when added.
   "@types/react": 19.3.0
