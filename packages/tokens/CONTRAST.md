@@ -34,6 +34,11 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `muted` | `gutter` | text ≥ 4.5 | 4.74 | 4.74 | 4.74 | 4.74 |  |
 | `muted` | `accent-tint` | text ≥ 4.5 | 4.62 | 4.58 | 4.57 | 4.62 |  |
 | `muted` | `hover` | text ≥ 4.5 | 4.73 | 4.73 | 4.73 | 4.73 |  |
+| `code-keyword` | `field` | text ≥ 4.5 | 7.58 | 7.58 | 7.58 | 7.58 |  |
+| `code-string` | `field` | text ≥ 4.5 | 6.43 | 6.43 | 6.43 | 6.43 |  |
+| `code-comment` | `field` | text ≥ 4.5 | 5.84 | 5.84 | 5.84 | 5.84 |  |
+| `code-function` | `field` | text ≥ 4.5 | 7.34 | 7.34 | 7.34 | 7.34 |  |
+| `code-constant` | `field` | text ≥ 4.5 | 6.33 | 6.33 | 6.33 | 6.33 |  |
 | `hairline` | `ground` | boundary ≥ 3 | 1.22 | 1.22 | 1.22 | 1.22 | decorative |
 | `chip-border` | `field` | boundary ≥ 3 | 1.52 | 1.52 | 1.52 | 1.52 | decorative |
 | `control-border` | `ground` | boundary ≥ 3 | 3.50 | 3.50 | 3.50 | 3.50 |  |
@@ -110,6 +115,11 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `muted` | `surface` | text ≥ 4.5 | 5.63 | 5.63 | 5.63 | 5.63 |  |
 | `muted` | `raised` | text ≥ 4.5 | 5.07 | 5.07 | 5.07 | 5.07 |  |
 | `muted` | `hover` | text ≥ 4.5 | 5.01 | 5.01 | 5.01 | 5.01 |  |
+| `code-keyword` | `field` | text ≥ 4.5 | 7.97 | 7.97 | 7.97 | 7.97 |  |
+| `code-string` | `field` | text ≥ 4.5 | 8.33 | 8.33 | 8.33 | 8.33 |  |
+| `code-comment` | `field` | text ≥ 4.5 | 6.13 | 6.13 | 6.13 | 6.13 |  |
+| `code-function` | `field` | text ≥ 4.5 | 7.49 | 7.49 | 7.49 | 7.49 |  |
+| `code-constant` | `field` | text ≥ 4.5 | 8.32 | 8.32 | 8.32 | 8.32 |  |
 | `hairline` | `ground` | boundary ≥ 3 | 1.42 | 1.42 | 1.42 | 1.42 | decorative |
 | `chip-border` | `raised` | boundary ≥ 3 | 1.49 | 1.49 | 1.49 | 1.49 | decorative |
 | `control-border` | `ground` | boundary ≥ 3 | 3.76 | 3.76 | 3.76 | 3.76 |  |
@@ -172,6 +182,11 @@ WCAG 2.x contrast ratios, translucent colours composited over what they sit on. 
 | `text-2` | `ground` | text ≥ 4.5 | browser |  |
 | `text-3` | `ground` | text ≥ 4.5 | browser |  |
 | `muted` | `ground` | text ≥ 4.5 | browser |  |
+| `code-keyword` | `field` | text ≥ 4.5 | browser |  |
+| `code-string` | `field` | text ≥ 4.5 | browser |  |
+| `code-comment` | `field` | text ≥ 4.5 | browser |  |
+| `code-function` | `field` | text ≥ 4.5 | browser |  |
+| `code-constant` | `field` | text ≥ 4.5 | browser |  |
 | `control-border` | `ground` | boundary ≥ 3 | browser |  |
 | `on-accent` | `accent` | text ≥ 4.5 | browser |  |
 | `on-accent` | `primary-pressed` | text ≥ 4.5 | browser |  |

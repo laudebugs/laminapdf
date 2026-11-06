@@ -256,6 +256,28 @@ main {
   font: var(--paper-type-label);
 }
 
+/* Code colours (src/data/highlight.ts): Shiki's token kinds as classes, since the website's
+   style-src 'self' blocks the inline styles Shiki would write. */
+.syntax-keyword {
+  color: var(--paper-code-keyword);
+}
+
+.syntax-string {
+  color: var(--paper-code-string);
+}
+
+.syntax-comment {
+  color: var(--paper-code-comment);
+}
+
+.syntax-function {
+  color: var(--paper-code-function);
+}
+
+.syntax-constant {
+  color: var(--paper-code-constant);
+}
+
 .code-panel figcaption {
   padding: var(--paper-space-10) var(--paper-space-20);
   border-top: var(--paper-border-width) solid var(--paper-hairline);
