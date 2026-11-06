@@ -30,9 +30,9 @@ $ laminapdf explain xref-repaired
 - **`info <inputs…>`**: the PDF version, page count and sizes, file size, encryption, whether the document is tagged, its Info dictionary and the warnings reading it raised. `--fields a,b` keeps only those keys of the JSON report.
 - **`check <inputs…>`**: reads every object, every page and every content stream within the limits, and reports what a tolerant read had to repair. It exits 3 when there were repairs, and 1 with `--strict` at the first one.
 - **`pages rotate <input> <angle>[:<range>] (-o OUT | --in-place)`**: `+90` and `-90` turn pages from their current rotation, `90` sets it; the range names the pages. The result is an incremental update where the file allows one, so the input's bytes come first.
-- **`extract <inputs…> [--pages RANGE] [--format text|md|json|chunks]`**: by default each page's text, pages separated by a form feed, as `pdftotext` does (`--visible-only` leaves out invisible text). The other formats read the blocks in reading order: `md` is Markdown with headings, lists and tables, `json` the `laminapdf.extract/1` document (every block with its box, and what was dropped), `chunks` the Markdown cut for retrieval, one JSON object per line. They never contain hidden text. `--max-chars N` keeps whole blocks up to N characters of Markdown and adds `"truncated": true` to the JSON.
+- **`extract <inputs…> [--pages RANGE] [--format text|md|json|chunks]`**: by default each page's text, pages separated by a form feed, as `pdftotext` does (`--visible-only` leaves out invisible text). The other formats read the blocks in reading order: `md` is Markdown with headings, lists and tables, `json` the `laminapdf.extract/1` document (every block with its box, and what was dropped; with `--format md --json`, the document carries the Markdown too, as `markdown`), `chunks` the Markdown cut for retrieval, one JSON object per line. They never contain hidden text. `--max-chars N` keeps whole blocks up to N characters of Markdown and adds `"truncated": true` to the JSON.
 - **`explain <code>`**: the page of an error or warning code, as in [`docs/errors/`](../../docs/errors/README.md).
-- **`render <inputs…> -o TEMPLATE [--pages RANGE] [--dpi N | --scale F] [--backend hayro|pdfium]`**: each page as a PNG image, 150 dpi unless `--dpi` or `--scale` (pixels per point) says otherwise. The output is a template, described under Output templates; `-o -` writes one page to standard output. The built-in renderer is hayro. `--backend pdfium` uses PDFium instead, loaded from the folder `LAMINA_PDF_PDFIUM_DIR` names. With `--json`, the `laminapdf.render/1` report lists each page's pixel size and file.
+- **`render <inputs…> -o TEMPLATE [--pages RANGE] [--dpi N | --scale F] [--backend hayro|pdfium]`**: each page as a PNG image, 150 dpi unless `--dpi` or `--scale` (pixels per point) says otherwise. The output is a template, described under Output templates; `-o -` writes one page to standard output. The built-in renderer is hayro. `--backend pdfium` uses PDFium instead, loaded from the folder `LAMINA_PDF_PDFIUM_DIR` names. With `--json`, the `laminapdf.render/1` report lists each page's pixel size and file. The renderer reads the file itself, so `render` refuses `--strict` and the limit flags.
 - **`schema [command]`**: the JSON Schema of a command's arguments, its `--json` report, its error line and its batch lines, from the same types the commands and `laminapdf mcp` use; without a command, the list of schemas.
 - **`completions bash|zsh|fish|powershell|elvish`**: a shell completion script, such as `laminapdf completions zsh > ~/.zfunc/_laminapdf`.
 - **`help exit-codes`**, `help <command>` and `--version` (with `--json`, the versions and schema ids).
@@ -56,7 +56,7 @@ A batch exits 0 when every input succeeded, 3 when some had warnings (0 with `--
 
 ## Output templates
 
-`render` names every file it writes with one `-o`: `out/{stem}-{n:03}.png` fills in, for each input and page:
+One `-o` names every file `render` writes. In a template such as `out/{stem}-{n:03}.png`, these fields are filled in for each input and page:
 
 | Field | Value |
 | --- | --- |
@@ -65,7 +65,9 @@ A batch exits 0 when every input succeeded, 3 when some had warnings (0 with `--
 | `{index}` | the input's position on the command line, from 0 |
 | `{n}` | the page number, from 1 |
 
-A zero and a width after a colon pad a number: `{n:03}` is `007`. `{{` and `}}` write braces. The command works out every path before it writes anything. It refuses, with exit 2, a template that would give two pages or two inputs the same file, such as one without `{n}` for a document of several pages. An existing file stops it with exit 4 unless `--force` is given, also before any page is written. The folders must exist already.
+A width after a colon, written with a leading zero, pads a number with zeros: `{n:03}` is `007`. `{{` and `}}` write braces.
+
+The command works out every path before it writes anything. It refuses, with exit 2, a template that would give two pages or two inputs the same file, such as one without `{n}` for a document of several pages, or one without `{stem}`, `{name}` or `{index}` for several inputs. `-o -` takes one page of one input named on the command line. Without `--force`, an existing file stops it with exit 4, also before any page is written. It doesn't create folders, so make them first.
 
 ## Page ranges
 
@@ -108,7 +110,7 @@ Each tool takes the command's arguments as JSON (`{"input": "report.pdf", "pages
 The server is safe without flags, because a model may follow instructions planted in a document:
 
 - **Roots.** Tools touch only files under the `--root` folders. A relative path starts at the first root. Before it checks a path, the server resolves it and follows its links. So `..`, an absolute path elsewhere and a link that leads out all get `path-outside-roots`. Outside the roots, a missing file gets the same answer as one that exists, so a call can't probe for files.
-- **Read-only by default.** The server lists the write tools only with `--allow-write`. They write new files only. The rotate tool can replace its input only when the server also has `--allow-in-place`, and the render tool never replaces a file or writes to standard output.
+- **Read-only by default.** The server lists the write tools only with `--allow-write`. They write new files only, with one exception: when the server also has `--allow-in-place`, the rotate tool can replace its input. The render tool never replaces a file or writes to standard output.
 - **Document text stays in data.** Titles and extracted text appear only in report fields. Error messages and hints never quote the document, and tool descriptions are fixed text.
 - **Bounded calls.** At most one call per CPU runs at a time. The server stops a call that runs past `--timeout` (60 s by default) at its next step and answers `cancelled`. A step that can't stop, such as opening a large file, gets 5 more seconds. After that the server answers anyway, and the call keeps its CPU slot until the step ends.
 - **Bounded output.** A report over `--max-output-bytes` (1 MiB by default, 1 KiB at least) loses items from the end of its lists, then text, and gets `"truncated": true`. The cut report still matches the tool's `outputSchema`.

@@ -16,7 +16,7 @@
 
 > **Split from [L4b](../done/L4b-cli-batch-render-schema.md)**, which shipped batch mode, the extraction formats, `schema`, completions and man pages; this todo takes the rest of its scope.
 
-> **Outcome (2026-11-06).** Shipped as scoped. PDFium is in every build as `--backend pdfium`, bound at run time from `LAMINA_PDF_PDFIUM_DIR` (`render-backend-unavailable` without it), since the edge crate loads the library only when asked. The render goldens at 96 dpi (`fixtures/golden/render/hayro/`) and 72 dpi (`fixtures/render-golden/`) served as they are, so no CLI goldens were added. The PNG and SSIM test helpers moved into `laminapdf-test-fixtures::image`.
+> **Outcome (2026-11-06).** Shipped as scoped. PDFium is in every build as `--backend pdfium`, bound at run time from `LAMINA_PDF_PDFIUM_DIR` (`render-backend-unavailable` without it), since the edge crate loads the library only when asked. The render goldens at 96 dpi (`fixtures/golden/render/hayro/`) and 72 dpi (`fixtures/render-golden/`) were used as they are, so no CLI goldens were added. The PNG and SSIM test helpers moved into `laminapdf-test-fixtures::image`.
 
 ## Goal
 
