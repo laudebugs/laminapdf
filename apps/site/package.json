@@ -23,6 +23,7 @@
     "@types/node": "catalog:",
     "astro": "7.4.2",
     "playwright": "catalog:",
+    "shiki": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"
