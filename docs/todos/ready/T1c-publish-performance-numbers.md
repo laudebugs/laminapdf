@@ -58,7 +58,7 @@ On Hacker News, extraction users ask for benchmarks they can rerun: 163 comments
 - The robustness figures (corpus, agreement, fuzzing) → [T1a](./T1a-nightly-proof-figures.md), [T1b](./T1b-how-we-test-page.md).
 - Refreshing the numbers on a schedule. They change with releases, and `docs.laminapdf.com` builds from each release ([P4](./P4-docs-match-the-release.md)), so one refresh before a release is enough.
 - A new benchmark dataset, or tables scored with TEDS: L3f's manifest says why none was usable.
-- Flowing-layout timings: they follow T4b–T4d.
+- Flowing-layout timings: they follow T4b–T4e (T4b's flowing-report bench, T4e's two-page `invoice-from-json` case in `measure()`).
 
 ## Tasks
 

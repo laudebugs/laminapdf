@@ -50,7 +50,7 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 **Out of scope** (and which todo covers it)
 
 - The flow layer: [T4b](./T4b-flow-layout-core.md) (paragraphs, keep rules, page templates, page X of Y) and [T4c](./T4c-flow-tables-notes-contents.md) (tables, footnotes, contents pages).
-- The front ends: [T4d](./T4d-markdown-and-json-templates.md) (Markdown, `laminapdf build`, the MCP tool, the SDK) and [T4e](./T4e-json-documents-and-templates.md) (JSON documents and templates).
+- The front ends: [T4d](./T4d-markdown-documents.md) (Markdown, `laminapdf build`, the MCP tool, the SDK) and [T4e](./T4e-json-documents-and-templates.md) (JSON documents and templates).
 - HTML and CSS to PDF: [E13f](./E13f-office-and-html-to-pdf.md).
 - Publishing the timings: [T1c](./T1c-publish-performance-numbers.md).
 
@@ -74,7 +74,7 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
   - [ ] Licences and upkeep: `cargo deny --manifest-path spikes/flow-layout/Cargo.toml --config deny.toml check licenses bans sources`; any licence outside the allow-list (OFL font data, if a Typst crate bundles fonts); the dependency count; Typst's release cadence and the breaking changes between its last two minor releases
 - [ ] Write the spike README: date, question, method, measurements, findings and a recommendation
 - [ ] Write ADR 0032 with every decision in Scope, each backed by the spike's numbers, and the alternatives with the reasons they lost: krilla used directly, Taffy with our own pagination, HTML and CSS through a browser, and optimal (Knuth–Plass style) page breaking
-- [ ] Reshape T4b–T4e to the decision before review: their scope, tasks, codes, placement and sizes. If Typst wins, rewrite them as the integration it needs (fonts, tagging checks, the edit path) and say so in the PR description
+- [ ] Reshape T4b–T4e to the decision before review: their scope, tasks, codes, placement and sizes, splitting each one estimated over 800 lines into todos of at most L (their sizes today are XL). If Typst wins, rewrite them as the integration it needs (fonts, tagging checks, the edit path) and say so in the PR description
 - [ ] Review with the owner, and record the sign-off in the ADR's status line
 - [ ] The index and plan updates (Docs to update)
 

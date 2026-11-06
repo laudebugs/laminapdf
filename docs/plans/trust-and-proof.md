@@ -30,7 +30,7 @@ The [report](../research/hacker-news/pdf-users-on-hacker-news.md) ranks ten reco
 | [R2. Real redaction, and a check for fake redaction](../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file) | E12a–E12f | T2a, T2b; a notice in E4f |
 | [R3. Forms and signatures, XFA named plainly](../research/hacker-news/pdf-users-on-hacker-news.md#r3-finish-forms-and-signatures-and-name-xfa-files-plainly) | E8, E10 | nothing: the evidence raises their priority |
 | [R4. Extraction users can check](../research/hacker-news/pdf-users-on-hacker-news.md#r4-make-extraction-checkable) | L3g | T3a, T3b, T3c, T1c |
-| [R5. Flowing layout, then Markdown and JSON](../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json) | none | T4a–T4d, T1c |
+| [R5. Flowing layout, then Markdown and JSON](../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json) | none | T4a–T4e, T1c |
 | [R6. A fast, quiet, safe reader](../research/hacker-news/pdf-users-on-hacker-news.md#r6-keep-the-reader-fast-quiet-and-safe) | C7c, U4a, U5a | nothing |
 | [R7. Long reading](../research/hacker-news/pdf-users-on-hacker-news.md#r7-serve-long-reading-reflow-a-dark-page-papers-and-manuals) | U2c, U4b, U4c, C5b, C6a, C6b | T5a, T5b |
 | [R8. Sanitise without flattening, report what a file reveals](../research/hacker-news/pdf-users-on-hacker-news.md#r8-sanitise-without-flattening-and-report-what-a-file-reveals) | E11d, E3g | T2c |
@@ -89,14 +89,15 @@ Users now ask whether they can check what an extractor returned. T3 gives each p
 
 ### T4. Pages that flow
 
-The library plan lists flowing layout as a non-goal for now and asks, in its open question 4, whether it should become one. The evidence says yes: control over page breaks is the generation request with the clearest gap. T4a decides how in ADR 0032, after a spike that weighs an engine of our own over the builder's `Surface` against embedding Typst; T4b–T4d build what it decides, and may change shape once the ADR is accepted.
+The library plan lists flowing layout as a non-goal for now and asks, in its open question 4, whether it should become one. The evidence says yes: control over page breaks is the generation request with the clearest gap. T4a decides how in ADR 0032, after a spike that weighs an engine of our own over the builder's `Surface` against embedding Typst; T4b–T4e build what it decides. Each is XL today, so T4a reshapes and splits them into PR-sized todos once the ADR is accepted.
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [T4a](../todos/ready/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
-| [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | L | T4a |
-| [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Flowing layout: tables with repeated headers, footnotes, a contents page with page numbers | L | T4b |
-| [T4d](../todos/ready/T4d-markdown-and-json-templates.md) | Markdown and JSON templates in, flowing pages out | L | T4c |
+| [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | XL | T4a |
+| [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Flowing layout: tables with repeated headers, footnotes, a contents page with page numbers | XL | T4b |
+| [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in, flowing pages out: `laminapdf build`, an MCP tool and the SDK | XL | T4c |
+| [T4e](../todos/ready/T4e-json-documents-and-templates.md) | JSON documents and templates in, flowing pages out | XL | T4d |
 
 ### T5. Long reading
 
@@ -122,7 +123,7 @@ Merge, split and the optimiser are planned in the library (E2, E16) but not in t
  T1a ─► T1b          T1c          T1d                          (start now)
  L3g ─► T2a ─► T2b ─► T2c
  T3a    T3b    T3c                                             (start now)
- T4a ─► T4b ─► T4c ─► T4d                                      (T4a starts now)
+ T4a ─► T4b ─► T4c ─► T4d ─► T4e                               (T4a starts now)
  C6b ─► T5a;  C6b ─► T5b
  E2d ─► T6a;  E16c ─► T6b
 ```
@@ -143,7 +144,7 @@ This plan's PR also changes these files, so the evidence reaches work that is al
 
 - **Published figures can embarrass.** A low share of corpus files opened, or a slow benchmark, would be public. The answer is to publish anyway, with the method and the trend, and fix what the numbers show; hiding them would contradict the round's point. The owner approves the page's copy (T1b).
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
-- **ADR 0032 may choose Typst,** whose output is finished bytes (via krilla), not Lamina PDF's object graph ([`krilla-fit` spike](../../spikes/krilla-fit/README.md)). T4b–T4d would then change shape; their files say so.
+- **ADR 0032 may choose Typst,** whose output is finished bytes (via krilla), not Lamina PDF's object graph ([`krilla-fit` spike](../../spikes/krilla-fit/README.md)). T4b–T4e would then change shape; their files say so.
 - **Round T competes for time with the launch rounds.** Only T1 and T3 sit near the critical path, and both are M-sized or smaller.
 
 ## 9. Open questions
@@ -159,7 +160,7 @@ This plan's PR also changes these files, so the evidence reaches work that is al
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/ready/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
-- [ ] T4: pages that flow ([T4a](../todos/ready/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-and-json-templates.md))
+- [ ] T4: pages that flow ([T4a](../todos/ready/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))
 - [ ] The owner answers §9's open questions

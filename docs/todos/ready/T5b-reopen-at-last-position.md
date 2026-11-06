@@ -93,7 +93,7 @@ None.
 ## Tests
 
 - Vitest (Node): `packages/viewer/test/fingerprint.test.ts` over the golden and corpus fixtures.
-- Vitest browser mode: `packages/ui/test/browser/positions.test.ts` (the store, the cap, `clear`, the memory fallback, the `{ ask: false }` reopen with a fake handle) and `packages/viewer/test/browser/` for `restore`.
+- Vitest browser mode: `packages/ui/test/browser/positions.browser.test.ts` (the store, the cap, `clear`, the memory fallback, the `{ ask: false }` reopen with a fake handle) and `packages/viewer/test/browser/` for `restore`.
 - Playwright: `apps/web/e2e/reading-position.spec.ts` (three engines) and the privacy suite's new case.
 
 ## Docs to update

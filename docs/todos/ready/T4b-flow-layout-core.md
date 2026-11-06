@@ -10,7 +10,7 @@
 | ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)); follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (the builder writes into the overlay), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space; [§5](../../decisions/0027-coordinates-units-and-page-indexing.md#5-text-placement): a run's `y` is its baseline), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) and [0018](../../decisions/0018-test-strategy.md) (goldens) |
 | Branch | `feat/t4b-flow-layout-core` |
 | PR title | `feat(build): flowing layout with keep rules, running headers and footers, and page X of Y` |
-| Size | L (≈ 1,100–1,400 lines; split at the line in Risks if it grows) |
+| Size | XL (≈ 1,100–1,400 lines): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
 > **Written to the expected decision.** This todo assumes ADR 0032 chooses an engine of our own over `Surface`, as the research report recommends. T4a may reshape it: if the ADR decides otherwise, T4a rewrites this file before anyone claims it.
@@ -63,7 +63,7 @@ Give `laminapdf-build` a flow layer. The caller hands it blocks of text and a pa
 **Out of scope** (and which todo covers it)
 
 - Tables, footnotes, contents pages, and the outline and named destinations made from headings: [T4c](./T4c-flow-tables-notes-contents.md).
-- Block quotes, code blocks, rules, and Markdown: [T4d](./T4d-markdown-and-json-templates.md). The JSON form of a flow and the TypeScript API: [T4e](./T4e-json-documents-and-templates.md). Until T4d the flow is Rust only, and link-time optimisation leaves it out of the WASM modules, so their sizes don't change.
+- Block quotes, code blocks, rules, and Markdown: [T4d](./T4d-markdown-documents.md). The JSON form of a flow and the TypeScript API: [T4e](./T4e-json-documents-and-templates.md). Until T4d the flow is Rust only, and link-time optimisation leaves it out of the WASM modules, so their sizes don't change.
 - Justification, hyphenation, columns, floats, and odd and even templates with mirrored margins: later, as ADR 0032 records.
 - Flowing pages appended to an open document (`Builder::on`): appended pages are never tagged today.
 - A stepped job for long flows ([ADR 0028 §3](../../decisions/0028-facade-rules-jobs-and-cancellation.md#3-jobs)): only if ADR 0032 asks for one.

@@ -15,7 +15,7 @@
 
 ## Goal
 
-Readers of papers and manuals want to see where a link or a citation goes without losing their place. On Hacker News, 66 reader comments ask for link previews and a way back, a share that rose from 0.3 % to about 1 % of reader comments: Evince's hover preview is praised ([39809245](https://news.ycombinator.com/item?id=39809245)), citations in Acrobat are "very frustrating" ([39770052](https://news.ycombinator.com/item?id=39770052)), Google Scholar's reader drew 422 points for clickable citations, and Sioyek, a viewer for papers with reference previews, had three launches over 230 points. This PR shows the destination of an internal link in a preview: on hover or keyboard focus with a mouse or pen, and on long-press with touch. The preview is a crop of the destination region, drawn by the document worker's existing render RPC. A click or Enter jumps, and C6b's Back returns to the citing line.
+Readers of papers and manuals want to see where a link or a citation goes without losing their place. On Hacker News, 66 reader comments are about citations, link previews and a way back, a share that rose from 0.3 % to about 1 % of reader comments: Evince's hover preview is praised ([39809245](https://news.ycombinator.com/item?id=39809245)), citations in Acrobat are "very frustrating" ([39770052](https://news.ycombinator.com/item?id=39770052)), Google Scholar's reader drew 422 points for clickable citations, and Sioyek, a viewer for papers with reference previews, had three launches over 230 points. This PR shows the destination of an internal link in a preview: on hover or keyboard focus with a mouse or pen, and on long-press with touch. The preview is a crop of the destination region, drawn by the document worker's existing render RPC. A click or Enter jumps, and C6b's Back returns to the citing line.
 
 ## Context
 
@@ -44,7 +44,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
   - it is at most 180 CSS px high at the preview scale, and never leaves the page;
   - for `FitR`, the rectangle itself, scaled to fit the card;
   - bad values (a `top` above the page, a null `left`, a rect outside the CropBox) are clamped and never throw (ADR 0003).
-- **The scale.** The reader's current zoom clamped to 100–150 %, so preview text is never smaller than at actual size, times the device pixel ratio; the card is at most 480 × 180 CSS px. The page preview uses R07's sizes (a 92 px crop of the page's top at thumbnail scale).
+- **The scale.** The reader's current zoom clamped to 100–150 %, so preview text is no smaller than at actual size, times the device pixel ratio. The card is at most 480 × 180 CSS px: a region wider than the card at that zoom lowers the scale to fit, but never below 75 %, and past that the crop is cut at the card's right edge. The page preview uses R07's sizes (a 92 px crop of the page's top at thumbnail scale).
 - **One render, through the worker.** `Viewer.preview(target, { signal })` (new, in `packages/viewer/src/view/viewer.ts`) returns `{ bitmap, width, height, text, title }`:
   - the bitmap comes from one `client.render({ page, scale, clip, rotation }, { priority: "visible", signal })`, with the view rotation applied as C6a's mapping does for rotated pages;
   - `text` is the text of the lines inside the crop, from C5a's `pageText` for the destination page, joined and cut at 300 characters;
@@ -75,7 +75,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 - [ ] `packages/viewer/src/layers/link-preview.ts`: `previewRegion` and the scale rule, with unit tests for every fit type, both columns of a two-column page, `/Rotate 90` and `270`, pages with a CropBox offset, clamped bad values, and pages without text.
 - [ ] `Viewer.preview(target, { signal })`: the render call, the text and title, the 8-entry bitmap LRU and its closing rules; export the result type from `packages/viewer/src/index.ts`.
 - [ ] The link layer's `linkpreview`/`linkpreviewend` events: dwell and grace timers, focus, long-press with the movement threshold, cancelled clicks, `-webkit-touch-callout` and `contextmenu` on touch. Check against U3a's gesture code that a long-press off a link still selects text.
-- [ ] `LinkPreview` in `@laminapdf/ui`: popover and sheet by pointer, `LayerStack` registration, `aria-describedby` on the anchor, messages and tokens; a story in the UI gallery.
+- [ ] `LinkPreview` in `@laminapdf/ui`: popover and sheet by pointer, `LayerStack` registration, `aria-describedby` on the anchor, messages and tokens; its states beside the other overlays' in the package's browser tests (and in [U6f](./U6f-gallery-and-visual-tests.md)'s gallery once it exists).
 - [ ] Wire it in the reader app (`apps/web`): the viewer's events to `LinkPreview`, `nav.follow-link` in the registry.
 - [ ] The fixture: an 8-page two-column "paper" built at test time with `@laminapdf/sdk`'s `Builder`: 30 citations `[1]`–`[30]` as text runs with a `link` to named destinations `cite.1`–`cite.30`, made with `destination(name, index, fit)` at an `XYZ` position on each reference entry, split over both columns of pages 7–8; a "see page 3" link to a `Fit` destination; one page with `/Rotate 90`. Use C6b's every-link-kind fixture for named actions and `GoToR`.
 - [ ] The perf scenario; R07 and §7.27 updated (below).
@@ -99,7 +99,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 ## Tests
 
 - Vitest unit tests: `packages/viewer/src/layers/link-preview.test.ts` (geometry) and the link layer's timers with fake timers (dwell, grace, long-press threshold, movement cancel).
-- Vitest browser tests: `packages/viewer/test/browser/` for `Viewer.preview` (one render, the LRU, aborts) and `packages/ui/test/browser/link-preview.test.tsx` (popover or sheet by pointer, ARIA, Escape through `LayerStack`, axe in 3 themes × 2 directions, as U6e's tests do).
+- Vitest browser tests: `packages/viewer/test/browser/` for `Viewer.preview` (one render, the LRU, aborts) and `packages/ui/test/browser/link-preview.browser.test.tsx` (popover or sheet by pointer, ARIA, Escape through `LayerStack`, axe in 3 themes × 2 directions, as `a11y.browser.test.tsx` does for the other overlays).
 - Playwright: `apps/web/e2e/link-previews.spec.ts` in the three engines, with the touch profiles; the paper fixture built in the test's setup.
 - The perf harness's `link-previews` scenario (`cargo xtask viewer-perf`).
 

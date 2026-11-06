@@ -6,14 +6,14 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4d](./T4d-markdown-and-json-templates.md) |
+| Depends on | [T4d](./T4d-markdown-documents.md) |
 | ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)): the document format and the template language. Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) as T4a amends it (`laminapdf build`, its MCP tool) and its [§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output) versioning rule, [0016 §6–§7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary) (budgets; records as JSON with `unknown-option`) and [0026 §4](../../decisions/0026-error-and-diagnostic-contract.md#4-no-document-text-in-message-hint-or-didyoumean) (no document text in messages) |
 | Branch | `feat/t4e-json-documents-and-templates` |
 | PR title | `feat: JSON documents and templates in, flowing pages out` |
-| Size | L (≈ 900–1,200 lines with the bindings and the generator) |
+| Size | XL (≈ 900–1,200 lines with the bindings and the generator): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
-> **Split from [T4d](./T4d-markdown-and-json-templates.md),** which keeps Markdown, so that each PR stays reviewable. Like T4b–T4d, this todo assumes ADR 0032 chooses an engine of our own, a JSON document format and placeholders inside it for data; T4a rewrites it if the ADR decides otherwise.
+> **Split from [T4d](./T4d-markdown-documents.md),** which keeps Markdown, so that each PR stays reviewable. Like T4b–T4d, this todo assumes ADR 0032 chooses an engine of our own, a JSON document format and placeholders inside it for data; T4a rewrites it if the ADR decides otherwise.
 
 ## Goal
 
@@ -21,7 +21,7 @@ Let a program or an LLM write a flowing document as JSON, check it against a com
 
 ## Context
 
-- ADR 0032: the format's name and shape, the template language, and the decision on what agents are offered. [T4b](./T4b-flow-layout-core.md), [T4c](./T4c-flow-tables-notes-contents.md) and [T4d](./T4d-markdown-and-json-templates.md): the flow model this format serialises, and the `laminapdf build` command, MCP tool and WASM plumbing this todo extends.
+- ADR 0032: the format's name and shape, the template language, and the decision on what agents are offered. [T4b](./T4b-flow-layout-core.md), [T4c](./T4c-flow-tables-notes-contents.md) and [T4d](./T4d-markdown-documents.md): the flow model this format serialises, and the `laminapdf build` command, MCP tool and WASM plumbing this todo extends.
 - Evidence: the [generation note](../../research/hacker-news/notes/generation.md) §1.2 (799 matches, 7 of 10 on topic), §1.9 (Typst run in production from data: 94 comments in 2023–26), §5 and §6 point 8; the report's [R5](../../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json).
 - The precedent for a JSON contract: `laminapdf-extract` has `serde` and `schema` features, `schemas/extract.schema.json` is checked by `tests/output.rs` (`UPDATE_GOLDEN=1` rewrites it), and `cargo xtask gen boundary` turns it into `packages/sdk/src/generated/extract.ts` (`tools/xtask/src/codegen/boundary.rs` and `schema_ts.rs`, which fails on a schema keyword it doesn't know). See [L3e](../done/L3e-extract-bindings-and-benchmark.md).
 - Unknown keys: `laminapdf::did_you_mean` (pinned by `fixtures/did-you-mean.json`) and the binding's `unknown-option` ([ADR 0016 §7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary)).

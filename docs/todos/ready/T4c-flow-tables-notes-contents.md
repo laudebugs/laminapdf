@@ -10,7 +10,7 @@
 | ADRs | Implements ADR 0032 (written by [T4a](./T4a-adr-0032-layout-engine.md)): tables, notes, contents and the pass limit; follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space, 1-based page numbers in what users read) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
 | Branch | `feat/t4c-flow-tables-notes-contents` |
 | PR title | `feat(build): flowing tables with repeated headers, footnotes and a contents page` |
-| Size | L (≈ 1,000–1,300 lines) |
+| Size | XL (≈ 1,000–1,300 lines): [T4a](./T4a-adr-0032-layout-engine.md) splits it into todos of at most L once ADR 0032 decides the design |
 | PR | — |
 
 > **Written to the expected decision.** Like [T4b](./T4b-flow-layout-core.md), this todo assumes ADR 0032 chooses an engine of our own; T4a rewrites it if the ADR decides otherwise.
@@ -48,7 +48,7 @@ Add the three page features that need more than one pass or more than one region
 **Out of scope** (and which todo covers it)
 
 - Rows split across pages: a row taller than the page's body fails with `flow-content-too-large` (T4b's code). Row spans, nested tables, endnotes, links from a note back to its marker, an index, and cross-references such as "see page 12": later, as ADR 0032 records.
-- Markdown tables and footnotes: [T4d](./T4d-markdown-and-json-templates.md). The JSON form and TypeScript: [T4e](./T4e-json-documents-and-templates.md).
+- Markdown tables and footnotes: [T4d](./T4d-markdown-documents.md). The JSON form and TypeScript: [T4e](./T4e-json-documents-and-templates.md).
 - Joining tables across pages in extraction: [T3c](./T3c-tables-across-pages.md).
 
 ## Tasks
