@@ -31,7 +31,7 @@ Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tre
 - **Structure-tree order** (`structSource: "tagged"`): the plausibility checks and thresholds of ADR 0030 §2, `RoleMap`, `(page, MCID)` to runs, `structPath`, `structRef`, confidence 1. Untagged content outside artifacts goes after the tree's on its page, with `extract-untagged-content`; an implausible tree is ignored with `extract-struct-tree-ignored`. Each code gets its `codes.json` entry and page. `ReadingOrder::Tagged` forces the tree.
 - **Tagged headings and lists:** `H`/`H1`–`H6` and `L`/`LI`/`Lbl`/`LBody` win over L3d's layout rules when the tree is used.
 - **Tagged tables:** a `Table` element with `TR`/`TH`/`TD` (and `/RowSpan`, `/ColSpan`) gives a table block's rows, cells, spans and header flags, ahead of the ruled grid L3b detects; `detector: "tagged"` and confidence 1.
-- **`clipped` and `low-contrast`:** `laminapdf-content` tracks the clip's bounding box, and `laminapdf-text`'s runs carry it and the fill colour (small changes in those crates, in their own commits). The heuristics follow ADR 0030 §4 and lean towards keeping text.
+- **`clipped` and `low-contrast`:** `laminapdf-content` tracks the clip's bounding box, and `laminapdf-text`'s runs carry it and the colour the glyphs are painted in (small changes in those crates, in their own commits). The heuristics follow ADR 0030 §4 and lean towards keeping text.
 - Tests on files built with `laminapdf-build` (`tests/tagged.rs`): a tree whose order differs from the layout's, one that covers too little, untagged text beside a tree, tagged lists and a tagged table; clipped and white-on-white text added to the hidden-text tests.
 
 **Out of scope** (and which todo covers it)
@@ -42,9 +42,9 @@ Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tre
 ## Tasks
 
 - [x] Claim via its work PR; a fresh worktree off `main`
-- [x] The clip box in `laminapdf-content`, then the run fields in `laminapdf-text` (clip box, fill colour)
+- [x] The clip box in `laminapdf-content`, then the run fields in `laminapdf-text` (clip box, paint colour)
 - [x] `order/tagged.rs` and the tagged tables in `laminapdf-extract`; the new warning codes
-- [x] Fixtures and tests; the thresholds tuned on the corpus and recorded in ADR 0030 §2
+- [x] Fixtures and tests; the thresholds checked on the corpus; kept, recorded in the L3g note
 - [x] README: what the rules handle now
 
 ## Acceptance criteria
@@ -63,7 +63,7 @@ Unit tests per module (`tagged.rs`'s checks, cell placement and kinds; `visibili
 
 ## Docs to update
 
-- [x] ADR 0030 §2 (tuned thresholds) and §9
+- [x] ADR 0030 §9 and the L3g note (thresholds kept)
 - [x] `laminapdf-extract`'s README
 
 ## Definition of done

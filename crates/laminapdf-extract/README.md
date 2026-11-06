@@ -36,14 +36,23 @@ The rules refuse what isn't a grid of text: a page border, a form's separate fie
 
 ## How it reads a page
 
-1. **Runs.** `laminapdf-text` gives the page's runs of glyphs with their boxes. Extraction leaves out any run drawn invisibly (text rendering mode 3 or 7), wholly off the page or below 1 pt, wholly outside its clip (`clipped`), or near white with nothing but near white painted under it (`low-contrast`), and any run the file marks as an `Artifact`: page furniture such as headers, page numbers and decoration. The last two checks are approximations that lean towards keeping text: the clip counts as its bounding box, and anything painted under the text, anywhere on the page and in any order, counts as a backdrop. Each such run gets a `dropped` entry with its reason, its box and a character count, never its text. Ask for the hidden runs themselves with `DropOptions::keep_spans`.
+1. **Runs.** `laminapdf-text` gives the page's runs of glyphs with their boxes. Extraction leaves out any run that is drawn invisibly (text rendering mode 3 or 7), lies wholly off the page, or is smaller than 1 pt. It also leaves out runs wholly outside their clip (`clipped`), near-white runs with nothing darker painted where they sit (`low-contrast`), and runs the file marks as an `Artifact`: page furniture such as headers, page numbers and decoration. The clip and colour checks are approximations that lean towards keeping text: the clip counts as its bounding box, and any fill, stroke, image or shading that overlaps the text, drawn before or after it, counts as a backdrop unless it is near white. Each such run gets a `dropped` entry with its reason, its box and a character count, never its text. Ask for the hidden runs themselves with `DropOptions::keep_spans`.
 2. **Lines.** Runs whose baselines lie within half a font size join one line, in visual order, right to left when most of the line's letters are. A gap wider than one font size between two runs on one baseline is a column gutter, so it splits them into two lines.
    The exception is a list's bullet or number: up to four font sizes from its text, it stays on the text's line.
 3. **Blocks.** A line joins the block above when it follows at most 1.6 font sizes lower, at a size within 20%, overlapping the block's last line by at least 30% of the narrower of the two. A line that starts with a bullet starts a block, and so does one that starts with a dash or a number when the block above is a list item or ends in a colon.
 4. **Order.** On a tagged file, the structure tree comes first (see below). Otherwise XY-Cut++ orders the blocks. Blocks that span two columns (titles, abstracts, full-width figures) split the page into bands. Each band is cut at its widest gaps, columns first, so a two-column page reads column by column; a grid of one-line blocks (a table) reads row by row; right-to-left pages take their columns from the right. `ReadingOrder::ContentStream` keeps the order the page draws instead.
 5. **Text.** A block's lines are joined with spaces. A word hyphenated before a lowercase line is joined (`extrac-` / `tion`), while a hyphen before anything else stays (`well-` / `Known`). Latin ligatures are spelled out unless `/ActualText` gave the text.
 
-On a tagged file (`/MarkInfo /Marked true`), each page whose structure tree is plausible is read in the tree's order instead of steps 2 to 4. Plausible means the tree's elements cover at least 80% of the page's visible text, and its order jumps back up into an earlier column on at most one move in ten. Each block-level element is one block, with the kind its type gives: `H1` to `H6` are headings of that level, `LI` a list item whose marker is its `Lbl` (nested `L`s give the depth), `Table` a table whose `TR`, `TH` and `TD` give its rows, cells, header cells and spans, and `P`, `Caption` and `Note` paragraphs, captions and footnotes. Custom types go through the file's `RoleMap`. Such blocks carry `structPath`, `structRef` and a `confidence` of 1, and `structSource` is `tagged` when the tree ordered every page it covers. Text outside the tree and outside artifacts follows the tree's blocks in layout order, with `extract-untagged-content`. A page whose tree fails a check is read by the layout, with `extract-struct-tree-ignored`; `ReadingOrder::Tagged` uses the tree anyway, and `ReadingOrder::Layout` never does.
+On a tagged file (`/MarkInfo /Marked true`), each page whose structure tree is plausible is read in the tree's order instead of steps 2 to 4. Plausible means the tree's elements cover at least 80% of the page's visible text, and its order jumps back up into an earlier column on at most one move in ten.
+
+Each block-level element becomes one block, and its type gives the block's kind (custom types go through the file's `RoleMap`):
+
+- `H1` to `H6` are headings of that level; `H` and `Title` are level 1.
+- `LI` is a list item whose marker is its `Lbl`; nested `L`s give the depth.
+- `Table` is a table whose `TR`, `TH` and `TD` give its rows, cells, header cells and spans.
+- `P`, `Caption` and `Note` are paragraphs, captions and footnotes.
+
+Such blocks carry `structPath`, `structRef` and a `confidence` of 1. `structSource` is `tagged` when every extracted page with tagged content was read in the tree's order. Text that is neither in the tree nor an artifact comes after the tree's blocks, in layout order, and raises the `extract-untagged-content` warning. A page whose tree fails a check is read by the layout, with `extract-struct-tree-ignored`; `ReadingOrder::Tagged` uses the tree anyway, and `ReadingOrder::Layout` never does.
 
 Once every page is read, three more rules run. The first two need the whole document: the repeated lines and the body size.
 
@@ -61,22 +70,22 @@ On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rul
 | --- | --- | ---: | ---: | ---: | ---: |
 | `multi_column` | one passage before another, on multi-column pages | 231 | 884 | 52.1 % | 14.8 % |
 | `table_tests` | a table cell's neighbours and headings | 188 | 1,022 | 24.1 % | 47.1 % |
-| `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 59.5 % | 59.3 % |
+| `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 59.6 % | 59.3 % |
 | baseline | the page gave text (one test per page, added by the benchmark) | | 676 | 85.7 % | 85.7 % |
-| **Mean, as the benchmark reports it** | | | | **55.3 %** | **51.7 %** |
-| Mean of the three subsets | | | | 45.2 % | 40.4 % |
+| **Mean, as the benchmark reports it** | | | | **55.4 %** | **51.7 %** |
+| Mean of the three subsets | | | | 45.3 % | 40.4 % |
 
 Three things explain most of the failures:
 
 - **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR; they stay in these subsets and count against the score, as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
-- **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Dropping page numbers and artifact-marked text lifted the third subset from 37.6 %, before these rules, to 59.5 %; a header or footer that is neither stays in the text.
+- **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Dropping page numbers and artifact-marked text lifted the third subset from 37.6 %, before these rules, to 59.6 %; a header or footer that is neither stays in the text.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 
 The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
 
 ## What it can't do yet
 
-- **Clips and colours without rendering.** Text inside a curved clip's bounding box counts as visible, light text on a dark image counts as visible even where the image is light, and text covered by an opaque shape drawn over it stays in the text.
+- **Hidden text only rendering would find.** Text inside a curved clip's bounding box counts as visible, light text over an image counts as visible even where the part of the image under it is light too, and text covered by an opaque shape drawn over it stays in the text.
 - **Trees that pass the checks but are wrong.** A tree that covers the text and keeps its columns in order is trusted, even where its order is still odd; extract with `ReadingOrder::Layout` to ignore it.
 - **Headings and lists the rules can't see.** A heading set at the body size in a regular face reads as a paragraph, and a numbered heading in bold at the body size (`1. Introduction`) reads as a list item, not a heading. Uppercase letters (`A.`) aren't list markers, so a line that starts with an initial doesn't start a list, and uppercase Roman numerals aren't page numbers.
 - **Headers that change.** A running header that changes from page to page, other than its digits, stays in the text.

@@ -76,7 +76,8 @@ pub struct Glyph {
     pub clip: Option<RectPt>,
     /// The colour the glyph is painted in, as approximate RGB in [0, 1]: the fill colour, the
     /// stroke colour for stroked-only text, the darker of the two for both (text rendering
-    /// mode, §9.3.6). `None` for invisible text, a pattern or a colour space read no other way.
+    /// mode, §9.3.6). `None` for invisible text, a pattern or a colour space read no other way
+    /// (for text both filled and stroked, when either colour is one).
     pub color: Option<[f64; 3]>,
 }
 
@@ -274,7 +275,8 @@ fn paint_color(state: &laminapdf_content::GraphicsState) -> Option<[f64; 3]> {
             } else {
                 stroke
             }),
-            (one, other) => one.or(other),
+            // A colour we can't read on either side may be the dark one: keep the text.
+            _ => None,
         },
         _ => None,
     }

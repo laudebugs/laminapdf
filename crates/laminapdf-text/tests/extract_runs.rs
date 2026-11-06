@@ -222,6 +222,14 @@ fn runs_carry_their_colour_and_clip_box() {
 }
 
 #[test]
+fn fill_and_stroke_text_takes_the_darker_colour_or_none_when_one_is_unreadable() {
+    // White fill, black stroke: the darker. A named-space fill beside a white stroke: unknown.
+    let text = text(b"BT /F1 10 Tf 2 Tr 72 700 Td 1 1 1 rg 0 G (A) Tj /CS0 cs 0.5 sc 1 G (B) Tj ET");
+    let runs: Vec<(&str, Option<[f64; 3]>)> = text.runs.iter().map(|r| (r.text.as_str(), r.color)).collect();
+    assert_eq!(runs, [("A", Some([0.0; 3])), ("B", None)]);
+}
+
+#[test]
 fn invisible_text_is_flagged_and_visible_drops_it() {
     let text = text(b"BT /F1 10 Tf 72 700 Td 3 Tr (OCR) Tj 0 Tr ( drawn) Tj ET");
     let flags: Vec<(&str, bool)> = text.runs.iter().map(|r| (r.text.as_str(), r.invisible)).collect();
