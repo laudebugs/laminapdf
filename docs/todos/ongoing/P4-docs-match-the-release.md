@@ -41,11 +41,11 @@ Make every docs deployment match a package version. Every page of the docs site 
 
 ## Tasks
 
-- [ ] Check that a Workers custom domain issues a certificate for `next.docs.laminapdf.com`; if not, ask the owner (advanced certificate, or another name)
-- [ ] The version in the header and the `next` notice; exact-version install lines
-- [ ] The `next` Worker's config and the workflow changes, given to the owner as files
-- [ ] Tests: the built pages carry the version, `next` builds carry the notice and `noindex`, install lines match the version
-- [ ] README and `CLAUDE.md` (the docs workflow paragraph)
+- [x] Check that a Workers custom domain issues a certificate for `next.docs.laminapdf.com`; if not, ask the owner (advanced certificate, or another name): it does, a Workers custom domain gets its own certificate ([Cloudflare's custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/))
+- [x] The version in the header and the `next` notice; exact-version install lines
+- [x] The `next` Worker's config and the workflow changes, given to the owner as files
+- [x] Tests: the built pages carry the version, `next` builds carry the notice and `noindex`, install lines match the version
+- [x] README and `CLAUDE.md` (the docs workflow paragraph)
 
 ## Acceptance criteria
 

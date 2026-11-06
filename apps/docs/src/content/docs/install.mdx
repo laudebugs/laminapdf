@@ -3,29 +3,29 @@ title: Install
 description: Install Lamina PDF from npm or crates.io, and find every published package.
 ---
 
-Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the alpha when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
+Lamina PDF is published to npm as [`@laminapdf/sdk`](https://www.npmjs.com/package/@laminapdf/sdk) and to crates.io as [`laminapdf`](https://crates.io/crates/laminapdf). Both are alpha releases, so name the version when you install them. A plain `npm install` or `cargo add` picks a `0.0.0` placeholder that only reserves the name.
 
 ## TypeScript: `@laminapdf/sdk`
 
-Install the `alpha` tag:
+Install the version these docs describe:
 
 ```sh
-npm install @laminapdf/sdk@alpha
+npm install @laminapdf/sdk@{{version}}
 ```
 
-pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@alpha`), and Deno takes `npm:@laminapdf/sdk@alpha`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
+The `alpha` tag names the newest alpha, so `npm install @laminapdf/sdk@alpha` gets the same release until the next one comes out. pnpm, Yarn and Bun take the same name (`pnpm add @laminapdf/sdk@{{version}}`), and Deno takes `npm:@laminapdf/sdk@{{version}}`. The package brings [`@laminapdf/wasm`](https://www.npmjs.com/package/@laminapdf/wasm), its WebAssembly modules, as a dependency.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
 
 ## Rust: `laminapdf`
 
-Add the crate at the alpha version:
+Add the crate at the version these docs describe:
 
 ```sh
-cargo add laminapdf@0.2.0-alpha
+cargo add laminapdf@={{version}}
 ```
 
-The command writes `laminapdf = "0.2.0-alpha"` to `Cargo.toml`. That requirement takes the newest 0.2.0 alpha. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
+The command writes `laminapdf = "={{version}}"` to `Cargo.toml`, which keeps your project on this release until you change it: alphas promise nothing to each other (see the [stability policy](/reference/stability/)). The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, add `--no-default-features`.
 
 ## Every published package
 

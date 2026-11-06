@@ -17,6 +17,7 @@
     "./SiteHeader.astro": "./src/SiteHeader.astro",
     "./SiteNav.astro": "./src/SiteNav.astro",
     "./header.css": "./src/header.css",
+    "./version": "./src/version.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {

@@ -95,11 +95,8 @@ describe("the packages", () => {
     expect(() => alphaNote("no note")).toThrow('no "Both are alpha releases" note');
   });
 
-  it("shows the install page's two install lines and the published version", () => {
-    expect(installLines()).toEqual([
-      "npm install @laminapdf/sdk@alpha",
-      expect.stringMatching(/^cargo add laminapdf@/),
-    ]);
+  it("shows the install page's two install lines at the published version", () => {
+    expect(installLines()).toEqual([`npm install @laminapdf/sdk@${VERSION}`, `cargo add laminapdf@=${VERSION}`]);
     expect(VERSION).toBe(JSON.parse(read("packages/wasm/package.json")).version);
   });
 });

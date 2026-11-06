@@ -1,0 +1,19 @@
+---
+// Starlight's `Banner` override (todo P4): on docs that describe unreleased changes (every build but
+// production's, plugins/release.mjs), a notice above each page's content that links to the
+// released docs; then Starlight's own banner, for a page whose front matter sets one.
+import Default from "@astrojs/starlight/components/Banner.astro";
+import { DOCS } from "@laminapdf/site-kit/nav";
+
+const { version, release } = __DOCS_RELEASE__;
+---
+
+{
+  !release && (
+    <p class="docs-unreleased" role="note" data-docs-unreleased data-pagefind-ignore>
+      These docs describe changes that aren’t released yet. For {version}, the newest release, see the{" "}
+      <a href={`${DOCS}/`}>released docs</a>.
+    </p>
+  )
+}
+<Default />
