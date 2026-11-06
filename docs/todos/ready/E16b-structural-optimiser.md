@@ -33,7 +33,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The CLI's `laminapdf optimize --target-size` → [T6b](./T6b-cli-optimize-target-size.md)
 
 **Editor facts**
 

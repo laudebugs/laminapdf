@@ -54,7 +54,7 @@ Developers already script page jobs with pdftk, qpdf and Ghostscript: 433 Hacker
 - **`laminapdf.pages/1` grows; nothing breaks** (ADR 0031 §6: new keys within a version). New keys:
   - `command`: `rotate`, `delete`, `extract`, `reorder`, `insert`, `merge` or `split`;
   - `inputs`: `[{ input, pageCount }]`, every document read, in order;
-  - `outputs`: `[{ output, saveMode, bytes, pageCount, pages: [{ index, number, from: { input, number } }] }]`, one per file written;
+  - `outputs`: `[{ output, saveMode, bytes, pageCount, pages: [{ index, number, from: { input, number } }] }]`, one per file written (a new document's `saveMode` is `fullRewrite`);
   - `removed`: `[{ index, number }]`, the pages `delete` took out;
   - `references`: what E2b's `OpReport` says it retargeted or removed (outline items, links, named destinations, the open action);
   - `merge`: E2d's merge report (renamed fields and destinations, dropped items, conformance claims lost).

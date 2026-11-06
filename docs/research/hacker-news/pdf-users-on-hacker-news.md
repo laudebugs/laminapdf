@@ -351,7 +351,7 @@ Developers already script pdftk, qpdf and Ghostscript (433 comments) and ask for
 
 - **Lamina PDF today:** the `laminapdf` CLI's `info`, `check`, `pages rotate`, `extract` and `explain`; the MCP server, read-only unless started with `--allow-write` (ADR 0031). Merge and split (E2), the optimiser (E16) and batch runs (E14) are planned in the library.
 - **The gap:** none of the planned page and size operations reaches the CLI.
-- **Work:** [T6a](../../todos/ready/T6a-cli-page-commands.md) adds `laminapdf pages` merge, split, delete, extract and reorder; [T6b](../../todos/ready/T6b-cli-optimize-target-size.md) adds `laminapdf optimize --target-size`. MCP tools that fill forms or generate files need an ADR first (an open question in the plan).
+- **Work:** [T6a](../../todos/ready/T6a-cli-page-commands.md) adds `laminapdf pages` merge, split, delete, extract, reorder and insert; [T6b](../../todos/ready/T6b-cli-optimize-target-size.md) adds `laminapdf optimize --target-size`. MCP tools that fill forms or generate files need an ADR first (an open question in the plan).
 
 ## Four things the evidence argues against
 

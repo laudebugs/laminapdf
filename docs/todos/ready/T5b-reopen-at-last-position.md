@@ -81,14 +81,14 @@ SumatraPDF is the most-loved reader of the decade on Hacker News, and its saved 
 - [ ] **The fingerprint** (Vitest, Node): the same bytes give the same value; `fixtures/golden/hello.pdf` and `fixtures/golden/incremental-set-info.pdf` (the same file plus an incremental update that adds an `/ID`) give the same value; `fixtures/golden/full-rewrite-hello.pdf` and two different corpus files give different ones; a file smaller than 64 KiB and one larger both work.
 - [ ] **Reopen** (Playwright, Chromium, Firefox, WebKit, `apps/web/e2e/reading-position.spec.ts`): open a 40-page fixture built in the test with `@laminapdf/sdk`'s `Builder`, go to page 12 at 150 % with a scroll offset, close it, and open the same file again. It shows page 12 with the remembered point within 16 CSS px of the viewport's top, at 150 %. The client's `render-start` events show no render of page 1 before the restore. `nav.back` reads "Back to page 1" and goes there.
 - [ ] **Keyed by content:** a renamed copy of the file restores; a different file with the same name and size doesn't; the file after an incremental save made in the test with `@laminapdf/sdk` (`apply` a `SetInfo`, then `save`) restores; `#page=3` wins over the stored position.
-- [ ] **After a restart:** in Chromium, with the handle's permission kept, reloading the tab reopens the document at its position with no prompt. In Firefox and WebKit, the home screen shows **Continue reading** with the page, and picking the file restores it. A `#url=` document reloaded with its fragment returns to its position.
+- [ ] **After a restart:** with a stored handle whose `queryPermission` answers `granted` (a fake handle in Vitest browser mode, since Playwright can't drive the file picker), start-up reopens the document at its position and never calls `requestPermission`. Without a handle (Firefox and WebKit in Playwright), the home screen shows **Continue reading** with the page, and picking the file restores it. A `#url=` document reloaded with its fragment returns to its position.
 - [ ] **Privacy:** the test reads every value in the `positions` store and finds only `view`, `pageCount` and `readAt` under fingerprint keys. With "Remember where I stopped reading" off, the store is empty and nothing is written. `file.clear-reading-positions` empties it from the settings section and from the palette. The privacy suite (C4c's `privacy.spec.ts`) finds no request carrying the fingerprint, and the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)) stays at 0 while a local file reopens.
 - [ ] **The cap:** writing a 501st entry removes the oldest one (Vitest browser mode, real IndexedDB), and two pages writing at once leave at most 500.
 - [ ] **Speed:** the perf harness's "first page, warm" figure ([C3c](../done/C3c-viewer-perf-harness.md)) with a stored position on page 12 is within 10 % of the figure for a first open (recorded in the PR).
 
 ## Post-merge checks
 
-None.
+- [ ] In Chrome, on the staging deploy: open a local file from the picker, choose "Allow on every visit" when Chrome offers it, read to page 12, close the browser and start it again; the reader reopens the file at page 12 without a prompt (recorded in the done todo).
 
 ## Tests
 

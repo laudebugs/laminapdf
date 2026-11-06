@@ -37,7 +37,7 @@ On Hacker News, the forensics and leak threads (Manafort, the Snowden and Epstei
 **In scope**
 
 - **The command.** `laminapdf reveal <inputs…> [--fail-on CATEGORY,…|all] [--fields a,b] [--include-hidden-text]`, over one input or a batch like `info` and `check`. It reads every object of the latest revision within the `Limits`, as `check` does, so it also finds objects nothing references any more.
-- **Seven categories**, named as `E11d`'s sanitiser categories are:
+- **Seven categories**, which [E11d](./E11d-sanitiser.md)'s `Sanitise { categories }` takes as its own (all but `forms`, whose values [E8g](./E8g-form-data-and-flatten.md) clears or flattens):
 
   | Category | What the report lists | Counts as found when |
   | --- | --- | --- |
@@ -56,7 +56,7 @@ On Hacker News, the forensics and leak threads (Manafort, the Snowden and Epstei
   ```console
   $ laminapdf reveal release.pdf
   release.pdf: history, metadata, hidden-content
-    history         2 revisions; revision 1 holds 12 words the latest doesn't
+    history         2 revisions; the first holds 12 words the latest doesn't
     metadata        Info: Author, Creator, Producer, CreationDate, ModDate, SourceModified; XMP (3.1 KB, 5 namespaces)
     hidden-content  140 covered characters on page 4; layer "Draft notes" off
   ```
@@ -80,25 +80,25 @@ On Hacker News, the forensics and leak threads (Manafort, the Snowden and Epstei
 ## Tasks
 
 - [ ] Claim via the work PR; a fresh worktree off `main`; load `/rust-best-practices`, and `/writing` for the README and the ADR text.
-- [ ] **`laminapdf-cos`.** Keep each section's in-use and free object numbers as `src/reader/xref.rs` reads the chain (sections from object streams and hybrid `/XRefStm` sections count with the section that points to them). Add `Revision` (new: `section`, `end`, `in_use`, `freed`) and `Document::revision_index() -> Result<Vec<Revision>>` in T2b's `src/reader/revisions.rs`, empty for a repaired file. Unit tests over `hello-incremental.pdf`, `signed.pdf`, the linearized fixture and a three-revision file built in the test.
+- [ ] **`laminapdf-cos`.** Keep each section's in-use and free object numbers as `src/reader/xref.rs` reads the chain (hybrid `/XRefStm` sections count with the section that points to them, and object 0, the head of the free list, is never counted as freed). Add `Revision` (new: `section`, `end`, `in_use`, `freed`) and `Document::revision_index() -> Result<Vec<Revision>>` in T2b's `src/reader/revisions.rs`, empty for a repaired file. Unit tests over `hello-incremental.pdf`, `signed.pdf`, the linearized fixture and a three-revision file built in the test.
 - [ ] **`laminapdf-model`.** Add `Info::keys()`. Add `src/disclosure.rs` with `Disclosure` and its item types (names are yours; keep each module under 800 lines, splitting into `disclosure/` if needed). Reuse `ActionKind` for actions, following `/Next` with a visited set. Read JavaScript from `/JS` strings and streams; a stream that fails to decode within `max_stream_decoded` counts its stored length. Read field names through `/Parent` (`a.b.c`), the off layers from `/OCProperties /D /OFF`, and Redact annotations with their pages. Decode strings as text strings (PDFDocEncoding or UTF-16); keep names and numbers as written.
 - [ ] **Façade** (`crates/laminapdf/src/reveal.rs`, new). `Reveal` and its records (plain owned data, counts as `u32`, ADR 0028 F5), built from `revision_index`, T2b's comparison, `disclosure()`, `hidden_text` and `info()`. `found` follows the table. Check the token between categories and between revisions. Point T2b's Redact count at `Disclosure`.
 - [ ] **The command** (`crates/laminapdf-cli/src/commands/reveal.rs`, new). `RevealArgs` (`input`, `fields`, `include_hidden_text`), `RevealReport` and its parts with `JsonSchema`, `RevealReport::SCHEMA = "laminapdf.reveal/1"`, `reveal(args, settings, io)`. Re-export from `commands/mod.rs`.
-- [ ] **The front end.** `Command::Reveal` in `src/main.rs`, with `--fail-on` (a `clap::ValueEnum` list with `all`) beside `Many<RevealArgs>`: the command never sees it, and the front end maps `found` to exit 6. `render::reveal_text`. `ExitCode::Found` in `src/exit.rs`: number 6, the priority in Scope, `meaning` "the file holds something `--fail-on` named"; `ALL` gains it, so `laminapdf help exit-codes` lists it. `BatchSummary` gains `found`, and `exit_code` returns 6 as Scope says.
-- [ ] **Schemas.** Add `("reveal.schema.json", report::<RevealReport>(…))` to `schema::all()`, `"reveal"` to `COMMANDS` and an arm to `command()`, with the `result` and `summary` lines as for `check`. Run `UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas` to write `reveal.schema.json` and the new `summary-line.schema.json`.
-- [ ] **MCP.** In `src/mcp/tools.rs`, add `laminapdf_reveal` with the description "List what a PDF holds beyond its visible pages: earlier revisions, metadata, attachments, scripts and actions, annotations, form values, hidden layers and counts of hidden text." Strip `includeHiddenText` from its input schema as `text_only()` strips `maxChars`, and keep `tools/list` in name order (`laminapdf_reveal` after `laminapdf_pages_rotate` when that is listed). In `src/mcp/mod.rs`, add a `run_tool` arm before the write tool's catch-all that forces `include_hidden_text` off.
+- [ ] **The front end.** `Command::Reveal` in `src/main.rs`, with `--fail-on` (a `clap::ValueEnum` list with `all`) beside `Many<RevealArgs>`: the command never sees it, and the front end maps `found` to exit 6. `render::reveal_text`, and `render::keep_fields` for `--fields` as `info` applies it. `ExitCode::Found` in `src/exit.rs`: number 6, the priority in Scope, `meaning` "the file holds something `--fail-on` named"; `ALL` gains it, so `laminapdf help exit-codes` lists it. `BatchSummary` gains `found`, and `exit_code` returns 6 as Scope says.
+- [ ] **Schemas.** Add `("reveal.schema.json", report::<RevealReport>(…))` to `schema::all()`, `"reveal"` to `COMMANDS` and an arm to `command()`, with the `result` and `summary` lines as for `check`. Run `UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas` to write `reveal.schema.json` and the updated `summary-line.schema.json`.
+- [ ] **MCP.** In `src/mcp/tools.rs`, add `laminapdf_reveal` with the description "List what a PDF holds beyond its visible pages: earlier revisions, metadata, attachments, scripts and actions, annotations, form values, hidden layers and counts of hidden text." Give the tool its own argument type, `RevealToolArgs` (`input` and `fields`, with `deny_unknown_fields`), for its input schema and for parsing, and keep `tools/list` in name order (`laminapdf_reveal` after `laminapdf_pages_rotate` when that is listed). In `src/mcp/mod.rs`, add a `run_tool` arm before the write tool's catch-all that builds `RevealArgs` from it with `include_hidden_text` off.
 - [ ] **ADR 0031.** Add `laminapdf.reveal/1` to §6's list, and this amendment after the batch one:
-  > **Amendment (T2c): `reveal` and exit code 6.** `laminapdf reveal` lists what a file holds beyond its visible pages, as `laminapdf.reveal/1`, and `laminapdf mcp` serves it as the read-only `laminapdf_reveal`. With `--fail-on CATEGORY,…` (or `all`), it exits `6` when the file holds anything in those categories, and prints its report as usual. `6` ranks between `1` and `3` (**2 > 5 > 4 > 1 > 6 > 3 > 0**), and only `--fail-on` returns it, so no other command's exit codes change. A batch exits 6 when some input holds what `--fail-on` names and none failed, and its summary line counts those inputs as `found`. Exit 3 wasn't reused: it also means "repaired", and `--warnings-ok`, which many wrappers pass, turns it into 0.
-- [ ] **E11d's categories.** If [E11d](./E11d-sanitiser.md) hasn't taken these category names yet, add them to its scope in this PR (the edit is listed in the plan's T2 section).
+  > **Amendment (T2c, <date of merge>): `reveal` and exit code 6.** `laminapdf reveal` lists what a file holds beyond its visible pages, as `laminapdf.reveal/1`, and `laminapdf mcp` serves it as the read-only `laminapdf_reveal`. With `--fail-on CATEGORY,…` (or `all`), it exits `6` when the file holds anything in those categories, and prints its report as usual. `6` ranks between `1` and `3` (**2 > 5 > 4 > 1 > 6 > 3 > 0**), and only `--fail-on` returns it, so no other command's exit codes change. A batch exits 6 when some input holds what `--fail-on` names and none failed, and its summary line counts those inputs as `found`. Exit 3 wasn't reused: it also means "repaired", and `--warnings-ok`, which many wrappers pass, turns it into 0.
+- [ ] **E11d's categories.** Check that [E11d](./E11d-sanitiser.md)'s scope uses these category names, so its sanitiser removes what `reveal` lists; if it doesn't yet, edit it in this PR.
 - [ ] **Capability matrix.** Tag the revision-index test `/// capability: M.12 core read` and regenerate `docs/capabilities/README.md` with `cargo xtask capabilities`.
 - [ ] **Docs.** `crates/laminapdf-cli/README.md`: `reveal` in Commands with the categories, exit code 6 in Exit codes, a CI example (`laminapdf reveal dist/*.pdf --fail-on history,hidden-content,active-content,attachments`) and the MCP tool. CLAUDE.md: the CLI paragraph (commands, exit codes 0–6, the MCP tools), the façade's `reveal`, `laminapdf-model`'s `disclosure`.
 
 ## Acceptance criteria
 
 - [ ] A fixture built in the test has two revisions (the second removes a sentence), an Info dictionary with a custom key, an XMP packet, an attached file, a JavaScript `/OpenAction`, a `Launch` link action, a `Text` annotation with a comment, a filled text field, a layer off by default and a covered word. `laminapdf reveal --json` lists each in its category, and `found` holds all seven. The report validates against the committed `reveal.schema.json`.
-- [ ] `fixtures/corpus/hello.pdf` reports no `history`, `attachments`, `active-content`, `annotations`, `forms` or `hidden-content` finding, and `--fail-on history,attachments,active-content,annotations,forms,hidden-content` exits 0.
+- [ ] `fixtures/corpus/hello.pdf` (one revision, no Info dictionary) reports an empty `found`, and `--fail-on all` exits 0.
 - [ ] `--fail-on hidden-content` exits 6 on the covered fixture and prints the report; `--fail-on all` exits 6 on the full fixture; `--fail-on bogus` exits 2 before reading. A batch of `hello.pdf` and the covered fixture exits 6, with `found: 1` in its summary line; adding an unreadable input makes it exit 1.
-- [ ] `fixtures/corpus/hello-incremental.pdf` lists two revisions; the second changes object 5 and page 1 and holds 1 word fewer than the first. `fixtures/revisions/hello-linearized.pdf` lists one revision and `linearized: true`. A file with an object nothing references counts it.
+- [ ] `fixtures/corpus/hello-incremental.pdf` lists two revisions: the second changes object 5, page 1's content stream, and nothing else; the first holds 1 word the latest doesn't. `fixtures/revisions/hello-linearized.pdf` lists one revision and `linearized: true`. A file with an object nothing references counts it.
 - [ ] Without `--include-hidden-text`, the covered word appears nowhere in the output; with it, it appears once, under `hiddenContent`. `crates/laminapdf-cli/tests/injection.rs` shows that Info values, comments and field values from its injection fixture appear only in data fields, never in a message, hint or tool description.
 - [ ] `laminapdf mcp` lists `laminapdf_reveal` with `readOnlyHint: true`, in name order, with and without `--allow-write`. Its input schema has no `failOn` or `includeHiddenText`, and a call that passes `includeHiddenText` is a tool error. Its `structuredContent` validates against its `outputSchema`, and `tools/list` is byte-identical across two runs.
 - [ ] `laminapdf help exit-codes` lists 6; `crates/laminapdf-cli/tests/exit_codes.rs` covers `ExitCode::ALL` and the new priority; `laminapdf schema reveal` validates against the 2020-12 meta-schema (`tests/schema.rs`).
@@ -119,7 +119,7 @@ None.
 
 - [ ] ADR 0031 (the amendment and §6)
 - [ ] `crates/laminapdf-cli/README.md`, CLAUDE.md, `docs/capabilities/README.md` (regenerated)
-- [ ] [E11d](./E11d-sanitiser.md)'s categories, if the plan's edit hasn't landed
+- [ ] [E11d](./E11d-sanitiser.md)'s scope, if it doesn't use these category names yet
 - [ ] [Trust and proof §T2](../../plans/trust-and-proof.md#t2-find-what-files-hide): tick T2c
 
 ## Risks and open questions
@@ -129,7 +129,7 @@ None.
 - **One scan, several later models.** `Disclosure` reads attachments, actions, annotations, fields and layers before their typed models exist (E3f, E4b, E8c, E17c). When each lands, `Disclosure` reads through it and the report stays the same; the risk is two readers of one structure in the meantime, which ADR 0004's two-parsers rule warns about for rendering. Keep `Disclosure`'s readers small and tested on the same fixtures those todos will use.
 - **Document strings in agent output.** The report puts Info values, comments and field values in front of an agent. ADR 0031 §9 allows document text in data fields only, and the injection test holds that; hidden text never reaches MCP.
 - **Big files.** `reveal` reads every object, every page's text and every earlier revision. The token, the `Limits` and the MCP server's `--timeout` bound it; `check` already reads every object.
-- **Size.** If the PR passes 800 lines, split it as the Size field says; the plan's T2 section names the follow-up.
+- **Size.** If the PR passes 800 lines, split it as the Size field says, and add the second todo to the plan's T2 section.
 
 ## Definition of done
 

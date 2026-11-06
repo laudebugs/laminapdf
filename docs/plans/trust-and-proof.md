@@ -101,12 +101,12 @@ The library plan lists flowing layout as a non-goal for now and asks, in its ope
 
 ### T5. Long reading
 
-Readers of papers, manuals and textbooks want to see where a link or citation goes before they jump, and to come back to a document where they left it. Both build on C6b's links and history.
+Readers of papers, manuals and textbooks want to see where a link or citation goes before they jump, and to come back to a document where they left it. Both build on C6b's links and history; T5a also needs U3a's touch gestures, and T5b C7b's local storage and settings.
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T5a](../todos/ready/T5a-link-previews.md) | Preview internal links and citations before jumping | M | C6b |
-| [T5b](../todos/ready/T5b-reopen-at-last-position.md) | Reopen each document where the reader left it | M | C6b |
+| [T5a](../todos/ready/T5a-link-previews.md) | Preview internal links and citations before jumping | L | C6b, U3a |
+| [T5b](../todos/ready/T5b-reopen-at-last-position.md) | Reopen each document where the reader left it | L | C6b, C7b |
 
 ### T6. Chained jobs in the CLI
 
@@ -114,8 +114,8 @@ Merge, split and the optimiser are planned in the library (E2, E16) but not in t
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T6a](../todos/ready/T6a-cli-page-commands.md) | `laminapdf pages` merge, split, delete, extract and reorder | M | E2d |
-| [T6b](../todos/ready/T6b-cli-optimize-target-size.md) | `laminapdf optimize` with a target size | M | E16c |
+| [T6a](../todos/ready/T6a-cli-page-commands.md) | `laminapdf pages` merge, split, delete, extract, reorder and insert | L | L4e, E2d |
+| [T6b](../todos/ready/T6b-cli-optimize-target-size.md) | `laminapdf optimize` with a target size | M | E16c, T6a |
 
 ## 6. Sequence
 
@@ -124,11 +124,11 @@ Merge, split and the optimiser are planned in the library (E2, E16) but not in t
  L3g ─► T2a ─► T2b ─► T2c
  T3a    T3b    T3c                                             (start now)
  T4a ─► T4b ─► T4c ─► T4d ─► T4e                               (T4a starts now)
- C6b ─► T5a;  C6b ─► T5b
- E2d ─► T6a;  E16c ─► T6b
+ C6b, U3a ─► T5a;  C6b, C7b ─► T5b
+ L4e, E2d ─► T6a ─► T6b ◄─ E16c
 ```
 
-Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top finding. T1b waits on T1a's figures and on the owner's approval of its copy. T2 waits on L3g, which edits the same extraction flags. T5 and T6 follow the reader and editor rounds they extend.
+Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top finding. T1b waits on T1a's figures and on the owner's approval of its copy. T2 waits on L3g, which edits the same extraction flags. T5 and T6 follow the reader, CLI and editor rounds they extend.
 
 ## 7. Changes to existing todos and plans
 

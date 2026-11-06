@@ -235,7 +235,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Artboards.** `R07-link-preview.dc.html`, `R07-external-link.dc.html`.
 
-**Todos.** [C6b](../../todos/ready/C6b-links-and-history.md).
+**Todos.** [C6b](../../todos/ready/C6b-links-and-history.md) (links, the external-link dialog, history); [T5a](../../todos/ready/T5a-link-previews.md) (the link preview).
 
 ## R08 Document properties
 
