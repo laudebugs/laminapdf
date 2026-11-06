@@ -252,3 +252,45 @@ fn a_page_asked_for_twice_is_extracted_once() {
     let out = run(&doc, &ExtractOptions::new().with_pages(vec![0, 0]));
     assert_eq!((out.pages.len(), texts(&out)), (1, vec!["Only."]));
 }
+
+#[test]
+fn clipped_and_white_on_white_text_is_dropped_and_white_on_dark_is_kept() {
+    use laminapdf_build::{Color, FillRule};
+    use laminapdf_model::RectPt;
+    let mut b = Builder::new(BuildOptions::default());
+    let font = b.standard_font(Standard14::Helvetica).unwrap();
+    let mut page = b.page(PageSize::A4);
+    let s = page.surface();
+    let at = PointPt::from_points;
+    s.text("Visible words here.", &font, Pt::new(12.0), at(72.0, 100.0))
+        .unwrap();
+    s.text("WHITEONWHITE", &font, Pt::new(12.0), at(72.0, 140.0))
+        .unwrap()
+        .fill(Color::gray(1.0));
+    // A dark box, then white text on it: readable.
+    s.fill_color(Color::gray(0.1))
+        .path(|p| {
+            p.rect(RectPt::from_points(60.0, 160.0, 300.0, 30.0));
+        })
+        .fill(FillRule::NonZero);
+    s.text("White on dark.", &font, Pt::new(12.0), at(72.0, 180.0))
+        .unwrap()
+        .fill(Color::gray(1.0));
+    // Text drawn outside a clip that leaves only the top-left corner.
+    s.save()
+        .path(|p| {
+            p.rect(RectPt::from_points(0.0, 0.0, 40.0, 40.0));
+        })
+        .clip(FillRule::NonZero);
+    s.text("CLIPPEDAWAY", &font, Pt::new(12.0), at(72.0, 260.0)).unwrap();
+    s.restore();
+    page.finish().unwrap();
+    let mut doc = b.finish().unwrap();
+    let mut bytes = Vec::new();
+    doc.save(&mut bytes, &SaveOptions::new()).unwrap();
+    let doc = Document::open(bytes, OpenOptions::default()).unwrap();
+    let out = run(&doc, &ExtractOptions::new());
+    assert_eq!(texts(&out), ["Visible words here.", "White on dark."]);
+    let reasons: Vec<(DropReason, usize)> = out.dropped.iter().map(|d| (d.reason, d.chars)).collect();
+    assert_eq!(reasons, [(DropReason::LowContrast, 12), (DropReason::Clipped, 11)]);
+}

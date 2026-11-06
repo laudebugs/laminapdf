@@ -3,6 +3,7 @@
 //!
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 
+use laminapdf_content::{ImageDraw, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor};
 use laminapdf_model::Document;
 use laminapdf_syntax::{Budget, CancelToken, Phase, Step};
 use laminapdf_text::TextExtractor;
@@ -10,8 +11,10 @@ use laminapdf_text::TextExtractor;
 use crate::error::ExtractError;
 use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
+use crate::page::Painting;
 use crate::page::extract_page;
 use crate::tables::{Collector, TableMode};
+use crate::visibility::Backdrops;
 use crate::{furniture, headings, lists};
 
 /// An extraction in progress. Step it with the document it was made from until it returns
@@ -84,6 +87,36 @@ pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -
     }
 }
 
+/// A page's painting, seen once: the table rules (when tables are looked for) and the backdrops.
+struct Painted<'f> {
+    rules: Option<Collector<'f>>,
+    backdrops: Backdrops,
+}
+
+impl Visitor for Painted<'_> {
+    fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
+        if let Some(rules) = &mut self.rules {
+            rules.path_segment(segment, ctm);
+        }
+        self.backdrops.path_segment(segment, ctm);
+    }
+
+    fn paint_path(&mut self, paint: &PathPaint<'_>) {
+        if let Some(rules) = &mut self.rules {
+            rules.paint_path(paint);
+        }
+        self.backdrops.paint_path(paint);
+    }
+
+    fn image(&mut self, image: &ImageDraw<'_>) {
+        self.backdrops.image(image);
+    }
+
+    fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        self.backdrops.paint_shading(shading);
+    }
+}
+
 /// The rules that need every page: running headers and footers leave the blocks, then
 /// headings (whose body size is the document's) and list items are marked, and each page's
 /// blocks are numbered again.
@@ -139,16 +172,27 @@ impl ExtractJob {
             let page = pages
                 .get(index)
                 .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
-            // The table rules are collected in the same walk of the content as the text.
-            let (text, edges) = if self.options.tables == TableMode::Off {
-                (self.extractor.page(doc, &page)?, None)
-            } else {
-                let frame = page.frame()?;
-                let mut rules = Collector::new(&frame);
-                let text = self.extractor.page_with(doc, &page, &mut rules)?;
-                (text, Some(rules.finish()))
+            // The table rules and what is painted under the text are collected in the same walk
+            // of the content as the text.
+            let frame = page.frame()?;
+            let mut painted = Painted {
+                rules: (self.options.tables != TableMode::Off).then(|| Collector::new(&frame)),
+                backdrops: Backdrops::new(&frame),
             };
-            let out = extract_page(doc, &page, index, &text, edges.as_ref(), &self.options, &self.cancel)?;
+            let text = self.extractor.page_with(doc, &page, &mut painted)?;
+            let edges = painted.rules.map(Collector::finish);
+            let out = extract_page(
+                doc,
+                &page,
+                index,
+                &text,
+                &Painting {
+                    edges: edges.as_ref(),
+                    backdrops: &painted.backdrops,
+                },
+                &self.options,
+                &self.cancel,
+            )?;
             self.out.pages.push(out.info);
             self.out.blocks.extend(out.blocks);
             self.out.dropped.extend(out.dropped);

@@ -13,7 +13,9 @@ pub use runs::{PageTextRun, is_right_to_left};
 
 use std::sync::Arc;
 
-use laminapdf_content::{MarkedContent, Matrix, PathPaint, PathSegment, TextAdvance, TextItem, TextShow, Visitor};
+use laminapdf_content::{
+    ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, TextAdvance, TextItem, TextShow, Visitor,
+};
 use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
 use laminapdf_model::{PageFrame, PointPt, RectPt, UserSpacePoint};
 use laminapdf_syntax::{ObjRef, Object};
@@ -193,10 +195,11 @@ impl TextExtractor {
         self.read(doc, page, None)
     }
 
-    /// [`TextExtractor::page`], also passing the page's path events
-    /// ([`Visitor::path_segment`], [`Visitor::paint_path`]) to `paths` in the same walk of the
-    /// content, so a caller that needs the page's lines (table rules) doesn't interpret the
-    /// page twice.
+    /// [`TextExtractor::page`], also passing the page's painting events
+    /// ([`Visitor::path_segment`], [`Visitor::paint_path`], [`Visitor::image`],
+    /// [`Visitor::paint_shading`]) to `paths` in the same walk of the content, so a caller that
+    /// needs the page's lines (table rules) or what is painted under its text doesn't interpret
+    /// the page twice.
     ///
     /// # Errors
     /// As [`TextExtractor::page`].
@@ -432,6 +435,18 @@ impl Visitor for Collector<'_, '_> {
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
         if let Some(paths) = self.paths.as_deref_mut() {
             paths.paint_path(paint);
+        }
+    }
+
+    fn image(&mut self, image: &ImageDraw<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.image(image);
+        }
+    }
+
+    fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.paint_shading(shading);
         }
     }
 

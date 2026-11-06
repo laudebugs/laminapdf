@@ -14,7 +14,7 @@ use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, Extracted
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
-use crate::visibility::{flags, normalised};
+use crate::visibility::{Backdrops, Look, flags, normalised};
 use crate::xycut;
 
 /// What one page gave.
@@ -38,7 +38,15 @@ struct Runs {
     dropped: Vec<Dropped>,
 }
 
-fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
+/// What a page painted besides its text, seen in the same walk of its content.
+pub(crate) struct Painting<'a> {
+    /// The table rules, when tables are looked for.
+    pub(crate) edges: Option<&'a Edges>,
+    /// What text can stand on, for the low-contrast flag.
+    pub(crate) backdrops: &'a Backdrops,
+}
+
+fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> Runs {
     let frame = &text.frame;
     let (width, height, unit) = (frame.width(), frame.height(), frame.user_unit());
     let mut out = Runs {
@@ -52,7 +60,7 @@ fn runs(index: usize, text: &PageText, options: &ExtractOptions) -> Runs {
             .glyphs
             .get(run.glyphs.start)
             .map_or(run.bounds.y1, |g| frame.to_page(g.origin).y);
-        let span_flags = flags(run.invisible, &run.bounds, size, width, height);
+        let span_flags = flags(&Look::of(run), &run.bounds, size, width, height, backdrops);
         let span = Span {
             text: run.text.clone(),
             bbox: run.bounds,
@@ -241,7 +249,7 @@ pub(crate) fn extract_page(
     page: &Page<'_>,
     index: usize,
     text: &PageText,
-    edges: Option<&Edges>,
+    painting: &Painting<'_>,
     options: &ExtractOptions,
     cancel: &CancelToken,
 ) -> Result<PageOut, ExtractError> {
@@ -258,7 +266,7 @@ pub(crate) fn extract_page(
         mut pieces,
         mut spans,
         dropped,
-    } = runs(index, text, options);
+    } = runs(index, text, painting.backdrops, options);
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
     // Before the grouping and the cuts, whose work grows faster than the runs do.
     let limit = options.limits.max_blocks_per_page;
@@ -271,7 +279,7 @@ pub(crate) fn extract_page(
         pieces.truncate(kept);
         spans.truncate(kept);
     }
-    let tables = find_tables(doc, index, edges, &pieces, options)?;
+    let tables = find_tables(doc, index, painting.edges, &pieces, options)?;
     if tables.iter().any(|t| t.ambiguous) {
         doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
     }
