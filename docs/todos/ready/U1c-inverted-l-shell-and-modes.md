@@ -22,7 +22,7 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R16 Focus mode](../../design/paper/reader-b.md#r16-focus-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) and ADR 0024.
 - [Research: inverted-L layout](../../research/product/pdf-app-product-and-ux.md#desktop-and-web-an-inverted-l-layout-with-contextual-disclosure) — Linear's inverted L, Figma's reattached panels and Minimize UI, Microsoft's stability warning.
-- [C4e](./C4e-reader-chrome.md) — `ReaderShell` and its slots; [U1b](./U1b-command-registry-and-palette.md) — the registry the rail, inspector and focus-mode toggles are commands in.
+- [C4e](../ongoing/C4e-reader-chrome.md) — `ReaderShell` and its slots; [U1b](./U1b-command-registry-and-palette.md) — the registry the rail, inspector and focus-mode toggles are commands in.
 
 ## Scope
 

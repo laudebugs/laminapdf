@@ -15,7 +15,7 @@
 
 ## Goal
 
-Finish the reader chrome on [C4e](./C4e-reader-chrome.md)'s frame: the home screen's drop zone (R01), the repair details panel and the failure page (R04) with a plain sentence for every repair and error code, the loading state (R02), the `#debug` menu, and a demo page that composes the whole chrome over a fake viewer, built with the React Compiler and checked with axe.
+Finish the reader chrome on [C4e](../ongoing/C4e-reader-chrome.md)'s frame: the home screen's drop zone (R01), the repair details panel and the failure page (R04) with a plain sentence for every repair and error code, the loading state (R02), the `#debug` menu, and a demo page that composes the whole chrome over a fake viewer, built with the React Compiler and checked with axe.
 
 ## Context
 
