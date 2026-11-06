@@ -11,7 +11,7 @@
 | Branch | `feat/c4f-reader-home-repairs-and-demo` |
 | PR title | `feat(ui): add the drop zone, the repair and failure ui, and the reader demo` |
 | Size | L (≈ 900–1,200 lines of components, the demo page and tests; split from C4e on 2026-11-05) |
-| PR | — |
+| PR | [#270](https://github.com/laudebugs/laminapdf/pull/270) |
 
 ## Goal
 
