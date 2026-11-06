@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `W1f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [website §4](../../plans/website.md#4-the-website) |
 | Round / milestone | Round W (website) |
-| Depends on | [W1c](../done/W1c-home-page.md) |
+| Depends on | [W1c](./W1c-home-page.md) |
 | Blocks | None |
 | ADRs | Follows [0011 §4](../../decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-) (the website's `style-src 'self'`) and [0024 §7](../../decisions/0024-app-shell-ux.md) (`--paper-` tokens) |
 | Branch | `feat/w1f-code-colouring` |
@@ -39,15 +39,15 @@ Colour the code on the home page. The code panel's TypeScript, Rust and command-
 
 ## Tasks
 
-- [ ] Highlight the panes with Shiki and `transformerStyleToClass`
-- [ ] The colours from tokens, with contrast pairs
-- [ ] Tests and the site README
+- [x] Highlight the panes with Shiki, classified by TextMate scope (`transformerStyleToClass` wasn't needed: the panel renders its own classed spans)
+- [x] The colours from tokens, with contrast pairs
+- [x] Tests and the site README
 
 ## Acceptance criteria
 
-- [ ] Every pane's code is coloured in light and dark themes, with no inline style and no script added
-- [ ] Every token colour meets 4.5:1 against the panel's background in both themes
-- [ ] The website's build and checks pass
+- [x] Every pane's code is coloured in light and dark themes, with no inline style and no script added
+- [x] Every token colour meets 4.5:1 against the panel's background in both themes
+- [x] The website's build and checks pass
 
 ## Post-merge checks
 
@@ -59,7 +59,7 @@ Colour the code on the home page. The code panel's TypeScript, Rust and command-
 
 ## Docs to update
 
-- [ ] `apps/site/README.md` (the home page), [website §8](../../plans/website.md#8-to-dos)
+- [x] `apps/site/README.md` (the home page), [website §8](../../plans/website.md#8-to-dos)
 
 ## Risks and open questions
 
@@ -67,8 +67,8 @@ Colour the code on the home page. The code panel's TypeScript, Rust and command-
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

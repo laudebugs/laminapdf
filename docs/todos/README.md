@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 183 ready · 125 done** (309 total).
+**0 ongoing · 183 ready · 126 done** (309 total).
 
 ## Can start now
 
@@ -32,7 +32,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [W1f](ongoing/W1f-home-page-code-colouring.md): Code colouring on the home page
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -139,7 +139,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | W1c | [The home page for now: what Lamina PDF is, the roadmap and what's coming next](done/W1c-home-page.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md), [W1e](done/W1e-progress-snapshot.md) |
 | W1d | [One header for the website and the docs site](done/W1d-one-site-header.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md) |
 | W1e | [The progress snapshot: `cargo xtask progress` writes the home page's roadmap data](done/W1e-progress-snapshot.md) | done | [W1b](done/W1b-site-scaffold-and-deploys.md) |
-| W1f | [Code colouring on the home page](ongoing/W1f-home-page-code-colouring.md) | ongoing | [W1c](done/W1c-home-page.md) |
+| W1f | [Code colouring on the home page](done/W1f-home-page-code-colouring.md) | done | [W1c](done/W1c-home-page.md) |
 
 ## Desktop reader — Round D
 
