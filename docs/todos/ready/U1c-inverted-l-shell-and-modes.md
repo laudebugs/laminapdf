@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4e](./C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U1b](./U1b-command-registry-and-palette.md) |
+| Depends on | [C4e](../ongoing/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U1b](./U1b-command-registry-and-palette.md) |
 | ADRs | Implements 0024 (layout and modes); follows 0009, 0010 |
 | Branch | `feat/u1c-inverted-l-shell` |
 | PR title | `feat(ui): add the left rail, inspector, mode switcher and focus mode` |
