@@ -503,8 +503,8 @@ describe("OpenDropZone", () => {
   it("covers the window while a file is dragged over it, and opens a dropped PDF", async () => {
     const { opened } = home();
     const drop = dropFiles(pdf);
-    await frame();
-    expect(document.querySelector(".paper-open-overlay")?.textContent).toBe("Drop to open the PDF");
+    // Polled: on a busy runner Firefox can take more than a frame to show the overlay.
+    await expect.poll(() => document.querySelector(".paper-open-overlay")?.textContent).toBe("Drop to open the PDF");
     drop();
     await expect.poll(() => opened).toEqual(["Q3-board-report.pdf"]);
     expect(document.querySelector(".paper-open-overlay")).toBeNull();
