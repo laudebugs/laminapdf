@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](./Q2a-maintainability-checks-rust.md) |
-| Blocks | [Q2r](./Q2r-split-surface-modules.md) |
 | ADRs | None |
 | Branch | `refactor/q2i-one-lexer-one-png-filter` |
 | PR title | `refactor(text,build): CMap parsing on laminapdf-syntax's lexer; PNG unfiltering from laminapdf-syntax` |

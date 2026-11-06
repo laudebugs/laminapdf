@@ -4,7 +4,7 @@
 - **Date:** 2026-11-05
 - **Asked for by:** the project owner (2026-11-05): "versioning for docs, so that each docs deployment has a matching version", "publish the packages automatically each time there's a change, so that users can match docs versions with the package versions, instead of making package deployments manual". Decided the same day: a daily release after the nightly passes; npm publishing without the owner's approval step, from a GitHub-hosted runner; a GitHub App for the release bot, which the owner creates; unreleased docs at `next.docs.laminapdf.com`.
 - **Changes:** [ADR 0017 §5–§7](../decisions/0017-versioning-and-release.md#5-tags) (who tags, the release lane's nightly run, npm publishing, the docs), [ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology) (the docs hosts) and [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes) (the Release row)
-- **Builds on:** the release lane and its publish jobs ([P1](../todos/done/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/done/P2-first-registry-prerelease.md)), the registry checks ([P3](../todos/ready/P3-registry-checks.md)) and the docs site's deploys (`.github/workflows/docs.yml`)
+- **Builds on:** the release lane and its publish jobs ([P1](../todos/done/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/done/P2-first-registry-prerelease.md)), the registry checks ([P3](../todos/done/P3-registry-checks.md)) and the docs site's deploys (`.github/workflows/docs.yml`)
 - **Todos:** [§6](#6-todos)
 
 ## 1. Goal

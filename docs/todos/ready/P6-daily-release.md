@@ -7,7 +7,6 @@
 | Plan | [releases §3](../../plans/releases.md#3-the-daily-release) |
 | Round / milestone | Publishing |
 | Depends on | [P4](./P4-docs-match-the-release.md), [P5](./P5-npm-trusted-publishing-and-version-only-releases.md) |
-| Blocks | None |
 | ADRs | Implements [0017 §5](../../decisions/0017-versioning-and-release.md#5-tags) (amended 2026-11-05) |
 | Branch | `build/p6-daily-release` |
 | PR title | `build: release once a day after the nightly passes` |

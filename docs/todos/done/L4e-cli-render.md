@@ -7,7 +7,6 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4b](./L4b-cli-batch-render-schema.md), [C2b](./C2b-lamina-render-crate.md) |
-| Blocks | None |
 | ADRs | Follows 0031 (its batch amendment, from [L4b](../done/L4b-cli-batch-render-schema.md)), [0004](../../decisions/0004-render-backend.md) (backends), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
 | Branch | `feat/l4e-cli-render` |
 | PR title | `feat(cli): render pages to PNG, output templates, MCP tools for render and extraction` |

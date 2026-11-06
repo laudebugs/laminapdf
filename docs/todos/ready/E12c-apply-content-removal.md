@@ -7,7 +7,6 @@
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E7c](./E7c-content-ir.md), [E12b](./E12b-mark-and-review.md) |
-| Blocks | [E12d](./E12d-scrub-and-rewrite.md) |
 | ADRs | Uses ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e12c-apply-content-removal` |
 | PR title | `feat(redact): remove content under redaction areas` |

@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2c](./Q2c-test-fixtures-crate.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2d-one-serialiser` |
 | PR title | `refactor(save): build the test Writer on the save writers' helpers and take it out of the public API` |

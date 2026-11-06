@@ -18,6 +18,8 @@ const CARGO_DENY_VERSION: &str = "0.20.2";
 const CARGO_NEXTEST_VERSION: &str = "0.9.150";
 /// cargo-cyclonedx release (`cargo xtask sbom`, the release lane; Apache-2.0).
 const CARGO_CYCLONEDX_VERSION: &str = "0.5.9";
+/// cargo-semver-checks release (`cargo xtask semver`, the fast lane; Apache-2.0 OR MIT).
+const CARGO_SEMVER_CHECKS_VERSION: &str = "0.51.0";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// qpdf release for the nightly differential (`cargo xtask differential --live`; the nightly
@@ -173,6 +175,16 @@ pub(crate) fn cargo_cyclonedx() -> Tool {
     }
 }
 
+pub(crate) fn cargo_semver_checks() -> Tool {
+    Tool {
+        name: "cargo-semver-checks",
+        version_command: &["cargo", "semver-checks", "--version"],
+        pin: Pin::Exact(CARGO_SEMVER_CHECKS_VERSION.to_owned()),
+        fix: format!("cargo install cargo-semver-checks --locked --version {CARGO_SEMVER_CHECKS_VERSION}"),
+        optional_for: Some("cargo xtask semver (the published crates' API)"),
+    }
+}
+
 pub(crate) fn cargo_fuzz() -> Tool {
     Tool {
         name: "cargo-fuzz",
@@ -226,6 +238,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_deny(),
         cargo_nextest(),
         cargo_cyclonedx(),
+        cargo_semver_checks(),
         cargo_fuzz(),
         qpdf(),
         pdftotext(),

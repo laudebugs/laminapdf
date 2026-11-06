@@ -7,7 +7,6 @@
 | Plan | [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8f](./E8f-declarative-behaviour.md), [E9b](./E9b-field-creation-ops.md) |
-| Blocks | [E9d](./E9d-automatic-field-detection.md), [E17b](./E17b-action-editor.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e9c-form-design-mode` |
 | PR title | `feat(ui): form design mode` |

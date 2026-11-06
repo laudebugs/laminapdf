@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1e](./Q1e-quick-start-apps.md), [Q1f](./Q1f-examples-readable.md), [Q1g](./Q1g-worker-examples.md) |
 | ADRs | None |
 | Branch | `feat/q1c-examples-checks` |
 | PR title | `feat(xtask): docs-snippets, the examples Biome override and clippy-examples` |

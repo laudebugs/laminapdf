@@ -7,7 +7,6 @@
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6e](./E6e-content-tools-ui.md), [E7c](./E7c-content-ir.md) |
-| Blocks | [E7h](./E7h-vector-clipping-masks.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7d-select-transform-existing` |
 | PR title | `feat(content): transform, delete, replace and reorder existing objects` |

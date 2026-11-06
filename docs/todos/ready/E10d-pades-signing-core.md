@@ -7,7 +7,6 @@
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E9b](./E9b-field-creation-ops.md), [E10b](./E10b-signatures-feature-plan.md) |
-| Blocks | [E10e](./E10e-timestamps-and-tsa-proxy.md), [E10f](./E10f-certification-and-locking.md), [E10g](./E10g-signature-validation.md), [E10i](./E10i-platform-signers.md), [E12d](./E12d-scrub-and-rewrite.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | ADRs | Implements ADR 0020; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10d-pades-signing-core` |
 | PR title | `feat(sign): PAdES B-B signing with prepare/inject API` |

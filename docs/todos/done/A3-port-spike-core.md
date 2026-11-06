@@ -7,7 +7,6 @@
 | Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
 | Round / milestone | Round A (foundations) — M0 |
 | Depends on | [A2](./A2-monorepo-skeleton.md) |
-| Blocks | [B1a](./B1a-round-b-adrs.md), [B1b](./B1b-krilla-fit-spike.md) |
 | ADRs | Implements [0001](../../decisions/0001-core-language-and-licence.md) (determinism, bytes in/out); its tolerance behaviour was later written down as [0003](../../decisions/0003-reader-tolerance-and-limits.md) |
 | Branch | `feat/port-spike-core` |
 | PR title | `feat(core): port the spike reader/writer into lamina-syntax and lamina-cos` |

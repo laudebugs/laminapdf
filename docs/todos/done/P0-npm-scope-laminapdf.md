@@ -7,7 +7,6 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [§8 Q3](../../plans/architecture.md#8-open-questions-for-the-team) |
 | Round / milestone | Publishing (deferred) |
 | Depends on | None |
-| Blocks | [P0b](./P0b-crate-names-laminapdf.md), [P1](./P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Amends [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (the `packages/` scope) |
 | Branch | `refactor/npm-scope-laminapdf` |
 | PR title | `refactor: publish the npm packages under @laminapdf` |

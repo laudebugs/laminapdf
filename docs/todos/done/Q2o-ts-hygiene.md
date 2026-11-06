@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2u](./Q2u-ts-dependency-tools.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2o-ts-hygiene` |
 | PR title | `fix(viewer,sdk): no test hooks in shipped code; shared helpers; a smaller viewer surface` |

@@ -35,6 +35,7 @@ mod render_diff;
 mod reports;
 mod roundtrip;
 mod runner;
+mod semver;
 mod todos;
 mod tracked;
 mod ts_structure;
@@ -126,8 +127,9 @@ tasks:
                     check every relative link and #anchor in the tracked Markdown files;
                     --external checks the http(s) URLs over the network instead (nightly;
                     allowlist in .config/link-check.toml, report in target/nightly/links/)
-  todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
-                    field from the Depends on links; --check only verifies
+  todos [--check]   check the todo files, point each Depends on link at its todo's folder, print
+                    the todos that can start now and write the whole board (never committed) to
+                    target/todos/board.md; --check only verifies
   progress [--offline]
                     write apps/site/src/data/progress.json, the website's roadmap and dashboard:
                     the board's counts, the roadmap's milestones, merged and open pull requests
@@ -231,6 +233,11 @@ tasks:
                     pages, memory, fling and zoom against the web plan's §4 targets, written to
                     target/viewer-perf/ and the job summary (never fails on a target); --history flags
                     >10% regressions, --record appends to <dir>/history.jsonl, --dry-run prints the issue
+  semver [--baseline <version>]
+                    the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
+                    Extractor, after `wasm`) against the newest published version; breaking changes
+                    fail unless the changesets give the fixed group a minor bump (pending ones, or
+                    those a version PR consumed while its version awaits npm)
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
@@ -363,6 +370,7 @@ fn main() -> Result<()> {
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
+        ("semver", args) => semver::run(&ws, args),
         ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
@@ -428,7 +436,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     docs_prose::run(&ws.root, reports::Options::strict())?;
     step("docs-snippets: the examples against docs/guidelines/examples.md (strict on every file)");
     docs_snippets::run(&ws.root, reports::Options::strict())?;
-    step("todos --check: the todo board and Blocks fields are up to date");
+    step("todos --check: the todo graph and the Depends on links; no committed board or Blocks rows");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;

@@ -7,7 +7,6 @@
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6b](./E6b-place-images-and-shapes.md) |
-| Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `perf/e6f-reload-budget` |
 | PR title | `perf(viewer): measure and budget touched-page reload after content edits` |

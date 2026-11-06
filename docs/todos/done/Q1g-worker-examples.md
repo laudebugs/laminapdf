@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1c](./Q1c-examples-checks.md) |
-| Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md) |
 | ADRs | None |
 | Branch | `claude/working-session-9g3nst` |
 | PR title | `refactor(examples): Cloudflare Worker and Web Worker examples without repo internals` |
