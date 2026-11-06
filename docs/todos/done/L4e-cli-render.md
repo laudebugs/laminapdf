@@ -3,18 +3,20 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4b](../done/L4b-cli-batch-render-schema.md), [C2b](../done/C2b-lamina-render-crate.md) |
+| Depends on | [L4b](./L4b-cli-batch-render-schema.md), [C2b](./C2b-lamina-render-crate.md) |
 | Blocks | None |
 | ADRs | Follows 0031 (its batch amendment, from [L4b](../done/L4b-cli-batch-render-schema.md)), [0004](../../decisions/0004-render-backend.md) (backends), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
 | Branch | `feat/l4e-cli-render` |
 | PR title | `feat(cli): render pages to PNG, output templates, MCP tools for render and extraction` |
 | Size | M |
-| PR | — |
+| PR | [#266](https://github.com/laudebugs/laminapdf/pull/266) |
 
 > **Split from [L4b](../done/L4b-cli-batch-render-schema.md)**, which shipped batch mode, the extraction formats, `schema`, completions and man pages; this todo takes the rest of its scope.
+
+> **Outcome (2026-11-06).** Shipped as scoped. PDFium is in every build as `--backend pdfium`, bound at run time from `LAMINA_PDF_PDFIUM_DIR` (`render-backend-unavailable` without it), since the edge crate loads the library only when asked. The render goldens at 96 dpi (`fixtures/golden/render/hayro/`) and 72 dpi (`fixtures/render-golden/`) served as they are, so no CLI goldens were added. The PNG and SSIM test helpers moved into `laminapdf-test-fixtures::image`.
 
 ## Goal
 
@@ -43,18 +45,18 @@ Add `laminapdf render`, which turns pages into PNG files through `laminapdf-rend
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`
-- [ ] The template parser and the duplicate-output check, with unit tests
-- [ ] `render` over `laminapdf-render` and PNG encoding; its report and schema
-- [ ] The MCP tools; `tests/mcp.rs` cases
-- [ ] ADR 0031 (templates), the CLI README, CLAUDE.md
+- [x] Claim via its work PR; a fresh worktree off `main`
+- [x] The template parser and the duplicate-output check, with unit tests
+- [x] `render` over `laminapdf-render` and PNG encoding; its report and schema
+- [x] The MCP tools; `tests/mcp.rs` cases
+- [x] ADR 0031 (templates), the CLI README, CLAUDE.md
 
 ## Acceptance criteria
 
-- [ ] `render` output for the B5c examples matches the render goldens within the C2b thresholds
-- [ ] A duplicate output path exits 2 before any file is written; templates expand as documented
-- [ ] `laminapdf_extract` answers every format, and `laminapdf_render` writes only inside the roots
-- [ ] `cargo xtask check` passes, including cargo-deny
+- [x] `render` output for the B5c examples matches the render goldens within the C2b thresholds (SSIM ≥ 0.99 on aarch64, where the goldens are made; ≥ 0.98 on other architectures, whose SIMD path anti-aliases edges differently)
+- [x] A duplicate output path exits 2 before any file is written; templates expand as documented
+- [x] `laminapdf_extract` answers every format, and `laminapdf_render` writes only inside the roots
+- [x] `cargo xtask check` passes, including cargo-deny
 
 ## Post-merge checks
 
@@ -66,13 +68,13 @@ None.
 
 ## Docs to update
 
-- [ ] ADR 0031 (output templates)
-- [ ] `crates/laminapdf-cli/README.md`; `CLAUDE.md`
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1)
+- [x] ADR 0031 (output templates)
+- [x] `crates/laminapdf-cli/README.md`; `CLAUDE.md`
+- [x] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1)
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ready/` → `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ready/` → `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
