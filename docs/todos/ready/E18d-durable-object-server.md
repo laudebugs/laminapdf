@@ -7,7 +7,6 @@
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
 | Depends on | [E18c](./E18c-layer-document-schema.md), [H3](./H3-cloud-document-storage.md), [H4](./H4-document-sync.md) |
-| Blocks | [E18e](./E18e-client-sync-and-presence.md), [E18f](./E18f-sharing-and-notifications.md) |
 | ADRs | Implements ADR 0012 and ADR 0011 |
 | Branch | `feat/e18d-durable-object-server` |
 | PR title | `feat(collab): Durable Object sync server` |

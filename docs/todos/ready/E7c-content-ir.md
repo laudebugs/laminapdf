@@ -7,7 +7,6 @@
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E7b](./E7b-editing-existing-content-feature-plan.md) |
-| Blocks | [E7d](./E7d-select-transform-existing.md), [E7e](./E7e-text-runs-and-inline-edit.md), [E9d](./E9d-automatic-field-detection.md), [E11d](./E11d-sanitiser.md), [E12a](./E12a-redaction-feature-plan.md), [E12c](./E12c-apply-content-removal.md), [E16d](./E16d-colour.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7c-content-ir` |
 | PR title | `feat(content): editable content IR with object identity` |

@@ -7,7 +7,6 @@
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing |
 | Depends on | [P1](./P1-reserve-names-and-trusted-publishing.md) |
-| Blocks | [P3](../ready/P3-registry-checks.md), [P5](../ongoing/P5-npm-trusted-publishing-and-version-only-releases.md) |
 | ADRs | Follows [0017](../../decisions/0017-versioning-and-release.md) §2 and §7, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/p2-first-prerelease` |
 | PR title | `build: release 0.2.0-alpha.1, the first registry pre-release` |
@@ -16,7 +15,7 @@
 
 ## Goal
 
-Publish Lamina PDF for the first time: `0.2.0-alpha.1` of the twelve public crates on crates.io and the six `@laminapdf` packages on npm, through the release lane [P1](../done/P1-reserve-names-and-trusted-publishing.md) built. This PR is the version PR (ADR 0017 §2) and makes the promises that come with a registry release: the stability policy is in force and the crates' MSRV follows N-2. After it merges, the owner tags `v0.2.0-alpha.1` and approves the staged npm versions. [P3](../ready/P3-registry-checks.md) then checks what needs a published version: registry installs, semver checks and the docs site's install pages.
+Publish Lamina PDF for the first time: `0.2.0-alpha.1` of the twelve public crates on crates.io and the six `@laminapdf` packages on npm, through the release lane [P1](../done/P1-reserve-names-and-trusted-publishing.md) built. This PR is the version PR (ADR 0017 §2) and makes the promises that come with a registry release: the stability policy is in force and the crates' MSRV follows N-2. After it merges, the owner tags `v0.2.0-alpha.1` and approves the staged npm versions. [P3](./P3-registry-checks.md) then checks what needs a published version: registry installs, semver checks and the docs site's install pages.
 
 ## Context
 
@@ -34,7 +33,7 @@ Publish Lamina PDF for the first time: `0.2.0-alpha.1` of the twelve public crat
 
 **Out of scope** (and which todo covers it)
 
-- `verify-install --from-registry`, cargo-semver-checks and a TypeScript API diff against the published version, the docs site's install pages and stability page, README badges, docs.rs: [P3](../ready/P3-registry-checks.md).
+- `verify-install --from-registry`, cargo-semver-checks and a TypeScript API diff against the published version, the docs site's install pages and stability page, README badges, docs.rs: [P3](./P3-registry-checks.md).
 - npm provenance and attestations: once the repository is public (ADR 0017 §7).
 
 ## Tasks

@@ -7,7 +7,6 @@
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [C5b](./C5b-find-in-document.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
-| Blocks | [E3b](./E3b-bookmarks-and-destinations.md), [E4b](./E4b-annotation-model-and-overlay.md), [E17b](./E17b-action-editor.md) |
 | Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3c-links` |

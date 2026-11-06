@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2a](./Q2a-maintainability-checks-rust.md), [Q2h](./Q2h-text-writers-dedup.md), [Q2i](./Q2i-one-lexer-one-png-filter.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2r-split-modules` |
 | PR title | `refactor(xtask,text,build,wasm): split live, render_diff, extract/font, surface, png and the WASM builder` |

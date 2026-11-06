@@ -7,7 +7,6 @@
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E1f](./E1f-metadata-ui-capability-page.md) |
-| Blocks | [E2b](./E2b-page-structure-ops.md), [E2e](./E2e-content-append-api.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
 | Dependency notes | [E1f](E1f-metadata-ui-capability-page.md) (closes round E1, so every later round inherits the edit session E1d and Save/banner E1e), [E1a](E1a-editing-foundation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e2a-page-organisation-feature-plan` |

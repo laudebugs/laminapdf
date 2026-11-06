@@ -7,7 +7,6 @@
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E7e](./E7e-text-runs-and-inline-edit.md) |
-| Blocks | [E7j](./E7j-edit-corpus.md), [E15b](./E15b-structure-tree-editing.md) |
 | Dependency notes | [E7e](E7e-text-runs-and-inline-edit.md), `B8` ([pdf-library §B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa): tagged PDF, PDF/UA, PDF/A) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7i-structure-and-conformance-maintenance` |

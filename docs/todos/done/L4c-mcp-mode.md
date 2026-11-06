@@ -7,7 +7,6 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4a](./L4a-lamina-cli.md) |
-| Blocks | None |
 | ADRs | Implements 0031's MCP security defaults (from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
 | Branch | `feat/l4c-mcp-mode` |
 | PR title | `feat(cli): laminapdf mcp stdio server with root allow-list, read-only default and honest annotations` |

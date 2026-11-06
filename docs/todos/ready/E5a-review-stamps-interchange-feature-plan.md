@@ -7,7 +7,6 @@
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
-| Blocks | [E5b](./E5b-comment-threads-and-review.md), [E5c](./E5c-stamps-and-attachments.md), [E6a](./E6a-adding-content-feature-plan.md), [E8b](./E8b-form-filling-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e5a-review-stamps-interchange-feature-plan` |
 | PR title | `docs(editor): E5 feature plan (review, stamps and interchange)` |

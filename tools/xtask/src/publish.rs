@@ -120,7 +120,7 @@ fn crate_docs(ws: &Workspace) -> Result<()> {
 }
 
 /// Whether crates.io has `name` at `version` (its API answers 200 for a published version).
-fn on_crates_io(name: &str, version: &str) -> Result<bool> {
+pub(crate) fn on_crates_io(name: &str, version: &str) -> Result<bool> {
     let url = format!("https://crates.io/api/v1/crates/{name}/{version}");
     let status = std::process::Command::new(crate::program_path("curl"))
         .args([
@@ -195,6 +195,16 @@ fn publish_manifest(version: &str, names: &[String]) -> serde_json::Value {
         "tag": dist_tag(version),
         "packages": packages,
     })
+}
+
+/// Whether npm has published `name` at `version` (`npm view` prints the version, else nothing).
+pub(crate) fn on_npm(ws: &Workspace, name: &str, version: &str) -> Result<bool> {
+    let output = std::process::Command::new(crate::program_path("npm"))
+        .args(["view", &format!("{name}@{version}"), "version"])
+        .current_dir(&ws.root)
+        .output()
+        .context("running npm view")?;
+    Ok(String::from_utf8_lossy(&output.stdout).trim() == version)
 }
 
 /// The members' names with every package after the members it depends on, so they are published

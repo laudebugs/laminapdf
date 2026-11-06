@@ -7,7 +7,6 @@
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [C5b](./C5b-find-in-document.md), [E7f](./E7f-font-handling-and-styling.md) |
-| Blocks | [E7j](./E7j-edit-corpus.md) |
 | Dependency notes | [E7f](E7f-font-handling-and-styling.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7g-search-and-replace` |

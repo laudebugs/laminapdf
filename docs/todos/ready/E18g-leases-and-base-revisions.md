@@ -7,7 +7,6 @@
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
 | Depends on | [E7d](./E7d-select-transform-existing.md), [E10d](./E10d-pades-signing-core.md), [E12d](./E12d-scrub-and-rewrite.md), [E13e](./E13e-server-jobs-infrastructure.md), [E18e](./E18e-client-sync-and-presence.md), [H4](./H4-document-sync.md) |
-| Blocks | [E18h](./E18h-load-test.md) |
 | ADRs | Implements ADR 0012; follows ADR 0006 §5 (barriers) |
 | Branch | `feat/e18g-leases-and-base-revisions` |
 | PR title | `feat(collab): leases and new base revisions for non-mergeable edits` |

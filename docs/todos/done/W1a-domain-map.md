@@ -7,7 +7,6 @@
 | Plan | [Website §2 The domain map](../../plans/website.md#2-the-domain-map) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | None |
-| Blocks | [C4c](../ready/C4c-remote-files-encryption-privacy.md), [C4d](../ready/C4d-deploy-previews-and-production.md), [W1b](./W1b-site-scaffold-and-deploys.md) |
 | ADRs | Amends [0011 §1–§4](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology) |
 | Branch | `docs/w1a-domain-map` |
 | PR title | `docs: the website at laminapdf.com and the reader at app.laminapdf.com` |

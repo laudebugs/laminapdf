@@ -14,7 +14,6 @@ Keep the section order; delete a section only if it truly doesn't apply (write "
 | Plan | `[<plan name> §<section>](../../plans/<plan>.md#<anchor>)` (a link relative to `docs/todos/<state>/`) |
 | Round / milestone | <e.g. Round B (library) — M1> |
 | Depends on | <todo IDs that must be **done** (merged) first, linked; or "None"> |
-| Blocks | <todo IDs that wait for this one> |
 | ADRs | <ADRs this todo writes, implements or must follow> |
 | Branch | `<type>/<id>-<slug>` (e.g. `feat/b2b-decryption`) |
 | PR title | `<conventional commit title>` |
