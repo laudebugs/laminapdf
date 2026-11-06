@@ -59,7 +59,7 @@ The cadence is at most one release a day, set by the nightly. A release on every
 | [P5](../todos/done/P5-npm-trusted-publishing-and-version-only-releases.md) | npm trusted publishing from a GitHub-hosted runner, and a release lane that skips its nightly run for a version-only commit | P2 |
 | [P6](../todos/ongoing/P6-daily-release.md) | The daily release: `release-train.yml`, `cargo xtask release prepare`, the release bot and its version pull request | P4, P5 |
 
-Workflow files can't be pushed by the agents' GitHub access, so each todo's pull request carries its workflow changes for the owner to commit.
+Workflow files can't be pushed by the agents' GitHub access, so each todo's pull request carries its workflow changes for the owner to commit. P6's files and installation steps are in [`tools/release/README.md`](../../tools/release/README.md); its installation test blocks merge until the owner commits them.
 
 ## 7. To-dos
 

@@ -50,7 +50,7 @@ fn keys_under<'a>(workflow: &'a str, section: &str) -> Vec<(&'a str, Vec<&'a str
 }
 
 /// The lines of `key` under `workflow`'s top-level `section` (empty when there is none).
-fn lines_of<'a>(workflow: &'a str, section: &str, key: &str) -> Vec<&'a str> {
+pub(crate) fn lines_of<'a>(workflow: &'a str, section: &str, key: &str) -> Vec<&'a str> {
     keys_under(workflow, section)
         .into_iter()
         .find(|(id, _)| *id == key)
@@ -64,7 +64,7 @@ fn job_ids(workflow: &str) -> Vec<&str> {
 }
 
 /// The ids in `job`'s one-line `needs: [a, b]` or `needs: a`, read only from that job's own lines.
-fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
+pub(crate) fn needs<'a>(workflow: &'a str, job: &str) -> Vec<&'a str> {
     jobs(workflow)
         .into_iter()
         .find(|(id, _)| *id == job)
