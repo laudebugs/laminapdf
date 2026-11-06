@@ -3,7 +3,15 @@
 // current page. With page labels, the physical position follows in muted text: "A-1 (22 / 24)".
 // While the document is locked (R03) the field shows, disabled, before there are pages to count.
 
-import { type CSSProperties, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type InputHTMLAttributes,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { Input } from "react-aria-components";
 import { message } from "../messages.js";
 import { useStoreState } from "../state/hooks.js";
@@ -32,7 +40,7 @@ export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
   const [problem, setProblem] = useState<Problem | undefined>(undefined);
   const help = useId();
   const field = useRef<HTMLInputElement>(null);
-  const selectOnMouseUp = useRef(false);
+  const keepSelection = useSelectionKeptOnClick();
   // After a mistake the field shows the current page again, selected, so typing replaces it.
   useEffect(() => {
     if (problem !== undefined) field.current?.select();
@@ -72,15 +80,7 @@ export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
           setProblem(undefined);
         }}
         onFocus={(event) => event.target.select()}
-        // Safari clears the selection on the mouseup that ends a click into the field, so typing
-        // would add to the page instead of replacing it: that one mouseup keeps the selection.
-        onPointerDown={(event) => {
-          selectOnMouseUp.current = document.activeElement !== event.currentTarget;
-        }}
-        onMouseUp={(event) => {
-          if (selectOnMouseUp.current) event.preventDefault();
-          selectOnMouseUp.current = false;
-        }}
+        {...keepSelection}
         onBlur={() => {
           setDraft(undefined);
           setProblem(undefined);
@@ -105,6 +105,24 @@ export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
       </span>
     </div>
   );
+}
+
+/**
+ * Handlers that keep a field's text selected after the click that focuses it. Safari clears the
+ * selection on the mouseup that ends that click, so typing would add to the page instead of
+ * replacing it: that one mouseup is cancelled.
+ */
+function useSelectionKeptOnClick(): Pick<InputHTMLAttributes<HTMLInputElement>, "onPointerDown" | "onMouseUp"> {
+  const focusing = useRef(false);
+  return {
+    onPointerDown: (event) => {
+      focusing.current = document.activeElement !== event.currentTarget;
+    },
+    onMouseUp: (event) => {
+      if (focusing.current) event.preventDefault();
+      focusing.current = false;
+    },
+  };
 }
 
 /** The page input of a locked document: disabled but announced, before there are pages to count. */
