@@ -75,6 +75,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0029](../decisions/0029-mobile-bindings-and-packaging.md) | Mobile bindings and packaging (UniFFI pin, SPM, AARs) | Shareable libraries L6 | Accepted (L6a spike) |
 | [0030](../decisions/0030-extraction-output-and-model-plugins.md) | Extraction output (`laminapdf.extract/1`) and model plug-ins | Shareable libraries L3 | Accepted |
 | 0031 | CLI and MCP contract | Shareable libraries L4 | Propose |
+| 0032 | Layout engine for flowing pages: an engine of our own over the builder's `Surface`, or Typst | Trust and proof T4a | Propose |
 
 ## 4. Spikes to close open questions
 

@@ -31,6 +31,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 - Style ops: `SetTextStyle { runs, style }`
 - Line-level layout for alignment/spacing
 - Synthetic bold/italic only as fallback
+- Never substitute silently: when the original subset lacks a glyph the edit needs and no full copy of the font is available, the op's report names the missing characters and the substitute font, and the editor shows that before the edit is committed ([Hacker News research](../../research/hacker-news/pdf-users-on-hacker-news.md#four-things-the-evidence-argues-against): users mock editors that promise Word-style editing and quietly change fonts)
 
 **Out of scope** (and which todo covers it)
 
@@ -60,6 +61,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Editing text that needs new glyphs succeeds on fixtures with subset fonts and the result extracts correctly
+- [ ] An edit that needs a substitute font reports the missing characters and the substitute's name, in the op report and in the editor, before it is committed; undo restores the original run
 
 ## Post-merge checks
 
