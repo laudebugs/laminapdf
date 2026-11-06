@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 183 ready · 126 done** (309 total).
+**0 ongoing · 183 ready · 128 done** (311 total).
 
 ## Can start now
 
@@ -23,10 +23,10 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [L4d](ready/L4d-cli-distribution.md): CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper
 - [L4e](ready/L4e-cli-render.md): CLI `render` to PNG, output templates, and MCP tools for `render` and the extraction formats
 - [L5b](ready/L5b-agent-eval-baseline.md): Agent-eval baseline: run the agent eval with and without the shipped docs and record it
-- [C4a](ready/C4a-ui-chrome-and-platform.md): `@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter
+- [C4e](ready/C4e-reader-chrome.md): `@laminapdf/ui`: the reader shell, the top bar and the password prompt
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U6f](ready/U6f-gallery-and-visual-tests.md): Component gallery, screenshot tests, axe on every page and the screens docs check
-- [P3](ready/P3-registry-checks.md): Registry checks after the first release: installs, semver, docs
+- [P4](ready/P4-docs-match-the-release.md): Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`
 - [P5](ready/P5-npm-trusted-publishing-and-version-only-releases.md): npm trusted publishing, and a release lane that skips its nightly run for a version-only commit
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
@@ -117,10 +117,12 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | C3a | [`@laminapdf/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](done/C3b-viewer-virtualiser-and-zoom.md) | done | [C3a](done/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](done/C3c-viewer-perf-harness.md) | done | [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@laminapdf/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
-| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](done/U6b-self-hosted-fonts.md) |
+| C4a | [`@laminapdf/ui`: the `Platform` adapter, the reader controller and the message catalogue](done/C4a-ui-chrome-and-platform.md) | done | [C2a](done/C2a-render-adrs.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
+| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4f](ready/C4f-reader-home-repairs-and-demo.md), [U6b](done/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md), [W1a](done/W1a-domain-map.md) |
+| C4e | [`@laminapdf/ui`: the reader shell, the top bar and the password prompt](ready/C4e-reader-chrome.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4a](done/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md) |
+| C4f | [`@laminapdf/ui`: the home screen's drop zone, repairs and failures, and the demo page](ready/C4f-reader-home-repairs-and-demo.md) | ready | [C4e](ready/C4e-reader-chrome.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](done/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](done/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](done/B6b-lamina-pdf-package.md), [C3c](done/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
@@ -147,10 +149,10 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | --- | --- | --- | --- |
 | D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md) |
 | D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
-| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](done/U6b-self-hosted-fonts.md) |
+| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](done/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](done/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
-| D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
+| D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](done/C3b-viewer-virtualiser-and-zoom.md), [C4f](ready/C4f-reader-home-repairs-and-demo.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
 | D2e | [Desktop end-to-end tests with WebdriverIO on three OSes](ready/D2e-desktop-e2e-webdriverio.md) | ready | [D2c](ready/D2c-engine-sandbox.md), [D2d](ready/D2d-tile-transport-and-first-document.md) |
 | D3a | [Open from the OS: file associations, argv, `RunEvent::Opened`, single instance, drag-drop](ready/D3a-open-from-os.md) | ready | [D2e](ready/D2e-desktop-e2e-webdriverio.md) |
 | D3b | [Recent files (OS and in-app) and reload on external change](ready/D3b-recent-files-and-file-watching.md) | ready | [D3a](ready/D3a-open-from-os.md) |
@@ -172,8 +174,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](done/U1a-adr-0024-app-shell-ux.md) | done | [C2a](done/C2a-render-adrs.md) |
-| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md), [U6j](done/U6j-positioning-and-palette-shell.md) |
-| U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
+| U1b | [Command registry and command palette (`@laminapdf/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4e](ready/C4e-reader-chrome.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U6e](done/U6e-overlays-and-sheets.md), [U6j](done/U6j-positioning-and-palette-shell.md) |
+| U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4e](ready/C4e-reader-chrome.md), [U1a](done/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](done/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U2b | [Reading-order ground-truth corpus and metric](done/U2b-reading-order-ground-truth.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md) |
 | U2c | [Page appearance modes: Original, Sepia, Dark and High contrast](ready/U2c-page-appearance-modes.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C7a](ready/C7a-accessibility-and-theming.md) |
@@ -212,7 +214,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B5c](done/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](done/X2-capability-matrix.md) |
 | E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
 | E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](done/X3a-nightly-lane.md) |
-| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
+| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C4e](ready/C4e-reader-chrome.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
 | E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1c](ready/E1c-metadata-ops.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
 | E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](done/X2-capability-matrix.md) |
 | E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [E1f](ready/E1f-metadata-ui-capability-page.md) |
@@ -276,7 +278,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | E10b | [Signatures: feature plan](ready/E10b-signatures-feature-plan.md) | ready | [E9a](ready/E9a-form-authoring-feature-plan.md), [E10a](ready/E10a-adr-0020-signatures.md) |
 | E10c | [Visual signatures: image, drawn and typed (non-cryptographic)](ready/E10c-visual-signatures.md) | ready | [E4d](ready/E4d-appearances-ink-and-shapes.md), [E5c](ready/E5c-stamps-and-attachments.md), [E6b](ready/E6b-place-images-and-shapes.md), [E10b](ready/E10b-signatures-feature-plan.md) |
 | E10d | [PAdES B-B signing core with two-phase external signing](ready/E10d-pades-signing-core.md) | ready | [E9b](ready/E9b-field-creation-ops.md), [E10b](ready/E10b-signatures-feature-plan.md) |
-| E10e | [Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker](ready/E10e-timestamps-and-tsa-proxy.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [E10d](ready/E10d-pades-signing-core.md) |
+| E10e | [Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker](ready/E10e-timestamps-and-tsa-proxy.md) | ready | [C4a](done/C4a-ui-chrome-and-platform.md), [E10d](ready/E10d-pades-signing-core.md) |
 | E10f | [Certification (DocMDP), field locking (FieldMDP) and allowed changes](ready/E10f-certification-and-locking.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10g | [Signature validation: integrity, chain, revocation, signer inspection](ready/E10g-signature-validation.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10h | [Revision diff analysis, modification warnings and attack-catalogue tests](ready/E10h-revision-diff-and-attacks.md) | ready | [E10f](ready/E10f-certification-and-locking.md), [E10g](ready/E10g-signature-validation.md) |
@@ -341,8 +343,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | P0c | [Call the product Lamina PDF and rename its public names to match](done/P0c-lamina-pdf-names.md) | done | [P0b](done/P0b-crate-names-laminapdf.md) |
 | P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](done/P1-reserve-names-and-trusted-publishing.md) | done | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md), [P0b](done/P0b-crate-names-laminapdf.md), [P0c](done/P0c-lamina-pdf-names.md) |
 | P2 | [First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2](done/P2-first-registry-prerelease.md) | done | [P1](done/P1-reserve-names-and-trusted-publishing.md) |
-| P3 | [Registry checks after the first release: installs, semver, docs](ready/P3-registry-checks.md) | ready | [P2](done/P2-first-registry-prerelease.md) |
-| P4 | [Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`](ready/P4-docs-match-the-release.md) | ready | [P3](ready/P3-registry-checks.md) |
+| P3 | [Registry checks after the first release: installs, semver, docs](done/P3-registry-checks.md) | done | [P2](done/P2-first-registry-prerelease.md) |
+| P4 | [Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`](ready/P4-docs-match-the-release.md) | ready | [P3](done/P3-registry-checks.md) |
 | P5 | [npm trusted publishing, and a release lane that skips its nightly run for a version-only commit](ready/P5-npm-trusted-publishing-and-version-only-releases.md) | ready | [P2](done/P2-first-registry-prerelease.md) |
 | P6 | [The daily release: the release bot, its version commit and pull request](ready/P6-daily-release.md) | ready | [P4](ready/P4-docs-match-the-release.md), [P5](ready/P5-npm-trusted-publishing-and-version-only-releases.md) |
 

@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C1a](./C1a-hayro-parity-spike.md), [C1b](./C1b-pdfium-wasm-spike.md), [X1](./X1-docs-link-checker.md) |
-| Blocks | [C2b](./C2b-lamina-render-crate.md), [C3a](./C3a-viewer-worker-rpc.md), [C4a](../ready/C4a-ui-chrome-and-platform.md), [C4b](../ready/C4b-web-app-shell.md), [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md), [D5a](../ready/D5a-update-worker-and-adr-0014.md), [U1a](./U1a-adr-0024-app-shell-ux.md) |
+| Blocks | [C2b](./C2b-lamina-render-crate.md), [C3a](./C3a-viewer-worker-rpc.md), [C4a](./C4a-ui-chrome-and-platform.md), [C4b](../ready/C4b-web-app-shell.md), [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md), [D5a](../ready/D5a-update-worker-and-adr-0014.md), [U1a](./U1a-adr-0024-app-shell-ux.md) |
 | ADRs | **Writes** 0004, 0009, 0010, 0011 (status `Accepted` on merge). Must stay consistent with [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `docs/c2a-render-and-web-adrs` |
 | PR title | `docs(decisions): add ADRs 0004, 0009, 0010 and 0011 for the web reader` |

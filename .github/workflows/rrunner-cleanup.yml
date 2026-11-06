@@ -1,0 +1,147 @@
+# Frees disk space on the self-hosted macOS runners, by hand (Actions → Runner cleanup → Run
+# workflow, or `gh workflow run runner-cleanup.yml -f scope=pull-request-builds`).
+#
+# The runners share one disk, but .github/actions/isolate-rust-home only ever deletes the build
+# directories of the runner it runs on, and nothing deletes the pnpm stores or a checkout's
+# leftover target/. So the runners can fill the disk between them, each within its own limits.
+# This job runs on one runner and cleans every runner beside it on the machine
+# (<base>/runner-N/_work/, found from this runner's tool cache).
+#
+# Scopes, smallest first:
+#   report-only           the job summary lists what uses the disk, per runner; nothing is deleted
+#   pull-request-builds   pull requests' build directories and pnpm stores (and the rare `other`
+#                         bucket), and each checkout's target/: the next PR job builds from scratch
+#   all-builds            every build directory and pnpm store, main's included: the next run of
+#                         every job builds from scratch and refills its pnpm store
+# Never deleted: each runner's cargo home (registry, installed tools), rustup toolchains,
+# Playwright browsers, and the PDFium and veraPDF downloads. The summary shows their sizes.
+#
+# Deleting a directory that a running job builds into breaks that job, so the job first waits
+# until no other run of this repository is queued or in progress. It runs only on main.
+name: Runner cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: What to delete
+        type: choice
+        default: pull-request-builds
+        options:
+          - report-only
+          - pull-request-builds
+          - all-builds
+      wait-minutes:
+        description: How long to wait for other runs to finish (at most 120)
+        type: number
+        default: 60
+
+permissions:
+  # Lists the repository's queued and running workflow runs.
+  actions: read
+
+concurrency:
+  group: runner-cleanup
+  cancel-in-progress: false
+
+jobs:
+  clean:
+    name: Free disk space (${{ inputs.scope }})
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 150
+    steps:
+      - name: Wait until no other run is queued or in progress
+        if: inputs.scope != 'report-only'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          WAIT_MINUTES: ${{ inputs.wait-minutes }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$WAIT_MINUTES" =~ ^[0-9]+$ ]] || [ "$WAIT_MINUTES" -gt 120 ]; then
+            echo "::error::wait-minutes must be a whole number from 0 to 120, not '$WAIT_MINUTES'"
+            exit 1
+          fi
+          deadline=$(( $(date +%s) + WAIT_MINUTES * 60 ))
+          while :; do
+            busy=$(for status in queued in_progress; do
+              gh api "repos/$REPO/actions/runs?status=$status&per_page=100" \
+                --jq ".workflow_runs[] | select(.id != $RUN_ID) | \"\(.name) #\(.run_number) (\(.status))\""
+            done)
+            if [ -z "$busy" ]; then
+              echo "No other run is queued or in progress."
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::other runs are still queued or in progress after $WAIT_MINUTES minutes; nothing was deleted"
+              echo "$busy"
+              exit 1
+            fi
+            echo "Waiting a minute for:"
+            echo "$busy"
+            sleep 60
+          done
+
+      - name: Report and delete
+        env:
+          SCOPE: ${{ inputs.scope }}
+        run: |
+          set -euo pipefail
+          # This runner's tool cache is <base>/runner-N/_work/_tool; the others sit beside it.
+          base=$(cd "$RUNNER_TOOL_CACHE/../../.." && pwd -P)
+          free_gb() { df -Pk "$base" | awk 'NR == 2 { printf "%.1f", $4 / 1048576 }'; }
+          size_gb() { du -sk "$1" 2>/dev/null | awk '{ printf "%.1f", $1 / 1048576 }'; }
+
+          # Paths under each runner's _work/ that this scope deletes.
+          case "$SCOPE" in
+            report-only) delete=() ;;
+            pull-request-builds)
+              delete=(_tool/lamina-target/pull_request _tool/lamina-target/other
+                _tool/pnpm-store/pull_request _tool/pnpm-store/other laminapdf/laminapdf/target) ;;
+            all-builds) delete=(_tool/lamina-target _tool/pnpm-store laminapdf/laminapdf/target) ;;
+            *) echo "::error::unknown scope '$SCOPE'"; exit 1 ;;
+          esac
+          # Paths under each runner's _work/ that the summary measures.
+          measured=()
+          for bucket in main-push main-nightly pull_request other; do
+            measured+=("_tool/lamina-target/$bucket" "_tool/pnpm-store/$bucket")
+          done
+          measured+=(_tool/cargo _tool/rustup _tool/ms-playwright _tool/lamina-pdfium
+            _tool/lamina-verapdf laminapdf/laminapdf/target _temp)
+
+          before=$(free_gb)
+          {
+            echo "### Runner disk ($SCOPE)"
+            echo
+            echo "Free on the runners' disk before: $before GB."
+            echo
+            echo "| Runner | Path under _work/ | Size (GB) | Deleted |"
+            echo "| --- | --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for runner in "$base"/runner-*/; do
+            work="${runner}_work"
+            [ -d "$work" ] || continue
+            name=$(basename "$runner")
+            for path in "${measured[@]}"; do
+              [ -e "$work/$path" ] || continue
+              deleted=no
+              for gone in "${delete[@]+"${delete[@]}"}"; do
+                case "$path" in "$gone" | "$gone"/*) deleted=yes ;; esac
+              done
+              echo "| $name | $path | $(size_gb "$work/$path") | $deleted |" >> "$GITHUB_STEP_SUMMARY"
+            done
+            for path in "${delete[@]+"${delete[@]}"}"; do
+              if [ -e "$work/$path" ]; then
+                echo "Deleting $work/$path"
+                rm -rf "${work:?}/$path"
+              fi
+            done
+          done
+          after=$(free_gb)
+          {
+            echo
+            echo "Free after: $after GB."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Free on the runners' disk: $before GB before, $after GB after."

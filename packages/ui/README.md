@@ -80,11 +80,36 @@ const toast = toasts.add({ message: "Highlight deleted", action: { label: "Undo"
 
 Overlays stack in the design language's z-order, which the tokens hold: docked chrome, then sheets, then dialogs over the scrim, then menus, popovers and tooltips, then toasts. A menu opened from a dialog draws above it. Escape closes the innermost open layer only, and focus goes back to the control that opened it. A dialog that asks a required question stays open, and so does everything beneath it.
 
+## The platform and the reader's state
+
+Components never ask which shell they run in, and `cargo xtask check ts` fails on any package that imports Tauri, calls `isTauri()` or reads the user agent. Instead, each shell creates one `Platform` at startup, as [the platform decision](../../docs/decisions/0010-platform-adapter.md) describes, and hands it down. Components ask it what it can do. The web app passes `createWebPlatform()`; the desktop app will pass its own implementation of the same interface:
+
+```ts
+const platform = createWebPlatform();
+
+<PlatformProvider platform={platform}>
+  <App />
+</PlatformProvider>
+```
+
+`createWebPlatform()` detects each capability once, from the browser's own APIs: the file pickers where the browser has them, a file input and downloads where it doesn't, and storage in IndexedDB and the origin-private file system. A control that needs a capability reads `useCapability(flag)`, which answers one of three states: `available`; `disabled`, with a reason that says how to get the capability (another browser, or installing the app); or `hidden`, when this platform never has it.
+
+`ReaderController` holds the reader's lifecycle: empty, opening, asking for a password, open, or failed. It asks the platform for files and hands each one to the opener the shell gives it, such as the viewer client's `open`. A password goes to the opener and is never kept. The controller calls the `close` the opener returned with a document once nothing will show it: when it is closed, replaced or overtaken by a later open.
+
+Toolbars and menus call the controller's methods, so commands can call the same ones. Components read the controller and the viewer through `useStoreState(store, select)`, which re-renders only when the selected value changes. The selector must return a primitive, or an object that stays the same while its contents do; a selector that builds a new object on every call re-renders the component on every update:
+
+```ts
+const page = useStoreState(viewer, (state) => state.currentPage);
+const reader = useReaderState(controller);
+```
+
+Every message the reader shows comes from one catalogue. `message(id, values)` fills each `{name}` placeholder from `values`, and a translation is a second catalogue of the same shape.
+
 ## Adding a component
 
 1. Write its props type first, with TSDoc, and export it from `src/index.ts`.
 2. Build it on the React Aria Components primitive that fits, and give its root a `paper-` class.
 3. Style it in its own file in `src/styles/`, imported from `index.css`, inside `@layer paper.components`. Take every colour and length from a token. A test fails on a literal colour, a `px` value or a token that doesn't exist. A new size goes into `@laminapdf/tokens` as a component token.
-4. Add its states to `test/states.tsx`, and its section to the table in `test/sources.test.ts`. The browser tests then check every state with axe in the light, dark and high-contrast themes, left to right and right to left, and check its targets at both densities. Add keyboard tests for anything interactive.
+4. Add its states to `test/states.tsx`, and its section to the table in `test/sources.test.ts`. The browser tests then check every state with axe in the light, dark and high-contrast themes, left to right and right to left, and check its targets at both densities. Add keyboard tests for anything interactive. Test a control that needs a capability against `fakePlatform` in `test/fakes.ts`, with the flags each case needs.
 
 Run the browser tests with `cargo xtask pdf-runtimes chromium` (or `firefox`, `webkit`); `pnpm --filter @laminapdf/ui test` runs the Node checks.

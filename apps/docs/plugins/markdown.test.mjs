@@ -8,6 +8,7 @@ import { codeBlock, frontMatter, mdxToMarkdown, rewriteLinks, twin, twinHref } f
 const components = {
   snippet: (/** @type {string} */ file) => `// ${file}\nconst a = 1;\n`,
   codeTable: () => "| Code |\n| --- |\n| `x` |",
+  changelog: () => "## 1.0.0\n\n- A change.",
 };
 
 test("front matter is read and removed", () => {
@@ -73,6 +74,10 @@ test("a code block's fence outlasts the backticks inside it", () => {
 
 test("the code table comes from the components", () => {
   assert.equal(mdxToMarkdown("<CodeTable />\n", components), "| Code |\n| --- |\n| `x` |\n");
+});
+
+test("the changelog component becomes the releases", () => {
+  assert.equal(mdxToMarkdown("Intro.\n\n<Changelog />\n", components), "Intro.\n\n## 1.0.0\n\n- A change.\n");
 });
 
 test("a twin has front matter, the title, the description and the body", () => {
