@@ -61,6 +61,7 @@ describe("component sources", () => {
 
 /** Each design-language §7 section this package builds, and the components that build it. */
 const SECTIONS: Record<string, string[]> = {
+  "7.1 Top bar": ["ReaderTopBar", "PageInput", "ZoomControl"],
   "7.2 Mode switcher": ["ModeSwitcher"],
   "7.3 Icon button": ["IconButton"],
   "7.4 Text buttons": ["Button"],
@@ -77,7 +78,7 @@ const SECTIONS: Record<string, string[]> = {
   "7.9 Selection mini toolbar": ["SelectionToolbar", "SelectionToolbarDivider"],
   "7.10 Command palette": ["CommandPalette"],
   "7.16 Bottom sheet": ["BottomSheet"],
-  "7.18 Dialog": ["Dialog"],
+  "7.18 Dialog": ["Dialog", "PasswordDialog"],
   "7.20 Toast and notice: the region": ["ToastRegion"],
   "7.23 Badge and tag": ["Badge"],
   "7.24 Secondary-toolbar tool toggle": ["ToolToggle", "ToggleButton"],
@@ -112,6 +113,7 @@ describe("the design language's §7", () => {
       "SelectionToolbar",
       "SelectionToolbarDivider",
       "CommandPalette",
+      "PasswordDialog",
     ]);
     const missing = Object.values(SECTIONS)
       .flat()

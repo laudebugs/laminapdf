@@ -111,7 +111,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   CommandPalette; z-order from --paper-z-*), src/platform/ (ADR 0010: the Platform interface and capability
 │                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
-│                        #   useStoreState, useReaderState), src/messages.ts (the message catalogue),
+│                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar, PageInput, ZoomControl,
+│                        #   PasswordDialog, useGatedEntries; the viewer as a shape), src/messages.ts (the message catalogue),
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
 │                        #   only, @layer paper.*); test/ (states.tsx, fakes.ts (fakePlatform with any flags); Node: CSS tokens only,
 │                        #   import boundary, §7 map, the reader machine and controller, the web platform over fake windows; browser/:

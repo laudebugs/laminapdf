@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C4e](./C4e-reader-chrome.md) |
+| Depends on | [C4e](../done/C4e-reader-chrome.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer); follows 0003 (repairs in plain words) and 0010 (UI branches only on capability flags) |
 | Branch | `feat/c4f-reader-home-repairs-and-demo` |
 | PR title | `feat(ui): add the drop zone, the repair and failure ui, and the reader demo` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Finish the reader chrome on [C4e](./C4e-reader-chrome.md)'s frame: the home screen's drop zone (R01), the repair details panel and the failure page (R04) with a plain sentence for every repair and error code, the loading state (R02), the `#debug` menu, and a demo page that composes the whole chrome over a fake viewer, built with the React Compiler and checked with axe.
+Finish the reader chrome on [C4e](../done/C4e-reader-chrome.md)'s frame: the home screen's drop zone (R01), the repair details panel and the failure page (R04) with a plain sentence for every repair and error code, the loading state (R02), the `#debug` menu, and a demo page that composes the whole chrome over a fake viewer, built with the React Compiler and checked with axe.
 
 ## Context
 

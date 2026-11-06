@@ -105,6 +105,27 @@ const reader = useReaderState(controller);
 
 Every message the reader shows comes from one catalogue. `message(id, values)` fills each `{name}` placeholder from `values`, and a translation is a second catalogue of the same shape.
 
+## The reader's frame
+
+`ReaderShell` lays out the reader: the top bar across the top, a mode's toolbar under it, then the rail, the canvas and the docked panel side by side, and the status bar along the bottom. Each part is a slot the shell fills, and the canvas is the page's `main` landmark:
+
+```ts
+<ReaderShell
+  topBar={<ReaderTopBar reader={controller} viewer={viewer} keys="other" more={{ items, onAction }} />}
+  rail={<PagesPanel />}
+  status={<NetworkIndicator count="0 network requests" />}
+>
+  <div ref={mountViewer} />
+</ReaderShell>
+<PasswordDialog reader={controller} />
+```
+
+`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets.
+
+The viewer comes in as any object with its store and three calls (`goToPage`, `setZoom`, `rotate`), so `@laminapdf/viewer`'s viewer fits without this package importing it. `PasswordDialog` asks for a password whenever the controller needs one and passes each try to it.
+
+The shell builds the More menu, and marks each item that needs a capability with `needs`. `useGatedEntries` then keeps the item, disables it with how to get the capability, or leaves it out on a platform that never has it.
+
 ## Adding a component
 
 1. Write its props type first, with TSDoc, and export it from `src/index.ts`.

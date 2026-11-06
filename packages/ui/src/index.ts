@@ -118,6 +118,23 @@ export type {
   SaveResult,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
+export { PageInput, type PageInputProps } from "./reader/page-input.js";
+export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
+export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
+export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
+export {
+  MAX_ZOOM,
+  MIN_ZOOM,
+  pageFromInput,
+  type ViewerControls,
+  type ViewerSlice,
+  ZOOM_PRESETS,
+  type Zoom,
+  zoomIn,
+  zoomOut,
+} from "./reader/viewer-controls.js";
+export { ZoomControl, type ZoomControlProps } from "./reader/zoom-control.js";
 export { type ExternalStore, useReaderState, useStoreState } from "./state/hooks.js";
 export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
 export {

@@ -14,10 +14,13 @@ import {
   Notice,
   OutlineRow,
   PageAppearanceChips,
+  PageInput,
   PageLabel,
   ProgressBar,
   Radio,
   RadioGroup,
+  type ReaderState,
+  ReaderTopBar,
   RepairedNotice,
   SegmentedTabs,
   Select,
@@ -33,7 +36,9 @@ import {
   Toast,
   ToggleButton,
   ToolToggle,
+  ZoomControl,
 } from "../src/index.ts";
+import { FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -391,8 +396,55 @@ const feedback: Example[] = [
   },
 ];
 
+/** A store that always holds `state`. */
+const holding = (state: ReaderState) => ({ getState: () => state, subscribe: () => () => undefined });
+const file = fakeFile("Q3-board-report.pdf");
+const LABELS = [...Array.from({ length: 21 }, (_, n) => String(n + 1)), "A-1", "A-2", "A-3"];
+const MORE = { items: [{ id: "open", label: "Open another file…" }], onAction: noop };
+
+const topBar: Example[] = [
+  {
+    component: "ReaderTopBar",
+    state: "a document open",
+    element: () => (
+      <ReaderTopBar
+        reader={holding({ phase: "open", file, pageCount: 24, mode: "select" })}
+        viewer={new FakeViewer()}
+        keys="other"
+        sidebar={{ isOpen: true, onChange: noop }}
+        commands={{ onPress: noop, shortcut: { mac: "Mod+K", other: "Mod+K" } }}
+        more={MORE}
+      />
+    ),
+  },
+  {
+    component: "ReaderTopBar",
+    state: "locked",
+    element: () => (
+      <ReaderTopBar reader={holding({ phase: "needs-password", file, wrong: false })} keys="other" more={MORE} />
+    ),
+  },
+  {
+    component: "ReaderTopBar",
+    state: "no document",
+    element: () => <ReaderTopBar reader={holding({ phase: "empty" })} keys="other" more={MORE} />,
+  },
+  {
+    component: "PageInput",
+    state: "a page label and its position",
+    element: () => <PageInput viewer={new FakeViewer({ currentPage: 21 })} labels={LABELS} />,
+  },
+  { component: "ZoomControl", state: "at 110%", element: () => <ZoomControl viewer={new FakeViewer()} keys="other" /> },
+  {
+    component: "ZoomControl",
+    state: "at the largest zoom",
+    element: () => <ZoomControl viewer={new FakeViewer({ percent: 800 })} keys="other" />,
+  },
+];
+
 /** Every example, grouped as the design language's §7 orders the components. */
 export const EXAMPLES: readonly Example[] = [
+  ...topBar,
   ...buttons,
   ...toggles,
   ...rail,
