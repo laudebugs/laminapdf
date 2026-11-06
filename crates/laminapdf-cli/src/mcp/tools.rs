@@ -106,9 +106,9 @@ fn extract_output() -> Arc<Map<String, Value>> {
     };
     strip(document.pointer_mut("/allOf/0"));
     strip(Some(&mut document));
-    prefix_refs(&mut document);
+    rename_refs(&mut document, "#/$defs/", EXTRACT_DEFS);
     for (name, mut definition) in own {
-        prefix_refs(&mut definition);
+        rename_refs(&mut definition, "#/$defs/", EXTRACT_DEFS);
         defs.insert(format!("{EXTRACT_DEFS}{name}"), definition);
     }
     let mut out = Map::new();
@@ -120,26 +120,6 @@ fn extract_output() -> Arc<Map<String, Value>> {
     out.insert("anyOf".to_owned(), Value::Array(vec![Value::Object(text), document]));
     out.insert("$defs".to_owned(), Value::Object(defs));
     Arc::new(out)
-}
-
-/// Rewrites every local `$ref` (`#/$defs/<name>`) to `#/$defs/<EXTRACT_DEFS><name>`.
-fn prefix_refs(value: &mut Value) {
-    match value {
-        Value::Object(map) => {
-            for (key, child) in map.iter_mut() {
-                match child {
-                    Value::String(target) if key == "$ref" => {
-                        if let Some(name) = target.strip_prefix("#/$defs/") {
-                            *target = format!("#/$defs/{EXTRACT_DEFS}{name}");
-                        }
-                    }
-                    _ => prefix_refs(child),
-                }
-            }
-        }
-        Value::Array(items) => items.iter_mut().for_each(prefix_refs),
-        _ => {}
-    }
 }
 
 /// One read tool: `T` its arguments, `R` its report.
@@ -159,7 +139,7 @@ fn tool<T: JsonSchema, R: JsonSchema>(
 pub(super) fn schema<T: JsonSchema>() -> Arc<Map<String, Value>> {
     let mut schema = schemars::schema_for!(T).to_value();
     let external = format!("{ERROR_SCHEMA_ID}#/$defs/");
-    if rename_refs(&mut schema, &external) {
+    if rename_refs(&mut schema, &external, ERROR_DEFS) {
         let error: Value = serde_json::from_str(laminapdf::ERROR_SCHEMA).unwrap_or_default();
         let defs = schema.as_object_mut().and_then(|map| {
             map.entry("$defs")
@@ -169,7 +149,7 @@ pub(super) fn schema<T: JsonSchema>() -> Arc<Map<String, Value>> {
         if let (Some(defs), Some(error_defs)) = (defs, error.get("$defs").and_then(Value::as_object)) {
             for (name, definition) in error_defs {
                 let mut definition = definition.clone();
-                rename_refs(&mut definition, "#/$defs/");
+                rename_refs(&mut definition, "#/$defs/", ERROR_DEFS);
                 defs.insert(format!("{ERROR_DEFS}{name}"), definition);
             }
         }
@@ -180,9 +160,9 @@ pub(super) fn schema<T: JsonSchema>() -> Arc<Map<String, Value>> {
     }
 }
 
-/// Rewrites every `$ref` that starts with `prefix` to `#/$defs/<ERROR_DEFS><name>`; whether it
-/// rewrote one. Every reference is visited: one schema may hold several.
-fn rename_refs(value: &mut Value, prefix: &str) -> bool {
+/// Rewrites every `$ref` that starts with `prefix` to `#/$defs/<to><name>`; whether it rewrote
+/// one. Every reference is visited: one schema may hold several.
+fn rename_refs(value: &mut Value, prefix: &str, to: &str) -> bool {
     let mut rewrote = false;
     match value {
         Value::Object(map) => {
@@ -190,17 +170,17 @@ fn rename_refs(value: &mut Value, prefix: &str) -> bool {
                 match child {
                     Value::String(target) if key == "$ref" => {
                         if let Some(name) = target.strip_prefix(prefix) {
-                            *target = format!("#/$defs/{ERROR_DEFS}{name}");
+                            *target = format!("#/$defs/{to}{name}");
                             rewrote = true;
                         }
                     }
-                    _ => rewrote |= rename_refs(child, prefix),
+                    _ => rewrote |= rename_refs(child, prefix, to),
                 }
             }
         }
         Value::Array(items) => {
             for item in items {
-                rewrote |= rename_refs(item, prefix);
+                rewrote |= rename_refs(item, prefix, to);
             }
         }
         _ => {}

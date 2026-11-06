@@ -13,7 +13,7 @@ use laminapdf_render_pdfium::PdfiumBackend;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Settings, pages_of, schema_id};
+use super::{OpenArgs, Settings, pages_of, schema_id};
 use crate::exit::CliError;
 use crate::io::Io;
 use crate::template::{Fill, Template};
@@ -117,19 +117,28 @@ fn clash(message: &str, output: &str) -> CliError {
 }
 
 /// Checks `args.output` against all of a command's `inputs` before any is read: `-` takes one
-/// input, and several inputs need a template that names the input and gives each a file of its
-/// own.
+/// input and no batch (`batch`: the inputs print as one, as with any `--files-from` list), and
+/// several inputs need a template that names the input and gives each a file of its own.
 ///
 /// # Errors
 ///
 /// `invalid-command-line` for a bad template or two inputs that would write the same file.
-pub fn check_outputs(args: &RenderArgs, inputs: &[String]) -> Result<(), CliError> {
+pub fn check_outputs(args: &RenderArgs, inputs: &[String], batch: bool) -> Result<(), CliError> {
     let template = Template::parse(&args.output)?;
+    if template.is_stdout() && batch {
+        return Err(clash(
+            "standard output takes one page of one input named on the command line",
+            &args.output,
+        ));
+    }
     if inputs.len() < 2 {
         return Ok(());
     }
-    if template.is_stdout() {
-        return Err(clash("standard output takes one page of one input", &args.output));
+    if !template.has_input() {
+        return Err(clash(
+            "two inputs would write the same file: put {stem}, {name} or {index} in the output template",
+            &args.output,
+        ));
     }
     let mut seen = BTreeSet::new();
     for (index, input) in inputs.iter().enumerate() {
@@ -144,12 +153,21 @@ pub fn check_outputs(args: &RenderArgs, inputs: &[String]) -> Result<(), CliErro
     Ok(())
 }
 
+/// `value` as the nearest `f32` at or above it. The planner floors `points × scale`, so a
+/// scale that rounded down would lose a pixel: 150 dpi is 2.083…, whose nearest `f32` is
+/// below it, and a Letter page would come out 1274 pixels wide, not 1275.
+fn at_least(value: f64) -> f32 {
+    #[expect(clippy::cast_possible_truncation, reason = "a resolution, far inside f32's range")]
+    let near = value as f32;
+    if f64::from(near) < value { near.next_up() } else { near }
+}
+
 /// The scale `args` asks for.
 fn scale(args: &RenderArgs) -> Result<f32, CliError> {
     let (value, flag) = match (args.scale, args.dpi) {
         (Some(scale), _) => (scale, "scale"),
-        (None, Some(dpi)) => (dpi / 72.0, "dpi"),
-        (None, None) => (DEFAULT_DPI / 72.0, "dpi"),
+        (None, Some(dpi)) => (at_least(f64::from(dpi) / 72.0), "dpi"),
+        (None, None) => (at_least(f64::from(DEFAULT_DPI) / 72.0), "dpi"),
     };
     if value.is_finite() && value > 0.0 {
         Ok(value)
@@ -193,6 +211,14 @@ fn backend(choice: Backend) -> Result<Box<dyn RenderBackend>, CliError> {
 /// `invalid-command-line` for a bad template, resolution or clash; `invalid-page-range`; the
 /// input couldn't be read or opened; a page couldn't be rendered; an output couldn't be written.
 pub fn render(args: &RenderArgs, settings: &Settings, io: &mut dyn Io) -> Result<RenderReport, CliError> {
+    // The renderer parses the file itself, with its own limits: Lamina PDF's reading flags
+    // would do nothing, so they are refused rather than ignored.
+    if settings.open != OpenArgs::default() {
+        return Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "render reads the file with its renderer, which takes neither --strict nor the limit flags",
+        ));
+    }
     let template = Template::parse(&args.output)?;
     let scale = scale(args)?;
     let data = io.read(&args.input)?;
@@ -220,15 +246,18 @@ pub fn render(args: &RenderArgs, settings: &Settings, io: &mut dyn Io) -> Result
             page: number,
         });
         if !seen.insert(path.clone()) {
-            return Err(clash(
-                "two pages would write the same file: put {n} in the output template",
-                &path,
-            ));
+            let message = if template.has_page() {
+                "the page range names a page twice"
+            } else {
+                "two pages would write the same file: put {n} in the output template"
+            };
+            return Err(clash(message, &path));
         }
         // Refuse an existing file (without --force) before any page is written.
         io.check(&path, settings.force)?;
         outputs.push(path);
     }
+    settings.claim(&outputs)?;
     let mut pages = Vec::with_capacity(numbers.len());
     for (number, output) in numbers.into_iter().zip(outputs) {
         settings.stop_if_cancelled()?;
@@ -238,9 +267,8 @@ pub fn render(args: &RenderArgs, settings: &Settings, io: &mut dyn Io) -> Result
         let mut rgba = vec![0; plan.byte_len()];
         doc.render(&request, &mut rgba, &settings.cancel)?;
         let (width, height) = (plan.tile.width, plan.tile.height);
-        let image = png(width, height, &rgba)?;
         if !settings.dry_run {
-            io.write(&output, &image, settings.force)?;
+            io.write(&output, &png(width, height, &rgba)?, settings.force)?;
         }
         pages.push(RenderedPage {
             index,

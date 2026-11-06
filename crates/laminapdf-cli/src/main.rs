@@ -246,9 +246,10 @@ trait ForInput: Clone {
     /// These arguments with `input`, the command's input number `index`, as the input.
     fn for_input(&self, input: &str, index: usize) -> Self;
 
-    /// Refuses, before any input is read, what can't work for these `inputs` together.
-    fn check_inputs(&self, inputs: &[String]) -> Result<(), CliError> {
-        let _ = inputs;
+    /// Refuses, before any input is read, what can't work for these `inputs` together;
+    /// `batch` when they print as a batch.
+    fn check_inputs(&self, inputs: &[String], batch: bool) -> Result<(), CliError> {
+        let _ = (inputs, batch);
         Ok(())
     }
 }
@@ -275,8 +276,8 @@ impl ForInput for RenderArgs {
         args
     }
 
-    fn check_inputs(&self, inputs: &[String]) -> Result<(), CliError> {
-        commands::check_outputs(self, inputs)
+    fn check_inputs(&self, inputs: &[String], batch: bool) -> Result<(), CliError> {
+        commands::check_outputs(self, inputs, batch)
     }
 }
 
@@ -294,10 +295,12 @@ where
     A: Args + ForInput + Sync,
     F: Fn(&A, &Settings, &mut dyn Io) -> Result<Outcome, CliError> + Sync,
 {
-    let inputs = match many
-        .expand(io)
-        .and_then(|inputs| many.args.check_inputs(&inputs).map(|()| inputs))
-    {
+    let listed = many.batch.files_from.is_some();
+    let checked = many.expand(io).and_then(|inputs| {
+        let batch = inputs.len() > 1 || listed;
+        many.args.check_inputs(&inputs, batch).map(|()| inputs)
+    });
+    let inputs = match checked {
         Ok(inputs) => inputs,
         Err(error) => {
             render::error(streams, &error, None, global.json);
@@ -305,7 +308,7 @@ where
         }
     };
     // A list may hold one file or many, so a list always prints as a batch.
-    if let ([input], None) = (inputs.as_slice(), &many.batch.files_from) {
+    if let ([input], false) = (inputs.as_slice(), listed) {
         let outcome = one(&many.args.for_input(input, 0), settings, io);
         return finish(streams, global, outcome, Some(input));
     }

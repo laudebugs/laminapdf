@@ -43,7 +43,6 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::commands::{self, CheckArgs, ExplainArgs, ExtractArgs, Format, InfoArgs, RenderArgs, RotateArgs, Settings};
 use crate::exit::CliError;
-use crate::template::Template;
 use roots::{RootedIo, Roots};
 
 /// `laminapdf mcp`.
@@ -235,6 +234,8 @@ fn run_tool(
     allow_in_place: bool,
 ) -> Result<Value, Failure> {
     let mut io = RootedIo::new(roots);
+    // Each call writes its own files: the paths one call claims never refuse another's.
+    settings.claimed = Arc::default();
     match name {
         "laminapdf_check" => {
             let args: CheckArgs = parse(arguments)?;
@@ -258,14 +259,6 @@ fn run_tool(
         }
         "laminapdf_render" => {
             let args: RenderArgs = parse(arguments)?;
-            if Template::parse(&args.output).is_ok_and(|t| t.is_stdout()) {
-                let error = CliError::new(
-                    ErrorCode::InvalidCommandLine,
-                    "the render tool writes files, not standard output",
-                )
-                .with("output", args.output.as_str());
-                return Err((error, Some(args.input)));
-            }
             report(commands::render(&args, &settings, &mut io), Some(&args.input))
         }
         // `call` checked the name against the listed tools; the rotate tool is the one left.

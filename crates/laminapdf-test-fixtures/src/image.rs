@@ -1,6 +1,6 @@
 //! Images in tests: straight-RGBA bitmaps, PNG files, and the comparison render goldens use
 //! (SSIM on luma, ADR 0004: ≥ 0.99 against a backend's own golden).
-#![allow(
+#![expect(
     clippy::cast_precision_loss,
     clippy::many_single_char_names,
     clippy::missing_panics_doc,

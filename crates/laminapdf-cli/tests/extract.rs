@@ -41,6 +41,8 @@ fn hidden_text() -> std::path::PathBuf {
 fn markdown_json_and_chunks_should_leave_hidden_text_out() {
     let path = hidden_text();
     let markdown = laminapdf(&["extract", arg(&path), "--format", "md"]);
+    let md_json = laminapdf(&["extract", arg(&path), "--format", "md", "--json"]).json();
+    assert_eq!(md_json["markdown"], "Visible words on the page.\n");
     assert_eq!(markdown.stdout_text(), "Visible words on the page.\n");
     let json = laminapdf(&["extract", arg(&path), "--format", "json"]).json();
     Validator::new().check("extract.schema.json", &json);

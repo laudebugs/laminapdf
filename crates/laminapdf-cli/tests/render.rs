@@ -255,3 +255,48 @@ fn the_pdfium_backend_should_say_when_it_has_no_library() {
     assert_eq!(run.code, 1);
     assert_eq!(run.stderr_json()[0]["error"]["code"], "render-backend-unavailable");
 }
+
+#[test]
+fn the_default_resolution_should_give_whole_pixels_for_a_letter_page() {
+    let run = laminapdf(&["render", "fixtures/corpus/hello.pdf", "-o", "-", "--dry-run", "--json"]);
+    let page = &run.json()["pages"][0];
+    // 612 × 792 pt at 150 dpi.
+    assert_eq!(
+        (page["width"].as_u64(), page["height"].as_u64()),
+        (Some(1275), Some(1650))
+    );
+}
+
+#[test]
+fn flags_render_cant_honour_should_be_refused() {
+    let out = folder("render-refused-flags");
+    let template = out.join("{n}.png");
+    let strict = laminapdf(&["render", "fixtures/corpus/hello.pdf", "-o", arg(&template), "--strict"]);
+    let list = run(
+        &["render", "--files-from", "-", "-o", "-"],
+        Some(b"fixtures/corpus/hello.pdf\n"),
+        &[],
+    );
+    let twice = laminapdf(&[
+        "render",
+        "fixtures/corpus/outline.pdf",
+        "--pages",
+        "1,1",
+        "-o",
+        arg(&template),
+        "--json",
+    ]);
+    assert_eq!(
+        (strict.code, list.code, twice.code),
+        (2, 2, 2),
+        "{} {} {}",
+        strict.stderr,
+        list.stderr,
+        twice.stderr
+    );
+    assert_eq!(
+        twice.stderr_json()[0]["error"]["message"],
+        "the page range names a page twice"
+    );
+    assert_eq!(std::fs::read_dir(&out).unwrap().count(), 0);
+}

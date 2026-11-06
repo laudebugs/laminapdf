@@ -146,14 +146,28 @@ impl Io for RootedIo<'_> {
     }
 
     fn write(&mut self, output: &str, bytes: &[u8], force: bool) -> Result<(), CliError> {
+        no_stdout(output)?;
         let path = self.roots.output(output)?;
         check_file(&path, output, force)?;
         write_file(&path, output, bytes)
     }
 
     fn check(&self, output: &str, force: bool) -> Result<(), CliError> {
+        no_stdout(output)?;
         check_file(&self.roots.output(output)?, output, force)
     }
+}
+
+/// `-` is the server's own standard output, which carries the protocol: never an output here.
+fn no_stdout(output: &str) -> Result<(), CliError> {
+    if output == crate::io::STDIO {
+        return Err(CliError::new(
+            ErrorCode::InvalidCommandLine,
+            "the server's tools write files, not standard output",
+        )
+        .with("output", output));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

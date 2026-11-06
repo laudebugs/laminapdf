@@ -230,6 +230,16 @@ async fn writing_should_need_the_servers_flags() {
     )
     .await;
     assert_eq!(error(&existing)["code"], "overwrite-refused");
+    for (tool, arguments) in [
+        (
+            "laminapdf_pages_rotate",
+            json!({ "input": "hello.pdf", "rotation": "90", "output": "-" }),
+        ),
+        ("laminapdf_render", json!({ "input": "hello.pdf", "output": "-" })),
+    ] {
+        let stdout = call(&writer, tool, arguments).await;
+        assert_eq!(error(&stdout)["code"], "invalid-command-line", "{tool}");
+    }
     let replacing = connect(&base, &["--allow-write", "--allow-in-place"]).await;
     let done = call(
         &replacing,
