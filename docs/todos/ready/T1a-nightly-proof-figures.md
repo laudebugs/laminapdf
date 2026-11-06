@@ -1,4 +1,4 @@
-# T1a — The nightly records the figures that show how robust the core is
+# T1a — The nightly records the figures that show how the core copes with real files
 
 | Field | Value |
 | --- | --- |

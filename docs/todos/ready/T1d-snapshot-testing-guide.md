@@ -8,8 +8,8 @@
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
 | ADRs | Follows [0007 §6](../../decisions/0007-save-planner.md#6-sinks-and-determinism) (byte-deterministic output: no clocks, `/ID[1]` from a content hash), [0017](../../decisions/0017-versioning-and-release.md#3-0x-semantics-and-pre-releases) (versions; the stability page counts changed bytes as a breaking change), [0004](../../decisions/0004-render-backend.md#2-adapters-and-default-per-surface) (hayro, the pure-Rust renderer, for drawing pages outside the viewer) |
-| Branch | `docs/t1d-snapshot-testing-guide` |
-| PR title | `docs(guides): test the PDFs you generate against reference PDFs` |
+| Branch | `feat/t1d-snapshot-testing-guide` |
+| PR title | `feat(docs): a guide and examples for testing the PDFs you generate against reference PDFs` |
 | Size | M (≈ 250–350 lines of examples and tests, plus the guide: a TypeScript and Rust example pair, a TypeScript page-comparison example, their tests and a small change to the snippet check) |
 | PR | — |
 
@@ -23,7 +23,7 @@ Developers on Hacker News complain that generators change their output under the
 
 - [Report R9](../../research/hacker-news/pdf-users-on-hacker-news.md#r9-say-loudly-what-lamina-already-has) and the [generation note](../../research/hacker-news/notes/generation.md), §1.15 and recommendation 7 ("Sell byte-identical output and test tooling").
 - What makes output repeatable, and the API a test uses:
-  - `BuildOptions` (`crates/laminapdf-build/src/builder.rs`): `with_id` fixes `/ID[0]` (without it the writer derives one from the content, which is just as repeatable), `with_producer`, and `with_creation_date`, which is given and never read from a clock. `with_compress(false)` keeps content streams readable. `Metadata::with_mod_date` sets the other date.
+  - `BuildOptions` (`crates/laminapdf-build/src/builder.rs`): `with_id` fixes `/ID[0]` (without it the writer derives one from the content, which is equally repeatable), `with_producer`, and `with_creation_date`, which is given and never read from a clock. `with_compress(false)` keeps content streams readable. `Metadata::with_mod_date` sets the other date.
   - TypeScript's `BuilderOptions` (`packages/sdk/src/builder.ts`): `id` (32 hex digits or 16 bytes), `producer`, `creationDate` (`"D:20261030120000Z"`), `compress`.
   - [ADR 0007 §6](../../decisions/0007-save-planner.md#6-sinks-and-determinism): saves are byte-deterministic too, so an edited file saves the same way twice.
   - The docs site's [stability policy](../../../apps/docs/src/content/docs/reference/stability.mdx): a change to the bytes written for the same input and options is a breaking change, and "the same input gives the same bytes everywhere" holds across versions.

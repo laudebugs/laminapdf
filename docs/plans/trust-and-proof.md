@@ -62,10 +62,10 @@ The nightly already runs Lamina PDF against pdf.js, PDFium, qpdf and pypdf on th
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T1a](../todos/ready/T1a-nightly-proof-figures.md) | The nightly records the figures that show how robust the core is | M | — |
+| [T1a](../todos/ready/T1a-nightly-proof-figures.md) | The nightly records the figures that show how the core copes with real files | L | — |
 | [T1b](../todos/ready/T1b-how-we-test-page.md) | A "How we test" page on the website, with the nightly's figures, the licence and where the code comes from | M | T1a |
-| [T1c](../todos/ready/T1c-publish-performance-numbers.md) | Publish extraction scores and speed, and generation timings | M | — |
-| [T1d](../todos/ready/T1d-snapshot-testing-guide.md) | A docs guide: snapshot-test your own generated PDFs | S | — |
+| [T1c](../todos/ready/T1c-publish-performance-numbers.md) | Publish extraction scores and speed, and generation timings | L | — |
+| [T1d](../todos/ready/T1d-snapshot-testing-guide.md) | A docs guide: snapshot-test your own generated PDFs | M | — |
 
 ### T2. Find what files hide
 
@@ -83,8 +83,8 @@ Users now ask whether they can check what an extractor returned. T3 gives each p
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T3a](../todos/ready/T3a-text-layer-status.md) | A per-page text-layer status that says when a page needs OCR | M | — |
-| [T3b](../todos/ready/T3b-reading-order-confidence.md) | Warn when a page's column order is uncertain | M | — |
+| [T3a](../todos/ready/T3a-text-layer-status.md) | A per-page text-layer status that says when a page needs OCR | L | — |
+| [T3b](../todos/ready/T3b-reading-order-confidence.md) | Warn when a page's column order is uncertain | L | — |
 | [T3c](../todos/ready/T3c-tables-across-pages.md) | Join tables that continue across pages | M | — |
 
 ### T4. Pages that flow

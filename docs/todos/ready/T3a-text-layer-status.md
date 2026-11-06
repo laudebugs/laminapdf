@@ -24,7 +24,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 - The code:
   - `crates/laminapdf-extract/src/page.rs`: `runs()` flags each run with `visibility::flags()`; `extract_page()` builds the `ExtractedPage`.
   - `crates/laminapdf-extract/src/job.rs`: `ExtractJob::run` calls `TextExtractor::page` when tables are off and `page_with` (with `tables::Collector`) otherwise.
-  - `crates/laminapdf-text/src/extract/mod.rs`: `TextExtractor::page_with` forwards only path events (`path_segment`, `paint_path`) to its visitor. `Glyph::mapped` and `PageText::unmapped` count glyphs no rule maps to Unicode (Type 3 and other fonts without ToUnicode, usable names or a `cmap`).
+  - `crates/laminapdf-text/src/extract/mod.rs`: `TextExtractor::page_with` forwards only path events (`path_segment`, `paint_path`) to its visitor. `Glyph::mapped` is false for a glyph no rule maps to Unicode (Type 3 and other fonts without ToUnicode, usable names or a `cmap`), and `PageText::unmapped` counts such glyphs.
   - `crates/laminapdf-content/src/visitor.rs`: `Visitor::image` reports every image XObject and inline image, stencil masks included, with `ImageDraw::state.ctm` mapping the unit square to user space, inside Form XObjects too.
 - [L3f](../done/L3f-extraction-benchmark.md) and `cargo xtask extract-bench`: the three scored olmOCR-bench subsets hold the scanned pages that gave no text, so they check the status on real files.
 - [L3c](./L3c-model-plugins.md) plans to OCR "pages without a usable text layer"; this todo defines that test, so L3c can pick pages by the status. [E13c](./E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.

@@ -28,7 +28,7 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 - Speed: [pdf-library §4](../../plans/pdf-library.md#4-requirements) asks for a 100-page text report in at most 500 ms after `init()`, and [B5d](../done/B5d-text-report-generation-performance.md) measured 39 ms natively. A Typst user reports a two-page invoice in under 100 ms ([45697377](https://news.ycombinator.com/item?id=45697377)). [T1c](./T1c-publish-performance-numbers.md) publishes generation timings.
 - [ADR 0031](../../decisions/0031-cli-and-mcp-contract.md): verbs come first ([§2](../../decisions/0031-cli-and-mcp-contract.md#2-grammar)), and `render` already means rasterising pages ([L4e](./L4e-cli-render.md)); reports are versioned JSON ([§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output)); MCP is read-only unless started with `--allow-write` ([§9](../../decisions/0031-cli-and-mcp-contract.md#9-mcp-defaults-for-l4c)). The [trust and proof plan §9](../../plans/trust-and-proof.md#9-open-questions) asks whether output should be tagged by default (question 1) and whether generation becomes an MCP tool (question 2).
 - [E6d](./E6d-watermarks-headers-footers.md) stamps headers, footers and page numbers onto existing documents. One field syntax should serve E6d and the flow layer.
-- [E13f](./E13f-office-and-html-to-pdf.md) keeps HTML and Office conversion a server-side job; the library doesn't take HTML.
+- [E13f](./E13f-office-and-html-to-pdf.md) converts HTML and Office files as an opt-in server job (Browser Run, LibreOffice); the library doesn't take HTML.
 
 ## Scope
 

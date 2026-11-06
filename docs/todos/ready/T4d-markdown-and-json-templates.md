@@ -53,7 +53,7 @@ Turn Markdown into flowing, tagged pages: from Rust, from `laminapdf build repor
   | footnote | a note | `Reference`, `Note` |
   | front matter | metadata and language | `/Title`, `/Lang` |
 
-- **What is dropped,** as warnings in T4b's `buildWarnings` group, each with its `docs/errors/` page and a location (a byte offset into the Markdown, in a data field) instead of the text: `markdown-html-ignored` (raw HTML) and `markdown-image-missing` (an image the caller didn't supply, or a remote URL: nothing is fetched).
+- **What is dropped,** as warnings in T4b's `buildWarnings` group, each with its `docs/errors/` page and a location (a byte offset into the Markdown, in its `data`) instead of the text: `markdown-html-ignored` (raw HTML) and `markdown-image-missing` (an image the caller didn't supply, or a remote URL: nothing is fetched).
 - **Options** (`MarkdownOptions`, new): fonts by role (body, bold, italic, bold italic, mono, headings), sizes, the page template (by default A4, its margins, and a "Page {page} of {pages}" footer), and images as a map from the link target to an `Image`. Without fonts, the front end uses the standard 14 Helvetica family and Courier, which set Latin text only, unshaped, and which PDF/UA-1 refuses (`font-not-embedded`). ADR 0032 may choose another default.
 - **The façade:** a `markdown` feature with `laminapdf::markdown` and `Builder::markdown(text, &MarkdownOptions)` (new), returning what the flow added and its warnings.
 - **The CLI:** `laminapdf build <input.md | -> -o OUT`, with `--font ROLE=FILE` (repeatable), `--page-size`, `--profile`, `--lang` and `--title`.

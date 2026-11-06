@@ -58,6 +58,7 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Selecting text over a scan selects the OCR words at the right positions in pdf.js and PDFium
 - [ ] pdftotext extracts the OCR text
+- [ ] `laminapdf-extract` reads every page this adds a layer to as `ocr-layer` ([T3a](./T3a-text-layer-status.md))
 
 ## Post-merge checks
 
