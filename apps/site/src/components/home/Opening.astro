@@ -14,10 +14,10 @@ interface Props {
 }
 
 const tabs = [
-  { id: "typescript", label: "TypeScript", code: typescriptFirstPdf() },
-  { id: "rust", label: "Rust", code: rustFirstPdf() },
-  { id: "cli", label: "Command line", code: cliCommands() },
-];
+  { id: "typescript", label: "TypeScript", code: typescriptFirstPdf(), lang: "ts" },
+  { id: "rust", label: "Rust", code: rustFirstPdf(), lang: "rust" },
+  { id: "cli", label: "Command line", code: cliCommands(), lang: "console" },
+] as const;
 ---
 
 <section class="opening" aria-labelledby="home-title">
