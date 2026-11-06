@@ -47,7 +47,7 @@ The cadence is at most one release a day, set by the nightly. A release on every
 
 - **The bot's key is a repository secret.** Any workflow on a same-repository pull request can read repository secrets, and environments that would fence them off aren't available to a private repository on the owner's plan. The app gets only contents and pull-request permissions on this one repository, and the owner can revoke it in one step.
 - **A version pull request can conflict.** Pull requests merged after the nightly's commit may touch the same lines, most likely in `Cargo.lock`. The release is published by then, so the fix is a merge of `main` into the branch. The next day's release waits until the pull request has merged.
-- **A second-level name needs its own certificate.** Cloudflare's universal certificate covers `*.laminapdf.com` but not `*.docs.laminapdf.com`. P4 checks first that the Workers custom domain issues one for `next.docs.laminapdf.com`, and asks the owner otherwise.
+- **A second-level name needs its own certificate.** Cloudflare's universal certificate covers `*.laminapdf.com` but not `*.docs.laminapdf.com`. A Workers custom domain issues its own, so `next.docs.laminapdf.com` needs nothing more (P4 checked).
 - **GitHub-hosted minutes.** The npm job is the project's first on a GitHub-hosted runner. It downloads the tarballs and publishes them, a few minutes a release, and runs no code from the repository.
 - **Docs between a merge and its release.** A change merged today is on `next.docs` at once but reaches `docs.laminapdf.com` only with tomorrow's release. That is the point: the live docs match what users can install.
 
@@ -55,7 +55,7 @@ The cadence is at most one release a day, set by the nightly. A release on every
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [P4](../todos/ongoing/P4-docs-match-the-release.md) | Docs that match the release: the version on every page, exact install lines, `main` at `next.docs.laminapdf.com`, production docs from the release lane | P3 |
+| [P4](../todos/done/P4-docs-match-the-release.md) | Docs that match the release: the version on every page, exact install lines, `main` at `next.docs.laminapdf.com`, production docs from the release lane | P3 |
 | [P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md) | npm trusted publishing from a GitHub-hosted runner, and a release lane that skips its nightly run for a version-only commit | P2 |
 | [P6](../todos/ready/P6-daily-release.md) | The daily release: `release-train.yml`, `cargo xtask release prepare`, the release bot and its version pull request | P4, P5 |
 
@@ -63,7 +63,7 @@ Workflow files can't be pushed by the agents' GitHub access, so each todo's pull
 
 ## 7. To-dos
 
-- [ ] Show the released version on every docs page, and serve `main`'s docs at `next.docs.laminapdf.com` ([P4](../todos/ongoing/P4-docs-match-the-release.md))
+- [x] Show the released version on every docs page, and serve `main`'s docs at `next.docs.laminapdf.com` ([P4](../todos/done/P4-docs-match-the-release.md))
 - [ ] Publish to npm without a stored token or an approval step, and skip the release lane's second nightly run for a version-only commit ([P5](../todos/ready/P5-npm-trusted-publishing-and-version-only-releases.md))
 - [ ] Release once a day, after the nightly passes, with no human step ([P6](../todos/ready/P6-daily-release.md))
 

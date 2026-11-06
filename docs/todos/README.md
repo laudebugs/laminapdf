@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `W` [website](../plans/website.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 183 ready · 127 done** (311 total).
+**0 ongoing · 183 ready · 128 done** (311 total).
 
 ## Can start now
 
@@ -32,7 +32,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 
 ## Ongoing
 
-- [P4](ongoing/P4-docs-match-the-release.md): Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`
+Nothing on `main`; open PRs may hold claims (`gh pr list`).
 
 ## Architecture — Round A
 
@@ -344,9 +344,9 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 | P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](done/P1-reserve-names-and-trusted-publishing.md) | done | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md), [P0b](done/P0b-crate-names-laminapdf.md), [P0c](done/P0c-lamina-pdf-names.md) |
 | P2 | [First registry pre-release: 0.2.0-alpha.1, the stability policy, MSRV N-2](done/P2-first-registry-prerelease.md) | done | [P1](done/P1-reserve-names-and-trusted-publishing.md) |
 | P3 | [Registry checks after the first release: installs, semver, docs](done/P3-registry-checks.md) | done | [P2](done/P2-first-registry-prerelease.md) |
-| P4 | [Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`](ongoing/P4-docs-match-the-release.md) | ongoing | [P3](done/P3-registry-checks.md) |
+| P4 | [Docs that match the release: the version on every page, `main` at `next.docs.laminapdf.com`](done/P4-docs-match-the-release.md) | done | [P3](done/P3-registry-checks.md) |
 | P5 | [npm trusted publishing, and a release lane that skips its nightly run for a version-only commit](ready/P5-npm-trusted-publishing-and-version-only-releases.md) | ready | [P2](done/P2-first-registry-prerelease.md) |
-| P6 | [The daily release: the release bot, its version commit and pull request](ready/P6-daily-release.md) | ready | [P4](ongoing/P4-docs-match-the-release.md), [P5](ready/P5-npm-trusted-publishing-and-version-only-releases.md) |
+| P6 | [The daily release: the release bot, its version commit and pull request](ready/P6-daily-release.md) | ready | [P4](done/P4-docs-match-the-release.md), [P5](ready/P5-npm-trusted-publishing-and-version-only-releases.md) |
 
 ## Docs and code quality — Round Q
 
