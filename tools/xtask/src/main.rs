@@ -35,6 +35,7 @@ mod render_diff;
 mod reports;
 mod roundtrip;
 mod runner;
+mod semver;
 mod todos;
 mod tracked;
 mod ts_structure;
@@ -231,6 +232,11 @@ tasks:
                     pages, memory, fling and zoom against the web plan's §4 targets, written to
                     target/viewer-perf/ and the job summary (never fails on a target); --history flags
                     >10% regressions, --record appends to <dir>/history.jsonl, --dry-run prints the issue
+  semver [--baseline <version>]
+                    the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
+                    Extractor, after `wasm`) against the newest published version; breaking changes
+                    fail unless the changesets give the fixed group a minor bump (pending ones, or
+                    those a version PR consumed while its version awaits npm)
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
@@ -363,6 +369,7 @@ fn main() -> Result<()> {
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
+        ("semver", args) => semver::run(&ws, args),
         ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;

@@ -76,6 +76,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
+    "@microsoft/api-extractor": "catalog:",
     "@laminapdf/test-utils": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",

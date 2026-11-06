@@ -67,9 +67,11 @@ const config: KnipConfig = {
   // knip finds pnpm's workspaces itself; the generated package is left out here too.
   ignoreWorkspaces: ["packages/wasm"],
   ignoreDependencies: [
-    // Run by `cargo xtask pdf-runtimes` as `pnpm exec deno` and `pnpm exec bun`, which knip can't see.
+    // Run by `cargo xtask pdf-runtimes` as `pnpm exec deno` and `pnpm exec bun`, and by `cargo xtask
+    // semver` as `pnpm --filter @laminapdf/sdk exec api-extractor`, which knip can't see.
     "deno",
     "bun",
+    "@microsoft/api-extractor",
   ],
 };
 
