@@ -30,7 +30,9 @@ From a clean checkout of the exact commit of a completed full nightly on `main`,
 cargo xtask release prepare --run <nightly-run-id>
 ```
 
-The command validates the run again. It asks `pnpm changeset status` for the next version, refuses an open version PR, any remaining `release/v*` branch or an existing tag, then runs `pnpm changeset version` and `version sync`. It stages the result, checks the version-only rule and commits it on `release/v<version>`. It never tags, pushes, publishes or opens a PR.
+The command validates the run again. When a detached checkout lacks the configured Changesets base ref, it creates that branch at the tested commit. It preserves existing refs and keeps HEAD on the tested commit.
+
+It asks `pnpm changeset status` for the next version, refuses an open version PR, any remaining `release/v*` branch or an existing tag, then runs `pnpm changeset version` and `version sync`. It stages the result, checks the version-only rule and commits it on `release/v<version>`. It never tags, pushes, publishes or opens a PR.
 
 In Actions it writes `ready=false` when nothing is pending, or `version`, `branch`, `tag` and `ready=true` after the commit succeeds. Use a disposable checkout when trying it by hand: a failed preparation leaves its files and branch for inspection.
 
