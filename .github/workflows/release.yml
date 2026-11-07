@@ -736,3 +736,81 @@ jobs:
         run: |
           # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
           cargo xtask verify-install $RUNTIMES --from-registry
+
+  # docs.yml otherwise permits an owner without Cloudflare secrets to skip deployment.
+  # The automatic release must fail instead of calling that a completed release.
+  docs-ready:
+    name: Require the production docs credentials
+    needs: [publish-crates, publish-npm, github-release, verify-registry]
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' && needs.github-release.result == 'success' && needs.verify-registry.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 5
+    steps:
+      - name: Refuse to skip the production deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::The daily release requires the production docs credentials."
+            exit 1
+          fi
+
+  # Only tag pushes deploy released docs; a dispatched release remains a dry run.
+  docs:
+    name: Deploy the released docs
+    needs: [guard, docs-ready]
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.docs-ready.result == 'success' }}
+    # The reusable workflow declares a PR-comment permission, even though that job is skipped here.
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/docs.yml
+    with:
+      tag: ${{ needs.guard.outputs.ref }}
+    secrets: inherit
+
+  version-pr:
+    name: Merge the published version back to main
+    needs: [guard, docs]
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.docs.result == 'success' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.guard.outputs.ref }}
+          persist-credentials: false
+      - name: Create the release bot's token
+        id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open the version pull request and enable auto-merge
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch="release/$TAG"
+          remote=$(git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
+            ls-remote --heads origin "refs/heads/$branch")
+          if [ -z "$remote" ]; then
+            echo "No version branch: a manual release, or its version PR already merged."
+            exit 0
+          fi
+          if [ "${remote%%[[:space:]]*}" != "$COMMIT" ]; then
+            echo "::error::The version branch differs from the published commit; recover it by hand."
+            exit 1
+          fi
+          pr=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
+          if [ -z "$pr" ]; then
+            printf 'Published %s and deployed its docs. Merge this version bump to consume the released changesets.\n' "$TAG" > "$RUNNER_TEMP/version-pr.md"
+            pr=$(gh pr create --head "$branch" --base main --title "release: $TAG" --body-file "$RUNNER_TEMP/version-pr.md")
+          fi
+          gh pr merge "$pr" --auto --squash --match-head-commit "$COMMIT"
