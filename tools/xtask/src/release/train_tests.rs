@@ -1,5 +1,6 @@
 //! The owner installs these workflows from tools/release: never merge a partial installation.
 
+use super::FULL_DISPATCH_TITLE;
 use crate::workflows::{jobs, lines_of, needs};
 
 const TRAIN: &str = include_str!("../../../release/release-train.yml");
@@ -24,6 +25,10 @@ fn train_should_require_a_full_successful_main_nightly_and_honor_the_kill_switch
         assert!(trigger.contains(condition), "missing trigger {condition}");
     }
     let prepare = lines_of(TRAIN, "jobs", "prepare").join("\n");
+    // The title nightly.yml gives a full dispatch (checked by release.rs's run-name test), so
+    // renaming it on either side fails a test instead of silently stopping dispatched releases.
+    let full_dispatch = format!("display_title == '{FULL_DISPATCH_TITLE}'");
+    assert!(prepare.contains(&full_dispatch), "missing safeguard {full_dispatch}");
     for condition in [
         "vars.RELEASE_TRAIN != 'off'",
         "head_repository.full_name == github.repository",
@@ -31,7 +36,6 @@ fn train_should_require_a_full_successful_main_nightly_and_honor_the_kill_switch
         "conclusion == 'success'",
         "event == 'schedule'",
         "event == 'workflow_dispatch'",
-        "display_title == 'Nightly (full budgets)'",
         "ref: ${{ github.event.workflow_run.head_sha }}",
         "persist-credentials: false",
         "fetch-depth: 0",

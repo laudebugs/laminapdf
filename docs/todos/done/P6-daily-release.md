@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `P6` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [releases §3](../../plans/releases.md#3-the-daily-release) |
 | Round / milestone | Publishing |
-| Depends on | [P4](../done/P4-docs-match-the-release.md), [P5](../done/P5-npm-trusted-publishing-and-version-only-releases.md) |
+| Depends on | [P4](./P4-docs-match-the-release.md), [P5](./P5-npm-trusted-publishing-and-version-only-releases.md) |
 | ADRs | Implements [0017 §5](../../decisions/0017-versioning-and-release.md#5-tags) (amended 2026-11-05) |
 | Branch | `build/p6-daily-release` |
 | PR title | `build: release once a day after the nightly passes` |
@@ -44,12 +44,12 @@ Release on its own once a day. When a full nightly passes on `main` and changese
 
 ## Acceptance criteria
 
-- [ ] With no pending changeset, a passing nightly releases nothing
-- [ ] With one, a passing nightly ends with the version on crates.io and npm, its docs on `docs.laminapdf.com`, and the bump merged into `main`, with no human step
-- [ ] A failed or partial nightly, an open version pull request or an existing tag releases nothing; `RELEASE_TRAIN=off` releases nothing
+- [x] With no pending changeset, a passing nightly releases nothing
+- [x] A failed or partial nightly, an open version pull request or an existing tag releases nothing; `RELEASE_TRAIN=off` releases nothing
 
 ## Post-merge checks
 
+- [ ] With one, a passing nightly ends with the version on crates.io and npm, its docs on `docs.laminapdf.com`, and the bump merged into `main`, with no human step
 - [ ] The first daily release publishes and merges its version pull request
 
 ## Tests
@@ -58,7 +58,7 @@ xtask unit tests (`release prepare` over fixture changesets, the refusals, the w
 
 ## Docs to update
 
-- [ ] `docs/guidelines/contributing.md`, `CLAUDE.md`, [releases plan §7](../../plans/releases.md#7-to-dos), [architecture: Publishing (later)](../../plans/architecture.md#publishing-later)
+- [x] `docs/guidelines/contributing.md`, `CLAUDE.md`, [releases plan §7](../../plans/releases.md#7-to-dos), [architecture: Publishing (later)](../../plans/architecture.md#publishing-later)
 
 ## Risks and open questions
 
@@ -67,11 +67,11 @@ xtask unit tests (`release prepare` over fixture changesets, the refusals, the w
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process)) — not met: #271 had a manual review only (findings and fixes in its squash message); the `/code-review` and `/writing-review` skills weren't available in that session
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 
 ## Implementation notes
 
