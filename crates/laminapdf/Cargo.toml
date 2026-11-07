@@ -8,8 +8,8 @@ license.workspace = true
 repository.workspace = true
 publish = true
 readme = "README.md"
-# docs/ is generated and gitignored (`cargo xtask publish crates` writes it first), so it is
-# listed here: cargo leaves gitignored files out unless `include` names them.
+# Release preparation generates docs/ and commits it in the signed release tree. It is listed here
+# so the crate package carries that exact snapshot; the path stays ignored between releases.
 include = ["src/**", "schemas/**", "examples/**", "tests/**", "benches/**", "docs/**", "README.md"]
 homepage.workspace = true
 documentation.workspace = true

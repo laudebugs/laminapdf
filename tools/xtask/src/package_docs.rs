@@ -38,7 +38,7 @@ pub(crate) fn check_crate(ws: &Workspace, version: &str) -> Result<()> {
     let docs = ws.root.join("crates/laminapdf/docs");
     let mut problems = problems(&docs, &codes(ws)?, version, false)?;
     let output = std::process::Command::new(crate::program_path("cargo"))
-        .args(["package", "--list", "--allow-dirty", "-p", "laminapdf"])
+        .args(["package", "--list", "-p", "laminapdf"])
         .current_dir(&ws.root)
         .output()
         .context("running `cargo package --list`")?;

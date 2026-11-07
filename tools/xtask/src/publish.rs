@@ -74,9 +74,7 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     if !dry_run && std::env::var_os("CARGO_REGISTRY_TOKEN").is_none() {
         bail!("CARGO_REGISTRY_TOKEN is not set: the release workflow gets it from crates.io's trusted publishing");
     }
-    clean_for_publish(&ws.root)?;
     let version = crate::version::fixed_group_version(&ws.root)?.version;
-    crate_docs(ws)?;
     crate::package_docs::check_crate(ws, &version)?;
     let mut args = cargo_publish_args(dry_run);
     if !dry_run {
@@ -97,26 +95,8 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     ws.cargo(&args)
 }
 
-/// Refuse unrelated changes before generating the ignored package docs that require
-/// `--allow-dirty`; otherwise Cargo could include a developer's uncommitted source edits.
-fn clean_for_publish(root: &Path) -> Result<()> {
-    let status = crate::tracked::git(root, &["status", "--porcelain=v1", "--untracked-files=normal"])?;
-    if status.trim().is_empty() {
-        Ok(())
-    } else {
-        bail!("the checkout has changes unrelated to generated package docs:\n{status}")
-    }
-}
-
-/// The package docs are generated into a gitignored folder immediately before this command and
-/// checked against the crate package, so Cargo must accept those intentional uncommitted files.
 fn cargo_publish_args(dry_run: bool) -> Vec<String> {
-    let mut args = vec![
-        "publish".to_owned(),
-        "--workspace".to_owned(),
-        "--locked".to_owned(),
-        "--allow-dirty".to_owned(),
-    ];
+    let mut args = vec!["publish".to_owned(), "--workspace".to_owned(), "--locked".to_owned()];
     if dry_run {
         args.push("--dry-run".to_owned());
     }
@@ -126,19 +106,19 @@ fn cargo_publish_args(dry_run: bool) -> Vec<String> {
 /// The `laminapdf` crate's package docs (L5a): the site's pages, the code pages, `AGENTS.md` and
 /// `renames.json` as Markdown and JSON in `crates/laminapdf/docs/` (gitignored), which its
 /// `include` ships. Plain Node, no packages: the API reference is the npm package's only.
-fn crate_docs(ws: &Workspace) -> Result<()> {
+pub(crate) fn crate_docs(root: &Path) -> Result<()> {
     crate::step("package docs: crates/laminapdf/docs/");
     let node = std::process::Command::new(crate::program_path("node"))
         .arg("--version")
         .output();
     if !node.is_ok_and(|out| out.status.success()) {
         bail!(
-            "node is not on PATH: `publish crates` writes the laminapdf crate's docs/ with Node \
-             (in release.yml, give the publish-crates job `./.github/actions/node-pnpm` with `install: \"\"`)"
+            "node is not on PATH: `release prepare` writes the laminapdf crate's docs/ with Node \
+             (release-train.yml must set up Node before preparing the release)"
         );
     }
     crate::run(
-        &ws.root,
+        root,
         "node",
         &["apps/docs/scripts/package-docs.mjs", "crates/laminapdf/docs"],
     )
@@ -365,39 +345,15 @@ mod tests {
     }
 
     #[test]
-    fn cargo_publish_should_allow_the_generated_package_docs() {
+    fn cargo_publish_should_require_committed_package_docs() {
         assert_eq!(
             cargo_publish_args(false),
-            strings(&["publish", "--workspace", "--locked", "--allow-dirty"])
+            strings(&["publish", "--workspace", "--locked"])
         );
         assert_eq!(
             cargo_publish_args(true),
-            strings(&["publish", "--workspace", "--locked", "--allow-dirty", "--dry-run"])
+            strings(&["publish", "--workspace", "--locked", "--dry-run"])
         );
-    }
-
-    #[test]
-    fn clean_for_publish_should_refuse_uncommitted_sources() {
-        let tree = crate::tracked::TempTree::new("publish-clean", &[("tracked", "before")]);
-        crate::tracked::git(&tree.0, &["init", "-q"]).unwrap();
-        crate::tracked::git(&tree.0, &["add", "tracked"]).unwrap();
-        crate::tracked::git(
-            &tree.0,
-            &[
-                "-c",
-                "user.name=Test",
-                "-c",
-                "user.email=test@example.com",
-                "commit",
-                "-qm",
-                "initial",
-            ],
-        )
-        .unwrap();
-        assert!(clean_for_publish(&tree.0).is_ok());
-
-        fs::write(tree.0.join("tracked"), "after").unwrap();
-        assert!(clean_for_publish(&tree.0).is_err());
     }
 
     #[test]
