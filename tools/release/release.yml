@@ -12,7 +12,7 @@
 #                   over `cargo xtask wasm` (which runs publint and attw on @laminapdf/sdk)
 #   full suites     the full lane's: the full differential set, every fuzz target, the round
 #                   trip, the examples and render goldens, the capability matrix, @laminapdf/sdk in
-#                   every runtime, and `cargo xtask check` on Linux while that runner is on
+#                   every runtime, and `cargo xtask check` on hosted Linux Arm64
 #   nightly         nightly.yml itself, called as a reusable workflow on the release commit, unless
 #                   the guard found a version-only commit on top of a nightly-passed one
 #   verify-install  `cargo xtask verify-install`: the `pnpm pack` tarballs and the `laminapdf` crate
@@ -40,7 +40,7 @@
 # `ref` (default: the dispatched ref's commit) is what every job checks out and what
 # verify-install's git dependency pins; the called nightly workflow always runs on the dispatched
 # ref's commit, so dispatch on the ref you test. Same runner rules as the other lanes (ci.yml):
-# self-hosted macOS ARM64, isolate-rust-home, no rust-cache, pnpm in runner.temp. Artifacts are
+# hosted macOS Arm64 with explicit tool setup and main-only Rust cache writes. Artifacts are
 # prefixed `release-` so they never clash with the nightly jobs' in the same run.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Release
@@ -65,15 +65,21 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   # .config/nextest.toml: no retries (ADR 0018 §4).
   NEXTEST_PROFILE: ci
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   guard:
     name: Guard (latest nightly on main, tag = version)
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -81,7 +87,6 @@ jobs:
       actions: read
     outputs:
       ref: ${{ steps.ref.outputs.ref }}
-      linux: ${{ steps.linux.outputs.linux }}
       nightly: ${{ steps.guard.outputs.nightly }}
     steps:
       # A tag push tests the tag; a dispatch tests `inputs.ref`, else the dispatched commit.
@@ -99,34 +104,15 @@ jobs:
           fi
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "Testing $ref"
-      # The same switch and heartbeat as full.yml's check-linux (tools/ci-runner/linux/README.md).
-      - name: Is the Linux runner switched on and alive?
-        id: linux
-        env:
-          SWITCH: ${{ vars.LINUX_RUNNER }}
-          HEARTBEAT: ${{ vars.LINUX_RUNNER_HEARTBEAT }}
-        run: |
-          linux=false
-          if [ "$SWITCH" = true ]; then
-            if [[ "$HEARTBEAT" =~ ^[0-9]+$ ]] && [ $(( $(date +%s) - HEARTBEAT )) -le 900 ]; then
-              linux=true
-            else
-              echo "::warning::LINUX_RUNNER is true but the Linux runner's heartbeat is missing or older than 15 minutes, so check-linux is skipped"
-            fi
-          fi
-          echo "linux=$linux" >> "$GITHUB_OUTPUT"
       # Full history: the guard checks the nightly run's commit is an ancestor of this one.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.ref.outputs.ref }}
           persist-credentials: false
           fetch-depth: 0
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # --version-only: `nightly=skip` when HEAD adds only a version bump to the commit that
       # nightly tested (the daily release's commits), so the lane doesn't run it again.
       - name: Refuse unless the latest full nightly on main is green on an ancestor
@@ -148,19 +134,19 @@ jobs:
   fast:
     name: Fast lane (check, wasm with publint and attw, size)
     needs: guard
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-fast
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -184,42 +170,42 @@ jobs:
   differential:
     name: Differential (full mutant set)
     needs: guard
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-differential
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: cargo-nextest@0.9.150
       - run: cargo xtask differential --full
 
-  # The full lane's fuzz smoke at main's budget (2 minutes per target, 4 at once), from the corpus
+  # The full lane's fuzz smoke at main's budget (2 minutes per target, 2 at once), from the corpus
   # main saved; the release never saves the corpus. The nightly suites below fuzz for 10 minutes.
   fuzz:
     name: Fuzz smoke (2 min per target)
     needs: guard
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-fuzz
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
@@ -231,7 +217,7 @@ jobs:
           path: fuzz/corpus
           key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
           restore-keys: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-
-      - run: cargo xtask fuzz --all --time 120 --jobs 4
+      - run: cargo xtask fuzz --all --time 120 --jobs 2
       - name: Upload crashes
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -243,8 +229,7 @@ jobs:
   check-linux:
     name: Check (Linux ARM64)
     needs: guard
-    if: ${{ needs.guard.outputs.linux == 'true' }}
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -271,19 +256,23 @@ jobs:
   roundtrip:
     name: Round trip (lamina, qpdf, pdf.js, PDFium)
     needs: guard
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
+      - uses: ./.github/actions/qpdf
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          target-dir: release-roundtrip
+          python-version: "3.13"
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -299,19 +288,23 @@ jobs:
   examples:
     name: Examples (goldens, qpdf, PDFium and hayro render goldens)
     needs: guard
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
+      - uses: ./.github/actions/qpdf
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          target-dir: release-examples
+          python-version: "3.13"
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - name: qpdf and a Python venv with pypdfium2
         run: |
           qpdf --version
@@ -325,19 +318,19 @@ jobs:
   capabilities:
     name: Capability matrix
     needs: guard
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-capabilities
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - run: cargo xtask capabilities --check
 
   # @laminapdf/sdk's example suite in every runtime over the fast job's build (the fast lane runs
@@ -345,7 +338,7 @@ jobs:
   pdf-runtimes:
     name: "@laminapdf/sdk in ${{ matrix.runtime }}${{ matrix.node && format(' {0}', matrix.node) || '' }}"
     needs: [guard, fast]
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -369,12 +362,9 @@ jobs:
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - uses: ./.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
@@ -408,7 +398,7 @@ jobs:
   verify-install:
     name: verify-install (${{ matrix.name }})
     needs: [guard, fast]
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -428,12 +418,9 @@ jobs:
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-verify-install
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
       - uses: ./.github/actions/node-pnpm
         with:
@@ -449,8 +436,8 @@ jobs:
           # shellcheck disable=SC2086 # RUNTIMES is a space-separated list.
           cargo xtask verify-install $RUNTIMES --git-ref "$GIT_REF" --git-url "file://$GITHUB_WORKSPACE"
 
-  # The checks' result: every job passed (check-linux may be skipped while that runner is off, and
-  # nightly when the guard found the release commit is only a version bump on a nightly-tested one).
+  # Every job must pass. Only nightly may be skipped when the guard proved a version-only
+  # release commit on top of a nightly-tested commit.
   # The publish jobs below need it.
   release:
     name: Release checks passed
@@ -469,20 +456,18 @@ jobs:
         nightly,
         verify-install,
       ]
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check every job passed
         env:
           NEEDS: ${{ toJSON(needs) }}
-          LINUX: ${{ needs.guard.outputs.linux }}
           NIGHTLY: ${{ needs.guard.outputs.nightly }}
           REF: ${{ needs.guard.outputs.ref }}
         run: |
           set -euo pipefail
-          failed=$(jq -r --arg linux "$LINUX" --arg nightly "$NIGHTLY" 'to_entries
+          failed=$(jq -r --arg nightly "$NIGHTLY" 'to_entries
             | map(select(.value.result != "success"
-                and ((.key == "check-linux" and $linux != "true" and .value.result == "skipped") | not)
                 and ((.key == "nightly" and $nightly == "skip" and .value.result == "skipped") | not)))
             | map("\(.key): \(.value.result)") | join(", ")' <<<"$NEEDS")
           if [ -n "$failed" ]; then
@@ -494,13 +479,13 @@ jobs:
   # Publishing (ADR 0017 §7, todo P1): only after every check passed; for real only on a tag push
   # (`github.event_name == 'push' && github.ref_type == 'tag'`; a dispatch on a tag is a dry run).
   # A re-run after a partial publish skips the crates and packages already at the version.
-  # crates.io trusted publishing accepts self-hosted runners and private repositories, so the
+  # crates.io trusted publishing accepts GitHub-hosted runners, so the
   # workflow's OIDC token buys a short-lived crates.io token and no crates.io secret exists.
   publish-crates:
     name: Publish the crates${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 60
     # crates.io's trusted-publisher entries for these crates require the `release` environment:
     # the OIDC token only names it (claim `environment`) when the job declares it.
@@ -514,12 +499,9 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-publish-crates
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Node only, no `pnpm install`: `publish crates` writes the crate's docs/ with
       # apps/docs/scripts/package-docs.mjs, which needs no packages without --api.
       - uses: ./.github/actions/node-pnpm
@@ -542,7 +524,7 @@ jobs:
     name: Pack the npm packages
     needs: [guard, fast, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -553,12 +535,9 @@ jobs:
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-publish-npm
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - uses: ./.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
       # The tarballs and publish.json (the version, its dist-tag and the order).
@@ -630,7 +609,7 @@ jobs:
     name: SBOMs and the GitHub release${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, publish-crates, publish-npm]
     if: ${{ !cancelled() && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       # gh release create.
@@ -640,12 +619,9 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-sbom
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Same version as tools/xtask/src/doctor.rs.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -681,19 +657,16 @@ jobs:
     name: The published version on npm and crates.io (Rust binary)
     needs: [guard, publish-crates, publish-npm]
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-verify-registry
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - uses: ./.github/actions/node-pnpm
       - env:
           TMPDIR: ${{ runner.temp }}
@@ -703,7 +676,7 @@ jobs:
     name: verify-install from the registries (${{ matrix.name }})
     needs: [guard, registry-ready]
     if: ${{ !cancelled() && needs.registry-ready.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -718,12 +691,9 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-verify-registry
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
       - uses: ./.github/actions/node-pnpm
         with:
@@ -743,7 +713,7 @@ jobs:
     name: Require the production docs credentials
     needs: [publish-crates, publish-npm, github-release, verify-registry]
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' && needs.github-release.result == 'success' && needs.verify-registry.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 5
     steps:
       - name: Refuse to skip the production deploy
@@ -774,7 +744,7 @@ jobs:
     name: Merge the published version back to main
     needs: [guard, docs]
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.docs.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
