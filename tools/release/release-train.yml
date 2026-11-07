@@ -1,5 +1,5 @@
 # Install as .github/workflows/release-train.yml (tools/release/README.md).
-# The bot pushes the version branch and tag together; only release.yml publishes.
+# The bot creates a GitHub-verified version commit, then its branch and tag; only release.yml publishes.
 name: Daily release
 
 on:
@@ -103,7 +103,7 @@ jobs:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
-      - name: Push the version branch and tag together
+      - name: Publish the signed version commit and tag
         if: steps.version.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
@@ -111,7 +111,43 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          git tag "$TAG"
-          # Command-local credentials: no token in the URL, config or runner's credential store.
-          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
-            push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG:refs/tags/$TAG"
+          tree=$(git rev-parse 'HEAD^{tree}')
+          parent=$(git rev-parse 'HEAD^')
+          parent_tree=$(git rev-parse "$parent^{tree}")
+          entries='[]'
+          while IFS= read -r -d '' path; do
+            git cat-file blob "HEAD:$path" | base64 | tr -d '\n' > "$RUNNER_TEMP/release-file.b64"
+            blob=$(jq -n --rawfile content "$RUNNER_TEMP/release-file.b64" \
+              '{content: $content, encoding: "base64"}' \
+              | gh api --method POST "repos/$GITHUB_REPOSITORY/git/blobs" --input - \
+              | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+            mode=$(git ls-tree HEAD -- "$path" | awk 'NR == 1 { print $1 }')
+            test -n "$mode"
+            entries=$(jq --arg path "$path" --arg mode "$mode" --arg sha "$blob" \
+              '. += [{path: $path, mode: $mode, type: "blob", sha: $sha}]' <<< "$entries")
+          done < <(git diff --no-renames --name-only --diff-filter=ACMRTUXB -z "$parent" HEAD)
+          while IFS= read -r -d '' path; do
+            mode=$(git ls-tree "$parent" -- "$path" | awk 'NR == 1 { print $1 }')
+            test -n "$mode"
+            entries=$(jq --arg path "$path" --arg mode "$mode" \
+              '. += [{path: $path, mode: $mode, type: "blob", sha: null}]' <<< "$entries")
+          done < <(git diff --no-renames --name-only --diff-filter=D -z "$parent" HEAD)
+          signed_tree=$(jq -n --arg base_tree "$parent_tree" --argjson tree "$entries" \
+            '{base_tree: $base_tree, tree: $tree}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - \
+            | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+          test "$signed_tree" = "$tree"
+          signed_sha=$(jq -n --arg message "release: $TAG" --arg tree "$signed_tree" --arg parent "$parent" \
+            '{message: $message, tree: $tree, parents: [$parent]}' \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/git/commits" --input - \
+            | jq -er '.sha | select(test("^[0-9a-f]{40}$"))')
+          signed=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$signed_sha")
+          test "$(jq -er .tree.sha <<< "$signed")" = "$tree"
+          test "$(jq -er 'if (.parents | length) == 1 then .parents[0].sha else empty end' <<< "$signed")" = "$parent"
+          jq -e '.verification.verified == true and .verification.reason == "valid"' <<< "$signed" >/dev/null
+
+          # A signing or verification failure leaves no refs, so the release lane cannot start.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --raw-field ref="refs/heads/$BRANCH" --raw-field sha="$signed_sha" >/dev/null
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            --raw-field ref="refs/tags/$TAG" --raw-field sha="$signed_sha" >/dev/null

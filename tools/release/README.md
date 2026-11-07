@@ -2,7 +2,7 @@
 
 A full nightly on `main` starts the daily release. The train checks out the commit that the nightly tested, asks Changesets for its next version, and prepares a version commit. With no pending changeset, it ends without pushing anything.
 
-The release bot pushes `release/v<version>` and `v<version>` together. The tag starts the existing release lane: checks, publishing, registry installs, the GitHub release and production docs. Once those succeed, the bot opens the version PR and enables squash auto-merge. Required PR checks still gate that merge.
+The release bot creates `release/v<version>` and `v<version>`. It uploads the prepared blobs and tree, then asks GitHub's Commits API to create a verified commit as the GitHub App, without custom author, committer or signature fields, as required by [GitHub's bot-signature rules](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification#signature-verification-for-bots). The train checks GitHub's signature result and the exact tree and parent before creating the branch and tag. The tag starts the existing release lane: checks, publishing, registry installs, the GitHub release and production docs. Once those succeed, the bot opens the version PR and enables squash auto-merge. Required PR checks still gate that merge.
 
 ## Install the workflows
 
@@ -32,7 +32,7 @@ The CLI equivalent below uses `NIGHTLY_RUN_ID` as a placeholder for that run's n
 gh workflow run release-train.yml --ref main -f nightly-run-id=NIGHTLY_RUN_ID
 ```
 
-The train validates the run before checking out its commit. It then follows the automatic path, including the kill switch, duplicate-release refusals and version-only check. Before pushing, it checks that the latest full nightly still permits this release; an older selection may be refused. Nothing is pushed when no changesets are pending.
+The train validates the run before checking out its commit. It then follows the automatic path, including the kill switch, duplicate-release refusals and release-change check. Before pushing, it checks that the latest full nightly still permits this release; an older selection may be refused. Nothing is pushed when no changesets are pending.
 
 Manual execution uses the selected nightly's commit, so it cannot pick up a preparation fix added after that nightly. Run a full nightly on a commit containing the fix first.
 
@@ -46,7 +46,7 @@ cargo xtask release prepare --run <nightly-run-id>
 
 The command validates the run again. When a detached checkout lacks the configured Changesets base ref, it creates that branch at the tested commit. It preserves existing refs and keeps HEAD on the tested commit.
 
-It asks `pnpm changeset status` for the next version, refuses an open version PR, any remaining `release/v*` branch or an existing tag, then runs `pnpm changeset version` and `version sync`. It stages the result, checks the version-only rule and commits it on `release/v<version>`. It never tags, pushes, publishes or opens a PR.
+It asks `pnpm changeset status` for the next version, refuses an open version PR, any remaining `release/v*` branch or an existing tag, then runs `pnpm changeset version`, `version sync` and the package-docs generator. It force-adds the otherwise ignored crate-docs snapshot, checks that the tree contains only the version bump and generated package docs, and commits it on `release/v<version>`. It never tags, pushes, publishes or opens a PR.
 
 In Actions it writes `ready=false` when nothing is pending, or `version`, `branch`, `tag` and `ready=true` after the commit succeeds. Use a disposable checkout when trying it by hand: a failed preparation leaves its files and branch for inspection.
 
@@ -54,7 +54,7 @@ In Actions it writes `ready=false` when nothing is pending, or `version`, `branc
 
 Set the repository variable `RELEASE_TRAIN` to `off` to stop future trains. It does not cancel a release already publishing. The owner can still push a release tag by hand; a dispatched release lane remains a dry run.
 
-A failed release leaves its branch and tag in place. The next train refuses to replace them. Fix the failing check or publishing setup and rerun the failed release jobs; publishing skips versions already on a registry. If the GitHub-release job alone failed after creating its release, inspect that release before rerunning it: its existing create step is not idempotent.
+A failed release leaves its branch and, once created, its tag in place. A signing or verification failure can leave only the prepared branch; no tag means the release lane did not start. The next train refuses to replace either ref. Fix the failing check or publishing setup and rerun the failed release jobs; publishing skips versions already on a registry. If the GitHub-release job alone failed after creating its release, inspect that release before rerunning it: its existing create step is not idempotent.
 
 If the version PR conflicts with later merges, merge `main` into its branch and finish the PR by hand after checks pass. The release lane refuses to enable auto-merge when that branch differs from the published commit. Automatic branch deletion removes the blocker after the PR merges. A closed, unmerged release PR requires the owner's recovery before another release.
 
