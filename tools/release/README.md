@@ -42,4 +42,4 @@ A failed release leaves its branch and tag in place. The next train refuses to r
 
 If the version PR conflicts with later merges, merge `main` into its branch and finish the PR by hand after checks pass. The release lane refuses to enable auto-merge when that branch differs from the published commit. Automatic branch deletion removes the blocker after the PR merges. A closed, unmerged release PR requires the owner's recovery before another release.
 
-After installation and merge, check the first full nightly's daily-release run. Confirm the same version is on both registries and the production docs, and that its version PR merges. This is the remaining post-merge check in the [task](../../docs/todos/ongoing/P6-daily-release.md).
+After installation and merge, check the first full nightly's daily-release run. Confirm the same version is on both registries and the production docs, and that its version PR merges. This is the remaining post-merge check in the [task](../../docs/todos/done/P6-daily-release.md).

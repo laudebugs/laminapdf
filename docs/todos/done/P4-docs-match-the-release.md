@@ -36,7 +36,7 @@ Make every docs deployment match a package version. Every page of the docs site 
 **Out of scope**
 
 - Docs for older versions and a version switcher (with `1.0`, [releases plan §4](../../plans/releases.md#4-docs-that-match-a-version)).
-- The daily release itself → [P6](../ongoing/P6-daily-release.md).
+- The daily release itself → [P6](../done/P6-daily-release.md).
 
 ## Tasks
 

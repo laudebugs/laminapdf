@@ -34,7 +34,7 @@ Remove the two slow or manual steps from the release lane. npm packages publish 
 
 **Out of scope**
 
-- The daily release and the release bot → [P6](../ongoing/P6-daily-release.md).
+- The daily release and the release bot → [P6](../done/P6-daily-release.md).
 - npm provenance and artifact attestations: once the repository is public.
 
 ## Tasks
