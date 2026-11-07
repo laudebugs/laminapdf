@@ -49,7 +49,7 @@ checks every workflow and composite action, including the reviewed release copie
 After creating or syncing forks, verify every referenced commit is available:
 
 ```sh
-rg -o 'laudebugs/[^@ ]+@[0-9a-f]{40}' .github tools/release --glob '*.yml' |
+rg --no-filename -o 'laudebugs/[^@ ]+@[0-9a-f]{40}' .github tools/release --glob '*.yml' |
   sort -u |
   while IFS=@ read -r action sha; do
     repository=${action#laudebugs/}
