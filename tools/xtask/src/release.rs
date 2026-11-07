@@ -16,8 +16,13 @@
 //! commit the nightly passed on only by a version bump, else `nightly=run`. A bump may write the
 //! changelogs, the changesets it consumes and the pre-mode files freely; in a `package.json`,
 //! `Cargo.toml`, `Cargo.lock` or `packages/sdk/src/version.ts`, each changed line's only change
-//! is the old version swapped for the new. The daily release's commits (todo P6) are always such
+//! is the old version swapped for the new. The daily release's commits are always such
 //! a bump.
+
+pub(crate) mod prepare;
+
+#[cfg(test)]
+mod train_tests;
 
 use std::path::Path;
 use std::process::Command;

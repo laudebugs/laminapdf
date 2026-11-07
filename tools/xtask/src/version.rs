@@ -403,7 +403,7 @@ fn sync_version_ts(text: &str, version: &str) -> Result<String> {
 
 /// `MAJOR.MINOR.PATCH` with an optional `-pre.release` (letters, digits, `-`, dots); no build
 /// metadata. Enough to keep a stray quote or space out of the manifests.
-fn is_version(text: &str) -> bool {
+pub(crate) fn is_version(text: &str) -> bool {
     let (core, pre) = text.split_once('-').map_or((text, None), |(c, p)| (c, Some(p)));
     let numbers: Vec<&str> = core.split('.').collect();
     numbers.len() == 3
@@ -702,7 +702,7 @@ fn parse_changelog(name: &str, text: &str) -> Result<Vec<(String, Release)>> {
 }
 
 /// `SemVer` precedence of two [`is_version`] strings (build metadata isn't allowed).
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+pub(crate) fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     use std::cmp::Ordering;
     fn split(version: &str) -> (Vec<u64>, Option<&str>) {
         let (core, pre) = version.split_once('-').map_or((version, None), |(c, p)| (c, Some(p)));

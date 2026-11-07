@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `P6` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [releases §3](../../plans/releases.md#3-the-daily-release) |
 | Round / milestone | Publishing |
 | Depends on | [P4](../done/P4-docs-match-the-release.md), [P5](../done/P5-npm-trusted-publishing-and-version-only-releases.md) |
@@ -11,7 +11,7 @@
 | Branch | `build/p6-daily-release` |
 | PR title | `build: release once a day after the nightly passes` |
 | Size | M (≈ 400–600 lines: xtask, a workflow for the owner, tests, docs) |
-| PR | — |
+| PR | [#271](https://github.com/laudebugs/laminapdf/pull/271) |
 
 ## Goal
 
@@ -38,9 +38,9 @@ Release on its own once a day. When a full nightly passes on `main` and changese
 
 ## Tasks
 
-- [ ] `cargo xtask release prepare` and its tests
-- [ ] `release-train.yml` and the release lane's last job, given to the owner as files; xtask's workflow tests cover them
-- [ ] Docs: contributing, `CLAUDE.md`, the owner's setup
+- [x] `cargo xtask release prepare` and its tests
+- [x] `release-train.yml` and the release lane's last job, given to the owner as files; xtask's workflow tests cover them
+- [x] Docs: contributing, `CLAUDE.md`, the owner's setup
 
 ## Acceptance criteria
 
@@ -72,3 +72,7 @@ xtask unit tests (`release prepare` over fixture changesets, the refusals, the w
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Implementation notes
+
+The implementation and workflow files are in PR #271. The owner installed `release-train.yml` on the PR branch and `release.yml` on `main` (8aa9371); the PR was rebased onto that update. Both installed files match `tools/release/`, and all 811 xtask tests and the docs checks pass locally. The todo stays ongoing pending CI. The first real daily release remains a post-merge check.
