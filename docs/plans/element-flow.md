@@ -94,11 +94,11 @@ A failed drawing call must not advance the cursor. The helper must not add pages
 
 ## Delivery steps
 
-Create separate ready todos using the [todo template](../todos/TEMPLATE.md) before implementation. This draft PR records the design; it does not claim implementation work or change delivery priorities.
+The following ready todos use the [todo template](../todos/TEMPLATE.md). Claim each in its own implementation PR after its dependencies are done. This draft PR records the design and work queue; it does not claim implementation work or change delivery priorities.
 
-1. **Text measurement convenience.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs. Add matching tests and a tested example showing the next paragraph's position.
-2. **Vertical cursor.** Implement a reusable cursor with matching Rust and TypeScript behavior, explicit rectangle placement and validation. Export through the Rust facade and SDK public API as appropriate. Reuse existing measurements rather than laying out text again.
-3. **Documentation and recipe.** Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
+- [ ] [B10a](../todos/ready/B10a-measured-text-bottom.md): **Text measurement convenience.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs. Add matching tests and a tested example showing the next paragraph's position.
+- [ ] [B10b](../todos/ready/B10b-vertical-cursor.md): **Vertical cursor.** Implement a reusable cursor with matching Rust and TypeScript behavior, explicit rectangle placement and validation. Export through the Rust facade and SDK public API as appropriate. Reuse existing measurements rather than laying out text again.
+- [ ] [B10c](../todos/ready/B10c-element-flow-recipe.md): **Documentation and recipe.** Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
 
 Each implementation PR follows the repository's review, changeset and validation rules. No implementation is included in this plan PR.
 
@@ -120,3 +120,27 @@ Each implementation PR follows the repository's review, changeset and validation
 - Confirm whether a measurement helper plus examples solves the immediate need before adding cursor state.
 - Choose whether the text-only helper is feature-gated while the rectangle cursor stays available without the text module.
 - Keep automatic pagination as a separate proposal. It needs a measure-before-draw or resumable layout contract to avoid drawing before deciding that a page is full.
+
+## Proof and usefulness
+
+The [measurement todo](../todos/ready/B10a-measured-text-bottom.md#tests) establishes numerical correctness with independent font metrics, cross-language cases and a rendered reference page. The [cursor todo](../todos/ready/B10b-vertical-cursor.md#tests) verifies state transitions, invalid inputs and mixed-element placement. The [recipe todo](../todos/ready/B10c-element-flow-recipe.md#tests) proves the complete public workflow by generating, reopening and rendering a report.
+
+The practical benefit is fewer caller-owned Y updates when content length changes. Compare the same report with manual measurement arithmetic and with the helper. Record actual bottom calculations, Y updates and edits needed when a summary wraps or an optional section disappears. Do not claim a speedup: the helper reuses layout results and should require no additional shaping pass.
+
+Success means following content moves to the correct measured position without hand-adjusted coordinates, empty sections leave no extra gap, and overflow stays explicit. PDFs, placement assertions, rendered pages and exact verification commands form the review evidence. This helps invoices and reports assembled from variable text and images; it does not solve tables or automatic page breaking.
+
+### Verification commands for implementation PRs
+
+After installing the repository prerequisites, run these from the implementation worktree. These are future verification steps, not tests already executed for this design PR.
+
+```sh
+cargo test --locked -p laminapdf-build --features text
+cargo xtask check ts
+cargo xtask examples
+cargo xtask check docs
+cargo xtask ci
+```
+
+The TypeScript check builds and tests the package graph, including WebAssembly prerequisites. The example command generates PDFs under `target/examples-out/`, compares registered references and checks them with qpdf. Register the new examples so these checks cover them. Add text-disabled build/test commands if the cursor is exported without the text feature.
+
+Attach or link the generated report variants and rendered pages in each implementation PR, together with the numerical assertions and command results. The design PR itself only runs todo consistency, documentation links, prose and whitespace checks.
