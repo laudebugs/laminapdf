@@ -9,6 +9,8 @@ runs:
         POPPLER_VERSION: "26.10.0"
         # Homebrew/homebrew-core@da56516481053b9ae22336205b74571a1eb41d11
         POPPLER_SHA256: 6792cb7c69205007ad87d2e936cecc5b3a31fac29ab54ffc3175fdb6b2a6ce35
+        POPPLER_DATA_VERSION: "0.4.12"
+        POPPLER_DATA_SHA256: c835b640a40ce357e1b83666aabd95edffa24ddddd49b8daff63adb851cdab74
         HOMEBREW_NO_AUTO_UPDATE: "1"
         HOMEBREW_NO_INSTALL_UPGRADE: "1"
       run: |
@@ -21,8 +23,15 @@ runs:
         curl -fsSL --retry 3 -o "$archive" "https://poppler.freedesktop.org/poppler-$POPPLER_VERSION.tar.xz"
         echo "$POPPLER_SHA256  $archive" | shasum -a 256 -c -
         tar -xf "$archive" -C "$RUNNER_TEMP"
+        # Match Homebrew's CMaps and CID-to-Unicode mappings for CJK text extraction.
+        data_archive="$RUNNER_TEMP/poppler-data.tar.gz"
+        curl -fsSL --retry 3 -o "$data_archive" "https://poppler.freedesktop.org/poppler-data-$POPPLER_DATA_VERSION.tar.gz"
+        echo "$POPPLER_DATA_SHA256  $data_archive" | shasum -a 256 -c -
+        tar -xf "$data_archive" -C "$RUNNER_TEMP"
+        make -C "$RUNNER_TEMP/poppler-data-$POPPLER_DATA_VERSION" install prefix="$RUNNER_TEMP/poppler"
         cmake -S "$RUNNER_TEMP/poppler-$POPPLER_VERSION" -B "$RUNNER_TEMP/poppler-build" \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+          -DPOPPLER_DATADIR="$RUNNER_TEMP/poppler/share/poppler" \
           -DBUILD_SHARED_LIBS=OFF -DBUILD_MANUAL_TESTS=OFF \
           -DENABLE_UTILS=ON -DENABLE_CPP=OFF -DENABLE_GLIB=OFF \
           -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_BOOST=OFF \

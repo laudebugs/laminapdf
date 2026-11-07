@@ -154,6 +154,7 @@ jobs:
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
       - uses: ./.github/actions/poppler
+        if: ${{ !cancelled() }}
       # Page text (todo B9f) runs even when the structural differential failed, so one night
       # reports both. At the poppler version doctor.rs pins, pdftotext takes part; at another,
       # xtask warns and compares with pdf.js only, and pages where only pdftotext would agree

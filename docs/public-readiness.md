@@ -51,6 +51,15 @@ Gitleaks 8.30.1 scanned all locally available Git refs: 359 commits and approxim
 research formulas/table text. None was a live service credential. This scan covers
 Git history, not GitHub issue bodies, comments, logs or uploaded artifacts.
 
+GitHub's push response reported **21 existing Dependabot alerts: 16 high and 5 moderate**.
+The alert API returned HTTP 403, so their details could not be read. A root-workspace
+`pnpm audit --json` independently found nine advisory IDs: four high and four moderate
+in `undici` 7.29.1 through Wrangler/Miniflare, and one moderate in `minimatch` 10.2.x
+through TypeDoc/API Extractor. Undici's advisories name 7.30.1 as patched; the minimatch
+advisory names 11.0.1. These are existing tooling dependency findings, outside the
+runner migration. Triage them and the remaining GitHub alerts before the public release;
+the npm audit does not cover Cargo or the separate spike/tool lockfiles.
+
 The root contains both `LICENSE-MIT` and `LICENSE-APACHE`. The fixture inventory
 records generated PDF provenance, Noto's OFL and Unicode notices. External corpora
 are fetched into ignored folders; their manifest explicitly forbids committing
@@ -78,6 +87,7 @@ whether it is configured. Those settings remain owner checks.
    discussions, Actions logs and artifacts, releases, and branches beyond main.
    Review repository and environment secret names and remove unused credentials.
    Do not copy credential values into issues or this document.
+   Triage the [existing dependency alerts](https://github.com/laudebugs/laminapdf/security/dependabot).
 3. In repository settings, confirm read-only default workflow permissions, approval
    for outside-contributor runs, and required checks `fast-gate` and `gate` with no
    bypass. Confirm deploy credentials have the intended scope and repository access.

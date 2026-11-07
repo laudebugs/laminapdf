@@ -76,12 +76,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { platform: linux-x64, runner: ubuntu-24.04 }
-          - { platform: linux-arm64, runner: ubuntu-24.04-arm }
-          - { platform: macos-x64, runner: macos-15-intel }
-          - { platform: macos-arm64, runner: macos-15 }
-          - { platform: windows-x64, runner: windows-2025 }
-          - { platform: windows-arm64, runner: windows-11-arm }
+          - { platform: linux-x64, runner: ubuntu-24.04, host: x86_64-unknown-linux-gnu }
+          - { platform: linux-arm64, runner: ubuntu-24.04-arm, host: aarch64-unknown-linux-gnu }
+          - { platform: macos-x64, runner: macos-15-intel, host: x86_64-apple-darwin }
+          - { platform: macos-arm64, runner: macos-15, host: aarch64-apple-darwin }
+          - { platform: windows-x64, runner: windows-2025, host: x86_64-pc-windows-msvc }
+          - { platform: windows-arm64, runner: windows-11-arm, host: aarch64-pc-windows-msvc }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -96,6 +96,16 @@ jobs:
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
+      - name: Verify the Rust compiler runs natively
+        env:
+          EXPECTED_HOST: ${{ matrix.host }}
+        run: |
+          rustc -vV
+          actual=$(rustc -vV | sed -n 's/^host: //p' | tr -d '\r')
+          if [ "$actual" != "$EXPECTED_HOST" ]; then
+            echo "::error::Expected native host $EXPECTED_HOST, got $actual"
+            exit 1
+          fi
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
