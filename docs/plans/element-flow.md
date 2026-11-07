@@ -78,7 +78,7 @@ A small cursor owns a current Y position and accepts a measured bottom plus an e
 - Start at a caller-supplied Y position.
 - Advance to `max(currentY, bottom + gap)` after a nonempty placement.
 - Leave the cursor unchanged for an empty result, including its gap.
-- Reject non-finite positions and negative or non-finite gaps before changing state.
+- Reject non-finite positions, negative or non-finite gaps, and a non-finite `bottom + gap` before changing state.
 - Allow the caller to reset the cursor when starting a page or column.
 - Use points in Rust and point-valued numbers in TypeScript.
 
