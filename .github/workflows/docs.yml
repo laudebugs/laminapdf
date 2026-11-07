@@ -17,7 +17,7 @@
 # release tags are trusted. With `dry-run`, next and production build and check the site and deploy
 # nothing (`wrangler deploy --dry-run`, which needs no secrets): the release lane's dry runs use it.
 #
-# Fork deploy previews are skipped because they cannot receive deployment secrets. Without
+# Fork PRs are skipped (they must never run on self-hosted runners or see the secrets). Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
 # notice and the jobs pass. The fast lane checks the build on every PR anyway (`cargo xtask check
 # ts`). Nothing a PR controls is interpolated into a script: values reach `run:` through `env:`.
@@ -87,15 +87,11 @@ env:
   WRANGLER_SEND_METRICS: "false"
   ASTRO_TELEMETRY_DISABLED: "1"
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
   preview-build:
     name: Docs preview (build)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     permissions:
       contents: read
@@ -118,7 +114,7 @@ jobs:
     name: Docs preview (deploy)
     needs: preview-build
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     permissions:
       contents: read
@@ -137,7 +133,9 @@ jobs:
             echo "::notice title=Docs deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. The owner needs to add them (see apps/docs/README.md) to deploy the docs site; until then this job only skips."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
-      # Use the default branch's deploy configuration, never the PR's.
+      # The default branch's deploy configuration, never the PR's. It goes in its own folder:
+      # a sparse checkout of the job's workspace would leave the runner's shared checkout
+      # sparse, and the next job on this runner would fail to check out.
       - name: Check out the default branch's deploy configuration
         if: steps.secrets.outputs.enabled == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -229,7 +227,7 @@ jobs:
   next:
     name: Docs next
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tag == '')) }}
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     permissions:
       contents: read
@@ -281,7 +279,7 @@ jobs:
     # The release lane's call (`secrets: inherit`) or a manual run with a tag. Inside a called
     # workflow github.event_name is the caller's, so the tag input is what marks this job's runs.
     if: ${{ inputs.tag != '' }}
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     permissions:
       contents: read
