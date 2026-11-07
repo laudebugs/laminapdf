@@ -1,0 +1,76 @@
+# Install as .github/workflows/release-train.yml (tools/release/README.md).
+# The bot pushes the version branch and tag together; only release.yml publishes.
+name: Daily release
+
+on:
+  workflow_run:
+    workflows: [Nightly]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: release-train
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    # workflow_run is privileged: never check out a PR's or another repository's code.
+    if: >-
+      ${{ vars.RELEASE_TRAIN != 'off'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.conclusion == 'success'
+      && (github.event.workflow_run.event == 'schedule'
+      || (github.event.workflow_run.event == 'workflow_dispatch'
+      && github.event.workflow_run.display_title == 'Nightly (full budgets)')) }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: release-train
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - uses: ./.github/actions/node-pnpm
+      - name: Prepare the version commit
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NIGHTLY_RUN: ${{ github.event.workflow_run.id }}
+          GIT_AUTHOR_NAME: laminapdf-release[bot]
+          GIT_AUTHOR_EMAIL: laminapdf-release[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: laminapdf-release[bot]
+          GIT_COMMITTER_EMAIL: laminapdf-release[bot]@users.noreply.github.com
+        run: cargo xtask release prepare --run "$NIGHTLY_RUN"
+      - name: Create the release bot's token
+        if: steps.version.outputs.ready == 'true'
+        id: bot
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Push the version branch and tag together
+        if: steps.version.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BRANCH: ${{ steps.version.outputs.branch }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git tag "$TAG"
+          # Command-local credentials: no token in the URL, config or runner's credential store.
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
+            push --atomic origin "HEAD:refs/heads/$BRANCH" "refs/tags/$TAG:refs/tags/$TAG"
