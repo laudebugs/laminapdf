@@ -22,6 +22,11 @@ the reviewed upstream release for each SHA.
 Create the forks once with an owner-authorized GitHub CLI login:
 
 ```sh
+test "$(gh api user --jq .login)" = laudebugs || {
+  echo "authenticate gh as laudebugs before creating the action forks" >&2
+  exit 1
+}
+
 for upstream in \
   actions/checkout \
   actions/cache \
@@ -37,7 +42,7 @@ for upstream in \
   taiki-e/install-action
 do
   fork="laudebugs/${upstream#*/}"
-  gh repo view "$fork" >/dev/null 2>&1 || gh repo fork "$upstream" --org laudebugs --clone=false
+  gh repo view "$fork" >/dev/null 2>&1 || gh repo fork "$upstream" --clone=false
 done
 ```
 
