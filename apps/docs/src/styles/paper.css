@@ -178,6 +178,34 @@ h1#_top,
   border-top: 1px solid var(--sl-color-gray-6);
 }
 
+/* A compact contents rail gives the article the remaining space. Starlight otherwise sizes
+   both sidebars alike and grows the right one on wide screens. Keep its mobile dropdown. */
+@media screen and (min-width: 72rem) {
+  :root {
+    --docs-toc-width: 14rem;
+  }
+  .right-sidebar-container {
+    width: var(--docs-toc-width);
+    flex-shrink: 0;
+  }
+  .right-sidebar {
+    width: inherit;
+  }
+  .right-sidebar-panel .sl-container {
+    width: 100%;
+    max-width: none;
+  }
+  .right-sidebar-panel h2 {
+    margin-bottom: 0.25rem;
+    font-size: var(--sl-text-sm);
+  }
+  [data-has-sidebar][data-has-toc] .main-pane {
+    --sl-content-margin-inline: auto;
+
+    width: calc(100% - var(--docs-toc-width));
+  }
+}
+
 /* Previous and next links at the foot of a page: compact buttons from the design language
    (§3: spacing 8 and 12, button radius 4, control text 13 px), not Starlight's 2xl cards. */
 .pagination-links a {
