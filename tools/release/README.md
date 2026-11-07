@@ -22,6 +22,20 @@ The GitHub App needs contents and pull-request write access to this repository. 
 
 The existing publishing setup must also be ready: crates.io and npm trusted publishers for `release.yml`, and the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets for production docs. A missing docs credential fails the release; it cannot silently skip deployment and merge the version PR.
 
+## Run the train by hand
+
+In GitHub Actions, open **Daily release**, choose **Run workflow**, select `main`, and enter the ID of a completed, successful full nightly on `main`. A scheduled nightly qualifies, as does a manual nightly with every budget at its default.
+
+The CLI equivalent below uses `NIGHTLY_RUN_ID` as a placeholder for that run's numeric ID:
+
+```sh
+gh workflow run release-train.yml --ref main -f nightly-run-id=NIGHTLY_RUN_ID
+```
+
+The train validates the run before checking out its commit. It then follows the automatic path, including the kill switch, duplicate-release refusals and version-only check. Before pushing, it checks that the latest full nightly still permits this release; an older selection may be refused. Nothing is pushed when no changesets are pending.
+
+Manual execution uses the selected nightly's commit, so it cannot pick up a preparation fix added after that nightly. Run a full nightly on a commit containing the fix first.
+
 ## Prepare without pushing
 
 From a clean checkout of the exact commit of a completed full nightly on `main`, install the pinned tools and workspace dependencies, then run:

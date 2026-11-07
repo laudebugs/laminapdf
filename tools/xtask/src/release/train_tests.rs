@@ -36,15 +36,62 @@ fn train_should_require_a_full_successful_main_nightly_and_honor_the_kill_switch
         "conclusion == 'success'",
         "event == 'schedule'",
         "event == 'workflow_dispatch'",
-        "ref: ${{ github.event.workflow_run.head_sha }}",
+        "ref: ${{ steps.nightly.outputs.sha }}",
         "persist-credentials: false",
         "fetch-depth: 0",
-        "NIGHTLY_RUN: ${{ github.event.workflow_run.id }}",
+        "NIGHTLY_RUN: ${{ steps.nightly.outputs.id }}",
         "cargo xtask release prepare --run \"$NIGHTLY_RUN\"",
     ] {
         assert!(prepare.contains(condition), "missing safeguard {condition}");
     }
     assert!(TRAIN.contains("group: release-train\n  cancel-in-progress: false"));
+}
+
+#[test]
+fn manual_train_should_require_a_run_id_and_run_only_on_main() {
+    let trigger = lines_of(TRAIN, "on", "workflow_dispatch").join("\n");
+    for part in ["nightly-run-id:", "required: true", "type: string"] {
+        assert!(trigger.contains(part), "missing manual input {part}");
+    }
+    let prepare = lines_of(TRAIN, "jobs", "prepare").join("\n");
+    assert!(prepare.contains("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"));
+    assert!(prepare.contains("NIGHTLY_RUN: ${{ github.event.workflow_run.id || inputs.nightly-run-id }}"));
+}
+
+#[test]
+fn selected_nightly_should_be_validated_before_its_code_is_checked_out() {
+    let prepare = lines_of(TRAIN, "jobs", "prepare").join("\n");
+    let validate = prepare.find("name: Select the completed full nightly").unwrap();
+    let checkout = prepare.find("uses: actions/checkout@").unwrap();
+    assert!(validate < checkout);
+    let selector = prepare.get(validate..checkout).unwrap();
+    let full_dispatch = format!(".displayTitle == \"{FULL_DISPATCH_TITLE}\"");
+    assert!(selector.contains(&full_dispatch));
+    for part in [
+        "^[0-9]+$",
+        ".workflowName == \"Nightly\"",
+        ".headBranch == \"main\"",
+        ".status == \"completed\"",
+        ".conclusion == \"success\"",
+        ".event == \"schedule\"",
+        ".event == \"workflow_dispatch\"",
+        "^[0-9a-f]{40}$",
+        "echo \"id=$NIGHTLY_RUN\"",
+        "echo \"sha=$nightly_sha\"",
+    ] {
+        assert!(selector.contains(part), "missing selected-run validation {part}");
+    }
+}
+
+#[test]
+fn train_should_recheck_the_latest_nightly_before_pushing_a_prepared_release() {
+    let prepare = lines_of(TRAIN, "jobs", "prepare").join("\n");
+    let guard = prepare.find("run: cargo xtask release-guard --commit HEAD").unwrap();
+    let token = prepare.find("name: Create the release bot's token").unwrap();
+    assert!(guard < token);
+    let before = prepare.get(..guard).unwrap();
+    let step = before.rsplit("      - name:").next().unwrap();
+    assert!(step.contains("if: steps.version.outputs.ready == 'true'"));
 }
 
 #[test]
