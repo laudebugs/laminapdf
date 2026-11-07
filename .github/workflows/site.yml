@@ -15,7 +15,7 @@
 # requests opened since the last deploy, whose todos show as in progress. The committed snapshot
 # is what PR previews and local builds show.
 #
-# Fork PRs are skipped (they must never run on self-hosted runners or see the secrets). Without
+# Fork deploy previews are skipped because they cannot receive deployment secrets. Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
 # notice and the jobs pass. The fast lane checks the build on every PR anyway (`cargo xtask check
 # ts`). Nothing a PR controls is interpolated into a script: values reach `run:` through `env:`.
@@ -24,7 +24,7 @@ name: Website
 
 on:
   pull_request:
-    paths: &inputs
+    paths:
       - apps/site/**
       - packages/site-kit/**
       - packages/tokens/**
@@ -62,11 +62,15 @@ env:
   WRANGLER_SEND_METRICS: "false"
   ASTRO_TELEMETRY_DISABLED: "1"
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   preview-build:
     name: Website preview (build)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 20
     permissions:
       contents: read
@@ -89,7 +93,7 @@ jobs:
     name: Website preview (deploy)
     needs: preview-build
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 15
     permissions:
       contents: read
@@ -108,9 +112,7 @@ jobs:
             echo "::notice title=Website deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. The owner needs to add them (see apps/site/README.md) to deploy the website; until then this job only skips."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
-      # The default branch's deploy configuration, never the PR's. It goes in its own folder:
-      # a sparse checkout of the job's workspace would leave the runner's shared checkout
-      # sparse, and the next job on this runner would fail to check out.
+      # Use the default branch's deploy configuration, never the PR's.
       - name: Check out the default branch's deploy configuration
         if: steps.secrets.outputs.enabled == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -202,7 +204,7 @@ jobs:
   production:
     name: Website production
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 20
     permissions:
       contents: read
@@ -228,13 +230,9 @@ jobs:
           # `cargo xtask progress` reads origin/main's history (the merged pull requests).
           fetch-depth: 0
       - if: steps.secrets.outputs.enabled == 'true'
-        uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
-      - if: steps.secrets.outputs.enabled == 'true'
         uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - name: Refresh the roadmap
         if: steps.secrets.outputs.enabled == 'true'
         env:

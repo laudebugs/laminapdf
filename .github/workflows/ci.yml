@@ -5,18 +5,9 @@
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 # (so it is skipped on docs-only PRs: a job that runs there fails `fast-gate`) and joins
 # `fast-gate`'s `needs`.
-# Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
-# GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
-# serves full.yml's check-linux.) Runners share a machine, so jobs that install Rust
-# run isolate-rust-home first, pnpm installs into the runner's temp dir, and rust-cache is off.
-# Instead, isolate-rust-home's `target-dir` keeps each job's build output on its runner between
-# runs, apart per job and per kind of trigger, so PR output is never reused on main (see the
-# action). Jobs that only build xtask share `xtask`. The pdf-basics spike builds into the
-# checkout's target/: the frozen spike's scripts and TS tests read its wasm from
-# spikes/pdf-basics/rust/target/. Node and pnpm come from .github/actions/node-pnpm, which keeps
-# the pnpm store in the runner's tool cache. Short checks share a job (`msrv-and-spike`, the two
-# `pdf-runtimes` jobs): with the runners busy, a new job can wait longer than its tests take.
-# The repository is private, so fork PRs (which must never run on self-hosted runners) can't occur.
+# Native Rust checks cover Linux, macOS and Windows on x64 and Arm64. Other suites use
+# macOS Arm64; classification and gates use Linux x64. Each job gets a fresh hosted VM.
+# Rust caches are saved only on main; fork PRs have read-only tokens and no secrets.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
 name: CI
 
@@ -34,17 +25,23 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   # .config/nextest.toml: no retries in the PR lanes (ADR 0018 §4).
   NEXTEST_PROFILE: ci
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   # Same classification as the full lane (cargo xtask changes): on a docs-only PR the jobs
   # below are skipped, and the full lane's `changes` job runs the docs checks under `gate`.
   changes:
     name: Changed paths
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
@@ -59,13 +56,9 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - if: github.event_name == 'pull_request'
-        uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
-      - if: github.event_name == 'pull_request'
         uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - name: Classify the changed paths
         if: github.event_name == 'pull_request'
         id: pr
@@ -74,11 +67,21 @@ jobs:
         run: cargo xtask changes --base "$BASE"
 
   rust:
-    name: Rust (fmt, maintainability, portability, clippy, tests, rustdoc, cargo-deny)
+    name: Rust (${{ matrix.platform }})
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux-x64, runner: ubuntu-24.04 }
+          - { platform: linux-arm64, runner: ubuntu-24.04-arm }
+          - { platform: macos-x64, runner: macos-15-intel }
+          - { platform: macos-arm64, runner: macos-15 }
+          - { platform: windows-x64, runner: windows-2025 }
+          - { platform: windows-arm64, runner: windows-11-arm }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -86,16 +89,13 @@ jobs:
           # The merge base with main: `check maintainability` compares its record files with
           # main's, and clippy-examples is strict on the examples a PR changes.
           fetch-depth: 0
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-rust
       # No `toolchain` input: installs exactly what rust-toolchain.toml pins (version, components, targets).
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
-          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
-          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -103,21 +103,20 @@ jobs:
       # On PRs the full lane's `changes` job runs these checks; it skips them on pushes to main,
       # so they run here only then.
       - name: Docs checks (cargo xtask check docs)
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && matrix.platform == 'linux-x64'
         run: cargo xtask check docs
       # On pushes to main, `check rust` renders the rustdoc into an empty doc/ (cargo rewrites
       # every crate's pages when they are missing), so the artefact below holds this commit's
-      # crates only: the job's CARGO_TARGET_DIR is kept between runs and would carry pages of
-      # renamed or removed crates.
+      # crates only, including when the dependency cache restored a doc directory.
       - name: Start the rustdoc from an empty directory
-        if: github.event_name == 'push'
-        run: rm -rf "${CARGO_TARGET_DIR:?isolate-rust-home sets it}/doc"
+        if: github.event_name == 'push' && matrix.platform == 'linux-x64'
+        run: cargo clean --doc
       - run: cargo xtask check rust
       # The rendered rustdoc of every workspace crate (`check rust` builds it with warnings
       # denied), from main only: the docs site's Rust API page points here until the crates are
       # on docs.rs (B7a).
       - name: Upload the rustdoc
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && matrix.platform == 'linux-x64'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: rustdoc
@@ -131,7 +130,7 @@ jobs:
     name: WASM (lamina_pdf_base + lamina_pdf_text, Node tests, size budgets)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     outputs:
       # "true" once the built packages are uploaded: the pdf-runtimes legs need the build, not
@@ -141,15 +140,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-wasm
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
-          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
-          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs (wasm-bindgen-cli = the crate in Cargo.lock);
       # xtask fails if they drift. binaryen's wasm-opt is fetched by `cargo xtask wasm` itself
       # (pinned release, SHA-256 checked) into target/tools/.
@@ -192,7 +188,7 @@ jobs:
     name: "@laminapdf/sdk in ${{ matrix.name }}"
     needs: [changes, wasm]
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -209,16 +205,11 @@ jobs:
         with:
           name: lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Deno, Bun and wrangler (workerd) are dev dependencies of @laminapdf/sdk.
       - uses: ./.github/actions/node-pnpm
-      # The browsers stay in the runner's own tool cache between runs (`playwright install`
-      # only downloads a missing or outdated one), like the corpus in nightly.yml.
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       # Every runtime runs even when one before it failed (`!cancelled()`); the Node runs come
@@ -263,7 +254,7 @@ jobs:
     name: Semver against the published version
     needs: [changes, wasm]
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -274,12 +265,9 @@ jobs:
         with:
           name: lamina-pdf-dist
           path: packages/
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-semver
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       # Same version as tools/xtask/src/doctor.rs.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -296,15 +284,12 @@ jobs:
     name: MSRV (rust-version) and the pdf-basics spike (Rust + TS)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-msrv
       - name: Read the declared rust-version
         id: msrv
         run: |
@@ -315,16 +300,13 @@ jobs:
           fi
           echo "MSRV: $msrv"
           echo "version=$msrv" >> "$GITHUB_OUTPUT"
-      # Installs rustup if missing and puts cargo on PATH (self-hosted runners have neither).
-      # `toolchain` skips rust-toolchain.toml's components and targets. `override: false` keeps the
-      # action from running `rustup override set`, which would outlive the job on a self-hosted
-      # runner; the check below names the toolchain explicitly instead.
+      # The MSRV check names its toolchain explicitly; the next step restores the pinned one.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
-          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
-          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
           toolchain: ${{ steps.msrv.outputs.version }}
           components: ""
           target: ""
@@ -337,7 +319,10 @@ jobs:
       - if: ${{ !cancelled() }}
         uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
           # No `rustup override set` either: rust-toolchain.toml already picks this toolchain.
           override: false
       # The spike builds into its own target/ (unsetting the MSRV check's CARGO_TARGET_DIR): its
@@ -361,23 +346,17 @@ jobs:
     name: TypeScript (biome, typecheck, tests, npm licences)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-15
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: xtask
       - uses: ./.github/actions/node-pnpm
       # xtask is the entry point for the TS checks too, but it only needs to build for the host.
       - uses: ./.github/actions/host-rust
         with:
-          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
-          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
-          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: false
+          cache: true
       - run: cargo xtask check ts
 
   # The fast lane's required check (todo X7): every job above passed, or was skipped on a
@@ -387,7 +366,7 @@ jobs:
     name: fast-gate
     if: always()
     needs: [changes, rust, wasm, pdf-runtimes, semver, msrv-and-spike, typescript]
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Check every job passed or was not needed
