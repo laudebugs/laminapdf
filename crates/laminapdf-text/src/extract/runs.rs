@@ -222,7 +222,7 @@ fn by_position(run: &[Glyph]) -> String {
     let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
     let start = |g: &Glyph| along((g.origin.x, g.origin.y));
     // A run where no glyph moves the pen (a font without widths, words placed by `Td`) has
-    // only letters. Asked once: per glyph, it made such a run quadratic.
+    // only letters. Check for an advancing glyph once per run to avoid a quadratic scan.
     let has_letter = run.iter().any(|l| !is_mark(l));
     let marked = |g: &&Glyph| has_letter && is_mark(g);
     let letters: Vec<&Glyph> = run.iter().filter(|g| !marked(g)).collect();
