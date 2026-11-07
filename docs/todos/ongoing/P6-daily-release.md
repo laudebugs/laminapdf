@@ -75,4 +75,4 @@ xtask unit tests (`release prepare` over fixture changesets, the refusals, the w
 
 ## Implementation notes
 
-The implementation and workflow files are in PR #271. The owner must install both files from `tools/release/` into `.github/workflows/` before merge; the workflow-installation test enforces this. The todo stays ongoing until that commit, review and CI are complete. The first real daily release remains a post-merge check.
+The implementation and workflow files are in PR #271. The owner installed `release-train.yml` on the PR branch and `release.yml` on `main` (8aa9371); the PR was rebased onto that update. Both installed files match `tools/release/`, and all 811 xtask tests and the docs checks pass locally. The todo stays ongoing pending CI. The first real daily release remains a post-merge check.
