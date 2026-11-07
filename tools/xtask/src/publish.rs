@@ -77,10 +77,8 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     let version = crate::version::fixed_group_version(&ws.root)?.version;
     crate_docs(ws)?;
     crate::package_docs::check_crate(ws, &version)?;
-    let mut args = vec!["publish".to_owned(), "--workspace".to_owned(), "--locked".to_owned()];
-    if dry_run {
-        args.push("--dry-run".to_owned());
-    } else {
+    let mut args = cargo_publish_args(dry_run);
+    if !dry_run {
         // A re-run after a partial publish: leave out what crates.io already has.
         for name in ws.publishable_crates() {
             if on_crates_io(name, &version)? {
@@ -96,6 +94,21 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     }
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     ws.cargo(&args)
+}
+
+/// The package docs are generated into a gitignored folder immediately before this command and
+/// checked against the crate package, so Cargo must accept those intentional uncommitted files.
+fn cargo_publish_args(dry_run: bool) -> Vec<String> {
+    let mut args = vec![
+        "publish".to_owned(),
+        "--workspace".to_owned(),
+        "--locked".to_owned(),
+        "--allow-dirty".to_owned(),
+    ];
+    if dry_run {
+        args.push("--dry-run".to_owned());
+    }
+    args
 }
 
 /// The `laminapdf` crate's package docs (L5a): the site's pages, the code pages, `AGENTS.md` and
@@ -337,6 +350,18 @@ mod tests {
         assert!(parse_args(&strings(&["pypi"])).is_err());
         assert!(parse_args(&strings(&["npm-stage"])).is_err());
         assert!(parse_args(&strings(&["npm-pack", "--force"])).is_err());
+    }
+
+    #[test]
+    fn cargo_publish_should_allow_the_generated_package_docs() {
+        assert_eq!(
+            cargo_publish_args(false),
+            strings(&["publish", "--workspace", "--locked", "--allow-dirty"])
+        );
+        assert_eq!(
+            cargo_publish_args(true),
+            strings(&["publish", "--workspace", "--locked", "--allow-dirty", "--dry-run"])
+        );
     }
 
     #[test]
