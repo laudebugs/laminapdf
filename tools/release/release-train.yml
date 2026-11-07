@@ -7,6 +7,12 @@ on:
     workflows: [Nightly]
     types: [completed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      nightly-run-id:
+        description: ID of the completed full nightly on main to release
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,18 +28,46 @@ jobs:
     # workflow_run is privileged: never check out a PR's or another repository's code.
     if: >-
       ${{ vars.RELEASE_TRAIN != 'off'
+      && ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      || (github.event_name == 'workflow_run'
       && github.event.workflow_run.head_repository.full_name == github.repository
       && github.event.workflow_run.head_branch == 'main'
       && github.event.workflow_run.conclusion == 'success'
       && (github.event.workflow_run.event == 'schedule'
       || (github.event.workflow_run.event == 'workflow_dispatch'
-      && github.event.workflow_run.display_title == 'Nightly (full budgets)')) }}
+      && github.event.workflow_run.display_title == 'Nightly (full budgets)')))) }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
+      # Validate manual input before checking out and executing the selected commit's code.
+      - name: Select the completed full nightly
+        id: nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NIGHTLY_RUN: ${{ github.event.workflow_run.id || inputs.nightly-run-id }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$NIGHTLY_RUN" =~ ^[0-9]+$ ]]; then
+            echo "::error::nightly-run-id must be a numeric run ID."
+            exit 1
+          fi
+          nightly_json=$(gh run view "$NIGHTLY_RUN" --json workflowName,headBranch,status,conclusion,event,displayTitle,headSha)
+          if ! nightly_sha=$(jq -er '
+            select(.workflowName == "Nightly" and .headBranch == "main"
+              and .status == "completed" and .conclusion == "success"
+              and (.event == "schedule" or (.event == "workflow_dispatch"
+                and .displayTitle == "Nightly (full budgets)")))
+            | .headSha | select(type == "string" and test("^[0-9a-f]{40}$"))
+          ' <<< "$nightly_json"); then
+            echo "::error::Select a successful full Nightly run on main."
+            exit 1
+          fi
+          echo "id=$NIGHTLY_RUN" >> "$GITHUB_OUTPUT"
+          echo "sha=$nightly_sha" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ steps.nightly.outputs.sha }}
           persist-credentials: false
           fetch-depth: 0
       - uses: ./.github/actions/isolate-rust-home
@@ -48,12 +82,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          NIGHTLY_RUN: ${{ github.event.workflow_run.id }}
+          NIGHTLY_RUN: ${{ steps.nightly.outputs.id }}
           GIT_AUTHOR_NAME: laminapdf-release[bot]
           GIT_AUTHOR_EMAIL: laminapdf-release[bot]@users.noreply.github.com
           GIT_COMMITTER_NAME: laminapdf-release[bot]
           GIT_COMMITTER_EMAIL: laminapdf-release[bot]@users.noreply.github.com
         run: cargo xtask release prepare --run "$NIGHTLY_RUN"
+      # Refuse an obsolete selection before creating remote refs; release.yml checks again.
+      - name: Check that the latest full nightly still permits the release
+        if: steps.version.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: cargo xtask release-guard --commit HEAD
       - name: Create the release bot's token
         if: steps.version.outputs.ready == 'true'
         id: bot
