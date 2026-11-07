@@ -25,6 +25,7 @@ pub(crate) fn run(root: &Path, args: &[String]) -> Result<()> {
         bail!("release prepare requires a clean worktree, including untracked files");
     }
     let group = crate::version::fixed_group_version(root)?;
+    ensure_changesets_base(root, &head)?;
     let status = root.join("target/xtask/release/status.json");
     fs::create_dir_all(status.parent().context("release status has no parent")?)?;
     // Remove an earlier report: a failed status command must never leave a usable stale plan.
@@ -80,6 +81,34 @@ pub(crate) fn run(root: &Path, args: &[String]) -> Result<()> {
     github_output("tag", &tag)?;
     github_output("ready", "true")?;
     println!("Prepared {branch} from nightly {id}; no refs pushed.");
+    Ok(())
+}
+
+/// Changesets' status command compares packages against its configured base even when it reads
+/// all pending changesets. A SHA checkout fetches origin/main but creates no local main branch.
+/// Supply a missing base at the tested commit, without moving an existing ref or changing HEAD.
+fn ensure_changesets_base(root: &Path, tested: &str) -> Result<()> {
+    let path = root.join(".changeset/config.json");
+    let config: Value = serde_json::from_str(&fs::read_to_string(&path).context("reading Changesets config")?)?;
+    let base = config
+        .get("baseBranch")
+        .and_then(Value::as_str)
+        .context("Changesets config has no baseBranch")?;
+    if git_stdout(
+        root,
+        &[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            "--end-of-options",
+            &format!("{base}^{{commit}}"),
+        ],
+    )
+    .is_none()
+    {
+        git(root, &["branch", "--", base, tested])
+            .with_context(|| format!("creating missing Changesets base {base:?} at the tested commit"))?;
+    }
     Ok(())
 }
 
@@ -292,5 +321,88 @@ mod tests {
             assert!(super::super::verdict(&bad.to_string(), "tested", &|sha| Ok(sha == "tested")).is_err());
         }
         assert!(super::super::verdict(&run.to_string(), "tested", &|sha| Ok(sha == "tested")).is_ok());
+    }
+    /// A detached Actions-style checkout with a remote-tracking main but no local branches.
+    fn detached_checkout(name: &str, base: &str) -> crate::tracked::TempTree {
+        use crate::tracked::{TempTree, git};
+        let config = json!({"baseBranch": base}).to_string();
+        let tree = TempTree::new(name, &[(".changeset/config.json", &config)]);
+        let root = tree.0.as_path();
+        git(root, &["init", "-q", "--initial-branch=main"]).unwrap();
+        git(root, &["add", ".changeset/config.json"]).unwrap();
+        git(
+            root,
+            &[
+                "-c",
+                "user.name=test",
+                "-c",
+                "user.email=test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "-qm",
+                "tested",
+            ],
+        )
+        .unwrap();
+        let head = git(root, &["rev-parse", "HEAD"]).unwrap();
+        git(root, &["update-ref", "refs/remotes/origin/main", head.trim()]).unwrap();
+        git(root, &["checkout", "--detach", "-q"]).unwrap();
+        git(root, &["branch", "-D", "main"]).unwrap();
+        tree
+    }
+
+    #[test]
+    fn missing_changesets_base_should_be_created_without_leaving_the_tested_commit() {
+        use crate::tracked::git;
+        let tree = detached_checkout("prepare-missing-base", "main");
+        let root = tree.0.as_path();
+        let tested = git(root, &["rev-parse", "HEAD"]).unwrap();
+        assert!(git(root, &["merge-base", "main", "HEAD"]).is_err());
+        super::ensure_changesets_base(root, tested.trim()).unwrap();
+        assert_eq!(git(root, &["merge-base", "main", "HEAD"]).unwrap(), tested);
+        assert!(git(root, &["symbolic-ref", "-q", "HEAD"]).is_err());
+        assert_eq!(git(root, &["status", "--porcelain"]).unwrap(), "");
+    }
+
+    #[test]
+    fn existing_changesets_base_should_not_be_rewound_to_an_older_nightly() {
+        use crate::tracked::git;
+        let tree = detached_checkout("prepare-existing-base", "main");
+        let root = tree.0.as_path();
+        let tested = git(root, &["rev-parse", "HEAD"]).unwrap();
+        git(
+            root,
+            &[
+                "-c",
+                "user.name=test",
+                "-c",
+                "user.email=test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "--allow-empty",
+                "-qm",
+                "later",
+            ],
+        )
+        .unwrap();
+        let later = git(root, &["rev-parse", "HEAD"]).unwrap();
+        git(root, &["branch", "main"]).unwrap();
+        git(root, &["checkout", "--detach", tested.trim()]).unwrap();
+        super::ensure_changesets_base(root, tested.trim()).unwrap();
+        assert_eq!(git(root, &["rev-parse", "main"]).unwrap(), later);
+        assert_eq!(git(root, &["rev-parse", "HEAD"]).unwrap(), tested);
+    }
+
+    #[test]
+    fn changesets_base_should_follow_the_configured_branch_name() {
+        use crate::tracked::git;
+        let tree = detached_checkout("prepare-configured-base", "trunk");
+        let root = tree.0.as_path();
+        let tested = git(root, &["rev-parse", "HEAD"]).unwrap();
+        super::ensure_changesets_base(root, tested.trim()).unwrap();
+        assert_eq!(git(root, &["rev-parse", "trunk"]).unwrap(), tested);
+        assert!(git(root, &["rev-parse", "--verify", "refs/heads/main"]).is_err());
     }
 }
