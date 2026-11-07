@@ -62,7 +62,7 @@ fn manual_train_should_require_a_run_id_and_run_only_on_main() {
 fn selected_nightly_should_be_validated_before_its_code_is_checked_out() {
     let prepare = lines_of(TRAIN, "jobs", "prepare").join("\n");
     let validate = prepare.find("name: Select the completed full nightly").unwrap();
-    let checkout = prepare.find("uses: actions/checkout@").unwrap();
+    let checkout = prepare.find("uses: laudebugs/checkout@").unwrap();
     assert!(validate < checkout);
     let selector = prepare.get(validate..checkout).unwrap();
     let full_dispatch = format!(".displayTitle == \"{FULL_DISPATCH_TITLE}\"");
@@ -100,7 +100,7 @@ fn only_a_prepared_release_should_push_both_refs_with_the_app_token() {
     let after = prepare.split("name: Create the release bot's token").nth(1).unwrap();
     assert_eq!(after.matches("if: steps.version.outputs.ready == 'true'").count(), 2);
     for part in [
-        "actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510",
+        "laudebugs/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510",
         "GH_TOKEN: ${{ steps.bot.outputs.token }}",
         "push --atomic origin \"HEAD:refs/heads/$BRANCH\" \"refs/tags/$TAG:refs/tags/$TAG\"",
     ] {

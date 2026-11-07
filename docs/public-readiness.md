@@ -43,6 +43,9 @@ See [GitHub's hosted runner reference](https://docs.github.com/en/actions/refere
   Hosted machines vary, so timing regressions remain advisory.
 - All workflow scripts use Bash, including the native Windows jobs.
   The runner cleanup workflow is removed because each hosted VM is discarded.
+- Repository policy allows only actions owned by `laudebugs`. Workflows use the
+  [owner-controlled action forks](../.github/actions/README.md), each pinned to a full
+  commit SHA. Create every listed fork before enabling the changed workflows.
 
 ## Audit on 2026-11-07
 

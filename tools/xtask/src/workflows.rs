@@ -107,12 +107,71 @@ fn missing_from<'a>(workflow: &'a str, gate: &str) -> Vec<&'a str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::path::{Path, PathBuf};
 
     const CI: &str = include_str!("../../../.github/workflows/ci.yml");
     const FULL: &str = include_str!("../../../.github/workflows/full.yml");
     const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
     const SITE: &str = include_str!("../../../.github/workflows/site.yml");
     const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
+
+    fn yaml_files(dir: &Path, files: &mut Vec<PathBuf>) {
+        for entry in fs::read_dir(dir).expect("workflow directory must be readable") {
+            let path = entry.expect("workflow entry must be readable").path();
+            if path.is_dir() {
+                yaml_files(&path, files);
+            } else if matches!(
+                path.extension().and_then(|extension| extension.to_str()),
+                Some("yml" | "yaml")
+            ) {
+                files.push(path);
+            }
+        }
+    }
+
+    #[test]
+    fn external_actions_should_be_owner_controlled_and_commit_pinned() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(2)
+            .expect("xtask must be under the repository root");
+        let mut files = Vec::new();
+        yaml_files(&root.join(".github"), &mut files);
+        yaml_files(&root.join("tools/release"), &mut files);
+        let mut checked = 0;
+
+        for path in files {
+            let workflow = fs::read_to_string(&path).expect("workflow must be readable");
+            for (line_number, line) in workflow.lines().enumerate() {
+                let line = line.trim_start();
+                let action = line
+                    .strip_prefix("- uses: ")
+                    .or_else(|| line.strip_prefix("uses: "))
+                    .and_then(|uses| uses.split_whitespace().next());
+                let Some(action) = action else { continue };
+                if action.starts_with("./") {
+                    continue;
+                }
+
+                checked += 1;
+                let location = format!("{}:{}", path.display(), line_number + 1);
+                let (repository, revision) = action
+                    .split_once('@')
+                    .unwrap_or_else(|| panic!("{location}: external action is not pinned: {action}"));
+                assert!(
+                    repository.starts_with("laudebugs/"),
+                    "{location}: external action is not owned by laudebugs: {action}"
+                );
+                assert!(
+                    revision.len() == 40 && revision.bytes().all(|byte| byte.is_ascii_hexdigit()),
+                    "{location}: external action is not pinned to a full commit SHA: {action}"
+                );
+            }
+        }
+
+        assert!(checked > 0, "no external action references were checked");
+    }
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {

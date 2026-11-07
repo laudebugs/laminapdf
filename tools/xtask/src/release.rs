@@ -628,7 +628,7 @@ mod tests {
             text.contains("runs-on: ubuntu-latest"),
             "npm's trusted publishing needs a GitHub-hosted runner"
         );
-        for code_from_the_repository in ["actions/checkout", "./.github/actions", "cargo ", "pnpm "] {
+        for code_from_the_repository in ["/checkout@", "./.github/actions", "cargo ", "pnpm "] {
             assert!(
                 !text.contains(code_from_the_repository),
                 "publish-npm runs code from the repository ({code_from_the_repository}) beside its OIDC token"
@@ -827,7 +827,7 @@ mod tests {
             .iter()
             .filter(|step| {
                 let writes = (step.contains("bench-history") && step.contains("mode: push"))
-                    || step.contains("actions/cache/save")
+                    || step.contains("/cache/save@")
                     || step.contains("fuzz cmin")
                     || step.contains("--record");
                 // Gated in the expression, or in the shell (pdf-runtimes' `--record` branch).

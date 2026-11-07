@@ -31,7 +31,8 @@ updates:
       include: scope
 
   - package-ecosystem: github-actions
-    # The workflows, and the actions our composite actions pin (.github/actions/*/action.yml).
+    # The workflows and composite actions pin owner-controlled forks. Sync a fork from the
+    # upstream repository before accepting a Dependabot SHA update; see actions/README.md.
     directories: ["/", "/.github/actions/*"]
     schedule:
       interval: weekly

@@ -34,7 +34,9 @@ An xtask subcommand reads `pnpm licenses list --json` (production dependencies o
 
 - `rust-toolchain.toml` pins the Rust toolchain and targets; `packageManager` in the root `package.json` pins pnpm (via Corepack); Node's version is pinned in `.nvmrc` (used by CI's `setup-node` and by version managers) and declared in `engines`, with `engine-strict=true` in `.npmrc` so pnpm refuses a mismatched Node. `wasm-bindgen-cli` and `wasm-opt` are pinned in xtask ([ADR 0002](0002-binding-strategy.md)).
 - `Cargo.lock` and `pnpm-lock.yaml` are committed. CI runs `cargo … --locked` and `pnpm install --frozen-lockfile`.
-- GitHub Actions are pinned by commit SHA, with the version in a comment.
+- GitHub Actions use owner-controlled forks under `laudebugs` and are pinned by full
+  commit SHA, with the reviewed upstream version in a comment. The fork map and update
+  procedure live in [`.github/actions/README.md`](../../.github/actions/README.md).
 
 ### Dependency updates: Dependabot
 
