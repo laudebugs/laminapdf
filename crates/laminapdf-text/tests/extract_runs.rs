@@ -285,6 +285,36 @@ fn a_right_to_left_run_without_widths_keeps_its_text() {
     assert_eq!(text.chars().filter(|c| !c.is_whitespace()).count(), 2, "{text}");
 }
 
+/// Best-of-three wall time to extract one right-to-left run of `glyphs` letters that don't move
+/// the pen.
+fn best_extract_without_widths(glyphs: usize) -> std::time::Duration {
+    let content = format!("BT /F1 10 Tf 100 700 Td <{}> Tj ET", "01".repeat(glyphs));
+    let doc = page(content.as_bytes(), vec![hebrew("H", 0)], OpenOptions::default());
+    let mut best = std::time::Duration::MAX;
+    for _ in 0..3 {
+        let started = std::time::Instant::now();
+        let text = extract(&doc).expect("extracts").lines().concat();
+        best = best.min(started.elapsed());
+        assert_eq!(text.chars().filter(|c| !c.is_whitespace()).count(), glyphs);
+    }
+    best
+}
+
+// Wall-clock scaling is too noisy for every PR, so this runs on demand and in the nightly lane:
+// `cargo test --release -p laminapdf-text --test extract_runs -- --ignored`. A run of letters
+// that don't move the pen once asked, per glyph, whether the run had any letter: 4x the glyphs
+// cost about 16x (a fuzzed file's 11,142-glyph run took over 10 s under the sanitizer).
+#[test]
+#[ignore = "timing-based; run with --release in the nightly lane"]
+fn a_right_to_left_run_without_widths_should_scale_linearly() {
+    let (t_small, t_large) = (best_extract_without_widths(2000), best_extract_without_widths(8000));
+    let ratio = t_large.as_secs_f64() / t_small.as_secs_f64().max(1e-6);
+    assert!(
+        ratio < 9.0,
+        "8000 glyphs took {ratio:.1}x as long as 2000 ({t_large:?} vs {t_small:?})"
+    );
+}
+
 #[test]
 fn a_gap_after_a_zero_width_mark_is_a_space() {
     let accented = font(
