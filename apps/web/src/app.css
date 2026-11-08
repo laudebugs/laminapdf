@@ -7,6 +7,11 @@ body,
   margin: 0;
 }
 
+/* The phone's browser bars come and go: the dynamic viewport height keeps the bottom bar on screen. */
+#app {
+  height: 100dvh;
+}
+
 body {
   background: var(--paper-ground);
   color: var(--paper-text);

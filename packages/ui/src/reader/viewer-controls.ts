@@ -15,6 +15,8 @@ export interface ViewerSlice {
   readonly zoom: Zoom;
   /** The zoom as a percentage, whatever the mode. */
   readonly percent: number;
+  /** How far the document is scrolled, in CSS px: the phone's top bar hides while it grows. */
+  readonly scrollTop?: number;
 }
 
 /** The viewer as the chrome drives it: `createViewer()`'s result fits. */
