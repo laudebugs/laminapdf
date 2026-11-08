@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B7e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs examples §2](../../plans/docs-examples.md#edit-and-run-b7e) |
 | Round / milestone | Round B (library) — docs |
 | Depends on | [B7d](../done/B7d-docs-example-results.md) |

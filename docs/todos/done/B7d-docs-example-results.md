@@ -35,7 +35,7 @@ Let a reader see what an example makes without leaving the page. Every example t
 
 **Out of scope** (and which todo covers it)
 
-- Editing and running examples: [B7e](../ready/B7e-docs-edit-and-run.md).
+- Editing and running examples: [B7e](../ongoing/B7e-docs-edit-and-run.md).
 - The report recipe's preview: it has no golden PDF; a later todo can add one.
 
 ## Tasks
