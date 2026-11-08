@@ -28,7 +28,7 @@ export const DIAGRAM = /<Diagram\b[^>]*?\sname=(["'])([^"']+)\1[^>]*?(?:\/>|>\s*
  * @param {string} name
  * @returns {string}
  */
-export function diagramMarkdown(name) {
+function diagramMarkdown(name) {
   const { caption, text } = diagramText(name);
   return `*${caption}*\n\n${text}`;
 }
