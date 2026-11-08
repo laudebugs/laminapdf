@@ -11,7 +11,7 @@
 | Branch | `feat/t1c-publish-performance-numbers` |
 | PR title | `feat(docs): a benchmarks page with extraction scores and speed, generation timings and module sizes` |
 | Size | L (≈ 450–600 lines: the snapshot command, a machine helper, two new timing cases, the page's data reader and tables). If it grows past 600, split the generation half (timings and sizes) into its own todo |
-| PR | — |
+| PR | [#310](https://github.com/laudebugs/laminapdf/pull/310) |
 
 ## Goal
 
