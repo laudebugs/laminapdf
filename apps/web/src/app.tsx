@@ -117,6 +117,40 @@ function statusItems(engine: EngineState, debug: boolean, onRepairs: (() => void
   return items;
 }
 
+/**
+ * The repair details of `fileName`, docked as the inspector once the status bar's notice is pressed,
+ * and how to show them; nothing for a file without repairs. The panel belongs to one file: it starts
+ * closed for each, and closes when the file changes.
+ */
+function useRepairsPanel(
+  layout: ShellLayout,
+  platform: Platform,
+  fileName: string | undefined,
+  repairs: EngineState["repairs"],
+): { inspector: ReactNode; showRepairs: (() => void) | undefined } {
+  const [repairsFor, setRepairsFor] = useState<string | undefined>();
+  useEffect(() => {
+    if (repairsFor !== fileName) layout.closeInspector();
+  }, [repairsFor, fileName, layout]);
+  if (fileName === undefined || repairs.length === 0) return { inspector: undefined, showRepairs: undefined };
+  const showRepairs = () => {
+    setRepairsFor(fileName);
+    layout.openInspector({ id: "repairs", selection: false });
+  };
+  const inspector =
+    repairsFor === fileName ? (
+      <Inspector layout={layout}>
+        <RepairDetails
+          fileName={fileName}
+          repairs={repairs}
+          onClose={() => layout.closeInspector()}
+          onCopy={() => void platform.copyText(repairsText(repairs))}
+        />
+      </Inspector>
+    ) : undefined;
+  return { inspector, showRepairs };
+}
+
 /** The reader over `engine`, on `platform`; `debug` shows the debug menu (`#debug`). */
 export function App({ engine, platform, debug }: { engine: Engine; platform: Platform; debug: boolean }): ReactNode {
   const { reader } = engine;
@@ -127,8 +161,6 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const { layout, modes } = useShell(platform);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const sidebar = useStoreState(layout, (s) => s.rail.open);
-  // The repair panel belongs to one file: it starts closed for each.
-  const [repairsFor, setRepairsFor] = useState<string | undefined>();
   const more = useGatedEntries<MoreId>([
     { id: "open", label: message("reader.open.choose") },
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
@@ -138,27 +170,8 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const commands = useReaderCommands(platform, reader, shown, shell);
   const fileName = open ? state.file.name : undefined;
   useWindowTitle(fileName, engineState.title);
-  const repaired = fileName !== undefined && repairs.length > 0;
-  const showRepairs = () => {
-    setRepairsFor(fileName);
-    layout.openInspector({ id: "repairs", selection: false });
-  };
-  const status = statusItems(engineState, debug, repaired ? showRepairs : undefined);
-  // Another file's repairs never show: the panel closes when the file changes.
-  useEffect(() => {
-    if (repairsFor !== fileName) layout.closeInspector();
-  }, [repairsFor, fileName, layout]);
-  const inspector =
-    repaired && repairsFor === fileName ? (
-      <Inspector layout={layout}>
-        <RepairDetails
-          fileName={fileName}
-          repairs={repairs}
-          onClose={() => layout.closeInspector()}
-          onCopy={() => void platform.copyText(repairsText(repairs))}
-        />
-      </Inspector>
-    ) : undefined;
+  const { inspector, showRepairs } = useRepairsPanel(layout, platform, fileName, repairs);
+  const status = statusItems(engineState, debug, showRepairs);
   const debugMenu = debug ? (
     <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />
   ) : undefined;
