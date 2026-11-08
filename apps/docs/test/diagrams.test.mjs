@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
+import { DIAGRAM } from "../plugins/markdown.mjs";
 import { DIAGRAMS, drawingFile } from "../src/components/diagrams/registry.mjs";
 
 const ROOT = new URL("../", import.meta.url);
@@ -45,7 +46,7 @@ test("no diagram file writes a colour, a style attribute or a colour attribute",
 
 test("every colour in the diagrams' stylesheet is a token", () => {
   const css = readFileSync(STYLES, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-  const values = [...css.matchAll(/(?:^|[;{\s])(fill|stroke|color)\s*:\s*([^;]+);/g)];
+  const values = [...css.matchAll(/(?:^|[;{\s])(fill|stroke|[a-z-]*colou?r)\s*:\s*([^;]+);/g)];
   assert.ok(values.length > 0, "no colours found: did the stylesheet move?");
   for (const [, property, value] of values) {
     assert.match(
@@ -78,13 +79,23 @@ test("every diagram has a caption, a text description and a drawing", () => {
   }
 });
 
-test("every page names a diagram that exists, and never before its opening paragraph", () => {
+test("every page names a diagram that exists, through <Diagram>, never before its opening paragraph", () => {
   for (const [path, source] of pages()) {
     const body = source
       .replace(/^---[\s\S]*?---\s*/, "")
       .replace(/^import .*$/gm, "")
       .trim();
-    for (const [, name] of source.matchAll(/<Diagram\s+name="([^"]+)"/g)) {
+    assert.doesNotMatch(
+      source,
+      /from\s+["'][^"']*components\/diagrams\//,
+      `${path} imports a drawing; use <Diagram name>`,
+    );
+    assert.equal(
+      (source.match(/<Diagram\b/g) ?? []).length,
+      [...source.matchAll(DIAGRAM)].length,
+      `${path}: a <Diagram> the twin wouldn't recognise`,
+    );
+    for (const [, , name] of source.matchAll(DIAGRAM)) {
       assert.ok(name !== undefined && name in DIAGRAMS, `${path}: no diagram named "${name}"`);
     }
     assert.ok(!body.startsWith("<Diagram"), `${path}: a diagram comes before the opening paragraph`);

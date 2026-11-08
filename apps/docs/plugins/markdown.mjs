@@ -14,8 +14,12 @@ const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" }
 /** A `<Snippet … file="…" … />`, whatever its attributes' order; group 1 is the file. */
 export const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
 
-/** A `<Diagram name="…" />`; group 1 is the name (src/components/diagrams/registry.mjs). */
-export const DIAGRAM = /<Diagram\s+name="([a-z0-9-]+)"\s*\/>/g;
+/**
+ * A `<Diagram … name="…" … />` (or `<Diagram name="…"></Diagram>`), whatever its attributes and
+ * quotes; group 2 is the name (src/components/diagrams/registry.mjs). test/diagrams.test.mjs uses
+ * it too, so the pages' check and the twin see the same diagrams.
+ */
+export const DIAGRAM = /<Diagram\b[^>]*?\bname=(["'])([^"']+)\1[^>]*?(?:\/>|>\s*<\/Diagram>)/g;
 
 /**
  * A diagram as its twin shows it: the caption in italics, then the text description, which says
@@ -158,7 +162,7 @@ export function mdxToMarkdown(body, components) {
     part
       .replace(/^import\s.+?;?\s*$/gm, "")
       .replace(SNIPPET, (_, file) => codeBlock(file, components.snippet(file)))
-      .replace(DIAGRAM, (_, name) => diagramMarkdown(name))
+      .replace(DIAGRAM, (_, _quote, name) => diagramMarkdown(name))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {

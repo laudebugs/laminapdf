@@ -12,6 +12,8 @@ interface Props {
 }
 const { name } = Astro.props;
 const { caption, text } = diagramText(name);
+// The registry marks API names with backticks for the Markdown twin; a screen reader would read them.
+const spoken = text.replaceAll("`", "");
 const drawings = import.meta.glob<{ default: (props: Record<string, string>) => unknown }>("./diagrams/*.astro", {
   eager: true,
 });
@@ -24,5 +26,5 @@ const id = `dg-${name}`;
 <figure class="dg" data-diagram={name}>
   <Drawing prefix={id} labelledby={`${id}-caption`} describedby={`${id}-text`} />
   <figcaption id={`${id}-caption`}>{caption}</figcaption>
-  <p id={`${id}-text`} hidden>{text}</p>
+  <p id={`${id}-text`} hidden>{spoken}</p>
 </figure>

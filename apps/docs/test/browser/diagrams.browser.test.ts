@@ -1,18 +1,30 @@
-// Every diagram in a real browser, in the light, dark and high-contrast themes (the last maps the
-// tokens to the system colours forced-colours mode uses): each label has 4.5:1 against what is
-// behind it, each line that carries meaning 3:1 against the page, no label is under 12 px at a
-// desktop column or a phone's, and the picture is an image named by its caption and described by
-// its text. axe-core doesn't measure contrast inside SVG, so these tests compute it themselves.
+// Every diagram in a real browser, in the light, dark and high-contrast themes, and with forced
+// colours emulated (Chromium and Firefox; WebKit can't emulate them, and the high-contrast theme
+// maps the tokens to the same system colours): each label has 4.5:1 against what is behind it,
+// each line that carries meaning 3:1 against the page, no label is under 12 px at a desktop
+// column, the narrowest column that shows the wide layout or a phone's, and the picture is an
+// image named by its caption and described by its text. axe-core doesn't measure contrast inside
+// SVG, so these tests compute it themselves.
 
 import "@laminapdf/tokens/tokens.css";
 import "@laminapdf/fonts/fonts.css";
 import "../../src/styles/diagrams.css";
-import { afterEach, describe, expect, inject, it } from "vitest";
+import { afterEach, describe, expect, inject, it, onTestFinished } from "vitest";
+import { commands, server } from "vitest/browser";
+
+declare module "vitest/browser" {
+  interface BrowserCommands {
+    forcedColors: (value: "active" | "none") => Promise<void>;
+  }
+}
 
 const DIAGRAMS = inject("diagrams");
 const THEMES = ["light", "dark", "high-contrast"] as const;
-/** The docs' content column at a 1280 px window, and a phone's (390 px less the gutters). */
-const WIDTHS = { desktop: 708, phone: 358 } as const;
+/**
+ * The docs' content column at a 1280 px window; the narrowest column that still shows the wide
+ * layout (just over 40rem), where its labels are smallest; and a phone's (390 px less the gutters).
+ */
+const WIDTHS = { desktop: 708, "narrowest wide": 641, phone: 358 } as const;
 
 const ground = document.createElement("style");
 ground.textContent = "body { margin: 0; background: var(--paper-ground); color: var(--paper-text); }";
@@ -67,6 +79,8 @@ function contrast(a: string, b: string): number {
 function behind(text: SVGTextElement): string {
   const box = text.getBoundingClientRect();
   const under = document.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+  // Nothing at all under a label means it is outside the window, not on the page.
+  if (!under.includes(text)) throw new Error(`"${text.textContent}" is outside the window`);
   for (const element of under) {
     if (element === text || !(element instanceof SVGGeometryElement)) continue;
     const fill = getComputedStyle(element).fill;
@@ -97,6 +111,22 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
       });
     });
   }
+
+  it(`${name}: with forced colours, gives every label 4.5:1 and every line 3:1`, async (context) => {
+    if (server.browser === "webkit") context.skip("WebKit can't emulate forced colours");
+    await commands.forcedColors("active");
+    onTestFinished(() => commands.forcedColors("none"));
+    const svg = shown(mount(html, "light", WIDTHS.desktop));
+    const page = getComputedStyle(document.body).backgroundColor;
+    for (const text of svg.querySelectorAll("text")) {
+      expect(contrast(getComputedStyle(text).fill, behind(text)), `"${text.textContent}"`).toBeGreaterThanOrEqual(4.5);
+    }
+    for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane")) {
+      expect(contrast(getComputedStyle(shape).stroke, page), `${shape.getAttribute("class")}`).toBeGreaterThanOrEqual(
+        3,
+      );
+    }
+  });
 
   for (const [where, width] of Object.entries(WIDTHS)) {
     it(`${name}: no label under 12 px in a ${where} column`, async () => {

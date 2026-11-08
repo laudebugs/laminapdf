@@ -66,10 +66,13 @@
   fill: var(--paper-text-2);
 }
 
+/* A lane's title is an overline: written in sentence case, shown in capitals. It keeps 14, not
+   the apps' 11 px overline, so it stays above 12 px when the drawing scales down. */
 .dg .dg-title {
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   fill: var(--paper-text-2);
 }
 
@@ -94,7 +97,7 @@
 .dg .dg-fresh {
   fill: var(--paper-accent-tint);
   stroke: var(--paper-accent);
-  stroke-width: 1.5;
+  stroke-width: 1;
 }
 
 .dg .dg-lane {
