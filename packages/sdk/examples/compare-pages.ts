@@ -3,11 +3,18 @@
 // Both files are drawn by the same renderer, so its own quirks cancel out. In Node, load it with
 // the module's bytes:
 //
-//   const renderer = await loadRenderer(readFileSync(require.resolve("@laminapdf/wasm/lamina_pdf_render_hayro.wasm")));
-import { bytesSource, type RenderBackend, type RenderDocument, type RenderedTile } from "@laminapdf/render";
+//   const wasm = fileURLToPath(import.meta.resolve("@laminapdf/wasm/lamina_pdf_render_hayro.wasm"));
+//   const renderer = await loadRenderer(readFileSync(wasm));
+import {
+  bytesSource,
+  DEFAULT_LIMITS,
+  type RenderBackend,
+  type RenderDocument,
+  type RenderedTile,
+} from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 
-/** Pixels per point: 2 draws at 144 dpi, enough to see a glyph that moved. */
+/** Pixels per point: 2 draws at 144 dpi, enough to see a glyph that moved. Pages too large for the renderer's limits at this scale are drawn smaller. */
 const SCALE = 2;
 /** How far a colour channel (0–255) may move before the pixel counts as changed: absorbs smoothing noise. */
 const TOLERANCE = 8;
@@ -48,8 +55,9 @@ export function comparePages(renderer: RenderBackend, before: Uint8Array, after:
 }
 
 function comparePage(a: RenderDocument, b: RenderDocument, page: number): PageDifference {
-  const first = a.render({ page, scale: SCALE });
-  const second = b.render({ page, scale: SCALE });
+  const scale = Math.min(fittingScale(a, page), fittingScale(b, page));
+  const first = a.render({ page, scale });
+  const second = b.render({ page, scale });
   const width = Math.max(first.width, second.width);
   const height = Math.max(first.height, second.height);
   let pixels = 0;
@@ -65,8 +73,16 @@ function comparePage(a: RenderDocument, b: RenderDocument, page: number): PageDi
   const box =
     pixels === 0
       ? null
-      : { x: left / SCALE, y: top / SCALE, width: (right - left + 1) / SCALE, height: (bottom - top + 1) / SCALE };
+      : { x: left / scale, y: top / scale, width: (right - left + 1) / scale, height: (bottom - top + 1) / scale };
   return { page, pixels, box };
+}
+
+/** `SCALE`, or less when the page would pass the renderer's pixel or side limit at it. */
+function fittingScale(doc: RenderDocument, page: number): number {
+  const { width, height } = doc.page(page);
+  const byArea = Math.sqrt(DEFAULT_LIMITS.maxRenderPixels / (width * height));
+  const bySide = DEFAULT_LIMITS.maxRenderSide / Math.max(width, height);
+  return Math.min(SCALE, byArea, bySide);
 }
 
 /** Whether the pixel at (x, y) differs; a pixel only one page has always does. */

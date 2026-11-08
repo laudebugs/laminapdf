@@ -2,12 +2,13 @@
 //
 // Build the document with `TEST_OPTIONS`, then let your test runner check the answer:
 //
-//   expect(compareWithReference(invoice(order, TEST_OPTIONS), "references/invoice.pdf")).not.toBe("changed");
+//   expect(compareWithReference(invoice(order, TEST_OPTIONS), "references/invoice.pdf")).toBe("same");
 //
-// The first run writes the reference: open it, and commit it once it looks right. When the bytes
-// change later, the new PDF is written beside the reference for review; pass `{ update: true }`
-// to accept it.
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+// The first run fails with `created` and writes the reference: open it, and commit it once it
+// looks right. When the bytes change later, the new PDF is written beside the reference for
+// review; pass `{ update: true }` to accept it.
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join } from "node:path";
 import type { BuilderOptions } from "@laminapdf/sdk";
 
 /**
@@ -36,8 +37,9 @@ export interface CompareOptions {
  * `<name>.new.pdf` next to the reference, or replaces it when `update` is set.
  */
 export function compareWithReference(bytes: Uint8Array, reference: string, options: CompareOptions = {}): Outcome {
-  const pending = `${reference.replace(/\.pdf$/, "")}.new.pdf`;
+  const pending = join(dirname(reference), `${basename(reference, extname(reference))}.new.pdf`);
   if (!existsSync(reference)) {
+    mkdirSync(dirname(reference), { recursive: true });
     writeFileSync(reference, bytes);
     return "created";
   }

@@ -282,6 +282,17 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                     &["--filter", "@laminapdf/sdk", "exec", "playwright", "install", runtime],
                 )?;
             }
+            if runtime == "node" {
+                // The Node suite's compare-pages test draws pages with @laminapdf/render-hayro,
+                // which it imports through its built `dist/` (the `wasm` job uploads only the
+                // modules and the SDK's).
+                crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
+                crate::run(
+                    &ws.root,
+                    "pnpm",
+                    &["--filter", "@laminapdf/render-hayro", "run", "build:wasm"],
+                )?;
+            }
             let mut found = Vec::new();
             for command in commands(runtime)? {
                 found.extend(parse_measurements(&run_captured(ws, &command)?)?);

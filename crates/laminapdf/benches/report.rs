@@ -28,7 +28,6 @@
               generate undocumented items"
 )]
 
-use std::fmt::Write as _;
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -202,17 +201,10 @@ fn text_boxes() -> Vec<u8> {
     doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().fold(String::new(), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    })
-}
-
 fn bench_reports(c: &mut Criterion) {
     let bytes = report();
     assert_eq!(
-        hex(&Sha256::digest(&bytes)),
+        laminapdf_test_fixtures::hex(&Sha256::digest(&bytes)),
         REPORT_SHA256,
         "the Rust twin of examples/report.ts no longer builds the TS suite's bytes"
     );

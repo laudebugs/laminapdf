@@ -41,7 +41,6 @@ mod pdf_ua_report;
 mod snapshot_test;
 
 use std::error::Error;
-use std::fmt::Write as _;
 use std::path::Path;
 
 use laminapdf::{BuildOptions, Builder};
@@ -260,10 +259,7 @@ fn snapshot_hello_sha256() -> &'static str {
 #[test]
 fn snapshot_test_options_give_the_typescript_bytes() {
     let bytes = hello::build(snapshot_test::test_options().unwrap()).unwrap();
-    let hash = Sha256::digest(&bytes).iter().fold(String::new(), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    });
+    let hash = laminapdf_test_fixtures::hex(&Sha256::digest(&bytes));
     assert_eq!(hash, snapshot_hello_sha256());
 }
 

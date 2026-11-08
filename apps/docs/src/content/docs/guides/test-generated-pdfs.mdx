@@ -31,7 +31,7 @@ The example below holds the options a test passes and a function that compares a
   </TabItem>
 </Tabs>
 
-On the first run there is no reference yet, so the function writes one and answers `created`. Open that PDF before you commit it: the test only proves that later runs match it, so it has to be right. After that, every run answers `same` until the output changes.
+On the first run there is no reference yet, so the function writes one, answers `created`, and the test fails. Open that PDF before you commit it: the test only proves that later runs match it, so it has to be right. After that, every run answers `same` until the output changes. A reference you forget to commit fails the test on every other machine too, since a fresh checkout has none.
 
 When the bytes change, the reference stays as it was and the new PDF goes beside it as `<name>.new.pdf`. Open both, and if the change is the one you meant, run the tests again with `update` set, for example from an environment variable such as `UPDATE_REFERENCES=1`. Commit the new reference with the change that caused it.
 

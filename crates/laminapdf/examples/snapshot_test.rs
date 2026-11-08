@@ -4,12 +4,12 @@
 //!
 //! ```ignore
 //! let bytes = invoice(&order, test_options()?)?;
-//! assert_ne!(compare_with_reference(&bytes, Path::new("references/invoice.pdf"), false)?, Outcome::Changed);
+//! assert_eq!(compare_with_reference(&bytes, Path::new("references/invoice.pdf"), false)?, Outcome::Same);
 //! ```
 //!
-//! The first run writes the reference: open it, and commit it once it looks right. When the bytes
-//! change later, the new PDF is written beside the reference for review; pass `update: true` to
-//! accept it. Run on its own, the example compares two files:
+//! The first run fails with `Created` and writes the reference: open it, and commit it once it
+//! looks right. When the bytes change later, the new PDF is written beside the reference for
+//! review; pass `update: true` to accept it. Run on its own, the example compares two files:
 //!
 //! ```sh
 //! cargo run -p laminapdf --example snapshot_test -- new.pdf reference.pdf
@@ -65,6 +65,9 @@ pub(crate) enum Outcome {
 pub(crate) fn compare_with_reference(bytes: &[u8], reference: &Path, update: bool) -> std::io::Result<Outcome> {
     let pending = pending_path(reference);
     if !reference.exists() {
+        if let Some(folder) = reference.parent() {
+            std::fs::create_dir_all(folder)?;
+        }
         std::fs::write(reference, bytes)?;
         return Ok(Outcome::Created);
     }
