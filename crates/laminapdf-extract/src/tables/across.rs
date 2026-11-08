@@ -2,6 +2,8 @@
 //! of the next are linked (`continued_by`, `continues`), so the renderings can write one table.
 //! Each part stays a block of its own, with its page's box.
 
+use std::collections::BTreeMap;
+
 use laminapdf_model::RectPt;
 
 use super::lattice::SNAP;
@@ -17,6 +19,14 @@ const CONTINUED_MAX_CHARS: usize = 60;
 /// Links every pair of table parts that one table split over a page break. Runs once furniture
 /// is gone and block IDs are final.
 pub(crate) fn link(out: &mut Extraction) {
+    // Each page's first and last block, found once: blocks are grouped by page.
+    let mut ends: BTreeMap<usize, (usize, usize)> = BTreeMap::new();
+    for (i, block) in out.blocks.iter().enumerate() {
+        ends.entry(block.page).and_modify(|e| e.1 = i).or_insert((i, i));
+    }
+    // The first part of each chain, by the index of any of its parts: a later part's header is
+    // compared with the table's own header, wherever the chain began.
+    let mut head: BTreeMap<usize, usize> = BTreeMap::new();
     let heights: Vec<(usize, f64)> = out.pages.iter().map(|p| (p.index, p.height.get())).collect();
     for pair in heights.windows(2) {
         let [(page, height), (next, next_height)] = pair else {
@@ -25,40 +35,44 @@ pub(crate) fn link(out: &mut Extraction) {
         if *next != page + 1 {
             continue;
         }
-        let Some((a, b)) = candidates(&out.blocks, *page, *next) else {
+        let (Some(&(_, last)), Some(&(first, _))) = (ends.get(page), ends.get(next)) else {
             continue;
         };
-        let (Some(first), Some(second)) = (out.blocks.get(a), out.blocks.get(b)) else {
+        let Some((a, b)) = candidates(&out.blocks, last, first) else {
             continue;
         };
-        if !(at_foot(&first.bbox, *height) && at_top(&second.bbox, *next_height)) {
+        let start = head.get(&a).copied().unwrap_or(a);
+        let (Some(part), Some(second), Some(chain_head)) =
+            (out.blocks.get(a), out.blocks.get(b), out.blocks.get(start))
+        else {
+            continue;
+        };
+        if !(at_foot(&part.bbox, *height) && at_top(&second.bbox, *next_height)) {
             continue;
         }
-        let Some(repeated) = joinable(first, second) else {
+        let Some(repeated) = joinable(part, second, &chain_head.cells) else {
             continue;
         };
-        let (first_id, second_id) = (first.id.clone(), second.id.clone());
-        if let Some(first) = out.blocks.get_mut(a) {
-            first.continued_by = Some(second_id);
+        let (part_id, second_id) = (part.id.clone(), second.id.clone());
+        if let Some(part) = out.blocks.get_mut(a) {
+            part.continued_by = Some(second_id);
         }
         if let Some(second) = out.blocks.get_mut(b) {
-            second.continues = Some(first_id);
-            if repeated {
-                second
-                    .cells
-                    .iter_mut()
-                    .filter(|c| c.row == 0)
-                    .for_each(|c| c.header = true);
-            }
+            second.continues = Some(part_id);
+            second
+                .cells
+                .iter_mut()
+                .filter(|c| c.row < repeated)
+                .for_each(|c| c.header = true);
         }
+        head.insert(b, start);
     }
 }
 
-/// The indices of `page`'s last table and `next`'s first table, when nothing but one short
-/// "continued" line stands between them.
-fn candidates(blocks: &[Block], page: usize, next: usize) -> Option<(usize, usize)> {
-    let last = blocks.iter().rposition(|b| b.page == page)?;
-    let first = blocks.iter().position(|b| b.page == next)?;
+/// The indices of a page's last table and the next page's first table, given those pages' last
+/// and first blocks, when nothing but one short "continued" line stands between them.
+fn candidates(blocks: &[Block], last: usize, first: usize) -> Option<(usize, usize)> {
+    let (page, next) = (blocks.get(last)?.page, blocks.get(first)?.page);
     let is_table = |i: usize| blocks.get(i).is_some_and(|b| matches!(b.kind, BlockKind::Table { .. }));
     let is_continued = |i: usize| blocks.get(i).is_some_and(says_continued);
     match (is_table(last), is_table(first)) {
@@ -84,7 +98,10 @@ fn says_continued(block: &Block) -> bool {
         return false;
     }
     let text = block.text.to_lowercase().replace('\u{2019}', "'");
-    ["continued", "cont.", "cont'd"].iter().any(|word| text.contains(word))
+    // Whole words only, so "discontinued" doesn't count.
+    text.split(|c: char| !(c.is_alphanumeric() || c == '\'' || c == '.'))
+        .map(|word| word.trim_end_matches('.'))
+        .any(|word| matches!(word, "continued" | "cont" | "cont'd"))
 }
 
 fn at_foot(bbox: &RectPt, page_height: f64) -> bool {
@@ -96,8 +113,9 @@ fn at_top(bbox: &RectPt, page_height: f64) -> bool {
 }
 
 /// `Some(repeated)` when `second` can go on from `first`: the same detector and columns, and a
-/// header that fits. `repeated` says the second part's first row repeats the first's header.
-fn joinable(first: &Block, second: &Block) -> Option<bool> {
+/// header that fits the table's own (`header`, its first part's cells). `repeated` is how many
+/// of the second part's first rows repeat that header.
+fn joinable(first: &Block, second: &Block, header: &[Cell]) -> Option<usize> {
     let (
         BlockKind::Table { cols, detector, .. },
         BlockKind::Table {
@@ -121,7 +139,7 @@ fn joinable(first: &Block, second: &Block) -> Option<bool> {
     if !aligned {
         return None;
     }
-    header_fits(&first.cells, &second.cells)
+    header_fits(header, &second.cells)
 }
 
 /// Each column's left and right edge, measured from the table's left edge: the cells that start
@@ -154,17 +172,19 @@ fn overlaps_match(a: &[(f64, f64)], b: &[(f64, f64)]) -> bool {
         .all(|(i, p)| b.iter().enumerate().all(|(j, q)| overlaps(p, q) == (i == j)))
 }
 
-/// `Some(repeated)` when the second part's header fits the first's: it repeats it (`true`),
-/// neither part has one, or only the first does and the second's first row differs (`false`).
-/// `None` when the second part has a header of its own: it starts a new table.
-fn header_fits(first: &[Cell], second: &[Cell]) -> Option<bool> {
-    let first_header = (header_row_count(first) > 0).then(|| row_texts(first, 0));
-    let second_has_header = header_row_count(second) > 0;
-    let second_first_row = row_texts(second, 0);
-    match first_header {
-        Some(header) if header == second_first_row => Some(true),
-        _ if second_has_header => None,
-        _ => Some(false),
+/// `Some(repeated)` when the second part's header fits the table's (`first`, its first part's
+/// cells): it repeats all of the header's rows (`repeated` is their count), neither has a
+/// header (`0`), or only the table does and the second part's first rows differ (`0`). `None`
+/// when the second part has a header of its own: it starts a new table.
+fn header_fits(first: &[Cell], second: &[Cell]) -> Option<usize> {
+    let rows = header_row_count(first);
+    let repeats = rows > 0 && (0..rows).all(|row| row_texts(first, row) == row_texts(second, row));
+    if repeats {
+        Some(rows)
+    } else if header_row_count(second) > 0 {
+        None
+    } else {
+        Some(0)
     }
 }
 
@@ -221,6 +241,7 @@ mod tests {
         assert!(says_continued(&paragraph("Table 1 (continued)")));
         assert!(says_continued(&paragraph("CONT'D")));
         assert!(says_continued(&paragraph("Prices, cont.")));
+        assert!(!says_continued(&paragraph("Discontinued products")));
         assert!(!says_continued(&paragraph("Table 1")));
         assert!(!says_continued(&paragraph(&format!("continued {}", "x".repeat(60)))));
     }
@@ -261,18 +282,35 @@ mod tests {
             cell(0, 1, " Price ", false),
             cell(1, 0, "Jam", false),
         ];
-        assert_eq!(header_fits(&first, &repeated), Some(true));
+        assert_eq!(header_fits(&first, &repeated), Some(1));
+    }
+
+    #[test]
+    fn a_two_row_header_repeats_only_when_both_rows_do() {
+        let first = [
+            cell(0, 0, "Item", true),
+            cell(1, 0, "(EUR)", true),
+            cell(2, 0, "Tea", false),
+        ];
+        let both = [
+            cell(0, 0, "Item", false),
+            cell(1, 0, "(EUR)", false),
+            cell(2, 0, "Jam", false),
+        ];
+        assert_eq!(header_fits(&first, &both), Some(2));
+        let one = [cell(0, 0, "Item", true), cell(1, 0, "Jam", false)];
+        assert_eq!(header_fits(&first, &one), None);
     }
 
     #[test]
     fn rows_without_a_header_join_and_a_different_header_does_not() {
         let first = [cell(0, 0, "Item", true), cell(1, 0, "Tea", false)];
         let plain = [cell(0, 0, "Jam", false), cell(1, 0, "Bread", false)];
-        assert_eq!(header_fits(&first, &plain), Some(false));
+        assert_eq!(header_fits(&first, &plain), Some(0));
         let other = [cell(0, 0, "Total", true), cell(1, 0, "9.00", false)];
         assert_eq!(header_fits(&first, &other), None);
         let headless = [cell(0, 0, "Tea", false)];
-        assert_eq!(header_fits(&headless, &plain), Some(false));
+        assert_eq!(header_fits(&headless, &plain), Some(0));
         assert_eq!(header_fits(&headless, &other), None);
     }
 }

@@ -589,3 +589,30 @@ fn each_piece_of_text_is_in_one_place_only() {
         assert_eq!(markdown.matches(word).count(), 1, "{word} in {markdown}");
     }
 }
+
+#[test]
+fn a_header_repeated_after_a_part_without_one_still_joins_the_chain() {
+    let mut first = String::new();
+    grid(&mut first, &XS, &FOOT, &[HEAD, &["Tea", "2.50"], &["Cake", "4.00"]]);
+    let mut middle = String::new();
+    grid_with(
+        &mut middle,
+        &XS,
+        &[760.0, 410.0, 60.0],
+        &[&["Bread", "3.00"], &["Jam", "1.50"]],
+        false,
+    );
+    let mut last = String::new();
+    grid(&mut last, &XS, &TOP, &[HEAD, &["Milk", "1.20"], &["Eggs", "2.80"]]);
+    let out = run(&pages(&[first, middle, last]), &ExtractOptions::new());
+    let parts = tables(&out);
+    assert_eq!(parts.len(), 3, "{:?}", out.blocks);
+    assert_eq!(parts[2].continues.as_deref(), Some(parts[1].id.as_str()));
+    assert_eq!(
+        out.to_markdown(&MarkdownOptions::new())
+            .text
+            .matches("| Item |")
+            .count(),
+        1
+    );
+}
