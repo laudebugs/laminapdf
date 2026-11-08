@@ -2,7 +2,7 @@
 
 **Status:** research, 2026-11-08. Feeds the [docs examples plan](../../plans/docs-examples.md).
 
-A reader of a recipe page sees the code and a link, "open the reference PDF", that leaves the page. They can't see what the code makes without opening a file, and they can't try a change without setting up a project. Other documentation sites solve one or both problems in five ways: pictures of the output, live samples, hosted sandboxes, a hosted bundler, and a playground of their own. This note compares the five for a PDF library whose docs site has strict security headers, and recommends pictures of every document an example makes now, and a small runner of our own later, for the few TypeScript examples worth editing.
+A reader of a recipe page sees the code and a link, "open the reference PDF", that leaves the page. They can't see what the code makes without opening a file, and they can't try a change without setting up a project. Other documentation sites solve one or both problems in five ways: pictures of the output, live samples, hosted sandboxes, a hosted bundler, and a playground of their own. This note compares the five for a PDF library whose docs site has strict security headers. It recommends pictures of every document an example makes, now, and later a small runner of our own for the few TypeScript examples worth editing.
 
 ## Where the docs stand
 
@@ -32,7 +32,7 @@ PDF libraries themselves mostly link out: pdfmake keeps a separate playground pa
 2. **The reference PDF in our own viewer**, lazily. Zoom and scroll, at the cost of 2.2 MB on first open. Pictures already show what a reader needs; the viewer adds little on a docs page.
 3. **A hosted sandbox** (StackBlitz, CodeSandbox). Rejected: it breaks the headers and ADR 0011's same-site rule, runs the published package rather than the docs' version, needs a licence for a private repository, and starts slowly.
 4. **A self-hosted Sandpack bundler.** Rejected: a second origin to run, built around React, and heavier than what we need.
-5. **A runner of our own** for TypeScript examples (Svelte's and MDN's approach): an "Edit and run" button on the Result tab loads an editor (CodeMirror 6, MIT), strips the types (Sucrase, MIT; no type check), runs the code against the docs' own `@laminapdf/sdk` in a sandboxed iframe, and draws the new PDF with `@laminapdf/viewer`. The iframe page lives on the docs site with its own, looser headers (`'unsafe-eval'` for that page only) and `sandbox="allow-scripts"` without `allow-same-origin`, so the code it runs can't read the docs' storage. Nothing loads until the reader presses the button; then about 3.5 MB (the SDK's text module and PDFium) and the editor. Rust examples stay read-only: compiling Rust in the browser isn't practical.
+5. **A runner of our own** for TypeScript examples (Svelte's and MDN's approach). An "Edit and run" button on the Result tab loads an editor (CodeMirror 6, MIT) and strips the types (Sucrase, MIT; no type check). It runs the code against the docs' own `@laminapdf/sdk` in a sandboxed iframe and draws the new PDF with `@laminapdf/viewer`. The iframe page lives on the docs site with its own, looser headers (`'unsafe-eval'` for that page only). Its `sandbox="allow-scripts"` attribute, without `allow-same-origin`, keeps the code it runs away from the docs' storage. Nothing loads until the reader presses the button; then about 3.5 MB (the SDK's text module and PDFium) and the editor. Rust examples stay read-only: compiling Rust in the browser isn't practical.
 
 ## Recommendation
 
