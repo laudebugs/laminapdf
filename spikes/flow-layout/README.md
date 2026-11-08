@@ -1,8 +1,8 @@
 # Spike: `flow-layout` (T4a)
 
 - **Date:** 2026-11-08
-- **Status:** done. Its recommendation is recorded in [ADR 0032](../../docs/decisions/0032-flowing-layout-and-document-inputs.md), which stays Proposed until the owner signs it off.
-- **Todo:** [T4a](../../docs/todos/ongoing/T4a-adr-0032-layout-engine.md); plan [trust and proof §T4](../../docs/plans/trust-and-proof.md#t4-pages-that-flow)
+- **Status:** done. Its recommendation is recorded in [ADR 0032](../../docs/decisions/0032-flowing-layout-and-document-inputs.md), accepted by the owner on 2026-11-08.
+- **Todo:** [T4a](../../docs/todos/done/T4a-adr-0032-layout-engine.md); plan [trust and proof §T4](../../docs/plans/trust-and-proof.md#t4-pages-that-flow)
 - **Code:** throwaway quality, outside both workspaces, never imported by product code ([code organisation §12](../../docs/guidelines/code-organization.md#12-spikes-vs-product-code)).
 
 ## Question

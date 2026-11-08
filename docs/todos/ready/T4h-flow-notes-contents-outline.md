@@ -15,7 +15,7 @@
 
 ## Goal
 
-Add the two page features that need more than one region of the page or more than one pass. Footnotes sit at the foot of the page that refers to them. A contents page lists each heading with the page it landed on and a link to it, and the outline (bookmarks) mirrors the headings. Hacker News commenters name both in the page-control requests (about 345 comments). This was part of T4c until [T4a](../ongoing/T4a-adr-0032-layout-engine.md) split T4c to keep each todo under 800 lines; tables across pages stay in [T4c](./T4c-flow-tables-notes-contents.md).
+Add the two page features that need more than one region of the page or more than one pass. Footnotes sit at the foot of the page that refers to them. A contents page lists each heading with the page it landed on and a link to it, and the outline (bookmarks) mirrors the headings. Hacker News commenters name both in the page-control requests (about 345 comments). This was part of T4c until [T4a](../done/T4a-adr-0032-layout-engine.md) split T4c to keep each todo under 800 lines; tables across pages stay in [T4c](./T4c-flow-tables-notes-contents.md).
 
 ## Context
 

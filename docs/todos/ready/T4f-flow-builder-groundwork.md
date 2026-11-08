@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4a](../ongoing/T4a-adr-0032-layout-engine.md) |
+| Depends on | [T4a](../done/T4a-adr-0032-layout-engine.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md) [§4](../../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) (tagging) and [§10](../../decisions/0032-flowing-layout-and-document-inputs.md#10-what-lands-when) (the groundwork); follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
 | Branch | `feat/t4f-flow-builder-groundwork` |
 | PR title | `feat(build): tagged elements across pages, text measured without drawing, artifact subtypes and marks under PDF/UA-1` |

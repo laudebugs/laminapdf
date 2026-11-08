@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -75,12 +75,12 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 - [x] Write the spike README: date, question, method, measurements, findings and a recommendation
 - [x] Write ADR 0032 with every decision in Scope, each backed by the spike's numbers, and the alternatives with the reasons they lost: krilla used directly, Taffy with our own pagination, HTML and CSS through a browser, and optimal (Knuth–Plass style) page breaking
 - [x] Reshape T4b–T4e to the decision before review: their scope, tasks, codes, placement and sizes, splitting each one estimated over 800 lines into todos of at most L (their sizes today are XL). If Typst wins, rewrite them as the integration it needs (fonts, tagging checks, the edit path) and say so in the PR description
-- [ ] Review with the owner, and record the sign-off in the ADR's status line
+- [x] Review with the owner, and record the sign-off in the ADR's status line
 - [x] The index and plan updates (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] ADR 0032 is Accepted with the owner's sign-off, and each decision listed in Scope cites a number or finding from the spike
+- [x] ADR 0032 is Accepted with the owner's sign-off, and each decision listed in Scope cites a number or finding from the spike
 - [x] The spike README answers each measured question with numbers, names the machine, toolchain and Typst version, and ends with its recommendation
 - [x] The library plan marks §9 questions 3 and 4 as answered, with a link to ADR 0032, and §2's non-goal matches the decision
 - [x] T4b, T4c, T4d and T4e match the ADR (scope, codes, placement, sizes), and the board is regenerated (`cargo xtask todos`)
@@ -117,7 +117,7 @@ Spike only; no production code. `cargo xtask check docs` checks the links and th
 ## Definition of done
 
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

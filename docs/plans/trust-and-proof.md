@@ -93,7 +93,7 @@ The library plan lists flowing layout as a non-goal for now and asks, in its ope
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
-| [T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
+| [T4a](../todos/done/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
 | [T4f](../todos/ready/T4f-flow-builder-groundwork.md) | Builder groundwork: elements across pages, measuring, artifact subtypes, marks under PDF/UA-1 | L | T4a |
 | [T4g](../todos/ready/T4g-flow-styled-spans.md) | Styled spans in one paragraph | M | T4a |
 | [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | L | T4f, T4g |
@@ -164,7 +164,7 @@ The owner decides these; the todo named in each holds the details and a recommen
 
 **Across the round**
 
-1. **Tagged output by default.** Should `BuildOptions` tag documents unless asked not to, or at least flowing output (T4b)? Tagging changes the byte goldens and adds structure to every file. *[ADR 0032 §4](../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) proposes it for flowing output; the fixed-position builder keeps its opt-in.*
+1. **Tagged output by default.** Should `BuildOptions` tag documents unless asked not to, or at least flowing output (T4b)? Tagging changes the byte goldens and adds structure to every file. *[ADR 0032 §4](../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) decides it for flowing output; the fixed-position builder keeps its opt-in.*
 2. **MCP tools that write.** ADR 0031 keeps the MCP server read-only unless started with `--allow-write`. T4i adds a `laminapdf_build` tool under that flag ([ADR 0032 §7](../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) amends ADR 0031), and T6a proposes write tools; form filling would be next.
 3. **Where the proof lives,** on `laminapdf.com` (T1b's proposal) or in the docs, and whether "How we test" joins the site header's links.
 
@@ -188,8 +188,8 @@ The owner decides these; the todo named in each holds the details and a recommen
 
 **Layout (T4)**
 
-13. **ADR 0032's route:** an engine of our own, Typst, or a hybrid; and the template language for T4e (placeholders in the JSON, MiniJinja or Typst). *[ADR 0032](../decisions/0032-flowing-layout-and-document-inputs.md) proposes our own engine and placeholders in the JSON; the owner signs it off.*
-14. **The default font** when a caller gives none: the standard 14 fonts set Latin only and fail PDF/UA-1, while a bundled Noto face costs size (the library plan's open question 2). *[ADR 0032 §8](../decisions/0032-flowing-layout-and-document-inputs.md#8-fonts) proposes the standard 14 and no bundled font.*
+13. **ADR 0032's route:** an engine of our own, Typst, or a hybrid; and the template language for T4e (placeholders in the JSON, MiniJinja or Typst). *[ADR 0032](../decisions/0032-flowing-layout-and-document-inputs.md) decides: our own engine and placeholders in the JSON (accepted 2026-11-08).*
+14. **The default font** when a caller gives none: the standard 14 fonts set Latin only and fail PDF/UA-1, while a bundled Noto face costs size (the library plan's open question 2). *[ADR 0032 §8](../decisions/0032-flowing-layout-and-document-inputs.md#8-fonts) decides the standard 14 and no bundled font.*
 
 **Reader and CLI (T5, T6)**
 
@@ -212,7 +212,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
-- [ ] T4: pages that flow ([T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md), [T4f](../todos/ready/T4f-flow-builder-groundwork.md), [T4g](../todos/ready/T4g-flow-styled-spans.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4h](../todos/ready/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
+- [ ] T4: pages that flow ([T4a](../todos/done/T4a-adr-0032-layout-engine.md), [T4f](../todos/ready/T4f-flow-builder-groundwork.md), [T4g](../todos/ready/T4g-flow-styled-spans.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4h](../todos/ready/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))
 - [ ] The owner answers §9's open questions

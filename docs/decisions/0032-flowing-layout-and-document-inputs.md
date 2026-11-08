@@ -1,6 +1,6 @@
 # 0032 — Flowing layout and document inputs
 
-- Status: Proposed (2026-11-08; accepted with the owner's sign-off on T4a's PR)
+- Status: Accepted (2026-11-08, owner sign-off on T4a's PR)
 - Date: 2026-11-08
 
 ## Context
