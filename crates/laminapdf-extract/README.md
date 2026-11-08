@@ -32,6 +32,8 @@ Extraction finds tables drawn with lines from the page's paths: stroked lines an
 
 The rules refuse what isn't a grid of text: a page border, a form's separate field boxes, a one-row strip and an empty grid give no table. When the merged cells aren't rectangles, the table keeps one cell per square of the grid and raises `extract-table-ambiguous`.
 
+A table that runs over a page break is linked: the part at the foot of one page names the part at the top of the next (`continued_by`, `continuedBy` in the JSON), and that part names it back (`continues`). The parts need the same columns, and the second may repeat the first's header or have none; one "continued" line may stand between them. Markdown, plain text and chunks write the parts as one table, while the JSON keeps one block per page, each with its own page's box.
+
 `TableMode::LatticeAndStream` also finds tables drawn without lines: three or more lines that split at wide gaps into the same two or more columns. Stream detection is off by default because it sometimes takes two columns of text for a table; such tables carry a lower `confidence`.
 
 ## Pages that need OCR
@@ -150,6 +152,6 @@ Only models whose code and weights both have permissive licences may be listed; 
 - `tests/reading_order.rs`: every file of the reading-order corpus but the hard ones reads in order by layout, content order follows the drawing, and each hard file, but no other, raises `extract-column-order-uncertain` with its reason.
 - `tests/extract.rs`: hidden text, hyphenation, a quarter-turned page, `/UserUnit`, determinism, jobs and cancellation, page selection and the blocks limit, on files built with `laminapdf-build`.
 - `tests/regressions.rs`: the `extract` fuzz target's entry point over the corpus and every saved crash input.
-- `tests/tables.rs`: ruled grids, merged cells, a table split across two pages, a page border and field boxes (no table), ambiguous merges, unruled columns, the cell limit, and a table in Markdown.
+- `tests/tables.rs`: ruled grids, merged cells, tables split across pages (joined with a repeated header, without one, after a "continued" line, over three pages with page numbers, and as one HTML table; kept apart when the columns, the header or the position differ) with their Markdown and chunks, a page border and field boxes (no table), ambiguous merges, unruled columns, the cell limit, and a table in Markdown.
 - `tests/text_layer.rs`: each status on pages built for it (text, a scan, a scan with an OCR layer or a stamp, text beside a picture, a blank page, shapes, glyphs without Unicode), the warning's pages, a cut-off from the options, and every page of the reading-order corpus and the text goldens `native`.
 - `tests/output.rs` (feature `schema`): Markdown goldens for the reading-order corpus (`fixtures/extract/markdown/`), the committed schema against the Rust types, every file's JSON against the schema, text ranges and chunks, and hidden text in no output. `UPDATE_GOLDEN=1` rewrites the goldens and the schema.

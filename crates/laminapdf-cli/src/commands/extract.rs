@@ -203,6 +203,13 @@ fn truncate(extraction: &mut Extraction, markdown: &mut Rendered, options: Markd
         return false;
     }
     extraction.blocks.truncate(keep);
+    // A table cut between its parts ends at the last part kept: no link names a block cut out.
+    let kept: std::collections::BTreeSet<String> = extraction.blocks.iter().map(|b| b.id.clone()).collect();
+    for block in &mut extraction.blocks {
+        if block.continued_by.as_ref().is_some_and(|next| !kept.contains(next)) {
+            block.continued_by = None;
+        }
+    }
     *markdown = extraction.to_markdown(&options);
     true
 }

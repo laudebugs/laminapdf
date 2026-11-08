@@ -512,6 +512,8 @@ impl TaggedIndex {
             spans: spans_in_order(&group.pieces),
             confidence: TREE_CONFIDENCE,
             cells,
+            continues: None,
+            continued_by: None,
             from_model: false,
         })
     }

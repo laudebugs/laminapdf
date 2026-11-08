@@ -548,6 +548,20 @@
           "format": "double",
           "type": "number"
         },
+        "continuedBy": {
+          "description": "For a table that goes on over the page break: the ID of the part on the next page.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "continues": {
+          "description": "For a table that goes on from the page before: the ID of the part it continues.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "id": {
           "description": "`p<page index>-b<position in the page's reading order>`.",
           "type": "string"
