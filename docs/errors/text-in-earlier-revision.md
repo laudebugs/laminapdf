@@ -24,7 +24,7 @@ Save the file as a full rewrite, which keeps only the latest revision. A signed 
 ## Data fields
 
 - `revision`: the earlier revision's index, 0 for the original file.
-- `words`: how many words of at least two characters that revision holds more often than the latest one.
+- `words`: how many words that revision has more often than the latest one (only words of two or more letters or digits count).
 - `pages`: the indices of that revision's pages where those words are.
 
 The warning has no `location`, and it never holds the words themselves.

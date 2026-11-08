@@ -4025,11 +4025,11 @@ A page draws text and then paints something opaque over it: a filled box, an ima
 
 ## Why
 
-Drawing a black box over a name is the most common failed redaction. The box hides the words on screen and in print, but it doesn't remove them: a PDF keeps every glyph its content draws, whatever is painted over them later. Extraction already leaves such text out of its blocks and lists it under `dropped` as `covered`; this warning says how much of it each page has.
+Drawing a black box over a name is the most common failed redaction. A PDF keeps every glyph its content draws, whatever is painted over it later, so the box hides the words on screen and in print without removing them. Extraction already leaves such text out of its blocks and lists it under `dropped` as `covered`; this warning says how much of it each page has.
 
 ## How to fix
 
-Remove the text itself with a tool that deletes what a redaction covers, then save the file as a full rewrite, so no earlier revision keeps it either. If the box is part of the design and the text under it is meant to be there, the warning tells you nothing new and you can ignore it.
+Remove the text itself with a tool that deletes what a redaction covers, then save the file as a full rewrite, so no earlier revision keeps it either. If the box is part of the design and the text under it is meant to be there, you can ignore the warning.
 
 ## Example
 
@@ -4038,7 +4038,7 @@ A page draws "Pay John Smith now." and then a black rectangle over "John Smith".
 ## Data fields
 
 - `chars`: how many characters, spaces left out, the page has under covers.
-- `regions`: how many covered stretches of text the page has.
+- `regions`: how many separate covered passages the page has: one per box over a run of words.
 
 The `location` has the page's `pageIndex`. The warning never holds the covered text.
 
@@ -4110,7 +4110,7 @@ Save the file as a full rewrite, which keeps only the latest revision. A signed 
 ## Data fields
 
 - `revision`: the earlier revision's index, 0 for the original file.
-- `words`: how many words of at least two characters that revision holds more often than the latest one.
+- `words`: how many words that revision has more often than the latest one (only words of two or more letters or digits count).
 - `pages`: the indices of that revision's pages where those words are.
 
 The warning has no `location`, and it never holds the words themselves.
