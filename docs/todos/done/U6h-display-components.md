@@ -32,7 +32,7 @@ Finish the Paper component library that [U6d](./U6d-core-components.md) starts. 
   - **Notice** (inline strip, §7.20) and the **Toast** visual (§7.20). The toast region, queue and stacking are [U6e](../done/U6e-overlays-and-sheets.md)'s.
   - **Progress**: a determinate bar (`role="progressbar"`, `aria-valuenow`, a label), an indeterminate bar (static under reduced motion), and a **Skeleton** block.
   - **EmptyState** (§7.21).
-  - **Status bar items** (§7.8): `StatusBarItem` (a button, minimum height 24), `NetworkIndicator` (presentational: a count, an explanation, and a `warning` state when a request went to an unexpected origin), `RepairedNotice`, `PageLabel` (tabular numerals). The data and panels are [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s and [C4b](../ongoing/C4b-web-app-shell.md)'s.
+  - **Status bar items** (§7.8): `StatusBarItem` (a button, minimum height 24), `NetworkIndicator` (presentational: a count, an explanation, and a `warning` state when a request went to an unexpected origin), `RepairedNotice`, `PageLabel` (tabular numerals). The data and panels are [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s and [C4b](./C4b-web-app-shell.md)'s.
   - **Thumbnail** (§7.6: rail and phone sizes, the current-page outline, `aria-current="page"`, the number below, and an image slot so the viewer supplies the bitmap) and **OutlineRow** (§7.7: two levels, the current row `aria-current="location"`, and an expand and collapse chevron button with `aria-expanded`).
   - **ShortcutChip** (§7.10's chip, used by buttons' tooltips and the palette): renders platform glyphs (`⌥⌘E`) or words (`Ctrl Shift E`) from a key description passed in.
 - Right-to-left layout, touch density, forced colours and focus rings as U6d sets them up.
@@ -40,7 +40,7 @@ Finish the Paper component library that [U6d](./U6d-core-components.md) starts. 
 **Out of scope** (and which todo covers it)
 
 - The toast region, dialogs, sheets, menus and tooltips → [U6e](../done/U6e-overlays-and-sheets.md).
-- The data behind the status items, the thumbnails' bitmaps and the outline's tree → [U4a](../ready/U4a-network-indicator-and-privacy-proof.md), [C4b](../ongoing/C4b-web-app-shell.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
+- The data behind the status items, the thumbnails' bitmaps and the outline's tree → [U4a](../ready/U4a-network-indicator-and-privacy-proof.md), [C4b](./C4b-web-app-shell.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
 - Screenshots of every state → [U6f](../ready/U6f-gallery-and-visual-tests.md).
 
 ## Tasks

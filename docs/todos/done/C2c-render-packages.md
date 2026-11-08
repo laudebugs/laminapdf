@@ -38,7 +38,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@laminap
 **Out of scope** (and which todo covers it)
 
 - Worker RPC, scheduling, tiles → [C3a](../done/C3a-viewer-worker-rpc.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md).
-- Debug-menu UI to switch backends → [C4b](../ongoing/C4b-web-app-shell.md).
+- Debug-menu UI to switch backends → [C4b](./C4b-web-app-shell.md).
 - Publishing to npm (packages stay local; [architecture: Publishing (later)](../../plans/architecture.md#publishing-later)).
 
 ## Tasks

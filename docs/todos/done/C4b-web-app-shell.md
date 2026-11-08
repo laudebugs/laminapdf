@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C4f](../done/C4f-reader-home-repairs-and-demo.md), [U6b](../done/U6b-self-hosted-fonts.md) |
+| Depends on | [C2a](./C2a-render-adrs.md), [C4f](./C4f-reader-home-repairs-and-demo.md), [U6b](./U6b-self-hosted-fonts.md) |
 | ADRs | Implements 0011 (Worker with static assets, `_headers`, CSP, no `/api`), 0009 (Vite 8, module worker), 0010 (web `Platform`) |
 | Branch | `feat/c4b-web-app-shell` |
 | PR title | `feat(web): add the web reader app on workers static assets with local file opening` |
@@ -20,7 +20,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 ## Context
 
 - **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open), [R04 Repaired / damaged file](../../design/paper/reader-a.md#r04-repaired--damaged-file). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — topology, header values, Wrangler pinning.
+- ADR 0011 (from [C2a](./C2a-render-adrs.md)) — topology, header values, Wrangler pinning.
 - [Research: Cloudflare section](../../research/architecture/app-and-package-architecture.md#cloudflare-hosts-everything-for-about-5-a-month-with-heavy-jobs-in-containers) and [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — `not_found_handling: "single-page-application"`, no `main` script needed for a pure SPA, `_headers` applies to assets only, 25 MiB per asset (PDFium WASM fits), compat date ≥ 2025-04-01 navigation behaviour.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §5 (COOP/COEP only for a threaded variant), §6 (`showOpenFilePicker` not Baseline; input + drag-drop fallback), §8 (Vite 8 + Rolldown, module workers + WASM).
 - [web-app.md §4 functional 1, 9, 10](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (strict CSP values).
@@ -46,27 +46,27 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 
 ## Tasks
 
-- [ ] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](../done/U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link (`FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); no font CDN (the network indicator must stay at 0).
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Scaffold `apps/web` (`"name": "@laminapdf/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@laminapdf/ui`, `@laminapdf/viewer`, `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` via `workspace:*`.
-- [ ] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.
-- [ ] `wrangler.jsonc` and `public/_headers` as in scope; verify headers with `curl -I` against `wrangler dev` for `/`, `/index.html`, `/some/deep/link` (SPA fallback 200), `/assets/*.js`, `/assets/*.wasm` (`Content-Type: application/wasm`).
-- [ ] Ensure no inline scripts/styles in the build (Vite `build.modulePreload.polyfill: false` if it injects inline code; check `index.html` output in a test).
-- [ ] App composition: `PlatformProvider(createWebPlatform())` → `ReaderShell` with viewer slot; reader controller connects `openFiles` → viewer worker open; title updates to the document title (from metadata) without sending anything anywhere.
-- [ ] Drag-and-drop: overlay on dragenter, accept the first PDF (`application/pdf` or `%PDF-` sniff), reject others with a message; paste handler for `ClipboardEvent.clipboardData.files`.
-- [ ] Error and repair notices: warnings from the worker (ADR 0003 codes) → `RepairNotice`; fatal open errors → `ErrorBanner` with "Try another file".
-- [ ] Debug menu: backend switch reopens the document with the other backend; shows render timings.
-- [ ] Playwright e2e (`apps/web/e2e/`): open via input; drag-drop (synthetic `DataTransfer`); paste; `showOpenFilePicker` path mocked in Chromium; damaged file shows "repaired" notice; non-PDF rejected; deep link returns the app (SPA fallback); response headers on `/` and assets match `_headers`; **CSP violations = 0** (listen to `securitypolicyviolation`); no request to any origin other than self (route interception) during local-file flows.
-- [ ] README for `apps/web` (run, build, preview with wrangler, header policy summary linking ADR 0011).
+- [x] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](./U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link (`FONT_PRELOADS`: Lamina Sans, which is Source Sans 3 renamed, Latin 400); no font CDN (the network indicator must stay at 0).
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. As done: the claim was the first commit of the work PR ([git workflow §2](../../guidelines/git-workflow.md#pick-work-from-the-todo-board)'s current rule).
+- [x] Scaffold `apps/web` (`"name": "@laminapdf/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@laminapdf/ui`, `@laminapdf/viewer`, `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` via `workspace:*`.
+- [x] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.
+- [x] `wrangler.jsonc` and `public/_headers` as in scope; verify headers with `curl -I` against `wrangler dev` for `/`, `/index.html`, `/some/deep/link` (SPA fallback 200), `/assets/*.js`, `/assets/*.wasm` (`Content-Type: application/wasm`). As built: `/index.html` answers `307` to `/` (Cloudflare's assets server keeps one address per page); the e2e suite asserts the redirect and its headers.
+- [x] Ensure no inline scripts/styles in the build (Vite `build.modulePreload.polyfill: false` if it injects inline code; check `index.html` output in a test).
+- [x] App composition: `PlatformProvider(createWebPlatform())` → `ReaderShell` with viewer slot; reader controller connects `openFiles` → viewer worker open; title updates to the document title (from metadata) without sending anything anywhere.
+- [x] Drag-and-drop: overlay on dragenter, accept the first PDF (`application/pdf` or `%PDF-` sniff), reject others with a message; paste handler for `ClipboardEvent.clipboardData.files`.
+- [x] Error and repair notices: warnings from the worker (ADR 0003 codes) → `RepairNotice`; fatal open errors → `ErrorBanner` with "Try another file".
+- [x] Debug menu: backend switch reopens the document with the other backend; shows render timings.
+- [x] Playwright e2e (`apps/web/e2e/`): open via input; drag-drop (synthetic `DataTransfer`); paste; `showOpenFilePicker` path mocked in Chromium; damaged file shows "repaired" notice; non-PDF rejected; deep link returns the app (SPA fallback); response headers on `/` and assets match `_headers`; **CSP violations = 0** (listen to `securitypolicyviolation`); no request to any origin other than self (route interception) during local-file flows. As built: Vitest in Node driving Playwright, so the suite also checks responses directly; the debug timing is page 1's paint time.
+- [x] README for `apps/web` (run, build, preview with wrangler, header policy summary linking ADR 0011).
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @laminapdf/web build && pnpm --filter @laminapdf/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright).
-- [ ] Response headers on `/`, `/index.html`, a deep link and a hashed asset match the ADR 0011 policy (asserted in e2e), with **exact** `Cache-Control` values: `public, max-age=0, must-revalidate` (exactly one value, no `immutable`) on `/`, `/index.html` and the deep link; `public, max-age=31536000, immutable` (exactly, no comma-joined extras) on `/assets/*.js` and `/assets/*.wasm`.
-- [ ] No inline script/style in `dist/index.html`; zero CSP violations during the e2e suite.
-- [ ] Opening a local file makes no network request except for same-origin static assets (asserted by request interception).
-- [ ] `hello-broken.pdf` opens with the repaired notice; a `.txt` file is rejected with a message.
-- [ ] `cargo xtask check ts` includes the app's typecheck, Biome and unit tests; e2e runs in the full lane.
+- [ ] `pnpm --filter @laminapdf/web build && pnpm --filter @laminapdf/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright). Chromium checked locally (13 e2e tests); Firefox and WebKit run in CI.
+- [x] Response headers on `/`, `/index.html`, a deep link and a hashed asset match the ADR 0011 policy (asserted in e2e), with **exact** `Cache-Control` values: `public, max-age=0, must-revalidate` (exactly one value, no `immutable`) on `/`, `/index.html` and the deep link; `public, max-age=31536000, immutable` (exactly, no comma-joined extras) on `/assets/*.js` and `/assets/*.wasm`.
+- [x] No inline script/style in `dist/index.html`; zero CSP violations during the e2e suite.
+- [x] Opening a local file makes no network request except for same-origin static assets (asserted by request interception).
+- [x] `hello-broken.pdf` opens with the repaired notice; a `.txt` file is rejected with a message.
+- [x] `cargo xtask check ts` includes the app's typecheck, Biome and unit tests; e2e runs in the full lane. As built: Biome and the unit tests run in `check ts`; the typecheck and the e2e suite need the built viewer, so `cargo xtask pdf-runtimes <browser>` runs them, in the fast lane's runtime jobs.
 
 ## Post-merge checks
 
@@ -89,8 +89,8 @@ Playwright e2e in `apps/web/e2e/*.spec.ts` (three engines) against `wrangler dev
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

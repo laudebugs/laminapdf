@@ -93,7 +93,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 - **Repository size**: about 30 routes × several themes is a few hundred PNGs; keep each route's screenshot to its states grid at a fixed width, and consider Git LFS only if the folder passes ~50 MB.
 - **Docker on contributors' machines**: not everyone has it; the `workflow_dispatch` update job is the fallback, and the README says so.
 - **The screens check before the area documents exist**: area documents and canvases listed in the plan may not all be committed when this lands; the "Not yet drawn" list makes the gap visible instead of blocking the round. Decide with the owner whether that list must be empty before any Round C UI todo merges.
-- **Gallery in `apps/` vs a route in `apps/web`**: chosen as its own app so it doesn't wait for [C4b](../ongoing/C4b-web-app-shell.md) and never ships to users; it may move into the docs site later.
+- **Gallery in `apps/` vs a route in `apps/web`**: chosen as its own app so it doesn't wait for [C4b](../done/C4b-web-app-shell.md) and never ships to users; it may move into the docs site later.
 
 ## Definition of done
 

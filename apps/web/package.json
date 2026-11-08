@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@babel/core": "catalog:",
+    "@laminapdf/test-utils": "workspace:*",
     "@rolldown/plugin-babel": "catalog:",
     "@types/babel__core": "catalog:",
     "@types/node": "catalog:",
