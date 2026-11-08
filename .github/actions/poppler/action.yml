@@ -1,4 +1,4 @@
-name: Pinned pdftotext on macOS Arm64
+name: Pinned pdftotext
 description: Build the text oracle at the version used by the committed text facts.
 runs:
   using: composite
@@ -15,22 +15,31 @@ runs:
         HOMEBREW_NO_INSTALL_UPGRADE: "1"
       run: |
         set -euo pipefail
-        test "$RUNNER_OS/$RUNNER_ARCH" = macOS/ARM64
-        # Homebrew's current poppler is newer than doctor.rs's oracle. Build only pdftotext;
+        # The packaged poppler is not doctor.rs's oracle version. Build only pdftotext;
         # image decoders remain enabled, GUI wrappers and signing backends are unnecessary.
-        brew install freetype fontconfig jpeg-turbo openjpeg pkgconf
+        case "$RUNNER_OS" in
+          Linux)
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends \
+              libfreetype-dev libfontconfig-dev libjpeg-turbo8-dev libopenjp2-7-dev pkg-config
+            prefix=/usr ;;
+          macOS)
+            brew install freetype fontconfig jpeg-turbo openjpeg pkgconf
+            prefix=$(brew --prefix) ;;
+          *) echo "::error::no pdftotext build for $RUNNER_OS"; exit 1 ;;
+        esac
         archive="$RUNNER_TEMP/poppler.tar.xz"
         curl -fsSL --retry 3 -o "$archive" "https://poppler.freedesktop.org/poppler-$POPPLER_VERSION.tar.xz"
         echo "$POPPLER_SHA256  $archive" | shasum -a 256 -c -
         tar -xf "$archive" -C "$RUNNER_TEMP"
-        # Match Homebrew's CMaps and CID-to-Unicode mappings for CJK text extraction.
+        # The same CMaps and CID-to-Unicode mappings for CJK text extraction.
         data_archive="$RUNNER_TEMP/poppler-data.tar.gz"
         curl -fsSL --retry 3 -o "$data_archive" "https://poppler.freedesktop.org/poppler-data-$POPPLER_DATA_VERSION.tar.gz"
         echo "$POPPLER_DATA_SHA256  $data_archive" | shasum -a 256 -c -
         tar -xf "$data_archive" -C "$RUNNER_TEMP"
         make -C "$RUNNER_TEMP/poppler-data-$POPPLER_DATA_VERSION" install prefix="$RUNNER_TEMP/poppler"
         cmake -S "$RUNNER_TEMP/poppler-$POPPLER_VERSION" -B "$RUNNER_TEMP/poppler-build" \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix)" \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$prefix" \
           -DPOPPLER_DATADIR="$RUNNER_TEMP/poppler/share/poppler" \
           -DBUILD_SHARED_LIBS=OFF -DBUILD_MANUAL_TESTS=OFF \
           -DENABLE_UTILS=ON -DENABLE_CPP=OFF -DENABLE_GLIB=OFF \
