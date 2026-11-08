@@ -38,18 +38,18 @@ Two features have no page of their own: how a page is drawn (and why its text ne
 
 ## Tasks
 
-- [ ] Write `concepts/drawing-pages.mdx` and `guides/open-large-files.mdx`: title, a description of 160 characters or fewer, an opening paragraph of 50 words or fewer, then the diagram and the sections that explain it; examples through `<Snippet>` from tested example files, as every page does.
-- [ ] `components/diagrams/DrawingPages.astro` and `RangeLoading.astro`.
-- [ ] Add both pages to `apps/docs/plugins/sidebar.mjs` (plan §8 asks where: decide when starting) and link them from `concepts/dependencies.mdx` and `guides/untrusted-files.mdx`.
+- [x] Write `concepts/drawing-pages.mdx` and `guides/open-large-files.mdx`: title, a description of 160 characters or fewer, an opening paragraph of 50 words or fewer, then the diagram and the sections that explain it; examples through `<Snippet>` from tested example files, as every page does.
+- [x] `components/diagrams/DrawingPages.astro` and `RangeLoading.astro`.
+- [x] Add both pages to `apps/docs/plugins/sidebar.mjs` (plan §8 asks where: decided, the existing groups, "Concepts" and "Read and edit PDFs") and link them from `concepts/dependencies.mdx` and `guides/untrusted-files.mdx`.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] Both pages pass `cargo xtask check docs-prose` and `docs-snippets`, and appear in the sidebar and in `llms.txt`.
-- [ ] Every example on them runs in the example suite.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] Both pages pass `cargo xtask check docs-prose` and `docs-snippets`, and appear in the sidebar and in `llms.txt`.
+- [x] Every example on them runs in the example suite.
 
 ## Post-merge checks
 

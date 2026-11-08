@@ -17,6 +17,21 @@ export const DIAGRAMS = {
       "A save then either appends the edits after the original bytes (`incremental`) or writes every byte of a new file (`fullRewrite`). " +
       "An incremental save leaves the original bytes untouched, so signatures over them stay valid.",
   },
+  "drawing-pages": {
+    caption: "A renderer draws the pixels; Lamina PDF reads the text from the same bytes.",
+    text:
+      "Your PDF's bytes are read two ways. To draw, a render request names the page, the scale, the part to draw (a tile's clip) and a rotation. " +
+      "It becomes a tile plan, which fixes the size in pixels, and a renderer, PDFium or hayro, draws the tile as RGBA pixels. " +
+      "Text, links and selection never come from the renderer. Lamina PDF reads them from its own model of the same bytes, the model that also edits and saves the file.",
+  },
+  "range-loading": {
+    caption: "A read that needs missing bytes fetches them and runs again.",
+    text:
+      "`Document.openRange` opens a remote file from the few byte ranges the open needs. " +
+      "A later read, such as `doc.pageInfo(0)`, may need bytes that haven't arrived: it then throws `data-pending`, naming the ranges it needs. " +
+      "`doc.ensure` catches the error, fetches those ranges through the source (`httpRangeSource`), supplies them to the document and runs the read again. " +
+      "Once the bytes are there, the read returns its result.",
+  },
 };
 
 /**

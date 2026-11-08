@@ -104,7 +104,7 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 ## 8. Open questions
 
 - Should the docs offer the high-contrast theme in their theme switch? The diagrams would follow it for free, but the docs pages haven't been checked in it. Decide in Q3a's review; the browser test covers forced colours either way.
-- Do the two new pages (Q3g) belong under "Concepts" and "Guides" in the sidebar, or in a new "How it works" group? Decide when Q3g starts, with the sidebar's owner.
+- Decided in Q3g: the two new pages go into the sidebar's existing groups, "How a page is drawn" under "Concepts" and "Open large files by ranges" under "Read and edit PDFs", beside "Open files you don't trust". A "How it works" group would hold two pages, and the concept pages already answer how it works.
 
 ## 9. To-dos
 

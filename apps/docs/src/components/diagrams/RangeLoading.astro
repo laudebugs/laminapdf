@@ -1,0 +1,52 @@
+---
+// "Opening a large file by ranges" (guides/open-large-files): a read that needs bytes not
+// fetched yet throws `data-pending`; `doc.ensure` fetches the ranges it names, supplies them and
+// runs the read again until it returns. The wide layout draws the loop; the narrow one unrolls it
+// into the order things happen. The accent follows the bytes fetched on demand. Caption and text
+// description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+---
+
+<Svg viewBox="0 0 720 270" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  <Box x={0} y={40} w={180} h={60} label="Your read" sub="doc.pageInfo(0)" />
+  <Arrow d="M180 70 H536" prefix={wide} />
+  <Label x={358} y={60} text="when the bytes are there" kind="sub" anchor="middle" />
+  <Box x={540} y={40} w={180} h={60} label="The result" />
+
+  <Arrow d="M165 100 V160 H460 V194" prefix={wide} focus />
+  <Label x={312} y={150} text="data-pending" kind="mono" anchor="middle" />
+  <Box x={360} y={200} w={200} h={60} label="Fetch the ranges" sub="httpRangeSource" focus />
+  <Arrow d="M360 230 H184" prefix={wide} focus />
+  <Label x={272} y={220} text="the missing bytes" kind="sub" anchor="middle" />
+  <Box x={0} y={200} w={180} h={60} label="Supply them" sub="doc.ensure" fresh />
+  <Arrow d="M90 200 V106" prefix={wide} />
+  <Label x={100} y={156} text="retry" />
+</Svg>
+
+<Svg viewBox="0 0 320 440" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  <Box x={40} y={0} w={240} h={52} label="Your read" sub="doc.pageInfo(0)" />
+  <Arrow d="M160 52 V90" prefix={narrow} focus />
+  <Label x={172} y={77} text="data-pending" kind="mono" />
+  <Box x={40} y={96} w={240} h={52} label="Fetch the ranges" sub="httpRangeSource" focus />
+  <Arrow d="M160 148 V186" prefix={narrow} focus />
+  <Label x={172} y={173} text="the missing bytes" kind="sub" />
+  <Box x={40} y={192} w={240} h={52} label="Supply them" sub="doc.ensure" fresh />
+  <Arrow d="M160 244 V282" prefix={narrow} />
+  <Label x={172} y={269} text="retry" />
+  <Box x={40} y={288} w={240} h={52} label="Your read, again" />
+  <Arrow d="M160 340 V378" prefix={narrow} />
+  <Label x={172} y={365} text="the bytes are there" kind="sub" />
+  <Box x={40} y={384} w={240} h={52} label="The result" />
+</Svg>
