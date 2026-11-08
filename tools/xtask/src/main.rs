@@ -260,7 +260,7 @@ tasks:
                     dependency on lamina (default ref: HEAD; default URL: this clone); each
                     output must equal fixtures/golden/examples/hello.pdf (needs `wasm` first)
   release prepare --run <nightly-run-id>
-                    prepare a version-only commit from the exact full-nightly commit; never pushes
+                    prepare a version-and-package-docs commit from the exact full-nightly commit; never pushes
   release-guard [--run <id>] [--commit <rev>]
                     fail unless the latest completed full nightly.yml run on main, or run
                     <id>, succeeded on <rev> (default HEAD) or an ancestor; full: scheduled, or

@@ -426,7 +426,8 @@ pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` 
                              #   Markdown twin per page (`/install.md`), llms.txt and llms-full.txt; `test` runs plugins/ and scripts/ tests
 node apps/docs/scripts/package-docs.mjs <out-dir> [--api]  # the docs/ folder the packages ship: pages, code pages, AGENTS.md
                              #   (packages/sdk/examples/AGENTS.md), llms.txt, renames.json, schemas; --api adds the TypeDoc Markdown;
-                             #   @laminapdf/sdk's prepack runs it; `publish crates` writes crates/laminapdf/docs/ and checks
+                             #   @laminapdf/sdk's prepack runs it; `release prepare` commits crates/laminapdf/docs/ in the release tree,
+                             #   `publish crates` regenerates it (--allow-dirty only when it isn't committed as generated) and checks
                              #   `cargo package --list`, `publish npm-pack` checks the sdk tarball (tools/xtask/src/package_docs.rs)
 node tools/agent-eval/run.mjs [--tasks a,b] [--modes docs,no-docs] [--dry-run]  # the agent eval (after `publish npm-pack`;
                              #   ANTHROPIC_API_KEY from the environment); results in target/agent-eval/
