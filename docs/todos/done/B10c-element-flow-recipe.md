@@ -78,6 +78,6 @@ A recipe can suggest more than the helper does, so it must say plainly that over
 
 - [x] Claim this todo in the work PR's first commit from a fresh worktree: move `ready/` → `ongoing/`, fill **PR**, update links and regenerate the board.
 - [x] Implement tasks and demonstrate every acceptance criterion with recorded validation evidence.
-- [ ] Follow applicable guidelines and complete code review and writing review; record findings and fixes in commits.
+- [x] Follow applicable guidelines and complete code review and writing review; record findings and fixes in commits.
 - [ ] Required CI is green on the final revision.
 - [x] Before merge, move this file to `done/`, update status and links, tick its plan item and regenerate the board.
