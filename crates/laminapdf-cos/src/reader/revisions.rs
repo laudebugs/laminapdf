@@ -58,7 +58,62 @@ pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
     out
 }
 
+/// One revision of a file ([`Document::revision_index`]): the cross-reference section that
+/// starts it, where it ends, and the objects its sections list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct Revision {
+    /// The offset of the cross-reference section that starts this revision.
+    pub section: u64,
+    /// Its length in bytes: the prefix of the file that holds it ([`Document::revision_ends`]).
+    pub end: u64,
+    /// The object numbers its sections list in use: the objects it adds or changes (for the
+    /// first revision, every object).
+    pub in_use: Vec<u32>,
+    /// The object numbers its sections list as free, object 0 aside.
+    pub freed: Vec<u32>,
+}
+
 impl Document {
+    /// The file's revisions, oldest first, with what each one's cross-reference sections list
+    /// (§7.5.6). A linearized file's first-page section is part of its first revision, as in
+    /// [`Document::revision_ends`]. Empty for a file whose cross-reference table had to be
+    /// rebuilt by scanning, which has no sections to read.
+    ///
+    /// # Errors
+    /// What [`Document::whole_input`] returns for a source that isn't in memory.
+    pub fn revision_index(&self) -> Result<Vec<Revision>> {
+        if self.was_repaired() || self.section_offsets.is_empty() {
+            return Ok(Vec::new());
+        }
+        let ends = self.revision_ends()?;
+        let mut out: Vec<Revision> = Vec::new();
+        let sections = self.section_offsets.iter().zip(&self.section_objects).rev();
+        for (&offset, objects) in sections {
+            let section = u64::try_from(offset).unwrap_or(u64::MAX);
+            match out.last_mut() {
+                Some(last) if section <= last.section => {
+                    last.in_use.extend_from_slice(&objects.in_use);
+                    last.freed.extend_from_slice(&objects.freed);
+                }
+                _ => out.push(Revision {
+                    section,
+                    end: 0,
+                    in_use: objects.in_use.clone(),
+                    freed: objects.freed.clone(),
+                }),
+            }
+        }
+        for (revision, end) in out.iter_mut().zip(ends) {
+            revision.in_use.sort_unstable();
+            revision.in_use.dedup();
+            revision.freed.sort_unstable();
+            revision.freed.dedup();
+            revision.end = end;
+        }
+        Ok(out)
+    }
+
     /// Each revision's length in bytes, oldest first: the prefix of the file that holds that
     /// revision, the last being the whole file. A file never updated, or one whose
     /// cross-reference table had to be rebuilt by scanning (no `/Prev` chain to follow), has one

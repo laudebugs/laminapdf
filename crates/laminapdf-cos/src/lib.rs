@@ -115,7 +115,7 @@ pub use laminapdf_syntax::{
 };
 pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry, Reserved};
 pub use reader::{
-    DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning, XREF_STREAM_KEYS,
-    revision_starts, strip_crypt_filter,
+    DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Revision, Warning,
+    XREF_STREAM_KEYS, revision_starts, strip_crypt_filter,
 };
 pub use source::{ByteSource, Source, SourceError, merge_ranges, read_exact};
