@@ -115,24 +115,5 @@ pub fn page_with_text(text: &str, cover: bool) -> Vec<u8> {
 /// `base` with an incremental update (ISO 32000-2 §7.5.6) that replaces object `num` with
 /// `body`, as an editor's plain save does.
 pub fn with_update(base: &[u8], num: u32, body: &[u8]) -> Vec<u8> {
-    let text = String::from_utf8_lossy(base);
-    let prev: usize = text
-        .rsplit("startxref")
-        .next()
-        .and_then(|tail| tail.split_whitespace().next())
-        .and_then(|n| n.parse().ok())
-        .unwrap();
-    let mut out = base.to_vec();
-    let object = out.len();
-    out.extend_from_slice(format!("{num} 0 obj\n").as_bytes());
-    out.extend_from_slice(body);
-    out.extend_from_slice(b"\nendobj\n");
-    let xref = out.len();
-    out.extend_from_slice(
-        format!(
-            "xref\n0 1\n0000000000 65535 f\r\n{num} 1\n{object:010} 00000 n\r\ntrailer\n<< /Size 6 /Root 1 0 R /Prev {prev} >>\nstartxref\n{xref}\n%%EOF\n"
-        )
-        .as_bytes(),
-    );
-    out
+    laminapdf_test_fixtures::update(base, &[(num, body)], "/Size 6 /Root 1 0 R")
 }
