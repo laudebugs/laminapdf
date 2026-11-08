@@ -96,7 +96,7 @@ A failed drawing call must not advance the cursor. The helper must not add pages
 
 The following ready todos use the [todo template](../todos/TEMPLATE.md). Claim each in its own implementation PR after its dependencies are done.
 
-- [ ] [B10a](../todos/ready/B10a-measured-text-bottom.md): **Measured text bottoms.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs, with matching tests. Decide whether the cursor is needed.
+- [ ] [B10a](../todos/ongoing/B10a-measured-text-bottom.md): **Measured text bottoms.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs, with matching tests. Decide whether the cursor is needed.
 - [ ] [B10b](../todos/ready/B10b-vertical-cursor.md): **Vertical cursor.** Implement a reusable cursor with matching Rust and TypeScript behavior, explicit rectangle placement and validation. Export it through the Rust façade and the SDK. Reuse existing measurements rather than laying out text again.
 - [ ] [B10c](../todos/ready/B10c-element-flow-recipe.md): **Examples and recipe.** Add the paired examples, including the minimal next-paragraph one. Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
 
@@ -123,7 +123,7 @@ Each implementation PR follows the repository's review, changeset and validation
 
 ## How each step proves it works
 
-[B10a](../todos/ready/B10a-measured-text-bottom.md#tests) checks the measured bottoms against independent font metrics, the same cases in both languages and a rendered reference page. [B10b](../todos/ready/B10b-vertical-cursor.md#tests) checks the cursor's state transitions, invalid inputs and mixed-element placement. [B10c](../todos/ready/B10c-element-flow-recipe.md#tests) checks the whole public workflow by generating, reopening and rendering a report.
+[B10a](../todos/ongoing/B10a-measured-text-bottom.md#tests) checks the measured bottoms against independent font metrics, the same cases in both languages and a rendered reference page. [B10b](../todos/ready/B10b-vertical-cursor.md#tests) checks the cursor's state transitions, invalid inputs and mixed-element placement. [B10c](../todos/ready/B10c-element-flow-recipe.md#tests) checks the whole public workflow by generating, reopening and rendering a report.
 
 The helper should cut the Y updates a caller writes by hand when content length changes. To show it, compare the same report with manual measurement arithmetic and with the helper. Record actual bottom calculations, Y updates and edits needed when a summary wraps or an optional section disappears. Do not claim a speedup: the helper reuses layout results and should require no additional shaping pass.
 

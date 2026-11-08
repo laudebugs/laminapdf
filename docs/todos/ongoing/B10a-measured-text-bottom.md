@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B10a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
 | Depends on | [B5b](../done/B5b-builder-text-and-document-features.md), [B6b](../done/B6b-lamina-pdf-package.md) |
@@ -35,8 +35,8 @@ Expose an optional bottom position for text runs and text boxes in Rust and Type
 
 **Out of scope** (and which todo covers it)
 
-- The vertical cursor: [B10b](./B10b-vertical-cursor.md).
-- Runnable examples and the docs recipe: [B10c](./B10c-element-flow-recipe.md).
+- The vertical cursor: [B10b](../ready/B10b-vertical-cursor.md).
+- Runnable examples and the docs recipe: [B10c](../ready/B10c-element-flow-recipe.md).
 - Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks

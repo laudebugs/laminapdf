@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
-| Depends on | [B10a](./B10a-measured-text-bottom.md) |
+| Depends on | [B10a](../ongoing/B10a-measured-text-bottom.md) |
 | ADRs | Follows [0016](../../decisions/0016-package-design.md), [0018](../../decisions/0018-test-strategy.md) and [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/b10b-vertical-cursor` |
 | PR title | `feat(build): add an optional vertical cursor` |
@@ -22,7 +22,7 @@ Add an optional vertical cursor over measured bottoms and explicit rectangles. A
 ## Context
 
 - [Element flow plan](../../plans/element-flow.md#optional-vertical-cursor): the cursor's transition rules, validation and coordinate system.
-- [B10a](./B10a-measured-text-bottom.md): the measured bottoms the cursor consumes, and the decision whether this todo goes ahead.
+- [B10a](../ongoing/B10a-measured-text-bottom.md): the measured bottoms the cursor consumes, and the decision whether this todo goes ahead.
 - [Surface drawing and transforms](../../../crates/laminapdf-build/src/surface/mod.rs): why the cursor stays outside `Surface` and before its transform.
 
 ## Scope
@@ -35,7 +35,7 @@ Add an optional vertical cursor over measured bottoms and explicit rectangles. A
 
 **Out of scope** (and which todo covers it)
 
-- The measured bottoms themselves: [B10a](./B10a-measured-text-bottom.md).
+- The measured bottoms themselves: [B10a](../ongoing/B10a-measured-text-bottom.md).
 - Runnable examples and the docs recipe: [B10c](./B10c-element-flow-recipe.md).
 - A cursor held inside `Surface`: rejected by the [plan](../../plans/element-flow.md#optional-vertical-cursor).
 - Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
-| Depends on | [B10a](./B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md) |
+| Depends on | [B10a](../ongoing/B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md) |
 | ADRs | Follows [0016](../../decisions/0016-package-design.md), [0018](../../decisions/0018-test-strategy.md) and [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/b10c-element-flow-recipe` |
 | PR title | `feat(examples): document and demonstrate element flow` |
@@ -20,7 +20,7 @@ Publish a tested report recipe that places paragraphs and an image using the cur
 ## Context
 
 - [Element flow plan](../../plans/element-flow.md#how-each-step-proves-it-works): the report the recipe builds and the before/after comparison it records.
-- [B10a](./B10a-measured-text-bottom.md) and [B10b](./B10b-vertical-cursor.md): the helper and cursor the examples use.
+- [B10a](../ongoing/B10a-measured-text-bottom.md) and [B10b](./B10b-vertical-cursor.md): the helper and cursor the examples use.
 - [Example guidelines](../../guidelines/examples.md): paired Rust and TypeScript examples, public APIs only, registered with the snippet checks.
 
 ## Scope
@@ -33,7 +33,7 @@ Publish a tested report recipe that places paragraphs and an image using the cur
 
 **Out of scope** (and which todo covers it)
 
-- Any change to the helper or cursor APIs: [B10a](./B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md).
+- Any change to the helper or cursor APIs: [B10a](../ongoing/B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md).
 - Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks
