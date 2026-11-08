@@ -1,0 +1,54 @@
+---
+title: Element flow
+description: A report whose title, paragraphs and photo each start below wherever the one before ended, with a body that continues on a new page.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll lay out a report where each part starts below wherever the part before it ended: a title, a summary, optional notes, a photo and a body that runs onto a second page. Use it when the length of your text changes from one document to the next.
+
+The function takes a JPEG's bytes and the report's text, and returns the PDF's bytes. In TypeScript it draws text, so it needs `init({ text: true })`. Both languages write the same bytes:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/element-flow.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/element_flow.rs" /></TabItem>
+</Tabs>
+
+The result is two A5 pages. The body fills the first page below the photo and finishes at the top of the second: [open the reference PDF](/examples/pdf/element_flow.pdf).
+
+## How it works
+
+Every text box tells you where its text ended, so you never type a position for anything after the first element.
+
+- **`bottom` is where the next element can start.** `textBox` returns it with the lines it drew: the bottom of the last line that draws something. Rust has `TextLayout::bottom()`, and `TextRun::bottom()` for a single run of text.
+- **Empty text has no `bottom`.** The notes here are optional. When they're empty, `bottom` is `undefined` (`None` in Rust), `below` keeps `y` where it was, and the photo moves up with no gap left behind.
+- **A longer summary moves everything after it.** When the summary wraps onto one more line, the notes, the photo and the body each move down by one line height, and none of the code changes.
+- **The photo is placed by your own rectangle.** An image reports nothing back, so the code adds the photo's height and the gap to `y` itself.
+- **The rule under the title is a decoration.** It's drawn half a gap above the summary and leaves `y` alone. It's stroked rather than filled: a fill colour stays set and would colour the text drawn after it.
+
+## Text that doesn't fit
+
+The report treats overflow two ways, and you choose which for each element.
+
+The title, summary and notes must fit on the first page. They're drawn with `overflow: "error"` (`Overflow::Error` in Rust), so text that doesn't fit throws `text-overflow` instead of disappearing.
+
+The body may run on. Its box reaches the bottom margin and clips what doesn't fit. Then `overflow` holds the offset of the first character it didn't draw: a UTF-16 offset in TypeScript, a byte offset in Rust. The loop starts a new page and draws the rest from the top margin. Test `overflow` with `!== undefined`, because `0` means not even one line fitted. On a new page that would happen again, so the loop stops with an error instead of adding pages for ever.
+
+## What `bottom` measures
+
+`bottom` is a typographic measurement in points: the descent of the last drawn line's font, below its baseline. A glyph that reaches lower, or a thick stroke around the text, can paint past it.
+
+Like every position, `bottom` is in [page space](/reference/glossary/#page-space), measured from the top of the page. It ignores the surface's transform, so inside `transform` it stays in the coordinates you drew in.
+
+In TypeScript you pass a box as a tuple, `[x, y, width, height]`. The lines a text box returns describe their `rect` as an object with `x`, `y`, `width` and `height`.
+
+The builder doesn't paginate, float an image beside text, or lay out tables. Each page break here is a decision the code makes, using `overflow`.
+
+## What to change
+
+- **Paragraphs a gap apart:** draw each paragraph in its own text box and start the next one at `bottom` plus the gap, as the summary and notes do.
+- **A line height for the body:** pass `lineHeight` (`with_line_height` in Rust); `bottom` follows it.
+- **Two columns:** keep a `y` per column, and start a column at the top margin when the one beside it fills.
+
+Next: [the PDF/UA report](/recipes/pdf-ua-report/), a report that screen readers can follow.

@@ -1,7 +1,12 @@
 //! The element-flow example's placements, read back from the PDF it writes. Each expectation is
 //! worked out from Helvetica's AFM metrics (ascender 718, descender -207 per 1000 units) and the
 //! example's layout numbers, not from the builder, so a wrong bottom or a lost gap fails.
-#![expect(clippy::panic, clippy::unwrap_used, reason = "tests: a panic is a test failure")]
+#![expect(
+    clippy::panic,
+    clippy::unwrap_used,
+    clippy::indexing_slicing,
+    reason = "tests: a panic is a test failure"
+)]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/element_flow.rs"]

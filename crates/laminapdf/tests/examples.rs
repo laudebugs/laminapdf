@@ -116,8 +116,9 @@ const EXAMPLES: [(&str, Build); 11] = [
 fn with_flow_report<T>(f: impl FnOnce(&element_flow::Report) -> T) -> T {
     let report = laminapdf_test_fixtures::json(FLOW_REPORT);
     let field = |name: &str| {
-        report[name]
-            .as_str()
+        report
+            .get(name)
+            .and_then(serde_json::Value::as_str)
             .unwrap_or_else(|| panic!("{FLOW_REPORT}: no {name}"))
     };
     f(&element_flow::Report {
