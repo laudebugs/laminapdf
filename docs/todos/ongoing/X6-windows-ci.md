@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X6` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting — before the first Windows desktop release (Round D) |
 | Depends on | [X5](../done/X5-linux-ci-container.md) |
@@ -11,7 +11,7 @@
 | Branch | `ci/x6-windows-ci` |
 | PR title | `ci: Windows check (X6)` |
 | Size | S |
-| PR | — |
+| PR | [#281](https://github.com/laudebugs/laminapdf/pull/281) |
 
 ## Goal
 
@@ -29,8 +29,9 @@ Owner decision, 2026-11-07: use standard GitHub-hosted runners on public reposit
 
 **In scope**
 
-- Owner decision: a self-hosted Windows runner (a Windows machine or a Windows ARM VM), or GitHub-hosted `windows-latest` with a spending limit, run only on pushes to `main` (or a `ci:windows` label).
-- A `check-windows` job in `full.yml` (in `gate` if it runs on PRs; otherwise a non-required job on `main`).
+- Owner decision (2026-11-08): GitHub-hosted `windows-2025`, on every code PR and push to `main`, like `check-linux`; the self-hosted Windows runner this PR first built is dropped.
+- A `check-windows` job in `full.yml`, in `gate`: the whole `cargo xtask check` (docs, Rust, TypeScript) on Windows x64, which the fast lane's Windows legs (`check rust` only) leave out.
+- Whatever Windows-only fixes the first runs need.
 - Docs: ADR 0018 note, CLAUDE.md, workflow headers.
 
 **Out of scope**
@@ -39,7 +40,7 @@ Owner decision, 2026-11-07: use standard GitHub-hosted runners on public reposit
 
 ## Tasks
 
-- [ ] Owner decision on where Windows runs.
+- [x] Owner decision on where Windows runs.
 - [ ] Add the job; run one code PR (or one push to `main`) through it.
 - [ ] Update the docs.
 

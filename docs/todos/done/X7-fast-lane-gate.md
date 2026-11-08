@@ -35,7 +35,7 @@ A PR that fails a fast-lane job can't merge. Today `gate` is the only required c
 **Out of scope**
 
 - Changing what either lane runs.
-- Windows ([X6](../ready/X6-windows-ci.md)).
+- Windows ([X6](../ongoing/X6-windows-ci.md)).
 
 ## Tasks
 
