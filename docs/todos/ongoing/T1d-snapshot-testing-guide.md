@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T1d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -59,13 +59,13 @@ Developers on Hacker News complain that generators change their output under the
 **Out of scope** (and which todo covers it)
 
 - A `laminapdf render` or `laminapdf compare` command → [L4e](../done/L4e-cli-render.md) (render); a compare command is a later todo if readers ask for one.
-- Comparing extracted text or structure trees between versions: a later guide, once [T3a](./T3a-text-layer-status.md)–[T3c](./T3c-tables-across-pages.md) settle the extraction output.
+- Comparing extracted text or structure trees between versions: a later guide, once [T3a](../ready/T3a-text-layer-status.md)–[T3c](../ready/T3c-tables-across-pages.md) settle the extraction output.
 - Visual comparison in Rust as an example: the guide names the `laminapdf-render` crate. A Rust example would make `laminapdf_render` a second public import in Rust examples, which needs its own decision.
 - Tagged output by default ([trust and proof §9](../../plans/trust-and-proof.md#9-open-questions), question 1): it would change every reader's bytes once, which the guide's upgrade section covers.
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
+- [x] Claim: the first commit moves this file to `ongoing/`.
 - [ ] `docs_snippets.rs` and `docs-snippets.toml`: the `[[test-example]]` list, with a test that a listed file may hold a quoted PDF date and an unlisted one may not; the pair entry.
 - [ ] examples.md: the test-example sentence and the two render packages as entry points; Biome's message; the sdk's dev-dependencies.
 - [ ] `tools/xtask/src/wasm.rs`: build `@laminapdf/render` and `@laminapdf/render-hayro` before `@laminapdf/sdk`'s `test:wasm`. Today they build after it, and the sdk's typecheck (`tsconfig.json` includes `examples/**`) would then fail on `compare-pages.ts`'s imports.

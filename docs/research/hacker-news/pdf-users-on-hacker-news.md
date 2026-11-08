@@ -358,7 +358,7 @@ Licences decide which library people pick (~150 comments), and warnings about AG
   - an invoice with embedded XML (`pdf_a3_invoice_with_xml`)
   - PDF/UA-1 and PDF/A-2b, 2u and 3b profiles, checked by veraPDF every night
 - **The gap:** the website and docs don't say so where people decide.
-- **Work:** [T1b](../../todos/ready/T1b-how-we-test-page.md) states the licence and where the code comes from; [T1d](../../todos/ready/T1d-snapshot-testing-guide.md) shows users how to snapshot-test their own PDFs. Whether tagged output becomes the default is an open question in the [plan](../../plans/trust-and-proof.md).
+- **Work:** [T1b](../../todos/ready/T1b-how-we-test-page.md) states the licence and where the code comes from; [T1d](../../todos/ongoing/T1d-snapshot-testing-guide.md) shows users how to snapshot-test their own PDFs. Whether tagged output becomes the default is an open question in the [plan](../../plans/trust-and-proof.md).
 
 ### R10. Grow the CLI and MCP server for chained jobs
 
