@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U1c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4e](../done/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U1b](../done/U1b-command-registry-and-palette.md) |
@@ -37,8 +37,8 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 
 **Out of scope** (and which todo covers it)
 
-- Thumbnails and outline contents → [C6a](./C6a-thumbnails-outline-page-labels.md).
-- Phone layout (bottom bar, sheets) → [U3a](./U3a-responsive-mobile-and-touch.md).
+- Thumbnails and outline contents → [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
+- Phone layout (bottom bar, sheets) → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
 - Editor modes → E rounds (E1a defines Edit, E4f Comment, E8e Fill & Sign, E2h Organise).
 
 ## Tasks

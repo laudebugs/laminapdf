@@ -230,7 +230,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R16-focus-mode.dc.html` (prop `showInspector` off gives the nothing-selected state).
 
-**Todos.** [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md).
+**Todos.** [U1c](../../todos/ongoing/U1c-inverted-l-shell-and-modes.md).
 
 ## R17 Tablet reading
 

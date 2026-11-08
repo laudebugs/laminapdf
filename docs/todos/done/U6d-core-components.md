@@ -15,7 +15,7 @@
 
 ## Goal
 
-Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](../ready/U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](../ready/C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
+Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](../ongoing/U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](../ready/C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](../ready/U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
 
 ## Context
 
@@ -52,9 +52,9 @@ Build the Paper component library the shells and editor modes compose: every con
 
 - Dialogs, bottom sheets, popovers, menus, tooltips, the selection mini toolbar, the command palette shell, the toast region and z-order → [U6e](../done/U6e-overlays-and-sheets.md).
 - Reader chrome built from these (toolbar, page indicator, zoom control, drop zone, password dialog, error and repair banners), the `Platform` interface and `ReaderController` → [C4a](./C4a-ui-chrome-and-platform.md).
-- Layout regions (top bar, left rail, inspector, status bar, focus mode) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md); phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md); command wiring and shortcut map → [U1b](../done/U1b-command-registry-and-palette.md).
+- Layout regions (top bar, left rail, inspector, status bar, focus mode) → [U1c](../ongoing/U1c-inverted-l-shell-and-modes.md); phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md); command wiring and shortcut map → [U1b](../done/U1b-command-registry-and-palette.md).
 - Theme switching UI and settings → [C7a](../ready/C7a-accessibility-and-theming.md); the gallery and screenshot tests → [U6f](../done/U6f-gallery-and-visual-tests.md).
-- Inspector panel and save banner (§7.11, §7.13) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md) and [E1e](../ready/E1e-save-and-constraint-banner.md), built from these components.
+- Inspector panel and save banner (§7.11, §7.13) → [U1c](../ongoing/U1c-inverted-l-shell-and-modes.md) and [E1e](../ready/E1e-save-and-constraint-banner.md), built from these components.
 
 ## Tasks
 
