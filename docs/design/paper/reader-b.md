@@ -230,6 +230,8 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R16-focus-mode.dc.html` (prop `showInspector` off gives the nothing-selected state).
 
+**As built ([U1c](../../todos/ongoing/U1c-inverted-l-shell-and-modes.md)).** As drawn, with one difference: the status item reads "Focus mode" followed by its shortcut chip, and the words "leave with" are left out, since pressing the item is what leaves. The announcement says "Sidebar" where the board says "Rail", the word the reader uses everywhere else.
+
 **Todos.** [U1c](../../todos/ongoing/U1c-inverted-l-shell-and-modes.md).
 
 ## R17 Tablet reading

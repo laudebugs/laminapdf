@@ -1,5 +1,5 @@
 // The left rail (UI/UX plan §5.1, design language §7.5): the navigation landmark with the rail's tabs
-// (pages and the outline in C6a, bookmarks and attachments later), resizable with the pointer or with
+// (pages and the outline first, bookmarks and attachments later), resizable with the pointer or with
 // the arrow keys on its handle. Below the rail breakpoint (token `breakpoint-rail-open`) it is a drawer
 // over the canvas, with a scrim, closed by Escape like any other layer.
 
