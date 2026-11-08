@@ -449,6 +449,7 @@ fn render_report(
         millis % 1000 / 100,
         dataset.attribution
     );
+    let _ = writeln!(md, "\nPages by text-layer status: {}.", status_counts(files));
     md
 }
 
@@ -506,6 +507,27 @@ fn column_order_line(candidate: &str, extracted: &Value, scores: &Value) -> Opti
     Some(line)
 }
 
+/// The pages of every extracted file counted by text-layer status, in the order the statuses
+/// are decided: `native 120, mixed 4, …`.
+fn status_counts(files: Option<&serde_json::Map<String, Value>>) -> String {
+    const STATUSES: [&str; 5] = ["native", "mixed", "needs-ocr", "ocr-layer", "empty"];
+    let mut counts = BTreeMap::new();
+    for status in files
+        .into_iter()
+        .flat_map(|f| f.values())
+        .filter_map(|v| at(v, "statuses").as_array())
+        .flatten()
+        .filter_map(Value::as_str)
+    {
+        *counts.entry(status).or_insert(0_usize) += 1;
+    }
+    STATUSES
+        .iter()
+        .map(|s| format!("{s} {}", counts.get(s).copied().unwrap_or(0)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// `value[key]`, or `null` when `value` has no such key.
 fn at<'a>(value: &'a Value, key: &str) -> &'a Value {
     value.get(key).unwrap_or(&Value::Null)
@@ -514,6 +536,19 @@ fn at<'a>(value: &'a Value, key: &str) -> &'a Value {
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, reason = "test code")]
+
+    #[test]
+    fn status_counts_should_add_up_every_files_pages_in_decision_order() {
+        let facts = serde_json::json!({
+            "a.md": {"outcome": "extracted", "statuses": ["native", "needs-ocr"]},
+            "b.md": {"outcome": "extracted", "statuses": ["needs-ocr"]},
+            "c.md": {"outcome": "failed"}
+        });
+        assert_eq!(
+            status_counts(facts.as_object()),
+            "native 1, mixed 0, needs-ocr 2, ocr-layer 0, empty 0"
+        );
+    }
 
     use super::*;
 

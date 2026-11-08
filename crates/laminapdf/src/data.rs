@@ -269,6 +269,7 @@ fn cos_warning(w: laminapdf_cos::Warning) -> Data {
             data([("reason", json!(reason))])
         }
         W::ExtractUntaggedContent { chars, .. } => data([("chars", json!(chars))]),
+        W::ExtractNeedsOcr { status, .. } => data([("status", json!(status))]),
         _ => Data::new(),
     }
 }

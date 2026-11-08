@@ -345,6 +345,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         W::ExtractUntaggedContent { page: 0, chars: 1 }.into(),
+        W::ExtractNeedsOcr {
+            page: 0,
+            status: "needs-ocr",
+        }
+        .into(),
         W::ExtractColumnOrderUncertain {
             page: 0,
             reason: "narrow-gutter",

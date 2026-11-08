@@ -293,6 +293,15 @@ pub enum Warning {
         /// How many characters (spaces left out) lie outside the tree.
         chars: u64,
     },
+    /// `extract-needs-ocr`: a page's text isn't the page's text: it has none (a scan or outlined
+    /// glyphs), mostly glyphs without Unicode, or only an invisible OCR layer over an image,
+    /// which extraction leaves out. Raised by `laminapdf-extract`.
+    ExtractNeedsOcr {
+        /// The page's index.
+        page: u64,
+        /// The page's text-layer status: `needs-ocr` or `ocr-layer`.
+        status: &'static str,
+    },
     /// `extract-column-order-uncertain`: the layout rules had to guess how a page's columns
     /// are read (a gutter narrower than a font size, a column left and read again, or a grid
     /// read by columns that a wrapped cell kept from reading by rows). Raised by
@@ -348,6 +357,7 @@ impl Warning {
         "extract-table-limit",
         "extract-struct-tree-ignored",
         "extract-untagged-content",
+        "extract-needs-ocr",
         "extract-column-order-uncertain",
     ];
 
@@ -395,6 +405,7 @@ impl Warning {
             Self::ExtractTableLimit { .. } => "extract-table-limit",
             Self::ExtractStructTreeIgnored { .. } => "extract-struct-tree-ignored",
             Self::ExtractUntaggedContent { .. } => "extract-untagged-content",
+            Self::ExtractNeedsOcr { .. } => "extract-needs-ocr",
             Self::ExtractColumnOrderUncertain { .. } => "extract-column-order-uncertain",
         }
     }
@@ -443,6 +454,7 @@ impl Warning {
             | Self::ExtractTableLimit { .. }
             | Self::ExtractStructTreeIgnored { .. }
             | Self::ExtractUntaggedContent { .. }
+            | Self::ExtractNeedsOcr { .. }
             | Self::ExtractColumnOrderUncertain { .. } => None,
         }
     }
@@ -488,6 +500,7 @@ impl Warning {
             | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
             Self::ExtractReadingOrderAmbiguous { .. }
             | Self::ExtractTableAmbiguous { .. }
+            | Self::ExtractNeedsOcr { .. }
             | Self::ExtractColumnOrderUncertain { .. } => ErrorKind::Unsupported,
             Self::ExtractTableLimit { .. } => ErrorKind::Limit,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
@@ -525,6 +538,7 @@ impl Warning {
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
             | Self::ExtractUntaggedContent { page, .. }
+            | Self::ExtractNeedsOcr { page, .. }
             | Self::ExtractColumnOrderUncertain { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
@@ -548,6 +562,7 @@ impl Warning {
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
             | Self::ExtractUntaggedContent { page, .. }
+            | Self::ExtractNeedsOcr { page, .. }
             | Self::ExtractColumnOrderUncertain { page, .. } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
@@ -702,6 +717,10 @@ mod tests {
                 reason: "coverage",
             },
             Warning::ExtractUntaggedContent { page: 0, chars: 1 },
+            Warning::ExtractNeedsOcr {
+                page: 0,
+                status: "needs-ocr",
+            },
             Warning::ExtractColumnOrderUncertain {
                 page: 0,
                 reason: "narrow-gutter",
@@ -749,6 +768,7 @@ mod tests {
                 | Warning::ExtractTableLimit { .. }
                 | Warning::ExtractStructTreeIgnored { .. }
                 | Warning::ExtractUntaggedContent { .. }
+                | Warning::ExtractNeedsOcr { .. }
                 | Warning::ExtractColumnOrderUncertain { .. } => {}
             }
         }
