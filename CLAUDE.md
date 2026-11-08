@@ -235,6 +235,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
     ├── capabilities/    # the capability matrix: manifest.toml (one row per 06 §3 operation) + generated README.md
     ├── decisions/       # Architecture Decision Records (NNNN-title.md)
     ├── design/          # visual design: Paper design language, screen inventory, area docs, Design canvas sources
+    ├── bugs/            # one folder per diagnosed bug: detail.md (report, measurements, cause) and resolution.md
     ├── guidelines/      # how we work (contributing, git workflow, code organization, Rust/TS)
     └── references/      # external specs, tools, corpora
 ```
