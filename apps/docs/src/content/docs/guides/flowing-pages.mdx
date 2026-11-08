@@ -7,7 +7,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 This guide lays out a document whose length you don't know in advance, such as a report or a contract. You give Lamina PDF blocks and a page template, and it makes as many pages as they need, with a header and a footer on each.
 
-It breaks pages where a careful typesetter would and tags the result so screen readers can follow it. Flowing layout is in the Rust crate today; the TypeScript package will follow.
+It keeps headings with their text and never leaves a single line of a paragraph alone at a page's foot or head, and it tags the result so screen readers can follow it. Flowing layout is in the Rust crate today; the TypeScript package will follow.
 
 ## The example
 
@@ -31,7 +31,7 @@ The template gives the page size, the margins, a header and a footer, and option
 
 The flow lays out every page before it draws any, and it follows these rules:
 
-- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. A paragraph with room for only one line moves to the next page. Change the counts with `with_widows_and_orphans`.
+- **Paragraphs split only between lines,** leaving at least two lines at the foot of a page and two at the head of the next. When a page has room for only one line of a paragraph, the paragraph moves to the next page. Change the counts with `with_widows_and_orphans`.
 - **A heading stays with the block after it,** so a section never starts on the last line of a page. Any paragraph can do the same with `with_keep_with_next`.
 - **Figures and keep groups move whole** to the next page when they don't fit.
 - **A paragraph continued on a page of another width** is broken again at that width.
@@ -42,8 +42,8 @@ When blocks you asked to keep together are taller than a page, the flow splits t
 
 A slot's text can hold fields, which the flow fills in on each page:
 
-- `{page}`: the page number, from 1.
-- `{pages}`: the number of pages the flow made.
+- `{page}`: the page's number in the document, from 1.
+- `{pages}`: the number of pages in the document once the flow's pages are added.
 - `{section}`: the title of the last level-1 heading that started on or before the page. Choose another level with `with_section_level`.
 - `{title}`: the title you gave the flow.
 
@@ -51,7 +51,7 @@ Write `{{` and `}}` for a literal brace. `{pages}` is right on every page becaus
 
 ## What the flow tags
 
-The output is tagged unless you turn tagging off with `with_tagged(false)`. Paragraphs are `P` elements, headings `H1` to `H6`, lists `L` with their items, figures `Figure` with their alternate text, and links `Link`. A piece of text in another language is a `Span` with that language. A paragraph split across pages stays one element, so a screen reader reads it as one.
+The output is tagged unless you turn tagging off with `with_tagged(false)`. Paragraphs are `P` elements, headings `H1` to `H6`, lists `L` with their items, figures `Figure` with their alternate text, and links `Link`. A paragraph's language, taken from its first piece, is set on its element; a piece in another language is a `Span` with that language. A paragraph split across pages stays one element, so a screen reader reads it as one.
 
 Headers and footers are marked as page furniture rather than content: screen readers skip them, and Lamina PDF's own extraction leaves them out of the text.
 
