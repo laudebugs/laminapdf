@@ -10,10 +10,10 @@ import { withVersion } from "@laminapdf/site-kit/version";
 const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" };
 
 /** A `<Snippet … file="…" … />`, whatever its attributes' order; group 1 is the file. */
-export const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
+const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
 
 /** An `<Example … />` (todo B7d); group 1 is its attributes. */
-export const EXAMPLE = /<Example\b([^>]*?)\/>/g;
+const EXAMPLE = /<Example\b([^>]*?)\/>/g;
 
 /**
  * What an `<Example>`'s attributes name: its code files (`ts`, `rust`), the PDFs it makes
