@@ -8,9 +8,15 @@ import { test } from "node:test";
 
 const root = new URL("..", import.meta.url).pathname;
 const previews = join(root, "public/examples/preview");
+/** @type {{ examples: Record<string, { pages: unknown[] }> }} */
 const manifest = JSON.parse(readFileSync(join(previews, "manifest.json"), "utf8"));
 
-/** Every .mdx page under `dir`. */
+/**
+ * Every .mdx page under `dir`.
+ *
+ * @param {string} dir
+ * @returns {string[]}
+ */
 function pages(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -19,10 +25,15 @@ function pages(dir) {
   });
 }
 
-/** The example stems a page's <Example> tags name in `result`. */
+/**
+ * The example stems a page's <Example> tags name in `result`.
+ *
+ * @param {string} page
+ * @returns {string[]}
+ */
 export function results(page) {
   return [...page.matchAll(/<Example\s[^>]*?result=(?:"([^"]+)"|\{\[([^\]]*)\]\})/g)].flatMap((m) =>
-    m[1] !== undefined ? [m[1]] : [...m[2].matchAll(/"([^"]+)"/g)].map((s) => s[1]),
+    m[1] !== undefined ? [m[1]] : [...(m[2] ?? "").matchAll(/"([^"]+)"/g)].map((s) => s[1] ?? ""),
   );
 }
 
@@ -43,7 +54,7 @@ test("every page's results name an example with pictures", () => {
 
 test("every picture the manifest lists exists", () => {
   for (const [stem, example] of Object.entries(manifest.examples)) {
-    example.pages.forEach((_, index) => {
+    example.pages.forEach((_page, index) => {
       assert.ok(existsSync(join(previews, `${stem}-${index}.png`)), `${stem}-${index}.png`);
     });
   }

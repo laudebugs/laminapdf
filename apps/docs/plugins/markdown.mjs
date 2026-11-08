@@ -20,7 +20,7 @@ export const EXAMPLE = /<Example\b([^>]*?)\/>/g;
  * (`result="hello"` or `result={["a", "b"]}`) and the text file it prints (`output`).
  *
  * @param {string} attributes
- * @returns {{ ts?: string, rust?: string, results: string[], output?: string }}
+ * @returns {{ ts: string | undefined, rust: string | undefined, results: string[], output: string | undefined }}
  */
 export function exampleParts(attributes) {
   /** @param {string} name */
