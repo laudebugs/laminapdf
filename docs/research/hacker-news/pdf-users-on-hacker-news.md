@@ -256,7 +256,7 @@ Redaction comments rose from 2.8 to 8.0 per 1,000 editor comments in 2023–26, 
 
 - **Lamina PDF today:** [E12a](../../todos/ready/E12a-redaction-feature-plan.md)–[E12f](../../todos/ready/E12f-leak-tests.md) plan mark and review, removal of text, pixels and paths, a scrub with a full rewrite, sensitive-content search and leak tests.
 - **The gap:** nothing finds a failed redaction in a file someone else made, and nothing stops a user from drawing a box and calling it done.
-- **Work:** [T2a](../../todos/ongoing/T2a-covered-text-flag.md) teaches extraction to flag text hidden under later shapes and images, and [T2b](../../todos/ready/T2b-check-failed-redactions.md) makes `laminapdf check` warn about covered text, unapplied redaction annotations and text left in earlier revisions. [E4f](../../todos/ready/E4f-annotation-tools-ui.md) gains a notice when a user draws an opaque shape over text, offering the redaction tool instead ([38549034](https://news.ycombinator.com/item?id=38549034)).
+- **Work:** [T2a](../../todos/done/T2a-covered-text-flag.md) teaches extraction to flag text hidden under later shapes and images, and [T2b](../../todos/ready/T2b-check-failed-redactions.md) makes `laminapdf check` warn about covered text, unapplied redaction annotations and text left in earlier revisions. [E4f](../../todos/ready/E4f-annotation-tools-ui.md) gains a notice when a user draws an opaque shape over text, offering the redaction tool instead ([38549034](https://news.ycombinator.com/item?id=38549034)).
 
 ### R3. Finish forms and signatures, and name XFA files plainly
 
