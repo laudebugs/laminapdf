@@ -11,7 +11,7 @@ mod pages;
 mod repair;
 mod revisions;
 
-pub use revisions::revision_starts;
+pub use revisions::{Revision, revision_starts};
 mod warning;
 mod window;
 mod xref;
@@ -99,6 +99,8 @@ pub struct Document {
     revisions: usize,
     /// The offsets of the xref sections reached via `/Prev`, newest first (empty when repaired).
     section_offsets: Vec<usize>,
+    /// What each of those sections lists, in the same order.
+    section_objects: Vec<xref::SectionObjects>,
     repaired: bool,
     has_xref_stream: bool,
     newest_is_stream: bool,
@@ -449,6 +451,7 @@ impl Document {
             trailer: table.trailer,
             revisions: table.sections,
             section_offsets: table.section_offsets,
+            section_objects: table.section_objects,
             repaired: false,
             has_xref_stream: table.has_xref_stream,
             newest_is_stream: table.newest_is_stream,

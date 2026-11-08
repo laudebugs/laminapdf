@@ -3247,6 +3247,71 @@ builder.page_labels([PageLabel::new(1, Some(LabelStyle::Decimal))]); // invalid-
 
 - `what`: what is wrong (fixed text).
 ",
+        "tag-element-not-open" => r"# `tag-element-not-open`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Surface::resume` or `Builder::close_element` was given a structure element that isn't open. When `resume` names one, the page's `PageBuilder::finish` fails.
+
+## Why
+
+An element that continues across pages is open from `Surface::open_element` until `Builder::close_element` writes it, and only then. The element named was one of these:
+
+- closed already;
+- opened by another builder;
+- opened inside an artifact, so it is part of the artifact (ISO 32000-2 §14.8.2.2);
+- opened on a page added to an existing document, which is never tagged;
+- opened on a page whose `PageBuilder::finish` failed, so it was never written.
+
+## How to fix
+
+Open the element on a page of the same builder, outside every artifact, and close it once, after its last page is finished.
+
+## Example
+
+```rust
+let paragraph = page.surface().open_element(TagKind::P);
+page.finish()?;
+builder.close_element(paragraph)?;
+builder.close_element(paragraph)?; // tag-element-not-open: closed already
+```
+
+## Data fields
+
+None.
+",
+        "tag-element-unclosed" => r"# `tag-element-unclosed`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::finish` was called while structure elements opened with `Surface::open_element` were still open.
+
+## Why
+
+An element that continues across pages is written when `Builder::close_element` closes it, since only then is its content complete. An element never closed would leave the structure tree with a reference to an element that doesn't exist (ISO 32000-2 §14.7.2), so the build stops instead.
+
+## How to fix
+
+Close every element from `Surface::open_element` with `Builder::close_element` once its last page is finished, before `Builder::finish`.
+
+## Example
+
+```rust
+let paragraph = page.surface().open_element(TagKind::P);
+page.finish()?;
+builder.finish()?; // tag-element-unclosed: the paragraph is still open
+```
+
+## Data fields
+
+- `count`: how many elements are still open.
+",
         "profile-version-conflict" => r"# `profile-version-conflict`
 
 - Type: error
@@ -3579,20 +3644,22 @@ builder.finish()?; // font-not-embedded under Profile::PdfA2b
 
 ## What happened
 
-Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own, or whose text is U+0000, U+FEFF or U+FFFE. Shaping can draw one cluster (a group of characters that display as one unit) with several glyphs. The text then belongs to the first glyph, and the others stand for none.
+Under PDF/A-2u or PDF/UA-1, a glyph was drawn with no Unicode value, or with one that holds U+0000, U+FEFF or U+FFFE.
+
+A glyph that maps to the empty value doesn't fail. Shaping can draw one character with several glyphs: Noto Sans Arabic draws a beh as a dotless body and a dot. The body then carries the letter and the dot maps to the empty value, so the letter is read once.
 
 ## Why
 
-Software can search, copy or read text aloud only when every glyph maps to a usable Unicode value. The PDF/A-2u archival standard (ISO 19005-2 §6.2.11.7.2) and the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.7) both need that mapping. These are conditions 31-027 to 31-029 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. Lamina PDF maps a glyph that stands for no text to an empty value, which these profiles reject.
+Software can search, copy or read text aloud only when every glyph maps to a usable Unicode value. The PDF/A-2u archival standard (ISO 19005-2 §6.2.11.7.2) and the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.7) both need that mapping. These are conditions 31-027 to 31-029 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
 
 ## How to fix
 
-Check the text for control characters and byte-order marks. If shaping draws several glyphs for one cluster, choose a font that draws each cluster as one glyph. An archive that needs no accessibility can use PDF/A-2b instead, which doesn't need Unicode for every glyph. PDF/UA-1 has no such relaxed variant, so a PDF/UA-1 document needs the font change.
+Remove the NUL characters (U+0000) from the text, and check what it was decoded from: a NUL usually means a UTF-16 string read as UTF-8, or the end of a C string. An archive that needs no accessibility can use PDF/A-2b instead, which doesn't need Unicode for every glyph. PDF/UA-1 has no such relaxed variant.
 
 ## Example
 
 ```rust
-surface.text("\u{FEFF}Report", &font, Pt::new(12.0), at)?;
+surface.text("\u{0}Report", &font, Pt::new(12.0), at)?;
 builder.finish()?; // glyph-without-unicode under Profile::PdfA2u
 ```
 

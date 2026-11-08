@@ -30,17 +30,20 @@ pub enum ExitCode {
     Refused,
     /// `5`: a password is required, or the one given is wrong.
     Password,
+    /// `6`: `laminapdf reveal --fail-on` found something in a category it names.
+    Found,
 }
 
 impl ExitCode {
     /// Every exit code, in numeric order.
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Ok,
         Self::Failure,
         Self::Usage,
         Self::Warnings,
         Self::Refused,
         Self::Password,
+        Self::Found,
     ];
 
     /// The process exit status.
@@ -53,6 +56,7 @@ impl ExitCode {
             Self::Warnings => 3,
             Self::Refused => 4,
             Self::Password => 5,
+            Self::Found => 6,
         }
     }
 
@@ -66,18 +70,20 @@ impl ExitCode {
             Self::Warnings => "success with warnings; --warnings-ok turns it into 0",
             Self::Refused => "refused a destructive action that needs --force",
             Self::Password => "a password is required, or the one given is wrong",
+            Self::Found => "the file holds something --fail-on named",
         }
     }
 
-    /// Which code wins when several apply: 2 > 5 > 4 > 1 > 3 > 0.
+    /// Which code wins when several apply: 2 > 5 > 4 > 1 > 6 > 3 > 0.
     const fn priority(self) -> u8 {
         match self {
             Self::Ok => 0,
             Self::Warnings => 1,
-            Self::Failure => 2,
-            Self::Refused => 3,
-            Self::Password => 4,
-            Self::Usage => 5,
+            Self::Found => 2,
+            Self::Failure => 3,
+            Self::Refused => 4,
+            Self::Password => 5,
+            Self::Usage => 6,
         }
     }
 
@@ -231,8 +237,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_numbers_should_be_zero_to_five() {
-        assert_eq!(ExitCode::ALL.map(ExitCode::number), [0, 1, 2, 3, 4, 5]);
+    fn the_numbers_should_be_zero_to_six() {
+        assert_eq!(ExitCode::ALL.map(ExitCode::number), [0, 1, 2, 3, 4, 5, 6]);
     }
 
     #[test]
@@ -242,6 +248,7 @@ mod tests {
             ExitCode::Password,
             ExitCode::Refused,
             ExitCode::Failure,
+            ExitCode::Found,
             ExitCode::Warnings,
             ExitCode::Ok,
         ];

@@ -21,7 +21,7 @@ pub mod image;
 
 use std::path::{Path, PathBuf};
 
-pub use classic::{classic, classic_with_root, stream_body};
+pub use classic::{classic, classic_with_root, disclosing, stream_body, update};
 
 /// The repository's shared `fixtures/` directory.
 #[must_use]

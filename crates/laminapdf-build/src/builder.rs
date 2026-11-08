@@ -20,6 +20,7 @@ use crate::resources::DocResources;
 use crate::surface::text::FontHandle;
 use crate::tag::TagDiagnostic;
 use crate::tag::elem::TagState;
+use crate::tag::open::{ElementId, ElementIds, next_builder};
 
 /// The header version of a new document (§7.5.2). Saving with object and cross-reference
 /// streams (`laminapdf-save`'s default) raises anything below 1.5 to 1.5.
@@ -232,6 +233,10 @@ pub(crate) struct BuildState {
     pub(crate) tagging: bool,
     /// The structure elements, `ParentTree` and diagnostics so far.
     pub(crate) tag: TagState,
+    /// This build's identity and how many page builders it has made, to name the elements
+    /// pages open ([`ElementId`](crate::ElementId)).
+    builder: u32,
+    page_builders: u32,
 }
 
 impl BuildState {
@@ -254,7 +259,16 @@ impl BuildState {
             device_cmyk: None,
             tagging: tagged.is_some(),
             tag: TagState::new(tagged.unwrap_or(false)),
+            builder: next_builder(),
+            page_builders: 0,
         }
+    }
+
+    /// The names for the elements the next page builder opens.
+    pub(crate) fn element_ids(&mut self) -> ElementIds {
+        let ids = ElementIds::new(self.builder, self.page_builders);
+        self.page_builders = self.page_builders.saturating_add(1);
+        ids
     }
 
     /// Notes that something written needs PDF `version`.
@@ -464,6 +478,19 @@ impl Builder {
     #[must_use]
     pub fn tagging_diagnostics(&self) -> &[TagDiagnostic] {
         self.state.tag.diagnostics()
+    }
+
+    /// Writes `element`, opened by [`Surface::open_element`](crate::Surface::open_element),
+    /// with the content every page gave it. Close it once its last page is finished; an
+    /// element still open fails [`Builder::finish`] with
+    /// [`Error::TagElementUnclosed`](crate::Error::TagElementUnclosed).
+    ///
+    /// # Errors
+    /// [`Error::TagElementNotOpen`](crate::Error::TagElementNotOpen) when `element` isn't
+    /// open: closed already, opened by another builder or inside an artifact, or on a page
+    /// whose [`PageBuilder::finish`] failed.
+    pub fn close_element(&mut self, element: ElementId) -> Result<()> {
+        self.state.tag.close(element)
     }
 
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].

@@ -267,6 +267,16 @@ fn an_unknown_tag_kind_is_an_invalid_argument() {
 fn an_unknown_artifact_kind_is_an_invalid_argument() {
     let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let mut page = builder.page(100.0, 100.0);
-    let error = page.begin_artifact("footer").err().unwrap();
+    let error = page.begin_artifact("sidebar").err().unwrap();
     assert_eq!(string(&error, "code").as_deref(), Some("invalid-argument"));
+}
+
+#[wasm_bindgen_test]
+fn header_footer_and_watermark_are_artifact_kinds() {
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let mut page = builder.page(100.0, 100.0);
+    for kind in ["header", "footer", "watermark"] {
+        assert!(page.begin_artifact(kind).is_ok(), "{kind}");
+        page.end_tag().unwrap();
+    }
 }

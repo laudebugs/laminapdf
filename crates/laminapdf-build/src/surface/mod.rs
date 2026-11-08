@@ -31,7 +31,8 @@ use crate::nav::LinkTarget;
 use crate::nav::dest::fit_is_valid;
 use crate::resources::{GsKey, PageResources};
 use crate::tag::mcid::{Marking, PageMarks};
-use crate::tag::{ArtifactKind, Tag, TagKind};
+use crate::tag::open::{ElementId, ElementIds};
+use crate::tag::{Artifact, Tag, TagKind};
 use color::Color;
 use image::Image;
 use laminapdf_model::BlendMode;
@@ -40,7 +41,7 @@ use style::StrokeStyle;
 #[cfg(feature = "text")]
 use text::{FontHandle, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
 #[cfg(feature = "text")]
-use textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
+use textbox::{TextBoxOptions, TextLayout};
 
 /// How a path is painted.
 #[derive(Debug, Clone, PartialEq)]
@@ -68,8 +69,12 @@ enum Command {
     Link(RectPt, LinkSpec),
     /// Opens a structure element.
     BeginTag(Box<Tag>),
+    /// Places an element that stays open after the page.
+    OpenElement(ElementId, Box<Tag>),
+    /// Starts content of an open element.
+    Resume(ElementId),
     /// Opens an artifact.
-    BeginArtifact(ArtifactKind),
+    BeginArtifact(Artifact),
     /// Ends the innermost element or artifact.
     EndMarked,
 }
@@ -161,6 +166,10 @@ pub struct Surface {
     marks_open: usize,
     /// Whether anything drawn opened an element or artifact.
     tagged: bool,
+    /// Names the elements opened with [`Surface::open_element`].
+    ids: ElementIds,
+    /// Whether anything drawn resumes an element ([`Surface::resume`]).
+    resumes: bool,
 }
 
 /// A font size must be finite and positive.
@@ -280,8 +289,8 @@ impl Surface {
     /// are ended with it. Inside an artifact, `tag` is part of the artifact.
     ///
     /// A page that uses an element or artifact makes the document tagged (see
-    /// [`BuildOptions::with_tagged`](crate::BuildOptions::with_tagged)). Elements are per page:
-    /// one doesn't continue on the next page.
+    /// [`BuildOptions::with_tagged`](crate::BuildOptions::with_tagged)). The element ends with
+    /// the closure; one that continues on the next page is [`Surface::open_element`]'s.
     ///
     /// ```
     /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, Tag, TagKind};
@@ -310,15 +319,22 @@ impl Surface {
         drawn
     }
 
-    /// Draws what `draw` draws as an artifact of `kind` (§14.8.2.2): content that isn't part
-    /// of the document's logical content (rules, running heads, backgrounds), outside the
-    /// structure tree. Elements opened inside it are part of it.
+    /// Draws what `draw` draws as an artifact (§14.8.2.2): content that isn't part of the
+    /// document's logical content (rules, running heads, backgrounds), outside the structure
+    /// tree. `artifact` is an [`ArtifactKind`](crate::ArtifactKind), or an [`Artifact`] such as [`Artifact::footer`]
+    /// that also says what a pagination artifact is and which page edge it is attached to (PDF
+    /// 1.7, which raises the document's version when it is older). Elements opened inside it are
+    /// part of it.
     ///
     /// # Errors
     /// What `draw` returns.
-    pub fn artifact<T>(&mut self, kind: ArtifactKind, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+    pub fn artifact<T>(
+        &mut self,
+        artifact: impl Into<Artifact>,
+        draw: impl FnOnce(&mut Self) -> Result<T>,
+    ) -> Result<T> {
         let depth = self.marks_open;
-        self.begin_artifact(kind);
+        self.begin_artifact(artifact);
         let drawn = draw(self);
         self.end_to(depth);
         drawn
@@ -335,10 +351,10 @@ impl Surface {
     }
 
     /// Opens an artifact until the matching [`Surface::end_tag`] (see [`Surface::artifact`]).
-    pub fn begin_artifact(&mut self, kind: ArtifactKind) -> &mut Self {
+    pub fn begin_artifact(&mut self, artifact: impl Into<Artifact>) -> &mut Self {
         self.marks_open += 1;
         self.tagged = true;
-        self.commands.push(Command::BeginArtifact(kind));
+        self.commands.push(Command::BeginArtifact(artifact.into()));
         self
     }
 
@@ -351,10 +367,76 @@ impl Surface {
         self
     }
 
+    /// Places structure element `tag` here, as a child of the innermost open element (or of
+    /// the page), and keeps it open after the page: its content comes with
+    /// [`Surface::resume`], on this page and later ones, until
+    /// [`Builder::close_element`](crate::Builder::close_element) writes it. It is one element
+    /// wherever its content falls: a paragraph split by a page break, a table over three pages.
+    ///
+    /// Its kids on later pages are marked-content references with their own `/Pg` (ISO 32000-2
+    /// §14.7.5.2), and every page's `ParentTree` entries name it. Opened inside an artifact or
+    /// on an appended page, it is never opened, and resuming or closing it fails with
+    /// [`Error::TagElementNotOpen`].
+    ///
+    /// ```
+    /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, TagKind};
+    /// use laminapdf_model::{PointPt, Pt};
+    ///
+    /// let mut b = Builder::new(BuildOptions::default());
+    /// let helvetica = b.standard_font(Standard14::Helvetica)?;
+    /// let mut page = b.page(PageSize::A4);
+    /// let paragraph = page.surface().open_element(TagKind::P);
+    /// page.surface().resume(paragraph, |s| {
+    ///     s.text("The paragraph starts here", &helvetica, Pt::new(11.0), PointPt::from_points(72.0, 800.0)).map(|_| ())
+    /// })?;
+    /// page.finish()?;
+    /// let mut page = b.page(PageSize::A4);
+    /// page.surface().resume(paragraph, |s| {
+    ///     s.text("and ends on the next page.", &helvetica, Pt::new(11.0), PointPt::from_points(72.0, 72.0)).map(|_| ())
+    /// })?;
+    /// page.finish()?;
+    /// b.close_element(paragraph)?;
+    /// b.finish()?;
+    /// # Ok::<(), laminapdf_build::Error>(())
+    /// ```
+    pub fn open_element(&mut self, tag: impl Into<Tag>) -> ElementId {
+        let id = self.ids.next();
+        self.tagged = true;
+        self.commands.push(Command::OpenElement(id, Box::new(tag.into())));
+        id
+    }
+
+    /// Draws what `draw` draws as content of `element`, opened by [`Surface::open_element`] on
+    /// this page or an earlier one.
+    ///
+    /// # Errors
+    /// What `draw` returns. An element that isn't open fails the page's
+    /// [`PageBuilder::finish`](crate::PageBuilder::finish) with [`Error::TagElementNotOpen`].
+    pub fn resume<T>(&mut self, element: ElementId, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        let depth = self.marks_open;
+        self.marks_open += 1;
+        self.tagged = true;
+        self.resumes = true;
+        self.commands.push(Command::Resume(element));
+        let drawn = draw(self);
+        self.end_to(depth);
+        drawn
+    }
+
+    /// A surface for a page whose elements are named by `ids`.
+    pub(crate) fn with_ids(ids: ElementIds) -> Self {
+        Self { ids, ..Self::default() }
+    }
+
     fn end_to(&mut self, depth: usize) {
         while self.marks_open > depth {
             self.end_tag();
         }
+    }
+
+    /// Whether anything drawn resumes an element.
+    pub(crate) const fn resumes(&self) -> bool {
+        self.resumes
     }
 
     /// Whether anything drawn opens an element or artifact.
@@ -468,9 +550,9 @@ impl Surface {
     /// except one holding a single cluster wider than the box on its own, which counts as
     /// overflow.
     ///
-    /// Lines that don't fit the box's height are overflow: with [`Overflow::Clip`] the lines
+    /// Lines that don't fit the box's height are overflow: with [`Overflow::Clip`](crate::Overflow::Clip) the lines
     /// that fit are drawn and [`TextLayout::overflow`] says where the rest starts; with
-    /// [`Overflow::Error`] nothing is drawn.
+    /// [`Overflow::Error`](crate::Overflow::Error) nothing is drawn.
     ///
     /// ```
     /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, TextBoxOptions};
@@ -495,7 +577,7 @@ impl Surface {
     /// # Errors
     /// As [`Surface::text`]; [`Error::InvalidGeometry`] for a rectangle that isn't finite or
     /// has no width, or a line height that isn't finite and positive;
-    /// [`Error::TextOverflow`] with [`Overflow::Error`].
+    /// [`Error::TextOverflow`] with [`Overflow::Error`](crate::Overflow::Error).
     #[cfg(feature = "text")]
     pub fn text_box(
         &mut self,
@@ -505,83 +587,55 @@ impl Surface {
         rect: RectPt,
         options: &TextBoxOptions,
     ) -> Result<TextLayout> {
-        check_size(size)?;
-        if !rect.is_finite() || rect.width().get() <= 0.0 {
-            return Err(Error::InvalidGeometry {
-                what: "a text box must be finite and wider than 0",
-            });
-        }
-        if !(options.line_height.is_finite() && options.line_height > 0.0) {
-            return Err(Error::InvalidGeometry {
-                what: "a line height must be a positive number",
-            });
-        }
-        let size_pt = size.get();
-        let spec = Spec {
-            text: text.to_owned(),
-            font: font.clone(),
-            size: size_pt,
-            align: options.align,
-            direction: options.direction,
-            language: options.language.clone(),
-            features: options.features.clone(),
-            width: Some(rect.width().get()),
-        };
-        let mut lines = lay_out(&spec)?;
-        let leading = options.line_height * size_pt;
-        let first = rect.y0.get() + font.ascent(size_pt);
-        let descent = font.descent(size_pt);
-        let limit = rect.width().get();
-        let fits = |i: usize, line: &text::LaidLine| {
-            #[expect(clippy::cast_precision_loss, reason = "line counts are small")]
-            let bottom = first + i as f64 * leading + descent;
-            // A hair of tolerance for the f32 widths the layout measured with.
-            bottom <= rect.y1.get() + 1e-9 && line.width <= limit + 1e-3
-        };
-        let fit = lines
-            .iter()
-            .enumerate()
-            .position(|(i, l)| !fits(i, l))
-            .unwrap_or(lines.len());
-        let overflow = lines.get(fit).map(|l| l.range.start);
-        if overflow.is_some() && options.overflow == Overflow::Error {
-            return Err(Error::TextOverflow {
-                fits: fit,
-                needed: lines.len(),
-            });
-        }
-        lines.truncate(fit);
-        let x = rect.x0.get();
-        let boxes: Vec<LineBox> = lines
-            .iter()
-            .enumerate()
-            .map(|(i, l)| {
-                #[expect(clippy::cast_precision_loss, reason = "line counts are small")]
-                let baseline = first + i as f64 * leading;
-                LineBox {
-                    range: l.range.clone(),
-                    content: l.content.clone(),
-                    rect: RectPt::new(
-                        Pt::new(x + l.x),
-                        Pt::new(baseline - font.ascent(size_pt)),
-                        Pt::new(x + l.x + l.width),
-                        Pt::new(baseline + descent),
-                    ),
-                    baseline: Pt::new(baseline),
-                }
-            })
-            .collect();
-        let bottom = boxes
-            .iter()
-            .rev()
-            .find(|b| text::draws(&spec.text, &b.content))
-            .map(|b| b.rect.y1);
-        self.push_text(spec, PointPt::new(rect.x0, Pt::new(first)), leading, lines);
-        Ok(TextLayout {
-            lines: boxes,
-            overflow,
-            bottom,
-        })
+        Ok(self.draw_measured(textbox::measure(text, font, size, rect, options)?))
+    }
+
+    /// The [`TextLayout`] [`Surface::text_box`] would draw with the same arguments, without
+    /// drawing it: for deciding where text goes (how tall a paragraph is, whether it fits)
+    /// before drawing anything. The page's content doesn't change.
+    ///
+    /// ```
+    /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, TextBoxOptions};
+    /// use laminapdf_model::{Pt, RectPt};
+    ///
+    /// let mut b = Builder::new(BuildOptions::default());
+    /// let times = b.standard_font(Standard14::TimesRoman)?;
+    /// let mut page = b.page(PageSize::A4);
+    /// let r = RectPt::from_xywh(Pt::new(72.0), Pt::new(72.0), Pt::new(120.0), Pt::new(200.0));
+    /// let text = "The quick brown fox jumps over the lazy dog.";
+    /// let measured = page.surface().measure_text_box(text, &times, Pt::new(12.0), r, &TextBoxOptions::default())?;
+    /// let drawn = page.surface().text_box(text, &times, Pt::new(12.0), r, &TextBoxOptions::default())?;
+    /// assert_eq!(measured, drawn);
+    /// # Ok::<(), laminapdf_build::Error>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Surface::text_box`].
+    #[cfg(feature = "text")]
+    pub fn measure_text_box(
+        &self,
+        text: &str,
+        font: &FontHandle,
+        size: Pt,
+        rect: RectPt,
+        options: &TextBoxOptions,
+    ) -> Result<TextLayout> {
+        Ok(textbox::measure(text, font, size, rect, options)?.layout)
+    }
+
+    /// Draws text measured by [`textbox::measure`] as [`Surface::text_box`] does, without laying
+    /// it out again, and returns its layout.
+    #[cfg(feature = "text")]
+    pub(crate) fn draw_measured(&mut self, measured: textbox::Measured) -> TextLayout {
+        let textbox::Measured {
+            spec,
+            origin,
+            leading,
+            lines,
+            layout,
+        } = measured;
+        self.push_text(spec, origin, leading, lines);
+        layout
     }
 
     /// A link annotation over `rect` (page space, through the current transform as an
@@ -651,7 +705,9 @@ impl Surface {
                     }
                 }
                 Command::BeginTag(tag) => out.marking.begin_tag(&mut out.content, tag),
-                Command::BeginArtifact(kind) => out.marking.begin_artifact(&mut out.content, *kind),
+                Command::OpenElement(id, tag) => out.marking.open_element(&mut out.content, *id, tag),
+                Command::Resume(id) => out.marking.resume(&mut out.content, *id),
+                Command::BeginArtifact(a) => out.marking.begin_artifact(&mut out.content, *a),
                 Command::EndMarked => out.marking.end(&mut out.content),
                 _ => out.command(command, &from_user, resources),
             }

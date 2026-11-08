@@ -391,21 +391,32 @@ mod rules {
         assert!(b.finish().is_ok());
     }
 
-    /// Matterhorn 31-027 to 31-029: a glyph without a usable Unicode value (the beh's dot,
-    /// which Noto Sans Arabic draws as a glyph of its own that stands for no text).
-    #[test]
-    fn a_glyph_without_unicode_fails_with_glyph_without_unicode() {
+    fn drawn(file: &str, text: &str) -> Builder {
         let mut b = Builder::new(options());
         b.metadata(Metadata::default().with_title("A report")).lang("ar");
-        let f = b.font(font("NotoSansArabic-Regular.ttf")).unwrap();
+        let f = b.font(font(file)).unwrap();
         let mut page = b.page(PageSize::A4);
         page.surface()
-            .text("بالعالم", &f, Pt::new(12.0), at(56.0, 80.0))
+            .text(text, &f, Pt::new(12.0), at(56.0, 80.0))
             .unwrap()
             .tag(TagKind::P);
         page.finish().unwrap();
+        b
+    }
+
+    /// The beh's dot, which Noto Sans Arabic draws as a glyph of its own, stands for no
+    /// character: it maps to the empty value while the beh's body carries the letter, which
+    /// veraPDF 1.30.3 passes under PDF/UA-1.
+    #[test]
+    fn a_glyph_whose_cluster_text_another_glyph_carries_builds() {
+        assert!(drawn("NotoSansArabic-Regular.ttf", "بالعالم").finish().is_ok());
+    }
+
+    /// Matterhorn 31-027 to 31-029: a glyph without a usable Unicode value.
+    #[test]
+    fn a_glyph_mapped_to_u0000_fails_with_glyph_without_unicode() {
         assert!(matches!(
-            finish_error(b),
+            finish_error(drawn("NotoSans-Regular.ttf", "\u{0}Report")),
             Error::GlyphWithoutUnicode {
                 profile: Profile::PdfUa1,
                 ..

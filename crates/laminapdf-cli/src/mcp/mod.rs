@@ -41,7 +41,10 @@ use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
-use crate::commands::{self, CheckArgs, ExplainArgs, ExtractArgs, Format, InfoArgs, RenderArgs, RotateArgs, Settings};
+use crate::commands::{
+    self, CheckArgs, ExplainArgs, ExtractArgs, Format, InfoArgs, RenderArgs, RevealArgs, RevealToolArgs, RotateArgs,
+    Settings,
+};
 use crate::exit::CliError;
 use roots::{RootedIo, Roots};
 
@@ -260,6 +263,10 @@ fn run_tool(
         "laminapdf_render" => {
             let args: RenderArgs = parse(arguments)?;
             report(commands::render(&args, &settings, &mut io), Some(&args.input))
+        }
+        "laminapdf_reveal" => {
+            let args = RevealArgs::from(parse::<RevealToolArgs>(arguments)?);
+            report(commands::reveal(&args, &settings, &mut io), Some(&args.input))
         }
         // `call` checked the name against the listed tools; the rotate tool is the one left.
         _ => {

@@ -75,6 +75,8 @@ export type ErrorCode =
   | "page-index-out-of-range"
   | "unknown-destination"
   | "invalid-page-labels"
+  | "tag-element-not-open"
+  | "tag-element-unclosed"
   | "profile-version-conflict"
   | "missing-title"
   | "missing-lang"
@@ -253,6 +255,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "page-index-out-of-range",
   "unknown-destination",
   "invalid-page-labels",
+  "tag-element-not-open",
+  "tag-element-unclosed",
   "profile-version-conflict",
   "missing-title",
   "missing-lang",
@@ -462,6 +466,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "page-index-out-of-range": "usage",
   "unknown-destination": "usage",
   "invalid-page-labels": "usage",
+  "tag-element-not-open": "usage",
+  "tag-element-unclosed": "usage",
   "profile-version-conflict": "usage",
   "missing-title": "usage",
   "missing-lang": "usage",
@@ -623,6 +629,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "page-index-out-of-range": "use a 0-based index below the document's page count",
   "unknown-destination": "define it with Builder::destination before the build finishes, or link to a page",
   "invalid-page-labels": "give ranges sorted by first page, the first at page 0, numbered from 1",
+  "tag-element-not-open": "resume and close only elements this builder's pages opened with open_element, and close each once",
+  "tag-element-unclosed": "close each element from open_element with Builder::close_element once its last page is finished",
   "profile-version-conflict": "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which Lamina PDF doesn't write yet",
   "missing-title": "set a title with Builder::metadata (Metadata::with_title)",
   "missing-lang": "set the language with Builder::lang, such as \"en-GB\"",
@@ -634,7 +642,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "link-without-structure": "draw links outside artifacts, so the builder gives each one a Link element",
   "link-without-contents": "pass a description as the link's contents",
   "font-not-embedded": "load a font file with Builder::font instead of Builder::standard_font",
-  "glyph-without-unicode": "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
+  "glyph-without-unicode": "remove NUL characters (U+0000) from the text, or choose PDF/A-2b, which doesn't need Unicode",
   "device-color-without-output-intent": "use RGB or gray colours, or a CMYK colour with an ICC profile (Color::icc)",
   "embedded-file-forbidden": "choose PDF/A-3b, which allows attached files of any kind",
   "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",

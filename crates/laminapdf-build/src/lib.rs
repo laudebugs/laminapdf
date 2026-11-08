@@ -51,10 +51,12 @@
 //!   [`Builder::page_labels`] ([`PageLabel`]), [`Builder::metadata`] (Info and XMP from one
 //!   [`Metadata`]), [`Builder::lang`], [`Builder::viewer_preferences`].
 //! * Tagged PDF: [`Surface::tag`] ([`Tag`], [`TagKind`], [`TableScope`]),
-//!   [`TextRun::tag`], [`Surface::figure`] (`/Alt`), [`Surface::artifact`] ([`ArtifactKind`]);
-//!   MCIDs per page, `/StructParents`, the `ParentTree`, `OBJR`s for links, the `RoleMap`
-//!   and `/MarkInfo`; [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left
-//!   untagged.
+//!   [`TextRun::tag`], [`Surface::figure`] (`/Alt`), [`Surface::artifact`] ([`ArtifactKind`],
+//!   or an [`Artifact`] such as [`Artifact::footer`] with its `/Subtype` and [`PageEdge`]s);
+//!   elements that continue on later pages ([`Surface::open_element`] → [`ElementId`],
+//!   [`Surface::resume`], [`Builder::close_element`]); MCIDs per page, `/StructParents`, the
+//!   `ParentTree`, `OBJR`s for links, the `RoleMap` and `/MarkInfo`;
+//!   [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left untagged.
 //! * Conformance: [`BuildOptions::with_profile`] ([`Profile`]: PDF/UA-1, PDF/A-2b,
 //!   PDF/A-2u, PDF/A-3b) turns each machine-checkable rule the document breaks into a coded
 //!   error at [`Builder::finish`], and writes the XMP identification, `/DisplayDocTitle` and
@@ -109,4 +111,4 @@ pub use surface::text::{FontHandle, TextRenderMode, TextRun};
 #[cfg(feature = "text")]
 pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 pub use surface::{PendingPath, Surface};
-pub use tag::{ArtifactKind, ContentKind, TableScope, Tag, TagDiagnostic, TagKind};
+pub use tag::{Artifact, ArtifactKind, ContentKind, ElementId, PageEdge, TableScope, Tag, TagDiagnostic, TagKind};

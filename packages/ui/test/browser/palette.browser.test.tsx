@@ -264,8 +264,14 @@ describe("CommandPalette", () => {
     expect(palette.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
     expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
     await userEvent.keyboard("{End}");
-    const row = active()?.getBoundingClientRect();
-    expect(row?.bottom).toBeLessThanOrEqual(list.getBoundingClientRect().bottom + 1);
+    // React Aria scrolls the active option into view after the key is handled, a frame later
+    // in WebKit and Firefox, so wait for the row to come inside the list.
+    await expect
+      .poll(
+        () =>
+          (active()?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY) - list.getBoundingClientRect().bottom,
+      )
+      .toBeLessThanOrEqual(1);
   });
 
   it("keeps focus in its combobox input while the arrows move the active row", async () => {

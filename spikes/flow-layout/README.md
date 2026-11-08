@@ -11,7 +11,7 @@ How should Lamina PDF lay out pages that flow: with an engine of its own over `l
 
 ## Answer in one paragraph
 
-**Build our own engine over `Surface` (A), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module and 147 crates, thread pools among them. Its API broke twice between 0.14 and 0.15, and it returns finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/ready/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
+**Build our own engine over `Surface` (A), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module and 147 crates, thread pools among them. Its API broke twice between 0.14 and 0.15, and it returns finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/done/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
 
 ## Method
 
@@ -81,7 +81,7 @@ The report times include A's two passes: A draws every line twice, once to count
 | A table across a page break | a `Table` per page (24 for 10 tables) | one `Table` (10), with `THead` and `TBody` |
 | Running header and footer | `/Artifact` `/Pagination`, no subtype | `/Pagination` with `/Subtype /Header` or `/Footer` and `/Attached` |
 
-Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder leaves a mark that shares a cluster with its letter without a value of its own, and refuses the file. Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
+Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder refuses the file: the font draws some letters as a body and a dot, and the builder maps the dot to the empty value, which its own PDF/UA-1 check counted as none. (T4f found veraPDF accepts the empty value, and the check now does too.) Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
 
 ### Shaping and extraction
 
@@ -115,12 +115,12 @@ Every output was byte-identical across 30 runs, natively. `scripts/node-time.mjs
 
 ## What our own engine lacked
 
-Experiment A ran on today's builder. Six gaps shaped its output. [T4f](../../docs/todos/ready/T4f-flow-builder-groundwork.md) takes on four of them, and ADR 0032 makes the other two unnecessary:
+Experiment A ran on today's builder. Six gaps shaped its output. [T4f](../../docs/todos/done/T4f-flow-builder-groundwork.md) takes on four of them, and ADR 0032 makes the other two unnecessary:
 
 1. **Elements across pages** (T4f). Tagged elements end with their page, so a paragraph or table split by a page break becomes two elements.
 2. **Measuring without drawing** (T4f). Nothing lays text out without drawing it. The spike measured two lines' height once in a throwaway builder, and table columns couldn't be sized to their content: a cell too narrow clips silently, as the invoice's descriptions did until the spike gave the first column 40 %.
 3. **Artifact subtypes** (T4f). `ArtifactKind::Pagination` writes no `/Subtype` (Header, Footer, Watermark).
-4. **Marks under PDF/UA-1** (T4f). A mark that shares a cluster with its letter gets no Unicode value, so PDF/UA-1 refuses Arabic with diacritics.
+4. **Marks under PDF/UA-1** (T4f). A letter's dot, drawn as a glyph of its own, maps to the empty value, which the builder's PDF/UA-1 check refused.
 5. **Deferred content** (not needed). A finished page can't be reopened, so "Page X of Y" cost a second pass here. Once text can be measured, the flow lays out every page before drawing any, and the footer knows the count.
 6. **A glyph-run API** (not planned). `Surface` draws strings. Only the hybrid needed shaped glyphs drawn as they come, and ADR 0032 rejects the hybrid.
 

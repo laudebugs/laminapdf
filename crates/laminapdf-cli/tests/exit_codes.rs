@@ -71,7 +71,7 @@ fn a_password_file_should_open_the_document() {
 }
 
 #[test]
-fn the_exit_code_table_should_list_0_to_5() {
+fn the_exit_code_table_should_list_0_to_6() {
     let run = laminapdf(&["help", "exit-codes"]);
     let numbers: Vec<char> = run
         .stdout_text()
@@ -79,7 +79,7 @@ fn the_exit_code_table_should_list_0_to_5() {
         .skip(1)
         .filter_map(|l| l.trim().chars().next())
         .collect();
-    assert_eq!((run.code, numbers), (0, vec!['0', '1', '2', '3', '4', '5']));
+    assert_eq!((run.code, numbers), (0, vec!['0', '1', '2', '3', '4', '5', '6']));
 }
 
 #[cfg(target_os = "linux")]

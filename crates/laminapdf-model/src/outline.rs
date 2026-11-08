@@ -109,7 +109,7 @@ pub enum ActionKind {
 }
 
 impl ActionKind {
-    fn from_name(name: &[u8]) -> Self {
+    pub(crate) fn from_name(name: &[u8]) -> Self {
         match name {
             b"GoTo" => Self::GoTo,
             b"GoToR" => Self::GoToR,

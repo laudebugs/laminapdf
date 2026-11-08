@@ -1,7 +1,7 @@
 //! `--max-output-bytes`: a report cut down to fit, still valid against its schema.
 //!
-//! A cut removes whole items from the end of the report's arrays (pages, page sizes, warnings),
-//! keeping one item in each at first, then shortens free text (a page's text, a title), then
+//! A cut removes whole items from the end of the report's arrays, at any depth (pages, page
+//! sizes, warnings, a revision's objects), keeping one item in each at first, then shortens free text (a page's text, a title), then
 //! drops the last items too. It never shortens a string whose value the schema fixes (`schema`,
 //! a code, a kind), so the result still matches the tool's `outputSchema`, and it ends with
 //! `"truncated": true`. Each round measures the report once and removes about as much as it is
@@ -43,19 +43,53 @@ pub(super) fn truncate(mut report: Value, max: usize) -> Value {
     report
 }
 
-/// Drops items from the end of the report's largest array until about `over` bytes are gone,
-/// keeping its first item when `keep_one`; whether it dropped any.
+/// Arrays a cut leaves whole: `reveal`'s `found` names the categories with findings, and an
+/// emptied one would read as "nothing found".
+const KEEP_KEYS: [&str; 1] = ["found"];
+
+/// The JSON pointer, total item size and length of every array in `value`, at any depth, but
+/// those under [`KEEP_KEYS`].
+fn arrays(value: &Value, path: &str, out: &mut Vec<(String, usize, usize)>) {
+    match value {
+        Value::Array(items) => {
+            out.push((path.to_owned(), items.iter().map(size).sum(), items.len()));
+            for (i, item) in items.iter().enumerate() {
+                arrays(item, &format!("{path}/{i}"), out);
+            }
+        }
+        Value::Object(map) => {
+            for (key, item) in map.iter().filter(|(k, _)| !KEEP_KEYS.contains(&k.as_str())) {
+                let key = key.replace('~', "~0").replace('/', "~1");
+                arrays(item, &format!("{path}/{key}"), out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Drops items from the end of the report's largest array, wherever it sits, until about
+/// `over` bytes are gone, keeping its first item when `keep_one`; whether it dropped any.
 fn drop_items(report: &mut Value, over: usize, keep_one: bool) -> bool {
     let floor = usize::from(keep_one);
-    let Some(map) = report.as_object_mut() else {
+    let mut found = Vec::new();
+    if let Some(map) = report.as_object() {
+        // The report itself is an object; its own fields start the paths.
+        for (key, item) in map.iter().filter(|(k, _)| !KEEP_KEYS.contains(&k.as_str())) {
+            arrays(
+                item,
+                &format!("/{}", key.replace('~', "~0").replace('/', "~1")),
+                &mut found,
+            );
+        }
+    }
+    let Some((path, _, _)) = found
+        .into_iter()
+        .filter(|(_, _, len)| *len > floor)
+        .max_by_key(|(_, total, _)| *total)
+    else {
         return false;
     };
-    let largest = map
-        .values_mut()
-        .filter_map(Value::as_array_mut)
-        .filter(|items| items.len() > floor)
-        .max_by_key(|items| items.iter().map(size).sum::<usize>());
-    let Some(items) = largest else {
+    let Some(items) = report.pointer_mut(&path).and_then(Value::as_array_mut) else {
         return false;
     };
     let sizes: Vec<usize> = items.iter().map(size).collect();
@@ -154,5 +188,20 @@ mod tests {
             .collect();
         let cut = truncate(json!({ "schema": "laminapdf.text/1", "pages": pages }), 10_000);
         assert!(size(&cut) <= 10_000);
+    }
+
+    #[test]
+    fn nested_lists_should_be_cut_and_found_left_whole() {
+        let added: Vec<u32> = (0..2000).collect();
+        let report = json!({ "schema": "laminapdf.reveal/1", "found": ["history", "metadata"],
+            "history": { "revisions": [{ "index": 0, "added": added }] }, "warnings": [] });
+        let cut = truncate(report, 400);
+        assert!(size(&cut) <= 400, "{cut}");
+        assert_eq!(cut["found"], json!(["history", "metadata"]));
+        assert!(
+            cut["history"]["revisions"][0]["added"]
+                .as_array()
+                .is_some_and(|a| a.len() < 2000)
+        );
     }
 }

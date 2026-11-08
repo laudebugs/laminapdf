@@ -7,14 +7,14 @@ use laminapdf_build::{
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
-use super::{png, rgba_gradient, save, tagged, text_and_navigation};
+use super::{across_pages, png, rgba_gradient, save, tagged, text_and_navigation};
 use laminapdf_test_fixtures::fixture;
 
 /// The code that builds one golden.
 pub type Build = fn() -> Vec<u8>;
 
 /// Every golden: its file name under `fixtures/golden/` and the code that builds it.
-pub const GOLDENS: [(&str, Build); 7] = [
+pub const GOLDENS: [(&str, Build); 8] = [
     ("vectors.pdf", vectors),
     ("images.pdf", images),
     ("build-text-latin.pdf", text_and_navigation::text_latin),
@@ -22,6 +22,7 @@ pub const GOLDENS: [(&str, Build); 7] = [
     ("links-and-outlines.pdf", text_and_navigation::links_and_outlines),
     ("metadata.pdf", text_and_navigation::metadata),
     ("tagged-report.pdf", tagged::tagged_report),
+    ("tagged-across-pages.pdf", across_pages::tagged_across_pages),
 ];
 
 fn options() -> BuildOptions {
