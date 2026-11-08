@@ -156,7 +156,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
-│                        #   files (src/components/Snippet.astro), the code table from fixtures/codes.json, code pages from
+│                        #   files (src/components/Snippet.astro), the code table from fixtures/codes.json, the Benchmarks page
+│                        #   from src/data/benchmarks.json (src/lib/benchmarks.ts checks it and makes the tables for the page's
+│                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header
 │                        #   (src/components/Header.astro, Starlight's Header override, with its search and theme switch); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build by @laminapdf/site-kit); wrangler.toml (Workers static
@@ -322,7 +324,7 @@ cargo xtask wasm             # build the wasm32 crates with the `wasm-release` p
 cargo xtask size             # raw/gzip/brotli of each module, min+gzip glue and @laminapdf/sdk's JS; fails above packages/wasm/size-budgets.json
                              #   (ADR 0016 §6), writes target/size-report.json, twiggy diff on > 5 % growth
 cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--label <name>]  # @laminapdf/sdk's example suite per runtime (default
-                             #   all; after `wasm`): byte-identical to the goldens; hello/report timings and WebAssembly memory
+                             #   all; after `wasm`): byte-identical to the goldens; hello, invoice and report timings and WebAssembly memory
                              #   vs pdf-library §4 in the job summary (recorded, not asserted); `node` is the one on PATH;
                              #   Deno, Bun, wrangler and Playwright are dev deps (`playwright install` runs first); a browser
                              #   also runs the packages' browser tests and the reader's (apps/web) typecheck, build and e2e suite;
@@ -387,7 +389,16 @@ cargo xtask extract-bench [--subset <name>]… [--sample N] [--tables lattice-an
                              #   SHA-256 per file in tools/bench/olmocr-bench.lock): files fetched into target/bench/datasets/, Markdown
                              #   from crates/laminapdf/examples/differential/extract-bench.rs, scored by the benchmark's own tests
                              #   (tools/bench/olmocr_score.py, Python with tools/bench/requirements.txt, $LAMINA_PDF_PYTHON); report
-                             #   in target/bench/extract/<dataset>/; never in CI; scores in crates/laminapdf-extract/README.md
+                             #   in target/bench/extract/<dataset>/ with <candidate>-results.json (scores, pages by outcome, summed and
+                             #   median ms, pages a second on one thread, version, commit, date, machine); never in CI; the scores are on
+                             #   the docs site's Benchmarks page (crates/laminapdf-extract/README.md explains the failures)
+cargo xtask benchmarks [--no-run]  # T1c: apps/docs/src/data/benchmarks.json, the docs site's Benchmarks page (version 1): runs `size`
+                             #   (after `wasm`), `pdf-runtimes` in every runtime and `bench` unless --no-run, then copies their reports
+                             #   (generation: per runtime hello-first, hello, invoice, report, wasm-memory with the tool's version, and
+                             #   criterion's invoice_one_page and report_100_pages; sizes: gzip/brotli per module and JS) and the newest
+                             #   extract-bench results of `laminapdf` and `laminapdf-stream`; each section has its run stamp
+                             #   (tools/xtask/src/machine.rs: OS, CPU, cores, memory, load average); a missing report keeps the committed
+                             #   section; run on an idle machine, before a release (refreshing the file is an exempt PR)
 cargo run -p laminapdf-cli -- <command> …  # the `laminapdf` CLI (ADR 0031): info, check, pages rotate, extract, render, explain, schema, completions, help exit-codes
 cargo xtask cli-docs         # the CLI's man pages (clap_mangen, one per command) and shell completions into target/cli-docs/
 cargo xtask cli-dist         # cli-docs plus THIRD_PARTY_NOTICES.md (cargo-about, about/ in laminapdf-cli, `mcp` on): what

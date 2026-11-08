@@ -236,6 +236,16 @@ h1#_top,
   border-color: var(--paper-hairline);
 }
 
+/* The benchmarks page (src/components/Benchmarks.astro): numbers right-aligned, and each
+   section's run sentence as a caption in text-2. */
+.benchmarks .num {
+  text-align: end;
+}
+.benchmarks-run {
+  color: var(--paper-text-2);
+  font-size: 0.875rem;
+}
+
 /* Selection: the accent tint, so ink stays readable through it. */
 ::selection {
   background: var(--paper-accent-tint);
