@@ -8,6 +8,7 @@ mod changes;
 mod cli_docs;
 mod codegen;
 mod corpus;
+mod design_screens;
 mod docs_links;
 mod docs_prose;
 mod docs_snippets;
@@ -443,6 +444,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;
+    step("design screens: every screen in the Paper inventory has its area heading and design file");
+    design_screens::check(&ws.root)?;
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
