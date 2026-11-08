@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md), [Q3c](../done/Q3c-coordinates-diagram.md) |
+| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md), [Q3c](./Q3c-coordinates-diagram.md) |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) |
 | Branch | `feat/q3e-extraction-diagrams` |
 | PR title | `feat(docs): diagrams for how a page becomes Markdown, and its reading order` |
@@ -37,16 +37,16 @@ Extraction is the library's most-used reading feature, and its recipe explains s
 
 ## Tasks
 
-- [ ] `components/diagrams/ExtractPipeline.astro` (a horizontal pipeline, vertical at phone width) and `components/diagrams/ReadingOrder.astro` (a `PageSheet` with numbered blocks).
-- [ ] Place both under "How it works", the pipeline first.
+- [x] `components/diagrams/ExtractPipeline.astro` (a horizontal pipeline, vertical at phone width) and `components/diagrams/ReadingOrder.astro` (a `PageSheet` with numbered blocks).
+- [x] Place both under "How it works", the pipeline first.
 
 ## Acceptance criteria
 
-- [ ] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
-- [ ] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
-- [ ] Each diagram is under 8 KB gzipped (reported in the PR).
-- [ ] `cargo xtask check docs` and the docs build pass.
-- [ ] The stage names and the drop reasons match the recipe's prose and the JSON's field names.
+- [x] Each diagram is built from the Q3a kit, renders in both themes (screenshots in the PR) and passes the lint, twin and browser tests.
+- [x] Each page's `.md` twin holds the caption and text description, and no SVG or JSX.
+- [x] Each diagram is under 8 KB gzipped (reported in the PR).
+- [x] `cargo xtask check docs` and the docs build pass.
+- [x] The stage names and the drop reasons match the recipe's prose and the JSON's field names.
 
 ## Post-merge checks
 
@@ -66,8 +66,8 @@ The pages named in the tasks, and the plan's §9 to-do.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
