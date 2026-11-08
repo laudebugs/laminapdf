@@ -38,6 +38,16 @@ function run(request: Omit<RunRequest, "id">): Promise<RunReply> {
   });
 }
 
+/** `bytes` as a `data:application/pdf` URL. */
+function dataUrl(bytes: Uint8Array): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }));
+  });
+}
+
 /** An element with a class and, optionally, text. */
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
   const node = document.createElement(tag);
@@ -75,7 +85,6 @@ export function openRunner(host: HTMLElement, file: string, source: string, pict
     parent: editorHost,
     extensions: [basicSetup, javascript({ typescript: true }), EditorView.lineWrapping],
   });
-  let url: string | undefined;
 
   reset.addEventListener("click", () => {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: source } });
@@ -106,9 +115,9 @@ export function openRunner(host: HTMLElement, file: string, source: string, pict
       }),
     );
     pages.classList.toggle("run-pages-many", reply.pages.length > 1);
-    if (url !== undefined) URL.revokeObjectURL(url);
-    url = URL.createObjectURL(new Blob([reply.bytes as Uint8Array<ArrayBuffer>], { type: "application/pdf" }));
-    download.href = url;
+    // A data: URL, not a blob: one: Chromium checks a blob: download against the page's CSP,
+    // which lists no blob: (ADR 0011), and reports a violation even though the file arrives.
+    download.href = await dataUrl(reply.bytes);
     download.download = `${file.slice(file.lastIndexOf("/") + 1, -3)}.pdf`;
     download.hidden = false;
     status.textContent = `Done: ${reply.pages.length === 1 ? "1 page" : `${reply.pages.length} pages`}.`;

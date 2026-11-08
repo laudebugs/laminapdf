@@ -4,13 +4,14 @@
 // example (run.ts), and draws each page of the result to an ImageBitmap for the page to show:
 // hayro, as for the Result tab's pictures (cargo xtask docs-previews), so both look the same.
 
-import flowReport from "../../../fixtures/text/element-flow-report.json?url";
-import notoSans from "../../../fixtures/fonts/NotoSans-Regular.ttf?url";
-import photo from "../../../fixtures/images/photo-rgb.jpg?url";
 import { bytesSource } from "@laminapdf/render";
 import { initHayro } from "@laminapdf/render-hayro";
 import * as sdk from "@laminapdf/sdk";
-import { RUNNABLE } from "./examples.js";
+import notoSans from "../../../fixtures/fonts/NotoSans-Regular.ttf?url";
+import photo from "../../../fixtures/images/photo-rgb.jpg?url";
+import flowReport from "../../../fixtures/text/element-flow-report.json?url";
+import { exampleOptions } from "../../../packages/sdk/test/suite/hello-options.js";
+import { type RunInput, RUNNABLE } from "./examples.js";
 import { runExample } from "./run.js";
 
 /** A request: run `source`, the reader's edit of `file`, and draw its pages `width` px wide. */
@@ -24,7 +25,13 @@ export interface RunRequest {
 /** The answer: the PDF and its pages, or the error. */
 export type RunReply =
   | { readonly id: number; readonly ok: true; readonly bytes: Uint8Array; readonly pages: ImageBitmap[] }
-  | { readonly id: number; readonly ok: false; readonly code: string; readonly message: string; readonly hint?: string };
+  | {
+      readonly id: number;
+      readonly ok: false;
+      readonly code: string;
+      readonly message: string;
+      readonly hint?: string;
+    };
 
 const ready = Promise.all([sdk.init({ text: true }), initHayro()]);
 /** Where each input file is served: built into /run/assets/ beside the worker. */
@@ -50,11 +57,17 @@ function input(file: string, as: "bytes" | "json"): Promise<unknown> {
   return got;
 }
 
+/** An input as the example takes it. */
+function argument(i: RunInput): unknown {
+  return "options" in i ? exampleOptions(i.options) : input(i.file, i.as);
+}
+
 async function handle(request: RunRequest): Promise<RunReply> {
   const runnable = RUNNABLE[request.file];
-  if (runnable === undefined) return { id: request.id, ok: false, code: "error", message: `${request.file} can't run here` };
+  if (runnable === undefined)
+    return { id: request.id, ok: false, code: "error", message: `${request.file} can't run here` };
   const [, hayro] = await ready;
-  const args = await Promise.all(runnable.inputs.map((i) => input(i.file, i.as)));
+  const args = await Promise.all(runnable.inputs.map(argument));
   const outcome = runExample(request.source, runnable.export, args, sdk);
   if (!outcome.ok) return { id: request.id, ...outcome };
   using doc = hayro.open(bytesSource(outcome.bytes));
@@ -67,10 +80,19 @@ async function handle(request: RunRequest): Promise<RunReply> {
   return { id: request.id, ok: true, bytes: outcome.bytes, pages };
 }
 
-self.addEventListener("message", (event: MessageEvent<RunRequest>) => {
+/** The worker's own scope: the docs' TypeScript knows only the DOM's `self`. */
+const scope = self as unknown as {
+  addEventListener(type: "message", listener: (event: MessageEvent<RunRequest>) => void): void;
+  postMessage(message: RunReply, transfer: Transferable[]): void;
+};
+
+scope.addEventListener("message", (event) => {
   handle(event.data).then(
-    (reply) => self.postMessage(reply, reply.ok ? [...reply.pages, reply.bytes.buffer] : []),
+    (reply) => scope.postMessage(reply, reply.ok ? [...reply.pages, reply.bytes.buffer as ArrayBuffer] : []),
     (e: unknown) =>
-      self.postMessage({ id: event.data.id, ok: false, code: "error", message: e instanceof Error ? e.message : String(e) }),
+      scope.postMessage(
+        { id: event.data.id, ok: false, code: "error", message: e instanceof Error ? e.message : String(e) },
+        [],
+      ),
   );
 });

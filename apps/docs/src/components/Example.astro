@@ -68,7 +68,7 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       {pictures.length > 0 && (
         <TabItem label="Result">
           {source !== undefined && (
-            <lamina-run class="example-run" data-file={ts} data-source={source}>
+            <lamina-run class="example-run not-content" data-file={ts} data-source={source}>
               <button type="button" class="run-open">Edit and run</button>
             </lamina-run>
           )}

@@ -10,8 +10,14 @@ const DOCS = new URL("../", import.meta.url);
 const ROOT = new URL("../../", DOCS);
 const OUT = new URL("public/run/", DOCS);
 /** What the worker needs built: without them the runner can't be made. */
-const NEEDS = ["packages/wasm/dist/lamina_pdf_text.wasm", "packages/sdk/dist/index.js", "packages/render/dist/index.js", "packages/render-hayro/dist/index.js"];
+const NEEDS = [
+  "packages/wasm/dist/lamina_pdf_text.wasm",
+  "packages/sdk/dist/index.js",
+  "packages/render/dist/index.js",
+  "packages/render-hayro/dist/index.js",
+];
 
+/** @param {string} path from the repository root */
 async function exists(path) {
   return stat(new URL(path, ROOT)).then(
     () => true,
@@ -29,6 +35,8 @@ if (missing.length > 0) {
     configFile: false,
     root: fileURLToPath(DOCS),
     logLevel: "warn",
+    // Served at /run/, so its assets are /run/assets/….
+    base: "/run/",
     // The workspace packages name their WebAssembly by `new URL(…, import.meta.url)`, which
     // pre-bundling would move away from the files.
     optimizeDeps: { exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@laminapdf/render-hayro"] },

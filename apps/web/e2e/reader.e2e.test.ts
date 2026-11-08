@@ -9,7 +9,7 @@ import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
-import { getLocal } from "./local-tls.ts";
+import { getLocal } from "@laminapdf/test-utils/wrangler-dev";
 import {
   ASSET_CACHE,
   bytes,
@@ -36,7 +36,7 @@ function asset(pattern: RegExp): string {
   return `/assets/${name}`;
 }
 
-/** `GET path` from the local server, which has a self-signed certificate (local-tls.ts), without following redirects. */
+/** `GET path` from the local server, which has a self-signed certificate (@laminapdf/test-utils/wrangler-dev), without following redirects. */
 function get(server: string, path: string): Promise<Response> {
   return getLocal(new URL(path, server));
 }
@@ -94,7 +94,7 @@ describe(`opening local files in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (local-tls.ts). */
+  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (@laminapdf/test-utils/wrangler-dev). */
   const load = (path = "/", init?: InitScript): Promise<Watched> =>
     loadPage(browser, origin, path, init, { ignoreHTTPSErrors: true });
 
