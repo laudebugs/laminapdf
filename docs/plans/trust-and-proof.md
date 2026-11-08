@@ -84,7 +84,7 @@ Users now ask whether they can check what an extractor returned. T3 gives each p
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [T3a](../todos/ready/T3a-text-layer-status.md) | A per-page text-layer status that says when a page needs OCR | L | — |
-| [T3b](../todos/ongoing/T3b-reading-order-confidence.md) | Warn when a page's column order is uncertain | L | — |
+| [T3b](../todos/done/T3b-reading-order-confidence.md) | Warn when a page's column order is uncertain | L | — |
 | [T3c](../todos/ready/T3c-tables-across-pages.md) | Join tables that continue across pages | M | — |
 
 ### T4. Pages that flow
@@ -207,7 +207,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [x] Write the Round T todos and amend E4f, E7f and the feature-plan todos (§7)
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/ready/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
-- [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ongoing/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
+- [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/done/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
 - [ ] T4: pages that flow ([T4a](../todos/ready/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))

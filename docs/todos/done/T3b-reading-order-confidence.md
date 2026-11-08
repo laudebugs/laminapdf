@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T3](../../plans/trust-and-proof.md#t3-extraction-users-can-check) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -56,23 +56,23 @@ Mark the pages whose column order the layout rules guessed, with a warning and a
 ## Tasks
 
 - [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
-- [ ] `lines.rs` and `page.rs`: `NEAR_GUTTER`; the recorded points on `Line` (and `Piece`); the `narrow-gutter` check over each block's lines (in a new `order_doubt.rs`, or in `page.rs` if it stays short), with unit tests: runs 7 pt apart at 10 pt record a point, a 2.5 pt word space and a 15 pt gutter don't.
-- [ ] `xycut.rs`: the `columns-revisited` check over each band in `order()`, the `near-grid` second cut in `Cutter::cut`, `MAX_ALTERNATIVES`, and the result struct; unit tests beside the existing ones.
-- [ ] `page.rs`: report the warning, and set `UNCERTAIN_CONFIDENCE` on the blocks a doubt covers (`ordered()` passes them on; `text_block()` takes the confidence per block).
-- [ ] The warning: an entry in `fixtures/codes.json`'s `warnings` (`extract-column-order-uncertain`, kind `unsupported`, summary, hint, `since` as the other extract codes have it); `docs/errors/extract-column-order-uncertain.md` (the data field `reason`, each reason in a sentence, a link to `extract-reading-order-ambiguous`); `Warning::ExtractColumnOrderUncertain { page: u64, reason: &'static str }` in `crates/laminapdf-cos/src/reader/warning.rs`, in `code`, `object`, `kind`, `location` and `key` and in its tests' list of every variant; the `reason` data in `crates/laminapdf/src/data.rs` and a sample in `crates/laminapdf/tests/data_fields.rs`; then `cargo xtask gen codes`.
-- [ ] The corpus: `pull-quote`, `narrow-gutter` and `wrapped-grid` in `layouts()` of `crates/laminapdf-build/tests/common/reading_order.rs` (an `align` on its `Block`, used by `build()`), then `cargo xtask golden --update` (the 6 files) and `UPDATE_GOLDEN=1 cargo test -p laminapdf-extract --all-features --test output` (their Markdown goldens in `fixtures/extract/markdown/`).
-- [ ] `crates/laminapdf/tests/reading_order.rs`'s ratchet: the corpus grew, so set `mean` in `fixtures/reading-order/threshold.json` to the new score, with a history entry naming the three layouts.
-- [ ] The bench: `tools/bench/olmocr_score.py` adds `byPdf` (tests and passes per PDF) to each subset of its report; `crates/laminapdf/examples/differential/extract-bench.rs` writes each file's warning codes into its `facts`; `render_report` in `tools/xtask/src/extract_bench.rs` adds the `multi_column` line: pages warned, and the pass rates on warned and unwarned pages.
-- [ ] Run `cargo xtask extract-bench --subset multi_column` and record the line.
-- [ ] Docs (below).
+- [x] `lines.rs` and `page.rs`: `NEAR_GUTTER`; the recorded points on `Line` (and `Piece`); the `narrow-gutter` check over each block's lines (in a new `order_doubt.rs`, or in `page.rs` if it stays short), with unit tests: runs 7 pt apart at 10 pt record a point, a 2.5 pt word space and a 15 pt gutter don't.
+- [x] `xycut.rs`: the `columns-revisited` check over each band in `order()`, the `near-grid` second cut in `Cutter::cut`, `MAX_ALTERNATIVES`, and the result struct; unit tests beside the existing ones.
+- [x] `page.rs`: report the warning, and set `UNCERTAIN_CONFIDENCE` on the blocks a doubt covers (`ordered()` passes them on; `text_block()` takes the confidence per block).
+- [x] The warning: an entry in `fixtures/codes.json`'s `warnings` (`extract-column-order-uncertain`, kind `unsupported`, summary, hint, `since` as the other extract codes have it); `docs/errors/extract-column-order-uncertain.md` (the data field `reason`, each reason in a sentence, a link to `extract-reading-order-ambiguous`); `Warning::ExtractColumnOrderUncertain { page: u64, reason: &'static str }` in `crates/laminapdf-cos/src/reader/warning.rs`, in `code`, `object`, `kind`, `location` and `key` and in its tests' list of every variant; the `reason` data in `crates/laminapdf/src/data.rs` and a sample in `crates/laminapdf/tests/data_fields.rs`; then `cargo xtask gen codes`.
+- [x] The corpus: `pull-quote`, `narrow-gutter` and `wrapped-grid` in `layouts()` of `crates/laminapdf-build/tests/common/reading_order.rs` (an `align` on its `Block`, used by `build()`), then `cargo xtask golden --update` (the 6 files) and `UPDATE_GOLDEN=1 cargo test -p laminapdf-extract --all-features --test output` (their Markdown goldens in `fixtures/extract/markdown/`).
+- [x] `crates/laminapdf/tests/reading_order.rs`'s ratchet: the corpus grew, so set `mean` in `fixtures/reading-order/threshold.json` to the new score, with a history entry naming the three layouts.
+- [x] The bench: `tools/bench/olmocr_score.py` adds `byPdf` (tests and passes per PDF) to each subset of its report; `crates/laminapdf/examples/differential/extract-bench.rs` writes each file's warning codes into its `facts`; `render_report` in `tools/xtask/src/extract_bench.rs` adds the `multi_column` line: pages warned, and the pass rates on warned and unwarned pages.
+- [x] Run `cargo xtask extract-bench --subset multi_column` and record the line.
+- [x] Docs (below).
 
 ## Acceptance criteria
 
-- [ ] `crates/laminapdf-extract/tests/reading_order.rs`: each of the 6 hard files raises `extract-column-order-uncertain` with its layout's reason (`pull-quote`: `columns-revisited`; `narrow-gutter`: `narrow-gutter`; `wrapped-grid`: `near-grid`), and none of the 22 files of `LAYOUTS` raises it. The test prints the counts (warned of hard, warned of clean), and the PR description quotes them: 6 of 6 and 0 of 22.
-- [ ] On a warned page, the blocks the doubt covers have `confidence` 0.5 and the other text blocks 0.75; an unwarned page's are all 0.75. `ReadingOrder::ContentStream` never raises the warning.
-- [ ] The existing order tests, `layout_order_reads_every_file_in_order_however_it_was_drawn` and `content_order_follows_the_drawing`, still pass on `LAYOUTS`; the Markdown goldens of the 22 files and `fixtures/extract/json/` don't change.
-- [ ] `crates/laminapdf/tests/reading_order.rs` passes with the new `threshold.json`.
-- [ ] `cargo xtask extract-bench` reports how many `multi_column` pages are warned and their order tests' pass rate against the others'; the numbers are in the crate README. Warned pages pass fewer order tests than unwarned ones; if they don't, the PR says why and how the checks were tuned.
+- [x] `crates/laminapdf-extract/tests/reading_order.rs`: each of the 6 hard files raises `extract-column-order-uncertain` with its layout's reason (`pull-quote`: `columns-revisited`; `narrow-gutter`: `narrow-gutter`; `wrapped-grid`: `near-grid`), and none of the 22 files of `LAYOUTS` raises it. The test prints the counts (warned of hard, warned of clean), and the PR description quotes them: 6 of 6 and 0 of 22.
+- [x] On a warned page, the blocks the doubt covers have `confidence` 0.5 and the other text blocks 0.75; an unwarned page's are all 0.75. `ReadingOrder::ContentStream` never raises the warning.
+- [x] The existing order tests, `layout_order_reads_every_file_in_order_however_it_was_drawn` and `content_order_follows_the_drawing`, still pass on `LAYOUTS`; the Markdown goldens of the 22 files and `fixtures/extract/json/` don't change.
+- [x] `crates/laminapdf/tests/reading_order.rs` passes with the new `threshold.json`.
+- [x] `cargo xtask extract-bench` reports how many `multi_column` pages are warned and their order tests' pass rate against the others'; the numbers are in the crate README. Warned pages pass fewer order tests than unwarned ones; if they don't, the PR says why and how the checks were tuned.
 
 ## Post-merge checks
 
@@ -88,11 +88,11 @@ None.
 
 ## Docs to update
 
-- [ ] ADR 0030: an implementation note on §2 (as L3b's and L3d's) recording the three checks, their cut-offs (`NEAR_GUTTER`, three lines, 75% one-line blocks, `MAX_ALTERNATIVES`), the warning, the 0.5 confidence, and the corpus and bench counts.
-- [ ] `crates/laminapdf-extract/README.md`: "Hard layouts" under "What it can't do yet" names the warning; the corpus sentence ("every file reads in order") says which 6 files don't and are warned; the bench line.
-- [ ] `fixtures/README.md`'s `reading-order/` section: 28 files from 14 layouts, and the three hard layouts.
-- [ ] `apps/docs/src/content/docs/recipes/extract-markdown.mdx`: a line on the warning and a block's `confidence`, in plain words ([docs writing](../../guidelines/docs-writing.md)).
-- [ ] `CLAUDE.md`'s "Extraction for retrieval" paragraph: the checks and `extract-column-order-uncertain`.
+- [x] ADR 0030: an implementation note on §2 (as L3b's and L3d's) recording the three checks, their cut-offs (`NEAR_GUTTER`, three lines, 75% one-line blocks, `MAX_ALTERNATIVES`), the warning, the 0.5 confidence, and the corpus and bench counts.
+- [x] `crates/laminapdf-extract/README.md`: "Hard layouts" under "What it can't do yet" names the warning; the corpus sentence ("every file reads in order") says which 6 files don't and are warned; the bench line.
+- [x] `fixtures/README.md`'s `reading-order/` section: 28 files from 14 layouts, and the three hard layouts.
+- [x] `apps/docs/src/content/docs/recipes/extract-markdown.mdx`: a line on the warning and a block's `confidence`, in plain words ([docs writing](../../guidelines/docs-writing.md)).
+- [x] `CLAUDE.md`'s "Extraction for retrieval" paragraph: the checks and `extract-column-order-uncertain`.
 
 ## Risks and open questions
 
@@ -105,8 +105,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
