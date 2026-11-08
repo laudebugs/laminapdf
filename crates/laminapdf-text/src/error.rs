@@ -116,11 +116,13 @@ pub enum Error {
         len: usize,
     },
     /// The spans given to [`break_spans`](crate::break_spans) don't cover the text exactly
-    /// once, in order, on character boundaries.
+    /// once, in order, between grapheme clusters, or a span lists no fonts or a font past the
+    /// list.
     #[error("the spans do not cover the text in order at byte {at}")]
     InvalidSpans {
-        /// The byte offset where the spans stop covering the text: a gap, an overlap, a span
-        /// out of order, past the end or inside a character.
+        /// The byte offset where the spans stop covering the text (a gap, an overlap, a span
+        /// out of order, past the end or inside a grapheme cluster), or where the span with a bad
+        /// font list starts.
         at: usize,
     },
     /// A layout option Lamina PDF does not implement yet (`LayoutOptions::justify`).

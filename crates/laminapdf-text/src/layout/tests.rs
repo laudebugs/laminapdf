@@ -43,7 +43,7 @@ fn a_line_holding_a_whole_item_has_the_run_shaped_for_it() {
     let text = "Total € 1,250.00";
     let lines = break_lines(&HarfRust, &fonts, text, &LayoutOptions::new(500.0, 10.0)).unwrap();
     let options = ShapeOptions::new()
-        .with_script(crate::shape::Script::LATIN)
+        .with_script(Script::LATIN)
         .with_direction(Direction::LeftToRight);
     let fresh = HarfRust.shape_range(&fonts[0], text, 0..text.len(), &options).unwrap();
     assert_eq!(lines[0].runs[0].run, fresh);
@@ -359,5 +359,81 @@ mod spans {
         let hebrew_first = [StyledSpan::new(0..3), StyledSpan::new(3..text.len()).with_fonts([1, 0])];
         let line = &break_spans(&HarfRust, &fonts, text, &hebrew_first, &options).unwrap()[0];
         assert!(line.runs.iter().any(|r| r.font == 1));
+    }
+
+    #[test]
+    fn a_run_lists_only_the_spans_on_its_line() {
+        // Plain, a link, plain: one style, one group, wrapped so the link starts line 2.
+        let text = "aaaa bbbb cccc";
+        let fonts = latin();
+        let spans = [StyledSpan::new(0..5), StyledSpan::new(5..9), StyledSpan::new(9..14)];
+        let first = HarfRust
+            .shape(&fonts[0], "aaaa", &ShapeOptions::new())
+            .unwrap()
+            .width(10.0);
+        let width = format!("{first}").parse::<f32>().unwrap() + 1.0;
+        let lines = break_spans(&HarfRust, &fonts, text, &spans, &LayoutOptions::new(width, 10.0)).unwrap();
+        assert!(lines.len() > 1);
+        assert_eq!(lines[0].runs[0].spans, 0..1);
+        for line in &lines {
+            for run in &line.runs {
+                // Every span listed holds some of the run's text.
+                for span in &spans[run.spans.clone()] {
+                    let r = &run.run.text_range;
+                    assert!(span.range.start < r.end && r.start < span.range.end, "{run:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn an_empty_span_of_another_style_keeps_equal_spans_apart() {
+        let text = "ab";
+        let spans = [
+            StyledSpan::new(0..1),
+            StyledSpan::new(1..1).with_size(20.0),
+            StyledSpan::new(1..2),
+        ];
+        let line = &break_spans(&HarfRust, &latin(), text, &spans, &LayoutOptions::new(500.0, 12.0)).unwrap()[0];
+        let listed: Vec<Range<usize>> = line.runs.iter().map(|r| r.spans.clone()).collect();
+        assert_eq!(listed, [0..1, 2..3]);
+    }
+
+    #[test]
+    fn a_span_of_punctuation_takes_the_script_around_it() {
+        // The Arabic comma is Common: inside one span it would join the Arabic run.
+        let fonts = [font("NotoSansArabic-Regular.ttf"), font("NotoSans-Regular.ttf")];
+        let text = "مرحبا، بالعالم";
+        let digits = text.find('،').unwrap();
+        let end = digits + '،'.len_utf8();
+        let spans = [
+            StyledSpan::new(0..digits),
+            StyledSpan::new(digits..end).with_size(14.0),
+            StyledSpan::new(end..text.len()),
+        ];
+        let options = ShapeOptions::new()
+            .with_script(Script::ARABIC)
+            .with_direction(Direction::RightToLeft);
+        let shaper = Recording::default();
+        break_spans(&shaper, &fonts, text, &spans, &LayoutOptions::new(500.0, 12.0)).unwrap();
+        let scripts = shaper.0.borrow();
+        assert!(scripts.iter().all(|s| *s == options.script), "{scripts:?}");
+    }
+
+    /// A [`HarfRust`] that records the script of every run it shapes.
+    #[derive(Default)]
+    struct Recording(RefCell<Vec<Option<Script>>>);
+
+    impl Shaper for Recording {
+        fn shape_range(
+            &self,
+            font: &Font,
+            text: &str,
+            range: Range<usize>,
+            options: &ShapeOptions,
+        ) -> Result<ShapedRun> {
+            self.0.borrow_mut().push(options.script);
+            HarfRust.shape_range(font, text, range, options)
+        }
     }
 }

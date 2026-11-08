@@ -241,9 +241,10 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
 pub fn pdf_line_run(run: &LineRun, text: &str, fonts: &mut FontRegistry, key: FontKey) -> Result<PdfRun> {
     let mut pdf = pdf_run(&run.run, text, fonts, key)?;
     if run.rise != 0.0 && run.size > 0.0 {
-        let rise = f64::from(run.rise) * 1000.0 / f64::from(run.size);
+        // In millionths of the size, rounded, so rises keep at most three decimals.
+        let rise = to_micro(f64::from(run.rise) * 1000.0 / f64::from(run.size));
         for segment in pdf.pieces.iter_mut().flat_map(|p| p.segments.iter_mut()) {
-            segment.rise += rise;
+            segment.rise = milli_to_f64(to_micro(segment.rise) + rise);
         }
     }
     Ok(pdf)
@@ -543,6 +544,13 @@ fn place(
 fn is_default_ignorable(ch: char) -> bool {
     // None is ASCII: skip the set lookup for them.
     !ch.is_ascii() && CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch)
+}
+
+/// `thousandths` (of the size) in millionths, rounded.
+fn to_micro(thousandths: f64) -> i64 {
+    #[expect(clippy::cast_possible_truncation, reason = "rises are far below 2^63 millionths")]
+    let v = (thousandths * 1000.0).round() as i64;
+    v
 }
 
 /// Thousandths of an em from millionths (exact: at most three decimals).

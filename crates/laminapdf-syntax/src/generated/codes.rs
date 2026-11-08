@@ -733,7 +733,7 @@ impl ErrorCode {
             Self::WrongDocument => "use one FontRegistry per document and finish it with that document",
             Self::InvalidFeature => "write it as liga=0, -liga, smcp or aalt=2 (HarfBuzz syntax without ranges)",
             Self::InvalidTextRange => "take ranges from Lamina PDF's results (line_breaks, itemize, break_lines) and pass the same text",
-            Self::InvalidSpans => "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, on character boundaries",
+            Self::InvalidSpans => "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, between grapheme clusters, each with at least one font from the list",
             Self::UnsupportedLayoutOption => "leave the option at its default; justification comes with a later release",
             Self::FontMismatch => "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
             Self::EncodingFull => "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",

@@ -633,7 +633,7 @@
       "code": "invalid-spans",
       "kind": "usage",
       "summary": "the styled spans given for a paragraph do not cover its text once, in order",
-      "hint": "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, on character boundaries",
+      "hint": "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, between grapheme clusters, each with at least one font from the list",
       "since": "0.2.0"
     },
     {

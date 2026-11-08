@@ -19,7 +19,8 @@ pub struct LineRun {
     pub x: f64,
     /// The spans the run's text comes from: indices into the list given to
     /// [`break_spans`](super::break_spans) (`0..1` for [`break_lines`](super::break_lines)).
-    /// Consecutive spans of one style are shaped as one run, so a run can hold several.
+    /// Consecutive spans of one style are shaped as one run, so a run can hold several (a
+    /// link inside a sentence); it lists only those with text on its line.
     pub spans: Range<usize>,
     /// The font size the run was shaped and measured at, in points.
     pub size: f32,

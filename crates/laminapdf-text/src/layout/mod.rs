@@ -26,7 +26,8 @@ use icu_properties::props::BidiClass;
 use crate::bidi::BidiParagraph;
 use crate::error::{Error, Result};
 use crate::font::Font;
-use crate::itemize::itemize_range;
+use crate::itemize::{Item, charmaps, itemize_range};
+use crate::shape::Script;
 use crate::shape::{Direction, Feature, Shaper};
 
 use breaker::Layouter;
@@ -164,7 +165,8 @@ pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &L
 /// ```
 ///
 /// # Errors
-/// [`Error::InvalidSpans`] when `spans` don't cover `text` once, in order;
+/// [`Error::InvalidSpans`] when `spans` don't cover `text` once, in order, between grapheme
+/// clusters, or a span lists no fonts or one past `fonts`;
 /// [`Error::MissingGlyph`] for a character none of its span's fonts covers, and the other
 /// errors of [`itemize`](crate::itemize) and [`Shaper::shape_range`];
 /// [`Error::UnsupportedLayoutOption`] when [`LayoutOptions::justify`] is set.
@@ -178,7 +180,8 @@ pub fn break_spans(
     if options.justify {
         return Err(Error::UnsupportedLayoutOption { option: "justify" });
     }
-    span::check(text, spans)?;
+    span::check(text, spans, fonts.len())?;
+    let charmaps = charmaps(fonts)?;
     let mut lines = Vec::new();
     for paragraph in paragraphs(text) {
         let ptext = text.get(paragraph.clone()).unwrap_or_default();
@@ -187,10 +190,11 @@ pub fn break_spans(
         let mut items = Vec::new();
         let mut item_groups = Vec::new();
         for (g, group) in groups.iter().enumerate() {
-            let group_items = itemize_range(&para, fonts, &group.style.fonts, group.range.clone())?;
+            let group_items = itemize_range(&para, fonts, &charmaps, &group.style.fonts, group.range.clone())?;
             item_groups.extend(std::iter::repeat_n(g, group_items.len()));
             items.extend(group_items);
         }
+        inherit_scripts(&mut items, &item_groups);
         let layout = Layouter {
             shaper,
             fonts,
@@ -205,10 +209,42 @@ pub fn break_spans(
         };
         for mut line in layout.lines()? {
             line.shift(paragraph.start);
+            for run in &mut line.runs {
+                run.spans = span::spans_in(spans, &run.spans, &run.run.text_range);
+            }
             lines.push(line);
         }
     }
     Ok(lines)
+}
+
+/// Gives a group's first item, when it holds no character of a real script (a span of digits
+/// or punctuation), the script of the item before it at the same level, else of the one
+/// after: the script [`itemize`](crate::itemize) gives such text inside one span, so a bold
+/// number in an Arabic line is shaped as Arabic.
+fn inherit_scripts(items: &mut [Item], item_groups: &[usize]) {
+    for i in 0..items.len() {
+        let group = item_groups.get(i);
+        let starts_group = i == 0 || item_groups.get(i - 1) != group;
+        let Some(item) = items.get(i) else { continue };
+        if !starts_group || item.script != Script::COMMON {
+            continue;
+        }
+        // Only another group's items: inside one span, `itemize` has already decided.
+        let level = item.level;
+        let real = |j: usize| {
+            items
+                .get(j)
+                .filter(|o| item_groups.get(j) != group && o.level == level && o.script != Script::COMMON)
+                .map(|o| o.script)
+        };
+        let before = i.checked_sub(1).and_then(real);
+        if let Some(script) = before.or_else(|| (i + 1..items.len()).find_map(real))
+            && let Some(item) = items.get_mut(i)
+        {
+            item.script = script;
+        }
+    }
 }
 
 /// The paragraphs of `text` (UAX #9 P1): each ends after a paragraph separator (class `B`:

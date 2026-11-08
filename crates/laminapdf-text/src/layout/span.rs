@@ -5,6 +5,7 @@ use std::ops::Range;
 
 use super::LayoutOptions;
 use crate::error::{Error, Result};
+use crate::linebreak::grapheme_boundaries;
 use crate::shape::Feature;
 
 /// A stretch of text in one style, for [`break_spans`](super::break_spans).
@@ -115,13 +116,24 @@ pub(super) struct Group {
     pub(super) style: Style,
 }
 
-/// Checks that `spans` cover `text` once, in order, on character boundaries.
-pub(super) fn check(text: &str, spans: &[StyledSpan]) -> Result<()> {
+/// Checks that `spans` cover `text` once, in order, starting and ending between grapheme
+/// clusters (a style change can't split a letter from its accent), and that each names at
+/// least one font and only fonts of the list (`font_count` of them).
+pub(super) fn check(text: &str, spans: &[StyledSpan], font_count: usize) -> Result<()> {
+    let bounds = grapheme_boundaries(text);
+    let between_clusters = |at: usize| bounds.binary_search(&at).is_ok();
     let mut at = 0;
     for span in spans {
         let Range { start, end } = span.range;
-        if start != at || end < start || text.get(start..end).is_none() {
+        if start != at || text.get(start..end).is_none() || !between_clusters(end) {
             return Err(Error::InvalidSpans { at });
+        }
+        if span
+            .fonts
+            .as_ref()
+            .is_some_and(|fonts| fonts.is_empty() || fonts.iter().any(|&f| f >= font_count))
+        {
+            return Err(Error::InvalidSpans { at: start });
         }
         at = end;
     }
@@ -132,8 +144,23 @@ pub(super) fn check(text: &str, spans: &[StyledSpan]) -> Result<()> {
     }
 }
 
+/// The spans of `group` (indices into `spans`) that hold text of `range` (bytes of the whole
+/// text): those a run of a line draws from, which can be fewer than its group's when the
+/// group wraps onto another line.
+pub(super) fn spans_in(spans: &[StyledSpan], group: &Range<usize>, range: &Range<usize>) -> Range<usize> {
+    let held = |i: &usize| {
+        spans
+            .get(*i)
+            .is_some_and(|s| s.range.start < range.end && range.start < s.range.end)
+    };
+    let first = group.clone().find(held).unwrap_or(group.start);
+    let last = group.clone().rev().find(held).map_or(first, |i| i + 1);
+    first..last.max(first)
+}
+
 /// The groups of the paragraph `paragraph` (bytes of the whole text), with ranges relative to
-/// it: the checked `spans` clipped to it, empty ones left out, equal styles merged.
+/// it: the checked `spans` clipped to it, empty ones left out, consecutive equal styles merged
+/// (an empty span between two equal ones keeps them apart).
 pub(super) fn groups(
     spans: &[StyledSpan],
     paragraph: &Range<usize>,
@@ -153,7 +180,7 @@ pub(super) fn groups(
         }
         let style = Style::of(span, options, font_count);
         match out.last_mut() {
-            Some(last) if last.style == style && last.range.end == start => {
+            Some(last) if last.style == style && last.spans.end == i => {
                 last.range.end = end;
                 last.spans.end = i + 1;
             }

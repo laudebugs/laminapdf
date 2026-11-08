@@ -11,6 +11,7 @@ use std::ops::Range;
 use icu_properties::CodePointSetData;
 use icu_properties::props::DefaultIgnorableCodePoint;
 use skrifa::MetadataProvider;
+use skrifa::charmap::Charmap;
 
 use crate::bidi::BidiParagraph;
 use crate::error::{Error, Result};
@@ -49,17 +50,27 @@ pub struct Item {
 /// primary font, or no font when the list is empty); [`Error::InvalidFont`] when a font's
 /// tables can't be read.
 pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
+    let charmaps = charmaps(fonts)?;
     let order: Vec<usize> = (0..fonts.len()).collect();
-    itemize_range(para, fonts, &order, 0..para.text().len())
+    itemize_range(para, fonts, &charmaps, &order, 0..para.text().len())
+}
+
+/// Each font's character map, in the list's order.
+///
+/// # Errors
+/// [`Error::InvalidFont`] when a font's tables can't be read.
+pub(crate) fn charmaps(fonts: &[Font]) -> Result<Vec<Charmap<'_>>> {
+    fonts.iter().map(|f| f.font_ref().map(|r| r.charmap())).collect()
 }
 
 /// [`itemize`] over `range` of `para`'s text with the fonts `order` picks from `fonts`, in
 /// that order of preference (a styled span's fonts): items name their font by its index in
 /// `fonts`, and none crosses `range`'s ends. Text with nothing to draw names `order`'s first
-/// font (0 when `order` is empty).
+/// font (0 when `order` is empty). `charmaps` are [`charmaps`]`(fonts)`, read once per layout.
 pub(crate) fn itemize_range(
     para: &BidiParagraph<'_>,
     fonts: &[Font],
+    charmaps: &[Charmap<'_>],
     order: &[usize],
     range: Range<usize>,
 ) -> Result<Vec<Item>> {
@@ -69,26 +80,13 @@ pub(crate) fn itemize_range(
         end: range.end,
         len: text.len(),
     })?;
-    let charmaps = order
-        .iter()
-        .map(|&f| match fonts.get(f) {
-            Some(font) => font.font_ref().map(|r| Some(r.charmap())),
-            None => Ok(None),
-        })
-        .collect::<Result<Vec<_>>>()?;
-    // `font` is an index into `fonts`; its charmap is at its place in `order`.
     let covers = |font: usize, cluster: &str| {
-        order
-            .iter()
-            .position(|&f| f == font)
-            .and_then(|at| charmaps.get(at))
-            .and_then(Option::as_ref)
-            .is_some_and(|map| {
-                cluster
-                    .chars()
-                    .filter(|&ch| needs_glyph(ch))
-                    .all(|ch| map.map(ch).is_some_and(|g| g.to_u32() != 0))
-            })
+        charmaps.get(font).is_some_and(|map| {
+            cluster
+                .chars()
+                .filter(|&ch| needs_glyph(ch))
+                .all(|ch| map.map(ch).is_some_and(|g| g.to_u32() != 0))
+        })
     };
     let primary = order.first().copied().unwrap_or(0);
 

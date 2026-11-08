@@ -10,19 +10,14 @@
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Document;
-use laminapdf_test_fixtures::fixture;
-use laminapdf_text::{Font, HarfRust, LayoutOptions, PageText, StyledSpan, TextExtractor, break_spans};
+use laminapdf_text::{HarfRust, LayoutOptions, PageText, StyledSpan, TextExtractor, break_spans};
 
 mod common;
 
-use common::{TestPdf, font};
+use common::{TestPdf, bold, font};
 
 const LATIN: &str = "Revenue rose 12% in the second QUARTER, as E = mc2 predicts.";
 const ARABIC: &str = "مرحبا Lamina بالعالم";
-
-fn bold() -> Font {
-    Font::from_collection(fixture("fonts/NotoSans-RegularBold.ttc"), 1).expect("bold")
-}
 
 /// The byte range of `part` in `text`.
 fn at(text: &str, part: &str) -> std::ops::Range<usize> {
