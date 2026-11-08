@@ -38,6 +38,15 @@ pub enum ErrorKind {
 }
 
 impl ErrorKind {
+    /// Whether an error of this kind says only that one part of the input is malformed or uses
+    /// something unsupported (`input`, `unsupported`): what a pass over many parts, such as
+    /// every page or every revision, skips. Any other kind (a password, a limit, data not yet
+    /// fetched, cancellation) stops the pass, since the part it couldn't read might matter.
+    #[must_use]
+    pub const fn is_skippable(self) -> bool {
+        matches!(self, Self::Input | Self::Unsupported)
+    }
+
     /// Every kind, in ADR 0026 §2 order.
     pub const ALL: [Self; 9] = [
         Self::Input,

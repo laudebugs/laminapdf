@@ -59,9 +59,12 @@ export const ARTIFACT_KINDS = [
   "page",
   "pagination",
   "background",
+  "header",
+  "footer",
+  "watermark",
 ] as const;
 
-/** What kind of artifact (content outside the logical structure). */
+/** What kind of artifact (content outside the logical structure); `header`, `footer` and `watermark` are pagination artifacts that say which. */
 export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
 
 /** Every TableScope, as the WASM module names it. */

@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use crate::batch::{BatchSummary, Status};
 use crate::commands::{
     CheckArgs, CheckReport, ERROR_SCHEMA_ID, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, InfoArgs,
-    InfoReport, PagesReport, RenderArgs, RenderReport, RotateArgs, TextReport,
+    InfoReport, PagesReport, RenderArgs, RenderReport, RevealArgs, RevealReport, RotateArgs, TextReport,
 };
 
 /// Where the committed schemas are published; a schema's `$id` is this plus its file name.
@@ -26,6 +26,7 @@ pub fn all() -> Vec<(&'static str, Value)> {
         ("text.schema.json", report::<TextReport>(TextReport::SCHEMA)),
         ("explain.schema.json", report::<ExplainReport>(ExplainReport::SCHEMA)),
         ("render.schema.json", report::<RenderReport>(RenderReport::SCHEMA)),
+        ("reveal.schema.json", report::<RevealReport>(RevealReport::SCHEMA)),
         ("error-line.schema.json", error_line()),
         ("result-line.schema.json", result_line()),
         ("summary-line.schema.json", summary_line()),
@@ -33,7 +34,15 @@ pub fn all() -> Vec<(&'static str, Value)> {
 }
 
 /// The commands `laminapdf schema` describes, by the name it takes.
-pub const COMMANDS: [&str; 6] = ["check", "explain", "extract", "info", "pages-rotate", "render"];
+pub const COMMANDS: [&str; 7] = [
+    "check",
+    "explain",
+    "extract",
+    "info",
+    "pages-rotate",
+    "render",
+    "reveal",
+];
 
 /// The committed schema `file`.
 fn committed(file: &str) -> Value {
@@ -72,10 +81,11 @@ pub fn command(name: &str) -> Option<Value> {
         "info" => (input::<InfoArgs>(name), committed("info.schema.json")),
         "pages-rotate" => (input::<RotateArgs>(name), committed("pages.schema.json")),
         "render" => (input::<RenderArgs>(name), committed("render.schema.json")),
+        "reveal" => (input::<RevealArgs>(name), committed("reveal.schema.json")),
         _ => return None,
     };
     let mut properties = json!({ "input": input, "output": output, "error": committed("error-line.schema.json") });
-    if matches!(name, "check" | "extract" | "info" | "render")
+    if matches!(name, "check" | "extract" | "info" | "render" | "reveal")
         && let Some(map) = properties.as_object_mut()
     {
         map.insert("result".to_owned(), committed("result-line.schema.json"));

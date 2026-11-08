@@ -82,6 +82,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "page-index-out-of-range":
     case "unknown-destination":
     case "invalid-page-labels":
+    case "tag-element-not-open":
+    case "tag-element-unclosed":
     case "profile-version-conflict":
     case "missing-title":
     case "missing-lang":

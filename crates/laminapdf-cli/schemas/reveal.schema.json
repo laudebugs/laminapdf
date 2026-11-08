@@ -1,0 +1,678 @@
+{
+  "$defs": {
+    "ActionEntry": {
+      "description": "An action.",
+      "properties": {
+        "kind": {
+          "description": "`/S`, as written (`JavaScript`, `Launch`, `URI`, …).",
+          "type": "string"
+        },
+        "object": {
+          "description": "Its object.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "owner": {
+          "description": "What it belongs to: `document`, `page`, `annotation` or `field`.",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The owner's page."
+        },
+        "trigger": {
+          "description": "What fires it: `open-action`, `activate`, `additional:<key>` or `named-script`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "trigger",
+        "owner"
+      ],
+      "type": "object"
+    },
+    "ActiveContent": {
+      "description": "`activeContent`.",
+      "properties": {
+        "actions": {
+          "description": "Every action, once.",
+          "items": {
+            "$ref": "#/$defs/ActionEntry"
+          },
+          "type": "array"
+        },
+        "scriptBytes": {
+          "description": "Their scripts' total size in bytes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "scripts": {
+          "description": "JavaScript actions.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "xfa": {
+          "description": "Whether the form holds an XFA part.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scripts",
+        "scriptBytes",
+        "actions",
+        "xfa"
+      ],
+      "type": "object"
+    },
+    "Annotations": {
+      "description": "`annotations`.",
+      "properties": {
+        "bySubtype": {
+          "additionalProperties": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "description": "How many of each subtype.",
+          "type": "object"
+        },
+        "comments": {
+          "description": "Markup annotations with an author or a comment.",
+          "items": {
+            "$ref": "#/$defs/CommentEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "bySubtype",
+        "comments"
+      ],
+      "type": "object"
+    },
+    "AttachmentEntry": {
+      "description": "An embedded file.",
+      "properties": {
+        "holders": {
+          "description": "What points at it: `embedded-files`, `associated-files`, `annotation`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "mime": {
+          "description": "Its MIME type.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Its file name: document text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "object": {
+          "description": "Its file specification's object.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "size": {
+          "description": "Its size in bytes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "holders"
+      ],
+      "type": "object"
+    },
+    "CommentEntry": {
+      "description": "A markup annotation's author and comment.",
+      "properties": {
+        "author": {
+          "description": "`/T`: document text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contents": {
+          "description": "`/Contents`: document text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "$ref": "#/$defs/PageRef",
+          "description": "Its page."
+        },
+        "subtype": {
+          "description": "`/Subtype`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "subtype"
+      ],
+      "type": "object"
+    },
+    "FieldEntry": {
+      "description": "A form field.",
+      "properties": {
+        "filled": {
+          "description": "Whether it has a value, also when `documentText` is false.",
+          "type": "boolean"
+        },
+        "hidden": {
+          "description": "Whether all its widgets are hidden.",
+          "type": "boolean"
+        },
+        "kind": {
+          "description": "`/FT`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "Its full name: document text, left out when `documentText` is false.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "Its value: document text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "filled",
+        "hidden"
+      ],
+      "type": "object"
+    },
+    "HiddenContent": {
+      "description": "`hiddenContent`.",
+      "properties": {
+        "layersOff": {
+          "description": "The layers off by default.",
+          "items": {
+            "$ref": "#/$defs/LayerEntry"
+          },
+          "type": "array"
+        },
+        "redactions": {
+          "description": "Pages with unapplied `Redact` annotations.",
+          "items": {
+            "$ref": "#/$defs/RedactionEntry"
+          },
+          "type": "array"
+        },
+        "runs": {
+          "description": "Each hidden run, only with `--include-hidden-text`.",
+          "items": {
+            "$ref": "#/$defs/HiddenRun"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "Hidden text by reason (`covered`, `invisible`, `off-page`, `tiny`, `clipped`,\n`low-contrast`).",
+          "items": {
+            "$ref": "#/$defs/HiddenCount"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "layersOff",
+        "redactions"
+      ],
+      "type": "object"
+    },
+    "HiddenCount": {
+      "description": "Hidden characters for one reason.",
+      "properties": {
+        "chars": {
+          "description": "Characters hidden, spaces left out.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pages": {
+          "description": "The pages they are on.",
+          "items": {
+            "$ref": "#/$defs/PageRef"
+          },
+          "type": "array"
+        },
+        "reason": {
+          "description": "The reason.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason",
+        "chars",
+        "pages"
+      ],
+      "type": "object"
+    },
+    "HiddenRun": {
+      "description": "One hidden run.",
+      "properties": {
+        "bbox": {
+          "description": "Its box in page space: left, top, right, bottom in points (ADR 0027).",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        "page": {
+          "$ref": "#/$defs/PageRef",
+          "description": "Its page."
+        },
+        "reason": {
+          "description": "Why it is hidden.",
+          "type": "string"
+        },
+        "text": {
+          "description": "Its text: document text.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page",
+        "reason",
+        "bbox",
+        "text"
+      ],
+      "type": "object"
+    },
+    "InfoEntry": {
+      "description": "An Info entry.",
+      "properties": {
+        "key": {
+          "description": "The key, as written.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The value: document text, left out when `documentText` is false.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "LayerEntry": {
+      "description": "A layer off by default.",
+      "properties": {
+        "name": {
+          "description": "Its name: document text, left out when `documentText` is false.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "PageRef": {
+      "description": "A page: its 0-based index and 1-based number (ADR 0027 §6).",
+      "properties": {
+        "index": {
+          "description": "The 0-based page index.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "number": {
+          "description": "The 1-based page number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "number"
+      ],
+      "type": "object"
+    },
+    "RedactionEntry": {
+      "description": "A page's unapplied redactions.",
+      "properties": {
+        "count": {
+          "description": "How many `Redact` annotations.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "page": {
+          "$ref": "#/$defs/PageRef",
+          "description": "The page."
+        }
+      },
+      "required": [
+        "page",
+        "count"
+      ],
+      "type": "object"
+    },
+    "RevealHistory": {
+      "description": "`history`.",
+      "properties": {
+        "linearized": {
+          "description": "Whether the file is linearized.",
+          "type": "boolean"
+        },
+        "repaired": {
+          "description": "Whether its cross-reference table had to be rebuilt.",
+          "type": "boolean"
+        },
+        "revisions": {
+          "description": "The revisions, oldest first; empty for a repaired file.",
+          "items": {
+            "$ref": "#/$defs/RevisionEntry"
+          },
+          "type": "array"
+        },
+        "unreferenced": {
+          "description": "In-use objects nothing references.",
+          "items": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "revisions",
+        "linearized",
+        "repaired",
+        "unreferenced"
+      ],
+      "type": "object"
+    },
+    "RevealMetadata": {
+      "description": "`metadata`.",
+      "properties": {
+        "id": {
+          "description": "The trailer's `/ID`, in hexadecimal.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "info": {
+          "description": "Every Info entry: document text.",
+          "items": {
+            "$ref": "#/$defs/InfoEntry"
+          },
+          "type": "array"
+        },
+        "metadataStreams": {
+          "description": "Object-level `/Metadata` streams.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pieceInfo": {
+          "description": "Objects with `/PieceInfo`.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "thumbnails": {
+          "description": "Pages with a `/Thumb`.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "xmp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Xmp"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The XMP packet."
+        }
+      },
+      "required": [
+        "info",
+        "metadataStreams",
+        "pieceInfo",
+        "thumbnails",
+        "id"
+      ],
+      "type": "object"
+    },
+    "RevisionEntry": {
+      "description": "One revision.",
+      "properties": {
+        "added": {
+          "description": "Objects it adds.",
+          "items": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "bytes": {
+          "description": "Its length in bytes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "changed": {
+          "description": "Objects it rewrites.",
+          "items": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "freed": {
+          "description": "Objects it frees.",
+          "items": {
+            "format": "uint32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "index": {
+          "description": "0 for the original file.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pages": {
+          "description": "The latest revision's pages whose dictionary or content it rewrites.",
+          "items": {
+            "$ref": "#/$defs/PageRef"
+          },
+          "type": "array"
+        },
+        "removedOn": {
+          "description": "Its pages where they are.",
+          "items": {
+            "$ref": "#/$defs/PageRef"
+          },
+          "type": "array"
+        },
+        "removedWords": {
+          "description": "Words it holds that the latest revision doesn't.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "bytes",
+        "added",
+        "changed",
+        "freed",
+        "pages",
+        "removedWords",
+        "removedOn"
+      ],
+      "type": "object"
+    },
+    "Xmp": {
+      "description": "The XMP packet.",
+      "properties": {
+        "bytes": {
+          "description": "Its decoded size in bytes.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "namespaces": {
+          "description": "The namespace URIs it declares.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "bytes",
+        "namespaces"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-cli/schemas/reveal.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "`laminapdf.reveal/1`.",
+  "properties": {
+    "activeContent": {
+      "$ref": "#/$defs/ActiveContent",
+      "description": "Scripts, actions and XFA."
+    },
+    "annotations": {
+      "$ref": "#/$defs/Annotations",
+      "description": "Annotations by subtype, and the comments of markup annotations."
+    },
+    "attachments": {
+      "description": "Embedded files.",
+      "items": {
+        "$ref": "#/$defs/AttachmentEntry"
+      },
+      "type": "array"
+    },
+    "documentText": {
+      "description": "Whether the report carries the document's own strings: `false` from `laminapdf mcp`,\nwhich reports keys, counts and pages and leaves out Info values, comments, field names\nand values, and file and layer names.",
+      "type": "boolean"
+    },
+    "forms": {
+      "description": "Terminal form fields.",
+      "items": {
+        "$ref": "#/$defs/FieldEntry"
+      },
+      "type": "array"
+    },
+    "found": {
+      "description": "The categories with findings, in this order: `history`, `metadata`, `attachments`,\n`active-content`, `annotations`, `forms`, `hidden-content`.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "hiddenContent": {
+      "$ref": "#/$defs/HiddenContent",
+      "description": "Hidden text, layers off by default, and unapplied redactions."
+    },
+    "history": {
+      "$ref": "#/$defs/RevealHistory",
+      "description": "Revisions and objects nothing references."
+    },
+    "input": {
+      "description": "The input as given: a path, or `-`.",
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/RevealMetadata",
+      "description": "The Info dictionary, XMP and other metadata."
+    },
+    "schema": {
+      "const": "laminapdf.reveal/1",
+      "description": "`laminapdf.reveal/1`.",
+      "type": "string"
+    },
+    "warnings": {
+      "description": "The warnings reading the document raised (ADR 0026 objects).",
+      "items": {
+        "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema",
+    "input",
+    "documentText",
+    "found",
+    "history",
+    "metadata",
+    "attachments",
+    "activeContent",
+    "annotations",
+    "forms",
+    "hiddenContent",
+    "warnings"
+  ],
+  "title": "laminapdf.reveal/1",
+  "type": "object"
+}

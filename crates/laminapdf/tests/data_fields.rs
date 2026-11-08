@@ -219,6 +219,8 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Error::from(B::PageIndexOutOfRange { index: 1, count: 1 }),
         Error::from(B::UnknownDestination { name: s() }),
         Error::from(B::InvalidPageLabels { what: "w" }),
+        Error::from(B::TagElementNotOpen),
+        Error::from(B::TagElementUnclosed { count: 1 }),
         Error::from(B::ProfileVersionConflict {
             profile: Profile::PdfA2b,
         }),

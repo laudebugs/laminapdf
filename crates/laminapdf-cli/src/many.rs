@@ -140,6 +140,9 @@ where
                 .map(|o| !o.warnings.is_empty())
                 .map_err(CliError::exit_code),
         );
+        if outcome.as_ref().is_ok_and(|o| o.found) {
+            summary.found += 1;
+        }
         bar.suspend(|| {
             let written = if global.json {
                 let line = result_line(index, input, schema, &outcome);

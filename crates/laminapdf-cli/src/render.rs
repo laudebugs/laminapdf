@@ -117,13 +117,13 @@ pub(crate) fn keep_fields(value: Value, fields: &[String]) -> Result<Value, CliE
 }
 
 /// `1 page`, `2 pages`.
-fn count(n: impl Into<u64>, noun: &str) -> String {
+pub(crate) fn count(n: impl Into<u64>, noun: &str) -> String {
     let n = n.into();
     format!("{n} {noun}{}", if n == 1 { "" } else { "s" })
 }
 
 /// A byte count as people read it: `1.8 MB`, `412 KB`, `900 B`.
-fn size(bytes: u64) -> String {
+pub(crate) fn size(bytes: u64) -> String {
     #[expect(clippy::cast_precision_loss, reason = "a size shown to one decimal")]
     let value = bytes as f64;
     match bytes {
@@ -195,7 +195,7 @@ pub(crate) fn info_text(report: &InfoReport) -> String {
 }
 
 /// Document text on one line, at most 120 characters, without control characters.
-fn one_line(text: &str) -> String {
+pub(crate) fn one_line(text: &str) -> String {
     let clean: String = text.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
     let mut chars = clean.chars();
     let short: String = chars.by_ref().take(120).collect();

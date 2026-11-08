@@ -269,7 +269,8 @@ impl WasmPageBuilder {
     }
 
     /// Opens an artifact until the matching `endTag`: `kind` is `layout`, `page`, `pagination`
-    /// or `background`.
+    /// or `background`, or a pagination artifact that says what it is: `header` (attached to the
+    /// top edge), `footer` (the bottom) or `watermark`.
     ///
     /// # Errors
     /// `invalid-argument` for another kind.

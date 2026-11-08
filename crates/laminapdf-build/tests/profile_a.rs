@@ -148,23 +148,33 @@ mod rules {
         );
     }
 
-    fn arabic(profile: Profile) -> Builder {
+    fn drawn(profile: Profile, file: &str, text: &str) -> Builder {
         let mut b = Builder::new(options(profile));
-        let f = b.font(font("NotoSansArabic-Regular.ttf")).unwrap();
+        let f = b.font(font(file)).unwrap();
         let mut page = b.page(PageSize::A4);
-        page.surface()
-            .text("بالعالم", &f, Pt::new(12.0), at(56.0, 80.0))
-            .unwrap();
+        page.surface().text(text, &f, Pt::new(12.0), at(56.0, 80.0)).unwrap();
         page.finish().unwrap();
         b
     }
 
-    /// veraPDF 6.2.11.7.2-1 (level U): every glyph maps to Unicode; the beh's dot stands for no
-    /// text of its own.
+    /// veraPDF 6.2.11.7.2-1 (level U): every glyph maps to Unicode. The beh's dot, which Noto
+    /// Sans Arabic draws as a glyph of its own, stands for no character: it maps to the empty
+    /// value while the beh's body carries the letter, which veraPDF 1.30.3 passes.
     #[test]
-    fn a_glyph_without_unicode_fails_with_glyph_without_unicode_under_pdfa_2u() {
+    fn a_glyph_whose_cluster_text_another_glyph_carries_builds_under_pdfa_2u() {
+        assert!(
+            drawn(Profile::PdfA2u, "NotoSansArabic-Regular.ttf", "بالعالم")
+                .finish()
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn a_glyph_mapped_to_u0000_fails_with_glyph_without_unicode_under_pdfa_2u() {
         assert!(matches!(
-            arabic(Profile::PdfA2u).finish().unwrap_err(),
+            drawn(Profile::PdfA2u, "NotoSans-Regular.ttf", "\u{0}Report")
+                .finish()
+                .unwrap_err(),
             Error::GlyphWithoutUnicode {
                 profile: Profile::PdfA2u,
                 ..
@@ -174,7 +184,11 @@ mod rules {
 
     #[test]
     fn a_glyph_without_unicode_builds_under_pdfa_2b() {
-        assert!(arabic(Profile::PdfA2b).finish().is_ok());
+        assert!(
+            drawn(Profile::PdfA2b, "NotoSans-Regular.ttf", "\u{0}Report")
+                .finish()
+                .is_ok()
+        );
     }
 
     /// veraPDF 6.8-5 (ISO 19005-2 §6.8): attached files must be PDF/A themselves.
