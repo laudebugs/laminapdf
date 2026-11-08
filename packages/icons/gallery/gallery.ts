@@ -42,7 +42,11 @@ ${THEMES.map(([theme, title]) => table(theme, title)).join("\n")}
 </main>`;
 }
 
-/** The gallery's styles: the tokens' colours, type and spacing. */
+/**
+ * The gallery's styles: the tokens' colours, type and spacing. Each section fits its table
+ * (`width: fit-content`): a table wider than its section would paint its last columns over the
+ * page's ground, the other theme's background, and fail contrast (wider fonts, narrow windows).
+ */
 export const GALLERY_CSS = `
 body { margin: 0; background: var(--paper-ground); color: var(--paper-text); font: var(--paper-type-body); }
 main { padding: var(--paper-space-24); }
