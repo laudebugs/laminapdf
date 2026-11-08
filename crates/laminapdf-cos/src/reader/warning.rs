@@ -293,6 +293,16 @@ pub enum Warning {
         /// How many characters (spaces left out) lie outside the tree.
         chars: u64,
     },
+    /// `extract-column-order-uncertain`: the layout rules had to guess how a page's columns
+    /// are read (a gutter narrower than a font size, a column left and read again, or a grid
+    /// read by columns that a wrapped cell kept from reading by rows). Raised by
+    /// `laminapdf-extract`.
+    ExtractColumnOrderUncertain {
+        /// The page's index.
+        page: u64,
+        /// Which check doubted the order: `narrow-gutter`, `columns-revisited` or `near-grid`.
+        reason: &'static str,
+    },
 }
 
 impl Warning {
@@ -338,6 +348,7 @@ impl Warning {
         "extract-table-limit",
         "extract-struct-tree-ignored",
         "extract-untagged-content",
+        "extract-column-order-uncertain",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -384,6 +395,7 @@ impl Warning {
             Self::ExtractTableLimit { .. } => "extract-table-limit",
             Self::ExtractStructTreeIgnored { .. } => "extract-struct-tree-ignored",
             Self::ExtractUntaggedContent { .. } => "extract-untagged-content",
+            Self::ExtractColumnOrderUncertain { .. } => "extract-column-order-uncertain",
         }
     }
 
@@ -430,7 +442,8 @@ impl Warning {
             | Self::ExtractTableAmbiguous { .. }
             | Self::ExtractTableLimit { .. }
             | Self::ExtractStructTreeIgnored { .. }
-            | Self::ExtractUntaggedContent { .. } => None,
+            | Self::ExtractUntaggedContent { .. }
+            | Self::ExtractColumnOrderUncertain { .. } => None,
         }
     }
 
@@ -473,7 +486,9 @@ impl Warning {
             | Self::UnmappedGlyph { .. }
             | Self::ExtractStructTreeIgnored { .. }
             | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
-            Self::ExtractReadingOrderAmbiguous { .. } | Self::ExtractTableAmbiguous { .. } => ErrorKind::Unsupported,
+            Self::ExtractReadingOrderAmbiguous { .. }
+            | Self::ExtractTableAmbiguous { .. }
+            | Self::ExtractColumnOrderUncertain { .. } => ErrorKind::Unsupported,
             Self::ExtractTableLimit { .. } => ErrorKind::Limit,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
@@ -509,7 +524,8 @@ impl Warning {
             | Self::ExtractTableAmbiguous { page }
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
-            | Self::ExtractUntaggedContent { page, .. } => Some(page),
+            | Self::ExtractUntaggedContent { page, .. }
+            | Self::ExtractColumnOrderUncertain { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
         };
@@ -531,7 +547,8 @@ impl Warning {
             | Self::ExtractTableAmbiguous { page }
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
-            | Self::ExtractUntaggedContent { page, .. } => Some(page as i128),
+            | Self::ExtractUntaggedContent { page, .. }
+            | Self::ExtractColumnOrderUncertain { page, .. } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
             | Self::ContentBadOperands { offset, .. }
@@ -685,6 +702,10 @@ mod tests {
                 reason: "coverage",
             },
             Warning::ExtractUntaggedContent { page: 0, chars: 1 },
+            Warning::ExtractColumnOrderUncertain {
+                page: 0,
+                reason: "narrow-gutter",
+            },
         ];
         for w in &all {
             match w {
@@ -727,7 +748,8 @@ mod tests {
                 | Warning::ExtractTableAmbiguous { .. }
                 | Warning::ExtractTableLimit { .. }
                 | Warning::ExtractStructTreeIgnored { .. }
-                | Warning::ExtractUntaggedContent { .. } => {}
+                | Warning::ExtractUntaggedContent { .. }
+                | Warning::ExtractColumnOrderUncertain { .. } => {}
             }
         }
         all

@@ -284,6 +284,13 @@
       "summary": "a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order",
       "hint": "nothing to do; tag that text in the file to give it a place in the reading order",
       "since": "0.2.0"
+    },
+    {
+      "code": "extract-column-order-uncertain",
+      "kind": "unsupported",
+      "summary": "the layout rules had to guess how a page's columns are read, so its blocks may be in the wrong order; the blocks concerned have a lower confidence",
+      "hint": "check the page, or send it to a layout model; the warning's reason says which guess was made",
+      "since": "0.2.0"
     }
   ],
   "errors": [

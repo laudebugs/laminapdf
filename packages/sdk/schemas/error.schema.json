@@ -253,6 +253,7 @@
             "extract-table-limit",
             "extract-struct-tree-ignored",
             "extract-untagged-content",
+            "extract-column-order-uncertain",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]

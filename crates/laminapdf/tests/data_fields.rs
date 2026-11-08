@@ -345,6 +345,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         W::ExtractUntaggedContent { page: 0, chars: 1 }.into(),
+        W::ExtractColumnOrderUncertain {
+            page: 0,
+            reason: "narrow-gutter",
+        }
+        .into(),
         TW::ToUnicodeConflict {
             font: s(),
             gid: 1,
