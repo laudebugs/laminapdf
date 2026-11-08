@@ -5,6 +5,8 @@
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { isAbsolute, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
@@ -204,7 +206,8 @@ const SHOWN_FOLDERS = ["packages/sdk/examples/", "crates/laminapdf/examples/", "
 
 /**
  * `file` (a path from the repository root, as a page names it) as a URL inside one of
- * {@link SHOWN_FOLDERS}; fails for anything else: an absolute path, `..`, another folder.
+ * {@link SHOWN_FOLDERS}; fails for anything else: an absolute path, `..`, a percent escape (which
+ * reading the URL would decode, `%2e%2e` into `..`), another folder.
  *
  * @param {string} file
  * @returns {URL}
@@ -213,12 +216,21 @@ export function shownFileUrl(file) {
   const safe =
     file !== "" &&
     !/^([/\\]|[A-Za-z]:|file:)/.test(file) &&
+    !file.includes("%") &&
     !file.split(/[/\\]/).includes("..") &&
     SHOWN_FOLDERS.some((folder) => file.startsWith(folder));
+  const outside = new Error(
+    `agent docs: a page shows ${file}, outside the example folders (${SHOWN_FOLDERS.join(", ")})`,
+  );
+  if (!safe) throw outside;
   const url = new URL(file, ROOT);
-  if (!safe || !SHOWN_FOLDERS.some((folder) => url.href.startsWith(new URL(folder, ROOT).href))) {
-    throw new Error(`agent docs: a page shows ${file}, outside the example folders (${SHOWN_FOLDERS.join(", ")})`);
-  }
+  // The check that counts: the path the file is read from, decoded, lies inside an allowed folder.
+  const path = fileURLToPath(url);
+  const inside = SHOWN_FOLDERS.some((folder) => {
+    const rest = relative(fileURLToPath(new URL(folder, ROOT)), path);
+    return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
+  });
+  if (!inside) throw outside;
   return url;
 }
 
