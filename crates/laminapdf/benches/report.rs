@@ -10,6 +10,9 @@
 //!   same document.
 //! - `report_100_pages_text_boxes`: B6b's first measurement: a Helvetica-Bold heading and six
 //!   4-sentence Noto Sans text boxes per page (line breaking dominates).
+//! - `invoice_one_page`: the invoice example (`examples/invoice.rs`, one tagged A4 page in Noto
+//!   Sans with a table), the Rust twin of every runtime's `invoice` case. Its bytes are checked
+//!   against `fixtures/golden/examples/invoice.pdf` before timing.
 //!
 //! `cargo xtask bench` runs them with the other benches and keeps the history; a regression
 //! over 10% opens an issue rather than failing the build.
@@ -28,6 +31,10 @@
               generate undocumented items"
 )]
 
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/invoice.rs"]
+mod invoice;
+
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -39,6 +46,8 @@ use sha2::{Digest, Sha256};
 
 const NOTO_SANS: &[u8] = include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf");
 const NOTO_SANS_SC: &[u8] = include_bytes!("../../../fixtures/fonts/NotoSansSC-Regular.otf");
+/// The invoice example's reference PDF, which `invoice_one_page` must build.
+const INVOICE_GOLDEN: &[u8] = include_bytes!("../../../fixtures/golden/examples/invoice.pdf");
 
 /// `REPORT_SHA256` in `packages/sdk/test/suite/examples.ts` (the bytes every runtime
 /// produces), read from that file when the bench compiles, so there is no copy to go stale; a
@@ -201,7 +210,16 @@ fn text_boxes() -> Vec<u8> {
     doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
+/// The invoice example with the options `tests/examples.rs` gives it.
+fn one_invoice() -> Vec<u8> {
+    invoice::build(options(*b"lamina-ex-invoic"), NOTO_SANS.to_vec()).unwrap()
+}
+
 fn bench_reports(c: &mut Criterion) {
+    assert!(
+        one_invoice() == INVOICE_GOLDEN,
+        "the invoice example no longer builds fixtures/golden/examples/invoice.pdf"
+    );
     let bytes = report();
     assert_eq!(
         laminapdf_test_fixtures::hex(&Sha256::digest(&bytes)),
@@ -212,6 +230,7 @@ fn bench_reports(c: &mut Criterion) {
     group.sample_size(10);
     group.bench_function("report_100_pages", |b| b.iter(|| black_box(report())));
     group.bench_function("report_100_pages_text_boxes", |b| b.iter(|| black_box(text_boxes())));
+    group.bench_function("invoice_one_page", |b| b.iter(|| black_box(one_invoice())));
     group.finish();
 }
 

@@ -19,8 +19,9 @@ import {
   WITHOUT_PICKER,
 } from "./reader.ts";
 
-// e2e/live.ts, the setup, fails unless it is set, and waits until it serves the app.
+// `pnpm smoke` runs e2e/live.ts first, which waits until it serves the app.
 const origin = env.LAMINA_PDF_SMOKE_URL ?? "";
+if (origin === "") throw new Error("set LAMINA_PDF_SMOKE_URL to the deployed reader's address");
 
 describe(`the reader deployed at ${origin}`, () => {
   it.each(["/", "/some/deep/link"])("%s is the app, with ADR 0011's headers", async (path) => {

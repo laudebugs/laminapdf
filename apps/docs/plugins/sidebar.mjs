@@ -93,6 +93,7 @@ export function sidebar(typeDoc) {
         { label: "Rust API (rustdoc)", slug: "reference/rust" },
         { label: "Error and warning codes", slug: "reference/codes" },
         { label: "Stability policy", slug: "reference/stability" },
+        { label: "Benchmarks", slug: "reference/benchmarks" },
         { label: "Changelog", slug: "reference/changelog" },
         { label: "Glossary", slug: "reference/glossary" },
       ],

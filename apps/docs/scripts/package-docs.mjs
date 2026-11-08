@@ -16,11 +16,19 @@ import { copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promi
 import { resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { contentFiles, packageVersion, readSnippets, SUMMARY, snippetText } from "../plugins/agent-docs.mjs";
+import {
+  contentFiles,
+  packageVersion,
+  readBenchmarks,
+  readSnippets,
+  SUMMARY,
+  snippetText,
+} from "../plugins/agent-docs.mjs";
 import { releaseNotes } from "../plugins/changelog.mjs";
 import { readerMarkdown } from "../plugins/error-pages.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, twin } from "../plugins/markdown.mjs";
 import { sidebarRoutes } from "../plugins/sidebar.mjs";
+import { sectionMarkdown } from "../src/lib/benchmarks.ts";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("../src/content/docs/", import.meta.url);
@@ -80,6 +88,7 @@ async function writePages(out, version, api) {
   const listed = sidebarRoutes().flatMap((g) => g.slugs);
   const order = [...listed.filter((r) => files.has(r)), ...[...files.keys()].filter((r) => !listed.includes(r)).sort()];
   const changelog = releaseNotes(await readFile(new URL("CHANGELOG.md", ROOT), "utf8"));
+  const benchmarks = await readBenchmarks();
   const pages = [];
   for (const route of order) {
     const name = files.get(route);
@@ -91,6 +100,8 @@ async function writePages(out, version, api) {
       snippet: snippetText,
       codeTable: () => "See the [error and warning codes](/reference/codes/).",
       changelog: () => changelog,
+      benchmarks: (section) =>
+        sectionMarkdown(benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
     });
     const local = rewriteLinks(markdown, (href) =>
       href.startsWith("/") ? packageHref(href.replace(/\.md(#|$)/, "/$1"), depth, api) : href,

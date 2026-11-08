@@ -28,7 +28,7 @@ Give `laminapdf-build` a flow layer. The caller hands it blocks of text and a pa
 - ISO 32000-2 §14.7.5.2 (a marked-content reference, an `/MCR` dictionary with its own `/Pg`, for an element's content on another page) and §14.8.2.2 (artifacts: `/Type /Pagination` with `/Subtype /Header` or `/Footer`); ISO 32000-1 §14.8.4 (the standard structure types the builder writes); the Matterhorn Protocol's checkpoints 14 (headings), 16 (lists) and 18 (page headers and footers). Research 03 [§9.5](../../research/pdf/03-text-and-fonts.md#95-generating-tagged-pdf-from-code) (generating tagged PDF) and [§7.6](../../research/pdf/03-text-and-fonts.md#76-justification) (justification, which stays out).
 - [E6d](./E6d-watermarks-headers-footers.md) stamps headers, footers and page numbers onto existing documents. This todo defines the field syntax (`{page}`, `{pages}`) once, in `laminapdf-build`, for E6d to reuse.
 - `laminapdf-extract` drops `Artifact`-marked runs and running headers and footers ([L3d](../done/L3d-extract-structure-and-furniture.md)), which gives a round-trip check of the tags.
-- [B5d](../done/B5d-text-report-generation-performance.md): the `report` bench (`crates/laminapdf/benches/report.rs`, 39 ms natively for 100 pages); [T1c](./T1c-publish-performance-numbers.md) publishes generation timings.
+- [B5d](../done/B5d-text-report-generation-performance.md): the `report` bench (`crates/laminapdf/benches/report.rs`, 39 ms natively for 100 pages); [T1c](../done/T1c-publish-performance-numbers.md) publishes generation timings.
 
 ## Scope
 
