@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6b](../done/U6b-self-hosted-fonts.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6j](../done/U6j-positioning-and-palette-shell.md) |

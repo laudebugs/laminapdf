@@ -35,7 +35,7 @@ Make the design language's icons a typed, tested package so every screen uses th
 - A React subpath `@laminapdf/icons/react` (React 19 as an *optional* peer dependency via `catalog:`, so the root entry stays framework-free): `src/react/icon.tsx` with `<Icon name size />` (decorative: `aria-hidden="true"`, `focusable="false"`) and `<Icon name size label="…" />` (labelled: `role="img"` + `aria-label`, used only where the icon stands alone and is not inside a labelled button); sizes typed as `14 | 15 | 16 | 18 | 20 | 22 | 32` (32 for empty states). `@laminapdf/ui` ([U6d](../done/U6d-core-components.md)) re-exports it.
 - Accessibility helpers: `iconButtonProps(label)` or a lint rule/test that every `IconButton` has an accessible name (the button component itself is [U6d](../done/U6d-core-components.md)'s; this todo provides the helper and the test utility).
 - **Icon lint** (`src/lint.test.ts`, also runnable as `pnpm --filter @laminapdf/icons lint:icons`): parses every SVG and checks viewBox, root attributes, `stroke-width` 1.5 (or the declared override), no `fill` other than `none` (circles drawn as dots such as More's `r="0.9"` are allowed only through an explicit `dots` allowance), no `style`, `class`, `transform`, `id`, `stroke-linecap`/`stroke-linejoin` other than defaults, only `path`, `circle`, `rect`, `line`, `polyline`, `polygon`, `ellipse` elements, and a bounding box inside the 24 grid with ≥ 2 units of margin (warn when outside the 3.5–4.5 unit target, fail below 2).
-- **Icon gallery page** (a static page in `packages/icons/gallery/`, or the first page of [U6f](../ready/U6f-gallery-and-visual-tests.md)'s gallery if that lands first): every icon at 14, 16, 18, 20, 22 px in `text-3`, `accent` and dark-theme colours, with its name and the label convention.
+- **Icon gallery page** (a static page in `packages/icons/gallery/`, or the first page of [U6f](../ongoing/U6f-gallery-and-visual-tests.md)'s gallery if that lands first): every icon at 14, 16, 18, 20, 22 px in `text-3`, `accent` and dark-theme colours, with its name and the label convention.
 - **The icons each area needs**, in `packages/icons/README.md` (derived from the design language, [screens.md](../../design/paper/screens.md) and the area documents present at the time), marking which exist, which this PR draws, and which the area's own todo draws. This PR draws the reader v0.1 set and the icons [U6d](../done/U6d-core-components.md) and [U6e](../done/U6e-overlays-and-sheets.md) need (see Tasks).
 
 **Out of scope** (and which todo covers it)
@@ -44,7 +44,7 @@ Make the design language's icons a typed, tested package so every screen uses th
 - Icon buttons, toggles and their states → [U6d](../done/U6d-core-components.md).
 - Brand mark and app icon → [Paper design plan §8 open question 2](../../plans/paper-design.md#8-open-questions) (not a stroke icon).
 - Desktop native menu template images → [D4b](../ready/D4b-native-menus.md) (may use `iconSvg`).
-- Screenshot tests of the icon gallery → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- Screenshot tests of the icon gallery → [U6f](../ongoing/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
 
@@ -74,7 +74,7 @@ None.
 
 ## Tests
 
-`packages/icons/src/*.test.ts`: generator `--check`, lint over `svg/` and negative fixtures in `test/fixtures/`, Markdown-table parity, gallery completeness. `packages/icons/src/react/icon.test.tsx` (Vitest browser mode): decorative and labelled modes, axe on the gallery page. Screenshots of the gallery → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+`packages/icons/src/*.test.ts`: generator `--check`, lint over `svg/` and negative fixtures in `test/fixtures/`, Markdown-table parity, gallery completeness. `packages/icons/src/react/icon.test.tsx` (Vitest browser mode): decorative and labelled modes, axe on the gallery page. Screenshots of the gallery → [U6f](../ongoing/U6f-gallery-and-visual-tests.md).
 
 ## Docs to update
 
