@@ -14,17 +14,10 @@
   }
 
   .paper-reader-body {
+    position: relative;
     grid-row: 3;
     display: flex;
     min-block-size: 0;
-  }
-
-  .paper-reader-rail {
-    flex: none;
-    inline-size: var(--paper-rail-width);
-    border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
-    background: var(--paper-surface);
-    overflow: auto;
   }
 
   .paper-reader-canvas {
@@ -32,14 +25,6 @@
     flex: 1 1 auto;
     min-inline-size: 0;
     overflow: hidden;
-  }
-
-  .paper-reader-inspector {
-    flex: none;
-    inline-size: var(--paper-inspector-width);
-    border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
-    background: var(--paper-surface);
-    overflow: auto;
   }
 
   .paper-reader-secondary {

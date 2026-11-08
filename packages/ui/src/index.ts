@@ -204,6 +204,20 @@ export {
   zoomOut,
 } from "./reader/viewer-controls.js";
 export { ZoomControl, type ZoomControlProps } from "./reader/zoom-control.js";
+export { type ShellActions, shellActions } from "./shell/actions.js";
+export { FocusModeItem } from "./shell/focus-mode.js";
+export { Inspector, type InspectorProps } from "./shell/inspector.js";
+export {
+  clampRailWidth,
+  type InspectorContent,
+  RAIL_DEFAULT_WIDTH,
+  RAIL_MAX_WIDTH,
+  RAIL_MIN_WIDTH,
+  ShellLayout,
+  type ShellLayoutState,
+} from "./shell/layout.js";
+export { LeftRail, type LeftRailProps, RAIL_DRAWER_QUERY, type RailTab, useMediaQuery } from "./shell/left-rail.js";
+export { ModeRegistry, type ModesState, type ShellMode } from "./shell/modes.js";
 export { type ExternalStore, useReaderState, useStoreState } from "./state/hooks.js";
 export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
 export {

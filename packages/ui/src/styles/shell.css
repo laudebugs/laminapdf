@@ -1,0 +1,69 @@
+/* The shell's regions (§5.1, ADR 0024 §1): the left rail docked beside the canvas on `surface`, its
+   resize handle on the rail's inner edge (an accent line while hovered, dragged or focused), and
+   below the rail breakpoint the rail as a drawer over the canvas with a scrim; the inspector docked
+   on the right, which takes its width from the canvas rather than covering it, and grows in only
+   when motion is allowed. */
+@layer paper.components {
+  .paper-left-rail {
+    position: relative;
+    flex: none;
+    inline-size: var(--paper-rail-width);
+    min-inline-size: var(--paper-rail-width-min);
+    border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+    overflow: auto;
+  }
+
+  .paper-rail-handle {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: calc(var(--paper-space-4) * -1);
+    inline-size: var(--paper-space-8);
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .paper-rail-handle:hover,
+  .paper-rail-handle:focus-visible {
+    outline: none;
+    background: linear-gradient(to right, transparent 40%, var(--paper-accent) 40% 60%, transparent 60%);
+  }
+
+  .paper-left-rail[data-drawer] {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: var(--paper-z-sheet);
+    inline-size: var(--paper-rail-width-wide);
+    box-shadow: var(--paper-shadow-sheet);
+  }
+
+  .paper-rail-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: var(--paper-z-sheet);
+    border: 0;
+    padding: 0;
+    background: var(--paper-scrim);
+  }
+
+  .paper-inspector {
+    flex: none;
+    inline-size: var(--paper-inspector-width);
+    border-inline-start: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-surface);
+    overflow: auto;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .paper-inspector {
+      animation: paper-inspector-in 160ms ease-out;
+    }
+  }
+
+  @keyframes paper-inspector-in {
+    from {
+      inline-size: 0;
+    }
+  }
+}
