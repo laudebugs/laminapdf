@@ -42,7 +42,7 @@ Release binaries include the MCP server (`laminapdf mcp`). Builds exist for eigh
 - **`info <inputs…>`**: the PDF version, page count and sizes, file size, encryption, whether the document is tagged, its Info dictionary and the warnings reading it raised. `--fields a,b` keeps only those keys of the JSON report.
 - **`check <inputs…>`**: reads every object, every page and every content stream within the limits, and reports what a tolerant read had to repair. It also reports what a failed redaction left in the file: text a box or image is painted over (`covered-text`), redaction marks that were never applied (`redaction-not-applied`), and text an earlier revision still holds (`text-in-earlier-revision`). It exits 3 when it found either. `--strict` fails (exit 1) at the first repair, but the redaction findings aren't repairs, so they stay warnings. `--warnings-ok` turns exit 3 into 0 for both, so a CI gate that must catch failed redactions should read the warning codes in `--json`, not the exit code.
 - **`reveal <inputs…> [--fail-on CATEGORIES] [--include-hidden-text]`**: what a PDF holds beyond its visible pages, in seven categories:
-  - `history`: earlier revisions, the objects each one adds, changes and frees, and the words an earlier revision holds that the latest doesn't; objects nothing references
+  - `history`: earlier revisions, with the objects each one adds, changes and frees and the words it holds that the latest revision doesn't, and objects nothing references
   - `metadata`: every Info entry, the XMP packet's size and namespaces, `/PieceInfo` and thumbnails
   - `attachments`: embedded files, with name, size and type
   - `active-content`: scripts, actions and what fires them, and XFA forms
@@ -50,13 +50,13 @@ Release binaries include the MCP server (`laminapdf mcp`). Builds exist for eigh
   - `forms`: form fields and their values
   - `hidden-content`: hidden text counted by reason (covered, invisible, off the page, tiny, clipped, low contrast), layers that are off, and unapplied redaction marks
 
-  The text report has one line per category it found; `--json` prints `laminapdf.reveal/1`. Hidden text is only counted, unless `--include-hidden-text` lists each hidden run with its page, box and text. With `--fail-on history,metadata,…` (or `all`), `reveal` exits 6 when a file holds anything in those categories, so a release job can stop a file before it ships:
+  The text report has one line per category it found. With `--json`, `reveal` prints `laminapdf.reveal/1`. `reveal` counts hidden text without showing it. `--include-hidden-text` lists each hidden run with its page, box and text. With `--fail-on history,metadata,…` (or `all`), `reveal` exits 6 when a file holds anything in those categories, so a release job can stop a file before it ships:
 
   ```console
   $ laminapdf reveal dist/*.pdf --fail-on history,hidden-content,active-content,attachments
   ```
 
-  Nearly every file has an Info dictionary, so `metadata` is nearly always found; leave it out of `--fail-on` unless you strip metadata before release.
+  Most files have an Info dictionary, so `--fail-on metadata` stops most files. Leave it out unless you strip metadata before release.
 - **`pages rotate <input> <angle>[:<range>] (-o OUT | --in-place)`**: `+90` and `-90` turn pages from their current rotation, `90` sets it; the range names the pages. The result is an incremental update where the file allows one, so the input's bytes come first.
 - **`extract <inputs…> [--pages RANGE] [--format text|md|json|chunks]`**: by default each page's text, pages separated by a form feed, as `pdftotext` does (`--visible-only` leaves out invisible text). The other formats read the blocks in reading order: `md` is Markdown with headings, lists and tables, `json` the `laminapdf.extract/1` document (every block with its box, and what was dropped; with `--format md --json`, the document carries the Markdown too, as `markdown`), `chunks` the Markdown cut for retrieval, one JSON object per line. They never contain hidden text. `--max-chars N` keeps whole blocks up to N characters of Markdown and adds `"truncated": true` to the JSON. Each page in the JSON has a `textLayer` that says whether its text can be used or the page needs OCR; a scanned page gives no Markdown and raises the `extract-needs-ocr` warning, which sets exit code 3 (0 with `--warnings-ok`).
 - **`explain <code>`**: the page of an error or warning code, as in [`docs/errors/`](../../docs/errors/README.md).
@@ -80,7 +80,7 @@ $ fd -e pdf -0 | laminapdf info --files-from - -0 --json --fields pages
 
 With `--json`, a failed input is a `result` line with an `error` on standard output, not a line on standard error. In text mode each report comes under a `==> input <==` line, and errors and the counts go to standard error. When standard error is a terminal, a progress bar shows there; `--quiet` hides it.
 
-A batch exits 0 when every input succeeded, 3 when some had warnings (0 with `--warnings-ok`), 6 when `reveal --fail-on` found something in some input and none failed, 1 when any failed, and 5 when every failure was a missing or wrong password. The summary's `found` counts the inputs that held something `--fail-on` names. `--fail-fast` starts no input after the first failure, and the summary counts those skipped.
+A batch exits 1 when any input failed, or 5 when every failure was a missing or wrong password. Otherwise it exits 6 when `reveal --fail-on` found something in some input, 3 when some had warnings (0 with `--warnings-ok`), and 0 when every input succeeded. The summary's `found` counts the inputs that held something `--fail-on` names. `--fail-fast` starts no input after the first failure, and the summary counts those skipped.
 
 ## Output templates
 
@@ -113,7 +113,7 @@ Pages count from 1. A range is groups joined by commas: `7`, `z` (the last page,
 | 5 | A password is required, or the one given is wrong |
 | 6 | `reveal --fail-on` found something in a category it names |
 
-When several apply, the first in 2, 5, 4, 1, 6, 3, 0 wins. Only `--fail-on` returns 6, so no other command's codes change.
+When several apply, the first in 2, 5, 4, 1, 6, 3, 0 wins. Only `reveal --fail-on` returns 6.
 
 ## JSON
 
@@ -140,7 +140,7 @@ The server is safe without flags, because a model may follow instructions plante
 
 - **Roots.** Tools touch only files under the `--root` folders. A relative path starts at the first root. Before it checks a path, the server resolves it and follows its links. So `..`, an absolute path elsewhere and a link that leads out all get `path-outside-roots`. Outside the roots, a missing file gets the same answer as one that exists, so a call can't probe for files.
 - **Read-only by default.** The server lists the write tools only with `--allow-write`. They write new files only, with one exception: when the server also has `--allow-in-place`, the rotate tool can replace its input. The render tool never replaces a file or writes to standard output.
-- **Document text stays in data.** Titles and extracted text appear only in report fields. Error messages and hints never quote the document, and tool descriptions are fixed text. `laminapdf_reveal` counts hidden text but never shows it, since hidden text is a way to slip instructions to a model: its input takes neither `failOn` nor `includeHiddenText`.
+- **Document text stays in data.** Titles and extracted text appear only in report fields. Error messages and hints never quote the document, and tool descriptions are fixed text. `laminapdf_reveal` counts hidden text but never shows it, because hidden text can carry instructions meant for a model. Its input has no `failOn` or `includeHiddenText`.
 - **Bounded calls.** At most one call per CPU runs at a time. The server stops a call that runs past `--timeout` (60 s by default) at its next step and answers `cancelled`. A step that can't stop, such as opening a large file, gets 5 more seconds. After that the server answers anyway, and the call keeps its CPU slot until the step ends.
 - **Bounded output.** A report over `--max-output-bytes` (1 MiB by default, 1 KiB at least) loses items from the end of its lists, then text, and gets `"truncated": true`. The cut report still matches the tool's `outputSchema`.
 
