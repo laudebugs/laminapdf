@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T1a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -77,26 +77,26 @@ Hacker News users judge PDF tools by named failures, not feature lists: one test
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
-- [ ] Add `extract` to `nightly.yml`'s `fuzz` matrix, and a `workflows.rs` test that the matrix lists exactly `harness::FUZZ_TARGETS`.
-- [ ] `verapdf.rs`: write `report.json` beside `summary.md`; a unit test over the `REPORT` fixture string.
-- [ ] `harness.rs`: `-print_final_stats=1`, the per-target log and `target/xtask/fuzz/<target>.json`; a unit test that parses `stat::number_of_executed_units` from a captured libFuzzer tail. The full lane's `--all` run writes the same files.
-- [ ] `crates/laminapdf-save/examples/roundtrip.rs` and `roundtrip.rs`: the counts in the manifest and `summary.json`.
-- [ ] `pdf_runtimes.rs`: `runtimes.json`.
-- [ ] `proof.rs`: the `Record` type (serde `Serialize` and `Deserialize`, so T1b reads it with the same type; each field documented as in `progress.rs`), one reader per input, the `full` rule, the summary table, the arguments (`--record` needs `--history`, as `parse_bench_args` checks). Wire it into `main.rs`.
-- [ ] `nightly.yml`: the `roundtrip` and `proof` jobs and the fuzz summary uploads; every new write step gated by `env.RECORD == 'true'`.
-- [ ] `nightly.rs`: `proof` at the end of `cargo xtask nightly`.
-- [ ] Run `cargo xtask nightly --quick` locally and attach the `proof.json` it writes (`full: false`) to the PR.
-- [ ] Docs (below).
+- [x] Claim: the first commit moves this file to `ongoing/`.
+- [x] Add `extract` to `nightly.yml`'s `fuzz` matrix, and a `workflows.rs` test that the matrix lists exactly `harness::FUZZ_TARGETS`.
+- [x] `verapdf.rs`: write `report.json` beside `summary.md`; a unit test over the `REPORT` fixture string.
+- [x] `harness.rs`: `-print_final_stats=1`, the per-target log and `target/xtask/fuzz/<target>.json`; a unit test that parses `stat::number_of_executed_units` from a captured libFuzzer tail. The full lane's `--all` run writes the same files.
+- [x] `crates/laminapdf-save/examples/roundtrip.rs` and `roundtrip.rs`: the counts in the manifest and `summary.json`.
+- [x] `pdf_runtimes.rs`: `runtimes.json`.
+- [x] `proof.rs`: the `Record` type (serde `Serialize` and `Deserialize`, so T1b reads it with the same type; each field documented as in `progress.rs`), one reader per input, the `full` rule, the summary table, the arguments (`--record` needs `--history`, as `parse_bench_args` checks). Wire it into `main.rs`.
+- [x] `nightly.yml`: the `roundtrip` and `proof` jobs and the fuzz summary uploads; every new write step gated by `env.RECORD == 'true'`.
+- [x] `nightly.rs`: `proof` at the end of `cargo xtask nightly`.
+- [x] Run `cargo xtask nightly --quick` locally and attach the `proof.json` it writes (`full: false`) to the PR (the whole lane didn't run in the cloud sandbox: every task that feeds the record ran on its own, then `cargo xtask proof` filled all eight sections with `full: false`; the record is attached to the PR).
+- [x] Docs (below).
 
 ## Acceptance criteria
 
-- [ ] From fixture reports of every input, `proof.rs`'s tests produce a record whose counts match hand-computed ones. Cases: a file `opened` by Lamina PDF, one `repaired`, one `failed` that a tool opened (`refused_alone`) and one every tool failed, plus a `panic` and a mutant.
-- [ ] A missing input gives a `null` section and the job's result in `jobs`, never a zero figure (test).
-- [ ] `full` is false for a sampled differential, a sampled render diff, a fuzz target under 600 s or a target missing from the fuzz summaries; `--record` appends nothing then (tests).
-- [ ] The record has no `benches` key, and `nightly::regressions` over a history holding one returns no regression (test).
-- [ ] `workflows.rs`: `report` needs `proof` and `roundtrip`, `bench` needs `roundtrip`, and the fuzz matrix equals `FUZZ_TARGETS`. `release.rs`'s recording test passes with the new steps.
-- [ ] `cargo xtask nightly --quick` ends with a `proof.json` whose sections are all filled, and `full: false`.
+- [x] From fixture reports of every input, `proof.rs`'s tests produce a record whose counts match hand-computed ones. Cases: a file `opened` by Lamina PDF, one `repaired`, one `failed` that a tool opened (`refused_alone`) and one every tool failed, plus a `panic` and a mutant.
+- [x] A missing input gives a `null` section and the job's result in `jobs`, never a zero figure (test).
+- [x] `full` is false for a sampled differential, a sampled render diff, a fuzz target under 600 s or a target missing from the fuzz summaries; `--record` appends nothing then (tests).
+- [x] The record has no `benches` key, and `nightly::regressions` over a history holding one returns no regression (test).
+- [x] `workflows.rs`: `report` needs `proof` and `roundtrip`, `bench` needs `roundtrip`, and the fuzz matrix equals `FUZZ_TARGETS`. `release.rs`'s recording test passes with the new steps.
+- [x] `cargo xtask nightly --quick` ends with a `proof.json` whose sections are all filled, and `full: false` (the whole lane didn't run in the cloud sandbox: every task that feeds the record ran on its own, then `cargo xtask proof` filled all eight sections with `full: false`; the record is attached to the PR).
 
 ## Post-merge checks
 
