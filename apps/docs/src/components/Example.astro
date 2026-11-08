@@ -103,7 +103,13 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   const LANGUAGES = new Set(["TypeScript", "Rust"]);
   const keep = (event: Event) => {
     if (!(event.target instanceof Element) || event.target.closest("starlight-tabs") === null) return;
-    const before = localStorage.getItem(KEY);
+    // Storage can be blocked (a private window); Starlight then remembers nothing either.
+    let before: string | null;
+    try {
+      before = localStorage.getItem(KEY);
+    } catch {
+      return;
+    }
     // After Starlight's own handler: between listeners of a real event, microtasks run, so a task.
     setTimeout(() => {
       const now = localStorage.getItem(KEY);
