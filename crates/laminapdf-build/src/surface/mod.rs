@@ -167,6 +167,8 @@ pub struct Surface {
     tagged: bool,
     /// Names the elements opened with [`Surface::open_element`].
     ids: ElementIds,
+    /// Whether anything drawn resumes an element ([`Surface::resume`]).
+    resumes: bool,
 }
 
 /// A font size must be finite and positive.
@@ -413,6 +415,7 @@ impl Surface {
         let depth = self.marks_open;
         self.marks_open += 1;
         self.tagged = true;
+        self.resumes = true;
         self.commands.push(Command::Resume(element));
         let drawn = draw(self);
         self.end_to(depth);
@@ -428,6 +431,11 @@ impl Surface {
         while self.marks_open > depth {
             self.end_tag();
         }
+    }
+
+    /// Whether anything drawn resumes an element.
+    pub(crate) const fn resumes(&self) -> bool {
+        self.resumes
     }
 
     /// Whether anything drawn opens an element or artifact.

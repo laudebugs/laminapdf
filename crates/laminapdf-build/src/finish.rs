@@ -163,7 +163,7 @@ fn check_profiles(options: &BuildOptions, state: &BuildState, features: &DocFeat
         title: meta.title.as_deref(),
         lang: features.lang.as_deref(),
         diagnostics: state.tag.diagnostics(),
-        elements: state.tag.infos(),
+        elements: &state.tag.infos(),
         links: &state.links,
         device_cmyk: state.device_cmyk,
         attachments: &features.attachments,

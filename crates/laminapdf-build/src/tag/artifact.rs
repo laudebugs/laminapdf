@@ -1,7 +1,8 @@
 //! Artifacts (§14.8.2.2): content that isn't part of the document's logical content, written
 //! as `/Artifact <</Type …>> BDC … EMC` and left out of the structure tree. A pagination
 //! artifact can name what it is (`/Subtype /Header`, `/Footer` or `/Watermark`) and the page
-//! edges it is attached to (`/Attached [/Bottom]`), both PDF 1.7 (Table 363).
+//! edges it is attached to (`/Attached [/Bottom]`), both PDF 1.7 (Table 363); a background
+//! artifact can name its edges too.
 
 use pdf_writer::types::{ArtifactAttachment, ArtifactSubtype, ArtifactType};
 use pdf_writer::{Content, Name, Rect};
@@ -151,8 +152,9 @@ impl Artifact {
         Self::pagination(Pagination::Watermark, None)
     }
 
-    /// The same artifact attached to `edges` instead (none: no `/Attached`). Only pagination
-    /// artifacts write the edges.
+    /// The same artifact attached to `edges` instead (none: no `/Attached`). Only pagination and
+    /// background artifacts write the edges (Table 363): all four on a background say it covers
+    /// the whole page.
     #[must_use]
     pub fn with_attached(mut self, edges: &[PageEdge]) -> Self {
         self.attached = edges.iter().fold(0, |bits, e| bits | e.bit());
@@ -165,9 +167,14 @@ impl Artifact {
         self.kind
     }
 
+    /// Whether it writes its edges (`/Attached`).
+    const fn writes_edges(self) -> bool {
+        self.attached != 0 && matches!(self.kind, ArtifactKind::Pagination | ArtifactKind::Background)
+    }
+
     /// Whether it writes an entry of PDF 1.7 (`/Subtype` or `/Attached`).
     pub(crate) const fn needs_pdf_1_7(self) -> bool {
-        matches!(self.kind, ArtifactKind::Pagination) && (self.subtype.is_some() || self.attached != 0)
+        self.writes_edges() || (matches!(self.kind, ArtifactKind::Pagination) && self.subtype.is_some())
     }
 }
 
@@ -187,22 +194,20 @@ pub(crate) fn begin(content: &mut Content, artifact: Artifact, page_box: [f32; 4
         let [x0, y0, x1, y1] = page_box;
         properties.bounding_box(Rect::new(x0, y0, x1, y1));
     }
-    if artifact.kind == ArtifactKind::Pagination {
-        if let Some(subtype) = artifact.subtype {
-            properties.subtype(match subtype {
-                Pagination::Header => ArtifactSubtype::Header,
-                Pagination::Footer => ArtifactSubtype::Footer,
-                Pagination::Watermark => ArtifactSubtype::Watermark,
-            });
-        }
-        if artifact.attached != 0 {
-            properties.attached(
-                PageEdge::ALL
-                    .into_iter()
-                    .filter(|e| artifact.attached & e.bit() != 0)
-                    .map(PageEdge::attachment),
-            );
-        }
+    if let (ArtifactKind::Pagination, Some(subtype)) = (artifact.kind, artifact.subtype) {
+        properties.subtype(match subtype {
+            Pagination::Header => ArtifactSubtype::Header,
+            Pagination::Footer => ArtifactSubtype::Footer,
+            Pagination::Watermark => ArtifactSubtype::Watermark,
+        });
+    }
+    if artifact.writes_edges() {
+        properties.attached(
+            PageEdge::ALL
+                .into_iter()
+                .filter(|e| artifact.attached & e.bit() != 0)
+                .map(PageEdge::attachment),
+        );
     }
 }
 
@@ -275,8 +280,17 @@ mod tests {
     }
 
     #[test]
-    fn only_pagination_artifacts_write_edges() {
-        let a = Artifact::from(ArtifactKind::Layout).with_attached(&[PageEdge::Top]);
-        assert_eq!((written(a).contains("/Attached"), a.needs_pdf_1_7()), (false, false));
+    fn only_pagination_and_background_artifacts_write_edges() {
+        let layout = Artifact::from(ArtifactKind::Layout).with_attached(&[PageEdge::Top]);
+        let background = Artifact::from(ArtifactKind::Background).with_attached(&PageEdge::ALL);
+        assert_eq!(
+            (
+                written(layout).contains("/Attached"),
+                layout.needs_pdf_1_7(),
+                written(background).contains("/Attached [/Top /Bottom /Left /Right]"),
+                background.needs_pdf_1_7()
+            ),
+            (false, false, true, true)
+        );
     }
 }

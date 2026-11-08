@@ -296,3 +296,46 @@ fn a_page_that_fails_takes_its_content_of_an_open_element_with_it() {
     let tree = tree(&doc);
     assert_eq!(mcid_pages(find(&tree, "P")[0], &page_ids(&doc)), vec![0, 1]);
 }
+
+/// The profiles read elements in structure order: an `H3` resumed into a section on page 2 comes
+/// right after the `H1` before that section, not after the `H2` that follows it on page 1.
+#[test]
+fn headings_resumed_on_a_later_page_are_checked_in_structure_order() {
+    let mut b = Builder::new(
+        BuildOptions::default()
+            .with_profile(laminapdf_build::Profile::PdfUa1)
+            .with_creation_date("D:20261108120000Z".parse().unwrap()),
+    );
+    b.metadata(laminapdf_build::Metadata::default().with_title("Order"))
+        .lang("en");
+    let f = b.font(font("NotoSans-Regular.ttf")).unwrap();
+    let heading = |s: &mut Surface, kind: TagKind, y: f64| {
+        s.tag(kind, |s| {
+            s.text("Heading", &f, Pt::new(11.0), PointPt::from_points(72.0, y))
+                .map(|_| ())
+        })
+    };
+    let mut page = b.page(PageSize::A4);
+    let s = page.surface();
+    heading(s, TagKind::H1, 72.0).unwrap();
+    let section = s.open_element(TagKind::Sect);
+    heading(s, TagKind::H2, 96.0).unwrap();
+    page.finish().unwrap();
+    let mut page = b.page(PageSize::A4);
+    page.surface()
+        .resume(section, |s| heading(s, TagKind::H3, 72.0))
+        .unwrap();
+    page.finish().unwrap();
+    b.close_element(section).unwrap();
+    assert_eq!(b.finish().unwrap_err().code(), "heading-level-skipped");
+}
+
+#[test]
+fn resuming_on_an_appended_page_fails_the_page() {
+    let mut doc = reopen(&fixture("golden/vectors.pdf"));
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+    let mut page = appender.page(PageSize::A4);
+    let id = page.surface().open_element(TagKind::P);
+    page.surface().resume(id, |_| Ok(())).unwrap();
+    assert_eq!(page.finish().unwrap_err().code(), "tag-element-not-open");
+}

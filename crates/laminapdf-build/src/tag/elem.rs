@@ -35,9 +35,8 @@ pub(crate) struct PageKeys {
     refs: Vec<ObjRef>,
 }
 
-/// One element's standard type and its parent's, in structure order (depth-first: elements
-/// are opened parent first, siblings in order, pages in order), for the profiles' structure
-/// checks.
+/// One element's standard type and its parent's, for the profiles' structure checks, which
+/// read them in structure order ([`TagState::infos`]).
 ///
 /// The types are strings, not [`TagKind`](super::TagKind)s: a custom name that is a standard
 /// type outside `TagKind` (`THead`, `TBody`, `H`, `H7`, `Formula`) is that type, and the
@@ -49,7 +48,8 @@ pub(crate) struct ElemInfo {
     pub(crate) kind: String,
     /// The parent's standard type; `None` under the `Document` element.
     pub(crate) parent: Option<String>,
-    /// The parent's index in the list of every element; `None` under the `Document` element.
+    /// The parent's index in the order elements were added (pages in order, each page's
+    /// elements in opening order); `None` under the `Document` element.
     pub(crate) parent_index: Option<usize>,
 }
 
@@ -83,8 +83,11 @@ pub(crate) struct TagState {
     roles: Vec<Tag>,
     tree: ParentTree,
     diagnostics: Vec<TagDiagnostic>,
+    /// Every element's types, in the order they were added: an element resumed on a later page
+    /// gets children after elements that follow it in structure order.
     infos: Vec<ElemInfo>,
-    /// Each `Note` element's `/ID` and object, in structure order, for the `IDTree`.
+    /// Each `Note` element's `/ID` and object, in the order their pages are written, for the
+    /// `IDTree`.
     ids: Vec<(Vec<u8>, ObjRef)>,
     /// The elements open after their first page.
     open: OpenElems,
@@ -165,9 +168,27 @@ impl TagState {
         if self.tagged { &self.diagnostics } else { &[] }
     }
 
-    /// Every element so far, in structure order.
-    pub(crate) fn infos(&self) -> &[ElemInfo] {
-        &self.infos
+    /// Every element so far, in structure order: depth-first, each parent before its children,
+    /// siblings in the order they were added (an element's children on later pages after
+    /// those on earlier ones).
+    pub(crate) fn infos(&self) -> Vec<ElemInfo> {
+        let mut kids: Vec<Vec<usize>> = vec![Vec::new(); self.infos.len()];
+        let mut roots = Vec::new();
+        for (i, e) in self.infos.iter().enumerate() {
+            match e.parent_index.and_then(|p| kids.get_mut(p)) {
+                Some(siblings) => siblings.push(i),
+                None => roots.push(i),
+            }
+        }
+        let mut order = Vec::with_capacity(self.infos.len());
+        let mut stack: Vec<usize> = roots.into_iter().rev().collect();
+        while let Some(i) = stack.pop() {
+            order.push(i);
+            if let Some(children) = kids.get(i) {
+                stack.extend(children.iter().rev());
+            }
+        }
+        order.into_iter().filter_map(|i| self.infos.get(i).cloned()).collect()
     }
 
     fn roots_ref(&mut self, doc: &laminapdf_cos::Document) -> Result<Roots> {
@@ -331,7 +352,7 @@ impl TagState {
         }
         if standard_name(tag) == "Note" {
             // PDF/UA-1 §7.9 (Matterhorn 19-003, 19-004): every note has a unique `/ID`;
-            // numbered in structure order, so the output stays deterministic.
+            // numbered as pages are written, so the output stays deterministic.
             let id = format!("Note{}", self.ids.len() + 1).into_bytes();
             d.insert("ID", PdfString::literal(id.clone()));
             self.ids.push((id, r));

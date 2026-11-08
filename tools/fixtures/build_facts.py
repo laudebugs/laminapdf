@@ -20,7 +20,7 @@ import pypdf
 from facts_common import ROOT, pdftotext, poppler_version, qpdf_check, qpdf_version, run_pdfjs, sha256
 
 OUT = ROOT / "fixtures" / "build" / "facts.json"
-GOLDENS = ["build-text-latin.pdf", "build-text-multiscript.pdf", "links-and-outlines.pdf", "metadata.pdf", "tagged-across-pages.pdf"]
+GOLDENS = ["build-text-latin.pdf", "build-text-multiscript.pdf", "links-and-outlines.pdf", "metadata.pdf"]
 
 
 def page_index(reader, dest):

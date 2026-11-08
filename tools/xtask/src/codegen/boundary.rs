@@ -115,7 +115,7 @@ fn name_table(source: &str, path: &str, name: &str) -> Result<Vec<String>> {
         .skip(1)
         .map(|item| item.split_once(&entry).map(|(n, _)| n.to_owned()))
         .collect::<Option<_>>()
-        .with_context(|| format!("{path}: {name} has an entry that isn't (\"name\", {ty}::Variant)"))?;
+        .with_context(|| format!("{path}: {name} has an entry that isn't (\"name\", {ty}::…)"))?;
     if names.len() != len {
         bail!("{path}: {name} declares {len} entries and lists {}", names.len());
     }

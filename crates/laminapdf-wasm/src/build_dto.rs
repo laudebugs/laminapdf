@@ -200,7 +200,8 @@ pub(crate) fn tag(
 
 // The name tables below are the one list of these names: `cargo xtask gen boundary` reads them
 // (and `TagKind::as_str`) from the source and writes @laminapdf/sdk's
-// src/generated/builder-enums.ts, so keep each a `[("name", Type::Variant), …]` literal.
+// src/generated/builder-enums.ts, so keep each a `[("name", Type::…), …]` literal: each entry a
+// name, then a path that starts with the table's type (`FillRule::NonZero`, `Artifact::footer()`).
 
 /// Artifacts by name: each kind, then the pagination artifacts that say what they are (a header
 /// attached to the top edge, a footer to the bottom, a watermark to none).

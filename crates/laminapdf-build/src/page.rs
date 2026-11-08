@@ -265,7 +265,12 @@ impl<'b> PageBuilder<'b> {
                 fonts: &mut state.fonts,
                 doc: &*self.target.doc,
             },
-            Marking::new(state.tagging, tagged, crop).with_resumable(state.tag.resumable()),
+            // The open elements' tags, only for a page that resumes one.
+            Marking::new(state.tagging, tagged, crop).with_resumable(if self.surface.resumes() {
+                state.tag.resumable()
+            } else {
+                Vec::new()
+            }),
         )?;
         if rendered.marks.resumed_unknown {
             return Err(Error::TagElementNotOpen);

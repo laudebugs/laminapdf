@@ -183,6 +183,8 @@ impl Marking {
     /// Starts content of element `id`: opened on this page, or open from an earlier one.
     pub(crate) fn resume(&mut self, content: &mut Content, id: ElementId) {
         if !self.enabled {
+            // An appended page is never tagged, so no element is open on it.
+            self.marks.resumed_unknown = true;
             return;
         }
         self.close(content);
