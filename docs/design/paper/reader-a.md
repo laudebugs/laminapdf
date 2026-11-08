@@ -49,7 +49,7 @@ Conventions on every board in this area:
 
 **Artboards.** `R01-home.dc.html`, `R01-home-phone.dc.html`, `R01-open-url-blocked.dc.html`.
 
-**Todos.** [C4b](../../todos/ready/C4b-web-app-shell.md), [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md); recent files need [C7b](../../todos/ready/C7b-offline-pwa.md).
+**Todos.** [C4b](../../todos/ongoing/C4b-web-app-shell.md), [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md); recent files need [C7b](../../todos/ready/C7b-offline-pwa.md).
 
 ## R02 Loading states
 
@@ -144,7 +144,7 @@ Codes come from `fixtures/codes.json`; each code has one plain sentence in the U
 
 **Artboards.** `R04-repaired.dc.html`, `R04-unrecoverable.dc.html`.
 
-**Todos.** [C4b](../../todos/ready/C4b-web-app-shell.md).
+**Todos.** [C4b](../../todos/ongoing/C4b-web-app-shell.md).
 
 ## R05 Find in document
 

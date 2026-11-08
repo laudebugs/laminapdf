@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C2a](../done/C2a-render-adrs.md), [C4f](../done/C4f-reader-home-repairs-and-demo.md), [U6b](../done/U6b-self-hosted-fonts.md) |
@@ -40,9 +40,9 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminap
 
 **Out of scope** (and which todo covers it)
 
-- `#url=` remote files, range requests, encrypted-file prompt flow, privacy assertions → [C4c](./C4c-remote-files-encryption-privacy.md).
-- CI deploys, preview URLs, production → [C4d](./C4d-deploy-previews-and-production.md).
-- Service worker, manifest, `file_handlers` → [C7b](./C7b-offline-pwa.md).
+- `#url=` remote files, range requests, encrypted-file prompt flow, privacy assertions → [C4c](../ready/C4c-remote-files-encryption-privacy.md).
+- CI deploys, preview URLs, production → [C4d](../ready/C4d-deploy-previews-and-production.md).
+- Service worker, manifest, `file_handlers` → [C7b](../ready/C7b-offline-pwa.md).
 
 ## Tasks
 

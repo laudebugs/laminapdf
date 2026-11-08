@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [C4b](./C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
-| Dependency notes | [C4b](./C4b-web-app-shell.md); library B2 (standard security handler decryption and encrypted fixtures; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)), exposed through **B6** |
+| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [C4b](../ongoing/C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
+| Dependency notes | [C4b](../ongoing/C4b-web-app-shell.md); library B2 (standard security handler decryption and encrypted fixtures; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)), exposed through **B6** |
 | ADRs | Implements 0011's privacy guarantees (fragment URLs, no upload, no referrer) as tests; follows [0005](../../decisions/0005-document-model.md) §2 (`ByteSource`), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (wrong-password and repair codes) |
 | Branch | `feat/c4c-remote-and-encrypted-files` |
 | PR title | `feat(web): open remote pdfs from the url fragment and encrypted pdfs, with privacy tests` |
