@@ -11,7 +11,7 @@
 | Branch | `feat/u1b-command-registry-and-palette` |
 | PR title | `feat(ui): add the command registry and the command palette` |
 | Size | L (500–900 lines incl. tests) |
-| PR | — |
+| PR | [laudebugs/laminapdf#288](https://github.com/laudebugs/laminapdf/pull/288) |
 
 ## Goal
 
