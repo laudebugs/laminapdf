@@ -11,7 +11,7 @@
 | Branch | `feat/t2c-reveal-command` |
 | PR title | `feat(cli): laminapdf reveal and laminapdf_reveal list what a file discloses beyond its pages` |
 | Size | L (≈ 650–800 lines of code with unit tests; schemas and fixtures don't count). If it passes 800, ship history, metadata, attachments, hidden content, the command, the tool and exit code 6 first, and move active content, annotations and forms into a second PR |
-| PR | — |
+| PR | [#316](https://github.com/laudebugs/laminapdf/pull/316) |
 
 ## Goal
 
