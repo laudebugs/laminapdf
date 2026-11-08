@@ -10,6 +10,7 @@
 //   node tools/heron-web/check.mjs target/models/docling-layout-heron/<sha256>/model.onnx
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import * as ort from "onnxruntime-web";
 
