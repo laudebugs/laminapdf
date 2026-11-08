@@ -136,6 +136,7 @@ pub(crate) fn flags(run: &Look, bbox: &RectPt, size: Pt, width: Pt, height: Pt, 
         tiny: size.get() < TINY,
         clipped,
         low_contrast,
+        covered: false,
     }
 }
 

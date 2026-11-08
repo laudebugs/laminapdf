@@ -399,7 +399,7 @@ pub struct Span {
 #[non_exhaustive]
 #[expect(
     clippy::struct_excessive_bools,
-    reason = "ADR 0030 §4's five independent flags, each serialised by name"
+    reason = "ADR 0030 §4's six independent flags, each serialised by name"
 )]
 pub struct Flags {
     /// Drawn in text rendering mode 3 or 7.
@@ -412,6 +412,9 @@ pub struct Flags {
     pub clipped: bool,
     /// Filled near white with nothing painted under it.
     pub low_contrast: bool,
+    /// Painted over later on the page: by an opaque fill, an opaque image or an annotation's
+    /// appearance.
+    pub covered: bool,
 }
 
 impl Flags {
@@ -422,12 +425,13 @@ impl Flags {
         tiny: false,
         clipped: false,
         low_contrast: false,
+        covered: false,
     };
 
     /// Whether any flag is set.
     #[must_use]
     pub const fn any(self) -> bool {
-        self.invisible || self.off_page || self.tiny || self.clipped || self.low_contrast
+        self.invisible || self.off_page || self.tiny || self.clipped || self.low_contrast || self.covered
     }
 
     /// The flags set, as the reasons a dropped entry names, in a fixed order.
@@ -439,6 +443,7 @@ impl Flags {
             (self.tiny, DropReason::Tiny),
             (self.clipped, DropReason::Clipped),
             (self.low_contrast, DropReason::LowContrast),
+            (self.covered, DropReason::Covered),
         ]
         .into_iter()
         .filter_map(|(set, reason)| set.then_some(reason))
@@ -488,6 +493,8 @@ pub enum DropReason {
     Clipped,
     /// Near white on nothing.
     LowContrast,
+    /// Painted over by a later opaque shape, image or annotation.
+    Covered,
     /// Marked content tagged `Artifact`.
     Artifact,
     /// A line repeated at the top of pages.

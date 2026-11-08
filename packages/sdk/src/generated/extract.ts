@@ -54,7 +54,7 @@ export type Coordinates = {
 };
 
 /** Why text was left out. */
-export type DropReason = "invisible" | "off-page" | "tiny" | "clipped" | "low-contrast" | "artifact" | "running-header" | "running-footer" | "page-number";
+export type DropReason = "invisible" | "off-page" | "tiny" | "clipped" | "low-contrast" | "covered" | "artifact" | "running-header" | "running-footer" | "page-number";
 
 /**
  * Text left out of the output ([ADR 0030] §4). It records a count, never the text, so a log of
