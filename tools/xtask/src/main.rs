@@ -33,6 +33,7 @@ mod pdfium;
 mod platform_boundary;
 mod portable_paths;
 mod progress;
+mod proof;
 mod publish;
 mod release;
 mod renames;
@@ -266,8 +267,15 @@ tasks:
                     the Paper component gallery (apps/gallery): serve it; --test runs its screenshot,
                     axe and font tests in the pinned Playwright image (Docker); --update rewrites
                     apps/gallery/e2e/__screenshots__/ there and lists what changed
-  nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
-                    wasm + pdf-runtimes, viewer-perf, render-diff, external links)
+  nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, render-diff,
+                    verapdf, roundtrip, external links, bench, wasm + pdf-runtimes, viewer-perf),
+                    then `proof` over what it wrote, never recording
+  proof [--from <dir>] [--jobs <json>] [--history <dir> --runner <label> [--record]]
+                    the nightly's robustness figures (corpus outcomes, differentials, render diff,
+                    fuzz runs, veraPDF, round trip, runtimes) read from each task's output under
+                    --from (default: the workspace root) into one record (kind proof) in
+                    target/nightly/proof/proof.json and the job summary; a missing input is a null
+                    section; --record appends it to <dir>/history.jsonl, only for a full-budget night
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs), the gallery's inputs or the
@@ -408,6 +416,7 @@ fn main() -> Result<()> {
         ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
+        ("proof", args) => proof::run(&ws, &proof::parse_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("semver", args) => semver::run(&ws, args),
         ("gallery", args) => gallery::run(&ws, gallery::parse_args(args)?),
