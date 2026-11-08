@@ -250,6 +250,7 @@
             "extract-table-limit",
             "extract-struct-tree-ignored",
             "extract-untagged-content",
+            "extract-needs-ocr",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]
