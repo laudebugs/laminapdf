@@ -11,8 +11,10 @@ use crate::visibility::Backdrops;
 /// What a page draws besides its text, as the text-layer status measures it.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Drawn {
-    /// Each image's box in page space, clipped to the page.
-    pub(crate) images: Vec<RectPt>,
+    /// How many images it draws, on the page or not.
+    pub(crate) images: usize,
+    /// The boxes in page space, clipped to the page, of the images that reach it.
+    pub(crate) image_boxes: Vec<RectPt>,
     /// How many paths it fills or strokes.
     pub(crate) paths: usize,
 }
@@ -81,8 +83,9 @@ impl Visitor for Marks<'_> {
 
     fn image(&mut self, image: &ImageDraw<'_>) {
         self.backdrops.image(image);
+        self.drawn.images += 1;
         if let Some(bbox) = image_box(&self.frame, &image.state.ctm) {
-            self.drawn.images.push(bbox);
+            self.drawn.image_boxes.push(bbox);
         }
     }
 

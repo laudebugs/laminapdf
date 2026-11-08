@@ -47,45 +47,54 @@ pub(crate) fn measure(
         chars,
         invisible_chars,
         unmapped_share: share(unmapped, glyphs),
-        images: drawn.images.len(),
-        image_share: image_share(&drawn.images, width, height),
+        images: drawn.images,
+        image_share: image_share(&drawn.image_boxes, width, height),
         paths: drawn.paths,
     };
     layer.status = classify(&layer, thresholds);
     layer
 }
 
-/// `part / whole` rounded to 1/1000; 0 when `whole` is 0.
+/// `part / whole` rounded to 1/1000, at most 1; 0 when `whole` is 0. Integer arithmetic, so
+/// any count gives the right share.
 fn share(part: usize, whole: usize) -> f64 {
+    let (Ok(part), Ok(whole)) = (u128::try_from(part), u128::try_from(whole)) else {
+        return 0.0;
+    };
     if whole == 0 {
         return 0.0;
     }
-    let ratio = u32::try_from(part).map_or(1.0, f64::from) / u32::try_from(whole).map_or(1.0, f64::from);
-    (ratio.clamp(0.0, 1.0) * ROUND).round() / ROUND
+    let thousandths = (part.min(whole) * 1000 + whole / 2) / whole;
+    u16::try_from(thousandths).map_or(1.0, |t| f64::from(t) / ROUND)
 }
 
 /// The share of a `width` × `height` page that `images` cover: the grid cells whose centre lies
-/// in an image's box.
+/// in an image's box. Each image marks only the cells its box reaches.
 fn image_share(images: &[RectPt], width: Pt, height: Pt) -> f64 {
     let (w, h) = (width.get(), height.get());
     if images.is_empty() || w <= 0.0 || h <= 0.0 {
         return 0.0;
     }
     let side = f64::from(GRID);
-    let mut covered = 0;
-    for row in 0..GRID {
-        let y = (f64::from(row) + 0.5) * h / side;
-        for col in 0..GRID {
-            let x = (f64::from(col) + 0.5) * w / side;
-            if images
-                .iter()
-                .any(|b| b.x0.get() <= x && x < b.x1.get() && b.y0.get() <= y && y < b.y1.get())
-            {
-                covered += 1;
+    // The cells whose centre `(i + 0.5) × step` lies in [lo, hi): from the first centre at or
+    // past `lo` to the first at or past `hi`.
+    let cells = |lo: f64, hi: f64, step: f64| {
+        let at_or_past = |v: f64| (0..GRID).find(|&i| (f64::from(i) + 0.5) * step >= v).unwrap_or(GRID);
+        (at_or_past(lo), at_or_past(hi))
+    };
+    let mut covered = vec![false; usize::try_from(GRID * GRID).unwrap_or(0)];
+    for b in images {
+        let (c0, c1) = cells(b.x0.get(), b.x1.get(), w / side);
+        let (r0, r1) = cells(b.y0.get(), b.y1.get(), h / side);
+        for row in r0..r1 {
+            for col in c0..c1 {
+                if let Some(cell) = usize::try_from(row * GRID + col).ok().and_then(|i| covered.get_mut(i)) {
+                    *cell = true;
+                }
             }
         }
     }
-    share(covered, usize::try_from(GRID * GRID).unwrap_or(1))
+    share(covered.iter().filter(|&&c| c).count(), covered.len())
 }
 
 /// Whether `value`, a share from 0 to 1, is at least `thousandths` / 1000.
@@ -181,6 +190,18 @@ mod tests {
     #[test]
     fn shares_round_to_a_thousandth() {
         assert!((share(1, 3) - 0.333).abs() < 1e-9);
+        assert!((share(2, 3) - 0.667).abs() < 1e-9);
         assert!(share(0, 0).abs() < 1e-9);
+        assert!((share(usize::MAX, usize::MAX) - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn an_image_covers_the_cells_whose_centres_it_holds() {
+        let pt = Pt::new;
+        // A quarter of a 320 × 320 page: the cells centred at 5, 15, …, 155.
+        let quarter = RectPt::new(pt(0.0), pt(0.0), pt(160.0), pt(160.0));
+        assert!((image_share(&[quarter], pt(320.0), pt(320.0)) - 0.25).abs() < 1e-9);
+        let whole = RectPt::new(pt(-50.0), pt(-50.0), pt(400.0), pt(400.0));
+        assert!((image_share(&[whole], pt(320.0), pt(320.0)) - 1.0).abs() < 1e-9);
     }
 }
