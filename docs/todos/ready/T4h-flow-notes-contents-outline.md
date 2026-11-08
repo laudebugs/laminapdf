@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4b](./T4b-flow-layout-core.md) |
+| Depends on | [T4b](../done/T4b-flow-layout-core.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md) [§3](../../decisions/0032-flowing-layout-and-document-inputs.md#3-the-layout-model) (contents pages and the pass limit) and [§4](../../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) (tagging); follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (1-based page numbers in what users read) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
 | Branch | `feat/t4h-flow-notes-contents-outline` |
 | PR title | `feat(build): footnotes, a contents page with page numbers, and the outline in flowing layout` |
@@ -19,7 +19,7 @@ Add the two page features that need more than one region of the page or more tha
 
 ## Context
 
-- [T4b](./T4b-flow-layout-core.md): the flow model, the paginator, page templates, `flow-content-too-large` and `flow-keep-broken`. [T4g](../done/T4g-flow-styled-spans.md): span rises, for raised markers. [T4f](../done/T4f-flow-builder-groundwork.md): elements across pages and artifact subtypes.
+- [T4b](../done/T4b-flow-layout-core.md): the flow model, the paginator, page templates, `flow-content-too-large` and `flow-keep-broken`. [T4g](../done/T4g-flow-styled-spans.md): span rises, for raised markers. [T4f](../done/T4f-flow-builder-groundwork.md): elements across pages and artifact subtypes.
 - [ADR 0032 §3](../../decisions/0032-flowing-layout-and-document-inputs.md#3-the-layout-model): a contents page lays out again until no page number changes, at most four passes, then fails with `flow-layout-unstable`.
 - Evidence: the [generation note](../../research/hacker-news/notes/generation.md) §1.6 (a contents page with page numbers, footnotes); the report's [R5](../../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json).
 - ISO 32000-1 §14.8.4 (the PDF 1.7 standard types `TOC`, `TOCI`, `Note`, `Reference`); ISO 32000-2 §12.3.2 (destinations) and §12.3.3 (the outline). The Matterhorn Protocol's checkpoint 19 (notes and references; 19-003 and 19-004 ask for a unique `/ID` on each `Note`).

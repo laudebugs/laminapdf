@@ -538,8 +538,17 @@ impl Surface {
             link: None,
             tag: None,
             ctm: self.ctm,
+            rise: 0.0,
         })));
         TextRun::new(self, index)
+    }
+
+    /// Draws a piece of a line shaped earlier (a flow's), as it is.
+    #[cfg(feature = "text")]
+    pub(crate) fn draw_shaped(&mut self, piece: text::ShapedPiece) {
+        self.tagged |= piece.tag.is_some();
+        let command = piece.into_command(self.ctm);
+        self.commands.push(Command::Text(Box::new(command)));
     }
 
     /// Lays `text` out in `rect` and draws it: lines broken greedily at Unicode line-break
