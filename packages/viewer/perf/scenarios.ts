@@ -2,7 +2,8 @@
 // `window.__laminaPerf` with Playwright's real input: wheel steps at fixed intervals, so two runs
 // scroll the same way.
 
-import type { Browser, BrowserContext, Page } from "playwright";
+import { type Browser, type BrowserContext, devices, type Page } from "playwright";
+import { viewerBudgets } from "../src/view/budgets.ts";
 import type { BrowserResult } from "./report.ts";
 import "./types.ts";
 
@@ -155,6 +156,37 @@ async function zoom(context: BrowserContext, url: string): Promise<BrowserResult
   return { recording, toSharpMs };
 }
 
+/** Each engine's phone profile: touch and a coarse pointer, so the viewer takes its touch budgets. */
+const PHONES: Record<string, string> = { chromium: "Pixel 8", webkit: "iPhone 15" };
+
+/**
+ * The 1,000-page file stepped through ten pages at a time in a phone's profile (the 100-page
+ * stretch when quick), with the peak memory against the budgets the viewer gives that device.
+ * Pages are jumped to rather than scrolled by touch, so every engine moves through them the same way.
+ */
+async function mobile(browser: Browser, name: string, url: string, quick: boolean): Promise<BrowserResult["mobile"]> {
+  const device = PHONES[name];
+  if (device === undefined) return null;
+  const context = await browser.newContext({ ...devices[device] });
+  try {
+    const page = await harness(context, url);
+    await opened(page, "thousand", "fit-width");
+    const memoryGb = await page.evaluate(() => (globalThis.navigator as { deviceMemory?: number }).deviceMemory);
+    const budget = viewerBudgets({ coarse: true, memoryGb });
+    await page.evaluate(() => globalThis.__laminaPerf.record());
+    for (let index = 0; index < (quick ? 100 : 1000); index += 10) {
+      await page.evaluate((i) => globalThis.__laminaPerf.goToPage(i), index);
+      await page.waitForTimeout(STEP_MS);
+    }
+    await page.evaluate(() => globalThis.__laminaPerf.untilSharp());
+    const { peakMemory } = await page.evaluate(() => globalThis.__laminaPerf.stop());
+    const budgetBytes = 4 * ((budget.pool.maxPixels ?? 0) + (budget.detailPool.maxPixels ?? 0)) + budget.cacheBytes;
+    return { device, peakMemory, budgetBytes };
+  } finally {
+    await context.close();
+  }
+}
+
 /** Every scenario in `browser`, against the harness served at `url`. */
 export async function runScenarios(
   browser: Browser,
@@ -171,6 +203,7 @@ export async function runScenarios(
       scroll: await scroll(context, url, quick),
       fling: await fling(context, url, quick),
       zoom: await zoom(context, url),
+      mobile: await mobile(browser, name, url, quick),
     };
   } finally {
     await context.close();
