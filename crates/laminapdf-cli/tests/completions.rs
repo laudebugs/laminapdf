@@ -13,13 +13,17 @@ fn the_bash_script_should_parse() {
     assert_eq!(run.code, 0, "{}", run.stderr);
     let script = folder("completions").join("laminapdf.bash");
     std::fs::write(&script, &run.stdout).unwrap();
-    let parsed = Command::new("bash")
-        .args(["-n", arg(&script)])
-        .stdout(Stdio::null())
-        .status();
-    // A machine without bash can't check the syntax; the script was still written.
-    if let Ok(status) = parsed {
-        assert!(status.success());
+    // On Windows, `Command` finds System32's WSL launcher before any bash on PATH, and it fails
+    // without a Linux distribution; the script is the same on every system, so Unix checks it.
+    if cfg!(not(windows)) {
+        let parsed = Command::new("bash")
+            .args(["-n", arg(&script)])
+            .stdout(Stdio::null())
+            .status();
+        // A machine without bash can't check the syntax; the script was still written.
+        if let Ok(status) = parsed {
+            assert!(status.success());
+        }
     }
     for shell in ["zsh", "fish", "powershell", "elvish"] {
         let run = laminapdf(&["completions", shell]);

@@ -40,8 +40,9 @@
 # `ref` (default: the dispatched ref's commit) is what every job checks out and what
 # verify-install's git dependency pins; the called nightly workflow always runs on the dispatched
 # ref's commit, so dispatch on the ref you test. Same runner rules as the other lanes (ci.yml):
-# hosted macOS Arm64 with explicit tool setup and main-only Rust cache writes. Artifacts are
-# prefixed `release-` so they never clash with the nightly jobs' in the same run.
+# hosted Linux x64 (macOS Arm64 for WebKit and the render goldens) with explicit tool setup and
+# main-only Rust cache writes. Artifacts are prefixed `release-` so they never clash with the
+# nightly jobs' in the same run.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Release
 
@@ -134,7 +135,7 @@ jobs:
   fast:
     name: Fast lane (check, wasm with publint and attw, size)
     needs: guard
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -170,7 +171,7 @@ jobs:
   differential:
     name: Differential (full mutant set)
     needs: guard
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -193,7 +194,7 @@ jobs:
   fuzz:
     name: Fuzz smoke (2 min per target)
     needs: guard
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -256,7 +257,7 @@ jobs:
   roundtrip:
     name: Round trip (lamina, qpdf, pdf.js, PDFium)
     needs: guard
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -318,7 +319,7 @@ jobs:
   capabilities:
     name: Capability matrix
     needs: guard
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -338,7 +339,8 @@ jobs:
   pdf-runtimes:
     name: "@laminapdf/sdk in ${{ matrix.runtime }}${{ matrix.node && format(' {0}', matrix.node) || '' }}"
     needs: [guard, fast]
-    runs-on: macos-15
+    # WebKit on macOS (closest to Safari); every other runtime on Linux.
+    runs-on: ${{ matrix.runtime == 'webkit' && 'macos-15' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -370,6 +372,10 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+      - if: matrix.runtime == 'chromium' || matrix.runtime == 'firefox'
+        uses: ./.github/actions/playwright-deps
+        with:
+          browsers: ${{ matrix.runtime }}
       - env:
           RUNTIME: ${{ matrix.runtime }}
         run: cargo xtask pdf-runtimes "$RUNTIME"
@@ -398,7 +404,7 @@ jobs:
   verify-install:
     name: verify-install (${{ matrix.name }})
     needs: [guard, fast]
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -425,6 +431,8 @@ jobs:
       - uses: ./.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
+      # verify-install's Chromium check (a Vite app in Playwright's Chromium).
+      - uses: ./.github/actions/playwright-deps
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       # The temporary projects go in runner.temp, outside the checkout.
@@ -485,7 +493,7 @@ jobs:
     name: Publish the crates${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     # crates.io's trusted-publisher entries for these crates require the `release` environment:
     # the OIDC token only names it (claim `environment`) when the job declares it.
@@ -523,7 +531,7 @@ jobs:
     name: Pack the npm packages
     needs: [guard, fast, release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -608,7 +616,7 @@ jobs:
     name: SBOMs and the GitHub release${{ !(github.event_name == 'push' && github.ref_type == 'tag') && ' (dry run)' || '' }}
     needs: [guard, publish-crates, publish-npm]
     if: ${{ !cancelled() && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       # gh release create.
@@ -656,7 +664,7 @@ jobs:
     name: The published version on npm and crates.io (Rust binary)
     needs: [guard, publish-crates, publish-npm]
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -675,7 +683,7 @@ jobs:
     name: verify-install from the registries (${{ matrix.name }})
     needs: [guard, registry-ready]
     if: ${{ !cancelled() && needs.registry-ready.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -697,6 +705,8 @@ jobs:
       - uses: ./.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
+      # verify-install's Chromium check (a Vite app in Playwright's Chromium).
+      - uses: ./.github/actions/playwright-deps
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       - env:
@@ -712,7 +722,7 @@ jobs:
     name: Require the production docs credentials
     needs: [publish-crates, publish-npm, github-release, verify-registry]
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.publish-crates.result == 'success' && needs.publish-npm.result == 'success' && needs.github-release.result == 'success' && needs.verify-registry.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Refuse to skip the production deploy
@@ -743,7 +753,7 @@ jobs:
     name: Merge the published version back to main
     needs: [guard, docs]
     if: ${{ !cancelled() && github.event_name == 'push' && github.ref_type == 'tag' && needs.docs.result == 'success' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
