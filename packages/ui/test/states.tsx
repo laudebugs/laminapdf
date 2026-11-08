@@ -22,6 +22,7 @@ import {
   RadioGroup,
   type ReaderState,
   ReaderTopBar,
+  RemoteFailure,
   RepairDetails,
   RepairedNotice,
   SegmentedTabs,
@@ -515,6 +516,23 @@ const repairs: Example[] = [
         onCopy={noop}
       />
     ),
+  },
+  {
+    component: "RemoteFailure",
+    state: "site blocks reading",
+    element: () => (
+      <RemoteFailure
+        reason="cors"
+        url="https://files.example.org/reports/Q3-board-report.pdf"
+        onRetry={noop}
+        onChooseFile={noop}
+      />
+    ),
+  },
+  {
+    component: "RemoteFailure",
+    state: "unencoded link",
+    element: () => <RemoteFailure reason="not-encoded" onChooseFile={noop} onHome={noop} />,
   },
 ];
 

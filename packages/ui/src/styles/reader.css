@@ -462,6 +462,11 @@
     font-weight: 600;
   }
 
+  /* Open the link in a new tab: a link drawn as the primary button, so without a link's underline. */
+  .paper-failure-actions a.paper-button {
+    text-decoration: none;
+  }
+
   /* "Choose the downloaded file": a button that reads as a link in the sentence. */
   .paper-failure-link {
     padding: 0;
