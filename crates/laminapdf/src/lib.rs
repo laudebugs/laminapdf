@@ -114,6 +114,8 @@ mod generated {
 mod job;
 #[cfg(feature = "extract")]
 mod redaction;
+#[cfg(feature = "extract")]
+pub mod reveal;
 mod revisions;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
