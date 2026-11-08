@@ -3,21 +3,13 @@ title: Edit a PDF
 description: Change an existing PDF in transactions you can undo, and replay edits stored as JSON.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll open a PDF, change its title and author, and save the edit after the original bytes. You need this whenever your app changes a file someone gave it: a corrected title, a rotated scan, a report marked final.
 
 This example generates a draft report, opens its bytes and retitles it in one transaction. Then it saves incrementally, which keeps the draft's bytes at the start of the result, unchanged:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/generate-then-edit.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/generate_then_edit.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/generate-then-edit.ts" rust="crates/laminapdf/examples/generate_then_edit.rs" result="generate_then_edit" />
 
 [See the output](/recipes/generate-then-edit/).
 

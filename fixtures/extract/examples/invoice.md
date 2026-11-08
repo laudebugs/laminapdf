@@ -1,0 +1,13 @@
+<!-- page 1 -->
+
+# Invoice 42
+
+Acme Widgets Ltd · 1 Example Street · London
+
+| Widgets, blue (W-100) | 3 | € 36.00 |
+| --- | --- | --- |
+| Gadget with fine-tuned dials | 1 | € 79.90 |
+| Café-grade sprockets | 12 | € 15.00 |
+| Delivery | 1 | € 4.50 |
+
+Total € 135.40

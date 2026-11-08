@@ -3,8 +3,7 @@ title: Links, outlines and metadata
 description: Add links, named destinations, an outline, page labels, viewer preferences and metadata to a document.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll make a document readers can find their way around: links between pages and to the web, an outline (the bookmarks panel), page numbers that read i, ii, 1, 2, and a title. You need this for any document longer than a page or two.
 
@@ -26,14 +25,7 @@ You'll make a document readers can find their way around: links between pages an
 
 This example builds four pages that link to each other and to the web, with an outline, page labels and the outline shown on open. It draws its labels as text, so it needs the text module. It sets no metadata ([Edit a PDF](/guides/edit-a-pdf/) does). The example:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/links-and-outlines.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/links_and_outlines.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/links-and-outlines.ts" rust="crates/laminapdf/examples/links_and_outlines.rs" result="links_and_outlines" />
 
 [See the output](/recipes/links-and-outlines/).
 

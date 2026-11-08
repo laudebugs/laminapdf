@@ -5,13 +5,13 @@ sidebar:
   order: 2
 ---
 
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 In Node, `@laminapdf/sdk` reads its `.wasm` files from the `@laminapdf/wasm` package as bytes. Call `await init({ text: true })` once; after that, every call is synchronous.
 
 This app builds one A4 page that says "Hello, world!" and writes it to `hello.pdf`:
 
-<Snippet file="packages/sdk/examples/quick-start/node.ts" />
+<Example ts="packages/sdk/examples/quick-start/node.ts" result="hello" />
 
 Save it as `hello.ts` in a project with `@laminapdf/sdk` [installed](/install/), and run it with Node 24.2 or newer, which runs TypeScript files as they are:
 

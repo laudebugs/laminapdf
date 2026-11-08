@@ -3,18 +3,14 @@ title: Extract text for an LLM
 description: Turn a PDF into Markdown in reading order, JSON with a box for every block, and chunks sized for retrieval, in TypeScript and Rust.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Diagram from "../../../components/Diagram.astro";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll turn a PDF into three outputs an LLM or a search index can use: Markdown in reading order, JSON giving every paragraph and table its page and box, and 400-token chunks.
 
 In TypeScript the function returns the three outputs and needs the extract module, `init({ extract: true })`. In Rust, the program instead extracts once and writes the three files. Both give the same JSON:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/extract-markdown.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/extract_markdown.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/extract-markdown.ts" rust="crates/laminapdf/examples/extract_markdown.rs" output="fixtures/extract/examples/invoice.md" />
 
 Run the Rust program on any PDF: `cargo run -p laminapdf --example extract_markdown -- report.pdf out`.
 

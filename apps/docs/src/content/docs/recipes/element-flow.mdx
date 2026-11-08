@@ -3,19 +3,15 @@ title: Element flow
 description: A report whose title, paragraphs and photo each start below wherever the one before ended, with a body that continues on a new page.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll lay out a report where each part starts below wherever the part before it ended: a title, a summary, optional notes, a photo and a body that runs onto a second page. Use it when the length of your text changes from one document to the next.
 
 The function takes a JPEG's bytes and the report's text, and returns the PDF's bytes. In TypeScript it draws text, so it needs `init({ text: true })`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/element-flow.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/element_flow.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/element-flow.ts" rust="crates/laminapdf/examples/element_flow.rs" result="element_flow" />
 
-The result is two A5 pages. The body fills the first page below the photo and finishes at the top of the second: [open the reference PDF](/examples/pdf/element_flow.pdf).
+The result is two A5 pages. The body fills the first page below the photo and finishes at the top of the second. The Result tab shows it, with a link to the PDF.
 
 ## How it works
 
