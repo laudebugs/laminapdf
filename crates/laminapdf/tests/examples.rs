@@ -7,6 +7,9 @@
 #![expect(clippy::panic, reason = "test helper: a panic is a test failure")]
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/element_flow.rs"]
+mod element_flow;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_markdown.rs"]
 mod extract_markdown;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -40,9 +43,12 @@ mod pdf_ua_report;
 #[path = "../examples/snapshot_test.rs"]
 mod snapshot_test;
 
+mod common;
+
 use std::error::Error;
 use std::path::Path;
 
+use common::FlowReport;
 use laminapdf::{BuildOptions, Builder};
 use pdf_a_archive::Level;
 use sha2::{Digest, Sha256};
@@ -64,6 +70,7 @@ const MULTILINGUAL_ID: &[u8; 16] = b"lamina-ex-multil";
 const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
 const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
 const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
+const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -83,7 +90,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 10] = [
+const EXAMPLES: [(&str, Build); 11] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -105,6 +112,9 @@ const EXAMPLES: [(&str, Build); 10] = [
     }),
     ("pdf_a3_invoice_with_xml", || {
         pdf_a3_invoice_with_xml::build(fixture(NOTO))
+    }),
+    ("element_flow", || {
+        element_flow::build(options(FLOW_ID)?, fixture(PHOTO), &FlowReport::load().as_report())
     }),
 ];
 
