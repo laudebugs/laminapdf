@@ -52,6 +52,8 @@ Every request for the file omits cookies and the referrer and skips the browser'
 
 ## Headers and hosting
 
+The reader shows the website's icon. `vite.config.ts` copies `favicon.svg`, `favicon-32.png` and `apple-touch-icon.png` from `apps/site/public/` into the build, and serves them in development. `index.html` links them as the website and the docs site do, and `test/icons.test.ts` checks both.
+
 `wrangler.jsonc` serves `dist/` as static assets, answers unknown paths with the app, and has no `main` script. `public/_headers` sets [ADR 0011 §4](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-)'s headers on every response:
 
 - **A strict Content Security Policy.** Scripts, styles, fonts, workers and WebAssembly come only from the app's own origin, and nothing inline runs. `'wasm-unsafe-eval'` is the one exception, because compiling WebAssembly needs it. React Aria would add one inline style for pressable elements, so `src/main.tsx` claims that style's ID and `src/app.css` carries its rule instead.
