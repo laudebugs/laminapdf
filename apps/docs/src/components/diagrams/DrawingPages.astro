@@ -6,7 +6,6 @@
 import Arrow from "./kit/Arrow.astro";
 import Box from "./kit/Box.astro";
 import type { DrawingProps } from "./kit/drawing.ts";
-import Label from "./kit/Label.astro";
 import Lane from "./kit/Lane.astro";
 import Markers from "./kit/Markers.astro";
 import Svg from "./kit/Svg.astro";
@@ -25,9 +24,9 @@ const narrow = `${prefix}-narrow`;
   <Arrow d="M116 142 V218 H136" prefix={wide} focus />
 
   <Lane x={124} y={16} w={596} h={120} title="Drawing" />
-  <Box x={140} y={50} w={196} h={56} label="Render request" sub="page, scale, clip, rotation" />
-  <Arrow d="M336 78 H352" prefix={wide} />
-  <Box x={356} y={50} w={96} h={56} label="Tile plan" sub="pixel size" />
+  <Box x={140} y={50} w={204} h={56} label="Render request" sub="page, scale, clip, rotation" />
+  <Arrow d="M344 78 H360" prefix={wide} />
+  <Box x={364} y={50} w={88} h={56} label="Tile plan" sub="pixel size" />
   <Arrow d="M452 78 H468" prefix={wide} />
   <Box x={472} y={50} w={120} h={56} label="Renderer" sub="PDFium or hayro" />
   <Arrow d="M592 78 H608" prefix={wide} />
@@ -47,8 +46,7 @@ const narrow = `${prefix}-narrow`;
   <Arrow d="M160 60 H242 V84" prefix={narrow} focus />
 
   <Lane x={0} y={88} w={156} h={334} title="Drawing" />
-  <Box x={8} y={124} w={140} h={76} label="Render request" sub="page, scale," />
-  <Label x={78} y={196} text="clip, rotation" kind="sub" anchor="middle" />
+  <Box x={8} y={124} w={140} h={76} label="Render request" sub="page, scale," sub2="clip, rotation" />
   <Arrow d="M78 200 V214" prefix={narrow} />
   <Box x={8} y={218} w={140} h={52} label="Tile plan" sub="pixel size" />
   <Arrow d="M78 270 V284" prefix={narrow} />
