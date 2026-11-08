@@ -116,12 +116,14 @@ export async function openDocument(
   open = { id: nextDocument++, model, render };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);
+  const title = model.info.title?.trim();
   return {
     pageCount: model.pageCount,
     pages: model.pages,
     id: open.id,
     needsPassword,
     backend: { name: engine.name, version: engine.version },
+    ...(title === undefined || title === "" ? {} : { title }),
   };
 }
 
