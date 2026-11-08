@@ -4,6 +4,10 @@ packages:
   - packages/*
   - apps/*
 
+# Run package scripts through pnpm's cross-platform shell, so `VAR=1 astro build` and `&&` work
+# on Windows too, where scripts would otherwise run in cmd.exe (todo X6).
+shellEmulator: true
+
 # Install scripts that may run. esbuild's postinstall only re-checks the platform binary that
 # its optional dependency already installed, so it stays off; so do deno's (its bin.cjs runs the
 # binary of its optional dependency) and workerd's (wrangler finds the binary itself). bun's
