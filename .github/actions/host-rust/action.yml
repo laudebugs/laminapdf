@@ -1,14 +1,8 @@
-# The Rust toolchain pinned in rust-toolchain.toml, bare: no components or cross targets, for
-# jobs that only build xtask for the host. `toolchain` makes setup-rust-toolchain skip
-# rust-toolchain.toml's components and targets, and RUSTUP_TOOLCHAIN makes cargo use that bare
-# toolchain instead of installing them; the version is still read from rust-toolchain.toml.
-# RUSTUP_TOOLCHAIN replaces the action's `rustup override set`, which would outlive the job on
-# a self-hosted runner. Run isolate-rust-home first on self-hosted runners.
 name: Host-only Rust toolchain
 description: Install the pinned Rust version without components or cross targets.
 inputs:
   cache:
-    description: Use rust-cache (only on GitHub-hosted runners; see ci.yml).
+    description: Restore Rust dependencies; only main saves the cache.
     required: true
 runs:
   using: composite
@@ -27,6 +21,9 @@ runs:
     - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
       with:
         cache: ${{ inputs.cache }}
+        cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+        cache-key: ${{ runner.os }}-${{ runner.arch }}
+        cache-bin: false
         toolchain: ${{ steps.rust.outputs.channel }}
         components: ""
         target: ""

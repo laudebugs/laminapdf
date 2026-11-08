@@ -932,6 +932,36 @@
       "summary": "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
       "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job",
       "since": "0.1.0"
+    },
+    {
+      "code": "revision-index-out-of-range",
+      "kind": "usage",
+      "summary": "an earlier revision was asked for by an index past the file's last revision",
+      "hint": "ask for an index below the document's revision count",
+      "since": "0.2.0"
+    }
+  ],
+  "facadeWarnings": [
+    {
+      "code": "covered-text",
+      "kind": "security",
+      "summary": "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file",
+      "hint": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
+      "since": "0.2.0"
+    },
+    {
+      "code": "redaction-not-applied",
+      "kind": "security",
+      "summary": "a page has redaction marks that were never applied, so the text under them is still in the file",
+      "hint": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
+      "since": "0.2.0"
+    },
+    {
+      "code": "text-in-earlier-revision",
+      "kind": "security",
+      "summary": "an earlier revision of the file holds text that the latest revision no longer has",
+      "hint": "save the file as a full rewrite, which keeps only the latest revision",
+      "since": "0.2.0"
     }
   ],
   "bindingErrors": [
