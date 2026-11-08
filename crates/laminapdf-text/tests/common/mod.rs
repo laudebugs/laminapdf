@@ -33,6 +33,11 @@ pub fn font(name: &str) -> Font {
     Font::from_bytes(laminapdf_test_fixtures::fixture(&format!("fonts/{name}"))).unwrap()
 }
 
+/// Noto Sans Bold: member 1 of the fixture collection `NotoSans-RegularBold.ttc`.
+pub fn bold() -> Font {
+    Font::from_collection(laminapdf_test_fixtures::fixture("fonts/NotoSans-RegularBold.ttc"), 1).unwrap()
+}
+
 /// Noto Sans, the Latin TrueType font most tests draw with.
 pub fn latin() -> Font {
     font("NotoSans-Regular.ttf")

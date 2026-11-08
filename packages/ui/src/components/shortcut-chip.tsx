@@ -2,7 +2,7 @@
 // together in its modifier order (⌥⌘E); Windows and Linux spell the modifiers out with spaces
 // (Ctrl Shift E). The app says which platform it runs on, so this component never checks.
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Keyboard } from "react-aria-components";
 
 /**
@@ -59,10 +59,18 @@ const KEYS: Record<string, { mac: string; other: string }> = {
 };
 
 /**
- * `"Mod+Shift+E"` written for `platform`: `⇧⌘E` or `Ctrl Shift E`. A modifier this table doesn't
- * know is kept, as written, before the key, so the chip never shows fewer keys than the binding.
+ * Glyphs that Lamina Sans draws below the middle of its capitals (⌘, and the arrows, which sit on
+ * the maths axis). The chip lifts them by `--paper-shortcut-chip-glyph-lift` so each key lines up
+ * with the letters beside it.
  */
-function keysText(keys: string, platform: KeyPlatform): string {
+const LOW_GLYPHS = new Set(["⌘", "↑", "↓", "←", "→"]);
+
+/**
+ * `"Mod+Shift+E"` written for `platform`, one entry per key: `⇧`, `⌘`, `E`, or `Ctrl`, `Shift`, `E`.
+ * A modifier this table doesn't know is kept, as written, before the key, so the chip never shows
+ * fewer keys than the binding.
+ */
+function keyNames(keys: string, platform: KeyPlatform): string[] {
   // Split on each "+" that has something after it, so "Mod++" is Mod and "+".
   const parts = keys.split(/\+(?=.)/);
   const key = parts.pop() ?? "";
@@ -77,8 +85,7 @@ function keysText(keys: string, platform: KeyPlatform): string {
   const named = KEYS[key.toLowerCase()];
   const last = named?.[platform] ?? key.charAt(0).toUpperCase() + key.slice(1);
   // Windows writes Ctrl once, whether it came from Ctrl or Mod.
-  const words = [...new Set(modifiers), ...unknown, last];
-  return platform === "mac" ? words.join("") : words.join(" ");
+  return [...new Set(modifiers), ...unknown, last];
 }
 
 /** Props of `ShortcutChip`. */
@@ -91,8 +98,24 @@ export interface ShortcutChipProps {
 
 /**
  * A shortcut chip: the keys in a small bordered `<kbd>`, tabular. It is React Aria's `Keyboard`,
- * so inside a menu item it describes the item (`aria-describedby`).
+ * so inside a menu item it describes the item (`aria-describedby`). Each key is a span: macOS
+ * writes its keys with no space between them (`⌘V`), and the CSS keeps them apart; elsewhere a
+ * space separates them, so the chip's text reads the same as the platform writes it.
  */
 export function ShortcutChip({ keys, platform }: ShortcutChipProps): ReactNode {
-  return <Keyboard className="paper-shortcut-chip">{keysText(keys[platform], platform)}</Keyboard>;
+  const names = keyNames(keys[platform], platform);
+  return (
+    <Keyboard className="paper-shortcut-chip" data-platform={platform}>
+      {names.map((name, i) => (
+        // Keys repeat only when a binding names one twice, which is harmless.
+        // biome-ignore lint/suspicious/noArrayIndexKey: the keys never reorder.
+        <Fragment key={i}>
+          {platform === "other" && i > 0 ? " " : null}
+          <span className="paper-shortcut-chip-key" data-low={LOW_GLYPHS.has(name) || undefined}>
+            {name}
+          </span>
+        </Fragment>
+      ))}
+    </Keyboard>
+  );
 }

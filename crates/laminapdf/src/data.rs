@@ -165,6 +165,7 @@ fn text(e: &laminapdf_text::Error) -> Data {
         E::InvalidTextRange { start, end, len } => {
             data([("start", json!(start)), ("end", json!(end)), ("len", json!(len))])
         }
+        E::InvalidSpans { at } => data([("at", json!(at))]),
         E::UnsupportedLayoutOption { option } => data([("option", json!(option))]),
         E::FontMismatch { font, shaped_with } => data([("font", json!(font)), ("shaped_with", json!(shaped_with))]),
         E::FontNotShapable { font } => data([("font", json!(font))]),

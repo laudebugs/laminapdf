@@ -190,6 +190,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             end: 1,
             len: 0,
         }),
+        Error::from(T::InvalidSpans { at: 0 }),
         Error::from(T::UnsupportedLayoutOption { option: "o" }),
         Error::from(T::FontMismatch {
             font: s(),

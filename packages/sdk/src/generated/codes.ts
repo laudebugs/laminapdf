@@ -59,6 +59,7 @@ export type ErrorCode =
   | "wrong-document"
   | "invalid-feature"
   | "invalid-text-range"
+  | "invalid-spans"
   | "unsupported-layout-option"
   | "font-mismatch"
   | "encoding-full"
@@ -239,6 +240,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "wrong-document",
   "invalid-feature",
   "invalid-text-range",
+  "invalid-spans",
   "unsupported-layout-option",
   "font-mismatch",
   "encoding-full",
@@ -448,6 +450,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "wrong-document": "usage",
   "invalid-feature": "usage",
   "invalid-text-range": "usage",
+  "invalid-spans": "usage",
   "unsupported-layout-option": "unsupported",
   "font-mismatch": "usage",
   "encoding-full": "limit",
@@ -611,6 +614,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "wrong-document": "use one FontRegistry per document and finish it with that document",
   "invalid-feature": "write it as liga=0, -liga, smcp or aalt=2 (HarfBuzz syntax without ranges)",
   "invalid-text-range": "take ranges from Lamina PDF's results (line_breaks, itemize, break_lines) and pass the same text",
+  "invalid-spans": "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, between grapheme clusters, each with at least one font from the list",
   "unsupported-layout-option": "leave the option at its default; justification comes with a later release",
   "font-mismatch": "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
   "encoding-full": "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",

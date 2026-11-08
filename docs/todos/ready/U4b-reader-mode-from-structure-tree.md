@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [B8a](../done/B8a-structure-tree.md), [C5a](./C5a-text-layer-and-selection.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
+| Depends on | [B8a](../done/B8a-structure-tree.md), [C5a](./C5a-text-layer-and-selection.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
 | ADRs | Follows 0024 (reader mode surface), 0005 (typed views); may propose a `lamina-reflow` crate per [code organization](../../guidelines/code-organization.md) |
 | Branch | `feat/u4b-reader-mode-tagged` |
 | PR title | `feat(reflow): add reader mode for tagged pdfs` |
