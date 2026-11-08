@@ -3,6 +3,8 @@
 pub mod inputs;
 #[cfg(feature = "own")]
 pub mod own;
+#[cfg(feature = "frames")]
+pub mod typst_frames;
 #[cfg(feature = "typst")]
 pub mod typst_pdf;
 #[cfg(feature = "typst")]

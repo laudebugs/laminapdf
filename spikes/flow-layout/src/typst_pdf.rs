@@ -6,6 +6,11 @@ use typst_pdf::{PdfOptions, Timestamp};
 
 use crate::typst_world::MemoryWorld;
 
+/// Lays the document out without exporting it (experiment C draws these frames itself).
+pub fn layout(world: &MemoryWorld) -> Result<typst_layout::PagedDocument, String> {
+    world.compile().output.map_err(|errors| format!("typst: {errors:?}"))
+}
+
 /// What one compile produced, and what it cost.
 pub struct Output {
     pub pdf: Vec<u8>,

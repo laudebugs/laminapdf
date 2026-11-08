@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 
-use lamina_flow_layout::{fonts, inputs, own, repo, typst_pdf, typst_world::MemoryWorld};
+use lamina_flow_layout::{fonts, inputs, own, repo, typst_frames, typst_pdf, typst_world::MemoryWorld};
 
 /// Best of `n` runs, in milliseconds.
 fn best<T>(n: usize, mut f: impl FnMut() -> T) -> (f64, T) {
@@ -69,5 +69,13 @@ fn main() {
             ),
             Err(e) => println!("  lamina: error {} {}", e.code(), e),
         }
+    }
+
+    // Experiment C: Typst's frames drawn through Surface, first page only (the time box).
+    for (name, world) in &worlds {
+        let doc = typst_pdf::layout(world).unwrap();
+        let (pdf, unmapped) = typst_frames::draw(&doc, 1).unwrap();
+        std::fs::write(out.join(format!("c-{name}.pdf")), &pdf).unwrap();
+        println!("C {name} page 1: {} B, {unmapped:?}", pdf.len());
     }
 }
