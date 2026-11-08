@@ -161,14 +161,21 @@ fn split(glyphs: &[Glyph], mask: &[bool], size: Pt, regions: &[LayoutRegion]) ->
         let r = quad_box(&glyph.quad);
         let blank = glyph.text.trim().is_empty();
         if hidden && !blank {
+            // A stretch, like a part, never crosses a column gutter.
             match &mut stretch {
-                Some((words, bbox)) => {
+                Some((words, bbox)) if r.x0.get() - bbox.x1.get() <= gutter => {
                     push_glyph(words, r.x0.get() - bbox.x1.get(), space, &glyph.text);
                     *bbox = bbox.union(&r);
                 }
-                None => stretch = Some((glyph.text.clone(), r)),
+                _ => {
+                    if let Some((words, bbox)) = stretch.replace((glyph.text.clone(), r)) {
+                        covered.push((words.trim_end().to_owned(), bbox));
+                    }
+                }
             }
-            if let Some(part) = kept.last_mut() {
+            if let Some(part) = kept.last_mut()
+                && r.x0.get() - part.reach <= gutter
+            {
                 part.reach = part.reach.max(r.x1.get());
                 part.resumed = true;
             }

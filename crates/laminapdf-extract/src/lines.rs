@@ -99,12 +99,17 @@ pub(crate) fn lines(pieces: &[Piece], covered: &[RectPt]) -> Vec<Line> {
     out
 }
 
-/// Whether a box of `covered` text fills the gap between `prev` and `next`, leaving less than a
-/// gutter on each side, on `prev`'s line.
+/// Whether a box of `covered` text fills the gap between `prev` and `next`, on `prev`'s line:
+/// it lies between them (overlapping either by at most a word space) and leaves less than a
+/// gutter on each side.
 fn bridged(prev: &Piece, next: &Piece, covered: &[RectPt], gutter: f64) -> bool {
+    let slack = SPACE * prev.size.get().max(next.size.get());
+    let (left, right) = (prev.bbox.x1.get(), next.bbox.x0.get());
     covered.iter().any(|c| {
         let level = c.y0 < prev.bbox.y1 && prev.bbox.y0 < c.y1;
-        level && c.x0.get() - prev.bbox.x1.get() <= gutter && next.bbox.x0.get() - c.x1.get() <= gutter
+        let (x0, x1) = (c.x0.get(), c.x1.get());
+        let between = x0 >= left - slack && x1 <= right + slack;
+        level && between && x0 - left <= gutter && right - x1 <= gutter
     })
 }
 

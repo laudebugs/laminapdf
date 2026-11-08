@@ -303,3 +303,86 @@ fn no_fixture_has_covered_text() {
         assert_eq!(covered(&out), Vec::<&Dropped>::new(), "{}", path.display());
     }
 }
+
+// Review round 1.
+
+#[test]
+fn an_l_shape_covers_nothing_in_its_notch() {
+    // The L's box holds "John Smith", but the notch at its top right is left unpainted.
+    let l = b"0 g 95 694 m 157 694 l 157 700 l 100 700 l 100 710 l 95 710 l f";
+    kept(&page(&content(&[SENTENCE, l]), "", "", &[]));
+}
+
+#[test]
+fn a_pattern_fill_covers_nothing() {
+    kept(&page(
+        &content(&[SENTENCE, b"/Pattern cs /P1 scn", BOX]),
+        "/Pattern << /P1 << /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceGray \
+         /Coords [0 0 1 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >> >> >>",
+        "",
+        &[],
+    ));
+}
+
+#[test]
+fn a_scan_stored_as_strips_covers_nothing() {
+    // Two images, each half the page, drawn over the text layer.
+    let image = stream_body(
+        "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8",
+        b"\x80",
+    );
+    let doc = page(
+        &content(&[
+            SENTENCE,
+            b"q 600 0 0 400 0 0 cm /Im1 Do Q q 600 0 0 400 0 400 cm /Im1 Do Q",
+        ]),
+        "/XObject << /Im1 7 0 R >>",
+        "",
+        &[image],
+    );
+    kept(&doc);
+}
+
+#[test]
+fn an_annotation_in_optional_content_or_another_blend_mode_covers_nothing() {
+    kept(&square("/OC << /Type /OCG /Name (Layer) >>"));
+    kept(&square("/BM /Multiply"));
+}
+
+#[test]
+fn a_cover_far_past_the_page_is_cut_to_it() {
+    // Without the cut, the grid index would hold 1e11 cells.
+    let doc = page(
+        &content(&[SENTENCE, b"0 g -10000000 -10000000 20000000 20000000 re f"]),
+        "",
+        "",
+        &[],
+    );
+    let (texts, chars) = read(&doc);
+    assert_eq!((texts.len(), chars), (0, vec![16]));
+}
+
+#[test]
+fn a_cover_past_a_gutter_never_joins_the_columns() {
+    // One run: "Left" at x 50, then the pen jumps 250 pt to "SECRET more", with "SECRET"
+    // under a box.
+    let doc = page(
+        b"BT /F1 10 Tf 50 700 Td [(Left) -25000 (SECRET more)] TJ ET 0 g 314 694 46 16 re f",
+        "",
+        "",
+        &[],
+    );
+    assert_eq!(read(&doc).0, ["Left", "more"]);
+}
+
+#[test]
+fn a_cover_away_from_a_gap_adds_no_space_to_it() {
+    // "here" and "." are runs of their own that touch; the box sits over "SECRET" before them.
+    let doc = page(
+        b"BT /F1 12 Tf 72 700 Td (The SECRET was here) Tj /F2 12 Tf (.) Tj ET 0 g 94 694 56 16 re f",
+        "",
+        "",
+        &[],
+    );
+    assert_eq!(read(&doc).0, ["The was here."]);
+}

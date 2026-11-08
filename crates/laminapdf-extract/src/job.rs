@@ -377,12 +377,15 @@ impl ExtractJob {
     ) -> Result<Pending, ExtractError> {
         let frame = page.frame()?;
         let mut painted = Painted {
-            paint: Collector::new(&frame),
+            paint: Collector::new(&frame, self.options.tables != TableMode::Off),
             backdrops: Backdrops::new(&frame),
         };
         let text = self.extractor.page_with(doc, page, &mut painted)?;
         let (edges, mut covers) = painted.paint.finish();
-        covers.extend(annots::covers(doc, page, &frame)?);
+        covers.extend(annots::covers(doc, page, &frame, &self.cancel)?);
+        if self.cancel.is_cancelled() {
+            return Err(ExtractError::Cancelled);
+        }
         let edges = (self.options.tables != TableMode::Off).then_some(edges);
         let mut pending = Pending {
             index,

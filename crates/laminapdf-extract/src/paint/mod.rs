@@ -13,11 +13,11 @@
 
 pub(crate) mod annots;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_content::{
-    FormXObject, GraphicsState, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment, ShadingPaint,
-    Visitor, transformed_box,
+    ColorSpace, FormXObject, GraphicsState, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
+    ShadingPaint, Visitor, transformed_box,
 };
 use laminapdf_model::{BlendMode, Matrix, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 use laminapdf_syntax::{Dict, Object};
@@ -84,7 +84,7 @@ struct Path {
     segments: Vec<(PointPt, PointPt, usize)>,
     rects: Vec<RectPt>,
     starts: BTreeMap<usize, PointPt>,
-    curved: Vec<usize>,
+    curved: BTreeSet<usize>,
     subpath: usize,
     start: Option<PointPt>,
     current: Option<PointPt>,
@@ -93,6 +93,22 @@ struct Path {
 /// Whether the segment from `a` to `b` is horizontal or vertical.
 fn on_axis(a: PointPt, b: PointPt) -> bool {
     (a.x.get() - b.x.get()).abs() <= AXIS_TOLERANCE || (a.y.get() - b.y.get()).abs() <= AXIS_TOLERANCE
+}
+
+/// A subpath of straight horizontal and vertical sides, as its bounding box.
+struct Polygon {
+    rect: RectPt,
+    /// Whether it fills exactly its box: every point a corner of the box, and the side that
+    /// closes it (back to its start, as a fill closes it) on an axis too. An L, a U or a frame
+    /// drawn as one subpath doesn't.
+    rectangle: bool,
+}
+
+/// Whether `p` is one of `r`'s corners.
+fn at_corner(p: PointPt, r: &RectPt) -> bool {
+    let near = |a: f64, b: f64| (a - b).abs() <= AXIS_TOLERANCE;
+    let (x, y) = (p.x.get(), p.y.get());
+    (near(x, r.x0.get()) || near(x, r.x1.get())) && (near(y, r.y0.get()) || near(y, r.y1.get()))
 }
 
 impl Path {
@@ -105,44 +121,60 @@ impl Path {
         self.current = self.start;
     }
 
-    /// Each subpath of straight horizontal and vertical sides, as its bounding box, with
-    /// whether the side that closes it (back to its start, as a fill closes it) is on an axis
-    /// too: only then is the box the area filled.
-    fn polygons(&self) -> Vec<(RectPt, bool)> {
-        let mut boxes: BTreeMap<usize, (f64, f64, f64, f64, bool, PointPt)> = BTreeMap::new();
+    /// Each subpath of straight horizontal and vertical sides.
+    fn polygons(&self) -> Vec<Polygon> {
+        let mut subpaths: BTreeMap<usize, Vec<(PointPt, PointPt)>> = BTreeMap::new();
         for &(a, b, n) in &self.segments {
-            let axis = on_axis(a, b);
-            let e = boxes.entry(n).or_insert((
-                f64::INFINITY,
-                f64::INFINITY,
-                f64::NEG_INFINITY,
-                f64::NEG_INFINITY,
-                true,
-                a,
-            ));
-            for p in [a, b] {
-                *e = (
-                    e.0.min(p.x.get()),
-                    e.1.min(p.y.get()),
-                    e.2.max(p.x.get()),
-                    e.3.max(p.y.get()),
-                    e.4 && axis,
-                    b,
-                );
-            }
+            subpaths.entry(n).or_default().push((a, b));
         }
-        boxes
+        subpaths
             .into_iter()
-            .filter(|(n, b)| b.4 && !self.curved.contains(n))
-            .map(|(n, (x0, y0, x1, y1, _, end))| {
-                let closes_on_axis = self.starts.get(&n).is_none_or(|&start| on_axis(end, start));
-                (
-                    RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1)),
-                    closes_on_axis,
-                )
+            .filter(|(n, sides)| !self.curved.contains(n) && sides.iter().all(|&(a, b)| on_axis(a, b)))
+            .filter_map(|(n, sides)| {
+                let points = || sides.iter().flat_map(|&(a, b)| [a, b]);
+                let rect = points()
+                    .map(|p| RectPt::new(p.x, p.y, p.x, p.y))
+                    .reduce(|a, b| a.union(&b))?;
+                let end = sides.last().map(|&(_, b)| b);
+                let closes = match (self.starts.get(&n), end) {
+                    (Some(&start), Some(end)) => on_axis(end, start),
+                    _ => true,
+                };
+                let rectangle = closes && points().all(|p| at_corner(p, &rect));
+                Some(Polygon { rect, rectangle })
             })
             .collect()
     }
+}
+
+/// Which of `boxes` hold, or lie in, another of them: a filled path drawn as boxes inside
+/// boxes may be a frame with a hole (`f*`). A sweep in x, so boxes side by side (a page of
+/// redactions, a QR code) cost little.
+fn nested(boxes: &[RectPt]) -> Vec<bool> {
+    let holds = |a: &RectPt, b: &RectPt| a.x0 <= b.x0 && a.y0 <= b.y0 && b.x1 <= a.x1 && b.y1 <= a.y1;
+    let mut order: Vec<usize> = (0..boxes.len()).collect();
+    order.sort_by(|&i, &j| {
+        let x0 = |k: usize| boxes.get(k).map_or(0.0, |b| b.x0.get());
+        x0(i).total_cmp(&x0(j))
+    });
+    let mut out = vec![false; boxes.len()];
+    for (at, &i) in order.iter().enumerate() {
+        let Some(a) = boxes.get(i) else { continue };
+        for &j in order.iter().skip(at + 1) {
+            let Some(b) = boxes.get(j) else { continue };
+            if b.x0 > a.x1 {
+                break;
+            }
+            if holds(a, b) || holds(b, a) {
+                for k in [i, j] {
+                    if let Some(flag) = out.get_mut(k) {
+                        *flag = true;
+                    }
+                }
+            }
+        }
+    }
+    out
 }
 
 /// A content visitor that gathers a page's rules and covers.
@@ -151,13 +183,20 @@ pub(crate) struct Collector<'f> {
     /// Maps the content's default user space to the page's (an annotation's appearance
     /// matrix; the identity for the page's own content).
     outer: Matrix,
-    /// What the content may paint on (an annotation's `/Rect`); `None` for the whole page.
-    bounds: Option<RectPt>,
+    /// What the content may paint on: the page, or an annotation's `/Rect` on it.
+    bounds: RectPt,
     /// The `after` of every cover: `None` counts paints, `Some` gives every cover that value
     /// (annotations, drawn after the whole page).
     fixed_after: Option<u32>,
+    /// Whether the table rules are wanted.
+    rules: bool,
     edges: Edges,
     covers: Vec<Cover>,
+    /// The images' covers, kept apart until [`Collector::finish`] knows whether the images
+    /// together are a scan.
+    image_covers: Vec<Cover>,
+    /// The page area the images paint (overlaps counted twice).
+    image_area: f64,
     path: Path,
     paints: u32,
     /// For each open marked-content sequence, whether it is optional content (`/OC`).
@@ -168,14 +207,18 @@ pub(crate) struct Collector<'f> {
 }
 
 impl<'f> Collector<'f> {
-    pub(crate) fn new(frame: &'f PageFrame) -> Self {
+    /// A collector for a page's own content, gathering its table rules when `rules` is set.
+    pub(crate) fn new(frame: &'f PageFrame, rules: bool) -> Self {
         Self {
             frame,
             outer: Matrix::IDENTITY,
-            bounds: None,
+            bounds: RectPt::new(Pt::ZERO, Pt::ZERO, frame.width(), frame.height()),
             fixed_after: None,
+            rules,
             edges: Edges::default(),
             covers: Vec::new(),
+            image_covers: Vec::new(),
+            image_area: 0.0,
             path: Path::default(),
             paints: 0,
             marked: Vec::new(),
@@ -186,16 +229,26 @@ impl<'f> Collector<'f> {
     /// A collector for an annotation's appearance: content mapped by `outer` and kept inside
     /// `bounds`, every cover drawn after the page.
     pub(crate) fn appearance(frame: &'f PageFrame, outer: Matrix, bounds: RectPt) -> Self {
-        Self {
-            outer,
-            bounds: Some(bounds),
-            fixed_after: Some(u32::MAX),
-            ..Self::new(frame)
-        }
+        let mut collector = Self::new(frame, false);
+        collector.outer = outer;
+        collector.bounds =
+            intersect(&bounds, &collector.bounds).unwrap_or(RectPt::new(Pt::ZERO, Pt::ZERO, Pt::ZERO, Pt::ZERO));
+        collector.fixed_after = Some(u32::MAX);
+        collector
     }
 
-    /// The rules and the covers.
-    pub(crate) fn finish(self) -> (Edges, Vec<Cover>) {
+    /// The rules and the covers. Images that together paint at least 90% of the page are a
+    /// scan, whose text layer they don't cover, even when the scan is stored as strips.
+    pub(crate) fn finish(mut self) -> (Edges, Vec<Cover>) {
+        let page = area(&RectPt::new(
+            Pt::ZERO,
+            Pt::ZERO,
+            self.frame.width(),
+            self.frame.height(),
+        ));
+        if self.image_area < SCAN_SHARE * page {
+            self.covers.append(&mut self.image_covers);
+        }
         (self.edges, self.covers)
     }
 
@@ -220,51 +273,29 @@ impl<'f> Collector<'f> {
         self.marked.iter().chain(&self.forms).any(|&h| h)
     }
 
-    /// Records `rect` as a cover painted after `after` paints, cut to the clip and the bounds.
-    fn cover(&mut self, rect: RectPt, after: u32, state: &GraphicsState) {
-        let mut rect = Some(rect);
+    /// `rect` as a cover painted after `after` paints, cut to the clip and the bounds; `None`
+    /// when nothing is left.
+    fn cut(&self, rect: RectPt, after: u32, state: &GraphicsState) -> Option<Cover> {
+        let mut rect = intersect(&rect, &self.bounds)?;
         if let Some(clip) = state.clip_box {
-            let clip = self.page_rect(&clip);
-            rect = rect.and_then(|r| intersect(&r, &clip));
+            rect = intersect(&rect, &self.page_rect(&clip))?;
         }
-        if let Some(bounds) = self.bounds {
-            rect = rect.and_then(|r| intersect(&r, &bounds));
-        }
-        if let Some(rect) = rect {
-            self.covers.push(Cover {
-                rect,
-                after: self.fixed_after.unwrap_or(after),
-            });
-        }
+        Some(Cover {
+            rect,
+            after: self.fixed_after.unwrap_or(after),
+        })
     }
 
-    /// The covers of a filled path: its rectangles and closed axis-aligned polygons. A box
-    /// holding another box of the same path may be a frame with a hole (`f*`), so neither
-    /// covers.
-    fn fill_covers(&mut self, after: u32, state: &GraphicsState) {
+    /// The covers of a filled path: its rectangles and the subpaths that fill exactly their
+    /// box. A box holding another box of the same path, or lying in one, covers nothing.
+    fn fill_covers(&mut self, polygons: &[Polygon], after: u32, state: &GraphicsState) {
         let mut boxes: Vec<RectPt> = self.path.rects.clone();
-        boxes.extend(
-            self.path
-                .polygons()
-                .into_iter()
-                .filter(|(_, closed)| *closed)
-                .map(|(r, _)| r),
-        );
-        let holds = |a: &RectPt, b: &RectPt| a.x0 <= b.x0 && a.y0 <= b.y0 && b.x1 <= a.x1 && b.y1 <= a.y1;
-        let nested = |i: usize, r: &RectPt| {
-            boxes
-                .iter()
-                .enumerate()
-                .any(|(j, o)| j != i && (holds(r, o) || holds(o, r)))
-        };
-        let keep: Vec<RectPt> = boxes
-            .iter()
-            .enumerate()
-            .filter(|(i, r)| !nested(*i, r))
-            .map(|(_, r)| *r)
-            .collect();
-        for rect in keep {
-            self.cover(rect, after, state);
+        boxes.extend(polygons.iter().filter(|p| p.rectangle).map(|p| p.rect));
+        let nested = nested(&boxes);
+        for (rect, _) in boxes.into_iter().zip(nested).filter(|(_, n)| !n) {
+            if let Some(cover) = self.cut(rect, after, state) {
+                self.covers.push(cover);
+            }
         }
     }
 
@@ -288,10 +319,7 @@ impl<'f> Collector<'f> {
             return None;
         }
         let far = self.page(m, 1.0, 1.0);
-        let rect = RectPt::new(o.x, o.y, far.x, far.y);
-        let page = RectPt::new(Pt::ZERO, Pt::ZERO, self.frame.width(), self.frame.height());
-        let on_page = intersect(&rect, &page)?;
-        (area(&on_page) < SCAN_SHARE * area(&page)).then_some(rect)
+        Some(RectPt::new(o.x, o.y, far.x, far.y))
     }
 }
 
@@ -313,7 +341,7 @@ impl Visitor for Collector<'_> {
                 self.path.current = Some(p);
             }
             PathSegment::CurveTo { end, .. } => {
-                self.path.curved.push(self.path.subpath);
+                self.path.curved.insert(self.path.subpath);
                 self.path.current = Some(self.page(ctm, end.0, end.1));
             }
             PathSegment::ClosePath => self.path.close(),
@@ -343,23 +371,26 @@ impl Visitor for Collector<'_> {
         if close {
             self.path.close();
         }
-        if stroked {
+        let polygons = if filled { self.path.polygons() } else { Vec::new() };
+        if self.rules && stroked {
             for &(a, b, _) in &self.path.segments {
                 self.edges.add_segment(a, b);
             }
             for r in &self.path.rects {
                 self.edges.add_rect_outline(r);
             }
-        } else if filled {
+        } else if self.rules && filled {
             for r in &self.path.rects {
                 self.edges.add_filled_rect(r);
             }
-            for (r, _) in self.path.polygons() {
-                self.edges.add_filled_rect(&r);
+            for p in &polygons {
+                self.edges.add_filled_rect(&p.rect);
             }
         }
-        if filled && !self.hidden() && opaque(paint.state, paint.state.fill.approx_rgb()) {
-            self.fill_covers(after, paint.state);
+        // A pattern may paint only part of its area (hatching, dots).
+        let solid = !matches!(paint.state.fill.space, ColorSpace::Pattern);
+        if filled && solid && !self.hidden() && opaque(paint.state, paint.state.fill.approx_rgb()) {
+            self.fill_covers(&polygons, after, paint.state);
         }
         self.path = Path::default();
     }
@@ -369,8 +400,12 @@ impl Visitor for Collector<'_> {
         if self.hidden() {
             return;
         }
-        if let Some(rect) = self.image_cover(image) {
-            self.cover(rect, after, image.state);
+        let Some(rect) = self.image_cover(image) else {
+            return;
+        };
+        if let Some(cover) = self.cut(rect, after, image.state) {
+            self.image_area += area(&cover.rect);
+            self.image_covers.push(cover);
         }
     }
 
