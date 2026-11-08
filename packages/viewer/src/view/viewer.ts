@@ -705,10 +705,20 @@ export class Viewer {
     const fitted = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
     const scale = sharpScale(layout.scale, dpr, { width: cssW, height: cssH }, fitted);
     const { width, height } = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
+    // What the canvas shows now, if it is this page in this orientation at another zoom: drawn back
+    // over the low pass, scaled, so a re-zoom never trades sharp pixels for blurry ones.
+    const before = await this.#snapshot(view, layout);
+    if (!live()) {
+      before?.close();
+      this.#drop(low);
+      return false;
+    }
     // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
     canvas.width = width;
     canvas.height = height;
     const drawn = this.#draw(view, low.bitmap, 0, 0, width, height);
+    if (drawn && before !== undefined) this.#draw(view, before, 0, 0, width, height);
+    before?.close();
     this.#release(low);
     // Not drawn (evicted meanwhile): the canvas stays unpainted, and the next frame tries again.
     if (!drawn) return false;
@@ -719,6 +729,16 @@ export class Viewer {
     this.#pruneOtherGeometries(index, layout, new Set([request.scale, scale]));
     this.#emit("renderstats", this.stats());
     return true;
+  }
+
+  /**
+   * A copy of `view`'s canvas when it holds the page in `layout`'s rotation at another zoom (the
+   * pixels the user sees stretched), for #paintLow to draw back at the new size; else undefined.
+   */
+  async #snapshot(view: PageView, layout: PageLayout): Promise<ImageBitmap | undefined> {
+    const canvas = view.canvas;
+    if (canvas === undefined || view.painted === "" || !view.painted.endsWith(`:${layout.rotation}`)) return undefined;
+    return createImageBitmap(canvas);
   }
 
   /** Frees page `index`'s bitmaps of other scales or rotations at once, rather than at the budget. */
