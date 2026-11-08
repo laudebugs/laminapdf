@@ -49,6 +49,7 @@
             "wrong-document",
             "invalid-feature",
             "invalid-text-range",
+            "invalid-spans",
             "unsupported-layout-option",
             "font-mismatch",
             "encoding-full",

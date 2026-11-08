@@ -150,6 +150,7 @@
   --paper-thumbnail-current-offset: 3px;
   --paper-outline-row-padding-block-nested: 5px;
   --paper-shortcut-chip-padding-block: 1px;
+  --paper-shortcut-chip-glyph-lift: 0.75px;
   --paper-dialog-width: 440px;
   --paper-dialog-width-form: 560px;
   --paper-dialog-width-wide: 820px;

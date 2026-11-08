@@ -198,6 +198,44 @@ describe("zoom", () => {
     v.destroy();
   });
 
+  // A trackpad pinch pauses longer than the settle delay between steps, so each pause repaints the
+  // page for its new zoom. That repaint used to fill the canvas with the low-resolution pass, so the
+  // page flickered from sharp to blurry at every pause. It now keeps the sharp pixels it had, scaled.
+  it("keeps the page's sharp pixels, scaled, when it repaints for a new zoom", async () => {
+    const v = await opened({ zoom: 100, dpr: () => 1 });
+    await until(() => v.stats().pages[0] === "sharp");
+    const canvas = () => v.element.querySelector<HTMLCanvasElement>('.lamina-page[data-page-index="0"] canvas');
+    // The sharpest edge along a row through page 0's filled box (40 pt from the left, 40–160 pt down).
+    const edge = () => {
+      const c = canvas();
+      if (c === null) return 0;
+      const s = c.width / 612;
+      const y = Math.round(100 * s);
+      const d = c.getContext("2d")?.getImageData(0, y, Math.round(80 * s), 1).data ?? new Uint8ClampedArray();
+      let max = 0;
+      for (let i = 4; i < d.length; i += 4) {
+        const g =
+          Math.abs((d[i] ?? 0) - (d[i - 4] ?? 0)) +
+          Math.abs((d[i + 1] ?? 0) - (d[i - 3] ?? 0)) +
+          Math.abs((d[i + 2] ?? 0) - (d[i - 2] ?? 0));
+        max = Math.max(max, g);
+      }
+      return max;
+    };
+    const sharp = edge();
+    // The repaint for the new zoom draws, then reports the page `low` at once: read it right then.
+    let repainted = -1;
+    v.on("renderstats", (stats) => {
+      // The repainted canvas: 1224 px wide at 150 % (816 before it).
+      if (repainted < 0 && stats.pages[0] === "low" && (canvas()?.width ?? 0) > 1000) repainted = edge();
+    });
+    v.setZoom(150);
+    await until(() => repainted >= 0);
+    // The low pass smears the edge over several pixels; the old sharp pixels, scaled 1.5×, keep it hard.
+    expect(repainted).toBeGreaterThan(sharp * 0.5);
+    v.destroy();
+  });
+
   it("repaints in the new orientation when the view rotates at the same zoom", async () => {
     const v = await opened({ zoom: "actual-size" });
     await until(() => v.stats().pages[0] === "sharp");

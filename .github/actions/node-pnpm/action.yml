@@ -1,5 +1,10 @@
+# pnpm and Node with the pnpm store cached by lockfile. Every run restores the store; only pushes
+# to main save it, as host-rust does for Rust. A pull request's cache is visible only to that pull
+# request, so each one saved its own copy (about 320 MB) and pushed main's caches out of the
+# repository's 10 GB. A scheduled or dispatched run on main doesn't save either: it may check out
+# another ref (the release lane's `ref` input), and main's later runs would trust that store.
 name: Node and pnpm
-description: Install pnpm and Node with a lockfile-keyed dependency cache.
+description: Install pnpm and Node; restore the pnpm store, saving it only on pushes to main.
 inputs:
   node-version:
     description: Node version; empty uses .nvmrc.
@@ -27,11 +32,31 @@ runs:
         # An empty node-version falls back to node-version-file.
         node-version: ${{ inputs.node-version }}
         node-version-file: .nvmrc
-        cache: ${{ inputs.install != '' && 'pnpm' || '' }}
-        cache-dependency-path: ${{ inputs.install }}/pnpm-lock.yaml
         package-manager-cache: false
+    - name: Find the pnpm store
+      id: store
+      if: inputs.install != ''
+      shell: bash
+      working-directory: ${{ inputs.install }}
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+    # The key names the install folder's lockfile, so the root workspace and the tool projects
+    # (tools/differential, the pdf-basics spike) keep separate stores.
+    - name: Restore the pnpm store
+      id: restore
+      if: inputs.install != ''
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.install)) }}
+        restore-keys: pnpm-store-${{ runner.os }}-${{ runner.arch }}-
     - name: pnpm install
       if: inputs.install != ''
       shell: bash
       working-directory: ${{ inputs.install }}
       run: pnpm install --frozen-lockfile
+    - name: Save the pnpm store (pushes to main only)
+      if: inputs.install != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: ${{ steps.restore.outputs.cache-primary-key }}
