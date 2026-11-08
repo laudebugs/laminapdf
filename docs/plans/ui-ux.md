@@ -290,4 +290,4 @@ Ticked by the PR that completes them.
 - [ ] Optional (opt-in), content-free usage telemetry
 
 ### U6. Paper design system
-- [ ] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))
+- [x] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))

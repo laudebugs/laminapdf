@@ -54,7 +54,7 @@ Paper fits the research's primary personas (people who read long documents: boar
 ## 5. How the designs are used
 
 1. **Every UI todo links its screens.** Each todo that builds a screen lists it under **Context** ("Design: …"). Its acceptance includes "matches the linked Paper screens; any deviation is recorded in the area document".
-2. **Changing a design.** A PR that changes a screen updates the area document and, when the look changes, the canvas and its committed files in the same PR. Small implementation details (exact spacing found in code) don't need a canvas change; behavioural or visual changes do.
+2. **Changing a design.** A PR that changes a screen updates the area document and, when the look changes, the canvas and its committed files in the same PR. Small implementation details (exact spacing found in code) don't need a canvas change; behavioural or visual changes do. Two checks back this rule (U6f): `cargo xtask check docs` fails when a screen in the [screen inventory](../design/paper/screens.md) has no heading in its area document or no committed design file, and a change to how a component looks shows as an image diff of the [gallery's](../../apps/gallery/README.md) screenshots.
 3. **Tokens come from one place.** U6a turns the design language's tokens into `@laminapdf/tokens`; from then on the design language cites that package's file as the source of truth, and the canvases are updated to match it when they drift.
 4. **Feature plans own behaviour; design owns look.** Where an area document and a feature plan disagree on behaviour, the feature plan (and its ADRs) wins and the area document is corrected.
 
@@ -106,5 +106,5 @@ The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, bef
 - [x] Second review with a visual pass on every board at its artboard size with the real fonts, with fixes (2026-10-29): shells kept inside the board, no wrapping counts or chips, drawn check boxes, accent tweak on every board
 - [x] Accent colours: Teal, Blue, Plum and Green in light and dark, synced with the account ([design language §2.8](../design/paper/design-language.md#28-accent-colours)); owner decision 2026-10-29
 - [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)
-- [ ] U6a tokens, U6b fonts, U6c icons, U6d core controls, U6h display components, U6e overlays, U6i bottom sheets, U6j palette and selection toolbar shells, U6f gallery and visual tests
+- [x] U6a tokens, U6b fonts, U6c icons, U6d core controls, U6h display components, U6e overlays, U6i bottom sheets, U6j palette and selection toolbar shells, U6f gallery and visual tests
 - [x] Owner sign-off on proposed values (U6a, 2026-11-05)
