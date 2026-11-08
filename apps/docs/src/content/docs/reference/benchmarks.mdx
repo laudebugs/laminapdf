@@ -18,11 +18,11 @@ Each figure is the time to build a document and save it to bytes, after the WebA
 
 <Benchmarks section="generation" />
 
-The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build that criterion measured.
+The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build as measured by criterion, a Rust benchmarking library.
 
 ## How much your app downloads
 
-`@laminapdf/sdk` loads one WebAssembly file for what you use: `base` reads, edits and saves documents and draws shapes and images, `text` adds fonts and text, and `extract` adds text extraction without the fonts. Each file has a size budget, and a change that grows a file past its budget can't be merged until the budget is raised on purpose.
+`@laminapdf/sdk` loads one WebAssembly file, chosen by what you use. `base` reads, edits and saves documents and draws shapes and images; `text` adds fonts and text; `extract` adds text extraction without the fonts. Each file has a size budget, and a change that grows a file past its budget can't be merged until the budget is raised on purpose.
 
 <Benchmarks section="sizes" />
 
@@ -30,20 +30,20 @@ Sizes are in kilobytes of 1,000 bytes, as a server sends them compressed. The Ja
 
 ## How well it extracts text
 
-[olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI, checks extracted text with small tests. A test checks that one passage comes before another, that a table cell sits beside its neighbours, or that a page's running header is left out. These figures use the three subsets made of pages with real text, not scans, and the benchmark's own tests score the Markdown that Lamina PDF writes.
+[olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI, checks extracted text with small tests. A test checks that one passage comes before another, that a table cell sits beside its neighbours, or that a page's running header is left out. These figures use the three subsets made of pages that store their text, not scans, and the benchmark's own tests score the Markdown that Lamina PDF writes.
 
 <Benchmarks section="extraction" />
 
 Every page in the benchmark is a file of its own, so the time per page includes opening the file. A page with no text, such as a scan, counts against the score, as it would for you. Lamina PDF reads one page at a time on one thread here, without a layout model or OCR.
 
-### With tables found from their columns alone
+### Also looking for tables without ruled lines
 
-Most tables in the benchmark have no ruled lines. Extraction finds tables like these when you ask it to look for text lined up in columns too. It finds more tables, but it reads some multi-column pages as tables, which costs those pages their reading order.
+Most tables in the benchmark have no ruled lines. Extraction finds tables like these when you ask it to look for text lined up in columns too: `tables: "lattice-and-stream"` in TypeScript, `TableMode::LatticeAndStream` in Rust. It finds more tables, but it reads some multi-column pages as tables, which costs those pages their reading order.
 
 <Benchmarks section="extraction-stream" />
 
 ## Where these numbers come from
 
-One command runs every measurement on one machine and writes the file this page reads, so no figure here is typed by hand. The numbers are one machine's, taken before a release, and older versions of these docs keep the numbers of their version. Each table gives the machine's load average as its run began. A load average well above its core count means other jobs were running too, which makes the timings slower than that machine's best.
+One command runs every measurement on one machine and writes the file this page reads, so no figure here is typed by hand. The numbers are one machine's, taken before a release. Each version of these docs keeps the numbers measured for it. Each table gives the machine's load average as its run began: how many jobs were running or waiting for a processor. A load average well above the core count means other jobs shared the machine, so the timings are slower than its best.
 
 Next: [make your first PDF](/start/first-pdf/) and time it on your own machine.
