@@ -1,0 +1,108 @@
+# Output of generation_counts.py, generation_extra.py, generation_stories.py (run 2026-11-06)
+core comments per period: {'2023-26': 5871, '2020-22': 1944, '2016-19': 1708}; total 9523; lane A {'2023-26': 2726, '2020-22': 1186, '2016-19': 1217}; lane B {'2023-26': 3770, '2020-22': 944, '2016-19': 686}
+
+| theme | comments | threads | 2016-19 | 2020-22 | 2023-26 | per 1,000 core comments (16-19 / 20-22 / 23-26) | of which lane A |
+|---|---|---|---|---|---|---|---|
+| C LaTeX pain: errors, packages, install size, compile passes | 229 | 129 | 25 | 48 | 156 | 14.6 / 24.7 / 26.6 | 34 |
+| C Typst gaps: journals, templates, maturity, maths syntax | 196 | 60 | 0 | 1 | 195 | 0.0 / 0.5 / 33.2 | 11 |
+| C headless browser is heavy: memory, Lambda, Docker, startup | 132 | 87 | 35 | 22 | 75 | 20.5 / 11.3 / 12.8 | 119 |
+| C accessibility missing in generated PDFs | 127 | 79 | 25 | 40 | 62 | 14.6 / 20.6 / 10.6 | 39 |
+| C licensing: AGPL/GPL, licence terms | 124 | 85 | 27 | 27 | 70 | 15.8 / 13.9 / 11.9 | 115 |
+| C cost and pricing | 118 | 79 | 32 | 29 | 57 | 18.7 / 14.9 / 9.7 | 101 |
+| C generation is painful (generic) | 79 | 65 | 22 | 20 | 37 | 12.9 / 10.3 / 6.3 | 79 |
+| C CSS paged media missing in browsers | 75 | 41 | 32 | 15 | 28 | 18.7 / 7.7 / 4.8 | 75 |
+| C page breaks and pagination are hard | 72 | 50 | 13 | 21 | 38 | 7.6 / 10.8 / 6.5 | 56 |
+| C privacy of hosted PDF APIs (lane A only) | 68 | 55 | 12 | 24 | 32 | 7.0 / 12.3 / 5.5 | 68 |
+| C output changes across versions and environments | 68 | 59 | 10 | 12 | 46 | 5.9 / 6.2 / 7.8 | 36 |
+| C slow generation or compiles | 61 | 46 | 7 | 8 | 46 | 4.1 / 4.1 / 7.8 | 27 |
+| C wkhtmltopdf old, unmaintained or buggy | 61 | 36 | 31 | 10 | 20 | 18.1 / 5.1 / 3.4 | 61 |
+| C security of rendering HTML or templates | 54 | 40 | 15 | 7 | 32 | 8.8 / 3.6 / 5.5 | 43 |
+| C file size | 51 | 43 | 11 | 14 | 26 | 6.4 / 7.2 / 4.4 | 38 |
+| C text not selectable or garbled on copy | 30 | 29 | 7 | 10 | 13 | 4.1 / 5.1 / 2.2 | 18 |
+| C font problems: missing, not embedded, wrong | 20 | 19 | 6 | 8 | 6 | 3.5 / 4.1 / 1.0 | 12 |
+| W Markdown or other light markup as input | 1424 | 657 | 264 | 311 | 849 | 154.6 / 160.0 / 144.6 | 448 |
+| W templates and data-driven documents | 799 | 416 | 141 | 153 | 505 | 82.6 / 78.7 / 86.0 | 424 |
+| W maths | 755 | 374 | 132 | 188 | 435 | 77.3 / 96.7 / 74.1 | 113 |
+| W speed and scale | 586 | 331 | 92 | 98 | 396 | 53.9 / 50.4 / 67.5 | 302 |
+| W charts, SVG, diagrams, images | 494 | 312 | 103 | 141 | 250 | 60.3 / 72.5 / 42.6 | 213 |
+| W page layout: breaks, headers/footers, page numbers, footnotes, TOC | 466 | 213 | 114 | 131 | 221 | 66.7 / 67.4 / 37.6 | 302 |
+| W programmatic generation from code | 390 | 224 | 71 | 74 | 245 | 41.6 / 38.1 / 41.7 | 283 |
+| W typographic quality: hyphenation, justification, kerning | 377 | 210 | 91 | 91 | 195 | 53.3 / 46.8 / 33.2 | 129 |
+| W HTML/CSS and web skills as the template language | 353 | 212 | 66 | 84 | 203 | 38.6 / 43.2 / 34.6 | 280 |
+| W client-side, in-browser, WASM, offline | 334 | 235 | 62 | 71 | 201 | 36.3 / 36.5 / 34.2 | 259 |
+| W accessibility and tagged PDF | 284 | 153 | 40 | 86 | 158 | 23.4 / 44.2 / 26.9 | 107 |
+| W live preview and fast iteration | 181 | 131 | 30 | 39 | 112 | 17.6 / 20.1 / 19.1 | 59 |
+| W non-Latin scripts, RTL, shaping, emoji, Unicode | 154 | 107 | 23 | 26 | 105 | 13.5 / 13.4 / 17.9 | 65 |
+| W deterministic, reproducible, testable output | 136 | 100 | 16 | 23 | 97 | 9.4 / 11.8 / 16.5 | 80 |
+| W small footprint, few dependencies, single binary | 128 | 103 | 20 | 21 | 87 | 11.7 / 10.8 / 14.8 | 80 |
+| W forms and interactive PDFs | 123 | 101 | 31 | 27 | 65 | 18.1 / 13.9 / 11.1 | 94 |
+| W links, bookmarks, outlines, cross-references | 86 | 77 | 25 | 22 | 39 | 14.6 / 11.3 / 6.6 | 31 |
+| W PDF/A and archiving | 79 | 63 | 16 | 24 | 39 | 9.4 / 12.3 / 6.6 | 51 |
+| W custom fonts, embedding, OpenType | 76 | 60 | 11 | 21 | 44 | 6.4 / 10.8 / 7.5 | 61 |
+| W print production: CMYK, bleed, PDF/X | 62 | 52 | 17 | 15 | 30 | 10.0 / 7.7 / 5.1 | 37 |
+| W selectable, searchable, vector output | 52 | 43 | 9 | 26 | 17 | 5.3 / 13.4 / 2.9 | 39 |
+| W tables that span pages | 42 | 26 | 11 | 5 | 26 | 6.4 / 2.6 / 4.4 | 34 |
+| W e-invoicing: ZUGFeRD, Factur-X, XRechnung, Peppol | 18 | 16 | 1 | 3 | 14 | 0.6 / 1.5 / 2.4 | 17 |
+
+| tool | mentions 16-19 / 20-22 / 23-26 | positive cue % | negative cue % | net (pos-neg) |
+|---|---|---|---|---|
+| wkhtmltopdf | 136 / 55 / 81 | 26 / 16 / 23 | 15 / 16 / 25 | 10 / 0 / -1 |
+| Headless Chrome/Puppeteer/Playwright | 125 / 82 / 197 | 22 / 22 / 30 | 14 / 28 / 20 | 8 / -6 / 10 |
+| WeasyPrint | 39 / 40 / 107 | 31 / 25 / 29 | 3 / 22 / 10 | 28 / 2 / 19 |
+| Prince/DocRaptor | 59 / 34 / 45 | 25 / 35 / 36 | 7 / 15 / 13 | 19 / 21 / 22 |
+| Paged.js | 9 / 42 / 36 | - / 29 / 36 | - / 7 / 6 | - / 21 / 31 |
+| Gotenberg | 0 / 1 / 17 | - / - / 29 | - / - / 18 | - / - / 12 |
+| PhantomJS | 27 / 0 / 3 | 44 / - / - | 30 / - / - | 15 / - / - |
+| iText/OpenPDF | 35 / 42 / 76 | 17 / 7 / 20 | 9 / 10 / 8 | 9 / -2 / 12 |
+| ReportLab | 4 / 15 / 20 | - / 33 / 10 | - / 33 / 20 | - / 0 / -10 |
+| PDFBox | 13 / 6 / 17 | - / - / 24 | - / - / 18 | - / - / 6 |
+| jsPDF/pdf-lib/pdfmake | 11 / 18 / 48 | - / 22 / 27 | - / 17 / 15 | - / 6 / 12 |
+| react-pdf | 2 / 2 / 8 | - / - / - | - / - / - | - / - / - |
+| QuestPDF | 0 / 3 / 9 | - / - / - | - / - / - | - / - / - |
+| FPDF/TCPDF/dompdf/mPDF | 6 / 12 / 17 | - / - / 18 | - / - / 18 | - / - / 0 |
+| Apache FOP/XSL-FO | 10 / 10 / 9 | - / - / - | - / - / - | - / - / - |
+| LaTeX/TeX | 548 / 638 / 1850 | 31 / 28 / 24 | 22 / 24 / 19 | 9 / 4 / 5 |
+| Typst | 0 / 24 / 1640 | - / 12 / 22 | - / 8 / 12 | - / 4 / 10 |
+| Pandoc | 134 / 162 / 382 | 36 / 30 / 22 | 18 / 20 / 16 | 18 / 10 / 6 |
+| groff/troff | 11 / 20 / 30 | - / 35 / 17 | - / 35 / 13 | - / 0 / 3 |
+| SILE | 1 / 6 / 12 | - / - / - | - / - / - | - / - / - |
+| Quarto | 0 / 4 / 82 | - / - / 23 | - / - / 10 | - / - / 13 |
+| ConTeXt | 9 / 20 / 65 | - / 25 / 17 | - / 30 / 17 | - / -5 / 0 |
+
+| tool | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| wkhtmltopdf | 6 | 62 | 50 | 18 | 14 | 33 | 8 | 28 | 21 | 24 | 8 |
+| Headless Chrome/Puppeteer/Playwright | 0 | 55 | 60 | 10 | 15 | 41 | 26 | 44 | 67 | 62 | 24 |
+| WeasyPrint | 1 | 8 | 19 | 11 | 9 | 17 | 14 | 28 | 34 | 33 | 12 |
+| Prince/DocRaptor | 1 | 23 | 23 | 12 | 6 | 24 | 4 | 9 | 23 | 10 | 3 |
+| Paged.js | 0 | 0 | 0 | 9 | 1 | 38 | 3 | 9 | 17 | 6 | 4 |
+| iText/OpenPDF | 1 | 6 | 11 | 17 | 19 | 8 | 15 | 27 | 10 | 33 | 6 |
+| jsPDF/pdf-lib/pdfmake | 2 | 3 | 2 | 4 | 1 | 13 | 4 | 7 | 6 | 10 | 25 |
+| LaTeX/TeX | 17 | 171 | 166 | 194 | 218 | 166 | 254 | 375 | 503 | 667 | 305 |
+| Typst | 0 | 0 | 0 | 0 | 1 | 0 | 23 | 150 | 400 | 679 | 411 |
+| Pandoc | 5 | 31 | 49 | 49 | 67 | 48 | 47 | 72 | 104 | 115 | 91 |
+
+| signal | 2016-19 | 2020-22 | 2023-26 | per 1,000 core (16-19 / 20-22 / 23-26) |
+|---|---|---|---|---|
+| Typst used to generate documents from data or in production (invoices, reports, JSON, API, server) | 0 | 0 | 94 | 0.0 / 0.0 / 16.0 |
+| AI/LLM/agent near a generation term | 6 | 11 | 263 | 3.5 / 5.7 / 44.8 |
+| 'just use the browser's print to PDF' advice | 49 | 32 | 80 | 28.7 / 16.5 / 13.6 |
+| PDF/UA or tagged PDF named explicitly | 5 | 9 | 36 | 2.9 / 4.6 / 6.1 |
+| browser engine replacement: own layout engine, no browser | 6 | 3 | 19 | 3.5 / 1.5 / 3.2 |
+
+union paged media missing OR page breaks hard: 140 {'2023-26': 61, '2020-22': 35, '2016-19': 44}
+non-Latin/Unicode near a problem word: 71 {'2023-26': 51, '2020-22': 9, '2016-19': 11}
+union PDF/A + print production + e-invoicing: (151, 117, {'2023-26': 78, '2020-22': 39, '2016-19': 34})
+union non-Latin problem + font problems: (87, 65, {'2020-22': 17, '2023-26': 54, '2016-19': 16})
+union security + privacy: (120, 87, {'2020-22': 31, '2023-26': 62, '2016-19': 27})
+union paged media + page breaks (with threads): (140, 75, {'2023-26': 61, '2020-22': 35, '2016-19': 44})
+union page layout + tables span pages: (493, 221, {'2023-26': 235, '2020-22': 136, '2016-19': 122})
+
+| family | stories 16-19 / 20-22 / 23-26 | points 16-19 / 20-22 / 23-26 | stories ≥ 100 points |
+|---|---|---|---|
+| Typst | 0 / 2 / 130 | 0 / 79 / 6532 | 16 |
+| LaTeX/TeX | 8 / 8 / 59 | 401 / 381 / 2816 | 8 |
+| HTML/CSS to PDF (wkhtmltopdf, headless Chrome, WeasyPrint, Prince, Paged.js, APIs) | 41 / 28 / 64 | 2331 / 960 / 1248 | 15 |
+| code libraries (jsPDF, pdf-lib, ReportLab, iText, QuestPDF, gofpdf ...) | 18 / 19 / 65 | 758 / 147 / 1295 | 7 |
+| Markdown to PDF | 7 / 5 / 34 | 248 / 164 / 149 | 3 |
+| invoices, resumes, certificates | 10 / 13 / 61 | 31 / 94 / 1188 | 3 |

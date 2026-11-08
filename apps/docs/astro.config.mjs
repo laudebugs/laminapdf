@@ -21,7 +21,7 @@ import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
 import { agentDocs, packageVersion } from "./plugins/agent-docs.mjs";
-import { checkedLinks, examplePdfs } from "./plugins/integrations.mjs";
+import { checkedLinks, examplePdfs, WEBSITE_ICONS, websiteIcons } from "./plugins/integrations.mjs";
 import { releaseChecks, versionInPages } from "./plugins/release.mjs";
 import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
@@ -82,6 +82,9 @@ export default defineConfig({
           }
         : {}),
       lastUpdated: false,
+      // The website's icon, from its files (plugins/integrations.mjs, `websiteIcons` below).
+      favicon: WEBSITE_ICONS.favicon,
+      head: WEBSITE_ICONS.head,
       // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
       // on phones, where the header hides the site's links, the menu lists them. The banner says
       // when the docs describe unreleased changes.
@@ -105,6 +108,7 @@ export default defineConfig({
       sidebar: sidebar(TYPEDOC ? typeDocSidebarGroup : undefined),
     }),
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
+    websiteIcons(new URL("apps/site/public/", ROOT)),
     checkedLinks,
     inlineScriptHashes,
     previewNoindex(process.env.LAMINA_PDF_ENV),

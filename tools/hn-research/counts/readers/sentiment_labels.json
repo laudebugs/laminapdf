@@ -1,0 +1,2105 @@
+{
+  "how": "For each tool, random.seed(42), then random.sample(20) per period, in period order, from the comments in areas/readers.jsonl that match the tool regex in tools.py (file order). Labels are my reading of the comment: P = positive about the tool, N = negative, R = negative but needs it for a task (Acrobat only), O = neutral or not an opinion.",
+  "labels": [
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 20478379,
+      "date": "2019-07-19",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 14271328,
+      "date": "2017-05-05",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 16448259,
+      "date": "2018-02-23",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 13821510,
+      "date": "2017-03-08",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 13450542,
+      "date": "2017-01-21",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 13380926,
+      "date": "2017-01-12",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19318794,
+      "date": "2019-03-06",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 14269506,
+      "date": "2017-05-04",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 21589674,
+      "date": "2019-11-20",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19197508,
+      "date": "2019-02-19",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19483942,
+      "date": "2019-03-25",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19777506,
+      "date": "2019-04-29",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 17971361,
+      "date": "2018-09-12",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19820915,
+      "date": "2019-05-03",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19820613,
+      "date": "2019-05-03",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 19484084,
+      "date": "2019-03-25",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 13297351,
+      "date": "2017-01-01",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 13395312,
+      "date": "2017-01-13",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 18673383,
+      "date": "2018-12-13",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2016-19",
+      "id": 20008554,
+      "date": "2019-05-25",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 23182452,
+      "date": "2020-05-14",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 29257371,
+      "date": "2021-11-17",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 33709755,
+      "date": "2022-11-22",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 33331929,
+      "date": "2022-10-25",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 31317642,
+      "date": "2022-05-09",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 32973322,
+      "date": "2022-09-25",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 28995392,
+      "date": "2021-10-26",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 24599609,
+      "date": "2020-09-26",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 32009495,
+      "date": "2022-07-07",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 25532628,
+      "date": "2020-12-24",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 29865715,
+      "date": "2022-01-09",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 31566490,
+      "date": "2022-05-31",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 23181405,
+      "date": "2020-05-14",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 22812911,
+      "date": "2020-04-08",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 32876367,
+      "date": "2022-09-17",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 24869113,
+      "date": "2020-10-23",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 22110646,
+      "date": "2020-01-21",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 24466946,
+      "date": "2020-09-14",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 32003197,
+      "date": "2022-07-06",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2020-22",
+      "id": 22021788,
+      "date": "2020-01-11",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 45604604,
+      "date": "2025-10-16",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 45599819,
+      "date": "2025-10-15",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 38430721,
+      "date": "2023-11-27",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 45599763,
+      "date": "2025-10-15",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 37029173,
+      "date": "2023-08-07",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 36801796,
+      "date": "2023-07-20",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 46607349,
+      "date": "2026-01-13",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 35194254,
+      "date": "2023-03-17",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 38768672,
+      "date": "2023-12-26",
+      "label": "P"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 41198186,
+      "date": "2024-08-09",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 45014006,
+      "date": "2025-08-25",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 35069513,
+      "date": "2023-03-08",
+      "label": "N"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 38118649,
+      "date": "2023-11-02",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 39680065,
+      "date": "2024-03-12",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 45014721,
+      "date": "2025-08-25",
+      "label": "R"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 34537830,
+      "date": "2023-01-26",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 48109480,
+      "date": "2026-05-12",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 47869257,
+      "date": "2026-04-22",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 37149050,
+      "date": "2023-08-16",
+      "label": "O"
+    },
+    {
+      "tool": "Acrobat/Adobe Reader",
+      "period": "2023-26",
+      "id": 45815389,
+      "date": "2025-11-04",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 13311836,
+      "date": "2017-01-03",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 21592983,
+      "date": "2019-11-21",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 16025488,
+      "date": "2017-12-28",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 15205983,
+      "date": "2017-09-09",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 14837654,
+      "date": "2017-07-24",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 13360059,
+      "date": "2017-01-09",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 13310716,
+      "date": "2017-01-03",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 19989939,
+      "date": "2019-05-23",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 13309635,
+      "date": "2017-01-03",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 18441590,
+      "date": "2018-11-13",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 21595144,
+      "date": "2019-11-21",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 21578385,
+      "date": "2019-11-19",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 20389267,
+      "date": "2019-07-09",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 14821998,
+      "date": "2017-07-21",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 14842617,
+      "date": "2017-07-24",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 19561562,
+      "date": "2019-04-03",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 20395432,
+      "date": "2019-07-09",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 14657978,
+      "date": "2017-06-28",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 17210775,
+      "date": "2018-06-01",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2016-19",
+      "id": 16732828,
+      "date": "2018-04-02",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 30611903,
+      "date": "2022-03-09",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 25437019,
+      "date": "2020-12-15",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 26325250,
+      "date": "2021-03-03",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 25448301,
+      "date": "2020-12-16",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 22967092,
+      "date": "2020-04-24",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 26679589,
+      "date": "2021-04-03",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 25451005,
+      "date": "2020-12-17",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 32046584,
+      "date": "2022-07-10",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 33955450,
+      "date": "2022-12-12",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 23181953,
+      "date": "2020-05-14",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 31317493,
+      "date": "2022-05-09",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 31931225,
+      "date": "2022-06-30",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 25448297,
+      "date": "2020-12-16",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 30367850,
+      "date": "2022-02-17",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 26325701,
+      "date": "2021-03-03",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 33710402,
+      "date": "2022-11-22",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 25448206,
+      "date": "2020-12-16",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 25448216,
+      "date": "2020-12-16",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 31315772,
+      "date": "2022-05-09",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2020-22",
+      "id": 33710884,
+      "date": "2022-11-22",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 45599245,
+      "date": "2025-10-15",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 37114946,
+      "date": "2023-08-13",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 40391804,
+      "date": "2024-05-17",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 37112838,
+      "date": "2023-08-13",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 39018105,
+      "date": "2024-01-16",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 38118649,
+      "date": "2023-11-02",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 46985602,
+      "date": "2026-02-12",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 38768522,
+      "date": "2023-12-26",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 45014971,
+      "date": "2025-08-25",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 47370006,
+      "date": "2026-03-13",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 45605975,
+      "date": "2025-10-16",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 40392804,
+      "date": "2024-05-17",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 42649018,
+      "date": "2025-01-09",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 48297317,
+      "date": "2026-05-27",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 35942626,
+      "date": "2023-05-15",
+      "label": "N"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 39698020,
+      "date": "2024-03-13",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 49897470,
+      "date": "2026-09-29",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 39880033,
+      "date": "2024-03-31",
+      "label": "P"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 42648303,
+      "date": "2025-01-09",
+      "label": "O"
+    },
+    {
+      "tool": "macOS Preview",
+      "period": "2023-26",
+      "id": 39770613,
+      "date": "2024-03-20",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 19716059,
+      "date": "2019-04-22",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 16991893,
+      "date": "2018-05-04",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 19821603,
+      "date": "2019-05-03",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 13913154,
+      "date": "2017-03-20",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 13897625,
+      "date": "2017-03-17",
+      "label": "N"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 13590994,
+      "date": "2017-02-07",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 15168075,
+      "date": "2017-09-04",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 16989856,
+      "date": "2018-05-03",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 18670039,
+      "date": "2018-12-13",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 16989271,
+      "date": "2018-05-03",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 19223551,
+      "date": "2019-02-22",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 16624402,
+      "date": "2018-03-19",
+      "label": "N"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 21603459,
+      "date": "2019-11-22",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 20835875,
+      "date": "2019-08-30",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 19273950,
+      "date": "2019-02-28",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 13450402,
+      "date": "2017-01-21",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 20389267,
+      "date": "2019-07-09",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 13899601,
+      "date": "2017-03-18",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 14636119,
+      "date": "2017-06-26",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2016-19",
+      "id": 19820613,
+      "date": "2019-05-03",
+      "label": "N"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 28986046,
+      "date": "2021-10-25",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 33709721,
+      "date": "2022-11-22",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 32965842,
+      "date": "2022-09-24",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 33996400,
+      "date": "2022-12-15",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 26431211,
+      "date": "2021-03-12",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 27967899,
+      "date": "2021-07-27",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 23535266,
+      "date": "2020-06-16",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 22311503,
+      "date": "2020-02-12",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 29653010,
+      "date": "2021-12-22",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 31570568,
+      "date": "2022-05-31",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 23184974,
+      "date": "2020-05-14",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 27973866,
+      "date": "2021-07-27",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 33997006,
+      "date": "2022-12-15",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 27589555,
+      "date": "2021-06-22",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 31567469,
+      "date": "2022-05-31",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 27974690,
+      "date": "2021-07-27",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 22217123,
+      "date": "2020-02-02",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 31567289,
+      "date": "2022-05-31",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 27973746,
+      "date": "2021-07-27",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2020-22",
+      "id": 27971439,
+      "date": "2021-07-27",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 44285764,
+      "date": "2025-06-16",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 37999598,
+      "date": "2023-10-24",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 44284503,
+      "date": "2025-06-15",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 43132925,
+      "date": "2025-02-21",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 44284351,
+      "date": "2025-06-15",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 35092563,
+      "date": "2023-03-10",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 37997179,
+      "date": "2023-10-24",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 41002383,
+      "date": "2024-07-19",
+      "label": "N"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 37994243,
+      "date": "2023-10-24",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 37628045,
+      "date": "2023-09-23",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 35072897,
+      "date": "2023-03-08",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 35072487,
+      "date": "2023-03-08",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 37994382,
+      "date": "2023-10-24",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 47545630,
+      "date": "2026-03-27",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 44285279,
+      "date": "2025-06-15",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 37994292,
+      "date": "2023-10-24",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 35072229,
+      "date": "2023-03-08",
+      "label": "O"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 38009392,
+      "date": "2023-10-25",
+      "label": "P"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 42101368,
+      "date": "2024-11-10",
+      "label": "N"
+    },
+    {
+      "tool": "SumatraPDF",
+      "period": "2023-26",
+      "id": 39770635,
+      "date": "2024-03-20",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 15169951,
+      "date": "2017-09-04",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 15428654,
+      "date": "2017-10-08",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 14984856,
+      "date": "2017-08-10",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 14454659,
+      "date": "2017-05-31",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 14328332,
+      "date": "2017-05-12",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 18263332,
+      "date": "2018-10-20",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 15169670,
+      "date": "2017-09-04",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 20835550,
+      "date": "2019-08-30",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 17426213,
+      "date": "2018-06-29",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 21828943,
+      "date": "2019-12-18",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 18431223,
+      "date": "2018-11-12",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 19485637,
+      "date": "2019-03-25",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 21845962,
+      "date": "2019-12-20",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 19489852,
+      "date": "2019-03-26",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 14061646,
+      "date": "2017-04-07",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 14425344,
+      "date": "2017-05-26",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 19728621,
+      "date": "2019-04-23",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 21106958,
+      "date": "2019-09-29",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 13824305,
+      "date": "2017-03-08",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2016-19",
+      "id": 18181414,
+      "date": "2018-10-10",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 22766808,
+      "date": "2020-04-03",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 22057046,
+      "date": "2020-01-15",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 24961670,
+      "date": "2020-11-01",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 28882867,
+      "date": "2021-10-15",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 31277444,
+      "date": "2022-05-05",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 33033954,
+      "date": "2022-09-30",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 23185427,
+      "date": "2020-05-14",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 28998999,
+      "date": "2021-10-26",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 31272638,
+      "date": "2022-05-05",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 22764931,
+      "date": "2020-04-02",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 27304431,
+      "date": "2021-05-27",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 33262675,
+      "date": "2022-10-19",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 32548530,
+      "date": "2022-08-22",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 22764963,
+      "date": "2020-04-02",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 22765436,
+      "date": "2020-04-03",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 29262984,
+      "date": "2021-11-18",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 32552266,
+      "date": "2022-08-22",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 26707432,
+      "date": "2021-04-06",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 24119589,
+      "date": "2020-08-11",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2020-22",
+      "id": 32553754,
+      "date": "2022-08-22",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 40414912,
+      "date": "2024-05-20",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 40105270,
+      "date": "2024-04-21",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 39538996,
+      "date": "2024-02-28",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 39784181,
+      "date": "2024-03-21",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 37111666,
+      "date": "2023-08-13",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 46671855,
+      "date": "2026-01-18",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 40417132,
+      "date": "2024-05-20",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 41938060,
+      "date": "2024-10-24",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 39776168,
+      "date": "2024-03-21",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 50329586,
+      "date": "2026-11-01",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 40471120,
+      "date": "2024-05-24",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 34771192,
+      "date": "2023-02-13",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 45441094,
+      "date": "2025-10-01",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 37116251,
+      "date": "2023-08-14",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 43119641,
+      "date": "2025-02-20",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 47975411,
+      "date": "2026-05-01",
+      "label": "P"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 37714899,
+      "date": "2023-09-30",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 40418208,
+      "date": "2024-05-20",
+      "label": "O"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 42075932,
+      "date": "2024-11-07",
+      "label": "N"
+    },
+    {
+      "tool": "pdf.js / Firefox viewer",
+      "period": "2023-26",
+      "id": 49060849,
+      "date": "2026-07-26",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 19296727,
+      "date": "2019-03-03",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 15169951,
+      "date": "2017-09-04",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 19820780,
+      "date": "2019-05-03",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 19985253,
+      "date": "2019-05-22",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 14449852,
+      "date": "2017-05-31",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 13276363,
+      "date": "2016-12-29",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 13134686,
+      "date": "2016-12-08",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 15168364,
+      "date": "2017-09-04",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 20841473,
+      "date": "2019-08-30",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 15169271,
+      "date": "2017-09-04",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 19665614,
+      "date": "2019-04-15",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 18584554,
+      "date": "2018-12-02",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 15167717,
+      "date": "2017-09-04",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 18671998,
+      "date": "2018-12-13",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 16845106,
+      "date": "2018-04-15",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 19822834,
+      "date": "2019-05-03",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 20835550,
+      "date": "2019-08-30",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 19664963,
+      "date": "2019-04-15",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 13070044,
+      "date": "2016-11-30",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2016-19",
+      "id": 20436754,
+      "date": "2019-07-14",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 24562282,
+      "date": "2020-09-23",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 26624404,
+      "date": "2021-03-29",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 23184345,
+      "date": "2020-05-14",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 26060364,
+      "date": "2021-02-08",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 28882683,
+      "date": "2021-10-15",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 30842921,
+      "date": "2022-03-29",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 27304431,
+      "date": "2021-05-27",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 29653010,
+      "date": "2021-12-22",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 26063174,
+      "date": "2021-02-08",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 24273296,
+      "date": "2020-08-25",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 27897185,
+      "date": "2021-07-20",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 24273952,
+      "date": "2020-08-25",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 26516774,
+      "date": "2021-03-19",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 25182012,
+      "date": "2020-11-22",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 23184004,
+      "date": "2020-05-14",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 31268431,
+      "date": "2022-05-05",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 24275153,
+      "date": "2020-08-25",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 22056480,
+      "date": "2020-01-15",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 31125232,
+      "date": "2022-04-22",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2020-22",
+      "id": 25612500,
+      "date": "2021-01-02",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 44904118,
+      "date": "2025-08-14",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 34720574,
+      "date": "2023-02-09",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 45599904,
+      "date": "2025-10-16",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 45599773,
+      "date": "2025-10-15",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 37757870,
+      "date": "2023-10-03",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 45604716,
+      "date": "2025-10-16",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 46719770,
+      "date": "2026-01-22",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 35239372,
+      "date": "2023-03-20",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 43060943,
+      "date": "2025-02-15",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 34712488,
+      "date": "2023-02-08",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 44287738,
+      "date": "2025-06-16",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 34831056,
+      "date": "2023-02-17",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 44785541,
+      "date": "2025-08-04",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 34771218,
+      "date": "2023-02-13",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 40096916,
+      "date": "2024-04-20",
+      "label": "P"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 34712636,
+      "date": "2023-02-08",
+      "label": "N"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 42650033,
+      "date": "2025-01-09",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 44901801,
+      "date": "2025-08-14",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 42648656,
+      "date": "2025-01-09",
+      "label": "O"
+    },
+    {
+      "tool": "Chrome/Edge viewer + PDFium",
+      "period": "2023-26",
+      "id": 34713234,
+      "date": "2023-02-08",
+      "label": "P"
+    }
+  ]
+}

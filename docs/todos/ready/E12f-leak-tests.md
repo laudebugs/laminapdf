@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E12d](./E12d-scrub-and-rewrite.md), [E12e](./E12e-sensitive-search.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [E12d](./E12d-scrub-and-rewrite.md), [E12e](./E12e-sensitive-search.md), [T2b](./T2b-check-failed-redactions.md), [X3a](../done/X3a-nightly-lane.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e12f-leak-tests` |
 | PR title | `test(redact): cross-tool leak and revision-drop suite` |
@@ -51,6 +51,7 @@ The plan's proof: for a redaction fixture set (text, images, vectors, annotation
 
 ## Acceptance criteria
 
+- [ ] `laminapdf check` gives no `covered-text`, `redaction-not-applied` or `text-in-earlier-revision` warning on any redacted fixture ([T2b](./T2b-check-failed-redactions.md))
 - [ ] Zero secret markers recovered by any tool on any fixture
 - [ ] Suite runs on every PR touching `laminapdf-content` or redaction code
 

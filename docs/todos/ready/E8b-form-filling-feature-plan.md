@@ -19,6 +19,7 @@ The short feature-plan PR that opens round E8 ([full-editor §E8](../../plans/fu
 
 ## Context
 
+- [Hacker News research R3](../../research/hacker-news/pdf-users-on-hacker-news.md#r3-finish-forms-and-signatures-and-name-xfa-files-plainly): form filling (776 comments) is a top editor request, and XFA-only forms are the most cited dead end (121); say plainly when a file needs XFA
 - [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data): the round as planned (ships, crates, save, web vs desktop)
 - [06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) and [06 §7](../../research/pdf/06-feature-inventory.md#7-difficulty-map): mechanism and difficulty of each operation in scope
 - [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix) and [§5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round): capability-matrix statuses and the requirements every round meets
