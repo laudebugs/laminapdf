@@ -7,5 +7,5 @@ compatibility_date = "2026-10-01"
 
 [[rules]]
 type = "Data"
-globs = ["**/*.ttf", "**/*.otf", "**/*.jpg"]
+globs = ["**/*.ttf", "**/*.otf", "**/*.jpg", "**/element-flow-report.json"]
 fallthrough = true

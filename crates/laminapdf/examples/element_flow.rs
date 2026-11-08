@@ -41,7 +41,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         body: "Pages now appear as soon as they are read, and support requests about slow files fell by a third.",
     };
     let pdf = build(BuildOptions::new(), photo, &report)?;
-    std::fs::create_dir_all(&out)?;
     Ok(std::fs::write(out.join("element_flow.pdf"), pdf)?)
 }
 
@@ -53,7 +52,7 @@ pub(crate) fn build(options: BuildOptions, photo: Vec<u8>, report: &Report) -> R
     let photo = Image::jpeg(photo)?;
     let mut page = b.page(PAGE);
     let mut y = header(page.surface(), &fonts, &photo, report)?;
-    let (mut rest, mut new_page) = (report.body, false);
+    let (mut rest, mut new_page) = (report.body.trim_end(), false);
     loop {
         let s = page.surface();
         let layout = s.text_box(rest, &fonts[1], BODY, area(y), &TextBoxOptions::new())?;
@@ -71,7 +70,7 @@ pub(crate) fn build(options: BuildOptions, photo: Vec<u8>, report: &Report) -> R
 }
 
 /// The title with a rule under it, the summary, the notes and the photo, each below the one
-/// before; returns where the body starts. They must fit: one that doesn't fails `text-overflow`.
+/// before; returns where the body starts. Text that doesn't fit fails `text-overflow`.
 fn header(s: &mut Surface, fonts: &[FontHandle; 2], photo: &Image, report: &Report) -> Result<f64, Box<dyn Error>> {
     let [bold, regular] = fonts;
     let must_fit = TextBoxOptions::new().with_overflow(Overflow::Error);
@@ -82,6 +81,9 @@ fn header(s: &mut Surface, fonts: &[FontHandle; 2], photo: &Image, report: &Repo
     s.stroke_color(gray).path(|p| _ = p.rect(rule)).stroke(&line);
     for text in [report.summary, report.notes] {
         y = below(&s.text_box(text, regular, BODY, area(y), &must_fit)?, y);
+    }
+    if y + PHOTO_HEIGHT > BOTTOM {
+        return Err("the photo doesn't fit below the notes".into());
     }
     s.image(photo, RectPt::from_points(MARGIN, y, WIDTH, PHOTO_HEIGHT));
     Ok(y + PHOTO_HEIGHT + GAP)

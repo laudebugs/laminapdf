@@ -132,12 +132,12 @@ B10c's example lays out one report three ways: as written, with its summary one 
 | | Hand-placed: one Y per element | With `bottom` (the example) |
 | --- | --- | --- |
 | Y coordinates typed in | 6: title, rule, summary, notes, photo, body | 1: the top margin, reused for the page reset |
-| Bottoms worked out by the caller | 5, from line counts and font metrics | 0; one 1-line helper adds the gap |
+| Bottoms worked out by the caller | 4: the title, summary, notes and photo, from line counts and font metrics | 0; one 1-line helper adds the gap |
 | Edits when the summary wraps onto one more line | 3: the notes, photo and body positions | 0 |
 | Edits when the notes go | 2: the photo and body positions, or a gap stays | 0 |
 | Page-break code for a long body | the same loop over `overflow` | the same loop over `overflow` |
 
-Measuring from `lines` without `bottom` keeps the zero-edit column but costs a helper per language. That helper has to skip the blank lines after the last drawn one and handle a box with no lines. B10a's rules for which lines count would then live in two copies. Page breaks stay the caller's job either way. The example still needs eleven lines to carry a body across pages, so a cursor would not shorten it. No todo for a cursor follows.
+Measuring from `lines` without `bottom` keeps the zero-edit column but costs a helper per language. That helper has to skip the blank lines after the last drawn one and handle a box with no lines. B10a's rules for which lines count would then live in two copies. Page breaks stay the caller's job either way. The example still needs its page-break loop, 13 lines in Rust and 11 in TypeScript, and a cursor would not shorten it. No todo for a cursor follows.
 
 ### Verification commands for implementation PRs
 

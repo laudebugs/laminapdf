@@ -40,9 +40,12 @@ mod pdf_a_archive;
 #[path = "../examples/pdf_ua_report.rs"]
 mod pdf_ua_report;
 
+mod common;
+
 use std::error::Error;
 use std::path::Path;
 
+use common::FlowReport;
 use laminapdf::{BuildOptions, Builder};
 use pdf_a_archive::Level;
 
@@ -63,8 +66,6 @@ const IMAGES_AND_VECTORS_ID: &[u8; 16] = b"lamina-ex-vector";
 const LINKS_ID: &[u8; 16] = b"lamina-ex-links!";
 const EDIT_ID: &[u8; 16] = b"lamina-ex-edit!!";
 const FLOW_ID: &[u8; 16] = b"lamina-ex-flow!!";
-/// The report the element-flow example lays out; its body runs onto a second page.
-const FLOW_REPORT: &str = "text/element-flow-report.json";
 const PRODUCER: &str = "lamina examples";
 const CREATED: &str = "D:20261030120000Z";
 const EDITED: &str = "D:20261030130000Z";
@@ -108,26 +109,9 @@ const EXAMPLES: [(&str, Build); 11] = [
         pdf_a3_invoice_with_xml::build(fixture(NOTO))
     }),
     ("element_flow", || {
-        with_flow_report(|report| element_flow::build(options(FLOW_ID)?, fixture(PHOTO), report))
+        element_flow::build(options(FLOW_ID)?, fixture(PHOTO), &FlowReport::load().as_report())
     }),
 ];
-
-/// Calls `f` with the report of `fixtures/text/element-flow-report.json`.
-fn with_flow_report<T>(f: impl FnOnce(&element_flow::Report) -> T) -> T {
-    let report = laminapdf_test_fixtures::json(FLOW_REPORT);
-    let field = |name: &str| {
-        report
-            .get(name)
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_else(|| panic!("{FLOW_REPORT}: no {name}"))
-    };
-    f(&element_flow::Report {
-        title: field("title"),
-        summary: field("summary"),
-        notes: field("notes"),
-        body: field("body"),
-    })
-}
 
 fn golden(name: &str) -> Vec<u8> {
     let path = fixtures_dir().join(format!("golden/examples/{name}.pdf"));

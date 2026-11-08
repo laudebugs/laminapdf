@@ -8,14 +8,16 @@
     reason = "tests: a panic is a test failure"
 )]
 
+mod common;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/element_flow.rs"]
 mod element_flow;
 
+use common::FlowReport;
 use element_flow::Report;
 use laminapdf::extract::TextOptions;
 use laminapdf::{BuildOptions, Document, OpenOptions};
-use laminapdf_test_fixtures::{fixture, json};
+use laminapdf_test_fixtures::fixture;
 
 /// The example's layout numbers, restated.
 const MARGIN: f64 = 48.0;
@@ -42,19 +44,11 @@ fn bottom(top: f64, lines: u32, size: f64) -> f64 {
 }
 
 /// The fixture's report, with `edit` applied to it.
-fn report_pdf(edit: impl FnOnce(&mut Report)) -> Vec<u8> {
-    let report = json("text/element-flow-report.json");
-    let field = |name: &str| report[name].as_str().unwrap().to_owned();
-    let [title, summary, notes, body] = ["title", "summary", "notes", "body"].map(field);
-    let mut report = Report {
-        title: &title,
-        summary: &summary,
-        notes: &notes,
-        body: &body,
-    };
+fn report_pdf(edit: impl FnOnce(&mut FlowReport)) -> Vec<u8> {
+    let mut report = FlowReport::load();
     edit(&mut report);
     let options = BuildOptions::new().with_id(*b"lamina-ex-flow!!");
-    element_flow::build(options, fixture("images/photo-rgb.jpg"), &report).unwrap()
+    element_flow::build(options, fixture("images/photo-rgb.jpg"), &report.as_report()).unwrap()
 }
 
 /// Each page's runs: their text and their baseline in page space (y down from the top).
@@ -109,7 +103,7 @@ fn a_summary_that_wraps_onto_another_line_moves_everything_after_it_by_one_line(
     let before = runs(report_pdf(|_| {}));
     let longer = "Revenue rose twelve per cent over the quarter, led by the new reader and its offline mode, \
                   which readers on trains and planes now use every week.";
-    let after = runs(report_pdf(|r| r.summary = longer));
+    let after = runs(report_pdf(|r| r.summary = longer.to_owned()));
     for start in ["Figures", "The reader"] {
         close(baseline(&after, 0, start) - baseline(&before, 0, start), LINE);
     }
@@ -117,7 +111,7 @@ fn a_summary_that_wraps_onto_another_line_moves_everything_after_it_by_one_line(
 
 #[test]
 fn empty_notes_leave_no_gap() {
-    let pages = runs(report_pdf(|r| r.notes = ""));
+    let pages = runs(report_pdf(|r| r.notes.clear()));
     assert!(pages[0].iter().all(|(text, _)| !text.starts_with("Figures")));
     let summary_top = bottom(MARGIN, 1, TITLE) + GAP;
     let photo_top = bottom(summary_top, 2, BODY) + GAP;
@@ -136,10 +130,7 @@ fn the_body_continues_at_the_top_margin_of_a_new_page_and_loses_no_text() {
     close(pages[1][0].1, MARGIN + ascent(BODY));
     let words = |text: &str| text.split_whitespace().map(str::to_owned).collect::<Vec<_>>();
     let drawn: Vec<String> = pages.iter().flatten().flat_map(|(text, _)| words(text)).collect();
-    let body = json("text/element-flow-report.json")["body"]
-        .as_str()
-        .unwrap()
-        .to_owned();
+    let body = FlowReport::load().body;
     assert!(
         drawn.ends_with(&words(&body)),
         "the body's words, in order, end the report"
@@ -159,4 +150,28 @@ fn a_header_too_long_for_the_first_page_fails_instead_of_dropping_text() {
     let error = element_flow::build(options, fixture("images/photo-rgb.jpg"), &report).unwrap_err();
     let error = error.downcast_ref::<laminapdf::BuildError>().unwrap();
     assert_eq!(error.code(), "text-overflow");
+}
+
+#[test]
+fn blank_lines_at_the_end_of_the_body_add_no_page() {
+    // More blank lines than a page holds: without trimming they would overflow onto a blank page.
+    let pages = runs(report_pdf(|r| r.body.push_str(&"\n".repeat(80))));
+    assert_eq!(pages.len(), 2);
+}
+
+#[test]
+fn a_photo_that_would_cross_the_bottom_margin_fails() {
+    // About twenty lines of summary: it fits its box, but leaves less room than the photo needs.
+    let long = "Revenue rose twelve per cent over the quarter. ".repeat(26);
+    let report = Report {
+        title: "Report",
+        summary: &long,
+        notes: "",
+        body: "",
+    };
+    let built = element_flow::build(BuildOptions::new(), fixture("images/photo-rgb.jpg"), &report);
+    let Err(error) = built else {
+        panic!("the photo was placed past the bottom margin")
+    };
+    assert_eq!(error.to_string(), "the photo doesn't fit below the notes");
 }

@@ -27,5 +27,12 @@ describe("the element-flow example", () => {
     };
     expect(pages("Short.")).toBe(1);
     expect(pages("A paragraph that goes on. ".repeat(120))).toBeGreaterThan(1);
+    // More blank lines than a page holds: trimmed, they don't overflow onto a blank page.
+    expect(pages(`Short.${"\n".repeat(80)}`)).toBe(1);
+  });
+
+  it("throws when the photo would cross the bottom margin", () => {
+    const long = "Revenue rose twelve per cent over the quarter. ".repeat(26);
+    expect(() => elementFlow(photo(), { ...report, summary: long })).toThrow("the photo doesn't fit below the notes");
   });
 });

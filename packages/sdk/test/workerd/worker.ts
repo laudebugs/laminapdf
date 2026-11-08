@@ -10,6 +10,7 @@ import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Re
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
+import flowReport from "../../../../fixtures/text/element-flow-report.json";
 import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
 
 // Workers can't read files: the inputs are bundled (wrangler.toml `rules`). Imports must be
@@ -23,6 +24,7 @@ const inputs: Inputs = Object.fromEntries(
     "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
     "fixtures/fonts/NotoSansSC-Regular.otf": notoSansSC,
     "fixtures/images/photo-rgb.jpg": photo,
+    "fixtures/text/element-flow-report.json": flowReport,
   }).map(([path, data]) => [path, new Uint8Array(data)]),
 );
 const missing = missingInputs(inputs, INPUT_PATHS);

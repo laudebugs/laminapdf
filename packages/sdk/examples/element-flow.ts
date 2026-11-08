@@ -33,7 +33,7 @@ export function elementFlow(photo: Uint8Array, report: Report, options: BuilderO
   const jpeg = Image.jpeg(photo);
   let page = b.page("A5");
   let y = header(page.surface(), fonts, jpeg, report);
-  let [rest, newPage] = [report.body, false];
+  let [rest, newPage] = [report.body.trimEnd(), false];
   for (;;) {
     const layout = page.surface().textBox(rest, { font: fonts.regular, size: BODY, box: area(y) });
     // A clipped box still drew its first lines: the rest goes on a new page, from its top.
@@ -51,7 +51,7 @@ export function elementFlow(photo: Uint8Array, report: Report, options: BuilderO
 
 /**
  * The title with a rule under it, the summary, the notes and the photo, each below the one before;
- * returns where the body starts. They must fit: one that doesn't throws `text-overflow`.
+ * returns where the body starts. Text that doesn't fit throws `text-overflow`.
  */
 function header(s: Surface, fonts: { bold: Font; regular: Font }, photo: Image, report: Report): number {
   const fit = (text: string, font: Font, size: number, top: number) =>
@@ -62,6 +62,7 @@ function header(s: Surface, fonts: { bold: Font; regular: Font }, photo: Image, 
     .path((p) => p.rect([MARGIN, y - GAP / 2, WIDTH, 0]))
     .stroke();
   for (const text of [report.summary, report.notes]) y = fit(text, fonts.regular, BODY, y);
+  if (y + PHOTO_HEIGHT > BOTTOM) throw new Error("the photo doesn't fit below the notes");
   s.image(photo, [MARGIN, y, WIDTH, PHOTO_HEIGHT]);
   return y + PHOTO_HEIGHT + GAP;
 }
