@@ -156,30 +156,66 @@ export type RemoteFailureReason = "cors" | "not-encoded" | "not-absolute" | "ins
 /** Props of `RemoteFailure`. */
 export interface RemoteFailureProps {
   reason: RemoteFailureReason;
-  /** The document's address, for Download the file (`cors` only); it opens with no referrer. */
+  /** The document's address (`cors`): shown, and opened in a new tab with no referrer. */
   url?: string;
-  /** Tries the link again (`cors` only). */
+  /** Tries the link again (`cors`). */
   onRetry?: () => void;
-  /** Back to the home screen to open a file instead. */
+  /** Opens the file picker, for the copy the user downloaded (`cors`). */
   onChooseFile: () => void;
+  /** Back to the home screen (an unusable link). */
+  onHome?: () => void;
 }
 
-/** The page the canvas holds when a link's document can't be opened; announced, its primary action focused. */
-export function RemoteFailure({ reason, url, onRetry, onChooseFile }: RemoteFailureProps): ReactNode {
+/** `url` with its host in bold, as the address box shows it. */
+function Address({ url }: { url: string }): ReactNode {
+  let host: string;
+  try {
+    host = new URL(url).host;
+  } catch {
+    return <p className="paper-failure-code paper-failure-address">{url}</p>;
+  }
+  const at = url.indexOf(host);
+  return (
+    <p className="paper-failure-code paper-failure-address">
+      {url.slice(0, at)}
+      <strong>{host}</strong>
+      {url.slice(at + host.length)}
+    </p>
+  );
+}
+
+/**
+ * The page the canvas holds when a link's document can't be opened (R01's "site blocks
+ * reading", and an unusable link); announced, its primary action focused.
+ */
+export function RemoteFailure({ reason, url, onRetry, onChooseFile, onHome }: RemoteFailureProps): ReactNode {
   const page = useRef<HTMLDivElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs again for each new reason
   useEffect(() => {
-    page.current?.querySelector<HTMLElement>(".paper-button[data-variant='primary']")?.focus();
+    page.current?.querySelector<HTMLElement>("[data-variant='primary']")?.focus();
   }, [reason]);
-  const cors = reason === "cors";
+  if (reason !== "cors") {
+    return (
+      <div ref={page} role="alert" className="paper-failure">
+        <Icon name="warning" size={32} />
+        <h2 className="paper-failure-title">{message("remote.link.title")}</h2>
+        <p className="paper-failure-body">{message(`remote.${reason}`)}</p>
+        <div className="paper-failure-actions">
+          <Button variant="primary" onPress={onHome ?? onChooseFile}>
+            {message("remote.home")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div ref={page} role="alert" className="paper-failure">
       <Icon name="warning" size={32} />
-      <h2 className="paper-failure-title">{message("remote.title")}</h2>
-      <p className="paper-failure-body">{message(`remote.${reason}`)}</p>
-      {cors ? <p className="paper-failure-body">{message("remote.cors.offline")}</p> : null}
+      <h2 className="paper-failure-title">{message("remote.cors.title")}</h2>
+      <p className="paper-failure-body">{message("remote.cors")}</p>
+      {url === undefined ? null : <Address url={url} />}
       <div className="paper-failure-actions">
-        {cors && url !== undefined ? (
+        {url === undefined ? null : (
           <a
             className="paper-button"
             data-variant="primary"
@@ -188,14 +224,21 @@ export function RemoteFailure({ reason, url, onRetry, onChooseFile }: RemoteFail
             target="_blank"
             rel="noreferrer noopener"
           >
-            {message("remote.download")}
+            {message("remote.cors.open")}
           </a>
-        ) : null}
-        {cors && onRetry !== undefined ? <Button onPress={onRetry}>{message("remote.retry")}</Button> : null}
-        <Button variant={cors ? "secondary" : "primary"} onPress={onChooseFile}>
-          {message("remote.chooseFile")}
-        </Button>
+        )}
+        {onRetry === undefined ? null : (
+          <Button variant="ghost" onPress={onRetry}>
+            {message("remote.retry")}
+          </Button>
+        )}
       </div>
+      <p className="paper-failure-body">
+        {message("remote.cors.downloaded")}{" "}
+        <button type="button" className="paper-failure-link" onClick={onChooseFile}>
+          {message("remote.cors.choose")}
+        </button>
+      </p>
     </div>
   );
 }

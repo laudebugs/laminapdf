@@ -1,8 +1,9 @@
 // The address fragment, read when the page loads and on every `hashchange` and `popstate`, acted
 // on through the engine (navigation.ts decides what each change asks for). The remote address
 // stays in the fragment only: it is never put in a path, a query or the window's title. When the
-// reader lets a remote file go (closed, or replaced by a local file), the `url` key is removed
-// with replaceState, so a reload doesn't open it again and no history entry is added.
+// reader lets a remote file go (closed, or replaced by a local file), or leaves an unusable link's
+// page, the `url` key is removed with replaceState, so a reload doesn't open it again and no
+// history entry is added.
 
 import type { ReaderState } from "@laminapdf/ui";
 import { type Engine, remoteUrlOf } from "../session.ts";
@@ -42,7 +43,10 @@ export function watchFragment(win: Window, engine: Engine): () => void {
   const forget = () => {
     const fragment = parseFragment(win.location.hash);
     const remote = remoteUrl(fragment, ALLOW_LOCAL_HTTP);
-    if (remote.kind !== "url" || heldUrl(reader.getState()) === remote.url) return;
+    if (remote.kind === "none") return;
+    // A usable link stays while the reader holds its file; an unusable one while its page shows.
+    if (remote.kind === "url" && heldUrl(reader.getState()) === remote.url) return;
+    if (remote.kind === "invalid" && engine.getState().linkProblem !== undefined) return;
     const next = buildFragment(fragment, { url: undefined });
     const { pathname, search } = win.location;
     win.history.replaceState(
@@ -55,10 +59,11 @@ export function watchFragment(win: Window, engine: Engine): () => void {
   win.addEventListener("hashchange", apply);
   win.addEventListener("popstate", apply);
   // After the transitions of one call settle: a backend switch closes and reopens the same file.
-  const unsubscribe = reader.subscribe(() => queueMicrotask(forget));
+  const later = () => queueMicrotask(forget);
+  const unsubscribe = [reader.subscribe(later), engine.subscribe(later)];
   return () => {
     win.removeEventListener("hashchange", apply);
     win.removeEventListener("popstate", apply);
-    unsubscribe();
+    for (const stop of unsubscribe) stop();
   };
 }

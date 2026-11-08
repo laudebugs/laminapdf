@@ -72,18 +72,18 @@ describe(`remote files in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("explains a host that doesn't allow other sites to read the file, and links to it", async () => {
+  it("explains a host that doesn't let other sites read the file, and links to it", async () => {
     const url = `${host.origin}/plain/hello.pdf`;
     const watched = await load(link(url));
     const { page } = watched;
-    await page.getByText("This site doesn't allow other sites to read the file.").waitFor();
-    const download = page.getByRole("link", { name: "Download the file" });
-    expect(await download.getAttribute("href")).toBe(url);
-    expect(await download.getAttribute("rel")).toBe("noreferrer noopener");
-    await page.getByRole("button", { name: "Open a file instead" }).click();
-    await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
-    // The link is dropped from the address, so a reload shows the home screen.
-    expect(await page.evaluate(() => location.hash)).toBe("");
+    await page.getByRole("heading", { name: "This site doesn't let other sites read the file" }).waitFor();
+    const open = page.getByRole("link", { name: "Open the link in a new tab" });
+    expect(await open.getAttribute("href")).toBe(url);
+    expect(await open.getAttribute("rel")).toBe("noreferrer noopener");
+    expect(await page.evaluate(() => document.activeElement?.textContent)).toBe("Open the link in a new tab");
+    await page.getByText(url.slice(url.indexOf("/plain"))).waitFor();
+    await page.getByRole("button", { name: "Try again" }).click();
+    await page.getByRole("heading", { name: "This site doesn't let other sites read the file" }).waitFor();
     expect(await watched.violations()).toEqual([]);
     await page.close();
   });
@@ -119,8 +119,13 @@ describe(`remote files in ${BROWSER}`, () => {
 
   it("refuses a link whose address isn't encoded, instead of guessing where it ends", async () => {
     const watched = await load(`/#url=${host.origin}/cors/ranges/hello.pdf?x=1&page=2`);
-    await watched.page.getByText("This link's document address isn't encoded").waitFor();
+    const { page } = watched;
+    await page.getByText("This link's document address isn't encoded").waitFor();
     expect(host.requests.some((r) => r.path.includes("hello.pdf?x=1"))).toBe(false);
+    await page.getByRole("button", { name: "Open a file instead" }).click();
+    await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
+    // The link is dropped from the address, so a reload shows the home screen.
+    await expect.poll(() => page.evaluate(() => location.hash.includes("url="))).toBe(false);
     await clean(watched);
   });
 

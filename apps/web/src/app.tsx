@@ -126,7 +126,7 @@ function Failure({
         reason="cors"
         url={url}
         onRetry={() => void reader.open(file)}
-        onChooseFile={() => reader.close()}
+        onChooseFile={() => void reader.openFromPicker()}
       />
     );
   }
@@ -199,7 +199,11 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
           </OpenDropZone>
         ) : null}
         {state.phase === "empty" && engineState.linkProblem !== undefined ? (
-          <RemoteFailure reason={engineState.linkProblem} onChooseFile={() => engine.dismissLinkProblem()} />
+          <RemoteFailure
+            reason={engineState.linkProblem}
+            onHome={() => engine.dismissLinkProblem()}
+            onChooseFile={() => void reader.openFromPicker()}
+          />
         ) : null}
         {state.phase === "error" ? <Failure state={state} reader={reader} platform={platform} /> : null}
         <ViewerHost viewer={viewer} visible={open} />
