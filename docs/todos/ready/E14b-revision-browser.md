@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E14](../../plans/full-editor.md#e14-compare-revisions-and-batch) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E10h](./E10h-revision-diff-and-attacks.md), [E14a](./E14a-compare-revisions-batch-feature-plan.md) |
+| Depends on | [E10h](./E10h-revision-diff-and-attacks.md), [E14a](./E14a-compare-revisions-batch-feature-plan.md), [T2c](./T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e14b-revision-browser` |
 | PR title | `feat(cos): revision index and read-only revision browser` |
@@ -27,8 +27,8 @@ Expose the revision index built for signature diffing in E10h (`/Prev` chain, by
 
 **In scope**
 
-- `doc.revisions()` with offsets and changed objects
-- `Document::open_revision(n)` read-only
+- `doc.revisions()` with offsets and changed objects: [T2c](./T2c-reveal-command.md)'s `laminapdf_cos::Document::revision_index()`, bound in `@laminapdf/sdk`
+- `Document::open_revision(n)` read-only: [T2b](./T2b-check-failed-redactions.md)'s façade call, bound in `@laminapdf/sdk`
 - Revisions panel
 
 **Out of scope** (and which todo covers it)
@@ -42,12 +42,12 @@ Expose the revision index built for signature diffing in E10h (`/Prev` chain, by
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `M.12` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `M.12` → `read` (pdf, web, desktop; [T2c](./T2c-reveal-command.md) flips core)
 
 ## Tasks
 
-- [ ] Index
-- [ ] Open revision
+- [ ] Bind T2c's index
+- [ ] Bind T2b's `open_revision`
 - [ ] Panel
 
 ## Acceptance criteria

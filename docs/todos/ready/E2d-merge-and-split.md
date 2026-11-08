@@ -36,6 +36,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 **Out of scope** (and which todo covers it)
 
 - UI (multi-file merge, split dialog) → [E2h](E2h-page-organiser-ui.md)
+- The CLI's page commands (`laminapdf pages delete`, `extract`, `reorder`, `insert`, `merge`, `split`) → [T6a](./T6a-cli-page-commands.md)
 
 **Editor facts**
 

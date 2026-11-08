@@ -40,6 +40,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 
 - Form widget links and annotation interactivity beyond links (editor rounds).
 - Full keyboard-shortcut map → [C7a](./C7a-accessibility-and-theming.md).
+- Link previews on hover, focus and long-press (R07's preview card and its phone sheet) → [T5a](./T5a-link-previews.md).
 
 ## Tasks
 

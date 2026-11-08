@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
+| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md), [T2c](./T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11d-sanitiser` |
 | PR title | `feat(ops): document sanitisation with a removal report` |
@@ -28,9 +28,9 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 **In scope**
 
-- Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`
+- Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`; `categories` are `laminapdf.reveal/1`'s names ([T2c](./T2c-reveal-command.md)): `metadata`, `annotations`, `attachments`, `active-content`, `hidden-content`, `history` (the full rewrite)
 - XFA in `StripActiveContent`: XFA forms carry their own scripts (`<script>` in the template packet, FormCalc and JavaScript) that ignore the AcroForm action dictionaries, so the op removes `/AcroForm /XFA` entirely (the stream or the packet array and every packet stream it references) and clears `NeedsRendering` in the catalog; the AcroForm fields, if any, remain as the static fallback. A dynamic XFA document (no usable AcroForm) is reported as `XfaOnlyContentRemoved` so the user knows the form will not render as before
-- `SanitiseReport` (JSON + UI)
+- `SanitiseReport` (JSON + UI), each removed item named by the object number `laminapdf reveal` lists
 - Sanitise dialog with presets
 
 **Out of scope** (and which todo covers it)
@@ -56,6 +56,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 ## Acceptance criteria
 
+- [ ] After `Sanitise(all)`, `laminapdf reveal --fail-on metadata,annotations,attachments,active-content,hidden-content,history` exits 0 on every sanitiser fixture
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug. Expected for the sanitiser ops (`requires_rewrite`): `Conflict` on every signed fixture
 - [ ] After `Sanitise(all)` a scan finds no JS, Launch, EmbeddedFiles, `/AA` or `/OpenAction` actions anywhere, and no `/XFA` entry in `/AcroForm` and no orphaned XFA packet stream (template, datasets, config) left in the file (test over fixtures, including a static and a dynamic XFA form with scripts)
