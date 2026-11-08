@@ -11,7 +11,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
 | F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
-| F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/ready/U1b-command-registry-and-palette.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
+| F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/ongoing/U1b-command-registry-and-palette.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | F03 | Phone, reading | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
 | F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
 | F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
@@ -31,7 +31,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R09 | Print and Download a copy (print dialog: range, scale, page appearance warning) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
 | R10 | View settings: UI theme (light, dark, high contrast, match system), accent colour (Teal, Blue, Plum, Green), page appearance (Original, Sepia, Dark, High contrast), page layout (single, two-up, continuous), zoom presets | W, M | [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md) |
 | R11 | Dark UI theme (F01 in dark chrome, page Original) | W | [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
-| R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/ready/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
+| R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/ongoing/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
 | R13 | Network activity panel: requests since open, per-origin list, "what this proves" | W | [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md) |
 | R14 | Reader mode (reflow): tagged (tier 1) with settings; approximate (tier 2) label; back to page | W, M | [U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md) |
 | R15 | Offline, install and update: install prompt, offline strip, update available | W | [C7b](../../todos/ready/C7b-offline-pwa.md) |

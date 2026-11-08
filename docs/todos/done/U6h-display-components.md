@@ -77,7 +77,7 @@ The components' browser tests in `packages/ui`, through U6d's `test/states.ts` a
 ## Risks and open questions
 
 - **Thumbnail images**: the viewer supplies an `ImageBitmap` or a canvas; the component takes a render prop or a child slot, so it never imports the viewer.
-- **Shortcut glyphs**: the key description's shape comes from [U1b](../ready/U1b-command-registry-and-palette.md)'s `Shortcut` type (ADR 0024). Until U1b lands, take a minimal local type that U1b replaces.
+- **Shortcut glyphs**: the key description's shape comes from [U1b](../ongoing/U1b-command-registry-and-palette.md)'s `Shortcut` type (ADR 0024). Until U1b lands, take a minimal local type that U1b replaces.
 
 ## Outcome
 

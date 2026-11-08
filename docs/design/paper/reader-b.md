@@ -107,7 +107,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Artboards.** `R12-shortcut-help.dc.html`.
 
-**Todos.** [U1b](../../todos/ready/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
+**Todos.** [U1b](../../todos/ongoing/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md).
 
 ## R13 Network activity panel
 

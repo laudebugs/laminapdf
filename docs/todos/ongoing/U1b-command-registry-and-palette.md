@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U1b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4e](../done/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6j](../done/U6j-positioning-and-palette-shell.md) |
@@ -37,8 +37,8 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 
 **Out of scope** (and which todo covers it)
 
-- Shortcut help dialog UI → [C7a](./C7a-accessibility-and-theming.md) (reads `useShortcutMap()`).
-- Native menus → [D4b](./D4b-native-menus.md).
+- Shortcut help dialog UI → [C7a](../ready/C7a-accessibility-and-theming.md) (reads `useShortcutMap()`).
+- Native menus → [D4b](../ready/D4b-native-menus.md).
 - Editor commands → each E round registers its own.
 
 ## Tasks
