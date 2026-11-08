@@ -1361,7 +1361,7 @@ A page's text comes from its fonts. Some pages draw their words in other ways:
 
 ## How to fix
 
-Send the pages this warning names to OCR or a vision model. On an `ocr-layer` page you can instead keep the existing OCR layer: extraction lists its text under `dropped` as `invisible` when you ask to keep the dropped text. Like every warning, it fails the call in strict mode.
+Send the pages this warning names to OCR or a vision model. On an `ocr-layer` page you can instead keep the existing OCR layer: extraction lists its text under `dropped` as `invisible` when you set `drop: { keepSpans: true }` (`DropOptions::keep_spans` in Rust). Like every warning, it fails the call in strict mode.
 
 ## Example
 
