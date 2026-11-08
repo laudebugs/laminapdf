@@ -25,10 +25,10 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 - The [`krilla-fit` spike](../../../spikes/krilla-fit/README.md) and [ADR 0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) found that krilla only returns finished bytes and renumbers every object at `finish`, and that its pages lose their tags when imported into a document. Typst's PDF export writes through krilla. The spike's method is the model here: one standalone Cargo project, the same document in every experiment, a WASM size probe, and `cargo deny` against the repository's `deny.toml`.
 - The builder today: `Surface::text_box` (`crates/laminapdf-build/src/surface/mod.rs`, `surface/textbox.rs`) lays one paragraph in one font and size into a rectangle, and `TextLayout::overflow` says where the rest starts (`Overflow::Error` fails with `text-overflow`). `laminapdf-text`'s `break_lines` (`src/layout.rs`) breaks lines greedily at one size and reserves `LayoutOptions::justify`. `src/tag/` writes structure elements per page ("one doesn't continue on the next page"), and `ArtifactKind::Pagination` has no `/Subtype`.
 - Size: [ADR 0016 §6](../../decisions/0016-package-design.md#6-budgets-per-module) records the text module at 1,074,722 bytes gzip against a 1,130,000 budget, 5.1 % headroom.
-- Speed: [pdf-library §4](../../plans/pdf-library.md#4-requirements) asks for a 100-page text report in at most 500 ms after `init()`, and [B5d](../done/B5d-text-report-generation-performance.md) measured 39 ms natively. A Typst user reports a two-page invoice in under 100 ms ([45697377](https://news.ycombinator.com/item?id=45697377)). [T1c](./T1c-publish-performance-numbers.md) publishes generation timings.
+- Speed: [pdf-library §4](../../plans/pdf-library.md#4-requirements) asks for a 100-page text report in at most 500 ms after `init()`, and [B5d](../done/B5d-text-report-generation-performance.md) measured 39 ms natively. A Typst user reports a two-page invoice in under 100 ms ([45697377](https://news.ycombinator.com/item?id=45697377)). [T1c](../ready/T1c-publish-performance-numbers.md) publishes generation timings.
 - [ADR 0031](../../decisions/0031-cli-and-mcp-contract.md): verbs come first ([§2](../../decisions/0031-cli-and-mcp-contract.md#2-grammar)), and `render` already means rasterising pages ([L4e](../done/L4e-cli-render.md)); reports are versioned JSON ([§6](../../decisions/0031-cli-and-mcp-contract.md#6-json-output)); MCP is read-only unless started with `--allow-write` ([§9](../../decisions/0031-cli-and-mcp-contract.md#9-mcp-defaults-for-l4c)). The [trust and proof plan §9](../../plans/trust-and-proof.md#9-open-questions) asks whether output should be tagged by default (question 1) and whether generation becomes an MCP tool (question 2).
-- [E6d](./E6d-watermarks-headers-footers.md) stamps headers, footers and page numbers onto existing documents. One field syntax should serve E6d and the flow layer.
-- [E13f](./E13f-office-and-html-to-pdf.md) converts HTML and Office files as an opt-in server job (Browser Run, LibreOffice); the library doesn't take HTML.
+- [E6d](../ready/E6d-watermarks-headers-footers.md) stamps headers, footers and page numbers onto existing documents. One field syntax should serve E6d and the flow layer.
+- [E13f](../ready/E13f-office-and-html-to-pdf.md) converts HTML and Office files as an opt-in server job (Browser Run, LibreOffice); the library doesn't take HTML.
 
 ## Scope
 
@@ -49,10 +49,10 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 
 **Out of scope** (and which todo covers it)
 
-- The flow layer: [T4b](./T4b-flow-layout-core.md) (paragraphs, keep rules, page templates, page X of Y) and [T4c](./T4c-flow-tables-notes-contents.md) (tables, footnotes, contents pages).
-- The front ends: [T4d](./T4d-markdown-documents.md) (Markdown, `laminapdf build`, the MCP tool, the SDK) and [T4e](./T4e-json-documents-and-templates.md) (JSON documents and templates).
-- HTML and CSS to PDF: [E13f](./E13f-office-and-html-to-pdf.md).
-- Publishing the timings: [T1c](./T1c-publish-performance-numbers.md).
+- The flow layer: [T4b](../ready/T4b-flow-layout-core.md) (paragraphs, keep rules, page templates, page X of Y) and [T4c](../ready/T4c-flow-tables-notes-contents.md) (tables, footnotes, contents pages).
+- The front ends: [T4d](../ready/T4d-markdown-documents.md) (Markdown, `laminapdf build`, the MCP tool, the SDK) and [T4e](../ready/T4e-json-documents-and-templates.md) (JSON documents and templates).
+- HTML and CSS to PDF: [E13f](../ready/E13f-office-and-html-to-pdf.md).
+- Publishing the timings: [T1c](../ready/T1c-publish-performance-numbers.md).
 
 ## Tasks
 
