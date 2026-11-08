@@ -195,7 +195,7 @@ pub(crate) fn info_text(report: &InfoReport) -> String {
 }
 
 /// Document text on one line, at most 120 characters, without control characters.
-fn one_line(text: &str) -> String {
+pub(crate) fn one_line(text: &str) -> String {
     let clean: String = text.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
     let mut chars = clean.chars();
     let short: String = chars.by_ref().take(120).collect();

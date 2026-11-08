@@ -86,3 +86,23 @@ fn every_fixture_reveals_without_error() {
         }
     }
 }
+
+#[test]
+fn a_linearized_file_updated_since_stays_linearized_and_finds_no_unreferenced_object() {
+    let base = fixture("revisions/hello-linearized.pdf");
+    assert!(!reveal(base.clone()).found().contains(&Category::History));
+    let catalog = Document::open_bytes(base.clone(), OpenOptions::default()).unwrap();
+    let root = catalog
+        .ops()
+        .trailer()
+        .get("Root")
+        .and_then(laminapdf_syntax::Object::as_ref)
+        .unwrap()
+        .num;
+    let size = catalog.ops().trailer().get_int("Size").unwrap();
+    let body = catalog.ops().object(root).unwrap().to_bytes();
+    let updated = laminapdf_test_fixtures::update(&base, &[(root, &body)], &format!("/Size {size} /Root {root} 0 R"));
+    let r = reveal(updated);
+    assert!(r.linearized);
+    assert_eq!(r.revisions.len(), 2);
+}

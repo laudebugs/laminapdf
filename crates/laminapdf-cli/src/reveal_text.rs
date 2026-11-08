@@ -1,10 +1,12 @@
-//! `laminapdf reveal`'s text: the categories found, then one line for each.
+//! `laminapdf reveal`'s text: the categories found, then one line for each. Names from the
+//! document (Info keys, file, field and layer names) appear flattened to one line, as `info`
+//! shows a title; values (Info values, comments, field values) never do.
 
 use std::fmt::Write as _;
 
 use laminapdf_cli::commands::{PageRef, RevealReport};
 
-use crate::render::{count, size};
+use crate::render::{count, one_line, size};
 
 /// One line per category with findings, under the categories found.
 pub(crate) fn reveal_text(report: &RevealReport) -> String {
@@ -60,7 +62,7 @@ fn metadata(r: &RevealReport) -> Vec<String> {
     let m = &r.metadata;
     let mut out = Vec::new();
     if !m.info.is_empty() {
-        let keys: Vec<&str> = m.info.iter().map(|e| e.key.as_str()).collect();
+        let keys: Vec<String> = m.info.iter().map(|e| one_line(&e.key)).collect();
         out.push(format!("Info: {}", keys.join(", ")));
     }
     if let Some(x) = &m.xmp {
@@ -88,7 +90,7 @@ fn attachments(r: &RevealReport) -> Vec<String> {
     r.attachments
         .iter()
         .map(|a| {
-            let name = a.name.as_deref().unwrap_or("unnamed");
+            let name = one_line(a.name.as_deref().unwrap_or("unnamed"));
             a.size
                 .map_or_else(|| format!("\"{name}\""), |s| format!("\"{name}\" ({})", size(s)))
         })
@@ -128,11 +130,11 @@ fn annotations(r: &RevealReport) -> Vec<String> {
 }
 
 fn forms(r: &RevealReport) -> Vec<String> {
-    let filled: Vec<&str> = r
+    let filled: Vec<String> = r
         .forms
         .iter()
         .filter(|f| f.value.is_some())
-        .map(|f| f.name.as_str())
+        .map(|f| one_line(&f.name))
         .collect();
     vec![format!(
         "{} filled: {}",
@@ -148,7 +150,11 @@ fn hidden_content(r: &RevealReport) -> Vec<String> {
         .iter()
         .map(|t| format!("{} {} characters on {}", t.chars, t.reason, pages(&t.pages)))
         .collect();
-    out.extend(h.layers_off.iter().map(|layer| format!("layer \"{layer}\" off")));
+    out.extend(
+        h.layers_off
+            .iter()
+            .map(|layer| format!("layer \"{}\" off", one_line(layer))),
+    );
     out.extend(h.redactions.iter().map(|red| {
         format!(
             "{} on page {}",

@@ -158,7 +158,7 @@ pub struct RevealMetadata {
     /// The XMP packet.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub xmp: Option<Xmp>,
-    /// Object-level `/RevealMetadata` streams.
+    /// Object-level `/Metadata` streams.
     pub metadata_streams: u32,
     /// Objects with `/PieceInfo`.
     pub piece_info: u32,

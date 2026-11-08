@@ -174,8 +174,10 @@ pub struct Disclosure {
     /// The names of the optional content groups the default configuration turns off (§8.11.4.3).
     pub layers_off: Vec<String>,
     /// In-use objects nothing reachable from the trailer references, object and
-    /// cross-reference streams aside.
+    /// cross-reference streams and a linearized file's hint streams aside.
     pub unreferenced: Vec<u32>,
+    /// The linearization parameter dictionary's object (Annex F.2), when the file has one.
+    pub linearization: Option<u32>,
 }
 
 impl Disclosure {

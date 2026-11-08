@@ -14,6 +14,8 @@ impl Scan<'_> {
         let xmp_object = catalog.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
         let numbers: Vec<u32> = self.doc.object_numbers().collect();
         let mut associated: Vec<Object> = Vec::new();
+        // A linearized file's hint streams (Annex F.3) carry `/S` and no `/Type`.
+        let mut hints: Vec<u32> = Vec::new();
         for num in numbers {
             let Some(obj) = tolerant(self.doc.object(num))? else {
                 continue;
@@ -21,6 +23,12 @@ impl Scan<'_> {
             let Some(dict) = obj.as_dict() else {
                 continue;
             };
+            if dict.get("Linearized").is_some() {
+                self.out.linearization.get_or_insert(num);
+            }
+            if matches!(&*obj, Object::Stream(_)) && dict.get_int("S").is_some() && dict.get("Type").is_none() {
+                hints.push(num);
+            }
             if dict.get_name("Type") == Some(b"Metadata") && Some(num) != xmp_object {
                 self.out.metadata_streams.push(num);
             }
@@ -51,7 +59,12 @@ impl Scan<'_> {
         if let Some(meta) = catalog.get("Metadata") {
             self.out.xmp = self.xmp(meta)?;
         }
-        self.out.unreferenced = unreferenced(self.doc)?;
+        // The linearization dictionary and hint streams sit outside the object graph by design.
+        let mut structural: BTreeSet<u32> = self.out.linearization.into_iter().collect();
+        if self.out.linearization.is_some() {
+            structural.extend(hints);
+        }
+        self.out.unreferenced = unreferenced(self.doc, &structural)?;
         Ok(())
     }
 
@@ -153,8 +166,8 @@ fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 }
 
 /// The in-use objects nothing reachable from the trailer's `/Root`, `/Info` and `/Encrypt`
-/// references, object and cross-reference streams aside.
-fn unreferenced(doc: &Document) -> Result<Vec<u32>> {
+/// references, object and cross-reference streams and `structural` aside.
+fn unreferenced(doc: &Document, structural: &BTreeSet<u32>) -> Result<Vec<u32>> {
     let mut reached: BTreeSet<u32> = BTreeSet::new();
     let mut stack: Vec<Object> = ["Root", "Info", "Encrypt"]
         .iter()
@@ -166,7 +179,11 @@ fn unreferenced(doc: &Document) -> Result<Vec<u32>> {
                 if reached.insert(r.num)
                     && let Some(value) = tolerant(doc.object(r.num))?
                 {
-                    stack.push((*value).clone());
+                    // A stream's references are in its dictionary; its data isn't copied.
+                    match &*value {
+                        Object::Stream(s) => stack.extend(s.dict.iter().map(|(_, v)| v.clone())),
+                        other => stack.push(other.clone()),
+                    }
                 }
             }
             Object::Array(items) => stack.extend(items),
@@ -177,7 +194,7 @@ fn unreferenced(doc: &Document) -> Result<Vec<u32>> {
     }
     let mut out = Vec::new();
     for num in doc.object_numbers() {
-        if reached.contains(&num) {
+        if reached.contains(&num) || structural.contains(&num) {
             continue;
         }
         let structural = tolerant(doc.object(num))?.is_some_and(

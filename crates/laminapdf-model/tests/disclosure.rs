@@ -172,3 +172,44 @@ fn every_fixture_scans_without_error() {
         }
     }
 }
+
+#[test]
+fn a_linearized_files_structure_is_never_unreferenced() {
+    let d = open(fixture("revisions/hello-linearized.pdf")).disclosure().unwrap();
+    assert!(d.linearization.is_some());
+    assert_eq!(d.unreferenced, [0u32; 0]);
+}
+
+#[test]
+fn an_indirect_redact_subtype_still_counts() {
+    let bytes = classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [4 0 R] >>",
+            "<< /Type /Annot /Subtype 5 0 R /Rect [0 0 10 10] >>",
+            "/Redact",
+        ],
+        "",
+    );
+    let doc = open(bytes);
+    assert_eq!(doc.disclosure().unwrap().redactions(), [(0, 1)]);
+    let pages = doc.pages().unwrap();
+    assert_eq!(doc.redact_annotations(&pages.get(0).unwrap()).unwrap(), 1);
+}
+
+#[test]
+fn a_value_set_on_a_parent_field_holds_for_its_kids() {
+    let bytes = classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [3 0 R] >> >>",
+            "<< /Type /Pages /Kids [] /Count 0 >>",
+            "<< /T (addr) /FT /Tx /V (221B Baker St) /Kids [4 0 R] >>",
+            "<< /T (line1) /Parent 3 0 R >>",
+        ],
+        "",
+    );
+    let fields = open(bytes).disclosure().unwrap().fields;
+    assert_eq!(fields[0].name, "addr.line1");
+    assert_eq!(fields[0].value.as_deref(), Some("221B Baker St"));
+}

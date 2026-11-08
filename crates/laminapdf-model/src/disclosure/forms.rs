@@ -6,6 +6,12 @@ use std::collections::BTreeSet;
 use laminapdf_cos::{Dict, Object, Result};
 
 use super::{Annotation, EmbeddedFileHolder, FormField, Owner, Scan, Trigger, name_of, text_of};
+use crate::document::Document;
+use crate::page::Page;
+
+/// A field on the walk: the object, its parent's full name, and the `/FT` and `/V` it
+/// inherits, at a depth.
+type Inherit = (Object, String, Option<String>, Option<Object>, usize);
 
 /// `/F` bits that hide an annotation: Hidden (2) and `NoView` (6), §12.5.3.
 const HIDDEN_FLAGS: i64 = (1 << 1) | (1 << 5);
@@ -35,7 +41,7 @@ impl Scan<'_> {
         let Some(dict) = annot.as_dict() else {
             return Ok(());
         };
-        let subtype = dict.get("Subtype").and_then(name_of).unwrap_or_default();
+        let subtype = subtype(self.doc, dict)?;
         let owner = Owner::Annotation { page, object };
         if let Some(a) = dict.get("A") {
             self.actions(a, &Trigger::Activate, &owner)?;
@@ -87,14 +93,14 @@ impl Scan<'_> {
         let max_depth = self.doc.limits().max_tree_depth();
         let mut seen: BTreeSet<u32> = BTreeSet::new();
         // (field, parent's full name, inherited /FT, depth), in document order.
-        let mut stack: Vec<(Object, String, Option<String>, usize)> = fields
+        let mut stack: Vec<Inherit> = fields
             .as_array()
             .unwrap_or_default()
             .iter()
             .rev()
-            .map(|f| (f.clone(), String::new(), None, 0))
+            .map(|f| (f.clone(), String::new(), None, None, 0))
             .collect();
-        while let Some((obj, parent, inherited, depth)) = stack.pop() {
+        while let Some((obj, parent, inherited, inherited_value, depth)) = stack.pop() {
             if depth > max_depth || obj.as_ref().is_some_and(|r| !seen.insert(r.num)) {
                 continue;
             }
@@ -107,6 +113,8 @@ impl Scan<'_> {
                 (None, _) => parent.clone(),
             };
             let kind = dict.get("FT").and_then(name_of).or(inherited);
+            // `/V` is inheritable too (§12.7.4.1): a value set on a parent field holds for its kids.
+            let own_value = dict.get("V").cloned().or(inherited_value);
             let kids = self.kids(dict)?;
             let child_fields: Vec<&Object> = kids
                 .iter()
@@ -115,7 +123,7 @@ impl Scan<'_> {
                 .collect();
             if !child_fields.is_empty() {
                 for kid in child_fields.into_iter().rev() {
-                    stack.push((kid.clone(), name.clone(), kind.clone(), depth + 1));
+                    stack.push((kid.clone(), name.clone(), kind.clone(), own_value.clone(), depth + 1));
                 }
                 continue;
             }
@@ -131,7 +139,7 @@ impl Scan<'_> {
             let hidden = widgets
                 .iter()
                 .all(|w| w.get_int("F").is_some_and(|f| f & HIDDEN_FLAGS != 0));
-            let value = match dict.get("V") {
+            let value = match &own_value {
                 Some(v) => self.read(v)?.as_deref().and_then(value_of),
                 None => None,
             };
@@ -190,6 +198,40 @@ impl Scan<'_> {
             }
         }
         Ok(())
+    }
+}
+
+/// An annotation's `/Subtype`, resolved when it is a reference; empty when it isn't a name.
+pub(super) fn subtype(doc: &Document, annot: &Dict) -> Result<String> {
+    match annot.get("Subtype") {
+        Some(v) => Ok(doc.read(v)?.as_deref().and_then(name_of).unwrap_or_default()),
+        None => Ok(String::new()),
+    }
+}
+
+impl Document {
+    /// How many `Redact` annotations (§12.5.6.23) `page` has: marks a redaction tool left
+    /// without applying them. `/Annots` entries and `/Subtype` may be references.
+    ///
+    /// # Errors
+    /// The errors that must propagate (`data-pending`, the source's, strict mode).
+    pub fn redact_annotations(&self, page: &Page<'_>) -> Result<u32> {
+        let Some(annots) = page.cos().dict.get("Annots") else {
+            return Ok(0);
+        };
+        let Some(annots) = self.read(annots)? else {
+            return Ok(0);
+        };
+        let mut n = 0u32;
+        for entry in annots.as_array().unwrap_or_default() {
+            if let Some(annot) = self.read(entry)?
+                && let Some(dict) = annot.as_dict()
+                && subtype(self, dict)? == "Redact"
+            {
+                n = n.saturating_add(1);
+            }
+        }
+        Ok(n)
     }
 }
 

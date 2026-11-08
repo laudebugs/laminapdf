@@ -104,14 +104,7 @@ fn page_words(doc: &Document, cancel: &CancelToken) -> Result<Vec<String>> {
         // A page that can't be read counts as holding no words, in every revision alike.
         match extractor.page(model, &page) {
             Ok(text) => out.push(text.lines().join("\n")),
-            Err(e)
-                if matches!(
-                    e.kind(),
-                    laminapdf_cos::ErrorKind::Input | laminapdf_cos::ErrorKind::Unsupported
-                ) =>
-            {
-                out.push(String::new());
-            }
+            Err(e) if e.kind().is_skippable() => out.push(String::new()),
             Err(e) => return Err(e.into()),
         }
     }
@@ -154,17 +147,6 @@ pub(crate) fn removed(latest: &[String], earlier: &[String]) -> (u64, Vec<u32>) 
     (gone.values().sum(), pages)
 }
 
-/// Whether `error`, met reading an earlier revision, only says that revision is malformed or
-/// uses something unsupported, so it can be skipped. Anything else (a password, a limit, data
-/// not yet fetched, cancellation) stops the check: a revision it couldn't read might hold the
-/// very text a redaction removed.
-const fn skippable(error: &Error) -> bool {
-    matches!(
-        error.kind(),
-        laminapdf_cos::ErrorKind::Input | laminapdf_cos::ErrorKind::Unsupported
-    )
-}
-
 /// Each earlier revision's removed words, newest first, as `(revision, words, pages)`: what
 /// `text-in-earlier-revision` reports, and what a fuller report can list.
 pub(crate) fn earlier_revisions(
@@ -189,7 +171,9 @@ pub(crate) fn earlier_revisions(
             .and_then(|earlier| page_words(&earlier, cancel))
         {
             Ok(pages) => pages,
-            Err(e) if skippable(&e) => continue,
+            // Malformed or unsupported: skipped. Anything else (a password, a limit, data not yet
+            // fetched) stops the check, since that revision might hold the removed text.
+            Err(e) if e.kind().is_skippable() => continue,
             Err(e) => return Err(e),
         };
         let (gone, on) = removed(&latest, &pages);
@@ -243,14 +227,18 @@ impl Document {
                     regions,
                 }),
         );
-        if cancel.is_cancelled() {
-            return Err(Error::Cancelled);
-        }
-        for (page, annotations) in self.ops().disclosure()?.redactions() {
-            out.push(RedactionWarning::RedactionNotApplied {
-                page: to_u32(page),
-                annotations,
-            });
+        let model = self.ops();
+        for (index, page) in model.pages()?.iter().enumerate() {
+            if cancel.is_cancelled() {
+                return Err(Error::Cancelled);
+            }
+            let annotations = model.redact_annotations(&page)?;
+            if annotations > 0 {
+                out.push(RedactionWarning::RedactionNotApplied {
+                    page: to_u32(index),
+                    annotations,
+                });
+            }
         }
         for (revision, words, pages) in earlier_revisions(self, options, cancel)? {
             out.push(RedactionWarning::TextInEarlierRevision { revision, words, pages });

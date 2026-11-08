@@ -91,7 +91,8 @@ pub struct RevisionRecord {
 pub struct Reveal {
     /// The revisions, oldest first; empty for a repaired file.
     pub revisions: Vec<RevisionRecord>,
-    /// Whether the file is linearized: its first revision has two cross-reference sections.
+    /// Whether the file is linearized: it has a linearization parameter dictionary (Annex F.2),
+    /// updated since or not.
     pub linearized: bool,
     /// Whether its cross-reference table had to be rebuilt.
     pub repaired: bool,
@@ -201,14 +202,13 @@ impl Document {
             }
         }
         check()?;
-        let sections = model.xref_section_offsets().len();
         let mut options = ExtractOptions::default();
         options.drop.keep_spans = true;
         let mut hidden = laminapdf_extract::hidden_text(model, &options, cancel)?;
         // Artifacts are furniture a tagged file marks, not text hidden from its reader.
         hidden.retain(|d| HIDDEN.contains(&d.reason));
         Ok(Reveal {
-            linearized: !model.was_repaired() && revisions.len() == 1 && sections > 1,
+            linearized: disclosure.linearization.is_some(),
             repaired: model.was_repaired(),
             revisions,
             info: self.info_entries()?,

@@ -434,7 +434,7 @@
           "type": "array"
         },
         "metadataStreams": {
-          "description": "Object-level `/RevealMetadata` streams.",
+          "description": "Object-level `/Metadata` streams.",
           "format": "uint32",
           "minimum": 0,
           "type": "integer"

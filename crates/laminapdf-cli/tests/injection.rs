@@ -126,6 +126,23 @@ fn reveal_should_keep_document_text_in_data_fields() {
             );
         }
     }
-    // The text summary names keys and counts, never these values.
+    // The text summary shows names and counts, never these values.
     assert!(!laminapdf(&["reveal", arg(&path)]).stdout_text().contains("Ignore"));
+}
+
+#[test]
+fn reveals_text_should_show_document_names_on_one_line() {
+    let objects: [&[u8]; 3] = [
+        b"<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [3 0 R] >> >>",
+        b"<< /Type /Pages /Kids [] /Count 0 >>",
+        b"<< /T (first\\nsecond) /FT /Tx /V (x) >>",
+    ];
+    let path = folder("injection-reveal-names").join("names.pdf");
+    std::fs::write(
+        &path,
+        laminapdf_test_fixtures::classic(&objects, "<< /Size 4 /Root 1 0 R >>"),
+    )
+    .unwrap();
+    let text = laminapdf(&["reveal", arg(&path)]).stdout_text();
+    assert!(text.contains("1 field filled: first second\n"), "{text}");
 }

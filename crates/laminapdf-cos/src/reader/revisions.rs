@@ -40,22 +40,32 @@ pub fn revision_starts(sections: &[usize]) -> Vec<usize> {
     starts
 }
 
-/// The revisions' ends in `bytes`, whose cross-reference sections sit at `sections` (newest
-/// first), oldest first. Each revision but the newest ends just past the first `%%EOF` line
-/// between its section and the next revision's ([`revision_starts`]); one with no such line
-/// merges into the next. The newest ends at the end of the file.
-pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
+/// The revisions in `bytes`, whose cross-reference sections sit at `sections` (newest first),
+/// oldest first, each as the offset of the section that starts it and where it ends. Each
+/// revision but the newest ends just past the first `%%EOF` line between its section and the
+/// next revision's ([`revision_starts`]); one with no such line merges into the next. The
+/// newest ends at the end of the file.
+fn groups(bytes: &[u8], sections: &[usize]) -> Vec<(usize, u64)> {
     let starts = revision_starts(sections);
-    let mut out: Vec<u64> = starts
-        .windows(2)
-        .filter_map(|pair| match *pair {
-            [this, next] => end_of_eof_line(bytes, this, next),
-            _ => None,
-        })
-        .filter_map(|end| u64::try_from(end).ok())
-        .collect();
-    out.push(u64::try_from(bytes.len()).unwrap_or(u64::MAX));
+    let mut out = Vec::new();
+    let mut first = None;
+    for (k, &start) in starts.iter().enumerate() {
+        let group = *first.get_or_insert(start);
+        let end = match starts.get(k + 1) {
+            Some(&next) => end_of_eof_line(bytes, start, next),
+            None => Some(bytes.len()),
+        };
+        if let Some(end) = end {
+            out.push((group, u64::try_from(end).unwrap_or(u64::MAX)));
+            first = None;
+        }
+    }
     out
+}
+
+/// The revisions' ends ([`groups`]), oldest first.
+pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
+    groups(bytes, sections).into_iter().map(|(_, end)| end).collect()
 }
 
 /// One revision of a file ([`Document::revision_index`]): the cross-reference section that
@@ -76,8 +86,9 @@ pub struct Revision {
 
 impl Document {
     /// The file's revisions, oldest first, with what each one's cross-reference sections list
-    /// (§7.5.6). A linearized file's first-page section is part of its first revision, as in
-    /// [`Document::revision_ends`]. Empty for a file whose cross-reference table had to be
+    /// (§7.5.6), grouped as [`Document::revision_ends`] groups them: a linearized file's
+    /// first-page section is part of its first revision, and a revision with no `%%EOF` line
+    /// merges into the next. Empty for a file whose cross-reference table had to be
     /// rebuilt by scanning, which has no sections to read.
     ///
     /// # Errors
@@ -86,30 +97,31 @@ impl Document {
         if self.was_repaired() || self.section_offsets.is_empty() {
             return Ok(Vec::new());
         }
-        let ends = self.revision_ends()?;
-        let mut out: Vec<Revision> = Vec::new();
-        let sections = self.section_offsets.iter().zip(&self.section_objects).rev();
-        for (&offset, objects) in sections {
-            let section = u64::try_from(offset).unwrap_or(u64::MAX);
-            match out.last_mut() {
-                Some(last) if section <= last.section => {
-                    last.in_use.extend_from_slice(&objects.in_use);
-                    last.freed.extend_from_slice(&objects.freed);
-                }
-                _ => out.push(Revision {
-                    section,
-                    end: 0,
-                    in_use: objects.in_use.clone(),
-                    freed: objects.freed.clone(),
-                }),
+        let bytes = self.whole_input()?;
+        let mut out: Vec<Revision> = groups(&bytes, &self.section_offsets)
+            .into_iter()
+            .map(|(start, end)| Revision {
+                section: u64::try_from(start).unwrap_or(u64::MAX),
+                end,
+                in_use: Vec::new(),
+                freed: Vec::new(),
+            })
+            .collect();
+        for (&offset, objects) in self.section_offsets.iter().zip(&self.section_objects) {
+            let offset = u64::try_from(offset).unwrap_or(u64::MAX);
+            // The last revision starting at or before the section; a linearized file's
+            // first-page section, before every other, is the first revision's.
+            let index = out.iter().rposition(|r| r.section <= offset).unwrap_or(0);
+            if let Some(revision) = out.get_mut(index) {
+                revision.in_use.extend_from_slice(&objects.in_use);
+                revision.freed.extend_from_slice(&objects.freed);
             }
         }
-        for (revision, end) in out.iter_mut().zip(ends) {
+        for revision in &mut out {
             revision.in_use.sort_unstable();
             revision.in_use.dedup();
             revision.freed.sort_unstable();
             revision.freed.dedup();
-            revision.end = end;
         }
         Ok(out)
     }
@@ -154,6 +166,25 @@ mod tests {
         // Linearized: the newest section (offset 9) names an older one later in the file.
         let file = b"%PDF-1.7\nxref /Prev 40 startxref 9 %%EOF\nlots of objects xref startxref 40 %%EOF\n";
         assert_eq!(ends(file, &[9, 40]), vec![file.len() as u64]);
+    }
+
+    #[test]
+    fn a_revision_without_an_eof_line_merges_but_the_others_keep_their_ends() {
+        // Three sections; the second has no %%EOF line before the third, so it joins it.
+        let file = b"%PDF-1.7\nxref startxref\n%%EOF\nxref startxref\nxref startxref\n%%EOF\n";
+        let at: Vec<usize> = file
+            .windows(6)
+            .enumerate()
+            .filter(|(_, w)| w == b"\nxref ")
+            .map(|(i, _)| i + 1)
+            .collect();
+        let sections = [at[2], at[1], at[0]];
+        let first = b"%PDF-1.7\nxref startxref\n%%EOF\n".len() as u64;
+        assert_eq!(ends(file, &sections), vec![first, file.len() as u64]);
+        assert_eq!(
+            super::groups(file, &sections),
+            vec![(at[0], first), (at[1], file.len() as u64)]
+        );
     }
 
     #[test]
