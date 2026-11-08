@@ -54,6 +54,7 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
   | `/privacy` | the privacy page, every statement tied to ADR 0011 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) |
   | `/pricing` | plans, prices and the fair-pricing promises | [U5a](../todos/ready/U5a-pricing-and-promises-page.md) |
   | `/performance` | the reader benchmark | [U5b](../todos/ready/U5b-reader-benchmark.md) |
+  | `/how-we-test` | the nightly's robustness figures, the licence and where the code comes from | [T1b](../todos/ready/T1b-how-we-test-page.md) |
   | `/desktop/releases/<version>` | desktop release notes, which the updater links to | [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) |
   | `/keys/lamina-release.asc` | the public key that signs the Linux packages | [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md) |
 

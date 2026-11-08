@@ -22,6 +22,7 @@ Annotate mode in both apps: toolbar tools (highlight, underline, strike-through,
 - **Design (Paper):** [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [C01 Comment tools](../../design/paper/comment-review.md#c01-comment-tools), [C08 Phone annotate](../../design/paper/comment-review.md#c08-phone-annotate), [C09 Tablet stylus](../../design/paper/comment-review.md#c09-tablet-stylus). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) web vs desktop
 - [full-editor §6](../../plans/full-editor.md#6-design-summary) interaction modes
+- [Hacker News research R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file): a box drawn over text is the classic failed redaction, and users ask editors to warn about it ([trust and proof plan §7](../../plans/trust-and-proof.md#7-changes-to-existing-todos-and-plans))
 
 ## Scope
 
@@ -31,6 +32,7 @@ Annotate mode in both apps: toolbar tools (highlight, underline, strike-through,
 - Properties panel with recent colours and defaults per tool (stored per-viewer in local settings)
 - Pointer Events pressure → ink width variation (stored as multiple paths or per E4a)
 - Keyboard creation and editing paths; ARIA labels; focus order
+- A covered-text notice: when a filled rectangle, ellipse or polygon at full opacity covers text from the page's text layer, a dismissible notice says the text stays in the file and can be copied, and offers the redaction tool once it exists ([E12b](./E12b-mark-and-review.md)); it never blocks the annotation
 
 **Out of scope** (and which todo covers it)
 
@@ -50,12 +52,14 @@ Annotate mode in both apps: toolbar tools (highlight, underline, strike-through,
 - [ ] Tools
 - [ ] Selection handles
 - [ ] Properties panel
+- [ ] Covered-text notice for opaque shapes drawn over text
 - [ ] e2e per tool tagged with IDs
 
 ## Acceptance criteria
 
 - [ ] e2e on both shells: create each annotation type, save, reopen in pdf.js; appearance and properties preserved
 - [ ] axe zero serious violations in annotate mode
+- [ ] e2e: an opaque filled rectangle drawn over text shows the covered-text notice; a shape with a transparent fill, or one over empty space, shows none
 
 ## Post-merge checks
 
