@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4a](../done/L4a-lamina-cli.md), [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
@@ -23,7 +23,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 - [Report: the CLI is the primary agent interface](../../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it): crate versions read on 2026-10-29.
 - [P1](../done/P1-reserve-names-and-trusted-publishing.md): the release lane's publish jobs this PR plugs into (crates.io trusted publishing, npm staged publishing with the owner's approval, SBOMs on the GitHub release); no attestations or `release` environment while the repository is private (ADR 0017 §7).
 - [ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release): binaries ship third-party licence notices and an SBOM.
-- [D6b](./D6b-release-workflow-and-linux-packages.md): the desktop release workflow; share runners and signing conventions where they overlap.
+- [D6b](../ready/D6b-release-workflow-and-linux-packages.md): the desktop release workflow; share runners and signing conventions where they overlap.
 
 ## Scope
 
@@ -40,7 +40,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 **Out of scope** (and which todo covers it)
 
 - Actually publishing a release, crates.io publishing of `laminapdf-cli`, npm publishing: the owner's decision; publishing mechanics in [P1](../done/P1-reserve-names-and-trusted-publishing.md), first registry release in [P2](../done/P2-first-registry-prerelease.md).
-- Code signing and notarisation of the binaries (macOS, Windows): reuse [D6c](./D6c-macos-signing-and-notarisation.md) and [D6d](./D6d-windows-signing.md) when they land; note the gap in the README until then.
+- Code signing and notarisation of the binaries (macOS, Windows): reuse [D6c](../ready/D6c-macos-signing-and-notarisation.md) and [D6d](../ready/D6d-windows-signing.md) when they land; note the gap in the README until then.
 - winget, Scoop, apt/rpm repositories, homebrew-core: later, on demand.
 - A `wasm32-wasip2` build of the CLI: an open question below.
 
