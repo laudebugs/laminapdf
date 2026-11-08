@@ -189,7 +189,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// (C3a, built first), `@laminapdf/tokens`' high-contrast theme, whose system colours only a browser resolves
 /// (U6a), `@laminapdf/fonts`' faces (U6b: what a page fetches, all from its own origin), `@laminapdf/icons`'
 /// React `<Icon>` and gallery (U6c), `@laminapdf/ui`'s components (U6d), `@laminapdf/site-kit`'s site
-/// header (W1d: keyboard order, the current page, phone width, axe), and the reader app (`apps/web`,
+/// header (W1d: keyboard order, the current page, phone width, axe), the docs' diagrams (contrast in the
+/// light, dark and high-contrast themes and with forced colours, the 12 px label floor), and the reader app (`apps/web`,
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
@@ -203,6 +204,7 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "@laminapdf/icons",
         "@laminapdf/ui",
         "@laminapdf/site-kit",
+        "@laminapdf/docs",
     ] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));
