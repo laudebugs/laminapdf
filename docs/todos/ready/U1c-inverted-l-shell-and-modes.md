@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4e](../done/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U1b](./U1b-command-registry-and-palette.md) |
+| Depends on | [C4e](../done/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U1b](../done/U1b-command-registry-and-palette.md) |
 | ADRs | Implements 0024 (layout and modes); follows 0009, 0010 |
 | Branch | `feat/u1c-inverted-l-shell` |
 | PR title | `feat(ui): add the left rail, inspector, mode switcher and focus mode` |
@@ -22,7 +22,7 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R16 Focus mode](../../design/paper/reader-b.md#r16-focus-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) and ADR 0024.
 - [Research: inverted-L layout](../../research/product/pdf-app-product-and-ux.md#desktop-and-web-an-inverted-l-layout-with-contextual-disclosure) — Linear's inverted L, Figma's reattached panels and Minimize UI, Microsoft's stability warning.
-- [C4e](../done/C4e-reader-chrome.md) — `ReaderShell` and its slots; [U1b](./U1b-command-registry-and-palette.md) — the registry the rail, inspector and focus-mode toggles are commands in.
+- [C4e](../done/C4e-reader-chrome.md) — `ReaderShell` and its slots; [U1b](../done/U1b-command-registry-and-palette.md) — the registry the rail, inspector and focus-mode toggles are commands in.
 
 ## Scope
 

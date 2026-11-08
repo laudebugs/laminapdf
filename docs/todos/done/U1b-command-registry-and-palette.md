@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `U1b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4e](../done/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6j](../done/U6j-positioning-and-palette-shell.md) |
+| Depends on | [C4e](./C4e-reader-chrome.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md), [U6j](./U6j-positioning-and-palette-shell.md) |
 | ADRs | Implements 0024 (command registry); follows 0009, 0010 |
 | Branch | `feat/u1b-command-registry-and-palette` |
 | PR title | `feat(ui): add the command registry and the command palette` |
 | Size | L (500–900 lines incl. tests) |
-| PR | — |
+| PR | [laudebugs/laminapdf#288](https://github.com/laudebugs/laminapdf/pull/288) |
 
 ## Goal
 
@@ -37,27 +37,27 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 
 **Out of scope** (and which todo covers it)
 
-- Shortcut help dialog UI → [C7a](./C7a-accessibility-and-theming.md) (reads `useShortcutMap()`).
-- Native menus → [D4b](./D4b-native-menus.md).
+- Shortcut help dialog UI → [C7a](../ready/C7a-accessibility-and-theming.md) (reads `useShortcutMap()`).
+- Native menus → [D4b](../ready/D4b-native-menus.md).
 - Editor commands → each E round registers its own.
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Check cmdk's licence and that of its Radix dependencies; `cargo xtask npm-licenses` passes.
-- [ ] Implement the registry and argument parsers with unit tests for every parser (valid, invalid, out of range, page labels).
-- [ ] Implement the dispatcher and the collision test; keep two lists per shell: **never bind** (shortcuts a page can't or mustn't take: browser Ctrl+W/T/N, Firefox Quick Find `/` and `'`, macOS Cmd+Q/H, Windows Alt+F4; on desktop only the OS-level ones) and **deliberate overrides** (bound on purpose with `preventDefault`, each with a reason: Mod+K palette, Mod+F find, Mod+P print, Mod+S save later; on desktop Cmd+W closes the tab). The collision test fails on any binding in the never list, on any override not in the allowlist, and on two commands sharing a shortcut.
-- [ ] Build the palette with APG combobox semantics (focus stays in the input, `aria-activedescendant`, `aria-expanded`, live count of results).
-- [ ] Port C4e's toolbar actions to commands; delete duplicated handlers.
-- [ ] Add a palette demo to `examples/ui-demo.tsx` with a fake viewer.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Claimed by opening the work PR, whose first commit moved this file, as CLAUDE.md's working agreement now does.
+- [x] Check cmdk's licence and that of its Radix dependencies; `cargo xtask npm-licenses` passes. cmdk isn't used: the ranking is the package's own (`src/commands/rank.ts`), so nothing new is installed, and the licence check passes.
+- [x] Implement the registry and argument parsers with unit tests for every parser (valid, invalid, out of range, page labels).
+- [x] Implement the dispatcher and the collision test; keep two lists per shell: **never bind** (shortcuts a page can't or mustn't take: browser Ctrl+W/T/N, Firefox Quick Find `/` and `'`, macOS Cmd+Q/H, Windows Alt+F4; on desktop only the OS-level ones) and **deliberate overrides** (bound on purpose with `preventDefault`, each with a reason: Mod+K palette, Mod+F find, Mod+P print, Mod+S save later; on desktop Cmd+W closes the tab). The collision test fails on any binding in the never list, on any override not in the allowlist, and on two commands sharing a shortcut.
+- [x] Build the palette with APG combobox semantics (focus stays in the input, `aria-activedescendant`, `aria-expanded`, live count of results).
+- [x] Port C4e's toolbar actions to commands; delete duplicated handlers.
+- [x] Add a palette demo to `examples/ui-demo.tsx` with a fake viewer.
 
 ## Acceptance criteria
 
-- [ ] Every action reachable from the toolbar is a registered command, and the palette runs each one (test enumerates the registry).
-- [ ] `go to 12`, `zoom 150` and a page-label jump work from the palette in one step; invalid arguments show a message and run nothing.
-- [ ] No two commands share a shortcut on any platform, none uses a never-bind shortcut, and every browser/OS shortcut a command takes is in that shell's override allowlist with a reason (test).
-- [ ] Keyboard-only and screen-reader checks: axe reports zero serious/critical violations with the palette open; VoiceOver announces result counts.
-- [ ] Opening the palette and filtering 30 commands stays under 16 ms per keystroke on the perf harness machine.
+- [x] Every action reachable from the toolbar is a registered command, and the palette runs each one (test enumerates the registry).
+- [x] `go to 12`, `zoom 150` and a page-label jump work from the palette in one step; invalid arguments show a message and run nothing.
+- [x] No two commands share a shortcut on any platform, none uses a never-bind shortcut, and every browser/OS shortcut a command takes is in that shell's override allowlist with a reason (test).
+- [ ] Keyboard-only and screen-reader checks: axe reports zero serious/critical violations with the palette open; VoiceOver announces result counts. Axe passes, and the count is a live `status` region; VoiceOver needs a check on a Mac before merge.
+- [ ] Opening the palette and filtering 30 commands stays under 16 ms per keystroke on the perf harness machine. A Node test holds ranking 39 commands for eight keystrokes under 16 ms in all; the harness machine's measurement is still to be taken.
 
 ## Post-merge checks
 
@@ -78,8 +78,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
