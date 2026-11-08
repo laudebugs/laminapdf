@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principle [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) 7 (rules in core, models as plug-ins) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
-| Depends on | [L3b](../done/L3b-extract-tables-and-serialisers.md), [T3a](./T3a-text-layer-status.md) |
+| Depends on | [L3b](../done/L3b-extract-tables-and-serialisers.md), [T3a](../ongoing/T3a-text-layer-status.md) |
 | ADRs | Implements 0030's plug-in policy (from [L3a](../done/L3a-lamina-extract-reading-order.md)); follows 0028 (jobs; from [L1a](../done/L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](./E13a-adr-0013-heavy-jobs.md)) |
 | Branch | `feat/l3c-model-plugins` |
 | PR title | `feat(extract): LayoutModel and OcrEngine plug-in traits and an optional ONNX layout crate` |
@@ -38,7 +38,7 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - **Use of results in extraction:**
   - Layout regions group runs into blocks within regions, feed XY-Cut++ with regions instead of rule-built blocks, set block kinds from labels, and mark `page-header`/`page-footer` regions for the L3a furniture pass.
   - Table regions without ruling lines run L3b's stream fallback inside the region (cell structure models are out of scope).
-  - OCR runs on the pages whose text-layer status ([T3a](./T3a-text-layer-status.md)) is `needs-ocr`, and on `ocr-layer` and `mixed` pages by a documented policy, and produces spans flagged `ocr` with confidence; OCR text in an existing invisible layer is not duplicated.
+  - OCR runs on the pages whose text-layer status ([T3a](../ongoing/T3a-text-layer-status.md)) is `needs-ocr`, and on `ocr-layer` and `mixed` pages by a documented policy, and produces spans flagged `ocr` with confidence; OCR text in an existing invisible layer is not duplicated.
   - Output records `generator.mode` (`rules`, `rules+layout`, `rules+ocr`, …) and every model's `ModelInfo` in `generator.models`.
 - **Optional edge crate `crates/laminapdf-layout-onnx`** (layer `edge`, native targets only): implements `LayoutModel` with `ort` (ONNX Runtime bindings; licences of `ort` and ONNX Runtime to verify, both expected MIT/Apache) for the Heron ONNX export; pre- and post-processing (resize, normalise, NMS, label map); weights loaded from bytes or a path given by the app, never bundled.
 - **Model manifest and licence gate:** `tools/models/models.toml` lists allowed models (name, version, URL, SHA-256, code licence, weights licence, source of the licence statement); `cargo xtask models fetch <name>` downloads and verifies by hash into a gitignored cache; `cargo xtask models check` fails if any entry's code or weights licence is outside the allow-list (Apache-2.0, MIT, BSD-2/3-Clause, CDLA-Permissive) or if a weights file appears in the repository.

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T3](../../plans/trust-and-proof.md#t3-extraction-users-can-check) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -19,7 +19,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 
 ## Context
 
-- [T2a](./T2a-covered-text-flag.md) also forwards image events through `TextExtractor::page_with` and tracks covers in paint order; whichever lands second extends the other's code rather than adding a second visitor. T2a keeps text under an image covering at least 90% of the page as an OCR layer, so this todo's status should name those pages `ocr-layer`.
+- [T2a](../ready/T2a-covered-text-flag.md) also forwards image events through `TextExtractor::page_with` and tracks covers in paint order; whichever lands second extends the other's code rather than adding a second visitor. T2a keeps text under an image covering at least 90% of the page as an OCR layer, so this todo's status should name those pages `ocr-layer`.
 - [Report R4: make extraction checkable](../../research/hacker-news/pdf-users-on-hacker-news.md#r4-make-extraction-checkable) and the [extraction note](../../research/hacker-news/notes/extraction.md): want 3 (scanned pages), the hybrid pipelines in §3, and §6 priority 2 ("Tell users which pages need OCR or a VLM"). A user with "thousands" of legacy PDFs says "Some have Adobe's OCR embedded, but most have none at all" ([43975217](https://news.ycombinator.com/item?id=43975217)): a status has to tell those two apart.
 - [ADR 0030](../../decisions/0030-extraction-output-and-model-plugins.md): §1 lists a page's keys; §4 keeps invisible text (render mode 3, which OCR layers use) out of every block, so an OCR'd scan extracts as nothing today; §7 lets new keys appear within `/1`, so this is an additive change and needs no `/2` and no amendment, only an implementation note like L3b's and L3d's.
 - The code:
@@ -28,8 +28,8 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
   - `crates/laminapdf-text/src/extract/mod.rs`: `TextExtractor::page_with` forwards only path events (`path_segment`, `paint_path`) to its visitor. `Glyph::mapped` is false for a glyph no rule maps to Unicode (Type 3 and other fonts without ToUnicode, usable names or a `cmap`), and `PageText::unmapped` counts such glyphs.
   - `crates/laminapdf-content/src/visitor.rs`: `Visitor::image` reports every image XObject and inline image, stencil masks included, with `ImageDraw::state.ctm` mapping the unit square to user space, inside Form XObjects too.
 - [L3f](../done/L3f-extraction-benchmark.md) and `cargo xtask extract-bench`: the three scored olmOCR-bench subsets hold the scanned pages that gave no text, so they check the status on real files.
-- [L3c](./L3c-model-plugins.md) plans to OCR "pages without a usable text layer"; this todo defines that test, so L3c can pick pages by the status. [E13c](./E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.
-- [T2a](./T2a-covered-text-flag.md) needs the page's image boxes too (text covered by later images). Put the image collection in a module both can use (`marks.rs` below).
+- [L3c](../ready/L3c-model-plugins.md) plans to OCR "pages without a usable text layer"; this todo defines that test, so L3c can pick pages by the status. [E13c](../ready/E13c-ocr-text-layer.md) writes invisible OCR layers; pages it makes should read as `ocr-layer`.
+- [T2a](../ready/T2a-covered-text-flag.md) needs the page's image boxes too (text covered by later images). Put the image collection in a module both can use (`marks.rs` below).
 
 ## Scope
 
@@ -62,16 +62,16 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 
 **Out of scope** (and which todo covers it)
 
-- Running OCR: [L3c](./L3c-model-plugins.md) (`OcrEngine`) and [E13d](./E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](./E13c-ocr-text-layer.md).
+- Running OCR: [L3c](../ready/L3c-model-plugins.md) (`OcrEngine`) and [E13d](../ready/E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](../ready/E13c-ocr-text-layer.md).
 - Putting an OCR layer's text in the blocks of an `ocr-layer` page: that changes ADR 0030 §4, so it waits for the owner's decision (Risks).
-- Text whose glyphs map to the wrong characters, text that differs from what the page shows, and text under later images: a rendered check through the render backend later (ADR 0030 §4, [ADR 0004](../../decisions/0004-render-backend.md)), and [T2a](./T2a-covered-text-flag.md) for covered text.
+- Text whose glyphs map to the wrong characters, text that differs from what the page shows, and text under later images: a rendered check through the render backend later (ADR 0030 §4, [ADR 0004](../../decisions/0004-render-backend.md)), and [T2a](../ready/T2a-covered-text-flag.md) for covered text.
 - The clip: image boxes are taken whole until [L3g](../done/L3g-extract-structure-tree.md) tracks the clip's box.
 - `laminapdf extract`'s plain-text format (`laminapdf.text/1`) and the `laminapdf_extract` MCP tool, which answers with that format only: neither runs the extraction rules. Giving the MCP tool the extracted document is a later CLI and MCP change.
 - The cut-offs as `doc.extract()` options in TypeScript (Risks).
 
 ## Tasks
 
-- [ ] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); `laminapdf-extract` stays a core crate with `#![forbid(unsafe_code)]`, and no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
+- [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); `laminapdf-extract` stays a core crate with `#![forbid(unsafe_code)]`, and no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
 - [ ] `laminapdf-text`, in its own commit: in `crates/laminapdf-text/src/extract/mod.rs`, the private `Collector`'s `Visitor` impl forwards `image` to `paths`, as `path_segment` and `paint_path` do; `page_with`'s doc names image events. A unit test: a visitor passed to `page_with` sees a built page's image.
 - [ ] `crates/laminapdf-extract/src/marks.rs` (new): `Marks`, a `Visitor` that holds an `Option<tables::Collector>` and forwards path events to it, records each image's box in page space (the unit square's four corners through `ImageDraw::state.ctm` and `PageFrame::to_page`, their bounding box clipped to the page) and counts painted paths. `finish()` returns the table rules (`Option<Edges>`) and the image boxes and path count.
 - [ ] `crates/laminapdf-extract/src/text_layer.rs` (new): `measure()` (the measures from the page's runs and glyphs, with the same `visibility::flags()` that `page::runs()` uses, before the `max_blocks_per_page` cut) and `classify()` (the table's rules, in order), with unit tests for each rule and each cut-off's edge.
