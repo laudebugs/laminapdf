@@ -60,10 +60,10 @@ Only the first press loads anything: about 3.5 MB (the SDK's text module and PDF
 
 | Todo | Delivers |
 | --- | --- |
-| [B7d](../todos/ready/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
+| [B7d](../todos/ongoing/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
 | [B7e](../todos/ready/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, sandboxed runner, viewer, download, reset |
 
 ## 5. To-dos
 
-- [ ] Show every example's result beside its code ([B7d](../todos/ready/B7d-docs-example-results.md))
+- [ ] Show every example's result beside its code ([B7d](../todos/ongoing/B7d-docs-example-results.md))
 - [ ] Let readers edit and run the TypeScript examples that teach by changing ([B7e](../todos/ready/B7e-docs-edit-and-run.md))

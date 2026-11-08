@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B7d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs examples §2](../../plans/docs-examples.md#result-and-output-tabs-b7d) |
 | Round / milestone | Round B (library) — docs |
 | Depends on | [B7a](../done/B7a-docs-site.md) |
