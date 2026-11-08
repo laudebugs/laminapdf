@@ -228,7 +228,8 @@ export async function sha256(bytes: Uint8Array): Promise<string> {
 export interface Measurement {
   readonly runtime: string;
   /**
-   * `hello-first` (the first call after `init()`), `hello` (median), `report` (median), or
+   * `hello-first` (the first call after `init()`), `hello` (median), `invoice` (median), `report`
+   * (median), or
    * `wasm-memory` (both modules' linear memory after the reports: memory never shrinks, so this
    * is its peak; hello() and report() free their builder and document, so it is one run's peak,
    * not the garbage collector's backlog).
@@ -264,8 +265,9 @@ export async function difference(actual: Uint8Array, golden: Uint8Array): Promis
 }
 
 /**
- * Times hello (the first call after `init()`, then the median of 20) and the 100-page report
- * (median of 3) with `performance.now()`. Returns the report's bytes, for the hash check.
+ * Times hello (the first call after `init()`, then the median of 20), the invoice example (the
+ * median of 20; its bytes are checked against the Rust golden by the suite's own test) and the
+ * 100-page report (median of 3) with `performance.now()`. Returns the report's bytes, for the hash check.
  * Needs `init({ text: true })`, and must run first in a fresh module instance (before any other
  * example): then `hello-first` is cold and `wasm-memory` is the hello and report runs' alone.
  *
@@ -288,6 +290,10 @@ export async function measure(
   const first = await time(() => hello(HELLO_OPTIONS));
   const hellos: number[] = [];
   for (let i = 0; i < 20; i++) hellos.push(await time(() => hello(HELLO_OPTIONS)));
+  const invoiceExample = EXAMPLES.find((e) => e.name === "invoice");
+  if (invoiceExample === undefined) throw new Error("the suite has no invoice example");
+  const invoices: number[] = [];
+  for (let i = 0; i < 20; i++) invoices.push(await time(() => invoiceExample.build(inputs)));
   // report() returns a JS copy of the saved bytes and frees its document, so the last run's
   // bytes stay valid for the hash check.
   let bytes: Uint8Array = new Uint8Array();
@@ -304,6 +310,7 @@ export async function measure(
     measurements: [
       { runtime, case: "hello-first", value: first },
       { runtime, case: "hello", value: median(hellos) },
+      { runtime, case: "invoice", value: median(invoices) },
       { runtime, case: "report", value: median(reports) },
       { runtime, case: "wasm-memory", value: (memory.base ?? 0) + (memory.text ?? 0) },
     ],

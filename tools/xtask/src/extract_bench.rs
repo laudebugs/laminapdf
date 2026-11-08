@@ -8,6 +8,8 @@
 //! Python: `tools/bench/requirements.txt`, `$LAMINA_PDF_PYTHON` or `python3`) and writes
 //! `target/bench/extract/<name>/report.json` and `report.md`. It never runs in the PR lanes.
 
+mod results;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs;
@@ -170,6 +172,20 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
         md.push_str(&line);
     }
     fs::write(out.join(format!("{candidate}-report.md")), &md)?;
+    let stamp = crate::machine::stamp(&ws.root);
+    let results = results::results(
+        dataset,
+        &subsets,
+        candidate,
+        args,
+        &extracted,
+        &score_json,
+        &pdf_counts,
+        &stamp,
+    );
+    let results_path = out.join(format!("{candidate}-results.json"));
+    fs::write(&results_path, serde_json::to_string_pretty(&results)? + "\n")?;
+    step(&format!("extract-bench: wrote {}", results_path.display()));
     step(&format!("extract-bench: {} ({candidate})", dataset.title));
     println!("{md}");
     Ok(())
@@ -404,6 +420,7 @@ fn render_report(
     let files = at(extracted, "facts").as_object();
     let count = |outcome: &str| files.map_or(0, |f| f.values().filter(|v| at(v, "outcome") == outcome).count());
     let millis: u64 = files.map_or(0, |f| f.values().filter_map(|v| at(v, "millis").as_u64()).sum());
+    let speed = results::speed(extracted);
     let mut md = format!(
         "{} ({}, revision `{}`), Lamina PDF {} ({candidate}{})\n\n| Subset | What it measures | PDFs | Tests | Passed | Score |\n| --- | --- | ---: | ---: | ---: | ---: |\n",
         dataset.title,
@@ -438,7 +455,8 @@ fn render_report(
         md,
         "\nOverall (the mean of the groups' scores, the baseline included, as the benchmark reports it): {:.1} %; \
          without the baseline: {:.1} %.\n\
-         PDFs extracted: {}, failed: {}, panicked: {}, crashed or timed out: {}; extraction time {}.{} s in all.\n\nData: {}.\n",
+         PDFs extracted: {}, failed: {}, panicked: {}, crashed or timed out: {}; extraction time {}.{} s in all, \
+         {:.0} pages a second on one thread (median {:.1} ms a page).\n\nData: {}.\n",
         at(scores, "overall").as_f64().unwrap_or(0.0) * 100.0,
         at(scores, "overallWithoutBaseline").as_f64().unwrap_or(0.0) * 100.0,
         count("extracted"),
@@ -447,6 +465,8 @@ fn render_report(
         count("crash") + count("timeout"),
         millis / 1000,
         millis % 1000 / 100,
+        speed.pages_per_second,
+        speed.median_millis,
         dataset.attribution
     );
     let _ = writeln!(md, "\nPages by text-layer status: {}.", status_counts(files));
