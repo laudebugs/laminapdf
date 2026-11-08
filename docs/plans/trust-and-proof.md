@@ -30,7 +30,7 @@ The [report](../research/hacker-news/pdf-users-on-hacker-news.md) ranks ten reco
 | [R2. Real redaction, and a check for fake redaction](../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file) | E12a–E12f | T2a, T2b; a notice in E4f |
 | [R3. Forms and signatures, XFA named plainly](../research/hacker-news/pdf-users-on-hacker-news.md#r3-finish-forms-and-signatures-and-name-xfa-files-plainly) | E8, E10 | nothing: the evidence raises their priority |
 | [R4. Extraction users can check](../research/hacker-news/pdf-users-on-hacker-news.md#r4-make-extraction-checkable) | L3g | T3a, T3b, T3c, T1c |
-| [R5. Flowing layout, then Markdown and JSON](../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json) | none | T4a–T4e, T1c |
+| [R5. Flowing layout, then Markdown and JSON](../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json) | none | T4a–T4j, T1c |
 | [R6. A fast, quiet, safe reader](../research/hacker-news/pdf-users-on-hacker-news.md#r6-keep-the-reader-fast-quiet-and-safe) | C7c, U4a, U5a | nothing |
 | [R7. Long reading](../research/hacker-news/pdf-users-on-hacker-news.md#r7-serve-long-reading-reflow-a-dark-page-papers-and-manuals) | U2c, U4b, U4c, C5b, C6a, C6b | T5a, T5b |
 | [R8. Sanitise without flattening, report what a file reveals](../research/hacker-news/pdf-users-on-hacker-news.md#r8-sanitise-without-flattening-and-report-what-a-file-reveals) | E11d, E3g | T2c |
@@ -89,15 +89,20 @@ Users now ask whether they can check what an extractor returned. T3 gives each p
 
 ### T4. Pages that flow
 
-The library plan lists flowing layout as a non-goal for now and asks, in its open question 4, whether it should become one. The evidence says yes: control over page breaks is the generation request with the clearest gap. T4a decides how in ADR 0032, after a spike that weighs an engine of our own over the builder's `Surface` against embedding Typst; T4b–T4e build what it decides. Each is XL today, so T4a reshapes and splits them into PR-sized todos once the ADR is accepted.
+The library plan lists flowing layout as a non-goal for now and asks, in its open question 4, whether it should become one. The evidence says yes: control over page breaks is the generation request with the clearest gap. T4a decided how in [ADR 0032](../decisions/0032-flowing-layout-and-document-inputs.md), after the [`flow-layout` spike](../../spikes/flow-layout/README.md) weighed an engine of our own over the builder's `Surface` against embedding Typst: our own engine. T4b–T4j build it, each at most L: T4f and T4g lay the groundwork in the builder and the text layout, T4b, T4c and T4h make the flow layer, and T4d, T4i, T4e and T4j add Markdown, JSON documents and their surfaces.
 
 | Todo | What | Size | Depends on |
 | --- | --- | --- | --- |
 | [T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md) | ADR 0032: a layout engine for flowing pages, with a spike | M | — |
-| [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | XL | T4a |
-| [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Flowing layout: tables with repeated headers, footnotes, a contents page with page numbers | XL | T4b |
-| [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in, flowing pages out: `laminapdf build`, an MCP tool and the SDK | XL | T4c |
-| [T4e](../todos/ready/T4e-json-documents-and-templates.md) | JSON documents and templates in, flowing pages out | XL | T4d |
+| [T4f](../todos/ready/T4f-flow-builder-groundwork.md) | Builder groundwork: elements across pages, measuring, artifact subtypes, marks under PDF/UA-1 | L | T4a |
+| [T4g](../todos/ready/T4g-flow-styled-spans.md) | Styled spans in one paragraph | M | T4a |
+| [T4b](../todos/ready/T4b-flow-layout-core.md) | Flowing layout: paragraphs across pages, keep-together, running headers and footers, page X of Y | L | T4f, T4g |
+| [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Flowing layout: tables across pages with repeated headers and kept totals | L | T4b |
+| [T4h](../todos/ready/T4h-flow-notes-contents-outline.md) | Flowing layout: footnotes, a contents page with page numbers, and the outline | L | T4b |
+| [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in Rust, flowing pages out | L | T4c, T4h |
+| [T4i](../todos/ready/T4i-build-command-and-bindings.md) | `laminapdf build`, its MCP tool and the TypeScript `markdown` call | L | T4d |
+| [T4e](../todos/ready/T4e-json-documents-and-templates.md) | JSON documents and templates in Rust and the CLI | L | T4i |
+| [T4j](../todos/ready/T4j-documents-in-typescript.md) | Typed documents and `builder.flow` in TypeScript | L | T4e, T4i |
 
 ### T5. Long reading
 
@@ -123,7 +128,7 @@ Merge, split and the optimiser are planned in the library (E2, E16) but not in t
  T1a ─► T1b          T1c          T1d                          (start now)
  T2a ─► T2b ─► T2c                                             (T2a starts now; L3g is done)
  T3a    T3b    T3c                                             (start now)
- T4a ─► T4b ─► T4c ─► T4d ─► T4e                               (T4a starts now)
+ T4a ─► T4f, T4g ─► T4b ─► T4c, T4h ─► T4d ─► T4i ─► T4e ─► T4j  (T4a: ADR 0032)
  C6b, U3a ─► T5a;  C6b, C7b ─► T5b
  L4e, E2d ─► T6a ─► T6b ◄─ E16c
 ```
@@ -149,10 +154,9 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 
 - **Published figures can embarrass.** A low share of corpus files opened, or a slow benchmark, would be public. The answer is to publish anyway, with the method and the trend, and fix what the numbers show; hiding them would contradict the round's point. The owner approves the page's copy (T1b).
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
-- **ADR 0032 may choose Typst,** whose output is finished bytes (via krilla), not Lamina PDF's object graph ([`krilla-fit` spike](../../spikes/krilla-fit/README.md)). T4b–T4e would then change shape; their files say so.
 - **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2a can start now that L3g is done, and T5 and T6 wait on the rounds they extend.
 - **Parallel todos touch the same files.** T1c, T3a and T3b all edit the extraction benchmark (`crates/laminapdf/examples/differential/extract-bench.rs`, `tools/xtask/src/extract_bench.rs`); T2a and T3a both forward image events through `TextExtractor::page_with`. Each todo says so, and whichever lands second extends the first's code.
-- **The WASM text module is near its size budget.** It has about 5% headroom; the flow layer, Markdown and the document schema will likely need an ADR 0016 §6 budget change or a fourth module (T4a decides).
+- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raises its budget from 1,130,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +17 KB for a paginator and +78 KB for the Markdown parser.
 
 ## 9. Open questions
 
@@ -160,8 +164,8 @@ The owner decides these; the todo named in each holds the details and a recommen
 
 **Across the round**
 
-1. **Tagged output by default.** Should `BuildOptions` tag documents unless asked not to, or at least flowing output (T4b)? Tagging changes the byte goldens and adds structure to every file.
-2. **MCP tools that write.** ADR 0031 keeps the MCP server read-only unless started with `--allow-write`. T4d proposes a `laminapdf_build` tool and T6a write tools under that flag; form filling would be next. Each needs an ADR 0031 amendment.
+1. **Tagged output by default.** Should `BuildOptions` tag documents unless asked not to, or at least flowing output (T4b)? Tagging changes the byte goldens and adds structure to every file. *[ADR 0032 §4](../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) proposes it for flowing output; the fixed-position builder keeps its opt-in.*
+2. **MCP tools that write.** ADR 0031 keeps the MCP server read-only unless started with `--allow-write`. T4i adds a `laminapdf_build` tool under that flag ([ADR 0032 §7](../decisions/0032-flowing-layout-and-document-inputs.md#7-surfaces) amends ADR 0031), and T6a proposes write tools; form filling would be next.
 3. **Where the proof lives,** on `laminapdf.com` (T1b's proposal) or in the docs, and whether "How we test" joins the site header's links.
 
 **Proof (T1)**
@@ -184,8 +188,8 @@ The owner decides these; the todo named in each holds the details and a recommen
 
 **Layout (T4)**
 
-13. **ADR 0032's route:** an engine of our own, Typst, or a hybrid; and the template language for T4e (placeholders in the JSON, MiniJinja or Typst).
-14. **The default font** when a caller gives none: the standard 14 fonts set Latin only and fail PDF/UA-1, while a bundled Noto face costs size (the library plan's open question 2).
+13. **ADR 0032's route:** an engine of our own, Typst, or a hybrid; and the template language for T4e (placeholders in the JSON, MiniJinja or Typst). *[ADR 0032](../decisions/0032-flowing-layout-and-document-inputs.md) proposes our own engine and placeholders in the JSON; the owner signs it off.*
+14. **The default font** when a caller gives none: the standard 14 fonts set Latin only and fail PDF/UA-1, while a bundled Noto face costs size (the library plan's open question 2). *[ADR 0032 §8](../decisions/0032-flowing-layout-and-document-inputs.md#8-fonts) proposes the standard 14 and no bundled font.*
 
 **Reader and CLI (T5, T6)**
 
@@ -208,7 +212,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 - [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
-- [ ] T4: pages that flow ([T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md))
+- [ ] T4: pages that flow ([T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md), [T4f](../todos/ready/T4f-flow-builder-groundwork.md), [T4g](../todos/ready/T4g-flow-styled-spans.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4h](../todos/ready/T4h-flow-notes-contents-outline.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4i](../todos/ready/T4i-build-command-and-bindings.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md), [T4j](../todos/ready/T4j-documents-in-typescript.md))
 - [ ] T5: long reading ([T5a](../todos/ready/T5a-link-previews.md), [T5b](../todos/ready/T5b-reopen-at-last-position.md))
 - [ ] T6: chained jobs in the CLI ([T6a](../todos/ready/T6a-cli-page-commands.md), [T6b](../todos/ready/T6b-cli-optimize-target-size.md))
 - [ ] The owner answers §9's open questions

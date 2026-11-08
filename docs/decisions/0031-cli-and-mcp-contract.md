@@ -2,6 +2,7 @@
 
 - Status: Accepted (2026-11-04, when L4a's PR merges)
 - Date: 2026-11-04
+- Amended 2026-11-08 (proposed by [ADR 0032](0032-flowing-layout-and-document-inputs.md#7-surfaces); in force with its sign-off): a `build` command (`laminapdf build <input.md | doc.json | -> -o OUT`) joins the grammar of §2, with its `laminapdf.build/1` report under §6's rules, and `laminapdf mcp` gains a `laminapdf_build` tool listed only with `--allow-write` (§9). [T4i](../todos/ready/T4i-build-command-and-bindings.md) and [T4e](../todos/ready/T4e-json-documents-and-templates.md) implement it.
 
 ## Context
 

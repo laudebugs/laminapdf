@@ -29,7 +29,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 
 **Non-goals (for now)**
 
-- A flowing layout engine (paragraph boxes across pages, tables, floats). The builder positions text runs and offers single-box line breaking. The [element flow plan](element-flow.md) proposes a smaller measurement and cursor helper. Full layout remains a later plan; "Typst as layout backend" is one option ([05 §8.3](../research/pdf/05-creating-pdfs-from-code.md#83-build-versus-wrap-which-existing-work-to-stand-on)).
+- Floats, multiple columns and maths in flowing layout. Flowing layout itself (paragraphs across pages, tables, page templates) became a goal with [ADR 0032](../decisions/0032-flowing-layout-and-document-inputs.md), built as our own engine over the builder; its §3 lists what stays out.
 - HTML/CSS → PDF. Out of scope for the library; see [full-editor §E13](full-editor.md#e13-ocr-and-conversion).
 - Rendering in the base package. Rendering ships as the optional `@laminapdf/render-pdfium` package in Round C ([web-app.md](web-app.md)).
 - Python, Swift/Kotlin and napi bindings. UniFFI is "later" per ADR 0002; the [shareable libraries plan](shareable-libraries.md) brings forward the façade rules and a `lamina-ffi` spike, and adds the CLI, AI-ready extraction and agent docs.
@@ -248,8 +248,8 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 
 1. ~~Generation strategy: depend on krilla or build over `laminapdf-cos`?~~ **Answered by the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)** (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges): krilla cannot write into an existing object graph (it only returns finished bytes). Recommendation: build `laminapdf-build` over `laminapdf-cos` and reuse `pdf-writer` (`Content`), `subsetter`, `skrifa` and HarfRust; use krilla as a reference and a test oracle, not as a core dependency.
 2. Do we ship an optional `@laminapdf/fonts` package (Noto subsets) for zero-config text, or always require font bytes?
-3. Do we offer a JSX/declarative layer on top of the builder, and when?
-4. Is a layout engine (flowing text, tables, pagination) a library goal, and is Typst embedding the route? The [Hacker News research](../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json) found control over page breaks to be the generation request with the clearest gap; [T4a](../todos/ongoing/T4a-adr-0032-layout-engine.md) answers this question in ADR 0032.
+3. ~~Do we offer a JSX/declarative layer on top of the builder, and when?~~ **Answered by [ADR 0032 §6](../decisions/0032-flowing-layout-and-document-inputs.md#6-inputs):** the `laminapdf.document/1` tree is the declarative layer, with typed objects in TypeScript; a JSX layer, if one comes, maps onto it.
+4. ~~Is a layout engine (flowing text, tables, pagination) a library goal, and is Typst embedding the route?~~ **Answered by [ADR 0032](../decisions/0032-flowing-layout-and-document-inputs.md)** after the [`flow-layout` spike](../../spikes/flow-layout/README.md): yes, as our own engine over `Surface`; Typst embedded adds 6.9 MB gzip to the WebAssembly, 147 crates and finished bytes only.
 5. Which binding is next after TS: Python (largest PDF audience) or UniFFI (mobile)?
 6. Public stability of the low-level COS API: exposed in 0.x or kept internal?
 
