@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U1c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4e](../done/C4e-reader-chrome.md), [U1a](../done/U1a-adr-0024-app-shell-ux.md), [U1b](../done/U1b-command-registry-and-palette.md) |
+| Depends on | [C4e](./C4e-reader-chrome.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U1b](./U1b-command-registry-and-palette.md) |
 | ADRs | Implements 0024 (layout and modes); follows 0009, 0010 |
 | Branch | `feat/u1c-inverted-l-shell` |
 | PR title | `feat(ui): add the left rail, inspector, mode switcher and focus mode` |
@@ -22,7 +22,7 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R16 Focus mode](../../design/paper/reader-b.md#r16-focus-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) and ADR 0024.
 - [Research: inverted-L layout](../../research/product/pdf-app-product-and-ux.md#desktop-and-web-an-inverted-l-layout-with-contextual-disclosure) — Linear's inverted L, Figma's reattached panels and Minimize UI, Microsoft's stability warning.
-- [C4e](../done/C4e-reader-chrome.md) — `ReaderShell` and its slots; [U1b](../done/U1b-command-registry-and-palette.md) — the registry the rail, inspector and focus-mode toggles are commands in.
+- [C4e](./C4e-reader-chrome.md) — `ReaderShell` and its slots; [U1b](./U1b-command-registry-and-palette.md) — the registry the rail, inspector and focus-mode toggles are commands in.
 
 ## Scope
 
@@ -43,19 +43,19 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Implement the components with CSS grid; no layout shift when the inspector opens (canvas width animates only when reduced motion is off).
-- [ ] Mode registry and tests (register, switch, switching away clears mode-only selection).
-- [ ] Focus mode command and shortcut; persists per session only.
-- [ ] Wire rail and inspector toggles to U1b commands.
-- [ ] Update `examples/ui-demo.tsx` with fake rail tabs and a fake selection to open the inspector.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Claimed by opening the work PR, whose first commit moved this file, as CLAUDE.md's working agreement now does.
+- [x] Implement the components with CSS grid; no layout shift when the inspector opens (canvas width animates only when reduced motion is off).
+- [x] Mode registry and tests (register, switch, switching away clears mode-only selection).
+- [x] Focus mode command and shortcut; persists per session only.
+- [x] Wire rail and inspector toggles to U1b commands.
+- [x] Update `examples/ui-demo.tsx` with fake rail tabs and a fake selection to open the inspector.
 
 ## Acceptance criteria
 
-- [ ] Opening a document shows only the top bar, the canvas and the status bar unless the user has opened the rail before (test).
-- [ ] Selecting an object opens the inspector without covering any canvas pixel (visual test asserts the canvas box shrinks rather than being overlapped).
-- [ ] Rail resize works by mouse and keyboard; focus mode toggles by shortcut and palette.
-- [ ] axe: zero serious/critical violations; landmarks present and unique.
+- [x] Opening a document shows only the top bar, the canvas and the status bar unless the user has opened the rail before (test).
+- [x] Selecting an object opens the inspector without covering any canvas pixel (visual test asserts the canvas box shrinks rather than being overlapped). Asserted on the boxes in Chromium, Firefox and WebKit (`test/browser/shell.browser.test.tsx`), without baseline screenshots.
+- [x] Rail resize works by mouse and keyboard; focus mode toggles by shortcut and palette.
+- [x] axe: zero serious/critical violations; landmarks present and unique.
 
 ## Post-merge checks
 
@@ -75,8 +75,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

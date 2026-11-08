@@ -10,8 +10,8 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/ongoing/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
-| F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [U1c](../../todos/ongoing/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
+| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
+| F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | F03 | Phone, reading | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
 | F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
 | F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
@@ -35,7 +35,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R13 | Network activity panel: requests since open, per-origin list, "what this proves" | W | [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md) |
 | R14 | Reader mode (reflow): tagged (tier 1) with settings; approximate (tier 2) label; back to page | W, M | [U4b](../../todos/ready/U4b-reader-mode-from-structure-tree.md), [U4c](../../todos/ready/U4c-approximate-reader-mode.md) |
 | R15 | Offline, install and update: install prompt, offline strip, update available | W | [C7b](../../todos/ready/C7b-offline-pwa.md) |
-| R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/ongoing/U1c-inverted-l-shell-and-modes.md) |
+| R16 | Focus mode (rails hidden; inspector returns on selection) | W | [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md) |
 | R17 | Tablet reading: rail as sheet, pen hover | T | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
 | R18 | Phone: outline, find, more (outline sheet, find, more menu, view settings sheet) | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
 
