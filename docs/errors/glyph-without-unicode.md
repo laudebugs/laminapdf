@@ -7,7 +7,7 @@
 
 Under PDF/A-2u or PDF/UA-1, a glyph was drawn with no Unicode value, or with one that holds U+0000, U+FEFF or U+FFFE.
 
-Shaping can draw one character with several glyphs: Noto Sans Arabic draws a beh as a dotless body and a dot. The body then carries the letter, and the dot maps to the empty value, so the letter is read once. An empty value is a mapping, and these profiles accept it.
+A glyph that maps to the empty value doesn't fail. Shaping can draw one character with several glyphs: Noto Sans Arabic draws a beh as a dotless body and a dot. The body then carries the letter and the dot maps to the empty value, so the letter is read once.
 
 ## Why
 

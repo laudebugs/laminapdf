@@ -9,7 +9,7 @@
 
 ## Why
 
-An element that continues across pages is written when `Builder::close_element` closes it, since only then is its content complete. One never closed would leave the structure tree with a reference to an element that doesn't exist (ISO 32000-2 §14.7.2), so the build stops instead.
+An element that continues across pages is written when `Builder::close_element` closes it, since only then is its content complete. An element never closed would leave the structure tree with a reference to an element that doesn't exist (ISO 32000-2 §14.7.2), so the build stops instead.
 
 ## How to fix
 
