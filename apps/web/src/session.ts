@@ -68,7 +68,7 @@ function remoteName(url: string): string {
 }
 
 /** The PlatformFile that stands for the remote file at `url`. Only the document worker reads it. */
-export function remoteFile(url: string): PlatformFile {
+function remoteFile(url: string): PlatformFile {
   const file: PlatformFile = {
     name: remoteName(url),
     size: 0,

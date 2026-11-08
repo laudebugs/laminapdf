@@ -8,7 +8,7 @@
 // one. Writing puts an untouched key's raw value back unchanged.
 
 /** One `key=value` pair of the fragment: the value as written (`raw`) and decoded. */
-export interface FragmentEntry {
+interface FragmentEntry {
   /** The pair exactly as written (`debug`, `url=https%3A…`), which an untouched key writes back. */
   readonly written: string;
   readonly key: string;
