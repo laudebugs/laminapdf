@@ -1,0 +1,380 @@
+# The `laminapdf` CLI's release (todo L4d, ADR 0031): archives built by cargo-dist
+# (dist-workspace.toml; `dist`, cargo-about and cargo-cyclonedx pinned in tools/xtask/src/doctor.rs),
+# each installed and run before anything could be published. Not a required check: it runs
+# beside ci.yml and full.yml, on the files that change what it builds.
+#
+#   plan            every run: `dist plan` for the tag (`laminapdf-cli-v<version>`, the crate's
+#                   version), which fails on a broken config or a tag that names another version
+#   build-macos     aarch64-apple-darwin on the Mac: the archive (binary, licences, third-party
+#                   notices, man pages, completions) extracted and run (`--version`, `info` on a
+#                   fixture), the npm wrapper and platform package installed from their tarballs
+#                   and run (tools/cli-release/install-test.sh), and the Homebrew formula installed
+#                   from the local archive through a throwaway local tap and run
+#   build-linux     aarch64-unknown-linux-gnu and aarch64-unknown-linux-musl on the Linux runner:
+#                   the same archive and npm checks (npm for glibc; the musl binary is checked to be
+#                   statically linked, so it runs on any Linux, Alpine included, and is run here)
+#   global          the Homebrew formula and sha256.sum over the archives built, and a CycloneDX
+#                   SBOM of the binary's crates (`mcp` feature on)
+#   publish         only on a `laminapdf-cli-v*` tag push, while the owner's repository variable
+#                   LAMINA_PDF_PUBLISH_CLI is 'true', in the `release` environment: the GitHub
+#                   release with every file `global` collected, and build-provenance attestations
+#                   once the repository is public (ADR 0017 §7). No registry token is stored.
+#
+# Pull requests that touch the CLI or these files run `plan` only. A `workflow_dispatch` run
+# (`gh workflow run cli-release.yml --ref <branch>`) runs every build and uploads the files as
+# artifacts; it never publishes (`dry-run` stays true; false is refused). A tag push builds
+# and verifies the same way first.
+#
+# Targets: dist-workspace.toml lists eight. CI builds the three the self-hosted runners can run:
+# macOS arm64 on the Mac (`[self-hosted, macOS, ARM64]`) and Linux arm64 with glibc and musl on
+# the Linux runner container (`[self-hosted, Linux, ARM64]`), which runs only while
+# LINUX_RUNNER is 'true' and its heartbeat is fresh (full.yml's comment). x86_64-apple-darwin,
+# x86_64-unknown-linux-gnu and -musl, and both Windows targets are built once a runner for each
+# exists (Windows: todo X6). GitHub-hosted runners are not used.
+#
+# Still the owner's, before the first publish: pushing the formula to laudebugs/homebrew-tap and
+# publishing the npm packages (target/cli-npm/, from tools/cli-release/generate.ts). npm's trusted
+# publishing accepts only GitHub-hosted runners (ADR 0017 §7), and the tap is another repository.
+# Same runner rules as ci.yml: isolate-rust-home, no rust-cache on macOS, pnpm in runner.temp.
+# Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+name: CLI release
+
+on:
+  pull_request:
+    paths:
+      - crates/laminapdf-cli/**
+      - dist-workspace.toml
+      - packages/cli/**
+      - tools/cli-release/**
+      - .github/workflows/cli-release.yml
+  push:
+    tags: ["laminapdf-cli-v*"]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build and verify without publishing (a dispatch never publishes; only a tag push can)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  plan:
+    name: dist plan
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      linux: ${{ steps.linux.outputs.linux }}
+    steps:
+      - name: A dispatch is a dry run
+        if: github.event_name == 'workflow_dispatch' && !inputs.dry-run
+        run: |
+          echo "::error::a dispatch never publishes: push a laminapdf-cli-v<version> tag (with LAMINA_PDF_PUBLISH_CLI set to true)"
+          exit 1
+      # Same switch and heartbeat as full.yml's `changes`.
+      - name: Is the Linux runner switched on and alive?
+        id: linux
+        env:
+          SWITCH: ${{ vars.LINUX_RUNNER }}
+          HEARTBEAT: ${{ vars.LINUX_RUNNER_HEARTBEAT }}
+        run: |
+          linux=false
+          if [ "$SWITCH" = true ]; then
+            if [[ "$HEARTBEAT" =~ ^[0-9]+$ ]] && [ $(( $(date +%s) - HEARTBEAT )) -le 900 ]; then
+              linux=true
+            else
+              echo "::warning::LINUX_RUNNER is true but the Linux runner's heartbeat is missing or older than 15 minutes, so the Linux targets are skipped"
+            fi
+          fi
+          echo "linux=$linux" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The release tag
+        id: tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            tag=$REF_NAME
+          else
+            # The first `version =` of Cargo.toml is [workspace.package]'s, which laminapdf-cli inherits.
+            tag="laminapdf-cli-v$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      # Same version as tools/xtask/src/doctor.rs.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-dist@0.32.0
+      - name: dist plan
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: dist plan --tag "$TAG"
+
+  build-macos:
+    name: Build and install (aarch64-apple-darwin)
+    needs: plan
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    env:
+      TARGET: aarch64-apple-darwin
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: cli-release
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - uses: ./.github/actions/node-pnpm
+      # Same versions as tools/xtask/src/doctor.rs.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-dist@0.32.0,cargo-about@0.9.2
+      - name: Man pages, completions and third-party notices for the archive
+        run: cargo xtask cli-dist
+      - name: dist build
+        run: |
+          rm -rf "$CARGO_TARGET_DIR/distrib"
+          dist build --tag "$TAG" --artifacts=local --target "$TARGET" --output-format=json > "$RUNNER_TEMP/manifest.json"
+          # `global` reads each build's checksums from these manifests (dist's own CI does the same).
+          cp "$RUNNER_TEMP/manifest.json" "$CARGO_TARGET_DIR/distrib/$TARGET-dist-manifest.json"
+          echo "DISTRIB=$CARGO_TARGET_DIR/distrib" >> "$GITHUB_ENV"
+      - name: The archive installs and runs
+        run: tools/cli-release/archive-test.sh "$DISTRIB/laminapdf-cli-$TARGET.tar.xz" fixtures/golden/examples/hello.pdf
+      - name: The npm packages install and run
+        run: |
+          pnpm --filter @laminapdf/cli build
+          node tools/cli-release/generate.ts --artifacts "$DISTRIB" --out target/cli-npm
+          tools/cli-release/install-test.sh target/cli-npm cli-darwin-arm64 fixtures/golden/examples/hello.pdf
+      # dist's formula points at the GitHub release; a local tap's copy points at the archive.
+      - name: The Homebrew formula installs and runs
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_ANALYTICS: "1"
+        run: |
+          dist build --tag "$TAG" --artifacts=global --target "$TARGET"
+          tap="laminapdf-ci/local-${GITHUB_RUN_ID}"
+          brew tap-new --no-git "$tap"
+          trap 'brew uninstall --formula laminapdf || true; brew untap "$tap" || true' EXIT
+          archive="$DISTRIB/laminapdf-cli-$TARGET.tar.xz"
+          sed "s#url \".*/laminapdf-cli-$TARGET.tar.xz\"#url \"file://$archive\"#" "$DISTRIB/laminapdf.rb" \
+            > "$(brew --repository "$tap")/Formula/laminapdf.rb"
+          brew install --formula "$tap/laminapdf"
+          "$(brew --prefix)/bin/laminapdf" --version
+          "$(brew --prefix)/bin/laminapdf" info fixtures/golden/examples/hello.pdf
+      - name: Upload the archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cli-archive-aarch64-apple-darwin
+          path: |
+            ${{ env.DISTRIB }}/laminapdf-cli-${{ env.TARGET }}.tar.xz
+            ${{ env.DISTRIB }}/laminapdf-cli-${{ env.TARGET }}.tar.xz.sha256
+            ${{ env.DISTRIB }}/${{ env.TARGET }}-dist-manifest.json
+          if-no-files-found: error
+      - name: Upload the npm packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cli-npm-aarch64-apple-darwin
+          path: target/cli-npm/
+          if-no-files-found: error
+
+  build-linux:
+    name: Build and install (Linux arm64, ${{ matrix.libc }})
+    needs: plan
+    if: ${{ github.event_name != 'pull_request' && needs.plan.outputs.linux == 'true' }}
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      # One at a time: there is one Linux runner.
+      max-parallel: 1
+      matrix:
+        include:
+          - libc: glibc
+            target: aarch64-unknown-linux-gnu
+            package: cli-linux-arm64-gnu
+          - libc: musl
+            target: aarch64-unknown-linux-musl
+            package: cli-linux-arm64-musl
+    env:
+      TARGET: ${{ matrix.target }}
+      LIBC: ${{ matrix.libc }}
+      PACKAGE: ${{ matrix.package }}
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The container starts empty for every job (see full.yml's check-linux).
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: true
+          cache-save-if: false
+          cache-bin: false
+          target: ${{ matrix.target }}
+      # Same versions as tools/xtask/src/doctor.rs.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-dist@0.32.0,cargo-about@0.9.2
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Man pages, completions and third-party notices for the archive
+        run: cargo xtask cli-dist
+      - name: dist build
+        run: |
+          distrib="${CARGO_TARGET_DIR:-$PWD/target}/distrib"
+          rm -rf "$distrib"
+          dist build --tag "$TAG" --artifacts=local --target "$TARGET" --output-format=json > "$RUNNER_TEMP/manifest.json"
+          cp "$RUNNER_TEMP/manifest.json" "$distrib/$TARGET-dist-manifest.json"
+          echo "DISTRIB=$distrib" >> "$GITHUB_ENV"
+      - name: The archive installs and runs
+        run: tools/cli-release/archive-test.sh "$DISTRIB/laminapdf-cli-$TARGET.tar.xz" fixtures/golden/examples/hello.pdf
+      # A static binary has no program interpreter: it needs no C library at run time, so the
+      # run above on this glibc runner stands for Alpine too.
+      - name: The musl binary is statically linked
+        if: matrix.libc == 'musl'
+        run: |
+          tar -xJf "$DISTRIB/laminapdf-cli-$TARGET.tar.xz" -C "$RUNNER_TEMP"
+          binary="$RUNNER_TEMP/laminapdf-cli-$TARGET/laminapdf"
+          if readelf -l "$binary" | grep -q INTERP; then
+            echo "::error::the musl binary is dynamically linked"; exit 1
+          fi
+      # npm installs a platform package only where its `libc` matches, so the glibc runner checks
+      # the glibc package's install; the musl package is generated and uploaded.
+      - name: The npm packages install and run
+        run: |
+          pnpm --filter @laminapdf/cli build
+          node tools/cli-release/generate.ts --artifacts "$DISTRIB" --out target/cli-npm
+          if [ "$LIBC" = glibc ]; then
+            tools/cli-release/install-test.sh target/cli-npm "$PACKAGE" fixtures/golden/examples/hello.pdf
+          fi
+      - name: Upload the archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cli-archive-${{ matrix.target }}
+          path: |
+            ${{ env.DISTRIB }}/laminapdf-cli-${{ env.TARGET }}.tar.xz
+            ${{ env.DISTRIB }}/laminapdf-cli-${{ env.TARGET }}.tar.xz.sha256
+            ${{ env.DISTRIB }}/${{ env.TARGET }}-dist-manifest.json
+          if-no-files-found: error
+      - name: Upload the npm package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cli-npm-${{ matrix.target }}
+          path: target/cli-npm/${{ matrix.package }}/
+          if-no-files-found: error
+
+  global:
+    name: Formula, checksums and SBOM
+    needs: [plan, build-macos, build-linux]
+    if: ${{ !cancelled() && needs.build-macos.result == 'success' && needs.build-linux.result != 'failure' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    env:
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: cli-release-global
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # Same versions as tools/xtask/src/doctor.rs.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-dist@0.32.0,cargo-cyclonedx@0.5.9
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: cli-archive-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/archives
+      # dist reads each build's checksums from its manifest in its output folder; with `--target`
+      # for each, the formula and sha256.sum cover only the targets built.
+      - name: Homebrew formula and sha256.sum
+        run: |
+          distrib="$CARGO_TARGET_DIR/distrib"
+          rm -rf "$distrib" && mkdir -p "$distrib"
+          cp "$RUNNER_TEMP"/archives/* "$distrib/"
+          targets=()
+          for manifest in "$distrib"/*-dist-manifest.json; do
+            target=${manifest##*/}
+            targets+=(--target "${target%-dist-manifest.json}")
+          done
+          dist build --tag "$TAG" --artifacts=global "${targets[@]}"
+          mkdir -p target/cli-release
+          cp "$distrib"/laminapdf-cli-*.tar.xz* "$distrib/laminapdf.rb" "$distrib/sha256.sum" target/cli-release/
+      # cargo-cyclonedx writes one SBOM per workspace member; keep the CLI's.
+      - name: CycloneDX SBOM
+        run: |
+          cargo cyclonedx --manifest-path crates/laminapdf-cli/Cargo.toml --features mcp --format json
+          mv crates/laminapdf-cli/laminapdf-cli.cdx.json target/cli-release/
+          find crates tools -name '*.cdx.json' -delete
+      - name: Upload the release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cli-release
+          path: target/cli-release/
+          if-no-files-found: error
+
+  # The owner's switches, all three required: the repository variable, a tag push (never a
+  # dispatch or a pull request) and the `release` environment. tools/xtask/src/workflows.rs
+  # tests this condition.
+  publish:
+    name: Publish the GitHub release
+    needs: [plan, global]
+    if: ${{ needs.global.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      # The GitHub release.
+      contents: write
+      # Build-provenance attestations (OIDC), once the repository is public.
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ needs.plan.outputs.tag }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cli-release
+          path: ${{ runner.temp }}/cli-release
+      # GitHub refuses attestations for a private repository (ADR 0017 §7).
+      - name: Attest the archives
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            ${{ runner.temp }}/cli-release/laminapdf-cli-*.tar.xz
+            ${{ runner.temp }}/cli-release/laminapdf-cli-*.zip
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release create "$TAG" --repo "$REPO" --verify-tag --prerelease --title "$TAG" \
+            --notes "The laminapdf command-line tool, ${TAG#laminapdf-cli-v}." \
+            "$RUNNER_TEMP"/cli-release/*
