@@ -254,6 +254,7 @@
             "extract-struct-tree-ignored",
             "extract-untagged-content",
             "extract-needs-ocr",
+            "extract-column-order-uncertain",
             "tounicode-conflict",
             "whole-font-rebuilt"
           ]

@@ -50,6 +50,7 @@ mod viewer_perf;
 mod wasm;
 mod wasm_glue;
 mod wasm_module;
+mod web;
 #[cfg(test)]
 mod workflows;
 mod workspace;
@@ -121,6 +122,9 @@ tasks:
   wasm              build the wasm32 crates with the size-optimised `wasm-release` profile, then
                     the @laminapdf/wasm modules (lamina_pdf_base, lamina_pdf_text) into packages/wasm/dist/
                     (wasm-bindgen, wasm-opt) and their tests in Node
+  web build         the reader (apps/web) into apps/web/dist/ from a fresh checkout: the
+                    @laminapdf/wasm modules without their tests, @laminapdf/sdk, the packages the
+                    app imports, then the app (what .github/workflows/web-deploy.yml deploys)
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
                     target/size-report.json, fail above packages/wasm/size-budgets.json
@@ -251,7 +255,8 @@ tasks:
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
-                    and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
+                    and say whether any is code (not docs), the gallery's inputs or the
+                    reader's; sets `code`, `gallery` and `web` in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main)
   version sync [--check]
                     copy the npm fixed group's version (`fixed` in .changeset/config.json;
@@ -339,6 +344,7 @@ fn main() -> Result<()> {
         ("publish", args) => publish::run(&ws, publish::parse_args(args)?),
         ("sbom", [dir]) => publish::sbom(&ws, Path::new(dir)),
         ("wasm", []) => wasm(&ws),
+        ("web", [cmd]) if cmd == "build" => web::build(&ws),
         ("size", []) => wasm::size(&ws, false),
         ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {

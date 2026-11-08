@@ -12,6 +12,8 @@ pnpm --filter @laminapdf/viewer run build:wasm     # the viewer and its render b
 pnpm --filter @laminapdf/tokens --filter @laminapdf/icons --filter @laminapdf/fonts --filter @laminapdf/ui run build
 ```
 
+`cargo xtask web build` does all three and builds the app too, as the deploys do. It skips the WebAssembly modules' tests, which `cargo xtask wasm` runs.
+
 Then:
 
 ```sh
@@ -37,7 +39,9 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 - **Caching.** Vite's files under `/assets/` have hashed names and are cached for a year. HTML keeps the static-assets default, `public, max-age=0, must-revalidate`, so a new release reaches you on the next load. No rule for every path sets `Cache-Control`: Cloudflare would join it with the assets rule's value into one comma-separated header.
 - **One address per page.** `/index.html` redirects to `/`, as Cloudflare's assets server does for every `index.html`.
 
-Deploys (a preview per pull request, staging and production) come with C4d.
+## Deploys
+
+Each reader pull request gets a preview URL in a comment, each merge to `main` deploys https://staging-app.laminapdf.com, and a `web-v*` tag deploys https://app.laminapdf.com. For every one of these deploys, `.github/workflows/web-deploy.yml` builds the reader with `cargo xtask web build`, and a smoke test checks the deploy once it is live. [DEPLOY.md](DEPLOY.md) covers the setup, the rollbacks and deploying by hand.
 
 ## Tests
 
@@ -49,3 +53,9 @@ LAMINA_PDF_E2E_BROWSER=firefox pnpm --filter @laminapdf/web e2e   # chromium (de
 ```
 
 `cargo xtask pdf-runtimes chromium|firefox|webkit` typechecks the app, builds it and runs the e2e suite in that browser, after the packages' own browser tests. The app's typecheck runs there rather than in `cargo xtask check ts` because it needs the built viewer.
+
+`e2e/smoke.test.ts` checks a deployed reader instead, in Chromium: the same headers, and `hello.pdf` opened from the file input. The deploy workflow runs it after each deploy, and it runs against any address:
+
+```sh
+LAMINA_PDF_SMOKE_URL=https://staging-app.laminapdf.com pnpm --filter @laminapdf/web run smoke
+```

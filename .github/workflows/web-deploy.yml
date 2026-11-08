@@ -1,0 +1,520 @@
+# The reader's deploys (todo C4d): apps/web on Cloudflare Workers static assets
+# (apps/web/wrangler.jsonc; setup, rollbacks and deploying by hand in apps/web/DEPLOY.md).
+#
+# Pull requests from this repository:
+# - `preview-build` classifies the PR with `cargo xtask changes` (its `web` output: every path but
+#   the docs and the parts of the repository the reader can't depend on, as listed in
+#   tools/xtask/src/changes.rs). When nothing it counts changed, it reports success and nothing
+#   deploys. Otherwise it builds the reader with no secrets (`cargo xtask web build`) and uploads
+#   apps/web/dist/ as an artifact.
+# - `preview-deploy` holds the Cloudflare secrets and never checks out or runs the PR's code. It
+#   reads wrangler.jsonc and the Wrangler version from the default branch, and works in the
+#   runner's temp folder, outside the workspace a PR's job used, with a fresh npm cache and an
+#   empty npm config. The previews live on their own Worker, lamina-pdf-web-preview: its config is
+#   wrangler.jsonc's top-level settings with that name, no route, no workers.dev address and
+#   preview URLs on, so production keeps a single address. The first preview creates that Worker
+#   with a placeholder page (`versions upload` needs a Worker to upload to). Each preview is a
+#   version under the alias pr-<number>, which deploys nothing. Its URL, the commit and the build's
+#   gzip sizes go in one comment on the PR, updated on every push.
+# - `preview-smoke` runs the PR's smoke test (apps/web/e2e/smoke.test.ts) against that URL, with
+#   no secrets.
+# Pushes to main (and manual runs on main): `staging` deploys main to
+# https://staging-app.laminapdf.com (wrangler.jsonc's env.staging, the Worker
+# lamina-pdf-web-staging) and runs the smoke test there; main is trusted. A push deploys when the
+# reader's inputs changed since the commit of the workflow's last successful run on main, so a
+# cancelled or failed deploy is made up by the next push. A manual run always deploys.
+# Tags web-v<version> on a commit of main: `production-checks` builds the tag and runs the reader's
+# typecheck and its e2e suite in Chromium against `wrangler dev`; C7c adds the release gates
+# here. `production` needs it: it deploys that same build to https://app.laminapdf.com
+# (environment `production`) and runs the smoke test. If the smoke test doesn't pass, it rolls
+# back to the previous deployment and fails. Tags are never path-filtered, and nothing else
+# deploys production.
+#
+# Fork PRs are skipped, as in docs.yml and site.yml: they must never run on self-hosted runners
+# or see the secrets. Without the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the
+# deploy steps skip with a notice and the jobs pass (.github/actions/cloudflare-secrets). Nothing
+# a PR controls is interpolated into a script: values reach `run:` through `env:`. Actions are
+# pinned by full commit SHA with the release in a comment (ADR 0019).
+name: Web reader
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["web-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One group per PR, one for staging and one for production, so two deploys of one Worker
+  # never overlap.
+  group: web-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || (startsWith(github.ref, 'refs/tags/') && 'production' || 'staging') }}
+  # Superseded PR previews are cancelled; staging and production deploys run one after another.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Wrangler's usage metrics off (ADR 0011: no telemetry).
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  preview-build:
+    name: Reader preview (build)
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      web: ${{ steps.changes.outputs.web }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # ci.yml's wasm job's build directory: `cargo xtask web build` compiles the same modules with
+      # the same profile, targets and features, so on pull requests each reuses the other's output.
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: ci-wasm
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          # As in ci.yml's wasm job: rust-cache's post step hangs on self-hosted macOS runners.
+          cache: false
+      - name: Classify the changed paths
+        id: changes
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: cargo xtask changes --base "$BASE"
+      # Same versions as ci.yml's wasm job and tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - if: steps.changes.outputs.web == 'true'
+        uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - if: steps.changes.outputs.web == 'true'
+        uses: ./.github/actions/node-pnpm
+      - name: Build the reader
+        if: steps.changes.outputs.web == 'true'
+        run: cargo xtask web build
+      - if: steps.changes.outputs.web == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-preview-dist
+          path: apps/web/dist/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+      - name: Say why nothing deploys
+        if: steps.changes.outputs.web != 'true'
+        run: |
+          echo "No preview: this PR changes none of the reader's inputs (cargo xtask changes)." >> "$GITHUB_STEP_SUMMARY"
+
+  preview-deploy:
+    name: Reader preview (deploy)
+    needs: preview-build
+    if: ${{ needs.preview-build.outputs.web == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      # The preview comment.
+      pull-requests: write
+    outputs:
+      url: ${{ steps.preview.outputs.url }}
+    env:
+      WORKER: lamina-pdf-web-preview
+    steps:
+      # Everything this job runs, runs in its own folder, away from the workspace and the checkout
+      # an earlier job left there, with a fresh npm cache and an empty npm config.
+      - name: Set up the job's folder
+        run: |
+          work="$RUNNER_TEMP/web-preview"
+          rm -rf "$work"
+          mkdir -p "$work/placeholder"
+          : > "$work/npmrc"
+          {
+            echo "WORK=$work"
+            echo "npm_config_cache=$work/npm-cache"
+            echo "npm_config_userconfig=$work/npmrc"
+          } >> "$GITHUB_ENV"
+      # Inline, not .github/actions/cloudflare-secrets: a local action loads from the workspace,
+      # where an earlier PR job may have left its checkout.
+      - name: Check for the Cloudflare secrets
+        id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set (apps/web/DEPLOY.md); until then this job only skips."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      # The default branch's deploy configuration, never the PR's. It goes in its own folder: a
+      # sparse checkout of the job's workspace would leave the runner's shared checkout sparse.
+      - name: Check out the default branch's deploy configuration
+        if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .web-base
+          persist-credentials: false
+          sparse-checkout: |
+            apps/web/wrangler.jsonc
+            pnpm-workspace.yaml
+            .nvmrc
+          sparse-checkout-cone-mode: false
+      - name: Read the Wrangler version and copy the configuration out of the workspace
+        id: tooling
+        if: steps.secrets.outputs.enabled == 'true'
+        working-directory: .web-base
+        run: |
+          version=$(sed -n 's/^  wrangler: \([0-9][0-9.]*\)$/\1/p' pnpm-workspace.yaml)
+          if [ -z "$version" ]; then
+            echo "::error file=pnpm-workspace.yaml::no exact wrangler version in the default catalog"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          cp apps/web/wrangler.jsonc .nvmrc "$WORK/"
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ${{ runner.temp }}/web-preview/.nvmrc
+      - name: Download the preview build
+        if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-preview-dist
+          path: ${{ runner.temp }}/web-preview/dist/
+      # wrangler.jsonc's comments take whole lines, so the file is JSON without them.
+      - name: Write the preview Worker's configuration
+        if: steps.secrets.outputs.enabled == 'true'
+        working-directory: ${{ runner.temp }}/web-preview
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const json = fs.readFileSync("wrangler.jsonc", "utf8").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+            const skip = (key) => key.startsWith("$") || ["env", "routes", "route"].includes(key);
+            const base = Object.fromEntries(Object.entries(JSON.parse(json)).filter(([key]) => !skip(key)));
+            const preview = (directory) => ({ ...base, name: process.env.WORKER, workers_dev: false, preview_urls: true, assets: { ...base.assets, directory } });
+            fs.writeFileSync("preview.json", JSON.stringify(preview("./dist"), null, 2));
+            fs.writeFileSync("placeholder.json", JSON.stringify(preview("./placeholder"), null, 2));
+          '
+          echo '<!doctype html><title>Lamina PDF previews</title><p>Each pull request has its own preview address.</p>' > placeholder/index.html
+      - name: Create the preview Worker once
+        if: steps.secrets.outputs.enabled == 'true'
+        working-directory: ${{ runner.temp }}/web-preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_VERSION: ${{ steps.tooling.outputs.version }}
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/$WORKER")
+          case "$status" in
+            200) echo "$WORKER exists." ;;
+            404)
+              npx --yes "wrangler@$WRANGLER_VERSION" deploy --config placeholder.json --message "The previews' Worker"
+              echo "Created the Worker $WORKER, which holds the previews, with a placeholder page and no route." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            *)
+              echo "::error::Cloudflare answered $status when asked for the Worker $WORKER"
+              exit 1
+              ;;
+          esac
+      - name: Upload a preview version
+        id: preview
+        if: steps.secrets.outputs.enabled == 'true'
+        working-directory: ${{ runner.temp }}/web-preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          WRANGLER_VERSION: ${{ steps.tooling.outputs.version }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/web-preview/wrangler-output.ndjson
+        run: |
+          npx --yes "wrangler@$WRANGLER_VERSION" versions upload --config preview.json --preview-alias "pr-$PR" --message "PR #$PR at $SHA"
+          url=$(node -e '
+            const lines = require("node:fs").readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean);
+            const upload = lines.map((l) => JSON.parse(l)).filter((e) => e.type === "version-upload").at(-1);
+            process.stdout.write(upload?.preview_alias_url ?? upload?.preview_url ?? "");
+          ' "$WRANGLER_OUTPUT_FILE_PATH")
+          if [ -z "$url" ]; then
+            echo "::error::wrangler printed no preview URL (are preview URLs on for the $WORKER Worker?)"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Reader preview: $url" >> "$GITHUB_STEP_SUMMARY"
+      # What C7c's size budgets will hold: all the JavaScript and WebAssembly the build ships, each
+      # file gzipped on its own. Read from the artifact; none of the PR's code runs.
+      - name: Measure the build
+        id: sizes
+        if: steps.preview.outputs.url != ''
+        working-directory: ${{ runner.temp }}/web-preview/dist
+        run: |
+          node -e '
+            const fs = require("node:fs"), zlib = require("node:zlib");
+            const files = fs.readdirSync("assets");
+            const kb = (ext) => (files.filter((f) => f.endsWith(ext))
+              .reduce((n, f) => n + zlib.gzipSync(fs.readFileSync("assets/" + f), { level: 9 }).length, 0) / 1024).toFixed(1);
+            process.stdout.write("js=" + kb(".js") + "\nwasm=" + kb(".wasm") + "\n");
+          ' >> "$GITHUB_OUTPUT"
+      - name: Comment the preview URL on the PR
+        if: steps.preview.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          URL: ${{ steps.preview.outputs.url }}
+          JS_KB: ${{ steps.sizes.outputs.js }}
+          WASM_KB: ${{ steps.sizes.outputs.wasm }}
+        run: |
+          marker="<!-- lamina-pdf-web-preview -->"
+          body=$(printf '%s\n**Reader preview:** %s\n\nBuilt from %s: JavaScript %s KB and WebAssembly %s KB gzipped. Updated on every push to this PR.' \
+            "$marker" "$URL" "$SHA" "$JS_KB" "$WASM_KB")
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$id" -f body="$body" > /dev/null
+          else
+            gh api --method POST "repos/$REPO/issues/$PR/comments" -f body="$body" > /dev/null
+          fi
+      - name: Remove the deploy configuration and the job's files
+        if: always()
+        run: rm -rf .web-base "$WORK"
+
+  preview-smoke:
+    name: Reader preview (smoke test)
+    needs: preview-deploy
+    if: ${{ needs.preview-deploy.outputs.url != '' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/node-pnpm
+      - uses: ./.github/actions/playwright-chromium
+      - name: Smoke-test the preview
+        env:
+          LAMINA_PDF_SMOKE_URL: ${{ needs.preview-deploy.outputs.url }}
+        run: pnpm --filter @laminapdf/web run smoke
+
+  staging:
+    name: Reader staging
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # Finding the workflow's last successful run on main.
+      actions: read
+    env:
+      URL: https://staging-app.laminapdf.com
+    steps:
+      # First, since the local actions below load from the checkout (main's, which is trusted).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: secrets
+        uses: ./.github/actions/cloudflare-secrets
+        with:
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          setup: apps/web/DEPLOY.md
+      # ci.yml's wasm job's build directory, as in preview-build; a manual run uses another bucket
+      # (isolate-rust-home) and builds from scratch.
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: ci-wasm
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      # A push deploys when the reader's inputs changed since the commit of the workflow's last
+      # successful run on main: that run deployed staging, or found nothing to deploy since the run
+      # before it. A cancelled or failed run doesn't count, so the next push makes up for it. A
+      # manual run, or the first one, always deploys.
+      - name: Classify the changed paths
+        id: changes
+        if: steps.secrets.outputs.enabled == 'true'
+        env:
+          EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          base=""
+          if [ "$EVENT" = "push" ]; then
+            base=$(gh run list --repo "$REPO" --workflow web-deploy.yml --branch main --status success --limit 50 \
+              --json headSha,event --jq '[.[] | select(.event == "push" or .event == "workflow_dispatch")][0].headSha // ""')
+          fi
+          if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2> /dev/null; then
+            cargo xtask changes --base "$base"
+          else
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.changes.outputs.web == 'true'
+        uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - if: steps.changes.outputs.web == 'true'
+        uses: ./.github/actions/node-pnpm
+      - name: Build the reader
+        if: steps.changes.outputs.web == 'true'
+        run: cargo xtask web build
+      - if: steps.changes.outputs.web == 'true'
+        uses: ./.github/actions/playwright-chromium
+      - name: Deploy staging
+        if: steps.changes.outputs.web == 'true'
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SHA: ${{ github.sha }}
+        run: |
+          pnpm exec wrangler deploy --env staging --message "main at $SHA"
+          echo "Reader staging: $URL ($SHA)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Smoke-test staging
+        if: steps.changes.outputs.web == 'true'
+        env:
+          LAMINA_PDF_SMOKE_URL: ${{ env.URL }}
+        run: pnpm --filter @laminapdf/web run smoke
+      - name: Say why nothing deployed
+        if: steps.secrets.outputs.enabled == 'true' && steps.changes.outputs.web != 'true'
+        run: |
+          echo "No staging deploy: no change to the reader's inputs since the last successful run (cargo xtask changes)." >> "$GITHUB_STEP_SUMMARY"
+
+  # C7c adds the release gates (runtimes, Lighthouse, installability) to this job's checks.
+  production-checks:
+    name: Reader production (checks)
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
+    runs-on: [self-hosted, macOS, ARM64]
+    # A tag's run lands in isolate-rust-home's and node-pnpm's `other` bucket, emptied before every
+    # use, so it builds everything from scratch.
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - name: Check the tag's name
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! [[ "$TAG" =~ ^web-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$TAG' is not a reader release tag (web-v<version>)"
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # Only reviewed code reaches production: main takes changes only through pull requests that
+      # passed CI's required checks.
+      - name: Check that the tag is a commit of main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$TAG is on $GITHUB_SHA, which isn't a commit of main"
+            exit 1
+          fi
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: ci-wasm
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - uses: ./.github/actions/node-pnpm
+      - name: Build the reader
+        run: cargo xtask web build
+      - name: Typecheck the reader
+        run: pnpm --filter @laminapdf/web run typecheck:wasm
+      - uses: ./.github/actions/playwright-chromium
+      - name: The reader's e2e suite in Chromium
+        env:
+          LAMINA_PDF_E2E_BROWSER: chromium
+        run: pnpm --filter @laminapdf/web run e2e
+      # The build these checks passed is the one production deploys.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-production-dist
+          path: apps/web/dist/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  production:
+    name: Reader production
+    needs: production-checks
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
+    runs-on: [self-hosted, macOS, ARM64]
+    # The smoke test can wait up to 10 minutes for a new domain (apps/web/e2e/live.ts).
+    timeout-minutes: 40
+    environment: production
+    permissions:
+      contents: read
+    env:
+      URL: https://app.laminapdf.com
+    steps:
+      # First, since the local actions below load from the checkout (the tag's, which is on main).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: secrets
+        uses: ./.github/actions/cloudflare-secrets
+        with:
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          setup: apps/web/DEPLOY.md
+      # The install is for the smoke test (Vitest, Playwright) and the pinned Wrangler.
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: ./.github/actions/node-pnpm
+      # Before the deploy, so nothing that could fail is left between the deploy and its check.
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: ./.github/actions/playwright-chromium
+      - name: Download the checked build
+        if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-production-dist
+          path: apps/web/dist/
+      - name: Deploy production
+        id: deploy
+        if: steps.secrets.outputs.enabled == 'true'
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          pnpm exec wrangler deploy --env="" --message "release $TAG"
+          echo "Reader production: $URL ($TAG)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Smoke-test production
+        id: smoke
+        if: steps.deploy.outcome == 'success'
+        env:
+          LAMINA_PDF_SMOKE_URL: ${{ env.URL }}
+        run: pnpm --filter @laminapdf/web run smoke
+      # Whenever the deploy went out and its smoke test didn't pass, whatever stopped it. The job
+      # still fails. The first release has no deployment to go back to, so its rollback fails too.
+      - name: Roll back a release that didn't pass its smoke test
+        if: always() && steps.deploy.outcome == 'success' && steps.smoke.outcome != 'success'
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          pnpm exec wrangler rollback --env="" --yes --message "$TAG didn't pass its smoke test"
+          echo "::error::$TAG didn't pass its smoke test on $URL and was rolled back to the previous deployment"
+          exit 1

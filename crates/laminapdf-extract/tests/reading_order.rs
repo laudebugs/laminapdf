@@ -4,6 +4,7 @@
 //! order only the first.
 #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing, reason = "test code")]
 
+use laminapdf_cos::Warning;
 use laminapdf_extract::{ExtractOptions, ReadingOrder, extract};
 use laminapdf_model::{Document, OpenOptions};
 use laminapdf_syntax::CancelToken;
@@ -78,4 +79,87 @@ fn content_order_follows_the_drawing() {
         );
     }
     assert!(!in_order("two-columns-reversed", ReadingOrder::ContentStream));
+}
+
+/// The hard layouts: each one's column order is a guess, with the reason the warning gives.
+const HARD: [(&str, &str); 3] = [
+    ("pull-quote", "columns-revisited"),
+    ("narrow-gutter", "narrow-gutter"),
+    ("wrapped-grid", "near-grid"),
+];
+
+/// `name`'s `extract-column-order-uncertain` reasons and its blocks' confidences, read in
+/// `order`.
+fn doubts(name: &str, order: ReadingOrder) -> (Vec<&'static str>, Vec<f64>) {
+    let dir = laminapdf_test_fixtures::fixtures_dir().join("reading-order");
+    let doc = Document::open(
+        std::fs::read(dir.join(format!("{name}.pdf"))).unwrap(),
+        OpenOptions::default(),
+    )
+    .unwrap();
+    let out = extract(
+        &doc,
+        &ExtractOptions::new().with_reading_order(order),
+        &CancelToken::new(),
+    )
+    .unwrap();
+    let reasons = doc
+        .warnings()
+        .iter()
+        .filter_map(|w| match w {
+            Warning::ExtractColumnOrderUncertain { reason, .. } => Some(*reason),
+            _ => None,
+        })
+        .collect();
+    (reasons, out.blocks.iter().map(|b| b.confidence).collect())
+}
+
+#[test]
+fn the_hard_layouts_are_warned_with_their_reason_and_the_clean_ones_are_not() {
+    let hard: Vec<String> = HARD
+        .iter()
+        .flat_map(|(name, _)| [format!("{name}-ordered"), format!("{name}-reversed")])
+        .collect();
+    let clean: Vec<String> = LAYOUTS
+        .iter()
+        .flat_map(|name| [format!("{name}-ordered"), format!("{name}-reversed")])
+        .collect();
+    let mut warned_hard = 0;
+    for (name, reason) in HARD {
+        for file in [format!("{name}-ordered"), format!("{name}-reversed")] {
+            let (reasons, confidences) = doubts(&file, ReadingOrder::Layout);
+            assert_eq!(reasons, [reason], "{file}");
+            assert!(
+                confidences.iter().any(|&c| (c - 0.5).abs() < 1e-9),
+                "{file}: {confidences:?}"
+            );
+            warned_hard += 1;
+        }
+    }
+    let warned_clean: Vec<&String> = clean
+        .iter()
+        .filter(|file| !doubts(file, ReadingOrder::Layout).0.is_empty())
+        .collect();
+    println!(
+        "warned: {warned_hard} of {} hard files, {} of {} clean files",
+        hard.len(),
+        warned_clean.len(),
+        clean.len()
+    );
+    assert!(warned_clean.is_empty(), "clean files warned: {warned_clean:?}");
+}
+
+#[test]
+fn an_unwarned_page_keeps_the_layout_confidence_and_content_order_never_warns() {
+    let (reasons, confidences) = doubts("two-columns-ordered", ReadingOrder::Layout);
+    assert_eq!(reasons, Vec::<&str>::new());
+    assert!(confidences.iter().all(|&c| (c - 0.75).abs() < 1e-9), "{confidences:?}");
+    for (name, _) in HARD {
+        assert!(
+            doubts(&format!("{name}-ordered"), ReadingOrder::ContentStream)
+                .0
+                .is_empty(),
+            "{name}"
+        );
+    }
 }

@@ -193,30 +193,7 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
-    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
-    // The viewer's document worker and RPC (C3a), over the built package.
-    crate::run(
-        &ws.root,
-        "pnpm",
-        &["--filter", "@laminapdf/viewer", "run", "build:wasm"],
-    )?;
-    // `@laminapdf/ui` imports the tokens and icons packages through their built `dist/` entries.
-    crate::run(
-        &ws.root,
-        "pnpm",
-        &[
-            "--filter",
-            "@laminapdf/tokens",
-            "--filter",
-            "@laminapdf/icons",
-            "--filter",
-            "@laminapdf/fonts",
-            "--filter",
-            "@laminapdf/ui",
-            "run",
-            "build",
-        ],
-    )?;
+    crate::web::packages(ws)?;
     for package in [
         "@laminapdf/render-pdfium",
         "@laminapdf/render-hayro",

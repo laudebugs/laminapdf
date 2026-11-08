@@ -168,6 +168,7 @@ export type WarningCode =
   | "extract-struct-tree-ignored"
   | "extract-untagged-content"
   | "extract-needs-ocr"
+  | "extract-column-order-uncertain"
   | "tounicode-conflict"
   | "whole-font-rebuilt";
 
@@ -342,6 +343,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "extract-struct-tree-ignored",
   "extract-untagged-content",
   "extract-needs-ocr",
+  "extract-column-order-uncertain",
   "tounicode-conflict",
   "whole-font-rebuilt",
 ];
@@ -389,6 +391,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "extract-struct-tree-ignored": "input",
   "extract-untagged-content": "input",
   "extract-needs-ocr": "unsupported",
+  "extract-column-order-uncertain": "unsupported",
   "not-pdf": "input",
   "missing-root": "input",
   "reference-cycle": "input",
@@ -545,6 +548,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "extract-struct-tree-ignored": "nothing to do; ReadingOrder::Tagged uses the tree anyway",
   "extract-untagged-content": "nothing to do; tag that text in the file to give it a place in the reading order",
   "extract-needs-ocr": "run OCR or a vision model on this page; the page's textLayer in the JSON says which case it is",
+  "extract-column-order-uncertain": "check the page, or send it to a layout model; the warning's reason says which guess was made",
   "not-pdf": "check that the bytes passed to open are a PDF file",
   "missing-root": "use another copy of the file: this one has no usable catalog",
   "reference-cycle": "use another copy of the file, or repair it with another tool",

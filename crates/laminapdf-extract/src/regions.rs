@@ -30,6 +30,7 @@ pub(crate) fn ocr_pieces(words: &[OcrWord]) -> (Vec<Piece>, Vec<Span>) {
             vertical: false,
             mcid: None,
             artifact: false,
+            near_gutters: Vec::new(),
         });
         spans.push(Span {
             text: word.text.clone(),

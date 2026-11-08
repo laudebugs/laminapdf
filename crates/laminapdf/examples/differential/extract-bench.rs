@@ -8,8 +8,10 @@
 //! defaults (`--tables lattice-and-stream` also looks for tables without lines) and written as
 //! Markdown without page markers; a file that fails to open or extract, or panics, gets an
 //! empty Markdown file, and its outcome goes in the report (`facts`: `{outcome, error?,
-//! millis, statuses?}` per Markdown file, `statuses` being each page's text-layer status), so
-//! one bad file costs one file's tests. It is not one of the
+//! millis, warnings?, columnOrder?, statuses?}` per Markdown file, `warnings` being the codes the
+//! extraction raised, `columnOrder` the `reason` of its `extract-column-order-uncertain` and
+//! `statuses` each page's text-layer status), so one bad file costs one file's tests. It is not
+//! one of the
 //! façade's golden examples (`examples/*.rs`), so it lives in a subfolder with its own `path`
 //! in `Cargo.toml`.
 //!
@@ -30,12 +32,36 @@ use laminapdf::extract::{ExtractOptions, MarkdownOptions, TableMode};
 use laminapdf::{Document, OpenOptions};
 use serde_json::{Map, Value, json};
 
-/// The Markdown of `bytes` and each page's text-layer status, or the error code that stopped it.
-fn markdown(bytes: Vec<u8>, options: &ExtractOptions) -> Result<(String, Vec<&'static str>), &'static str> {
+/// What one file gave: its Markdown, the warning codes it raised, the first column-order
+/// doubt's reason and each page's text-layer status.
+struct Extracted {
+    text: String,
+    warnings: Vec<&'static str>,
+    column_order: Option<Value>,
+    statuses: Vec<&'static str>,
+}
+
+/// What `bytes` gave, or the error code that stopped it.
+fn markdown(bytes: Vec<u8>, options: &ExtractOptions) -> Result<Extracted, &'static str> {
     let doc = Document::open_bytes(bytes, OpenOptions::default()).map_err(|e| e.error_code().as_str())?;
     let extraction = doc.extract(options).map_err(|e| e.error_code().as_str())?;
+    let mut cursor = doc.warnings();
+    let raised = cursor.next_batch(u32::MAX);
+    let column_order = raised
+        .iter()
+        .find(|w| w.code() == "extract-column-order-uncertain")
+        .and_then(|w| w.diagnostic().data.get("reason").cloned());
+    let mut warnings: Vec<&'static str> = raised.iter().map(laminapdf::Warning::code).collect();
+    warnings.sort_unstable();
+    warnings.dedup();
     let statuses = extraction.pages.iter().map(|p| p.text_layer.status.as_str()).collect();
-    Ok((extraction.to_markdown(&MarkdownOptions::new()).text, statuses))
+    let text = extraction.to_markdown(&MarkdownOptions::new()).text;
+    Ok(Extracted {
+        text,
+        warnings,
+        column_order,
+        statuses,
+    })
 }
 
 fn main() {
@@ -58,10 +84,22 @@ fn main() {
         let result = catch_unwind(AssertUnwindSafe(|| markdown(bytes, &options)));
         let millis = start.elapsed().as_millis();
         let (text, outcome) = match result {
-            Ok(Ok((text, statuses))) => (
+            Ok(Ok(Extracted {
                 text,
-                json!({"outcome": "extracted", "millis": millis, "statuses": statuses}),
-            ),
+                warnings,
+                column_order,
+                statuses,
+            })) => {
+                let mut fact = Map::new();
+                fact.insert("outcome".into(), json!("extracted"));
+                fact.insert("millis".into(), json!(millis));
+                fact.insert("warnings".into(), json!(warnings));
+                fact.insert("statuses".into(), json!(statuses));
+                if let Some(reason) = column_order {
+                    fact.insert("columnOrder".into(), reason);
+                }
+                (text, Value::Object(fact))
+            }
             Ok(Err(code)) => (
                 String::new(),
                 json!({"outcome": "failed", "error": code, "millis": millis}),
