@@ -62,7 +62,8 @@ impl JobCore {
         result
     }
 
-    /// Whether the job has ended: done, failed or cancelled.
+    /// Whether the job has ended: done, failed or cancelled (the extraction job asks).
+    #[cfg(feature = "extract")]
     pub(crate) const fn is_finished(&self) -> bool {
         self.finished
     }
