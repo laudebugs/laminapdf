@@ -14,7 +14,8 @@
     "preview": "wrangler dev --local --port 8788",
     "test": "vitest run -c vitest.config.ts",
     "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
-    "e2e": "vitest run -c vitest.e2e.config.ts"
+    "e2e": "vitest run -c vitest.e2e.config.ts",
+    "smoke": "vitest run -c vitest.smoke.config.ts"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",

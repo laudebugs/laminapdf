@@ -146,9 +146,13 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── apps/web/            # the web reader (C4b; ADRs 0009, 0010, 0011): a Vite 8 single-page app (React Compiler) of @laminapdf/ui's
 │                        #   chrome around @laminapdf/viewer: src/session.ts (the engine: the document worker started at load, opens,
 │                        #   warnings, the #debug backend switch), src/app.tsx, src/document.ts (window title, repair list; Node tests);
-│                        #   wrangler.jsonc (lamina-pdf-web, static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
+│                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
+│                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
-│                        #   origin), run by `cargo xtask pdf-runtimes <browser>`; README.md
+│                        #   origin), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
+│                        #   LAMINA_PDF_SMOKE_URL, Chromium, after e2e/live.ts waits for the host); deployed by
+│                        #   .github/workflows/web-deploy.yml (C4d: a preview per PR on the Worker lamina-pdf-web-preview, staging
+│                        #   from main, production from web-v* tags on main, rollback on a failed smoke test); README.md, DEPLOY.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
@@ -412,7 +416,8 @@ cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (th
 cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)
 cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
                                       #   code=true unless all are on the docs allowlist; gallery=true when they touch
-                                      #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml
+                                      #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true unless all
+                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter)
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]
@@ -462,6 +467,8 @@ cargo xtask release-guard [--run <id>] [--commit <rev>] [--version-only]  # fail
                              #   the old version swapped for the new), else nightly=run
 pnpm --filter @laminapdf/web dev     # the web reader (after `wasm` and the viewer's build:wasm; apps/web/README.md); `build`, then
                              #   `preview` serves dist/ through `wrangler dev` with the production headers on port 8788
+cargo xtask web build        # the reader into apps/web/dist/ from a fresh checkout: the WebAssembly modules without their tests,
+                             #   @laminapdf/sdk, the packages the app imports, then the app (what web-deploy.yml deploys)
 pnpm --filter @laminapdf/site dev    # the website at localhost:4321; `build` writes apps/site/dist/ (noindex unless
                              #   LAMINA_PDF_ENV=production) and fails on a page that breaks the website's rules
 pnpm --filter @laminapdf/docs dev    # the docs site at localhost:4321; `build` writes apps/docs/dist/ (what deploys), with a

@@ -95,6 +95,7 @@ The [todo board](../todos/README.md) is the work queue. A todo is one pull reque
 - **MUST:** fix the findings in new commits. Each fix commit's message lists the findings it addresses and how each was fixed (or why one won't be fixed), so the review is recorded in the history.
 - **MUST:** if the first review found **more than 6** issues, run a second, low-effort review after the fixes are pushed (`/code-review low <PR#>`) and record its findings and fixes the same way.
 - **SHOULD:** for large diffs, run the review as several scoped passes (by path) so no file is skipped; a pass whose diff was truncated doesn't count.
+- **SHOULD:** on a PR that changes the reader, try the change on the preview URL that the **Web reader** workflow comments on the PR ([apps/web/DEPLOY.md](../../apps/web/DEPLOY.md)).
 - **MUST:** merge once every finding is fixed or explained in a commit message and CI is green: after the first review's fixes if it found 6 issues or fewer, otherwise after the second review's fixes; and, where the PR needed `/writing-review`, after its fixes (and the second `/writing-review`'s, if it found more than 6). Run `cargo xtask ci` locally before merging. Squash-merge (see §6) with `gh pr merge <PR#> --squash --delete-branch`. This deletes the remote branch; the local branch is still checked out in its worktree, so Git can't delete it yet, and §8 removes both.
 - Trivial PRs (a typo, a link, a one-line config change) need only a single `/code-review low <PR#>`.
 
