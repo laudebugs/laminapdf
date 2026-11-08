@@ -895,6 +895,20 @@
       "summary": "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
       "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job",
       "since": "0.1.0"
+    },
+    {
+      "code": "model-failed",
+      "kind": "internal",
+      "summary": "a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result",
+      "hint": "check the plug-in's own logs; extract without the model to get the rules-only result",
+      "since": "0.2.0"
+    },
+    {
+      "code": "model-result-unexpected",
+      "kind": "usage",
+      "summary": "a model result was handed to an extraction job that hadn't asked for it, or was the other model's result",
+      "hint": "call provide only while request() returns a request, with the result its kind asks for",
+      "since": "0.2.0"
     }
   ],
   "bindingErrors": [

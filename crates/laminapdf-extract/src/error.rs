@@ -24,9 +24,30 @@ pub enum ExtractError {
         /// The document's page count.
         count: usize,
     },
+    /// A layout model, OCR engine or page renderer failed.
+    #[error("a model failed: {reason}")]
+    ModelFailed {
+        /// The plug-in's message (never document text).
+        reason: String,
+    },
+    /// [`ExtractJob::provide`](crate::ExtractJob::provide) was given a result the job didn't
+    /// ask for: none was asked for, or it was the other model's.
+    #[error("the job asked for no such model result")]
+    ModelResultUnexpected,
     /// Reading the document failed (its own code: `data-pending`, `strict`, a limit…).
     #[error(transparent)]
     Document(#[from] laminapdf_cos::Error),
+}
+
+impl From<crate::plugins::ModelError> for ExtractError {
+    fn from(e: crate::plugins::ModelError) -> Self {
+        match e {
+            crate::plugins::ModelError::Cancelled => Self::Cancelled,
+            other => Self::ModelFailed {
+                reason: other.to_string(),
+            },
+        }
+    }
 }
 
 impl ExtractError {
@@ -37,6 +58,8 @@ impl ExtractError {
             Self::Cancelled => "cancelled",
             Self::JobFinished => "job-finished",
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
+            Self::ModelFailed { .. } => "model-failed",
+            Self::ModelResultUnexpected => "model-result-unexpected",
             Self::Document(e) => e.code(),
         }
     }
@@ -47,7 +70,8 @@ impl ExtractError {
         match self {
             Self::Cancelled => ErrorKind::Cancelled,
             Self::JobFinished => ErrorKind::State,
-            Self::PageIndexOutOfRange { .. } => ErrorKind::Usage,
+            Self::PageIndexOutOfRange { .. } | Self::ModelResultUnexpected => ErrorKind::Usage,
+            Self::ModelFailed { .. } => ErrorKind::Internal,
             Self::Document(e) => e.kind(),
         }
     }
@@ -57,7 +81,11 @@ impl ExtractError {
     pub fn location(&self) -> Location {
         match self {
             Self::Document(e) => e.location(),
-            Self::Cancelled | Self::JobFinished | Self::PageIndexOutOfRange { .. } => Location::NONE,
+            Self::Cancelled
+            | Self::JobFinished
+            | Self::PageIndexOutOfRange { .. }
+            | Self::ModelFailed { .. }
+            | Self::ModelResultUnexpected => Location::NONE,
         }
     }
 }
@@ -74,6 +102,8 @@ mod tests {
             ExtractError::Cancelled,
             ExtractError::JobFinished,
             ExtractError::PageIndexOutOfRange { index: 3, count: 1 },
+            ExtractError::ModelFailed { reason: String::new() },
+            ExtractError::ModelResultUnexpected,
         ];
         assert_kinds_match(own.iter().map(|e| (e.code(), e.kind().as_str())));
     }

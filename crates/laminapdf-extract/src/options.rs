@@ -1,6 +1,7 @@
 //! What an extraction does: [`ExtractOptions`], plain owned data with a `Default` so it crosses
 //! `UniFFI` and WASM as a record (ADR 0028 §1).
 
+use crate::plugins::Models;
 use crate::tables::TableMode;
 
 /// How an extraction runs.
@@ -19,6 +20,8 @@ pub struct ExtractOptions {
     pub limits: ExtractLimits,
     /// Which table detectors run.
     pub tables: TableMode,
+    /// Layout and OCR models; none by default (rules only, ADR 0030 §6).
+    pub models: Models,
 }
 
 impl Default for ExtractOptions {
@@ -30,6 +33,7 @@ impl Default for ExtractOptions {
             dehyphenate: true,
             limits: ExtractLimits::default(),
             tables: TableMode::default(),
+            models: Models::default(),
         }
     }
 }
@@ -60,6 +64,13 @@ impl ExtractOptions {
     #[must_use]
     pub const fn with_tables(mut self, mode: TableMode) -> Self {
         self.tables = mode;
+        self
+    }
+
+    /// The layout and OCR models.
+    #[must_use]
+    pub fn with_models(mut self, models: Models) -> Self {
+        self.models = models;
         self
     }
 }

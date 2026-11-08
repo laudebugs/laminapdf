@@ -44,6 +44,8 @@ mod model;
 mod options;
 mod output;
 mod page;
+mod plugins;
+mod regions;
 mod tables;
 mod tagged;
 mod text_fix;
@@ -57,6 +59,10 @@ pub use model::{
     SCHEMA, Span, StructRef, StructSource, TableDetector,
 };
 pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder};
+pub use plugins::{
+    LayoutModel, LayoutRegion, ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord,
+    PageRaster, PageRenderer, RegionLabel,
+};
 #[cfg(feature = "schema")]
 pub use output::json_schema;
 pub use output::{Chunk, ChunkOptions, MarkdownOptions, Region, Rendered, SplitOn, TextRange, tokens_approx};

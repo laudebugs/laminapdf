@@ -25,6 +25,11 @@ pub struct Extraction {
     pub blocks: Vec<Block>,
     /// What was left out of the text, and why.
     pub dropped: Vec<Dropped>,
+    /// The models used ([ADR 0030] §6), layout first; empty for rules only. The JSON names
+    /// them in `generator.models`.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    pub models: Vec<crate::plugins::ModelInfo>,
 }
 
 /// The input, as ADR 0030 §1's `source` describes it.
@@ -284,6 +289,12 @@ pub struct Span {
     pub size: Pt,
     /// Why the run would be hidden; empty for visible text.
     pub flags: Flags,
+    /// The OCR engine's confidence, 0 to 1, when an engine read this text from the page image
+    /// rather than the file's text layer ([ADR 0030] §6); absent for the text layer's runs.
+    ///
+    /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    pub ocr: Option<f64>,
 }
 
 /// Why text is hidden from a reader ([ADR 0030] §4). Flagged text is never in a block's text.

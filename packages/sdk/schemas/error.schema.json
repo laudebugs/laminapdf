@@ -86,6 +86,8 @@
             "cancelled",
             "job-finished",
             "document-changed",
+            "model-failed",
+            "model-result-unexpected",
             "builder-finished",
             "disposed",
             "invalid-argument",

@@ -12,6 +12,8 @@ use crate::error::ExtractError;
 use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
 use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
+use crate::plugins::{LayoutRegion, OcrWord, RegionLabel};
+use crate::regions::{inside, kind_for, ocr_pieces, region_of};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::tagged::{self, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
@@ -61,6 +63,17 @@ pub(crate) struct PageInput<'a> {
     pub(crate) backdrops: &'a Backdrops,
     /// The structure tree, when the reading order may come from it.
     pub(crate) tree: Option<&'a TaggedIndex>,
+    /// The layout model's regions on the page; empty without one.
+    pub(crate) regions: &'a [LayoutRegion],
+    /// The OCR engine's words on the page; empty unless it read the page.
+    pub(crate) words: &'a [OcrWord],
+}
+
+/// Whether the page has text a reader sees, which OCR then leaves alone. An invisible text
+/// layer (a scanner's own OCR, `Tr 3`) doesn't count: it is dropped as hidden text
+/// (ADR 0030 §4), so OCR text never repeats it in the blocks.
+pub(crate) fn has_visible_text(text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> bool {
+    !runs(0, text, backdrops, options).pieces.is_empty()
 }
 
 fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> Runs {
@@ -85,6 +98,7 @@ fn runs(index: usize, text: &PageText, backdrops: &Backdrops, options: &ExtractO
             font: run.font_name.to_string(),
             size,
             flags: span_flags,
+            ocr: None,
         };
         // Artifacts are furniture by the file's own word (ISO 32000-2 §14.8.2.2).
         let artifact = (run.artifact && options.drop.furniture).then_some(DropReason::Artifact);
@@ -187,33 +201,100 @@ enum Item {
     Table(usize),
 }
 
-/// The items in reading order. `first` is each item's first run in drawing order (for
-/// [`ReadingOrder::ContentStream`]), `lines` its line count (a table counts its rows).
-fn ordered(
-    items: Vec<Item>,
+/// The order to read items in, as indices. `first` is each item's first run in drawing order
+/// (for [`ReadingOrder::ContentStream`]), `lines` its line count (a table counts its rows).
+/// With a layout model's regions (`region`, per item), XY-Cut++ orders the regions and the
+/// items left outside any, and a region's own items read top to bottom.
+fn order_of(
     boxes: &[RectPt],
     lines: &[usize],
     first: &[usize],
+    region: &[Option<usize>],
     rtl: bool,
     options: &ExtractOptions,
     cancel: &CancelToken,
-) -> Result<Vec<Item>, ExtractError> {
-    let order: Vec<usize> = match options.reading_order {
-        ReadingOrder::ContentStream => {
-            let mut order: Vec<usize> = (0..items.len()).collect();
-            order.sort_by_key(|&i| first.get(i).copied().unwrap_or(usize::MAX));
-            order
-        }
-        ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => {
-            xycut::order(boxes, lines, rtl, options.limits.max_xycut_depth, cancel)
-                .map_err(|xycut::Cancelled| ExtractError::Cancelled)?
-        }
+) -> Result<Vec<usize>, ExtractError> {
+    let cut = |boxes: &[RectPt], lines: &[usize]| {
+        xycut::order(boxes, lines, rtl, options.limits.max_xycut_depth, cancel)
+            .map_err(|xycut::Cancelled| ExtractError::Cancelled)
     };
-    let mut slots: Vec<Option<Item>> = items.into_iter().map(Some).collect();
-    Ok(order
-        .into_iter()
-        .filter_map(|i| slots.get_mut(i).and_then(Option::take))
-        .collect())
+    if options.reading_order == ReadingOrder::ContentStream {
+        let mut order: Vec<usize> = (0..boxes.len()).collect();
+        order.sort_by_key(|&i| first.get(i).copied().unwrap_or(usize::MAX));
+        return Ok(order);
+    }
+    if region.iter().all(Option::is_none) {
+        return cut(boxes, lines);
+    }
+    // One unit per region with items, and one per item outside every region.
+    let mut units: Vec<Vec<usize>> = Vec::new();
+    let mut unit_of_region = std::collections::BTreeMap::new();
+    for (i, r) in region.iter().enumerate().take(boxes.len()) {
+        match r {
+            Some(r) => {
+                let unit = *unit_of_region.entry(*r).or_insert_with(|| {
+                    units.push(Vec::new());
+                    units.len() - 1
+                });
+                if let Some(members) = units.get_mut(unit) {
+                    members.push(i);
+                }
+            }
+            None => units.push(vec![i]),
+        }
+    }
+    let unit_boxes: Vec<RectPt> = units
+        .iter()
+        .map(|members| {
+            members
+                .iter()
+                .filter_map(|&i| boxes.get(i).copied())
+                .reduce(|a, b| a.union(&b))
+                .unwrap_or_default()
+        })
+        .collect();
+    let unit_lines: Vec<usize> = units
+        .iter()
+        .map(|members| members.iter().filter_map(|&i| lines.get(i)).sum())
+        .collect();
+    let mut order = Vec::with_capacity(boxes.len());
+    for u in cut(&unit_boxes, &unit_lines)? {
+        let Some(members) = units.get_mut(u) else { continue };
+        members.sort_by(|&a, &b| {
+            let (a, b) = (boxes.get(a).copied().unwrap_or_default(), boxes.get(b).copied().unwrap_or_default());
+            let across = if rtl { b.x0.get().total_cmp(&a.x0.get()) } else { a.x0.get().total_cmp(&b.x0.get()) };
+            a.y0.get().total_cmp(&b.y0.get()).then(across)
+        });
+        order.extend(members.iter().copied());
+    }
+    Ok(order)
+}
+
+/// `items` taken in `order`.
+fn take_in<T>(items: Vec<T>, order: &[usize]) -> Vec<T> {
+    let mut slots: Vec<Option<T>> = items.into_iter().map(Some).collect();
+    order.iter().filter_map(|&i| slots.get_mut(i).and_then(Option::take)).collect()
+}
+
+/// The lines grouped into blocks, never across a layout region's edge: each region's lines
+/// (and the lines outside every region) make their own blocks.
+fn region_drafts(lines: &[Line], regions: &[LayoutRegion], vertical: impl Fn(&Line) -> bool) -> Vec<(Draft, Option<usize>)> {
+    if regions.is_empty() {
+        return blocks(lines, vertical).into_iter().map(|d| (d, None)).collect();
+    }
+    let mut groups: std::collections::BTreeMap<Option<usize>, Vec<usize>> = std::collections::BTreeMap::new();
+    for (i, line) in lines.iter().enumerate() {
+        groups.entry(region_of(regions, &line.bbox)).or_default().push(i);
+    }
+    let mut out = Vec::new();
+    for (region, members) in groups {
+        let sub: Vec<Line> = members.iter().filter_map(|&i| lines.get(i).cloned()).collect();
+        for mut draft in blocks(&sub, &vertical) {
+            draft.lines = draft.lines.iter().filter_map(|&l| members.get(l).copied()).collect();
+            out.push((draft, region));
+        }
+    }
+    out
 }
 
 /// The page's tables, from its rules (`edges`, collected while its text was read) and, on
@@ -225,6 +306,7 @@ fn find_tables(
     index: usize,
     edges: Option<&Edges>,
     pieces: &[Piece],
+    regions: &[LayoutRegion],
     options: &ExtractOptions,
 ) -> Result<Vec<Table>, ExtractError> {
     let Some(edges) = edges.filter(|_| options.tables != TableMode::Off && !pieces.is_empty()) else {
@@ -241,7 +323,18 @@ fn find_tables(
         .collect();
     let max_cells = usize::try_from(options.limits.max_table_cells).unwrap_or(usize::MAX);
     let mut limited = false;
-    let tables = tables::detect(options.tables, edges, &glyphs, max_cells, &mut limited);
+    let mut tables = tables::detect(options.tables, edges, &glyphs, max_cells, &mut limited);
+    // A table region with no ruled table in it gets the unruled detector, inside the region.
+    for region in regions.iter().filter(|r| r.label == RegionLabel::Table) {
+        if tables.iter().any(|t| inside(&region.bbox, &t.bbox)) {
+            continue;
+        }
+        let taken: std::collections::BTreeSet<usize> = tables.iter().flat_map(|t| t.glyphs.iter().copied()).collect();
+        let members: Vec<usize> = (0..glyphs.len())
+            .filter(|i| !taken.contains(i) && glyphs.get(*i).is_some_and(|g| inside(&region.bbox, &g.bbox)))
+            .collect();
+        tables.extend(tables::stream_in(&glyphs, &members));
+    }
     if limited {
         doc.report(Warning::ExtractTableLimit {
             page: u64::try_from(index).unwrap_or(u64::MAX),
@@ -284,8 +377,11 @@ pub(crate) fn extract_page(
     let Runs {
         mut pieces,
         mut spans,
-        dropped,
+        mut dropped,
     } = runs(index, text, painting.backdrops, options);
+    let (ocr, ocr_spans) = ocr_pieces(painting.words);
+    pieces.extend(ocr);
+    spans.extend(ocr_spans);
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
     // Before the grouping and the cuts, whose work grows faster than the runs do.
     let limit = options.limits.max_blocks_per_page;
@@ -325,22 +421,24 @@ pub(crate) fn extract_page(
                         })?;
                     }
                     let (pieces, spans) = rest;
-                    blocks.extend(layout(&cx, pieces, spans, blocks.len())?);
+                    let (more, furniture) = layout(&cx, pieces, spans, blocks.len())?;
+                    blocks.extend(more);
+                    dropped.extend(furniture);
                     (blocks, TreeUse::Used)
                 }
                 Ok(TreeBlocks {
                     rest: (pieces, spans), ..
-                }) => (layout(&cx, pieces, spans, 0)?, TreeUse::None),
+                }) => (with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped), TreeUse::None),
                 Err((implausible, (pieces, spans))) => {
                     doc.report(Warning::ExtractStructTreeIgnored {
                         page: page_number,
                         reason: implausible.reason(),
                     })?;
-                    (layout(&cx, pieces, spans, 0)?, TreeUse::Ignored)
+                    (with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped), TreeUse::Ignored)
                 }
             }
         }
-        None => (layout(&cx, pieces, spans, 0)?, TreeUse::None),
+        None => (with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped), TreeUse::None),
     };
     Ok(PageOut {
         info,
@@ -366,11 +464,11 @@ fn layout(
     pieces: Vec<Piece>,
     spans: Vec<Span>,
     id_from: usize,
-) -> Result<Vec<Block>, ExtractError> {
+) -> Result<(Vec<Block>, Vec<Dropped>), ExtractError> {
     let (doc, info, painting, options, cancel) = (cx.doc, cx.info, cx.painting, cx.options, cx.cancel);
     let index = info.index;
     let page_number = u64::try_from(index).unwrap_or(u64::MAX);
-    let tables = find_tables(doc, index, painting.edges, &pieces, options)?;
+    let tables = find_tables(doc, index, painting.edges, &pieces, painting.regions, options)?;
     if tables.iter().any(|t| t.ambiguous) {
         doc.report(Warning::ExtractTableAmbiguous { page: page_number })?;
     }
@@ -380,14 +478,24 @@ fn layout(
     if vertical > 0 && vertical < lines.len() {
         doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
     }
-    let drafts = blocks(&lines, |l| is_vertical(l, &flow.pieces));
+    let regions = painting.regions;
+    let drafts = region_drafts(&lines, regions, |l| is_vertical(l, &flow.pieces));
     // Vertical writing (Chinese, Japanese) sets its columns right to left, as do right-to-left
     // scripts.
     let rtl = 2 * vertical > lines.len() || mostly_rtl(&lines.iter().map(|l| l.text.as_str()).collect::<String>());
-    let mut items: Vec<Item> = drafts.into_iter().map(Item::Text).collect();
-    items.extend((0..tables.len()).map(Item::Table));
-    let (mut boxes, mut counts, mut first) = (Vec::new(), Vec::new(), Vec::new());
-    for item in &items {
+    let mut items: Vec<(Item, Option<usize>)> = drafts.into_iter().map(|(d, r)| (Item::Text(d), r)).collect();
+    items.extend(
+        tables
+            .iter()
+            .enumerate()
+            .map(|(t, table)| (Item::Table(t), region_of(regions, &table.bbox))),
+    );
+    let (mut boxes, mut counts, mut first, mut region) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    items.retain(|(item, _)| match item {
+        Item::Text(_) => true,
+        Item::Table(t) => tables.get(*t).is_some(),
+    });
+    for (item, r) in &items {
         let (bbox, count, start) = match item {
             Item::Text(d) => (d.bbox, d.lines.len(), flow.first_run(&d.lines, &lines)),
             Item::Table(t) => match tables.get(*t) {
@@ -402,24 +510,62 @@ fn layout(
         boxes.push(bbox);
         counts.push(count);
         first.push(start);
+        region.push(*r);
     }
-    let items = ordered(items, &boxes, &counts, &first, rtl, options, cancel)?;
+    let order = order_of(&boxes, &counts, &first, &region, rtl, options, cancel)?;
+    let items = take_in(items, &order);
     let confidence = match options.reading_order {
         ReadingOrder::ContentStream => CONTENT_CONFIDENCE,
         ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => LAYOUT_CONFIDENCE,
     };
-    let blocks = items
-        .into_iter()
-        .enumerate()
-        .filter_map(|(n, item)| {
-            let id = format!("p{index}-b{}", n + id_from);
-            match item {
-                Item::Text(draft) => Some(text_block(id, &draft, &lines, &flow, info, options, confidence)),
-                Item::Table(t) => Some(table_block(id, tables.get(t)?, flow.table_spans.get(t)?, info)),
+    let mut out = Vec::with_capacity(items.len());
+    let mut furniture = Vec::new();
+    for (item, r) in items {
+        let id = format!("p{index}-b{}", out.len() + id_from);
+        match item {
+            Item::Text(draft) => {
+                let mut block = text_block(id, &draft, &lines, &flow, info, options, confidence);
+                let Some(region) = r.and_then(|r| regions.get(r)) else {
+                    out.push(block);
+                    continue;
+                };
+                match kind_for(region.label, &block.text) {
+                    Ok((kind, text)) => {
+                        block.kind = kind;
+                        if let Some(text) = text {
+                            block.text = text;
+                        }
+                        // The model placed it: its score, not the rules' fixed confidence.
+                        block.confidence = region.score.clamp(0.0, 1.0);
+                        out.push(block);
+                    }
+                    Err(reason) if options.drop.furniture => furniture.push(Dropped {
+                        reason,
+                        page: index,
+                        bbox: block.bbox,
+                        chars: visible_chars(&block.text),
+                        spans: if options.drop.keep_spans { block.spans } else { Vec::new() },
+                    }),
+                    Err(_) => {
+                        block.kind = BlockKind::Other;
+                        out.push(block);
+                    }
+                }
             }
-        })
-        .collect();
-    Ok(blocks)
+            Item::Table(t) => {
+                if let (Some(table), Some(spans)) = (tables.get(t), flow.table_spans.get(t)) {
+                    out.push(table_block(id, table, spans, info));
+                }
+            }
+        }
+    }
+    Ok((out, furniture))
+}
+
+/// A layout's blocks, its furniture moved into `dropped`.
+fn with_dropped((blocks, furniture): (Vec<Block>, Vec<Dropped>), dropped: &mut Vec<Dropped>) -> Vec<Block> {
+    dropped.extend(furniture);
+    blocks
 }
 
 /// The page's pieces and spans with the tables' taken out, and the tables' own spans.
