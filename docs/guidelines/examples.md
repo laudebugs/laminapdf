@@ -21,11 +21,11 @@ An example is code a reader will paste into their own app, so it must be code we
 
 - **MUST:** the file opens with a comment that says what it shows. That comment mentions no ADR or todo IDs, no repository paths and no test vocabulary such as "golden" or "twin".
 - **MUST:** an example imports only public entry points:
-  - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`;
+  - in TypeScript, `@laminapdf/sdk` and `@laminapdf/sdk/worker`, and for drawing pages `@laminapdf/render` and `@laminapdf/render-hayro`;
   - in Rust, `laminapdf::…`.
 
   It never imports from `src/`, `test/`, `fixtures/` or another package's path, and never from `laminapdf_<crate>` directly.
-- **MUST:** an example contains no test scaffolding. Fixed file IDs, dates and producers are parameters, and the tests pass them in. Checks of the output belong in the tests.
+- **MUST:** an example contains no test scaffolding. Fixed file IDs, dates and producers are parameters, and the tests pass them in. Checks of the output belong in the tests. An example whose subject is testing a reader's own PDFs may fix the file ID and dates; it is listed under `[[test-example]]` in `tools/xtask/docs-snippets.toml` with the reason.
 - **MUST:** a TypeScript example frees what it creates with `using`; documents and builders implement `Symbol.dispose`.
 - **MUST:** layout numbers have names (`MARGIN`, `ROW_HEIGHT`) or come from the API (the page width comes from the page size).
 - **MUST:** functions are at most 40 lines, and files at most 100.
@@ -47,7 +47,7 @@ Three checks enforce these rules:
 
 | Check | Runs in | Rules |
 | --- | --- | --- |
-| `cargo xtask check docs-snippets` | `cargo xtask check docs` (every PR, docs-only ones included) | `examples/` only; every example shown; matching pairs; header comment; Rust public imports; no test scaffolding; file length |
+| `cargo xtask check docs-snippets` | `cargo xtask check docs` (every PR, docs-only ones included) | `examples/` only; every example shown; matching pairs; header comment; Rust public imports; no test scaffolding (outside the listed test examples); file length |
 | A Biome override on `packages/sdk/examples/**`, and `cargo xtask biome-examples` with warnings as errors | `cargo xtask check ts` | TypeScript public imports; no non-null assertions or `any`; function length and complexity |
 | `cargo xtask clippy-examples`: clippy on `crates/laminapdf/examples/` with an examples-only `clippy.toml` (function length 40) and `let_underscore_must_use` turned on | `cargo xtask check rust` | Rust function length; no discarded results |
 

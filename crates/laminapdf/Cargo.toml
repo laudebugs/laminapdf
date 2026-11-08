@@ -78,6 +78,10 @@ name = "extract_markdown"
 required-features = ["extract"]
 
 [[example]]
+name = "snapshot_test"
+required-features = ["text"]
+
+[[example]]
 name = "invoice"
 required-features = ["text"]
 
