@@ -18,7 +18,7 @@ Each figure is the time to build a document and save it to bytes, after the WebA
 
 <Benchmarks section="generation" />
 
-The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build that criterion measured.
+The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports, in megabytes of 1,000,000 bytes. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build that criterion measured.
 
 ## How much your app downloads
 
@@ -26,7 +26,7 @@ The browsers run in Playwright at the version shown, and Cloudflare Workers run 
 
 <Benchmarks section="sizes" />
 
-Sizes are in kilobytes of 1,000 bytes, as a server sends them compressed. The JavaScript row is `@laminapdf/sdk`'s own code, minified.
+Sizes are in kilobytes of 1,000 bytes, as a server sends them compressed. The JavaScript rows are `@laminapdf/sdk`'s code, minified: its API with the code that loads the WebAssembly, then the Web Worker client and the file that runs in the Web Worker.
 
 ## How well it extracts text
 
@@ -44,6 +44,6 @@ Most tables in the benchmark have no ruled lines. Extraction finds tables like t
 
 ## Where these numbers come from
 
-One command runs every measurement on one machine and writes the file this page reads, so no figure here is typed by hand. The numbers are one machine's, taken before a release, and older versions of these docs keep the numbers of their version.
+One command runs every measurement on one machine and writes the file this page reads, so no figure here is typed by hand. The numbers are one machine's, taken before a release, and older versions of these docs keep the numbers of their version. Each table gives the machine's load average as its run began. A load average well above its core count means other jobs were running too, which makes the timings slower than that machine's best.
 
 Next: [make your first PDF](/start/first-pdf/) and time it on your own machine.

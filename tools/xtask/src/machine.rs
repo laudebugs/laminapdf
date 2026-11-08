@@ -7,9 +7,10 @@
 //! a guess.
 
 use std::path::Path;
-use std::process::Command;
 
 use serde_json::{Value, json};
+
+use crate::util::stdout;
 
 /// What [`describe`] found.
 #[derive(Debug, Clone, PartialEq)]
@@ -72,14 +73,6 @@ pub(crate) fn describe() -> Machine {
             load_average: read("/proc/loadavg").as_deref().and_then(first_number),
         }
     }
-}
-
-/// A command's standard output, or `None` when it fails or can't run.
-fn stdout(program: &str, args: &[&str]) -> Option<String> {
-    let out = Command::new(program).args(args).output().ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 /// The first number of `sysctl -n vm.loadavg`: `{ 1.52 1.80 2.03 }`.

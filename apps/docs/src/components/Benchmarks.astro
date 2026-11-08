@@ -3,44 +3,19 @@
 // benchmarks`) through src/lib/benchmarks.ts, which fails the build on a file it doesn't describe.
 // The page's Markdown twin shows the same section through `sectionMarkdown` (plugins/agent-docs.mjs).
 import data from "../data/benchmarks.json";
-import {
-  extractionSummary,
-  extractionTable,
-  generationTable,
-  parseBenchmarks,
-  type Run,
-  runSentence,
-  type Section,
-  sizesTable,
-  type Table,
-} from "../lib/benchmarks";
+import { parseBenchmarks, runSentence, type Section, sectionParts } from "../lib/benchmarks";
 
 interface Props {
   section: Section;
 }
 
-const { section } = Astro.props;
-const b = parseBenchmarks(data);
-let table: Table | undefined;
-let summary: string | undefined;
-let run: Run | undefined;
-if (section === "generation") {
-  table = generationTable(b.generation);
-  run = b.generation.run;
-} else if (section === "sizes") {
-  table = sizesTable(b.sizes);
-  run = b.sizes.run;
-} else {
-  const e = b.extraction[section === "extraction" ? "laminapdf" : "laminapdf-stream"];
-  if (e !== undefined) {
-    table = extractionTable(e);
-    summary = extractionSummary(e);
-    run = e.run;
-  }
-}
+const parts = sectionParts(parseBenchmarks(data), Astro.props.section);
+const table = parts?.table;
+const summary = parts?.summary;
+const run = parts?.run;
 
 /** A cell's text split into plain parts and `code` spans. */
-function parts(cell: string): { code: boolean; text: string }[] {
+function spans(cell: string): { code: boolean; text: string }[] {
   return cell.split("`").map((text, i) => ({ code: i % 2 === 1, text }));
 }
 ---
@@ -59,7 +34,7 @@ function parts(cell: string): { code: boolean; text: string }[] {
             <tr>
               {row.map((cell, i) => (
                 <td class={table.numeric[i] ? "num" : undefined}>
-                  {parts(cell).map((p) => (p.code ? <code>{p.text}</code> : p.text))}
+                  {spans(cell).map((p) => (p.code ? <code>{p.text}</code> : p.text))}
                 </td>
               ))}
             </tr>
@@ -69,7 +44,7 @@ function parts(cell: string): { code: boolean; text: string }[] {
       {summary && <p>{summary}</p>}
       {run && (
         <p class="benchmarks-run">
-          {parts(runSentence(run)).map((p) => (p.code ? <code>{p.text}</code> : p.text))}
+          {spans(runSentence(run)).map((p) => (p.code ? <code>{p.text}</code> : p.text))}
         </p>
       )}
     </>

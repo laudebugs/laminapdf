@@ -7,7 +7,7 @@
 
 use serde_json::{Value, json};
 
-use super::{Args, Dataset, Subset, at};
+use super::{Scored, at};
 
 /// The pages a run read, by outcome, and how long the extracted ones took.
 #[derive(Debug, Clone, PartialEq)]
@@ -75,22 +75,18 @@ fn median(sorted: &[u64]) -> f64 {
     }
 }
 
-/// What the run scored and how fast, with the run's `stamp` (`machine::stamp`): the file
-/// `cargo xtask benchmarks` reads.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "one run's every part, named; a struct would only rename them"
-)]
-pub(super) fn results(
-    dataset: &Dataset,
-    subsets: &[&Subset],
-    candidate: &str,
-    args: &Args,
-    extracted: &Value,
-    scores: &Value,
-    pdf_counts: &std::collections::BTreeMap<String, usize>,
-    stamp: &Value,
-) -> Value {
+/// What `run` scored and how fast, with its `stamp` (`machine::stamp`, taken as it started): the
+/// file `cargo xtask benchmarks` reads.
+pub(super) fn results(run: &Scored<'_>, stamp: &Value) -> Value {
+    let Scored {
+        dataset,
+        subsets,
+        candidate,
+        args,
+        extracted,
+        scores,
+        pdf_counts,
+    } = run;
     let per_subset: Vec<Value> = subsets
         .iter()
         .map(|subset| {

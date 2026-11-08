@@ -32,7 +32,7 @@ function sample() {
         {
           runtime: "chromium",
           version: "1.64.1",
-          cases: { "hello-first": 3.2, hello: 0.4, invoice: 2.25, report: 160.4, "wasm-memory": 4194304 },
+          cases: { "hello-first": 3.2, hello: 0.4, invoice: 2.25, report: 160.4, "wasm-memory": 4200000 },
         },
         { runtime: "node-24", version: "24.19.0", cases: { hello: 0.3, invoice: 1.9, report: 140 } },
       ],

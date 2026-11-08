@@ -44,6 +44,14 @@ pub(crate) fn git_stdout(dir: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
+/// The standard output of `program args…`, or `None` when it can't run or fails.
+pub(crate) fn stdout(program: &str, args: &[&str]) -> Option<String> {
+    let out = Command::new(program).args(args).output().ok()?;
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
 /// The stdout of `gh args…` run in `dir`, so `{owner}/{repo}` in a `gh api` path names the
 /// repository `dir` belongs to; fails when gh is missing or exits unsuccessfully.
 pub(crate) fn gh(dir: &Path, args: &[&str]) -> Result<String> {

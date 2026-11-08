@@ -181,14 +181,8 @@ fn runtime_family(runtime: &str) -> &str {
 fn runtime_versions(root: &Path) -> BTreeMap<String, String> {
     let catalog = fs::read_to_string(root.join("pnpm-workspace.yaml")).unwrap_or_default();
     let mut versions = catalog_versions(&catalog, &["deno", "bun", "playwright", "wrangler"]);
-    if let Ok(out) = std::process::Command::new("node").arg("--version").output()
-        && out.status.success()
-    {
-        let v = String::from_utf8_lossy(&out.stdout)
-            .trim()
-            .trim_start_matches('v')
-            .to_owned();
-        versions.insert("node".to_owned(), v);
+    if let Some(v) = crate::util::stdout("node", &["--version"]) {
+        versions.insert("node".to_owned(), v.trim().trim_start_matches('v').to_owned());
     }
     versions
 }

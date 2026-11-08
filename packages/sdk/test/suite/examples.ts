@@ -228,8 +228,8 @@ export async function sha256(bytes: Uint8Array): Promise<string> {
 export interface Measurement {
   readonly runtime: string;
   /**
-   * `hello-first` (the first call after `init()`), `hello` (median), `invoice` (median), `report`
-   * (median), or
+   * `hello-first` (the first call after `init()`), `hello` (median), `invoice` (median),
+   * `report` (median), or
    * `wasm-memory` (both modules' linear memory after the reports: memory never shrinks, so this
    * is its peak; hello() and report() free their builder and document, so it is one run's peak,
    * not the garbage collector's backlog).
@@ -269,7 +269,7 @@ export async function difference(actual: Uint8Array, golden: Uint8Array): Promis
  * median of 20; its bytes are checked against the Rust golden by the suite's own test) and the
  * 100-page report (median of 3) with `performance.now()`. Returns the report's bytes, for the hash check.
  * Needs `init({ text: true })`, and must run first in a fresh module instance (before any other
- * example): then `hello-first` is cold and `wasm-memory` is the hello and report runs' alone.
+ * example): then `hello-first` is cold and `wasm-memory` is the hello, invoice and report runs' alone.
  *
  * @param settle - awaited before reading the clock at the start and the end of each sample: in
  *   workerd the clock only advances across I/O, so the Worker passes a zero-length timer; elsewhere

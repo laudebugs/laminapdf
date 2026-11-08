@@ -54,6 +54,20 @@ struct Subset {
     measures: String,
 }
 
+/// One scored run of a candidate: what `render_report` and the results file are made from.
+struct Scored<'a> {
+    dataset: &'a Dataset,
+    subsets: &'a [&'a Subset],
+    candidate: &'a str,
+    args: &'a Args,
+    /// The `extract-bench` example's report (`facts`: each file's outcome and time).
+    extracted: &'a Value,
+    /// `olmocr_score.py`'s report.
+    scores: &'a Value,
+    /// PDFs per subset.
+    pdf_counts: &'a BTreeMap<String, usize>,
+}
+
 /// What `cargo xtask extract-bench` was asked to do.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct Args {
@@ -163,26 +177,27 @@ fn run_dataset(ws: &Workspace, dataset: &Dataset, args: &Args) -> Result<()> {
         }
     }
 
+    // The machine and its load average as the run starts, before extracting and scoring add to it.
+    let stamp = crate::machine::stamp(&ws.root);
     let extracted = extract(ws, args.stream, &inputs, &out, candidate)?;
     let report = out.join(format!("{candidate}-score.json"));
     score(ws, dataset, &bench, &md_dir, &report, tests.keys())?;
     let score_json: Value = serde_json::from_str(&fs::read_to_string(&report)?)?;
-    let mut md = render_report(dataset, &subsets, candidate, args, &extracted, &score_json, &pdf_counts);
+    let scored = Scored {
+        dataset,
+        subsets: &subsets,
+        candidate,
+        args,
+        extracted: &extracted,
+        scores: &score_json,
+        pdf_counts: &pdf_counts,
+    };
+    let mut md = render_report(&scored);
     if let Some(line) = column_order_line(candidate, &extracted, &score_json) {
         md.push_str(&line);
     }
     fs::write(out.join(format!("{candidate}-report.md")), &md)?;
-    let stamp = crate::machine::stamp(&ws.root);
-    let results = results::results(
-        dataset,
-        &subsets,
-        candidate,
-        args,
-        &extracted,
-        &score_json,
-        &pdf_counts,
-        &stamp,
-    );
+    let results = results::results(&scored, &stamp);
     let results_path = out.join(format!("{candidate}-results.json"));
     fs::write(&results_path, serde_json::to_string_pretty(&results)? + "\n")?;
     step(&format!("extract-bench: wrote {}", results_path.display()));
@@ -408,19 +423,19 @@ fn verify(
 }
 
 /// The Markdown table the run prints and writes.
-fn render_report(
-    dataset: &Dataset,
-    subsets: &[&Subset],
-    candidate: &str,
-    args: &Args,
-    extracted: &Value,
-    scores: &Value,
-    pdf_counts: &BTreeMap<String, usize>,
-) -> String {
+fn render_report(run: &Scored<'_>) -> String {
+    let Scored {
+        dataset,
+        subsets,
+        candidate,
+        args,
+        extracted,
+        scores,
+        pdf_counts,
+    } = run;
     let files = at(extracted, "facts").as_object();
-    let count = |outcome: &str| files.map_or(0, |f| f.values().filter(|v| at(v, "outcome") == outcome).count());
-    let millis: u64 = files.map_or(0, |f| f.values().filter_map(|v| at(v, "millis").as_u64()).sum());
     let speed = results::speed(extracted);
+    let millis = speed.total_millis;
     let mut md = format!(
         "{} ({}, revision `{}`), Lamina PDF {} ({candidate}{})\n\n| Subset | What it measures | PDFs | Tests | Passed | Score |\n| --- | --- | ---: | ---: | ---: | ---: |\n",
         dataset.title,
@@ -430,7 +445,7 @@ fn render_report(
         args.sample
             .map_or(String::new(), |n| format!(", first {n} PDFs per subset")),
     );
-    for subset in subsets {
+    for subset in *subsets {
         let s = &at(at(scores, "subsets"), &subset.name);
         let pdfs = pdf_counts.get(&subset.name).copied().unwrap_or(0);
         let _ = writeln!(
@@ -455,14 +470,14 @@ fn render_report(
         md,
         "\nOverall (the mean of the groups' scores, the baseline included, as the benchmark reports it): {:.1} %; \
          without the baseline: {:.1} %.\n\
-         PDFs extracted: {}, failed: {}, panicked: {}, crashed or timed out: {}; extraction time {}.{} s in all, \
+         PDFs extracted: {}, failed: {}, panicked: {}, crashed or timed out: {}; {}.{} s extracting them, \
          {:.0} pages a second on one thread (median {:.1} ms a page).\n\nData: {}.\n",
         at(scores, "overall").as_f64().unwrap_or(0.0) * 100.0,
         at(scores, "overallWithoutBaseline").as_f64().unwrap_or(0.0) * 100.0,
-        count("extracted"),
-        count("failed"),
-        count("panic"),
-        count("crash") + count("timeout"),
+        speed.extracted,
+        speed.failed,
+        speed.panicked,
+        speed.crashed_or_timed_out,
         millis / 1000,
         millis % 1000 / 100,
         speed.pages_per_second,

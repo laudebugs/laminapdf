@@ -1,7 +1,8 @@
 // src/data/benchmarks.json, read for the benchmarks page: `cargo xtask benchmarks` writes it from
 // the measuring tasks' reports, so no number on the page is typed by hand. `parseBenchmarks`
 // checks the file's shape and throws on a field it doesn't describe, which fails the build;
-// `sectionTables` turns a section into the tables both the page and its Markdown twin show.
+// `sectionParts` gives a section's table, summary and run, which the page (Benchmarks.astro) draws
+// and `sectionMarkdown` writes for its Markdown twin.
 // Pure functions with no imports, so Node runs this file as it is for the twin
 // (plugins/agent-docs.mjs) and its test (plugins/benchmarks.test.mjs).
 
@@ -31,12 +32,14 @@ export interface RuntimeRow {
   readonly cases: Readonly<Record<string, number>>;
 }
 
+/** The generation section: per runtime the timings, and the native Rust row. */
 export interface Generation {
   readonly run: Run;
   readonly runtimes: readonly RuntimeRow[];
   readonly rust: { readonly toolchain: string; readonly cases: Readonly<Record<string, number>> };
 }
 
+/** One WebAssembly module: bytes raw, gzipped and brotli-compressed, and its gzip budget. */
 export interface ModuleSize {
   readonly name: string;
   readonly raw: number;
@@ -45,6 +48,7 @@ export interface ModuleSize {
   readonly budgetGzip: number | null;
 }
 
+/** One JavaScript bundle: bytes minified and gzipped, and its gzip budget. */
 export interface BundleSize {
   readonly name: string;
   readonly minified: number;
@@ -52,12 +56,14 @@ export interface BundleSize {
   readonly budgetGzip: number | null;
 }
 
+/** The sizes section: the WebAssembly modules and the JavaScript bundles. */
 export interface Sizes {
   readonly run: Run;
   readonly modules: readonly ModuleSize[];
   readonly js: readonly BundleSize[];
 }
 
+/** One benchmark subset: its pages, tests, passes and score. */
 export interface SubsetScore {
   readonly name: string;
   readonly measures: string;
@@ -68,6 +74,7 @@ export interface SubsetScore {
   readonly score: number;
 }
 
+/** One extraction run on the benchmark: its dataset, scores, pages and speed. */
 export interface Extraction {
   readonly dataset: {
     readonly name: string;
@@ -98,6 +105,7 @@ export interface Extraction {
   };
 }
 
+/** The whole data file, checked by {@link parseBenchmarks}. */
 export interface Benchmarks {
   readonly version: 1;
   readonly generation: Generation;
@@ -114,14 +122,13 @@ export interface Table {
   readonly rows: readonly (readonly string[])[];
 }
 
-type Json = unknown;
 
 /** A reader of one value at `path`, for error messages. */
 class Field {
-  private readonly value: Json;
+  private readonly value: unknown;
   private readonly path: string;
 
-  constructor(value: Json, path: string) {
+  constructor(value: unknown, path: string) {
     this.value = value;
     this.path = path;
   }
@@ -133,7 +140,7 @@ class Field {
   get(key: string): Field {
     const v = this.value;
     if (typeof v !== "object" || v === null || Array.isArray(v)) this.fail("an object");
-    return new Field((v as Record<string, Json>)[key], `${this.path}.${key}`);
+    return new Field((v as Record<string, unknown>)[key], `${this.path}.${key}`);
   }
 
   string(): string {
@@ -154,7 +161,7 @@ class Field {
 
   array(): Field[] {
     if (!Array.isArray(this.value)) this.fail("an array");
-    return (this.value as Json[]).map((v, i) => new Field(v, `${this.path}[${i}]`));
+    return (this.value as unknown[]).map((v, i) => new Field(v, `${this.path}[${i}]`));
   }
 
   entries(): [string, Field][] {
@@ -348,9 +355,9 @@ function kb(bytes: number | null | undefined): string {
   return bytes === null || bytes === undefined ? "–" : `${(bytes / 1000).toLocaleString("en-US", { maximumFractionDigits: 1, minimumFractionDigits: 1 })} kB`;
 }
 
-/** Bytes as mebibytes, as a process's memory is usually shown. */
+/** Bytes as megabytes of 1,000,000 bytes, the page's unit as for the sizes. */
 function mb(bytes: number | undefined): string {
-  return bytes === undefined ? "–" : `${(bytes / 2 ** 20).toFixed(1)} MB`;
+  return bytes === undefined ? "–" : `${(bytes / 1e6).toFixed(1)} MB`;
 }
 
 function percent(share: number): string {
@@ -439,18 +446,31 @@ export function markdownTable(t: Table): string {
 /** The sections the page places, by the name its `<Benchmarks section>` gives. */
 export type Section = "generation" | "sizes" | "extraction" | "extraction-stream";
 
-/** A section as Markdown: its table, its summary for extraction, and its run sentence. */
-export function sectionMarkdown(b: Benchmarks, section: Section): string {
+/** What a section shows: its table, a summary for extraction, and its run. */
+export interface SectionParts {
+  readonly table: Table;
+  readonly summary?: string;
+  readonly run: Run;
+}
+
+/** `section`'s parts, or `undefined` for an extraction candidate the file doesn't hold. */
+export function sectionParts(b: Benchmarks, section: Section): SectionParts | undefined {
   switch (section) {
     case "generation":
-      return `${markdownTable(generationTable(b.generation))}\n\n${runSentence(b.generation.run)}`;
+      return { table: generationTable(b.generation), run: b.generation.run };
     case "sizes":
-      return `${markdownTable(sizesTable(b.sizes))}\n\n${runSentence(b.sizes.run)}`;
+      return { table: sizesTable(b.sizes), run: b.sizes.run };
     case "extraction":
     case "extraction-stream": {
       const e = b.extraction[section === "extraction" ? "laminapdf" : "laminapdf-stream"];
-      if (e === undefined) return "Not measured yet.";
-      return `${markdownTable(extractionTable(e))}\n\n${extractionSummary(e)}\n\n${runSentence(e.run)}`;
+      return e === undefined ? undefined : { table: extractionTable(e), summary: extractionSummary(e), run: e.run };
     }
   }
+}
+
+/** A section as Markdown: its table, its summary for extraction, and its run sentence. */
+export function sectionMarkdown(b: Benchmarks, section: Section): string {
+  const parts = sectionParts(b, section);
+  if (parts === undefined) return "Not measured yet.";
+  return [markdownTable(parts.table), parts.summary, runSentence(parts.run)].filter((p) => p !== undefined).join("\n\n");
 }
