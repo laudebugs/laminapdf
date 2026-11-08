@@ -21,3 +21,11 @@
 # The example PDFs open in the browser's own PDF viewer, which a page CSP can block.
 /examples/pdf/*
   ! Content-Security-Policy
+
+# The example runner (scripts/build-runner.mjs): the module worker that runs a reader's edit of an
+# example. It needs 'unsafe-eval' to run that code, so it gets its own policy, and nothing else on
+# the site does. A worker's CSP comes from its own script's response, so the pages that start it
+# keep the policy above. Only same-origin files: the SDK and hayro's WebAssembly and the inputs.
+/run/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'

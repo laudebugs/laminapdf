@@ -3,8 +3,12 @@
 // every page and a link to the PDF, for an example that builds one; an Output tab with the text it
 // prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
 // docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them in step.
+// The six examples in runner/examples.ts also get "Edit and run" on their Result tab (todo B7e),
+// when the runner was built (scripts/build-runner.mjs); it loads nothing until it is pressed.
+import { existsSync } from "node:fs";
 import { TabItem, Tabs } from "@astrojs/starlight/components";
 import manifest from "../../public/examples/preview/manifest.json";
+import { RUNNABLE } from "../../runner/examples.ts";
 import ExampleCode from "./ExampleCode.astro";
 
 interface Props {
@@ -25,7 +29,17 @@ const OUTPUTS: Record<string, string> = import.meta.glob(["../../../../fixtures/
   eager: true,
 });
 
+// The TypeScript examples, for the editor's first text: the file as the Code tab shows it.
+const SOURCES: Record<string, string> = import.meta.glob(["../../../../packages/sdk/examples/*.ts"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+/** Whether the runner was built: the docs build runs scripts/build-runner.mjs first, from apps/docs. */
+const RUNNER = existsSync("public/run/worker.js");
+
 const { ts, rust, result, output } = Astro.props;
+const source = ts !== undefined && RUNNER && RUNNABLE[ts] !== undefined ? SOURCES[`../../../../${ts}`] : undefined;
 const examples = result === undefined ? [] : typeof result === "string" ? [result] : result;
 const pictures = examples.map((stem) => {
   const entry = (manifest.examples as Record<string, (typeof manifest.examples)["hello"] | undefined>)[stem];
@@ -53,6 +67,11 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       </TabItem>
       {pictures.length > 0 && (
         <TabItem label="Result">
+          {source !== undefined && (
+            <lamina-run class="example-run" data-file={ts} data-source={source}>
+              <button type="button" class="run-open">Edit and run</button>
+            </lamina-run>
+          )}
           {pictures.map((example) => (
             <figure class="example-result">
               <div class:list={["example-pages", { "example-pages-many": example.pages.length > 1 }]}>
@@ -86,7 +105,91 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
   )
 }
 
+<script>
+  // "Edit and run": the editor and the runner load on the first press, from the docs site only.
+  class LaminaRun extends HTMLElement {
+    connectedCallback(): void {
+      const button = this.querySelector<HTMLButtonElement>(".run-open");
+      const { file, source } = this.dataset;
+      if (button === null || file === undefined || source === undefined) return;
+      button.addEventListener(
+        "click",
+        async () => {
+          button.disabled = true;
+          button.textContent = "Loading the editor…";
+          const { openRunner } = await import("../../runner/editor.ts");
+          const pictures = document.createElement("div");
+          // The Result tab's pictures stay until a run draws its own pages.
+          for (const figure of this.parentElement?.querySelectorAll(".example-result") ?? []) pictures.append(figure);
+          this.after(pictures);
+          button.remove();
+          openRunner(this, file, source, pictures);
+        },
+        { once: true },
+      );
+    }
+  }
+  customElements.define("lamina-run", LaminaRun);
+</script>
+
 <style>
+  .example-run {
+    display: block;
+    margin-bottom: 1rem;
+  }
+  .example-run :global(.run-editor) {
+    border: 1px solid var(--sl-color-gray-5);
+    max-height: 32rem;
+    overflow: auto;
+    font-size: var(--sl-text-sm);
+  }
+  .example-run :global(.run-bar) {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+  .example-run :global(button) {
+    font: inherit;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--sl-color-gray-4);
+    border-radius: 0.25rem;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+    cursor: pointer;
+  }
+  .example-run :global(button:disabled) {
+    cursor: progress;
+  }
+  .example-run :global(.run-status:empty) {
+    display: none;
+  }
+  .example-run :global(.run-error) {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--sl-color-red);
+    background: var(--sl-color-red-low);
+    white-space: pre-wrap;
+  }
+  .example-run :global(.run-hint) {
+    margin-top: 0.25rem;
+  }
+  .example-run :global(.run-pages) {
+    display: grid;
+    grid-template-columns: minmax(0, 26rem);
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  .example-run :global(.run-pages-many) {
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  }
+  .example-run :global(.run-page) {
+    margin: 0;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    background: #fff;
+  }
   .example-result {
     margin: 0;
   }
