@@ -61,6 +61,12 @@ export const ROUTES: readonly Route[] = [
     renders: ["ReaderShell", "OpenDropZone", "DebugMenu"],
   },
   {
+    id: "shell-regions",
+    title: "Shell regions",
+    components: [],
+    renders: ["ReaderShell", "LeftRail", "Inspector", "FocusModeItem"],
+  },
+  {
     id: "dialogs",
     title: "Dialogs",
     components: [],
