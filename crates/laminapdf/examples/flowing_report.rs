@@ -14,9 +14,9 @@ use laminapdf::flow::{
 use laminapdf::{BuildOptions, Builder, Font, Image, Metadata, PageSize, Profile, SaveOptions};
 
 const TITLE: &str = "Reading files offline: a year of the reader";
-const ARABIC: &str =
+pub(crate) const ARABIC: &str =
     "يعمل القارئ دون اتصال بالشبكة، فتُفتح الملفات وتُقرأ وتُبحث على الجهاز نفسه، ولا يغادر أي منها الحاسوب.";
-const HINDI: &str = "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण।";
+pub(crate) const HINDI: &str = "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण।";
 const TOPICS: [&str; 5] = ["Opening files", "Search", "Printing", "Signing", "What comes next"];
 
 fn main() -> Result<(), Box<dyn Error>> {

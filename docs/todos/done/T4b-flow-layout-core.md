@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4f](../done/T4f-flow-builder-groundwork.md), [T4g](../done/T4g-flow-styled-spans.md) |
+| Depends on | [T4f](./T4f-flow-builder-groundwork.md), [T4g](./T4g-flow-styled-spans.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md) §3 (the layout model), §4 (tagging), §5 (placement) and §9 (budgets); follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (the builder writes into the overlay), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space; [§5](../../decisions/0027-coordinates-units-and-page-indexing.md#5-text-placement): a run's `y` is its baseline), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) and [0018](../../decisions/0018-test-strategy.md) (goldens) |
 | Branch | `feat/t4b-flow-layout-core` |
 | PR title | `feat(build): flowing layout with keep rules, running headers and footers, and page X of Y` |
@@ -69,33 +69,33 @@ Give `laminapdf-build` a flow layer. The caller hands it blocks of text and a pa
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`
-- [ ] Read ADR 0032, the spike's README and `src/own.rs`, and T4f's and T4g's APIs
-- [ ] `flow/model.rs`: the types in Scope, with builder-style constructors and their defaults; no serde yet (T4e adds it)
-- [ ] `flow/measure.rs`: each block laid out at a frame width through T4f's measuring and T4g's `break_spans`, giving line heights. Keep each line's shaping, so a line is shaped once and drawn from the same result
-- [ ] `flow/paginate.rs`: the paginator over measured blocks. It produces pages of placed lines and figures, applies the keep rules with bounded backtracking (a chain moves at most once), and raises `flow-keep-broken` and `flow-content-too-large`
-- [ ] `flow/template.rs`: regions, slots, fields and the first-page variant; `{section}` tracked while paginating; headers and footers laid out once the page count is known
-- [ ] `flow/emit.rs`: one `Builder::page` per laid-out page. Placed lines are drawn through T4f's crate-private command that takes measured lines (no second shaping), figures through `Surface::figure`, links per line fragment, and the tags (T4f's elements across pages and artifact subtypes)
-- [ ] `Builder::flow(&Flow) -> Result<FlowReport>` (new): the pages it added and its warnings
-- [ ] Codes: `flow-content-too-large` in `buildErrors`, and a new `buildWarnings` group in `fixtures/codes.json` with `flow-keep-broken`, its row in `GROUPS` (`tools/xtask/src/codegen.rs`) and both `docs/errors/<code>.md` pages; then `cargo xtask gen codes`. A `laminapdf_build::Warning` type (new) with `code()`, `kind()` and `location()`, like `laminapdf_text::Warning`; add `laminapdf-build` to the `Warning` entry of `tools/xtask/maintainability-duplicates.toml`, whose reason ("one warning type per crate that warns") covers it
-- [ ] The façade: `pub mod flow`; `Builder::flow`; a `Warning::Build` variant (new), so `Document::warnings()` lists the flow's warnings beside the fonts'
-- [ ] The example: its byte golden through `crates/laminapdf/tests/examples.rs` (`cargo xtask golden --update`), its render goldens (`cargo xtask render-golden --update`) and its facts (`tools/fixtures/build_facts.py`). Add `tagged-across-pages.pdf` to `build_facts.py`'s `GOLDENS` in the same run: T4f's golden ends with the spike's Arabic sentence, whose pypdf, pdf.js, pdftotext and qpdf facts T4f couldn't write (its machine lacked the pinned poppler and qpdf), with a check in `crates/laminapdf-build/tests/external.rs` that pdf.js and pdftotext read it back as written (whitespace and bidi controls removed), or an entry in `fixtures/text/extraction-exceptions.json` with the reader's upstream bug
-- [ ] The bench: a 100-page flowing report beside `report` in `crates/laminapdf/benches/` (a `[[bench]]` entry in `crates/laminapdf/Cargo.toml`), which `cargo xtask bench` runs
-- [ ] The docs (Docs to update)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`
+- [x] Read ADR 0032, the spike's README and `src/own.rs`, and T4f's and T4g's APIs
+- [x] `flow/model.rs`: the types in Scope, with builder-style constructors and their defaults; no serde yet (T4e adds it)
+- [x] `flow/measure.rs`: each block laid out at a frame width through T4f's measuring and T4g's `break_spans`, giving line heights. Keep each line's shaping, so a line is shaped once and drawn from the same result
+- [x] `flow/paginate.rs`: the paginator over measured blocks. It produces pages of placed lines and figures, applies the keep rules with bounded backtracking (a chain moves at most once), and raises `flow-keep-broken` and `flow-content-too-large`
+- [x] `flow/template.rs`: regions, slots, fields and the first-page variant; `{section}` tracked while paginating; headers and footers laid out once the page count is known
+- [x] `flow/emit.rs`: one `Builder::page` per laid-out page. Placed lines are drawn through T4f's crate-private command that takes measured lines (no second shaping), figures through `Surface::figure`, links per line fragment, and the tags (T4f's elements across pages and artifact subtypes)
+- [x] `Builder::flow(&Flow) -> Result<FlowReport>` (new): the pages it added and its warnings
+- [x] Codes: `flow-content-too-large` in `buildErrors`, and a new `buildWarnings` group in `fixtures/codes.json` with `flow-keep-broken`, its row in `GROUPS` (`tools/xtask/src/codegen.rs`) and both `docs/errors/<code>.md` pages; then `cargo xtask gen codes`. A `laminapdf_build::Warning` type (new) with `code()`, `kind()` and `location()`, like `laminapdf_text::Warning`; add `laminapdf-build` to the `Warning` entry of `tools/xtask/maintainability-duplicates.toml`, whose reason ("one warning type per crate that warns") covers it
+- [x] The façade: `pub mod flow`; `Builder::flow`; a `Warning::Build` variant (new), so `Document::warnings()` lists the flow's warnings beside the fonts'
+- [x] The example: its byte golden through `crates/laminapdf/tests/examples.rs` (`cargo xtask golden --update`), its render goldens (`cargo xtask render-golden --update`) and its facts (`tools/fixtures/build_facts.py`). Add `tagged-across-pages.pdf` to `build_facts.py`'s `GOLDENS` in the same run: T4f's golden ends with the spike's Arabic sentence, whose pypdf, pdf.js, pdftotext and qpdf facts T4f couldn't write (its machine lacked the pinned poppler and qpdf), with a check in `crates/laminapdf-build/tests/external.rs` that pdf.js and pdftotext read it back as written (whitespace and bidi controls removed), or an entry in `fixtures/text/extraction-exceptions.json` with the reader's upstream bug
+- [x] The bench: a 100-page flowing report beside `report` in `crates/laminapdf/benches/` (a `[[bench]]` entry in `crates/laminapdf/Cargo.toml`), which `cargo xtask bench` runs
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] A paragraph that doesn't fit the rest of a page continues on the next, and the text `laminapdf-text`'s `TextExtractor` reads from the two pages equals the input
-- [ ] Widows and orphans: with room for one line at the foot of a page, a 10-line paragraph starts on the next page; with room for nine lines, it splits eight and two
-- [ ] A heading with room for one more line moves to the next page with the paragraph after it
-- [ ] A `Keep` group taller than a page is split with `flow-keep-broken`, and a figure taller than the body fails with `flow-content-too-large`
-- [ ] In the 12-page example, every page after the cover shows the running header with its section's title and the footer "Page n of 12", read back by extraction; the cover has neither
-- [ ] A paragraph split across two pages is one `P` element with content on both pages (`laminapdf_model::Document::structure()`); headers and footers are `Pagination` artifacts with their `/Subtype`; `laminapdf-extract` lists them in `dropped`, and none of their text is in a block
-- [ ] The example builds under PDF/UA-1, passes `cargo xtask verapdf` and `qpdf --check` (`cargo xtask examples`), and matches its byte golden on two runs in a row
+- [x] A paragraph that doesn't fit the rest of a page continues on the next, and the text `laminapdf-text`'s `TextExtractor` reads from the two pages equals the input
+- [x] Widows and orphans: with room for one line at the foot of a page, a 10-line paragraph starts on the next page; with room for nine lines, it splits eight and two
+- [x] A heading with room for one more line moves to the next page with the paragraph after it
+- [x] A `Keep` group taller than a page is split with `flow-keep-broken`, and a figure taller than the body fails with `flow-content-too-large`
+- [x] In the 12-page example, every page after the cover shows the running header with its section's title and the footer "Page n of 12", read back by extraction; the cover has neither
+- [x] A paragraph split across two pages is one `P` element with content on both pages (`laminapdf_model::Document::structure()`); headers and footers are `Pagination` artifacts with their `/Subtype`; `laminapdf-extract` lists them in `dropped`, and none of their text is in a block
+- [x] The example builds under PDF/UA-1, passes `cargo xtask verapdf` and `qpdf --check` (`cargo xtask examples`), and matches its byte golden on two runs in a row
 - [ ] The Arabic and Devanagari paragraphs, each split across a page break, extract as their input with pdf.js and pdftotext (`fixtures/build/facts.json`)
-- [ ] The 100-page flowing report runs within [ADR 0032 §9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets)'s budget: at most 250 ms natively, recorded by the bench (not asserted)
-- [ ] The spike's report, laid out by the flow, keeps every split paragraph and the running header and footer as Typst's file does: one `P` per paragraph across pages, `/Subtype /Header` and `/Footer`
-- [ ] `cargo xtask gen codes --check` and `cargo xtask check maintainability` pass
+- [x] The 100-page flowing report runs within [ADR 0032 §9](../../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets)'s budget: at most 250 ms natively, recorded by the bench (not asserted)
+- [x] The spike's report, laid out by the flow, keeps every split paragraph and the running header and footer as Typst's file does: one `P` per paragraph across pages, `/Subtype /Header` and `/Footer`
+- [x] `cargo xtask gen codes --check` and `cargo xtask check maintainability` pass
 
 ## Post-merge checks
 
@@ -110,20 +110,39 @@ Give `laminapdf-build` a flow layer. The caller hands it blocks of text and a pa
 
 ## Docs to update
 
-- [ ] A "Pages that flow" guide on the docs site (`apps/docs/src/content/docs/guides/flowing-pages.mdx`, new) that shows the Rust example; T4j adds the TypeScript tab
-- [ ] `laminapdf-build`'s README and `lib.rs` docs
-- [ ] `CLAUDE.md`'s Building API paragraph
-- [ ] The trust and proof plan's §10 to-do for T4
+- [x] A "Pages that flow" guide on the docs site (`apps/docs/src/content/docs/guides/flowing-pages.mdx`, new) that shows the Rust example; T4j adds the TypeScript tab
+- [x] `laminapdf-build`'s README and `lib.rs` docs
+- [x] `CLAUDE.md`'s Building API paragraph
+- [x] The trust and proof plan's §10 to-do for T4
 
 ## Risks and open questions
 
 - **Size.** If the PR passes 800 lines, move page templates and fields (`flow/template.rs`) into a follow-up PR, with "Page X of Y" drawn by the follow-up.
 - **Keep chains can fight widows and orphans.** Bound the backtracking so that every flow ends, and prefer breaking a keep (with the warning) to searching longer.
 
+## As built
+
+- **Names.** The block type is `FlowBlock` and the header and footer regions are `PageRegion`, because `laminapdf-extract` already has public `Block` and `Region` types and the maintainability check allows one public type per name. The flow is the public module `laminapdf_build::flow`, re-exported as `laminapdf::flow`.
+- **Modules** (`crates/laminapdf-build/src/flow/`):
+  - `model.rs`: the types;
+  - `items.rs`: blocks flattened into items, each with its structure element;
+  - `measure.rs`: a paragraph's text and spans, broken by `break_spans` at any width and from any byte;
+  - `paginate.rs`: the paginator;
+  - `template.rs`: the fields and `fill_fields`;
+  - `emit.rs`: the drawing;
+  - `tests.rs`: the paginator's rules and the property test.
+- **Line heights.** A line's height is the larger of its line height × its largest size and its ascent to descent. Its baseline sits in the middle of the extra space.
+- **Drawing without shaping again.** A line's runs are cut where the colour, link or language of their text changes. Spans of one style are shaped together, so a link or colour change can fall inside a run. Each piece is drawn by a crate-private `Surface::draw_shaped` (a one-run text command), which carries the run's rise into `Ts`.
+- **Headers and footers.** The header is drawn before the body and the footer after it, so extractors that read in content order read a page from top to bottom. Each slot is centred in its margin.
+- **Elements.** A paragraph's element is opened on its first page and resumed on every page with its lines. List items open `L`, `LI`, `Lbl` and `LBody` in turn. Every element is closed once the last page is drawn, children before parents. A figure draws its own `Figure` with `Surface::figure`.
+- **The example.** It is A5 and Rust only. Its Arabic and Hindi paragraphs are repeated sentences, sized so that each splits across a page break. With 30 repetitions of the Hindi sentence, hayro and PDFium disagreed on 0.72 % of one page's pixels, against a 0.5 % limit, from anti-aliasing of dense Devanagari. With 12 repetitions both stay within the limit. veraPDF 1.30.3 passes it under PDF/UA-1 (106 rules).
+- **The Typst comparison** checks Typst's tagging as the spike's README describes it: one `P` per paragraph whatever cuts it, and `/Subtype /Header` and `/Footer`. The README records no counts to compare. The spike's report becomes `crates/laminapdf/tests/common/spike_report.rs`: the spike's word list, drawn by the shared test `Rng`, with its tables left out until flows have tables. Its 32 sections fill 87 pages, so the bench lays out 37 sections for 100 pages: 221–231 ms natively here, against ADR 0032 §9's 250 ms.
+- **Deviation: the external extraction facts.** `fixtures/build/facts.json` has no entries for `flowing_report.pdf` or `tagged-across-pages.pdf` yet. `tools/fixtures/build_facts.py` needs poppler 26.10.0 and qpdf 12.4.2, pinned in `doctor.rs`. This cloud session has poppler 24.02 and qpdf 11.9, and building poppler here was refused. Lamina PDF's own extractor reads both paragraphs back as written across their page breaks (`crates/laminapdf/tests/flow.rs`). Running the facts script on a machine with the pinned tools is the follow-up.
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -136,3 +136,26 @@ fn the_spike_report_keeps_typst_s_tagging_and_reads_back_as_written() {
         missing.first()
     );
 }
+
+#[test]
+fn the_arabic_and_hindi_paragraphs_read_back_across_their_page_breaks() {
+    let doc = Document::open_bytes(example(), OpenOptions::default()).unwrap();
+    let pages = lines(&doc);
+    let bare = |s: &str| s.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+    for (range, sentence, repeats) in [
+        ('\u{600}'..='\u{6FF}', flowing_report::ARABIC, 8),
+        ('\u{900}'..='\u{97F}', flowing_report::HINDI, 12),
+    ] {
+        let on: Vec<usize> = (0..pages.len())
+            .filter(|&p| pages[p].iter().any(|l| l.chars().any(|c| range.contains(&c))))
+            .collect();
+        assert_eq!(on.len(), 2, "{sentence}: split across two pages");
+        let read: String = pages
+            .concat()
+            .iter()
+            .filter(|l| l.chars().any(|c| range.contains(&c)))
+            .cloned()
+            .collect();
+        assert_eq!(bare(&read), bare(&format!("{sentence} ").repeat(repeats)));
+    }
+}

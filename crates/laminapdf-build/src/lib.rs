@@ -57,6 +57,9 @@
 //!   [`Surface::resume`], [`Builder::close_element`]); MCIDs per page, `/StructParents`, the
 //!   `ParentTree`, `OBJR`s for links, the `RoleMap` and `/MarkInfo`;
 //!   [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left untagged.
+//! * Flowing layout: [`Builder::flow`] pours a [`flow::Flow`] of headings, paragraphs, lists
+//!   and figures through a page template into as many pages as it needs, with keep rules,
+//!   running headers and footers and "Page X of Y" ([`flow`]).
 //! * Conformance: [`BuildOptions::with_profile`] ([`Profile`]: PDF/UA-1, PDF/A-2b,
 //!   PDF/A-2u, PDF/A-3b) turns each machine-checkable rule the document breaks into a coded
 //!   error at [`Builder::finish`], and writes the XMP identification, `/DisplayDocTitle` and
