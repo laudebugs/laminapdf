@@ -22,7 +22,7 @@ pub(super) fn tools(allow_write: bool, allow_in_place: bool) -> Vec<Tool> {
     let mut tools = vec![
         tool::<CheckArgs, CheckReport>(
             "laminapdf_check",
-            "Read a whole PDF (every object, page and content stream) and report what a tolerant read had to repair.",
+            "Read a whole PDF (every object, page and content stream) and report what a tolerant read had to repair and what a failed redaction left in the file: covered text, unapplied redaction marks and text kept in earlier revisions.",
             read(),
         ),
         tool::<ExplainArgs, ExplainReport>(

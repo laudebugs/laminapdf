@@ -19,6 +19,10 @@ pub enum Warning {
     /// Raised while embedding a font (`laminapdf-text`).
     #[cfg(feature = "extract")]
     Font(laminapdf_text::Warning),
+    /// What a failed redaction left in the file
+    /// ([`Document::redaction_warnings`](crate::Document::redaction_warnings)).
+    #[cfg(feature = "extract")]
+    Redaction(crate::RedactionWarning),
 }
 
 impl Warning {
@@ -38,6 +42,8 @@ impl Warning {
             Self::Document(w) => codes::warning_code(w.code()),
             #[cfg(feature = "extract")]
             Self::Font(w) => codes::warning_code(w.code()),
+            #[cfg(feature = "extract")]
+            Self::Redaction(w) => codes::warning_code(w.code()),
         }
     }
 
@@ -58,6 +64,8 @@ impl Warning {
             Self::Document(w) => w.location(),
             #[cfg(feature = "extract")]
             Self::Font(w) => w.location(),
+            #[cfg(feature = "extract")]
+            Self::Redaction(w) => w.location(),
         }
     }
 
