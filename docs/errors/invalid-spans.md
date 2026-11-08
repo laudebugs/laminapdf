@@ -19,7 +19,7 @@ List the spans in the order of the text. Start the first at byte 0, start each s
 
 ```rust
 let text = "Hello, world";
-let spans = [Span::new(0..5, 12.0), Span::new(6..12, 12.0)]; // byte 5 is in no span
+let spans = [StyledSpan::new(0..5, 12.0), StyledSpan::new(6..12, 12.0)]; // byte 5 is in no span
 break_spans(&shaper, &fonts, text, &spans, &options)?; // invalid-spans
 ```
 

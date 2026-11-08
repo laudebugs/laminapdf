@@ -23,7 +23,7 @@ pub struct LineRun {
     pub spans: Range<usize>,
     /// The font size the run was shaped and measured at, in points.
     pub size: f32,
-    /// The run's baseline rise in points ([`Span::rise`](super::Span::rise)): draw it with
+    /// The run's baseline rise in points ([`StyledSpan::rise`](super::StyledSpan::rise)): draw it with
     /// [`pdf_line_run`](crate::pdf_line_run).
     pub rise: f32,
 }

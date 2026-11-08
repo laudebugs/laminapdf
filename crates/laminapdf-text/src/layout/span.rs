@@ -10,11 +10,11 @@ use crate::shape::Feature;
 /// A stretch of text in one style, for [`break_spans`](super::break_spans).
 ///
 /// Every field but the range defaults to the paragraph's [`LayoutOptions`]: a span made with
-/// [`Span::new`] alone is laid out exactly as [`break_lines`](super::break_lines) lays out
+/// [`StyledSpan::new`] alone is laid out exactly as [`break_lines`](super::break_lines) lays out
 /// its text.
 #[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
-pub struct Span {
+pub struct StyledSpan {
     /// The span's bytes in the text.
     pub range: Range<usize>,
     /// The fonts the span's text is set in, in order of preference: indices into the font list
@@ -34,7 +34,7 @@ pub struct Span {
     pub features: Vec<Feature>,
 }
 
-impl Span {
+impl StyledSpan {
     /// The bytes `range` of the text, in the paragraph's style.
     #[must_use]
     pub fn new(range: Range<usize>) -> Self {
@@ -91,7 +91,7 @@ pub(super) struct Style {
 }
 
 impl Style {
-    pub(super) fn of(span: &Span, options: &LayoutOptions, font_count: usize) -> Self {
+    pub(super) fn of(span: &StyledSpan, options: &LayoutOptions, font_count: usize) -> Self {
         let mut features = options.features.clone();
         features.extend(span.features.iter().copied());
         Self {
@@ -116,7 +116,7 @@ pub(super) struct Group {
 }
 
 /// Checks that `spans` cover `text` once, in order, on character boundaries.
-pub(super) fn check(text: &str, spans: &[Span]) -> Result<()> {
+pub(super) fn check(text: &str, spans: &[StyledSpan]) -> Result<()> {
     let mut at = 0;
     for span in spans {
         let Range { start, end } = span.range;
@@ -135,7 +135,7 @@ pub(super) fn check(text: &str, spans: &[Span]) -> Result<()> {
 /// The groups of the paragraph `paragraph` (bytes of the whole text), with ranges relative to
 /// it: the checked `spans` clipped to it, empty ones left out, equal styles merged.
 pub(super) fn groups(
-    spans: &[Span],
+    spans: &[StyledSpan],
     paragraph: &Range<usize>,
     options: &LayoutOptions,
     font_count: usize,

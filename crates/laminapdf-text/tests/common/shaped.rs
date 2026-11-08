@@ -2,7 +2,7 @@
 //! with `pdf_run`'s `TJ` arrays, rises and `/ActualText` spans: what the builder (B5b) will
 //! do, for the `text-shaped.pdf` golden and the extraction checks.
 
-use laminapdf_text::{FontKey, HarfRust, LayoutOptions, Result, Span, TjElement, break_spans, pdf_line_run};
+use laminapdf_text::{FontKey, HarfRust, LayoutOptions, Result, StyledSpan, TjElement, break_spans, pdf_line_run};
 use pdf_writer::{Name, Str, TextStr};
 
 use super::TestPdf;
@@ -25,7 +25,7 @@ impl TestPdf {
     /// Lays `text` out in a box `options.width` wide with the registered fonts `keys` (in
     /// order of preference) and draws its lines; returns each line's drawn text.
     pub fn paragraph(&mut self, keys: &[FontKey], text: &str, options: &LayoutOptions) -> Result<Vec<String>> {
-        self.draw(keys, text, &[Span::new(0..text.len())], options, false)
+        self.draw(keys, text, &[StyledSpan::new(0..text.len())], options, false)
     }
 
     /// [`TestPdf::paragraph`] over styled spans (`break_spans`): each run at its span's size
@@ -34,7 +34,7 @@ impl TestPdf {
         &mut self,
         keys: &[FontKey],
         text: &str,
-        spans: &[Span],
+        spans: &[StyledSpan],
         options: &LayoutOptions,
     ) -> Result<Vec<String>> {
         self.draw(keys, text, spans, options, true)
@@ -46,7 +46,7 @@ impl TestPdf {
         &mut self,
         keys: &[FontKey],
         text: &str,
-        spans: &[Span],
+        spans: &[StyledSpan],
         options: &LayoutOptions,
         fit: bool,
     ) -> Result<Vec<String>> {

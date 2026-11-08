@@ -31,7 +31,7 @@ use crate::shape::{Direction, Feature, Shaper};
 
 use breaker::Layouter;
 pub use line::{Line, LineRun};
-pub use span::Span;
+pub use span::StyledSpan;
 
 /// Where lines sit in the box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -131,12 +131,12 @@ impl LayoutOptions {
 /// # Errors
 /// As [`break_spans`].
 pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &LayoutOptions) -> Result<Vec<Line>> {
-    break_spans(shaper, fonts, text, &[Span::new(0..text.len())], options)
+    break_spans(shaper, fonts, text, &[StyledSpan::new(0..text.len())], options)
 }
 
 /// [`break_lines`] over styled spans: words in other fonts, sizes, rises and languages
 /// inside one paragraph (a bold word, a superscript, an Arabic name in an English line).
-/// `spans` cover `text` once, in order; each sets its own [`Span::fonts`] (indices into
+/// `spans` cover `text` once, in order; each sets its own [`StyledSpan::fonts`] (indices into
 /// `fonts`), size, rise, language and features, defaulting to `options`. Lines break where
 /// the text allows (UAX #14 on the whole text), never because a span ends, so a style change
 /// inside a word is not a break opportunity. Consecutive spans of one style are shaped as one
@@ -145,16 +145,16 @@ pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &L
 /// ```
 /// # fn regular() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
 /// # fn bold() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-RegularBold.ttc")).to_vec() }
-/// use laminapdf_text::{Font, HarfRust, LayoutOptions, Span, break_spans};
+/// use laminapdf_text::{Font, HarfRust, LayoutOptions, StyledSpan, break_spans};
 ///
 /// let fonts = [Font::from_bytes(regular())?, Font::from_collection(bold(), 1)?];
 /// let text = "A bold word and E = mc2.";
 /// let spans = [
-///     Span::new(0..2),
-///     Span::new(2..6).with_fonts([1, 0]),
-///     Span::new(6..22),
-///     Span::new(22..23).with_size(7.0).with_rise(4.0),
-///     Span::new(23..24),
+///     StyledSpan::new(0..2),
+///     StyledSpan::new(2..6).with_fonts([1, 0]),
+///     StyledSpan::new(6..22),
+///     StyledSpan::new(22..23).with_size(7.0).with_rise(4.0),
+///     StyledSpan::new(23..24),
 /// ];
 /// let lines = break_spans(&HarfRust, &fonts, text, &spans, &LayoutOptions::new(300.0, 12.0))?;
 /// let runs = &lines[0].runs;
@@ -172,7 +172,7 @@ pub fn break_spans(
     shaper: &impl Shaper,
     fonts: &[Font],
     text: &str,
-    spans: &[Span],
+    spans: &[StyledSpan],
     options: &LayoutOptions,
 ) -> Result<Vec<Line>> {
     if options.justify {
@@ -200,7 +200,7 @@ pub fn break_spans(
             items: &items,
             groups: &groups,
             item_groups: &item_groups,
-            default_style: span::Style::of(&Span::new(0..0), options, fonts.len()),
+            default_style: span::Style::of(&StyledSpan::new(0..0), options, fonts.len()),
             shaped: RefCell::new(BTreeMap::new()),
         };
         for mut line in layout.lines()? {

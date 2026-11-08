@@ -124,7 +124,7 @@ pub use extract::{Code, Glyph, PageText, PageTextRun, Quad, TextExtractor, UserS
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, OpenTypeTag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use itemize::{Item, itemize};
-pub use layout::{Alignment, LayoutOptions, Line, LineRun, Span, break_lines, break_spans};
+pub use layout::{Alignment, LayoutOptions, Line, LineRun, StyledSpan, break_lines, break_spans};
 pub use linebreak::{BreakOpportunity, grapheme_boundaries, is_hard_break, is_trailing_space, line_breaks};
 pub use pdfpos::{PdfPiece, PdfRun, PdfSegment, TjElement, pdf_line_run, pdf_run};
 pub use shape::{Direction, Feature, HarfRust, Script, ShapeOptions, ShapedGlyph, ShapedRun, Shaper};

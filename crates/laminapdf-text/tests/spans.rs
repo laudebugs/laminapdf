@@ -11,7 +11,7 @@
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::Document;
 use laminapdf_test_fixtures::fixture;
-use laminapdf_text::{Font, HarfRust, LayoutOptions, PageText, Span, TextExtractor, break_spans};
+use laminapdf_text::{Font, HarfRust, LayoutOptions, PageText, StyledSpan, TextExtractor, break_spans};
 
 mod common;
 
@@ -31,35 +31,35 @@ fn at(text: &str, part: &str) -> std::ops::Range<usize> {
 }
 
 /// Spans covering `text`: `styled` ranges in their own style, the rest plain.
-fn spans(text: &str, styled: Vec<Span>) -> Vec<Span> {
+fn spans(text: &str, styled: Vec<StyledSpan>) -> Vec<StyledSpan> {
     let mut out = Vec::new();
     let mut end = 0;
     for span in styled {
         if span.range.start > end {
-            out.push(Span::new(end..span.range.start));
+            out.push(StyledSpan::new(end..span.range.start));
         }
         end = span.range.end;
         out.push(span);
     }
     if end < text.len() {
-        out.push(Span::new(end..text.len()));
+        out.push(StyledSpan::new(end..text.len()));
     }
     out
 }
 
-fn latin_spans() -> Vec<Span> {
+fn latin_spans() -> Vec<StyledSpan> {
     spans(
         LATIN,
         vec![
-            Span::new(at(LATIN, "12%")).with_fonts([1]),
-            Span::new(at(LATIN, "QUARTER")).with_size(16.0),
-            Span::new(at(LATIN, "2 ")).with_size(7.0).with_rise(4.0),
+            StyledSpan::new(at(LATIN, "12%")).with_fonts([1]),
+            StyledSpan::new(at(LATIN, "QUARTER")).with_size(16.0),
+            StyledSpan::new(at(LATIN, "2 ")).with_size(7.0).with_rise(4.0),
         ],
     )
 }
 
-fn arabic_spans() -> Vec<Span> {
-    spans(ARABIC, vec![Span::new(at(ARABIC, "Lamina")).with_fonts([2])])
+fn arabic_spans() -> Vec<StyledSpan> {
+    spans(ARABIC, vec![StyledSpan::new(at(ARABIC, "Lamina")).with_fonts([2])])
 }
 
 /// The page: both paragraphs, and the text of each line drawn.
