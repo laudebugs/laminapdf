@@ -1,4 +1,4 @@
-//! What a failed redaction leaves in a file (todo T2b), for `laminapdf check`: text painted
+//! What a failed redaction leaves in a file, for `laminapdf check`: text painted
 //! over by a box (ADR 0030 §4's `covered` flag), redaction marks never applied, and words an
 //! earlier revision holds that the latest one has nowhere. Each finding is a [`Warning`] with a
 //! count and page indices, never the text itself.
