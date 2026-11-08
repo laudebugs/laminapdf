@@ -6,20 +6,29 @@ import {
   BottomSheet,
   Button,
   CommandPalette,
+  CommandRegistry,
+  CommandsProvider,
   DebugMenu,
   Dialog,
+  FocusModeItem,
   IconButton,
+  Inspector,
+  LeftRail,
   Menu,
   MenuTrigger,
+  ModeRegistry,
   OpenDropZone,
   PasswordDialog,
   Popover,
   PopoverTrigger,
   ReaderController,
   ReaderShell,
+  registerReaderCommands,
   SelectionToolbar,
   SelectionToolbarDivider,
+  ShellLayout,
   Switch,
+  shellActions,
   TextInput,
   ToastQueue,
   ToastRegion,
@@ -234,5 +243,49 @@ export function ReaderParts(): ReactNode {
       </ReaderShell>
       <DebugMenu backend="pdfium" onBackendChange={noop} keys="other" />
     </div>
+  );
+}
+
+/**
+ * The shell's regions (UI/UX plan §5.1): the rail open with its tabs, a selection's inspector
+ * docked beside the canvas, and focus mode's status item (from a second layout in focus mode, since
+ * focus mode hides the rail).
+ */
+export function ShellRegions(): ReactNode {
+  const [shell] = useState(() => {
+    const layout = new ShellLayout();
+    layout.toggleRail();
+    layout.openInspector({ id: "highlight", selection: true });
+    const focus = new ShellLayout();
+    focus.toggleFocus();
+    const registry = new CommandRegistry();
+    registerReaderCommands(registry);
+    const platform = fakePlatform();
+    const reader = new ReaderController(platform, async () => ({ pageCount: 24 }));
+    const context = { platform, reader, actions: shellActions(focus, new ModeRegistry(), { rail: true }) };
+    return { layout, focus, registry, context };
+  });
+  const tabs = [
+    { id: "pages", label: "Pages", panel: <p>24 pages</p> },
+    { id: "outline", label: "Outline", panel: <p>1 Summary · 2 Regions · 3 Outlook</p> },
+  ];
+  return (
+    <CommandsProvider registry={shell.registry} context={shell.context} keys="other">
+      <div className="g-shell g-shell-regions">
+        <ReaderShell
+          layout={shell.layout}
+          topBar={<strong>report.pdf</strong>}
+          rail={<LeftRail layout={shell.layout} tabs={tabs} />}
+          inspector={
+            <Inspector layout={shell.layout} label="Highlight">
+              <p>Yellow · 2 lines</p>
+            </Inspector>
+          }
+          status={<FocusModeItem layout={shell.focus} />}
+        >
+          <p>The page</p>
+        </ReaderShell>
+      </div>
+    </CommandsProvider>
   );
 }

@@ -126,7 +126,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
 │                        #   useStoreState, useReaderState), src/reader/ (ReaderShell, ReaderTopBar, PageInput, ZoomControl,
 │                        #   PasswordDialog, useGatedEntries, OpenDropZone, RepairDetails, OpenFailure, WholeFileDownload, DebugMenu;
-│                        #   codes.ts: a sentence per codes.json warning and error; the viewer as a shape), src/messages.ts (the catalogue),
+│                        #   codes.ts: a sentence per codes.json warning and error; the viewer as a shape), src/shell/ (U1c, ADR 0024 §1:
+│                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
+│                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
+│                        #   Inspector (docked, a selection's is a layer); FocusModeItem; shellActions for view.toggle-sidebar,
+│                        #   view.focus-mode and mode.<id>; useShell), src/messages.ts (the catalogue),
 │                        #   examples/ui-demo.{html,tsx} (`pnpm --filter @laminapdf/ui demo`: the chrome over a stand-in viewer, built with
 │                        #   the React Compiler through Babel, vite.demo.config.ts),
 │                        #   src/density.tsx (DensityProvider), src/styles/ (./styles.css: tokens
