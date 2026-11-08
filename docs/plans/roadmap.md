@@ -41,6 +41,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **Shareable libraries (L1–L6)** run alongside B and C: L1 (contracts) lands before the B5 builder so the first public API follows it; L2 follows B6; L3 (AI-ready extraction) follows B9; L4 (CLI and MCP) follows B5c and B9c; L6 (mobile spike, then a mobile plan) follows B5c and C2b ([shareable libraries §7](shareable-libraries.md#7-rounds)).
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
+- **Trust and proof (Round T)** comes from the [Hacker News research](../research/hacker-news/pdf-users-on-hacker-news.md). Most of it can start now, beside the other rounds: the proof figures and docs (T1), the extraction signals (T3) and the layout ADR (T4a). The rest waits on the rounds it extends: the reader features on C6b, the CLI commands on E2 and E16 ([trust and proof §6](trust-and-proof.md#6-sequence)).
 
 ## Milestones
 
@@ -121,6 +122,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | E18 | [editor](full-editor.md#e18-collaboration-hosted-service) | Collaboration | 0012; `auth` |
 | W | [website](website.md) | The website at `laminapdf.com`, with the roadmap and a progress dashboard on its home page; the reader moves to `app.laminapdf.com` | 0011 (amended) |
 | Q | [quality](quality.md) | Docs as a story, readable examples, maintainability checks, reuse | — |
+| T | [trust and proof](trust-and-proof.md) | Published robustness figures, checks for failed redactions and hidden content, extraction users can check, flowing layout, link previews and last position in the reader, page and size commands in the CLI | 0032; amends 0030, 0031 |
 
 ## How we track progress
 

@@ -13,6 +13,7 @@ const NAMES: Readonly<Record<string, string>> = {
   E: "Editor",
   P: "Publishing",
   Q: "Docs and code quality",
+  T: "Trust and proof",
   X: "Cross-cutting",
 };
 

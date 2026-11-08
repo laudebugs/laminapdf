@@ -19,6 +19,7 @@ The short feature-plan PR that opens round E10 ([full-editor §E10](../../plans/
 
 ## Context
 
+- [Hacker News research R3](../../research/hacker-news/pdf-users-on-hacker-news.md#r3-finish-forms-and-signatures-and-name-xfa-files-plainly): signing is the top editor request (1,129 comments); users confuse image signatures with certificate ones, and want to verify a signature offline
 - [full-editor §E10](../../plans/full-editor.md#e10-signatures): the round as planned (ships, crates, save, web vs desktop)
 - [06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) and [06 §7](../../research/pdf/06-feature-inventory.md#7-difficulty-map): mechanism and difficulty of each operation in scope
 - [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix) and [§5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round): capability-matrix statuses and the requirements every round meets
