@@ -19,7 +19,7 @@ These labels come from the [GitHub runner image inventory](https://github.com/ac
 Each matrix leg runs `cargo xtask check rust`: portability, formatting, Clippy, tests,
 documentation and dependency checks. `fast-gate` requires the entire matrix.
 The full lane also runs Rust and TypeScript checks on Linux Arm64, required by `gate`.
-[X6](todos/ready/X6-windows-ci.md) retains full TypeScript checks on Windows as follow-up work.
+[X6](todos/done/X6-windows-ci.md) retains full TypeScript checks on Windows as follow-up work.
 
 Every other job runs on Ubuntu 24.04 x64. Jobs use `macos-15` Arm64 only when they need a Mac:
 WebKit (closest to Safari), the render goldens and the nightly render diff (PDFium draws differently

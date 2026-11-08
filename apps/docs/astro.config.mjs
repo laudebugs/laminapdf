@@ -34,7 +34,8 @@ const TYPEDOC = process.env.LAMINA_PDF_DOCS_TYPEDOC !== "0";
 const DOCS_RELEASE = { version: await packageVersion(), release: process.env.LAMINA_PDF_ENV === "production" };
 
 const typeDoc = starlightTypeDoc({
-  entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT))],
+  // TypeDoc reads entry points as globs, which take only forward slashes (not Windows' `\`).
+  entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT)).replaceAll("\\", "/")],
   tsconfig: fileURLToPath(new URL("packages/sdk/tsconfig.build.json", ROOT)),
   output: "reference/sdk",
   sidebar: { label: "@laminapdf/sdk (TypeDoc)", collapsed: true },
@@ -95,7 +96,12 @@ export default defineConfig({
       },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
       // then Starlight's colours and fonts mapped onto them.
-      customCss: ["@laminapdf/tokens/tokens.css", "@laminapdf/fonts/fonts.css", "./src/styles/paper.css"],
+      customCss: [
+        "@laminapdf/tokens/tokens.css",
+        "@laminapdf/fonts/fonts.css",
+        "./src/styles/paper.css",
+        "./src/styles/diagrams.css",
+      ],
       plugins: [
         starlightLinksValidator({
           errorOnLocalLinks: true,

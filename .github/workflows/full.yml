@@ -6,7 +6,8 @@
 # `fast-gate` (todo X7). Never add a workflow-level `paths` filter here.
 #
 # Adding a suite: give it `needs: changes`, the code-change condition below, and add it to
-# `gate.needs`. All code suites are required, including the hosted Linux Arm64 check.
+# `gate.needs`. All code suites are required, including the hosted Linux Arm64 and Windows x64
+# checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
@@ -179,6 +180,42 @@ jobs:
       - uses: ./.github/actions/node-pnpm
       - run: cargo xtask check
 
+  # The whole `cargo xtask check` on Windows x64 (todo X6): the docs, Rust and TypeScript checks,
+  # where the fast lane's Windows legs run only `check rust`. It catches what only Windows breaks:
+  # paths, `pnpm.cmd`, line endings, and the docs and website builds.
+  check-windows:
+    name: Check (Windows x64)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      # node_modules and the docs build nest deeper than Windows' 260-character path limit.
+      - run: git config --global core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # Installs exactly what rust-toolchain.toml pins.
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
+      # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - uses: ./.github/actions/install-tools
+        with:
+          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
+      # Versions come from package.json and .nvmrc.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cargo xtask check
+
   # Four suites in one job, run one after another into one build directory: each takes under a
   # minute and a half, less than waiting for a runner and setting up, and they compile mostly the
   # same crates. Every suite runs even when one before it failed (`!cancelled()`).
@@ -301,7 +338,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, suites, render-golden, fuzz, check-linux]
+    needs: [changes, suites, render-golden, fuzz, check-linux, check-windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
