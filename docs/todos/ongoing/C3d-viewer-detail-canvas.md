@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) |
