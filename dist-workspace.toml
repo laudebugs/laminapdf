@@ -8,9 +8,9 @@ members = ["cargo:."]
 
 [dist]
 cargo-dist-version = "0.32.0"
-# All eight targets are configured. CI builds and runs only those the self-hosted runners can:
-# aarch64-apple-darwin on the Mac, aarch64-unknown-linux-gnu and -musl on the Linux runner.
-# The others are built once a runner for them exists (Windows: todo X6).
+# All eight targets are configured. CI builds and runs three on GitHub-hosted runners:
+# aarch64-apple-darwin (macos-15), aarch64-unknown-linux-gnu and -musl (ubuntu-24.04-arm).
+# The others are not built yet (Windows: todo X6).
 targets = [
   "aarch64-apple-darwin",
   "x86_64-apple-darwin",
