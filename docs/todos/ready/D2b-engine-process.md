@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
+| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](../ongoing/C4d-deploy-previews-and-production.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
 | Dependency notes | [D2a](D2a-adr-0008-and-desktop-scaffold.md); web plan **C2** (`crates/laminapdf-render` with the PDFium adapter, [web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) — satisfied transitively by C4 via D2a |
 | ADRs | Implements ADR 0008 §process model (D2a). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` apply in the engine), [0001](../../decisions/0001-core-language-and-licence.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md), ADR 0004 (`RenderBackend`, web C2) |
 | Branch | `feat/d2b-engine-process` |

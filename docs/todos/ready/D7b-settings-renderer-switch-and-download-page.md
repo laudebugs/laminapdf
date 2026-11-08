@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C4b](../done/C4b-web-app-shell.md), [C4d](./C4d-deploy-previews-and-production.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
+| Depends on | [C4b](../done/C4b-web-app-shell.md), [C4d](../ongoing/C4d-deploy-previews-and-production.md), [W1b](../done/W1b-site-scaffold-and-deploys.md), [D6b](./D6b-release-workflow-and-linux-packages.md), [D7a](./D7a-crash-reporting.md) |
 | Dependency notes | [D7a](D7a-crash-reporting.md) (settings sections for crash reports), [D6b](D6b-release-workflow-and-linux-packages.md) (artefacts and `SHA256SUMS` in R2). Cross-plan: the download page lives on the website, `apps/site`, from [W1b](../done/W1b-site-scaffold-and-deploys.md) ([website plan §4](../../plans/website.md#4-the-website)). |
 | ADRs | Follows ADR 0008 (Linux fallback: renderer switch), ADR 0014 (downloads domain, channels), ADR 0011 (privacy page) |
 | Branch | `feat/d7b-settings-and-download-page` |
