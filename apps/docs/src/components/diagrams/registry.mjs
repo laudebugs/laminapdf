@@ -20,8 +20,8 @@ export const DIAGRAMS = {
   "drawing-pages": {
     caption: "A renderer draws the pixels; Lamina PDF reads the text from the same bytes.",
     text:
-      "Your PDF's bytes are read two ways. To draw, a render request names the page, the scale, the part to draw (a tile's clip) and a rotation. " +
-      "It becomes a tile plan, which fixes the size in pixels, and a renderer, PDFium or hayro, draws the tile as RGBA pixels. " +
+      "Two readers use your PDF's bytes. To draw, a render request names the page, the scale, the tile to draw (its clip) and a rotation. " +
+      "The request becomes a tile plan, which fixes the size in pixels, and a renderer, PDFium or hayro, draws the tile as RGBA pixels. " +
       "Text, links and selection never come from the renderer. Lamina PDF reads them from its own model of the same bytes, the model that also edits and saves the file.",
   },
   "range-loading": {

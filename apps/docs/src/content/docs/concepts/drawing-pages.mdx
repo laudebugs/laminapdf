@@ -6,7 +6,7 @@ description: A renderer turns a page into pixels; Lamina PDF reads the page's te
 import Diagram from "../../../components/Diagram.astro";
 import Snippet from "../../../components/Snippet.astro";
 
-Two parts of Lamina PDF read every page you show. A renderer, PDFium or hayro, turns the page into pixels. Lamina PDF's own reader gives you everything you can select, search or click: the text, the links and the selection boxes. Both read the same bytes.
+Two readers go through every page you show. A renderer, PDFium or hayro, turns the page into pixels. Lamina PDF's own model of the file gives you everything you can select, search or click: the text, the links and the selection boxes. Both read the same bytes.
 
 <Diagram name="drawing-pages" />
 
@@ -14,7 +14,7 @@ Two parts of Lamina PDF read every page you show. A renderer, PDFium or hayro, t
 
 A render request names the page, the scale in pixels per point, and optionally a clip and a rotation. The clip is the part of the page you want, as a rectangle in pixels: a viewer asks for tiles of a large page rather than the whole page at once, so it only draws what's on screen. A scale of 2 draws 144 pixels per inch, sharp on most screens.
 
-Before it draws, the renderer turns the request into a tile plan: the whole page's size in pixels after the rotation, and the tile inside it. The plan checks the tile against the renderer's limits, so a tile wider or taller than 16,384 pixels, or larger than about 16.7 million pixels, fails with `render-too-large` instead of filling your memory. The renderer then draws the tile as straight RGBA, four bytes a pixel, row by row from the top-left corner.
+Before it draws, the renderer turns the request into a tile plan: the whole page's size in pixels after the rotation, and the tile inside it. The renderer checks the tile against its limits first: by default, a tile wider or taller than 16,384 pixels, or larger than about 16.7 million pixels, fails with `render-too-large` instead of filling your memory. The renderer then draws the tile as straight RGBA, four bytes a pixel, row by row from the top-left corner.
 
 This example draws a page with hayro and reads the same page's text:
 
@@ -24,7 +24,7 @@ This example draws a page with hayro and reads the same page's text:
 
 A renderer draws glyphs, but its idea of the text can differ from the file's: it may guess the order of letters or lose the characters behind a ligature. So Lamina PDF reads text, links and selection from its own model of the file, the same model that edits and saves it. What you select is what `page.text()` returns and what an edit changes.
 
-The two readers can still disagree on where a glyph sits, since each reads the fonts its own way. So Lamina PDF's tests compare each page's size and every character's position with PDFium's, and a difference becomes a bug to fix rather than a highlight drawn beside its word.
+The two readers can still disagree on where a glyph sits, since each reads the fonts its own way. Lamina PDF's tests compare each page's size and every character's position with PDFium's, and a difference becomes a bug to fix.
 
 ## PDFium in the browser, hayro on servers
 

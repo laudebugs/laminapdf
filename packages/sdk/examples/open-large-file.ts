@@ -1,6 +1,7 @@
 // Opens a PDF on a web server by range requests: only the parts it reads are downloaded, so a
 // large file opens without fetching all of it. The server must answer `Range` requests, as most
-// file hosts and CDNs do; across origins it must also allow the `Range` header. Needs `init()`.
+// file hosts and CDNs do; across origins it must also allow the `Range` and `If-Range` headers.
+// Needs `init()`.
 import { Document, httpRangeSource } from "@laminapdf/sdk";
 
 /** What a first look at a remote file needs: its page count and the first page's size. */

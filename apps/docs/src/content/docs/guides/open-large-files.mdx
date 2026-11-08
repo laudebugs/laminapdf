@@ -14,7 +14,7 @@ This example opens a remote file, then reads its page count and first page:
 
 ## Each read fetches the bytes it needs
 
-`Document.openRange` fetches only what opening needs: the end of the file, where a PDF keeps the index of its objects, and the objects that index points to first. Calls on the document stay synchronous, so a read that needs bytes not fetched yet can't wait for them. It throws `data-pending` instead, with the byte ranges it needs. `doc.ensure` runs your read, fetches those ranges when it throws, and runs it again until it returns:
+`Document.openRange` fetches only what opening needs: the end of the file, where a PDF keeps the index of its objects, then that index and the document's catalog. Calls on the document stay synchronous, so a read that needs bytes not fetched yet can't wait for them. It throws `data-pending` instead, with the byte ranges it needs. `doc.ensure` runs your read, fetches those ranges when it throws, and runs it again until it returns:
 
 <Diagram name="range-loading" />
 
@@ -22,16 +22,16 @@ Wrap every read after the open in `doc.ensure`, saving included: `await doc.ensu
 
 ## The server must answer `Range` requests
 
-`httpRangeSource(url)` asks for byte ranges with the `Range` header, and most file hosts and CDNs answer them. Across origins, the server must also allow the `Range` header (`Access-Control-Allow-Headers: Range`) and expose `Content-Range`, `Content-Length` and `ETag` (`Access-Control-Expose-Headers`). It must not compress the response, or the ranges it sends wouldn't match the file's bytes.
+`httpRangeSource(url)` asks for byte ranges with the `Range` header, and most file hosts and CDNs answer them. Across origins, the server must also allow the `Range` and `If-Range` request headers (`Access-Control-Allow-Headers: Range, If-Range`) and expose `Content-Range`, `Content-Length` and `ETag` (`Access-Control-Expose-Headers`). It must not compress the response, or the ranges it sends wouldn't match the file's bytes. An error status from the server fails with `fetch-failed`, its `data.status` holding the status code.
 
 A server that ignores `Range` and answers `200` sends the whole file. Lamina PDF then opens that one download, as `Document.open` would.
 
 ## A file that changes on the server fails the read
 
-Every request after the first sends `If-Range` with the file's first strong `ETag`, or its `Last-Modified` date when it has none. When the file changes between two reads, the read fails with `source-changed` rather than mixing two versions. Open the file again to read the new one. An error status from the server fails with `fetch-failed`, its `data.status` holding the status code.
+Every request after the first sends `If-Range` with the `ETag` the first response gave, when it's a strong one, or else that response's `Last-Modified` date. When the file changes between two reads, the read fails with `source-changed` rather than mixing two versions. Open the file again to read the new one.
 
 ## Limit how much a file can make you fetch
 
-A remote file decides how much you fetch, so cap it when the file comes from someone else. Pass `budget` to `Document.openRange`: it's the most bytes the document may hold, and past it a read fails with `source-budget-exceeded`. A `signal` among the same options stops the open's fetches, and `doc.ensure(read, { signal })` takes its own for each later read, such as `AbortSignal.timeout(10_000)`.
+A remote file decides how much you fetch, so cap it when the file comes from someone else. Pass `budget` to `Document.openRange`: it's the most bytes the document may hold, and past it a read fails with `source-budget-exceeded`. Pass `signal` with the same options to stop the open's fetches. Later reads take their own: `doc.ensure(read, { signal: AbortSignal.timeout(10_000) })`.
 
 The [limits for files you don't trust](/guides/untrusted-files/) apply here too: pass `limits` with the other options.
