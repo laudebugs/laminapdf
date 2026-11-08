@@ -5,10 +5,9 @@
 // local file must cause neither.
 
 import { readdirSync, readFileSync } from "node:fs";
-import { env } from "node:process";
-import { firefoxEnv } from "@laminapdf/test-utils/firefox";
-import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
+import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { BROWSER, launch } from "./browser.ts";
 import { getLocal } from "./local-tls.ts";
 import {
   ASSET_CACHE,
@@ -25,8 +24,6 @@ import {
 } from "./reader.ts";
 
 const APP = new URL("../", import.meta.url);
-const BROWSERS: Record<string, BrowserType> = { chromium, firefox, webkit };
-const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 
 /** A built asset's path whose file name matches `pattern`. */
@@ -85,9 +82,7 @@ describe(`opening local files in ${BROWSER}`, () => {
   let browser: Browser;
 
   beforeAll(async () => {
-    const type = BROWSERS[BROWSER];
-    if (type === undefined) throw new Error(`LAMINA_PDF_E2E_BROWSER: unknown browser ${BROWSER}`);
-    browser = await type.launch(BROWSER === "firefox" ? { env: firefoxEnv(APP) } : {});
+    browser = await launch();
   });
 
   afterAll(async () => {
