@@ -6,8 +6,9 @@
 #                 nightly mutant set (`cargo xtask corpus fetch`, `cargo xtask differential --live`),
 #                 then lamina's page text vs pdf.js and pdftotext over the external corpus
 #                 (`cargo xtask differential --live --text`; todo B9f)
-#   fuzz          every target for 10 minutes, corpus kept in the Actions cache, crashes minimised
-#                 and uploaded (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
+#   fuzz          every target of harness::FUZZ_TARGETS for 10 minutes, corpus kept in the Actions
+#                 cache, crashes minimised and uploaded, each run's summary (executions, corpus size)
+#                 uploaded for `proof` (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
 #   scaling       release-mode #[ignore]d tests, one retry that only reports flakiness
 #                 (`cargo xtask scaling`)
 #   bench         criterion benchmarks with history on the `bench-data` branch, after every job
@@ -27,6 +28,13 @@
 #                 (PDF/UA-1, PDF/A-2b, 2u, 3b); any violation fails (`cargo xtask verapdf`;
 #                 ADR 0018 tier 10, todo B8b). veraPDF is the pinned Java CLI (doctor.rs), run
 #                 as an external process (ADR 0019), with Java 21 from setup-java
+#   roundtrip     lamina saves every fixture × op × mode and reopens each output, then qpdf --check,
+#                 pdf.js and PDFium check them (`cargo xtask roundtrip`, ADR 0018 tier 7; the full
+#                 lane runs it on every push to main too); its counts go to `proof`
+#   proof         after the jobs above: their reports gathered into one record, kind "proof" (corpus
+#                 outcomes, differentials, render diff, fuzz runs, veraPDF, round trip, runtimes),
+#                 appended to the bench-data history only for a full-budget night on main
+#                 (`cargo xtask proof --jobs "$NEEDS"`; todo T1a)
 #
 # Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
 # runs them all with short budgets.
@@ -192,7 +200,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip, extract_text]
+        # Exactly harness::FUZZ_TARGETS (tools/xtask/src/workflows.rs checks).
+        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip, extract_text, extract]
     env:
       TARGET: ${{ matrix.target }}
     steps:
@@ -224,6 +233,15 @@ jobs:
       # cargo +nightly fuzz run <target> -- -max_total_time=… -timeout=10 -rss_limit_mb=2048
       - name: Fuzz ${{ matrix.target }} for ${{ env.FUZZ_SECONDS }} s
         run: cargo xtask fuzz "$TARGET" --time "$FUZZ_SECONDS"
+      # The run's budget, executions, corpus size and whether it crashed, for the proof job. A
+      # run that failed before fuzzing writes none.
+      - name: Upload the run's summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-summary-${{ matrix.target }}
+          path: target/xtask/fuzz/${{ matrix.target }}.json
+          if-no-files-found: ignore
       # Only main's nights save, after `cargo fuzz cmin` and with only this target's folder, so
       # each entry stays bounded; older entries age out of the cache.
       - name: Minimise the corpus before saving it
@@ -273,7 +291,7 @@ jobs:
     # A new label starts a hosted baseline, separate from the old private Macs. GitHub's
     # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
-    needs: [differential, fuzz, scaling, links, render-diff, verapdf, forced-failure]
+    needs: [differential, fuzz, scaling, links, render-diff, verapdf, roundtrip, forced-failure]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
@@ -386,12 +404,15 @@ jobs:
         env:
           RUNTIMES: ${{ matrix.runtimes }}
           LABEL: ${{ matrix.label }}
+          GROUP: ${{ matrix.group }}
         run: |
           # shellcheck disable=SC2086 # one argument per runtime
+          # --label keeps the two groups' files apart when the proof job downloads both:
+          # runtimes-<group>.json and measurements-<group>.json.
           if [ "$RECORD" = true ]; then
-            cargo xtask pdf-runtimes $RUNTIMES --history "$HISTORY" --runner "$LABEL" --record
+            cargo xtask pdf-runtimes $RUNTIMES --label "$GROUP" --history "$HISTORY" --runner "$LABEL" --record
           else
-            cargo xtask pdf-runtimes $RUNTIMES
+            cargo xtask pdf-runtimes $RUNTIMES --label "$GROUP"
           fi
       # Also after a failed run: the runtimes that passed were recorded (the action does nothing
       # when no record was added).
@@ -525,6 +546,145 @@ jobs:
           path: target/xtask/verapdf/
           if-no-files-found: ignore
 
+  # Todo T1a: the round-trip suite (ADR 0018 tier 7), set up as full.yml's `suites` job, so the
+  # proof record has its counts. It writes nothing but its artefact, so it needs no record gate.
+  roundtrip:
+    name: Round trip (lamina, qpdf, pdf.js, PDFium)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/qpdf
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - uses: ./.github/actions/host-rust
+        with:
+          # No other job builds this, and the nightly lane saves no cache.
+          cache: false
+      # pdf.js: xtask installs tools/roundtrip's pinned pdfjs-dist with npm when it is missing.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: qpdf and the Python venv (pypdfium2)
+        run: |
+          qpdf --version
+          python3 -m venv "$RUNNER_TEMP/roundtrip-venv"
+          "$RUNNER_TEMP/roundtrip-venv/bin/pip" install --disable-pip-version-check -q -r tools/roundtrip/requirements.txt
+      - name: Round trip
+        env:
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
+        run: cargo xtask roundtrip
+      # summary.json (counts, each tool's version and result), versions.json and the manifest;
+      # summary.json is written even when a tool fails.
+      - name: Upload the summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: roundtrip
+          path: target/xtask/roundtrip/*.json
+          if-no-files-found: ignore
+
+  # Todo T1a: every job's report gathered into one record (`cargo xtask proof`), on any result but
+  # a cancelled run, so a failed night still records which job failed (its section is null).
+  # Each artefact is downloaded back to the folder its job wrote: upload-artifact roots an
+  # artefact at the least common ancestor of its search paths, so each `path` below is that root.
+  # Only a full-budget night on main appends to the history; xtask reads the budgets from the
+  # reports themselves.
+  proof:
+    name: Proof record
+    needs: [differential, fuzz, scaling, render-diff, verapdf, roundtrip, pdf-runtimes]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Pushes the history to the bench-data branch (main only).
+    permissions:
+      contents: write
+    env:
+      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && toJSON(inputs.record) != 'false' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: true
+          shared-key: xtask
+          save: "false"
+      # A missing artefact (its job failed early or was skipped) leaves its section null.
+      - name: Download the differential reports
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: differential-report
+          path: target/nightly
+      - name: Download the render-diff report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: render-diff
+          path: target/nightly/render-diff
+      - name: Download the fuzz summaries
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          pattern: fuzz-summary-*
+          merge-multiple: true
+          path: target/xtask/fuzz
+      - name: Download the veraPDF report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: verapdf
+          path: target/xtask/verapdf
+      - name: Download the round-trip summary
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: roundtrip
+          path: target/xtask/roundtrip
+      - name: Download the runtimes' results
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          pattern: pdf-runtimes-*
+          merge-multiple: true
+          path: target/xtask/pdf-runtimes
+      # As in the bench job: the token only reaches the bench-history steps.
+      - name: Fetch the benchmark history
+        if: ${{ env.RECORD == 'true' }}
+        uses: ./.github/actions/bench-history
+        with:
+          mode: fetch
+          token: ${{ github.token }}
+      - name: The proof record (recording on main)
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          if [ "$RECORD" = true ]; then
+            cargo xtask proof --jobs "$NEEDS" --history "$HISTORY" --runner "github-hosted/ubuntu-24.04-x64" --record
+          else
+            cargo xtask proof --jobs "$NEEDS"
+          fi
+      # Does nothing when no record was added (a night that wasn't full).
+      - name: Push the benchmark history
+        if: ${{ env.RECORD == 'true' }}
+        uses: ./.github/actions/bench-history
+        with:
+          mode: push
+          token: ${{ github.token }}
+          message: "bench(proof): ${{ github.sha }}"
+      - name: Upload the record
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: proof
+          path: target/nightly/proof/
+          if-no-files-found: ignore
+
   # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
   forced-failure:
     name: Forced failure (on request)
@@ -545,7 +705,7 @@ jobs:
   # appending to main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, forced-failure]
+    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, roundtrip, proof, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result),
     # nor for a run someone cancelled. A job that hit its timeout-minutes ends `cancelled`, not
     # `failure`, but fails the run all the same: 2026-11-02's Benchmarks job landed on a hung
