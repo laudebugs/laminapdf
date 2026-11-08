@@ -18,8 +18,8 @@ pub use laminapdf_extract::{
     Block, BlockKind, Cell, Chunk, ChunkOptions, Coordinates, DropOptions, DropReason, Dropped, ExtractLimits,
     ExtractOptions, ExtractedPage, ExtractedSource, Extraction, Flags, LayoutModel, LayoutRegion, MarkdownOptions,
     ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer,
-    ReadingOrder, Region, RegionLabel, Rendered, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextLayer, TextLayerStatus, TextLayerThresholds,
-    TextRange, chunks_jsonl, tokens_approx,
+    ReadingOrder, Region, RegionLabel, Rendered, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode,
+    TextLayer, TextLayerStatus, TextLayerThresholds, TextRange, chunks_jsonl, tokens_approx,
 };
 pub use laminapdf_text::{Code, Glyph, PageText, PageTextRun, Quad, UserSpaceVector};
 
