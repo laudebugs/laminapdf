@@ -15,7 +15,7 @@
 
 ## Goal
 
-Since 2026-10-29 every CI job runs on the two self-hosted macOS ARM64 runners (GitHub-hosted minutes are not used), so `cargo xtask check` no longer runs on Linux. Add a third self-hosted runner, a Linux (ARM64) container on the same Mac, and run the full lane's `cargo xtask check` on it for every code PR and push to `main`, under `gate`. Owner decision (2026-10-29): Linux via a container on the Mac; Windows later ([X6](../ready/X6-windows-ci.md)).
+Since 2026-10-29 every CI job runs on the two self-hosted macOS ARM64 runners (GitHub-hosted minutes are not used), so `cargo xtask check` no longer runs on Linux. Add a third self-hosted runner, a Linux (ARM64) container on the same Mac, and run the full lane's `cargo xtask check` on it for every code PR and push to `main`, under `gate`. Owner decision (2026-10-29): Linux via a container on the Mac; Windows later ([X6](../done/X6-windows-ci.md)).
 
 ## Context
 
@@ -38,7 +38,7 @@ Since 2026-10-29 every CI job runs on the two self-hosted macOS ARM64 runners (G
 
 **Out of scope**
 
-- Windows ([X6](../ready/X6-windows-ci.md)); x86_64 Linux (ARM64 only for now; note it); moving the nightly lane to Linux.
+- Windows ([X6](../done/X6-windows-ci.md)); x86_64 Linux (ARM64 only for now; note it); moving the nightly lane to Linux.
 
 ## Tasks
 

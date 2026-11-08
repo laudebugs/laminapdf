@@ -1,6 +1,6 @@
 # Hosted CI runners for Linux and Windows: pricing and fit (as of 2026-10-30)
 
-Scope: what it would cost to run lamina's Linux and Windows CI on hosted machines instead of (or next to) the self-hosted Mac runners, comparing **Blacksmith**, **CircleCI** and **GitHub-hosted** runners. Researched on 2026-10-30 for [X6](../../../todos/ready/X6-windows-ci.md) (Windows CI) and the Linux x86_64 gap left by [X5](../../../todos/done/X5-linux-ci-container.md). Prices change: re-check every rate against the sources below, and re-measure the run times (see [How to refresh this note](#how-to-refresh-this-note)), before deciding anything.
+Scope: what it would cost to run lamina's Linux and Windows CI on hosted machines instead of (or next to) the self-hosted Mac runners, comparing **Blacksmith**, **CircleCI** and **GitHub-hosted** runners. Researched on 2026-10-30 for [X6](../../../todos/done/X6-windows-ci.md) (Windows CI) and the Linux x86_64 gap left by [X5](../../../todos/done/X5-linux-ci-container.md). Prices change: re-check every rate against the sources below, and re-measure the run times (see [How to refresh this note](#how-to-refresh-this-note)), before deciding anything.
 
 ---
 
