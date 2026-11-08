@@ -1,0 +1,23 @@
+---
+// One drawing of a diagram: an <svg> that scales to the column's width. A diagram draws a wide
+// layout and a narrow one; diagrams.css shows the narrow one in a column under 40rem, where the
+// wide one's labels would shrink under 12 px. Only the shown one is in the accessibility tree.
+interface Props {
+  viewBox: string;
+  layout: "wide" | "narrow";
+  labelledby: string;
+  describedby: string;
+}
+const { viewBox, layout, labelledby, describedby } = Astro.props;
+---
+
+<svg
+  class:list={["dg-svg", `dg-${layout}`]}
+  viewBox={viewBox}
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby={labelledby}
+  aria-describedby={describedby}
+>
+  <slot />
+</svg>

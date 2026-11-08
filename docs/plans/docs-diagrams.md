@@ -45,8 +45,8 @@ Inline SVG wins, and the docs already allow it: the CSP governs scripts, styles 
 
 ### 3.1 The parts
 
-- **`apps/docs/src/components/diagrams/`** holds one `.astro` file per diagram and a small kit the diagrams share: a box, a labelled arrow, a lane, a byte strip, a page outline. The kit keeps sizes, strokes and spacing identical across diagrams, so a reader learns the visual language once.
-- **`Diagram.astro`** wraps each one in a `<figure>` with a caption. Its required `text` prop is the diagram's full meaning in prose: it becomes the diagram's text description for screen readers and its text in the page's Markdown twin.
+- **`apps/docs/src/components/diagrams/`** holds one `.astro` file per diagram and a small kit the diagrams share (`kit/`): a box, an arrow, a lane, a label, the arrowheads and the SVG wrapper, from Q3a; a byte strip (`Strip`, Q3b) and a page outline (`PageSheet`, Q3c) join it with the first diagrams that need them. The kit keeps sizes, strokes and spacing identical across diagrams, so a reader learns the visual language once.
+- **`Diagram.astro`** places a diagram by name (`<Diagram name="open-edit-save" />`) and wraps it in a `<figure>` with its caption. **`diagrams/registry.mjs`** holds each diagram's caption and text description, the diagram's full meaning in prose, in one place: the page reads it for the caption and for screen readers, and the Markdown twin, which is built from the page's source and can't see inside a component, reads the same entry.
 - **`apps/docs/src/styles/diagrams.css`** styles the kit's classes (`.dg-box`, `.dg-arrow`, `.dg-focus`, `.dg-label`), with every colour a `var(--paper-*)`. The classes are scoped under `.dg`, because the tokens' `:where()` rules lose to any other rule.
 - **The Markdown twins.** `plugins/markdown.mjs` turns `<Snippet>`, asides and the other components into Markdown for the twins that coding agents read, and passes any unknown component through as raw JSX. A diagram therefore needs its own rule there: the twin gets the caption and the `text` prop, never the SVG.
 
@@ -69,10 +69,10 @@ Each diagram is `role="img"` with `aria-labelledby` naming its caption and `aria
 
 A diagram can go wrong in four ways. A hard-coded colour breaks in one theme, a label is too faint to read, a twin leaks raw markup, or the picture disagrees with the API. Each has a check:
 
-1. **A lint test** (Node, `apps/docs/test/diagrams.test.mjs`) reads every diagram component and fails on a hex, `rgb()` or named colour, a `style=""` attribute, a duplicated `id`, or a missing `text` prop.
-2. **A browser test** in Chromium, Firefox and WebKit renders every diagram with Astro's container, as `@laminapdf/site-kit`'s header test does, in the light theme, the dark theme and forced colours, and runs axe's `color-contrast` and `svg-img-alt` rules on it. `cargo xtask pdf-runtimes` runs it with the other browser suites.
+1. **A lint test** (Node, `apps/docs/test/diagrams.test.mjs`) reads every diagram component and fails on a hex, `rgb()` or named colour, a `style=""` attribute, a fixed `id`, a registry entry without its drawing or a page naming a diagram that doesn't exist.
+2. **A browser test** in Chromium, Firefox and WebKit renders every diagram with Astro's container, as `@laminapdf/site-kit`'s header test does, in the light, dark and high-contrast themes and with forced colours emulated (Chromium and Firefox). It computes the contrast of every label against the shape behind it and of every line against the page, since axe-core doesn't measure contrast inside SVG, and checks that the SVG is an image with a name and a description. `cargo xtask pdf-runtimes` runs it with the other browser suites.
 3. **A twin test** in `plugins/markdown.test.mjs` checks that a page with a `<Diagram>` produces its caption and text, and no `<svg>` or JSX, in the `.md` twin and `llms-full.txt`.
-4. **Review.** The labels and the `text` prop get `/writing-review` like the page's prose, and the PR shows a screenshot of each diagram in both themes.
+4. **Review.** The labels and the text description get `/writing-review` like the page's prose, and the PR shows a screenshot of each diagram in both themes.
 
 ## 5. Out of scope
 
@@ -87,7 +87,7 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 
 | ID | Delivers | Diagrams (§2) |
 | --- | --- | --- |
-| [Q3a](../todos/ready/Q3a-diagram-kit-and-first-diagram.md) | The kit, `Diagram.astro`, the styles, the twin rule, the three checks | 1 |
+| [Q3a](../todos/done/Q3a-diagram-kit-and-first-diagram.md) | The kit, `Diagram.astro`, the styles, the twin rule, the three checks | 1 |
 | [Q3b](../todos/ready/Q3b-save-diagrams.md) | The two save diagrams | 2, 3 |
 | [Q3c](../todos/ready/Q3c-coordinates-diagram.md) | Page space and user space, upright and rotated | 4 |
 | [Q3d](../todos/ready/Q3d-package-map-diagram.md) | The packages and modules | 5 |
@@ -108,7 +108,7 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 
 ## 9. To-dos
 
-- [ ] Q3a: the kit, the checks and "Open, edit, save"
+- [x] Q3a: the kit, the checks and "Open, edit, save"
 - [ ] Q3b: the save diagrams
 - [ ] Q3c: page space and user space
 - [ ] Q3d: the packages and modules

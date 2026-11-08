@@ -5,8 +5,9 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const previews = join(root, "public/examples/preview");
 /** @type {{ examples: Record<string, { pages: unknown[] }> }} */
 const manifest = JSON.parse(readFileSync(join(previews, "manifest.json"), "utf8"));
