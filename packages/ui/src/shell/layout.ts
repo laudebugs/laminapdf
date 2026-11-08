@@ -67,8 +67,8 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
   readonly #listeners = new Set<() => void>();
   readonly #deselected = new Set<() => void>();
   readonly #storage: PlatformStorage | undefined;
-  /** Set once the user changes the rail, so a kept state read later never undoes the change. */
-  #railTouched = false;
+  /** What the user changed on the rail before the kept state was read: those fields win over it. */
+  #railChanges: Partial<ShellLayoutState["rail"]> = {};
   #keepTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** `storage` keeps the rail's state between visits; without it the rail starts closed each time. */
@@ -79,7 +79,7 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
   /** Reads the rail's kept state; until it resolves the rail is closed, so a first visit never flashes it open. */
   async load(): Promise<void> {
     const kept = readKept(await this.#storage?.get(STORAGE_KEY).catch(() => undefined));
-    if (kept !== undefined && !this.#railTouched) this.#set({ rail: kept });
+    if (kept !== undefined) this.#set({ rail: { ...kept, ...this.#railChanges } });
   }
 
   getState(): ShellLayoutState {
@@ -128,8 +128,12 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
     if (this.#state.focus) this.#set({ focus: false });
   }
 
-  /** Shows `content` in the inspector, replacing what it showed. */
+  /**
+   * Shows `content` in the inspector, replacing what it showed. A panel opened on purpose (not a
+   * selection's) leaves focus mode, which hides such panels, so the user sees what they asked for.
+   */
   openInspector(content: InspectorContent): void {
+    if (!content.selection) this.leaveFocus();
     const now = this.#state.inspector;
     if (now?.id !== content.id || now.selection !== content.selection) this.#set({ inspector: content });
   }
@@ -155,17 +159,26 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
     else this.leaveFocus();
   }
 
-  #setRail(change: Partial<ShellLayoutState["rail"]>): void {
-    this.#railTouched = true;
-    this.#set({ rail: { ...this.#state.rail, ...change } });
-    const storage = this.#storage;
-    if (storage === undefined) return;
+  /** Writes a rail change still waiting to be kept; call it when the window is hidden or closing. */
+  flush(): void {
+    if (this.#keepTimer === undefined) return;
     clearTimeout(this.#keepTimer);
-    this.#keepTimer = setTimeout(() => {
-      storage.set(STORAGE_KEY, this.#state.rail).catch(() => {
-        // Not kept: the rail starts closed on the next visit, which is the default anyway.
-      });
-    }, KEEP_AFTER_MS);
+    this.#keep();
+  }
+
+  #setRail(change: Partial<ShellLayoutState["rail"]>): void {
+    this.#railChanges = { ...this.#railChanges, ...change };
+    this.#set({ rail: { ...this.#state.rail, ...change } });
+    if (this.#storage === undefined) return;
+    clearTimeout(this.#keepTimer);
+    this.#keepTimer = setTimeout(() => this.#keep(), KEEP_AFTER_MS);
+  }
+
+  #keep(): void {
+    this.#keepTimer = undefined;
+    this.#storage?.set(STORAGE_KEY, this.#state.rail).catch(() => {
+      // Not kept: the rail starts closed on the next visit, which is the default anyway.
+    });
   }
 
   #set(change: Partial<ShellLayoutState>): void {

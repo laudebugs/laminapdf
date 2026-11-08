@@ -122,7 +122,7 @@ function useRepairsPanel(
   const shown = useStoreState(layout, (s) => s.inspector?.id === "repairs");
   // Another file's repairs never show: a new file closes the panel.
   useEffect(() => {
-    if (fileName !== undefined && layout.getState().inspector?.id === "repairs") layout.closeInspector();
+    if (layout.getState().inspector?.id === "repairs") layout.closeInspector();
   }, [fileName, layout]);
   if (fileName === undefined || repairs.length === 0) return { inspector: undefined, showRepairs: undefined };
   const showRepairs = () => layout.openInspector({ id: "repairs", selection: false });

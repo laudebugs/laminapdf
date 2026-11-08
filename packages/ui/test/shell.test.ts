@@ -47,14 +47,34 @@ describe("ShellLayout", () => {
     expect(layout.getState().rail.open).toBe(false);
   });
 
-  it("keeps a change the user made while the kept state was still loading", async () => {
+  it("keeps a change the user made while the kept state was still loading, and the rest of the kept state", async () => {
     const { storage } = fakePlatform();
-    await storage.set("shell.rail", { open: false, width: 300 });
+    await storage.set("shell.rail", { open: false, width: 300, tab: "outline" });
     const layout = new ShellLayout(storage);
     const loading = layout.load();
     layout.toggleRail();
     await loading;
-    expect(layout.getState().rail.open).toBe(true);
+    expect(layout.getState().rail).toEqual({ open: true, width: 300, tab: "outline" });
+  });
+
+  it("writes a waiting change at once when flushed", async () => {
+    vi.useFakeTimers();
+    const { storage } = fakePlatform();
+    const set = vi.spyOn(storage, "set");
+    const layout = new ShellLayout(storage);
+    layout.toggleRail();
+    layout.flush();
+    layout.flush();
+    expect(set).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves focus mode for a panel opened on purpose, and stays in it for a selection", () => {
+    const layout = new ShellLayout();
+    layout.toggleFocus();
+    layout.openInspector({ id: "highlight", selection: true });
+    const withSelection = layout.getState().focus;
+    layout.openInspector({ id: "repairs", selection: false });
+    expect([withSelection, layout.getState().focus]).toEqual([true, false]);
   });
 
   it("never keeps focus mode", async () => {

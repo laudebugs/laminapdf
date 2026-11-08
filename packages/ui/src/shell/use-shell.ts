@@ -1,5 +1,6 @@
 // The shell's state for one window: a `ShellLayout` over the platform's storage, read back once
-// mounted, and the modes with Read registered. Leaving Read clears the selection it made.
+// mounted and written before the page is hidden, and the modes with Read registered. Leaving Read
+// clears the selection it made.
 
 import { useEffect, useState } from "react";
 import { message } from "../messages.js";
@@ -15,6 +16,14 @@ export function useShell(storage: PlatformStorage): { readonly layout: ShellLayo
     modes.register({ id: "read", title: message("command.mode.read"), icon: "reader", leave: () => layout.deselect() });
     return { layout, modes };
   });
-  useEffect(() => void shell.layout.load(), [shell]);
+  useEffect(() => {
+    void shell.layout.load();
+    const flush = () => shell.layout.flush();
+    addEventListener("pagehide", flush);
+    return () => {
+      removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [shell]);
   return shell;
 }
