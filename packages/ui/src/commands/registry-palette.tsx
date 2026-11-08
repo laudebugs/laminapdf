@@ -64,12 +64,15 @@ function paletteItem({ registry, context }: Scope, command: AnyCommand, extra: P
 
 /** A row for each command whose arguments `query` types inline: its summary, or why they don't parse. */
 function inlineRows(scope: Scope, shown: readonly AnyCommand[], query: string): PaletteItem[] {
+  const titles = shown.map((command) => scope.registry.title(command, scope.context).toLocaleLowerCase());
   return shown.flatMap((command) => {
     if (command.args === undefined || command.args.secret === true) return [];
     const title = scope.registry.title(command, scope.context);
     const text = argumentText(query, [bare(title), ...(command.args.prefixes ?? [])]);
     if (text === undefined) return [];
     const parsed = command.args.parse(text, scope.context);
+    // "zoom in" starts Zoom in's title: that is a search for it, not arguments gone wrong.
+    if (!parsed.ok && titles.some((t) => t.startsWith(query.trim().toLocaleLowerCase()))) return [];
     const row = paletteItem(scope, command, {
       id: `${command.id}${INLINE}${text}`,
       title: parsed.ok ? message("palette.argRow", { title: bare(title), summary: parsed.summary }) : title,

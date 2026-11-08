@@ -15,7 +15,7 @@ import { type ViewerControls, ZOOM_PRESETS } from "./viewer-controls.js";
 
 /** Props of `ZoomControl`. */
 export interface ZoomControlProps {
-  /** The viewer, whose zoom the percentage shows. */
+  /** The viewer, whose zoom the percentage shows: the commands' context's viewer, which the buttons drive. */
   viewer: ViewerControls;
   /** How shortcut chips are written. */
   keys: KeyPlatform;

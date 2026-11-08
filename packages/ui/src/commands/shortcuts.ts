@@ -207,9 +207,17 @@ function keysOf(rules: readonly KeyRule[], shell: Shell, platform: KeyPlatform):
   );
 }
 
-/** Whether `binding` is bound in `shell`: its capability, when it needs one, is the shell's. */
+/**
+ * Whether `binding` is bound in `shell`, for the collision check: a binding that needs
+ * `ownsKeyboard` only in the desktop app, any other in both (its capability could hold there).
+ */
 function boundIn(binding: Shortcut, shell: Shell): boolean {
-  return binding.requires === undefined || (binding.requires === "ownsKeyboard" && shell === "desktop");
+  return binding.requires !== "ownsKeyboard" || shell === "desktop";
+}
+
+/** Whether `binding` is bound in `ctx`: it needs no capability, or the platform has it. */
+export function isBound(binding: Shortcut, ctx: CommandContext): boolean {
+  return binding.requires === undefined || ctx.platform.capabilities[binding.requires];
 }
 
 /** The keys a check reads on one platform in one shell. */
@@ -232,14 +240,21 @@ function keyProblems(keys: string, where: string, lists: KeyLists, platform: Key
   return problems;
 }
 
+/** Scopes one can sit inside: a selection is in the page, so their keys meet. */
+const NESTED: readonly (readonly [Shortcut["scope"], Shortcut["scope"]])[] = [["page", "selection"]];
+
+/** Whether keys bound in scopes `a` and `b` can both act at once. */
+function scopesMeet(a: Shortcut["scope"], b: Shortcut["scope"]): boolean {
+  if (a === b || a === "global" || b === "global") return true;
+  return NESTED.some(([outer, inner]) => (a === outer && b === inner) || (a === inner && b === outer));
+}
+
 /** A binding already seen: which command, in which scope. */
 type Taken = { readonly id: string; readonly scope: Shortcut["scope"] };
 
 /** The commands among `others` that `binding` of command `id` collides with: the same keys where scopes meet. */
 function collisions(others: readonly Taken[], id: string, binding: Shortcut): string[] {
-  return others
-    .filter((o) => o.id !== id && (o.scope === binding.scope || o.scope === "global" || binding.scope === "global"))
-    .map((o) => o.id);
+  return others.filter((o) => o.id !== id && scopesMeet(o.scope, binding.scope)).map((o) => o.id);
 }
 
 /** `shortcutProblems` on one platform. */
@@ -308,6 +323,8 @@ export interface DispatcherOptions {
 export function shortcutDispatcher(options: DispatcherOptions): (event: KeyboardEvent) => void {
   return (event) => {
     if (event.defaultPrevented || event.isComposing) return;
+    // A modal (the palette, a dialog) has the keys; nothing runs behind it.
+    if (event.target instanceof Element && event.target.closest('[aria-modal="true"]') !== null) return;
     const ctx = options.context();
     const found = boundCommand(options, ctx, event);
     if (found === undefined || !allowed(options, event, found.binding)) return;
@@ -318,21 +335,29 @@ export function shortcutDispatcher(options: DispatcherOptions): (event: Keyboard
   };
 }
 
-/** The first command with a binding to the keys of `event` in the scope it was pressed in. */
+/** The scopes `target` is in: each `data-shortcut-scope` around it, as a selection sits in the page. */
+function scopesAround(target: EventTarget | null): Set<string> {
+  const scopes = new Set<string>();
+  for (let at = target instanceof Element ? target.closest("[data-shortcut-scope]") : null; at !== null; ) {
+    scopes.add(at.getAttribute("data-shortcut-scope") ?? "");
+    at = at.parentElement?.closest("[data-shortcut-scope]") ?? null;
+  }
+  return scopes;
+}
+
+/** The first command with a binding to the keys of `event` in the scopes it was pressed in. */
 function boundCommand(
   options: DispatcherOptions,
   ctx: CommandContext,
   event: KeyboardEvent,
 ): { command: AnyCommand; binding: Shortcut } | undefined {
-  const shell = shellOf(ctx);
   const pressed = pressKey(event);
-  const region = event.target instanceof Element ? event.target.closest("[data-shortcut-scope]") : null;
-  const scope = region?.getAttribute("data-shortcut-scope");
+  const scopes = scopesAround(event.target);
   const matches = (b: Shortcut) =>
     b.dispatch !== false &&
-    boundIn(b, shell) &&
+    isBound(b, ctx) &&
     bindingKey(b[options.platform], options.platform) === pressed &&
-    (b.scope === "global" || b.scope === scope);
+    (b.scope === "global" || scopes.has(b.scope));
   for (const command of options.registry.list()) {
     const binding = command.shortcuts?.find(matches);
     if (binding !== undefined) return { command, binding };

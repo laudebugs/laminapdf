@@ -1,7 +1,8 @@
 // The reader chrome on one page, over a stand-in viewer and opener, for trying it by hand
 // (`pnpm --filter @laminapdf/ui demo`) and for the axe check in the browser tests. Open any PDF;
 // a name with "locked" asks for the password "lamina", "damaged" opens with repairs and "broken"
-// can't be opened. Ctrl+K (⌘K) or Commands opens the palette: try "go to 12" or "zoom 150".
+// can't be opened. Ctrl+K or Commands opens the palette (the demo writes keys as on Windows and
+// Linux, so it is Ctrl+K on a Mac too): try "go to 12" or "zoom 150".
 // `#debug` shows the debug menu.
 
 import "../src/styles/index.css";
@@ -97,6 +98,7 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
   const [viewer] = useState(() => new DemoViewer());
   const [sidebar, setSidebar] = useState(true);
   const [palette, setPalette] = useState(false);
+  const [repairsOpen, setRepairsOpen] = useState(true);
   const [shell] = useState(() => ({
     toggleSidebar: () => setSidebar((open) => !open),
     openPalette: () => setPalette(true),
@@ -110,7 +112,8 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
         {...(state.phase === "open" && sidebar ? { rail: <nav aria-label="Pages">Pages</nav> } : {})}
         {...demoInspector(
           platform,
-          state.phase === "open" && state.file.name.includes("damaged") ? state.file.name : undefined,
+          repairsOpen && state.phase === "open" && state.file.name.includes("damaged") ? state.file.name : undefined,
+          () => setRepairsOpen(false),
         )}
         status={<NetworkIndicator count="0 network requests for this document" explanation="· Offline-safe" />}
       >
@@ -159,7 +162,11 @@ function DemoTopBar(props: {
 }
 
 /** The repair details beside a damaged file, until closed. */
-function demoInspector(platform: Platform, damaged: string | undefined): { inspector?: ReactNode } {
+function demoInspector(
+  platform: Platform,
+  damaged: string | undefined,
+  onClose: () => void,
+): { inspector?: ReactNode } {
   return damaged === undefined
     ? {}
     : {
@@ -167,7 +174,7 @@ function demoInspector(platform: Platform, damaged: string | undefined): { inspe
           <RepairDetails
             fileName={damaged}
             repairs={[{ code: "xref-repaired" }, { code: "stream-length-recovered", pages: [3, 4, 9] }]}
-            onClose={() => undefined}
+            onClose={onClose}
             onCopy={() => void platform.copyText("xref-repaired, stream-length-recovered")}
           />
         ),

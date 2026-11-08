@@ -20,7 +20,7 @@ import { pageFromInput, type ViewerControls } from "./viewer-controls.js";
 
 /** Props of `PageInput`. */
 export interface PageInputProps {
-  /** The viewer, whose page the field shows; typed pages go there through `nav.go-to-page`. */
+  /** The viewer, whose page the field shows: the commands' context's viewer, where `nav.go-to-page` goes. */
   viewer: ViewerControls;
   /** The document's page labels, one per page, when it has any (read by the reader once it shows page labels). */
   labels?: readonly string[];

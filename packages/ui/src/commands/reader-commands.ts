@@ -9,6 +9,7 @@ import {
   MIN_ZOOM,
   type ViewerControls,
   type ViewerSlice,
+  type Zoom,
   zoomIn,
   zoomOut,
 } from "../reader/viewer-controls.js";
@@ -77,6 +78,7 @@ function fileOpenCommands(): AnyCommand[] {
       keywords: ["link", "web"],
       group: "file",
       icon: "link",
+      requires: "canOpenUrl",
       home: ["home"],
       args: urlArgs(),
     }),
@@ -263,8 +265,8 @@ function zoomModeCommands(): AnyCommand[] {
       home: ["zoom-control"],
       args: zoomArgs(),
       enabled: viewerOpen,
-      run: (ctx, percent: number) => ctx.viewer?.setZoom(percent),
-    } satisfies Command<number>,
+      run: (ctx, zoom: Zoom) => ctx.viewer?.setZoom(zoom),
+    } satisfies Command<Zoom>,
     {
       id: "view.actual-size",
       title: title("view.actual-size"),

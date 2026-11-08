@@ -169,7 +169,7 @@ Two more parts cover special cases: a whole-file download and debugging. `WholeF
 
 ## Trying the chrome
 
-`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. Ctrl+K (⌘K on a Mac) opens the command palette. A browser test runs axe on the page in each of these states. A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
+`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. Ctrl+K opens the command palette; the demo writes keys as on Windows and Linux, so it is Ctrl+K on a Mac too. A browser test runs axe on the page in each of these states. A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
 
 ## Adding a component
 

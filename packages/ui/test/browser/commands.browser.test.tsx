@@ -56,7 +56,7 @@ function setup(viewer = new FakeViewer({ currentPage: 2 })) {
         (args: unknown) => (c.id === "palette.open" ? openPalette() : calls.push({ id: c.id, args })),
       ]),
   ) as Partial<Record<CommandId, (args: unknown) => void>>;
-  const context = { ...base, platform: fakePlatform({ flags: { canReopenRecent: true } }), actions };
+  const context = { ...base, platform: fakePlatform({ flags: { canReopenRecent: true, canOpenUrl: true } }), actions };
   const shell = { setOpen: (_open: boolean) => {} };
   openPalette = () => shell.setOpen(true);
   const app = <PaletteApp registry={registry} context={context} shell={shell} />;
@@ -126,6 +126,19 @@ describe("RegistryPalette", () => {
     expect(rows()[0]?.textContent).toContain("Zoom to: 150%");
     await userEvent.keyboard("{Enter}");
     expect(viewer.calls).toEqual([{ method: "setZoom", value: 150 }]);
+  });
+
+  it("takes a fit mode as Zoom to's argument, and shows no error row for a search that starts a title", async () => {
+    const { app, viewer } = setup();
+    renderIn(app);
+    await search("zoom in");
+    expect(rows()[0]?.textContent).toContain("Zoom in");
+    expect(rows().some((r) => r.textContent?.includes("Type a zoom"))).toBe(false);
+    await userEvent.keyboard("{Escape}");
+    await search("zoom fit width");
+    expect(rows()[0]?.textContent).toContain("Zoom to: Fit width");
+    await userEvent.keyboard("{Enter}");
+    expect(viewer.calls).toEqual([{ method: "setZoom", value: "fit-width" }]);
   });
 
   it("jumps to a page label in one step", async () => {
@@ -228,6 +241,33 @@ describe("the shortcut dispatcher", () => {
     await userEvent.keyboard("{Control>}k{/Control}");
     await frame();
     expect(palette()).not.toBeNull();
+  });
+
+  it("runs nothing behind a modal, such as the palette itself", async () => {
+    const { app, viewer, reader } = setup();
+    renderIn(app);
+    await search("");
+    await userEvent.keyboard("{Control>}o{/Control}{PageDown}");
+    expect(reader.openFromPicker).not.toHaveBeenCalled();
+    expect(viewer.calls).toEqual([]);
+  });
+
+  it("keeps the page's keys inside a selection on the page", async () => {
+    const { registry, context } = readerCommandsFor({
+      reader: { getState: () => OPEN, subscribe: () => () => true },
+      viewer: new FakeViewer({ currentPage: 2 }),
+    });
+    const viewer = context.viewer as FakeViewer;
+    renderIn(
+      <CommandsProvider registry={registry} context={context} keys="other">
+        <main data-shortcut-scope="page">
+          <section data-shortcut-scope="selection" tabIndex={-1} aria-label="Selection" />
+        </main>
+      </CommandsProvider>,
+    );
+    (document.querySelector("[data-shortcut-scope=selection]") as HTMLElement).focus();
+    await userEvent.keyboard("{PageDown}");
+    expect(viewer.calls).toEqual([{ method: "goToPage", value: 3 }]);
   });
 
   it("leaves a key alone when its command can't run, so the browser keeps it", async () => {

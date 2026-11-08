@@ -22,7 +22,7 @@ import { ZoomControl } from "./zoom-control.js";
 export interface ReaderTopBarProps<Id extends string> {
   /** The reader's state: a `ReaderController`, or any store of it. */
   reader: ExternalStore<ReaderState>;
-  /** The viewer showing the open document; the page input and zoom show only with it. */
+  /** The viewer showing the open document, the commands' context's viewer; the page input and zoom show only with it. */
   viewer?: ViewerControls;
   /** How shortcut chips are written: the platform the app runs on. */
   keys: KeyPlatform;

@@ -16,8 +16,8 @@ import {
 import type { KeyPlatform, ShortcutKeys } from "../components/shortcut-chip.js";
 import { message } from "../messages.js";
 import type { CommandRegistry } from "./registry.js";
-import { type Shell, shellOf, shortcutDispatcher } from "./shortcuts.js";
-import type { AnyCommand, Availability, CommandContext, CommandGroup, CommandId, Shortcut } from "./types.js";
+import { isBound, type Shell, shellOf, shortcutDispatcher } from "./shortcuts.js";
+import type { AnyCommand, Availability, CommandContext, CommandGroup, CommandId } from "./types.js";
 
 interface CommandsValue {
   readonly registry: CommandRegistry;
@@ -91,11 +91,6 @@ function subscribeTo(value: CommandsValue, listener: () => void): () => void {
   };
 }
 
-/** Whether `binding` is bound in `shell` (its capability, when it needs one). */
-export function isBound(binding: Shortcut, ctx: CommandContext): boolean {
-  return binding.requires === undefined || ctx.platform.capabilities[binding.requires];
-}
-
 /** The keys `command` shows on chips in `ctx`: its first binding bound there. */
 export function chipKeys(command: AnyCommand, ctx: CommandContext): ShortcutKeys | undefined {
   const binding = command.shortcuts?.find((b) => isBound(b, ctx));
@@ -112,8 +107,17 @@ export interface CommandView {
   run(args?: unknown): void;
 }
 
-/** Availability as a string that stays the same while it does, for `useSyncExternalStore`. */
-const availabilityKey = (a: Availability) => (a.state === "disabled" ? `disabled:${a.reason}` : a.state);
+/** What a view shows of a command, as JSON: a string that stays the same while it does. */
+function snapshotOf(registry: CommandRegistry, context: CommandContext, id: CommandId): string {
+  const command = registry.get(id);
+  if (command === undefined) return JSON.stringify({ title: id, availability: { state: "hidden" } });
+  const shortcut = chipKeys(command, context);
+  return JSON.stringify({
+    title: registry.title(command, context),
+    availability: registry.availability(id, context),
+    ...(shortcut === undefined ? {} : { shortcut }),
+  });
+}
 
 /**
  * The command `id` for a button or menu item: its title, shortcut, whether it can run now (kept
@@ -123,22 +127,14 @@ export function useCommand(id: CommandId): CommandView {
   const value = useCommands();
   const { registry, context } = value;
   const subscribe = useCallback((listener: () => void) => subscribeTo(value, listener), [value]);
-  const snapshot = () => {
-    const command = registry.get(id);
-    return command === undefined
-      ? "hidden"
-      : `${availabilityKey(registry.availability(id, context))}\u0000${registry.title(command, context)}`;
-  };
-  // Subscribed for its changes: the view below is worked out from the same registry and context.
-  useSyncExternalStore(subscribe, snapshot, snapshot);
-  const command = registry.get(id);
-  const availability = command === undefined ? ({ state: "hidden" } as const) : registry.availability(id, context);
-  const shortcut = command === undefined ? undefined : chipKeys(command, context);
+  const read = () => snapshotOf(registry, context, id);
+  // The view comes from the snapshot itself, so a memoised build (the React Compiler) can't keep
+  // an availability the reader or viewer has since changed.
+  const snapshot = useSyncExternalStore(subscribe, read, read);
+  const shown = JSON.parse(snapshot) as Omit<CommandView, "id" | "run">;
   return {
     id,
-    title: command === undefined ? id : registry.title(command, context),
-    ...(shortcut === undefined ? {} : { shortcut }),
-    availability,
+    ...shown,
     run: (args?: unknown) => {
       registry.run(id, context, args === undefined ? {} : { args }).catch(() => undefined);
     },

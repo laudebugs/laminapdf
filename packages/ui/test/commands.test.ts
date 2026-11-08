@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { parseChoice, parsePage, parsePageRanges, parseUrl, parseZoomPercent } from "../src/commands/args.ts";
+import {
+  parseChoice,
+  parsePage,
+  parsePageRanges,
+  parseUrl,
+  parseZoom,
+  parseZoomPercent,
+} from "../src/commands/args.ts";
 import { matchText, RecentCommands, rankCommands } from "../src/commands/rank.ts";
 import { readerCommands } from "../src/commands/reader-commands.ts";
 import { CommandError, CommandRegistry } from "../src/commands/registry.ts";
@@ -60,8 +67,20 @@ describe("parseZoomPercent", () => {
 
   it("refuses a zoom out of range or not a number", () => {
     for (const text of ["9", "801", "", "fit", "-50", "1e3"]) {
-      expect(error(parseZoomPercent(text))).toBe("Type a zoom from 10% to 800%, such as 150.");
+      expect(error(parseZoomPercent(text))).toBe(
+        "Type a zoom from 10% to 800%, such as 150, or fit width, fit page or actual size.",
+      );
     }
+  });
+});
+
+describe("parseZoom", () => {
+  it("takes a percentage or a fit mode by name", () => {
+    expect(value(parseZoom("150%"))).toBe(150);
+    expect(value(parseZoom("fit width"))).toBe("fit-width");
+    expect(value(parseZoom("Fit-Page"))).toBe("fit-page");
+    expect(value(parseZoom("actual size"))).toBe("actual-size");
+    expect(error(parseZoom("fit"))).toContain("fit width, fit page or actual size");
   });
 });
 
@@ -205,6 +224,16 @@ describe("the reader's commands", () => {
       state: "disabled",
       reason: "Open a document first.",
     });
+  });
+
+  it("leave Open from URL to a platform that can open URLs", () => {
+    const registry = new CommandRegistry();
+    for (const c of commands) registry.register(c);
+    const actions = { "file.open-url": () => undefined };
+    const without = readerCommandsFor({ platform: fakePlatform(), actions }).context;
+    const able = readerCommandsFor({ platform: fakePlatform({ flags: { canOpenUrl: true } }), actions }).context;
+    expect(registry.availability("file.open-url", without).state).toBe("hidden");
+    expect(registry.availability("file.open-url", able).state).toBe("available");
   });
 
   it("name the save command for the platform", () => {

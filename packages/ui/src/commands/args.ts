@@ -4,7 +4,7 @@
 // mini-language stays this small until a mode needs more (U1b's risks).
 
 import { type MessageId, message } from "../messages.js";
-import { MAX_ZOOM, MIN_ZOOM, pageFromInput } from "../reader/viewer-controls.js";
+import { MAX_ZOOM, MIN_ZOOM, pageFromInput, type Zoom } from "../reader/viewer-controls.js";
 import type { ArgsSchema, CommandContext, ParseResult } from "./types.js";
 
 const ok = <T>(value: T, summary: string): ParseResult<T> => ({ ok: true, value, summary });
@@ -56,6 +56,20 @@ export function parseZoomPercent(text: string): ParseResult<number> {
   return ok(percent, message("command.args.zoom.summary", { percent }));
 }
 
+/** The fit modes by the words that name them, and the catalogue's name for each. */
+const FIT_MODES: readonly (readonly [Exclude<Zoom, number>, readonly string[], MessageId])[] = [
+  ["fit-width", ["fit width", "width"], "reader.zoom.fitWidth"],
+  ["fit-page", ["fit page", "page", "whole page"], "reader.zoom.fitPage"],
+  ["actual-size", ["actual size", "actual"], "reader.zoom.actualSize"],
+];
+
+/** A zoom from `text`: a percentage (`150%`), or a fit mode by name (`fit width`, `actual size`). */
+export function parseZoom(text: string): ParseResult<Zoom> {
+  const typed = text.trim().toLocaleLowerCase().replace(/-/g, " ");
+  const mode = FIT_MODES.find(([, words]) => words.includes(typed));
+  return mode === undefined ? parseZoomPercent(text) : ok(mode[0], message(mode[2]));
+}
+
 /** Each choice's words: its label, and its value with hyphens read as spaces. */
 const choiceWords = (value: string, label: string) => [label.toLocaleLowerCase(), value.replace(/-/g, " ")];
 
@@ -85,11 +99,11 @@ export const rangeArgs = (): ArgsSchema<readonly number[]> => ({
   parse: (text, ctx) => parsePageRanges(text, pageCount(ctx)),
 });
 
-/** A zoom percentage, for `view.set-zoom`. */
-export const zoomArgs = (): ArgsSchema<number> => ({
+/** A zoom, for `view.set-zoom`: a percentage or a fit mode. */
+export const zoomArgs = (): ArgsSchema<Zoom> => ({
   prompt: message("command.args.zoom.prompt", { min: MIN_ZOOM, max: MAX_ZOOM }),
   prefixes: ["zoom"],
-  parse: (text) => parseZoomPercent(text),
+  parse: (text) => parseZoom(text),
 });
 
 /** A web address (`https://…`) for `file.open-url`. */
