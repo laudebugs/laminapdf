@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T1a](./T1a-nightly-proof-figures.md) |
+| Depends on | [T1a](../ongoing/T1a-nightly-proof-figures.md) |
 | ADRs | Follows [0011 §3](../../decisions/0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable) (the website's rules: static data in the build, nothing from a third party, each claim tied to the rule or test behind it); states what [0001](../../decisions/0001-core-language-and-licence.md), [0004](../../decisions/0004-render-backend.md) (MuPDF prohibited) and [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (cargo-deny, the npm licence check) decide |
 | Branch | `feat/t1b-how-we-test-page` |
 | PR title | `feat(site): a How we test page with the nightly's figures, the licence and where the code comes from` |
@@ -15,14 +15,14 @@
 
 ## Goal
 
-Publish what Lamina PDF's nightly measures, on a page at `laminapdf.com/how-we-test/`, with each number explained in plain English. The same page states the licence and where the code comes from. The figures come from [T1a](./T1a-nightly-proof-figures.md)'s record, through a committed snapshot that each production deploy refreshes, as `progress.json` is refreshed today.
+Publish what Lamina PDF's nightly measures, on a page at `laminapdf.com/how-we-test/`, with each number explained in plain English. The same page states the licence and where the code comes from. The figures come from [T1a](../ongoing/T1a-nightly-proof-figures.md)'s record, through a committed snapshot that each production deploy refreshes, as `progress.json` is refreshed today.
 
 On Hacker News, licences decide which PDF library people pick (about 150 comments), and warnings about AGPL in Ghostscript, MuPDF and iText recur in every year. In October 2026 a commenter asked of a new Rust engine: "Is this PDF engine vibe-coded and derived from reading the MuPDF source code?" ([50239092](https://news.ycombinator.com/item?id=50239092)). Another asked a library's author: "Do you have a comprehensive integration test suite that can validate the robustness of your implementation?" ([47214653](https://news.ycombinator.com/item?id=47214653)). Lamina PDF can answer both with evidence, and today it says neither ([report R1](../../research/hacker-news/pdf-users-on-hacker-news.md#r1-prove-correctness-in-public), [R9](../../research/hacker-news/pdf-users-on-hacker-news.md#r9-say-loudly-what-lamina-already-has)).
 
 ## Context
 
 - [Report R1 and R9](../../research/hacker-news/pdf-users-on-hacker-news.md#r9-say-loudly-what-lamina-already-has); the [format and security note](../../research/hacker-news/notes/format-and-security.md) (AGPL traps, about 90 comments; its recommendation 7, the licence and its provenance up front) and the [extraction note](../../research/hacker-news/notes/extraction.md) (most parsers fail on part of a real corpus).
-- [T1a](./T1a-nightly-proof-figures.md): the `kind: "proof"` record in `history.jsonl` on `bench-data`, its `Record` type in `tools/xtask/src/proof.rs`, and what each field counts.
+- [T1a](../ongoing/T1a-nightly-proof-figures.md): the `kind: "proof"` record in `history.jsonl` on `bench-data`, its `Record` type in `tools/xtask/src/proof.rs`, and what each field counts.
 - The pattern to copy, from [W1e](../done/W1e-progress-snapshot.md) and [W1c](../done/W1c-home-page.md):
   - `tools/xtask/src/progress.rs`: `run` writes `apps/site/src/data/progress.json`, reads from `origin/main` (`changes::at_revision`) and keeps the last snapshot's part it can't refresh, with a warning;
   - `apps/site/src/data/progress.ts`: the type and `readProgress`, which fails the build on a file it doesn't describe;
@@ -65,7 +65,7 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 
 **Out of scope** (and which todo covers it)
 
-- The record itself → [T1a](./T1a-nightly-proof-figures.md).
+- The record itself → [T1a](../ongoing/T1a-nightly-proof-figures.md).
 - Extraction scores, generation timings and module sizes → [T1c](./T1c-publish-performance-numbers.md), on the docs site; this page links to them.
 - The reader benchmark and the speed targets → [U5b](./U5b-reader-benchmark.md) and [U5a](./U5a-pricing-and-promises-page.md); the privacy promises → [C7c](./C7c-performance-gates-and-launch.md).
 - A "How we test" link in the site header: §7.39 fixes five links, so adding one is a design decision (open question below).
