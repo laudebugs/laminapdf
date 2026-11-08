@@ -288,7 +288,7 @@ fn percent_decode(text: &str) -> String {
 }
 
 fn display(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/")
+    crate::util::slash_path(path)
 }
 
 /// A link found in a document.

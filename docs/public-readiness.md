@@ -21,8 +21,11 @@ documentation and dependency checks. `fast-gate` requires the entire matrix.
 The full lane also runs Rust and TypeScript checks on Linux Arm64, required by `gate`.
 [X6](todos/ready/X6-windows-ci.md) retains full TypeScript checks on Windows as follow-up work.
 
-PDF, browser, nightly and release suites use `macos-15` Arm64; classification and
-lightweight gates use Ubuntu x64. No paid larger runner labels are used.
+Every other job runs on Ubuntu 24.04 x64. Jobs use `macos-15` Arm64 only when they need a Mac:
+WebKit (closest to Safari), the render goldens and the nightly render diff (PDFium draws differently
+per platform, and the goldens and the diff's thresholds were measured on macOS), the CLI's macOS
+build and its Homebrew check, and the macOS legs of the native Rust matrix. No paid larger
+runner labels are used.
 Standard runners are free for public repositories; private-repository billing and
 runner availability still apply before the visibility change.
 See [GitHub's hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
@@ -36,10 +39,10 @@ See [GitHub's hosted runner reference](https://docs.github.com/en/actions/refere
   pnpm store and Rust-home isolation action are no longer used.
 - PDF suites install checksum-verified qpdf 12.4.2 and Python 3.13 explicitly.
   veraPDF installs Java 21. The text differential builds Poppler 26.10.0 from its
-  verified source: Homebrew's current 26.11.0 would omit the pinned text oracle.
+  verified source on Linux: the packaged Poppler is not the pinned text oracle.
   Poppler remains a test tool; it is not linked into or shipped with Lamina PDF.
-- Fuzz smoke tests run two processes at once to fit the standard Mac's memory.
-  Benchmark history starts a separate `github-hosted/macos-15-arm64` baseline.
+- Fuzz smoke tests run two processes at once to fit the standard runner's memory.
+  Benchmark history starts a separate `github-hosted/ubuntu-24.04-x64` baseline.
   Hosted machines vary, so timing regressions remain advisory.
 - All workflow scripts use Bash, including the native Windows jobs.
   The runner cleanup workflow is removed because each hosted VM is discarded.
