@@ -106,10 +106,10 @@ pub(crate) fn guard(root: &Path, args: &Args) -> Result<()> {
     if args.version_only {
         let changes = changes_since(root, &passed.nightly, &release)?;
         let (old, new) = (sdk_version_at(root, &passed.nightly)?, sdk_version_at(root, &release)?);
-        let skip = only_a_version_bump(&changes, &old, &new);
+        let skip = only_release_changes(&changes, &old, &new);
         if skip {
             println!(
-                "version-only: the release commit adds only the bump {old} → {new}; the lane skips its nightly run"
+                "version-only: the release commit adds only the bump {old} → {new} and packaged docs; the lane skips its nightly run"
             );
         } else {
             println!(
@@ -205,7 +205,10 @@ fn bump_rule(path: &str) -> Option<BumpRule> {
     let changeset = matches!(segments.as_slice(), [".changeset", name] if Path::new(name).extension().is_some_and(|ext| ext == "md") && *name != "README.md")
         || path == ".changeset/pre.json"
         || path.starts_with(".changeset/pre/");
-    if changelog || changeset {
+    // Free here, but never trusted: `publish crates` regenerates these docs and publishes its
+    // own output, so a hand-edited file there can't reach crates.io.
+    let package_docs = path.starts_with("crates/laminapdf/docs/");
+    if changelog || changeset || package_docs {
         return Some(BumpRule::Free);
     }
     let manifest = matches!(segments.last(), Some(&("package.json" | "Cargo.toml" | "Cargo.lock")));
@@ -218,11 +221,12 @@ fn bump_line(line: &str, old: &str, new: &str) -> String {
         .replace(&format!("\"={old}\""), &format!("\"={new}\""))
 }
 
-/// Whether `changes` are only a version bump from `old` to `new`: every path is one a bump
-/// writes ([`bump_rule`]), and in each file a bump edits line by line, every removed line names
-/// the quoted `old` version and the added lines are exactly the removed ones with it swapped for
-/// `new`. No change at all is a bump too: the nightly ran on the release commit itself.
-fn only_a_version_bump(changes: &[Change], old: &str, new: &str) -> bool {
+/// Whether `changes` are only a version bump from `old` to `new` plus generated package docs:
+/// every path is one release preparation writes ([`bump_rule`]), and in each file a bump edits
+/// line by line, every removed line names the quoted `old` version and the added lines are exactly
+/// the removed ones with it swapped for `new`. No change at all is valid too: the nightly ran on
+/// the release commit itself.
+fn only_release_changes(changes: &[Change], old: &str, new: &str) -> bool {
     changes.iter().all(|change| match bump_rule(&change.path) {
         Some(BumpRule::Free) => true,
         Some(BumpRule::VersionLines) => {
@@ -371,7 +375,7 @@ mod tests {
 
     use anyhow::Result;
 
-    use super::{Args, Change, FULL_DISPATCH_TITLE, hunk_lines, notes_for, only_a_version_bump, parse_args, verdict};
+    use super::{Args, Change, FULL_DISPATCH_TITLE, hunk_lines, notes_for, only_release_changes, parse_args, verdict};
 
     /// A successful scheduled nightly run on main, as `gh` prints it, with `fields` replaced.
     fn fixture(fields: &[(&str, &str)]) -> String {
@@ -940,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn only_a_version_bump_should_accept_what_a_version_bump_writes() {
+    fn only_release_changes_should_accept_what_a_version_bump_writes() {
         let bump = [
             bumped("packages/sdk/package.json", r#"  "version": "{v}","#),
             bumped("Cargo.toml", r#"version = "{v}""#),
@@ -954,13 +958,14 @@ mod tests {
             change("packages/sdk/CHANGELOG.md", &[], &[]),
             change(".changeset/extract-output.md", &[], &[]),
             change(".changeset/pre.json", &[], &[]),
+            change("crates/laminapdf/docs/pages/quick-start/rust.md", &[], &["# Rust"]),
         ];
-        assert!(only_a_version_bump(&bump, OLD, NEW));
-        assert!(only_a_version_bump(&[], OLD, OLD));
+        assert!(only_release_changes(&bump, OLD, NEW));
+        assert!(only_release_changes(&[], OLD, OLD));
     }
 
     #[test]
-    fn only_a_version_bump_should_refuse_any_other_change() {
+    fn only_release_changes_should_refuse_any_other_change() {
         let refused = [
             change("crates/laminapdf/src/lib.rs", &[], &[]),
             change(".changeset/config.json", &[], &[]),
@@ -987,7 +992,7 @@ mod tests {
         ];
         for one in refused {
             let path = one.path.clone();
-            assert!(!only_a_version_bump(&[one], OLD, NEW), "{path} passed as a bump");
+            assert!(!only_release_changes(&[one], OLD, NEW), "{path} passed as a bump");
         }
         // A longer version that only contains the old one is not it.
         let longer = change(
@@ -995,7 +1000,7 @@ mod tests {
             &[r#""x": "0.2.0-alpha.10""#],
             &[r#""x": "0.2.0-alpha.20""#],
         );
-        assert!(!only_a_version_bump(&[longer], "0.2.0-alpha.1", "0.2.0-alpha.2"));
+        assert!(!only_release_changes(&[longer], "0.2.0-alpha.1", "0.2.0-alpha.2"));
     }
 
     #[test]

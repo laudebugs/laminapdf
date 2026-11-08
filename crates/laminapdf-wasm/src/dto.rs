@@ -355,7 +355,7 @@ pub(crate) struct ProgressJs {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub total: Option<u32>,
-    /// The phase (`parse`, `layout`, `extract`, `render`, `write`, `sign`).
+    /// The phase (`parse`, `layout`, `extract`, `render`, `write`, `sign`, `model`).
     pub phase: &'static str,
 }
 
@@ -368,6 +368,7 @@ pub(crate) fn phase_name(phase: laminapdf::Phase) -> &'static str {
         laminapdf::Phase::Render => "render",
         laminapdf::Phase::Write => "write",
         laminapdf::Phase::Sign => "sign",
+        laminapdf::Phase::Model => "model",
         // A phase added to the non-exhaustive enum before this list learns it.
         _ => "other",
     }

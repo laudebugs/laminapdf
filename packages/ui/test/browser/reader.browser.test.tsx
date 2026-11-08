@@ -1,6 +1,7 @@
 import axe from "axe-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import type { CommandId } from "../../src/commands/types.ts";
 import {
   DebugMenu,
   type MenuEntry,
@@ -16,6 +17,7 @@ import {
   useGatedEntries,
   WholeFileDownload,
 } from "../../src/index.ts";
+import { WithCommands } from "../commands.tsx";
 import { FakeViewer, fakeFile, fakePlatform } from "../fakes.ts";
 import { cleanup, focused, renderIn } from "./render.tsx";
 
@@ -41,8 +43,23 @@ async function openedController(phase: "open" | "opening" | "needs-password" = "
   return controller;
 }
 
-function TopBar(props: Partial<ReaderTopBarProps<"open" | "rotate">> & { reader: ReaderController }) {
-  return <ReaderTopBar keys="other" more={{ items: MORE, onAction: () => {} }} {...props} />;
+/** The top bar under the reader's commands, with `actions` as the shell's handlers. */
+function TopBar({
+  actions,
+  ...props
+}: Partial<ReaderTopBarProps<"open" | "rotate">> & {
+  reader: ReaderController;
+  actions?: Partial<Record<CommandId, (args: unknown) => void>>;
+}) {
+  return (
+    <WithCommands
+      reader={props.reader}
+      {...(props.viewer === undefined ? {} : { viewer: props.viewer })}
+      {...(actions === undefined ? {} : { actions })}
+    >
+      <ReaderTopBar keys="other" more={{ items: MORE, onAction: () => {} }} {...props} />
+    </WithCommands>
+  );
 }
 
 const input = () => document.querySelector(".paper-page-input-field") as HTMLInputElement;
@@ -77,23 +94,29 @@ describe("ReaderTopBar", () => {
     expect(host.querySelector(".paper-page-input")).toBeNull();
   });
 
-  it("toggles the sidebar with aria-pressed", async () => {
-    const onChange = vi.fn();
-    renderIn(<TopBar reader={await openedController()} sidebar={{ isOpen: true, onChange }} />);
+  it("toggles the sidebar with aria-pressed, by running view.toggle-sidebar", async () => {
+    const toggleSidebar = vi.fn();
+    const reader = await openedController();
+    renderIn(<TopBar reader={reader} sidebarOpen actions={{ "view.toggle-sidebar": toggleSidebar }} />);
     const toggle = button("Sidebar") as HTMLButtonElement;
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
     await userEvent.click(toggle);
-    expect(onChange).toHaveBeenCalledWith(false);
+    expect(toggleSidebar).toHaveBeenCalledOnce();
   });
 
-  it("shows Commands with its shortcut only when the shell gives a palette", async () => {
-    const onPress = vi.fn();
-    const shortcut = { mac: "Mod+K", other: "Mod+K" };
-    const host = renderIn(<TopBar reader={await openedController()} commands={{ onPress, shortcut }} />);
+  it("leaves the sidebar toggle and Commands out until the shell handles them", async () => {
+    const host = renderIn(<TopBar reader={await openedController()} />);
+    expect(button("Sidebar")).toBeUndefined();
+    expect(host.querySelector(".paper-commands-button")).toBeNull();
+  });
+
+  it("shows Commands with palette.open's shortcut, and runs it", async () => {
+    const openPalette = vi.fn();
+    const host = renderIn(<TopBar reader={await openedController()} actions={{ "palette.open": openPalette }} />);
     const commands = host.querySelector(".paper-commands-button") as HTMLButtonElement;
     expect(commands.textContent).toBe("CommandsCtrl K");
     await userEvent.click(commands);
-    expect(onPress).toHaveBeenCalledOnce();
+    expect(openPalette).toHaveBeenCalledOnce();
   });
 
   it("runs More's items, which open from the keyboard", async () => {
@@ -111,8 +134,8 @@ describe("ReaderTopBar", () => {
       <TopBar
         reader={await openedController()}
         viewer={new FakeViewer()}
-        sidebar={{ isOpen: false, onChange: () => {} }}
-        commands={{ onPress: () => {}, shortcut: { mac: "Mod+K", other: "Mod+K" } }}
+        sidebarOpen={false}
+        actions={{ "view.toggle-sidebar": () => {}, "palette.open": () => {} }}
       />,
     );
     const { violations } = await axe.run(host, { resultTypes: ["violations"] });

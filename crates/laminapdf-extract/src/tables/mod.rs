@@ -78,6 +78,11 @@ pub(crate) fn detect(
     tables
 }
 
+/// The unruled detector over `members` alone: a layout model's table region with no rules.
+pub(crate) fn stream_in(glyphs: &[Glyph], members: &[usize]) -> Vec<Table> {
+    stream::tables(glyphs, members)
+}
+
 /// The glyphs `members` grouped into lines, top to bottom: a glyph joins the line whose first
 /// glyph's bottom lies within half a font size of its own. Both cell text and unruled rows
 /// read lines this way.

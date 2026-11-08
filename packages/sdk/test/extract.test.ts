@@ -100,7 +100,8 @@ describe("doc.extract() with the extract module", () => {
 
   it("names the same options as the binding", () => {
     // The SDK's option types are written out for their docs; the binding's come from Rust.
-    expectTypeOf<keyof ExtractOptions>().toEqualTypeOf<keyof glue.ExtractInit>();
+    // `models` is the binding's extractJob's alone, which the SDK doesn't wrap yet.
+    expectTypeOf<keyof ExtractOptions>().toEqualTypeOf<Exclude<keyof glue.ExtractInit, "models">>();
     expectTypeOf<keyof ChunkOptions>().toEqualTypeOf<keyof NonNullable<glue.ExtractInit["chunk"]>>();
   });
 
@@ -109,5 +110,38 @@ describe("doc.extract() with the extract module", () => {
     // @ts-expect-error: "html" is not a format.
     const e = thrown(() => doc.extract({ format: "html" }));
     expect(isLaminaPdfError(e, "invalid-argument")).toBe(true);
+  });
+});
+
+describe("WasmDocument.extractJob with a model the host runs", () => {
+  beforeAll(() => loadExtract());
+
+  const layout = { name: "host-layout", version: "1", sha256: "0".repeat(64), licence: "Apache-2.0" };
+
+  it("asks for each page's regions, then names the model in the JSON", () => {
+    const doc = glue.WasmDocument.openBytes(read("fixtures/reading-order/two-columns-ordered.pdf"), {});
+    const job = doc.extractJob({ format: "json", models: { layout } });
+    const requests: unknown[] = [];
+    let step = job.step(100);
+    while (step.state === "progress") {
+      expect(step.phase).toBe("model");
+      requests.push(step.request);
+      job.provide({ kind: "layout", regions: [] });
+      step = job.step(100);
+    }
+    expect(requests).toEqual([{ kind: "layout", page: 0, dpi: 150, langs: [] }]);
+    const json = JSON.parse(step.output);
+    expect(json.generator.mode).toBe("rules+models");
+    expect(json.generator.models).toEqual([layout]);
+    doc.free();
+  });
+
+  it("refuses a result nobody asked for", () => {
+    const doc = glue.WasmDocument.openBytes(read("fixtures/reading-order/two-columns-ordered.pdf"), {});
+    const job = doc.extractJob({ format: "text", models: { layout } });
+    // The glue throws the ADR 0026 object itself; the SDK is what wraps it in LaminaPdfError.
+    const e = thrown(() => job.provide({ kind: "ocr", words: [] })) as { code: string };
+    expect(e.code).toBe("model-result-unexpected");
+    doc.free();
   });
 });

@@ -342,11 +342,14 @@
       "description": "Who made the extraction (ADR 0030 §1's `generator`).",
       "properties": {
         "mode": {
-          "description": "`\"rules\"`, or `\"rules+models\"` once model plug-ins exist.",
+          "description": "`\"rules\"`, or `\"rules+models\"` when a model plug-in was used.",
           "type": "string"
         },
         "models": {
-          "items": true,
+          "description": "Each model used: name, version, weights' SHA-256 and licence.",
+          "items": {
+            "$ref": "#/$defs/ModelInfo"
+          },
           "type": "array"
         },
         "name": {
@@ -604,6 +607,34 @@
       ],
       "type": "object"
     },
+    "ModelInfo": {
+      "description": "Which model made a result, as the output's `generator.models` records it.",
+      "properties": {
+        "licence": {
+          "description": "The SPDX licence of its weights.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Its name, e.g. `docling-layout-heron`.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "The SHA-256 of its weights, in lowercase hex.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Its version or revision.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "sha256",
+        "licence"
+      ],
+      "type": "object"
+    },
     "Region": {
       "description": "A chunk's area on one page.",
       "properties": {
@@ -655,6 +686,14 @@
         "font": {
           "description": "The font's `/BaseFont`.",
           "type": "string"
+        },
+        "ocr": {
+          "description": "The OCR engine's confidence, 0 to 1, when an engine read this text from the page image\nrather than the file's text layer ([ADR 0030] §6); absent for the text layer's runs.\n\n[ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "size": {
           "description": "The glyph size in points.",

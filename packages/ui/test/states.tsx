@@ -41,6 +41,7 @@ import {
   WholeFileDownload,
   ZoomControl,
 } from "../src/index.ts";
+import { WithCommands } from "./commands.tsx";
 import { FakeViewer, fakeFile } from "./fakes.ts";
 
 /** One rendering of one component in one state. */
@@ -405,43 +406,82 @@ const file = fakeFile("Q3-board-report.pdf");
 const LABELS = [...Array.from({ length: 21 }, (_, n) => String(n + 1)), "A-1", "A-2", "A-3"];
 const MORE = { items: [{ id: "open", label: "Open another file…" }], onAction: noop };
 
+/** The shell's handlers the top bar's toggle and Commands button run. */
+const SHELL = { "view.toggle-sidebar": noop, "palette.open": noop };
+
 const topBar: Example[] = [
   {
     component: "ReaderTopBar",
     state: "a document open",
-    element: () => (
-      <ReaderTopBar
-        reader={holding({ phase: "open", file, pageCount: 24, mode: "select" })}
-        viewer={new FakeViewer()}
-        keys="other"
-        sidebar={{ isOpen: true, onChange: noop }}
-        commands={{ onPress: noop, shortcut: { mac: "Mod+K", other: "Mod+K" } }}
-        more={MORE}
-      />
-    ),
+    element: () => {
+      const reader = holding({ phase: "open", file, pageCount: 24, mode: "select" });
+      const viewer = new FakeViewer();
+      return (
+        <WithCommands reader={reader} viewer={viewer} actions={SHELL}>
+          <ReaderTopBar reader={reader} viewer={viewer} keys="other" sidebarOpen more={MORE} />
+        </WithCommands>
+      );
+    },
   },
   {
     component: "ReaderTopBar",
     state: "locked",
-    element: () => (
-      <ReaderTopBar reader={holding({ phase: "needs-password", file, wrong: false })} keys="other" more={MORE} />
-    ),
+    element: () => {
+      const reader = holding({ phase: "needs-password", file, wrong: false });
+      return (
+        <WithCommands reader={reader}>
+          <ReaderTopBar reader={reader} keys="other" more={MORE} />
+        </WithCommands>
+      );
+    },
   },
   {
     component: "ReaderTopBar",
     state: "no document",
-    element: () => <ReaderTopBar reader={holding({ phase: "empty" })} keys="other" more={MORE} />,
+    element: () => {
+      const reader = holding({ phase: "empty" });
+      return (
+        <WithCommands reader={reader}>
+          <ReaderTopBar reader={reader} keys="other" more={MORE} />
+        </WithCommands>
+      );
+    },
   },
   {
     component: "PageInput",
     state: "a page label and its position",
-    element: () => <PageInput viewer={new FakeViewer({ currentPage: 21 })} labels={LABELS} />,
+    element: () => {
+      const viewer = new FakeViewer({ currentPage: 21 });
+      return (
+        <WithCommands viewer={viewer} labels={LABELS}>
+          <PageInput viewer={viewer} labels={LABELS} />
+        </WithCommands>
+      );
+    },
   },
-  { component: "ZoomControl", state: "at 110%", element: () => <ZoomControl viewer={new FakeViewer()} keys="other" /> },
+  {
+    component: "ZoomControl",
+    state: "at 110%",
+    element: () => {
+      const viewer = new FakeViewer();
+      return (
+        <WithCommands viewer={viewer}>
+          <ZoomControl viewer={viewer} keys="other" />
+        </WithCommands>
+      );
+    },
+  },
   {
     component: "ZoomControl",
     state: "at the largest zoom",
-    element: () => <ZoomControl viewer={new FakeViewer({ percent: 800 })} keys="other" />,
+    element: () => {
+      const viewer = new FakeViewer({ percent: 800 });
+      return (
+        <WithCommands viewer={viewer}>
+          <ZoomControl viewer={viewer} keys="other" />
+        </WithCommands>
+      );
+    },
   },
 ];
 

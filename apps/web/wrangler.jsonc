@@ -1,0 +1,14 @@
+// The reader's Worker (ADR 0011 §1): static assets from Vite's dist/, no Worker code and no routes,
+// so every request is answered by the asset server and nothing can be uploaded. Unknown paths get
+// index.html (the app's own routes). The headers are public/_headers. Preview URLs are for C4d's
+// per-PR previews.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "lamina-pdf-web",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "preview_urls": true
+}

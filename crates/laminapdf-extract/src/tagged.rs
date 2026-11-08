@@ -514,6 +514,7 @@ impl TaggedIndex {
             cells,
             continues: None,
             continued_by: None,
+            from_model: false,
         })
     }
 }

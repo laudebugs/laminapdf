@@ -233,6 +233,7 @@ mod tests {
             cells: Vec::new(),
             continues: None,
             continued_by: None,
+            from_model: false,
         }
     }
 

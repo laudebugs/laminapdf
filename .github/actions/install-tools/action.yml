@@ -1,0 +1,29 @@
+# taiki-e/install-action with a HOME of its own in the runner's temp dir. Workflows use this
+# instead of install-action itself.
+#
+# install-action works in $HOME/.install-action: it downloads into tmp/ there and deletes tmp/
+# when it is done, and it installs the tools into bin/ there whenever the first `cargo` on the
+# PATH isn't $CARGO_HOME/bin/cargo (main.sh in v2.88.0; no input moves either folder). The
+# self-hosted runners on the Mac all run as one user, so they shared that folder, and two jobs
+# installing at once could delete each other's download (ci.yml's Rust job, 2026-11-05:
+# `sha256sum: *tmp: No such file or directory`). This step's HOME is in the runner's temp dir
+# instead, as node-pnpm gives pnpm/action-setup a `dest`: one per runner, emptied after every
+# job, and seen by no other step.
+#
+# The tools themselves still go to $CARGO_HOME/bin: on the macOS runners isolate-rust-home's,
+# the runner's own and kept between jobs (it puts that cargo first on the PATH); in the Linux
+# runner container, the container's own.
+name: Install tools with install-action
+description: Run taiki-e/install-action with its working folder in the runner's temp dir.
+inputs:
+  tool:
+    description: The tools, as install-action's `tool` input (comma-separated `name@version`).
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      env:
+        HOME: ${{ runner.temp }}/install-action
+      with:
+        tool: ${{ inputs.tool }}
