@@ -30,10 +30,48 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         println!("  {kind}  {path}");
     }
     let gallery = touches_gallery(&paths);
+    let web = touches_web(&paths);
     println!("code={code}");
     println!("gallery={gallery}");
+    println!("web={web}");
     crate::util::github_output("code", &code.to_string())?;
-    crate::util::github_output("gallery", &gallery.to_string())
+    crate::util::github_output("gallery", &gallery.to_string())?;
+    crate::util::github_output("web", &web.to_string())
+}
+
+/// What the reader's build reads (todo C4d): the app, every package and crate it is built from,
+/// the fixtures its tests open, the build tasks, the lockfiles and root manifests, the toolchain
+/// pins and the deploy workflow. A directory ends with `/`; anything else is a root file. The
+/// preview and staging deploys (`.github/workflows/web-deploy.yml`) run only when one of them
+/// changed; the production deploy runs for every `web-v*` tag.
+const WEB_INPUTS: [&str; 14] = [
+    "apps/web/",
+    "packages/",
+    "crates/",
+    "fixtures/",
+    "tools/xtask/",
+    "pnpm-lock.yaml",
+    "Cargo.lock",
+    "Cargo.toml",
+    "package.json",
+    "pnpm-workspace.yaml",
+    "tsconfig.base.json",
+    ".nvmrc",
+    "rust-toolchain.toml",
+    ".github/workflows/web-deploy.yml",
+];
+
+/// Whether any of `paths` can change the reader as deployed.
+pub(crate) fn touches_web(paths: &[&str]) -> bool {
+    paths.iter().any(|path| {
+        WEB_INPUTS.iter().any(|input| {
+            if input.ends_with('/') {
+                path.starts_with(input)
+            } else {
+                path == input
+            }
+        })
+    })
 }
 
 /// What the Paper gallery's screenshots and axe checks depend on (apps/gallery, todo U6f): the
@@ -128,7 +166,37 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_docs, pick_base, touches_code, touches_gallery};
+    use super::{is_docs, pick_base, touches_code, touches_gallery, touches_web};
+
+    #[test]
+    fn touches_web_should_follow_the_app_its_sources_lockfiles_and_workflow() {
+        for path in [
+            "apps/web/src/app.tsx",
+            "packages/viewer/src/index.ts",
+            "crates/laminapdf-wasm/src/lib.rs",
+            "fixtures/corpus/hello.pdf",
+            "tools/xtask/src/web.rs",
+            "pnpm-lock.yaml",
+            "Cargo.lock",
+            "Cargo.toml",
+            "package.json",
+            ".github/workflows/web-deploy.yml",
+        ] {
+            assert!(touches_web(&[path]), "{path}");
+        }
+    }
+
+    #[test]
+    fn touches_web_should_skip_docs_other_apps_and_nested_manifests_outside_its_inputs() {
+        assert!(!touches_web(&[
+            "docs/todos/README.md",
+            "apps/docs/src/content/docs/index.mdx",
+            "apps/site/package.json",
+            "tools/render/Cargo.toml",
+            ".github/workflows/docs.yml",
+            "README.md",
+        ]));
+    }
 
     #[test]
     fn touches_gallery_should_follow_the_ui_packages_and_the_lockfile() {
