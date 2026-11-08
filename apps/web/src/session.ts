@@ -2,11 +2,21 @@
 // runs the reader's lifecycle, and what the chrome shows about the open document. The backend's
 // WebAssembly starts loading as soon as the app does, so a file chosen meanwhile waits only for
 // what is left. Switching backend (the #debug menu) starts a new session and reopens the file.
+// A remote file (`#url=`) is a PlatformFile that names its address: the document worker fetches
+// it, so its bytes never reach this page.
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import type { DebugBackend, ExternalStore, OpenedDocument, Platform, PlatformFile, RepairKind } from "@laminapdf/ui";
+import type {
+  DebugBackend,
+  ExternalStore,
+  OpenedDocument,
+  Platform,
+  PlatformFile,
+  RemoteFailureReason,
+  RepairKind,
+} from "@laminapdf/ui";
 import { ReaderController } from "@laminapdf/ui";
-import { createViewer, type Viewer, ViewerClient } from "@laminapdf/viewer";
+import { createViewer, type SourceInit, type Viewer, ViewerClient } from "@laminapdf/viewer";
 import { type DocumentWarning, repairsFrom } from "./document.ts";
 
 /** One backend's document worker and the view over it. */
@@ -27,6 +37,8 @@ export interface EngineState {
   readonly repairs: readonly RepairKind[];
   /** For #debug: the backend's name and version, and how long the open took to paint page 1. */
   readonly timing: { readonly backend: string; readonly firstPageMs: number } | undefined;
+  /** Why the address's `#url=` link can't be opened, until another document opens or the reader closes. */
+  readonly linkProblem: Exclude<RemoteFailureReason, "cors"> | undefined;
 }
 
 /** Starts `backend`'s document worker and makes a view over it. */
@@ -37,8 +49,45 @@ async function startSession(backend: DebugBackend): Promise<Session> {
   return { backend, client, viewer: createViewer({ client }) };
 }
 
-/** What the document worker opens for `file`: the File itself, never a copy of its bytes. */
-async function sourceOf(file: PlatformFile): Promise<Blob | Uint8Array> {
+/** Remote files by the PlatformFile that stands for each in the reader. */
+const remotes = new WeakMap<PlatformFile, string>();
+
+/** The file name a remote address shows: its last path segment, else its host. */
+function remoteName(url: string): string {
+  const { pathname, hostname } = new URL(url);
+  const last = pathname
+    .split("/")
+    .filter((part) => part !== "")
+    .at(-1);
+  if (last === undefined) return hostname;
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+}
+
+/** The PlatformFile that stands for the remote file at `url`. Only the document worker reads it. */
+export function remoteFile(url: string): PlatformFile {
+  const file: PlatformFile = {
+    name: remoteName(url),
+    size: 0,
+    writable: false,
+    read: () => Promise.reject(new Error("a remote file is read by the document worker")),
+  };
+  remotes.set(file, url);
+  return file;
+}
+
+/** The address `file` stands for, when it is a remote file. */
+export function remoteUrlOf(file: PlatformFile | undefined): string | undefined {
+  return file === undefined ? undefined : remotes.get(file);
+}
+
+/** What the document worker opens for `file`: the File itself, never a copy of its bytes; a remote file's address. */
+async function sourceOf(file: PlatformFile): Promise<SourceInit> {
+  const url = remotes.get(file);
+  if (url !== undefined) return { url };
   const { handle } = file;
   if (handle instanceof Blob) return handle;
   if (handle !== undefined) return handle.getFile();
@@ -73,10 +122,19 @@ export class Engine implements ExternalStore<EngineState> {
    */
   #incoming: DocumentWarning[] = [];
   #state: EngineState;
+  /** The page to show once the document opening now has opened (from `#page=`). */
+  #page: number | undefined;
 
   constructor(platform: Platform, backend: DebugBackend) {
     this.reader = new ReaderController(platform, (file, password) => this.#open(file, password));
-    this.#state = { backend, viewer: undefined, title: undefined, repairs: [], timing: undefined };
+    this.#state = {
+      backend,
+      viewer: undefined,
+      title: undefined,
+      repairs: [],
+      timing: undefined,
+      linkProblem: undefined,
+    };
     this.#session = this.#start(backend);
   }
 
@@ -86,6 +144,31 @@ export class Engine implements ExternalStore<EngineState> {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   };
+
+  /** Opens the remote file at `url`, then shows `page` (1-based) when given. */
+  openRemote(url: string, page?: number): Promise<void> {
+    this.#page = page;
+    this.#set({ linkProblem: undefined });
+    return this.reader.open(remoteFile(url));
+  }
+
+  /** Shows why the address's link can't be opened, in place of the home screen. */
+  showLinkProblem(problem: Exclude<RemoteFailureReason, "cors">): void {
+    this.reader.close();
+    this.#set({ linkProblem: problem });
+  }
+
+  /** Clears a link problem: the home screen shows again. */
+  dismissLinkProblem(): void {
+    this.#set({ linkProblem: undefined });
+  }
+
+  /** Shows page `page` (1-based) of the open document, or of the one opening when it opens. */
+  goToPage(page: number): void {
+    const state = this.reader.getState();
+    if (state.phase === "open") this.#state.viewer?.goToPage(page - 1);
+    else this.#page = page;
+  }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */
   async switchBackend(backend: DebugBackend): Promise<void> {
@@ -110,6 +193,12 @@ export class Engine implements ExternalStore<EngineState> {
         if (this.#session !== session) return;
         started.client.on("warning", (warning) => {
           this.#incoming.push(warning as DocumentWarning);
+        });
+        // A restarted worker can't reopen an encrypted file: the password lived only in the old
+        // one, and this page never kept it. Opening the file again asks for it.
+        started.client.on("password-required", () => {
+          const file = this.#file;
+          if (this.#session === session && file !== undefined) void this.reader.open(file);
         });
         this.#set({ viewer: started.viewer });
       },
@@ -137,13 +226,17 @@ export class Engine implements ExternalStore<EngineState> {
     if (!latest()) return { pageCount: opened.pageCount };
     session.viewer.open(opened);
     this.#file = file;
-    this.#set({ title: opened.title, repairs: repairsFrom(warnings), timing: undefined });
+    const page = this.#page;
+    this.#page = undefined;
+    this.#set({ title: opened.title, repairs: repairsFrom(warnings), timing: undefined, linkProblem: undefined });
     const firstPage = () => {
       const state = session.viewer.stats().pages[0];
       return state === "low" || state === "sharp" || state === "error";
     };
+    // The view shows once the reader is open, so the page asked for is scrolled to after the first paint.
     void whenPainted(firstPage, () => !latest()).then((painted) => {
       if (!painted) return;
+      if (page !== undefined) session.viewer.goToPage(page - 1);
       const backend = `${opened.backend.name} ${opened.backend.version}`;
       this.#set({ timing: { backend, firstPageMs: Math.round(performance.now() - started) } });
     });

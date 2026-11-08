@@ -1,7 +1,8 @@
 // What the reader says about a damaged file (R04). `RepairDetails` is the docked panel behind the
 // status bar's "Repaired on open": the notice, one row per kind of repair (a plain sentence over
 // its code), the unsupported features found, and Copy details. `OpenFailure` is the page the
-// canvas holds when nothing could be recovered, with its primary action focused.
+// canvas holds when nothing could be recovered, with its primary action focused; `RemoteFailure`
+// the page for a link the reader can't open or a host that refuses it.
 
 import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
@@ -140,6 +141,59 @@ export function OpenFailure({ error, detail, onTryAnother, onCopy }: OpenFailure
         </Button>
         <Button icon="copy" onPress={onCopy}>
           {message("failure.copy")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Why a link's document can't be opened: the host refused to let this page read it (`cors`,
+ * which the browser can't tell apart from being offline), or the link's address is unusable.
+ */
+export type RemoteFailureReason = "cors" | "not-encoded" | "not-absolute" | "insecure" | "scheme";
+
+/** Props of `RemoteFailure`. */
+export interface RemoteFailureProps {
+  reason: RemoteFailureReason;
+  /** The document's address, for Download the file (`cors` only); it opens with no referrer. */
+  url?: string;
+  /** Tries the link again (`cors` only). */
+  onRetry?: () => void;
+  /** Back to the home screen to open a file instead. */
+  onChooseFile: () => void;
+}
+
+/** The page the canvas holds when a link's document can't be opened; announced, its primary action focused. */
+export function RemoteFailure({ reason, url, onRetry, onChooseFile }: RemoteFailureProps): ReactNode {
+  const page = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs again for each new reason
+  useEffect(() => {
+    page.current?.querySelector<HTMLElement>(".paper-button[data-variant='primary']")?.focus();
+  }, [reason]);
+  const cors = reason === "cors";
+  return (
+    <div ref={page} role="alert" className="paper-failure">
+      <Icon name="warning" size={32} />
+      <h2 className="paper-failure-title">{message("remote.title")}</h2>
+      <p className="paper-failure-body">{message(`remote.${reason}`)}</p>
+      {cors ? <p className="paper-failure-body">{message("remote.cors.offline")}</p> : null}
+      <div className="paper-failure-actions">
+        {cors && url !== undefined ? (
+          <a
+            className="paper-button"
+            data-variant="primary"
+            data-size={32}
+            href={url}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {message("remote.download")}
+          </a>
+        ) : null}
+        {cors && onRetry !== undefined ? <Button onPress={onRetry}>{message("remote.retry")}</Button> : null}
+        <Button variant={cors ? "secondary" : "primary"} onPress={onChooseFile}>
+          {message("remote.chooseFile")}
         </Button>
       </div>
     </div>
