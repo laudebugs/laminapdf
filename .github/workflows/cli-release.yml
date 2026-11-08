@@ -69,7 +69,7 @@ env:
 jobs:
   plan:
     name: dist plan
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
@@ -271,7 +271,7 @@ jobs:
     name: Formula, checksums and SBOM
     needs: [plan, build-macos, build-linux]
     if: ${{ !cancelled() && needs.build-macos.result == 'success' && needs.build-linux.result != 'failure' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       TAG: ${{ needs.plan.outputs.tag }}
@@ -335,7 +335,7 @@ jobs:
     name: Publish the GitHub release
     needs: [plan, build-linux, global]
     if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: release
     permissions:

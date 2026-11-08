@@ -5,8 +5,9 @@
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 # (so it is skipped on docs-only PRs: a job that runs there fails `fast-gate`) and joins
 # `fast-gate`'s `needs`.
-# Native Rust checks cover Linux, macOS and Windows on x64 and Arm64. Other suites use
-# macOS Arm64; classification and gates use Linux x64. Each job gets a fresh hosted VM.
+# Native Rust checks cover Linux, macOS and Windows on x64 and Arm64. Everything else runs on
+# Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari). Each job gets a
+# fresh hosted VM.
 # Rust caches are saved only on main; fork PRs have read-only tokens and no secrets.
 # Cargo tools install through .github/actions/install-tools.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
@@ -141,7 +142,7 @@ jobs:
     name: WASM (lamina_pdf_base + lamina_pdf_text, Node tests, size budgets)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       # "true" once the built packages are uploaded: the pdf-runtimes legs need the build, not
@@ -189,9 +190,10 @@ jobs:
 
   # Todo B6c (pdf-library §5): @laminapdf/sdk's example suite, byte-identical to the Rust goldens,
   # in every runtime it supports, over the `wasm` job's build (Node 24, .nvmrc, is the `wasm`
-  # job's own run of the suite). Two jobs rather than one per runtime: each runtime's suite takes
+  # job's own run of the suite). Three jobs rather than one per runtime: each runtime's suite takes
   # 20 to 70 s, less than setting up a job. `browsers` runs Chromium (with a Vite production
-  # build run in a Chromium page), Firefox and WebKit (Vitest browser mode with Playwright);
+  # build run in a Chromium page) and Firefox on Linux, `webkit` WebKit on macOS (Vitest browser
+  # mode with Playwright);
   # `servers` runs Deno, Bun, workerd (wrangler's test harness) and Node 22 and 26. Every runtime
   # runs even when one fails. Timings and WebAssembly memory go to the job summary (`cargo
   # xtask pdf-runtimes`; recorded, not asserted).
@@ -199,14 +201,20 @@ jobs:
     name: "@laminapdf/sdk in ${{ matrix.name }}"
     needs: [changes, wasm]
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
-    runs-on: macos-15
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { group: browsers, name: "Chromium, Firefox and WebKit", runtimes: "chromium firefox webkit" }
-          - { group: servers, name: "Deno, Bun, workerd and Node 22 and 26", runtimes: "deno bun workerd" }
+          - { group: browsers, name: "Chromium and Firefox", runtimes: "chromium firefox", runner: ubuntu-24.04 }
+          - { group: webkit, name: "WebKit", runtimes: "webkit", runner: macos-15 }
+          - {
+              group: servers,
+              name: "Deno, Bun, workerd and Node 22 and 26",
+              runtimes: "deno bun workerd",
+              runner: ubuntu-24.04,
+            }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -223,6 +231,10 @@ jobs:
       - uses: ./.github/actions/node-pnpm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+      - if: matrix.group == 'browsers'
+        uses: ./.github/actions/playwright-deps
+        with:
+          browsers: chromium firefox
       # Every runtime runs even when one before it failed (`!cancelled()`); the Node runs come
       # last, each after switching the Node on PATH. `--label` gives each run its own
       # measurements file.
@@ -265,7 +277,7 @@ jobs:
     name: Semver against the published version
     needs: [changes, wasm]
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -295,7 +307,7 @@ jobs:
     name: MSRV (rust-version) and the pdf-basics spike (Rust + TS)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -357,7 +369,7 @@ jobs:
     name: TypeScript (biome, typecheck, tests, npm licences)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
