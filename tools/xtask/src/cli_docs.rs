@@ -1,6 +1,8 @@
 //! `cargo xtask cli-docs`: the `laminapdf` CLI's man pages (one per command, `clap_mangen`) and
 //! shell completions (`clap_complete`) into `target/cli-docs/`, for packaging. Never committed:
-//! both come from the clap definitions, so they can't go stale.
+//! both come from the clap definitions, so they can't go stale. `cargo xtask cli-dist` adds the
+//! third-party notices: together, the files dist-workspace.toml's `include` puts in every
+//! release archive (todo L4d).
 
 use std::process::Command;
 
@@ -54,5 +56,32 @@ pub(crate) fn run(ws: &Workspace) -> Result<()> {
         SHELLS.len(),
         completions.display()
     );
+    Ok(())
+}
+
+/// `cargo xtask cli-dist`: [`run`], then `THIRD_PARTY_NOTICES.md` for the release binary's
+/// dependencies (the `mcp` feature on, as dist builds it) from cargo-about, offline.
+pub(crate) fn dist_files(ws: &Workspace) -> Result<()> {
+    run(ws)?;
+    crate::doctor::require(ws, &crate::doctor::cargo_about())?;
+    let cli = ws.root.join("crates/laminapdf-cli");
+    let notices = ws.root.join("target/cli-docs/THIRD_PARTY_NOTICES.md");
+    let notices_arg = notices.to_string_lossy().into_owned();
+    let args = [
+        "about",
+        "generate",
+        "--locked",
+        "--offline",
+        "--fail",
+        "--config",
+        "about/about.toml",
+        "--features",
+        "mcp",
+        "about/notices.hbs",
+        "--output-file",
+        notices_arg.as_str(),
+    ];
+    crate::run(&cli, "cargo", &args)?;
+    println!("cli-dist: third-party notices in {}", notices.display());
     Ok(())
 }

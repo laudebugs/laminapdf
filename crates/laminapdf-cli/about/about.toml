@@ -1,0 +1,20 @@
+# cargo-about (pinned in tools/xtask/src/doctor.rs): the third-party notices in every `laminapdf`
+# release archive and npm platform package (ADR 0019 §SBOM and notices; todo L4d), written by
+# `cargo xtask cli-dist`. The same licences deny.toml allows; cargo-deny is the check, this only
+# lists what the binary contains.
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "CC0-1.0",
+]
+# Only what ships in the binary: no dev- or build-only dependencies.
+ignore-dev-dependencies = true
+ignore-build-dependencies = true

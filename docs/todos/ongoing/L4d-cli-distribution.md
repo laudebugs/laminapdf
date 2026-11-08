@@ -11,7 +11,7 @@
 | Branch | `build/l4d-cli-distribution` |
 | PR title | `build(cli): release binaries with cargo-dist, Homebrew formula and npm wrapper packages` |
 | Size | M (≈ 300–500 lines: dist config, workflow, npm packages, install tests) |
-| PR | — |
+| PR | [#287](https://github.com/laudebugs/laminapdf/pull/287) |
 
 ## Goal
 
@@ -46,23 +46,23 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 ## Tasks
 
-- [ ] Get the owner's decisions on the binary name (ADR 0031), the tap repository name and the npm package names (P1 reserves them).
-- [ ] Add the dist config (`dist-workspace.toml` or `[workspace.metadata.dist]`) scoped to `laminapdf-cli`; pin dist in `doctor.rs`.
-- [ ] Add notices and SBOM generation to the archive build.
-- [ ] Create `packages/cli` (ESM launcher, named exports only, Biome-clean per [docs/guidelines/typescript.md](../../guidelines/typescript.md)) and the platform-package generator script.
-- [ ] Write `cli-release.yml` with the dry-run default, the variable-gated publish job and OIDC permissions from P1; no registry tokens in secrets.
-- [ ] Write the install-verification jobs for each OS and the npm and Homebrew paths.
-- [ ] Check licences: dist is a build tool, not a dependency; the npm launcher has no runtime dependencies. Run `cargo xtask deny` and `cargo xtask npm-licenses` (ADR 0019).
-- [ ] Document installation in `crates/laminapdf-cli/README.md` (marked "not yet published").
+- [x] Get the owner's decisions on the binary name (ADR 0031), the tap repository name and the npm package names (P1 reserves them). 2026-11-08: `laminapdf`; `laudebugs/homebrew-tap` (`brew install laudebugs/tap/laminapdf`); `@laminapdf/cli` and `@laminapdf/cli-<os>-<cpu>[-<libc>]`; CI builds only what the self-hosted runners run (macOS arm64, Linux arm64 glibc and musl), no GitHub-hosted runners.
+- [x] Add the dist config (`dist-workspace.toml`) scoped to `laminapdf-cli`; pin dist in `doctor.rs` (0.32.0, with cargo-about 0.9.2).
+- [x] Add notices and SBOM generation to the archive build: `cargo xtask cli-dist` (cargo-about's `THIRD_PARTY_NOTICES.md`, man pages, completions) before `dist build`; the SBOM with cargo-cyclonedx in the workflow's `global` job.
+- [x] Create `packages/cli` (ESM launcher, named exports only, Biome-clean per [docs/guidelines/typescript.md](../../guidelines/typescript.md)) and the platform-package generator script (`tools/cli-release/generate.ts`).
+- [x] Write `cli-release.yml` with the dry-run default, the variable-gated publish job and OIDC permissions from P1; no registry tokens in secrets. The publish job creates the GitHub release (and attestations once the repository is public); pushing the formula to the tap and publishing to npm are left to the owner: npm's trusted publishing needs a GitHub-hosted runner (ADR 0017 §7), and the tap is another repository.
+- [x] Write the install-verification jobs for each OS and the npm and Homebrew paths: macOS arm64 and Linux arm64 (glibc, musl); Windows and the x86_64 targets wait for runners (X6).
+- [x] Check licences: dist is a build tool, not a dependency; the npm launcher has no runtime dependencies. Run `cargo xtask deny` and `cargo xtask npm-licenses` (ADR 0019).
+- [x] Document installation in `crates/laminapdf-cli/README.md` (marked "not yet published").
 
 ## Acceptance criteria
 
-- [ ] A `workflow_dispatch` dry run on the PR branch builds all eight targets and uploads archives, checksums, attestations and an SBOM as workflow artefacts.
-- [ ] The install-verification jobs pass on macOS, Windows and Linux (glibc and Alpine/musl): archive, npm tarballs and Homebrew formula each install and run `laminapdf --version` and `laminapdf info` on a fixture.
-- [ ] `npm install` of the wrapper on a platform with no matching package fails with a clear message naming the supported platforms.
-- [ ] The publish job cannot run without the owner's variable and the `release` environment approval (checked by reading the workflow; a dry run skips it).
-- [ ] Every archive contains both licence files and the third-party notices.
-- [ ] `cargo xtask check` passes.
+- [ ] A `workflow_dispatch` dry run on the PR branch builds all eight targets and uploads archives, checksums, attestations and an SBOM as workflow artefacts. *Owner's decision (2026-11-08): CI builds the three targets the runners can run; the other five stay configured. Attestations wait for a public repository (ADR 0017 §7). Needs a dispatch run.*
+- [ ] The install-verification jobs pass on macOS, Windows and Linux (glibc and Alpine/musl): archive, npm tarballs and Homebrew formula each install and run `laminapdf --version` and `laminapdf info` on a fixture. *macOS arm64 and Linux arm64 only (no Windows runner); musl is checked as a static binary run on the Linux runner. Locally on Linux x86_64: the archives (glibc, musl) and the npm tarballs passed. Needs a dispatch run.*
+- [x] `npm install` of the wrapper on a platform with no matching package fails with a clear message naming the supported platforms: the wrapper's `os` and `cpu` make npm refuse it with `EBADPLATFORM` and the valid values; with its platform package left out, `laminapdf` names the package (`install-test.sh` checks both).
+- [x] The publish job cannot run without the owner's variable and the `release` environment approval (checked by reading the workflow; a dry run skips it). `tools/xtask/src/workflows.rs` tests the condition.
+- [x] Every archive contains both licence files and the third-party notices (`archive-test.sh`).
+- [x] `cargo xtask check` passes (locally on Linux x86_64, 2026-11-08; CI to confirm).
 
 ## Post-merge checks
 
@@ -77,9 +77,9 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 ## Docs to update
 
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages"
-- [ ] `crates/laminapdf-cli/README.md` (installation), `packages/cli/README.md`
-- [ ] `CLAUDE.md` (layout: `packages/cli`; the release workflow); `.github/` workflow docs if any
+- [x] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages"
+- [x] `crates/laminapdf-cli/README.md` (installation), `packages/cli/README.md`
+- [x] `CLAUDE.md` (layout: `packages/cli`; the release workflow); `.github/` workflow docs if any
 
 ## Risks and open questions
 
@@ -92,7 +92,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 ## Definition of done
 
 - [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

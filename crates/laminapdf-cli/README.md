@@ -25,6 +25,18 @@ $ laminapdf check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and
 $ laminapdf explain xref-repaired
 ```
 
+## Install
+
+> **Not yet published.** The release builds below are configured and tested in CI, but no release exists yet. Until one does, build from source: `cargo install --git https://github.com/laudebugs/laminapdf laminapdf-cli --features mcp`.
+
+Each release will offer the same binary three ways, so you need no Rust toolchain:
+
+- **Homebrew** (macOS and Linux): `brew install laudebugs/tap/laminapdf`.
+- **npm**: `npm install -g @laminapdf/cli`, or `npx @laminapdf/cli info report.pdf`. npm installs only the binary for your platform, as an optional dependency; no install script downloads anything ([`packages/cli`](../../packages/cli/README.md)).
+- **Archives**: `laminapdf-cli-<target>.tar.xz` (`.zip` on Windows) on the GitHub release, each with a `.sha256` checksum. An archive holds the binary, `LICENSE-MIT`, `LICENSE-APACHE`, `THIRD_PARTY_NOTICES.md` (the licences of every crate in the binary), man pages in `man/` and shell completions in `completions/`.
+
+Release binaries include the MCP server (`laminapdf mcp`). Builds exist for eight targets: macOS, Linux (glibc and musl) and Windows, each on arm64 and x86_64. CI builds and runs three of them today, on the runners the project has: macOS arm64, Linux arm64 with glibc and Linux arm64 with musl. The other five are built once a runner for each exists; Windows waits on a Windows runner. The binaries are unsigned for now, so macOS Gatekeeper and Windows SmartScreen warn about a downloaded archive; Homebrew and npm installs avoid most of these warnings.
+
 ## Commands
 
 - **`info <inputs…>`**: the PDF version, page count and sizes, file size, encryption, whether the document is tagged, its Info dictionary and the warnings reading it raised. `--fields a,b` keeps only those keys of the JSON report.
@@ -123,9 +135,13 @@ The server opens documents with the command line's settings: `--strict`, the lim
 
 Tests (`tests/`, reading the shared [`fixtures/`](../../fixtures/README.md)): one file per command (`info.rs`, `check.rs`, `pages.rs`, `extract.rs`, `explain.rs`), and `exit_codes.rs` (every code from a real run), `pipes.rs`, `json_schemas.rs` (the committed schemas are the generated ones, and every `--json` output validates), `no_prompt.rs` (nothing waits for input), `injection.rs` (document text stays in data fields, and colour reaches only a terminal), `io.rs`, `batch.rs` (argument order over 50 files, NDJSON against its schemas, the exit codes, `--fail-fast`, `--files-from`), `schema.rs` (every command's schema compiles as 2020-12 and embeds the committed ones), `completions.rs`, `render.rs` (every example's pages against the render goldens, templates, clashes and refusals before any write, standard output), and with the `mcp` feature `mcp.rs` (the server through rmcp's client: the tool list, schemas, roots, write flags and injection). `examples/golden.rs` writes `fixtures/golden/cli-rotate-hello.pdf` for `cargo xtask golden --update`.
 
+Releases ([L4d](../../docs/todos/ongoing/L4d-cli-distribution.md)): [`dist-workspace.toml`](../../dist-workspace.toml) configures cargo-dist (`dist`, pinned in `tools/xtask/src/doctor.rs`) for this crate alone, with the `mcp` feature; `about/` holds cargo-about's configuration and the notices template. [`.github/workflows/cli-release.yml`](../../.github/workflows/cli-release.yml) runs `dist plan` on pull requests that touch this crate or the release files. Dispatched by hand, it builds the archives, installs each one (the archive, the npm tarballs that [`tools/cli-release/generate.ts`](../../tools/cli-release/generate.ts) writes from it, and on macOS the Homebrew formula) and runs it. A `laminapdf-cli-v<version>` tag publishes, but only while the owner's variable `LAMINA_PDF_PUBLISH_CLI` is `true`.
+
 ```sh
 cargo run -p laminapdf-cli -- info fixtures/corpus/hello.pdf
 cargo xtask cli-docs                                                # every completion script and a man page per command, into target/cli-docs/
+cargo xtask cli-dist                                                # those plus THIRD_PARTY_NOTICES.md (cargo-about): what each release archive holds
+dist build --artifacts=local --target "$(rustc -vV | sed -n 's/host: //p')"   # this host's archive into target/distrib/
 cargo test -p laminapdf-cli --features mcp
 UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas   # after changing a report type
 ```

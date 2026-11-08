@@ -191,7 +191,7 @@ This plan adjusts these todos (edited in the same PR):
 - [x] Batch and NDJSON, `--jobs`, Markdown/JSON extraction, `schema`, completions, man pages ([L4b](../todos/done/L4b-cli-batch-render-schema.md))
 - [x] `render` to PNG, output templates, MCP tools for `render` and the extraction formats ([L4e](../todos/done/L4e-cli-render.md))
 - [x] `laminapdf mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations ([L4c](../todos/done/L4c-mcp-mode.md))
-- [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages
+- [x] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages ([L4d](../todos/ongoing/L4d-cli-distribution.md); publishing waits for the owner)
 
 ### L5. Docs for agents
 

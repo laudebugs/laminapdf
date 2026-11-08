@@ -212,6 +212,10 @@ opt-level = 3
 [profile.release]
 lto = "thin"
 
+# The `laminapdf` release binaries (cargo-dist, dist-workspace.toml; todo L4d).
+[profile.dist]
+inherits = "release"
+
 # Size-optimised profile for WebAssembly builds (`cargo xtask wasm`); the spike's settings.
 [profile.wasm-release]
 inherits = "release"
