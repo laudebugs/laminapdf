@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B10c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
 | Depends on | [B10a](../done/B10a-measured-text-bottom.md) |

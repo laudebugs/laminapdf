@@ -96,7 +96,7 @@ A failed drawing call returns no measurement to place anything by. The helper mu
 The following ready todos use the [todo template](../todos/TEMPLATE.md). Claim each in its own implementation PR after its dependencies are done.
 
 - [x] [B10a](../todos/done/B10a-measured-text-bottom.md): **Measured text bottoms.** Settle public names and empty-result semantics. Add Rust and TypeScript accessors or helpers, preserving existing APIs, with matching tests. Decide whether the cursor is needed (it isn't yet).
-- [ ] [B10c](../todos/ready/B10c-element-flow-recipe.md): **Examples and recipe.** Add the paired examples, including the minimal next-paragraph one. Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
+- [ ] [B10c](../todos/ongoing/B10c-element-flow-recipe.md): **Examples and recipe.** Add the paired examples, including the minimal next-paragraph one. Demonstrate paragraphs followed by an image, empty content, overflow handling and an explicit page reset. Keep examples runnable and align the Rust and TypeScript recipes.
 
 Each implementation PR follows the repository's review, changeset and validation rules.
 
@@ -119,7 +119,7 @@ Each implementation PR follows the repository's review, changeset and validation
 
 ## How each step proves it works
 
-[B10a](../todos/done/B10a-measured-text-bottom.md#tests) checks the measured bottoms against independent font metrics, the same cases in both languages and a rendered reference page. [B10c](../todos/ready/B10c-element-flow-recipe.md#tests) checks the whole public workflow by generating, reopening and rendering a report.
+[B10a](../todos/done/B10a-measured-text-bottom.md#tests) checks the measured bottoms against independent font metrics, the same cases in both languages and a rendered reference page. [B10c](../todos/ongoing/B10c-element-flow-recipe.md#tests) checks the whole public workflow by generating, reopening and rendering a report.
 
 The helper should cut the Y updates a caller writes by hand when content length changes. To show it, compare the same report with manual measurement arithmetic and with the helper. Record actual bottom calculations, Y updates and edits needed when a summary wraps or an optional section disappears. Do not claim a speedup: the helper reuses layout results and should require no additional shaping pass.
 
