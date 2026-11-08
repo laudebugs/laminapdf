@@ -10,13 +10,20 @@ interface FileInput {
   readonly as: "bytes" | "json";
 }
 
-/** The fixed `BuilderOptions` the suite passes (its `exampleOptions(id)`), so the bytes are the golden's. */
+/**
+ * The fixed `BuilderOptions` the suite passes (its `exampleOptions(id)` in
+ * packages/sdk/test/suite/hello-options.ts), so the bytes are the golden's. The e2e suite checks
+ * that each example run unchanged gives its golden, so a change there shows here.
+ */
 interface OptionsInput {
   /** The file ID, 16 ASCII characters. */
   readonly options: string;
 }
 
 export type RunInput = FileInput | OptionsInput;
+
+/** The producer and creation date the suite's `exampleOptions` fix. */
+export const FIXED = { producer: "lamina examples", creationDate: "D:20261030120000Z" } as const;
 
 /** A runnable example. */
 export interface Runnable {

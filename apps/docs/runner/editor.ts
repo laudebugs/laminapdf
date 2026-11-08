@@ -12,9 +12,20 @@ const WORKER = "/run/worker.js";
 /** A page's width in pixels: twice the widest the page shows one (26rem), as the pictures are. */
 const PAGE_PIXELS = 832;
 
+/** How long a run may take before the runner is stopped: an edit can loop forever. */
+const TIME_LIMIT_MS = 30_000;
+
 let worker: Worker | undefined;
 let nextId = 0;
 const waiting = new Map<number, (reply: RunReply) => void>();
+
+/** Stops the runner and answers every waiting run with `message`; the next run starts a new one. */
+function stop(code: string, message: string): void {
+  worker?.terminate();
+  worker = undefined;
+  for (const [id, done] of waiting) done({ id, ok: false, code, message });
+  waiting.clear();
+}
 
 /** Runs `request` in the page's runner, starting it the first time. */
 function run(request: Omit<RunRequest, "id">): Promise<RunReply> {
@@ -24,16 +35,21 @@ function run(request: Omit<RunRequest, "id">): Promise<RunReply> {
       waiting.get(event.data.id)?.(event.data);
       waiting.delete(event.data.id);
     });
-    worker.addEventListener("error", () => {
-      for (const [id, done] of waiting) done({ id, ok: false, code: "error", message: "the runner could not start" });
-      waiting.clear();
-      worker = undefined;
+    worker.addEventListener("error", (event) => {
+      stop("error", event.message || "the runner stopped with an error");
     });
   }
   const id = nextId++;
   const started = worker;
   return new Promise((resolve) => {
-    waiting.set(id, resolve);
+    const timer = setTimeout(
+      () => stop("timeout", `the code ran for ${TIME_LIMIT_MS / 1000} s without finishing, so it was stopped`),
+      TIME_LIMIT_MS,
+    );
+    waiting.set(id, (reply) => {
+      clearTimeout(timer);
+      resolve(reply);
+    });
     started.postMessage({ id, ...request } satisfies RunRequest);
   });
 }
@@ -132,6 +148,8 @@ export function openRunner(buttons: RunButtons, file: string, source: string, pi
     pages.classList.toggle("run-pages-many", reply.pages.length > 1);
     pdf = await dataUrl(reply.bytes);
     buttons.download.hidden = false;
-    status.textContent = `Done: ${reply.pages.length === 1 ? "1 page" : `${reply.pages.length} pages`}.`;
+    const count = reply.pageCount === 1 ? "1 page" : `${reply.pageCount} pages`;
+    const shown = reply.pages.length < reply.pageCount ? `; the first ${reply.pages.length} are shown` : "";
+    status.textContent = `Done: ${count}${shown}.`;
   });
 }

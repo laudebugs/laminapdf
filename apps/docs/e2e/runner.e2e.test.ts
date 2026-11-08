@@ -67,13 +67,16 @@ async function recipe(slug: string): Promise<Watched> {
   return watched;
 }
 
-/** Presses Run and waits for the pages or the error. */
-async function run(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Run", exact: true }).click();
-  await page.waitForSelector(".run-download:not([hidden]), .run-error:not([hidden])", { timeout: 60_000 });
+/** Presses Run and waits until the run ends (Run is enabled again), with its pages or its error. */
+async function run(page: Page, timeout = 60_000): Promise<void> {
+  const button = page.getByRole("button", { name: "Run", exact: true });
+  await button.click();
+  await page.waitForFunction(() => document.querySelector<HTMLButtonElement>(".run-run")?.disabled === false, null, {
+    timeout,
+  });
 }
 
-/** The PDF the Download link gives. */
+/** The PDF the Download button saves. */
 async function downloaded(page: Page): Promise<Buffer> {
   const [download] = await Promise.all([page.waitForEvent("download"), page.locator(".run-download").click()]);
   return readFileSync(await download.path());
@@ -128,9 +131,17 @@ describe(`edit and run in ${BROWSER}`, () => {
     await edit(page, source.replace('b.page("A4")', "b.page([0, 842])"));
     await run(page);
     const problem = page.locator(".run-error");
-    await expect.poll(() => problem.isVisible()).toBe(true);
+    expect(await problem.isVisible()).toBe(true);
     expect(await problem.locator("strong").innerText()).toBe("invalid-geometry");
     expect(await problem.locator(".run-hint").count()).toBe(1);
+
+    // An edit that never finishes is stopped, and the next run starts a new runner.
+    await edit(
+      page,
+      source.replace("using b = new Builder(options);", "using b = new Builder(options);\n  for (;;) {}"),
+    );
+    await page.getByRole("button", { name: "Run", exact: true }).click();
+    await expect.poll(() => problem.locator("strong").innerText(), { timeout: 45_000 }).toBe("timeout");
 
     await page.getByRole("button", { name: "Reset" }).click();
     await run(page);

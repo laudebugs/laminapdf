@@ -10,8 +10,7 @@ import * as sdk from "@laminapdf/sdk";
 import notoSans from "../../../fixtures/fonts/NotoSans-Regular.ttf?url";
 import photo from "../../../fixtures/images/photo-rgb.jpg?url";
 import flowReport from "../../../fixtures/text/element-flow-report.json?url";
-import { exampleOptions } from "../../../packages/sdk/test/suite/hello-options.js";
-import { RUNNABLE, type RunInput } from "./examples.js";
+import { FIXED, RUNNABLE, type RunInput } from "./examples.js";
 import { runExample } from "./run.js";
 
 /** A request: run `source`, the reader's edit of `file`, and draw its pages `width` px wide. */
@@ -24,7 +23,15 @@ export interface RunRequest {
 
 /** The answer: the PDF and its pages, or the error. */
 export type RunReply =
-  | { readonly id: number; readonly ok: true; readonly bytes: Uint8Array; readonly pages: ImageBitmap[] }
+  | {
+      readonly id: number;
+      readonly ok: true;
+      readonly bytes: Uint8Array;
+      /** The first `MAX_PAGES` pages' pictures. */
+      readonly pages: ImageBitmap[];
+      /** How many pages the PDF has. */
+      readonly pageCount: number;
+    }
   | {
       readonly id: number;
       readonly ok: false;
@@ -33,7 +40,20 @@ export type RunReply =
       readonly hint?: string;
     };
 
-const ready = Promise.all([sdk.init({ text: true }), initHayro()]);
+/** The most pages a run draws: each is about 4 MB, and an edit can make thousands. */
+const MAX_PAGES = 20;
+
+type Engines = [unknown, Awaited<ReturnType<typeof initHayro>>];
+let ready: Promise<Engines> | undefined;
+
+/** The SDK and hayro, loaded on first use; a failed load is tried again on the next run. */
+function engines(): Promise<Engines> {
+  ready ??= Promise.all([sdk.init({ text: true }), initHayro()]).catch((e: unknown) => {
+    ready = undefined;
+    throw e;
+  });
+  return ready;
+}
 /** Where each input file is served: built into /run/assets/ beside the worker. */
 const INPUT_URLS: Readonly<Record<string, string>> = {
   "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
@@ -48,10 +68,16 @@ function input(file: string, as: "bytes" | "json"): Promise<unknown> {
   if (got === undefined) {
     const url = INPUT_URLS[file];
     if (url === undefined) return Promise.reject(new Error(`${file}: not an input the runner serves`));
-    got = fetch(url).then(async (r) => {
-      if (!r.ok) throw new Error(`${file}: ${r.status}`);
-      return as === "json" ? r.json() : new Uint8Array(await r.arrayBuffer());
-    });
+    got = fetch(url)
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`${file}: ${r.status}`);
+        return as === "json" ? r.json() : new Uint8Array(await r.arrayBuffer());
+      })
+      .catch((e: unknown) => {
+        // Not cached: the next run fetches it again.
+        inputs.delete(file);
+        throw e;
+      });
     inputs.set(file, got);
   }
   return got;
@@ -59,25 +85,25 @@ function input(file: string, as: "bytes" | "json"): Promise<unknown> {
 
 /** An input as the example takes it. */
 function argument(i: RunInput): unknown {
-  return "options" in i ? exampleOptions(i.options) : input(i.file, i.as);
+  return "options" in i ? { id: new TextEncoder().encode(i.options), ...FIXED } : input(i.file, i.as);
 }
 
 async function handle(request: RunRequest): Promise<RunReply> {
   const runnable = RUNNABLE[request.file];
   if (runnable === undefined)
     return { id: request.id, ok: false, code: "error", message: `${request.file} can't run here` };
-  const [, hayro] = await ready;
+  const [, hayro] = await engines();
   const args = await Promise.all(runnable.inputs.map(argument));
   const outcome = runExample(request.source, runnable.export, args, sdk);
   if (!outcome.ok) return { id: request.id, ...outcome };
   using doc = hayro.open(bytesSource(outcome.bytes));
   const pages: ImageBitmap[] = [];
-  for (let index = 0; index < doc.pageCount; index++) {
+  for (let index = 0; index < Math.min(doc.pageCount, MAX_PAGES); index++) {
     const page = doc.page(index);
     const { width, height, pixels } = await doc.render({ page: index, scale: request.width / page.width });
     pages.push(await createImageBitmap(new ImageData(pixels, width, height)));
   }
-  return { id: request.id, ok: true, bytes: outcome.bytes, pages };
+  return { id: request.id, ok: true, bytes: outcome.bytes, pages, pageCount: doc.pageCount };
 }
 
 /** The worker's own scope: the docs' TypeScript knows only the DOM's `self`. */
@@ -86,13 +112,21 @@ const scope = self as unknown as {
   postMessage(message: RunReply, transfer: Transferable[]): void;
 };
 
+/** Sends `reply`, or its failure to send (an untransferable buffer, say) as an error. */
+function send(reply: RunReply): void {
+  try {
+    scope.postMessage(reply, reply.ok ? [...reply.pages, reply.bytes.buffer as ArrayBuffer] : []);
+  } catch (e) {
+    for (const page of reply.ok ? reply.pages : []) page.close();
+    scope.postMessage(failure(reply.id, e), []);
+  }
+}
+
+/** A thrown value as an error reply. */
+function failure(id: number, e: unknown): RunReply {
+  return { id, ok: false, code: "error", message: e instanceof Error ? e.message : String(e) };
+}
+
 scope.addEventListener("message", (event) => {
-  handle(event.data).then(
-    (reply) => scope.postMessage(reply, reply.ok ? [...reply.pages, reply.bytes.buffer as ArrayBuffer] : []),
-    (e: unknown) =>
-      scope.postMessage(
-        { id: event.data.id, ok: false, code: "error", message: e instanceof Error ? e.message : String(e) },
-        [],
-      ),
-  );
+  handle(event.data).then(send, (e: unknown) => send(failure(event.data.id, e)));
 });

@@ -141,21 +141,27 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
       const { file, source } = this.dataset;
       if (button === null || bar === null || run === null || reset === null || download === null) return;
       if (file === undefined || source === undefined) return;
-      button.addEventListener(
-        "click",
-        async () => {
-          button.disabled = true;
-          button.lastChild?.replaceWith(" Loading the editor…");
-          const { openRunner } = await import("../../runner/editor.ts");
-          const pictures = document.createElement("div");
-          // The Result tab's pictures stay until a run draws its own pages.
-          for (const figure of this.parentElement?.querySelectorAll(".example-result") ?? []) pictures.append(figure);
-          this.after(pictures);
-          button.remove();
-          openRunner({ bar, run, reset, download }, file, source, pictures);
-        },
-        { once: true },
-      );
+      const open = async () => {
+        button.disabled = true;
+        button.lastChild?.replaceWith(" Loading the editor…");
+        let editor: typeof import("../../runner/editor.ts");
+        try {
+          editor = await import("../../runner/editor.ts");
+        } catch {
+          // A deploy may have replaced the editor's file since the page loaded: try again.
+          button.lastChild?.replaceWith(" Couldn't load the editor; try again");
+          button.disabled = false;
+          return;
+        }
+        button.removeEventListener("click", open);
+        const pictures = document.createElement("div");
+        // The Result tab's pictures stay until a run draws its own pages.
+        for (const figure of this.parentElement?.querySelectorAll(".example-result") ?? []) pictures.append(figure);
+        this.after(pictures);
+        button.remove();
+        editor.openRunner({ bar, run, reset, download }, file, source, pictures);
+      };
+      button.addEventListener("click", open);
     }
   }
   customElements.define("lamina-run", LaminaRun);
