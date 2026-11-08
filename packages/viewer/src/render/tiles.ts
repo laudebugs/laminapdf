@@ -14,6 +14,20 @@ export function lowScale(sharpScale: number, widthPt: number): number {
 }
 
 /**
+ * The sharp scale (device px per pt) of a page `css` CSS px in size at layout scale `layoutScale`:
+ * `layoutScale × dpr`, lowered when the canvas pool could only `fit` fewer pixels. The canvas is
+ * then `pagePixels` at this scale, which never exceeds `fitted` on either side.
+ */
+export function sharpScale(
+  layoutScale: number,
+  dpr: number,
+  css: { readonly width: number; readonly height: number },
+  fitted: { readonly width: number; readonly height: number },
+): number {
+  return layoutScale * Math.min(dpr, fitted.width / css.width, fitted.height / css.height);
+}
+
+/**
  * The tiles (device px, in the page's pixel space at the sharp scale) covering `visible`, the
  * part of the page in view in CSS px (x, y from the page's top-left), clamped to `page`: the
  * whole page in device px, as the renderer sizes it (`pagePixels` of `@laminapdf/render`), so no

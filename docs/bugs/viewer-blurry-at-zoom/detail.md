@@ -1,8 +1,10 @@
 # The viewer stays blurry at most zoom levels
 
+At most zoom levels the renderer refused one tile per page, and the viewer then stopped drawing that page's sharp tiles. The viewer and the renderer each computed the page's size in pixels, and their two rules differed by one pixel: the viewer asked for a tile one pixel wider than the renderer's page. The fix is in [resolution.md](resolution.md).
+
 ## What the user saw
 
-In the web reader (staging, a laptop with a 2× screen), a PDF loaded with some parts blurry, and zooming in or out left parts blurry again. At 100 % the page looked fine; at other zoom levels it didn't. The blur didn't clear with time: a band of the page, usually on the right, stayed soft until the next zoom.
+The user opened a PDF in the web reader on staging, on a laptop with a 2× screen. Parts of the page loaded blurry, and zooming in or out left parts blurry again. At 100 % the page looked fine; at other zoom levels it didn't. The blur didn't clear with time: a band of the page, usually on the right, stayed soft until the next zoom.
 
 ## How to reproduce it
 
@@ -18,7 +20,7 @@ Screenshots at 300 ms, 1 s and 6 s after each zoom showed the same blurry band a
 
 ## What was ruled out
 
-Each stage between the zoom and the paint was timed on its own:
+We timed each stage between the zoom and the paint on its own:
 
 | Suspect | Measurement | Verdict |
 | --- | --- | --- |
@@ -33,18 +35,18 @@ None of these could explain a blur that lasted seconds, so the search moved to f
 
 Logging every request from the viewer to the document worker, with its outcome, showed one refused tile per page at the failing zooms: the right-hand tile of a row, refused with `invalid render request: the tile extends past the page`.
 
-The viewer's pass caught the error, marked the page `error` and stopped. The tiles after the refused one were never asked for, and the low-resolution canvas stayed on screen until the next zoom made a new pass.
+The viewer's pass caught the error, marked the page `error` and stopped. It never asked for the tiles after the refused one, so the low-resolution canvas stayed on screen until the next zoom started a new pass.
 
 ## The cause: two definitions of the page's size in pixels
 
 The viewer and the renderer each computed the page's width and height in device pixels:
 
-- **The viewer** sized the canvas and the tile grid from the page's CSS width × the pixel ratio, in 64-bit floats, rounded by the canvas pool (`Math.round`).
+- **The viewer** sized the canvas as the page's CSS width × the pixel ratio, rounded to whole pixels by the canvas pool (`Math.round`). The tiles then used the canvas's own ratio (canvas width ÷ CSS width). So the tile grid covered the canvas exactly, and each tile's request scale was the layout's scale × that ratio.
 - **The renderer** (`planTile` in `@laminapdf/render`) uses `max(1, floor(points × scale))` in 32-bit floats, to agree with the Rust planner.
 
 For a US Letter page (612 pt wide, 816 CSS px at 100 %) on a 2× screen:
 
-| Zoom | Viewer's width (px) | Renderer's width (px) | Right-hand tile |
+| Zoom | Viewer's canvas width (px) | Renderer's width (px) | Right-hand tile |
 | --- | --- | --- | --- |
 | 100 % | 1632 | 1632 | accepted |
 | 153 % | 2497 | 2496 | refused |
@@ -52,6 +54,6 @@ For a US Letter page (612 pt wide, 816 CSS px at 100 %) on a 2× screen:
 | 200 % | 3264 | 3264 | accepted |
 | 250 % | 4080 | 4079 | refused |
 
-At 100 % and 200 % the product is a whole number, so both rules agree. At most other zooms the viewer's rounding lands one pixel above the renderer's floor, and the right-hand tile reaches one pixel past the page. At 300 % and 400 % the canvas pool's 64 MP cap lowers the pixel ratio to a fraction, and the same mismatch follows.
+The renderer's scale is a 32-bit float, and whether it rounds up or down decides the floor. At 100 % and 200 % it rounds up (2.6666667 becomes 2.66666675), so 612 × scale lands just above 1632 or 3264 and floors to the viewer's width. At 175 % and 250 % it rounds down, so 612 × scale lands just below 2856 or 4080, a whole number the viewer reaches exactly, and floors one pixel short. At 153 % the viewer rounds 2496.96 up while the renderer floors it down. Either way, the right-hand tile reaches one pixel past the renderer's page. At 300 % and 400 % the canvas pool's 64 MP cap lowers the pixel ratio to a fraction, and the same mismatch follows.
 
-Run over zooms from 10 % to 800 %, eleven pixel ratios, two page sizes and quarter turns, the old rule planned a tile the renderer refused in 1,521 of 2,486 cases. The user's hunch was right: 100 % is one of the few zooms where the two rules agree.
+Run over zooms from 10 % to 800 %, eight pixel ratios, four pool caps, two page sizes and quarter turns, the old rule planned a tile the renderer refused in 4,365 of 14,464 cases. That is why 100 % and 200 % looked fine: they are among the zooms where the two rules happen to agree.

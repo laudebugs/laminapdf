@@ -1,5 +1,5 @@
 ---
-"@laminapdf/render": patch
+"@laminapdf/render": minor
 "@laminapdf/viewer": patch
 ---
 

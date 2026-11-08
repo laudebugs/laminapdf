@@ -13,7 +13,7 @@ import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerClient } from "../client.js";
 import { isRotation, PageLayout, type PageSize, type Rotation, rotated } from "../layout/page-layout.js";
 import { type OpenedDocument, type Priority, renderKey, renderKeyFields } from "../protocol.js";
-import { lowScale, tilesFor } from "../render/tiles.js";
+import { lowScale, sharpScale, tilesFor } from "../render/tiles.js";
 import {
   contentPosition,
   type DocumentPoint,
@@ -703,7 +703,7 @@ export class Viewer {
     // The sharp scale: the device pixel ratio, unless the pool's pixel cap lowers it. The canvas is
     // then the page at that scale exactly as the renderer sizes it, so every tile fits inside.
     const fitted = this.#pool.fit(canvas, cssW * dpr, cssH * dpr);
-    const scale = layout.scale * Math.min(dpr, fitted.width / cssW, fitted.height / cssH);
+    const scale = sharpScale(layout.scale, dpr, { width: cssW, height: cssH }, fitted);
     const { width, height } = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
     // Resizing clears the canvas: it happens only now, with the new pixels ready (no white flash).
     canvas.width = width;

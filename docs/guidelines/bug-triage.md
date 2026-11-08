@@ -23,7 +23,7 @@ In the blurry-zoom bug, the first suspects were PDFium re-parsing the page for e
 
 ## 4. Log every failure, including the expected ones
 
-Wrap the call between two layers (here, the viewer's requests to the document worker) and log every request with its outcome. Keep failures a layer treats as routine, but drop only the ones you have checked, such as aborts. A layer that catches an error and moves on hides a bug; the log shows it at once. In the blurry-zoom bug, one line explained the symptom: the renderer refused a tile because it "extends past the page".
+Wrap the call between two layers (here, the viewer's requests to the document worker) and log every request with its outcome. Keep the failures a layer treats as routine too. Drop only those you have checked, such as aborts. A layer that catches an error and moves on hides a bug; the log shows it at once. In the blurry-zoom bug, one line explained the symptom: the renderer refused a tile because it "extends past the page".
 
 ## 5. Look for two definitions of one thing
 
@@ -37,7 +37,7 @@ Note what you leave alone. A retry for a failed tile, or a canvas size that woul
 
 ## 7. Prove the fix
 
-- **A regression test that fails without the fix.** Sweep the inputs that matter (here zoom levels, pixel ratios, page sizes and rotations) rather than adding one case. Then run the old rule through the same sweep and count the failures it would have had. Under the old rule, the blurry-zoom sweep failed in 1,521 of 2,486 cases.
+- **A regression test that fails without the fix.** Sweep the inputs that matter (here zoom levels, pixel ratios, page sizes and rotations) rather than adding one case. Then run the old rule through the same sweep and count the failures it would have had. Under the old rule, the blurry-zoom sweep failed in 4,365 of 14,464 cases.
 - **The reproduction again.** Rerun step 1's steps and compare with the evidence you kept: the same zoom levels, the same screenshots, now with no failed request.
 - **The package's own suites.** Run them in every runtime they cover (Node and the browsers for the viewer).
 
@@ -48,7 +48,7 @@ Create `docs/bugs/<bug-name>/` with two files. Name the folder after the symptom
 - **`detail.md`**: the report and the diagnosis. It covers what the user saw, how to reproduce it, the measurements that ruled causes in or out, and the cause.
 - **`resolution.md`**: the fix and why it removes the cause, the tests that prove it, and what was left for later.
 
-The fix's commit message and PR description repeat the diagnosis in short and link the bug's folder. A bug fix needs no todo: the bug's folder is its record, as the todo is for planned work ([git workflow §2](git-workflow.md#pick-work-from-the-todo-board)).
+The fix's commit message and PR description repeat the diagnosis in short and link the bug's folder. A bug fix needs no todo: the bug's folder is its record, as the todo is for planned work (an exempt PR, [git workflow §2](git-workflow.md#pick-work-from-the-todo-board)).
 
 End by reporting back to whoever filed the bug. The report answers five questions in this order:
 
