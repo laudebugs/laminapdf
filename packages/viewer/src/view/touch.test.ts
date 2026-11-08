@@ -79,6 +79,7 @@ function fakeHost() {
     local: (e) => ({ x: e.clientX, y: e.clientY }),
     frame: () => 0,
     cancelFrame: () => undefined,
+    capture: () => undefined,
   };
   return { state, gestures: new TouchGestures(host) };
 }
@@ -125,9 +126,38 @@ describe("TouchGestures", () => {
     expect(state.scroll).toEqual({ x: 0, y: 0 });
   });
 
-  it("ignores the mouse and the pen", () => {
-    const { gestures } = fakeHost();
-    const mouse = { ...touch("pointerdown", 1, 0, 0, 0), pointerType: "mouse" } as PointerEvent;
-    expect(gestures.down(mouse)).toBe(false);
+  it("leaves the mouse to the browser, and pans with a pen", () => {
+    const { state, gestures } = fakeHost();
+    const as = (type: string, pointerType: string, y: number) =>
+      ({ ...touch(type, 1, 100, y, 0), pointerType }) as PointerEvent;
+    gestures.down(as("pointerdown", "mouse", 300));
+    gestures.move(as("pointermove", "mouse", 200));
+    const mouse = state.scroll.y;
+    gestures.down(as("pointerdown", "pen", 300));
+    gestures.move(as("pointermove", "pen", 200));
+    expect([mouse, state.scroll.y]).toEqual([0, 100]);
+  });
+
+  it("keeps pinching with the first two fingers when a third comes and goes, and pans on from the one left", () => {
+    const { state, gestures } = fakeHost();
+    gestures.down(touch("pointerdown", 1, 100, 100, 0));
+    gestures.down(touch("pointerdown", 2, 200, 100, 0));
+    gestures.down(touch("pointerdown", 3, 150, 300, 0));
+    gestures.up(touch("pointerup", 3, 150, 300, 10));
+    gestures.move(touch("pointermove", 2, 300, 100, 20));
+    const zoomed = state.percent;
+    gestures.up(touch("pointerup", 2, 300, 100, 30));
+    const before = { ...state.scroll };
+    gestures.move(touch("pointermove", 1, 100, 60, 40));
+    expect([zoomed, state.scroll.x - before.x, state.scroll.y - before.y]).toEqual([200, 0, 40]);
+  });
+
+  it("times a double tap from the first tap's lift", () => {
+    const { state, gestures } = fakeHost();
+    gestures.down(touch("pointerdown", 1, 50, 50, 0));
+    gestures.up(touch("pointerup", 1, 50, 50, 200));
+    gestures.down(touch("pointerdown", 1, 50, 50, 200 + DOUBLE_TAP.ms));
+    gestures.up(touch("pointerup", 1, 50, 50, 250 + DOUBLE_TAP.ms));
+    expect(state.zooms).toEqual([200]);
   });
 });

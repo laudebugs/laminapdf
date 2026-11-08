@@ -26,8 +26,8 @@ import {
   scrollToPoint,
   type Zoom,
 } from "../zoom/zoom.js";
-import { deviceHints, viewerBudgets } from "./budgets.js";
-import { TouchGestures } from "./touch.js";
+import { type DeviceHints, deviceHints, viewerBudgets } from "./budgets.js";
+import { TouchGestures, type TouchHost } from "./touch.js";
 
 /** Where a mounted page's pixels are. */
 export type PageRenderState = "placeholder" | "low" | "sharp" | "error";
@@ -106,6 +106,10 @@ export interface CreateViewerOptions {
   readonly cacheBytes?: number;
   /** The most device pixels one page canvas holds (default 8 MP; 5 MP on a touch device). */
   readonly backdropMaxPixels?: number;
+  /** The most device pixels any one canvas holds, a detail canvas too (default no cap; 5 MP on a touch device). */
+  readonly canvasMaxPixels?: number;
+  /** The device the budgets are chosen for; detected (a coarse pointer, `navigator.deviceMemory`) when left out. */
+  readonly device?: DeviceHints;
   /** How long a zoom gesture must pause before the sharp re-render, in ms (default 150). */
   readonly settleMs?: number;
   /** The device pixel ratio (default `globalThis.devicePixelRatio`). */
@@ -226,6 +230,8 @@ export class Viewer {
   readonly #pool: CanvasPool;
   readonly #detailPool: CanvasPool;
   readonly #backdropMaxPixels: number;
+  readonly #canvasMaxPixels: number;
+  readonly #touch: TouchGestures<DocumentPoint>;
   readonly #cache: BitmapCache;
   readonly #root: HTMLDivElement;
   readonly #spacer: HTMLDivElement;
@@ -254,11 +260,13 @@ export class Viewer {
     this.#gap = options.gap ?? 16;
     this.#settleMs = options.settleMs ?? 150;
     this.#dpr = options.dpr ?? (() => globalThis.devicePixelRatio || 1);
-    const budgets = viewerBudgets(deviceHints());
+    const budgets = viewerBudgets(options.device ?? deviceHints());
     this.#pool = new CanvasPool({ ...budgets.pool, ...options.pool });
     this.#detailPool = new CanvasPool({ ...budgets.detailPool, ...options.detailPool });
     this.#cache = new BitmapCache(options.cacheBytes ?? budgets.cacheBytes);
     this.#backdropMaxPixels = options.backdropMaxPixels ?? budgets.backdropMaxPixels;
+    this.#canvasMaxPixels = options.canvasMaxPixels ?? budgets.canvasMaxPixels;
+    this.#touch = new TouchGestures(this.#touchHost());
     this.#zoom = options.zoom ?? "fit-width";
     this.#root = document.createElement("div");
     this.#root.className = "lamina-viewer";
@@ -348,6 +356,7 @@ export class Viewer {
 
   /** Scrolls page `index` to the top of the viewport (or its centre). */
   goToPage(index: number, options: { readonly anchor?: "top" | "center" } = {}): void {
+    this.#touch.stopMomentum();
     const layout = this.#layout;
     if (layout === undefined || layout.pageCount === 0) return;
     const page = Math.min(layout.pageCount - 1, Math.max(0, Math.trunc(index)));
@@ -946,6 +955,8 @@ export class Viewer {
     const geometry = geometryOf(layout);
     const old = view.detail;
     if (old !== undefined && old.geometry === geometry && old.scale === scale && contains(old.rect, rect)) return old;
+    // Past the device's cap for one canvas (a large tablet's viewport), the page keeps its backdrop.
+    if (rect.width * rect.height > this.#canvasMaxPixels) return undefined;
     const canvas = old?.canvas ?? this.#detailPool.acquire();
     if (canvas === undefined) return undefined;
     const fitted = this.#detailPool.fit(canvas, rect.width, rect.height);
@@ -1101,6 +1112,7 @@ export class Viewer {
     this.#on<"wheel">(
       "wheel",
       (e) => {
+        this.#touch.stopMomentum();
         if (!e.ctrlKey && !e.metaKey) return;
         e.preventDefault();
         this.setZoom(this.#state.percent * Math.exp(-e.deltaY * 0.01), {
@@ -1114,6 +1126,7 @@ export class Viewer {
   /** `+` and `-` zoom by a quarter, `0` goes to actual size. */
   #listenKeys(): void {
     this.#on<"keydown">("keydown", (e) => {
+      this.#touch.stopMomentum();
       if (e.altKey) return;
       const p = this.#state.percent;
       if (e.key === "+" || e.key === "=") this.setZoom(p * 1.25);
@@ -1124,10 +1137,21 @@ export class Viewer {
     });
   }
 
-  /** Touch: pan with momentum, pinch around the fingers, double-tap zoom (view/touch.ts). */
+  /** Touch and pen: pan with momentum, pinch around the fingers, double-tap zoom (view/touch.ts). */
   #listenTouch(): void {
+    const gestures = this.#touch;
+    this.#on<"pointerdown">("pointerdown", (e) => gestures.down(e));
+    this.#on<"pointermove">("pointermove", (e) => gestures.move(e));
+    for (const end of ["pointerup", "pointercancel", "lostpointercapture"] as const) {
+      this.#on<typeof end>(end, (e) => gestures.up(e));
+    }
+    this.#cleanup.push(() => gestures.stop());
+  }
+
+  /** The gestures' view of this viewer. */
+  #touchHost(): TouchHost<DocumentPoint> {
     const root = this.#root;
-    const gestures = new TouchGestures<DocumentPoint>({
+    return {
       percent: () => this.#state.percent,
       fitsWidth: () => this.#zoom === "fit-width",
       zoom: (to, anchor) => this.setZoom(to, { anchor }),
@@ -1137,15 +1161,17 @@ export class Viewer {
       local: (e) => this.#anchorAt(e.clientX, e.clientY),
       frame: (callback) => requestAnimationFrame(callback),
       cancelFrame: (id) => cancelAnimationFrame(id),
-    });
-    this.#on<"pointerdown">("pointerdown", (e) => void gestures.down(e));
-    this.#on<"pointermove">("pointermove", (e) => gestures.move(e));
-    this.#on<"pointerup">("pointerup", (e) => gestures.up(e));
-    this.#on<"pointercancel">("pointercancel", (e) => gestures.up(e));
-    this.#cleanup.push(() => gestures.stop());
+      capture: (id) => {
+        try {
+          root.setPointerCapture(id);
+        } catch {
+          // The pointer is already up: nothing to keep.
+        }
+      },
+    };
   }
 
-  /** Safari's trackpad pinch: gesture events with a scale. */
+  /** Safari's trackpad pinch: gesture events with a scale (and iOS's touch pinch, which the touch gestures take). */
   #listenGestures(): void {
     let gesture: number | undefined;
     type GestureEvent = Event & { scale: number; clientX: number; clientY: number };
@@ -1156,6 +1182,8 @@ export class Viewer {
     this.#on("gesturechange", (e: Event) => {
       if (gesture === undefined) return;
       e.preventDefault();
+      // iOS sends these for a two-finger touch pinch too: the touch gestures zoom it then.
+      if (this.#touch.pinching()) return;
       const ge = e as GestureEvent;
       this.setZoom(gesture * ge.scale, { anchor: this.#anchorAt(ge.clientX, ge.clientY) });
     });

@@ -56,6 +56,12 @@ const STILL: ExternalStore<{ readonly scrollTop?: number }> = {
 
 /** Scrolled this far down past where it last turned, the phone's top bar hides. */
 const HIDE_AFTER = 24;
+/**
+ * After the bar hides or shows, scrolling is ignored this long (ms): the viewer grows or shrinks by
+ * the bar's height and re-fits its zoom, which moves the scroll position by half that, and would
+ * otherwise toggle the bar back and forth.
+ */
+const SETTLE_MS = 400;
 
 /** Whether the phone's top bar is out of the way: hidden while `viewer` scrolls down, back on the way up. */
 function useHiddenWhileScrolling(viewer: ViewerControls | undefined, phone: boolean): boolean {
@@ -63,11 +69,19 @@ function useHiddenWhileScrolling(viewer: ViewerControls | undefined, phone: bool
   const [hidden, setHidden] = useState(false);
   // Where the scrolling last turned: any move up shows the bar, a move down past HIDE_AFTER hides it.
   const turn = useRef(top);
+  const quietUntil = useRef(0);
+  const isHidden = useRef(false);
   useEffect(() => {
-    if (!phone) return;
+    const now = performance.now();
+    if (!phone || now < quietUntil.current) {
+      turn.current = top;
+      return;
+    }
     const moved = top - turn.current;
     if (moved < 0 || moved > HIDE_AFTER) {
       turn.current = top;
+      if (isHidden.current !== moved > 0) quietUntil.current = now + SETTLE_MS;
+      isHidden.current = moved > 0;
       setHidden(moved > 0);
     }
   }, [top, phone]);
@@ -79,7 +93,8 @@ function PhoneTopBar<Id extends string>(props: ReaderTopBarProps<Id> & { hidden:
   const state = useStoreState(props.reader, (s) => s);
   const [more, setMore] = useState(false);
   return (
-    <header className="paper-top-bar" data-phone="" data-hidden={props.hidden || undefined}>
+    // Hidden, the bar is inert, so focus never rests in it out of sight.
+    <header className="paper-top-bar" data-phone="" data-hidden={props.hidden || undefined} inert={props.hidden}>
       <div className="paper-top-bar-file">
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
       </div>

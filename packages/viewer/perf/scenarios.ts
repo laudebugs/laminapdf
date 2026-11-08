@@ -3,7 +3,7 @@
 // scroll the same way.
 
 import { type Browser, type BrowserContext, devices, type Page } from "playwright";
-import { viewerBudgets } from "../src/view/budgets.ts";
+import { budgetBytes, viewerBudgets } from "../src/view/budgets.ts";
 import type { BrowserResult } from "./report.ts";
 import "./types.ts";
 
@@ -171,8 +171,12 @@ async function mobile(browser: Browser, name: string, url: string, quick: boolea
   try {
     const page = await harness(context, url);
     await opened(page, "thousand", "fit-width");
-    const memoryGb = await page.evaluate(() => (globalThis.navigator as { deviceMemory?: number }).deviceMemory);
-    const budget = viewerBudgets({ coarse: true, memoryGb });
+    // The budgets the viewer chose from what the page reports, so a profile without a coarse pointer shows as such.
+    const hints = await page.evaluate(() => ({
+      coarse: matchMedia("(pointer: coarse)").matches,
+      memoryGb: (globalThis.navigator as { deviceMemory?: number }).deviceMemory,
+    }));
+    const budget = viewerBudgets(hints);
     await page.evaluate(() => globalThis.__laminaPerf.record());
     for (let index = 0; index < (quick ? 100 : 1000); index += 10) {
       await page.evaluate((i) => globalThis.__laminaPerf.goToPage(i), index);
@@ -180,8 +184,7 @@ async function mobile(browser: Browser, name: string, url: string, quick: boolea
     }
     await page.evaluate(() => globalThis.__laminaPerf.untilSharp());
     const { peakMemory } = await page.evaluate(() => globalThis.__laminaPerf.stop());
-    const budgetBytes = 4 * ((budget.pool.maxPixels ?? 0) + (budget.detailPool.maxPixels ?? 0)) + budget.cacheBytes;
-    return { device, peakMemory, budgetBytes };
+    return { device: hints.coarse ? device : `${device} (fine pointer)`, peakMemory, budgetBytes: budgetBytes(budget) };
   } finally {
     await context.close();
   }

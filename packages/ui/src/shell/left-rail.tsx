@@ -6,13 +6,13 @@
 
 import { BREAKPOINTS } from "@laminapdf/tokens";
 import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "react";
-import { PHONE_QUERY } from "../breakpoints.js";
 import { SegmentedTabs, TabPanel } from "../components/tabs.js";
 import { message } from "../messages.js";
 import { LayerScope } from "../overlays/layers.js";
 import { BottomSheet } from "../overlays/sheet.js";
 import { useMediaQuery, useStoreState } from "../state/hooks.js";
 import { RAIL_MAX_WIDTH, RAIL_MIN_WIDTH, RAIL_STEP, type ShellLayout } from "./layout.js";
+import { usePhone } from "./phone.js";
 
 /** Below this window width, the rail is a drawer over the canvas: token `breakpoint-rail-open`. */
 export const RAIL_DRAWER_QUERY = `(width < ${BREAKPOINTS["rail-open"]}px)`;
@@ -121,7 +121,7 @@ export function LeftRail({ layout, tabs }: LeftRailProps): ReactNode {
   const open = useStoreState(layout, (s) => s.rail.open && !s.focus);
   const width = useStoreState(layout, (s) => s.rail.width);
   const drawer = useMediaQuery(RAIL_DRAWER_QUERY);
-  const phone = useMediaQuery(PHONE_QUERY);
+  const phone = usePhone();
   if (!open || tabs.length === 0) return null;
   if (phone) {
     return (

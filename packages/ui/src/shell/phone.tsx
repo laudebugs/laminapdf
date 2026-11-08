@@ -27,7 +27,7 @@ export interface MoreItems<Id extends string> {
   readonly onAction: (id: Id) => void;
 }
 
-/** The More sheet: the top bar's More menu as a medium sheet of 52 px rows (R18). */
+/** The More sheet: the top bar's More menu as a medium sheet of rows at the touch target height (R18). */
 export function MoreSheet<Id extends string>({
   isOpen,
   onOpenChange,

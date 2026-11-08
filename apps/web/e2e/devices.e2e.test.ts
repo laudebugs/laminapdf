@@ -1,5 +1,6 @@
 // The reader on phones and tablets (UI/UX plan §5.4), in Playwright's device profiles with touch:
-// iPhone 15 and iPad Pro 11 in WebKit, Pixel 8 in Chromium (Firefox has no mobile emulation). Each
+// iPhone 15 and iPad Pro 11 in WebKit (the nightly's WebKit leg), Pixel 8 in Chromium, also narrowed
+// to 320 px (every PR); Firefox has no mobile emulation. Each
 // opens a file, pans and zooms it with synthetic touches (the viewer owns the gestures: pinch keeps
 // the point under the fingers within 2 px), never scrolls sideways, and passes axe; the phone shows
 // the bottom bar and the tablet the desktop shell.
@@ -14,12 +15,23 @@ const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
 const AXE = createRequire(import.meta.url).resolve("axe-core");
 
-/** The profiles each engine runs, and whether each is phone-sized. */
-const PROFILES: Record<string, readonly { name: string; phone: boolean }[]> = {
-  chromium: [{ name: "Pixel 8", phone: true }],
+/** One device profile to run: Playwright's, optionally narrowed, and whether it is phone-sized. */
+interface Profile {
+  readonly label: string;
+  readonly device: string;
+  readonly phone: boolean;
+  readonly width?: number;
+}
+
+/** The profiles each engine runs: the narrowest phone the layout supports, 320 wide, in Chromium too. */
+const PROFILES: Record<string, readonly Profile[]> = {
+  chromium: [
+    { label: "Pixel 8", device: "Pixel 8", phone: true },
+    { label: "Pixel 8 at 320 px", device: "Pixel 8", phone: true, width: 320 },
+  ],
   webkit: [
-    { name: "iPhone 15", phone: true },
-    { name: "iPad Pro 11", phone: false },
+    { label: "iPhone 15", device: "iPhone 15", phone: true },
+    { label: "iPad Pro 11", device: "iPad Pro 11", phone: false },
   ],
 };
 const ENGINES: Record<string, BrowserType> = { chromium, webkit };
@@ -74,8 +86,11 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
 
   for (const profile of PROFILES[BROWSER] ?? []) {
     const open = async (bypassCSP = false) => {
+      const device = devices[profile.device];
+      const viewport = profile.width === undefined ? device?.viewport : { width: profile.width, height: 640 };
       const watched = await load(browser, origin, "/", WITHOUT_PICKER, {
-        ...devices[profile.name],
+        ...device,
+        ...(viewport === undefined ? {} : { viewport }),
         ignoreHTTPSErrors: true,
         bypassCSP,
       });
@@ -84,31 +99,51 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       return watched;
     };
 
-    it(`${profile.name}: opens a file in the ${profile.phone ? "phone" : "desktop"} shell without scrolling sideways`, async () => {
+    it(`${profile.label}: opens a file in the ${profile.phone ? "phone" : "desktop"} shell without scrolling sideways`, async () => {
       const watched = await open();
       const { page } = watched;
       const bar = await page.getByRole("toolbar", { name: "Document" }).count();
       const commands = await page.getByRole("button", { name: /Commands/ }).count();
-      const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-      expect([bar, commands > 0, wide]).toEqual(profile.phone ? [1, false, 0] : [0, true, 0]);
+      // Nothing reaches past the window, and every control in the bars is a 44 px target.
+      const { wide, past, small } = await page.evaluate(() => {
+        const bars = [...document.querySelectorAll("header *, footer *")];
+        const targets = bars.filter((el) => el.matches("button, a[href], [role=button], [role=tab], input"));
+        return {
+          wide: document.documentElement.scrollWidth - window.innerWidth,
+          past: bars.filter((el) => el.getBoundingClientRect().right > window.innerWidth + 0.5).length,
+          small: targets
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              return r.width > 0 && (r.width + 0.5 < 44 || r.height + 0.5 < 44);
+            })
+            .map((el) => el.getAttribute("aria-label") ?? el.textContent),
+        };
+      });
+      expect([bar, commands > 0, wide, past]).toEqual(profile.phone ? [1, false, 0, 0] : [0, true, 0, 0]);
+      expect(small).toEqual([]);
       await clean(watched);
     });
 
-    it(`${profile.name}: zooms on a double tap and keeps the point under a pinch within 2 px`, async () => {
+    it(`${profile.label}: zooms on a double tap and keeps the point under a pinch within 2 px`, async () => {
       const watched = await open();
       const { page } = watched;
       const before = await firstPage(page);
       const at = { id: 1, x: before.left + before.width / 2, y: before.top + before.height / 3 };
       for (const _ of [0, 1]) await touches(page, [[at], []]);
       await expect.poll(async () => (await firstPage(page)).width).toBeGreaterThan(before.width * 1.5);
-      // A pinch outwards from two fingers that also move together, by 30 px down and to the side.
+      // A pinch around the middle of the window: the fingers spread from 80 to 140 px apart while
+      // both also move 30 px right and down.
       const zoomed = await firstPage(page);
-      const mid = { x: zoomed.left + zoomed.width / 4, y: zoomed.top + zoomed.height / 4 };
+      const mid = await page.evaluate(() => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }));
       const share = { x: (mid.x - zoomed.left) / zoomed.width, y: (mid.y - zoomed.top) / zoomed.height };
-      const steps = [0, 0.25, 0.5, 0.75, 1].map((t) => [
-        { id: 1, x: mid.x - 40 - 30 * t + 30 * t, y: mid.y + 30 * t },
-        { id: 2, x: mid.x + 40 + 30 * t + 30 * t, y: mid.y + 30 * t },
-      ]);
+      const steps = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+        const half = 40 + 30 * t;
+        const shift = 30 * t;
+        return [
+          { id: 1, x: mid.x - half + shift, y: mid.y + shift },
+          { id: 2, x: mid.x + half + shift, y: mid.y + shift },
+        ];
+      });
       await touches(page, steps);
       const after = await firstPage(page);
       const end = { x: mid.x + 30, y: mid.y + 30 };
@@ -121,7 +156,7 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       await clean(watched);
     });
 
-    it(`${profile.name}: pans the document under one finger`, async () => {
+    it(`${profile.label}: pans the document under one finger`, async () => {
       const watched = await open();
       const { page } = watched;
       const box = await firstPage(page);
@@ -136,8 +171,9 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       await clean(watched);
     });
 
-    it(`${profile.name}: passes axe`, async () => {
-      const { page } = await open(true);
+    it(`${profile.label}: passes axe`, async () => {
+      const watched = await open(true);
+      const { page } = watched;
       await page.addScriptTag({ path: AXE });
       const serious = await page.evaluate(async () => {
         const run = (
@@ -147,7 +183,7 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
         return violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id);
       });
       expect(serious).toEqual([]);
-      await page.close();
+      await clean(watched);
     });
   }
 });

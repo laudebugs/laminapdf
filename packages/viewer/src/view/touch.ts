@@ -2,7 +2,8 @@
 // browser neither scrolls nor zooms the page under a finger, and these do instead. One finger pans,
 // with momentum after a flick; two fingers pinch, keeping the document point under them where it
 // started; a double tap zooms in, or back to the page width. A finger held still passes through, so
-// a long press still selects text. Mouse and pen input is left to the browser.
+// a long press still selects text. A pen pans like a finger until a mode draws with it; the mouse is
+// left to the browser.
 
 /** A position in viewport CSS px, or a time-stamped one. */
 interface At {
@@ -18,7 +19,7 @@ interface Sample extends At {
 export const SLOP = 10;
 /** A finger held still this long (ms) is a long press, left to the browser's text selection. */
 export const LONG_PRESS_MS = 500;
-/** The most time (ms) and distance (CSS px) between two taps of a double tap. */
+/** The most time (ms) from the first tap's lift to the second's touch, and the distance (CSS px) between them. */
 export const DOUBLE_TAP = { ms: 300, distance: 24 } as const;
 /** How long a tap may last (ms). */
 const TAP_MS = 250;
@@ -75,7 +76,12 @@ export interface TouchHost<Point> {
   local(e: { readonly clientX: number; readonly clientY: number }): At;
   frame(callback: (now: number) => void): number;
   cancelFrame(id: number): void;
+  /** Keeps a pointer's events on the viewer while it is down, even if the canvas under it is recycled. */
+  capture(pointerId: number): void;
 }
+
+/** Whether the gestures take this pointer: fingers and pens, not the mouse. */
+const TAKEN = new Set(["touch", "pen"]);
 
 type Gesture<Point> =
   | { readonly kind: "pending"; readonly start: Sample }
@@ -96,15 +102,20 @@ export class TouchGestures<Point> {
     this.#host = host;
   }
 
-  /** A pointer went down; true when the gestures took it. */
-  down(e: PointerEvent): boolean {
-    if (e.pointerType !== "touch") return false;
-    this.#stopMomentum();
+  /** A pointer went down. A third finger joins nothing: the pinch keeps its first two. */
+  down(e: PointerEvent): void {
+    if (!TAKEN.has(e.pointerType)) return;
+    this.stopMomentum();
     const at = this.#host.local(e);
     this.#fingers.set(e.pointerId, at);
+    this.#host.capture(e.pointerId);
     if (this.#fingers.size === 2) this.#startPinch();
     else if (this.#fingers.size === 1) this.#startPending(at, e.timeStamp);
-    return true;
+  }
+
+  /** Whether two fingers are pinching now: Safari's own gesture events then leave the zoom alone. */
+  pinching(): boolean {
+    return this.#gesture?.kind === "pinch";
   }
 
   move(e: PointerEvent): void {
@@ -127,29 +138,34 @@ export class TouchGestures<Point> {
     this.#host.scrollBy(pan.last.x - at.x, pan.last.y - at.y);
     pan.last = at;
     pan.samples.push({ ...at, t: e.timeStamp });
-    if (pan.samples.length > 32) pan.samples.splice(0, 16);
+    // Only the last stretch sets a flick's speed, so older samples go.
+    const since = pan.samples.findIndex((s) => e.timeStamp - s.t <= VELOCITY_WINDOW);
+    if (since > 0) pan.samples.splice(0, since);
   }
 
   up(e: PointerEvent): void {
     if (!this.#fingers.delete(e.pointerId)) return;
     clearTimeout(this.#longPress);
     const g = this.#gesture;
-    const left = [...this.#fingers.values()][0];
     if (g?.kind === "pinch") {
-      // The finger that stays pans on from where it is, so the page never jumps.
-      this.#gesture = left === undefined ? undefined : { kind: "pan", last: left, samples: [] };
+      // Two fingers left pinch afresh from where they are; one left pans on from where it is, so the
+      // page never jumps.
+      const left = [...this.#fingers.values()];
+      if (left.length >= 2) this.#startPinch();
+      else this.#gesture = left[0] === undefined ? undefined : { kind: "pan", last: left[0], samples: [] };
       return;
     }
     if (this.#fingers.size > 0) return;
     this.#gesture = undefined;
-    if (e.type === "pointercancel") return;
+    // A cancelled or lost pointer ends the gesture without a flick or a tap.
+    if (e.type !== "pointerup") return;
     if (g?.kind === "pan") this.#fling(releaseVelocity(g.samples));
-    else if (g?.kind === "pending" && e.timeStamp - g.start.t <= TAP_MS) this.#tap(g.start);
+    else if (g?.kind === "pending" && e.timeStamp - g.start.t <= TAP_MS) this.#tap(g.start, e.timeStamp);
   }
 
   /** Stops what is running (momentum, a long-press timer); the viewer calls it on destroy. */
   stop(): void {
-    this.#stopMomentum();
+    this.stopMomentum();
     clearTimeout(this.#longPress);
     this.#fingers.clear();
     this.#gesture = undefined;
@@ -192,14 +208,16 @@ export class TouchGestures<Point> {
     return { distance: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
   }
 
-  #tap(tap: Sample): void {
+  /** A tap that touched at `tap` and lifted at `lifted` (ms). */
+  #tap(tap: Sample, lifted: number): void {
     const first = this.#lastTap;
     if (first !== undefined && isDoubleTap(first, tap)) {
       this.#lastTap = undefined;
       this.#host.zoom(this.#host.fitsWidth() ? this.#host.percent() * 2 : "fit-width", tap);
       return;
     }
-    this.#lastTap = tap;
+    // The window to the second tap runs from this one's lift.
+    this.#lastTap = { ...tap, t: lifted };
   }
 
   #fling(v: At): void {
@@ -220,7 +238,8 @@ export class TouchGestures<Point> {
     this.#momentum = this.#host.frame(step);
   }
 
-  #stopMomentum(): void {
+  /** Stops a flick's momentum: another input (a wheel, a key, a jump to a page) takes over. */
+  stopMomentum(): void {
     if (this.#momentum !== undefined) this.#host.cancelFrame(this.#momentum);
     this.#momentum = undefined;
   }

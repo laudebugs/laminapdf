@@ -92,22 +92,32 @@ describe("the phone shell", () => {
     await expect.poll(() => document.querySelector(".demo-page")).toBeNull();
   });
 
-  it("shows the inspector as a sheet", async () => {
+  it("shows the inspector as a sheet that leaves the page in use, closed by Escape", async () => {
     await openDemo();
     await userEvent.click(button("Select the heading"));
-    await expect.poll(() => document.querySelector("[role=dialog]")?.textContent?.includes("Heading")).toBe(true);
+    const sheet = () => [...document.querySelectorAll(".paper-sheet")].find((s) => s.textContent?.includes("Heading"));
+    await expect.poll(sheet).toBeDefined();
+    expect(document.querySelector("[role=dialog]")).toBeNull();
     await userEvent.keyboard("{Escape}");
-    await expect.poll(() => document.querySelector("[role=dialog]")).toBeNull();
+    await expect.poll(sheet).toBeUndefined();
   });
 
   it("never scrolls sideways at 320 wide, with or without a sheet open", async () => {
     await page.viewport(320, 640);
     await openDemo();
+    // Clipping would hide an overflow: nothing in the bars may reach past the window either.
     const wide = () => document.documentElement.scrollWidth;
-    const closed = wide();
+    const past = () =>
+      [...document.querySelectorAll("header *, footer *, .paper-sheet *")]
+        .filter((el) => el.getBoundingClientRect().right > 320.5)
+        .map((el) => el.className || el.tagName);
+    const closed = [wide(), past()];
     await userEvent.click(button("More", bottomBar() as HTMLElement));
     await expect.poll(() => document.querySelector("[role=dialog]")).not.toBeNull();
-    expect([closed, wide()]).toEqual([320, 320]);
+    expect([closed, [wide(), past()]]).toEqual([
+      [320, []],
+      [320, []],
+    ]);
   });
 
   it("makes every target in the bars at least 44 × 44 at touch density", async () => {
@@ -161,11 +171,25 @@ describe("the phone's top bar", () => {
       </CommandsProvider>,
     );
     const hidden = () => document.querySelector("header")?.hasAttribute("data-hidden");
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 450));
     await scroll(10);
     const small = hidden();
     await scroll(200);
+    await expect.poll(hidden).toBe(true);
     const down = hidden();
-    await scroll(190);
-    expect([small, down, hidden()]).toEqual([false, true, false]);
+    // The viewer re-fitting to the taller canvas moves the scroll up a little: the bar stays hidden.
+    await scroll(172);
+    const refit = hidden();
+    await settle();
+    await scroll(160);
+    await expect.poll(hidden).toBe(false);
+    const up = hidden();
+    expect([small, down, refit, up, document.querySelector("header")?.inert]).toEqual([
+      false,
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 });
