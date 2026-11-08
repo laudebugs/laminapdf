@@ -89,7 +89,11 @@ pub fn to_json(extraction: &Extraction, markdown: &Rendered, options: &JsonOptio
         generator: Generator {
             name: "laminapdf",
             version: env!("CARGO_PKG_VERSION"),
-            mode: if extraction.models.is_empty() { "rules" } else { "rules+models" },
+            mode: if extraction.models.is_empty() {
+                "rules"
+            } else {
+                "rules+models"
+            },
             models: &extraction.models,
         },
         source: &extraction.source,

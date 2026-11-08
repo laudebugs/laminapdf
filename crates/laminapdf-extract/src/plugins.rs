@@ -396,7 +396,11 @@ impl PartialEq for Models {
             (None, None) => true,
             (Some(_), None) | (None, Some(_)) => false,
         };
-        renderer && self.layout == other.layout && self.ocr == other.ocr && self.dpi == other.dpi && self.langs == other.langs
+        renderer
+            && self.layout == other.layout
+            && self.ocr == other.ocr
+            && self.dpi == other.dpi
+            && self.langs == other.langs
     }
 }
 
@@ -468,8 +472,14 @@ mod tests {
 
     #[test]
     fn a_raster_checks_its_size() {
-        assert_eq!(PageRaster::new(2, 2, 72, vec![0; 15], page(2.0, 2.0)), Err(ModelError::BadRaster));
-        assert_eq!(PageRaster::new(0, 2, 72, Vec::new(), page(2.0, 2.0)), Err(ModelError::BadRaster));
+        assert_eq!(
+            PageRaster::new(2, 2, 72, vec![0; 15], page(2.0, 2.0)),
+            Err(ModelError::BadRaster)
+        );
+        assert_eq!(
+            PageRaster::new(0, 2, 72, Vec::new(), page(2.0, 2.0)),
+            Err(ModelError::BadRaster)
+        );
         assert!(PageRaster::new(2, 2, 72, vec![0; 16], page(2.0, 2.0)).is_ok());
     }
 
@@ -478,7 +488,10 @@ mod tests {
         // 612 × 792 pt at 144 dpi: two pixels per point.
         let raster = PageRaster::new(1224, 1584, 144, vec![0; 1224 * 1584 * 4], page(612.0, 792.0))?;
         let rect = raster.to_page(100.0, 200.0, 300.0, 400.0);
-        assert_eq!(rect, RectPt::new(Pt::new(50.0), Pt::new(100.0), Pt::new(150.0), Pt::new(200.0)));
+        assert_eq!(
+            rect,
+            RectPt::new(Pt::new(50.0), Pt::new(100.0), Pt::new(150.0), Pt::new(200.0))
+        );
         Ok(())
     }
 }

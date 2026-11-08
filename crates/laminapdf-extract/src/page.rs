@@ -278,8 +278,15 @@ fn order_of(
     for u in cut(&unit_boxes, &unit_lines)? {
         let Some(members) = units.get_mut(u) else { continue };
         members.sort_by(|&a, &b| {
-            let (a, b) = (boxes.get(a).copied().unwrap_or_default(), boxes.get(b).copied().unwrap_or_default());
-            let across = if rtl { b.x0.get().total_cmp(&a.x0.get()) } else { a.x0.get().total_cmp(&b.x0.get()) };
+            let (a, b) = (
+                boxes.get(a).copied().unwrap_or_default(),
+                boxes.get(b).copied().unwrap_or_default(),
+            );
+            let across = if rtl {
+                b.x0.get().total_cmp(&a.x0.get())
+            } else {
+                a.x0.get().total_cmp(&b.x0.get())
+            };
             a.y0.get().total_cmp(&b.y0.get()).then(across)
         });
         order.extend(members.iter().copied());
@@ -290,7 +297,10 @@ fn order_of(
 /// `items` taken in `order`.
 fn take_in<T>(items: Vec<T>, order: &[usize]) -> Vec<T> {
     let mut slots: Vec<Option<T>> = items.into_iter().map(Some).collect();
-    order.iter().filter_map(|&i| slots.get_mut(i).and_then(Option::take)).collect()
+    order
+        .iter()
+        .filter_map(|&i| slots.get_mut(i).and_then(Option::take))
+        .collect()
 }
 
 /// The page's lines, built within each layout region (and among the pieces outside every
@@ -474,17 +484,26 @@ pub(crate) fn extract_page(
                 }
                 Ok(TreeBlocks {
                     rest: (pieces, spans), ..
-                }) => (with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped), TreeUse::None),
+                }) => (
+                    with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped),
+                    TreeUse::None,
+                ),
                 Err((implausible, (pieces, spans))) => {
                     doc.report(Warning::ExtractStructTreeIgnored {
                         page: page_number,
                         reason: implausible.reason(),
                     })?;
-                    (with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped), TreeUse::Ignored)
+                    (
+                        with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped),
+                        TreeUse::Ignored,
+                    )
                 }
             }
         }
-        None => (with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped), TreeUse::None),
+        None => (
+            with_dropped(layout(&cx, pieces, spans, 0)?, &mut dropped),
+            TreeUse::None,
+        ),
     };
     Ok(PageOut {
         info,
@@ -590,7 +609,11 @@ fn layout(
                         page: index,
                         bbox: block.bbox,
                         chars: visible_chars(&block.text),
-                        spans: if options.drop.keep_spans { block.spans } else { Vec::new() },
+                        spans: if options.drop.keep_spans {
+                            block.spans
+                        } else {
+                            Vec::new()
+                        },
                     }),
                     Err(_) => {
                         block.kind = BlockKind::Other;

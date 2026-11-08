@@ -111,16 +111,27 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
     })
 }
 
-/// Extracts `doc` in one call, stopped by `cancel` (ADR 0028 F10).
+/// Why [`extract`] can't use a model whose results only the host can give.
+const HOST_ONLY: &str = "a model's results must come from the host (a host model, or a plug-in without a renderer): step extract_job and provide them";
+
+/// Extracts `doc` in one call, stopped by `cancel` (ADR 0028 F10). Plug-in models run inside
+/// it when [`Models::renderer`](crate::Models::renderer) is set.
 ///
 /// # Errors
-/// As [`extract_job`] and [`ExtractJob::step`].
+/// As [`extract_job`] and [`ExtractJob::step`]; `model-failed` when a model's results would
+/// have to come from the host, which only [`ExtractJob::provide`] can give.
 pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -> Result<Extraction, ExtractError> {
     let mut job = extract_job(doc, options)?;
     job.cancel = cancel.clone();
     loop {
         if let Step::Done(extraction) = job.step(doc, Budget::UNLIMITED)? {
             return Ok(extraction);
+        }
+        // Nobody here can answer a request: a host's model, or a plug-in with no renderer.
+        if job.request.is_some() {
+            return Err(ExtractError::ModelFailed {
+                reason: HOST_ONLY.to_owned(),
+            });
         }
     }
 }
@@ -316,7 +327,12 @@ impl ExtractJob {
 
     /// Reads page `index`'s text and, in the same walk of its content, its table rules and
     /// backdrops.
-    fn read(&mut self, doc: &Document, page: &laminapdf_model::Page<'_>, index: usize) -> Result<Pending, ExtractError> {
+    fn read(
+        &mut self,
+        doc: &Document,
+        page: &laminapdf_model::Page<'_>,
+        index: usize,
+    ) -> Result<Pending, ExtractError> {
         let frame = page.frame()?;
         let mut painted = Painted {
             rules: (self.options.tables != TableMode::Off).then(|| Collector::new(&frame)),

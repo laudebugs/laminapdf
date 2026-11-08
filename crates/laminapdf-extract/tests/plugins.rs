@@ -8,9 +8,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14};
 use laminapdf_extract::{
-    BlockKind, DropReason, ExtractError, ExtractOptions, Extraction, LayoutModel, LayoutRegion, ModelError,
-    ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer,
-    RegionLabel, extract, extract_job,
+    BlockKind, DropReason, ExtractError, ExtractOptions, Extraction, LayoutModel, LayoutRegion, ModelError, ModelInfo,
+    ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer, RegionLabel, extract,
+    extract_job,
 };
 use laminapdf_model::{Document, OpenOptions, PointPt, Pt, RectPt};
 use laminapdf_save::{Save as _, SaveOptions};
@@ -93,7 +93,12 @@ impl OcrEngine for FakeOcr {
         info("fake-ocr")
     }
 
-    fn recognise(&self, _page: &PageRaster, _langs: &[String], _cancel: &CancelToken) -> Result<Vec<OcrWord>, ModelError> {
+    fn recognise(
+        &self,
+        _page: &PageRaster,
+        _langs: &[String],
+        _cancel: &CancelToken,
+    ) -> Result<Vec<OcrWord>, ModelError> {
         self.calls.fetch_add(1, Ordering::Relaxed);
         Ok(self.words.clone())
     }
@@ -148,7 +153,11 @@ fn layout_regions_should_read_each_column_in_turn() {
 
 #[test]
 fn layout_labels_should_set_kinds_and_drop_page_headers() {
-    let doc = build(&[&[("Running head", 72.0, 40.0), ("Results", 72.0, 100.0), ("Body text.", 72.0, 130.0)]]);
+    let doc = build(&[&[
+        ("Running head", 72.0, 40.0),
+        ("Results", 72.0, 100.0),
+        ("Body text.", 72.0, 130.0),
+    ]]);
     let model = FakeLayout::new(vec![
         LayoutRegion::new(RegionLabel::PageHeader, rect(60.0, 25.0, 300.0, 45.0), 0.9),
         LayoutRegion::new(RegionLabel::SectionHeader, rect(60.0, 85.0, 300.0, 105.0), 0.9),
@@ -176,11 +185,18 @@ fn ocr_should_read_only_pages_without_visible_text() {
             .with_renderer(Arc::new(BlankRenderer)),
     );
     let out = extract(&doc, &options, &CancelToken::new()).unwrap();
-    assert_eq!(engine.calls.load(Ordering::Relaxed), 1, "the page with text is not OCR'd");
+    assert_eq!(
+        engine.calls.load(Ordering::Relaxed),
+        1,
+        "the page with text is not OCR'd"
+    );
     assert_eq!(texts(&out), ["Real text layer.", "Scanned words"]);
     let scanned = &out.blocks[1];
     assert_eq!(scanned.page, 1);
-    assert_eq!(scanned.spans.iter().map(|s| s.ocr).collect::<Vec<_>>(), [Some(0.9), Some(0.7)]);
+    assert_eq!(
+        scanned.spans.iter().map(|s| s.ocr).collect::<Vec<_>>(),
+        [Some(0.9), Some(0.7)]
+    );
     assert!(out.blocks[0].spans.iter().all(|s| s.ocr.is_none()));
     assert!((scanned.confidence - 0.8).abs() < 1e-9, "the words' mean confidence");
 }
@@ -188,7 +204,12 @@ fn ocr_should_read_only_pages_without_visible_text() {
 #[test]
 fn request_and_provide_should_give_what_the_plugin_path_gives() {
     let doc = two_columns();
-    let sync = extract(&doc, &with_layout(FakeLayout::new(column_regions())), &CancelToken::new()).unwrap();
+    let sync = extract(
+        &doc,
+        &with_layout(FakeLayout::new(column_regions())),
+        &CancelToken::new(),
+    )
+    .unwrap();
     let options = ExtractOptions::new().with_models(Models::new().with_layout(ModelSlot::Host(info("fake-layout"))));
     let mut job = extract_job(&doc, &options).unwrap();
     let mut asked = Vec::new();
@@ -201,7 +222,10 @@ fn request_and_provide_should_give_what_the_plugin_path_gives() {
                 // A step while the request is open does nothing.
                 assert!(matches!(
                     job.step(&doc, Budget::UNLIMITED).unwrap(),
-                    Step::Progress { phase: Phase::Model, .. }
+                    Step::Progress {
+                        phase: Phase::Model,
+                        ..
+                    }
                 ));
                 job.provide(ModelResult::Layout(column_regions())).unwrap();
                 asked.push(request);
@@ -209,7 +233,13 @@ fn request_and_provide_should_give_what_the_plugin_path_gives() {
             _ => panic!("a step neither done nor in progress"),
         }
     };
-    assert_eq!(asked, [ModelRequest::Layout { page: 0, dpi: Models::DEFAULT_DPI }]);
+    assert_eq!(
+        asked,
+        [ModelRequest::Layout {
+            page: 0,
+            dpi: Models::DEFAULT_DPI
+        }]
+    );
     assert_eq!(hosted, sync);
 }
 
@@ -223,7 +253,10 @@ fn provide_should_refuse_a_result_nobody_asked_for() {
         Err(ExtractError::ModelResultUnexpected)
     );
     job.step(&doc, Budget::UNLIMITED).unwrap();
-    assert_eq!(job.provide(ModelResult::Ocr(Vec::new())), Err(ExtractError::ModelResultUnexpected));
+    assert_eq!(
+        job.provide(ModelResult::Ocr(Vec::new())),
+        Err(ExtractError::ModelResultUnexpected)
+    );
     assert_eq!(job.provide(ModelResult::Layout(Vec::new())), Ok(()));
 }
 
@@ -266,7 +299,12 @@ impl LayoutModel for FailingLayout {
 
 #[test]
 fn a_failing_model_should_end_the_job_with_model_failed() {
-    let err = extract(&two_columns(), &with_layout(Arc::new(FailingLayout)), &CancelToken::new()).unwrap_err();
+    let err = extract(
+        &two_columns(),
+        &with_layout(Arc::new(FailingLayout)),
+        &CancelToken::new(),
+    )
+    .unwrap_err();
     assert_eq!(err.code(), "model-failed");
     assert_eq!(err.to_string(), "a model failed: weights missing");
 }
@@ -287,5 +325,21 @@ fn the_json_should_name_the_models_used() {
     assert_eq!(
         generator["models"],
         serde_json::json!([{ "name": "fake-layout", "version": "1", "sha256": "00".repeat(32), "licence": "Apache-2.0" }])
+    );
+}
+
+#[test]
+fn extract_should_refuse_a_model_only_the_host_can_run() {
+    let options = ExtractOptions::new().with_models(Models::new().with_layout(ModelSlot::Host(info("hosted"))));
+    let err = extract(&two_columns(), &options, &CancelToken::new()).unwrap_err();
+    assert_eq!(err.code(), "model-failed");
+    // A plug-in without a renderer is asked of the host too.
+    let options = ExtractOptions::new()
+        .with_models(Models::new().with_layout(ModelSlot::Plugin(FakeLayout::new(column_regions()))));
+    assert_eq!(
+        extract(&two_columns(), &options, &CancelToken::new())
+            .unwrap_err()
+            .code(),
+        "model-failed"
     );
 }

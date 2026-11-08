@@ -26,7 +26,7 @@ use crate::source::WasmSparseSource;
 pub(crate) type Shared = Rc<RefCell<laminapdf::Document>>;
 
 /// The document of a page or save job, while its `WasmDocument` lives.
-fn upgrade(doc: &Weak<RefCell<laminapdf::Document>>) -> JsResult<Shared> {
+pub(crate) fn upgrade(doc: &Weak<RefCell<laminapdf::Document>>) -> JsResult<Shared> {
     doc.upgrade().ok_or_else(disposed)
 }
 

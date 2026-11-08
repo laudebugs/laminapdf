@@ -59,13 +59,13 @@ pub use model::{
     SCHEMA, Span, StructRef, StructSource, TableDetector,
 };
 pub use options::{DropOptions, ExtractLimits, ExtractOptions, ReadingOrder};
-pub use plugins::{
-    LayoutModel, LayoutRegion, ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord,
-    PageRaster, PageRenderer, RegionLabel,
-};
 #[cfg(feature = "schema")]
 pub use output::json_schema;
 pub use output::{Chunk, ChunkOptions, MarkdownOptions, Region, Rendered, SplitOn, TextRange, tokens_approx};
 #[cfg(feature = "serde")]
 pub use output::{JsonOptions, chunks_jsonl, to_json};
+pub use plugins::{
+    LayoutModel, LayoutRegion, ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord,
+    PageRaster, PageRenderer, RegionLabel,
+};
 pub use tables::TableMode;

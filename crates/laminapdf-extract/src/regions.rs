@@ -141,7 +141,10 @@ mod tests {
 
     #[test]
     fn kind_for_should_drop_running_headers_and_strip_list_markers() {
-        assert_eq!(kind_for(RegionLabel::PageHeader, "Chapter 1"), Err(DropReason::RunningHeader));
+        assert_eq!(
+            kind_for(RegionLabel::PageHeader, "Chapter 1"),
+            Err(DropReason::RunningHeader)
+        );
         assert_eq!(
             kind_for(RegionLabel::ListItem, "• Apples"),
             Ok((
