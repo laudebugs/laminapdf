@@ -356,6 +356,13 @@ impl TextCommand {
             Pt::new(self.baseline(last) + self.spec.font.descent(size)),
         ))
     }
+
+    /// The bottom of the font's descent below the last line that draws something, before the
+    /// surface's transform; `None` when no line does (empty text, or only spaces and breaks).
+    pub(crate) fn bottom(&self) -> Option<Pt> {
+        let last = self.lines.iter().rposition(|l| !l.content.is_empty())?;
+        Some(Pt::new(self.baseline(last) + self.spec.font.descent(self.spec.size)))
+    }
 }
 
 /// A run of text drawn by [`Surface::text`]: change how it is drawn (colour, render mode,
@@ -484,6 +491,31 @@ impl<'s> TextRun<'s> {
                 .unwrap_or_else(|| RectPt::new(c.origin.x, c.origin.y, c.origin.x, c.origin.y)),
             None => RectPt::new(Pt::ZERO, Pt::ZERO, Pt::ZERO, Pt::ZERO),
         }
+    }
+
+    /// Where the next element can start below this run: the bottom of the font's descent below
+    /// its last line that draws something, before the surface's transform, as `bounds` is.
+    /// `None` when nothing is drawn: empty text, or text of only spaces and line breaks. Blank
+    /// lines after the last drawn one don't count, so the gap a caller adds is never doubled.
+    ///
+    /// ```
+    /// use laminapdf_build::{BuildOptions, Builder, PageSize, PointPt, Pt, Standard14};
+    ///
+    /// let mut builder = Builder::new(BuildOptions::default());
+    /// let font = builder.standard_font(Standard14::Helvetica)?;
+    /// let mut page = builder.page(PageSize::A4);
+    /// let mut surface = page.surface();
+    /// let size = Pt::new(12.0);
+    /// let heading = surface.text("Results", &font, size, PointPt::from_points(72.0, 96.0))?;
+    /// // The next line's baseline goes a gap below the heading's bottom, plus the font's ascent.
+    /// let top = heading.bottom().map_or(96.0, |bottom| bottom.get() + 6.0);
+    /// surface.text("Revenue rose 12%.", &font, size, PointPt::from_points(72.0, top + 9.0))?;
+    /// assert!(surface.text("  \n", &font, size, PointPt::from_points(72.0, 200.0))?.bottom().is_none());
+    /// # Ok::<(), laminapdf_build::Error>(())
+    /// ```
+    #[must_use]
+    pub fn bottom(&self) -> Option<Pt> {
+        self.command().and_then(TextCommand::bottom)
     }
 
     /// The number of lines (more than one only when the text has hard line breaks).
