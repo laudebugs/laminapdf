@@ -145,7 +145,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
@@ -181,7 +181,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       - uses: ./.github/actions/install-tools
@@ -204,7 +204,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       - name: Install nightly Rust
@@ -271,7 +271,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -303,7 +303,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       - name: qpdf and a Python venv with pypdfium2
@@ -329,7 +329,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       - run: cargo xtask capabilities --check
