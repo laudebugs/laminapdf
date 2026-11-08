@@ -35,8 +35,8 @@ impl Default for ExtractOptions {
 }
 
 impl ExtractOptions {
-    /// The defaults: every page, reading order from the layout, hidden text dropped,
-    /// de-hyphenation on.
+    /// The defaults: every page, reading order from the layout, hidden text and page furniture
+    /// dropped, de-hyphenation on.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -70,24 +70,39 @@ impl ExtractOptions {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum ReadingOrder {
-    /// The best source available. Today that is the layout (XY-Cut++); the structure tree of a
-    /// plausibly tagged file comes first once it is read.
+    /// The best source available: on each page, the structure tree when the file is tagged and
+    /// the tree passes ADR 0030 §2's plausibility checks, else the layout (XY-Cut++).
     #[default]
     Auto,
+    /// The structure tree on every page that has one, plausible or not; the layout elsewhere.
+    Tagged,
     /// The layout, by XY-Cut++, whether or not the file is tagged.
     Layout,
     /// The order the content stream draws, for debugging and comparison.
     ContentStream,
 }
 
-/// What happens to hidden text ([ADR 0030] §4). Hidden text is never in a block's text.
+/// What happens to hidden text and page furniture ([ADR 0030] §4). Hidden text is never in a
+/// block's text.
 ///
 /// [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct DropOptions {
-    /// Keep each hidden run, text included, in its `dropped` entry: for auditing a file.
+    /// Keep each dropped run, text included, in its `dropped` entry: for auditing a file.
     pub keep_spans: bool,
+    /// Drop page furniture too: text marked as an `Artifact`, running headers and footers, and
+    /// page numbers, each listed in `dropped` instead of the blocks. On by default.
+    pub furniture: bool,
+}
+
+impl Default for DropOptions {
+    fn default() -> Self {
+        Self {
+            keep_spans: false,
+            furniture: true,
+        }
+    }
 }
 
 /// Bounds on the work per page: soft limits that leave work out with a warning (ADR 0003).

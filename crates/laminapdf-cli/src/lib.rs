@@ -5,6 +5,7 @@
 //!
 //! [ADR 0031]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0031-cli-and-mcp-contract.md
 
+pub mod batch;
 pub mod commands;
 pub mod exit;
 pub mod io;
@@ -12,3 +13,4 @@ pub mod io;
 pub mod mcp;
 pub mod ranges;
 pub mod schema;
+pub mod template;

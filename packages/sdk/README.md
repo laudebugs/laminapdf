@@ -194,7 +194,7 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
   - `Builder`: its callbacks (`path`, `tag`) can't cross either. Build on the main thread or in your own Web Worker.
 
 - **Remote files:** `client.openUrl(url, options)` opens a file by range requests in the Web Worker; every call fetches what it needs first. Its options are `httpRangeSource`'s, without a custom `fetch` (a function can't be sent to the Web Worker), and `openRange`'s (`budget`, `readahead`, `maxRounds`). Aborting the call's `signal` also cancels the fetches in flight.
-- **Cancellation:** pass `signal` to any call. An aborted call rejects at once with `LaminaPdfError` `cancelled`, whose `cause` is the signal's reason, and a late answer is dropped.
+- **Cancellation:** pass `signal` to any call. An aborted call rejects at once with `LaminaPdfError` `cancelled`, whose `cause` is the signal's reason, and a late answer is dropped. If an aborted `open` or `openUrl` opened its document anyway, the Web Worker frees it.
   - **Not started yet:** the call never runs.
   - **`save` / `saveWithReport`:** they run as stepped jobs and stop at the next step. The document stays usable.
   - **Every other call:** one synchronous call in the Web Worker, so it can't be stopped midway (`open` included). `client.terminate()` is the hard stop.

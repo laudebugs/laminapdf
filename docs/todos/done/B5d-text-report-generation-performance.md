@@ -7,7 +7,6 @@
 | Plan | [pdf-library §4 non-functional](../../plans/pdf-library.md#non-functional), [§7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
-| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) (no wall-clock asserts in tests: the timing goes in a benchmark), [0016](../../decisions/0016-package-design.md) §6 (a fix must not push a module over its budget) |
 | Branch | `perf/b5d-text-report-generation` |
 | PR title | `perf(build): a 100-page text report within the 500 ms target` |

@@ -7,7 +7,6 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6d](./U6d-core-components.md) |
-| Blocks | [U6e](./U6e-overlays-and-sheets.md) |
 | ADRs | Follows 0024 (component rules, touch targets; from [U1a](./U1a-adr-0024-app-shell-ux.md)) and 0009 (React 19 chrome, React Aria Components; from [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/u6h-display-components` |
 | PR title | `feat(ui): add the paper display components with all states and axe tests` |
@@ -16,7 +15,7 @@
 
 ## Goal
 
-Finish the Paper component library that [U6d](./U6d-core-components.md) starts. U6d builds the controls; this todo builds the items that show state rather than take input: badges and tags, notices and the toast's look, progress and skeletons, the empty state, status-bar items, the page thumbnail, the outline row and the shortcut chip. They follow U6d's rules, so the reader chrome ([C4a](../ready/C4a-ui-chrome-and-platform.md)), the rail ([C6a](../ready/C6a-thumbnails-outline-page-labels.md)), the network indicator ([U4a](../ready/U4a-network-indicator-and-privacy-proof.md)) and the overlays ([U6e](../done/U6e-overlays-and-sheets.md)) compose the same look. This todo was split from U6d when U6d was claimed, because the two together passed the 800-line budget.
+Finish the Paper component library that [U6d](./U6d-core-components.md) starts. U6d builds the controls; this todo builds the items that show state rather than take input: badges and tags, notices and the toast's look, progress and skeletons, the empty state, status-bar items, the page thumbnail, the outline row and the shortcut chip. They follow U6d's rules, so the reader chrome ([C4a](./C4a-ui-chrome-and-platform.md)), the rail ([C6a](../ready/C6a-thumbnails-outline-page-labels.md)), the network indicator ([U4a](../ready/U4a-network-indicator-and-privacy-proof.md)) and the overlays ([U6e](../done/U6e-overlays-and-sheets.md)) compose the same look. This todo was split from U6d when U6d was claimed, because the two together passed the 800-line budget.
 
 ## Context
 

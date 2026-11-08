@@ -8,12 +8,17 @@ use std::cmp::Ordering;
 use laminapdf_model::{Pt, RectPt};
 use laminapdf_text::is_right_to_left;
 
+use crate::lists::is_marker;
+
 /// Baselines closer than this fraction of the size are one line (superscripts stay on it).
 const SAME_BASELINE: f64 = 0.5;
 
 /// A gap wider than this fraction of the size between two runs on one baseline is a column
 /// gutter, so the runs are on two lines. Word spaces stay well below it, even in justified text.
 pub(crate) const GUTTER: f64 = 1.0;
+
+/// A lone list marker joins the text up to this many sizes to its right on one line.
+const MARKER_GAP: f64 = 4.0;
 
 /// A gap wider than this fraction of the size between two runs is a space (as `laminapdf-text`
 /// uses within a run).
@@ -28,6 +33,10 @@ pub(crate) struct Piece {
     pub(crate) size: Pt,
     pub(crate) font: String,
     pub(crate) vertical: bool,
+    /// The marked-content identifier its run is in, for the structure tree.
+    pub(crate) mcid: Option<i64>,
+    /// Inside `Artifact` marked content (kept when furniture isn't dropped).
+    pub(crate) artifact: bool,
 }
 
 /// One line: pieces left to right on one baseline (right to left when the line is).
@@ -92,12 +101,22 @@ pub(crate) fn lines(pieces: &[Piece]) -> Vec<Line> {
 /// `group` (one baseline) split at gutters, each part a line.
 fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
     group.sort_by(|(_, a), (_, b)| by_value(a.bbox.x0.get(), b.bbox.x0.get()));
+    // A right-to-left list's marker is its rightmost piece.
+    let rtl = mostly_rtl(&group.iter().map(|(_, p)| p.text.as_str()).collect::<String>());
+    let count = group.len();
     let mut part: Vec<Entry<'_>> = Vec::new();
-    for entry in group {
+    for (index, entry) in group.into_iter().enumerate() {
         let next = entry.1;
         let gutter = part.last().is_some_and(|(_, prev)| {
             let size = prev.size.get().max(next.size.get());
-            next.bbox.x0.get() - prev.bbox.x1.get() > GUTTER * size
+            let gap = next.bbox.x0.get() - prev.bbox.x1.get();
+            // A list's bullet or number is often set a tab away from its text.
+            let lone = if rtl {
+                index + 1 == count && is_marker(next.text.trim())
+            } else {
+                part.len() == 1 && is_marker(prev.text.trim())
+            };
+            gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size)
         });
         if gutter {
             out.push(line(std::mem::take(&mut part)));
@@ -163,6 +182,8 @@ mod tests {
             size: Pt::new(12.0),
             font: "F".to_owned(),
             vertical: false,
+            mcid: None,
+            artifact: false,
         }
     }
 
@@ -186,6 +207,14 @@ mod tests {
     fn lines_come_top_to_bottom() {
         let got = lines(&[piece("second", 20.0, 130.0, 50.0), piece("first", 20.0, 100.0, 50.0)]);
         assert_eq!(texts(&got), ["first", "second"]);
+    }
+
+    #[test]
+    fn a_lone_marker_a_tab_from_its_text_joins_its_line_either_way() {
+        let got = lines(&[piece("•", 20.0, 100.0, 6.0), piece("Apples", 44.0, 100.0, 40.0)]);
+        assert_eq!(texts(&got), ["• Apples"]);
+        let got = lines(&[piece("שלום עולם", 20.0, 100.0, 60.0), piece("•", 100.0, 100.0, 6.0)]);
+        assert_eq!(texts(&got), ["• שלום עולם"]);
     }
 
     #[test]

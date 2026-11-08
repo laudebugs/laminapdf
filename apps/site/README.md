@@ -43,11 +43,13 @@ After each build, `astro.config.mjs` runs three steps from `@laminapdf/site-kit`
 
 The home page ([screen H12](../../docs/design/paper/account-cloud-product.md#h12-website-home)) is one document sheet on the paper ground, the design the owner chose. Nothing on it is typed by hand twice:
 
-- **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
+- **Numbers and lists** come from `src/data/progress.json`, which `cargo xtask progress` writes from the todo board, the roadmap, `git log` and the open pull requests. Each production deploy runs the command before it builds, so the live site follows `main`. The committed file is what previews and local builds show, and refreshing it is an exempt pull request ([git workflow §2](../../docs/guidelines/git-workflow.md#pick-work-from-the-todo-board)). `src/data/progress.ts` checks the file at build time.
 - **Code and packages** come from the files CI tests (`src/data/sources.ts`): the first PDF from `packages/sdk/examples/hello.ts` and `crates/laminapdf/examples/hello.rs`, the command-line examples that succeed from the CLI's README, and the install lines, the note on alpha releases and the package table from the docs site's install page.
 - **Words** are in `src/data/copy.ts`, which the owner approved; a change to a claim goes back to the owner; the areas' plain names are in `src/data/rounds.ts`.
 
 `test/home.test.ts` renders the page from a fixture snapshot with Astro's container API and finds each count, title and the date; `test/sources.test.ts` holds the code panel and the package table to their files. The code panel's tabs come from `src/scripts/tabs.ts`, a file because the CSP allows no inline script; without it, each pane shows under its own heading.
+
+The panel's code is coloured when the site is built, so the page ships no script for it. `src/data/highlight.ts` reads the code with Shiki and sorts each piece, by its grammar scope, into one of five kinds: keyword, string, comment, function or constant. Operators, variables and a command's arguments stay plain; the command-line tab is coloured as bash after each `$ ` prompt. The panel wraps each piece in a span whose class `src/styles/site.css` colours with a `--paper-code-*` token. Classes stand in for the inline styles Shiki would write, which the CSP's `style-src 'self'` blocks. `test/highlight.test.ts` checks the kinds on the page's own code and that no character of it changes.
 
 Every page carries Open Graph and X card tags with `public/og.png`. `robots.txt` lets search engines in only on the production build, and `sitemap.xml` lists every page but the 404 page.
 
@@ -65,9 +67,9 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 - **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
-- **`production`** (pushes to `main`): builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`.
+- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule catches pull requests opened since the last merge, so the todos they claim show as in progress.
 
-The workflow's `paths` must list everything the site builds from, or a change to one of those files reaches the site only at its next deploy:
+Pushes to `main` deploy whatever they change, because any merge can move a todo. The pull request trigger's `paths` must list everything the site builds from, or a pull request that changes one of those files gets no preview:
 
 - `apps/site/**`;
 - the packages it imports: `packages/site-kit/**`, `packages/tokens/**` and `packages/fonts/**`;

@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) ("Accepted when": scores measured and recorded) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3e](./L3e-extract-bindings-and-benchmark.md) |
-| Blocks | None |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md), [0018](../../decisions/0018-test-strategy.md) (not in the PR lanes), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (data and metric licences) |
 | Branch | `feat/l3f-extract-bench` |
 | PR title | `feat(xtask): extract-bench, reading-order and table scores on a public subset` |
@@ -35,7 +34,7 @@ Measure what the rule-based extractor achieves, so users know before reaching fo
 
 **Out of scope**
 
-- Model plug-ins → [L3c](../ready/L3c-model-plugins.md); structure-tree order → [L3d](../ready/L3d-extract-structure-and-furniture.md).
+- Model plug-ins → [L3c](../ready/L3c-model-plugins.md); structure-tree order → [L3d](./L3d-extract-structure-and-furniture.md).
 
 ## Tasks
 

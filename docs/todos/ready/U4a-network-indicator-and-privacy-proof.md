@@ -7,7 +7,6 @@
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4c](./C4c-remote-files-encryption-privacy.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
-| Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Follows 0011 (privacy and telemetry policy) and 0024 |
 | Branch | `feat/u4a-network-indicator` |
 | PR title | `feat(web): add the network activity indicator and privacy proof tests` |

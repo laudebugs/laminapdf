@@ -11,14 +11,18 @@
 //   would 404 for readers.
 // - LAMINA_PDF_DOCS_TYPEDOC=0 leaves the TypeDoc reference out (the package's `typecheck` uses it,
 //   so the TypeScript checks generate the reference only once, in the build).
+// - LAMINA_PDF_ENV=production builds the released docs, docs.laminapdf.com: the header names the
+//   version. Every other build (next.docs.laminapdf.com, the previews, a local build) says on every
+//   page that it describes unreleased changes, and is noindex (plugins/release.mjs).
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
-import { inlineScriptHashes, pageFiles } from "@laminapdf/site-kit/integrations";
+import { inlineScriptHashes, pageFiles, previewNoindex } from "@laminapdf/site-kit/integrations";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightTypeDoc, { typeDocSidebarGroup } from "starlight-typedoc";
-import { agentDocs } from "./plugins/agent-docs.mjs";
+import { agentDocs, packageVersion } from "./plugins/agent-docs.mjs";
 import { checkedLinks, examplePdfs } from "./plugins/integrations.mjs";
+import { releaseChecks, versionInPages } from "./plugins/release.mjs";
 import { GITHUB, REPOSITORY } from "./plugins/repository.mjs";
 import { sidebar, sidebarRoutes } from "./plugins/sidebar.mjs";
 
@@ -26,6 +30,8 @@ const ROOT = new URL("../../", import.meta.url);
 /** The website's pages: the shared header links to one only once it exists (W1d). */
 const WEBSITE_PAGES = pageFiles(new URL("apps/site/src/pages/", ROOT));
 const TYPEDOC = process.env.LAMINA_PDF_DOCS_TYPEDOC !== "0";
+/** The version the docs describe, and whether they are the released docs. */
+const DOCS_RELEASE = { version: await packageVersion(), release: process.env.LAMINA_PDF_ENV === "production" };
 
 const typeDoc = starlightTypeDoc({
   entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT))],
@@ -50,7 +56,11 @@ export default defineConfig({
   site: "https://docs.laminapdf.com",
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
-  vite: { define: { __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES) } },
+  vite: {
+    define: { __SITE_PAGES__: JSON.stringify(WEBSITE_PAGES), __DOCS_RELEASE__: JSON.stringify(DOCS_RELEASE) },
+    // Pages write `{{version}}` where they name the version; this fills it in.
+    plugins: [versionInPages(DOCS_RELEASE.version)],
+  },
   // Moved pages keep their old URLs (static redirects; Workers static assets ignore _redirects).
   redirects: {
     "/guides/errors-and-warnings/": "/concepts/errors-and-warnings/",
@@ -73,8 +83,10 @@ export default defineConfig({
         : {}),
       lastUpdated: false,
       // One header for both sites (@laminapdf/site-kit), with Starlight's search and theme switch;
-      // on phones, where the header hides the site's links, the menu lists them.
+      // on phones, where the header hides the site's links, the menu lists them. The banner says
+      // when the docs describe unreleased changes.
       components: {
+        Banner: "./src/components/Banner.astro",
         Header: "./src/components/Header.astro",
         MobileMenuFooter: "./src/components/MobileMenuFooter.astro",
       },
@@ -95,6 +107,9 @@ export default defineConfig({
     examplePdfs(new URL("fixtures/golden/examples/", ROOT)),
     checkedLinks,
     inlineScriptHashes,
+    previewNoindex(process.env.LAMINA_PDF_ENV),
     agentDocs(sidebarRoutes),
+    // Last, so it also reads the Markdown twins agentDocs writes.
+    releaseChecks(DOCS_RELEASE),
   ],
 });

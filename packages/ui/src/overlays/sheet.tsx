@@ -348,6 +348,8 @@ function useKeyboardInset(sheet: RefObject<HTMLElement | null>): void {
  * (WCAG 2.4.11). Focus in a layer opened from the sheet, such as its menu, is left alone.
  */
 function FocusClear({ sheet, detent }: { sheet: RefObject<HTMLElement | null>; detent: SheetDetent }): ReactNode {
+  // The compiler can't follow the latest-value ref kept here for effects (useEffectEvent could replace it).
+  "use no memo";
   const menuOpen = useLayerOpenedHere();
   const latest = useRef(menuOpen);
   latest.current = menuOpen;

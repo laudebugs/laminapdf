@@ -7,7 +7,6 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4a](./L4a-lamina-cli.md) |
-| Blocks | None |
 | ADRs | Implements 0031's MCP security defaults (from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
 | Branch | `feat/l4c-mcp-mode` |
 | PR title | `feat(cli): laminapdf mcp stdio server with root allow-list, read-only default and honest annotations` |
@@ -42,7 +41,7 @@ Let MCP clients use laminapdf without a second implementation. `laminapdf mcp` i
 
 **Out of scope** (and which todo covers it)
 
-- The `laminapdf_render` tool and the Markdown/JSON formats of `laminapdf_extract`: added when [L4b](../ready/L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
+- The `laminapdf_render` tool and the Markdown/JSON formats of `laminapdf_extract`: added when [L4b](./L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
 - HTTP transports, auth, resources and prompts: not planned; stdio only.
 - MCP tasks extension for long jobs: later, if render or extract calls need it.
 

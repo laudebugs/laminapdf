@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L5](../../plans/shareable-libraries.md#l5-docs-for-agents) |
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
 | Depends on | [B7a](./B7a-docs-site.md), [L1b](./L1b-error-contract-codegen.md) |
-| Blocks | [L5b](../ready/L5b-agent-eval-baseline.md) |
 | ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](../done/L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](../done/B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5a-agent-docs` |
 | PR title | `docs(site): llms.txt, Markdown twins, docs in packages, rename log and agent-eval baseline` |
@@ -64,7 +63,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 **Out of scope** (and which todo covers it)
 
-- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../done/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](../ready/L4b-cli-batch-render-schema.md)).
+- A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](../done/P2-first-registry-prerelease.md)); a `laminapdf docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
 - Running the eval in CI or gating on it: not planned (it needs a paid API key and is non-deterministic).
 - Writing the guides themselves: [B7a](../done/B7a-docs-site.md).
 

@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use laminapdf_model::{Dash, Matrix};
+use laminapdf_model::{Dash, Matrix, UserSpaceRect};
 use laminapdf_syntax::{Name, ObjRef, Object};
 
 /// A font selected by `Tf` (by resource name) or by an `ExtGState`'s `/Font` entry. Glyph
@@ -68,6 +68,28 @@ impl CurrentColor {
             space,
             components,
             pattern: None,
+        }
+    }
+
+    /// The colour as RGB in [0, 1], approximately: the device spaces by §10.4's conversions.
+    /// `None` for a pattern and for a named space: the interpreter doesn't read what it is, and
+    /// its components mean different things in an `ICCBased`, `Separation` (1 is full ink),
+    /// `Indexed` or `Lab` space.
+    #[must_use]
+    pub fn approx_rgb(&self) -> Option<[f64; 3]> {
+        let c = |i: usize| self.components.get(i).copied().map(|v| v.clamp(0.0, 1.0));
+        match self.space {
+            ColorSpace::DeviceGray => c(0).map(|g| [g, g, g]),
+            ColorSpace::DeviceRgb => Some([c(0)?, c(1)?, c(2)?]),
+            ColorSpace::DeviceCmyk => {
+                let k = c(3)?;
+                Some([
+                    (1.0 - c(0)?) * (1.0 - k),
+                    (1.0 - c(1)?) * (1.0 - k),
+                    (1.0 - c(2)?) * (1.0 - k),
+                ])
+            }
+            ColorSpace::Pattern | ColorSpace::Named(_) => None,
         }
     }
 }
@@ -201,6 +223,47 @@ pub struct GraphicsState {
     pub fill_alpha: f64,
     /// The text state.
     pub text: TextState,
+    /// The clip's bounding box in the page's default user space (§8.5.4): each `W`/`W*` path
+    /// and each Form XObject's `/BBox` intersects it. A box, not the path, so a curved clip
+    /// counts everything inside its box. `None` until something clips; an empty clip is a box
+    /// of no area.
+    pub clip_box: Option<UserSpaceRect>,
+}
+
+impl GraphicsState {
+    /// Narrows the clip to `bounds` (in default user space).
+    pub fn clip_to(&mut self, bounds: UserSpaceRect) {
+        let clipped = match self.clip_box {
+            Some(current) => current.intersect(&bounds),
+            None => Some(bounds),
+        };
+        // Nothing left: a box of no area where the two last met.
+        self.clip_box =
+            Some(clipped.unwrap_or(UserSpaceRect::from_corners(bounds.x0, bounds.y0, bounds.x0, bounds.y0)));
+    }
+}
+
+/// The bounding box of `rect` after `m`.
+#[must_use]
+pub fn transformed_box(rect: &UserSpaceRect, m: &Matrix) -> UserSpaceRect {
+    let corners = [
+        (rect.x0, rect.y0),
+        (rect.x1, rect.y0),
+        (rect.x0, rect.y1),
+        (rect.x1, rect.y1),
+    ]
+    .map(|(x, y)| m.apply(x, y));
+    let xs = corners.map(|p| p.0);
+    let ys = corners.map(|p| p.1);
+    let (x0, x1) = (
+        xs.iter().copied().fold(f64::INFINITY, f64::min),
+        xs.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+    );
+    let (y0, y1) = (
+        ys.iter().copied().fold(f64::INFINITY, f64::min),
+        ys.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+    );
+    UserSpaceRect::from_corners(x0, y0, x1, y1)
 }
 
 impl Default for GraphicsState {
@@ -219,6 +282,7 @@ impl Default for GraphicsState {
             stroke_alpha: 1.0,
             fill_alpha: 1.0,
             text: TextState::default(),
+            clip_box: None,
         }
     }
 }

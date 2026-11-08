@@ -7,7 +7,6 @@
 | Plan | [full-editor §E17](../../plans/full-editor.md#e17-advanced-interactions) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E17b](./E17b-action-editor.md), [E17c](./E17c-layers.md), [E17d](./E17d-media.md), [E17e](./E17e-measurement.md) |
-| Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e17f-3d-detection` |
 | PR title | `feat(3d): detect 3D annotations and show posters` |

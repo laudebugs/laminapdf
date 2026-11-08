@@ -128,20 +128,46 @@ function Pages({ isModal, ...props }: PagesProps) {
 // busy runner stretches the wait to 60 ms.
 const FLICK = { steps: 2, gap: 5 };
 
-/** Drags from the grabber (or `from`) by `dy` CSS px in `steps` moves `gap` ms apart, held `hold` ms before the release. */
+/**
+ * Drags from the grabber (or `from`) by `dy` CSS px in `steps` moves `gap` ms apart, held `hold` ms
+ * before the release. Each event carries the time it is meant to have, `gap` or `hold` after the one
+ * before: the sheet reads speed from `timeStamp`, and a busy runner can stretch the real waits far
+ * past them, turning a flick into a slow drag. The events are a mouse's, and the release is followed
+ * by the click a browser sends when a press ends on the element it began on: React Aria ends the
+ * grabber's press on that click. Without one it clicks the grabber itself 80 ms later, which a busy
+ * runner can land in a later step as a tap that changes the detent.
+ */
 async function drag(dy: number, { steps = 6, gap = 40, hold = 0, from = grabber() } = {}) {
   const target = from;
   const x = target.getBoundingClientRect().left + 10;
   const y = target.getBoundingClientRect().top + 10;
-  const fire = (type: string, clientY: number) =>
-    target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, button: 0, clientX: x, clientY }));
+  let at = performance.now();
+  const fire = (type: string, clientY: number) => {
+    // Pressure while the button is down: React Aria takes a pressureless mouse event for a screen
+    // reader's virtual click.
+    const pressure = type === "pointerup" ? 0 : 0.5;
+    const event = new PointerEvent(type, {
+      bubbles: true,
+      pointerId: 7,
+      pointerType: "mouse",
+      button: 0,
+      pressure,
+      clientX: x,
+      clientY,
+    });
+    Object.defineProperty(event, "timeStamp", { value: at });
+    target.dispatchEvent(event);
+  };
   fire("pointerdown", y);
   for (let i = 1; i <= steps; i++) {
     if (gap > 0) await pause(gap);
+    at += gap;
     fire("pointermove", y + (dy * i) / steps);
   }
   if (hold > 0) await pause(hold);
+  at += hold;
   fire("pointerup", y + dy);
+  target.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0, detail: 1, clientX: x, clientY: y + dy }));
   await frame();
 }
 

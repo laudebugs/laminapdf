@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1h](./Q1h-docs-story.md) |
-| Blocks | [Q1l](./Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `docs/q1i-guides-create` |
 | PR title | `docs(site): plain-English guides for creating PDFs` |

@@ -7,7 +7,6 @@
 | Plan | [Desktop app §6 D3](../../plans/desktop-app.md#d3-files) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D2e](./D2e-desktop-e2e-webdriverio.md) |
-| Blocks | [D3b](./D3b-recent-files-and-file-watching.md) |
 | ADRs | Follows ADR 0008 (paths only enter through trusted sources), ADR 0010 (Platform adapter) |
 | Branch | `feat/d3a-open-from-os` |
 | PR title | `feat(desktop): open PDFs from file associations, argv, the dock and drag-drop` |

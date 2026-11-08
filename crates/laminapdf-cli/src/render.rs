@@ -8,7 +8,9 @@ use std::io::Write as _;
 
 use anstream::{AutoStream, ColorChoice};
 use laminapdf::Diagnostic;
-use laminapdf_cli::commands::{CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, TextReport};
+use laminapdf_cli::commands::{
+    CheckReport, ExplainReport, InfoReport, PageSummary, PagesReport, RenderReport, TextReport,
+};
 use laminapdf_cli::exit::{CliError, ExitCode};
 use serde_json::Value;
 
@@ -223,6 +225,18 @@ pub(crate) fn extract_text(report: &TextReport) -> String {
     let pages: Vec<&str> = report.pages.iter().map(|p| p.text.as_str()).collect();
     let mut text = pages.join("\n\u{c}");
     text.push('\n');
+    text
+}
+
+pub(crate) fn render_text(report: &RenderReport) -> String {
+    let mut text = String::new();
+    for page in &report.pages {
+        let _ = writeln!(
+            text,
+            "page {}: {} × {} px → {}",
+            page.number, page.width, page.height, page.output
+        );
+    }
     text
 }
 

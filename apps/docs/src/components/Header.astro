@@ -3,20 +3,34 @@
 // (@laminapdf/site-kit: the wordmark to laminapdf.com and the one list of links, with "Docs" marked
 // on every page here), and Starlight's own search, social icons, theme switch and language switch
 // beside it, imported the way Starlight's header imports them, so an override of one still applies.
-// The mobile menu button stays where Starlight draws it.
+// The mobile menu button stays where Starlight draws it. Before the search, the version the docs
+// describe (plugins/release.mjs): the release's, linked to its changelog, or "Unreleased", linked to
+// the released docs.
 
 import LanguageSelect from "virtual:starlight/components/LanguageSelect";
 import Search from "virtual:starlight/components/Search";
 import SocialIcons from "virtual:starlight/components/SocialIcons";
 import ThemeSelect from "virtual:starlight/components/ThemeSelect";
-import { siteNav, WEBSITE } from "@laminapdf/site-kit/nav";
+import { DOCS, siteNav, WEBSITE } from "@laminapdf/site-kit/nav";
 import SiteHeader from "@laminapdf/site-kit/SiteHeader.astro";
 
 const links = siteNav(__SITE_PAGES__, { site: "docs", path: Astro.url.pathname });
+const { version, release } = __DOCS_RELEASE__;
 ---
 
 <SiteHeader links={links} home={`${WEBSITE}/`}>
   <Fragment slot="tools">
+    {
+      release ? (
+        <a class="docs-version" href="/reference/changelog/" data-docs-version={version}>
+          {version}
+        </a>
+      ) : (
+        <a class="docs-version" href={`${DOCS}/`} data-docs-version="unreleased">
+          Unreleased
+        </a>
+      )
+    }
     <Search />
     <div class="docs-header-extras sl-hidden md:sl-flex print:hidden">
       <SocialIcons />

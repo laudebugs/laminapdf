@@ -1,22 +1,19 @@
-//! `cargo xtask publish crates|npm [--dry-run]` and `cargo xtask sbom <dir>`: the release lane's
-//! publish jobs (ADR 0017 §7, todo P1).
+//! The release lane's publish jobs (ADR 0017 §7): `cargo xtask publish crates [--dry-run]`,
+//! `cargo xtask publish npm-pack` and `cargo xtask sbom <dir>`.
 //!
 //! - `crates`: `cargo publish --workspace --locked`, which uploads every crate whose manifest says
 //!   `publish = true`, in dependency order, each verified by a build from its packaged files. A real
 //!   publish needs `CARGO_REGISTRY_TOKEN`, which the workflow gets from crates.io's trusted
 //!   publishing (`rust-lang/crates-io-auth-action`); no crates.io token is stored anywhere. A
-//!   re-run after a partial publish leaves out the crates crates.io already has at the version,
-//!   and `npm-stage` the packages npm has.
+//!   re-run after a partial publish leaves out the crates crates.io already has at the version.
 //! - `npm-pack`: builds the four packages `cargo xtask wasm` doesn't (render, render-pdfium,
-//!   render-hayro, viewer) and packs each member of `.changeset/config.json`'s fixed group with
-//!   `pnpm pack` (which turns `workspace:*` into the version), with no token in reach;
-//!   `npm-stage` stages each tarball, dependencies first, with `npm stage publish` (npm
-//!   11.17.0 through `npx`); `npm` does both, with public access and the version's dist-tag (`alpha` for
-//!   `0.2.0-alpha.1`, else `latest`). A staged version is published only when a maintainer
-//!   approves it on npmjs.com with 2FA. A real run needs `NPM_TOKEN`, a granular token limited to
-//!   `@laminapdf` that can stage but not publish (npm's trusted publishing rejects self-hosted
-//!   runners). The token reaches npm through a temporary `.npmrc` that names the variable, so it
-//!   is never written to disk or printed.
+//!   render-hayro, viewer), packs each member of `.changeset/config.json`'s fixed group with
+//!   `pnpm pack` (which turns `workspace:*` into the version), and writes `publish.json` beside
+//!   the tarballs: the version, its dist-tag (`alpha` for `0.2.0-alpha.1`, else `latest`) and the
+//!   tarballs in dependency order. npm's trusted publishing accepts
+//!   only cloud-hosted runners, so the release lane's `publish-npm` job, on a GitHub-hosted runner
+//!   with an OIDC token and no checkout, reads that file and runs `npm publish` for each tarball;
+//!   no npm token is stored, and nothing here publishes.
 //! - `sbom`: `CycloneDX` SBOMs of every publishable crate (`cargo cyclonedx`) and npm package (`pnpm
 //!   sbom`) into `<dir>`, for the GitHub release.
 
@@ -27,35 +24,29 @@ use anyhow::{Context, Result, bail};
 
 use crate::workspace::Workspace;
 
-/// What `cargo xtask publish` uploads.
+/// What `cargo xtask publish` does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Registry {
     Crates,
-    /// Pack and stage (`NpmPack` then `NpmStage`), for a local run; the workflow runs the two
-    /// steps apart so the token never reaches the build.
-    Npm,
-    /// Build and pack the fixed group, needing no token.
+    /// Build and pack the fixed group and write `publish.json`, for the GitHub-hosted job that
+    /// publishes to npm.
     NpmPack,
-    /// Stage the packed tarballs: the only step that sees `NPM_TOKEN`.
-    NpmStage,
 }
 
-/// `cargo xtask publish <crates|npm> [--dry-run]`.
+/// `cargo xtask publish <crates|npm-pack> [--dry-run]`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Publish {
     pub(crate) registry: Registry,
     pub(crate) dry_run: bool,
 }
 
-const USAGE: &str = "usage: cargo xtask publish <crates|npm|npm-pack|npm-stage> [--dry-run]";
+const USAGE: &str = "usage: cargo xtask publish <crates|npm-pack> [--dry-run]";
 
 /// Parses `publish`'s arguments.
 pub(crate) fn parse_args(args: &[String]) -> Result<Publish> {
     let (registry, flags) = match args {
         [registry, flags @ ..] if registry == "crates" => (Registry::Crates, flags),
-        [registry, flags @ ..] if registry == "npm" => (Registry::Npm, flags),
         [registry, flags @ ..] if registry == "npm-pack" => (Registry::NpmPack, flags),
-        [registry, flags @ ..] if registry == "npm-stage" => (Registry::NpmStage, flags),
         _ => bail!("{USAGE}"),
     };
     match flags {
@@ -75,12 +66,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Publish> {
 pub(crate) fn run(ws: &Workspace, publish: Publish) -> Result<()> {
     match publish.registry {
         Registry::Crates => crates(ws, publish.dry_run),
-        Registry::Npm => {
-            npm_pack(ws)?;
-            npm_stage(ws, publish.dry_run)
-        }
         Registry::NpmPack => npm_pack(ws),
-        Registry::NpmStage => npm_stage(ws, publish.dry_run),
     }
 }
 
@@ -88,13 +74,12 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     if !dry_run && std::env::var_os("CARGO_REGISTRY_TOKEN").is_none() {
         bail!("CARGO_REGISTRY_TOKEN is not set: the release workflow gets it from crates.io's trusted publishing");
     }
+    clean_for_publish(&ws.root)?;
     let version = crate::version::fixed_group_version(&ws.root)?.version;
     crate_docs(ws)?;
     crate::package_docs::check_crate(ws, &version)?;
-    let mut args = vec!["publish".to_owned(), "--workspace".to_owned(), "--locked".to_owned()];
-    if dry_run {
-        args.push("--dry-run".to_owned());
-    } else {
+    let mut args = cargo_publish_args(dry_run);
+    if !dry_run {
         // A re-run after a partial publish: leave out what crates.io already has.
         for name in ws.publishable_crates() {
             if on_crates_io(name, &version)? {
@@ -112,9 +97,35 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     ws.cargo(&args)
 }
 
+/// Refuse unrelated changes before generating the ignored package docs that require
+/// `--allow-dirty`; otherwise Cargo could include a developer's uncommitted source edits.
+fn clean_for_publish(root: &Path) -> Result<()> {
+    let status = crate::tracked::git(root, &["status", "--porcelain=v1", "--untracked-files=normal"])?;
+    if status.trim().is_empty() {
+        Ok(())
+    } else {
+        bail!("the checkout has changes unrelated to generated package docs:\n{status}")
+    }
+}
+
+/// The package docs are generated into a gitignored folder immediately before this command and
+/// checked against the crate package, so Cargo must accept those intentional uncommitted files.
+fn cargo_publish_args(dry_run: bool) -> Vec<String> {
+    let mut args = vec![
+        "publish".to_owned(),
+        "--workspace".to_owned(),
+        "--locked".to_owned(),
+        "--allow-dirty".to_owned(),
+    ];
+    if dry_run {
+        args.push("--dry-run".to_owned());
+    }
+    args
+}
+
 /// The `laminapdf` crate's package docs (L5a): the site's pages, the code pages, `AGENTS.md` and
 /// `renames.json` as Markdown and JSON in `crates/laminapdf/docs/` (gitignored), which its
-/// `include` ships. Plain Node, no packages: the API reference is the npm package's only.
+/// `include` ships. The API reference is the npm package's only.
 fn crate_docs(ws: &Workspace) -> Result<()> {
     crate::step("package docs: crates/laminapdf/docs/");
     let node = std::process::Command::new(crate::program_path("node"))
@@ -123,7 +134,7 @@ fn crate_docs(ws: &Workspace) -> Result<()> {
     if !node.is_ok_and(|out| out.status.success()) {
         bail!(
             "node is not on PATH: `publish crates` writes the laminapdf crate's docs/ with Node \
-             (in release.yml, give the publish-crates job `./.github/actions/node-pnpm` with `install: \"\"`)"
+             (in release.yml, give the publish-crates job `./.github/actions/node-pnpm`)"
         );
     }
     crate::run(
@@ -134,7 +145,7 @@ fn crate_docs(ws: &Workspace) -> Result<()> {
 }
 
 /// Whether crates.io has `name` at `version` (its API answers 200 for a published version).
-fn on_crates_io(name: &str, version: &str) -> Result<bool> {
+pub(crate) fn on_crates_io(name: &str, version: &str) -> Result<bool> {
     let url = format!("https://crates.io/api/v1/crates/{name}/{version}");
     let status = std::process::Command::new(crate::program_path("curl"))
         .args([
@@ -159,11 +170,10 @@ fn on_crates_io(name: &str, version: &str) -> Result<bool> {
 /// The files `cargo xtask wasm` leaves, which the npm packages ship.
 const BUILT_BY_WASM: [&str; 2] = ["packages/wasm/dist/lamina_pdf_base.wasm", "packages/sdk/dist/index.js"];
 
-/// Where `npm-pack` leaves the tarballs and `npm-stage` reads them.
+/// Where `npm-pack` leaves the tarballs and `publish.json`.
 const PACKS: &str = "target/xtask/npm-packs";
-/// The npm CLI that stages: `npm stage` needs 11.15 or later, newer than the npm some Node 24
-/// releases bundle, so it runs through `npx` at this version.
-const NPM_VERSION: &str = "11.17.0";
+/// The file beside the tarballs that tells the publish job what to publish, in which order.
+const MANIFEST: &str = "publish.json";
 
 fn npm_pack(ws: &Workspace) -> Result<()> {
     if let Some(missing) = BUILT_BY_WASM.iter().find(|path| !ws.root.join(path).is_file()) {
@@ -180,49 +190,40 @@ fn npm_pack(ws: &Workspace) -> Result<()> {
         ws.pnpm(&["--filter", name, "pack", "--pack-destination", packs_dir])?;
     }
     let sdk = packs.join(tarball_name("@laminapdf/sdk", &group.version));
-    crate::package_docs::check_npm_tarball(ws, &sdk, &group.version)
-}
-
-fn npm_stage(ws: &Workspace, dry_run: bool) -> Result<()> {
-    let group = crate::version::fixed_group_version(&ws.root)?;
-    let tag = dist_tag(&group.version);
-    let npmrc = if dry_run {
-        None
-    } else {
-        if std::env::var_os("NPM_TOKEN").is_none() {
-            bail!(
-                "NPM_TOKEN is not set: a granular npm token limited to @laminapdf, stored as the repository secret NPM_TOKEN"
-            );
-        }
-        Some(NpmRc::write(&ws.root)?)
-    };
-    let npm = format!("npm@{NPM_VERSION}");
-    for name in dependency_order(&group.members)? {
-        let tarball = ws.root.join(PACKS).join(tarball_name(&name, &group.version));
-        if !tarball.is_file() {
-            bail!(
-                "{} is missing: run `cargo xtask publish npm-pack` first",
-                tarball.display()
-            );
-        }
-        if !dry_run && on_npm(ws, &name, &group.version)? {
-            println!("{name}@{} is on npm already: skipped", group.version);
-            continue;
-        }
-        let tarball = tarball.to_str().context("a tarball path is not UTF-8")?;
-        let mut args = vec!["--yes", npm.as_str()];
-        args.extend(stage_args(tarball, tag, dry_run));
-        match &npmrc {
-            Some(npmrc) => crate::run_env(&ws.root, "npx", &args, &[("NPM_CONFIG_USERCONFIG", npmrc.path_str()?)])?,
-            None => crate::run(&ws.root, "npx", &args)?,
-        }
-    }
+    crate::package_docs::check_npm_tarball(ws, &sdk, &group.version)?;
+    let order = dependency_order(&group.members)?;
+    let manifest = publish_manifest(&group.version, &order);
+    let path = packs.join(MANIFEST);
+    let text = serde_json::to_string_pretty(&manifest).context("writing publish.json")?;
+    fs::write(&path, format!("{text}\n")).with_context(|| format!("writing {}", path.display()))?;
+    println!(
+        "{}: {} packages at {} under the `{}` tag, dependencies first",
+        path.display(),
+        order.len(),
+        group.version,
+        dist_tag(&group.version)
+    );
     Ok(())
 }
 
+/// What the publish job reads (ADR 0017 §7): the version, its dist-tag, and each package's name
+/// and tarball in `names`' order, dependencies first. The job runs no code from the repository, so
+/// the order and the tag come from here; it checks every value before it uses one, and pins npm
+/// itself.
+fn publish_manifest(version: &str, names: &[String]) -> serde_json::Value {
+    let packages: Vec<serde_json::Value> = names
+        .iter()
+        .map(|name| serde_json::json!({ "name": name, "tarball": tarball_name(name, version) }))
+        .collect();
+    serde_json::json!({
+        "version": version,
+        "tag": dist_tag(version),
+        "packages": packages,
+    })
+}
+
 /// Whether npm has published `name` at `version` (`npm view` prints the version, else nothing).
-/// A version staged but not yet approved is not on npm: stage it again or approve the staged one.
-fn on_npm(ws: &Workspace, name: &str, version: &str) -> Result<bool> {
+pub(crate) fn on_npm(ws: &Workspace, name: &str, version: &str) -> Result<bool> {
     let output = std::process::Command::new(crate::program_path("npm"))
         .args(["view", &format!("{name}@{version}"), "version"])
         .current_dir(&ws.root)
@@ -231,8 +232,8 @@ fn on_npm(ws: &Workspace, name: &str, version: &str) -> Result<bool> {
     Ok(String::from_utf8_lossy(&output.stdout).trim() == version)
 }
 
-/// The members' names with every package after the members it depends on, so they are staged,
-/// and approved, dependencies first.
+/// The members' names with every package after the members it depends on, so they are published
+/// dependencies first.
 fn dependency_order(members: &[(String, PathBuf)]) -> Result<Vec<String>> {
     let mut deps = Vec::with_capacity(members.len());
     for (name, dir) in members {
@@ -274,15 +275,6 @@ fn tarball_name(name: &str, version: &str) -> String {
     format!("{}-{version}.tgz", name.trim_start_matches('@').replace('/', "-"))
 }
 
-/// `npm stage publish`'s arguments for one tarball.
-fn stage_args<'a>(tarball: &'a str, tag: &'a str, dry_run: bool) -> Vec<&'a str> {
-    let mut args = vec!["stage", "publish", tarball, "--access", "public", "--tag", tag];
-    if dry_run {
-        args.push("--dry-run");
-    }
-    args
-}
-
 /// The npm dist-tag for `version`: its pre-release identifier (`alpha` for `0.2.0-alpha.1`;
 /// `next` when it is a number), else `latest`, so a pre-release never becomes what
 /// `npm install @laminapdf/sdk` picks.
@@ -291,32 +283,6 @@ fn dist_tag(version: &str) -> &str {
         None => "latest",
         Some(id) if id.is_empty() || id.chars().all(|c| c.is_ascii_digit()) => "next",
         Some(id) => id,
-    }
-}
-
-/// A temporary user `.npmrc` that reads the token from `NPM_TOKEN` (npm expands `${…}` in it),
-/// removed when dropped.
-struct NpmRc(PathBuf);
-
-impl NpmRc {
-    fn write(root: &Path) -> Result<Self> {
-        let path = root.join("target/xtask/publish.npmrc");
-        if let Some(dir) = path.parent() {
-            fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-        }
-        fs::write(&path, "//registry.npmjs.org/:_authToken=${NPM_TOKEN}\n")
-            .with_context(|| format!("writing {}", path.display()))?;
-        Ok(Self(path))
-    }
-
-    fn path_str(&self) -> Result<&str> {
-        self.0.to_str().context("the .npmrc path is not UTF-8")
-    }
-}
-
-impl Drop for NpmRc {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.0);
     }
 }
 
@@ -387,14 +353,51 @@ mod tests {
             }
         );
         assert_eq!(
-            parse_args(&strings(&["npm"])).unwrap(),
+            parse_args(&strings(&["npm-pack"])).unwrap(),
             Publish {
-                registry: Registry::Npm,
+                registry: Registry::NpmPack,
                 dry_run: false
             }
         );
         assert!(parse_args(&strings(&["pypi"])).is_err());
-        assert!(parse_args(&strings(&["npm", "--force"])).is_err());
+        assert!(parse_args(&strings(&["npm-stage"])).is_err());
+        assert!(parse_args(&strings(&["npm-pack", "--force"])).is_err());
+    }
+
+    #[test]
+    fn cargo_publish_should_allow_the_generated_package_docs() {
+        assert_eq!(
+            cargo_publish_args(false),
+            strings(&["publish", "--workspace", "--locked", "--allow-dirty"])
+        );
+        assert_eq!(
+            cargo_publish_args(true),
+            strings(&["publish", "--workspace", "--locked", "--allow-dirty", "--dry-run"])
+        );
+    }
+
+    #[test]
+    fn clean_for_publish_should_refuse_uncommitted_sources() {
+        let tree = crate::tracked::TempTree::new("publish-clean", &[("tracked", "before")]);
+        crate::tracked::git(&tree.0, &["init", "-q"]).unwrap();
+        crate::tracked::git(&tree.0, &["add", "tracked"]).unwrap();
+        crate::tracked::git(
+            &tree.0,
+            &[
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.com",
+                "commit",
+                "-qm",
+                "initial",
+            ],
+        )
+        .unwrap();
+        assert!(clean_for_publish(&tree.0).is_ok());
+
+        fs::write(tree.0.join("tracked"), "after").unwrap();
+        assert!(clean_for_publish(&tree.0).is_err());
     }
 
     #[test]
@@ -430,20 +433,41 @@ mod tests {
     }
 
     #[test]
-    fn stage_args_should_stage_the_tarball_publicly_with_the_tag() {
+    fn publish_manifest_should_list_the_tarballs_in_order_with_the_tag() {
+        let manifest = publish_manifest("0.2.0-alpha.3", &strings(&["@laminapdf/wasm", "@laminapdf/sdk"]));
         assert_eq!(
-            stage_args("x.tgz", "alpha", true),
-            [
-                "stage",
-                "publish",
-                "x.tgz",
-                "--access",
-                "public",
-                "--tag",
-                "alpha",
-                "--dry-run"
-            ]
+            manifest,
+            serde_json::json!({
+                "version": "0.2.0-alpha.3",
+                "tag": "alpha",
+                "packages": [
+                    { "name": "@laminapdf/wasm", "tarball": "laminapdf-wasm-0.2.0-alpha.3.tgz" },
+                    { "name": "@laminapdf/sdk", "tarball": "laminapdf-sdk-0.2.0-alpha.3.tgz" },
+                ],
+            })
         );
-        assert_eq!(stage_args("x.tgz", "latest", false).last(), Some(&"latest"));
+    }
+
+    /// release.yml's `publish-npm` reads publish.json with jq, so its keys must be the ones
+    /// [`publish_manifest`] writes: a rename on either side would fail only in a release.
+    #[test]
+    fn publish_npm_should_read_the_keys_publish_manifest_writes() {
+        const WORKFLOW: &str = include_str!("../../../.github/workflows/release.yml");
+        let manifest = publish_manifest("0.2.0", &strings(&["@laminapdf/wasm"]));
+        let keys = |value: &serde_json::Value| -> Vec<String> {
+            value
+                .as_object()
+                .map(|o| o.keys().cloned().collect())
+                .unwrap_or_default()
+        };
+        assert_eq!(keys(&manifest), ["packages", "tag", "version"]);
+        assert_eq!(keys(&manifest["packages"][0]), ["name", "tarball"]);
+        for read in [
+            "jq -r .version publish.json",
+            "jq -r .tag publish.json",
+            r#"jq -r '.packages[] | "\(.name) \(.tarball)"' publish.json"#,
+        ] {
+            assert!(WORKFLOW.contains(read), "publish-npm no longer reads `{read}`");
+        }
     }
 }

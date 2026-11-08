@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (5, 6) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3b](./L3b-extract-tables-and-serialisers.md) |
-| Blocks | [L3f](./L3f-extraction-benchmark.md) |
 | ADRs | Implements 0030 for the web; follows 0016 (the extract module and its budget), [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), 0026 (unknown option keys with "did you mean"), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (benchmark data licences) |
 | Branch | `feat/l3e-extract-bindings-and-benchmark` |
 | PR title | `feat(sdk): doc.extract() in WASM and TypeScript, and the extraction benchmark` |
@@ -38,8 +37,8 @@ Give TypeScript the extraction Rust has since [L3b](./L3b-extract-tables-and-ser
 
 **Out of scope** (and which todo covers it)
 
-- Structure-tree order, headings, lists, tagged tables: [L3d](../ready/L3d-extract-structure-and-furniture.md).
-- `laminapdf extract` output formats in the CLI: [L4b](../ready/L4b-cli-batch-render-schema.md).
+- Structure-tree order, headings, lists, tagged tables: [L3d](./L3d-extract-structure-and-furniture.md).
+- `laminapdf extract` output formats in the CLI: [L4b](./L4b-cli-batch-render-schema.md).
 
 ## Tasks
 

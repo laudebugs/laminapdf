@@ -9,12 +9,17 @@ mod explain;
 mod extract;
 mod info;
 mod pages;
+mod render;
 
 pub use check::{CheckArgs, CheckReport, check};
 pub use explain::{ExplainArgs, ExplainReport, explain};
-pub use extract::{ExtractArgs, Format, PageTextEntry, TextReport, extract};
+pub use extract::{ExtractArgs, ExtractedReport, Format, PageTextEntry, TextReport, extract, extract_document};
 pub use info::{InfoArgs, InfoMetadata, InfoReport, PageSummary, info};
 pub use pages::{PagesReport, RotateArgs, RotatedPage, rotate};
+pub use render::{Backend, DEFAULT_DPI, RenderArgs, RenderReport, RenderedPage, check_outputs, render};
+
+use std::collections::BTreeSet;
+use std::sync::{Arc, Mutex};
 
 use laminapdf::{CancelToken, Diagnostic, Document, ErrorCode, Limits, OpenOptions};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
@@ -106,9 +111,30 @@ pub struct Settings {
     /// Stops a command at its next step: after reading its input and after opening it, between
     /// pages, and inside a save (ADR 0028). The MCP server cancels it when a call runs out of time.
     pub cancel: CancelToken,
+    /// The paths the inputs of one command have claimed so far, shared by a batch's threads, so
+    /// two inputs never write the same file.
+    pub claimed: Arc<Mutex<BTreeSet<String>>>,
 }
 
 impl Settings {
+    /// Claims `paths` for one input; none is claimed when one already was.
+    ///
+    /// # Errors
+    ///
+    /// `invalid-command-line` naming the first path another input claimed.
+    pub fn claim(&self, paths: &[String]) -> Result<(), CliError> {
+        let mut claimed = self.claimed.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(taken) = paths.iter().find(|p| claimed.contains(*p)) {
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "two inputs would write the same file: put {stem}, {name} or {index} in the output template",
+            )
+            .with("output", taken.as_str()));
+        }
+        claimed.extend(paths.iter().cloned());
+        Ok(())
+    }
+
     /// `cancelled` once [`Settings::cancel`] has been cancelled.
     ///
     /// # Errors
@@ -211,6 +237,8 @@ mod tests {
                     input: input.clone(),
                     format: Format::Text,
                     pages: None,
+                    max_chars: None,
+                    visible_only: false,
                 },
                 &settings,
                 &mut io,

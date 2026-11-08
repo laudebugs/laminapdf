@@ -5,6 +5,7 @@
 
 mod capabilities;
 mod changes;
+mod cli_docs;
 mod codegen;
 mod corpus;
 mod docs_links;
@@ -23,6 +24,7 @@ mod nightly;
 mod package_docs;
 mod pdf_runtimes;
 mod pdfium;
+mod platform_boundary;
 mod portable_paths;
 mod progress;
 mod publish;
@@ -33,6 +35,7 @@ mod render_diff;
 mod reports;
 mod roundtrip;
 mod runner;
+mod semver;
 mod todos;
 mod tracked;
 mod ts_structure;
@@ -124,8 +127,9 @@ tasks:
                     check every relative link and #anchor in the tracked Markdown files;
                     --external checks the http(s) URLs over the network instead (nightly;
                     allowlist in .config/link-check.toml, report in target/nightly/links/)
-  todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
-                    field from the Depends on links; --check only verifies
+  todos [--check]   check the todo files, point each Depends on link at its todo's folder, print
+                    the todos that can start now and write the whole board (never committed) to
+                    target/todos/board.md; --check only verifies
   progress [--offline]
                     write apps/site/src/data/progress.json, the website's roadmap and dashboard:
                     the board's counts, the roadmap's milestones, merged and open pull requests
@@ -180,6 +184,7 @@ tasks:
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
+  cli-docs          the laminapdf CLI's man pages and shell completions into target/cli-docs/
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -228,6 +233,11 @@ tasks:
                     pages, memory, fling and zoom against the web plan's §4 targets, written to
                     target/viewer-perf/ and the job summary (never fails on a target); --history flags
                     >10% regressions, --record appends to <dir>/history.jsonl, --dry-run prints the issue
+  semver [--baseline <version>]
+                    the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
+                    Extractor, after `wasm`) against the newest published version; breaking changes
+                    fail unless the changesets give the fixed group a minor bump (pending ones, or
+                    those a version PR consumed while its version awaits npm)
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
@@ -249,6 +259,8 @@ tasks:
                     Worker under wrangler dev --local, and Rust binaries with a path and a git
                     dependency on lamina (default ref: HEAD; default URL: this clone); each
                     output must equal fixtures/golden/examples/hello.pdf (needs `wasm` first)
+  release prepare --run <nightly-run-id>
+                    prepare a version-only commit from the exact full-nightly commit; never pushes
   release-guard [--run <id>] [--commit <rev>]
                     fail unless the latest completed full nightly.yml run on main, or run
                     <id>, succeeded on <rev> (default HEAD) or an ancestor; full: scheduled, or
@@ -274,6 +286,7 @@ fn without_workspace(task: &str, rest: &[String]) -> Option<Result<()>> {
         // --locked` (which fails on a manifest bumped by hand, the case `--check` reports).
         ("version", _) => version::parse_args(rest).and_then(|args| version::run(&repo_root()?, &args)),
         // Needs only gh: no `cargo metadata`.
+        ("release", _) => repo_root().and_then(|root| release::prepare::run(&root, rest)),
         ("release-guard", _) => release::parse_args(rest).and_then(|args| release::guard(&repo_root()?, &args)),
         // Needs only CHANGELOG.md.
         ("release-notes", [tag, out]) => {
@@ -308,10 +321,7 @@ fn main() -> Result<()> {
         ("gen", [what, flag]) if what == "boundary" && flag == "--check" => codegen::boundary::generate(&ws, true),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
-        ("lint", []) => {
-            clippy(&ws)?;
-            biome_ci(&ws)
-        }
+        ("lint", []) => clippy(&ws).and_then(|()| biome_ci(&ws)),
         ("test", []) => {
             rust_tests(&ws)?;
             ts_tests(&ws)
@@ -344,6 +354,7 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
+        ("cli-docs", []) => cli_docs::run(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
         ("render-golden", []) => render::run(&ws, false),
@@ -362,6 +373,7 @@ fn main() -> Result<()> {
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
+        ("semver", args) => semver::run(&ws, args),
         ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
@@ -427,7 +439,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     docs_prose::run(&ws.root, reports::Options::strict())?;
     step("docs-snippets: the examples against docs/guidelines/examples.md (strict on every file)");
     docs_snippets::run(&ws.root, reports::Options::strict())?;
-    step("todos --check: the todo board and Blocks fields are up to date");
+    step("todos --check: the todo graph and the Depends on links; no committed board or Blocks rows");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;
@@ -464,6 +476,7 @@ fn api_docs(ws: &Workspace) -> Result<()> {
 }
 
 fn check_ts(ws: &Workspace) -> Result<()> {
+    platform_boundary::check(ws)?;
     biome_ci(ws)?;
     examples_lints::biome(ws, reports::Options::strict())?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;

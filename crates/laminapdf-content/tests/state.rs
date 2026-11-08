@@ -463,3 +463,75 @@ fn a_stray_id_is_content_syntax() {
     let (_, rec) = run_content(b"ID");
     assert_eq!(rec.codes(), ["content-syntax"]);
 }
+
+/// The clip box at each text show.
+#[derive(Default)]
+struct Clips(Vec<Option<laminapdf_model::UserSpaceRect>>);
+
+impl Visitor for Clips {
+    fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
+        self.0.push(show.state.clip_box);
+        TextAdvance::default()
+    }
+}
+
+fn clips(content: &[u8]) -> Vec<Option<[f64; 4]>> {
+    let doc = text_doc(b"");
+    let mut clips = Clips::default();
+    interpret_content(&doc, content, None, &mut clips).unwrap();
+    clips.0.into_iter().map(|c| c.map(|r| r.to_array())).collect()
+}
+
+#[test]
+fn a_clip_path_narrows_the_clip_box_after_painting_and_q_restores_it() {
+    // §8.5.4: `re W n` clips to the rectangle; a second clip intersects it; Q restores.
+    let got = clips(
+        b"BT (a) Tj ET q 2 0 0 2 0 0 cm 10 10 50 50 re W n BT (b) Tj ET 0 0 20 100 re W n BT (c) Tj ET Q BT (d) Tj ET",
+    );
+    assert_eq!(
+        got,
+        [
+            None,
+            Some([20.0, 20.0, 120.0, 120.0]),
+            Some([20.0, 20.0, 40.0, 120.0]),
+            None
+        ]
+    );
+}
+
+#[test]
+fn a_clip_that_misses_the_current_one_leaves_nothing() {
+    let got = clips(b"0 0 10 10 re W n 50 50 10 10 re W n BT (a) Tj ET");
+    assert_eq!(got.len(), 1);
+    let [x0, y0, x1, y1] = got[0].unwrap();
+    assert!(x1 - x0 <= 0.0 && y1 - y0 <= 0.0, "{:?}", got[0]);
+}
+
+#[test]
+fn approximate_rgb_follows_the_device_spaces() {
+    let color = |space, components: &[f64]| {
+        let mut color = laminapdf_content::CurrentColor::initial(space);
+        color.components = components.to_vec();
+        color
+    };
+    assert_eq!(color(ColorSpace::DeviceGray, &[1.0]).approx_rgb(), Some([1.0; 3]));
+    assert_eq!(
+        color(ColorSpace::DeviceCmyk, &[0.0, 0.0, 0.0, 0.0]).approx_rgb(),
+        Some([1.0; 3])
+    );
+    assert_eq!(
+        color(ColorSpace::DeviceCmyk, &[0.0, 0.0, 0.0, 1.0]).approx_rgb(),
+        Some([0.0; 3])
+    );
+    assert_eq!(color(ColorSpace::Pattern, &[]).approx_rgb(), None);
+    // A separation's tint 1 is full ink, not white: a named space isn't read.
+    let named = color(ColorSpace::Named(laminapdf_syntax::Name::from("CS0")), &[1.0]);
+    assert_eq!(named.approx_rgb(), None);
+}
+
+#[test]
+fn a_rotated_rectangle_clips_to_the_box_of_all_four_corners() {
+    // Rotated 90°: (x, y) → (−y, x), so the rectangle 0 0 10 20 covers x −20..0, y 0..10.
+    let got = clips(b"0 1 -1 0 0 0 cm 0 0 10 20 re W n BT (a) Tj ET");
+    assert_eq!(got, [Some([-20.0, 0.0, 0.0, 10.0])]);
+}

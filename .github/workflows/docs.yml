@@ -1,4 +1,4 @@
-# Docs site deploys (todo B7a): apps/docs on Cloudflare Workers static assets (apps/docs/wrangler.toml).
+# Docs site deploys (todos B7a, P4): apps/docs on Cloudflare Workers static assets (apps/docs/wrangler.toml).
 #
 # Pull requests that touch the site or anything it is built from (paths below):
 # - `preview-build` builds the PR's site with no secrets and uploads dist/ as an artifact.
@@ -6,8 +6,16 @@
 #   takes wrangler.toml and the Wrangler version from the default branch, installs that exact
 #   Wrangler into a fresh npm cache, uploads the artifact as a preview version under the alias
 #   pr-<number> and comments its URL on the PR (one comment, updated on every push).
-# Pushes to main (and manual runs on main) build and deploy production in one job (`production`):
-# main is trusted. Production is https://docs.laminapdf.com (the custom domain route in wrangler.toml).
+# Pushes to main (and manual runs on main without a tag) build main as the next docs and deploy them
+# in one job (`next`) to https://next.docs.laminapdf.com, the Worker lamina-pdf-docs-next
+# (wrangler.toml's [env.next]): every page says it describes unreleased changes, and every response
+# is noindex. https://docs.laminapdf.com shows the latest release only (ADR 0017 §7, ADR 0011 §1):
+# `production` builds a v<version> tag with LAMINA_PDF_ENV=production, the one build that names its
+# version and may be indexed, and deploys it. The release lane calls it once the packages are
+# published (workflow_call with `tag`); a manual run with `tag` redeploys a release by hand. Every
+# other build, previews included, marks itself noindex (apps/docs/plugins/release.mjs). main and
+# release tags are trusted. With `dry-run`, next and production build and check the site and deploy
+# nothing (`wrangler deploy --dry-run`, which needs no secrets): the release lane's dry runs use it.
 #
 # Fork PRs are skipped (they must never run on self-hosted runners or see the secrets). Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
@@ -42,13 +50,36 @@ on:
     branches: [main]
     paths: *inputs
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "A release tag (v<version>) to deploy to docs.laminapdf.com. Empty: deploy main to next.docs.laminapdf.com."
+        required: false
+        default: ""
+      dry-run:
+        description: Build and check the site, and deploy nothing.
+        required: false
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag (v<version>) whose docs go to docs.laminapdf.com.
+        required: true
+        type: string
+      dry-run:
+        description: Build and check the site, and deploy nothing.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: docs-${{ github.event.pull_request.number || github.ref }}
-  # Superseded PR previews are cancelled; production deploys run one after another.
+  # One group per PR, one for next, one for production whichever tag it deploys (and one for
+  # production's dry runs), so two deploys of one Worker never overlap.
+  group: docs-${{ github.event.pull_request.number || (inputs.tag != '' && (inputs.dry-run && 'production-dry-run' || 'production')) || github.ref }}
+  # Superseded PR previews are cancelled; next and production deploys run one after another.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -69,11 +100,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/node-pnpm
+      # Without LAMINA_PDF_ENV=production the build marks every response noindex (ADR 0011 §1).
       - run: pnpm --filter @laminapdf/docs build
-      # Previews are never indexed (ADR 0011 §1's rule for non-production builds).
-      - name: Mark the preview noindex
-        run: |
-          printf '\n/*\n  X-Robots-Tag: noindex\n' >> apps/docs/dist/_headers
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docs-preview-dist
@@ -162,7 +190,7 @@ jobs:
           npm_config_cache: ${{ runner.temp }}/npm-cache
         run: |
           rm -rf "$npm_config_cache" "$WRANGLER_OUTPUT_FILE_PATH"
-          npx --yes "wrangler@$WRANGLER_VERSION" versions upload --preview-alias "pr-$PR" --message "PR #$PR at $SHA"
+          npx --yes "wrangler@$WRANGLER_VERSION" versions upload --env="" --preview-alias "pr-$PR" --message "PR #$PR at $SHA"
           url=$(node -e '
             const lines = require("node:fs").readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean);
             const upload = lines.map((l) => JSON.parse(l)).filter((e) => e.type === "version-upload").at(-1);
@@ -196,40 +224,124 @@ jobs:
         if: always()
         run: rm -rf .docs-base
 
-  production:
-    name: Docs production
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+  next:
+    name: Docs next
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.tag == '')) }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
+      # The mode: deploy with the secrets, dry-run when asked (no secrets needed), else skip.
       - name: Check for the Cloudflare secrets
-        id: secrets
+        id: mode
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DRY_RUN: ${{ inputs.dry-run }}
         run: |
-          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "mode=dry-run" >> "$GITHUB_OUTPUT"
+          elif [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "mode=deploy" >> "$GITHUB_OUTPUT"
           else
             echo "::notice title=Docs deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. The owner needs to add them (see apps/docs/README.md) to deploy the docs site; until then this job only skips."
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
           fi
-      - if: steps.secrets.outputs.enabled == 'true'
+      - if: steps.mode.outputs.mode != 'skip'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - if: steps.secrets.outputs.enabled == 'true'
+      - if: steps.mode.outputs.mode != 'skip'
         uses: ./.github/actions/node-pnpm
-      - name: Build the site
-        if: steps.secrets.outputs.enabled == 'true'
+      # Without LAMINA_PDF_ENV=production, every page says it describes unreleased changes and links
+      # to the released docs, and the build marks every response noindex.
+      - name: Build the site as the next docs
+        if: steps.mode.outputs.mode != 'skip'
         run: pnpm --filter @laminapdf/docs build
-      - name: Deploy production
-        if: steps.secrets.outputs.enabled == 'true'
+      - name: Deploy next
+        if: steps.mode.outputs.mode != 'skip'
         working-directory: apps/docs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MODE: ${{ steps.mode.outputs.mode }}
           SHA: ${{ github.sha }}
-        run: pnpm exec wrangler deploy --message "main at $SHA"
+        run: |
+          if [ "$MODE" = "dry-run" ]; then
+            pnpm exec wrangler deploy --env next --dry-run
+          else
+            pnpm exec wrangler deploy --env next --message "main at $SHA"
+          fi
+
+  production:
+    name: Docs production
+    # The release lane's call (`secrets: inherit`) or a manual run with a tag. Inside a called
+    # workflow github.event_name is the caller's, so the tag input is what marks this job's runs.
+    if: ${{ inputs.tag != '' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # The mode: deploy with the secrets, dry-run when asked (no secrets needed), else skip.
+      - name: Check for the Cloudflare secrets
+        id: mode
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "mode=dry-run" >> "$GITHUB_OUTPUT"
+          elif [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "mode=deploy" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Docs deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. The owner needs to add them (see apps/docs/README.md) to deploy the docs site; until then this job only skips."
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$TAG' is not a release tag (v<version>)"
+            exit 1
+          fi
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          persist-credentials: false
+      - if: steps.mode.outputs.mode != 'skip'
+        uses: ./.github/actions/node-pnpm
+      - name: Check that the tag names the docs' version
+        if: steps.mode.outputs.mode != 'skip'
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          version=$(node -p 'require("./packages/sdk/package.json").version')
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::$TAG holds version $version; the docs would name the wrong version"
+            exit 1
+          fi
+      - name: Build the site
+        if: steps.mode.outputs.mode != 'skip'
+        env:
+          # The one build that search engines may index, and that names its version.
+          LAMINA_PDF_ENV: production
+        run: pnpm --filter @laminapdf/docs build
+      - name: Deploy production
+        if: steps.mode.outputs.mode != 'skip'
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$MODE" = "dry-run" ]; then
+            pnpm exec wrangler deploy --env="" --dry-run
+          else
+            pnpm exec wrangler deploy --env="" --message "release $TAG"
+          fi

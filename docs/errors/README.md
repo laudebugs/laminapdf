@@ -55,6 +55,8 @@ A PR that adds a code adds:
 | [`extract-reading-order-ambiguous`](extract-reading-order-ambiguous.md) | `unsupported` | a page mixes horizontal and vertical writing, so the order of its blocks is a guess |
 | [`extract-table-ambiguous`](extract-table-ambiguous.md) | `unsupported` | a table's rules marked out merged cells that aren't rectangles, so its cells were kept unmerged |
 | [`extract-table-limit`](extract-table-limit.md) | `limit` | a page's ruling lines would make a table bigger than the extraction's cell limit; those lines gave no table |
+| [`extract-struct-tree-ignored`](extract-struct-tree-ignored.md) | `input` | a tagged page's structure tree covered too little of its text, or its order jumped back across columns too often, so the layout gave the reading order |
+| [`extract-untagged-content`](extract-untagged-content.md) | `input` | a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order |
 
 ## Errors
 

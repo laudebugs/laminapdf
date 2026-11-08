@@ -7,7 +7,6 @@
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C7a](./C7a-accessibility-and-theming.md), [D4a](./D4a-windows-tabs-and-session-restore.md), [U1b](./U1b-command-registry-and-palette.md) |
-| Blocks | [D4c](./D4c-native-printing.md), [D5b](./D5b-updater-in-app.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | Dependency notes | [D4a](D4a-windows-tabs-and-session-restore.md). Cross-plan: the shared shortcut map is the command registry from [U1b](./U1b-command-registry-and-palette.md) ([UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3)), which this todo depends on; it reads the registry and never creates a second map. |
 | ADRs | Follows ADR 0010 (Platform adapter), ADR 0008 |
 | Branch | `feat/d4b-native-menus` |

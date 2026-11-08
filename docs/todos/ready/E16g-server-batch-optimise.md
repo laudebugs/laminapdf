@@ -7,7 +7,6 @@
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E14e](./E14e-server-batch.md), [E16b](./E16b-structural-optimiser.md), [E16e](./E16e-preflight-and-conversion.md) |
-| Blocks | None |
 | ADRs | Implements ADR 0013; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e16g-server-batch-optimise` |
 | PR title | `feat(jobs): optimise as a server batch job` |

@@ -70,6 +70,7 @@ export {
 export { Thumbnail, type ThumbnailProps, type ThumbnailSize } from "./components/thumbnail.js";
 export { ToggleButton, type ToggleButtonProps, ToolToggle, type ToolToggleProps } from "./components/toggle.js";
 export { type Density, DensityProvider, type DensityProviderProps, useDensity } from "./density.js";
+export { type Catalogue, ENGLISH, type MessageId, message } from "./messages.js";
 export {
   Dialog,
   type DialogProps,
@@ -104,3 +105,53 @@ export {
   type ToastRegionProps,
 } from "./overlays/toast-region.js";
 export { Tooltip, type TooltipProps } from "./overlays/tooltip.js";
+export { type CapabilityState, PlatformProvider, useCapability, usePlatform } from "./platform/context.js";
+export type {
+  Capabilities,
+  Capability,
+  Platform,
+  PlatformFile,
+  PlatformStorage,
+  PrintJob,
+  RecentFile,
+  RecentFiles,
+  SaveResult,
+} from "./platform/types.js";
+export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
+export { type DebugBackend, DebugMenu, type DebugMenuProps } from "./reader/debug-menu.js";
+export { type GatedEntry, useGatedEntries } from "./reader/gate.js";
+export { WholeFileDownload, type WholeFileDownloadProps } from "./reader/loading.js";
+export { OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
+export { PageInput, type PageInputProps } from "./reader/page-input.js";
+export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
+export {
+  OpenFailure,
+  type OpenFailureProps,
+  RepairDetails,
+  type RepairDetailsProps,
+  type RepairKind,
+} from "./reader/repair.js";
+export { ReaderShell, type ReaderShellProps } from "./reader/shell.js";
+export { ReaderTopBar, type ReaderTopBarProps } from "./reader/top-bar.js";
+export {
+  MAX_ZOOM,
+  MIN_ZOOM,
+  pageFromInput,
+  type ViewerControls,
+  type ViewerSlice,
+  ZOOM_PRESETS,
+  type Zoom,
+  zoomIn,
+  zoomOut,
+} from "./reader/viewer-controls.js";
+export { ZoomControl, type ZoomControlProps } from "./reader/zoom-control.js";
+export { type ExternalStore, useReaderState, useStoreState } from "./state/hooks.js";
+export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";
+export {
+  EMPTY,
+  type InteractionMode,
+  type ReaderError,
+  type ReaderEvent,
+  type ReaderState,
+  transition,
+} from "./state/reader-machine.js";

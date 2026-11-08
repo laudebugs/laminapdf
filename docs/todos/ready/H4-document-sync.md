@@ -7,7 +7,6 @@
 | Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (cloud storage and sync) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
 | Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [H3](./H3-cloud-document-storage.md) |
-| Blocks | [E18d](./E18d-durable-object-server.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | Dependency notes | [H3](H3-cloud-document-storage.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
 | ADRs | Implements ADR 0011. Does not follow ADR 0012 ([E18a](E18a-adr-0012-collaboration.md) comes much later): the whole-file `base_revision` chain is defined here, and E18a should reuse it for its base revisions |
 | Branch | `feat/h4-document-sync` |

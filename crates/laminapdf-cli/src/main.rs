@@ -3,6 +3,8 @@
 //!
 //! [ADR 0031]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0031-cli-and-mcp-contract.md
 
+mod docs;
+mod many;
 mod render;
 
 use std::io::{IsTerminal as _, Write as _};
@@ -12,13 +14,14 @@ use anstream::ColorChoice;
 use clap::{Args, CommandFactory as _, Parser, Subcommand, ValueEnum};
 use laminapdf::{Diagnostic, ErrorCode};
 use laminapdf_cli::commands::{
-    self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, InfoArgs, InfoReport, OpenArgs, PagesReport,
-    RotateArgs, Settings, TextReport,
+    self, CheckArgs, CheckReport, ExplainArgs, ExplainReport, ExtractArgs, ExtractedReport, Format, InfoArgs,
+    InfoReport, OpenArgs, PagesReport, RenderArgs, RenderReport, RotateArgs, Settings, TextReport,
 };
 use laminapdf_cli::exit::{CliError, ExitCode};
-use laminapdf_cli::io::{Io as _, ProcessIo, STDIO};
+use laminapdf_cli::io::{Io, ProcessIo, STDIO};
+use many::Many;
 use render::Streams;
-use serde_json::json;
+use serde_json::{Value, json};
 
 /// The environment variable a password can come from; never the command line.
 const PASSWORD_VAR: &str = "LAMINA_PDF_PASSWORD";
@@ -84,16 +87,25 @@ enum Color {
 #[derive(Debug, Subcommand)]
 enum Command {
     /// What a PDF is: version, pages, size, encryption, tagging, metadata and warnings.
-    Info(InfoArgs),
+    Info(Many<InfoArgs>),
     /// Read a whole PDF and report what a tolerant read had to repair (exit 3 on warnings).
-    Check(CheckArgs),
+    Check(Many<CheckArgs>),
     /// Change pages.
     #[command(subcommand)]
     Pages(PagesCommand),
-    /// A PDF's text, page by page.
-    Extract(ExtractArgs),
+    /// A PDF's text page by page, or its blocks in reading order as Markdown, JSON or chunks.
+    Extract(Many<ExtractArgs>),
+    /// Pages as PNG images.
+    Render(Many<RenderArgs>),
     /// The page of an error or warning code.
     Explain(ExplainArgs),
+    /// The JSON Schema of a command's arguments and output, or the list of schemas.
+    Schema(docs::SchemaArgs),
+    /// A shell completion script, on standard output.
+    Completions(docs::CompletionsArgs),
+    /// Writes a man page per command into a folder (for packaging).
+    #[command(hide = true)]
+    ManPages(docs::ManPagesArgs),
     /// Help on a command, or on a topic: exit-codes.
     Help(HelpArgs),
     /// Serve the commands as MCP tools on stdin and stdout, for clients that speak only MCP.
@@ -121,9 +133,10 @@ struct HelpArgs {
 }
 
 /// A command's outcome: its report, the warnings in it, and where it goes.
+#[derive(Debug)]
 struct Outcome {
     /// The report as JSON (`null` for help).
-    json: serde_json::Value,
+    json: Value,
     /// The report as text.
     text: String,
     /// The warnings it carries.
@@ -131,6 +144,18 @@ struct Outcome {
     /// Whether standard output already carries the command's data (a PDF written to `-`), so
     /// the report goes to standard error.
     stdout_taken: bool,
+}
+
+impl Outcome {
+    /// A report printed on standard output.
+    const fn new(json: Value, text: String, warnings: Vec<Diagnostic>) -> Self {
+        Self {
+            json,
+            text,
+            warnings,
+            stdout_taken: false,
+        }
+    }
 }
 
 fn main() -> ProcessExit {
@@ -180,8 +205,161 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
         return ExitCode::Usage;
     };
     let mut io = ProcessIo::default();
+    let settings = match settings(global, &mut io) {
+        Ok(settings) => settings,
+        Err(error) => {
+            render::error(streams, &error, None, global.json);
+            return error.exit_code();
+        }
+    };
+    match command {
+        Command::Info(many) => return each(streams, global, many, &settings, &mut io, InfoReport::SCHEMA, info),
+        Command::Check(many) => return each(streams, global, many, &settings, &mut io, CheckReport::SCHEMA, check),
+        Command::Render(many) => {
+            return each(
+                streams,
+                global,
+                many,
+                &settings,
+                &mut io,
+                RenderReport::SCHEMA,
+                render_pages,
+            );
+        }
+        Command::Extract(many) => {
+            let schema = if many.args.format == Format::Text {
+                TextReport::SCHEMA
+            } else {
+                ExtractedReport::SCHEMA
+            };
+            return each(streams, global, many, &settings, &mut io, schema, extract);
+        }
+        _ => {}
+    }
     let input = input_of(command);
-    let outcome = settings(global, &mut io).and_then(|settings| execute(command, &settings, &mut io));
+    let outcome = execute(command, &settings, &mut io);
+    finish(streams, global, outcome, input)
+}
+
+/// A command's arguments for one of its inputs.
+trait ForInput: Clone {
+    /// These arguments with `input`, the command's input number `index`, as the input.
+    fn for_input(&self, input: &str, index: usize) -> Self;
+
+    /// Refuses, before any input is read, what can't work for these `inputs` together;
+    /// `batch` when they print as a batch.
+    fn check_inputs(&self, inputs: &[String], batch: bool) -> Result<(), CliError> {
+        let _ = (inputs, batch);
+        Ok(())
+    }
+}
+
+macro_rules! for_input {
+    ($($ty:ty),*) => {$(
+        impl ForInput for $ty {
+            fn for_input(&self, input: &str, _: usize) -> Self {
+                let mut args = self.clone();
+                input.clone_into(&mut args.input);
+                args
+            }
+        }
+    )*};
+}
+
+for_input!(InfoArgs, CheckArgs, ExtractArgs);
+
+impl ForInput for RenderArgs {
+    fn for_input(&self, input: &str, index: usize) -> Self {
+        let mut args = self.clone();
+        input.clone_into(&mut args.input);
+        args.index = index;
+        args
+    }
+
+    fn check_inputs(&self, inputs: &[String], batch: bool) -> Result<(), CliError> {
+        commands::check_outputs(self, inputs, batch)
+    }
+}
+
+/// Runs `one` on each input of `many`: one input prints as before, several as a batch.
+fn each<A, F>(
+    streams: &mut Streams,
+    global: &GlobalArgs,
+    many: &Many<A>,
+    settings: &Settings,
+    io: &mut ProcessIo,
+    schema: &str,
+    one: F,
+) -> ExitCode
+where
+    A: Args + ForInput + Sync,
+    F: Fn(&A, &Settings, &mut dyn Io) -> Result<Outcome, CliError> + Sync,
+{
+    let listed = many.batch.files_from.is_some();
+    let checked = many.expand(io).and_then(|inputs| {
+        let batch = inputs.len() > 1 || listed;
+        many.args.check_inputs(&inputs, batch).map(|()| inputs)
+    });
+    let inputs = match checked {
+        Ok(inputs) => inputs,
+        Err(error) => {
+            render::error(streams, &error, None, global.json);
+            return error.exit_code();
+        }
+    };
+    // A list may hold one file or many, so a list always prints as a batch.
+    if let ([input], false) = (inputs.as_slice(), listed) {
+        let outcome = one(&many.args.for_input(input, 0), settings, io);
+        return finish(streams, global, outcome, Some(input));
+    }
+    many::run(streams, global, &many.batch, &inputs, schema, |index, input| {
+        one(&many.args.for_input(input, index), settings, &mut ProcessIo::default())
+    })
+}
+
+fn info(args: &InfoArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
+    let report = commands::info(args, settings, io)?;
+    let json = render::keep_fields(to_json(&report), &args.fields)?;
+    Ok(Outcome::new(json, render::info_text(&report), report.warnings))
+}
+
+fn check(args: &CheckArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
+    let report = commands::check(args, settings, io)?;
+    Ok(Outcome::new(
+        to_json(&report),
+        render::check_text(&report),
+        report.warnings,
+    ))
+}
+
+fn render_pages(args: &RenderArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
+    let report = commands::render(args, settings, io)?;
+    let mut outcome = Outcome::new(to_json(&report), render::render_text(&report), Vec::new());
+    // A PNG on standard output: the report goes to standard error.
+    outcome.stdout_taken = report.pages.iter().any(|p| p.output == STDIO) && !settings.dry_run;
+    Ok(outcome)
+}
+
+fn extract(args: &ExtractArgs, settings: &Settings, io: &mut dyn Io) -> Result<Outcome, CliError> {
+    if args.format == Format::Text {
+        let report = commands::extract(args, settings, io)?;
+        return Ok(Outcome::new(
+            to_json(&report),
+            render::extract_text(&report),
+            report.warnings,
+        ));
+    }
+    let report = commands::extract_document(args, settings, io)?;
+    Ok(Outcome::new(report.json, report.output, report.warnings))
+}
+
+/// Prints the outcome of a command over one input; the exit code.
+fn finish(
+    streams: &mut Streams,
+    global: &GlobalArgs,
+    outcome: Result<Outcome, CliError>,
+    input: Option<&str>,
+) -> ExitCode {
     match outcome {
         Ok(outcome) => match print(streams, &outcome, global) {
             Ok(()) if outcome.warnings.is_empty() || global.warnings_ok => ExitCode::Ok,
@@ -203,13 +381,10 @@ fn run(cli: &Cli, streams: &mut Streams) -> ExitCode {
 }
 
 /// The input a command reads, for the error's `input` field.
-fn input_of(command: &Command) -> Option<&str> {
+const fn input_of(command: &Command) -> Option<&str> {
     match command {
-        Command::Info(a) => Some(&a.input),
-        Command::Check(a) => Some(&a.input),
-        Command::Pages(PagesCommand::Rotate(a)) => Some(&a.input),
-        Command::Extract(a) => Some(&a.input),
-        Command::Explain(_) | Command::Help(_) | Command::Mcp { .. } => None,
+        Command::Pages(PagesCommand::Rotate(a)) => Some(a.input.as_str()),
+        _ => None,
     }
 }
 
@@ -244,7 +419,7 @@ fn settings(global: &GlobalArgs, io: &mut ProcessIo) -> Result<Settings, CliErro
     })
 }
 
-fn to_json(report: &impl serde::Serialize) -> serde_json::Value {
+fn to_json(report: &impl serde::Serialize) -> Value {
     serde_json::to_value(report).unwrap_or_default()
 }
 
@@ -257,34 +432,42 @@ fn execute(command: &Command, settings: &Settings, io: &mut ProcessIo) -> Result
         stdout_taken,
     };
     Ok(match command {
-        Command::Info(args) => {
-            let report = commands::info(args, settings, io)?;
-            let json = render::keep_fields(to_json(&report), &args.fields)?;
-            outcome(json, render::info_text(&report), report.warnings, false)
-        }
-        Command::Check(args) => {
-            let report = commands::check(args, settings, io)?;
-            outcome(to_json(&report), render::check_text(&report), report.warnings, false)
+        // `run` sends these to `each`, which runs them per input.
+        Command::Info(_) | Command::Check(_) | Command::Extract(_) | Command::Render(_) => {
+            return Err(CliError::new(
+                ErrorCode::InvalidCommandLine,
+                "this command takes its inputs one by one",
+            ));
         }
         Command::Pages(PagesCommand::Rotate(args)) => {
             let report = commands::rotate(args, settings, io)?;
             let taken = report.output == STDIO && !settings.dry_run;
             outcome(to_json(&report), render::pages_text(&report), report.warnings, taken)
         }
-        Command::Extract(args) => {
-            let report = commands::extract(args, settings, io)?;
-            outcome(to_json(&report), render::extract_text(&report), report.warnings, false)
-        }
         Command::Explain(args) => {
             let report = commands::explain(args)?;
             outcome(to_json(&report), render::explain_text(&report), Vec::new(), false)
         }
-        Command::Help(args) => outcome(serde_json::Value::Null, help(args)?, Vec::new(), false),
+        Command::Help(args) => outcome(Value::Null, help(args)?, Vec::new(), false),
+        Command::Schema(args) => {
+            let schema = docs::schema(args)?;
+            outcome(
+                schema.clone(),
+                format!("{}\n", serde_json::to_string_pretty(&schema).unwrap_or_default()),
+                Vec::new(),
+                false,
+            )
+        }
+        Command::Completions(args) => outcome(Value::Null, docs::completions(args, Cli::command()), Vec::new(), false),
+        Command::ManPages(args) => {
+            docs::man_pages(args, &Cli::command())?;
+            outcome(Value::Null, String::new(), Vec::new(), false)
+        }
         // Serves until the client closes standard input; the protocol had standard output.
         #[cfg(feature = "mcp")]
         Command::Mcp(args) => {
             laminapdf_cli::mcp::run(args, settings)?;
-            outcome(serde_json::Value::Null, String::new(), Vec::new(), true)
+            outcome(Value::Null, String::new(), Vec::new(), true)
         }
         #[cfg(not(feature = "mcp"))]
         Command::Mcp { .. } => {
@@ -361,6 +544,7 @@ fn version(streams: &mut Streams, json: bool) -> ExitCode {
     let text = if json {
         let schemas = [
             InfoReport::SCHEMA,
+            RenderReport::SCHEMA,
             CheckReport::SCHEMA,
             PagesReport::SCHEMA,
             TextReport::SCHEMA,

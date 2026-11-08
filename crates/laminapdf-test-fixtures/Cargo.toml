@@ -14,6 +14,7 @@ publish = false
 layer = "dev"
 
 [dependencies]
+png = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]

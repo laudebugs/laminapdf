@@ -7,11 +7,11 @@ sidebar:
 
 import Snippet from "../../../components/Snippet.astro";
 
-The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@0.2.0-alpha`, then build a document. [Install](/install/#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
+The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@={{version}}`, then build a document. [Install](/install/#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
 
 <Snippet file="crates/laminapdf/examples/hello.rs" />
 
-From a checkout of Lamina PDF, `cargo run -p laminapdf --example hello` runs it and writes `target/examples-out/hello.pdf`.
+To run it, save it as `src/main.rs` in a project that depends on `laminapdf`, then run `cargo run`. It writes `target/examples-out/hello.pdf`, or `hello.pdf` in the folder you pass: `cargo run -- out`.
 
 - **Same input, same bytes:** `build` takes `BuildOptions`: fix the file ID, the producer and the creation date in them, and the output never changes; see [how Lamina PDF thinks about a PDF](/concepts/how-lamina-thinks/#same-input-same-bytes).
 - **Stopping a save:** `save` runs to the end. To let another thread stop it, pass a `CancelToken` to `save_with`, or call `save_job` for a job that you step through with a work budget.

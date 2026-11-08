@@ -7,7 +7,6 @@
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), [§2 non-goals](../../plans/shareable-libraries.md#2-scope-and-non-goals) (the SDK rounds come from this plan) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
 | Depends on | [L6a](../done/L6a-lamina-ffi-spike.md), [C2b](../done/C2b-lamina-render-crate.md), [U3b](./U3b-mobile-shell-spike.md) |
-| Blocks | None |
 | ADRs | Follows 0029 (from [L6a](../done/L6a-lamina-ffi-spike.md)), 0028 (jobs, cancellation), 0027 (coordinates), 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), 0004 (render backend per surface, from [C2a](../done/C2a-render-adrs.md)), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); lists the ADRs the mobile rounds will need |
 | Branch | `docs/l6b-mobile-sdk-plan` |
 | PR title | `docs(plans): mobile SDK plan with SwiftUI and Compose viewers, rounds and todos` |
@@ -63,12 +62,12 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 - [ ] **Verify before writing** (report items "to verify"): androidx.pdf release state (1.0.0-beta01 on 26 August 2026 vs 1.0.0-alpha19) on the English release-notes page, and whether its Compose `PdfViewer` is still `@ExperimentalPdfApi`; current PencilKit/PDFKit overlay APIs; record the dates checked
 - [ ] Write `docs/plans/mobile-sdk.md` (Status Draft) with the sections above; label every recommendation; cite sources inline
 - [ ] Decide the todo ID scheme (see Scope) and write the todo files, each with Depends on links to existing todos (C2b, E4d, E8*, E10i, L3a, L6a as relevant)
-- [ ] Update `docs/plans/README.md`, [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile) and §9, the roadmap; regenerate the board (`cargo xtask todos`) and run `cargo xtask check docs`
+- [ ] Update `docs/plans/README.md`, [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile) and §9, the roadmap; run `cargo xtask todos` and `cargo xtask check docs`
 
 ## Acceptance criteria
 
 - [ ] `docs/plans/mobile-sdk.md` exists, covers every topic in Scope, and lists its rounds with deliverables and "accepted when" criteria
-- [ ] Every round has at least one todo in `docs/todos/ready/` in the template format; the board lists them and `cargo xtask todos --check` passes
+- [ ] Every round has at least one todo in `docs/todos/ready/` in the template format; the board `cargo xtask todos` writes lists them and `cargo xtask todos --check` passes
 - [ ] The androidx.pdf state and the other verified facts are stated with the date checked and a primary source
 - [ ] The todo ID scheme is decided and written in the plan
 - [ ] `cargo xtask docs-links` passes
@@ -80,14 +79,14 @@ None.
 
 ## Tests
 
-None (docs only). `cargo xtask check docs` covers links and the board.
+None (docs only). `cargo xtask check docs` covers the links and the todo graph.
 
 ## Docs to update
 
 - [ ] New `docs/plans/mobile-sdk.md`; `docs/plans/README.md` index
 - [ ] [shareable-libraries §9 L6](../../plans/shareable-libraries.md#9-to-dos): tick "Mobile SDK plan with rounds and todos"
 - [ ] [Roadmap](../../plans/roadmap.md): add the mobile rounds
-- [ ] `docs/todos/README.md` (regenerated), `CLAUDE.md` if the new letter needs a mention
+- [ ] If the scheme adds an ID letter: `docs/todos/README.md`'s IDs list, `SECTIONS` and `LETTER_ORDER` in `tools/xtask/src/todos.rs`, and `CLAUDE.md`
 
 ## Risks and open questions
 

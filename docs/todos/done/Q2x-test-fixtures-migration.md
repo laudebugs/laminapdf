@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q2c](./Q2c-test-fixtures-crate.md) |
-| Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2x-test-fixtures-migration` |
 | PR title | `refactor(tests): move the remaining crates' test helpers to laminapdf-test-fixtures` |

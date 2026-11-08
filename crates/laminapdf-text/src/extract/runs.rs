@@ -12,10 +12,16 @@ use icu_properties::props::CanonicalCombiningClass;
 use super::Glyph;
 use crate::{BidiParagraph, grapheme_boundaries};
 
-/// Consecutive glyphs drawn alike: one font, size, writing direction, MCID, `ActualText` span
-/// and visibility, one after the other on one baseline.
+/// Consecutive glyphs drawn alike: one font, size, writing direction, MCID, `ActualText` span,
+/// visibility, artifact marking, clip box and colour, one after the other on one baseline. A
+/// word in another colour, or text crossing a clip's edge, starts a run of its own, so each run
+/// is either all hidden or all visible.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about one run, each read on its own"
+)]
 pub struct PageTextRun {
     /// The run's text in logical order: the span's `ActualText` (the span's first run; its
     /// later runs have none), else the glyphs' text with gap spaces, put in logical order
@@ -37,6 +43,12 @@ pub struct PageTextRun {
     pub actual_text: bool,
     /// Drawn in text rendering mode 3 or 7 (OCR layers).
     pub invisible: bool,
+    /// Inside marked content tagged `Artifact` (§14.8.2.2).
+    pub artifact: bool,
+    /// The clip's bounding box in page space, as [`Glyph::clip`](super::Glyph::clip).
+    pub clip: Option<RectPt>,
+    /// The colour it is painted in, as [`Glyph::color`](super::Glyph::color).
+    pub color: Option<[f64; 3]>,
     /// The union of the glyphs' boxes, in page space.
     pub bounds: RectPt,
 }
@@ -82,6 +94,9 @@ fn alike(a: &Glyph, b: &Glyph) -> bool {
         && a.mcid == b.mcid
         && a.actual_text == b.actual_text
         && a.invisible == b.invisible
+        && a.artifact == b.artifact
+        && a.clip == b.clip
+        && a.color == b.color
 }
 
 /// Groups `glyphs` into runs.
@@ -160,6 +175,9 @@ pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<PageTextRun
                 mcid: first.mcid,
                 actual_text: first.actual_text.is_some(),
                 invisible: first.invisible,
+                artifact: first.artifact,
+                clip: first.clip,
+                color: first.color,
                 bounds: bounds(run),
             })
         })
@@ -204,8 +222,9 @@ fn by_position(run: &[Glyph]) -> String {
     let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
     let start = |g: &Glyph| along((g.origin.x, g.origin.y));
     // A run where no glyph moves the pen (a font without widths, words placed by `Td`) has
-    // only letters.
-    let marked = |g: &&Glyph| is_mark(g) && run.iter().any(|l| !is_mark(l));
+    // only letters. Check for an advancing glyph once per run to avoid a quadratic scan.
+    let has_letter = run.iter().any(|l| !is_mark(l));
+    let marked = |g: &&Glyph| has_letter && is_mark(g);
     let letters: Vec<&Glyph> = run.iter().filter(|g| !marked(g)).collect();
     let mut marks: Vec<Vec<&Glyph>> = vec![Vec::new(); letters.len()];
     for mark in run.iter().filter(marked) {

@@ -7,7 +7,6 @@
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
 | Depends on | [E18f](./E18f-sharing-and-notifications.md), [E18g](./E18g-leases-and-base-revisions.md) |
-| Blocks | None |
 | ADRs | Implements ADR 0012 |
 | Branch | `test/e18h-load-test` |
 | PR title | `test(collab): load test with 50 concurrent reviewers` |

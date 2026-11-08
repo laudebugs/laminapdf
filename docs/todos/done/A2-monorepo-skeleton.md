@@ -7,7 +7,6 @@
 | Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
 | Round / milestone | Round A (foundations) — M0 |
 | Depends on | [A1](./A1-foundation-adrs.md) |
-| Blocks | [A3](./A3-port-spike-core.md) |
 | ADRs | Implements [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/monorepo-skeleton` |
 | PR title | `build: monorepo skeleton, cargo xtask, licence checks and CI fast lane` |

@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate), requirements [§4 F1, F4, F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B1b](./B1b-krilla-fit-spike.md), [B3c](./B3c-save-planner-and-roundtrip.md), [L1a](./L1a-contract-adrs.md) |
-| Blocks | [B5b](./B5b-builder-text-and-document-features.md) |
 | ADRs | Follows 0027 (coordinates and units, from [L1a](../done/L1a-contract-adrs.md)); implements [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (builder writes `New` overlay entries; reserve-then-fill; `pdf_writer::Content`); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
 | Branch | `feat/b5a-lamina-build` |
 | PR title | `feat(build): lamina-build with pages, paths, colour, opacity and images` |

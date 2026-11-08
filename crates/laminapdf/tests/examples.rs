@@ -232,7 +232,7 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     let invoice = fixture("golden/examples/invoice.pdf");
     extract_markdown::write_outputs(&invoice, &out, "invoice").unwrap_or_else(|e| panic!("{e}"));
     let read = |name: &str| std::fs::read_to_string(out.join(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
-    assert!(read("invoice.md").starts_with("<!-- page 1 -->\n\nInvoice 42\n"));
+    assert!(read("invoice.md").starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
     let _ = std::fs::remove_dir_all(&out);

@@ -7,7 +7,6 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | None |
 | ADRs | None |
 | Branch | `feat/q1a-docs-font-source-sans` |
 | PR title | `feat(docs): one sans-serif font for the docs site (Source Sans 3)` |

@@ -13,9 +13,9 @@
 //!   progress. With `--offline`, or when gh fails, the last snapshot's list stays and the file
 //!   says so (`inProgress.source`).
 //!
-//! It reads the board and the roadmap from `main` (`origin/main` when there is one), not from the
-//! checkout, so a branch's own todo moves never reach the snapshot. The file names no person and
-//! holds no pull request number or link into the repository, which is private.
+//! It reads the todo files and the roadmap from `main` (`origin/main` when there is one), not from
+//! the checkout, so a branch's own todo moves never reach the snapshot. The file names no person
+//! and holds no pull request number or link into the repository, which is private.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -171,7 +171,13 @@ pub(crate) fn run(root: &Path, offline: bool) -> Result<()> {
         None
     } else {
         open_pull_request_paths(root)
-            .inspect_err(|error| eprintln!("warning: couldn't read the open pull requests: {error:#}"))
+            .inspect_err(|error| {
+                // The website's deploy runs this: say so where the run shows it, since the job passes.
+                if std::env::var_os("GITHUB_ACTIONS").is_some() {
+                    println!("::warning title=progress::couldn't read the open pull requests, so in progress is the last snapshot's list");
+                }
+                eprintln!("warning: couldn't read the open pull requests: {error:#}");
+            })
             .ok()
     };
     if claims.is_none() {
@@ -577,16 +583,16 @@ mod tests {
     /// U3a ready, U3b done; X1 ongoing.
     fn board() -> Vec<TodoFile> {
         vec![
-            todo(State::Done, "A1", "None", "None"),
-            todo(State::Done, "B1", "None", "None"),
-            todo(State::Done, "B2a", "None", "None"),
-            todo(State::Ready, "B2b", "[B2a](../done/B2a-x.md)", "None"),
-            todo(State::Ready, "C1", "None", "None"),
-            todo(State::Ready, "C2", "[C1](./C1-x.md)", "None"),
-            todo(State::Done, "C8", "None", "None"),
-            todo(State::Ready, "U3a", "None", "None"),
-            todo(State::Done, "U3b", "None", "None"),
-            todo(State::Ongoing, "X1", "[A1](../done/A1-x.md)", "None"),
+            todo(State::Done, "A1", "None"),
+            todo(State::Done, "B1", "None"),
+            todo(State::Done, "B2a", "None"),
+            todo(State::Ready, "B2b", "[B2a](../done/B2a-x.md)"),
+            todo(State::Ready, "C1", "None"),
+            todo(State::Ready, "C2", "[C1](./C1-x.md)"),
+            todo(State::Done, "C8", "None"),
+            todo(State::Ready, "U3a", "None"),
+            todo(State::Done, "U3b", "None"),
+            todo(State::Ongoing, "X1", "[A1](../done/A1-x.md)"),
         ]
     }
 

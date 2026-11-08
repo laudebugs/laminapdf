@@ -7,7 +7,6 @@
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting |
 | Depends on | [X4](./X4-full-lane-gate.md) |
-| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (CI lanes) |
 | Branch | `ci/x7-fast-lane-gate` |
 | PR title | `ci: a required check for the fast lane (X7)` |

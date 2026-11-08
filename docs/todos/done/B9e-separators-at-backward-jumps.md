@@ -7,7 +7,6 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 |
 | Depends on | [B9d](./B9d-text-runs-quads-and-page-text.md), [U2b](./U2b-reading-order-ground-truth.md) |
-| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) (the reading-order ratchet measures it) |
 | Branch | `fix/b9e-backward-jump-separators` |
 | PR title | `fix(text): separate text where the pen jumps back on a line` |

@@ -7,7 +7,6 @@
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting — before B6c's runtime matrix and the first desktop release (Round D) |
 | Depends on | [X4](./X4-full-lane-gate.md) |
-| Blocks | [X6](../ready/X6-windows-ci.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (CI lanes) |
 | Branch | `ci/x5-linux-ci-container` |
 | PR title | `ci: Linux check on a self-hosted runner in a container (X5)` |

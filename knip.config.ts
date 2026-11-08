@@ -14,7 +14,7 @@ const RUNS_UNEXPORTED: Record<string, string[]> = {
   test: ["test/**/*.test.{ts,tsx}"],
   "test/vite-app": ["test/vite-app/*.ts"],
   "test/workerd/worker.ts": ["test/workerd/worker.ts"],
-  examples: ["examples/**/*.{ts,mjs}"],
+  examples: ["examples/**/*.{ts,tsx,mjs}"],
   bench: ["bench/**/*.mjs"],
   scripts: ["scripts/**/*.mjs"],
 };
@@ -38,7 +38,7 @@ function project(dir: string): string[] {
   // A TypeScript script (run by a package.json script, which knip reads as the entry) is project code.
   const tsScripts = holds(dir, "scripts", ".ts");
   return [
-    ...["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "examples/**/*.{ts,mjs}"].filter((g) =>
+    ...["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "examples/**/*.{ts,tsx,mjs}"].filter((g) =>
       existsSync(`packages/${dir}/${g.split("/")[0]}`),
     ),
     ...(tsScripts ? ["scripts/**/*.ts"] : []),
@@ -67,9 +67,11 @@ const config: KnipConfig = {
   // knip finds pnpm's workspaces itself; the generated package is left out here too.
   ignoreWorkspaces: ["packages/wasm"],
   ignoreDependencies: [
-    // Run by `cargo xtask pdf-runtimes` as `pnpm exec deno` and `pnpm exec bun`, which knip can't see.
+    // Run by `cargo xtask pdf-runtimes` as `pnpm exec deno` and `pnpm exec bun`, and by `cargo xtask
+    // semver` as `pnpm --filter @laminapdf/sdk exec api-extractor`, which knip can't see.
     "deno",
     "bun",
+    "@microsoft/api-extractor",
   ],
 };
 

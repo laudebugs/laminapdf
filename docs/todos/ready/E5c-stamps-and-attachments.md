@@ -7,7 +7,6 @@
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E4b](./E4b-annotation-model-and-overlay.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
-| Blocks | [E5d](./E5d-xfdf-fdf.md), [E10c](./E10c-visual-signatures.md), [E17d](./E17d-media.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5c-stamps-and-attachments` |
 | PR title | `feat(annots): custom stamps and file attachment annotations` |

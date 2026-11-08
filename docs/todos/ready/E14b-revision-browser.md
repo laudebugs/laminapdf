@@ -7,7 +7,6 @@
 | Plan | [full-editor §E14](../../plans/full-editor.md#e14-compare-revisions-and-batch) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E10h](./E10h-revision-diff-and-attacks.md), [E14a](./E14a-compare-revisions-batch-feature-plan.md) |
-| Blocks | [E14c](./E14c-compare.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e14b-revision-browser` |
 | PR title | `feat(cos): revision index and read-only revision browser` |

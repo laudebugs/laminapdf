@@ -7,7 +7,6 @@
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
-| Blocks | [E12b](./E12b-mark-and-review.md), [E13a](./E13a-adr-0013-heavy-jobs.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e12a-redaction-feature-plan` |
 | PR title | `docs(editor): E12 feature plan (redaction)` |

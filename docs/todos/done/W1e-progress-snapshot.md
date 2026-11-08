@@ -7,7 +7,6 @@
 | Plan | [Website §4 The home page, for now](../../plans/website.md#the-home-page-for-now-the-roadmap) |
 | Round / milestone | Round W (website) — ships before M2 Web reader v0.1 |
 | Depends on | [W1b](./W1b-site-scaffold-and-deploys.md) |
-| Blocks | [W1c](./W1c-home-page.md) |
 | ADRs | — |
 | Branch | `feat/w1e-progress-snapshot` |
 | PR title | `feat(xtask): cargo xtask progress, the snapshot behind the website's roadmap` |

@@ -31,8 +31,10 @@ pub(crate) enum ExtractFormat {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Tsify)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum ReadingOrderName {
-    /// The best source available (today the layout).
+    /// The best source available: a plausible structure tree, else the layout.
     Auto,
+    /// The structure tree wherever there is one, plausible or not.
+    Tagged,
     /// The layout, by XY-Cut++.
     Layout,
     /// The order the content stream draws.
@@ -63,13 +65,17 @@ pub(crate) enum SplitOnName {
     Pages,
 }
 
-/// What happens to hidden text.
+/// What happens to hidden text and page furniture.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct DropInit {
-    /// Keep each hidden run's text in its `dropped` entry (JSON only), for auditing a file.
+    /// Keep each dropped run's text in its `dropped` entry (JSON only), for auditing a file.
     #[tsify(optional)]
     pub keep_spans: Option<bool>,
+    /// Drop running headers, footers, page numbers and artifact-marked text too, listing them
+    /// in `dropped`; on by default.
+    #[tsify(optional)]
+    pub furniture: Option<bool>,
 }
 
 /// How the Markdown is cut into chunks.
@@ -124,6 +130,7 @@ impl ExtractInit {
         if let Some(order) = self.reading_order {
             options = options.with_reading_order(match order {
                 ReadingOrderName::Auto => ReadingOrder::Auto,
+                ReadingOrderName::Tagged => ReadingOrder::Tagged,
                 ReadingOrderName::Layout => ReadingOrder::Layout,
                 ReadingOrderName::ContentStream => ReadingOrder::ContentStream,
             });
@@ -143,6 +150,9 @@ impl ExtractInit {
         }
         if let Some(on) = self.dehyphenate {
             options.dehyphenate = on;
+        }
+        if let Some(on) = self.drop.as_ref().and_then(|d| d.furniture) {
+            options.drop.furniture = on;
         }
         options
     }

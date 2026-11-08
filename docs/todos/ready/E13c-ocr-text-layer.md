@@ -7,7 +7,6 @@
 | Plan | [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [E2e](./E2e-content-append-api.md), [E13b](./E13b-ocr-and-conversion-feature-plan.md) |
-| Blocks | [E13d](./E13d-local-ocr.md), [E13e](./E13e-server-jobs-infrastructure.md) |
 | Dependency notes | [E13b](E13b-ocr-and-conversion-feature-plan.md), [E2e](E2e-content-append-api.md), `B4` ([pdf-library §B4](../../plans/pdf-library.md#b4-fonts-and-text): fonts, shaping, subsetting) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e13c-ocr-text-layer` |
