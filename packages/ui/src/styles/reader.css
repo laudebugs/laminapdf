@@ -469,6 +469,7 @@
 
   /* "Choose the downloaded file": a button that reads as a link in the sentence. */
   .paper-failure-link {
+    min-block-size: var(--ui-target);
     padding: 0;
     border: 0;
     background: transparent;
