@@ -1,0 +1,44 @@
+# cargo-dist (`dist`, pinned in tools/xtask/src/doctor.rs) for the `laminapdf` binary only (todo
+# L4d, ADR 0031): its archives, checksums and Homebrew formula. Our own workflow,
+# .github/workflows/cli-release.yml, runs `dist plan` and `dist build`, so dist writes no CI of
+# its own. The npm packages are ours too (tools/cli-release/, packages/cli), not dist's npm installer,
+# which downloads the binary in a postinstall script.
+[workspace]
+members = ["cargo:."]
+
+[dist]
+cargo-dist-version = "0.32.0"
+# All eight targets are configured. CI builds and runs only those the self-hosted runners can:
+# aarch64-apple-darwin on the Mac, aarch64-unknown-linux-gnu and -musl on the Linux runner.
+# The others are built once a runner for them exists (Windows: todo X6).
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-unknown-linux-gnu",
+  "aarch64-unknown-linux-musl",
+  "x86_64-unknown-linux-musl",
+  "aarch64-pc-windows-msvc",
+  "x86_64-pc-windows-msvc",
+]
+installers = ["homebrew"]
+tap = "laudebugs/homebrew-tap"
+formula = "laminapdf"
+# A tag `laminapdf-cli-v<version>` releases the CLI (dist's per-package tag format).
+hosting = "github"
+# Only so dist doesn't warn that the tap has no publish job: dist writes no CI here, so nothing
+# runs it. The `global` job writes the formula, the release carries it, and the owner pushes it
+# to the tap (cli-release.yml's header).
+publish-jobs = ["homebrew"]
+source-tarball = false
+# dist's own pull-request runs; cli-release.yml runs `dist plan` itself.
+pr-run-mode = "skip"
+unix-archive = ".tar.xz"
+windows-archive = ".zip"
+checksum = "sha256"
+# Written by `cargo xtask cli-dist` into target/cli-docs/ before `dist build`.
+include = [
+  "target/cli-docs/THIRD_PARTY_NOTICES.md",
+  "target/cli-docs/man/",
+  "target/cli-docs/completions/",
+]

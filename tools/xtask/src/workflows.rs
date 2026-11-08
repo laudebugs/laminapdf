@@ -8,7 +8,9 @@
 //! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). The macOS
 //! runners' rustup (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so
 //! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
-//! install-action, so each runner keeps its own install-action folder.
+//! install-action, so each runner keeps its own install-action folder. cli-release.yml publishes
+//! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
+//! secret, from self-hosted runners only (todo L4d).
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -116,6 +118,7 @@ mod tests {
     const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
     const SITE: &str = include_str!("../../../.github/workflows/site.yml");
     const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
+    const CLI_RELEASE: &str = include_str!("../../../.github/workflows/cli-release.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -264,6 +267,73 @@ mod tests {
             !DOCS.contains("X-Robots-Tag"),
             "the build marks noindex; the workflow shouldn't"
         );
+    }
+
+    /// Publishing the CLI takes all three of the owner's switches: the repository variable, a
+    /// `laminapdf-cli-v*` tag push (never a dispatch or a pull request) and the `release`
+    /// environment. It is the only job with an OIDC token, and the workflow reads no secret.
+    #[test]
+    fn cli_release_should_publish_only_on_a_tag_push_with_the_owners_variable() {
+        let publish = lines_of(CLI_RELEASE, "jobs", "publish");
+        let has = |lines: &[&str], want: &str| lines.iter().any(|l| l.trim() == want);
+        assert!(
+            has(
+                &publish,
+                "if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}"
+            ),
+            "publish must need the Linux builds, the tag push and LAMINA_PDF_PUBLISH_CLI"
+        );
+        assert!(
+            has(&publish, "environment: release"),
+            "publish must run in the release environment"
+        );
+        let with_oidc: Vec<&str> = jobs(CLI_RELEASE)
+            .into_iter()
+            .filter(|(_, lines)| has(lines, "id-token: write"))
+            .map(|(id, _)| id)
+            .collect();
+        assert_eq!(with_oidc, ["publish"], "only publish may ask for an OIDC token");
+        assert!(!CLI_RELEASE.contains("secrets."), "cli-release.yml must store no token");
+        assert!(
+            has(&lines_of(CLI_RELEASE, "on", "push"), "tags: [\"laminapdf-cli-v*\"]"),
+            "only CLI tags may trigger a push run"
+        );
+    }
+
+    /// A dispatch builds everything as a dry run, pull requests only plan, and every job runs on
+    /// the self-hosted runners (no GitHub-hosted minutes).
+    #[test]
+    fn cli_release_should_plan_on_pull_requests_and_build_on_a_dry_run_dispatch() {
+        let dispatch = lines_of(CLI_RELEASE, "on", "workflow_dispatch");
+        let dry_run = dispatch.iter().position(|l| l.trim() == "dry-run:");
+        assert!(dry_run.is_some(), "the dispatch has no dry-run input");
+        assert!(
+            dispatch
+                .iter()
+                .skip(dry_run.unwrap_or_default())
+                .any(|l| l.trim() == "default: true"),
+            "dry-run must default to true"
+        );
+        let paths = lines_of(CLI_RELEASE, "on", "pull_request");
+        for want in ["- crates/laminapdf-cli/**", "- dist-workspace.toml"] {
+            assert!(
+                paths.iter().any(|l| l.trim() == want),
+                "pull requests don't plan on `{want}`"
+            );
+        }
+        for (id, lines) in jobs(CLI_RELEASE) {
+            let runs_on = lines.iter().find_map(|l| l.trim().strip_prefix("runs-on: "));
+            assert!(
+                runs_on.is_some_and(|r| r.starts_with("[self-hosted, ")),
+                "{id} must run on a self-hosted runner"
+            );
+            if id != "plan" {
+                assert!(
+                    lines.iter().any(|l| l.trim().starts_with("needs: ")),
+                    "{id} must wait for plan"
+                );
+            }
+        }
     }
 
     #[test]

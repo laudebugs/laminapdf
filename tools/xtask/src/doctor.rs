@@ -18,6 +18,12 @@ const CARGO_DENY_VERSION: &str = "0.20.2";
 const CARGO_NEXTEST_VERSION: &str = "0.9.150";
 /// cargo-cyclonedx release (`cargo xtask sbom`, the release lane; Apache-2.0).
 const CARGO_CYCLONEDX_VERSION: &str = "0.5.9";
+/// cargo-dist release, the `dist` binary (the `laminapdf` release archives and Homebrew formula,
+/// dist-workspace.toml, .github/workflows/cli-release.yml; MIT OR Apache-2.0; a build tool).
+const DIST_VERSION: &str = "0.32.0";
+/// cargo-about release (`cargo xtask cli-dist`: the third-party notices in the CLI's archives;
+/// MIT OR Apache-2.0; a build tool).
+const CARGO_ABOUT_VERSION: &str = "0.9.2";
 /// cargo-semver-checks release (`cargo xtask semver`, the fast lane; Apache-2.0 OR MIT).
 const CARGO_SEMVER_CHECKS_VERSION: &str = "0.51.0";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
@@ -175,6 +181,26 @@ pub(crate) fn cargo_cyclonedx() -> Tool {
     }
 }
 
+fn dist() -> Tool {
+    Tool {
+        name: "dist",
+        version_command: &["dist", "--version"],
+        pin: Pin::Exact(DIST_VERSION.to_owned()),
+        fix: format!("cargo install cargo-dist --locked --version {DIST_VERSION}"),
+        optional_for: Some("dist plan / dist build (the CLI's release archives, cli-release.yml)"),
+    }
+}
+
+pub(crate) fn cargo_about() -> Tool {
+    Tool {
+        name: "cargo-about",
+        version_command: &["cargo", "about", "--version"],
+        pin: Pin::Exact(CARGO_ABOUT_VERSION.to_owned()),
+        fix: format!("cargo install cargo-about --locked --version {CARGO_ABOUT_VERSION}"),
+        optional_for: Some("cargo xtask cli-dist (the CLI archives' third-party notices)"),
+    }
+}
+
 pub(crate) fn cargo_semver_checks() -> Tool {
     Tool {
         name: "cargo-semver-checks",
@@ -238,6 +264,8 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_deny(),
         cargo_nextest(),
         cargo_cyclonedx(),
+        dist(),
+        cargo_about(),
         cargo_semver_checks(),
         cargo_fuzz(),
         qpdf(),

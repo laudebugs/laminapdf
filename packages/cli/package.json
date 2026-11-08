@@ -1,0 +1,54 @@
+{
+  "name": "@laminapdf/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The laminapdf command-line tool: inspect, check, rotate, extract and render PDFs from the terminal, with JSON output for scripts and an MCP server for agents. Installs a prebuilt binary for your platform.",
+  "license": "MIT OR Apache-2.0",
+  "homepage": "https://laminapdf.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/laminapdf.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "pdf",
+    "cli",
+    "mcp"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
+  "bin": {
+    "laminapdf": "bin/laminapdf.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "platforms.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test": "tsc -p tsconfig.build.json && vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

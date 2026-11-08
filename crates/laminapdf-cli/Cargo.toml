@@ -1,12 +1,14 @@
 [package]
 name = "laminapdf-cli"
-description = "The laminapdf command-line tool: info, check, page rotation, text extraction and error explanations over Lamina PDF, with versioned JSON output for scripts and agents (ADR 0031)."
+# Also the Homebrew formula's `desc` (dist): at most 80 characters, no leading article.
+description = "Inspect, check, rotate and extract PDFs, with JSON output for scripts and agents"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-# Distribution (release binaries, Homebrew, npm) is its own todo, L4d.
+# Not on crates.io: the binary ships as release archives, Homebrew and npm (todo L4d,
+# dist-workspace.toml).
 publish = false
 readme = "README.md"
 homepage.workspace = true
@@ -17,6 +19,11 @@ categories = ["command-line-utilities"]
 # Read by `cargo xtask`: an app crate, so it may use the file system, stdin and stdout.
 [package.metadata.laminapdf]
 layer = "app"
+
+# cargo-dist (dist-workspace.toml): this crate's binary is the one dist builds, with the MCP server.
+[package.metadata.dist]
+dist = true
+features = ["mcp"]
 
 [[bin]]
 name = "laminapdf"
