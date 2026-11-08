@@ -27,6 +27,8 @@ pub(crate) fn measure(
     let frame = &text.frame;
     let (width, height, unit) = (frame.width(), frame.height(), frame.user_unit());
     let (mut chars, mut invisible_chars, mut glyphs, mut unmapped) = (0, 0, 0, 0);
+    // Text left out as off the page or tiny is still text: the page isn't blank.
+    let mut other_chars = 0;
     for run in &text.runs {
         let size = Pt::new(run.font_size * unit);
         let f = flags(&Look::of(run), &run.bounds, size, width, height, backdrops);
@@ -35,6 +37,7 @@ pub(crate) fn measure(
             continue;
         }
         if f.off_page || f.tiny {
+            other_chars += visible_chars(&run.text);
             continue;
         }
         chars += visible_chars(&run.text);
@@ -51,7 +54,7 @@ pub(crate) fn measure(
         image_share: image_share(&drawn.image_boxes, width, height),
         paths: drawn.paths,
     };
-    layer.status = classify(&layer, thresholds);
+    layer.status = classify(&layer, other_chars > 0, thresholds);
     layer
 }
 
@@ -102,10 +105,12 @@ fn at_least(value: f64, thousandths: u16) -> bool {
     (value * ROUND).round() >= f64::from(thousandths)
 }
 
-/// The first status whose rule `layer` meets.
-fn classify(layer: &TextLayer, t: &TextLayerThresholds) -> TextLayerStatus {
+/// The first status whose rule `layer` meets. `other_text`: the page has text left out of
+/// `chars` as off the page or tiny, so it isn't blank.
+fn classify(layer: &TextLayer, other_text: bool, t: &TextLayerThresholds) -> TextLayerStatus {
     let image_page = at_least(layer.image_share, t.image_page);
-    if layer.chars == 0 && layer.invisible_chars == 0 && layer.images == 0 && layer.paths < t.drawn_paths {
+    let no_text = layer.chars == 0 && layer.invisible_chars == 0 && !other_text;
+    if no_text && layer.images == 0 && layer.paths < t.drawn_paths {
         TextLayerStatus::Empty
     } else if image_page && layer.invisible_chars > layer.chars {
         TextLayerStatus::OcrLayer
@@ -142,13 +147,22 @@ mod tests {
     }
 
     fn status(l: &TextLayer) -> TextLayerStatus {
-        classify(l, &TextLayerThresholds::default())
+        classify(l, false, &TextLayerThresholds::default())
     }
 
     #[test]
     fn a_blank_page_is_empty_until_it_paints_enough_paths() {
         assert_eq!(status(&layer(0, 0, 0.0, 0.0, 15)), TextLayerStatus::Empty);
         assert_eq!(status(&layer(0, 0, 0.0, 0.0, 16)), TextLayerStatus::NeedsOcr);
+    }
+
+    #[test]
+    fn a_page_whose_only_text_is_tiny_or_off_the_page_is_not_blank() {
+        let l = layer(0, 0, 0.0, 0.0, 0);
+        assert_eq!(
+            classify(&l, true, &TextLayerThresholds::default()),
+            TextLayerStatus::NeedsOcr
+        );
     }
 
     #[test]

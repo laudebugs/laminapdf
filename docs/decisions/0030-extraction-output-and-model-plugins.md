@@ -132,7 +132,7 @@ The last two are approximations, and both lean towards keeping text: a false neg
 
 > **Implementation note (T3a, 2026-11-08).** [T3a](../todos/ongoing/T3a-text-layer-status.md) gives every page a `textLayer` within `/1`: a `status` and the measures it was decided from, so a pipeline can send only the pages that need it to OCR. The counts are `chars` (visible characters, spaces left out, in runs that aren't invisible, off the page or tiny; artifacts count, since they are drawn), `invisibleChars` (runs in rendering mode 3 or 7), `images` (every image drawn, in forms too) and `paths` (fills and strokes). The shares, rounded to 1/1000 as §7 rounds lengths, are `unmappedShare` (the visible runs' glyphs without Unicode) and `imageShare` (the part of the page the image boxes cover, clipped to the page, on a 32 × 32 grid so overlaps count once). The status is the first that applies, with these starting cut-offs (`TextLayerThresholds`, in thousandths for the shares):
 >
-> - `empty`: no text, visible or invisible, no image and fewer than 16 paths;
+> - `empty`: no text, visible or invisible (text dropped as off the page or tiny counts), no image and fewer than 16 paths;
 > - `ocr-layer`: images cover at least half the page and invisible characters outnumber visible ones;
 > - `needs-ocr`: no visible text; or images cover at least half the page with at most 200 visible characters; or at least half the glyphs are unmapped;
 > - `mixed`: at least 10% of the glyphs are unmapped, or images cover at least a quarter of the page;

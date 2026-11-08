@@ -46,7 +46,9 @@ Extraction reads the text a page draws with its fonts, so a scan gives nothing, 
 | `mixed` | at least 10% of the glyphs have no Unicode, or images cover at least a quarter of the page | use the text, but parts of the page may be pictures |
 | `native` | anything else | use the text |
 
-`needs-ocr` and `ocr-layer` pages also raise `extract-needs-ocr`, so a caller that reads only the Markdown learns why a page is empty. The cut-offs are starting values in `TextLayerThresholds` (`ExtractOptions::with_text_layer`), with shares in thousandths; the JSON carries every measure, so a pipeline can apply its own.
+Text left out as off the page or tiny still counts as text for `empty`, so such a page reads as `needs-ocr`, not blank. `needs-ocr` and `ocr-layer` pages also raise `extract-needs-ocr`, so a caller that reads only the Markdown learns why a page is empty. The cut-offs are starting values in `TextLayerThresholds` (`ExtractOptions::with_text_layer`), with shares in thousandths; the JSON carries every measure, so a pipeline can apply its own.
+
+On the benchmark's 672 readable pages (below), 496 are `native`, 67 `mixed`, 67 `needs-ocr`, 42 `ocr-layer` and none `empty`. Every page that gave no text is `needs-ocr` (40) or `ocr-layer` (37). 17 of the `needs-ocr` pages still passed the benchmark's baseline test: they gave a little text, such as a stamp or glyphs without Unicode.
 
 ## How it reads a page
 
