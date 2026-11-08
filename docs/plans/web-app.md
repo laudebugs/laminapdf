@@ -110,7 +110,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `@laminapdf/viewer`: worker RPC, page virtualiser, canvas pool, progressive rendering, zoom with anchoring; a minimal demo page; performance harness.
 **Accepted when:** a 1,000-page fixture scrolls end to end in Playwright (Chromium, Firefox, WebKit) within the memory and long-task budgets; cancelled renders never paint.
-**Todos:** [C3a](../todos/done/C3a-viewer-worker-rpc.md), [C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/done/C3c-viewer-perf-harness.md), [C3d](../todos/ongoing/C3d-viewer-detail-canvas.md)
+**Todos:** [C3a](../todos/done/C3a-viewer-worker-rpc.md), [C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/done/C3c-viewer-perf-harness.md), [C3d](../todos/done/C3d-viewer-detail-canvas.md)
 
 ### C4. App shell on Cloudflare
 
@@ -183,7 +183,7 @@ Ticked by the PR that completes them.
 - [x] Implement low-res then tiled sharp rendering with `ImageBitmap` transfer ([C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md))
 - [x] Implement zoom modes and anchor-preserving zoom ([C3b](../todos/done/C3b-viewer-virtualiser-and-zoom.md))
 - [x] Add a perf harness: long tasks, memory, time-to-first-page, run in CI on a 1,000-page fixture
-- [ ] Keep the page in view sharp at every zoom with a canvas over the part in view ([C3d](../todos/ongoing/C3d-viewer-detail-canvas.md))
+- [x] Keep the page in view sharp at every zoom with a canvas over the part in view ([C3d](../todos/done/C3d-viewer-detail-canvas.md))
 
 ### C4. App shell on Cloudflare
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
