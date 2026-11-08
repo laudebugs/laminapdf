@@ -3,7 +3,7 @@
 // useSyncExternalStore with a selector, so a component re-renders only when its slice changes,
 // not on every scroll frame.
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { ReaderController } from "./reader-controller.js";
 import type { ReaderState } from "./reader-machine.js";
 
@@ -32,4 +32,18 @@ export function useStoreState<State, Slice>(store: ExternalStore<State>, select:
 /** The reader's lifecycle state. */
 export function useReaderState(controller: ReaderController): ReaderState {
   return useStoreState(controller, (state) => state);
+}
+
+/** Whether `query` matches now, kept up to date. */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => typeof matchMedia === "function" && matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return;
+    const list = matchMedia(query);
+    const update = () => setMatches(list.matches);
+    update();
+    list.addEventListener("change", update);
+    return () => list.removeEventListener("change", update);
+  }, [query]);
+  return matches;
 }

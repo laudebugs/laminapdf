@@ -73,6 +73,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "wrong-document":
     case "invalid-feature":
     case "invalid-text-range":
+    case "invalid-spans":
     case "font-mismatch":
     case "image-data-length":
     case "color-components":

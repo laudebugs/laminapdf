@@ -12,7 +12,7 @@ import { EXAMPLES, fakePlatform } from "@laminapdf/ui/testing";
 import { type ReactNode, StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Icons } from "./icons.tsx";
-import { Dialogs, Menus, Palette, ReaderParts, Selection, Sheets, Toasts } from "./overlays.tsx";
+import { Dialogs, Menus, Palette, ReaderParts, Selection, Sheets, ShellRegions, Toasts } from "./overlays.tsx";
 import {
   APPEARANCES,
   DENSITIES,
@@ -60,6 +60,8 @@ function Extra({ route, state, theme }: { route: Route; state: string; theme: st
       return <Icons />;
     case "reader-shell":
       return <ReaderParts />;
+    case "shell-regions":
+      return <ShellRegions />;
     case "dialogs":
       return <Dialogs state={open} />;
     case "sheets":
