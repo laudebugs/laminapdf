@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4a](../done/T4a-adr-0032-layout-engine.md) |
+| Depends on | [T4a](./T4a-adr-0032-layout-engine.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md) [§4](../../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) (tagging) and [§10](../../decisions/0032-flowing-layout-and-document-inputs.md#10-what-lands-when) (the groundwork); follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
 | Branch | `feat/t4f-flow-builder-groundwork` |
 | PR title | `feat(build): tagged elements across pages, text measured without drawing, artifact subtypes and marks under PDF/UA-1` |
@@ -50,24 +50,32 @@ Give `laminapdf-build` the four things the [`flow-layout` spike](../../../spikes
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`
-- [ ] Read ADR 0032 §4, the spike's README and `src/tag/`, and the ISO clauses in Context
-- [ ] `src/tag/`: elements that outlive their page (an open-element table on the `Builder`, MCR kids, `ParentTree` entries per page), with unit tests for a paragraph across three pages and for an element never closed (`Builder::finish` fails with a code: `tag-element-unclosed`, new, in `buildErrors`)
-- [ ] `src/surface/`: `measure_text_box` beside `text_box`, sharing `lay_out`; the crate-private command that draws a measured layout
-- [ ] `src/tag/artifact.rs`: subtypes and `/Attached`
-- [ ] `laminapdf-text` and the registry: a Unicode value for every glyph of a cluster; a test with the spike's Arabic sentence under `Profile::PdfUa1`
-- [ ] The code `tag-element-unclosed`: its `codes.json` entry, its `docs/errors/` page and `cargo xtask gen codes`
-- [ ] The bindings' name tables and `cargo xtask gen boundary`
-- [ ] The docs (Docs to update)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`
+- [x] Read ADR 0032 §4, the spike's README and `src/tag/`, and the ISO clauses in Context
+- [x] `src/tag/`: elements that outlive their page (an open-element table on the `Builder`, MCR kids, `ParentTree` entries per page), with unit tests for a paragraph across three pages and for an element never closed (`Builder::finish` fails with a code: `tag-element-unclosed`, new, in `buildErrors`)
+- [x] `src/surface/`: `measure_text_box` beside `text_box`, sharing `lay_out`; the crate-private command that draws a measured layout
+- [x] `src/tag/artifact.rs`: subtypes and `/Attached`
+- [x] `laminapdf-text` and the registry: a Unicode value for every glyph of a cluster; a test with the spike's Arabic sentence under `Profile::PdfUa1`
+- [x] The code `tag-element-unclosed`: its `codes.json` entry, its `docs/errors/` page and `cargo xtask gen codes`
+- [x] The bindings' name tables and `cargo xtask gen boundary`
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] A paragraph opened on page 1 and resumed on pages 2 and 3 is one `P` element whose content is on all three pages (`laminapdf_model::Document::structure()`), and the file passes `cargo xtask verapdf` under PDF/UA-1
-- [ ] `measure_text_box` returns the same `TextLayout` as `text_box` for the inputs of `crates/laminapdf-build/tests/`, and the page's content stream doesn't change
-- [ ] A footer drawn as a pagination artifact with the footer subtype writes `/Artifact << /Type /Pagination /Subtype /Footer /Attached [/Bottom] >>`, and `laminapdf-extract` drops it as before
-- [ ] The spike's Arabic sentence, in a text box under PDF/UA-1, builds, passes veraPDF, and pdf.js and pdftotext read it back as the input (whitespace and bidi controls removed)
-- [ ] Every byte golden in `fixtures/golden/` that uses none of the new calls is unchanged, or the PR explains each change
-- [ ] `cargo xtask gen codes --check` and `cargo xtask gen boundary --check` pass
+- [x] A paragraph opened on page 1 and resumed on pages 2 and 3 is one `P` element whose content is on all three pages (`laminapdf_model::Document::structure()`), and the file passes `cargo xtask verapdf` under PDF/UA-1
+- [x] `measure_text_box` returns the same `TextLayout` as `text_box` for the inputs of `crates/laminapdf-build/tests/`, and the page's content stream doesn't change
+- [x] A footer drawn as a pagination artifact with the footer subtype writes `/Artifact << /Type /Pagination /Subtype /Footer /Attached [/Bottom] >>`, and `laminapdf-extract` drops it as before
+- [x] The spike's Arabic sentence, in a text box under PDF/UA-1, builds, passes veraPDF, and pdf.js and pdftotext read it back as the input (whitespace and bidi controls removed). *As done:* it builds and veraPDF 1.30.3 passes it; pdf.js 6.4.299 reads it back exactly. pdftotext wasn't checked at the pinned poppler 26.10 (the machine had 24.02, which misplaces one shadda), so its facts go with T4b's facts run
+- [x] Every byte golden in `fixtures/golden/` that uses none of the new calls is unchanged, or the PR explains each change
+- [x] `cargo xtask gen codes --check` and `cargo xtask gen boundary --check` pass
+
+## As built
+
+- Elements across pages are `Surface::open_element`, `Surface::resume` and `Builder::close_element`, in `src/tag/open.rs`; besides `tag-element-unclosed`, resuming or closing an element that isn't open is `tag-element-not-open`. The profiles read elements in structure order, so an element's children on later pages are checked where they belong.
+- Measuring is `Surface::measure_text_box`; `textbox::measure` and the crate-private `Surface::draw_measured` are what T4b's emitter uses.
+- Artifacts are `Artifact` (`header`, `footer`, `watermark`, `with_attached(&[PageEdge])`); `Surface::artifact` takes `impl Into<Artifact>`, so `ArtifactKind` still works. Background artifacts can name their edges too.
+- The Arabic failure wasn't a diacritic: Noto Sans Arabic draws dotted letters as a body and a dot, and the dot maps to the empty value. veraPDF accepts that under PDF/UA-1 and PDF/A-2u, so the profile check now does too. Putting a right-to-left cluster's whole text on its advancing glyph was tried and reverted, because pdf.js then misplaces the mark.
+- The tests are in `tests/tagging_across_pages.rs`, not `tests/tagging.rs`, which was already past 850 lines.
 
 ## Post-merge checks
 
@@ -82,9 +90,9 @@ None.
 
 ## Docs to update
 
-- [ ] `laminapdf-build`'s README and `lib.rs` docs (elements across pages, measuring, artifact subtypes)
-- [ ] `CLAUDE.md`'s Building API paragraph (tagged PDF: elements are no longer per page only)
-- [ ] `fixtures/README.md`: the new golden's row
+- [x] `laminapdf-build`'s README and `lib.rs` docs (elements across pages, measuring, artifact subtypes)
+- [x] `CLAUDE.md`'s Building API paragraph (tagged PDF: elements are no longer per page only)
+- [x] `fixtures/README.md`: the new golden's row
 
 ## Risks and open questions
 
@@ -94,8 +102,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

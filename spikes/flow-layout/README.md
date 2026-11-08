@@ -11,7 +11,7 @@ How should Lamina PDF lay out pages that flow: with an engine of its own over `l
 
 ## Answer in one paragraph
 
-**Build our own engine over `Surface` (A), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module and 147 crates, thread pools among them. Its API broke twice between 0.14 and 0.15, and it returns finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/ongoing/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
+**Build our own engine over `Surface` (A), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module and 147 crates, thread pools among them. Its API broke twice between 0.14 and 0.15, and it returns finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/done/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
 
 ## Method
 
@@ -115,7 +115,7 @@ Every output was byte-identical across 30 runs, natively. `scripts/node-time.mjs
 
 ## What our own engine lacked
 
-Experiment A ran on today's builder. Six gaps shaped its output. [T4f](../../docs/todos/ongoing/T4f-flow-builder-groundwork.md) takes on four of them, and ADR 0032 makes the other two unnecessary:
+Experiment A ran on today's builder. Six gaps shaped its output. [T4f](../../docs/todos/done/T4f-flow-builder-groundwork.md) takes on four of them, and ADR 0032 makes the other two unnecessary:
 
 1. **Elements across pages** (T4f). Tagged elements end with their page, so a paragraph or table split by a page break becomes two elements.
 2. **Measuring without drawing** (T4f). Nothing lays text out without drawing it. The spike measured two lines' height once in a throwaway builder, and table columns couldn't be sized to their content: a cell too narrow clips silently, as the invoice's descriptions did until the spike gave the first column 40 %.
