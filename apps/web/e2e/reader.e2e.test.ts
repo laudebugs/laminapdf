@@ -9,6 +9,7 @@ import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { getLocal } from "./local-tls.ts";
 
 const APP = new URL("../", import.meta.url);
 const CORPUS = new URL("../../../fixtures/corpus/", import.meta.url);
@@ -40,7 +41,7 @@ function asset(pattern: RegExp): string {
 
 /** `GET path` without following redirects. */
 function get(path: string): Promise<Response> {
-  return fetch(new URL(path, origin), { redirect: "manual" });
+  return getLocal(new URL(path, origin));
 }
 
 describe("what the server sends", () => {
@@ -107,7 +108,8 @@ describe(`opening local files in ${BROWSER}`, () => {
 
   /** Opens the app at `path`, after `init` (an init script: runs before the page's own). */
   async function load(path = "/", init?: { script: (arg: number[]) => void; arg: number[] }): Promise<Watched> {
-    const page = await browser.newPage();
+    // The server's certificate is self-signed (local-tls.ts).
+    const page = await browser.newPage({ ignoreHTTPSErrors: true });
     const foreign: string[] = [];
     page.on("request", (request) => {
       const url = new URL(request.url());
