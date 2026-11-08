@@ -11,7 +11,7 @@
 | Branch | `feat/q3g-drawing-and-ranges` |
 | PR title | `feat(docs): pages and diagrams for drawing pages and opening large files by ranges` |
 | Size | M |
-| PR | — |
+| PR | [#335](https://github.com/laudebugs/laminapdf/pull/335) |
 
 ## Goal
 
