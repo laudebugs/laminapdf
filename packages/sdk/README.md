@@ -153,6 +153,26 @@ const chunks = doc.extract({ format: "chunks", chunk: { maxTokens: 400 } });
 
 `doc.extract()` runs to the end in one call. In a Web Worker (`@laminapdf/sdk/worker`) the main thread stays free, but aborting the call's `signal` only rejects the promise: the Web Worker finishes the extraction first.
 
+### With a layout model: `extractWithModels()`
+
+The rules read most pages well. A layout model reads the pages they misread, such as magazines and columns set close together, by finding each page's regions: text, headings, lists, tables, pictures and running headers. The extraction then keeps each region's text together, reads the regions in order and names their kinds.
+
+`extractWithModels` runs an extraction with your model: name the model in `options.models`, and for each page the extraction calls your function with the page and the resolution to render it at. Your function returns the regions, each with a label, a box `[x, y, width, height]` in top-left points and a score.
+
+```ts
+const json = await extractWithModels(
+  doc,
+  { format: "json", models: { layout: heron.info } },
+  { layout: async ({ page, dpi }) => heron.detect(await renderPage(page, dpi)) },
+);
+```
+
+Here `heron` is [`@laminapdf/layout-heron`](../layout-heron/README.md)'s `HeronLayout`, which runs Docling's Heron layout model with onnxruntime-web, and `renderPage` is your own function that draws the page with `@laminapdf/render-pdfium` or `@laminapdf/render-hayro`.
+
+`generator.models` in the JSON names every model that gave a result, and `generator.mode` reads `rules+models`. An OCR engine plugs in the same way (`models.ocr` and an `ocr` function returning words) and reads only the pages with no visible text.
+
+To step the extraction yourself, `doc.extractJob(options)` returns a job: each `step(budget)` that needs a result returns its `request`, and `provide(result)` answers it.
+
 ## Remote and large files
 
 `Document.openRange(source, options)` opens a file whose bytes are fetched range by range, so a remote PDF opens without downloading it whole. Only what the open needs is fetched: the end of the file (the xref), the catalog, the page tree. The document stays synchronous; a call that needs bytes not fetched yet throws `data-pending` with `e.ranges`, and `await doc.ensure(() => …)` fetches them and calls again.

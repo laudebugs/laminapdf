@@ -1,0 +1,14 @@
+{
+  "name": "lamina-heron-web",
+  "private": true,
+  "description": "Heron through onnxruntime-web on two example pages, against laminapdf-layout-onnx's reference run (todo L3h); a tool, never shipped, run by hand.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "onnxruntime-web": "1.31.1"
+  }
+}
