@@ -69,7 +69,7 @@ fn run(invoice: bool) -> usize {
     {
         use lamina_flow_layout::{inputs as docs, own};
         let doc = if invoice {
-            docs::invoice(std::str::from_utf8(&i[4]).unwrap_or_default()).ok()
+            docs::invoice(std::str::from_utf8(i.get(4).map_or(&[][..], Vec::as_slice)).unwrap_or_default()).ok()
         } else {
             Some(docs::report())
         };
@@ -88,8 +88,8 @@ fn run(invoice: bool) -> usize {
     {
         use lamina_flow_layout::{inputs as docs, typst_world::MemoryWorld};
         let world = if invoice {
-            let main = String::from_utf8(i[5].clone()).unwrap_or_default();
-            MemoryWorld::new(main, &[("invoice.json", i[4].clone())], &fonts)
+            let main = String::from_utf8(i.get(5).cloned().unwrap_or_default()).unwrap_or_default();
+            MemoryWorld::new(main, &[("invoice.json", i.get(4).cloned().unwrap_or_default())], &fonts)
         } else {
             MemoryWorld::new(docs::to_typst(&docs::report()), &[], &fonts)
         };

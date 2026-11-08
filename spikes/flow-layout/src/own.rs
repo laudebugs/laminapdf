@@ -113,6 +113,7 @@ fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<
                     _ => (&f.regular, TextBoxOptions::new()),
                 };
                 let mut rest = text.as_str();
+                let mut fresh = false;
                 loop {
                     // No orphan: a paragraph never starts on the last line of a page.
                     if y + two_lines > BOTTOM {
@@ -125,7 +126,14 @@ fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<
                             y = laid.bottom().map_or(y, |b| b.get()) + GAP;
                             break;
                         }
+                        Some(0) if fresh => {
+                            // Not one line fits a fresh page: a line taller than the page.
+                            return Err(laminapdf::Error::from(laminapdf::BuildError::InvalidGeometry {
+                                what: "a line of a paragraph is taller than the page",
+                            }));
+                        }
                         Some(cut) => {
+                            fresh = true;
                             gaps.split_paragraphs += 1;
                             rest = rest[cut..].trim_start();
                             break_page!();
