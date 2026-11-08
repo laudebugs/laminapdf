@@ -116,7 +116,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `@laminapdf/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, staging deploy from `main`, production deploy from `web-v*` release tags.
 **Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
-**Todos:** [C4a](../todos/done/C4a-ui-chrome-and-platform.md), [C4e](../todos/done/C4e-reader-chrome.md), [C4f](../todos/done/C4f-reader-home-repairs-and-demo.md), [C4b](../todos/done/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/done/C4d-deploy-previews-and-production.md)
+**Todos:** [C4a](../todos/done/C4a-ui-chrome-and-platform.md), [C4e](../todos/done/C4e-reader-chrome.md), [C4f](../todos/done/C4f-reader-home-repairs-and-demo.md), [C4b](../todos/done/C4b-web-app-shell.md), [C4c](../todos/ongoing/C4c-remote-files-encryption-privacy.md), [C4d](../todos/done/C4d-deploy-previews-and-production.md)
 
 ### C5. Text, selection and search
 

@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
-| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](./C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../done/C3c-viewer-perf-harness.md) (print preparation measured within the harness budget) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../ongoing/C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
+| Dependency notes | [C4c](../ongoing/C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](./C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](../done/C3c-viewer-perf-harness.md) (print preparation measured within the harness budget) |
 | ADRs | Follows 0004 (print rendering via `RenderBackend` with print intent), 0010 (`Platform.print`, `Platform.saveAs`, `hasNativePrint` flag), 0011 (no upload: print and download are local) |
 | Branch | `feat/c6c-print-download-properties` |
 | PR title | `feat(web): add printing, original-bytes download and the document properties dialog` |
@@ -24,7 +24,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 - [web-app.md §4 functional 7](../../plans/web-app.md#functional) — print via rasterised pages in a hidden iframe, native PDF printing where supported; download returns original bytes.
 - [web-app.md §2](../../plans/web-app.md#2-scope-and-non-goals) — properties scope (metadata, fonts, version, encryption, signatures present).
 - [04 §7 encryption](../../research/pdf/04-interactive-security.md#7-encryption-76) (handler, revision, permissions), [04 §8 signatures](../../research/pdf/04-interactive-security.md) (signature fields presence), [03](../../research/pdf/03-text-and-fonts.md) (font types, embedding, subset tags).
-- [C3a](../done/C3a-viewer-worker-rpc.md) (background priority, cancellation), [C4c](./C4c-remote-files-encryption-privacy.md) (`ByteSource` for remote files).
+- [C3a](../done/C3a-viewer-worker-rpc.md) (background priority, cancellation), [C4c](../ongoing/C4c-remote-files-encryption-privacy.md) (`ByteSource` for remote files).
 
 ## Scope
 

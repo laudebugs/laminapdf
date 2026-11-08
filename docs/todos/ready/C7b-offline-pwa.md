@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C5b](./C5b-find-in-document.md), [C7a](./C7a-accessibility-and-theming.md) |
+| Depends on | [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../ongoing/C4c-remote-files-encryption-privacy.md), [C4d](../done/C4d-deploy-previews-and-production.md), [C5b](./C5b-find-in-document.md), [C7a](./C7a-accessibility-and-theming.md) |
 | ADRs | Follows 0011 (immutable hashed assets, headers; nothing leaves the device; local storage clearable), 0010 (`Platform.storage`, `hasFileHandlers` capability), 0009 |
 | Branch | `feat/c7b-offline-pwa` |
 | PR title | `feat(web): make the reader an installable offline pwa with file handling and recent files` |

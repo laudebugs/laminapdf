@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C4c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [C4b](../done/C4b-web-app-shell.md), [W1a](../done/W1a-domain-map.md) |
@@ -41,9 +41,9 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 
 **Out of scope** (and which todo covers it)
 
-- OPFS caching of large remote/local files and recent files → [C7b](./C7b-offline-pwa.md).
+- OPFS caching of large remote/local files and recent files → [C7b](../ready/C7b-offline-pwa.md).
 - Opt-in CORS proxy (open question; would be a later server feature under ADR 0011).
-- Text extraction from encrypted files → [C5a](./C5a-text-layer-and-selection.md) (acceptance there).
+- Text extraction from encrypted files → [C5a](../ready/C5a-text-layer-and-selection.md) (acceptance there).
 
 ## Tasks
 
