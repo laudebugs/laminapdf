@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use laminapdf_content::{ImageDraw, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor};
+use laminapdf_content::{FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor};
 use laminapdf_model::Document;
 use laminapdf_syntax::{Budget, CancelToken, Phase, Step};
 use laminapdf_text::{PageText, TextExtractor};
@@ -15,8 +15,10 @@ use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
 use crate::page::{PageInput, TreeUse, has_visible_text};
+use crate::paint::{Collector, annots};
 use crate::plugins::{LayoutRegion, ModelRequest, ModelResult, ModelSlot, OcrWord, PageRaster};
-use crate::tables::{Collector, Edges, TableMode};
+use crate::segments::Covers;
+use crate::tables::{Edges, TableMode};
 use crate::tagged::TaggedIndex;
 use crate::visibility::Backdrops;
 use crate::{furniture, headings, lists};
@@ -55,6 +57,7 @@ struct Pending {
     text: PageText,
     edges: Option<Edges>,
     backdrops: Backdrops,
+    covers: Covers,
     /// Whether the page has visible text; OCR reads only pages that don't.
     visible: bool,
     regions: Option<Vec<LayoutRegion>>,
@@ -156,32 +159,46 @@ fn record_models(out: &mut Extraction, options: &ExtractOptions, (layout, ocr): 
     .collect();
 }
 
-/// A page's painting, seen once: the table rules (when tables are looked for) and the backdrops.
+/// A page's painting, seen once: the table rules and covers, and the backdrops.
 struct Painted<'f> {
-    rules: Option<Collector<'f>>,
+    paint: Collector<'f>,
     backdrops: Backdrops,
 }
 
 impl Visitor for Painted<'_> {
     fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
-        if let Some(rules) = &mut self.rules {
-            rules.path_segment(segment, ctm);
-        }
+        self.paint.path_segment(segment, ctm);
     }
 
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
-        if let Some(rules) = &mut self.rules {
-            rules.paint_path(paint);
-        }
+        self.paint.paint_path(paint);
         self.backdrops.paint_path(paint);
     }
 
     fn image(&mut self, image: &ImageDraw<'_>) {
+        self.paint.image(image);
         self.backdrops.image(image);
     }
 
     fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        self.paint.paint_shading(shading);
         self.backdrops.paint_shading(shading);
+    }
+
+    fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
+        self.paint.begin_marked(marked);
+    }
+
+    fn end_marked(&mut self) {
+        self.paint.end_marked();
+    }
+
+    fn enter_xobject(&mut self, form: &FormXObject<'_>) {
+        self.paint.enter_xobject(form);
+    }
+
+    fn leave_xobject(&mut self, form: &FormXObject<'_>) {
+        self.paint.leave_xobject(form);
     }
 }
 
@@ -317,6 +334,7 @@ impl ExtractJob {
                 &PageInput {
                     edges: pending.edges.as_ref(),
                     backdrops: &pending.backdrops,
+                    covers: &pending.covers,
                     tree: self.tree.as_ref(),
                     regions: pending.regions.as_deref().unwrap_or_default(),
                     words: pending.words.as_deref().unwrap_or_default(),
@@ -349,8 +367,8 @@ impl ExtractJob {
         Ok(self.progress(Phase::Extract))
     }
 
-    /// Reads page `index`'s text and, in the same walk of its content, its table rules and
-    /// backdrops.
+    /// Reads page `index`'s text and, in the same walk of its content, its table rules, covers
+    /// and backdrops; then the covers of its annotations.
     fn read(
         &mut self,
         doc: &Document,
@@ -359,23 +377,37 @@ impl ExtractJob {
     ) -> Result<Pending, ExtractError> {
         let frame = page.frame()?;
         let mut painted = Painted {
-            rules: (self.options.tables != TableMode::Off).then(|| Collector::new(&frame)),
+            paint: Collector::new(&frame),
             backdrops: Backdrops::new(&frame),
         };
         let text = self.extractor.page_with(doc, page, &mut painted)?;
-        let edges = painted.rules.map(Collector::finish);
-        // Only OCR asks, and the test reads the page's runs once more.
-        let visible = self.options.models.ocr.is_none() || has_visible_text(&text, &painted.backdrops, &self.options);
-        Ok(Pending {
+        let (edges, mut covers) = painted.paint.finish();
+        covers.extend(annots::covers(doc, page, &frame)?);
+        let edges = (self.options.tables != TableMode::Off).then_some(edges);
+        let mut pending = Pending {
             index,
             text,
             edges,
             backdrops: painted.backdrops,
-            visible,
+            covers: Covers::new(covers),
+            visible: true,
             regions: None,
             words: None,
             raster: None,
-        })
+        };
+        // Only OCR asks, and the test reads the page's runs once more.
+        if self.options.models.ocr.is_some() {
+            let input = PageInput {
+                edges: None,
+                backdrops: &pending.backdrops,
+                covers: &pending.covers,
+                tree: None,
+                regions: &[],
+                words: &[],
+            };
+            pending.visible = has_visible_text(&pending.text, &input, &self.options);
+        }
+        Ok(pending)
     }
 
     /// The pending page's next missing model result, if any.

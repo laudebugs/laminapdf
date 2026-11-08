@@ -187,6 +187,11 @@
           "type": "string"
         },
         {
+          "const": "covered",
+          "description": "Painted over by a later opaque shape, image or annotation.",
+          "type": "string"
+        },
+        {
           "const": "artifact",
           "description": "Marked content tagged `Artifact`.",
           "type": "string"

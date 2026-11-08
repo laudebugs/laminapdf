@@ -69,8 +69,9 @@ pub(crate) fn mostly_rtl(text: &str) -> bool {
 /// A piece with its index.
 type Entry<'p> = (usize, &'p Piece);
 
-/// The lines of `pieces`, top to bottom. A vertical run is a line of its own.
-pub(crate) fn lines(pieces: &[Piece]) -> Vec<Line> {
+/// The lines of `pieces`, top to bottom. A vertical run is a line of its own. A gap that a box
+/// of `covered` text fills is no gutter: the covered words sat there.
+pub(crate) fn lines(pieces: &[Piece], covered: &[RectPt]) -> Vec<Line> {
     let mut order: Vec<Entry<'_>> = pieces.iter().enumerate().collect();
     order.sort_by(|(_, a), (_, b)| {
         by_value(a.baseline.get(), b.baseline.get()).then(by_value(a.bbox.x0.get(), b.bbox.x0.get()))
@@ -88,18 +89,27 @@ pub(crate) fn lines(pieces: &[Piece]) -> Vec<Line> {
             (piece.baseline.get() - anchor.baseline.get()).abs() <= SAME_BASELINE * size
         });
         if !joins && !group.is_empty() {
-            split(std::mem::take(&mut group), &mut out);
+            split(std::mem::take(&mut group), &mut out, covered);
         }
         group.push(entry);
     }
     if !group.is_empty() {
-        split(group, &mut out);
+        split(group, &mut out, covered);
     }
     out
 }
 
+/// Whether a box of `covered` text fills the gap between `prev` and `next`, leaving less than a
+/// gutter on each side, on `prev`'s line.
+fn bridged(prev: &Piece, next: &Piece, covered: &[RectPt], gutter: f64) -> bool {
+    covered.iter().any(|c| {
+        let level = c.y0 < prev.bbox.y1 && prev.bbox.y0 < c.y1;
+        level && c.x0.get() - prev.bbox.x1.get() <= gutter && next.bbox.x0.get() - c.x1.get() <= gutter
+    })
+}
+
 /// `group` (one baseline) split at gutters, each part a line.
-fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
+fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>, covered: &[RectPt]) {
     group.sort_by(|(_, a), (_, b)| by_value(a.bbox.x0.get(), b.bbox.x0.get()));
     // A right-to-left list's marker is its rightmost piece.
     let rtl = mostly_rtl(&group.iter().map(|(_, p)| p.text.as_str()).collect::<String>());
@@ -116,7 +126,7 @@ fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
             } else {
                 part.len() == 1 && is_marker(prev.text.trim())
             };
-            gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size)
+            gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size) && !bridged(prev, next, covered, GUTTER * size)
         });
         if gutter {
             out.push(line(std::mem::take(&mut part)));
@@ -193,33 +203,48 @@ mod tests {
 
     #[test]
     fn runs_on_one_baseline_are_one_line_with_spaces_at_gaps() {
-        let got = lines(&[piece("world", 60.0, 100.0, 30.0), piece("Hello", 20.0, 100.5, 30.0)]);
+        let got = lines(
+            &[piece("world", 60.0, 100.0, 30.0), piece("Hello", 20.0, 100.5, 30.0)],
+            &[],
+        );
         assert_eq!(texts(&got), ["Hello world"]);
     }
 
     #[test]
     fn a_gutter_splits_one_baseline_into_two_lines() {
-        let got = lines(&[piece("left", 20.0, 100.0, 200.0), piece("right", 300.0, 100.0, 200.0)]);
+        let got = lines(
+            &[piece("left", 20.0, 100.0, 200.0), piece("right", 300.0, 100.0, 200.0)],
+            &[],
+        );
         assert_eq!(texts(&got), ["left", "right"]);
     }
 
     #[test]
     fn lines_come_top_to_bottom() {
-        let got = lines(&[piece("second", 20.0, 130.0, 50.0), piece("first", 20.0, 100.0, 50.0)]);
+        let got = lines(
+            &[piece("second", 20.0, 130.0, 50.0), piece("first", 20.0, 100.0, 50.0)],
+            &[],
+        );
         assert_eq!(texts(&got), ["first", "second"]);
     }
 
     #[test]
     fn a_lone_marker_a_tab_from_its_text_joins_its_line_either_way() {
-        let got = lines(&[piece("•", 20.0, 100.0, 6.0), piece("Apples", 44.0, 100.0, 40.0)]);
+        let got = lines(&[piece("•", 20.0, 100.0, 6.0), piece("Apples", 44.0, 100.0, 40.0)], &[]);
         assert_eq!(texts(&got), ["• Apples"]);
-        let got = lines(&[piece("שלום עולם", 20.0, 100.0, 60.0), piece("•", 100.0, 100.0, 6.0)]);
+        let got = lines(
+            &[piece("שלום עולם", 20.0, 100.0, 60.0), piece("•", 100.0, 100.0, 6.0)],
+            &[],
+        );
         assert_eq!(texts(&got), ["• שלום עולם"]);
     }
 
     #[test]
     fn a_right_to_left_line_is_read_from_its_right_end() {
-        let got = lines(&[piece("שלום", 20.0, 100.0, 30.0), piece("עולם", 60.0, 100.0, 30.0)]);
+        let got = lines(
+            &[piece("שלום", 20.0, 100.0, 30.0), piece("עולם", 60.0, 100.0, 30.0)],
+            &[],
+        );
         assert_eq!(texts(&got), ["עולם שלום"]);
         assert!(got.iter().all(|l| l.rtl));
         assert!(!mostly_rtl("Hello שלום world"));

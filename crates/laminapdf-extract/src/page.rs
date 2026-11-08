@@ -5,15 +5,16 @@ use laminapdf_cos::Warning;
 use laminapdf_model::RectPt;
 use laminapdf_model::{Document, Page, Pt};
 use laminapdf_syntax::CancelToken;
-use laminapdf_text::{PageText, PageTextRun, Quad, is_right_to_left};
+use laminapdf_text::PageText;
 
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
-use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
-use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Span};
+use crate::lines::{Line, Piece, lines, mostly_rtl};
+use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Flags, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::plugins::{LayoutRegion, OcrWord, RegionLabel};
 use crate::regions::{inside, kind_for, ocr_pieces, region_near, region_of};
+use crate::segments::{Covers, segments};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::tagged::{self, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
@@ -47,11 +48,28 @@ const LAYOUT_CONFIDENCE: f64 = 0.75;
 /// Content order is the drawing order, which is often not the reading order.
 const CONTENT_CONFIDENCE: f64 = 0.5;
 
-/// The page's runs as spans: kept ones (with their pieces) and dropped ones.
+/// A dropped entry for `span`'s text, with the span when the options keep spans.
+fn dropped(index: usize, reason: DropReason, bbox: RectPt, span: &Span, options: &ExtractOptions) -> Dropped {
+    Dropped {
+        reason,
+        page: index,
+        bbox,
+        chars: visible_chars(&span.text),
+        spans: if options.drop.keep_spans {
+            vec![span.clone()]
+        } else {
+            Vec::new()
+        },
+    }
+}
+
+/// The page's runs as spans: kept ones (with their pieces) and dropped ones, and the boxes of
+/// the covered text, which never opens a gutter in a line.
 struct Runs {
     pieces: Vec<Piece>,
     spans: Vec<Span>,
     dropped: Vec<Dropped>,
+    covered: Vec<RectPt>,
 }
 
 /// What extraction reads of a page besides its text: what it painted, seen in the same walk of
@@ -61,6 +79,8 @@ pub(crate) struct PageInput<'a> {
     pub(crate) edges: Option<&'a Edges>,
     /// What text can stand on, for the low-contrast flag.
     pub(crate) backdrops: &'a Backdrops,
+    /// What is painted over earlier text, for the covered flag.
+    pub(crate) covers: &'a Covers,
     /// The structure tree, when the reading order may come from it.
     pub(crate) tree: Option<&'a TaggedIndex>,
     /// The layout model's regions on the page; empty without one.
@@ -72,23 +92,19 @@ pub(crate) struct PageInput<'a> {
 /// Whether the page has text a reader sees, which OCR then leaves alone. An invisible text
 /// layer (a scanner's own OCR, `Tr 3`) doesn't count: it is dropped as hidden text
 /// (ADR 0030 §4), so OCR text never repeats it in the blocks.
-pub(crate) fn has_visible_text(text: &PageText, backdrops: &Backdrops, options: &ExtractOptions) -> bool {
-    !runs(0, text, backdrops, &[], options).pieces.is_empty()
+pub(crate) fn has_visible_text(text: &PageText, painting: &PageInput<'_>, options: &ExtractOptions) -> bool {
+    !runs(0, text, painting, options).pieces.is_empty()
 }
 
-fn runs(
-    index: usize,
-    text: &PageText,
-    backdrops: &Backdrops,
-    regions: &[LayoutRegion],
-    options: &ExtractOptions,
-) -> Runs {
+fn runs(index: usize, text: &PageText, painting: &PageInput<'_>, options: &ExtractOptions) -> Runs {
+    let (backdrops, regions) = (painting.backdrops, painting.regions);
     let frame = &text.frame;
     let (width, height, unit) = (frame.width(), frame.height(), frame.user_unit());
     let mut out = Runs {
         pieces: Vec::new(),
         spans: Vec::new(),
         dropped: Vec::new(),
+        covered: Vec::new(),
     };
     for run in &text.runs {
         let size = Pt::new(run.font_size * unit);
@@ -109,20 +125,26 @@ fn runs(
         // Artifacts are furniture by the file's own word (ISO 32000-2 §14.8.2.2).
         let artifact = (run.artifact && options.drop.furniture).then_some(DropReason::Artifact);
         if let Some(reason) = span_flags.reasons().first().copied().or(artifact) {
-            out.dropped.push(Dropped {
-                reason,
-                page: index,
-                bbox: run.bounds,
-                chars: visible_chars(&span.text),
-                spans: if options.drop.keep_spans {
-                    vec![span]
-                } else {
-                    Vec::new()
-                },
-            });
+            out.dropped.push(dropped(index, reason, run.bounds, &span, options));
             continue;
         }
-        for (words, bbox) in segments(text, run, size, regions) {
+        let cut = segments(text, run, size, regions, painting.covers);
+        for (words, bbox) in cut.covered {
+            let flags = Flags {
+                covered: true,
+                ..Flags::NONE
+            };
+            let hidden = Span {
+                text: words,
+                bbox,
+                flags,
+                ..span.clone()
+            };
+            out.dropped
+                .push(dropped(index, DropReason::Covered, bbox, &hidden, options));
+            out.covered.push(bbox);
+        }
+        for (words, bbox) in cut.kept {
             let words = if run.actual_text {
                 words
             } else {
@@ -149,62 +171,6 @@ fn runs(
         }
     }
     out
-}
-
-/// The smallest rectangle holding a glyph's quad.
-fn quad_box(quad: &Quad) -> RectPt {
-    let (x0, x1) = quad.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
-        (a.min(p.x.get()), b.max(p.x.get()))
-    });
-    let (y0, y1) = quad.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
-        (a.min(p.y.get()), b.max(p.y.get()))
-    });
-    RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
-}
-
-/// A visible run's text and box, split where its pen jumps forward past a column gutter:
-/// `laminapdf-text` keeps such a jump inside one run (as a space), so two columns drawn row
-/// by row in one font would otherwise share every line. Runs whose text is not their glyphs'
-/// in drawing order (`ActualText`, right to left, vertical) stay whole.
-/// A run cut into pieces at column gutters, and where its glyphs pass from one layout region
-/// into another (models see columns that sit closer than a gutter).
-fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[LayoutRegion]) -> Vec<(String, RectPt)> {
-    let whole = || vec![(run.text.clone(), run.bounds)];
-    if run.actual_text || run.vertical || run.text.chars().any(is_right_to_left) {
-        return whole();
-    }
-    let Some(glyphs) = text.glyphs.get(run.glyphs.clone()) else {
-        return whole();
-    };
-    let (gutter, space) = (GUTTER * size.get(), SPACE * size.get());
-    let mut parts: Vec<(String, RectPt)> = Vec::new();
-    let mut last_region = None;
-    for glyph in glyphs {
-        let r = quad_box(&glyph.quad);
-        // A space glyph belongs to the part it follows.
-        // A space, or a glyph outside every region, stays with the part it follows: only a
-        // glyph that lands in another region starts a new part.
-        let region = if glyph.text.trim().is_empty() {
-            last_region
-        } else {
-            region_near(regions, &r, size.get() / 2.0).or(last_region)
-        };
-        let same_region = parts.is_empty() || last_region.is_none() || region == last_region;
-        last_region = region;
-        match parts.last_mut() {
-            Some((words, bbox)) if same_region && r.x0.get() - bbox.x1.get() <= gutter => {
-                let gap = r.x0.get() - bbox.x1.get();
-                if gap > space && !words.ends_with(char::is_whitespace) && !glyph.text.starts_with(char::is_whitespace)
-                {
-                    words.push(' ');
-                }
-                words.push_str(&glyph.text);
-                *bbox = bbox.union(&r);
-            }
-            _ => parts.push((glyph.text.clone(), r)),
-        }
-    }
-    if parts.len() <= 1 { whole() } else { parts }
 }
 
 fn is_vertical(line: &Line, pieces: &[Piece]) -> bool {
@@ -308,9 +274,9 @@ fn take_in<T>(items: Vec<T>, order: &[usize]) -> Vec<T> {
 /// The page's lines, built within each layout region (and among the pieces outside every
 /// region), so no line crosses a region's edge; with each line's region. Without regions,
 /// the rules' lines.
-fn region_lines(pieces: &[Piece], regions: &[LayoutRegion]) -> (Vec<Line>, Vec<Option<usize>>) {
+fn region_lines(pieces: &[Piece], regions: &[LayoutRegion], covered: &[RectPt]) -> (Vec<Line>, Vec<Option<usize>>) {
     if regions.is_empty() {
-        let lines = lines(pieces);
+        let lines = lines(pieces, covered);
         let none = vec![None; lines.len()];
         return (lines, none);
     }
@@ -324,7 +290,7 @@ fn region_lines(pieces: &[Piece], regions: &[LayoutRegion]) -> (Vec<Line>, Vec<O
     let (mut out, mut region) = (Vec::new(), Vec::new());
     for (r, members) in groups {
         let sub: Vec<Piece> = members.iter().filter_map(|&i| pieces.get(i).cloned()).collect();
-        for mut line in lines(&sub) {
+        for mut line in lines(&sub, covered) {
             line.pieces = line.pieces.iter().filter_map(|&p| members.get(p).copied()).collect();
             out.push(line);
             region.push(r);
@@ -439,7 +405,8 @@ pub(crate) fn extract_page(
         mut pieces,
         mut spans,
         mut dropped,
-    } = runs(index, text, painting.backdrops, painting.regions, options);
+        covered,
+    } = runs(index, text, painting, options);
     let (ocr, ocr_spans) = ocr_pieces(painting.words);
     pieces.extend(ocr);
     spans.extend(ocr_spans);
@@ -459,6 +426,7 @@ pub(crate) fn extract_page(
         doc,
         info: &info,
         painting,
+        covered: &covered,
         options,
         cancel,
     };
@@ -523,6 +491,8 @@ struct PageContext<'a> {
     doc: &'a Document,
     info: &'a ExtractedPage,
     painting: &'a PageInput<'a>,
+    /// The covered text's boxes, which never split a line ([`lines`]).
+    covered: &'a [RectPt],
     options: &'a ExtractOptions,
     cancel: &'a CancelToken,
 }
@@ -544,7 +514,7 @@ fn layout(
     }
     let flow = Flow::split(pieces, spans, &tables);
     let regions = painting.regions;
-    let (lines, line_region) = region_lines(&flow.pieces, regions);
+    let (lines, line_region) = region_lines(&flow.pieces, regions, cx.covered);
     let vertical = lines.iter().filter(|l| is_vertical(l, &flow.pieces)).count();
     if vertical > 0 && vertical < lines.len() {
         doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
