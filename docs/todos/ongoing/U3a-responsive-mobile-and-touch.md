@@ -11,7 +11,7 @@
 | Branch | `feat/u3a-mobile-and-touch` |
 | PR title | `feat(ui): add the phone and tablet layout with viewer-owned gestures` |
 | Size | L (500–900 lines incl. tests) |
-| PR | — |
+| PR | [#325](https://github.com/laudebugs/laminapdf/pull/325) |
 
 ## Goal
 
