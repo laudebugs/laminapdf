@@ -86,6 +86,8 @@ The rules check their own column order on every page they order by layout, and r
 - **`columns-revisited`.** Within a band, the order leaves a block for one beside it at the same height, then comes back, below the pair, to both columns, each time to a block about as wide as the one above it. A column-first reading never does that; rows forced by a block across the gutter do. A row of authors over the columns, or an equation and its number, doesn't count, nor does a pair of one-line blocks, since a grid of them reads row by row on purpose.
 - **`near-grid`.** A group of at least 4 blocks with gaps both ways, three quarters or more of them one line but not all, reads by columns. The rules cut it by rows as well, at most 8 times a page, and warn when the two orders differ.
 
+`hidden_text(doc, options, cancel)` runs the first step alone and returns the hidden runs' `dropped` entries, without lines, blocks or tables: `laminapdf check` counts covered text with it.
+
 ## How it scores on a public benchmark
 
 The docs site's [Benchmarks](https://docs.laminapdf.com/reference/benchmarks/) page has the scores on [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI: each subset's tests and passes, and the pages a second, with the version, date and machine of the run. `cargo xtask benchmarks` copies them from `cargo xtask extract-bench`'s results, so no figure is typed by hand; [`tools/bench/`](../../tools/bench/) says how to rerun them, and why the other datasets weren't used.

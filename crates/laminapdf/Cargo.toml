@@ -65,6 +65,8 @@ boon = { workspace = true }
 # The data-fields test builds one value of every variant of the wrapped crates' errors.
 laminapdf-build = { path = "../laminapdf-build", features = ["text"] }
 laminapdf-text = { path = "../laminapdf-text" }
+# tests/redaction.rs appends revisions with the spike-era incremental_update.
+laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 # The report bench checks its bytes against the TS suite's REPORT_SHA256.
 criterion = { workspace = true }

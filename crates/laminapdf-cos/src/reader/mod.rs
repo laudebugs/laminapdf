@@ -9,6 +9,9 @@ mod objstm;
 mod options;
 mod pages;
 mod repair;
+mod revisions;
+
+pub use revisions::revision_starts;
 mod warning;
 mod window;
 mod xref;

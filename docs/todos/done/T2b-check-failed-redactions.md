@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `T2b` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [trust and proof §T2](../../plans/trust-and-proof.md#t2-find-what-files-hide) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T2a](../done/T2a-covered-text-flag.md) |
+| Depends on | [T2a](./T2a-covered-text-flag.md) |
 | ADRs | Follows [0031](../../decisions/0031-cli-and-mcp-contract.md) §1 (the command reads through the façade), [§5](../../decisions/0031-cli-and-mcp-contract.md#5-exit-codes) (warnings exit 3), [§8](../../decisions/0031-cli-and-mcp-contract.md#8-errors-and-warnings) and [§9](../../decisions/0031-cli-and-mcp-contract.md#9-mcp-defaults-for-l4c); [0026](../../decisions/0026-error-and-diagnostic-contract.md) (new codes, each with a page; no document text in `message`, `hint` or `data`); [0030](../../decisions/0030-extraction-output-and-model-plugins.md#4-hidden-text-is-never-in-text) §4 (counts, never text); [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) F1, F5 and F10 (owned results, a `CancelToken`); [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (these are findings, not repairs, so strict mode leaves them warnings). Adds an implementation note to ADR 0031 §8 |
 | Branch | `feat/t2b-check-failed-redactions` |
 | PR title | `feat(cli): laminapdf check warns about covered text, unapplied redactions and text left in earlier revisions` |
 | Size | L (≈ 400–550 lines of code with unit tests; codes, error pages and fixtures don't count) |
-| PR | — |
+| PR | [#309](https://github.com/laudebugs/laminapdf/pull/309) |
 
 ## Goal
 
@@ -24,7 +24,7 @@ Talk of redaction on Hacker News rose from 2.8 to 8.0 per 1,000 editor comments 
 - [Report R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file); the [editors note](../../research/hacker-news/notes/editors.md) (want 7, complaint 7 and recommendation 3: "a `laminapdf check` rule that flags boxes over live text and kept revisions") and the [format and security note](../../research/hacker-news/notes/format-and-security.md) (complaint 6; the forensics threads).
 - [T2a](../done/T2a-covered-text-flag.md): the `covered` flag and `DropReason::Covered`, which this todo counts per page.
 - Research: [04 §10](../../research/pdf/04-interactive-security.md#101-drawing-a-black-box-is-not-redaction) (a box is not redaction; Redact annotations express intent, §12.5.6.23, and only applying them removes anything), [01 §7](../../research/pdf/01-file-structure.md#7-incremental-updates-756) (incremental updates keep every older object) and [§8](../../research/pdf/01-file-structure.md#8-linearization-fast-web-view-annex-f) (a linearized file has two cross-reference sections and one revision).
-- **What exists for revisions.** `laminapdf_cos::Document::revisions()` counts the sections reached through `/Prev` (1 for a file never updated; for a repaired file, the trailers its scan found). `xref_section_offsets()` lists those sections' offsets, newest first; it is empty for a repaired file. `whole_input()` returns the bytes. Nothing opens an earlier revision yet: [E14b](./E14b-revision-browser.md) plans `Document::open_revision(n)` and [E10h](./E10h-revision-diff-and-attacks.md) a revision index, both far down the editor rounds. **What is feasible now:** a revision's bytes are the file up to the `%%EOF` that ends its section, and `Document::open` reads that prefix like any file (01 §7). `fixtures/corpus/hello-incremental.pdf` is the case in miniature: its first revision draws `(Hello, World) Tj`, and the update replaces the content with `(Hello, Update) Tj`. Linearized files and repaired files need care (Scope).
+- **What exists for revisions.** `laminapdf_cos::Document::revisions()` counts the sections reached through `/Prev` (1 for a file never updated; for a repaired file, the trailers its scan found). `xref_section_offsets()` lists those sections' offsets, newest first; it is empty for a repaired file. `whole_input()` returns the bytes. Nothing opens an earlier revision yet: [E14b](../ready/E14b-revision-browser.md) plans `Document::open_revision(n)` and [E10h](../ready/E10h-revision-diff-and-attacks.md) a revision index, both far down the editor rounds. **What is feasible now:** a revision's bytes are the file up to the `%%EOF` that ends its section, and `Document::open` reads that prefix like any file (01 §7). `fixtures/corpus/hello-incremental.pdf` is the case in miniature: its first revision draws `(Hello, World) Tj`, and the update replaces the content with `(Hello, Update) Tj`. Linearized files and repaired files need care (Scope).
 - The code this changes:
   - `crates/laminapdf-cli/src/commands/check.rs`: `check()` opens the input, calls `read_every_object()`, `page_count()` and `page_texts(&TextOptions::default())` (which interprets every content stream and font), then lists the document's warnings. `CheckReport` (`laminapdf.check/1`) and `CheckStatus` (`ok`, `warnings`).
   - `crates/laminapdf-cli/src/commands/mod.rs`: `open()` builds the `OpenOptions` from `Settings`; `warnings()`. `src/main.rs`'s `check()` turns the report into an `Outcome`, whose warnings set exit 3 and print as `warning[code]` lines (ADR 0031 §8).
@@ -62,16 +62,16 @@ Talk of redaction on Hacker News rose from 2.8 to 8.0 per 1,000 editor comments 
 
 **Out of scope** (and which todo covers it)
 
-- The full report of what a file discloses, the revision index with changed objects per revision, and a flag that fails CI on findings: [T2c](./T2c-reveal-command.md).
+- The full report of what a file discloses, the revision index with changed objects per revision, and a flag that fails CI on findings: [T2c](../ready/T2c-reveal-command.md).
 - Text in annotations, form values and metadata across revisions; `check` compares page text only.
-- Applying redactions and dropping earlier revisions: [E12c](./E12c-apply-content-removal.md), [E12d](./E12d-scrub-and-rewrite.md). Running this check over E12's redacted fixtures: proposed for [E12f](./E12f-leak-tests.md).
-- An editor warning when someone draws a filled box over text ("Every PDF editor ought to have a big flashing warning…", [38549034](https://news.ycombinator.com/item?id=38549034)): not planned yet; it belongs with [E6b](./E6b-place-images-and-shapes.md)'s shapes or [E12b](./E12b-mark-and-review.md)'s redact mode.
+- Applying redactions and dropping earlier revisions: [E12c](../ready/E12c-apply-content-removal.md), [E12d](../ready/E12d-scrub-and-rewrite.md). Running this check over E12's redacted fixtures: proposed for [E12f](../ready/E12f-leak-tests.md).
+- An editor warning when someone draws a filled box over text ("Every PDF editor ought to have a big flashing warning…", [38549034](https://news.ycombinator.com/item?id=38549034)): not planned yet; it belongs with [E6b](../ready/E6b-place-images-and-shapes.md)'s shapes or [E12b](../ready/E12b-mark-and-review.md)'s redact mode.
 - WASM and TypeScript bindings of these calls, and a banner in the web reader: later, when a reader todo asks for them. ADR 0028 F10's job form comes with the bindings.
 
 ## Tasks
 
-- [ ] Claim via the work PR; a fresh worktree off `main`; load `/rust-best-practices`, and `/writing` for the error pages and the README.
-- [ ] **Codes.** Add the group to `fixtures/codes.json` after `facadeErrors`, with `since` set to the workspace version without its pre-release tag:
+- [x] Claim via the work PR; a fresh worktree off `main`; load `/rust-best-practices`, and `/writing` for the error pages and the README.
+- [x] **Codes.** Add the group to `fixtures/codes.json` after `facadeErrors`, with `since` set to the workspace version without its pre-release tag:
   ```json
   "facadeWarnings": [
     { "code": "covered-text", "kind": "security", "summary": "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file", "hint": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite", "since": "…" },
@@ -80,28 +80,40 @@ Talk of redaction on Hacker News rose from 2.8 to 8.0 per 1,000 editor comments 
   ]
   ```
   and `revision-index-out-of-range` (kind `usage`) to `facadeErrors`. Add ``("facadeWarnings", "Façade warnings (`laminapdf`)")`` to `GROUPS` in `tools/xtask/src/codegen.rs`, then run `cargo xtask gen codes`. Write the four `docs/errors/<code>.md` pages with the five headings and "For contributors" linking this todo; the warning pages' "Example" sections describe the black box, an unapplied Acrobat redaction mark and `hello-incremental.pdf`.
-- [ ] **`laminapdf-extract`.** Add `hidden_text` in a new `src/hidden.rs`, sharing the per-page code with `ExtractJob::run` (one page pass, so the two can't drift). Export it from `src/lib.rs`; a line in the README.
-- [ ] **`laminapdf-cos`.** Add `revision_ends` in a new `src/reader/revisions.rs`, with the rules in Scope. Unit tests: a file never updated, `hello-incremental.pdf`, the linearized fixture, a missing `%%EOF`, a repaired file, a hybrid `/XRefStm` file (`fixtures/corpus/hello-xrefstm.pdf`).
-- [ ] **Façade** (`crates/laminapdf/src/redaction.rs`, new; feature `extract` except `revision_count` and `open_revision`). Add `revision_count`, `open_revision`, `hidden_text`, `redaction_warnings`, `RedactionWarning` and the `Warning::Redaction` variant. `covered-text`: group `hidden_text`'s `Covered` entries by page. `redaction-not-applied`: each page's `Page::annots()` resolved, counting `/Subtype /Redact`. `text-in-earlier-revision`: the comparison in Scope, in a `pub(crate)` function that returns `(revision, words, pages)` per revision, so [T2c](./T2c-reveal-command.md) reuses it. Unit-test `RedactionWarning::CODES` against `facadeWarnings`, as `src/error.rs` does for `facadeErrors`; extend `tests/data_fields.rs` with the three codes' keys.
-- [ ] **CLI.** Split `open_options(settings) -> OpenOptions` out of `commands::open()`, and pass it to `redaction_warnings` in `check()`. Update the docs of `check()`, `CheckReport` and `CheckStatus::Warnings` ("…or found what a failed redaction leaves behind"), then regenerate `crates/laminapdf-cli/schemas/check.schema.json` (`UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas`). The MCP schemas follow from the types.
-- [ ] **MCP.** Change `laminapdf_check`'s description in `src/mcp/tools.rs` to: "Read a whole PDF (every object, page and content stream) and report what a tolerant read had to repair and what a failed redaction left in the file: covered text, unapplied redaction marks and text kept in earlier revisions."
-- [ ] **ADR 0031 §8**, an implementation note:
+- [x] **`laminapdf-extract`.** Add `hidden_text` in a new `src/hidden.rs`, sharing the per-page code with `ExtractJob::run` (one page pass, so the two can't drift). Export it from `src/lib.rs`; a line in the README.
+- [x] **`laminapdf-cos`.** Add `revision_ends` in a new `src/reader/revisions.rs`, with the rules in Scope. Unit tests: a file never updated, `hello-incremental.pdf`, the linearized fixture, a missing `%%EOF`, a repaired file, a hybrid `/XRefStm` file (`fixtures/corpus/hello-xrefstm.pdf`).
+- [x] **Façade** (`crates/laminapdf/src/redaction.rs`, new; feature `extract` except `revision_count` and `open_revision`). Add `revision_count`, `open_revision`, `hidden_text`, `redaction_warnings`, `RedactionWarning` and the `Warning::Redaction` variant. `covered-text`: group `hidden_text`'s `Covered` entries by page. `redaction-not-applied`: each page's `Page::annots()` resolved, counting `/Subtype /Redact`. `text-in-earlier-revision`: the comparison in Scope, in a `pub(crate)` function that returns `(revision, words, pages)` per revision, so [T2c](../ready/T2c-reveal-command.md) reuses it. Unit-test `RedactionWarning::CODES` against `facadeWarnings`, as `src/error.rs` does for `facadeErrors`; extend `tests/data_fields.rs` with the three codes' keys.
+- [x] **CLI.** Split `open_options(settings) -> OpenOptions` out of `commands::open()`, and pass it to `redaction_warnings` in `check()`. Update the docs of `check()`, `CheckReport` and `CheckStatus::Warnings` ("…or found what a failed redaction leaves behind"), then regenerate `crates/laminapdf-cli/schemas/check.schema.json` (`UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas`). The MCP schemas follow from the types.
+- [x] **MCP.** Change `laminapdf_check`'s description in `src/mcp/tools.rs` to: "Read a whole PDF (every object, page and content stream) and report what a tolerant read had to repair and what a failed redaction left in the file: covered text, unapplied redaction marks and text kept in earlier revisions."
+- [x] **ADR 0031 §8**, an implementation note:
   > **Implementation note (T2b, <date of merge>).** `check` also reports what a failed redaction leaves behind: `covered-text`, `redaction-not-applied` and `text-in-earlier-revision` (`facadeWarnings` in `fixtures/codes.json`). They are findings about the content, not repairs, so `--strict` doesn't turn them into errors; like any warning they make the exit code 3, and `--warnings-ok` makes it 0. Their `data` holds counts and page indices, never the hidden text.
-- [ ] **Fixture.** `fixtures/revisions/hello-linearized.pdf`: `qpdf --linearize fixtures/corpus/hello.pdf` with the qpdf pinned in `tools/xtask/src/doctor.rs`, listed with its provenance in `fixtures/README.md`. Build the other cases in the tests.
-- [ ] **Docs.** The `check` bullet of `crates/laminapdf-cli/README.md` (what it now finds, and that `--warnings-ok` hides it, so a CI gate should read the codes or wait for T2c's `reveal --fail-on`); CLAUDE.md's CLI and façade paragraphs (`revision_count`, `open_revision`, `hidden_text`, `redaction_warnings`; the `facadeWarnings` group).
+- [x] **Fixture.** `fixtures/revisions/hello-linearized.pdf`: `qpdf --linearize fixtures/corpus/hello.pdf` with the qpdf pinned in `tools/xtask/src/doctor.rs`, listed with its provenance in `fixtures/README.md`. Build the other cases in the tests.
+- [x] **Docs.** The `check` bullet of `crates/laminapdf-cli/README.md` (what it now finds, and that `--warnings-ok` hides it, so a CI gate should read the codes or wait for T2c's `reveal --fail-on`); CLAUDE.md's CLI and façade paragraphs (`revision_count`, `open_revision`, `hidden_text`, `redaction_warnings`; the `facadeWarnings` group).
 
 ## Acceptance criteria
 
-- [ ] `laminapdf check` on a built page that draws "Pay John Smith now." under a black box over the name exits 3. It prints `warning[covered-text]` on stderr, and with `--json` it lists `covered-text` with `location.pageIndex` 0 and `data.chars` 9. `--warnings-ok` exits 0, and `--strict` still exits 3.
-- [ ] A page with two Redact annotations gives one `redaction-not-applied` with `data.annotations` 2; the same file after a test removes them gives none.
-- [ ] `fixtures/corpus/hello-incremental.pdf` gives one `text-in-earlier-revision` with `data.revision` 0, `data.words` 1 (`World`) and `data.pages` `[0]`.
-- [ ] `fixtures/revisions/hello-linearized.pdf` has `revision_count()` 1 and gives no warning. The same file with an appended update that replaces its page content (built with `incremental_update`) has `revision_count()` 2 and gives one `text-in-earlier-revision` for revision 0.
-- [ ] No façade warning on `fixtures/corpus/hello.pdf`, `signed.pdf`, every file of `fixtures/signed/`, `fixtures/golden/incremental-set-info.pdf` or `fixtures/golden/cli-rotate-hello.pdf` (signatures, metadata and rotation add revisions but remove no text). A test over every file of `fixtures/corpus/` and `fixtures/golden/` asserts the warnings each gives, empty for all but the files it names.
-- [ ] `open_revision(revision_count())` fails with `revision-index-out-of-range`; a token cancelled before the comparison stops `redaction_warnings` with `cancelled`.
-- [ ] No message, hint or `data` of the new warnings holds document text: `crates/laminapdf-cli/tests/injection.rs` covers an injection string with a box, and keeps one only in an earlier revision; neither appears in `check --json`'s output.
-- [ ] `laminapdf mcp`'s `laminapdf_check` on the covered fixture answers `isError: false` with `covered-text` in `structuredContent.warnings`, and `structuredContent` validates against the tool's `outputSchema` (`crates/laminapdf-cli/tests/mcp.rs`).
-- [ ] `cargo xtask gen codes --check` passes; the four pages exist and `crates/laminapdf-cos/tests/codes.rs` passes; both copies of `error.schema.json` list the three warning codes; `crates/laminapdf/tests/error_contract.rs` passes.
-- [ ] `check` still reads every content stream: the existing `crates/laminapdf-cli/tests/check.rs` passes unchanged, a broken font still warns `font-invalid`.
+- [x] `laminapdf check` on a built page that draws "Pay John Smith now." under a black box over the name exits 3. It prints `warning[covered-text]` on stderr, and with `--json` it lists `covered-text` with `location.pageIndex` 0 and `data.chars` 9. `--warnings-ok` exits 0, and `--strict` still exits 3.
+- [x] A page with two Redact annotations gives one `redaction-not-applied` with `data.annotations` 2; the same file after a test removes them gives none.
+- [x] `fixtures/corpus/hello-incremental.pdf` gives one `text-in-earlier-revision` with `data.revision` 0, `data.words` 1 (`World`) and `data.pages` `[0]`.
+- [x] `fixtures/revisions/hello-linearized.pdf` has `revision_count()` 1 and gives no warning. The same file with an appended update that replaces its page content (built with `incremental_update`) has `revision_count()` 2 and gives one `text-in-earlier-revision` for revision 0.
+- [x] No façade warning on `fixtures/corpus/hello.pdf`, `signed.pdf`, every file of `fixtures/signed/`, `fixtures/golden/incremental-set-info.pdf` or `fixtures/golden/cli-rotate-hello.pdf` (signatures, metadata and rotation add revisions but remove no text). A test over every file of `fixtures/corpus/` and `fixtures/golden/` asserts the warnings each gives, empty for all but the files it names.
+- [x] `open_revision(revision_count())` fails with `revision-index-out-of-range`; a token cancelled before the comparison stops `redaction_warnings` with `cancelled`.
+- [x] No message, hint or `data` of the new warnings holds document text: `crates/laminapdf-cli/tests/injection.rs` covers an injection string with a box, and keeps one only in an earlier revision; neither appears in `check --json`'s output.
+- [x] `laminapdf mcp`'s `laminapdf_check` on the covered fixture answers `isError: false` with `covered-text` in `structuredContent.warnings`, and `structuredContent` validates against the tool's `outputSchema` (`crates/laminapdf-cli/tests/mcp.rs`).
+- [x] `cargo xtask gen codes --check` passes; the four pages exist and `crates/laminapdf-cos/tests/codes.rs` passes; both copies of `error.schema.json` list the three warning codes; `crates/laminapdf/tests/error_contract.rs` passes.
+- [x] `check` still reads every content stream: the existing `crates/laminapdf-cli/tests/check.rs` passes unchanged, a broken font still warns `font-invalid`.
+
+## As built
+
+- **Where the code is.** `laminapdf-cos`'s `src/reader/revisions.rs` (`Document::revision_ends` and `revision_starts`, which `laminapdf-save`'s signature check now uses too), `laminapdf-extract`'s `src/hidden.rs` (`hidden_text`, which reuses `ExtractJob::read` and `page.rs`'s `runs`, so it reads a page exactly as extraction does), the façade's `src/revisions.rs` (`revision_count`, `open_revision`, in every build) and `src/redaction.rs` (`hidden_text`, `redaction_warnings`, `RedactionWarning`; feature `extract`). `check` calls `redaction_warnings` with `open_options(settings)`, split out of `commands::open`.
+- **Revisions.** A section starts a revision only when it sits past every older one, so a linearized file's first-page section, whose `/Prev` names a section later in the file, belongs to the first revision. A revision without a `%%EOF` line before the next merges into it. A repaired file, with no `/Prev` chain, is one revision.
+- **Words.** Runs of letters and digits at least two characters long, counted over all of a revision's text, invisible glyphs included; a word the earlier revision has more often than the latest counts as removed by the difference.
+- **Errors in earlier revisions.** An earlier revision that is malformed or unsupported (kinds `input` and `unsupported`) is skipped, and its warnings aren't the file's. Any other failure (a password, a limit, data not yet fetched, cancellation) fails the call: a revision that couldn't be read might hold the very text a redaction removed.
+- **Pages.** `pages` lists the earlier revision's pages that hold a removed word more often than the latest revision's page of the same index; when pages moved and none does, every page holding one.
+- **Artifacts.** `hidden_text` turns page furniture off, so an `Artifact`-marked line under a box shows as covered too.
+- **Cost.** `check` on each file of `fixtures/signed/` takes 4–5 ms in a release build, earlier revisions included.
+- **`font-invalid`.** `check` still reads every page's fonts through extraction's page pass; `tests/check.rs` checks a Type 0 font with no descendant font still warns. `fixtures/errors/marker-text.pdf` never raised `font-invalid` (its broken font gives `cmap-invalid`), before this change or after.
+- **The fixture.** `fixtures/revisions/hello-linearized.pdf` came from qpdf 12.4.2's release binaries, with `--deterministic-id` so it can be made again byte for byte.
 
 ## Post-merge checks
 
@@ -115,14 +127,14 @@ None.
 
 ## Docs to update
 
-- [ ] `docs/errors/covered-text.md`, `redaction-not-applied.md`, `text-in-earlier-revision.md`, `revision-index-out-of-range.md`; `docs/errors/README.md` (regenerated)
-- [ ] ADR 0031 §8 (the note above)
-- [ ] `crates/laminapdf-cli/README.md`, `crates/laminapdf-extract/README.md`, `fixtures/README.md`, CLAUDE.md
-- [ ] [Trust and proof §T2](../../plans/trust-and-proof.md#t2-find-what-files-hide): tick T2b
+- [x] `docs/errors/covered-text.md`, `redaction-not-applied.md`, `text-in-earlier-revision.md`, `revision-index-out-of-range.md`; `docs/errors/README.md` (regenerated)
+- [x] ADR 0031 §8 (the note above)
+- [x] `crates/laminapdf-cli/README.md`, `crates/laminapdf-extract/README.md`, `fixtures/README.md`, CLAUDE.md
+- [x] [Trust and proof §T2](../../plans/trust-and-proof.md#t2-find-what-files-hide): links point here; its checkbox covers T2a–T2c, so it stays open until T2c
 
 ## Risks and open questions
 
-- **Exit code 3 for findings.** ADR 0031 gives warnings exit 3, and this todo follows it. But 3 also means "repaired", and `--warnings-ok` turns both into 0, so a CI gate can't tell a fake redaction from a fixed cross-reference table by exit code alone. [T2c](./T2c-reveal-command.md)'s `reveal --fail-on` gives that gate its own code. The owner confirms that `check` stays on 3.
+- **Exit code 3 for findings.** ADR 0031 gives warnings exit 3, and this todo follows it. But 3 also means "repaired", and `--warnings-ok` turns both into 0, so a CI gate can't tell a fake redaction from a fixed cross-reference table by exit code alone. [T2c](../ready/T2c-reveal-command.md)'s `reveal --fail-on` gives that gate its own code. The owner confirms that `check` stays on 3.
 - **Strict mode.** ADR 0003 §2 says strict mode turns every warning into an error. These warnings come from the façade after the read, not from the reader, so strict mode doesn't touch them. The ADR 0031 note records that; if the owner wants ADR 0003 to say so too, add a line there.
 - **Legitimate edits.** A revision that fixes a typo or renumbers pages removes words too, and `text-in-earlier-revision` reports it. The warning states a fact (the old text is still in the file), and its page says how to tell an edit from a leak.
 - **Cost.** `check` now opens every earlier revision and reads its text. A signed file with many timestamp revisions costs one text pass per revision. The token stops it, and the MCP server's `--timeout` bounds a call. Measure on `fixtures/signed/` and say in the PR what it cost.
@@ -131,8 +143,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
