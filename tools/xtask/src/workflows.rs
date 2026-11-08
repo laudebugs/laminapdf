@@ -136,6 +136,33 @@ mod tests {
         assert_eq!(missing_from(NIGHTLY, "report"), Vec::<&str>::new());
     }
 
+    /// The proof record reads the round trip's counts, so both new jobs must reach `report`,
+    /// and `roundtrip`'s minutes of work never run beside the benchmarks.
+    #[test]
+    fn nightly_report_should_need_proof_and_roundtrip_and_bench_roundtrip() {
+        let report = needs(NIGHTLY, "report");
+        assert!(
+            report.contains(&"proof")
+                && report.contains(&"roundtrip")
+                && needs(NIGHTLY, "bench").contains(&"roundtrip"),
+            "report needs {report:?}, bench needs {:?}",
+            needs(NIGHTLY, "bench")
+        );
+    }
+
+    /// The proof record calls a night full only when every target in `FUZZ_TARGETS` ran, so the
+    /// matrix must list them all (`extract` was missing once).
+    #[test]
+    fn nightly_fuzz_matrix_should_list_exactly_the_fuzz_targets() {
+        let line = lines_of(NIGHTLY, "jobs", "fuzz")
+            .into_iter()
+            .find_map(|l| l.trim().strip_prefix("target: ["))
+            .and_then(|l| l.strip_suffix(']'))
+            .unwrap_or_default();
+        let matrix: Vec<&str> = line.split(',').map(str::trim).collect();
+        assert_eq!(matrix, crate::harness::FUZZ_TARGETS);
+    }
+
     /// `bench` needs every job but those that need it (`pdf-runtimes`, `report`).
     #[test]
     fn nightly_bench_should_need_every_job_that_does_not_depend_on_it() {
