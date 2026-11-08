@@ -72,7 +72,7 @@ Until the reader launches, the home page is mostly the roadmap. The page follows
 - **Next up:** the todos whose dependencies are all done, the board's "Can start now" list.
 - **Recently merged:** the last ten pull requests merged into `main`, by title.
 - **A first PDF in code:** a panel with three tabs. The TypeScript and Rust tabs show the same small program from the tested examples; the command-line tab shows the CLI's own example commands.
-- **The packages:** every published package, its registry and what it holds (the docs site's install table), the two install lines (`npm install @laminapdf/sdk@alpha`, `cargo add laminapdf@0.2.0-alpha`), and the `laminapdf` command-line tool with its MCP server, marked unreleased until its binaries ship ([L4d](../todos/ongoing/L4d-cli-distribution.md)).
+- **The packages:** every published package, its registry and what it holds (the docs site's install table), the two install lines (`npm install @laminapdf/sdk@alpha`, `cargo add laminapdf@0.2.0-alpha`), and the `laminapdf` command-line tool with its MCP server, marked unreleased until its binaries ship ([L4d](../todos/done/L4d-cli-distribution.md)).
 - **Where each part lives:** the docs, the packages and the Rust crate. The reader and the desktop app point at their milestones until they ship.
 - **The snapshot's date,** so a visitor can tell how fresh the numbers are.
 

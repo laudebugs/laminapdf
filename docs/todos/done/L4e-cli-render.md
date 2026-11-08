@@ -40,7 +40,7 @@ Add `laminapdf render`, which turns pages into PNG files through `laminapdf-rend
 **Out of scope** (and which todo covers it)
 
 - SVG output: later, when `laminapdf-render` supports it.
-- Distribution: [L4d](../ongoing/L4d-cli-distribution.md).
+- Distribution: [L4d](../done/L4d-cli-distribution.md).
 
 ## Tasks
 

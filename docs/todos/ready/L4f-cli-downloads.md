@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4d](../ongoing/L4d-cli-distribution.md) |
+| Depends on | [L4d](../done/L4d-cli-distribution.md) |
 | Dependency notes | Uses the host that [ADR 0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology) reserves for desktop downloads; [D5a](./D5a-update-worker-and-adr-0014.md) later adds the desktop files to the same bucket and need not wait for this todo. |
 | ADRs | Amends [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the downloads host also serves the CLI); follows 0017 (release gating), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (checksums, SBOMs, notices) |
 | Branch | `build/l4f-cli-downloads` |
@@ -20,7 +20,7 @@ Let anyone download the `laminapdf` binary from Lamina PDF's own domain while th
 
 ## Context
 
-- [L4d](../ongoing/L4d-cli-distribution.md): `cli-release.yml` builds the archives, `sha256` checksums and the formula with cargo-dist (`hosting = "github"` in `dist-workspace.toml`); its `publish` job runs only on a `laminapdf-cli-v*` tag while `LAMINA_PDF_PUBLISH_CLI` is `true`.
+- [L4d](../done/L4d-cli-distribution.md): `cli-release.yml` builds the archives, `sha256` checksums and the formula with cargo-dist (`hosting = "github"` in `dist-workspace.toml`); its `publish` job runs only on a `laminapdf-cli-v*` tag while `LAMINA_PDF_PUBLISH_CLI` is `true`.
 - [ADR 0011 §1](../../decisions/0011-cloudflare-topology-and-privacy.md#1-topology) and the [website plan's host table](../../plans/website.md): `downloads.`, `staging-downloads.` and `nightly-downloads.laminapdf.com` are reserved for the desktop downloads (ADR 0014, D5a).
 - [Desktop plan §5](../../plans/desktop-app.md#5-design-summary): desktop releases go to R2 under `releases/{version}/{target}-{arch}/`, served through an R2 custom domain.
 - [Cloudflare notes](../../research/architecture/notes/cloudflare.md): R2 pricing and limits, custom domains, no egress fees.

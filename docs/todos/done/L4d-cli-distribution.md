@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `L4d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4a](../done/L4a-lamina-cli.md), [P1](../done/P1-reserve-names-and-trusted-publishing.md) |
-| ADRs | Follows 0017 (versioning and publishing, completed in [P1](../done/P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](../done/L4a-lamina-cli.md)) |
+| Depends on | [L4a](./L4a-lamina-cli.md), [P1](./P1-reserve-names-and-trusted-publishing.md) |
+| ADRs | Follows 0017 (versioning and publishing, completed in [P1](./P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](./L4a-lamina-cli.md)) |
 | Branch | `build/l4d-cli-distribution` |
 | PR title | `build(cli): release binaries with cargo-dist, Homebrew formula and npm wrapper packages` |
 | Size | M (≈ 300–500 lines: dist config, workflow, npm packages, install tests) |
@@ -21,7 +21,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): cargo-dist 0.32, its installers (shell, PowerShell, Homebrew, npm, MSI), Biome's `optionalDependencies` layout.
 - [Report: the CLI is the primary agent interface](../../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it): crate versions read on 2026-10-29.
-- [P1](../done/P1-reserve-names-and-trusted-publishing.md): the release lane's publish jobs this PR plugs into (crates.io trusted publishing, npm staged publishing with the owner's approval, SBOMs on the GitHub release); no attestations or `release` environment while the repository is private (ADR 0017 §7).
+- [P1](./P1-reserve-names-and-trusted-publishing.md): the release lane's publish jobs this PR plugs into (crates.io trusted publishing, npm staged publishing with the owner's approval, SBOMs on the GitHub release); no attestations or `release` environment while the repository is private (ADR 0017 §7).
 - [ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release): binaries ship third-party licence notices and an SBOM.
 - [D6b](../ready/D6b-release-workflow-and-linux-packages.md): the desktop release workflow; share runners and signing conventions where they overlap.
 
@@ -39,7 +39,7 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 **Out of scope** (and which todo covers it)
 
-- Actually publishing a release, crates.io publishing of `laminapdf-cli`, npm publishing: the owner's decision; publishing mechanics in [P1](../done/P1-reserve-names-and-trusted-publishing.md), first registry release in [P2](../done/P2-first-registry-prerelease.md).
+- Actually publishing a release, crates.io publishing of `laminapdf-cli`, npm publishing: the owner's decision; publishing mechanics in [P1](./P1-reserve-names-and-trusted-publishing.md), first registry release in [P2](./P2-first-registry-prerelease.md).
 - Code signing and notarisation of the binaries (macOS, Windows): reuse [D6c](../ready/D6c-macos-signing-and-notarisation.md) and [D6d](../ready/D6d-windows-signing.md) when they land; note the gap in the README until then.
 - Downloads from Lamina PDF's own domain, the formula pointed there, and a download table on the docs site: [L4f](../ready/L4f-cli-downloads.md). The GitHub release and its URLs answer 404 to anyone outside the private repository.
 - winget, Scoop, apt/rpm repositories, homebrew-core: later, on demand.
@@ -92,8 +92,8 @@ Make `laminapdf` installable without a Rust toolchain: prebuilt binaries for mac
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
