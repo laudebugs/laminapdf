@@ -1,0 +1,2 @@
+# Playwright output from local runs; `cargo xtask gallery --test` writes to target/gallery/ instead.
+test-results/

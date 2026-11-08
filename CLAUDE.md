@@ -159,6 +159,12 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   test/headers.test.ts holds them to the ADR); @laminapdf/site-kit's checks after every build; wrangler.toml
 │                        #   (lamina-pdf-site, the apex as a custom domain); deployed by .github/workflows/site.yml, which W1b's PR gives
 │                        #   for the owner to commit; README.md has the owner's setup
+├── apps/gallery/        # the Paper component gallery (U6f; private, dev-only, never deployed; Vite + React 19): one route per
+│                        #   component group (src/routes.ts), states from @laminapdf/ui's `./testing` subpath (its test/states.tsx),
+│                        #   overlays rendered one open state at a time (src/overlays.tsx); theme, page appearance, density, direction
+│                        #   and motion in the URL; e2e/ (Playwright: visual.spec.ts screenshots in Chromium against
+│                        #   e2e/__screenshots__/, a11y.spec.ts axe in three engines, fonts.spec.ts same-origin), test/ (Vitest:
+│                        #   every exported component on a route, the Docker image matches @playwright/test); README.md
 ├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json + exceptions.toml
 │                        #   + pdfjs-operators.json, content/ (operator fixture), differential/ (pypdf expectations),
 │                        #   ops/v1/ (op JSON samples), fonts/ (OFL Noto subsets), images/ (JPEG, ICC), text/ (pypdf extraction facts),
@@ -245,7 +251,9 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
-cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos --check + portable paths + capability matrix static checks
+cargo xtask check docs       # docs-links + docs-prose + docs-snippets + todos --check + portable paths + design screens (every screen
+                             #   in docs/design/paper/screens.md has its area heading and design file, canvas.json matches the files;
+                             #   "Not yet drawn" IDs reported) + capability matrix static checks
                              #   + renames (docs/renames.json against laminapdf.renames/1, an entry per #[deprecated]/@deprecated item,
                              #   every new name in the sources) + gen codes --check + gen boundary --check + version sync --check
                              #   (fast; no network, no build, no node_modules)
@@ -303,6 +311,10 @@ cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> 
                              #   in target/viewer-perf/ and the job summary (reported, never asserted); --history flags
                              #   figures >10% worse (bench's rule, `viewer/<browser>/<figure>` keys), --record appends,
                              #   --dry-run prints the issue; --quick: 100 pages, never recorded
+cargo xtask gallery [--test|--update]  # the Paper gallery (apps/gallery/README.md): serve it (Vite); --test runs its Playwright
+                             #   tests in the Playwright image pinned in apps/gallery/package.json (Docker: the gallery's files
+                             #   streamed in, the host's node_modules untouched; results in target/gallery/results/); --update
+                             #   rewrites apps/gallery/e2e/__screenshots__/ (the only way to change them) and lists what changed
 cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against codes.schema.json, then write the error contract:
                              #   ErrorCode/WarningCode (crates/laminapdf-syntax/src/generated/codes.rs; the façade re-exports
                              #   them), the façade's explain pages (crates/laminapdf/src/generated/explain.rs), @laminapdf/sdk's
@@ -378,7 +390,8 @@ cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (th
                                       #   30 s per target on PRs, 120 s on pushes to main)
 cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)
 cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
-                                      #   code=true unless all are on the docs allowlist
+                                      #   code=true unless all are on the docs allowlist; gallery=true when they touch
+                                      #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]
