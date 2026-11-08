@@ -188,6 +188,8 @@ tasks:
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
   cli-docs          the laminapdf CLI's man pages and shell completions into target/cli-docs/
+  cli-dist          cli-docs plus the third-party notices (cargo-about) into target/cli-docs/:
+                    the files dist-workspace.toml puts in every release archive
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -364,6 +366,7 @@ fn main() -> Result<()> {
         ("models", [cmd]) if cmd == "check" => models::check(&ws.root),
         ("models", [cmd, name]) if cmd == "fetch" => models::fetch(&ws, name).map(|_| ()),
         ("cli-docs", []) => cli_docs::run(&ws),
+        ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
         ("render-golden", []) => render::run(&ws, false),
