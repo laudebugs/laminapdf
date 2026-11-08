@@ -45,8 +45,8 @@ Automatic pagination, tables, floats, transformed ink bounds and a hidden cursor
 ## Acceptance criteria
 
 - [ ] Single-line and wrapped results equal the final line's descent edge, rather than the requested box bottom.
-- [ ] Empty text and a box fitting zero lines return no bottom; hard line breaks and trailing blank lines have an explicit tested contract.
-- [ ] Clipped text reports only drawn lines and retains overflow; TypeScript offsets remain UTF-16 indices.
+- [ ] Empty text, whitespace-only text, text of only line breaks and a box fitting zero lines return no bottom; trailing blank lines after drawn text have an explicit tested contract.
+- [ ] Clipped text reports only drawn lines and retains overflow; TypeScript offsets remain UTF-16 indices, and a box that fits no line reports offset `0`, which the docs tell callers to test with `!== undefined`.
 - [ ] Rust and TypeScript produce equivalent measurements for matching inputs within a documented tolerance.
 - [ ] Existing call sites compile unchanged and measurement does not perform a second shaping/layout pass.
 

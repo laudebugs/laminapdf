@@ -32,7 +32,7 @@ Implementation references:
 - [WebAssembly measurement conversion](../../crates/laminapdf-wasm/src/builder/text.rs).
 - [TypeScript drawing API](../../packages/sdk/src/builder.ts).
 
-Coordinates start at the page's top left and Y increases downward. Text bounds describe font ascent and descent, rather than the exact painted outline of every glyph. `TextRun::bounds()` explicitly reports coordinates before the surface transform.
+Coordinates start at the page's top left and Y increases downward. Text bounds describe font ascent and descent, rather than the exact painted outline of every glyph. Both measurements are taken before the surface transform: `TextRun::bounds()` says so, and `Surface::text_box` builds each `LineBox::rect` from the requested box without it, although `LineBox` calls its rect "page space".
 
 `Surface` records drawing commands; it has no previous-element cursor. Images and shapes receive placement geometry, but do not return a shared layout result. Paths, strokes, clipping and transforms make a universal painted-bottom calculation a separate problem.
 
@@ -57,7 +57,7 @@ const bottom = lastLine
 const nextY = bottom === undefined ? top : bottom + gap;
 ```
 
-If `layout.overflow` is present, some text did not fit. The caller must handle that before treating this paragraph as complete. The reported bottom covers only drawn lines, rather than the entire requested text box.
+If `layout.overflow` is not `undefined`, some text did not fit. Test it with `!== undefined`, not for truthiness: the offset is `0` when the box fits no line. The caller must handle that before treating this paragraph as complete. The reported bottom covers only drawn lines, rather than the entire requested text box.
 
 ## Proposed contract
 
@@ -65,7 +65,7 @@ Names below are provisional and must be settled before implementation.
 
 ### Measured text bottom
 
-Offer a consistent way to obtain an optional bottom from a text result. Return no position when no line was drawn; do not interpret an empty result's origin rectangle as real content.
+Offer a consistent way to obtain an optional bottom from a text result. A result is empty when no line was drawn, or when every drawn line holds only whitespace or line breaks (for a text box, every `LineBox::content` range is empty). Return no position for an empty result; do not interpret its origin rectangle, or a blank line's full-height box, as real content.
 
 For a text box, use the final drawn line's descent edge. For a text run, check its line count before using its bounds. This is a typographic layout measurement, not an ink or stroke bound.
 
@@ -105,8 +105,8 @@ Each implementation PR follows the repository's review, changeset and validation
 ## Acceptance and validation
 
 - Single-line and wrapped text report the final descent edge, including mixed font metrics and line-height settings.
-- Empty text and a text box that fits no lines produce no measured bottom and leave the cursor unchanged.
-- Clipped text reports the last drawn line and preserves its overflow offset, including TypeScript UTF-16 offsets.
+- Empty text, whitespace-only text, text of only line breaks and a text box that fits no lines produce no measured bottom and leave the cursor unchanged.
+- Clipped text reports the last drawn line and preserves its overflow offset, including TypeScript UTF-16 offsets and an offset of `0` when no line fits.
 - A gap is applied once; overlapping or earlier rectangles cannot move the cursor backward.
 - Invalid numeric input and failed drawing operations leave cursor state unchanged.
 - Image rectangles, caller-declared bounds and explicit page resets behave identically across Rust and TypeScript.
