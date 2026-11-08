@@ -179,6 +179,8 @@ test("a twin reads only files in the example folders", () => {
   for (const file of [
     "",
     "/etc/passwd",
+    "packages/sdk/examples/%2e%2e/%2e%2e/../package.json",
+    "packages/sdk/examples/%2e%2e%2f%2e%2e%2fCargo.toml",
     "C:/x.ts",
     "packages/sdk/examples/../../../.env",
     "packages/sdk/src/index.ts",
