@@ -1,0 +1,44 @@
+{
+  "name": "@laminapdf/gallery",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Paper component gallery: every token, icon and @laminapdf/ui component in every state and theme, with screenshot and axe tests. Dev-only, never deployed.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "config": {
+    "playwrightImage": "mcr.microsoft.com/playwright:v1.64.1-noble"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4174 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@laminapdf/fonts": "workspace:*",
+    "@laminapdf/icons": "workspace:*",
+    "@laminapdf/tokens": "workspace:*",
+    "@laminapdf/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "catalog:",
+    "@babel/core": "catalog:",
+    "@playwright/test": "catalog:",
+    "@rolldown/plugin-babel": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "babel-plugin-react-compiler": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

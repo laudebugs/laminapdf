@@ -138,7 +138,7 @@ jobs:
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       - name: Restore the fuzz corpus saved on main
@@ -207,10 +207,10 @@ jobs:
           # Unlike on macOS, rust-cache's post step has no `sudo purge` here.
           cache: true
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          # The tools come from install-action below on every run.
+          # The tools come from install-tools below on every run.
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # No `version` input: uses packageManager from package.json. The default install dir is
@@ -260,7 +260,7 @@ jobs:
           # self-hosted runners without passwordless sudo.
           cache: false
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+      - uses: ./.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

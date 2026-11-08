@@ -174,6 +174,14 @@ A PR that adds a code adds:
 | [`render-failed`](render-failed.md) | `input` | the render engine could not open the document or draw the page |
 | [`render-backend-unavailable`](render-backend-unavailable.md) | `io` | the render engine is not available: its library or module could not be loaded |
 
+## Extract errors (`laminapdf-extract`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`model-failed`](model-failed.md) | `internal` | a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result |
+| [`model-result-unexpected`](model-result-unexpected.md) | `usage` | a model result was handed to an extraction job that hadn't asked for it, or was the other model's result |
+| [`model-needs-host`](model-needs-host.md) | `usage` | an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer |
+
 ## Façade errors (`laminapdf`)
 
 | Code | Kind | Summary |

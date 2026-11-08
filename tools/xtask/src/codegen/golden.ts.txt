@@ -95,6 +95,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "textErrors",
   "buildErrors",
   "renderErrors",
+  "extractErrors",
   "facadeErrors",
   "bindingErrors",
   "packageErrors",

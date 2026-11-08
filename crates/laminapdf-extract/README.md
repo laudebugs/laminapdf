@@ -1,6 +1,6 @@
 # laminapdf-extract
 
-`laminapdf-extract` turns a PDF's text into blocks a retrieval pipeline or an LLM can use: headings, list items and paragraphs in reading order, each with a box in top-left points it can cite, and no text a reader can't see. It is part of Lamina PDF's pure core (bytes in, bytes out, no models), and it implements the `laminapdf.extract/1` output that [ADR 0030](../../docs/decisions/0030-extraction-output-and-model-plugins.md) defines.
+`laminapdf-extract` turns a PDF's text into blocks a retrieval pipeline or an LLM can use: headings, list items and paragraphs in reading order, each with a box in top-left points it can cite, and no text a reader can't see. It is part of Lamina PDF's pure core (bytes in, bytes out, no models inside it), and it implements the `laminapdf.extract/1` output that [ADR 0030](../../docs/decisions/0030-extraction-output-and-model-plugins.md) defines.
 
 ```rust
 use laminapdf_extract::{ExtractOptions, extract};
@@ -46,7 +46,7 @@ Extraction reads the text a page draws with its fonts, so a scan gives nothing, 
 | `mixed` | at least 10% of the glyphs have no Unicode, or images cover at least a quarter of the page | use the text, but parts of the page may be pictures |
 | `native` | anything else | use the text |
 
-Text left out as off the page or tiny still counts as text for `empty`, so such a page reads as `needs-ocr`, not blank. `needs-ocr` and `ocr-layer` pages also raise `extract-needs-ocr`, so a caller that reads only the Markdown learns why a page is empty. The cut-offs are starting values in `TextLayerThresholds` (`ExtractOptions::with_text_layer`), with shares in thousandths; the JSON carries every measure, so a pipeline can apply its own.
+Text left out as off the page or tiny still counts as text for `empty`, so such a page reads as `needs-ocr`, not blank. `needs-ocr` and `ocr-layer` pages also raise `extract-needs-ocr`, so a caller that reads only the Markdown learns why a page is empty. With an OCR engine set (`Models::with_ocr`), those are the pages it reads, and they raise nothing: `mixed` pages keep their own text, and `empty` pages have nothing to read. The cut-offs are starting values in `TextLayerThresholds` (`ExtractOptions::with_text_layer`), with shares in thousandths; the JSON carries every measure, so a pipeline can apply its own.
 
 On the benchmark's 672 readable pages (below), 496 are `native`, 67 `mixed`, 67 `needs-ocr`, 42 `ocr-layer` and none `empty`. Every page that gave no text is `needs-ocr` (40) or `ocr-layer` (37). 17 of the `needs-ocr` pages still passed the benchmark's baseline test: they gave a little text, such as a stamp or glyphs without Unicode.
 
@@ -99,13 +99,30 @@ Three things explain most of the failures:
 
 The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
 
+## Using models
+
+The rules read most pages well. A layout model helps where they fail, on magazines, sidebars and columns set too close together; an OCR engine reads scanned pages, which have no text to extract. Neither lives in this crate. A model plugs in through a trait, so the core stays free of weights and native runtimes ([ADR 0030](../../docs/decisions/0030-extraction-output-and-model-plugins.md) §6).
+
+- **`LayoutModel`** finds a page's regions: text, titles, section headers, list items, tables, pictures, captions, footnotes, formulas, page headers and footers. Each region then holds its own blocks, the regions set the reading order, and their labels set the block kinds. Page headers and footers leave the text as furniture. A table region with no lines in it gets the unruled table detector.
+- **`OcrEngine`** reads the pages with no visible text. Its words become blocks like the text layer's, and each span records the engine's confidence in `ocr`.
+
+A model reads a `PageRaster`, an RGBA image of the page that a `PageRenderer` you supply draws. Hand the model and the renderer to `ExtractOptions::with_models`, and the extraction calls them between pages. When your model is asynchronous (a Swift or Kotlin API, a browser worker), name it with `ModelSlot::Host` instead. Then step the job yourself: `ExtractJob::request` says which page it needs and at what resolution, and `ExtractJob::provide` hands back the result.
+
+The output names every model it used in `generator.models` (name, version, weights' SHA-256, licence), and `generator.mode` reads `rules+models`.
+
+| Model | What it does | Licence | Crate |
+| --- | --- | --- | --- |
+| Docling's Heron (RT-DETRv2), ONNX export | layout regions | weights Apache-2.0; code MIT and Apache-2.0 | [`laminapdf-layout-onnx`](../laminapdf-layout-onnx/README.md) |
+
+Only models whose code and weights both have permissive licences may be listed; [`tools/models/models.toml`](../../tools/models/models.toml) holds them and `cargo xtask models check` enforces it.
+
 ## What it can't do yet
 
 - **Hidden text only rendering would find.** Text inside a curved clip's bounding box counts as visible, light text over an image counts as visible even where the part of the image under it is light too, and text covered by an opaque shape drawn over it stays in the text.
 - **Trees that pass the checks but are wrong.** A tree that covers the text and keeps its columns in order is trusted, even where its order is still odd; extract with `ReadingOrder::Layout` to ignore it.
 - **Headings and lists the rules can't see.** A heading set at the body size in a regular face reads as a paragraph, and a numbered heading in bold at the body size (`1. Introduction`) reads as a list item, not a heading. Uppercase letters (`A.`) aren't list markers, so a line that starts with an initial doesn't start a list, and uppercase Roman numerals aren't page numbers.
 - **Headers that change.** A running header that changes from page to page, other than its digits, stays in the text.
-- **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so; optional model plug-ins, planned for a later release, are the answer for those pages.
+- **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so; a layout model ([Using models](#using-models)) is the answer for those pages.
 - **Vertical writing.** Each vertical run is a block of its own, and a page that mixes vertical and horizontal writing raises `extract-reading-order-ambiguous`.
 - **Tables without lines.** Unruled tables need `TableMode::LatticeAndStream`.
 

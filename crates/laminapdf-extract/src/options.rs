@@ -1,6 +1,8 @@
-//! What an extraction does: [`ExtractOptions`], plain owned data with a `Default` so it crosses
-//! `UniFFI` and WASM as a record (ADR 0028 §1).
+//! What an extraction does: [`ExtractOptions`], owned data with a `Default`. All of it but
+//! [`Models`]' plug-in objects crosses `UniFFI` and WASM as a record (ADR 0028 §1); the
+//! bindings name host models instead, which needs no object across the boundary.
 
+use crate::plugins::Models;
 use crate::tables::TableMode;
 
 /// How an extraction runs.
@@ -21,6 +23,8 @@ pub struct ExtractOptions {
     pub tables: TableMode,
     /// The cut-offs that decide each page's text-layer status.
     pub text_layer: TextLayerThresholds,
+    /// Layout and OCR models; none by default (rules only, ADR 0030 §6).
+    pub models: Models,
 }
 
 impl Default for ExtractOptions {
@@ -33,6 +37,7 @@ impl Default for ExtractOptions {
             limits: ExtractLimits::default(),
             tables: TableMode::default(),
             text_layer: TextLayerThresholds::default(),
+            models: Models::default(),
         }
     }
 }
@@ -70,6 +75,13 @@ impl ExtractOptions {
     #[must_use]
     pub const fn with_text_layer(mut self, thresholds: TextLayerThresholds) -> Self {
         self.text_layer = thresholds;
+        self
+    }
+
+    /// The layout and OCR models.
+    #[must_use]
+    pub fn with_models(mut self, models: Models) -> Self {
+        self.models = models;
         self
     }
 }

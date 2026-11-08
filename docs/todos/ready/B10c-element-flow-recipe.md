@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
-| Depends on | [B10a](./B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md) |
+| Depends on | [B10a](../done/B10a-measured-text-bottom.md) |
 | ADRs | Follows [0016](../../decisions/0016-package-design.md), [0018](../../decisions/0018-test-strategy.md) and [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/b10c-element-flow-recipe` |
 | PR title | `feat(examples): document and demonstrate element flow` |
@@ -15,25 +15,25 @@
 
 ## Goal
 
-Publish a tested report recipe that places paragraphs and an image using the cursor. Demonstrate when the helper saves work, and where callers still need explicit overflow and page-break handling.
+Publish a tested report recipe that places paragraphs and an image using the measured bottoms. Demonstrate when the helper saves work, and where callers still need explicit overflow and page-break handling.
 
 ## Context
 
 - [Element flow plan](../../plans/element-flow.md#how-each-step-proves-it-works): the report the recipe builds and the before/after comparison it records.
-- [B10a](./B10a-measured-text-bottom.md) and [B10b](./B10b-vertical-cursor.md): the helper and cursor the examples use.
+- [B10a](../done/B10a-measured-text-bottom.md): the measured bottoms the examples use, and why there is no cursor.
 - [Example guidelines](../../guidelines/examples.md): paired Rust and TypeScript examples, public APIs only, registered with the snippet checks.
 
 ## Scope
 
 **In scope**
 
-- Paired Rust and TypeScript examples of a report placed with the measured bottoms (and the cursor, if B10b went ahead), including the minimal next-paragraph example.
+- Paired Rust and TypeScript examples of a report placed with the measured bottoms, including the minimal next-paragraph example.
 - A docs-site recipe built from those examples.
 - The before/after authoring comparison described in the plan.
 
 **Out of scope** (and which todo covers it)
 
-- Any change to the helper or cursor APIs: [B10a](./B10a-measured-text-bottom.md), [B10b](./B10b-vertical-cursor.md).
+- Any change to the measurement APIs: [B10a](../done/B10a-measured-text-bottom.md). A cursor: a new todo, if this recipe shows the need.
 - Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks

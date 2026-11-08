@@ -1,6 +1,65 @@
 // @laminapdf/ui: the Paper components, presentational only (props in, events out). Import
 // `@laminapdf/ui/styles.css` once for their look.
 
+export {
+  choiceArgs,
+  pageArgs,
+  parseChoice,
+  parsePage,
+  parsePageRanges,
+  parseUrl,
+  parseZoomPercent,
+  rangeArgs,
+  urlArgs,
+  zoomArgs,
+} from "./commands/args.js";
+export {
+  matchText,
+  type Rankable,
+  type Ranked,
+  RecentCommands,
+  rankCommands,
+  type TextMatch,
+} from "./commands/rank.js";
+export {
+  CommandsProvider,
+  type CommandsProviderProps,
+  type CommandView,
+  chipKeys,
+  type ShortcutGroup,
+  useCommand,
+  useCommands,
+  useShortcutMap,
+} from "./commands/react.js";
+export { readerCommands, registerReaderCommands } from "./commands/reader-commands.js";
+export { CommandError, CommandRegistry } from "./commands/registry.js";
+export { RegistryPalette, type RegistryPaletteProps } from "./commands/registry-palette.js";
+export {
+  BROWSER_KEYS,
+  bindingKey,
+  type DispatcherOptions,
+  type KeyPress,
+  NEVER_BIND,
+  OVERRIDES,
+  pressKey,
+  type Shell,
+  shellOf,
+  shortcutDispatcher,
+  shortcutProblems,
+} from "./commands/shortcuts.js";
+export type {
+  AnyCommand,
+  ArgsSchema,
+  Availability,
+  Command,
+  CommandContext,
+  CommandGroup,
+  CommandHome,
+  CommandId,
+  ParseResult,
+  Shortcut,
+  ShortcutScope,
+} from "./commands/types.js";
 export { PageAppearanceChips, type PageAppearanceChipsProps } from "./components/appearance-chips.js";
 export { Badge, type BadgeProps, type BadgeTone } from "./components/badge.js";
 export {

@@ -77,6 +77,7 @@ fn candidate(block: &Block, body: i64) -> Option<Candidate> {
     // A block from the structure tree has the kind the tree gives it.
     if block.kind != BlockKind::Paragraph
         || !block.struct_path.is_empty()
+        || block.from_model
         || !block.text.chars().any(char::is_alphabetic)
     {
         return None;

@@ -551,7 +551,7 @@ impl Surface {
         }
         lines.truncate(fit);
         let x = rect.x0.get();
-        let boxes = lines
+        let boxes: Vec<LineBox> = lines
             .iter()
             .enumerate()
             .map(|(i, l)| {
@@ -570,8 +570,17 @@ impl Surface {
                 }
             })
             .collect();
+        let bottom = boxes
+            .iter()
+            .rev()
+            .find(|b| text::draws(&spec.text, &b.content))
+            .map(|b| b.rect.y1);
         self.push_text(spec, PointPt::new(rect.x0, Pt::new(first)), leading, lines);
-        Ok(TextLayout { lines: boxes, overflow })
+        Ok(TextLayout {
+            lines: boxes,
+            overflow,
+            bottom,
+        })
     }
 
     /// A link annotation over `rect` (page space, through the current transform as an

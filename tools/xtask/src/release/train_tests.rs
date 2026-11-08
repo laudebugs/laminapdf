@@ -95,18 +95,42 @@ fn train_should_recheck_the_latest_nightly_before_pushing_a_prepared_release() {
 }
 
 #[test]
-fn only_a_prepared_release_should_push_both_refs_with_the_app_token() {
+fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     let prepare = lines_of(TRAIN, "jobs", "prepare").join("\n");
     let after = prepare.split("name: Create the release bot's token").nth(1).unwrap();
     assert_eq!(after.matches("if: steps.version.outputs.ready == 'true'").count(), 2);
     for part in [
         "actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510",
         "GH_TOKEN: ${{ steps.bot.outputs.token }}",
-        "push --atomic origin \"HEAD:refs/heads/$BRANCH\" \"refs/tags/$TAG:refs/tags/$TAG\"",
+        "content: $content}",
+        "git --literal-pathspecs ls-tree HEAD",
+        "git/trees\" --input -",
+        "git/commits\" --input -",
+        ".verification.verified == true and .verification.reason == \"valid\"",
+        "ref=\"refs/heads/$BRANCH\"",
+        "ref=\"refs/tags/$TAG\"",
     ] {
         assert!(after.contains(part), "missing push safeguard {part}");
     }
-    assert!(!after.contains("--force"));
+    // Inline content, one tree request: a blob request per file passes GitHub's limit on
+    // content-creating requests. Only binary files take a blob request.
+    assert_eq!(after.matches("git/blobs\" --input -").count(), 1);
+    assert!(after.contains("Binary content can't go inline"));
+    let tree = after.find("git/trees\" --input -").unwrap();
+    let sign = after.find("git/commits\" --input -").unwrap();
+    let verify = after.find(".verification.verified == true").unwrap();
+    let move_branch = after.find("ref=\"refs/heads/$BRANCH\"").unwrap();
+    let tag = after.find("ref=\"refs/tags/$TAG\"").unwrap();
+    assert!(
+        tree < sign && sign < verify && verify < move_branch && move_branch < tag,
+        "the tag must be created last"
+    );
+    for custom_identity in ["author:", "committer:", "signature:"] {
+        assert!(
+            !after.get(sign..move_branch).unwrap().contains(custom_identity),
+            "GitHub can sign for the App only without {custom_identity}"
+        );
+    }
 }
 
 #[test]
