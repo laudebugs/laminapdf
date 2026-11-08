@@ -5,7 +5,7 @@
 //   const wasm = fileURLToPath(import.meta.resolve("@laminapdf/wasm/lamina_pdf_render_hayro.wasm"));
 //   const renderer = await initHayro(readFileSync(wasm));
 //
-// Text needs Lamina PDF's text module: `await init({ text: true })`.
+// Text needs Lamina PDF's text or extract module: `await init({ text: true })`.
 
 import { bytesSource, type RenderBackend } from "@laminapdf/render";
 import { Document } from "@laminapdf/sdk";
@@ -27,7 +27,8 @@ export function drawPage(renderer: RenderBackend, bytes: Uint8Array, index: numb
   // The renderer draws the page and nothing else: it never supplies text, links or selection.
   using drawing = renderer.open(bytesSource(bytes));
   const { width, height, pixels } = drawing.render({ page: index, scale: SCALE });
-  // The text comes from Lamina PDF, which also edits and saves the file, so the two never differ.
+  // The text comes from Lamina PDF, which also edits and saves the file, so what you select is what
+  // an edit changes.
   using doc = Document.open(bytes);
   const text = doc.page(index).text().text();
   return { width, height, pixels, text };

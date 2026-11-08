@@ -6,6 +6,7 @@
 import Arrow from "./kit/Arrow.astro";
 import Box from "./kit/Box.astro";
 import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
 import Lane from "./kit/Lane.astro";
 import Markers from "./kit/Markers.astro";
 import Svg from "./kit/Svg.astro";
@@ -18,41 +19,42 @@ const narrow = `${prefix}-narrow`;
 
 <Svg viewBox="0 0 720 292" layout="wide" labelledby={labelledby} describedby={describedby}>
   <Markers prefix={wide} />
-  <Box x={0} y={112} w={120} h={60} label="Your PDF" sub="bytes" />
-  <Arrow d="M120 142 H138" prefix={wide} head={false} />
-  <Arrow d="M138 142 V78 H170" prefix={wide} />
-  <Arrow d="M138 142 V218 H170" prefix={wide} focus />
+  <Box x={0} y={112} w={100} h={60} label="Your PDF" sub="bytes" />
+  <Arrow d="M100 142 H116" prefix={wide} head={false} />
+  <Arrow d="M116 142 V78 H136" prefix={wide} />
+  <Arrow d="M116 142 V218 H136" prefix={wide} focus />
 
-  <Lane x={152} y={16} w={568} h={120} title="Drawing" />
-  <Box x={174} y={50} w={140} h={56} label="Render request" sub="page, scale, clip" />
-  <Arrow d="M314 78 H330" prefix={wide} />
-  <Box x={334} y={50} w={104} h={56} label="Tile plan" sub="pixel size" />
-  <Arrow d="M438 78 H454" prefix={wide} />
-  <Box x={458} y={50} w={128} h={56} label="Renderer" sub="PDFium or hayro" />
-  <Arrow d="M586 78 H602" prefix={wide} />
-  <Box x={606} y={50} w={100} h={56} label="RGBA pixels" />
+  <Lane x={124} y={16} w={596} h={120} title="Drawing" />
+  <Box x={140} y={50} w={196} h={56} label="Render request" sub="page, scale, clip, rotation" />
+  <Arrow d="M336 78 H352" prefix={wide} />
+  <Box x={356} y={50} w={96} h={56} label="Tile plan" sub="pixel size" />
+  <Arrow d="M452 78 H468" prefix={wide} />
+  <Box x={472} y={50} w={120} h={56} label="Renderer" sub="PDFium or hayro" />
+  <Arrow d="M592 78 H608" prefix={wide} />
+  <Box x={612} y={50} w={100} h={56} label="RGBA pixels" />
 
-  <Lane x={152} y={156} w={568} h={120} title="Reading" />
-  <Box x={174} y={190} w={200} h={56} label="Lamina PDF" sub="its own model" focus />
-  <Arrow d="M374 218 H394" prefix={wide} focus />
-  <Box x={398} y={190} w={200} h={56} label="Text and links" sub="selection and search" fresh />
+  <Lane x={124} y={156} w={596} h={120} title="Reading" />
+  <Box x={140} y={190} w={196} h={56} label="Lamina PDF" sub="its own model" focus />
+  <Arrow d="M336 218 H352" prefix={wide} focus />
+  <Box x={356} y={190} w={196} h={56} label="Text and links" sub="selection and search" fresh />
 </Svg>
 
-<Svg viewBox="0 0 320 400" layout="narrow" labelledby={labelledby} describedby={describedby}>
+<Svg viewBox="0 0 320 424" layout="narrow" labelledby={labelledby} describedby={describedby}>
   <Markers prefix={narrow} />
   <Box x={60} y={0} w={200} h={44} label="Your PDF bytes" />
   <Arrow d="M160 44 V60" prefix={narrow} head={false} />
   <Arrow d="M160 60 H78 V84" prefix={narrow} />
   <Arrow d="M160 60 H242 V84" prefix={narrow} focus />
 
-  <Lane x={0} y={88} w={156} h={312} title="Drawing" />
-  <Box x={8} y={124} w={140} h={52} label="Render request" sub="page, scale, clip" />
-  <Arrow d="M78 176 V190" prefix={narrow} />
-  <Box x={8} y={194} w={140} h={52} label="Tile plan" sub="pixel size" />
-  <Arrow d="M78 246 V260" prefix={narrow} />
-  <Box x={8} y={264} w={140} h={52} label="Renderer" sub="PDFium or hayro" />
-  <Arrow d="M78 316 V330" prefix={narrow} />
-  <Box x={8} y={334} w={140} h={52} label="RGBA pixels" />
+  <Lane x={0} y={88} w={156} h={334} title="Drawing" />
+  <Box x={8} y={124} w={140} h={76} label="Render request" sub="page, scale," />
+  <Label x={78} y={196} text="clip, rotation" kind="sub" anchor="middle" />
+  <Arrow d="M78 200 V214" prefix={narrow} />
+  <Box x={8} y={218} w={140} h={52} label="Tile plan" sub="pixel size" />
+  <Arrow d="M78 270 V284" prefix={narrow} />
+  <Box x={8} y={288} w={140} h={52} label="Renderer" sub="PDFium or hayro" />
+  <Arrow d="M78 340 V354" prefix={narrow} />
+  <Box x={8} y={358} w={140} h={52} label="RGBA pixels" />
 
   <Lane x={164} y={88} w={156} h={172} title="Reading" />
   <Box x={172} y={124} w={140} h={52} label="Lamina PDF" sub="its own model" focus />

@@ -18,7 +18,7 @@ This example opens a remote file, then reads its page count and first page:
 
 <Diagram name="range-loading" />
 
-Wrap every read after the open in `doc.ensure`, saving included: `await doc.ensure(() => doc.save())` fetches whatever the save writes. A read fails with the last `data-pending` when its fetches bring nothing new, or when it still needs bytes after 1,024 rounds of fetches; `maxRounds` changes that number.
+Wrap every read after the open in `doc.ensure`, saving included: `await doc.ensure(() => doc.save())` fetches whatever the save writes. A read fails with the last `data-pending` when its fetches bring nothing new, or when it still needs bytes after 1,024 rounds of fetches. Pass `maxRounds` to `Document.openRange` to change that number.
 
 ## The server must answer `Range` requests
 
@@ -28,7 +28,7 @@ A server that ignores `Range` and answers `200` sends the whole file. Lamina PDF
 
 ## A file that changes on the server fails the read
 
-Every request after the first sends `If-Range` with the file's first `ETag`, or its `Last-Modified` date when there is no `ETag`. When the file changes between two reads, the read fails with `source-changed` rather than mixing two versions. Open the file again to read the new one. An error status from the server fails with `fetch-failed`, its `data.status` holding the status code.
+Every request after the first sends `If-Range` with the file's first strong `ETag`, or its `Last-Modified` date when it has none. When the file changes between two reads, the read fails with `source-changed` rather than mixing two versions. Open the file again to read the new one. An error status from the server fails with `fetch-failed`, its `data.status` holding the status code.
 
 ## Limit how much a file can make you fetch
 

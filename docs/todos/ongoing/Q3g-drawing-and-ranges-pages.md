@@ -49,7 +49,7 @@ Two features have no page of their own: how a page is drawn (and why its text ne
 - [x] Each diagram is under 8 KB gzipped (reported in the PR).
 - [x] `cargo xtask check docs` and the docs build pass.
 - [x] Both pages pass `cargo xtask check docs-prose` and `docs-snippets`, and appear in the sidebar and in `llms.txt`.
-- [x] Every example on them runs in the example suite.
+- [x] Every example on them runs in a test: `draw-page.test.ts` and `source.test.ts` (Node). Neither builds a PDF, so neither belongs in the cross-runtime suite of examples checked against the Rust references, like `open-untrusted` and `compare-pages`.
 
 ## Post-merge checks
 
