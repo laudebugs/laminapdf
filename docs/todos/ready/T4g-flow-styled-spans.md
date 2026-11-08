@@ -20,7 +20,7 @@ Break a paragraph whose words come in different fonts, sizes and languages: a bo
 ## Context
 
 - `laminapdf-text`'s `break_lines` (`src/layout.rs`, 702 lines against the 800-line module budget) itemizes by bidi level and font coverage, shapes with HarfRust, breaks greedily at UAX #14 opportunities and returns `Line`s whose `LineRun`s may already use several fonts.
-- `Surface::text_box` (`laminapdf-build`) draws one font and size; [T4f](./T4f-flow-builder-groundwork.md) adds measuring without drawing and a crate-private command that draws a measured layout.
+- `Surface::text_box` (`laminapdf-build`) draws one font and size; [T4f](../ongoing/T4f-flow-builder-groundwork.md) adds measuring without drawing and a crate-private command that draws a measured layout.
 - Shaping goldens in `fixtures/shaping/` (`tools/shaping-goldens/goldens.py`, `hb-shape`) and the UAX conformance subsets in `fixtures/unicode/`.
 
 ## Scope
