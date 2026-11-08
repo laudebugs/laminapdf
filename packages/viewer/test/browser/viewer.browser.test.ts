@@ -265,6 +265,32 @@ describe("detail canvas", () => {
     v.destroy();
   });
 
+  it("hands detail canvases on to the pages scrolled into view, past more pages than the pool holds", async () => {
+    const v = await opened({ zoom: 200, dpr: () => 2, detailPool: { max: 1 } });
+    for (let page = 0; page < 6; page++) {
+      v.goToPage(page);
+      await frames(2);
+      v.element.scrollLeft = (v.element.scrollWidth - v.element.clientWidth) / 2;
+      await until(() => v.stats().pages[page] === "sharp");
+      expect(detailRatio(v, page)).toBeCloseTo(2, 2);
+      expect(v.stats().detailCanvases).toBe(1);
+    }
+    v.destroy();
+  });
+
+  it("doesn't spin through frames for a page the detail pool can't serve", async () => {
+    const v = await opened({ zoom: 400, dpr: () => 2, detailPool: { max: 0 } });
+    v.element.scrollLeft = (v.element.scrollWidth - v.element.clientWidth) / 2;
+    await frames(30);
+    let stats = 0;
+    v.on("renderstats", () => stats++);
+    await frames(30);
+    // The page shows its backdrop and waits for a detail canvas, rather than retry every frame.
+    expect(stats).toBeLessThan(5);
+    expect(v.stats().pages[0]).toBe("low");
+    v.destroy();
+  });
+
   it("moves with the view at 400 %: sharp again after scrolling down and across", async () => {
     const v = await opened({ zoom: 400, dpr: () => 2 });
     await until(() => v.stats().pages[0] === "sharp");

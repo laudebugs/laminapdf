@@ -479,6 +479,8 @@ export class Viewer {
     let unsharpened = false;
     for (const view of this.#pages.values()) {
       this.#abort(view);
+      // The new geometry needs other canvases: a page that waited for one tries again.
+      view.waiting = false;
       if (view.state === "error") view.state = "placeholder";
       if (view.state === "sharp") {
         view.state = "low";
@@ -664,20 +666,20 @@ export class Viewer {
    * it at that scale.
    */
   #tiles(index: number, layout: PageLayout, scale: number, area: Parameters<typeof tilesFor>[0]): Tile[] {
-    const documentId = this.#document?.id ?? 0;
     const page = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
-    return tilesFor(area, page, scale / layout.scale).map((clip) => {
-      const request = { page: index, scale, rotation: layout.rotation, clip };
-      return { clip, request, key: renderKey(request, documentId) };
-    });
+    return tilesFor(area, page, scale / layout.scale).map((clip) => this.#tile(index, layout, scale, clip));
   }
 
   /** Page `index` whole at `scale`, as one tile. */
   #wholePage(index: number, layout: PageLayout, scale: number): Tile {
-    const documentId = this.#document?.id ?? 0;
-    const clip = { x: 0, y: 0, ...pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation) };
+    const page = pagePixels(this.#sizes[index] as PageSize, scale, layout.rotation);
+    return this.#tile(index, layout, scale, { x: 0, y: 0, ...page });
+  }
+
+  /** The tile `clip` of page `index` at `scale`: its render request and cache key. */
+  #tile(index: number, layout: PageLayout, scale: number, clip: PixelRect): Tile {
     const request = { page: index, scale, rotation: layout.rotation, clip };
-    return { clip, request, key: renderKey(request, documentId) };
+    return { clip, request, key: renderKey(request, this.#document?.id ?? 0) };
   }
 
   /** The device px per pt of a sharp tile: the layout's scale × the device pixel ratio. */
@@ -698,8 +700,12 @@ export class Viewer {
       return this.#tiles(view.index, layout, view.scale, area).every((t) => view.tiles.has(t.key));
     }
     const tiles = this.#tiles(view.index, layout, this.#fullScale(layout), area);
-    // Nothing of the page in view (it is off to one side): nothing to sharpen.
-    if (tiles.length === 0) return true;
+    // Nothing of the page in view (off to one side, or only the gap below it): nothing to
+    // sharpen, and its detail canvas goes back to the pool for a page that has.
+    if (tiles.length === 0) {
+      this.#releaseDetail(view);
+      return true;
+    }
     const detail = view.detail;
     if (detail === undefined || detail.geometry !== geometryOf(layout)) return false;
     return tiles.every((t) => detail.tiles.has(t.key));
@@ -708,6 +714,8 @@ export class Viewer {
   /** Starts page `index`'s pass if it isn't busy and its canvas isn't done for `frame` yet. */
   #paint(index: number, priority: PaintPriority, frame: Frame): void {
     const view = this.#pages.get(index);
+    // A page in the margin gives its detail canvas back for the pages in view.
+    if (view !== undefined && priority === "prefetch") this.#releaseDetail(view);
     if (view === undefined || this.#document === undefined || view.busy || view.waiting || view.state === "error") {
       return;
     }
@@ -847,9 +855,16 @@ export class Viewer {
     const { view, layout, priority, signal, live } = pass;
     const tiles = this.#tiles(view.index, layout, this.#fullScale(layout), this.#inView(view.index, frame));
     const rect = bounds(tiles.map((t) => t.clip));
-    const detail = rect === undefined ? undefined : this.#placeDetail(view, layout, rect);
-    if (detail === undefined) {
+    if (rect === undefined) {
       this.#releaseDetail(view);
+      return;
+    }
+    const detail = this.#placeDetail(view, layout, rect);
+    if (detail === undefined) {
+      // No detail canvas to be had: the page shows its backdrop and waits until one is released,
+      // rather than try again every frame.
+      this.#releaseDetail(view);
+      view.waiting = true;
       return;
     }
     const missing = tiles.filter((tile) => {
@@ -915,6 +930,9 @@ export class Viewer {
     if (view.detail === undefined) return;
     this.#detailPool.release(view.detail.canvas);
     view.detail = undefined;
+    // A detail canvas is free again: pages that waited for one try now.
+    for (const other of this.#pages.values()) other.waiting = false;
+    this.#schedule();
   }
 
   /** Draws a sharp tile at `clip` (device px of the page) into `detail`, offset by its rectangle. */
