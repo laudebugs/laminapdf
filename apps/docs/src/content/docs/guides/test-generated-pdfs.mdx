@@ -6,11 +6,11 @@ description: Compare the PDFs your code makes with reference PDFs you approved, 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-You'll write a test that fails when a PDF your code makes changes. The test compares the PDF's bytes with a reference PDF you opened and approved. When the bytes differ, it draws both files' pages to show where they look different.
+You'll write a test that fails when a PDF your code makes changes. The test compares the PDF's bytes with a reference PDF you opened and approved. When the bytes differ, a second example draws both files' pages to show where they look different.
 
 ## Why the bytes repeat
 
-Lamina PDF never reads a clock or picks a random value while it writes. With the same code, data, options and Lamina PDF version, Rust and every JavaScript runtime write the same bytes. Three values would still change from run to run, so a test passes them in: the file ID, the producer and the creation date.
+Lamina PDF never reads a clock or picks a random value while it writes. With the same code, data, options and Lamina PDF version, Rust and every JavaScript runtime write the same bytes. Three values usually come from your app rather than from the content (the file ID, the producer and the creation date), so a test fixes them.
 
 Your own code can vary the bytes too, and a failing test should point there first:
 
@@ -48,6 +48,8 @@ To read the change itself, build with `compress: false` (`with_compress(false)` 
 ## Upgrade Lamina PDF
 
 Pin the exact Lamina PDF version, so an upgrade happens only when you choose it. A release that changes the bytes written for the same input lists that change first in its changelog. Upgrade in a change of its own, regenerate the references with `update` set, and look at the page comparison before you commit them.
+
+## Keep fonts and edits repeatable
 
 Fonts need the same care. The embedded subset depends on the font file's exact bytes, so keep the font your test uses in your own repository rather than loading it from the system. Edited files repeat too: opening a PDF, applying the same edits and saving writes the same bytes each time.
 
