@@ -11,7 +11,7 @@
 | Branch | `feat/u6f-gallery-and-visual-tests` |
 | PR title | `feat(gallery): add the paper component gallery with screenshot and axe tests` |
 | Size | M (≈ 350–450 lines of gallery pages, Playwright specs and the xtask check; screenshots don't count) |
-| PR | — |
+| PR | [#289](https://github.com/laudebugs/laminapdf/pull/289) |
 
 ## Goal
 
