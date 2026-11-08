@@ -79,7 +79,9 @@ export interface CommandContext {
   readonly platform: Platform;
   /** The reader's lifecycle, with the actions the reader's own commands call. */
   readonly reader?: ExternalStore<ReaderState> & {
+    /** Asks the platform for a file and opens it. */
     openFromPicker(): Promise<void>;
+    /** Retries opening the locked document with `password`. */
     submitPassword(password: string): Promise<void>;
   };
   /** The viewer showing the open document. */
@@ -113,6 +115,7 @@ export interface Command<Args = undefined> {
   readonly args?: ArgsSchema<Args>;
   /** `true`, or why it can't run now ("Open a document first"). */
   enabled?(ctx: CommandContext): true | string;
+  /** Does the command's work, with its parsed arguments. */
   run(ctx: CommandContext, args: Args): void | Promise<void>;
 }
 

@@ -14,7 +14,9 @@ import type { AnyCommand, CommandContext, CommandId } from "./types.js";
 
 /** Props of `RegistryPalette`. */
 export interface RegistryPaletteProps {
+  /** Whether the palette is open. */
   readonly isOpen: boolean;
+  /** Called when the palette asks to open or close: a shortcut, Escape, or a command chosen. */
   readonly onOpenChange: (isOpen: boolean) => void;
   /** Where recent commands are kept; one on this device's local storage by default. */
   readonly recent?: RecentCommands;
