@@ -56,35 +56,35 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices` for the spike and `/writing` for the ADR
-- [ ] Read the Context items, ADRs 0005 §6, 0016 §4–§7, 0027, 0028 §3 and 0031, and research 03 [§7.5–§7.6](../../research/pdf/03-text-and-fonts.md#76-justification) (hyphenation and justification) and [§9.5](../../research/pdf/03-text-and-fonts.md#95-generating-tagged-pdf-from-code) (generating tagged PDF)
-- [ ] Check that ADR 0032 is still free; [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) reserves it for this todo
-- [ ] Set up `spikes/flow-layout/`: a standalone Cargo project with its own `[workspace]` table and `Cargo.lock`, the root `Cargo.toml`'s `wasm-release` profile copied in, path dependencies on `crates/laminapdf`, `crates/laminapdf-build` and `crates/laminapdf-text`, and `typst` and `typst-pdf` pinned with `=` at the current release (record the version and the date)
-- [ ] Inputs in `spikes/flow-layout/inputs/`: an invoice as JSON with 40 line items (so it runs to two pages); a seeded 100-page report with headings, paragraphs, a table that crosses pages, a running header and a "Page X of Y" footer; one Arabic and one Devanagari paragraph; the Noto fonts from `fixtures/fonts/` (OFL 1.1); and the same documents as Typst sources (the invoice reads its JSON with Typst's `json()`)
-- [ ] Experiment A, our own engine (`src/own.rs`): a minimal paginator over `laminapdf-build`. It measures paragraphs with `break_lines`, draws them with `Surface::text`, keeps headings with the next block, repeats a table's header row, draws headers and footers once the page count is known, and tags with `Surface::tag` and `Surface::artifact`. Record what the builder lacks (elements across pages, several fonts and sizes in one paragraph, artifact subtypes)
-- [ ] Experiment B, Typst embedded (`src/typst_pdf.rs`): a `World` with in-memory sources, the Noto fonts and a fixed `today()`; `typst::compile`, then `typst-pdf` with a fixed identifier and timestamp, and tagged output if the release offers it. Open the bytes with `laminapdf::Document::open_bytes`, save an edit incrementally, and try to append the pages to an existing document
-- [ ] Experiment C, hybrid (`src/typst_frames.rs`): Typst's laid-out frames drawn through `Surface` (glyph runs through the builder's font registry, shapes, images, links) without `typst-pdf`. Stop at the first page that renders, and record what doesn't map (Typst's tags, gradients, fonts Typst loaded itself)
-- [ ] Measure, and write one table per question in the spike README:
-  - [ ] WASM bytes (gzip): each experiment as a `wasm32-unknown-unknown` cdylib built as `cargo xtask wasm` builds the modules (the `wasm-release` profile, then wasm-opt), less the text module's measurement; and `pulldown-cmark` and one template engine on their own, for T4d and T4e
-  - [ ] Time for the two-page invoice and the 100-page report: native release, best of 30, and Node 24 through the WASM build
-  - [ ] Tagged output: `cargo xtask verapdf --dir <out>` under PDF/UA-1 for each output; whether a paragraph across a page break stays one `P`; whether running headers are artifacts
-  - [ ] Shaping: the Arabic and Devanagari paragraphs extracted by pdf.js and pdftotext (`tools/differential/text.mjs`) equal the input, and the glyphs match `hb-shape` as the goldens in `fixtures/shaping/` do
-  - [ ] Determinism: byte-identical output across 30 runs, and between native and wasm32
-  - [ ] The object graph: whether generated objects live in a `Document`'s overlay, so that "generate then edit" saves incrementally and flowing pages can be appended to an open document
-  - [ ] Licences and upkeep: `cargo deny --manifest-path spikes/flow-layout/Cargo.toml --config deny.toml check licenses bans sources`; any licence outside the allow-list (OFL font data, if a Typst crate bundles fonts); the dependency count; Typst's release cadence and the breaking changes between its last two minor releases
-- [ ] Write the spike README: date, question, method, measurements, findings and a recommendation
-- [ ] Write ADR 0032 with every decision in Scope, each backed by the spike's numbers, and the alternatives with the reasons they lost: krilla used directly, Taffy with our own pagination, HTML and CSS through a browser, and optimal (Knuth–Plass style) page breaking
-- [ ] Reshape T4b–T4e to the decision before review: their scope, tasks, codes, placement and sizes, splitting each one estimated over 800 lines into todos of at most L (their sizes today are XL). If Typst wins, rewrite them as the integration it needs (fonts, tagging checks, the edit path) and say so in the PR description
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices` for the spike and `/writing` for the ADR
+- [x] Read the Context items, ADRs 0005 §6, 0016 §4–§7, 0027, 0028 §3 and 0031, and research 03 [§7.5–§7.6](../../research/pdf/03-text-and-fonts.md#76-justification) (hyphenation and justification) and [§9.5](../../research/pdf/03-text-and-fonts.md#95-generating-tagged-pdf-from-code) (generating tagged PDF)
+- [x] Check that ADR 0032 is still free; [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) reserves it for this todo
+- [x] Set up `spikes/flow-layout/`: a standalone Cargo project with its own `[workspace]` table and `Cargo.lock`, the root `Cargo.toml`'s `wasm-release` profile copied in, path dependencies on `crates/laminapdf`, `crates/laminapdf-build` and `crates/laminapdf-text`, and `typst` and `typst-pdf` pinned with `=` at the current release (record the version and the date)
+- [x] Inputs in `spikes/flow-layout/inputs/`: an invoice as JSON with 40 line items (so it runs to two pages); a seeded 100-page report with headings, paragraphs, a table that crosses pages, a running header and a "Page X of Y" footer; one Arabic and one Devanagari paragraph; the Noto fonts from `fixtures/fonts/` (OFL 1.1); and the same documents as Typst sources (the invoice reads its JSON with Typst's `json()`)
+- [x] Experiment A, our own engine (`src/own.rs`): a minimal paginator over `laminapdf-build`. It measures paragraphs with `break_lines`, draws them with `Surface::text`, keeps headings with the next block, repeats a table's header row, draws headers and footers once the page count is known, and tags with `Surface::tag` and `Surface::artifact`. Record what the builder lacks (elements across pages, several fonts and sizes in one paragraph, artifact subtypes)
+- [x] Experiment B, Typst embedded (`src/typst_pdf.rs`): a `World` with in-memory sources, the Noto fonts and a fixed `today()`; `typst::compile`, then `typst-pdf` with a fixed identifier and timestamp, and tagged output if the release offers it. Open the bytes with `laminapdf::Document::open_bytes`, save an edit incrementally, and try to append the pages to an existing document
+- [x] Experiment C, hybrid (`src/typst_frames.rs`): Typst's laid-out frames drawn through `Surface` (glyph runs through the builder's font registry, shapes, images, links) without `typst-pdf`. Stop at the first page that renders, and record what doesn't map (Typst's tags, gradients, fonts Typst loaded itself)
+- [x] Measure, and write one table per question in the spike README:
+  - [x] WASM bytes (gzip): each experiment as a `wasm32-unknown-unknown` cdylib built as `cargo xtask wasm` builds the modules (the `wasm-release` profile, then wasm-opt), less the text module's measurement; and `pulldown-cmark` and one template engine on their own, for T4d and T4e
+  - [x] Time for the two-page invoice and the 100-page report: native release, best of 30, and Node 24 through the WASM build
+  - [x] Tagged output: `cargo xtask verapdf --dir <out>` under PDF/UA-1 for each output; whether a paragraph across a page break stays one `P`; whether running headers are artifacts
+  - [x] Shaping: the Arabic and Devanagari paragraphs extracted by pdf.js and pdftotext (`tools/differential/text.mjs`) equal the input, and the glyphs match `hb-shape` as the goldens in `fixtures/shaping/` do (pdf.js and pdftotext done; `hb-shape` wasn't installed, so the glyph comparison wasn't run, as the spike's README says)
+  - [x] Determinism: byte-identical output across 30 runs, and between native and wasm32
+  - [x] The object graph: whether generated objects live in a `Document`'s overlay, so that "generate then edit" saves incrementally and flowing pages can be appended to an open document
+  - [x] Licences and upkeep: `cargo deny --manifest-path spikes/flow-layout/Cargo.toml --config deny.toml check licenses bans sources`; any licence outside the allow-list (OFL font data, if a Typst crate bundles fonts); the dependency count; Typst's release cadence and the breaking changes between its last two minor releases
+- [x] Write the spike README: date, question, method, measurements, findings and a recommendation
+- [x] Write ADR 0032 with every decision in Scope, each backed by the spike's numbers, and the alternatives with the reasons they lost: krilla used directly, Taffy with our own pagination, HTML and CSS through a browser, and optimal (Knuth–Plass style) page breaking
+- [x] Reshape T4b–T4e to the decision before review: their scope, tasks, codes, placement and sizes, splitting each one estimated over 800 lines into todos of at most L (their sizes today are XL). If Typst wins, rewrite them as the integration it needs (fonts, tagging checks, the edit path) and say so in the PR description
 - [ ] Review with the owner, and record the sign-off in the ADR's status line
-- [ ] The index and plan updates (Docs to update)
+- [x] The index and plan updates (Docs to update)
 
 ## Acceptance criteria
 
 - [ ] ADR 0032 is Accepted with the owner's sign-off, and each decision listed in Scope cites a number or finding from the spike
-- [ ] The spike README answers each measured question with numbers, names the machine, toolchain and Typst version, and ends with its recommendation
-- [ ] The library plan marks §9 questions 3 and 4 as answered, with a link to ADR 0032, and §2's non-goal matches the decision
-- [ ] T4b, T4c, T4d and T4e match the ADR (scope, codes, placement, sizes), and the board is regenerated (`cargo xtask todos`)
-- [ ] `cargo xtask check docs` passes
+- [x] The spike README answers each measured question with numbers, names the machine, toolchain and Typst version, and ends with its recommendation
+- [x] The library plan marks §9 questions 3 and 4 as answered, with a link to ADR 0032, and §2's non-goal matches the decision
+- [x] T4b, T4c, T4d and T4e match the ADR (scope, codes, placement, sizes), and the board is regenerated (`cargo xtask todos`)
+- [x] `cargo xtask check docs` passes
 
 ## Post-merge checks
 
@@ -96,13 +96,13 @@ Spike only; no production code. `cargo xtask check docs` checks the links and th
 
 ## Docs to update
 
-- [ ] `docs/decisions/README.md`: the ADR 0032 row
-- [ ] [Architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs): the reserved 0032 row gets its link and status; [§4](../../plans/architecture.md#4-spikes-to-close-open-questions): a `flow-layout` row with the spike's result
-- [ ] [pdf-library](../../plans/pdf-library.md): §2's non-goals and §9 questions 3 and 4 (and 2, if the ADR settles default fonts)
-- [ ] ADR 0031 (an amendment for `build`, `laminapdf.build/1` and the MCP tool) and ADR 0016 §4 and §6 (the module and its budget), if the ADR decides them
-- [ ] [Trust and proof plan](../../plans/trust-and-proof.md) §T4 and §9 (questions 1 and 2, if the ADR answers them for flowing output)
-- [ ] `CLAUDE.md`'s list of accepted ADRs
-- [ ] `spikes/flow-layout/README.md`
+- [x] `docs/decisions/README.md`: the ADR 0032 row
+- [x] [Architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs): the reserved 0032 row gets its link and status; [§4](../../plans/architecture.md#4-spikes-to-close-open-questions): a `flow-layout` row with the spike's result
+- [x] [pdf-library](../../plans/pdf-library.md): §2's non-goals and §9 questions 3 and 4 (and 2, if the ADR settles default fonts)
+- [x] ADR 0031 (an amendment for `build`, `laminapdf.build/1` and the MCP tool) and ADR 0016 §4 and §6 (the module and its budget), if the ADR decides them
+- [x] [Trust and proof plan](../../plans/trust-and-proof.md) §T4 and §9 (questions 1 and 2, if the ADR answers them for flowing output)
+- [x] `CLAUDE.md`: Round T names ADR 0032 as proposed, and the spike is listed; it joins the accepted ADRs on sign-off
+- [x] `spikes/flow-layout/README.md`
 
 ## Risks and open questions
 
@@ -116,7 +116,7 @@ Spike only; no production code. `cargo xtask check docs` checks the links and th
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
