@@ -1,7 +1,10 @@
 // The MDX-to-Markdown conversion behind the pages' Markdown twins (markdown.mjs) and llms.txt's
 // shape (agent-docs.mjs). Run with `node --test` (the package's `test` script).
 import assert from "node:assert/strict";
+import { symlinkSync, unlinkSync } from "node:fs";
+import { platform } from "node:process";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { diagramText } from "../src/components/diagrams/registry.mjs";
 import { llmsTxt, routeOfTwin, shownFileUrl, twinPath } from "./agent-docs.mjs";
 import {
@@ -215,5 +218,16 @@ test("a twin reads only files in the example folders", () => {
     "packages/sdk/src/index.ts",
   ]) {
     assert.throws(() => shownFileUrl(file), /outside the example folders/, file);
+  }
+});
+
+// Windows lets only some accounts make symbolic links.
+test("a symbolic link in an example folder can't lead out of it", { skip: platform === "win32" }, () => {
+  const link = new URL("../../../fixtures/extract/examples/link-out-test.md", import.meta.url);
+  symlinkSync(fileURLToPath(new URL("../../../Cargo.toml", import.meta.url)), link);
+  try {
+    assert.throws(() => shownFileUrl("fixtures/extract/examples/link-out-test.md"), /outside the example folders/);
+  } finally {
+    unlinkSync(link);
   }
 });
