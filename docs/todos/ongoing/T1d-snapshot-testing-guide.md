@@ -11,7 +11,7 @@
 | Branch | `feat/t1d-snapshot-testing-guide` |
 | PR title | `feat(docs): a guide and examples for testing the PDFs you generate against reference PDFs` |
 | Size | M (≈ 250–350 lines of examples and tests, plus the guide: a TypeScript and Rust example pair, a TypeScript page-comparison example, their tests and a small change to the snippet check) |
-| PR | — |
+| PR | [#295](https://github.com/laudebugs/laminapdf/pull/295) |
 
 ## Goal
 
