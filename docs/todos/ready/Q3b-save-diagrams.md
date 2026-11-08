@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md) (what each mode does) |
 | Branch | `feat/q3b-save-diagrams` |
 | PR title | `feat(docs): diagrams for the two save modes and how a save picks one` |
@@ -36,6 +36,7 @@ Saving is where readers hit the library's hardest rule: an incremental save keep
 
 ## Tasks
 
+- [ ] `components/diagrams/kit/Strip.astro`: a byte strip, segments with labels side by side, built from `Box` and tested like the rest of the kit.
 - [ ] `components/diagrams/SaveModes.astro` (two `Strip`s) under "Choose a save mode".
 - [ ] `components/diagrams/SaveDecision.astro` under "When a file refuses a save"; each refusal box names its error code in mono and links to nothing (the page's code table links).
 - [ ] Check every option and code name against `packages/sdk/src` and `fixtures/codes.json`.
