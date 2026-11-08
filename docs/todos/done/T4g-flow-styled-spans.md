@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4a](../done/T4a-adr-0032-layout-engine.md) |
+| Depends on | [T4a](./T4a-adr-0032-layout-engine.md) |
 | ADRs | Implements [ADR 0032 §3](../../decisions/0032-flowing-layout-and-document-inputs.md#3-the-layout-model) (paragraphs of inline spans); follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (HarfRust and ICU4X in `laminapdf-text`) |
 | Branch | `feat/t4g-flow-styled-spans` |
 | PR title | `feat(text): line breaking over styled spans in several fonts and sizes` |
@@ -39,19 +39,19 @@ Break a paragraph whose words come in different fonts, sizes and languages: a bo
 
 ## Tasks
 
-- [ ] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`
-- [ ] Split `src/layout.rs` into `src/layout/` with no change in behaviour (the shaping goldens and layout tests pass unchanged)
-- [ ] The span type and `break_spans`; `break_lines` becomes one span over the whole text
-- [ ] Rises through `pdf_run`
-- [ ] The docs (Docs to update)
+- [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices`
+- [x] Split `src/layout.rs` into `src/layout/` with no change in behaviour (the shaping goldens and layout tests pass unchanged)
+- [x] The span type and `break_spans`; `break_lines` becomes one span over the whole text
+- [x] Rises through `pdf_run`
+- [x] The docs (Docs to update)
 
 ## Acceptance criteria
 
-- [ ] One span gives the same lines as `break_lines` for every input in `fixtures/shaping/` and the existing layout tests
-- [ ] A line holding 11 pt and 16 pt spans takes its height from the 16 pt span
-- [ ] A bold Latin word inside an Arabic paragraph keeps the paragraph's visual order (UAX #9), and extraction reads it back in logical order
-- [ ] A superscript span draws with a `Ts` rise and extracts as its text
-- [ ] `cargo xtask check maintainability` passes with no new size `#[expect]`
+- [x] One span gives the same lines as `break_lines` for every input in `fixtures/shaping/` and the existing layout tests
+- [x] A line holding 11 pt and 16 pt spans takes its height from the 16 pt span
+- [x] A bold Latin word inside an Arabic paragraph keeps the paragraph's visual order (UAX #9), and extraction reads it back in logical order
+- [x] A superscript span draws with a `Ts` rise and extracts as its text
+- [x] `cargo xtask check maintainability` passes with no new size `#[expect]`
 
 ## Post-merge checks
 
@@ -64,18 +64,29 @@ None.
 
 ## Docs to update
 
-- [ ] `laminapdf-text`'s README (layout over spans)
-- [ ] `CLAUDE.md`'s Fonts API paragraph (`break_spans` beside `break_lines`)
+- [x] `laminapdf-text`'s README (layout over spans)
+- [x] `CLAUDE.md`'s Fonts API paragraph (`break_spans` beside `break_lines`)
 
 ## Risks and open questions
 
 - **Line metrics with fallback fonts.** An Arabic run inside a Latin paragraph can make lines uneven. Take the tallest span's metrics, and test the case.
 - **Kerning across span boundaries** is lost when items are shaped apart. Shape the whole run when two spans share a font and size, and split only where the style changes.
 
+## As built
+
+- **The split:** `src/layout/` holds `mod.rs` (the options, `break_lines`, `break_spans`, paragraphs), `breaker.rs` (the greedy breaker), `line.rs` (`Line`, `LineRun`), `span.rs` (`StyledSpan`, its resolved style and the groups of equal styles) and `tests.rs`. The largest is under 400 lines.
+- **The span type is `StyledSpan`**, not `Span`: `laminapdf-extract` already has a public `Span`, and the maintainability check wants one home per type name. Each field but the range is optional and defaults to `LayoutOptions` (`fonts: None` is the whole list; a span's features come after the options'), so `StyledSpan::new(range)` alone lays out as `break_lines` does, and `break_lines` is `break_spans` with one span.
+- **Itemizing:** `itemize` became `itemize_range` over one group's range and font list (crate-private); `itemize` is the whole text with every font.
+- **Kerning across spans:** consecutive spans whose resolved styles are equal form one group, shaped as one run, so `LineRun::spans` is a range of span indices rather than one index.
+- **Line metrics:** `Line::ascent` and `Line::descent` are the extremes of the runs' font ascents and descents at their sizes, moved by their rises; a line without runs takes them from the first font of the span it starts in.
+- **Rises:** `pdf_line_run(&LineRun, …)` is `pdf_run` with the rise, in thousandths of the run's size, added to every segment's.
+- **A new code,** `invalid-spans`, for spans that don't cover the text once, in order, on character boundaries.
+- **Deviation, the golden:** `tests/spans.rs` draws the mixed-span page with the test page writer (`TestPdf::spans`) and reads it back with `TextExtractor`, but the page is not a `fixtures/golden/text-*.pdf` golden with pypdf, pdf.js and pdftotext facts. The facts script needs poppler 26.10.0 (pinned in `doctor.rs`), and this cloud session could not build it. Adding the page to `samples::GOLDENS` and running `tools/fixtures/text_facts.py` on a machine with the pinned tools is the follow-up.
+
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

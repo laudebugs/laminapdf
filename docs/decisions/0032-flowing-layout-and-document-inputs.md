@@ -110,7 +110,7 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 | Todo | What |
 | --- | --- |
 | [T4f](../todos/done/T4f-flow-builder-groundwork.md) | The builder groundwork: measuring text without drawing it, elements that continue on later pages, artifact subtypes, Unicode for marks under PDF/UA-1 |
-| [T4g](../todos/ongoing/T4g-flow-styled-spans.md) | Styled spans in one paragraph: fonts, sizes, rises and languages mixed on a line |
+| [T4g](../todos/done/T4g-flow-styled-spans.md) | Styled spans in one paragraph: fonts, sizes, rises and languages mixed on a line |
 | [T4b](../todos/ready/T4b-flow-layout-core.md) | The flow layer over T4f and T4g: paragraphs of styled spans, pagination, keep rules, page templates and fields, "Page X of Y", tagging |
 | [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Tables across pages |
 | [T4h](../todos/ready/T4h-flow-notes-contents-outline.md) | Footnotes, a contents page and the outline |

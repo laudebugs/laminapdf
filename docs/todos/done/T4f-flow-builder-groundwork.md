@@ -44,7 +44,7 @@ Give `laminapdf-build` the four things the [`flow-layout` spike](../../../spikes
 **Out of scope** (and which todo covers it)
 
 - The flow layer that uses all four: [T4b](../ready/T4b-flow-layout-core.md).
-- Styled spans in one paragraph: [T4g](../ongoing/T4g-flow-styled-spans.md).
+- Styled spans in one paragraph: [T4g](../done/T4g-flow-styled-spans.md).
 - A glyph-run API on `Surface` (drawing shaped glyphs as they come): not planned; ADR 0032 rejected the hybrid that needed it.
 - Tagging pages appended to an open document (`Builder::on`): later.
 

@@ -5,7 +5,7 @@
 
 ## What happened
 
-`break_spans` was given styled spans that don't cover the paragraph's text exactly once, in order. There is a gap between two spans, two spans overlap, a span comes before the one it follows, the last span stops before the end of the text or runs past it, or a span starts or ends inside a character.
+`break_spans` was given styled spans that don't cover the paragraph's text exactly once, in order. Two spans leave a gap between them, overlap, or come in the wrong order. Or the last span stops before the end of the text or runs past it, or a span starts or ends inside a character.
 
 ## Why
 
@@ -19,7 +19,7 @@ List the spans in the order of the text. Start the first at byte 0, start each s
 
 ```rust
 let text = "Hello, world";
-let spans = [StyledSpan::new(0..5, 12.0), StyledSpan::new(6..12, 12.0)]; // byte 5 is in no span
+let spans = [StyledSpan::new(0..5), StyledSpan::new(6..12)]; // byte 5 is in no span
 break_spans(&shaper, &fonts, text, &spans, &options)?; // invalid-spans
 ```
 
