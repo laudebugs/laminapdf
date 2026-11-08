@@ -3792,6 +3792,64 @@ builder.finish()?; // embedded-file-without-mime-type: pass "text/xml"
 - `profile`: the profile, such as `PDF/A-3b`.
 - `name`: the file's name (untrusted: the caller's text).
 "#,
+        "flow-content-too-large" => r#"# `flow-content-too-large`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::flow` found a figure, or a single line of text, taller than the body of a page: the space between the top and bottom margins. No page can hold it, so the flow stopped and added no pages.
+
+## Why
+
+A flow moves a figure to the next page when it doesn't fit, and splits a paragraph only between lines. A figure or a line taller than a whole page would fit on no page at all, and cutting it would hide part of it.
+
+## How to fix
+
+Make the figure narrower with `Figure::with_width`, so its height shrinks with it. For a line, use a smaller text size or a smaller line height. Or give the page more room with a taller page size or smaller top and bottom margins.
+
+## Example
+
+```rust
+let tall = Image::rgba(1, 10, &[0; 40])?; // ten times as tall as it is wide
+let flow = Flow::new(PageTemplate::new(PageSize::A6)).block(FlowBlock::Figure(Figure::new(tall, "A bar")));
+builder.flow(&flow)?; // flow-content-too-large
+```
+
+## Data fields
+
+- `what`: what is too tall, `line` or `figure`.
+"#,
+        "flow-keep-broken" => r#"# `flow-keep-broken`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Builder::flow` met blocks it was asked to keep on one page, and together they are taller than a page. The flow split them across pages anyway. Blocks are kept together by a `FlowBlock::Keep` group, or by a heading or a paragraph set to keep with the block after it.
+
+## Why
+
+Blocks that can't fit on one page can't be kept on one page. The flow lays them out as it would without the rule, so every page still ends with a whole line, rather than looking further for a layout that can't exist.
+
+## How to fix
+
+Keep fewer blocks together: split a long `Keep` group into smaller ones, or turn off `keep_with_next` on a paragraph in a long chain. Or make the page taller, or its margins smaller, so the group fits.
+
+## Example
+
+```rust
+let group = FlowBlock::Keep(vec![long_table_intro, long_paragraph]); // taller than a page
+let report = builder.flow(&Flow::new(template).block(group))?;
+assert_eq!(report.warnings[0].code(), "flow-keep-broken");
+```
+
+## Data fields
+
+- `page`: the page the blocks start on, counted from 0 within the flow.
+"#,
         "render-too-large" => r"# `render-too-large`
 
 - Type: error

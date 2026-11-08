@@ -72,6 +72,8 @@ mod attach;
 mod builder;
 mod error;
 mod finish;
+#[cfg(feature = "text")]
+pub mod flow;
 mod meta;
 mod nav;
 mod page;
@@ -91,7 +93,7 @@ use laminapdf_test_fixtures::codes as test_codes;
 
 pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
-pub use error::{Error, ImageFormat, Result};
+pub use error::{Error, ImageFormat, Result, Warning};
 pub use laminapdf_model::{
     BlendMode, Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt,
     Rotation,

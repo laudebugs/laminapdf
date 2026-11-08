@@ -1,4 +1,4 @@
-//! The codes `laminapdf-build` adds are listed in `fixtures/codes.json` under `buildErrors` (v2,
+//! The codes `laminapdf-build` adds are listed in `fixtures/codes.json` under `buildErrors` and `buildWarnings` (v2,
 //! ADR 0026). Their kinds are checked per variant by the unit tests in `src/error.rs`, their
 //! entries and pages by `crates/laminapdf-cos/tests/codes.rs`.
 #![allow(
@@ -9,7 +9,7 @@
 
 mod common;
 
-use laminapdf_build::Error;
+use laminapdf_build::{Error, Warning};
 
 #[test]
 fn build_error_codes_match_the_fixture() {
@@ -21,6 +21,19 @@ fn build_error_codes_match_the_fixture() {
         .map(|c| c["code"].as_str().unwrap())
         .collect();
     assert_eq!(listed, Error::CODES);
+}
+
+#[test]
+fn build_warning_codes_match_the_fixture() {
+    let codes: serde_json::Value = serde_json::from_slice(&laminapdf_test_fixtures::fixture("codes.json")).unwrap();
+    let listed: Vec<&str> = codes["buildWarnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c["code"].as_str().unwrap())
+        .collect();
+    assert_eq!(listed, Warning::CODES);
+    assert_eq!(Warning::FlowKeepBroken { page: 0 }.code(), "flow-keep-broken");
 }
 
 #[test]
