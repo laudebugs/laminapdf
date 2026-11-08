@@ -18,7 +18,7 @@ const SIZE_CHANGE: f64 = 0.2;
 
 /// Lines that overlap horizontally by at least this fraction of the narrower one are in one
 /// column (first-line indents and ragged right edges still overlap that much).
-const OVERLAP: f64 = 0.3;
+pub(crate) const OVERLAP: f64 = 0.3;
 
 /// A block before it is ordered: its lines, top to bottom.
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +28,7 @@ pub(crate) struct Draft {
     pub(crate) bbox: RectPt,
 }
 
-fn overlap(a: &RectPt, b: &RectPt) -> f64 {
+pub(crate) fn overlap(a: &RectPt, b: &RectPt) -> f64 {
     let shared = a.x1.get().min(b.x1.get()) - a.x0.get().max(b.x0.get());
     let narrower = a.width().get().min(b.width().get());
     if narrower <= 0.0 { 0.0 } else { shared / narrower }
@@ -105,6 +105,7 @@ mod tests {
             size: Pt::new(size),
             text: String::new(),
             rtl: false,
+            near_gutters: Vec::new(),
         }
     }
 

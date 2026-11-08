@@ -17,6 +17,10 @@ const SAME_BASELINE: f64 = 0.5;
 /// gutter, so the runs are on two lines. Word spaces stay well below it, even in justified text.
 pub(crate) const GUTTER: f64 = 1.0;
 
+/// A gap wider than this fraction of the size, but not a gutter, is kept on one line yet may be
+/// a gutter narrower than one font size: where it is is recorded (`near_gutters`).
+pub(crate) const NEAR_GUTTER: f64 = 0.6;
+
 /// A lone list marker joins the text up to this many sizes to its right on one line.
 const MARKER_GAP: f64 = 4.0;
 
@@ -37,6 +41,9 @@ pub(crate) struct Piece {
     pub(crate) mcid: Option<i64>,
     /// Inside `Artifact` marked content (kept when furniture isn't dropped).
     pub(crate) artifact: bool,
+    /// Where the run's pen jumped across a gap kept in it that may be a narrow gutter: the x
+    /// at which the text after the jump starts.
+    pub(crate) near_gutters: Vec<f64>,
 }
 
 /// One line: pieces left to right on one baseline (right to left when the line is).
@@ -49,6 +56,10 @@ pub(crate) struct Line {
     pub(crate) size: Pt,
     pub(crate) text: String,
     pub(crate) rtl: bool,
+    /// Where two runs kept on this line sit across a gap that may be a narrow gutter (and the
+    /// same from its pieces): the x at which the right-hand one starts, or on a right-to-left
+    /// line the x at which it ends.
+    pub(crate) near_gutters: Vec<f64>,
 }
 
 fn by_value(a: f64, b: f64) -> Ordering {
@@ -80,7 +91,7 @@ pub(crate) fn lines(pieces: &[Piece]) -> Vec<Line> {
     for entry in order {
         let piece = entry.1;
         if piece.vertical {
-            out.push(line(vec![entry]));
+            out.push(line(vec![entry], Vec::new()));
             continue;
         }
         let joins = group.first().is_some_and(|(_, anchor)| {
@@ -105,9 +116,11 @@ fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
     let rtl = mostly_rtl(&group.iter().map(|(_, p)| p.text.as_str()).collect::<String>());
     let count = group.len();
     let mut part: Vec<Entry<'_>> = Vec::new();
+    let mut near: Vec<f64> = Vec::new();
     for (index, entry) in group.into_iter().enumerate() {
         let next = entry.1;
-        let gutter = part.last().is_some_and(|(_, prev)| {
+        let mut gutter = false;
+        if let Some((_, prev)) = part.last() {
             let size = prev.size.get().max(next.size.get());
             let gap = next.bbox.x0.get() - prev.bbox.x1.get();
             // A list's bullet or number is often set a tab away from its text.
@@ -116,20 +129,23 @@ fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>) {
             } else {
                 part.len() == 1 && is_marker(prev.text.trim())
             };
-            gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size)
-        });
+            gutter = gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size);
+            if !gutter && !lone && gap > NEAR_GUTTER * size {
+                near.push(if rtl { prev.bbox.x1.get() } else { next.bbox.x0.get() });
+            }
+        }
         if gutter {
-            out.push(line(std::mem::take(&mut part)));
+            out.push(line(std::mem::take(&mut part), std::mem::take(&mut near)));
         }
         part.push(entry);
     }
     if !part.is_empty() {
-        out.push(line(part));
+        out.push(line(part, near));
     }
 }
 
-/// The line of `members` (left to right).
-fn line(mut members: Vec<Entry<'_>>) -> Line {
+/// The line of `members` (left to right), with the narrow-gutter points found between them.
+fn line(mut members: Vec<Entry<'_>>, mut near_gutters: Vec<f64>) -> Line {
     let all: String = members.iter().map(|(_, p)| p.text.as_str()).collect();
     let rtl = mostly_rtl(&all);
     if rtl {
@@ -157,6 +173,7 @@ fn line(mut members: Vec<Entry<'_>>) -> Line {
             size = piece.size;
         }
         previous = Some(piece);
+        near_gutters.extend_from_slice(&piece.near_gutters);
     }
     Line {
         bbox: bbox.unwrap_or_default(),
@@ -165,6 +182,7 @@ fn line(mut members: Vec<Entry<'_>>) -> Line {
         text,
         rtl,
         pieces: members.iter().map(|(i, _)| *i).collect(),
+        near_gutters,
     }
 }
 
@@ -184,6 +202,7 @@ mod tests {
             vertical: false,
             mcid: None,
             artifact: false,
+            near_gutters: Vec::new(),
         }
     }
 
@@ -201,6 +220,21 @@ mod tests {
     fn a_gutter_splits_one_baseline_into_two_lines() {
         let got = lines(&[piece("left", 20.0, 100.0, 200.0), piece("right", 300.0, 100.0, 200.0)]);
         assert_eq!(texts(&got), ["left", "right"]);
+    }
+
+    #[test]
+    fn a_gap_between_a_word_space_and_a_gutter_is_recorded_as_a_narrow_gutter() {
+        // 12 pt text: 9 pt is between 0.6 and 1 size; 2.5 pt is a word space, 15 pt a gutter.
+        let got = lines(&[piece("left", 20.0, 100.0, 50.0), piece("right", 79.0, 100.0, 50.0)]);
+        assert_eq!(
+            got.iter().map(|l| l.near_gutters.clone()).collect::<Vec<_>>(),
+            [vec![79.0]]
+        );
+        let spaced = lines(&[piece("a", 20.0, 100.0, 50.0), piece("b", 72.5, 100.0, 50.0)]);
+        assert!(spaced.iter().all(|l| l.near_gutters.is_empty()));
+        let apart = lines(&[piece("a", 20.0, 100.0, 50.0), piece("b", 85.0, 100.0, 50.0)]);
+        assert_eq!(texts(&apart), ["a", "b"]);
+        assert!(apart.iter().all(|l| l.near_gutters.is_empty()));
     }
 
     #[test]
