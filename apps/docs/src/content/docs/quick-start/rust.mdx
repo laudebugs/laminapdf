@@ -5,11 +5,11 @@ sidebar:
   order: 6
 ---
 
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 The `laminapdf` crate is the one to depend on: it wraps Lamina PDF's core crates in one API. Add it with `cargo add laminapdf@={{version}}`, then build a document. [Install](/install/#rust-laminapdf) explains the version. This is the `hello` example, which is tested on every change:
 
-<Snippet file="crates/laminapdf/examples/hello.rs" />
+<Example rust="crates/laminapdf/examples/hello.rs" result="hello" />
 
 To run it, save it as `src/main.rs` in a project that depends on `laminapdf`, then run `cargo run`. It writes `target/examples-out/hello.pdf`, or `hello.pdf` in the folder you pass: `cargo run -- out`.
 

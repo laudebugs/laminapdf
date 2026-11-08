@@ -3,7 +3,7 @@ title: How Lamina PDF thinks about a PDF
 description: Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
 ---
 
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 The rest of the docs build on six ideas. The first two follow from one choice: Lamina PDF treats a PDF as bytes, which you give it and it gives back.
 
@@ -30,7 +30,7 @@ The default, `auto`, saves incrementally when it can. A signed file saves only i
 
 This example builds a document, opens its bytes, changes the title and saves incrementally. The saved file starts with the original bytes:
 
-<Snippet file="packages/sdk/examples/generate-then-edit.ts" />
+<Example ts="packages/sdk/examples/generate-then-edit.ts" result="generate_then_edit" />
 
 ## You free what you create
 

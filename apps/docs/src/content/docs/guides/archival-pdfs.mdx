@@ -3,8 +3,7 @@ title: Archival PDFs
 description: Build PDF/A-2b, PDF/A-2u and PDF/A-3b documents that look the same in years to come, and attach files such as an e-invoice's XML.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 This guide builds PDF/A documents, which you need when a file must stay readable and look the same for decades: contracts, records kept by law, e-invoices. Lamina PDF writes PDF/A as it generates a document; it doesn't convert existing files to PDF/A.
 
@@ -37,14 +36,7 @@ For CMYK colour under PDF/A, give the colour an ICC profile instead (`Color::icc
 
 The letter below is written twice, as PDF/A-2b and as PDF/A-2u. It embeds its font, places a photo and draws a translucent band across the top. The PDF/A-2u copy is also PDF/UA-1, the accessibility standard (see [Accessible PDFs](/guides/accessible-pdfs/)): a document can be both archival and accessible.
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/pdf-a-archive.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/pdf_a_archive.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/pdf-a-archive.ts" rust="crates/laminapdf/examples/pdf_a_archive.rs" result={["pdf_a_archive-2b", "pdf_a_archive-2u"]} />
 
 [See the output](/recipes/pdf-a-archive/).
 
@@ -54,14 +46,7 @@ PDF/A-3 lets a document carry other files, provided each one is associated with 
 
 `attach(name, bytes, mime, { relationship })` adds a file, its MIME type and its relationship, and lists it in the document's attachments. The example uses a made-up XML schema; a real e-invoice follows the EN 16931 standard and adds its own XMP metadata.
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" rust="crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs" result="pdf_a3_invoice_with_xml" />
 
 [See the output](/recipes/pdf-a3-invoice-with-xml/).
 

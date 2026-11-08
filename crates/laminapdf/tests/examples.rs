@@ -247,7 +247,17 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     let invoice = fixture("golden/examples/invoice.pdf");
     extract_markdown::write_outputs(&invoice, &out, "invoice").unwrap_or_else(|e| panic!("{e}"));
     let read = |name: &str| std::fs::read_to_string(out.join(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
-    assert!(read("invoice.md").starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
+    // The whole Markdown is a golden: the docs' Extract Markdown recipe shows it as the example's
+    // output. `UPDATE_GOLDEN=1` rewrites it.
+    let markdown = read("invoice.md");
+    let golden = laminapdf_test_fixtures::fixtures_dir().join("extract/examples/invoice.md");
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::create_dir_all(golden.parent().unwrap_or_else(|| panic!("no parent"))).unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(&golden, &markdown).unwrap_or_else(|e| panic!("{e}"));
+    }
+    let want = std::fs::read_to_string(&golden).unwrap_or_default();
+    assert!(markdown == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
+    assert!(markdown.starts_with("<!-- page 1 -->\n\n# Invoice 42\n"));
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
     let _ = std::fs::remove_dir_all(&out);

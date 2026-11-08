@@ -156,7 +156,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
-│                        #   files (src/components/Snippet.astro), the code table from fixtures/codes.json, the Benchmarks page
+│                        #   files (src/components/Snippet.astro; Example.astro adds a Result tab with pictures of each page, apps/docs/public/examples/preview/ from
+│                        #   `cargo xtask docs-previews`, checked against the goldens by `check docs`, or an Output tab), the code table from fixtures/codes.json, the Benchmarks page
 │                        #   from src/data/benchmarks.json (src/lib/benchmarks.ts checks it and makes the tables for the page's
 │                        #   src/components/Benchmarks.astro and its Markdown twin), code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/), the shared site header

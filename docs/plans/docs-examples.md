@@ -36,7 +36,7 @@ An example gets a preview only when it makes something a reader can look at. Thr
 
 An `Example` component in `apps/docs` wraps the language tabs that pages already use, and adds a Result or Output tab when the example has one. The Result tab shows each page as an image with its alt text and page number, the link to open the PDF, and the PDF's size. Pictures load lazily (`loading="lazy"`), so a page with five examples costs nothing until a reader opens a tab.
 
-The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render`, as WebP. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
+The pictures come from the example goldens, rendered at 144 dpi (2× the render goldens' 72 dpi) by the render tooling in `tools/render` (hayro), as PNG. They are committed to `apps/docs/public/examples/preview/`, next to a manifest of each golden PDF's SHA-256. `cargo xtask check docs` compares the manifest with `fixtures/golden/examples/`, so a changed example can't ship with old pictures; regenerating them is one command. The docs build stays as it is: no WebAssembly, no Python.
 
 ### Edit and run (B7e)
 
@@ -60,10 +60,10 @@ Only the first press loads anything: about 3.5 MB (the SDK's text module and PDF
 
 | Todo | Delivers |
 | --- | --- |
-| [B7d](../todos/ongoing/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
+| [B7d](../todos/done/B7d-docs-example-results.md) | The `Example` component, Result and Output tabs, page pictures with their manifest and check, every page in §1 moved to it |
 | [B7e](../todos/ready/B7e-docs-edit-and-run.md) | "Edit and run" for the six examples in §1: editor, sandboxed runner, viewer, download, reset |
 
 ## 5. To-dos
 
-- [ ] Show every example's result beside its code ([B7d](../todos/ongoing/B7d-docs-example-results.md))
+- [x] Show every example's result beside its code ([B7d](../todos/done/B7d-docs-example-results.md))
 - [ ] Let readers edit and run the TypeScript examples that teach by changing ([B7e](../todos/ready/B7e-docs-edit-and-run.md))

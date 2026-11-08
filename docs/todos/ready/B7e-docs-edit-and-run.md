@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs examples §2](../../plans/docs-examples.md#edit-and-run-b7e) |
 | Round / milestone | Round B (library) — docs |
-| Depends on | [B7d](../ongoing/B7d-docs-example-results.md) |
+| Depends on | [B7d](../done/B7d-docs-example-results.md) |
 | ADRs | Follows 0011 (same-site loads; one page with looser headers, recorded in this todo's PR), 0009 (the viewer), 0004 (PDFium in the browser) |
 | Branch | `feat/b7e-docs-edit-and-run` |
 | PR title | `feat(docs): edit and run the TypeScript examples on their pages` |

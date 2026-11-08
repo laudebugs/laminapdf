@@ -3,19 +3,15 @@ title: Images and vectors
 description: Shapes, a dashed curve, gray, RGB, CMYK and hex colour, transparency, a blend mode, a clip, a rotation, a JPEG and an RGBA image on one page.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll draw shapes and images on one A4 page: a rectangle, a circle, a dashed curve, two see-through discs, a photo cut to an ellipse and a rotated gradient that fades out. Start from it for a logo, a chart, the rules of a table or a page with photos.
 
 The function takes a JPEG's bytes, draws the page and returns the PDF's bytes. It draws no text, so in TypeScript it needs only the base module, `init()`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/images-and-vectors.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/images_and_vectors.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/images-and-vectors.ts" rust="crates/laminapdf/examples/images_and_vectors.rs" result="images_and_vectors" />
 
-The result is one A4 page with every shape and both images: [open the reference PDF](/examples/pdf/images_and_vectors.pdf).
+The result is one A4 page with every shape and both images. The Result tab shows it, with a link to the PDF.
 
 ## How it works
 

@@ -1,0 +1,117 @@
+---
+// An example in its languages, with what it makes beside the code: a Result tab with a picture of
+// every page and a link to the PDF, for an example that builds one; an Output tab with the text it
+// prints, for one that reads a PDF. The pictures and the manifest come from `cargo xtask
+// docs-previews`, which renders the example goldens; `cargo xtask check docs` keeps them in step.
+import { TabItem, Tabs } from "@astrojs/starlight/components";
+import manifest from "../../public/examples/preview/manifest.json";
+import ExampleCode from "./ExampleCode.astro";
+
+interface Props {
+  /** The TypeScript file, from the repository root (as `Snippet` takes it). */
+  readonly ts?: string;
+  /** The Rust file, from the repository root. */
+  readonly rust?: string;
+  /** The example goldens it makes, by file stem (`hello`, or both `pdf_a_archive-2b` and `-2u`). */
+  readonly result?: string | readonly string[];
+  /** A text file it prints, from the repository root, shown in an Output tab. */
+  readonly output?: string;
+}
+
+// The outputs a page may show: the reading examples' goldens, which their tests check.
+const OUTPUTS: Record<string, string> = import.meta.glob(["../../../../fixtures/extract/examples/*.md"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+const { ts, rust, result, output } = Astro.props;
+const examples = result === undefined ? [] : typeof result === "string" ? [result] : result;
+const pictures = examples.map((stem) => {
+  const entry = (manifest.examples as Record<string, (typeof manifest.examples)["hello"] | undefined>)[stem];
+  if (entry === undefined) {
+    throw new Error(`Example: ${stem} has no pictures; run \`cargo xtask docs-previews\``);
+  }
+  return { stem, ...entry };
+});
+const text = output === undefined ? undefined : OUTPUTS[`../../../../${output}`];
+if (output !== undefined && text === undefined) {
+  throw new Error(`Example: ${output} is not one of the outputs apps/docs may show`);
+}
+const outcome = pictures.length > 0 || text !== undefined;
+const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`);
+const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
+---
+
+{/* Code first, by default on every page: the outer tabs keep no memory, while the language tabs
+     inside share the site's remembered TypeScript or Rust choice. */}
+{
+  outcome ? (
+    <Tabs>
+      <TabItem label="Code">
+        <ExampleCode ts={ts} rust={rust} />
+      </TabItem>
+      {pictures.length > 0 && (
+        <TabItem label="Result">
+          {pictures.map((example) => (
+            <figure class="example-result">
+              <div class:list={["example-pages", { "example-pages-many": example.pages.length > 1 }]}>
+                {example.pages.map((page, index) => (
+                  <img
+                    src={`/examples/preview/${example.stem}-${index}.png`}
+                    alt={`Page ${index + 1} of ${example.stem}.pdf`}
+                    width={page.width / 2}
+                    height={page.height / 2}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ))}
+              </div>
+              <figcaption>
+                <a href={`/examples/pdf/${example.stem}.pdf`}>Open {example.stem}.pdf</a> (
+                {pageCount(example.pages.length)}, {size(example.bytes)})
+              </figcaption>
+            </figure>
+          ))}
+        </TabItem>
+      )}
+      {text !== undefined && (
+        <TabItem label="Output">
+          <pre class="example-output">{text}</pre>
+        </TabItem>
+      )}
+    </Tabs>
+  ) : (
+    <ExampleCode ts={ts} rust={rust} />
+  )
+}
+
+<style>
+  .example-result {
+    margin: 0;
+  }
+  .example-pages {
+    display: grid;
+    grid-template-columns: minmax(0, 26rem);
+    gap: 1rem;
+  }
+  .example-pages-many {
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  }
+  .example-pages img {
+    /* Starlight spaces sibling elements in page content; in the grid, the gap does that. */
+    margin: 0;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--sl-color-gray-5);
+    box-shadow: var(--sl-shadow-sm);
+    background: #fff;
+  }
+  .example-result figcaption {
+    margin-top: 0.5rem;
+    font-size: var(--sl-text-sm);
+  }
+  .example-output {
+    white-space: pre-wrap;
+  }
+</style>
