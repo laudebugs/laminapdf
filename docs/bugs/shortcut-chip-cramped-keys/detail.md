@@ -30,7 +30,7 @@ The capitals themselves sit in the middle of the chip: 3.5 px of line box above 
 
 ## Cause
 
-Two things the font does, neither of them wrong for running text:
+Two things the font does, neither wrong for running text, and a chip that couldn't make up for the first:
 
 - **⌘ is a full em wide with almost no side bearing,** so next to a letter with none (V, A, W) the two glyphs touch. The chip joined the keys into one string, so it couldn't space them.
 - **⌘ and the arrows sit below the middle of the capitals:** ⌘ by 0.068 em and the arrows by 0.077 em, since the arrows are centred on the maths axis. Beside a capital, they look low.
