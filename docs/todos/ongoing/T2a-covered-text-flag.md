@@ -11,7 +11,7 @@
 | Branch | `feat/t2a-covered-text-flag` |
 | PR title | `feat(extract): flag text painted over by later shapes, images and annotations as covered` |
 | Size | L (≈ 450–600 lines of code with unit tests; fixtures and the regenerated schema don't count). If it passes 800, move the annotation appearances (Tasks, step 6) into a second PR |
-| PR | — |
+| PR | [#307](https://github.com/laudebugs/laminapdf/pull/307) |
 
 ## Goal
 
