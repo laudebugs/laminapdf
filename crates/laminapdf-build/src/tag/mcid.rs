@@ -10,6 +10,7 @@
 use pdf_writer::{Content, Name};
 
 use super::artifact::{self, ArtifactKind};
+use super::open::ElementId;
 use super::{ContentKind, Tag, TagKind};
 
 /// A child of a page element, in reading order.
@@ -23,12 +24,26 @@ pub(crate) enum PageKid {
     Link(usize),
 }
 
+/// Where a page's element comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Origin {
+    /// Opened and ended on this page.
+    Page,
+    /// Opened on this page by [`Surface::open_element`](crate::Surface::open_element), to stay
+    /// open after it.
+    Opened(ElementId),
+    /// Opened on an earlier page and resumed here: its content here joins that element, and it
+    /// has no parent or place among this page's elements.
+    Resumed(ElementId),
+}
+
 /// An element opened on the page.
 #[derive(Debug, Clone)]
 pub(crate) struct PageElem {
     pub(crate) tag: Tag,
     pub(crate) parent: Option<usize>,
     pub(crate) kids: Vec<PageKid>,
+    pub(crate) origin: Origin,
 }
 
 /// What an open frame is.
@@ -55,6 +70,8 @@ pub(crate) struct PageMarks {
     pub(crate) untagged: [usize; 4],
     /// Whether the page used any element or artifact.
     pub(crate) used: bool,
+    /// Whether the page resumed an element that isn't open.
+    pub(crate) resumed_unknown: bool,
 }
 
 /// The marking in progress.
@@ -71,6 +88,8 @@ pub(crate) struct Marking {
     stack: Vec<Frame>,
     /// Whether a sequence is open (for the innermost frame).
     open: bool,
+    /// The elements earlier pages left open, which this page may resume.
+    resumable: Vec<(ElementId, Tag)>,
     pub(crate) marks: PageMarks,
 }
 
@@ -82,8 +101,15 @@ impl Marking {
             page_box,
             stack: Vec::new(),
             open: false,
+            resumable: Vec::new(),
             marks: PageMarks::default(),
         }
+    }
+
+    /// The elements earlier pages left open, which this page may resume.
+    pub(crate) fn with_resumable(mut self, resumable: Vec<(ElementId, Tag)>) -> Self {
+        self.resumable = resumable;
+        self
     }
 
     /// The innermost element or artifact.
@@ -104,7 +130,7 @@ impl Marking {
     }
 
     /// Opens an element as a child of the innermost one (or of the page).
-    fn add_elem(&mut self, tag: Tag) -> usize {
+    fn add_elem(&mut self, tag: Tag, origin: Origin) -> usize {
         let parent = match self.context() {
             Some(Frame::Elem(i)) => Some(i),
             _ => None,
@@ -114,6 +140,7 @@ impl Marking {
             tag,
             parent,
             kids: Vec::new(),
+            origin,
         });
         match parent.and_then(|p| self.marks.elems.get_mut(p)) {
             Some(p) => p.kids.push(PageKid::Elem(index)),
@@ -132,9 +159,58 @@ impl Marking {
         let frame = if self.in_artifact() {
             Frame::Ignored
         } else {
-            Frame::Elem(self.add_elem(tag.clone()))
+            Frame::Elem(self.add_elem(tag.clone(), Origin::Page))
         };
         self.stack.push(frame);
+    }
+
+    /// Places element `id`, which stays open after the page, as a child of the innermost
+    /// element (or of the page). Its content comes with [`Marking::resume`]. Inside an artifact
+    /// it is part of the artifact, so it is never opened.
+    pub(crate) fn open_element(&mut self, content: &mut Content, id: ElementId, tag: &Tag) {
+        if !self.enabled {
+            return;
+        }
+        self.close(content);
+        self.marks.used = true;
+        if !self.in_artifact() {
+            self.add_elem(tag.clone(), Origin::Opened(id));
+        }
+    }
+
+    /// Starts content of element `id`: opened on this page, or open from an earlier one.
+    pub(crate) fn resume(&mut self, content: &mut Content, id: ElementId) {
+        if !self.enabled {
+            return;
+        }
+        self.close(content);
+        self.marks.used = true;
+        if self.in_artifact() {
+            self.stack.push(Frame::Ignored);
+            return;
+        }
+        let here = self
+            .marks
+            .elems
+            .iter()
+            .position(|e| matches!(e.origin, Origin::Opened(o) | Origin::Resumed(o) if o == id));
+        if let Some(index) = here {
+            self.stack.push(Frame::Elem(index));
+            return;
+        }
+        let Some((_, tag)) = self.resumable.iter().find(|(o, _)| *o == id) else {
+            self.marks.resumed_unknown = true;
+            self.stack.push(Frame::Ignored);
+            return;
+        };
+        let index = self.marks.elems.len();
+        self.marks.elems.push(PageElem {
+            tag: tag.clone(),
+            parent: None,
+            kids: Vec::new(),
+            origin: Origin::Resumed(id),
+        });
+        self.stack.push(Frame::Elem(index));
     }
 
     /// Starts an artifact.
@@ -324,6 +400,47 @@ mod tests {
             m.mark(c, ContentKind::Path);
         });
         assert_eq!((text.as_str(), marks.untagged), ("", [2, 0, 0, 0]));
+    }
+
+    fn open_id() -> ElementId {
+        super::super::open::ElementIds::new(0, 0).next()
+    }
+
+    #[test]
+    fn a_resumed_element_is_no_root_and_owns_its_mcids() {
+        let mut content = Content::new();
+        let id = open_id();
+        let mut m = Marking::new(true, true, [0.0; 4]).with_resumable(vec![(id, Tag::new(TagKind::P))]);
+        m.resume(&mut content, id);
+        m.mark(&mut content, ContentKind::Text);
+        m.end(&mut content);
+        let marks = m.finish(&mut content);
+        let origin = marks.elems.first().map(|e| e.origin);
+        assert_eq!(
+            (origin, marks.roots.len(), marks.mcids),
+            (Some(Origin::Resumed(id)), 0, vec![0])
+        );
+    }
+
+    #[test]
+    fn resuming_twice_on_a_page_adds_to_one_element() {
+        let (_, marks) = written(|m, c| {
+            let id = open_id();
+            m.open_element(c, id, &Tag::new(TagKind::P));
+            for _ in 0..2 {
+                m.resume(c, id);
+                m.mark(c, ContentKind::Text);
+                m.end(c);
+            }
+        });
+        let kids = marks.elems.first().map(|e| e.kids.clone()).unwrap_or_default();
+        assert_eq!((marks.elems.len(), kids), (1, vec![PageKid::Mcid(0), PageKid::Mcid(1)]));
+    }
+
+    #[test]
+    fn resuming_an_element_that_isnt_open_is_reported() {
+        let (_, marks) = written(|m, c| m.resume(c, open_id()));
+        assert!(marks.resumed_unknown);
     }
 
     #[test]

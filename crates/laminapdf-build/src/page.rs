@@ -86,13 +86,14 @@ pub struct PageBuilder<'b> {
 
 impl<'b> PageBuilder<'b> {
     pub(crate) fn new(target: Target<'b>, size: PageSize) -> Self {
+        let ids = target.state.element_ids();
         Self {
             target,
             size,
             rotate: Rotation::None,
             user_unit: 1.0,
             boxes: Boxes::default(),
-            surface: Surface::default(),
+            surface: Surface::with_ids(ids),
         }
     }
 
@@ -217,7 +218,7 @@ impl<'b> PageBuilder<'b> {
             state.links.truncate(links);
             state.required = required;
             state.device_cmyk = cmyk;
-            state.tag.rollback(tags);
+            state.tag.rollback(&tags);
         }
         written
     }
@@ -264,8 +265,11 @@ impl<'b> PageBuilder<'b> {
                 fonts: &mut state.fonts,
                 doc: &*self.target.doc,
             },
-            Marking::new(state.tagging, tagged, crop),
+            Marking::new(state.tagging, tagged, crop).with_resumable(state.tag.resumable()),
         )?;
+        if rendered.marks.resumed_unknown {
+            return Err(Error::TagElementNotOpen);
+        }
         let keys = state.tag.keys(&rendered.marks, self.target.doc)?;
         if let Some(key) = keys.page {
             page.insert("StructParents", key);

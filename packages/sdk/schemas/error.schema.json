@@ -65,6 +65,8 @@
             "page-index-out-of-range",
             "unknown-destination",
             "invalid-page-labels",
+            "tag-element-not-open",
+            "tag-element-unclosed",
             "profile-version-conflict",
             "missing-title",
             "missing-lang",

@@ -31,6 +31,7 @@ use crate::nav::LinkTarget;
 use crate::nav::dest::fit_is_valid;
 use crate::resources::{GsKey, PageResources};
 use crate::tag::mcid::{Marking, PageMarks};
+use crate::tag::open::{ElementId, ElementIds};
 use crate::tag::{ArtifactKind, Tag, TagKind};
 use color::Color;
 use image::Image;
@@ -67,6 +68,10 @@ enum Command {
     Link(RectPt, LinkSpec),
     /// Opens a structure element.
     BeginTag(Box<Tag>),
+    /// Places an element that stays open after the page.
+    OpenElement(ElementId, Box<Tag>),
+    /// Starts content of an open element.
+    Resume(ElementId),
     /// Opens an artifact.
     BeginArtifact(ArtifactKind),
     /// Ends the innermost element or artifact.
@@ -160,6 +165,8 @@ pub struct Surface {
     marks_open: usize,
     /// Whether anything drawn opened an element or artifact.
     tagged: bool,
+    /// Names the elements opened with [`Surface::open_element`].
+    ids: ElementIds,
 }
 
 /// A font size must be finite and positive.
@@ -348,6 +355,66 @@ impl Surface {
             self.commands.push(Command::EndMarked);
         }
         self
+    }
+
+    /// Places structure element `tag` here, as a child of the innermost open element (or of
+    /// the page), and keeps it open after the page: its content comes with
+    /// [`Surface::resume`], on this page and later ones, until
+    /// [`Builder::close_element`](crate::Builder::close_element) writes it. It is one element
+    /// wherever its content falls: a paragraph split by a page break, a table over three pages.
+    ///
+    /// Its kids on later pages are marked-content references with their own `/Pg` (ISO 32000-2
+    /// §14.7.5.2), and every page's `ParentTree` entries name it. Opened inside an artifact or
+    /// on an appended page, it is never opened, and resuming or closing it fails with
+    /// [`Error::TagElementNotOpen`].
+    ///
+    /// ```
+    /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, TagKind};
+    /// use laminapdf_model::{PointPt, Pt};
+    ///
+    /// let mut b = Builder::new(BuildOptions::default());
+    /// let helvetica = b.standard_font(Standard14::Helvetica)?;
+    /// let mut page = b.page(PageSize::A4);
+    /// let paragraph = page.surface().open_element(TagKind::P);
+    /// page.surface().resume(paragraph, |s| {
+    ///     s.text("The paragraph starts here", &helvetica, Pt::new(11.0), PointPt::from_points(72.0, 800.0)).map(|_| ())
+    /// })?;
+    /// page.finish()?;
+    /// let mut page = b.page(PageSize::A4);
+    /// page.surface().resume(paragraph, |s| {
+    ///     s.text("and ends on the next page.", &helvetica, Pt::new(11.0), PointPt::from_points(72.0, 72.0)).map(|_| ())
+    /// })?;
+    /// page.finish()?;
+    /// b.close_element(paragraph)?;
+    /// b.finish()?;
+    /// # Ok::<(), laminapdf_build::Error>(())
+    /// ```
+    pub fn open_element(&mut self, tag: impl Into<Tag>) -> ElementId {
+        let id = self.ids.next();
+        self.tagged = true;
+        self.commands.push(Command::OpenElement(id, Box::new(tag.into())));
+        id
+    }
+
+    /// Draws what `draw` draws as content of `element`, opened by [`Surface::open_element`] on
+    /// this page or an earlier one.
+    ///
+    /// # Errors
+    /// What `draw` returns. An element that isn't open fails the page's
+    /// [`PageBuilder::finish`](crate::PageBuilder::finish) with [`Error::TagElementNotOpen`].
+    pub fn resume<T>(&mut self, element: ElementId, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        let depth = self.marks_open;
+        self.marks_open += 1;
+        self.tagged = true;
+        self.commands.push(Command::Resume(element));
+        let drawn = draw(self);
+        self.end_to(depth);
+        drawn
+    }
+
+    /// A surface for a page whose elements are named by `ids`.
+    pub(crate) fn with_ids(ids: ElementIds) -> Self {
+        Self { ids, ..Self::default() }
     }
 
     fn end_to(&mut self, depth: usize) {
@@ -650,6 +717,8 @@ impl Surface {
                     }
                 }
                 Command::BeginTag(tag) => out.marking.begin_tag(&mut out.content, tag),
+                Command::OpenElement(id, tag) => out.marking.open_element(&mut out.content, *id, tag),
+                Command::Resume(id) => out.marking.resume(&mut out.content, *id),
                 Command::BeginArtifact(kind) => out.marking.begin_artifact(&mut out.content, *kind),
                 Command::EndMarked => out.marking.end(&mut out.content),
                 _ => out.command(command, &from_user, resources),

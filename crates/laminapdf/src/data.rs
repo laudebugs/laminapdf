@@ -194,6 +194,7 @@ fn build(e: &laminapdf_build::Error) -> Data {
         E::TextOverflow { fits, needed } => data([("fits", json!(fits)), ("needed", json!(needed))]),
         E::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         E::UnknownDestination { name } => data([("name", json!(name))]),
+        E::TagElementUnclosed { count } => data([("count", json!(count))]),
         E::ProfileVersionConflict { profile } | E::EmbeddedFileForbidden { profile } => {
             data([("profile", json!(profile.as_str()))])
         }

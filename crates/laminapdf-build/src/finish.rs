@@ -212,6 +212,7 @@ pub(crate) fn new_document(
         count: state.pages.len(),
         names: Some(&features.names),
     };
+    state.tag.check_closed()?;
     let conformance = options.conformance();
     let meta = merged_metadata(options, features);
     check_profiles(options, state, features, &meta)?;

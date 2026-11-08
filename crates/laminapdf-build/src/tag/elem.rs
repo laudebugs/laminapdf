@@ -6,15 +6,17 @@
 //!
 //! Each page's elements get their object numbers when the page is written, so their
 //! dictionaries, and the page's `ParentTree` entries, are complete then; the build's end only
-//! writes them out.
+//! writes them out. An element that stays open after its page (`open`) is complete when it is
+//! closed.
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString};
 
-use super::mcid::{PageKid, PageMarks};
+use super::mcid::{Origin, PageKid, PageMarks};
+use super::open::{ElementId, OpenElems, OpenMark};
 use super::parent_tree::ParentTree;
 use super::rolemap::{is_standard, role_map};
 use super::{ContentKind, Tag, TagDiagnostic};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::text_string;
 
 /// The structure tree root's and the `Document` element's object numbers.
@@ -52,7 +54,7 @@ pub(crate) struct ElemInfo {
 }
 
 /// Where a page started, to forget it if writing it fails.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct TagMark {
     tagged: bool,
     elems: usize,
@@ -62,6 +64,7 @@ pub(crate) struct TagMark {
     roles: usize,
     ids: usize,
     tree: (usize, i64),
+    open: OpenMark,
 }
 
 /// The structure collected so far.
@@ -83,6 +86,18 @@ pub(crate) struct TagState {
     infos: Vec<ElemInfo>,
     /// Each `Note` element's `/ID` and object, in structure order, for the `IDTree`.
     ids: Vec<(Vec<u8>, ObjRef)>,
+    /// The elements open after their first page.
+    open: OpenElems,
+}
+
+/// The standard type of `tag`: its name when that is one, else the role it maps to.
+fn standard_name(tag: &Tag) -> String {
+    let name = tag.name();
+    if is_standard(name) {
+        name.to_owned()
+    } else {
+        tag.kind().as_str().to_owned()
+    }
 }
 
 impl TagState {
@@ -103,11 +118,12 @@ impl TagState {
             roles: self.roles.len(),
             ids: self.ids.len(),
             tree: self.tree.mark(),
+            open: self.open.mark(),
         }
     }
 
     /// Forgets everything recorded since `mark`.
-    pub(crate) fn rollback(&mut self, mark: TagMark) {
+    pub(crate) fn rollback(&mut self, mark: &TagMark) {
         self.tagged = mark.tagged;
         self.elems.truncate(mark.elems);
         self.infos.truncate(mark.infos);
@@ -116,6 +132,32 @@ impl TagState {
         self.roles.truncate(mark.roles);
         self.ids.truncate(mark.ids);
         self.tree.truncate(mark.tree);
+        self.open.rollback(&mark.open);
+    }
+
+    /// The elements open now, which the next page may resume.
+    pub(crate) fn resumable(&self) -> Vec<(ElementId, Tag)> {
+        self.open.tags()
+    }
+
+    /// Writes open element `id`, with the content every page gave it.
+    ///
+    /// # Errors
+    /// [`Error::TagElementNotOpen`] when `id` isn't open: closed already, opened by another
+    /// builder, inside an artifact or on an appended page, or on a page that failed.
+    pub(crate) fn close(&mut self, id: ElementId) -> Result<()> {
+        let (object, dict) = self.open.close(id).ok_or(Error::TagElementNotOpen)?;
+        self.elems.push((object, dict));
+        Ok(())
+    }
+
+    /// # Errors
+    /// [`Error::TagElementUnclosed`] when an element is still open.
+    pub(crate) fn check_closed(&self) -> Result<()> {
+        match self.open.len() {
+            0 => Ok(()),
+            count => Err(Error::TagElementUnclosed { count }),
+        }
     }
 
     /// What the tagged document lacks so far; nothing for an untagged one.
@@ -152,8 +194,11 @@ impl TagState {
             return Ok(keys);
         }
         self.roots_ref(doc)?;
-        for _ in &marks.elems {
-            keys.refs.push(doc.reserve_number()?);
+        for pe in &marks.elems {
+            keys.refs.push(match pe.origin {
+                Origin::Resumed(id) => self.open.find(id).ok_or(Error::TagElementNotOpen)?.0,
+                Origin::Page | Origin::Opened(_) => doc.reserve_number()?,
+            });
         }
         let elem = |i: &usize| keys.refs.get(*i).map_or(Object::Null, |r| Object::Ref(*r));
         if !marks.mcids.is_empty() {
@@ -182,81 +227,119 @@ impl TagState {
         }
         let Some(roots) = self.roots_ref else { return };
         let elem = |i: usize| keys.refs.get(i).map_or(Object::Null, |r| Object::Ref(*r));
-        let standard = |t: &Tag| {
-            let name = t.name();
-            if is_standard(name) {
-                name.to_owned()
-            } else {
-                t.kind().as_str().to_owned()
-            }
-        };
-        let first = self.infos.len();
+        // Each element's index in `infos`: a resumed element is the one its first page added.
+        let mut info_of = Vec::with_capacity(marks.elems.len());
         for pe in &marks.elems {
-            let parent = pe.parent.and_then(|p| marks.elems.get(p)).map(|p| standard(&p.tag));
+            if let Origin::Resumed(id) = pe.origin {
+                info_of.push(self.open.find(id).map_or(usize::MAX, |(_, info)| info));
+                continue;
+            }
+            info_of.push(self.infos.len());
+            let parent = pe
+                .parent
+                .and_then(|p| marks.elems.get(p))
+                .map(|p| standard_name(&p.tag));
             self.infos.push(ElemInfo {
                 page: index,
-                kind: standard(&pe.tag),
+                kind: standard_name(&pe.tag),
                 parent,
-                parent_index: pe.parent.map(|p| first + p),
+                parent_index: pe.parent.and_then(|p| info_of.get(p).copied()),
             });
         }
         for &r in &marks.roots {
             self.roots.push(elem(r));
         }
-        for (pe, r) in marks.elems.into_iter().zip(&keys.refs) {
-            let tag = pe.tag;
-            if tag.lacks_alt() {
-                self.diagnostics.push(TagDiagnostic::MissingAlt { page: index });
-            }
+        for ((pe, r), info) in marks.elems.into_iter().zip(&keys.refs).zip(info_of) {
+            // Content on a later page names its page: the element's `/Pg` is its first.
+            let later = matches!(pe.origin, Origin::Resumed(_));
             let mut kids = Vec::with_capacity(pe.kids.len());
             for kid in pe.kids {
                 kids.push(match kid {
                     PageKid::Elem(i) => elem(i),
+                    PageKid::Mcid(m) if later => {
+                        let mut mcr = Dict::new();
+                        mcr.insert("Type", Name::from("MCR"));
+                        mcr.insert("Pg", Object::Ref(page));
+                        mcr.insert("MCID", Object::Integer(i64::from(m)));
+                        Object::Dict(mcr)
+                    }
                     PageKid::Mcid(m) => Object::Integer(i64::from(m)),
                     PageKid::Link(l) => {
                         let Some(a) = annots.get(l) else { continue };
                         let mut objr = Dict::new();
                         objr.insert("Type", Name::from("OBJR"));
+                        if later {
+                            objr.insert("Pg", Object::Ref(page));
+                        }
                         objr.insert("Obj", Object::Ref(*a));
                         Object::Dict(objr)
                     }
                 });
             }
-            let mut d = Dict::new();
-            d.insert("Type", Name::from("StructElem"));
-            d.insert("S", Name::from(tag.name()));
-            d.insert("P", pe.parent.map_or(Object::Ref(roots.document), elem));
-            d.insert("Pg", Object::Ref(page));
-            d.insert("K", Object::Array(kids));
-            for (key, value) in [
-                ("Alt", tag.alt()),
-                ("ActualText", tag.actual_text()),
-                ("E", tag.expansion()),
-                ("Lang", tag.lang()),
-            ] {
-                if let Some(v) = value {
-                    d.insert(key, text_string(v));
+            let tag = pe.tag;
+            let parent = pe.parent.map_or(Object::Ref(roots.document), elem);
+            match pe.origin {
+                Origin::Resumed(id) => self.open.extend(id, kids),
+                Origin::Opened(id) => {
+                    // `/K` is written when the element closes.
+                    let d = self.elem_dict(&tag, parent, (index, page), *r, Vec::new());
+                    self.open.open(id, *r, tag, d, kids, info);
+                }
+                Origin::Page => {
+                    let d = self.elem_dict(&tag, parent, (index, page), *r, kids);
+                    self.elems.push((*r, d));
                 }
             }
-            if let Some(scope) = tag.scope() {
-                // The table attributes (§14.8.5.7).
-                let mut a = Dict::new();
-                a.insert("O", Name::from("Table"));
-                a.insert("Scope", Name::from(scope.as_str()));
-                d.insert("A", Object::Dict(a));
-            }
-            if standard(&tag) == "Note" {
-                // PDF/UA-1 §7.9 (Matterhorn 19-003, 19-004): every note has a unique `/ID`;
-                // numbered in structure order, so the output stays deterministic.
-                let id = format!("Note{}", self.ids.len() + 1).into_bytes();
-                d.insert("ID", PdfString::literal(id.clone()));
-                self.ids.push((id, *r));
-            }
-            if tag.custom_name().is_some() {
-                self.roles.push(tag);
-            }
-            self.elems.push((*r, d));
         }
+    }
+
+    /// Element `r`'s dictionary, recording what it needs elsewhere: a missing alternate text,
+    /// its role, its `/ID`.
+    fn elem_dict(
+        &mut self,
+        tag: &Tag,
+        parent: Object,
+        (index, page): (u32, ObjRef),
+        r: ObjRef,
+        kids: Vec<Object>,
+    ) -> Dict {
+        if tag.lacks_alt() {
+            self.diagnostics.push(TagDiagnostic::MissingAlt { page: index });
+        }
+        let mut d = Dict::new();
+        d.insert("Type", Name::from("StructElem"));
+        d.insert("S", Name::from(tag.name()));
+        d.insert("P", parent);
+        d.insert("Pg", Object::Ref(page));
+        d.insert("K", Object::Array(kids));
+        for (key, value) in [
+            ("Alt", tag.alt()),
+            ("ActualText", tag.actual_text()),
+            ("E", tag.expansion()),
+            ("Lang", tag.lang()),
+        ] {
+            if let Some(v) = value {
+                d.insert(key, text_string(v));
+            }
+        }
+        if let Some(scope) = tag.scope() {
+            // The table attributes (§14.8.5.7).
+            let mut a = Dict::new();
+            a.insert("O", Name::from("Table"));
+            a.insert("Scope", Name::from(scope.as_str()));
+            d.insert("A", Object::Dict(a));
+        }
+        if standard_name(tag) == "Note" {
+            // PDF/UA-1 §7.9 (Matterhorn 19-003, 19-004): every note has a unique `/ID`;
+            // numbered in structure order, so the output stays deterministic.
+            let id = format!("Note{}", self.ids.len() + 1).into_bytes();
+            d.insert("ID", PdfString::literal(id.clone()));
+            self.ids.push((id, r));
+        }
+        if tag.custom_name().is_some() {
+            self.roles.push(tag.clone());
+        }
+        d
     }
 
     /// Writes the structure tree of a tagged document and points the catalog at it.

@@ -158,6 +158,10 @@ pub enum ErrorCode {
     UnknownDestination,
     /// `invalid-page-labels`: page label ranges that don't start at page 0, don't increase, start past the last page or number from 0.
     InvalidPageLabels,
+    /// `tag-element-not-open`: a structure element resumed or closed isn't open.
+    TagElementNotOpen,
+    /// `tag-element-unclosed`: structure elements opened across pages were never closed.
+    TagElementUnclosed,
     /// `profile-version-conflict`: the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7).
     ProfileVersionConflict,
     /// `missing-title`: PDF/UA-1 needs a document title, and the metadata gives none.
@@ -297,6 +301,8 @@ impl ErrorCode {
         Self::PageIndexOutOfRange,
         Self::UnknownDestination,
         Self::InvalidPageLabels,
+        Self::TagElementNotOpen,
+        Self::TagElementUnclosed,
         Self::ProfileVersionConflict,
         Self::MissingTitle,
         Self::MissingLang,
@@ -413,6 +419,8 @@ impl ErrorCode {
             Self::PageIndexOutOfRange => "page-index-out-of-range",
             Self::UnknownDestination => "unknown-destination",
             Self::InvalidPageLabels => "invalid-page-labels",
+            Self::TagElementNotOpen => "tag-element-not-open",
+            Self::TagElementUnclosed => "tag-element-unclosed",
             Self::ProfileVersionConflict => "profile-version-conflict",
             Self::MissingTitle => "missing-title",
             Self::MissingLang => "missing-lang",
@@ -517,6 +525,8 @@ impl ErrorCode {
             Self::PageIndexOutOfRange => ErrorKind::Usage,
             Self::UnknownDestination => ErrorKind::Usage,
             Self::InvalidPageLabels => ErrorKind::Usage,
+            Self::TagElementNotOpen => ErrorKind::Usage,
+            Self::TagElementUnclosed => ErrorKind::Usage,
             Self::ProfileVersionConflict => ErrorKind::Usage,
             Self::MissingTitle => ErrorKind::Usage,
             Self::MissingLang => ErrorKind::Usage,
@@ -621,6 +631,8 @@ impl ErrorCode {
             Self::PageIndexOutOfRange => "a link, outline item or destination names a page index the document doesn't have",
             Self::UnknownDestination => "a link or outline item names a destination that was never defined",
             Self::InvalidPageLabels => "page label ranges that don't start at page 0, don't increase, start past the last page or number from 0",
+            Self::TagElementNotOpen => "a structure element resumed or closed isn't open",
+            Self::TagElementUnclosed => "structure elements opened across pages were never closed",
             Self::ProfileVersionConflict => "the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7)",
             Self::MissingTitle => "PDF/UA-1 needs a document title, and the metadata gives none",
             Self::MissingLang => "PDF/UA-1 needs the document's natural language, and none was set",
@@ -725,6 +737,8 @@ impl ErrorCode {
             Self::PageIndexOutOfRange => "use a 0-based index below the document's page count",
             Self::UnknownDestination => "define it with Builder::destination before the build finishes, or link to a page",
             Self::InvalidPageLabels => "give ranges sorted by first page, the first at page 0, numbered from 1",
+            Self::TagElementNotOpen => "resume and close only elements this builder's pages opened with open_element, and close each once",
+            Self::TagElementUnclosed => "close each element from open_element with Builder::close_element once its last page is finished",
             Self::ProfileVersionConflict => "leave the version at 1.7 (the default) or lower; PDF 2.0 needs PDF/A-4 or PDF/UA-2, which Lamina PDF doesn't write yet",
             Self::MissingTitle => "set a title with Builder::metadata (Metadata::with_title)",
             Self::MissingLang => "set the language with Builder::lang, such as \"en-GB\"",
