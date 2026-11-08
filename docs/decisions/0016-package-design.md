@@ -101,14 +101,16 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
 | base (`lamina_pdf_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **410,000** (amended 2026-10-31; was 390,000) | 6.8 % |
-| text (`lamina_pdf_text.wasm`) | 1,074,722 (brotli 818,716; with `doc.extract()`, L3e, 2026-11-05) | **1,130,000** (amended 2026-11-05; was 1,070,000) | 5.1 % |
+| text (`lamina_pdf_text.wasm`) | 1,139,945 (brotli 865,441; with the `covered` flag, T2a, 2026-11-08) | **1,190,000** (amended 2026-11-08; was 1,130,000) | 4.2 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | `@laminapdf/sdk` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
-| extract (`lamina_pdf_extract.wasm`, B9c) | 623,634 (brotli 486,177; with structure-tree order, L3g, 2026-11-06) | **650,000** (amended 2026-11-06; was 620,000) | 4.2 % |
+| extract (`lamina_pdf_extract.wasm`, B9c) | 653,461 (brotli 507,425; with the `covered` flag, T2a, 2026-11-08) | **685,000** (amended 2026-11-08; was 650,000) | 4.6 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@laminapdf/sdk` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-11-08, T2a):** the extract module's budget rises from 650,000 to 685,000 bytes and the text module's from 1,130,000 to 1,190,000, about 5 % each. The `covered` flag ([T2a](../todos/done/T2a-covered-text-flag.md)) links a drawing collector that runs on every page, annotation appearances and the run splitting into both modules. They measured extract 653,461 and text 1,139,945, 3.5 KB and 9.9 KB over the old budgets, and that was before the change passed both content walks through one copy of the interpreter (about 2 KB less). On main the text module already had only 1.4 KB of headroom, so the next feature would fail the check whatever it added. The new budgets leave about 4.5 % headroom for Round T's next extraction features.
 
 **Amendment (owner, 2026-11-06, L3g):** the extract module's budget rises from 620,000 to 650,000 bytes. Structure-tree reading order ([L3g](../todos/done/L3g-extract-structure-tree.md)) links `laminapdf-model`'s structure-tree walk into the module, along with the tagged-element blocks and the clip and contrast checks: it measured 623,634 bytes, 3.6 KB over the old budget. The new budget leaves about 4.5 % headroom for the next extraction features. The text module fits its budget unchanged (1,109,063 of 1,130,000).
 
