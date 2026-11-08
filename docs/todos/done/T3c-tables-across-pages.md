@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T3](../../plans/trust-and-proof.md#t3-extraction-users-can-check) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -58,17 +58,17 @@ When a table runs over a page break, link its two parts, write them as one table
 ## Tasks
 
 - [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
-- [ ] `model.rs`: `continues: Option<String>` and `continued_by: Option<String>` on `Block` (serde camel case, skipped when `None`; schemars); `page.rs`'s `text_block()` and `table_block()` set them to `None`.
-- [ ] `tables/across.rs`: the conditions above as named constants (`BOTTOM` 0.75, `TOP` 0.25, `SNAP` reused from `lattice.rs`) and small functions (column edges from cells, header rows, the "continued" line), each unit-tested; `link(&mut Extraction)`, called at the end of `job.rs`'s `finish()`.
-- [ ] `output/markdown.rs`: chains in `render()` (the separator between parts, where a page marker goes, pipe or HTML for the whole chain) and in the table writers (a part's rows without the header line, `<table>` and `</table>` only at the chain's ends).
-- [ ] `output/mod.rs`: the same in `to_text()`. `output/chunks.rs`: no boundary, page or budget, at a continuing part, and no overlap that starts at one.
-- [ ] `crates/laminapdf-cli/src/commands/extract.rs`: `truncate()` clears a dangling `continued_by`.
-- [ ] Regenerate: `UPDATE_GOLDEN=1 cargo test -p laminapdf-extract --all-features --test output` (the schema; the corpus's Markdown goldens don't change, since no corpus table crosses a page), `UPDATE_GOLDEN=1 cargo test -p laminapdf --test extract` (`fixtures/extract/json/`, which shouldn't change: the new keys are absent there), `cargo xtask gen boundary` (`packages/sdk/src/generated/extract.ts`).
-- [ ] Docs (below).
+- [x] `model.rs`: `continues: Option<String>` and `continued_by: Option<String>` on `Block` (serde camel case, skipped when `None`; schemars); `page.rs`'s `text_block()` and `table_block()` set them to `None`.
+- [x] `tables/across.rs`: the conditions above as named constants (`BOTTOM` 0.75, `TOP` 0.25, `SNAP` reused from `lattice.rs`) and small functions (column edges from cells, header rows, the "continued" line), each unit-tested; `link(&mut Extraction)`, called at the end of `job.rs`'s `finish()`.
+- [x] `output/markdown.rs`: chains in `render()` (the separator between parts, where a page marker goes, pipe or HTML for the whole chain) and in the table writers (a part's rows without the header line, `<table>` and `</table>` only at the chain's ends).
+- [x] `output/mod.rs`: the same in `to_text()`. `output/chunks.rs`: no boundary, page or budget, at a continuing part, and no overlap that starts at one.
+- [x] `crates/laminapdf-cli/src/commands/extract.rs`: `truncate()` clears a dangling `continued_by`.
+- [x] Regenerate: `UPDATE_GOLDEN=1 cargo test -p laminapdf-extract --all-features --test output` (the schema; the corpus's Markdown goldens don't change, since no corpus table crosses a page), `UPDATE_GOLDEN=1 cargo test -p laminapdf --test extract` (`fixtures/extract/json/`, which shouldn't change: the new keys are absent there), `cargo xtask gen boundary` (`packages/sdk/src/generated/extract.ts`).
+- [x] Docs (below).
 
 ## Acceptance criteria
 
-- [ ] A ruled table at the foot of page 1 whose bold header repeats at the top of page 2 gives two linked table blocks (`continuedBy` on the first, `continues` on the second, the repeated cells marked `header`), and its Markdown is one pipe table with the header line once:
+- [x] A ruled table at the foot of page 1 whose bold header repeats at the top of page 2 gives two linked table blocks (`continuedBy` on the first, `continues` on the second, the repeated cells marked `header`), and its Markdown is one pipe table with the header line once:
 
   ```
   | Item | Price |
@@ -79,12 +79,12 @@ When a table runs over a page break, link its two parts, write them as one table
   | Jam | 1.50 |
   ```
 
-- [ ] The same with no header on page 2, with a "Table 1 (continued)" line above the second part, and over three pages, each joins; `to_text()` writes one table each time.
-- [ ] Each of these stays two tables, unlinked: columns 20 pt narrower on page 2; a different header on page 2; a paragraph under the first part on page 1; and the existing case of a whole table at the top of each page (the first doesn't reach the foot of its page).
-- [ ] A chain with a spanning cell is one HTML `<table>` in the Markdown. With page markers, page 2's marker comes after the continued part. Every block's and chunk's `TextRange` still slices the Markdown to its text (`tests/output.rs`'s check, run on these files too).
-- [ ] With `SplitOn::Pages`, and with a budget smaller than either part, the chain is in one chunk whose `pages` are `[0, 1]`.
-- [ ] `laminapdf extract --format md --max-chars N` cut between the parts writes a closed table, and its JSON has no `continuedBy` that names a missing block.
-- [ ] The committed schema has the two optional keys, and the JSON of every test file validates against it.
+- [x] The same with no header on page 2, with a "Table 1 (continued)" line above the second part, and over three pages, each joins; `to_text()` writes one table each time.
+- [x] Each of these stays two tables, unlinked: columns 20 pt narrower on page 2; a different header on page 2; a paragraph under the first part on page 1; and the existing case of a whole table at the top of each page (the first doesn't reach the foot of its page).
+- [x] A chain with a spanning cell is one HTML `<table>` in the Markdown. With page markers, page 2's marker comes after the continued part. Every block's and chunk's `TextRange` still slices the Markdown to its text (`tests/output.rs`'s check, run on these files too).
+- [x] With `SplitOn::Pages`, and with a budget smaller than either part, the chain is in one chunk whose `pages` are `[0, 1]`.
+- [x] `laminapdf extract --format md --max-chars N` cut between the parts writes a closed table, and its JSON has no `continuedBy` that names a missing block.
+- [x] The committed schema has the two optional keys, and the JSON of every test file validates against it.
 
 ## Post-merge checks
 
@@ -100,10 +100,10 @@ None.
 
 ## Docs to update
 
-- [ ] ADR 0030: an implementation note (as L3b's and L3d's) recording `continues` and `continuedBy`, the join conditions and their cut-offs, and that the renderings write one table and chunks keep a chain whole.
-- [ ] `crates/laminapdf-extract/README.md`: a paragraph in its Tables section, and its Tests list.
-- [ ] `apps/docs/src/content/docs/recipes/extract-markdown.mdx`: under "How it works", a table that goes on over a page break comes out as one table, and the JSON keeps one block per page, linked ([docs writing](../../guidelines/docs-writing.md)).
-- [ ] `CLAUDE.md`'s "Extraction for retrieval" paragraph: `tables/across.rs` and the two keys.
+- [x] ADR 0030: an implementation note (as L3b's and L3d's) recording `continues` and `continuedBy`, the join conditions and their cut-offs, and that the renderings write one table and chunks keep a chain whole.
+- [x] `crates/laminapdf-extract/README.md`: a paragraph in its Tables section, and its Tests list.
+- [x] `apps/docs/src/content/docs/recipes/extract-markdown.mdx`: under "How it works", a table that goes on over a page break comes out as one table, and the JSON keeps one block per page, linked ([docs writing](../../guidelines/docs-writing.md)).
+- [x] `CLAUDE.md`'s "Extraction for retrieval" paragraph: `tables/across.rs` and the two keys.
 
 ## Risks and open questions
 
@@ -115,8 +115,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
