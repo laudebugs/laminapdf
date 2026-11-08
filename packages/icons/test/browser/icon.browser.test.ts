@@ -60,6 +60,11 @@ describe("the gallery", () => {
     const result = await axe.run(host, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
     });
-    expect(result.violations.map((v) => `${v.id}: ${v.nodes.length} node(s)`)).toEqual([]);
+    // Each violation names its elements and axe's reason, so a failure on another system says
+    // what to fix without a rerun.
+    const found = result.violations.flatMap((v) =>
+      v.nodes.map((node) => `${v.id}: ${node.target.join(" ")}: ${node.failureSummary ?? ""}`),
+    );
+    expect(found).toEqual([]);
   });
 });
