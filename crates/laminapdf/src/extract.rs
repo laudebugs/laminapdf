@@ -17,7 +17,8 @@
 pub use laminapdf_extract::{
     Block, BlockKind, Cell, Chunk, ChunkOptions, Coordinates, DropOptions, DropReason, Dropped, ExtractLimits,
     ExtractOptions, ExtractedPage, ExtractedSource, Extraction, Flags, MarkdownOptions, ReadingOrder, Region, Rendered,
-    Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextRange, chunks_jsonl, tokens_approx,
+    Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextLayer, TextLayerStatus, TextLayerThresholds,
+    TextRange, chunks_jsonl, tokens_approx,
 };
 pub use laminapdf_text::{Code, Glyph, PageText, PageTextRun, Quad, UserSpaceVector};
 

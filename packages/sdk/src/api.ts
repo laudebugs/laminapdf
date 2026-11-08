@@ -44,6 +44,8 @@ export type {
   StructSource,
   TableDetector,
   TableMode,
+  TextLayer,
+  TextLayerStatus,
   TextRange,
 } from "./extract.js";
 export type { FontInfo, Standard14 } from "./font.js";
