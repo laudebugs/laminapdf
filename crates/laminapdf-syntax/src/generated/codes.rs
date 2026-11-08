@@ -856,6 +856,8 @@ pub enum WarningCode {
     ExtractStructTreeIgnored,
     /// `extract-untagged-content`: a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order.
     ExtractUntaggedContent,
+    /// `extract-needs-ocr`: a page has no usable text layer: it is an image (with or without an invisible OCR layer), outlined glyphs, or glyphs without Unicode, so its extracted text is empty or unreliable.
+    ExtractNeedsOcr,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -905,6 +907,7 @@ impl WarningCode {
         Self::ExtractTableLimit,
         Self::ExtractStructTreeIgnored,
         Self::ExtractUntaggedContent,
+        Self::ExtractNeedsOcr,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
     ];
@@ -966,6 +969,7 @@ impl WarningCode {
             Self::ExtractTableLimit => "extract-table-limit",
             Self::ExtractStructTreeIgnored => "extract-struct-tree-ignored",
             Self::ExtractUntaggedContent => "extract-untagged-content",
+            Self::ExtractNeedsOcr => "extract-needs-ocr",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
         }
@@ -1015,6 +1019,7 @@ impl WarningCode {
             Self::ExtractTableLimit => ErrorKind::Limit,
             Self::ExtractStructTreeIgnored => ErrorKind::Input,
             Self::ExtractUntaggedContent => ErrorKind::Input,
+            Self::ExtractNeedsOcr => ErrorKind::Unsupported,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
         }
@@ -1064,6 +1069,7 @@ impl WarningCode {
             Self::ExtractTableLimit => "a page's ruling lines would make a table bigger than the extraction's cell limit; those lines gave no table",
             Self::ExtractStructTreeIgnored => "a tagged page's structure tree covered too little of its text, or its order jumped back across columns too often, so the layout gave the reading order",
             Self::ExtractUntaggedContent => "a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order",
+            Self::ExtractNeedsOcr => "a page has no usable text layer: it is an image (with or without an invisible OCR layer), outlined glyphs, or glyphs without Unicode, so its extracted text is empty or unreliable",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
         }
@@ -1113,6 +1119,7 @@ impl WarningCode {
             Self::ExtractTableLimit => "raise ExtractLimits::max_table_cells if the page really has a table that big",
             Self::ExtractStructTreeIgnored => "nothing to do; ReadingOrder::Tagged uses the tree anyway",
             Self::ExtractUntaggedContent => "nothing to do; tag that text in the file to give it a place in the reading order",
+            Self::ExtractNeedsOcr => "run OCR or a vision model on this page; the page's textLayer in the JSON says which case it is",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
         }

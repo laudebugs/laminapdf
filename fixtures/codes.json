@@ -284,6 +284,13 @@
       "summary": "a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order",
       "hint": "nothing to do; tag that text in the file to give it a place in the reading order",
       "since": "0.2.0"
+    },
+    {
+      "code": "extract-needs-ocr",
+      "kind": "unsupported",
+      "summary": "a page has no usable text layer: it is an image (with or without an invisible OCR layer), outlined glyphs, or glyphs without Unicode, so its extracted text is empty or unreliable",
+      "hint": "run OCR or a vision model on this page; the page's textLayer in the JSON says which case it is",
+      "since": "0.2.0"
     }
   ],
   "errors": [
