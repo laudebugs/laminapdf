@@ -520,6 +520,10 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
+      # `publish crates` regenerates the crate's docs/ with apps/docs/scripts/package-docs.mjs,
+      # which imports @laminapdf/site-kit from the pnpm workspace. On a release commit the output
+      # equals the committed snapshot, so Cargo publishes a clean tree.
+      - uses: ./.github/actions/node-pnpm
       - name: Get a crates.io token (trusted publishing)
         if: github.event_name == 'push' && github.ref_type == 'tag'
         id: crates-io
