@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [T4b](./T4b-flow-layout-core.md) |
+| Depends on | [T4b](../ongoing/T4b-flow-layout-core.md) |
 | ADRs | Implements [ADR 0032](../../decisions/0032-flowing-layout-and-document-inputs.md) [§3](../../decisions/0032-flowing-layout-and-document-inputs.md#3-the-layout-model) (tables) and [§4](../../decisions/0032-flowing-layout-and-document-inputs.md#4-tagging) (one `Table` element across pages); follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space, 1-based page numbers in what users read) and [0026](../../decisions/0026-error-and-diagnostic-contract.md) (codes) |
 | Branch | `feat/t4c-flow-tables` |
 | PR title | `feat(build): flowing tables across pages with repeated headers and kept totals` |
@@ -19,7 +19,7 @@ Split tables across pages with their header rows repeated, rows kept whole, and 
 
 ## Context
 
-- [T4b](./T4b-flow-layout-core.md): the flow model, the paginator, page templates, `flow-content-too-large` and `flow-keep-broken`. [T4f](../done/T4f-flow-builder-groundwork.md): elements across pages, measuring without drawing (for automatic column widths) and artifact subtypes. [T4g](../done/T4g-flow-styled-spans.md): spans in cells.
+- [T4b](../ongoing/T4b-flow-layout-core.md): the flow model, the paginator, page templates, `flow-content-too-large` and `flow-keep-broken`. [T4f](../done/T4f-flow-builder-groundwork.md): elements across pages, measuring without drawing (for automatic column widths) and artifact subtypes. [T4g](../done/T4g-flow-styled-spans.md): spans in cells.
 - Evidence: the [generation note](../../research/hacker-news/notes/generation.md) §1.6 (page numbers, a contents page with page numbers, footnotes and repeated table headers) and §2.4 (pagination from HTML); the report's [R5](../../research/hacker-news/pdf-users-on-hacker-news.md#r5-decide-for-flow-layout-then-accept-markdown-and-json).
 - ISO 32000-1 §14.8.4 (the PDF 1.7 standard types: `Table`, `THead`, `TBody`, `TFoot`, `TR`, `TH`, `TD`) and §14.8.5.7 (table attributes: `/Scope`, `/ColSpan`). The Matterhorn Protocol's checkpoint 15 (tables).
 - `laminapdf-build`'s tagging: `TagKind` (`src/tag/mod.rs`) has 25 kinds and lacks `THead`, `TBody` and `TFoot`; `Tag::custom` writes a standard type's name without a role map; `TableScope` and `Tag::with_scope` exist. A new `TagKind` also changes `laminapdf-wasm`'s name table (`crates/laminapdf-wasm/src/build_dto.rs`) and `packages/sdk/src/generated/builder-enums.ts`, which `cargo xtask gen boundary` writes.
