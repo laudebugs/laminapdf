@@ -386,3 +386,24 @@ fn a_cover_away_from_a_gap_adds_no_space_to_it() {
     );
     assert_eq!(read(&doc).0, ["The was here."]);
 }
+
+#[test]
+fn hidden_text_lists_the_covered_entry_extraction_drops() {
+    let doc = page(&content(&[SENTENCE, b"0 g", BOX]), "", "", &[]);
+    let hidden = laminapdf_extract::hidden_text(&doc, &ExtractOptions::new(), &CancelToken::new()).unwrap();
+    let out = run(&doc, &ExtractOptions::new());
+    assert_eq!(hidden, out.dropped);
+    assert_eq!(
+        hidden.iter().map(|d| (d.reason, d.chars)).collect::<Vec<_>>(),
+        [(DropReason::Covered, 9)]
+    );
+}
+
+#[test]
+fn hidden_text_stops_when_cancelled() {
+    let doc = page(SENTENCE, "", "", &[]);
+    let cancel = CancelToken::new();
+    cancel.cancel();
+    let got = laminapdf_extract::hidden_text(&doc, &ExtractOptions::new(), &cancel);
+    assert!(matches!(got, Err(laminapdf_extract::ExtractError::Cancelled)));
+}

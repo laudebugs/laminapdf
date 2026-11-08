@@ -12,10 +12,10 @@ use laminapdf_text::{PageText, TextExtractor};
 use crate::error::ExtractError;
 use crate::marks::{Drawn, Marks};
 use crate::model::TextLayerStatus;
-use crate::model::{ExtractedSource, Extraction, StructSource};
+use crate::model::{Dropped, ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
-use crate::page::{PageInput, TreeUse};
+use crate::page::{PageInput, TreeUse, hidden_runs};
 use crate::paint::annots;
 use crate::plugins::{LayoutRegion, ModelRequest, ModelResult, ModelSlot, OcrWord, PageRaster};
 use crate::segments::Covers;
@@ -328,6 +328,35 @@ impl ExtractJob {
             return Ok(Step::Done(out));
         }
         Ok(self.progress(Phase::Extract))
+    }
+
+    /// [`crate::hidden_text`]: each page asked for read as [`ExtractJob::step`] reads it, and
+    /// only its hidden runs kept.
+    pub(crate) fn hidden(&mut self, doc: &Document, cancel: &CancelToken) -> Result<Vec<Dropped>, ExtractError> {
+        self.cancel = cancel.clone();
+        let pages = doc.pages()?;
+        let count = pages.len();
+        let mut out = Vec::new();
+        for &index in &self.todo.clone() {
+            if self.cancel.is_cancelled() {
+                return Err(ExtractError::Cancelled);
+            }
+            let page = pages
+                .get(index)
+                .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
+            let pending = self.read(doc, &page, index)?;
+            let input = PageInput {
+                edges: None,
+                backdrops: &pending.backdrops,
+                covers: &pending.covers,
+                drawn: &pending.drawn,
+                tree: None,
+                regions: &[],
+                words: &[],
+            };
+            out.extend(hidden_runs(index, &pending.text, &input, &self.options));
+        }
+        Ok(out)
     }
 
     /// Reads page `index`'s text and, in the same walk of its content, its table rules, covers
