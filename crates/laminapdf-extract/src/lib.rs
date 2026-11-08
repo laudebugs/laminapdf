@@ -37,6 +37,7 @@ mod blocks;
 mod error;
 mod furniture;
 mod headings;
+mod hidden;
 mod job;
 mod lines;
 mod lists;
@@ -57,6 +58,7 @@ mod visibility;
 mod xycut;
 
 pub use error::ExtractError;
+pub use hidden::hidden_text;
 pub use job::{ExtractJob, extract, extract_job};
 pub use model::{
     Block, BlockKind, Cell, Coordinates, DropReason, Dropped, ExtractedPage, ExtractedSource, Extraction, Flags,

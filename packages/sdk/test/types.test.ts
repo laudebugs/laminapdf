@@ -106,6 +106,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unknown-code":
     case "model-result-unexpected":
     case "model-needs-host":
+    case "revision-index-out-of-range":
       return "usage";
     case "data-pending":
     case "repaired-base":

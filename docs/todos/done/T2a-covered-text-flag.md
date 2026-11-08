@@ -15,7 +15,7 @@
 
 ## Goal
 
-A black box drawn over live text hides it from a reader and from nobody else. Copying, search, screen readers and every extractor still get the text. Lamina PDF's extraction does the same today: ADR 0030 §4 drops invisible, off-page, tiny, clipped and low-contrast text, but text painted over by a later shape or image stays in the blocks. This todo adds a sixth flag, `covered`, for text with an opaque fill, an opaque image or an annotation's appearance painted over it. Covered runs leave the blocks and go to `dropped`, like the other flags. That closes a prompt-injection channel, since an LLM reading the extraction no longer sees text the reader can't. It also gives [T2b](../ready/T2b-check-failed-redactions.md) its fake-redaction check.
+A black box drawn over live text hides it from a reader and from nobody else. Copying, search, screen readers and every extractor still get the text. Lamina PDF's extraction does the same today: ADR 0030 §4 drops invisible, off-page, tiny, clipped and low-contrast text, but text painted over by a later shape or image stays in the blocks. This todo adds a sixth flag, `covered`, for text with an opaque fill, an opaque image or an annotation's appearance painted over it. Covered runs leave the blocks and go to `dropped`, like the other flags. That closes a prompt-injection channel, since an LLM reading the extraction no longer sees text the reader can't. It also gives [T2b](./T2b-check-failed-redactions.md) its fake-redaction check.
 
 Fake redaction is one of the trust failures Hacker News users return to after every leak. About 150 comments discuss redactions that leave the text in place, and the stricter count (black box, copy-paste, underlying text) found 54 of its 75 hits in 2023–26. "PDF redaction fails are everywhere and it's usually because people don't understand that covering text with a black box doesn't actually remove the underlying data" ([46370964](https://news.ycombinator.com/item?id=46370964)). X-ray, a library that finds such boxes, drew 709 points in December 2025 ([46369923](https://news.ycombinator.com/item?id=46369923)) ([report R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file)).
 
@@ -55,7 +55,7 @@ Fake redaction is one of the trust failures Hacker News users return to after ev
 
 **Out of scope** (and which todo covers it)
 
-- `laminapdf check` warnings about covered text, unapplied redactions and earlier revisions: [T2b](../ready/T2b-check-failed-redactions.md). Counts of hidden text in a disclosure report: [T2c](../ready/T2c-reveal-command.md).
+- `laminapdf check` warnings about covered text, unapplied redactions and earlier revisions: [T2b](./T2b-check-failed-redactions.md). Counts of hidden text in a disclosure report: [T2c](../ready/T2c-reveal-command.md).
 - Removing covered text from a file: [E12c](../ready/E12c-apply-content-removal.md) (content removal) and [E12d](../ready/E12d-scrub-and-rewrite.md).
 - Strokes (a thick marker line over text), shadings (`sh`), curved or rotated shapes and rotated images. Each is left out to keep text, as ADR 0030 §4 asks; add them when a fixture or a corpus file shows the need.
 - Text inside layers that are off: no ADR 0030 flag exists for it yet. [T2c](../ready/T2c-reveal-command.md) lists those layers.

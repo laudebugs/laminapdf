@@ -31,7 +31,9 @@ pub(crate) fn of_error(error: &Error) -> Data {
             #[cfg(feature = "extract")]
             Inner::Extract(_) => Data::new(),
         },
-        Error::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
+        Error::PageIndexOutOfRange { index, count } | Error::RevisionIndexOutOfRange { index, count } => {
+            data([("index", json!(index)), ("count", json!(count))])
+        }
         Error::Cancelled | Error::JobFinished | Error::DocumentChanged => Data::new(),
     }
 }
@@ -237,6 +239,22 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
         Warning::Document(w) => cos_warning(*w),
         #[cfg(feature = "extract")]
         Warning::Font(w) => text_warning(w),
+        #[cfg(feature = "extract")]
+        Warning::Redaction(w) => redaction_warning(w),
+    }
+}
+
+#[cfg(feature = "extract")]
+fn redaction_warning(w: &crate::RedactionWarning) -> Data {
+    use crate::RedactionWarning as W;
+    match w {
+        W::CoveredText { chars, regions, .. } => data([("chars", json!(chars)), ("regions", json!(regions))]),
+        W::RedactionNotApplied { annotations, .. } => data([("annotations", json!(annotations))]),
+        W::TextInEarlierRevision { revision, words, pages } => data([
+            ("revision", json!(revision)),
+            ("words", json!(words)),
+            ("pages", json!(pages)),
+        ]),
     }
 }
 
