@@ -2,7 +2,7 @@
 //! with `pdf_run`'s `TJ` arrays, rises and `/ActualText` spans: what the builder (B5b) will
 //! do, for the `text-shaped.pdf` golden and the extraction checks.
 
-use laminapdf_text::{FontKey, HarfRust, LayoutOptions, Result, TjElement, break_lines, pdf_run};
+use laminapdf_text::{FontKey, HarfRust, LayoutOptions, Result, Span, TjElement, break_spans, pdf_line_run};
 use pdf_writer::{Name, Str, TextStr};
 
 use super::TestPdf;
@@ -25,12 +25,42 @@ impl TestPdf {
     /// Lays `text` out in a box `options.width` wide with the registered fonts `keys` (in
     /// order of preference) and draws its lines; returns each line's drawn text.
     pub fn paragraph(&mut self, keys: &[FontKey], text: &str, options: &LayoutOptions) -> Result<Vec<String>> {
+        self.draw(keys, text, &[Span::new(0..text.len())], options, false)
+    }
+
+    /// [`TestPdf::paragraph`] over styled spans (`break_spans`): each run at its span's size
+    /// and rise, lines `1.6 × options.size` apart, or further when a line's tallest run needs it.
+    pub fn spans(
+        &mut self,
+        keys: &[FontKey],
+        text: &str,
+        spans: &[Span],
+        options: &LayoutOptions,
+    ) -> Result<Vec<String>> {
+        self.draw(keys, text, spans, options, true)
+    }
+
+    /// Draws the lines; `fit`: lines at least their own height apart (else `1.6 × size`, the
+    /// spacing the `text-shaped.pdf` golden was written with).
+    fn draw(
+        &mut self,
+        keys: &[FontKey],
+        text: &str,
+        spans: &[Span],
+        options: &LayoutOptions,
+        fit: bool,
+    ) -> Result<Vec<String>> {
         let fonts: Vec<_> = keys.iter().map(|&k| self.fonts.font(k).unwrap().clone()).collect();
-        let lines = break_lines(&HarfRust, &fonts, text, options)?;
-        let size = options.size;
+        let lines = break_spans(&HarfRust, &fonts, text, spans, options)?;
         let mut drawn = Vec::new();
         for line in &lines {
-            self.y -= size * 1.6;
+            #[expect(clippy::cast_possible_truncation, reason = "page coordinates")]
+            let height = ((line.ascent - line.descent) * 1.2) as f32;
+            self.y -= if fit {
+                (options.size * 1.6).max(height)
+            } else {
+                options.size * 1.6
+            };
             let y = self.y;
             self.content.begin_text();
             let mut rise = 0.0_f32;
@@ -38,7 +68,8 @@ impl TestPdf {
             for run in line.drawing_order().into_iter().map(|i| &line.runs[i]) {
                 let key = keys[run.font];
                 let name = self.resource(key)?;
-                let pdf = pdf_run(&run.run, text, &mut self.fonts, key)?;
+                let pdf = pdf_line_run(run, text, &mut self.fonts, key)?;
+                let size = run.size;
                 #[expect(clippy::cast_possible_truncation, reason = "page coordinates")]
                 let x = BOX_X + (line.x + run.x) as f32;
                 self.content
