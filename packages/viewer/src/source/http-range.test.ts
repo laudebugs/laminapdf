@@ -1,7 +1,5 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import type { AddressInfo } from "node:net";
 import { isLaminaPdfError } from "@laminapdf/sdk";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { HttpRangeByteSource } from "./http-range.js";
 
 /** A 1 MiB file whose byte i is i mod 251, so any slice can be checked. */
@@ -11,59 +9,47 @@ const FILE = Uint8Array.from({ length: 1024 * 1024 }, (_, i) => i % 251);
 interface Behaviour {
   ranges: boolean;
   etag: string;
-  /** Answers every ranged request after the probe with this Content-Range instead. */
+  /** Answers ranged requests after the probe with a Content-Range one byte off. */
   badRange: boolean;
   delayMs: number;
 }
 
 let behaviour: Behaviour;
 let requests: { range: string | undefined; bytes: number }[] = [];
-let server: Server;
-let url: string;
+/** Every request's options, as the source passed them. */
+const inits: RequestInit[] = [];
 
-function answer(req: IncomingMessage, res: ServerResponse): void {
-  const range = req.headers.range;
-  const send = () => {
-    res.setHeader("ETag", behaviour.etag);
-    const m = /^bytes=(\d*)-(\d*)$/.exec(range ?? "");
-    if (!behaviour.ranges || m === null) {
-      res.writeHead(200, { "Content-Length": FILE.length });
-      requests.push({ range, bytes: FILE.length });
-      res.end(FILE);
-      return;
-    }
-    const start = m[1] === "" ? FILE.length - Number(m[2]) : Number(m[1]);
-    const end = m[1] === "" || m[2] === "" ? FILE.length - 1 : Math.min(FILE.length - 1, Number(m[2]));
-    const header =
-      behaviour.badRange && m[1] !== ""
-        ? `bytes ${start + 1}-${end}/${FILE.length}`
-        : `bytes ${start}-${end}/${FILE.length}`;
-    res.writeHead(206, { "Content-Range": header, "Content-Length": end - start + 1 });
-    requests.push({ range, bytes: end - start + 1 });
-    res.end(FILE.subarray(start, end + 1));
-  };
-  if (behaviour.delayMs > 0) setTimeout(send, behaviour.delayMs);
-  else send();
+/** The server's answer to a request with header `range`. */
+function answer(range: string | undefined): Response {
+  const headers: Record<string, string> = { ETag: behaviour.etag };
+  const m = /^bytes=(\d*)-(\d*)$/.exec(range ?? "");
+  if (!behaviour.ranges || m === null) {
+    requests.push({ range, bytes: FILE.length });
+    return new Response(FILE.slice(), { status: 200, headers: { ...headers, "Content-Length": `${FILE.length}` } });
+  }
+  const start = m[1] === "" ? FILE.length - Number(m[2]) : Number(m[1]);
+  const end = m[1] === "" || m[2] === "" ? FILE.length - 1 : Math.min(FILE.length - 1, Number(m[2]));
+  const shift = behaviour.badRange && m[1] !== "" ? 1 : 0;
+  headers["Content-Range"] = `bytes ${start + shift}-${end}/${FILE.length}`;
+  requests.push({ range, bytes: end - start + 1 });
+  return new Response(FILE.slice(start, end + 1), { status: 206, headers });
 }
 
-/** The global fetch with the options Node's fetch doesn't take dropped, and every init recorded. */
-const inits: RequestInit[] = [];
-const recording: typeof fetch = (input, init = {}) => {
+/** A fetch that answers as a file server would, after `delayMs`, and records every request. */
+const server: typeof fetch = (_input, init = {}) => {
   inits.push(init);
-  const { cache: _cache, mode: _mode, ...rest } = init;
-  return fetch(input, rest);
+  const range = new Headers(init.headers).get("Range") ?? undefined;
+  const { signal } = init;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(answer(range)), behaviour.delayMs);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    });
+  });
 };
 
-beforeAll(async () => {
-  server = createServer(answer);
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/file.pdf`;
-});
-
-afterAll(() => {
-  server.closeAllConnections();
-  server.close();
-});
+const url = "https://files.example/file.pdf";
 
 beforeEach(() => {
   behaviour = { ranges: true, etag: '"v1"', badRange: false, delayMs: 0 };
@@ -72,7 +58,7 @@ beforeEach(() => {
 });
 
 const open = (options: Parameters<typeof HttpRangeByteSource.open>[1] = {}) =>
-  HttpRangeByteSource.open(url, { fetch: recording, blockSize: 4096, readahead: 0, ...options });
+  HttpRangeByteSource.open(url, { fetch: server, blockSize: 4096, readahead: 0, ...options });
 
 describe("HttpRangeByteSource", () => {
   it("fetches only the blocks a read touches, then answers it synchronously", async () => {

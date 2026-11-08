@@ -186,6 +186,31 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
    */
   async fill(ranges: readonly ByteRange[], signal?: AbortSignal): Promise<void> {
     if (this.#whole !== undefined) return;
+    const wanted = this.#blocksFor(ranges);
+    const waits: Promise<void>[] = [];
+    let run: number[] = [];
+    const flush = () => {
+      if (run.length > 0) waits.push(this.#fetchRun(run, signal));
+      run = [];
+    };
+    for (const index of wanted) {
+      const pending = this.#inFlight.get(index);
+      if (pending !== undefined || this.#blocks.has(index)) {
+        flush();
+        if (pending !== undefined) waits.push(pending);
+        continue;
+      }
+      if (run.length > 0 && run[run.length - 1] !== index - 1) flush();
+      run.push(index);
+    }
+    flush();
+    await Promise.all(waits);
+    // Keep what this fill asked for: evicting it now would make the caller miss again.
+    this.#evict(new Set(wanted));
+  }
+
+  /** The blocks `ranges` touch, with the readahead after each, in order and once each. */
+  #blocksFor(ranges: readonly ByteRange[]): number[] {
     const wanted = new Set<number>();
     const lastBlock = Math.max(0, Math.ceil(this.size / this.blockSize) - 1);
     for (const [offset, length] of ranges) {
@@ -194,28 +219,7 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
       const last = Math.min(lastBlock, Math.floor((offset + length - 1) / this.blockSize) + this.#readahead);
       for (let index = first; index <= last; index++) wanted.add(index);
     }
-    const waits: Promise<void>[] = [];
-    let run: number[] = [];
-    const flush = () => {
-      if (run.length > 0) waits.push(this.#fetchRun(run, signal));
-      run = [];
-    };
-    for (const index of [...wanted].sort((a, b) => a - b)) {
-      const pending = this.#inFlight.get(index);
-      if (pending !== undefined) {
-        flush();
-        waits.push(pending);
-      } else if (!this.#blocks.has(index)) {
-        if (run.length > 0 && run[run.length - 1] !== index - 1) flush();
-        run.push(index);
-      } else {
-        flush();
-      }
-    }
-    flush();
-    await Promise.all(waits);
-    // Keep what this fill asked for: evicting it now would make the caller miss again.
-    this.#evict(wanted);
+    return [...wanted].sort((a, b) => a - b);
   }
 
   /** `RangeSource.read`: fills, then reads from the cache. */
