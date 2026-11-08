@@ -19,8 +19,7 @@ const BOTTOM: f64 = PAGE.height.get() - MARGIN;
 const TITLE: Pt = Pt::new(18.0);
 const BODY: Pt = Pt::new(11.0);
 const GAP: f64 = 10.0;
-/// The photo's height, for a 3:2 photo across the text column.
-const PHOTO_HEIGHT: f64 = WIDTH / 1.5;
+const PHOTO_HEIGHT: f64 = WIDTH / 1.5; // a 3:2 photo across the text column
 
 /// What the report says. Empty `notes` take no space; blank lines separate the body's paragraphs.
 pub(crate) struct Report<'a> {
@@ -41,6 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         body: "Pages now appear as soon as they are read, and support requests about slow files fell by a third.",
     };
     let pdf = build(BuildOptions::new(), photo, &report)?;
+    std::fs::create_dir_all(&out)?;
     Ok(std::fs::write(out.join("element_flow.pdf"), pdf)?)
 }
 
