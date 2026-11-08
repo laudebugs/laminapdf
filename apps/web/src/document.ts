@@ -2,6 +2,7 @@
 // window's title, and the repairs listed in the repair details panel. Pure, so Node tests them.
 
 import type { RepairKind } from "@laminapdf/ui";
+import { hasKey, parseFragment } from "./open/url-fragment.ts";
 
 /** The app's name, which ends every window title. */
 export const APP_NAME = "Lamina PDF";
@@ -44,7 +45,10 @@ export function repairsText(repairs: readonly RepairKind[]): string {
     .join("\n");
 }
 
-/** Whether the address's fragment asks for the debug menu (ADR 0011 §3.6: a fragment, never sent). */
+/**
+ * Whether the address's fragment asks for the debug menu (ADR 0011 §3.6: a fragment, never sent):
+ * a `debug` key, alone (`#debug`) or beside others (`#url=…&debug`).
+ */
 export function wantsDebug(hash: string): boolean {
-  return hash === "#debug";
+  return hasKey(parseFragment(hash), "debug");
 }
