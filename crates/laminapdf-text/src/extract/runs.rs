@@ -64,8 +64,8 @@ const SPACE_GAP: f64 = 0.25;
 /// run of a right-to-left line drawn in logical order, or an overprint).
 const BACK_JUMP: f64 = 0.5;
 
-/// A nonspacing mark whose origin is within this fraction of the size of the next letter's
-/// origin belongs to that letter (see [`by_position`]).
+/// A nonspacing mark whose origin lies before the next letter's origin by at most this fraction
+/// of the size belongs to that letter (see [`by_position`]).
 const MARK_LEAD: f64 = 0.1;
 
 /// A vector `(x, y)` in user space.
@@ -236,8 +236,9 @@ fn is_nonspacing(glyph: &Glyph) -> bool {
 /// Shaping engines (HarfBuzz) draw a right-to-left cluster in visual order with its marks
 /// first, each at its base's origin moved by the anchor offset, which can put the mark's origin
 /// just inside the letter drawn before it (a damma on a narrow letter in Noto Sans Arabic). So a
-/// nonspacing mark whose origin is within [`MARK_LEAD`] of the size of the next letter's origin
-/// in content order goes with that letter.
+/// nonspacing mark whose origin lies before the next letter's origin in content order, by at
+/// most [`MARK_LEAD`] of the size, goes with that letter. A mark at that origin exactly, drawn at
+/// the pen after its letter, stays with the letter whose advance holds it.
 fn by_position(run: &[Glyph]) -> String {
     let direction = run.iter().find_map(|g| unit(g.advance)).unwrap_or((1.0, 0.0));
     let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
@@ -262,13 +263,18 @@ fn by_position(run: &[Glyph]) -> String {
         let leads = || {
             letters
                 .get(next)
-                .filter(|l| (start(l) - at).abs() <= MARK_LEAD * mark.size.max(l.size) && is_nonspacing(mark))
+                .filter(|l| {
+                    let lead = start(l) - at;
+                    lead > 0.01 && lead <= MARK_LEAD * mark.size.max(l.size) && is_nonspacing(mark)
+                })
                 .map(|_| next)
         };
-        let inside = letters.iter().position(|l| {
-            let (s, e) = (start(l), along(end_of(l)));
-            s.min(e) - 0.01 <= at && at <= s.max(e) + 0.01
-        });
+        let inside = || {
+            letters.iter().position(|l| {
+                let (s, e) = (start(l), along(end_of(l)));
+                s.min(e) - 0.01 <= at && at <= s.max(e) + 0.01
+            })
+        };
         let nearest = || {
             letters
                 .iter()
@@ -279,7 +285,7 @@ fn by_position(run: &[Glyph]) -> String {
                 })
                 .map(|(i, _)| i)
         };
-        if let Some(slot) = leads().or(inside).or_else(nearest).and_then(|i| marks.get_mut(i)) {
+        if let Some(slot) = leads().or_else(inside).or_else(nearest).and_then(|i| marks.get_mut(i)) {
             slot.push(mark);
         }
     }

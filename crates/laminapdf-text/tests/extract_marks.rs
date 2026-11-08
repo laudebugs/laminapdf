@@ -67,3 +67,10 @@ fn a_mark_drawn_after_its_letter_over_its_middle_stays_on_its_letter() {
     // The same word with the qamats drawn after ש, moved back 2.5 pt to the middle of ש.
     assert_eq!(lines(b"BT /F1 10 Tf 100 700 Td [<04030201> 250 <06>] TJ ET"), ["שָלום"]);
 }
+
+#[test]
+fn a_mark_drawn_at_the_pen_after_its_letter_stays_on_that_letter() {
+    // ם ו ל, the qamats at the pen after ל (x 115, where ש starts), then ש: the qamats belongs to
+    // ל, the letter whose advance ends at its origin, and doesn't move to ש.
+    assert_eq!(lines(b"BT /F1 10 Tf 100 700 Td [<040302> <06> <01>] TJ ET"), ["שלָום"]);
+}
