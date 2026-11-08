@@ -113,7 +113,7 @@ impl LayoutOptions {
 }
 
 /// Lays `text` out in a box `options.width` points wide with greedy (first fit) line
-/// breaking, `fonts` in order of preference ([`itemize`]). Each paragraph (ended by a line
+/// breaking, `fonts` in order of preference ([`itemize`](crate::itemize)). Each paragraph (ended by a line
 /// feed, U+2029 or another UAX #9 paragraph separator) is resolved on its own: its
 /// direction, its alignment side and its isolates.
 ///
