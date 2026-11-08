@@ -20,5 +20,5 @@ The viewer can no longer plan a tile the renderer refuses: both read the page's 
 
 ## Left for later
 
-- **Resolution above about 300 %.** The canvas pool's 64 MP cap lowers the pixel ratio at high zoom (at 400 % the visible page gets about 1.92×, its neighbours about 0.76×). The page is sharp at that resolution but softer than the screen. Canvases sized to the visible part of the page, rather than the whole page, would remove the cap's effect.
+- **Resolution above about 300 %.** The canvas pool's 64 MP cap lowers the pixel ratio at high zoom (at 400 % the visible page gets about 1.92×, its neighbours about 0.76×). The page is sharp at that resolution but softer than the screen. [C3d](../../todos/ready/C3d-viewer-detail-canvas.md) adds a detail canvas over the part in view, at the full ratio at every zoom.
 - **One failed tile stops the page's pass.** A tile that fails for another reason, such as a crashed worker, still leaves the rest of the page at low resolution until the next zoom. Drawing the remaining tiles, or retrying, would make that case recover.

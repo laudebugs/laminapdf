@@ -24,7 +24,9 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 - **Layout.** Every page's size comes from its displayed size in points, the zoom and the view rotation. The pages stack in one column with a gap. The offsets are prefix sums, so finding the page at a scroll position is a binary search, and a zoom change costs one pass over the pages (`PageLayout`).
 - **Virtualisation.** The viewer mounts a shell for each page in view, plus a margin of 2 pages or one viewport each side, whichever is larger. A shell that leaves the margin aborts its renders. If a result still arrives for that page, the viewer drops it and never draws it. Scroll handling reads the DOM first and writes it once per animation frame.
-- **Canvases.** A shell borrows its canvas from a pool of 12, which caps the canvases' total size at 64 million device pixels (`CanvasPool`). Safari fails past an undocumented total canvas area, so the pool shrinks a canvas rather than exceed the cap. Rendered bitmaps stay in a 256 MB cache, which closes the bitmaps farthest from the current page first (`BitmapCache`).
+- **Canvases.** A shell borrows its canvas from a pool of 12, which caps the canvases' total size at 40 million device pixels (`CanvasPool`). Safari fails past an undocumented total canvas area, so the pool shrinks a canvas rather than exceed the cap.
+- **Detail canvases.** A page's canvas holds at most 8 million pixels (`BACKDROP_MAX_PIXELS`, below Safari's limit for one canvas). When a page is larger than that at the full pixel ratio, or the pool shrank its canvas, the canvas becomes a backdrop and a detail canvas covers the part in view at the full ratio. They come from a second pool of 3 and 24 million pixels: with the first, the 64 million one pool held before. The detail canvas's size follows the viewport, not the zoom, so the page in view is sharp at every zoom up to 800 %.
+- **Bitmaps.** Rendered bitmaps stay in a 256 MB cache, which closes the bitmaps farthest from the current page first (`BitmapCache`).
 - **Progressive rendering.** A page first paints a blurry whole-page pass, at most 256 pixels wide, at `visible` priority. Then it paints sharp tiles, 512 CSS px × the device pixel ratio on a side, over the part in view. Pages in the margin get only the blurry pass, at `prefetch` priority. A canvas is resized only when the new pixels are ready, so the page never flashes white.
 - **Zoom.** The modes are fit width, fit page, actual size (96 CSS px per inch) and 10–800 %. Zoom comes from ctrl/cmd+wheel, trackpad pinch (ctrl+wheel, or Safari's gesture events), touch pinch and the `+`, `-` and `0` keys. The document point under the cursor stays where it is: always vertically, and horizontally while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep it there. During a gesture the canvases stretch, and the sharp re-render waits until the gesture pauses for 150 ms.
 - **Tall documents.** A document taller than 16 million CSS px at the chosen zoom gets its zoom capped, because browsers stop scrolling near that height.
@@ -33,7 +35,7 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 
 | Member | What it does |
 | --- | --- |
-| `createViewer({ client, margin?, gap?, pool?, cacheBytes?, settleMs?, zoom? })` | Makes a viewer over a `ViewerClient`. |
+| `createViewer({ client, margin?, gap?, pool?, detailPool?, cacheBytes?, settleMs?, zoom? })` | Makes a viewer over a `ViewerClient`. |
 | `mount(container)`, `open(document)`, `destroy()` | Puts it on the page, shows a document, takes it down. |
 | `goToPage(index, { anchor })`, `setZoom(zoom, { anchor })`, `rotate(delta)` | Navigation. `zoom` is a mode or a percentage. |
 | `getState()`, `subscribe(listener)` | The view state (`currentPage`, `pageCount`, `zoom`, `percent`, `rotation`, `scrollTop`, `visibleRange`), for `useSyncExternalStore`. |

@@ -235,6 +235,50 @@ describe("zoom", () => {
   });
 });
 
+describe("detail canvas", () => {
+  const detail = (v: Viewer, page: number) =>
+    v.element.querySelector<HTMLCanvasElement>(`.lamina-page[data-page-index="${page}"] .lamina-page-detail`);
+  /** Device px per CSS px of page `page`'s detail canvas, as laid out. */
+  const detailRatio = (v: Viewer, page: number) => {
+    const canvas = detail(v, page);
+    return canvas === null ? 0 : canvas.width / canvas.getBoundingClientRect().width;
+  };
+
+  it("draws the page in view at the full pixel ratio at 400 % and 800 %", async () => {
+    for (const zoom of [400, 800]) {
+      const v = await opened({ zoom, dpr: () => 2 });
+      // The widest pages (landscape) set the content's width: centre the view on page 0.
+      v.element.scrollLeft = (v.element.scrollWidth - v.element.clientWidth) / 2;
+      await frames(2);
+      await until(() => v.stats().pages[0] === "sharp");
+      expect(v.stats().detailCanvases).toBeGreaterThan(0);
+      expect(detailRatio(v, 0)).toBeCloseTo(2, 2);
+      v.destroy();
+    }
+  });
+
+  it("needs no detail canvas while the page fits its canvas at the full ratio", async () => {
+    const v = await opened({ zoom: 100, dpr: () => 1 });
+    await until(() => v.stats().pages[0] === "sharp");
+    expect(v.stats().detailCanvases).toBe(0);
+    expect(detail(v, 0)).toBeNull();
+    v.destroy();
+  });
+
+  it("moves with the view at 400 %: sharp again after scrolling down and across", async () => {
+    const v = await opened({ zoom: 400, dpr: () => 2 });
+    await until(() => v.stats().pages[0] === "sharp");
+    v.element.scrollTop += v.element.clientHeight * 2;
+    v.element.scrollLeft += v.element.clientWidth;
+    await frames(2);
+    const page = v.getState().visibleRange.first;
+    await until(() => v.stats().pages[page] === "sharp");
+    expect(detailRatio(v, page)).toBeCloseTo(2, 2);
+    expect(v.stats().drawsOnUnmounted).toBe(0);
+    v.destroy();
+  });
+});
+
 describe("layers", () => {
   it("mounts registered layers on each mounted page and unmounts them with it", async () => {
     const v = await opened();
