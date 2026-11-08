@@ -174,7 +174,10 @@ function Address({ url }: { url: string }): ReactNode {
   } catch {
     return <p className="paper-failure-code paper-failure-address">{url}</p>;
   }
+  // The parsed host is normalised (lower case, punycode, no default port): when the address
+  // writes it otherwise, the address shows unbolded rather than cut in the wrong place.
   const at = url.indexOf(host);
+  if (at < 0) return <p className="paper-failure-code paper-failure-address">{url}</p>;
   return (
     <p className="paper-failure-code paper-failure-address">
       {url.slice(0, at)}

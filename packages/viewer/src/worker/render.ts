@@ -13,10 +13,14 @@ import { current, filling } from "./document.js";
  */
 export function render(request: RenderRequest, id: number, signal: AbortSignal): Promise<RenderedTile> {
   const doc = current(id);
-  // The client starts its timers now (not while the render waits), and a performance test can
-  // see what the worker is busy with.
-  emit("render-start", { page: request.page, scale: request.scale, key: renderKey(request, id) });
-  return filling(doc.remote, () => doc.render.render(request, { signal }), signal);
+  const key = renderKey(request, id);
+  const draw = () => {
+    // The client starts its timers now (not while the render waits or fetches), and a
+    // performance test can see what the worker is busy with.
+    emit("render-start", { page: request.page, scale: request.scale, key });
+    return doc.render.render(request, { signal });
+  };
+  return filling(doc.remote, draw, signal, () => emit("render-fetching", { key }));
 }
 
 /** One caller's bitmap of `tile`. */

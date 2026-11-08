@@ -12,6 +12,8 @@ interface Behaviour {
   /** Answers ranged requests after the probe with a Content-Range one byte off. */
   badRange: boolean;
   delayMs: number;
+  /** Leave Content-Length out of full answers, as a chunked or compressed one would. */
+  noLength: boolean;
 }
 
 let behaviour: Behaviour;
@@ -25,7 +27,8 @@ function answer(range: string | undefined): Response {
   const m = /^bytes=(\d*)-(\d*)$/.exec(range ?? "");
   if (!behaviour.ranges || m === null) {
     requests.push({ range, bytes: FILE.length });
-    return new Response(FILE.slice(), { status: 200, headers: { ...headers, "Content-Length": `${FILE.length}` } });
+    const length: Record<string, string> = behaviour.noLength ? {} : { "Content-Length": `${FILE.length}` };
+    return new Response(FILE.slice(), { status: 200, headers: { ...headers, ...length } });
   }
   const start = m[1] === "" ? FILE.length - Number(m[2]) : Number(m[1]);
   const end = m[1] === "" || m[2] === "" ? FILE.length - 1 : Math.min(FILE.length - 1, Number(m[2]));
@@ -52,7 +55,7 @@ const server: typeof fetch = (_input, init = {}) => {
 const url = "https://files.example/file.pdf";
 
 beforeEach(() => {
-  behaviour = { ranges: true, etag: '"v1"', badRange: false, delayMs: 0 };
+  behaviour = { ranges: true, etag: '"v1"', badRange: false, delayMs: 0, noLength: false };
   requests = [];
   inits.length = 0;
 });
@@ -128,6 +131,20 @@ describe("HttpRangeByteSource", () => {
     behaviour.ranges = false;
     const error = await open({ maxWholeBytes: 1000 }).catch((e: unknown) => e);
     expect(isLaminaPdfError(error, "source-budget-exceeded")).toBe(true);
+  });
+
+  it("cuts off a whole download past its cap when the answer doesn't say its length", async () => {
+    behaviour.ranges = false;
+    behaviour.noLength = true;
+    const error = await open({ maxWholeBytes: 1000 }).catch((e: unknown) => e);
+    expect(isLaminaPdfError(error, "source-budget-exceeded")).toBe(true);
+  });
+
+  it("counts only bytes received, not reads the probe's tail answers", async () => {
+    const source = await open();
+    expect(source.loaded).toBe(65_536);
+    await source.fill([[FILE.length - 100, 100]]);
+    expect(source.loaded).toBe(65_536);
   });
 
   it("fails on a Content-Range that isn't the range asked for", async () => {

@@ -8,6 +8,7 @@
 import {
   bytesSource,
   type CloneableWasmSource,
+  isRenderError,
   type RenderBackend,
   type RenderDocument,
   RenderError,
@@ -39,8 +40,11 @@ interface Open {
   readonly remote: HttpRangeByteSource | undefined;
 }
 
-/** Rounds of fetching a render may need before it gives up with its last `data-pending`. */
-const MAX_FILL_ROUNDS = 64;
+/**
+ * Rounds of fetching a call may need before it gives up with its last `data-pending`: the SDK's
+ * default for the same loop over Lamina PDF's reads (`Document.openRange`'s `maxRounds`).
+ */
+const MAX_FILL_ROUNDS = 1024;
 let open: Open | undefined;
 let nextDocument = 1;
 
@@ -93,19 +97,31 @@ async function bytesOf(init: Exclude<SourceInit, RemoteSource>, signal: AbortSig
 
 /**
  * Runs `f` until it stops throwing `data-pending`, filling the ranges it names from `remote`
- * between tries. A round that asks for exactly what the last one asked made no progress.
+ * between tries (`onFetch` runs before each fill). A round that asks for exactly what the last
+ * one asked made no progress. The render backend's twin of the SDK's loop over Lamina PDF's
+ * reads (`Document.ensure`), which catches the SDK's own error type and fills its own source.
+ *
+ * PDFium is opened over a source that refuses missing reads rather than through its
+ * availability API: on a well-formed file its open asks for the header, the xref and the
+ * trailer, a few blocks; a damaged file it rebuilds asks for all of it, as repairing needs.
  */
-export async function filling<T>(remote: HttpRangeByteSource | undefined, f: () => T, signal: AbortSignal): Promise<T> {
+export async function filling<T>(
+  remote: HttpRangeByteSource | undefined,
+  f: () => T,
+  signal: AbortSignal,
+  onFetch?: () => void,
+): Promise<T> {
   let previous: string | undefined;
   for (let round = 0; ; round++) {
     try {
       return f();
     } catch (e) {
-      if (remote === undefined || !(e instanceof RenderError) || e.code !== "data-pending") throw e;
+      if (remote === undefined || !isRenderError(e) || e.code !== "data-pending") throw e;
       const ranges = e.ranges ?? [];
       const key = JSON.stringify(ranges);
       if (round >= MAX_FILL_ROUNDS || ranges.length === 0 || key === previous) throw e;
       previous = key;
+      onFetch?.();
       await remote.fill(ranges, signal);
       signal.throwIfAborted();
     }

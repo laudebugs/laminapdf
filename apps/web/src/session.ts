@@ -122,8 +122,8 @@ export class Engine implements ExternalStore<EngineState> {
    */
   #incoming: DocumentWarning[] = [];
   #state: EngineState;
-  /** The page to show once the document opening now has opened (from `#page=`). */
-  #page: number | undefined;
+  /** The page to show once `file` has opened (from `#page=`): only that open uses it. */
+  #page: { readonly file: PlatformFile; readonly page: number } | undefined;
 
   constructor(platform: Platform, backend: DebugBackend) {
     this.reader = new ReaderController(platform, (file, password) => this.#open(file, password));
@@ -147,9 +147,9 @@ export class Engine implements ExternalStore<EngineState> {
 
   /** Opens the remote file at `url`, then shows `page` (1-based) when given. */
   openRemote(url: string, page?: number): Promise<void> {
-    this.#page = page;
-    this.#set({ linkProblem: undefined });
-    return this.reader.open(remoteFile(url));
+    const file = remoteFile(url);
+    this.#page = page === undefined ? undefined : { file, page };
+    return this.reader.open(file);
   }
 
   /** Shows why the address's link can't be opened, in place of the home screen. */
@@ -167,7 +167,7 @@ export class Engine implements ExternalStore<EngineState> {
   goToPage(page: number): void {
     const state = this.reader.getState();
     if (state.phase === "open") this.#state.viewer?.goToPage(page - 1);
-    else this.#page = page;
+    else if (state.phase !== "empty" && state.phase !== "error") this.#page = { file: state.file, page };
   }
 
   /** Moves to `backend`: a new document worker, and the open file reopened in it. */
@@ -209,6 +209,8 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   async #open(file: PlatformFile, password: string | undefined): Promise<OpenedDocument> {
+    // Opening anything leaves an unusable link's page behind.
+    if (this.#state.linkProblem !== undefined) this.#set({ linkProblem: undefined });
     this.#turn += 1;
     const turn = this.#turn;
     const latest = () => turn === this.#turn;
@@ -226,7 +228,7 @@ export class Engine implements ExternalStore<EngineState> {
     if (!latest()) return { pageCount: opened.pageCount };
     session.viewer.open(opened);
     this.#file = file;
-    const page = this.#page;
+    const page = this.#page?.file === file ? this.#page.page : undefined;
     this.#page = undefined;
     this.#set({ title: opened.title, repairs: repairsFrom(warnings), timing: undefined, linkProblem: undefined });
     const firstPage = () => {

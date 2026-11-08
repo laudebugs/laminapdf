@@ -67,6 +67,8 @@ export interface ViewerEvents {
   progress: LoadProgress;
   /** The worker started drawing a render (so a performance test can see what the worker is busy with). */
   "render-start": { readonly page: number; readonly scale: number; readonly key: string };
+  /** A remote document's render stopped drawing to fetch bytes it needs; `render-start` follows when it draws again. */
+  "render-fetching": { readonly key: string };
   /** A render passed the soft timeout: offer Stop. */
   "render-slow": { readonly id: number; readonly page: number };
   /** An encrypted document's render passed the hard cap: `stop()` would ask for the password again. */
@@ -91,6 +93,12 @@ export interface ViewerCallOptions {
   readonly priority?: Priority;
 }
 
+/** One pending render's soft and hard timers. */
+interface RenderTimers {
+  readonly start: () => void;
+  readonly pause: () => void;
+}
+
 function workerFactory(): Worker {
   return new Worker(new URL("./worker/entry.js", import.meta.url), { type: "module", name: "lamina-viewer" });
 }
@@ -110,8 +118,8 @@ export class ViewerClient {
   #document: OpenedDocument | undefined;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
-  /** Renders waiting to start, by coalescing key: their timers start on `render-start`. */
-  readonly #waiting = new Map<string, Set<() => void>>();
+  /** Each pending render's timers, by coalescing key: started on `render-start`, paused on `render-fetching`. */
+  readonly #timers = new Map<string, Set<RenderTimers>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
   #drawing: string | undefined;
 
@@ -119,23 +127,31 @@ export class ViewerClient {
     this.#pdf = pdf;
     this.#backend = options.backend;
     this.#timeouts = { ...DEFAULT_TIMEOUTS, ...options.timeouts };
-    pdf.on("event", (name, data) => {
-      if (name === "warning") this.#events.emit("warning", data as ViewerEvents["warning"]);
-      else if (name === "progress") this.#events.emit("progress", data as LoadProgress);
-      else if (name === "render-start") {
-        const started = data as ViewerEvents["render-start"];
-        this.#drawing = started.key;
-        for (const start of this.#waiting.get(started.key) ?? []) start();
-        this.#waiting.delete(started.key);
-        this.#events.emit("render-start", started);
-      }
-    });
+    pdf.on("event", (name, data) => this.#onEvent(name, data));
     pdf.on("crashed", (reason) => {
       this.#events.emit("crashed", { reason });
       this.#recover(reason as RestartReason).catch((error) =>
         this.#events.emit("restart-failed", { reason: reason as RestartReason, error }),
       );
     });
+  }
+
+  /** A worker event: forwarded, and for renders, their timers started or paused. */
+  #onEvent(name: string, data: unknown): void {
+    if (name === "warning") this.#events.emit("warning", data as ViewerEvents["warning"]);
+    else if (name === "progress") this.#events.emit("progress", data as LoadProgress);
+    else if (name === "render-start") {
+      const started = data as ViewerEvents["render-start"];
+      this.#drawing = started.key;
+      for (const timers of this.#timers.get(started.key) ?? []) timers.start();
+      this.#events.emit("render-start", started);
+    } else if (name === "render-fetching") {
+      // Fetching isn't drawing: a slow network must not count as a stuck render.
+      const { key } = data as ViewerEvents["render-fetching"];
+      if (this.#drawing === key) this.#drawing = undefined;
+      for (const timers of this.#timers.get(key) ?? []) timers.pause();
+      this.#events.emit("render-fetching", { key });
+    }
   }
 
   /**
@@ -242,7 +258,12 @@ export class ViewerClient {
     const key = renderKey(request, documentId);
     let soft: ReturnType<typeof setTimeout> | undefined;
     let hard: ReturnType<typeof setTimeout> | undefined;
+    const pause = () => {
+      clearTimeout(soft);
+      clearTimeout(hard);
+    };
     const start = () => {
+      pause();
       soft = setTimeout(() => this.#events.emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
       hard = setTimeout(() => {
         if (needsPassword) this.#events.emit("render-stuck", { id, page: request.page, needsPassword: true });
@@ -252,23 +273,25 @@ export class ViewerClient {
           );
       }, this.#timeouts.hard);
     };
-    let waiting = this.#waiting.get(key);
-    if (waiting === undefined) {
-      waiting = new Set();
-      this.#waiting.set(key, waiting);
+    const timers: RenderTimers = { start, pause };
+    let set = this.#timers.get(key);
+    if (set === undefined) {
+      set = new Set();
+      this.#timers.set(key, set);
     }
+    set.add(timers);
     // Joining a render already being drawn: its render-start has passed.
     if (this.#drawing === key) start();
-    else waiting.add(start);
     try {
       return await this.call("render", [request, documentId], { ...options, key });
     } finally {
-      const set = this.#waiting.get(key);
-      set?.delete(start);
-      if (set?.size === 0) this.#waiting.delete(key);
-      if (this.#drawing === key) this.#drawing = undefined;
-      clearTimeout(soft);
-      clearTimeout(hard);
+      const own = this.#timers.get(key);
+      own?.delete(timers);
+      if (own?.size === 0) {
+        this.#timers.delete(key);
+        if (this.#drawing === key) this.#drawing = undefined;
+      }
+      pause();
     }
   }
 

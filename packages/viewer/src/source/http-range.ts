@@ -31,7 +31,7 @@ export interface HttpRangeByteSourceOptions {
   readonly maxWholeBytes?: number;
   /** Skip the browser's HTTP cache (default true). */
   readonly noStore?: boolean;
-  /** Called after each fetch with the bytes fetched so far and the file's size. */
+  /** Called after each fetch with the bytes received so far and the file's size. */
   readonly onProgress?: (progress: { readonly loaded: number; readonly total: number }) => void;
   /** Aborts the probe. */
   readonly signal?: AbortSignal;
@@ -41,12 +41,19 @@ export interface HttpRangeByteSourceOptions {
 
 const DEFAULTS = { blockSize: 65_536, readahead: 1, cacheBytes: 64 * 1024 * 1024, maxWholeBytes: 256 * 1024 * 1024 };
 
+/** What the source's fetch reports: bytes received, and that the server sent the whole file. */
+interface FetchHooks {
+  readonly received: (bytes: number) => void;
+  readonly whole: () => void;
+}
+
 /**
  * The fetch every request of the source goes through: no cookies or credentials, no referrer, no
- * HTTP cache unless asked, CORS mode. A full answer larger than `maxWholeBytes` is refused before
- * its body is read; `onWhole` hears that the server sent the whole file.
+ * HTTP cache unless asked, CORS mode. Each answer's body is counted as it arrives (the source's
+ * progress), and a full answer is cut off past `maxWholeBytes`, whether it says its length or not
+ * (chunked, or compressed so that its length isn't the file's).
  */
-function privateFetch(base: typeof fetch, noStore: boolean, maxWholeBytes: number, onWhole: () => void): typeof fetch {
+function privateFetch(base: typeof fetch, noStore: boolean, maxWholeBytes: number, hooks: FetchHooks): typeof fetch {
   return async (input, init) => {
     const response = await base(input, {
       ...init,
@@ -55,15 +62,32 @@ function privateFetch(base: typeof fetch, noStore: boolean, maxWholeBytes: numbe
       mode: "cors",
       ...(noStore ? { cache: "no-store" } : {}),
     });
-    if (response.status === 200) {
+    const whole = response.status === 200;
+    if (whole) {
       const length = Number(response.headers.get("Content-Length") ?? Number.NaN);
       if (Number.isFinite(length) && length > maxWholeBytes) {
         await response.body?.cancel();
         throw tooLarge(length, maxWholeBytes);
       }
-      onWhole();
+      hooks.whole();
     }
-    return response;
+    if (response.body === null) return response;
+    let total = 0;
+    const counted = response.body.pipeThrough(
+      new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          total += chunk.length;
+          if (whole && total > maxWholeBytes) {
+            controller.error(tooLarge(total, maxWholeBytes));
+            return;
+          }
+          hooks.received(chunk.length);
+          controller.enqueue(chunk);
+        },
+      }),
+    );
+    const { status, statusText, headers } = response;
+    return new Response(counted, { status, statusText, headers });
   };
 }
 
@@ -118,12 +142,20 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
    */
   static async open(url: string, options: HttpRangeByteSourceOptions = {}): Promise<HttpRangeByteSource> {
     let whole = false;
+    let received = 0;
+    let source: HttpRangeByteSource | undefined;
     const fetcher = privateFetch(
       options.fetch ?? fetch,
       options.noStore ?? true,
       options.maxWholeBytes ?? DEFAULTS.maxWholeBytes,
-      () => {
-        whole = true;
+      {
+        received: (bytes) => {
+          received += bytes;
+          if (source !== undefined) source.#loaded = received;
+        },
+        whole: () => {
+          whole = true;
+        },
       },
     );
     const inner = await httpRangeSource(url, {
@@ -133,14 +165,11 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
     }).catch((e: unknown) => {
       throw unwrapCap(e);
     });
-    const source = new HttpRangeByteSource(inner, options);
-    if (whole) {
-      // The probe's answer was the file: httpRangeSource holds it, and this reads it back once.
-      source.#whole = await inner.read(0, inner.size);
-      source.#progress(inner.size);
-    } else {
-      source.#progress(Math.min(inner.size, 65_536));
-    }
+    source = new HttpRangeByteSource(inner, options);
+    source.#loaded = received;
+    // The probe's answer was the file: httpRangeSource holds it, and this reads it back once.
+    if (whole) source.#whole = await inner.read(0, inner.size);
+    source.#progress();
     return source;
   }
 
@@ -149,7 +178,7 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
     return this.#whole;
   }
 
-  /** Bytes read from the remote file so far (the probe's included), re-reads of evicted blocks too. */
+  /** Bytes received from the network so far (the probe's included), re-fetches of evicted blocks too. */
   get loaded(): number {
     return this.#loaded;
   }
@@ -244,7 +273,7 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
           const at = index * this.blockSize - start;
           this.#store(index, bytes.slice(at, Math.min(bytes.length, at + this.blockSize)));
         }
-        this.#progress(bytes.length);
+        this.#progress();
       },
       (e: unknown) => {
         throw unwrapCap(e);
@@ -285,8 +314,7 @@ export class HttpRangeByteSource implements RangeSource, RenderSource {
     }
   }
 
-  #progress(bytes: number): void {
-    this.#loaded += bytes;
+  #progress(): void {
     this.#onProgress?.({ loaded: this.#loaded, total: this.size });
   }
 }
