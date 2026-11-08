@@ -4,7 +4,9 @@
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
 //! smoke's figures (`LAMINA_PDF_MEASUREMENT {json}` lines), which this task collects into
 //! `target/xtask/pdf-runtimes/measurements.json` (`measurements-<label>.json` with `--label`)
-//! and a job-summary table against the §4 targets.
+//! and a job-summary table against the §4 targets, and the runtimes whose example suite passed and
+//! failed into `runtimes.json` (`runtimes-<label>.json`; [`RuntimeResults`], which `cargo xtask
+//! proof` reads).
 //! The targets are reported, never asserted. `--history <dir> --runner <label> --record` appends
 //! the figures to the nightly benchmark history (`<dir>/history.jsonl`, the record format of
 //! `cargo xtask bench`).
@@ -17,6 +19,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::util::summary;
@@ -24,7 +27,19 @@ use crate::workspace::Workspace;
 use crate::{program_path, step};
 
 /// Every runtime, in the order a full run takes them.
-const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
+pub(crate) const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
+
+/// Where the task writes, relative to the workspace root.
+pub(crate) const OUT_DIR: &str = "target/xtask/pdf-runtimes";
+
+/// `runtimes.json`: which runtimes' example suite passed, byte for byte against the Rust goldens.
+/// A browser's render suites run after its example suite; their failure fails the task and drops
+/// its measurements, but leaves the runtime under `passed`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct RuntimeResults {
+    pub(crate) passed: Vec<String>,
+    pub(crate) failed: Vec<String>,
+}
 
 /// The prefix of a measurement line (`MEASUREMENT_PREFIX` in packages/sdk/test/suite/examples.ts).
 const PREFIX: &str = "LAMINA_PDF_MEASUREMENT ";
@@ -189,7 +204,8 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 /// (C3a, built first), `@laminapdf/tokens`' high-contrast theme, whose system colours only a browser resolves
 /// (U6a), `@laminapdf/fonts`' faces (U6b: what a page fetches, all from its own origin), `@laminapdf/icons`'
 /// React `<Icon>` and gallery (U6c), `@laminapdf/ui`'s components (U6d), `@laminapdf/site-kit`'s site
-/// header (W1d: keyboard order, the current page, phone width, axe), and the reader app (`apps/web`,
+/// header (W1d: keyboard order, the current page, phone width, axe), the docs' diagrams (contrast in the
+/// light, dark and high-contrast themes and with forced colours, the 12 px label floor), and the reader app (`apps/web`,
 /// C4b): typechecked and built over the packages above, then its e2e suite against `wrangler dev`
 /// (headers, local files opened four ways, CSP violations and other origins). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
@@ -203,6 +219,7 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
         "@laminapdf/icons",
         "@laminapdf/ui",
         "@laminapdf/site-kit",
+        "@laminapdf/docs",
     ] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));
@@ -253,6 +270,9 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
 /// builds `packages/wasm/dist/` and `packages/sdk/dist/`); installs the Playwright browsers it
 /// needs (`playwright install`, a no-op when they are present).
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
+    let out_dir = ws.root.join(OUT_DIR);
+    // An earlier run's results must not stand in for this one if it stops before writing them.
+    forget_results(&out_dir, args.label.as_deref())?;
     ws.require_node_modules()?;
     for dist in [
         "packages/wasm/dist/lamina_pdf_text.wasm",
@@ -265,7 +285,9 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     }
     let mut measurements = Vec::new();
     let mut failed = Vec::new();
+    let mut results = RuntimeResults::default();
     for &runtime in &args.runtimes {
+        let mut example_passed = false;
         let result = (|| -> Result<Vec<Measurement>> {
             if matches!(runtime, "chromium" | "firefox" | "webkit") {
                 crate::run(
@@ -289,11 +311,18 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
             for command in commands(runtime)? {
                 found.extend(parse_measurements(&run_captured(ws, &command)?)?);
             }
+            // The example suite passed; a browser's suites below can still fail the runtime.
+            example_passed = !found.is_empty();
             if matches!(runtime, "chromium" | "firefox" | "webkit") {
                 render_suites(ws, runtime)?;
             }
             Ok(found)
         })();
+        if example_passed {
+            results.passed.push(runtime.to_owned());
+        } else {
+            results.failed.push(runtime.to_owned());
+        }
         match result {
             Ok(found) if found.is_empty() => {
                 eprintln!("pdf-runtimes: {runtime} printed no measurements");
@@ -306,8 +335,11 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
             }
         }
     }
-    let out_dir = ws.root.join("target/xtask/pdf-runtimes");
     fs::create_dir_all(&out_dir)?;
+    fs::write(
+        out_dir.join(results_file(args.label.as_deref())),
+        serde_json::to_string_pretty(&results)? + "\n",
+    )?;
     fs::write(
         out_dir.join(measurements_file(args.label.as_deref())),
         serde_json::to_string_pretty(&measurements.iter().map(Measurement::json).collect::<Vec<_>>())? + "\n",
@@ -338,6 +370,22 @@ fn measurements_file(label: Option<&str>) -> String {
         || "measurements.json".to_owned(),
         |label| format!("measurements-{label}.json"),
     )
+}
+
+/// The results file's name: `runtimes.json`, or `runtimes-<label>.json`.
+pub(crate) fn results_file(label: Option<&str>) -> String {
+    label.map_or_else(|| "runtimes.json".to_owned(), |label| format!("runtimes-{label}.json"))
+}
+
+/// Removes `dir`'s results file for `label` from an earlier run.
+fn forget_results(dir: &Path, label: Option<&str>) -> Result<()> {
+    let path = dir.join(results_file(label));
+    match fs::remove_file(&path) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            Err(e).with_context(|| format!("removing {}", path.display()))
+        }
+        _ => Ok(()),
+    }
 }
 
 /// `value` against an upper `target`: a mark when it misses (reported, not a failure).
@@ -493,6 +541,30 @@ mod tests {
     #[test]
     fn no_label_should_keep_the_default_measurements_file() {
         assert_eq!(measurements_file(None), "measurements.json");
+    }
+
+    #[test]
+    fn forget_results_should_remove_only_its_labels_file() {
+        let dir = std::env::temp_dir().join(format!("xtask-runtimes-forget-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("runtimes-linux.json"), "{}").unwrap();
+        fs::write(dir.join("runtimes-webkit.json"), "{}").unwrap();
+        forget_results(&dir, Some("linux")).unwrap();
+        let kept = (
+            dir.join("runtimes-linux.json").exists(),
+            dir.join("runtimes-webkit.json").exists(),
+        );
+        let missing_is_fine = forget_results(&dir, None).is_ok();
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!((kept, missing_is_fine), ((false, true), true));
+    }
+
+    #[test]
+    fn a_label_should_name_the_results_file_too() {
+        assert_eq!(
+            [results_file(None), results_file(Some("webkit"))],
+            ["runtimes.json", "runtimes-webkit.json"]
+        );
     }
 
     #[test]

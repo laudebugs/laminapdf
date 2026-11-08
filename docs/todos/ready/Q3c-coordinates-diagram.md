@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/q3c-coordinates-diagram` |
 | PR title | `feat(docs): a diagram for page space and PDF user space` |
@@ -37,7 +37,8 @@ Readers place text with `at: [72, 96]` and need to know where that lands. PDF's 
 
 - [ ] `components/diagrams/PageSpace.astro` with the two panels side by side, stacked at phone width.
 - [ ] Place panel one under "The top-left corner of the page you see" and repeat the figure's second panel under "PDF's own coordinates", or place the whole figure once where the page first compares the two (decide by reading the page).
-- [ ] Use the kit's `PageSheet` so the page looks like a page in a viewer; axes in `text-2`, the point in `accent`.
+- [ ] `components/diagrams/kit/PageSheet.astro`: a page outline with the `page-paper` ground and `page-ink` marks, so the page looks like a page in a viewer (Q3e's reading-order sketch reuses it).
+- [ ] Use `PageSheet` for the page; axes in `text-2`, the point in `accent`.
 
 ## Acceptance criteria
 

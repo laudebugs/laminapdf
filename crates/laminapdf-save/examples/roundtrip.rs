@@ -1,6 +1,7 @@
 //! Writes the Lamina PDF half of the round-trip suite (`tests/common/roundtrip.rs`) to
-//! `<out-dir>`: every saved output and `manifest.json`, which `cargo xtask roundtrip` then
-//! checks with qpdf, pdf.js and `PDFium`. Fails when a case's outcome or reopened facts were
+//! `<out-dir>`: every saved output and `manifest.json` (the saved cases, and how many cases saved
+//! and how many were refused as expected), which `cargo xtask roundtrip` then checks with qpdf,
+//! pdf.js and `PDFium`. Fails when a case's outcome or reopened facts were
 //! wrong.
 //!
 //! ```sh
@@ -26,7 +27,11 @@ fn main() {
     for (file, bytes) in &suite.outputs {
         std::fs::write(out.join(file), bytes).unwrap();
     }
-    let manifest = serde_json::json!({ "cases": suite.manifest });
+    let manifest = serde_json::json!({
+        "cases": suite.manifest,
+        "saved": suite.saved,
+        "refused": suite.refused,
+    });
     std::fs::write(
         out.join("manifest.json"),
         serde_json::to_string_pretty(&manifest).unwrap(),

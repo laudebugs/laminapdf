@@ -1,0 +1,15 @@
+---
+// A dashed frame around the parts of one thing (a document, a Web Worker), with its title in
+// sentence case; diagrams.css sets it as an overline, in capitals.
+interface Props {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title: string;
+}
+const { x, y, w, h, title } = Astro.props;
+---
+
+<rect class="dg-lane" x={x} y={y} width={w} height={h} rx="6"></rect>
+<text class="dg-title" x={x + 16} y={y + 24}>{title}</text>
