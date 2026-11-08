@@ -2,12 +2,13 @@
 //! PDF/UA-1 where a paragraph runs from page 1 to page 2 and a table from page 2 to page 3, each
 //! one element ([`Surface::open_element`], [`Surface::resume`], [`Builder::close_element`]).
 //! The paragraph holds a link on page 2; the table's rows are elements of their own pages inside
-//! it. Every page has a running footer: a pagination artifact with the footer subtype, attached to
-//! the bottom edge.
+//! it. Page 3 ends with the `flow-layout` spike's Arabic sentence, whose diacritics and dotted
+//! letters draw some characters as several glyphs. Every page has a running footer: a pagination
+//! artifact with the footer subtype, attached to the bottom edge.
 
 use laminapdf_build::{
     Artifact, BuildOptions, Builder, ElementId, FontHandle, LinkTarget, Metadata, PageSize, Profile, Result, Surface,
-    TableScope, Tag, TagKind,
+    TableScope, Tag, TagKind, TextBoxOptions,
 };
 use laminapdf_model::{PointPt, Pt, RectPt};
 
@@ -28,6 +29,10 @@ pub const ROWS: [&[[&str; 2]]; 2] = [
     &[["Quarter", "Sales"], ["Q1", "1,200"]],
     &[["Q2", "3,100"], ["Q3", "2,800"]],
 ];
+
+/// The `flow-layout` spike's Arabic sentence (`spikes/flow-layout/src/inputs.rs`), on page 3.
+pub const ARABIC: &str = "تُظهر هذه الفقرة أن النص العربي يُشكَّل ويُرتَّب من اليمين إلى اليسار، \
+                          وأن الحروف تتصل كما ينبغي في كل سطر من الأسطر.";
 
 const SIZE: f64 = 11.0;
 
@@ -102,9 +107,15 @@ fn second_page(s: &mut Surface, font: &FontHandle, paragraph: ElementId) -> Resu
     Ok(table)
 }
 
-fn third_page(s: &mut Surface, font: &FontHandle, table: ElementId) -> Result<()> {
+fn third_page(s: &mut Surface, fonts: (&FontHandle, &FontHandle), table: ElementId) -> Result<()> {
+    let (font, arabic) = fonts;
     s.resume(table, |s| rows(s, font, ROWS[1], false, 72.0))?;
     s.tag(TagKind::P, |s| line(s, "The table ends here.", font, (72.0, 140.0)))?;
+    let r = RectPt::from_xywh(Pt::new(72.0), Pt::new(180.0), Pt::new(450.0), Pt::new(120.0));
+    s.tag(Tag::new(TagKind::P).with_lang("ar"), |s| {
+        let options = TextBoxOptions::default().with_language("ar");
+        s.text_box(ARABIC, arabic, Pt::new(14.0), r, &options).map(|_| ())
+    })?;
     footer(s, font, 3)
 }
 
@@ -119,6 +130,7 @@ pub fn across_pages_builder() -> Builder {
             .with_profile(Profile::PdfUa1),
     );
     let noto = b.font(font("NotoSans-Regular.ttf")).unwrap();
+    let arabic = b.font(font("NotoSansArabic-Regular.ttf")).unwrap();
     let mut page = b.page(PageSize::A4);
     let paragraph = first_page(page.surface(), &noto).unwrap();
     page.finish().unwrap();
@@ -127,7 +139,7 @@ pub fn across_pages_builder() -> Builder {
     page.finish().unwrap();
     b.close_element(paragraph).unwrap();
     let mut page = b.page(PageSize::A4);
-    third_page(page.surface(), &noto, table).unwrap();
+    third_page(page.surface(), (&noto, &arabic), table).unwrap();
     page.finish().unwrap();
     b.close_element(table).unwrap();
     b.metadata(Metadata::default().with_title("Sales across pages"))

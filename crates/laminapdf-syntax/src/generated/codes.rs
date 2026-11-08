@@ -750,7 +750,7 @@ impl ErrorCode {
             Self::LinkWithoutStructure => "draw links outside artifacts, so the builder gives each one a Link element",
             Self::LinkWithoutContents => "pass a description as the link's contents",
             Self::FontNotEmbedded => "load a font file with Builder::font instead of Builder::standard_font",
-            Self::GlyphWithoutUnicode => "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
+            Self::GlyphWithoutUnicode => "remove NUL characters (U+0000) from the text, or choose PDF/A-2b, which doesn't need Unicode",
             Self::DeviceColorWithoutOutputIntent => "use RGB or gray colours, or a CMYK colour with an ICC profile (Color::icc)",
             Self::EmbeddedFileForbidden => "choose PDF/A-3b, which allows attached files of any kind",
             Self::EmbeddedFileWithoutMimeType => "pass the file's MIME type, such as text/xml or application/octet-stream",

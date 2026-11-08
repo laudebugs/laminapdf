@@ -626,7 +626,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "link-without-structure": "draw links outside artifacts, so the builder gives each one a Link element",
   "link-without-contents": "pass a description as the link's contents",
   "font-not-embedded": "load a font file with Builder::font instead of Builder::standard_font",
-  "glyph-without-unicode": "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
+  "glyph-without-unicode": "remove NUL characters (U+0000) from the text, or choose PDF/A-2b, which doesn't need Unicode",
   "device-color-without-output-intent": "use RGB or gray colours, or a CMYK colour with an ICC profile (Color::icc)",
   "embedded-file-forbidden": "choose PDF/A-3b, which allows attached files of any kind",
   "embedded-file-without-mime-type": "pass the file's MIME type, such as text/xml or application/octet-stream",

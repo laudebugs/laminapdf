@@ -15,7 +15,7 @@ mod common;
 
 use std::collections::BTreeMap;
 
-use common::across_pages::{LINK, tagged_across_pages};
+use common::across_pages::{ARABIC, LINK, tagged_across_pages};
 use common::{reopen, save, text_and_navigation::font};
 use laminapdf_build::{
     ArtifactKind, BuildOptions, Builder, Error, FontHandle, LinkTarget, PageSize, Standard14, Surface, TagKind,
@@ -66,7 +66,7 @@ fn the_paragraph_is_one_element_with_content_on_both_pages() {
     let paragraphs = find(&tree, "P");
     assert_eq!(
         (paragraphs.len(), mcid_pages(paragraphs[0], &page_ids(&doc))),
-        (2, vec![0, 1])
+        (3, vec![0, 1])
     );
 }
 
@@ -130,6 +130,43 @@ fn the_link_on_the_second_page_is_an_objr_with_that_page() {
         _ => None,
     };
     assert_eq!((objr_page, contents), (Some(1), Some(LINK.as_bytes().to_vec())));
+}
+
+/// `text` without whitespace and bidi controls, as the extraction differential compares text.
+fn bare(text: &str) -> String {
+    text.chars()
+        .filter(|c| {
+            !c.is_whitespace()
+                && !matches!(c, '\u{200E}' | '\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
+        })
+        .collect()
+}
+
+/// The sentence draws dotted letters as a body and a dot that stands for no character, and its
+/// diacritics as marks: under PDF/UA-1 the build passes, every glyph has a Unicode value (the dot
+/// the empty one), and the page gives each character back once, letters in order. (Where a
+/// zero-width mark goes is the reader's guess from its position: pdf.js puts every one back on
+/// its letter; Lamina PDF's own extraction moves one damma to the next letter.)
+#[test]
+fn the_arabic_sentence_reads_back_every_character_once() {
+    let doc = reopen(&fixture("golden/tagged-across-pages.pdf"));
+    let pages = doc.pages().unwrap();
+    let text = laminapdf_text::TextExtractor::new()
+        .page(&doc, &pages.get(2).unwrap())
+        .unwrap();
+    let arabic: String = text
+        .lines()
+        .into_iter()
+        .filter(|l| l.chars().any(|c| ('\u{600}'..='\u{6FF}').contains(&c)))
+        .collect();
+    let is_mark = |c: &char| ('\u{64B}'..='\u{652}').contains(c);
+    let split = |t: &str| {
+        let bare = bare(t);
+        let mut marks: Vec<char> = bare.chars().filter(is_mark).collect();
+        marks.sort_unstable();
+        (bare.chars().filter(|c| !is_mark(c)).collect::<String>(), marks)
+    };
+    assert_eq!((text.unmapped, split(&arabic)), (0, split(ARABIC)));
 }
 
 #[test]

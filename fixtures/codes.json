@@ -847,7 +847,7 @@
       "code": "glyph-without-unicode",
       "kind": "usage",
       "summary": "a glyph was drawn without a Unicode value, which PDF/A-2u and PDF/UA-1 forbid",
-      "hint": "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
+      "hint": "remove NUL characters (U+0000) from the text, or choose PDF/A-2b, which doesn't need Unicode",
       "since": "0.2.0"
     },
     {
