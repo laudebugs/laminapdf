@@ -105,6 +105,13 @@ describe("ReaderController", () => {
     expect(controller.getState().phase).toBe("empty");
   });
 
+  it("keeps the error's data, which says why a fetch failed", async () => {
+    const error = Object.assign(coded("fetch-failed"), { data: { reason: "network" } });
+    const controller = new ReaderController(fakePlatform(), scripted(error).opener);
+    await controller.open(fakeFile());
+    expect(controller.getState()).toMatchObject({ error: { code: "fetch-failed", data: { reason: "network" } } });
+  });
+
   it("calls anything thrown without a code unknown", async () => {
     const opener: Opener = () => Promise.reject("worker gone");
     const controller = new ReaderController(fakePlatform(), opener);

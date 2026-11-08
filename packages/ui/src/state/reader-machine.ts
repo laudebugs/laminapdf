@@ -15,10 +15,12 @@ export type ReaderState =
 /** How pointer input on the page is read. Only selection in v0.1. */
 export type InteractionMode = "select";
 
-/** Why a document couldn't open: its error code (ADR 0026), and its message for the log. */
+/** Why a document couldn't open: its error code (ADR 0026), its message for the log and its `data`. */
 export interface ReaderError {
   readonly code: string;
   readonly message: string;
+  /** The error's code-specific fields (`fetch-failed`'s `reason` …), when it has them. */
+  readonly data?: Readonly<Record<string, unknown>>;
 }
 
 /** What can happen to the reader. */

@@ -14,7 +14,12 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: ([source, options], { signal }) => openDocument(source as SourceInit, options as ViewerOpenOptions, signal),
   },
   closeDocument: { run: () => closeDocument() },
-  pageInfo: { run: ([index]) => current().model.pageInfo(index as number) },
+  pageInfo: {
+    run: ([index], { signal }) => {
+      const { model } = current();
+      return model.ensure(() => model.pageInfo(index as number), { signal });
+    },
+  },
   render: {
     run: ([request, id], { signal }) => render(request as RenderRequest, id as number, signal),
     reply: (tile) => reply(tile as Parameters<typeof reply>[0]),
