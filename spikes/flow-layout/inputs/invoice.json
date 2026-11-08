@@ -1,0 +1,208 @@
+{
+ "number": "2026-0417",
+ "seller": "Lamina Studio Ltd",
+ "buyer": "Example Publishing GmbH",
+ "date": "2026-11-08",
+ "items": [
+  {
+   "description": "Consulting, week 1: layout",
+   "qty": 3,
+   "unitCents": 13337
+  },
+  {
+   "description": "Consulting, week 2: fonts",
+   "qty": 5,
+   "unitCents": 14674
+  },
+  {
+   "description": "Consulting, week 3: accessibility",
+   "qty": 2,
+   "unitCents": 16011
+  },
+  {
+   "description": "Consulting, week 4: export",
+   "qty": 4,
+   "unitCents": 17348
+  },
+  {
+   "description": "Consulting, week 5: review",
+   "qty": 1,
+   "unitCents": 18685
+  },
+  {
+   "description": "Consulting, week 6: layout",
+   "qty": 3,
+   "unitCents": 20022
+  },
+  {
+   "description": "Consulting, week 7: fonts",
+   "qty": 5,
+   "unitCents": 12359
+  },
+  {
+   "description": "Consulting, week 8: accessibility",
+   "qty": 2,
+   "unitCents": 13696
+  },
+  {
+   "description": "Consulting, week 9: export",
+   "qty": 4,
+   "unitCents": 15033
+  },
+  {
+   "description": "Consulting, week 10: review",
+   "qty": 1,
+   "unitCents": 16370
+  },
+  {
+   "description": "Consulting, week 11: layout",
+   "qty": 3,
+   "unitCents": 17707
+  },
+  {
+   "description": "Consulting, week 12: fonts",
+   "qty": 5,
+   "unitCents": 19044
+  },
+  {
+   "description": "Consulting, week 13: accessibility",
+   "qty": 2,
+   "unitCents": 20381
+  },
+  {
+   "description": "Consulting, week 14: export",
+   "qty": 4,
+   "unitCents": 12718
+  },
+  {
+   "description": "Consulting, week 15: review",
+   "qty": 1,
+   "unitCents": 14055
+  },
+  {
+   "description": "Consulting, week 16: layout",
+   "qty": 3,
+   "unitCents": 15392
+  },
+  {
+   "description": "Consulting, week 17: fonts",
+   "qty": 5,
+   "unitCents": 16729
+  },
+  {
+   "description": "Consulting, week 18: accessibility",
+   "qty": 2,
+   "unitCents": 18066
+  },
+  {
+   "description": "Consulting, week 19: export",
+   "qty": 4,
+   "unitCents": 19403
+  },
+  {
+   "description": "Consulting, week 20: review",
+   "qty": 1,
+   "unitCents": 20740
+  },
+  {
+   "description": "Consulting, week 21: layout",
+   "qty": 3,
+   "unitCents": 13077
+  },
+  {
+   "description": "Consulting, week 22: fonts",
+   "qty": 5,
+   "unitCents": 14414
+  },
+  {
+   "description": "Consulting, week 23: accessibility",
+   "qty": 2,
+   "unitCents": 15751
+  },
+  {
+   "description": "Consulting, week 24: export",
+   "qty": 4,
+   "unitCents": 17088
+  },
+  {
+   "description": "Consulting, week 25: review",
+   "qty": 1,
+   "unitCents": 18425
+  },
+  {
+   "description": "Consulting, week 26: layout",
+   "qty": 3,
+   "unitCents": 19762
+  },
+  {
+   "description": "Consulting, week 27: fonts",
+   "qty": 5,
+   "unitCents": 12099
+  },
+  {
+   "description": "Consulting, week 28: accessibility",
+   "qty": 2,
+   "unitCents": 13436
+  },
+  {
+   "description": "Consulting, week 29: export",
+   "qty": 4,
+   "unitCents": 14773
+  },
+  {
+   "description": "Consulting, week 30: review",
+   "qty": 1,
+   "unitCents": 16110
+  },
+  {
+   "description": "Consulting, week 31: layout",
+   "qty": 3,
+   "unitCents": 17447
+  },
+  {
+   "description": "Consulting, week 32: fonts",
+   "qty": 5,
+   "unitCents": 18784
+  },
+  {
+   "description": "Consulting, week 33: accessibility",
+   "qty": 2,
+   "unitCents": 20121
+  },
+  {
+   "description": "Consulting, week 34: export",
+   "qty": 4,
+   "unitCents": 12458
+  },
+  {
+   "description": "Consulting, week 35: review",
+   "qty": 1,
+   "unitCents": 13795
+  },
+  {
+   "description": "Consulting, week 36: layout",
+   "qty": 3,
+   "unitCents": 15132
+  },
+  {
+   "description": "Consulting, week 37: fonts",
+   "qty": 5,
+   "unitCents": 16469
+  },
+  {
+   "description": "Consulting, week 38: accessibility",
+   "qty": 2,
+   "unitCents": 17806
+  },
+  {
+   "description": "Consulting, week 39: export",
+   "qty": 4,
+   "unitCents": 19143
+  },
+  {
+   "description": "Consulting, week 40: review",
+   "qty": 1,
+   "unitCents": 20480
+  }
+ ]
+}
