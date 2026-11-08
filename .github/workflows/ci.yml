@@ -61,6 +61,7 @@ jobs:
         uses: ./.github/actions/host-rust
         with:
           cache: true
+          shared-key: xtask
       - name: Classify the changed paths
         if: github.event_name == 'pull_request'
         id: pr
@@ -96,7 +97,7 @@ jobs:
         with:
           cache: true
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-shared-key: rust
           cache-bin: false
       - name: Verify the Rust compiler runs natively
         env:
@@ -156,7 +157,7 @@ jobs:
         with:
           cache: true
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-shared-key: wasm
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs (wasm-bindgen-cli = the crate in Cargo.lock);
       # xtask fails if they drift. binaryen's wasm-opt is fetched by `cargo xtask wasm` itself
@@ -227,6 +228,8 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          shared-key: xtask
+          save: "false"
       # Deno, Bun and wrangler (workerd) are dev dependencies of @laminapdf/sdk.
       - uses: ./.github/actions/node-pnpm
       - name: Keep the Playwright browsers in the runner's tool cache
@@ -380,6 +383,8 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          shared-key: xtask
+          save: "false"
       - run: cargo xtask check ts
 
   # The fast lane's required check (todo X7): every job above passed, or was skipped on a

@@ -35,7 +35,10 @@ See [GitHub's hosted runner reference](https://docs.github.com/en/actions/refere
 - Rust uses the pinned toolchain, explicit cross targets and architecture-specific caches.
   Only main saves Rust caches. Pull requests can restore main's dependencies;
   [GitHub scopes their caches to their merge refs](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#restrictions-for-accessing-a-cache), so main cannot restore a fork PR's cache.
-- Node and pnpm use the repository pins and lockfile-keyed caches. The old persistent
+- Node and pnpm use the repository pins and a lockfile-keyed pnpm store that, like the Rust
+  caches, only main saves. Jobs that build the same Rust share one cache per system
+  (`rust`, `wasm`, `xtask`), and one job saves each. The repository's cache holds 10 GB, and
+  every pull request saving its own copies used to push main's caches out. The old persistent
   pnpm store and Rust-home isolation action are no longer used.
 - PDF suites install checksum-verified qpdf 12.4.2 and Python 3.13 explicitly.
   veraPDF installs Java 21. The text differential builds Poppler 26.10.0 from its

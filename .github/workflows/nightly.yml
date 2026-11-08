@@ -133,6 +133,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          save: "false"
       # Corpus checkouts are fetched and SHA-256 verified on each fresh VM.
       - name: Point xtask at the corpus folder and the venv
         run: |
@@ -202,6 +203,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          save: "false"
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
@@ -259,6 +261,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          save: "false"
       # cargo test --release -- --ignored; a failure is retried once and a pass on retry is
       # reported as flaky (flaky=true), never hidden (ADR 0018 §4).
       - id: scaling
@@ -289,6 +292,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          save: "false"
       # history.jsonl on the orphan bench-data branch: one record per night (commit, runner,
       # ns/iter per benchmark). Created by the first run on main. The token goes only to the
       # bench-history steps, never to the step that builds and runs the benchmarks.
@@ -355,8 +359,8 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-save-if: false
+          cache-shared-key: wasm
           cache-bin: false
       # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
       - uses: ./.github/actions/install-tools
@@ -419,6 +423,8 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          shared-key: xtask
+          save: "false"
       # curl per URL: HEAD, then a one-byte GET if HEAD is refused; timeouts, 429 and 5xx are
       # retried once and a pass on retry is reported as flaky (flaky=true). A final 403 or 429 is
       # refused (a warning). A missing page or site (404, 410, no answer) doesn't fail the job:
@@ -458,6 +464,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          save: "false"
       - name: Point xtask at the corpus folder
         run: echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
       - run: cargo xtask corpus fetch
@@ -503,6 +510,7 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: true
+          save: "false"
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin

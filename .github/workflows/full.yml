@@ -64,6 +64,8 @@ jobs:
         uses: ./.github/actions/host-rust
         with:
           cache: true
+          shared-key: xtask
+          save: "false"
       - name: Classify the changed paths
         if: github.event_name == 'pull_request'
         id: pr
@@ -161,10 +163,11 @@ jobs:
       # Installs exactly what rust-toolchain.toml pins.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          # Dependencies' build output and the registry. Only pushes to main save it (PR caches
-          # are scoped to their PR anyway; this keeps them from filling the repository's quota).
+          # ci.yml's Rust job's linux-arm64 leg builds the same and saves this cache on main; this
+          # job only restores it (one cache, not two copies of about 600 MB).
           cache: true
-          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-save-if: false
+          cache-shared-key: rust
           # The tools come from install-tools below on every run.
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.

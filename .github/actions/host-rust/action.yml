@@ -4,6 +4,18 @@ inputs:
   cache:
     description: Restore Rust dependencies; only main saves the cache.
     required: true
+  shared-key:
+    description: >-
+      One cache for every job that builds the same thing (rust-cache's `shared-key`, still per OS
+      and CPU); empty keeps a cache per job.
+    required: false
+    default: ""
+  save:
+    description: >-
+      "false" only restores, for a job that shares another job's key and builds less than it
+      (the first save wins, so only the job that builds the most saves).
+    required: false
+    default: "true"
 runs:
   using: composite
   steps:
@@ -21,8 +33,9 @@ runs:
     - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
       with:
         cache: ${{ inputs.cache }}
-        cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+        cache-save-if: ${{ github.ref == 'refs/heads/main' && inputs.save == 'true' }}
         cache-key: ${{ runner.os }}-${{ runner.arch }}
+        cache-shared-key: ${{ inputs.shared-key }}
         cache-bin: false
         toolchain: ${{ steps.rust.outputs.channel }}
         components: ""
