@@ -1,6 +1,6 @@
 # 0030 — Extraction output (`laminapdf.extract/1`) and model plug-ins
 
-- Status: Accepted (2026-11-04, when L3a's PR merges)
+- Status: Accepted (2026-11-04, when L3a's PR merges); §6 amended 2026-11-08 by [L3c](../todos/done/L3c-model-plugins.md)
 - Date: 2026-11-04
 
 ## Context
@@ -79,10 +79,18 @@ The last two are approximations, and both lean towards keeping text: a false neg
 ### 6. Rules in the core, models as plug-ins
 
 - **The core is rules only.** `laminapdf-extract` is a core crate: bytes in, bytes out, no weights, no network, no clocks, no threads ([ADR 0001](0001-core-language-and-licence.md)).
-- **Models plug in through traits** that [L3c](../todos/ongoing/L3c-model-plugins.md) defines (`LayoutModel`, `OcrEngine`), implemented in edge crates or packages, never in a core crate.
+- **Models plug in through traits** that [L3c](../todos/done/L3c-model-plugins.md) defines (`LayoutModel`, `OcrEngine`), implemented in edge crates or packages, never in a core crate.
 - **Weights are never in the repository or in a published crate or package.** A plug-in downloads them on first use or takes them from the caller, and pins them by SHA-256.
 - **Licences:** a model is allowed only when its code *and* its weights are permissive (Apache-2.0, MIT, BSD, or a licence the [supply-chain policy](0019-supply-chain-and-licence-hygiene.md) admits). MinerU, Marker and Surya weights, and PyMuPDF are excluded.
 - **Every model used is named** in `generator.models` with its version and weight hash, and `generator.mode` becomes `"rules+models"`, so an output always says how it was made.
+
+The amendment of 2026-11-08 ([L3c](../todos/done/L3c-model-plugins.md)) records how the plug-ins work:
+
+- **Two traits, one raster.** `LayoutModel::detect` returns regions (11 labels: text, title, section header, list item, table, picture, caption, footnote, formula, page header, page footer, and other) and `OcrEngine::recognise` returns words, each with a box in page space ([ADR 0027](0027-coordinates-units-and-page-indexing.md)) and a score. Both read a `PageRaster`: straight RGBA rows with the page box they show. The core never renders; a `PageRenderer` the caller supplies does. Each trait's `info()` gives the `generator.models` entry: name, version, weights' SHA-256 and licence.
+- **Request and provide.** A model is either a plug-in the job calls itself, when the caller also gives a renderer, or the host's: then the job stops at each page that needs a result, with `request()` naming the page, the resolution and the model, and goes on once `provide(result)` answers it. Swift `async`, Kotlin `suspend`, a JavaScript promise or a worker can run the model without the core calling back into them, so the path needs neither UniFFI's foreign traits nor callbacks across WASM. The sync path is a thin adapter over the same steps, so both give the same output for the same results. `extract()` in one call refuses a model only the host can run (`model-failed`), and a result nobody asked for is `model-result-unexpected`. Steps waiting for a model report the phase `model`.
+- **What results change.** Regions decide which runs may share a line and a block (a run is cut where its glyphs cross a region's edge, since a model sees columns closer than the rules' gutter), the order (XY-Cut++ over the regions and the runs outside them; a region's blocks read top to bottom), the kinds (title as a level-1 heading, section header as level 2, list items, captions, footnotes) and the confidence (the region's score). Page header and footer regions become furniture, dropped as `running-header` and `running-footer`. A table region with no ruled table in it runs the unruled detector inside the region.
+- **Which pages OCR reads.** Pages with no visible text. An invisible text layer (a scanner's own OCR, `Tr 3`) doesn't count, because §4 drops it as hidden text, so OCR text never repeats it in the blocks. OCR words carry their confidence on their spans (`ocr`), and a block of them takes their mean as its confidence. [T3a](../todos/ready/T3a-text-layer-status.md)'s text-layer status refines this test later.
+- **The allow-list.** `tools/models/models.toml` lists every model a plug-in may use, pinned by revision, size and SHA-256, with the source each licence was read from. `cargo xtask models check`, part of `check docs`, refuses a code or weights licence outside Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause, ISC and CDLA-Permissive-1.0/2.0, and any weights file in the repository. The first entry is Docling's Heron layout model in its official ONNX export (Apache-2.0 weights, MIT and Apache-2.0 code), which the edge crate `laminapdf-layout-onnx` runs through ONNX Runtime and refuses unless its SHA-256 matches.
 
 ### 7. Versioning and determinism
 

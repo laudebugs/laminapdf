@@ -48,7 +48,7 @@ Mark the pages whose column order the layout rules guessed, with a warning and a
 
 **Out of scope** (and which todo covers it)
 
-- Better order on these pages (wrapping text round a box, narrow gutters, near-grids): later rule changes, measured by this warning; models are [L3c](../ongoing/L3c-model-plugins.md)'s.
+- Better order on these pages (wrapping text round a box, narrow gutters, near-grids): later rule changes, measured by this warning; models are [L3c](../done/L3c-model-plugins.md)'s.
 - Structure-tree order: [L3g](../done/L3g-extract-structure-tree.md).
 - A per-page order confidence key in the JSON: blocks' `confidence` and the warning carry it (Risks).
 - Mixed horizontal and vertical writing: `extract-reading-order-ambiguous`, unchanged.

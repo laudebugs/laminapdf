@@ -36,7 +36,7 @@ Add the rest of ADR 0030 §2–§4: reading order from a plausible structure tre
 **Out of scope** (and which todo covers it)
 
 - Layout headings and lists, running headers, footers, page numbers and artifacts: [L3d](./L3d-extract-structure-and-furniture.md).
-- Model plug-ins: [L3c](../ongoing/L3c-model-plugins.md).
+- Model plug-ins: [L3c](../done/L3c-model-plugins.md).
 
 ## Tasks
 

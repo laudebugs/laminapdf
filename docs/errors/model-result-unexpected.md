@@ -34,4 +34,4 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §6
-- [L3c](../todos/ongoing/L3c-model-plugins.md)
+- [L3c](../todos/done/L3c-model-plugins.md)
