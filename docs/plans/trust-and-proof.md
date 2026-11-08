@@ -65,7 +65,7 @@ The nightly already runs Lamina PDF against pdf.js, PDFium, qpdf and pypdf on th
 | [T1a](../todos/ready/T1a-nightly-proof-figures.md) | The nightly records the figures that show how the core copes with real files | L | — |
 | [T1b](../todos/ready/T1b-how-we-test-page.md) | A "How we test" page on the website, with the nightly's figures, the licence and where the code comes from | M | T1a |
 | [T1c](../todos/ready/T1c-publish-performance-numbers.md) | Publish extraction scores and speed, and generation timings | L | — |
-| [T1d](../todos/ongoing/T1d-snapshot-testing-guide.md) | A docs guide: snapshot-test your own generated PDFs | M | — |
+| [T1d](../todos/done/T1d-snapshot-testing-guide.md) | A docs guide: snapshot-test your own generated PDFs | M | — |
 
 ### T2. Find what files hide
 
@@ -205,7 +205,7 @@ Work the agents found while writing the todos, left out of Round T for now:
 
 - [x] Research what PDF users want on Hacker News, 2016–2026 ([report](../research/hacker-news/pdf-users-on-hacker-news.md), [notes](../research/hacker-news/README.md), [scripts](../../tools/hn-research/README.md))
 - [x] Write the Round T todos and amend E4f, E7f and the feature-plan todos (§7)
-- [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/ongoing/T1d-snapshot-testing-guide.md))
+- [ ] T1: publish the proof ([T1a](../todos/ready/T1a-nightly-proof-figures.md), [T1b](../todos/ready/T1b-how-we-test-page.md), [T1c](../todos/ready/T1c-publish-performance-numbers.md), [T1d](../todos/done/T1d-snapshot-testing-guide.md))
 - [ ] T2: find what files hide ([T2a](../todos/ready/T2a-covered-text-flag.md), [T2b](../todos/ready/T2b-check-failed-redactions.md), [T2c](../todos/ready/T2c-reveal-command.md))
 - [ ] T3: extraction users can check ([T3a](../todos/ready/T3a-text-layer-status.md), [T3b](../todos/ready/T3b-reading-order-confidence.md), [T3c](../todos/ready/T3c-tables-across-pages.md))
 - [ ] T4: pages that flow ([T4a](../todos/ready/T4a-adr-0032-layout-engine.md), [T4b](../todos/ready/T4b-flow-layout-core.md), [T4c](../todos/ready/T4c-flow-tables-notes-contents.md), [T4d](../todos/ready/T4d-markdown-documents.md), [T4e](../todos/ready/T4e-json-documents-and-templates.md))

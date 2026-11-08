@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T1d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -66,23 +66,23 @@ Developers on Hacker News complain that generators change their output under the
 ## Tasks
 
 - [x] Claim: the first commit moves this file to `ongoing/`.
-- [ ] `docs_snippets.rs` and `docs-snippets.toml`: the `[[test-example]]` list, with a test that a listed file may hold a quoted PDF date and an unlisted one may not; the pair entry.
-- [ ] examples.md: the test-example sentence and the two render packages as entry points; Biome's message; the sdk's dev-dependencies.
-- [ ] `tools/xtask/src/wasm.rs`: build `@laminapdf/render` and `@laminapdf/render-hayro` before `@laminapdf/sdk`'s `test:wasm`. Today they build after it, and the sdk's typecheck (`tsconfig.json` includes `examples/**`) would then fail on `compare-pages.ts`'s imports.
-- [ ] `snapshot-test.ts` and `snapshot_test.rs` (each ≤ 100 lines, functions ≤ 40 lines, every number named).
-- [ ] `compare-pages.ts`.
-- [ ] Tests (below); `READERS`, `Cargo.toml`.
-- [ ] The guide, drafted with `/writing`; the sidebar entry; a link to it from the stability policy's "The same input gives the same bytes everywhere" item and from the recipes index.
-- [ ] `/writing-review` on the guide.
+- [x] `docs_snippets.rs` and `docs-snippets.toml`: the `[[test-example]]` list, with a test that a listed file may hold a quoted PDF date and an unlisted one may not; the pair entry.
+- [x] examples.md: the test-example sentence and the two render packages as entry points; Biome's message; the sdk's dev-dependencies.
+- [x] `tools/xtask/src/wasm.rs`: build `@laminapdf/render` and `@laminapdf/render-hayro` before `@laminapdf/sdk`'s `test:wasm`. Today they build after it, and the sdk's typecheck (`tsconfig.json` includes `examples/**`) would then fail on `compare-pages.ts`'s imports.
+- [x] `snapshot-test.ts` and `snapshot_test.rs` (each ≤ 100 lines, functions ≤ 40 lines, every number named).
+- [x] `compare-pages.ts`.
+- [x] Tests (below); `READERS`, `Cargo.toml`.
+- [x] The guide, drafted with `/writing`; the sidebar entry; a link to it from the stability policy's "The same input gives the same bytes everywhere" item and from the recipes index.
+- [x] `/writing-review` on the guide.
 
 ## Acceptance criteria
 
-- [ ] `packages/sdk/test/snapshot-test.test.ts`, in a temporary folder: the first comparison of `hello(TEST_OPTIONS)` answers "created" and writes the reference; the second answers "same". A build with another producer answers "changed" and writes `<name>.new.pdf` without touching the reference, and with `update` it replaces it.
-- [ ] `crates/laminapdf/tests/examples.rs` runs the same four cases through `snapshot_test`'s function, with `hello::build(test_options())`.
-- [ ] `hello` built with the TypeScript `TEST_OPTIONS` and with the Rust `test_options()` gives the same bytes: both tests compare with one SHA-256 constant, declared in the TypeScript test and read by the Rust test at compile time, as `benches/report.rs` reads `REPORT_SHA256`.
-- [ ] `packages/sdk/test/compare-pages.test.ts`: `hello` against itself has no differing pixel on its page; `hello` against the invoice has some, inside the page's box; a two-page file against a one-page file reports the page count.
-- [ ] `cargo xtask check docs` passes strict: the guide's prose, the snippets (pair, headers, imports, length) and the scaffolding rule with its new list.
-- [ ] The guide shows code only through `<Snippet>`, and its Markdown twin holds the three files.
+- [x] `packages/sdk/test/snapshot-test.test.ts`, in a temporary folder: the first comparison of `hello(TEST_OPTIONS)` answers "created" and writes the reference; the second answers "same". A build with another producer answers "changed" and writes `<name>.new.pdf` without touching the reference, and with `update` it replaces it.
+- [x] `crates/laminapdf/tests/examples.rs` runs the same four cases through `snapshot_test`'s function, with `hello::build(test_options())`.
+- [x] `hello` built with the TypeScript `TEST_OPTIONS` and with the Rust `test_options()` gives the same bytes: both tests compare with one SHA-256 constant, declared in the TypeScript test and read by the Rust test at compile time, as `benches/report.rs` reads `REPORT_SHA256`.
+- [x] `packages/sdk/test/compare-pages.test.ts`: `hello` against itself has no differing pixel on its page; `hello` against the invoice has some, inside the page's box; a two-page file against a one-page file reports the page count. (The page-count case uses the four-page links-and-outlines reference PDF.)
+- [x] `cargo xtask check docs` passes strict: the guide's prose, the snippets (pair, headers, imports, length) and the scaffolding rule with its new list.
+- [x] The guide shows code only through `<Snippet>`, and its Markdown twin holds the three files.
 
 ## Post-merge checks
 
@@ -106,8 +106,8 @@ The two TypeScript tests in `packages/sdk/test/` (Node project); the Rust cases 
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
