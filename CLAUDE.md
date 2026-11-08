@@ -150,7 +150,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
 │                        #   origin), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
-│                        #   LAMINA_PDF_SMOKE_URL, Chromium, after e2e/live.ts waits for the host); deployed by
+│                        #   LAMINA_PDF_SMOKE_URL, Chromium, after e2e/live.ts, run by Node first, waits for the host and names who refused it); deployed by
 │                        #   .github/workflows/web-deploy.yml (C4d: a preview per PR on the Worker lamina-pdf-web-preview, staging
 │                        #   from main, production from web-v* tags on main, rollback on a failed smoke test); README.md, DEPLOY.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
