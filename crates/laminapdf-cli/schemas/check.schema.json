@@ -10,7 +10,7 @@
         },
         {
           "const": "warnings",
-          "description": "The document reads, but only after repairs; `warnings` lists them.",
+          "description": "The document reads, but only after repairs, or it holds what a failed redaction left\nbehind (covered text, unapplied redaction marks, text kept in an earlier revision);\n`warnings` lists them.",
           "type": "string"
         }
       ]
@@ -43,10 +43,10 @@
     },
     "status": {
       "$ref": "#/$defs/CheckStatus",
-      "description": "`ok`, or `warnings` when a read had to repair something."
+      "description": "`ok`, or `warnings` when a read had to repair something or found what a failed\nredaction left behind."
     },
     "warnings": {
-      "description": "The repairs (ADR 0026 warnings).",
+      "description": "The repairs, then what failed redactions left (ADR 0026 warnings).",
       "items": {
         "$ref": "https://github.com/laudebugs/laminapdf/blob/main/packages/sdk/schemas/error.schema.json#/$defs/warning"
       },
