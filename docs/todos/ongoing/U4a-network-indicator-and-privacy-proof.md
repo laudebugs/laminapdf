@@ -11,7 +11,7 @@
 | Branch | `feat/u4a-network-indicator` |
 | PR title | `feat(web): add the network activity indicator and privacy proof tests` |
 | Size | M (200–400 lines incl. tests) |
-| PR | — |
+| PR | [#340](https://github.com/laudebugs/laminapdf/pull/340) |
 
 ## Goal
 
