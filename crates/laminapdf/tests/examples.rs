@@ -36,12 +36,17 @@ mod pdf_a_archive;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/pdf_ua_report.rs"]
 mod pdf_ua_report;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/snapshot_test.rs"]
+mod snapshot_test;
 
 use std::error::Error;
 use std::path::Path;
 
 use laminapdf::{BuildOptions, Builder};
 use pdf_a_archive::Level;
+use sha2::{Digest, Sha256};
+use snapshot_test::Outcome;
 
 const NOTO: &str = "fonts/NotoSans-Regular.ttf";
 const SCRIPT_FONTS: [&str; 5] = [
@@ -223,7 +228,7 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
 }
 
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 1] = ["extract_markdown"];
+const READERS: [&str; 2] = ["extract_markdown", "snapshot_test"];
 
 #[test]
 fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
@@ -236,4 +241,58 @@ fn extract_markdown_writes_the_invoices_markdown_json_and_chunks() {
     assert!(read("invoice.json").starts_with(r#"{"schema":"laminapdf.extract/1""#));
     assert!(read("invoice.chunks.jsonl").lines().count() >= 1);
     let _ = std::fs::remove_dir_all(&out);
+}
+
+/// `SNAPSHOT_HELLO_SHA256` in `packages/sdk/test/snapshot-test.test.ts`: `hello` built with the
+/// TypeScript `TEST_OPTIONS`, which `test_options()` must reproduce byte for byte.
+const SNAPSHOT_TEST: &str = include_str!("../../../packages/sdk/test/snapshot-test.test.ts");
+
+fn snapshot_hello_sha256() -> &'static str {
+    const PREFIX: &str = "export const SNAPSHOT_HELLO_SHA256 = \"";
+    let start = SNAPSHOT_TEST
+        .find(PREFIX)
+        .unwrap_or_else(|| panic!("snapshot-test.test.ts no longer declares SNAPSHOT_HELLO_SHA256"))
+        + PREFIX.len();
+    SNAPSHOT_TEST.get(start..start + 64).unwrap_or_default()
+}
+
+#[test]
+fn snapshot_test_options_give_the_typescript_bytes() {
+    let bytes = hello::build(snapshot_test::test_options().unwrap()).unwrap();
+    let hash = laminapdf_test_fixtures::hex(&Sha256::digest(&bytes));
+    assert_eq!(hash, snapshot_hello_sha256());
+}
+
+#[test]
+fn snapshot_test_creates_matches_reports_and_updates_its_reference() {
+    let dir = std::env::temp_dir().join(format!("laminapdf-snapshot-example-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let reference = dir.join("hello.pdf");
+    let pending = dir.join("hello.new.pdf");
+    let _ = std::fs::remove_file(&reference);
+    let compare = |bytes: &[u8], update| snapshot_test::compare_with_reference(bytes, &reference, update).unwrap();
+    let approved = hello::build(snapshot_test::test_options().unwrap()).unwrap();
+    let other = hello::build(snapshot_test::test_options().unwrap().with_producer("another app")).unwrap();
+
+    assert_eq!(compare(&approved, false), Outcome::Created);
+    assert_eq!(compare(&approved, false), Outcome::Same);
+    assert_eq!(compare(&other, false), Outcome::Changed);
+    assert_eq!(
+        std::fs::read(&reference).unwrap(),
+        approved,
+        "a change leaves the reference alone"
+    );
+    assert_eq!(
+        std::fs::read(&pending).unwrap(),
+        other,
+        "and writes the new PDF beside it"
+    );
+    assert_eq!(compare(&other, true), Outcome::Changed);
+    assert_eq!(
+        std::fs::read(&reference).unwrap(),
+        other,
+        "update replaces the reference"
+    );
+    assert!(!pending.exists());
+    let _ = std::fs::remove_dir_all(&dir);
 }
