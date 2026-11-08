@@ -33,9 +33,9 @@ export const DIAGRAMS = {
       "Extraction joins a page's text runs into lines and blocks, orders them, then writes Markdown, JSON and chunks.",
     text:
       "Extraction starts from each page's text runs. " +
-      "Runs a reader can't see, and runs the file marks as artifacts, are set aside into `dropped` with their reason: `invisible`, `off-page`, `tiny`, `clipped`, `low-contrast`, `covered` or `artifact`. " +
+      "It sets aside runs a reader can't see, and runs the file marks as artifacts, into `dropped` with their reason: `invisible`, `off-page`, `tiny`, `clipped`, `low-contrast`, `covered` or `artifact`. " +
       "The other runs are joined into lines, and the lines into blocks: paragraphs, headings and tables. " +
-      "Once every page is read, headers, footers and page numbers that repeat across pages are set aside too, as `running-header`, `running-footer` or `page-number`. " +
+      "Once every page is read, it also sets aside headers, footers and page numbers that repeat across pages, as `running-header`, `running-footer` or `page-number`. " +
       "Reading order then puts the blocks in sequence: from the file's structure tree when it is tagged and the tree covers the page's text, else by cutting the page into columns. " +
       "The ordered blocks become the three outputs: Markdown, the `laminapdf.extract/1` JSON and chunks.",
   },
