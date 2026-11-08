@@ -3832,7 +3832,7 @@ builder.flow(&flow)?; // flow-content-too-large
 
 ## Why
 
-Blocks that can't fit on one page can't be kept on one page. The flow lays them out as it would without the rule, so every page still ends with a whole line, rather than looking further for a layout that can't exist.
+Blocks that can't fit on one page can't be kept on one page. No layout can keep them together, so the flow doesn't look for one. It lays them out as it would without the rule, and every page still ends on a whole line.
 
 ## How to fix
 
@@ -3841,7 +3841,7 @@ Keep fewer blocks together: split a long `Keep` group into smaller ones, or turn
 ## Example
 
 ```rust
-let group = FlowBlock::Keep(vec![long_table_intro, long_paragraph]); // taller than a page
+let group = FlowBlock::Keep(vec![long_intro, long_paragraph]); // taller than a page
 let report = builder.flow(&Flow::new(template).block(group))?;
 assert_eq!(report.warnings[0].code(), "flow-keep-broken");
 ```
