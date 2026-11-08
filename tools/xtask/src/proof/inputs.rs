@@ -10,10 +10,24 @@ use anyhow::{Context, Result, bail};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use super::record::{CorpusSource, Differential, DifferentialTool, Render, RenderSource, Tally, Text, TextSource};
+use super::record::{
+    Corpus, CorpusSource, Differential, DifferentialTool, Render, RenderSource, Runtimes, Tally, Text, TextSource,
+};
 use crate::harness::{FUZZ_SUMMARY_DIR, FUZZ_TARGETS, FuzzRun};
 use crate::live;
 use crate::pdf_runtimes::{self, RuntimeResults};
+
+/// The length of `report`'s array `key` (0 when it has none).
+fn count(report: &Value, key: &str) -> Result<u64> {
+    let n = report.get(key).and_then(Value::as_array).map_or(0, Vec::len);
+    Ok(u64::try_from(n)?)
+}
+
+/// A report's `--source` list under `key`: `None` when the report doesn't say.
+fn source_filter(value: &Value, key: &str) -> Option<Vec<String>> {
+    let list = value.get(key)?.as_array()?;
+    list.iter().map(|s| s.as_str().map(str::to_owned)).collect()
+}
 use crate::roundtrip;
 use crate::verapdf;
 
@@ -74,7 +88,7 @@ fn outcome(facts: &Value) -> &str {
 }
 
 /// Lamina PDF's outcomes per source, from `lamina.json` and the tools' reports beside it.
-pub(super) fn corpus(root: &Path) -> Result<Option<BTreeMap<String, CorpusSource>>> {
+pub(super) fn corpus(root: &Path) -> Result<Option<Corpus>> {
     let dir = root.join(DIFFERENTIAL);
     let Some(lamina) = json(&dir.join("lamina.json"))? else {
         return Ok(None);
@@ -113,7 +127,19 @@ pub(super) fn corpus(root: &Path) -> Result<Option<BTreeMap<String, CorpusSource
             other => bail!("lamina.json: unknown outcome {other:?}"),
         }
     }
-    Ok(Some(sources))
+    let report = json(&dir.join("report.json"))?;
+    let inputs = report.as_ref().and_then(|r| r.get("inputs")).and_then(Value::as_u64);
+    let lamina_broke = report
+        .as_ref()
+        .and_then(|r| r.get("broken_readers"))
+        .and_then(Value::as_array)
+        .is_some_and(|b| b.iter().any(|e| e.as_str().is_some_and(|e| e.starts_with("lamina:"))));
+    let read: u64 = sources.values().map(|s| s.files).sum();
+    Ok(Some(Corpus {
+        complete: inputs == Some(read) && !lamina_broke,
+        inputs,
+        sources,
+    }))
 }
 
 /// The differential's `report.json`: each tool's tallies and the run's failures.
@@ -147,16 +173,16 @@ pub(super) fn differential(root: &Path) -> Result<Option<Differential>> {
             .filter(|d| d.get("kind").and_then(Value::as_str) == Some("failure"))
             .count()
     });
-    let lamina_errors = report
-        .get("lamina_errors")
-        .and_then(Value::as_array)
-        .map_or(0, Vec::len);
     Ok(Some(Differential {
         inputs: uint(&report, "inputs")?,
         sample: report.get("sample").and_then(Value::as_u64),
+        corpus: report.get("corpus").and_then(Value::as_str).map(str::to_owned),
+        source_filter: source_filter(&report, "source_filter"),
         tools,
         failures: u64::try_from(failures)?,
-        lamina_errors: u64::try_from(lamina_errors)?,
+        lamina_errors: count(&report, "lamina_errors")?,
+        missing: count(&report, "missing")?,
+        broken_readers: count(&report, "broken_readers")?,
     }))
 }
 
@@ -183,7 +209,12 @@ pub(super) fn text_differential(root: &Path) -> Result<Option<Text>> {
         };
         sources.insert(name.clone(), source);
     }
-    Ok(Some(Text { tools, sources }))
+    Ok(Some(Text {
+        sample: report.get("sample").and_then(Value::as_u64),
+        source_filter: source_filter(&report, "source_filter"),
+        tools,
+        sources,
+    }))
 }
 
 /// The render diff's sampling and per-source classes; the rate is the one its history records.
@@ -221,6 +252,7 @@ pub(super) fn render(root: &Path) -> Result<Option<Render>> {
             .map(u32::try_from)
             .transpose()?,
         sample: sampling.get("sample").and_then(Value::as_u64),
+        source_filter: source_filter(sampling, "sources").context("no `sampling.sources`")?,
         sources,
     }))
 }
@@ -247,7 +279,7 @@ pub(super) fn roundtrip(root: &Path) -> Result<Option<roundtrip::Summary>> {
 
 /// Every `runtimes.json` and `runtimes-<label>.json` (one per nightly job of the matrix),
 /// merged; `None` when there is none.
-pub(super) fn runtimes(root: &Path) -> Result<Option<RuntimeResults>> {
+pub(super) fn runtimes(root: &Path) -> Result<Option<Runtimes>> {
     let dir = root.join(pdf_runtimes::OUT_DIR);
     let Ok(entries) = fs::read_dir(&dir) else {
         return Ok(None);
@@ -261,14 +293,21 @@ pub(super) fn runtimes(root: &Path) -> Result<Option<RuntimeResults>> {
         })
         .collect();
     names.sort();
-    let mut merged: Option<RuntimeResults> = None;
+    let mut merged: Option<Runtimes> = None;
     for name in names {
         let Some(results) = typed::<RuntimeResults>(&dir.join(&name))? else {
             continue;
         };
-        let all = merged.get_or_insert_with(RuntimeResults::default);
+        let all = merged.get_or_insert_with(Runtimes::default);
         all.passed.extend(results.passed);
         all.failed.extend(results.failed);
+    }
+    if let Some(all) = &mut merged {
+        all.missing = pdf_runtimes::RUNTIMES
+            .iter()
+            .filter(|r| !all.passed.iter().chain(&all.failed).any(|n| n == *r))
+            .map(|r| (*r).to_owned())
+            .collect();
     }
     Ok(merged)
 }

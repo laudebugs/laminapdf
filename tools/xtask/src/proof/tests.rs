@@ -26,6 +26,11 @@ fn facts(outcome: &str) -> Value {
 /// The budgets a fixture night ran with.
 struct Night {
     differential_sample: Option<u64>,
+    /// `--corpus` of the structural differential.
+    differential_corpus: &'static str,
+    /// `--source` of both differentials and the render diff.
+    source_filter: &'static [&'static str],
+    text_sample: Option<u64>,
     render_sample: Option<u64>,
     render_pages: Option<u32>,
     fuzz_seconds: u64,
@@ -35,6 +40,9 @@ struct Night {
 
 const FULL: Night = Night {
     differential_sample: None,
+    differential_corpus: "all",
+    source_filter: &[],
+    text_sample: None,
     render_sample: None,
     render_pages: Some(20),
     fuzz_seconds: 600,
@@ -61,6 +69,7 @@ fn differential(root: &Path, night: &Night) {
     let tally = json!({"agree": 4, "disagree": 1, "excused": 1});
     let report = json!({
         "commit": "abc", "inputs": 6, "external": 5, "sample": night.differential_sample,
+        "corpus": night.differential_corpus, "source_filter": night.source_filter,
         "tools": [{"tool": "pdfjs", "version": "5.4.296", "reports_repair": false, "files": 6, "timeouts": 1,
             "crashes": 0, "facts": {"outcome": tally, "page_count": tally, "outline_titles": tally}}],
         "lamina_errors": ["qpdf/e.pdf"], "missing": [], "broken_readers": [],
@@ -77,7 +86,7 @@ fn everything_else(root: &Path, night: &Night) {
         root,
         "target/nightly/differential-text/report.json",
         &json!({
-            "sample": night.differential_sample,
+            "sample": night.text_sample, "source_filter": night.source_filter,
             "tools": [{"tool": "pdfjs", "version": "5.4.296"}, {"tool": "pdftotext", "version": "25.10.0"}],
             "sources": {"pdfjs": {"files": 2, "pages": 9, "compared": 8, "agree": 7, "tools": {}}},
         }),
@@ -86,7 +95,7 @@ fn everything_else(root: &Path, night: &Night) {
         root,
         "target/nightly/render-diff/report.json",
         &json!({
-            "sampling": {"dpi": 96, "pages": night.render_pages, "sample": night.render_sample, "sources": []},
+            "sampling": {"dpi": 96, "pages": night.render_pages, "sample": night.render_sample, "sources": night.source_filter},
             "sources": {
                 "all": {"rows": 10, "classes": {"pass": 8, "minor": 1, "fail": 1}},
                 "pdfjs": {"rows": 10, "classes": {"pass": 8, "minor": 1, "fail": 1}},
@@ -95,7 +104,8 @@ fn everything_else(root: &Path, night: &Night) {
         }),
     );
     for target in FUZZ_TARGETS.iter().filter(|t| !night.fuzz_missing.contains(t)) {
-        let run = json!({"seconds": night.fuzz_seconds, "executions": 1000, "corpus_files": 40,
+        let run = json!({"seconds": night.fuzz_seconds,
+            "fuzzed_seconds": (*target != "lex").then_some(night.fuzz_seconds), "executions": 1000, "corpus_files": 40,
             "crashed": *target == "lex"});
         write(root, &format!("target/xtask/fuzz/{target}.json"), &run);
     }
@@ -148,7 +158,7 @@ fn night_record(name: &str, night: &Night) -> Record {
 
 #[test]
 fn corpus_should_count_each_outcome_per_source() {
-    let corpus = night_record("corpus", &FULL).corpus.unwrap();
+    let corpus = night_record("corpus", &FULL).corpus.unwrap().sources;
     let pdfbox = &corpus["pdfbox"];
     assert_eq!(
         (
@@ -346,4 +356,123 @@ fn the_summary_should_mark_a_missing_section() {
     let r = record(&root, run_info());
     fs::remove_dir_all(&root).unwrap();
     assert!(summary::table(&r).contains("| fuzz | **missing** |"));
+}
+
+#[test]
+fn a_corpus_should_be_complete_when_lamina_read_every_input() {
+    assert!(night_record("complete", &FULL).corpus.unwrap().complete);
+}
+
+/// A lamina reader that broke reports fewer files: the counts are part of the run, not a clean one.
+#[test]
+fn a_corpus_should_be_incomplete_when_the_lamina_reader_broke() {
+    let root = scratch("incomplete");
+    differential(&root, &FULL);
+    let path = "target/nightly/differential/report.json";
+    let mut report: Value = serde_json::from_str(&fs::read_to_string(root.join(path)).unwrap()).unwrap();
+    report["inputs"] = json!(9);
+    report["broken_readers"] = json!(["lamina: 3 inputs missing from its report, 0 names that aren't inputs"]);
+    report["missing"] = json!(["x.pdf (qpdf)"]);
+    write(&root, path, &report);
+    let r = record(&root, run_info());
+    fs::remove_dir_all(&root).unwrap();
+    let d = r.differential.unwrap();
+    let corpus = r.corpus.unwrap();
+    assert_eq!(
+        (corpus.complete, corpus.inputs, d.broken_readers, d.missing),
+        (false, Some(9), 1, 1)
+    );
+}
+
+#[test]
+fn a_corpus_without_the_differentials_report_should_be_incomplete() {
+    let root = scratch("no-report");
+    differential(&root, &FULL);
+    fs::remove_file(root.join("target/nightly/differential/report.json")).unwrap();
+    let r = record(&root, run_info());
+    fs::remove_dir_all(&root).unwrap();
+    assert!(!r.corpus.unwrap().complete);
+}
+
+/// A failed night still records: its missing reports are null and `jobs` says why.
+#[test]
+fn missing_differential_and_render_reports_should_not_make_a_night_short() {
+    let root = scratch("missing-reports");
+    everything_else(&root, &FULL);
+    fs::remove_file(root.join(inputs::RENDER)).unwrap();
+    let r = record(&root, run_info());
+    fs::remove_dir_all(&root).unwrap();
+    assert!(r.full && r.differential.is_none() && r.render.is_none());
+}
+
+#[test]
+fn a_sampled_text_differential_should_not_be_full() {
+    let night = Night {
+        text_sample: Some(300),
+        ..FULL
+    };
+    assert!(!night_record("text-sampled", &night).full);
+}
+
+#[test]
+fn reports_limited_by_source_should_not_be_full() {
+    let night = Night {
+        source_filter: &["pdfjs"],
+        ..FULL
+    };
+    assert!(!night_record("by-source", &night).full);
+}
+
+#[test]
+fn a_render_diff_limited_by_source_should_not_be_full() {
+    let root = scratch("render-source");
+    differential(&root, &FULL);
+    everything_else(&root, &FULL);
+    let mut report: Value = serde_json::from_str(&fs::read_to_string(root.join(inputs::RENDER)).unwrap()).unwrap();
+    report["sampling"]["sources"] = json!(["qpdf"]);
+    write(&root, inputs::RENDER, &report);
+    let r = record(&root, run_info());
+    fs::remove_dir_all(&root).unwrap();
+    assert!(!r.full);
+}
+
+#[test]
+fn a_differential_over_part_of_the_corpus_should_not_be_full() {
+    let night = Night {
+        differential_corpus: "external",
+        ..FULL
+    };
+    assert!(!night_record("external-only", &night).full);
+}
+
+#[test]
+fn a_differential_report_that_names_no_corpus_should_not_be_full() {
+    let root = scratch("no-corpus-key");
+    differential(&root, &FULL);
+    everything_else(&root, &FULL);
+    let path = "target/nightly/differential/report.json";
+    let mut report: Value = serde_json::from_str(&fs::read_to_string(root.join(path)).unwrap()).unwrap();
+    report.as_object_mut().unwrap().remove("corpus");
+    write(&root, path, &report);
+    let r = record(&root, run_info());
+    fs::remove_dir_all(&root).unwrap();
+    assert!(!r.full);
+}
+
+#[test]
+fn runtimes_no_file_names_should_be_missing() {
+    let runtimes = night_record("runtimes-missing", &FULL).runtimes.unwrap();
+    assert_eq!(runtimes.missing, ["chromium", "firefox", "deno", "workerd"]);
+}
+
+#[test]
+fn the_summary_should_name_runtimes_without_a_result() {
+    let r = night_record("runtimes-summary", &FULL);
+    assert!(summary::table(&r).contains("no result: chromium, firefox, deno, workerd"));
+}
+
+#[test]
+fn record_should_need_a_runner() {
+    let args: Vec<String> = ["--history", "h", "--record"].map(String::from).to_vec();
+    assert!(parse_args(&args).is_err());
 }

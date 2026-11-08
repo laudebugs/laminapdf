@@ -27,6 +27,9 @@ pub(crate) struct FuzzRun {
     /// The time budget the run was given (`-max_total_time`), in seconds. A run that crashes
     /// stops early, so this is what the night asked for, not how long it fuzzed.
     pub(crate) seconds: u64,
+    /// How long it fuzzed, from libFuzzer's `Done <N> runs in <S> second(s)`; `None` when it
+    /// printed none (a crash).
+    pub(crate) fuzzed_seconds: Option<u64>,
     /// libFuzzer's `stat::number_of_executed_units`, or `None` when its final stats are missing.
     pub(crate) executions: Option<u64>,
     /// The files in the target's corpus folder after the run.
@@ -58,6 +61,7 @@ pub(super) fn run_target(
 ) -> Result<()> {
     let dir = ws.root.join(SUMMARY_DIR);
     fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+    let summary_path = forget_last_run(&dir, target)?;
     let log = dir.join(format!("{target}.log"));
     let watch = ArtifactWatch::new(&ws.root, target);
     match echo {
@@ -65,26 +69,27 @@ pub(super) fn run_target(
         Echo::Prefixed => println!("[{target}] started: cargo {}", args.join(" ")),
     }
     let status = spawn(&ws.root, args, &log, echo).map_err(|e| watch.failure(&format!("{e:#}")))?;
+    let text = String::from_utf8_lossy(&fs::read(&log).unwrap_or_default()).into_owned();
     if echo == Echo::Prefixed {
-        let text = fs::read(&log).unwrap_or_default();
         // A closed stdout must not hide the run's result, so a failed write is ignored.
         let _ = writeln!(
             std::io::stdout().lock(),
             "{}[{target}] finished: {status}",
-            prefixed(target, &String::from_utf8_lossy(&text))
+            prefixed(target, &text)
         );
     }
     let crashed = !watch.new_artifacts().is_empty();
     if status.success() || crashed {
+        let corpus_files = super::files_in(corpus).map_or(0, |files| files.len());
         let summary = FuzzRun {
             seconds,
-            executions: executed_units(&String::from_utf8_lossy(&fs::read(&log).unwrap_or_default())),
-            corpus_files: count_files(corpus),
+            fuzzed_seconds: fuzzed_seconds(&text),
+            executions: executed_units(&text),
+            corpus_files: u64::try_from(corpus_files).unwrap_or(u64::MAX),
             crashed,
         };
-        let path = dir.join(format!("{target}.json"));
-        fs::write(&path, serde_json::to_string_pretty(&summary)? + "\n")
-            .with_context(|| format!("writing {}", path.display()))?;
+        fs::write(&summary_path, serde_json::to_string_pretty(&summary)? + "\n")
+            .with_context(|| format!("writing {}", summary_path.display()))?;
     }
     if status.success() {
         Ok(())
@@ -147,12 +152,25 @@ pub(super) fn executed_units(log: &str) -> Option<u64> {
         .and_then(|n| n.trim().parse().ok())
 }
 
-/// The files directly in `dir` (0 when it can't be read).
-fn count_files(dir: &Path) -> u64 {
-    fs::read_dir(dir).map_or(0, |entries| {
-        let files = entries.filter_map(Result::ok).filter(|e| e.path().is_file()).count();
-        u64::try_from(files).unwrap_or(u64::MAX)
+/// How long libFuzzer says it fuzzed: the last `Done <N> runs in <S> second(s)` in `log`. A run
+/// that crashed prints none.
+pub(super) fn fuzzed_seconds(log: &str) -> Option<u64> {
+    log.lines().rev().find_map(|line| {
+        let rest = line.trim().strip_prefix("Done ")?;
+        let (_, rest) = rest.split_once(" runs in ")?;
+        rest.strip_suffix(" second(s)")?.trim().parse().ok()
     })
+}
+
+/// Removes `<dir>/<target>.json` from an earlier run, so a run that fails before fuzzing leaves
+/// no summary; returns its path.
+pub(super) fn forget_last_run(dir: &Path, target: &str) -> Result<PathBuf> {
+    let path = dir.join(format!("{target}.json"));
+    match fs::remove_file(&path) {
+        Ok(()) => Ok(path),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(path),
+        Err(e) => Err(e).with_context(|| format!("removing {}", path.display())),
+    }
 }
 
 /// `text` with `[target] ` before every line.
@@ -238,6 +256,27 @@ mod tests {
     }
 
     #[test]
+    fn fuzzed_seconds_should_read_the_done_line() {
+        assert_eq!(fuzzed_seconds(TAIL), Some(601));
+    }
+
+    #[test]
+    fn fuzzed_seconds_should_be_none_after_a_crash() {
+        assert_eq!(fuzzed_seconds("==1== ERROR: libFuzzer: deadly signal\n"), None);
+    }
+
+    #[test]
+    fn forget_last_run_should_remove_an_earlier_summary() {
+        let dir = std::env::temp_dir().join(format!("xtask-fuzz-forget-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("lex.json"), "{}").unwrap();
+        let path = forget_last_run(&dir, "lex").unwrap();
+        let again = forget_last_run(&dir, "lex").is_ok();
+        fs::remove_dir_all(&dir).unwrap();
+        assert!(!path.exists() && again);
+    }
+
+    #[test]
     fn executed_units_should_be_none_without_final_stats() {
         assert_eq!(executed_units("Done 10 runs in 1 second(s)\n"), None);
     }
@@ -246,6 +285,7 @@ mod tests {
     fn a_summary_should_round_trip_through_its_json() {
         let run = FuzzRun {
             seconds: 600,
+            fuzzed_seconds: Some(600),
             executions: Some(5),
             corpus_files: 3,
             crashed: false,

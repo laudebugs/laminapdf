@@ -453,8 +453,8 @@ cargo xtask proof [--from <dir>] [--jobs <json>] [--history <dir> --runner <labe
                              #   corpus source, the differentials, the render diff, the fuzz summaries, veraPDF's report.json, the
                              #   round trip's summary.json, pdf-runtimes' runtimes.json, each read where its task writes it (under
                              #   --from); a missing input is a null section and --jobs (toJSON(needs)) says why; `full` from the
-                             #   reports' budgets; writes target/nightly/proof/proof.json and a summary table; --record appends
-                             #   to <dir>/history.jsonl only a full record; `nightly` runs it last, never recording
+                             #   reports' budgets; writes target/nightly/proof/proof.json and a summary table; --record (with --history
+                             #   and --runner) appends to <dir>/history.jsonl only a full record; `nightly` runs it last, never recording
 cargo xtask ci               # the whole fast lane locally: check + wasm + size
 pnpm changeset               # add a changeset to a user-visible change (contributing guide: changesets; ADR 0017)
 pnpm changeset version       # release prep: consume the changesets, bump the fixed group's packages, write their CHANGELOG.md

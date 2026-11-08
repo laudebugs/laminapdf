@@ -767,6 +767,7 @@ impl TextComparison {
             "commit": context.commit,
             "inputs": context.inputs,
             "sample": context.sample,
+            "source_filter": context.sources,
             "notes": context.notes,
             "lamina": {"version": lamina.version, "files": lamina.facts.len()},
             "tools": tools.iter().map(|t| {
@@ -793,6 +794,8 @@ struct RunInfo {
     inputs: usize,
     commit: String,
     sample: Option<usize>,
+    /// `--source` (empty: every source).
+    sources: Vec<String>,
     broken: Vec<String>,
     /// Warnings about the run itself (pdftotext left out).
     notes: Vec<String>,
@@ -859,6 +862,7 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         inputs: inputs.len(),
         commit: util::git_stdout(&ws.root, &["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_owned()),
         sample: args.sample,
+        sources: args.sources.clone(),
         broken,
         notes,
     };

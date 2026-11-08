@@ -8,7 +8,6 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::harness::FuzzRun;
-use crate::pdf_runtimes::RuntimeResults;
 use crate::roundtrip;
 use crate::verapdf;
 
@@ -37,15 +36,16 @@ pub(crate) struct Record {
     pub(crate) quick: bool,
     /// The fixed group's version (every crate and npm package of the release).
     pub(crate) lamina: String,
-    /// Whether the night ran its full budgets: an unsampled differential and render diff, 20
-    /// pages per file, and every fuzz target for at least 600 s. Worked out from the reports.
+    /// Whether the night ran its full budgets, worked out from the reports: every fuzz target
+    /// for at least 600 s, and each differential and render-diff report that exists over every
+    /// input (unsampled, every source; the differential over the corpus and the mutants) with
+    /// 20 pages per file. A missing report leaves its section null without making the night
+    /// short: `jobs` says what happened.
     pub(crate) full: bool,
     /// Each nightly job's result (`success`, `failure`, `cancelled`, `skipped`), from `--jobs`;
     /// empty when none was given (a local run).
     pub(crate) jobs: BTreeMap<String, String>,
-    /// Lamina PDF's outcome per external source (`pdfjs`, `pdfbox`, `pdfium`, `qpdf`) and for
-    /// `mutants`.
-    pub(crate) corpus: Option<BTreeMap<String, CorpusSource>>,
+    pub(crate) corpus: Option<Corpus>,
     pub(crate) differential: Option<Differential>,
     pub(crate) text: Option<Text>,
     pub(crate) render: Option<Render>,
@@ -53,7 +53,20 @@ pub(crate) struct Record {
     pub(crate) fuzz: Option<BTreeMap<String, FuzzRun>>,
     pub(crate) verapdf: Option<verapdf::Report>,
     pub(crate) roundtrip: Option<roundtrip::Summary>,
-    pub(crate) runtimes: Option<RuntimeResults>,
+    pub(crate) runtimes: Option<Runtimes>,
+}
+
+/// How Lamina PDF read the differential's inputs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Corpus {
+    /// Whether `sources` covers every input of the run: the differential's report is there,
+    /// Lamina PDF's reader didn't break, and its report has every input. When it is `false` the
+    /// counts are a part of the run, never a clean night.
+    pub(crate) complete: bool,
+    /// The run's inputs, from the differential's report (`None` without it).
+    pub(crate) inputs: Option<u64>,
+    /// Per external source (`pdfjs`, `pdfbox`, `pdfium`, `qpdf`) and for `mutants`.
+    pub(crate) sources: BTreeMap<String, CorpusSource>,
 }
 
 /// How Lamina PDF read one source's files.
@@ -86,12 +99,20 @@ pub(crate) struct Differential {
     pub(crate) inputs: u64,
     /// `--sample`, `None` when every input was read.
     pub(crate) sample: Option<u64>,
+    /// `--corpus` (`all`, `external`, `mutants`); `None` in a report that doesn't say.
+    pub(crate) corpus: Option<String>,
+    /// `--source` (empty: every source); `None` in a report that doesn't say.
+    pub(crate) source_filter: Option<Vec<String>>,
     /// Per tool.
     pub(crate) tools: BTreeMap<String, DifferentialTool>,
     /// Facts on which Lamina PDF disagreed with every tool, unexcused.
     pub(crate) failures: u64,
     /// Files Lamina PDF panicked, crashed or hung on.
     pub(crate) lamina_errors: u64,
+    /// Inputs missing from a tool's report.
+    pub(crate) missing: u64,
+    /// Readers that broke or reported the wrong files.
+    pub(crate) broken_readers: u64,
 }
 
 /// One tool's run in the differential.
@@ -117,6 +138,10 @@ pub(crate) struct Tally {
 /// The text differential (`cargo xtask differential --live --text`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Text {
+    /// `--sample`, `None` when every file was read.
+    pub(crate) sample: Option<u64>,
+    /// `--source` (empty: every source); `None` in a report that doesn't say.
+    pub(crate) source_filter: Option<Vec<String>>,
     /// Each tool's version, by name (`pdfjs`, `pdftotext`).
     pub(crate) tools: BTreeMap<String, String>,
     pub(crate) sources: BTreeMap<String, TextSource>,
@@ -141,6 +166,8 @@ pub(crate) struct Render {
     pub(crate) pages_per_file: Option<u32>,
     /// `--sample`, `None` for every file.
     pub(crate) sample: Option<u64>,
+    /// `--source` (empty: every source).
+    pub(crate) source_filter: Vec<String>,
     /// Per source, and `all`.
     pub(crate) sources: BTreeMap<String, RenderSource>,
 }
@@ -153,4 +180,13 @@ pub(crate) struct RenderSource {
     pub(crate) classes: BTreeMap<String, u64>,
     /// Pass and minor over the rows but `io-error`, in basis points (10,000 = 100 %).
     pub(crate) pass_minor_bp: u64,
+}
+
+/// Which runtimes' example suite passed, from every `runtimes*.json` the matrix wrote.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Runtimes {
+    pub(crate) passed: Vec<String>,
+    pub(crate) failed: Vec<String>,
+    /// Runtimes `pdf-runtimes` knows that no file names: a matrix leg that never wrote its file.
+    pub(crate) missing: Vec<String>,
 }

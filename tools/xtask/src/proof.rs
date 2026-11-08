@@ -9,7 +9,7 @@
 //! `null`, and `jobs` (`toJSON(needs)` in the workflow) says why. With `--record` the record is
 //! appended to `<history>/history.jsonl` beside the benchmark figures, but only when the night
 //! ran its full budgets ([`is_full`], read from the reports themselves); otherwise it appends
-//! nothing.
+//! nothing. `--record` needs `--history` and `--runner`.
 
 mod inputs;
 mod record;
@@ -60,8 +60,9 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
             other => bail!("unknown argument {other:?}; {USAGE}"),
         }
     }
-    if parsed.record && parsed.history.is_none() {
-        bail!("--record needs --history; {USAGE}");
+    // As pdf-runtimes: a record names its runner, so the history keeps machines apart.
+    if parsed.record && (parsed.history.is_none() || parsed.runner.is_none()) {
+        bail!("--record needs --history and --runner; {USAGE}");
     }
     Ok(parsed)
 }
@@ -92,21 +93,30 @@ fn section<T>(name: &str, read: Result<Option<T>>) -> Option<T> {
     })
 }
 
-/// Whether the night ran its full budgets: the differential and the render diff unsampled, the
-/// render diff at [`RENDER_DIFF_PAGES`] pages per file, and every fuzz target for at least
-/// [`FUZZ_SECONDS`]. A missing report can't show its budget, so it makes the night not full.
+/// Whether the night ran its full budgets. Every target of [`FUZZ_TARGETS`] must have a summary
+/// with at least [`FUZZ_SECONDS`]. Each differential and render-diff report that exists must have
+/// read every input: unsampled and over every source, the structural differential over the
+/// corpus and the mutants (`--corpus all`), the render diff at [`RENDER_DIFF_PAGES`] pages per
+/// file. A missing report doesn't make the night short (a failed night still records, with the
+/// section null and `jobs` saying why), but one that can't show its inputs does.
 pub(crate) fn is_full(record: &Record) -> bool {
-    let differential = record.differential.as_ref().is_some_and(|d| d.sample.is_none());
-    let render = record
-        .render
+    let every_source = |filter: Option<&Vec<String>>| filter.is_some_and(Vec::is_empty);
+    let differential = record.differential.as_ref().is_none_or(|d| {
+        d.sample.is_none() && d.corpus.as_deref() == Some("all") && every_source(d.source_filter.as_ref())
+    });
+    let text = record
+        .text
         .as_ref()
-        .is_some_and(|r| r.sample.is_none() && r.pages_per_file == Some(RENDER_DIFF_PAGES));
+        .is_none_or(|t| t.sample.is_none() && every_source(t.source_filter.as_ref()));
+    let render = record.render.as_ref().is_none_or(|r| {
+        r.sample.is_none() && r.pages_per_file == Some(RENDER_DIFF_PAGES) && r.source_filter.is_empty()
+    });
     let fuzz = record.fuzz.as_ref().is_some_and(|runs| {
         FUZZ_TARGETS
             .iter()
             .all(|t| runs.get(*t).is_some_and(|run| run.seconds >= FUZZ_SECONDS))
     });
-    differential && render && fuzz
+    differential && text && render && fuzz
 }
 
 /// What identifies the run, gathered by [`run`]; the tests give fixed values.

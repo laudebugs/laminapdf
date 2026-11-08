@@ -163,6 +163,24 @@ mod tests {
         assert_eq!(matrix, crate::harness::FUZZ_TARGETS);
     }
 
+    /// The proof record calls a night full when every fuzz target ran `nightly::FUZZ_SECONDS`, so
+    /// the workflow's default budget (both triggers' inputs and the env fallback) must be that.
+    #[test]
+    fn nightly_fuzz_seconds_default_should_be_the_full_budget() {
+        let full = crate::nightly::FUZZ_SECONDS.to_string();
+        let defaults: Vec<&str> = NIGHTLY
+            .split("fuzz-seconds:")
+            .skip(1)
+            .filter_map(|section| section.lines().find_map(|l| l.trim().strip_prefix("default: ")))
+            .map(|v| v.trim_matches('"'))
+            .collect();
+        let fallback = format!("FUZZ_SECONDS: ${{{{ inputs.fuzz-seconds || '{full}' }}}}");
+        assert!(
+            defaults.len() == 2 && defaults.iter().all(|d| *d == full) && NIGHTLY.contains(&fallback),
+            "fuzz-seconds defaults {defaults:?}, expected {full} and the env fallback {fallback:?}"
+        );
+    }
+
     /// `bench` needs every job but those that need it (`pdf-runtimes`, `report`).
     #[test]
     fn nightly_bench_should_need_every_job_that_does_not_depend_on_it() {

@@ -3,9 +3,8 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use super::record::{CorpusSource, Differential, Record, Render, Text};
+use super::record::{Corpus, CorpusSource, Differential, Record, Render, Runtimes, Text};
 use crate::harness::{FUZZ_TARGETS, FuzzRun};
-use crate::pdf_runtimes::RuntimeResults;
 use crate::{roundtrip, verapdf};
 
 pub(super) fn table(record: &Record) -> String {
@@ -37,10 +36,22 @@ pub(super) fn table(record: &Record) -> String {
     out
 }
 
-fn corpus(sources: &BTreeMap<String, CorpusSource>) -> String {
+fn corpus(corpus: &Corpus) -> String {
+    let sources = &corpus.sources;
     let total = |f: fn(&CorpusSource) -> u64| sources.values().map(f).sum::<u64>();
+    let part = if corpus.complete {
+        String::new()
+    } else {
+        let inputs = corpus
+            .inputs
+            .map_or_else(|| "an unknown number of".to_owned(), |n| n.to_string());
+        format!(
+            "**incomplete**: Lamina PDF's report covers {} of {inputs} inputs; ",
+            total(|s| s.files)
+        )
+    };
     format!(
-        "{} files: {} opened, {} repaired, {} refused ({} where another reader opened them), \
+        "{part}{} files: {} opened, {} repaired, {} refused ({} where another reader opened them), \
          {} panics, crashes or timeouts",
         total(|s| s.files),
         total(|s| s.opened),
@@ -53,11 +64,14 @@ fn corpus(sources: &BTreeMap<String, CorpusSource>) -> String {
 
 fn differential(d: &Differential) -> String {
     format!(
-        "{} inputs, {} tools; {} unexcused failures, {} lamina errors",
+        "{} inputs, {} tools; {} unexcused failures, {} lamina errors, {} missing from a tool's report, \
+         {} broken readers",
         d.inputs,
         d.tools.len(),
         d.failures,
-        d.lamina_errors
+        d.lamina_errors,
+        d.missing,
+        d.broken_readers
     )
 }
 
@@ -123,8 +137,13 @@ fn roundtrip(r: &roundtrip::Summary) -> String {
     )
 }
 
-fn runtimes(r: &RuntimeResults) -> String {
-    format!("passed: {}; failed: {}", list(&r.passed), list(&r.failed))
+fn runtimes(r: &Runtimes) -> String {
+    format!(
+        "passed: {}; failed: {}; no result: {}",
+        list(&r.passed),
+        list(&r.failed),
+        list(&r.missing)
+    )
 }
 
 /// `items` joined with commas, or `none`.

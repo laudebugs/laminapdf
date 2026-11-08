@@ -27,14 +27,14 @@ use crate::workspace::Workspace;
 use crate::{program_path, step};
 
 /// Every runtime, in the order a full run takes them.
-const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
+pub(crate) const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
 
 /// Where the task writes, relative to the workspace root.
 pub(crate) const OUT_DIR: &str = "target/xtask/pdf-runtimes";
 
 /// `runtimes.json`: which runtimes' example suite passed, byte for byte against the Rust goldens.
-/// A browser's render suites run after its example suite; their failure fails the task but
-/// leaves the runtime under `passed`.
+/// A browser's render suites run after its example suite; their failure fails the task and drops
+/// its measurements, but leaves the runtime under `passed`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct RuntimeResults {
     pub(crate) passed: Vec<String>,
@@ -268,6 +268,9 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
 /// builds `packages/wasm/dist/` and `packages/sdk/dist/`); installs the Playwright browsers it
 /// needs (`playwright install`, a no-op when they are present).
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
+    let out_dir = ws.root.join(OUT_DIR);
+    // An earlier run's results must not stand in for this one if it stops before writing them.
+    forget_results(&out_dir, args.label.as_deref())?;
     ws.require_node_modules()?;
     for dist in [
         "packages/wasm/dist/lamina_pdf_text.wasm",
@@ -282,6 +285,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let mut failed = Vec::new();
     let mut results = RuntimeResults::default();
     for &runtime in &args.runtimes {
+        let mut example_passed = false;
         let result = (|| -> Result<Vec<Measurement>> {
             if matches!(runtime, "chromium" | "firefox" | "webkit") {
                 crate::run(
@@ -305,32 +309,30 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
             for command in commands(runtime)? {
                 found.extend(parse_measurements(&run_captured(ws, &command)?)?);
             }
+            // The example suite passed; a browser's suites below can still fail the runtime.
+            example_passed = !found.is_empty();
+            if matches!(runtime, "chromium" | "firefox" | "webkit") {
+                render_suites(ws, runtime)?;
+            }
             Ok(found)
         })();
+        if example_passed {
+            results.passed.push(runtime.to_owned());
+        } else {
+            results.failed.push(runtime.to_owned());
+        }
         match result {
             Ok(found) if found.is_empty() => {
                 eprintln!("pdf-runtimes: {runtime} printed no measurements");
                 failed.push(runtime);
-                results.failed.push(runtime.to_owned());
             }
-            Ok(found) => {
-                measurements.extend(found);
-                results.passed.push(runtime.to_owned());
-                if matches!(runtime, "chromium" | "firefox" | "webkit")
-                    && let Err(error) = render_suites(ws, runtime)
-                {
-                    eprintln!("pdf-runtimes: {runtime}'s browser suites failed: {error:#}");
-                    failed.push(runtime);
-                }
-            }
+            Ok(found) => measurements.extend(found),
             Err(error) => {
                 eprintln!("pdf-runtimes: {runtime} failed: {error:#}");
                 failed.push(runtime);
-                results.failed.push(runtime.to_owned());
             }
         }
     }
-    let out_dir = ws.root.join(OUT_DIR);
     fs::create_dir_all(&out_dir)?;
     fs::write(
         out_dir.join(results_file(args.label.as_deref())),
@@ -371,6 +373,17 @@ fn measurements_file(label: Option<&str>) -> String {
 /// The results file's name: `runtimes.json`, or `runtimes-<label>.json`.
 pub(crate) fn results_file(label: Option<&str>) -> String {
     label.map_or_else(|| "runtimes.json".to_owned(), |label| format!("runtimes-{label}.json"))
+}
+
+/// Removes `dir`'s results file for `label` from an earlier run.
+fn forget_results(dir: &Path, label: Option<&str>) -> Result<()> {
+    let path = dir.join(results_file(label));
+    match fs::remove_file(&path) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            Err(e).with_context(|| format!("removing {}", path.display()))
+        }
+        _ => Ok(()),
+    }
 }
 
 /// `value` against an upper `target`: a mark when it misses (reported, not a failure).
@@ -526,6 +539,22 @@ mod tests {
     #[test]
     fn no_label_should_keep_the_default_measurements_file() {
         assert_eq!(measurements_file(None), "measurements.json");
+    }
+
+    #[test]
+    fn forget_results_should_remove_only_its_labels_file() {
+        let dir = std::env::temp_dir().join(format!("xtask-runtimes-forget-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("runtimes-linux.json"), "{}").unwrap();
+        fs::write(dir.join("runtimes-webkit.json"), "{}").unwrap();
+        forget_results(&dir, Some("linux")).unwrap();
+        let kept = (
+            dir.join("runtimes-linux.json").exists(),
+            dir.join("runtimes-webkit.json").exists(),
+        );
+        let missing_is_fine = forget_results(&dir, None).is_ok();
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!((kept, missing_is_fine), ((false, true), true));
     }
 
     #[test]
