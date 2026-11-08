@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3c](../done/L3c-model-plugins.md) |
@@ -34,7 +34,7 @@ Let a web app use a layout model with Lamina PDF's extraction. L3c gave the WASM
 
 **Out of scope**
 
-- OCR engines in the browser: [E13d](./E13d-local-ocr.md) (implements `OcrEngine`, and in the browser answers OCR requests the same way).
+- OCR engines in the browser: [E13d](../ready/E13d-local-ocr.md) (implements `OcrEngine`, and in the browser answers OCR requests the same way).
 
 ## Acceptance criteria
 

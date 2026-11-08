@@ -61,7 +61,7 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - [x] Integrate regions into block building, ordering, furniture and table passes; integrate OCR words as synthetic runs.
 - [x] `crates/laminapdf-layout-onnx`: crate with `[package.metadata.laminapdf] layer = "edge"`; Heron pre/post-processing; tests behind `#[ignore]` that need fetched weights. *`publish = false` for now. The export's graph does its own scaling, so the crate only resizes; the post-processing keeps scores ≥ 0.3 and drops boxes a better one overlaps by 90%.*
 - [x] `tools/xtask`: `models fetch`, `models check`; add `models check` to `cargo xtask check` (fast, offline); `deny.toml` updates for `ort` and its dependencies. *`models check` runs in `check docs`. cargo-deny passed without changes to `deny.toml`. No `models test` command: the README gives the one `cargo test` line with the two paths.*
-- [x] Façade: re-export the traits behind the `extract` feature; `laminapdf-wasm` exposes the request/provide steps (no model runtime in wasm). *`WasmDocument.extractJob`; the SDK wrapper is [L3h](../ready/L3h-sdk-extract-job-and-browser-layout.md).*
+- [x] Façade: re-export the traits behind the `extract` feature; `laminapdf-wasm` exposes the request/provide steps (no model runtime in wasm). *`WasmDocument.extractJob`; the SDK wrapper is [L3h](../ongoing/L3h-sdk-extract-job-and-browser-layout.md).*
 - [x] README and ADR 0030 updates (request/provide decision, allow-list)
 
 ## Acceptance criteria
