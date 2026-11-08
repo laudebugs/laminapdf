@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use laminapdf_model::{Dash, Matrix, UserSpaceRect};
+use laminapdf_model::{BlendMode, Dash, Matrix, UserSpaceRect};
 use laminapdf_syntax::{Name, ObjRef, Object};
 
 /// A font selected by `Tf` (by resource name) or by an `ExtGState`'s `/Font` entry. Glyph
@@ -191,9 +191,8 @@ impl std::ops::Add for TextAdvance {
 
 /// The graphics state (§8.4.1, Tables 51–52) as far as reading content needs it.
 ///
-/// Saved by `q`, restored by `Q`. Parameters the interpreter does not track (soft masks,
-/// blend modes, overprint, transfer functions, halftones) are left to the `ExtGState`
-/// dictionary itself.
+/// Saved by `q`, restored by `Q`. Parameters the interpreter does not track (the soft mask
+/// itself, overprint, transfer functions, halftones) are left to the `ExtGState` dictionary.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct GraphicsState {
@@ -221,6 +220,11 @@ pub struct GraphicsState {
     pub stroke_alpha: f64,
     /// `/ca`: nonstroking alpha.
     pub fill_alpha: f64,
+    /// `/BM`: the blend mode (§11.3.5); an unknown name reads as `Normal`.
+    pub blend_mode: BlendMode,
+    /// Whether `/SMask` names a soft mask (anything but `/None`, §11.6.5.2). Only whether one is
+    /// set: the mask itself isn't read.
+    pub soft_mask: bool,
     /// The text state.
     pub text: TextState,
     /// The clip's bounding box in the page's default user space (§8.5.4): each `W`/`W*` path
@@ -281,6 +285,8 @@ impl Default for GraphicsState {
             fill: CurrentColor::default(),
             stroke_alpha: 1.0,
             fill_alpha: 1.0,
+            blend_mode: BlendMode::Normal,
+            soft_mask: false,
             text: TextState::default(),
             clip_box: None,
         }

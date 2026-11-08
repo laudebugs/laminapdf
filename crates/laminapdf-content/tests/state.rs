@@ -15,6 +15,7 @@ use common::{Event, Recorder, run_content, text_doc};
 use laminapdf_content::{
     ColorSpace, GraphicsState, Matrix, TextAdvance, TextShow, TextState, Visitor, interpret_content, interpret_page,
 };
+use laminapdf_model::BlendMode;
 
 /// The text matrix of every show.
 fn tms(content: &[u8], advance_per_byte: f64) -> Vec<Matrix> {
@@ -287,6 +288,67 @@ fn ext_gstate_sets_line_width_opacity_and_font() {
         ),
         (7.0, 0.25, 14.0, true)
     );
+}
+
+/// The blend mode and soft-mask flag at each paint after `content`, with `GS1`–`GS3` as given.
+fn blend_states(content: &[u8], states: [laminapdf_cos::Dict; 3]) -> Vec<(BlendMode, bool)> {
+    paint_states(|_| {
+        let [a, b, c] = states;
+        let gs = common::dict([("GS1", a.into()), ("GS2", b.into()), ("GS3", c.into())]);
+        (content.to_vec(), common::dict([("ExtGState", gs.into())]))
+    })
+    .iter()
+    .map(|s| (s.blend_mode, s.soft_mask))
+    .collect()
+}
+
+#[test]
+fn ext_gstate_sets_the_blend_mode_and_soft_mask_and_q_restores_them() {
+    let states = blend_states(
+        b"S /GS1 gs S q /GS2 gs S Q S /GS3 gs S",
+        [
+            common::dict([("BM", laminapdf_cos::Object::name("Multiply"))]),
+            common::dict([
+                ("BM", laminapdf_cos::Object::name("Darken")),
+                (
+                    "SMask",
+                    common::dict([("S", laminapdf_cos::Object::name("Luminosity"))]).into(),
+                ),
+            ]),
+            common::dict([("SMask", laminapdf_cos::Object::name("None"))]),
+        ],
+    );
+    assert_eq!(
+        states,
+        [
+            (BlendMode::Normal, false),
+            (BlendMode::Multiply, false),
+            (BlendMode::Darken, true),
+            (BlendMode::Multiply, false),
+            (BlendMode::Multiply, false),
+        ]
+    );
+}
+
+#[test]
+fn a_blend_mode_array_takes_its_first_known_name_and_an_unknown_one_is_normal() {
+    let names = |names: &[&str]| -> laminapdf_cos::Object {
+        names
+            .iter()
+            .map(|n| laminapdf_cos::Object::name(*n))
+            .collect::<Vec<_>>()
+            .into()
+    };
+    let states = blend_states(
+        b"/GS1 gs S /GS2 gs S /GS3 gs S",
+        [
+            common::dict([("BM", names(&["Sparkle", "Screen", "Multiply"]))]),
+            common::dict([("BM", laminapdf_cos::Object::name("Sparkle"))]),
+            common::dict([("BM", laminapdf_cos::Object::name("Compatible"))]),
+        ],
+    );
+    let modes: Vec<_> = states.into_iter().map(|(m, _)| m).collect();
+    assert_eq!(modes, [BlendMode::Screen, BlendMode::Normal, BlendMode::Normal]);
 }
 
 #[test]
