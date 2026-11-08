@@ -41,7 +41,7 @@ Finish the Paper component library that [U6d](./U6d-core-components.md) starts. 
 
 - The toast region, dialogs, sheets, menus and tooltips → [U6e](../done/U6e-overlays-and-sheets.md).
 - The data behind the status items, the thumbnails' bitmaps and the outline's tree → [U4a](../ready/U4a-network-indicator-and-privacy-proof.md), [C4b](../ready/C4b-web-app-shell.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
-- Screenshots of every state → [U6f](../ongoing/U6f-gallery-and-visual-tests.md).
+- Screenshots of every state → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
 

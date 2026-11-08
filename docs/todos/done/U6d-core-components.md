@@ -45,7 +45,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - Focus ring per §7.0 on every focusable component (`:focus-visible`, never removed; the 1 px and inset variants as props or contexts).
 - RTL: every component lays out correctly under `dir="rtl"` (logical properties: `margin-inline-start`, `padding-inline`, `inset-inline-end`; chevrons mirror where direction matters).
 - Touch: a `pointer: coarse` media query and a `density` context (`"desktop" | "touch"`) that switch to 44 px targets and 16 px inputs.
-- `forced-colors: active`: real borders and outlines remain (tested by screenshots in [U6f](../ongoing/U6f-gallery-and-visual-tests.md); styles here).
+- `forced-colors: active`: real borders and outlines remain (tested by screenshots in [U6f](../done/U6f-gallery-and-visual-tests.md); styles here).
 - Strings: components take visible text and labels as props; any built-in text (e.g. "Details") comes from the message catalogue (create the minimal catalogue if [C4a](./C4a-ui-chrome-and-platform.md) hasn't).
 
 **Out of scope** (and which todo covers it)
@@ -53,7 +53,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - Dialogs, bottom sheets, popovers, menus, tooltips, the selection mini toolbar, the command palette shell, the toast region and z-order → [U6e](../done/U6e-overlays-and-sheets.md).
 - Reader chrome built from these (toolbar, page indicator, zoom control, drop zone, password dialog, error and repair banners), the `Platform` interface and `ReaderController` → [C4a](./C4a-ui-chrome-and-platform.md).
 - Layout regions (top bar, left rail, inspector, status bar, focus mode) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md); phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md); command wiring and shortcut map → [U1b](../ready/U1b-command-registry-and-palette.md).
-- Theme switching UI and settings → [C7a](../ready/C7a-accessibility-and-theming.md); the gallery and screenshot tests → [U6f](../ongoing/U6f-gallery-and-visual-tests.md).
+- Theme switching UI and settings → [C7a](../ready/C7a-accessibility-and-theming.md); the gallery and screenshot tests → [U6f](../done/U6f-gallery-and-visual-tests.md).
 - Inspector panel and save banner (§7.11, §7.13) → [U1c](../ready/U1c-inverted-l-shell-and-modes.md) and [E1e](../ready/E1e-save-and-constraint-banner.md), built from these components.
 
 ## Tasks
@@ -62,7 +62,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - [x] Scaffold or extend `packages/ui` as in Scope; import `@laminapdf/tokens/tokens.css` once in a `styles/base.css` (root font, colour, `button { font: inherit; color: inherit }`).
 - [x] Licence-check new dependencies (`react-aria-components` and its `@react-aria/*`/`@internationalized/*` packages, `axe-core` MPL-2.0 as a dev dependency only, Testing Library MIT); `cargo xtask npm-licenses` passes.
 - [x] For each component: types first (`index.ts` exports reviewed in the PR), then implementation, CSS from tokens only (a test greps component CSS for hex colours and `px` values that are not tokens, except the 1 px border width), then tests.
-- [x] A shared `test/states.ts` helper that renders a component in each of its states (forcing hover/pressed via data attributes for screenshots, real events for behaviour tests) so [U6f](../ongoing/U6f-gallery-and-visual-tests.md) can reuse it.
+- [x] A shared `test/states.ts` helper that renders a component in each of its states (forcing hover/pressed via data attributes for screenshots, real events for behaviour tests) so [U6f](../done/U6f-gallery-and-visual-tests.md) can reuse it.
 - [x] Keyboard tests per component (Tab order, Space/Enter activation, arrows in groups and tabs, Home/End, Escape not swallowed).
 - [x] axe tests per component in every state, light and dark theme, LTR and RTL.
 - [x] Touch tests: under `density="touch"` every interactive element's bounding box is ≥ 44 × 44; under desktop ≥ 24 × 24.
@@ -75,7 +75,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - [x] axe-core reports zero violations for every component, state, theme (light, dark, high contrast) and direction.
 - [x] Target sizes: ≥ 24 × 24 on desktop density and ≥ 44 × 44 on touch density, measured in tests.
 - [x] No component CSS contains a literal colour; all colours come from `@laminapdf/tokens` (test).
-- [x] The components render correctly with `dir="rtl"` (asserted via computed logical positions in a test; visual check in [U6f](../ongoing/U6f-gallery-and-visual-tests.md)).
+- [x] The components render correctly with `dir="rtl"` (asserted via computed logical positions in a test; visual check in [U6f](../done/U6f-gallery-and-visual-tests.md)).
 - [x] No component imports a viewer, a store or the command registry (lint test on imports).
 - [x] Matches the linked Paper screens (F01–F05); any deviation is recorded in the design language.
 - [x] `cargo xtask check` passes.
@@ -86,7 +86,7 @@ None.
 
 ## Tests
 
-`packages/ui/src/components/**/*.test.tsx` (Vitest browser mode, three engines, Testing Library, `axe-core`): states, keyboard, ARIA, RTL, target sizes; `packages/ui/test/states.ts` and `test/axe.ts` helpers shared with [U6e](../done/U6e-overlays-and-sheets.md) and [U6f](../ongoing/U6f-gallery-and-visual-tests.md); import-boundary and literal-colour lint tests.
+`packages/ui/src/components/**/*.test.tsx` (Vitest browser mode, three engines, Testing Library, `axe-core`): states, keyboard, ARIA, RTL, target sizes; `packages/ui/test/states.ts` and `test/axe.ts` helpers shared with [U6e](../done/U6e-overlays-and-sheets.md) and [U6f](../done/U6f-gallery-and-visual-tests.md); import-boundary and literal-colour lint tests.
 
 ## Docs to update
 
@@ -107,7 +107,7 @@ None.
 - `@laminapdf/ui` holds `Button`, `IconButton`, `ToggleButton`, `ToolToggle`, `ModeSwitcher`, `SegmentedTabs` with `TabPanel`, `TextInput`, `TextArea`, `Select`, `Checkbox`, `RadioGroup` with `Radio`, `Switch`, `SwatchGroup` and `PageAppearanceChips`, on React Aria Components 1.22.1 (Apache-2.0), with `DensityProvider` and `useDensity`. The stylesheet is `@laminapdf/ui/styles.css`: one file per component in `@layer paper.components`, every length and colour from a token. The 23 sizes the components needed became component tokens in `@laminapdf/tokens`, with status `from-files`.
 - Decisions, recorded in the design language: each mode button is its own Tab stop; tabs activate automatically, `keyboardActivation="manual"` for a slow panel; the switch is a hidden checkbox input with `role="switch"` inside its label.
 - The tests: Node checks for literal colours, `px` values, unknown tokens, the import boundary and the §7 map; browser tests (three engines) for keyboard operation, ARIA state, axe in light, dark and high contrast, left to right and right to left, target sizes at both densities, 16 px touch fields and the mirrored chevron.
-- Differences from the plan: the tests drive React directly with `userEvent` from Vitest, without Testing Library; the shared examples are `test/states.tsx`, and axe runs in `test/browser/a11y.browser.test.tsx`. Hover and pressed are not forced through data attributes, so shipped code carries no test hooks; [U6f](../ongoing/U6f-gallery-and-visual-tests.md) can hover with the browser. No message catalogue: the components have no text of their own.
+- Differences from the plan: the tests drive React directly with `userEvent` from Vitest, without Testing Library; the shared examples are `test/states.tsx`, and axe runs in `test/browser/a11y.browser.test.tsx`. Hover and pressed are not forced through data attributes, so shipped code carries no test hooks; [U6f](../done/U6f-gallery-and-visual-tests.md) can hover with the browser. No message catalogue: the components have no text of their own.
 - Left for later: the design language's "More controls **(proposed)**" in §7.19 (password field, chips input, segmented radio group, toggle group, radio card, anchor grid, stepper) and the phone sizes still marked **(proposed)**, until the owner approves them.
 
 ## Definition of done

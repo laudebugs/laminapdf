@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `U6f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
-| Depends on | [U6b](../done/U6b-self-hosted-fonts.md), [U6e](../done/U6e-overlays-and-sheets.md), [U6j](../done/U6j-positioning-and-palette-shell.md) |
+| Depends on | [U6b](./U6b-self-hosted-fonts.md), [U6e](./U6e-overlays-and-sheets.md), [U6j](./U6j-positioning-and-palette-shell.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md#2-ci-lanes) (CI lanes, flaky tests), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (`cargo xtask` as the single entry point), 0024 (from [U1a](../done/U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6f-gallery-and-visual-tests` |
 | PR title | `feat(gallery): add the paper component gallery with screenshot and axe tests` |
@@ -48,28 +48,28 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load the `/rust-best-practices` skill before writing the xtask module.
-- [ ] Scaffold `apps/gallery` (Vite, React 19, `"private": true`, nested `biome.json` with DOM globals, `tsconfig.json` with `"module": "preserve"`), import `@laminapdf/tokens/tokens.css` and `@laminapdf/fonts/fonts.css`, preload the UI font.
-- [ ] Build the routes from Scope; each route imports the state lists from `@laminapdf/ui`'s test helpers (exported on a `./testing` subpath) instead of repeating them.
-- [ ] Add the global controls and URL parameters; an index page listing every route.
-- [ ] Add `@playwright/test` and `@axe-core/playwright` (licence-check: Apache-2.0 and MPL-2.0, dev only); `playwright.config.ts` with the projects above; pin the Docker image tag next to the npm version and check they match in a test.
-- [ ] `e2e/visual.spec.ts` (screenshots), `e2e/a11y.spec.ts` (axe on every route × theme × engine), `e2e/fonts.spec.ts` (no request leaves the origin: complements [U6b](../done/U6b-self-hosted-fonts.md)).
-- [ ] A coverage test: every exported component of `@laminapdf/ui` appears on at least one route (compare the package's export list with a registry in the gallery).
-- [ ] `cargo xtask gallery [--test|--update]` in `tools/xtask` (calls `pnpm` and `docker`; a clear error if Docker is missing, with the CI fallback: run the "update screenshots" `workflow_dispatch` job, which uploads the new PNGs as an artifact).
-- [ ] `tools/xtask/src/design_screens.rs` with unit tests on small Markdown inputs (ID found, heading missing, file missing, "Not yet drawn" exemption), wired into `check docs`; run it on the real tree and either fix gaps or list them under "Not yet drawn" in screens.md in this PR.
-- [ ] CI: the gallery job (Docker image, `pnpm install --frozen-lockfile`, `cargo xtask gallery --test`), artifact upload on failure; the `workflow_dispatch` update job.
-- [ ] `apps/gallery/README.md`: how to run, how to update screenshots, how reviewers read image diffs, how to quarantine a flaky screenshot (ADR 0018).
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load the `/rust-best-practices` skill before writing the xtask module.
+- [x] Scaffold `apps/gallery` (Vite, React 19, `"private": true`, nested `biome.json` with DOM globals, `tsconfig.json` with `"module": "preserve"`), import `@laminapdf/tokens/tokens.css` and `@laminapdf/fonts/fonts.css`, preload the UI font.
+- [x] Build the routes from Scope; each route imports the state lists from `@laminapdf/ui`'s test helpers (exported on a `./testing` subpath) instead of repeating them.
+- [x] Add the global controls and URL parameters; an index page listing every route.
+- [x] Add `@playwright/test` and `@axe-core/playwright` (licence-check: Apache-2.0 and MPL-2.0, dev only); `playwright.config.ts` with the projects above; pin the Docker image tag next to the npm version and check they match in a test.
+- [x] `e2e/visual.spec.ts` (screenshots), `e2e/a11y.spec.ts` (axe on every route × theme × engine), `e2e/fonts.spec.ts` (no request leaves the origin: complements [U6b](../done/U6b-self-hosted-fonts.md)).
+- [x] A coverage test: every exported component of `@laminapdf/ui` appears on at least one route (compare the package's export list with a registry in the gallery).
+- [x] `cargo xtask gallery [--test|--update]` in `tools/xtask` (calls `pnpm` and `docker`; a clear error if Docker is missing, with the CI fallback: run the "update screenshots" `workflow_dispatch` job, which uploads the new PNGs as an artifact).
+- [x] `tools/xtask/src/design_screens.rs` with unit tests on small Markdown inputs (ID found, heading missing, file missing, "Not yet drawn" exemption), wired into `check docs`; run it on the real tree and either fix gaps or list them under "Not yet drawn" in screens.md in this PR.
+- [x] CI: the gallery job (Docker image, `pnpm install --frozen-lockfile`, `cargo xtask gallery --test`), artifact upload on failure; the `workflow_dispatch` update job. The jobs are workflow changes, so they are in the PR description for the owner to commit.
+- [x] `apps/gallery/README.md`: how to run, how to update screenshots, how reviewers read image diffs, how to quarantine a flaky screenshot (ADR 0018).
 
 ## Acceptance criteria
 
-- [ ] The gallery renders every exported component of `@laminapdf/ui` (coverage test) in every theme, and page-related components in every page appearance.
-- [ ] Screenshot tests pass in CI and locally in the Docker image; changing a token value (e.g. `accent`) makes them fail with diff images in the artifact (shown once in the PR description).
-- [ ] `cargo xtask gallery --update` regenerates screenshots and nothing else; no test writes snapshots.
-- [ ] axe reports zero violations on every route, theme and engine.
-- [ ] The gallery makes no request to any origin other than its own (test).
-- [ ] `cargo xtask check docs` fails when a screen ID in screens.md has no area-document heading or no committed design file and is not listed under "Not yet drawn" (unit tests), and passes on the tree as merged.
-- [ ] Two consecutive CI runs produce identical screenshots (no flakiness from fonts, animation or time).
-- [ ] `cargo xtask check` passes.
+- [x] The gallery renders every exported component of `@laminapdf/ui` (coverage test) in every theme, and page-related components in every page appearance.
+- [x] Screenshot tests pass in CI and locally in the Docker image; changing a token value (e.g. `accent`) makes them fail with diff images in the artifact (shown once in the PR description).
+- [x] `cargo xtask gallery --update` regenerates screenshots and nothing else; no test writes snapshots.
+- [x] axe reports zero violations on every route, theme and engine.
+- [x] The gallery makes no request to any origin other than its own (test).
+- [x] `cargo xtask check docs` fails when a screen ID in screens.md has no area-document heading or no committed design file and is not listed under "Not yet drawn" (unit tests), and passes on the tree as merged.
+- [x] Two consecutive CI runs produce identical screenshots (no flakiness from fonts, animation or time). Checked locally: two `--test` runs of the same commit in the pinned image matched pixel for pixel.
+- [x] `cargo xtask check` passes.
 
 ## Post-merge checks
 
@@ -97,8 +97,8 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
