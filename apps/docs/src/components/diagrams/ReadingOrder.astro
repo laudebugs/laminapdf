@@ -6,13 +6,12 @@
 import type { DrawingProps } from "./kit/drawing.ts";
 import Label from "./kit/Label.astro";
 import PageSheet from "./kit/PageSheet.astro";
+import { LETTER, scaleRect } from "./kit/page.ts";
 import Svg from "./kit/Svg.astro";
 
 type Props = DrawingProps;
 const { labelledby, describedby } = Astro.props;
 
-/** US Letter, in points. */
-const LETTER = { w: 612, h: 792 };
 /** The blocks in reading order, in points from the page's top-left corner. */
 const BLOCKS = [
   { x0: 54, y0: 54, x1: 558, y1: 124 },
@@ -30,13 +29,7 @@ const BADGE_INSET = 18;
 
 /** The page at (x, y), `s` drawing units to a point, and its blocks scaled. */
 function sheet(x: number, y: number, s: number) {
-  const blocks = BLOCKS.map((b, i) => ({
-    n: String(i + 1),
-    x: x + b.x0 * s,
-    y: y + b.y0 * s,
-    w: (b.x1 - b.x0) * s,
-    h: (b.y1 - b.y0) * s,
-  }));
+  const blocks = BLOCKS.map((b, i) => ({ n: String(i + 1), ...scaleRect(x, y, s, b) }));
   // Each badge sits in its block's top-left corner, or halfway down a block too short for that.
   const badges = blocks.map((b) => ({ n: b.n, x: b.x + BADGE_INSET, y: b.y + Math.min(BADGE_INSET, b.h / 2) }));
   return {

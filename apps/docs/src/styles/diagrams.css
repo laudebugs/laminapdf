@@ -196,8 +196,7 @@
   fill: var(--paper-page-original-accent);
 }
 
-/* A number on an accent dot, for an order (the reading-order sketch): the page's paper on the
-   page's accent, on a sheet or off it. */
+/* An order through a sheet's blocks (the reading-order sketch), dashed in the page's accent. */
 .dg .dg-order {
   fill: none;
   stroke: var(--paper-page-original-accent);
@@ -205,6 +204,7 @@
   stroke-dasharray: 5 4;
 }
 
+/* A number on an accent dot, for that order: the page's paper on the page's accent. */
 .dg .dg-badge-dot {
   fill: var(--paper-page-original-accent);
 }
