@@ -19,7 +19,7 @@ Publish a tested report recipe that places paragraphs and an image using the cur
 
 ## Context
 
-- [Element flow plan](../../plans/element-flow.md#proof-and-usefulness): the report the recipe builds and the before/after comparison it records.
+- [Element flow plan](../../plans/element-flow.md#how-each-step-proves-it-works): the report the recipe builds and the before/after comparison it records.
 - [B10a](./B10a-measured-text-bottom.md) and [B10b](./B10b-vertical-cursor.md): the helper and cursor the examples use.
 - [Example guidelines](../../guidelines/examples.md): paired Rust and TypeScript examples, public APIs only, registered with the snippet checks.
 

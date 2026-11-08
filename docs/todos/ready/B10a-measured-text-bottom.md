@@ -44,7 +44,7 @@ Expose an optional bottom position for text runs and text boxes in Rust and Type
 - [ ] Settle additive accessor/helper names and document empty-result behavior before implementation.
 - [ ] Decide, from the measurement helper alone, whether callers still need the cursor, and record the answer in the plan's "Decisions before implementation". If they don't, delete B10b and drop it from B10c's **Depends on**.
 - [ ] Reuse `TextRun::bounds()` and `TextLayout::lines` in `crates/laminapdf-build/src/surface/`; keep existing fields and return types.
-- [ ] Export through the Rust facade and SDK public API; inspect the WebAssembly DTO boundary without changing its serialized shape unnecessarily.
+- [ ] Export through the Rust façade and the SDK; inspect the WebAssembly DTO boundary without changing its serialized shape unnecessarily.
 - [ ] Preserve overflow offsets and pre-transform coordinate semantics.
 - [ ] Add public API documentation, doc tests that place a next paragraph, and the required changeset. The runnable examples are B10c's.
 
