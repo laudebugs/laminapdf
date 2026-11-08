@@ -3,19 +3,15 @@ title: An invoice
 description: A tagged one-page invoice with an embedded font, a table of line items with right-aligned amounts and a total, in TypeScript and Rust.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll make a one-page invoice: a heading, an address, a table of line items with right-aligned amounts, and a total. It's tagged, so a screen reader reads it in order. Start from it for any document built around a table, such as a quote or a receipt.
 
 The function takes a font file, draws the invoice and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/invoice.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/invoice.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/invoice.ts" rust="crates/laminapdf/examples/invoice.rs" result="invoice" />
 
-The result is one A4 page with its body set in Noto Sans: [open the reference PDF](/examples/pdf/invoice.pdf).
+The result is one A4 page with its body set in Noto Sans. The Result tab shows it, with a link to the PDF.
 
 ## How it works
 

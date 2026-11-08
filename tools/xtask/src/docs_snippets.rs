@@ -267,16 +267,42 @@ fn glob_findings(globs: &[Glob]) -> Vec<Finding> {
         .collect()
 }
 
-/// The `file` of every `<Snippet>` on a page.
+/// The files a page shows: the `file` of every `<Snippet>`, and the `ts` and `rust` of every
+/// `<Example>` (which shows its code through `Snippet`).
 fn snippet_uses(page: &str) -> Vec<String> {
-    page.match_indices("<Snippet")
-        .filter_map(|(start, _)| {
-            let tag = page.get(start..)?;
-            let tag = tag.get(..tag.find('>')?)?;
-            let value = tag.split_once("file=\"")?.1;
-            Some(value.get(..value.find('"')?)?.to_owned())
-        })
-        .collect()
+    let mut uses = Vec::new();
+    for (start, _) in page.match_indices('<') {
+        let Some(tag) = page.get(start..).and_then(|t| t.find('>').and_then(|end| t.get(..end))) else {
+            continue;
+        };
+        let attributes: &[&str] = if tag.starts_with("<Snippet") {
+            &["file"]
+        } else if tag.starts_with("<Example ") || tag.starts_with("<Example\n") {
+            &["ts", "rust"]
+        } else {
+            continue;
+        };
+        for name in attributes {
+            if let Some(value) = attribute(tag, name) {
+                uses.push(value.to_owned());
+            }
+        }
+    }
+    uses
+}
+
+/// The double-quoted value of attribute `name` in `tag`, matched as a whole word.
+fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let needle = format!("{name}=\"");
+    let at = tag
+        .match_indices(&needle)
+        .find(|(at, _)| {
+            tag.get(..*at)
+                .is_some_and(|before| before.ends_with(char::is_whitespace))
+        })?
+        .0;
+    let value = tag.get(at + needle.len()..)?;
+    value.get(..value.find('"')?)
 }
 
 /// The comment an example opens with.
@@ -628,6 +654,19 @@ mod tests {
         assert_eq!(
             snippet_uses(page),
             vec!["packages/sdk/examples/hello.ts", "crates/laminapdf/examples/hello.rs"]
+        );
+    }
+
+    #[test]
+    fn an_examples_code_should_count_as_shown() {
+        let page = "<Example ts=\"packages/sdk/examples/hello.ts\" rust=\"crates/laminapdf/examples/hello.rs\" result=\"hello\" />\n<Example\n  ts=\"packages/sdk/examples/invoice.ts\"\n/>\n<ExampleCode ts=\"x.ts\" />";
+        assert_eq!(
+            snippet_uses(page),
+            vec![
+                "packages/sdk/examples/hello.ts",
+                "crates/laminapdf/examples/hello.rs",
+                "packages/sdk/examples/invoice.ts"
+            ]
         );
     }
 
