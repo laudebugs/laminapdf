@@ -17,8 +17,16 @@ export interface BackendInit {
   readonly wasm?: CloneableWasmSource;
 }
 
+/**
+ * A remote file the worker fetches itself, with HTTP Range requests (`HttpRangeByteSource`): its
+ * bytes never pass through the page.
+ */
+export interface RemoteSource {
+  readonly url: string;
+}
+
 /** What a document is opened from: sent to the worker, which reads it there. */
-export type SourceInit = Blob | ArrayBuffer | Uint8Array;
+export type SourceInit = Blob | ArrayBuffer | Uint8Array | RemoteSource;
 
 /** `open`'s options. The password crosses to the worker once and is kept only there. */
 export interface ViewerOpenOptions {
@@ -67,6 +75,12 @@ export interface Methods {
   pageInfo: { params: [index: number]; result: PageInfo };
   render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   memory: { params: []; result: WorkerMemory };
+}
+
+/** How much of a remote file the worker has read: the `progress` event. */
+export interface LoadProgress {
+  readonly loaded: number;
+  readonly total: number;
 }
 
 /** A viewer method's name. */

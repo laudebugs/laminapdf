@@ -187,6 +187,9 @@ export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dial
 export {
   OpenFailure,
   type OpenFailureProps,
+  RemoteFailure,
+  type RemoteFailureProps,
+  type RemoteFailureReason,
   RepairDetails,
   type RepairDetailsProps,
   type RepairKind,

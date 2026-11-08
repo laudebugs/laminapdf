@@ -20,9 +20,9 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| R01 | Home / open: drop zone, open file, open from URL, recent files (local only), privacy line | W, M | [C4b](../../todos/done/C4b-web-app-shell.md), [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md) |
+| R01 | Home / open: drop zone, open file, open from URL, recent files (local only), privacy line | W, M | [C4b](../../todos/done/C4b-web-app-shell.md), [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) |
 | R02 | Loading states: placeholders at true aspect, low-res then sharp tiles, progress for large files | W | [C3b](../../todos/done/C3b-viewer-virtualiser-and-zoom.md) |
-| R03 | Password prompt (password-required, wrong-password) | W, M | [C4c](../../todos/ready/C4c-remote-files-encryption-privacy.md) |
+| R03 | Password prompt (password-required, wrong-password) | W, M | [C4c](../../todos/done/C4c-remote-files-encryption-privacy.md) |
 | R04 | Repaired / damaged file: status-bar notice and details panel; unrecoverable error page | W | [C4b](../../todos/done/C4b-web-app-shell.md) |
 | R05 | Find in document: find bar, match count, results list in the rail, case/whole-word options | W, M | [C5b](../../todos/ready/C5b-find-in-document.md) |
 | R06 | Rail tabs: Pages (thumbnails with page labels) · Outline (nested, expand/collapse) · contextual tabs (Attachments, Results…) | W | [C6a](../../todos/ready/C6a-thumbnails-outline-page-labels.md) |

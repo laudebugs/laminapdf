@@ -54,18 +54,20 @@ export interface InitScript {
 
 /**
  * Opens the app at `path` on `origin` in a new page of `browser`, after `init`, until its home
- * screen shows. `options` are the page's: the e2e suite's local server needs `ignoreHTTPSErrors`
- * for its self-signed certificate, while a deployed reader's certificate is checked; a device
- * profile (`devices["iPhone 15"]`) gives the page a phone's viewport, touch and user agent.
+ * screen shows (unless `options.home` is false). `options` are otherwise the page's: the e2e
+ * suite's local server needs `ignoreHTTPSErrors` for its self-signed certificate, while a
+ * deployed reader's certificate is checked; a device profile (`devices["iPhone 15"]`) gives the
+ * page a phone's viewport, touch and user agent.
  */
 export async function load(
   browser: Browser,
   origin: string,
   path = "/",
   init?: InitScript,
-  options: Parameters<Browser["newPage"]>[0] = {},
+  options: Parameters<Browser["newPage"]>[0] & { home?: boolean } = {},
 ): Promise<Watched> {
-  const page = await browser.newPage(options);
+  const { home = true, ...pageOptions } = options;
+  const page = await browser.newPage(pageOptions);
   const foreign: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -78,7 +80,8 @@ export async function load(
   });
   if (init !== undefined) await page.addInitScript(init.script, init.arg);
   await page.goto(new URL(path, origin).href);
-  await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
+  // A `#url=` link opens a remote file at once, so its page may never show the home screen.
+  if (home) await page.getByRole("heading", { name: "Open a PDF" }).waitFor();
   return {
     page,
     foreign,

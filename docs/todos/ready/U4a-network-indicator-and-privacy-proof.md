@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C4c](./C4c-remote-files-encryption-privacy.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
+| Depends on | [C4c](../done/C4c-remote-files-encryption-privacy.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
 | ADRs | Follows 0011 (privacy and telemetry policy) and 0024 |
 | Branch | `feat/u4a-network-indicator` |
 | PR title | `feat(web): add the network activity indicator and privacy proof tests` |
@@ -21,7 +21,7 @@
 
 - **Design (Paper):** [R13 Network activity panel](../../design/paper/reader-b.md#r13-network-activity-panel). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13); [research: differentiators](../../research/product/pdf-app-product-and-ux.md#three-differentiators-ranked) — FBI Denver alert (March 2025) on free online converters; "client-side" doesn't guarantee no requests.
-- [C4c](./C4c-remote-files-encryption-privacy.md) — remote `#url=` files, the no-upload Playwright test.
+- [C4c](../done/C4c-remote-files-encryption-privacy.md) — remote `#url=` files, the no-upload Playwright test.
 - [web-app plan: privacy and security](../../plans/web-app.md#privacy-and-security) — CSP, no third-party scripts.
 
 ## Scope

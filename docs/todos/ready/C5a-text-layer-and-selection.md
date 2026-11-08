@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
-| Dependency notes | Library **B9** (text extraction: `laminapdf-content`, `laminapdf-text`, `page.text()` in `@laminapdf/sdk`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](../done/C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](../done/C3c-viewer-perf-harness.md), [C4c](../done/C4c-remote-files-encryption-privacy.md) |
+| Dependency notes | Library **B9** (text extraction: `laminapdf-content`, `laminapdf-text`, `page.text()` in `@laminapdf/sdk`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](../done/C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](../done/C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
 | ADRs | Follows 0004's two-parsers rule (text geometry from lamina, never from the renderer), 0009 (framework-free layer in `@laminapdf/viewer`), ADR 0023 (content-stream reading, from B9) |
 | Branch | `feat/c5a-text-layer` |
 | PR title | `feat(viewer): add the text layer with selection, copy and struct-tree linking` |

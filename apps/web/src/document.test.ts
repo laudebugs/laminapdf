@@ -42,8 +42,9 @@ describe("repairsText", () => {
 });
 
 describe("wantsDebug", () => {
-  it("is true only for the #debug fragment", () => {
+  it("is true only for a debug key in the fragment", () => {
     expect(wantsDebug("#debug")).toBe(true);
+    expect(wantsDebug("#url=https%3A%2F%2Fh%2Fa.pdf&debug")).toBe(true);
     expect(wantsDebug("")).toBe(false);
     expect(wantsDebug("#debugger")).toBe(false);
   });
