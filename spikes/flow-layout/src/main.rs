@@ -42,9 +42,10 @@ fn main() {
         };
         let (ms, (pdf, pages, gaps)) = best(runs, save);
         let again = save().0;
+        let same30 = (0..30).all(|_| save().0 == pdf);
         std::fs::write(out.join(format!("a-{name}.pdf")), &pdf).unwrap();
         println!("  structure: {:?}", lamina_flow_layout::probe::structure(&pdf));
-        println!("A {name}: {pages} pages, {} B, {ms:.1} ms (both passes), deterministic {}, {gaps:?}", pdf.len(), again == pdf);
+        println!("A {name}: {pages} pages, {} B, {ms:.1} ms (both passes), deterministic {} (30 runs {same30}), {gaps:?}", pdf.len(), again == pdf);
     }
 
     // Experiment B: Typst. Typst memoises across compiles (comemo), so a cold compile evicts the
@@ -67,9 +68,10 @@ fn main() {
         std::fs::write(out.join(format!("b-{name}.pdf")), &b.pdf).unwrap();
         println!("  structure: {:?}", lamina_flow_layout::probe::structure(&b.pdf));
         let again = typst_pdf::build(world).unwrap();
+        let same30 = (0..30).all(|_| typst_pdf::build(world).unwrap().pdf == b.pdf);
         let edit = typst_pdf::edit(&b.pdf);
         println!(
-            "B {name}: {} pages, {} B, {} warnings, cold {cold:.1} ms, warm {warm:.1} ms, deterministic {}",
+            "B {name}: {} pages, {} B, {} warnings, cold {cold:.1} ms, warm {warm:.1} ms, deterministic {} (30 runs {same30})",
             b.pages,
             b.pdf.len(),
             b.warnings,
@@ -91,4 +93,17 @@ fn main() {
         std::fs::write(out.join(format!("c-{name}.pdf")), &pdf).unwrap();
         println!("C {name} page 1: {} B, {unmapped:?}", pdf.len());
     }
+
+    // A glyph the font lacks: our builder refuses it (missing-glyph); what does Typst do?
+    let missing = MemoryWorld::new(
+        "#set text(font: \"Noto Sans Devanagari\")\nदेवनागरी पाठ सही ढंग से आकार लेता है".to_owned(),
+        &[],
+        &fonts,
+    );
+    let warned = missing.compile();
+    println!(
+        "Typst with glyphs no font has: ok {}, warnings {:?}",
+        warned.output.is_ok(),
+        warned.warnings.iter().map(|w| w.message.to_string()).collect::<Vec<_>>()
+    );
 }

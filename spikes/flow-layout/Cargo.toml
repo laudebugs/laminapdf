@@ -24,7 +24,7 @@ typst = ["dep:typst", "dep:typst-pdf", "dep:typst-layout"]
 frames = ["typst"]
 
 [dependencies]
-laminapdf = { path = "../../crates/laminapdf" }
+laminapdf = { path = "../../crates/laminapdf", default-features = false, features = ["text"] }
 laminapdf-build = { path = "../../crates/laminapdf-build", features = ["text"] }
 laminapdf-text = { path = "../../crates/laminapdf-text" }
 laminapdf-model = { path = "../../crates/laminapdf-model" }
