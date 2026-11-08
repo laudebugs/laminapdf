@@ -8,19 +8,58 @@
 //! else `tools/roundtrip/node_modules/pdfjs-dist`, installed with npm from
 //! `tools/roundtrip/package.json` when missing) and Python with pypdfium2
 //! (`tools/roundtrip/requirements.txt`; `$LAMINA_PDF_PYTHON` or `python3`). The outputs, the
-//! manifest and `versions.json` (every tool's version, for reproducing a failure) are in
-//! `target/xtask/roundtrip/`.
+//! manifest, `versions.json` (every tool's version, for reproducing a failure) and
+//! `summary.json` (the counts and each tool's result, [`Summary`], which `cargo xtask proof`
+//! reads; written even when a tool fails) are in `target/xtask/roundtrip/`.
 
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+use std::collections::BTreeMap;
+
 use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::doctor::QPDF_VERSION;
 use crate::workspace::Workspace;
 use crate::{run, step};
+
+/// Where the suite writes, relative to the workspace root.
+pub(crate) const OUT_DIR: &str = "target/xtask/roundtrip";
+
+/// `target/xtask/roundtrip/summary.json`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Summary {
+    /// Every case: fixture × op × mode, saved or refused.
+    pub(crate) cases: u64,
+    /// The cases lamina saved and reopened; each output is checked by the tools.
+    pub(crate) saved: u64,
+    /// The cases the save planner refused, as the suite expects.
+    pub(crate) refused: u64,
+    /// Each tool that ran, by name.
+    pub(crate) tools: BTreeMap<String, ToolResult>,
+}
+
+/// One tool's check of every saved output.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct ToolResult {
+    /// The version it reported, `None` when it couldn't be read.
+    pub(crate) version: Option<String>,
+    /// Whether every output passed.
+    pub(crate) passed: bool,
+}
+
+/// The version string in a checker's version value: qpdf's line, or the `version` of the
+/// JSON line pdf.js and `PDFium` print.
+fn version_text(version: &Value) -> Option<String> {
+    match version {
+        Value::String(text) => Some(text.clone()),
+        Value::Object(map) => map.get("version").and_then(Value::as_str).map(str::to_owned),
+        _ => None,
+    }
+}
 
 /// The external tools, in the order they run.
 pub(crate) const TOOLS: [&str; 3] = ["qpdf", "pdfjs", "pdfium"];
@@ -44,7 +83,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Vec<&'static str>> {
 
 /// Runs the suite with `tools`.
 pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
-    let out = ws.root.join("target/xtask/roundtrip");
+    let out = ws.root.join(OUT_DIR);
     if out.exists() {
         fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
     }
@@ -72,6 +111,19 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
         .iter()
         .filter_map(|c| c.get("file").and_then(Value::as_str).map(str::to_owned))
         .collect();
+    let count = |key: &str| {
+        manifest
+            .get(key)
+            .and_then(Value::as_u64)
+            .with_context(|| format!("manifest without {key}"))
+    };
+    let (saved, refused) = (count("saved")?, count("refused")?);
+    let mut summary = Summary {
+        cases: saved + refused,
+        saved,
+        refused,
+        tools: BTreeMap::new(),
+    };
     let mut versions = serde_json::Map::new();
     versions.insert("cases".to_owned(), json!(files.len()));
     let mut failed = Vec::new();
@@ -83,6 +135,13 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
             "pdfjs" => pdfjs(ws, &out),
             _ => pdfium(ws, &out),
         };
+        summary.tools.insert(
+            tool.to_owned(),
+            ToolResult {
+                version: version_text(&version),
+                passed: outcome.is_ok(),
+            },
+        );
         versions.insert(tool.to_owned(), version);
         if let Err(e) = outcome {
             eprintln!("{tool}: {e:#}");
@@ -90,6 +149,7 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
         }
     }
     fs::write(out.join("versions.json"), serde_json::to_string_pretty(&versions)?)?;
+    fs::write(out.join("summary.json"), serde_json::to_string_pretty(&summary)? + "\n")?;
     step(&format!("versions: {}", serde_json::to_string(&versions)?));
     if !failed.is_empty() {
         bail!("round trip failed in: {}", failed.join(", "));
@@ -275,6 +335,19 @@ mod tests {
         assert_eq!(
             parse_args(&args(&["--tools", "qpdf,pdfium"])).unwrap(),
             ["qpdf", "pdfium"]
+        );
+    }
+
+    #[test]
+    fn version_text_should_read_qpdfs_line_and_the_checkers_json() {
+        let checker = json!({"tool": "pdfjs", "version": "5.4.296", "files": 12});
+        assert_eq!(
+            [
+                version_text(&json!("qpdf version 12.2.0")),
+                version_text(&checker),
+                version_text(&Value::Null)
+            ],
+            [Some("qpdf version 12.2.0".to_owned()), Some("5.4.296".to_owned()), None]
         );
     }
 

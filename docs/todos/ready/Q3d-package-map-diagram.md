@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | None |
 | Branch | `feat/q3d-package-map` |
 | PR title | `feat(docs): a diagram of the published packages and modules` |

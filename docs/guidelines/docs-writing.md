@@ -51,6 +51,17 @@ They build on the writing style in [design language §9](../design/paper/design-
 - **MUST:** put a sentence that says what the code does before every `<Snippet>`.
 - **MUST:** show code only from a tested example file; [examples.md](examples.md) has the rules for those files.
 
+## Draw a diagram where a picture answers the question faster
+
+A diagram belongs next to prose that explains a flow, a structure or a geometry the reader must keep in mind; the [docs diagrams plan](../plans/docs-diagrams.md) lists where they go.
+
+- **MUST:** draw it with the kit in `apps/docs/src/components/diagrams/` and place it with `<Diagram name="…" />`, so it follows the reader's theme; never add an image file.
+- **MUST:** give it a caption and a text description in `diagrams/registry.mjs`. The text says everything the picture says: screen readers read it, and so do agents, in the page's Markdown twin.
+- **MUST:** keep the page complete without the picture; the diagram supports a paragraph and never replaces one.
+- **MUST:** label with the page's own words and the API's exact names, four words or fewer, in sentence case.
+- **MUST:** never put a diagram before a page's opening paragraph (`pnpm --filter @laminapdf/docs test` checks it).
+- **SHOULD:** put the diagram right after the paragraph it illustrates.
+
 ## Reviewer checklist
 
 - Could a newcomer follow this page from the one before it to the one after it?
