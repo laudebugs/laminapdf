@@ -15,6 +15,8 @@
 
 ## Goal
 
+Start this only if B10a's PR records in the plan that the measurement helper alone leaves callers needing a cursor; otherwise B10a deletes this todo.
+
 Add an optional vertical cursor over measured bottoms and explicit rectangles. A caller can place paragraphs and images in sequence while retaining control over pages, drawing and overflow.
 
 ## Context

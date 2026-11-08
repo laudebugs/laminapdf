@@ -117,7 +117,7 @@ Each implementation PR follows the repository's review, changeset and validation
 ## Decisions before implementation
 
 - Choose accessor/helper names and where the cursor is exported, following the existing public API conventions.
-- Confirm whether a measurement helper plus examples solves the immediate need before adding cursor state.
+- Confirm whether a measurement helper plus examples solves the immediate need before adding cursor state. B10a records the answer here; B10b starts only if it says the cursor is needed, and is deleted otherwise.
 - Choose whether the text-only helper is feature-gated while the rectangle cursor stays available without the text module.
 - Keep automatic pagination as a separate proposal. It needs a measure-before-draw or resumable layout contract to avoid drawing before deciding that a page is full.
 
