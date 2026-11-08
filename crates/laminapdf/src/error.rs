@@ -59,6 +59,15 @@ pub enum Error {
     /// (`document-changed`).
     #[error("the document changed since the job was created")]
     DocumentChanged,
+    /// An earlier revision asked for past the last ([`Document::open_revision`](crate::Document::open_revision),
+    /// `revision-index-out-of-range`).
+    #[error("revision index {index} is out of range: the file has {count} revisions")]
+    RevisionIndexOutOfRange {
+        /// The index given.
+        index: u32,
+        /// The number of revisions.
+        count: u32,
+    },
 }
 
 /// Shorthand for `Result<T, laminapdf::Error>`.
@@ -109,7 +118,12 @@ impl Error {
 impl Error {
     /// The codes only the façade raises (listed in `fixtures/codes.json` under
     /// `facadeErrors`; `page-index-out-of-range` is `laminapdf-build`'s code, reused).
-    pub const CODES: &'static [&'static str] = &["cancelled", "job-finished", "document-changed"];
+    pub const CODES: &'static [&'static str] = &[
+        "cancelled",
+        "job-finished",
+        "document-changed",
+        "revision-index-out-of-range",
+    ];
 
     /// The stable kebab-case code ([ADR 0026] §3).
     ///
@@ -141,6 +155,7 @@ impl Error {
             Self::Cancelled => ErrorCode::Cancelled,
             Self::JobFinished => ErrorCode::JobFinished,
             Self::DocumentChanged => ErrorCode::DocumentChanged,
+            Self::RevisionIndexOutOfRange { .. } => ErrorCode::RevisionIndexOutOfRange,
         }
     }
 
@@ -170,9 +185,11 @@ impl Error {
                 #[cfg(feature = "extract")]
                 Inner::Extract(e) => e.location(),
             },
-            Self::PageIndexOutOfRange { .. } | Self::Cancelled | Self::JobFinished | Self::DocumentChanged => {
-                Location::NONE
-            }
+            Self::PageIndexOutOfRange { .. }
+            | Self::Cancelled
+            | Self::JobFinished
+            | Self::DocumentChanged
+            | Self::RevisionIndexOutOfRange { .. } => Location::NONE,
         }
     }
 
@@ -341,6 +358,7 @@ mod tests {
             Error::Cancelled,
             Error::JobFinished,
             Error::DocumentChanged,
+            Error::RevisionIndexOutOfRange { index: 2, count: 2 },
         ]
     }
 

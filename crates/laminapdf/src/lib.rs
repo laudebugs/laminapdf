@@ -112,6 +112,8 @@ mod generated {
     pub(crate) mod explain;
 }
 mod job;
+#[cfg(feature = "extract")]
+mod redaction;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -132,6 +134,8 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
 pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
+#[cfg(feature = "extract")]
+pub use redaction::RedactionWarning;
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};

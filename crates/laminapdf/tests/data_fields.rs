@@ -161,6 +161,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             held: 1,
         })),
         Error::PageIndexOutOfRange { index: 1, count: 1 },
+        Error::RevisionIndexOutOfRange { index: 2, count: 2 },
         Error::from(T::InvalidFont { index: 0 }),
         Error::from(T::CollectionIndex { index: 1, count: 1 }),
         Error::from(T::UnknownAxis {
@@ -358,6 +359,20 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }
         .into(),
         TW::WholeFontRebuilt { font: s() }.into(),
+        Warning::Redaction(laminapdf::RedactionWarning::CoveredText {
+            page: 0,
+            chars: 9,
+            regions: 1,
+        }),
+        Warning::Redaction(laminapdf::RedactionWarning::RedactionNotApplied {
+            page: 0,
+            annotations: 2,
+        }),
+        Warning::Redaction(laminapdf::RedactionWarning::TextInEarlierRevision {
+            revision: 0,
+            words: 1,
+            pages: vec![0],
+        }),
     ];
     (errors, warnings)
 }
