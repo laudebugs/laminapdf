@@ -278,8 +278,8 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
 }
 
 /// The `wasm-bindgen-test` suite (Node) for each module's features, the package's smoke test
-/// (Vitest, Node) over `dist/`, then `@laminapdf/sdk`: build, typecheck, tests, publint and attw;
-/// then `@laminapdf/render-hayro`'s `RenderBackend` contract over `lamina_pdf_render_hayro` (C2c).
+/// (Vitest, Node) over `dist/`, `@laminapdf/render-hayro`'s `RenderBackend` contract over
+/// `lamina_pdf_render_hayro` (C2c), then `@laminapdf/sdk`: build, typecheck, tests, publint and attw.
 fn test(ws: &Workspace) -> Result<()> {
     crate::step("laminapdf-wasm tests in Node (wasm-bindgen-test-runner)");
     for module in MODULES.iter().filter(|m| m.is_lamina()) {
@@ -302,14 +302,16 @@ fn test(ws: &Workspace) -> Result<()> {
         )?;
     }
     ws.pnpm(&["--filter", "@laminapdf/wasm", "run", "test:wasm"])?;
-    crate::step("@laminapdf/sdk over the modules: build, typecheck, Vitest (Node, Vite), publint, attw --pack");
-    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "test:wasm"])?;
-    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "lint:package"])?;
+    // Before the SDK: its examples draw pages with @laminapdf/render-hayro, whose `dist/` its
+    // typecheck and tests import.
     crate::step(
         "@laminapdf/render-hayro over lamina_pdf_render_hayro: build, typecheck, the RenderBackend contract (Node)",
     );
     ws.pnpm(&["--filter", "@laminapdf/render", "run", "build"])?;
-    ws.pnpm(&["--filter", "@laminapdf/render-hayro", "run", "test:wasm"])
+    ws.pnpm(&["--filter", "@laminapdf/render-hayro", "run", "test:wasm"])?;
+    crate::step("@laminapdf/sdk over the modules: build, typecheck, Vitest (Node, Vite), publint, attw --pack");
+    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "test:wasm"])?;
+    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "lint:package"])
 }
 
 /// A usable `wasm-opt`: on `PATH` at [`BINARYEN_VERSION`], else the release in

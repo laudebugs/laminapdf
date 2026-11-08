@@ -5,7 +5,7 @@ description: Complete Lamina PDF programs, from one page of text to an archived 
 
 Each recipe is a complete program to copy: what it makes, the code, how it works and what to change. Pick the one closest to the document you need, and change it from there.
 
-Most recipes exist twice, in Rust and in TypeScript, and both write exactly the same bytes. Lamina PDF's tests check that on every change, in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. Each recipe shows the tested code, and its reference PDF is the file that code writes.
+Most recipes exist twice, in Rust and in TypeScript, and both write exactly the same bytes. Lamina PDF's tests check that on every change, in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. Each recipe shows the tested code, and its reference PDF is the file that code writes. To test your own PDFs the same way, see [Test the PDFs you generate](/guides/test-generated-pdfs/).
 
 To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf --example <name>`. Its header comment lists the arguments it takes, such as the font or image files it reads.
 
