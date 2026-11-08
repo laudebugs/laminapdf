@@ -194,9 +194,8 @@ jobs:
   #   output, and qpdf --check, pdf.js and PDFium check them (`cargo xtask roundtrip`; Node for
   #   pdfjs-dist from tools/roundtrip/package.json, a venv with tools/roundtrip/requirements.txt).
   # - Todo B5c (ADR 0018 tiers 3 and 8): the `laminapdf` examples, byte-compared with
-  #   fixtures/golden/examples/ and checked by `qpdf --check` (`cargo xtask examples`), then every
-  #   page rendered by PDFium (a venv with tools/render/requirements.txt) and hayro, compared with
-  #   fixtures/render-golden/ and with each other (`cargo xtask render-golden`).
+  #   fixtures/golden/examples/ and checked by `qpdf --check` (`cargo xtask examples`). Their
+  #   render goldens run in the `render-golden` job below, on macOS.
   # qpdf comes from the checksum-verified release in the shared setup action.
   suites:
     name: Suites (differential, capability matrix, round trip, examples)

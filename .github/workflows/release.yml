@@ -41,8 +41,8 @@
 # verify-install's git dependency pins; the called nightly workflow always runs on the dispatched
 # ref's commit, so dispatch on the ref you test. Same runner rules as the other lanes (ci.yml):
 # hosted Linux x64 (macOS Arm64 for WebKit and the render goldens) with explicit tool setup and
-# main-only Rust cache writes. Artifacts are
-# prefixed `release-` so they never clash with the nightly jobs' in the same run.
+# main-only Rust cache writes. Artifacts are prefixed `release-` so they never clash with the
+# nightly jobs' in the same run.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Release
 

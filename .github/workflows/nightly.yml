@@ -115,7 +115,7 @@ defaults:
     shell: bash
 
 jobs:
-  # Hosted Linux x64 VMs with explicit tool setup; pdf-runtimes (WebKit) and render-diff (its
+  # Hosted Linux x64 VMs with explicit tool setup; pdf-runtimes' WebKit leg and render-diff (its
   # thresholds were measured on macOS, ADR 0004 §6) stay on macOS Arm64.
   differential:
     name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext)
@@ -323,11 +323,27 @@ jobs:
   # that fails fails the job (and opens the nightly issue); the timings themselves are recorded,
   # not compared.
   pdf-runtimes:
-    name: "@laminapdf/sdk in every runtime (timings)"
+    name: "@laminapdf/sdk in ${{ matrix.name }} (timings)"
     needs: bench
     if: ${{ !cancelled() }}
-    runs-on: macos-15
+    # WebKit on macOS (closest to Safari); every other runtime on Linux. Each records its timings
+    # under its own runner label; bench-history retries a push the other one beat.
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Node, Chromium, Firefox, Deno, Bun and workerd
+            group: linux
+            runtimes: node chromium firefox deno bun workerd
+            runner: ubuntu-24.04
+            label: github-hosted/ubuntu-24.04-x64
+          - name: WebKit
+            group: webkit
+            runtimes: webkit
+            runner: macos-15
+            label: github-hosted/macos-15-arm64
     permissions:
       contents: write
     env:
@@ -350,6 +366,10 @@ jobs:
       - run: cargo xtask wasm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+      - if: matrix.group == 'linux'
+        uses: ./.github/actions/playwright-deps
+        with:
+          browsers: chromium firefox
       # As in the bench job: the token only reaches the bench-history steps.
       - name: Fetch the benchmark history
         if: ${{ env.RECORD == 'true' }}
@@ -357,12 +377,16 @@ jobs:
         with:
           mode: fetch
           token: ${{ github.token }}
-      - name: Every runtime (recording on main)
+      - name: The runtimes (recording on main)
+        env:
+          RUNTIMES: ${{ matrix.runtimes }}
+          LABEL: ${{ matrix.label }}
         run: |
+          # shellcheck disable=SC2086 # one argument per runtime
           if [ "$RECORD" = true ]; then
-            cargo xtask pdf-runtimes --history "$HISTORY" --runner "github-hosted/macos-15-arm64" --record
+            cargo xtask pdf-runtimes $RUNTIMES --history "$HISTORY" --runner "$LABEL" --record
           else
-            cargo xtask pdf-runtimes
+            cargo xtask pdf-runtimes $RUNTIMES
           fi
       # Also after a failed run: the runtimes that passed were recorded (the action does nothing
       # when no record was added).
@@ -372,12 +396,12 @@ jobs:
         with:
           mode: push
           token: ${{ github.token }}
-          message: "bench(pdf-runtimes): ${{ github.sha }}"
+          message: "bench(pdf-runtimes, ${{ matrix.group }}): ${{ github.sha }}"
       - name: Upload the measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pdf-runtimes
+          name: pdf-runtimes-${{ matrix.group }}
           path: target/xtask/pdf-runtimes/
           if-no-files-found: ignore
 

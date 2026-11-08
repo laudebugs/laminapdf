@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-28
+- Amended 2026-11-08 (owner): with the repository public, jobs run on hosted Ubuntu x64 and use macOS Arm64 only where a Mac is needed (WebKit, the render goldens and render diff, the CLI's macOS build); benchmarks restart on Ubuntu.
 - Amended 2026-11-07 (owner): standard GitHub-hosted runners replace the private runners; native Rust checks run on Linux, macOS and Windows, x64 and Arm64.
 - Amended 2026-11-05 (owner): the release lane skips its own nightly run when the release commit differs from a commit a full nightly passed on only in version files, as the daily release's commits do ([ADR 0017 §6](0017-versioning-and-release.md#6-the-release-lane); [P5](../todos/done/P5-npm-trusted-publishing-and-version-only-releases.md)).
 - Amended 2026-11-02 (owner): the release guard also accepts a dispatched nightly run on `main` with every input at its default; until then the Release row counted only scheduled runs ([implementation note](#release-guard-accepts-a-full-dispatched-nightly-2026-11-02)).
@@ -111,7 +112,7 @@ Fixtures, `expected.json`, error and warning codes (`fixtures/codes.json`, [ADR 
 - **Scaling and benchmarks (tier 11).** `cargo xtask scaling` runs `cargo test --release -- --ignored` single-threaded and retries a failure once. A pass on retry is reported as flaky, never hidden.
   - `cargo xtask bench` runs the criterion benches in `crates/laminapdf-cos/benches/` (open + page-tree walk, Flate decode, building a file with `Writer`), `crates/laminapdf-save/benches/` (B3b's full rewrite in both xref layouts, and the incremental writer) and `crates/laminapdf/benches/` (B5d: the 100-page text report of pdf-library §4, the twin of `@laminapdf/sdk`'s `examples/report.ts`, and B6b's report of text boxes).
   - Each benchmark is compared with the median of its last five full (not `--quick`) records with the same runner label. A benchmark over 10% slower is a regression.
-  - Benchmarks run on hosted Ubuntu x64 under `github-hosted/ubuntu-24.04-x64`. This starts a baseline separate from the former private Macs. GitHub's physical hosts vary, so timing regressions remain advisory.
+  - Benchmarks run on hosted Ubuntu x64 under `github-hosted/ubuntu-24.04-x64`. This starts a baseline separate from the earlier hosted macOS one (`github-hosted/macos-15-arm64`) and the former private Macs. GitHub's physical hosts vary, so timing regressions remain advisory.
   - The night's record is appended to `history.jsonl` on the `bench-data` branch. The token for that branch is passed per git command and only to the fetch and push steps, never to the step that builds and runs the benchmarks.
 
 ### Release guard accepts a full dispatched nightly (2026-11-02)

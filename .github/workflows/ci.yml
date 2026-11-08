@@ -209,7 +209,12 @@ jobs:
         include:
           - { group: browsers, name: "Chromium and Firefox", runtimes: "chromium firefox", runner: ubuntu-24.04 }
           - { group: webkit, name: "WebKit", runtimes: "webkit", runner: macos-15 }
-          - { group: servers, name: "Deno, Bun, workerd and Node 22 and 26", runtimes: "deno bun workerd", runner: ubuntu-24.04 }
+          - {
+              group: servers,
+              name: "Deno, Bun, workerd and Node 22 and 26",
+              runtimes: "deno bun workerd",
+              runner: ubuntu-24.04,
+            }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

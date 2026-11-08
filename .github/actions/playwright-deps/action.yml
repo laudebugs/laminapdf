@@ -7,10 +7,6 @@ inputs:
     description: Space-separated Playwright browser names.
     required: false
     default: chromium
-  package:
-    description: The workspace package whose Playwright version is used.
-    required: false
-    default: "@laminapdf/sdk"
 runs:
   using: composite
   steps:
@@ -18,7 +14,6 @@ runs:
       shell: bash
       env:
         BROWSERS: ${{ inputs.browsers }}
-        PACKAGE: ${{ inputs.package }}
       run: |
         # shellcheck disable=SC2086 # one argument per browser
-        pnpm --filter "$PACKAGE" exec playwright install-deps $BROWSERS
+        pnpm --filter @laminapdf/sdk exec playwright install-deps $BROWSERS
