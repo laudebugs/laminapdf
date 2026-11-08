@@ -23,6 +23,7 @@ export const HERON: ModelInfo = Object.freeze({
 /** The part of onnxruntime-web this package uses: pass `await import("onnxruntime-web")`. */
 export interface OnnxRuntime {
   readonly InferenceSession: {
+    /** Opens a session on the model's bytes. */
     create(model: Uint8Array): Promise<OnnxSession>;
   };
   readonly Tensor: new (type: "uint8" | "int64", data: Uint8Array | BigInt64Array, dims: readonly number[]) => unknown;
@@ -30,6 +31,7 @@ export interface OnnxRuntime {
 
 /** An ONNX Runtime session, as {@link OnnxRuntime} creates it. */
 export interface OnnxSession {
+  /** Runs the model on `feeds`, its inputs by name; resolves with its outputs by name. */
   run(feeds: Record<string, unknown>): Promise<Record<string, { readonly data: unknown }>>;
 }
 
