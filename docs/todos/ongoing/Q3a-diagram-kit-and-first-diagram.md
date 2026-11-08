@@ -11,7 +11,7 @@
 | Branch | `docs/q3a-diagram-kit` |
 | PR title | `feat(docs): a diagram kit that follows the theme, and "Open, edit, save"` |
 | Size | M |
-| PR | — |
+| PR | [#331](https://github.com/laudebugs/laminapdf/pull/331) |
 
 ## Goal
 
