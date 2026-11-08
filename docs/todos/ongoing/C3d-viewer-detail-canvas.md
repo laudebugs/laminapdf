@@ -11,7 +11,7 @@
 | Branch | `feat/c3d-viewer-detail-canvas` |
 | PR title | `feat(viewer): draw sharp tiles into a canvas over the part in view, so every zoom stays sharp` |
 | Size | M (300–500 changed lines incl. tests) |
-| PR | — |
+| PR | [laudebugs/lamina#317](https://github.com/laudebugs/laminapdf/pull/317) |
 
 ## Goal
 
