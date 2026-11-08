@@ -294,11 +294,14 @@ impl Cutter<'_> {
         let start = out.len();
         self.split(group, axis, at, depth, out)?;
         if let Some((group, rows_at)) = second {
+            // The second cut's own groups never make the order, so nothing they find, nor the
+            // second cuts they spend, counts.
+            let (found, tried) = (self.near_grid.take(), self.alternatives.get());
             let mut by_rows = Vec::with_capacity(group.len());
             self.split(group.clone(), Axis::Rows, rows_at, depth, &mut by_rows)?;
-            if out.get(start..) != Some(by_rows.as_slice()) {
-                *self.near_grid.borrow_mut() = Some(group);
-            }
+            self.alternatives.set(tried);
+            let differs = out.get(start..) != Some(by_rows.as_slice());
+            *self.near_grid.borrow_mut() = found.or_else(|| differs.then_some(group));
         }
         Ok(())
     }

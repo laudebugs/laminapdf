@@ -454,16 +454,20 @@ fn render_report(
 
 /// The `multi_column` subset split by `extract-column-order-uncertain`'s `reason`: for each
 /// reason, and for the pages not warned, the pages and the share of their order tests that
-/// pass. `None` when the subset wasn't scored.
+/// pass. Pages that failed to extract are left out, since they pass nothing whatever their
+/// order. `None` when the subset wasn't scored.
 fn column_order_line(candidate: &str, extracted: &Value, scores: &Value) -> Option<String> {
     const NONE: &str = "not warned";
     let by_pdf = at(at(at(scores, "subsets"), "multi_column"), "byPdf").as_object()?;
     let marker = format!("/{candidate}/");
-    // The PDF each Markdown file came from (`<subset>/<stem>.pdf`) and its reason.
+    // The PDF each extracted Markdown file came from (`<subset>/<stem>.pdf`) and its reason.
     let reasons: BTreeMap<String, &str> = at(extracted, "facts")
         .as_object()?
         .iter()
+        .filter(|(_, fact)| at(fact, "outcome") == "extracted")
         .filter_map(|(md, fact)| {
+            // The facts' paths use the platform's separator.
+            let md = md.replace('\\', "/");
             let rel = md.rsplit_once(marker.as_str()).map_or(md.as_str(), |(_, r)| r);
             let pdf = format!("{}.pdf", rel.strip_suffix("_pg1_repeat1.md")?);
             Some((pdf, at(fact, "columnOrder").as_str().unwrap_or(NONE)))
@@ -473,7 +477,8 @@ fn column_order_line(candidate: &str, extracted: &Value, scores: &Value) -> Opti
     // Pages, passed, tests.
     let mut groups: BTreeMap<&str, [u32; 3]> = BTreeMap::new();
     for (pdf, r) in by_pdf {
-        let g = groups.entry(reasons.get(pdf).copied().unwrap_or(NONE)).or_default();
+        let Some(&reason) = reasons.get(pdf) else { continue };
+        let g = groups.entry(reason).or_default();
         g[0] += 1;
         g[1] += count(r, "passed");
         g[2] += count(r, "tests");
@@ -522,14 +527,16 @@ mod tests {
     #[test]
     fn column_order_line_should_split_the_pass_rate_by_reason() {
         let extracted = serde_json::json!({"facts": {
-            "/out/laminapdf/multi_column/a_pg1_repeat1.md": {"columnOrder": "narrow-gutter"},
-            "/out/laminapdf/multi_column/b_pg1_repeat1.md": {},
-            "/out/laminapdf/multi_column/c_pg1_repeat1.md": {},
+            "/out/laminapdf/multi_column/a_pg1_repeat1.md": {"outcome": "extracted", "columnOrder": "narrow-gutter"},
+            "/out/laminapdf/multi_column/b_pg1_repeat1.md": {"outcome": "extracted"},
+            "C:\\out\\laminapdf\\multi_column\\c_pg1_repeat1.md": {"outcome": "extracted"},
+            "/out/laminapdf/multi_column/d_pg1_repeat1.md": {"outcome": "failed"},
         }});
         let scores = serde_json::json!({"subsets": {"multi_column": {"byPdf": {
             "multi_column/a.pdf": {"passed": 1, "tests": 4},
             "multi_column/b.pdf": {"passed": 2, "tests": 2},
             "multi_column/c.pdf": {"passed": 1, "tests": 2},
+            "multi_column/d.pdf": {"passed": 0, "tests": 3},
         }}}});
         let line = column_order_line("laminapdf", &extracted, &scores).unwrap();
         assert!(

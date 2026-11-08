@@ -64,7 +64,7 @@ On the reading-order corpus in `fixtures/reading-order/`, 22 of the 28 files rea
 
 The rules check their own column order on every page they order by layout, and raise `extract-column-order-uncertain` once for the page when a check fires. The warning's `reason` names the first check that fired, and the blocks it covers get a `confidence` of 0.5 instead of 0.75; the order itself stays the same.
 
-- **`narrow-gutter`.** A gap of at least 0.6 font sizes is narrower than the 1 font size that splits a line, so the line keeps both sides. When three lines of one block keep such a gap within half a font size of the same place, the block has probably been read across a narrow gutter.
+- **`narrow-gutter`.** A gap of at least 0.6 font sizes is narrower than the 1 font size that splits a line, so the line keeps both sides. When at least three lines of a block, and at least half of them, keep such a gap within half a font size of the same place, the block has probably been read across a narrow gutter.
 - **`columns-revisited`.** Within a band, the order leaves a block for one beside it at the same height, then comes back below the pair to both columns, each at about its width above. A column-first reading never does that; rows forced by a block across the gutter do. A row of authors over the columns, or an equation and its number, doesn't count, nor does a pair of one-line blocks, since a grid of them reads row by row on purpose.
 - **`near-grid`.** A group of at least 4 blocks with gaps both ways, three quarters or more of them one line but not all, reads by columns. The rules cut it by rows as well, at most 8 times a page, and warn when the two orders differ.
 
@@ -87,14 +87,14 @@ Three things explain most of the failures:
 - **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Dropping page numbers and artifact-marked text lifted the third subset from 37.6 %, before these rules, to 59.6 %; a header or footer that is neither stays in the text.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 
-The column-order checks warned 51 of the 231 `multi_column` pages (Lamina PDF 0.2.0-alpha.3, 2026-11-08). The warned pages pass 48 % of their order tests and the others 53 %, and the narrow-gutter pages, where the lines read across both columns, pass 14 %. The near-grid pages pass more than the rest, 67 %: most are unruled tables read column by column, which the benchmark's order tests, made from the prose, rarely check.
+The column-order checks warned 48 of the 228 `multi_column` pages that extracted (Lamina PDF 0.2.0-alpha.3, 2026-11-08). The warned pages pass 48 % of their order tests and the others 54 %, and the narrow-gutter pages, where the lines read across both columns, pass 9 %. The near-grid pages pass more than the rest, 64 %: most are unruled tables read column by column, which the benchmark's order tests, made from the prose, rarely check.
 
 | Reason | Pages | Order tests | Passed |
 | --- | ---: | ---: | ---: |
-| `columns-revisited` | 30 | 102 | 52.0 % |
-| `narrow-gutter` | 8 | 36 | 13.9 % |
-| `near-grid` | 13 | 48 | 66.7 % |
-| not warned | 180 | 698 | 53.2 % |
+| `columns-revisited` | 31 | 107 | 49.5 % |
+| `narrow-gutter` | 5 | 23 | 8.7 % |
+| `near-grid` | 12 | 44 | 63.6 % |
+| not warned | 180 | 698 | 54.2 % |
 
 The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
 

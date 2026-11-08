@@ -50,22 +50,26 @@ const CONTENT_CONFIDENCE: f64 = 0.5;
 /// A text block whose column order the layout rules had to guess: as sure as content order.
 const UNCERTAIN_CONFIDENCE: f64 = 0.5;
 
-/// A block whose lines hold this many narrow-gutter points within half a font size of one
-/// another has probably been read across a gutter narrower than one font size.
+/// A block where this many lines, and at least half its lines, hold narrow-gutter points within
+/// half a font size of one another has probably been read across a gutter narrower than one
+/// font size; loose word spaces line up on a few lines of a long paragraph by chance.
 const NARROW_GUTTER_LINES: usize = 3;
 
 /// Raises `extract-column-order-uncertain` when the page's column order is in doubt, and returns
-/// for each item whether a doubt covers it. Only where the layout rules decided the order: not in
-/// content order, with a layout model's regions, or on a page with vertical writing (which
+/// for each item whether a doubt covers it. Only where the layout rules decided the whole page's
+/// order (`whole_page`: not the text a structure tree left out): not in content order, with a
+/// layout model's regions, or on a page with vertical writing (which
 /// `extract-reading-order-ambiguous` covers).
 fn report_doubts(
     cx: &PageContext<'_>,
     items: &[(Item, Option<usize>)],
     lines: &[Line],
     doubt: Option<xycut::Doubt>,
+    whole_page: bool,
     vertical: bool,
 ) -> Result<Vec<bool>, ExtractError> {
-    let layout_order = matches!(cx.options.reading_order, ReadingOrder::Auto | ReadingOrder::Layout)
+    let layout_order = whole_page
+        && cx.options.reading_order != ReadingOrder::ContentStream
         && cx.painting.regions.is_empty()
         && !vertical;
     if !layout_order {
@@ -78,7 +82,13 @@ fn report_doubts(
             reason,
         })?;
     }
-    Ok((0..items.len()).map(|i| uncertain.contains(&i)).collect())
+    let mut doubted = vec![false; items.len()];
+    for i in uncertain {
+        if let Some(d) = doubted.get_mut(i) {
+            *d = true;
+        }
+    }
+    Ok(doubted)
 }
 
 /// The page's doubts about its column order: the first reason found (`narrow-gutter`, then
@@ -104,8 +114,9 @@ fn column_doubts(
     (reason, uncertain)
 }
 
-/// Whether at least [`NARROW_GUTTER_LINES`] of `draft`'s lines kept runs together across a gap
-/// that may be a narrow gutter, at points within half a font size of one another.
+/// Whether at least [`NARROW_GUTTER_LINES`] of `draft`'s lines, and at least half of them, kept
+/// runs together across a gap that may be a narrow gutter, at points within half a font size of
+/// one another.
 fn read_across_gutter(draft: &Draft, lines: &[Line]) -> bool {
     let points: Vec<(usize, f64, f64)> = draft
         .lines
@@ -121,7 +132,7 @@ fn read_across_gutter(draft: &Draft, lines: &[Line]) -> bool {
             .collect();
         near.sort_unstable();
         near.dedup();
-        near.len() >= NARROW_GUTTER_LINES
+        near.len() >= NARROW_GUTTER_LINES.max(draft.lines.len().div_ceil(2))
     })
 }
 
@@ -288,7 +299,13 @@ fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[LayoutRegio
             _ => parts.push((glyph.text.clone(), r, Vec::new())),
         }
     }
-    if parts.len() <= 1 { whole() } else { parts }
+    if parts.len() <= 1 {
+        // One part: the run as drawn, with the gaps it kept.
+        let near_gutters = parts.pop().map(|(_, _, n)| n).unwrap_or_default();
+        vec![(run.text.clone(), run.bounds, near_gutters)]
+    } else {
+        parts
+    }
 }
 
 fn is_vertical(line: &Line, pieces: &[Piece]) -> bool {
@@ -613,7 +630,8 @@ struct PageContext<'a> {
 }
 
 /// The layout's blocks of `pieces` (with their `spans`): lines, blocks, tables, XY-Cut++ order.
-/// Their IDs count from `id_from`.
+/// Their IDs count from `id_from`, which is 0 only when the layout reads the whole page (not the
+/// text a structure tree left out), so only then are its column-order doubts reported.
 fn layout(
     cx: &PageContext<'_>,
     pieces: Vec<Piece>,
@@ -664,7 +682,7 @@ fn layout(
         region.push(*r);
     }
     let (order, doubt) = order_of(&boxes, &counts, &first, &region, rtl, options, cancel)?;
-    let doubted = report_doubts(cx, &items, &lines, doubt, vertical > 0)?;
+    let doubted = report_doubts(cx, &items, &lines, doubt, id_from == 0, vertical > 0)?;
     let items = take_in(items.into_iter().zip(doubted).collect(), &order);
     let confidence = match options.reading_order {
         ReadingOrder::ContentStream => CONTENT_CONFIDENCE,
