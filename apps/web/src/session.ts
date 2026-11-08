@@ -45,10 +45,14 @@ async function sourceOf(file: PlatformFile): Promise<Blob | Uint8Array> {
   return file.read(0, file.size);
 }
 
-/** Resolves on the first animation frame where `done()` holds. */
-function whenPainted(done: () => boolean): Promise<void> {
+/** Resolves true on the first animation frame where `done()` holds, or false once `stale()` does. */
+function whenPainted(done: () => boolean, stale: () => boolean): Promise<boolean> {
   return new Promise((resolve) => {
-    const check = () => (done() ? resolve() : requestAnimationFrame(check));
+    const check = () => {
+      if (stale()) resolve(false);
+      else if (done()) resolve(true);
+      else requestAnimationFrame(check);
+    };
     requestAnimationFrame(check);
   });
 }
@@ -61,7 +65,13 @@ export class Engine implements ExternalStore<EngineState> {
   #session: Promise<Session>;
   /** The file open now, for reopening it in another backend. */
   #file: PlatformFile | undefined;
-  #warnings: DocumentWarning[] = [];
+  /** Counts opens and backend switches: an open that isn't the latest shows and closes nothing. */
+  #turn = 0;
+  /**
+   * Warnings received since the last open answered. The worker opens one file at a time and sends
+   * a file's warnings before its answer, so each answer takes exactly its own.
+   */
+  #incoming: DocumentWarning[] = [];
   #state: EngineState;
 
   constructor(platform: Platform, backend: DebugBackend) {
@@ -83,6 +93,7 @@ export class Engine implements ExternalStore<EngineState> {
     const old = this.#session;
     const file = this.#file;
     this.reader.close();
+    this.#turn += 1;
     this.#set({ backend, viewer: undefined });
     this.#session = this.#start(backend);
     void old.then(({ client, viewer }) => {
@@ -98,7 +109,7 @@ export class Engine implements ExternalStore<EngineState> {
       (started) => {
         if (this.#session !== session) return;
         started.client.on("warning", (warning) => {
-          this.#warnings.push(warning as DocumentWarning);
+          this.#incoming.push(warning as DocumentWarning);
         });
         this.#set({ viewer: started.viewer });
       },
@@ -109,30 +120,40 @@ export class Engine implements ExternalStore<EngineState> {
   }
 
   async #open(file: PlatformFile, password: string | undefined): Promise<OpenedDocument> {
+    this.#turn += 1;
+    const turn = this.#turn;
+    const latest = () => turn === this.#turn;
     const session = await this.#session;
     const started = performance.now();
-    // The worker reports the document's warnings while it opens: these are this open's.
-    this.#warnings = [];
-    const opened = await session.client.open(await sourceOf(file), password === undefined ? {} : { password });
+    let opened: Awaited<ReturnType<ViewerClient["open"]>>;
+    let warnings: DocumentWarning[];
+    try {
+      opened = await session.client.open(await sourceOf(file), password === undefined ? {} : { password });
+    } finally {
+      warnings = this.#incoming.splice(0);
+    }
+    // A later open or a backend switch came first: its own open replaces this one in the worker,
+    // so nothing here is shown, and closing it must not close the document the worker holds now.
+    if (!latest()) return { pageCount: opened.pageCount };
     session.viewer.open(opened);
     this.#file = file;
-    this.#set({ title: opened.title, repairs: repairsFrom(this.#warnings), timing: undefined });
-    void whenPainted(() => {
-      const first = session.viewer.stats().pages[0];
-      return first === "low" || first === "sharp" || first === "error";
-    }).then(() => {
-      if (this.#file !== file) return;
+    this.#set({ title: opened.title, repairs: repairsFrom(warnings), timing: undefined });
+    const firstPage = () => {
+      const state = session.viewer.stats().pages[0];
+      return state === "low" || state === "sharp" || state === "error";
+    };
+    void whenPainted(firstPage, () => !latest()).then((painted) => {
+      if (!painted) return;
       const backend = `${opened.backend.name} ${opened.backend.version}`;
       this.#set({ timing: { backend, firstPageMs: Math.round(performance.now() - started) } });
     });
     return {
       pageCount: opened.pageCount,
       close: () => {
-        if (this.#file === file) {
-          this.#file = undefined;
-          this.#set({ title: undefined, repairs: [], timing: undefined });
-        }
-        void session.client.close().catch(() => undefined);
+        if (!latest()) return;
+        this.#file = undefined;
+        this.#set({ title: undefined, repairs: [], timing: undefined });
+        if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
       },
     };
   }

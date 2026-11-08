@@ -3,6 +3,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
+import { fileURLToPath } from "node:url";
 import type { TestProject } from "vitest/node";
 
 const APP = new URL("../", import.meta.url);
@@ -45,20 +46,25 @@ export default async function setup(project: TestProject): Promise<() => void> {
     throw new Error("apps/web/dist/ is missing: run `pnpm --filter @laminapdf/web build` first");
   }
   const port = await freePort();
-  const child = spawn("pnpm", ["exec", "wrangler", "dev", "--local", "--port", String(port), "--ip", "127.0.0.1"], {
+  // Wrangler's own binary, in a process group of its own: stopping the group stops the workerd it
+  // starts too, which would otherwise outlive the run on a shared runner.
+  const wrangler = fileURLToPath(new URL("node_modules/.bin/wrangler", APP));
+  const child = spawn(wrangler, ["dev", "--local", "--port", String(port), "--ip", "127.0.0.1"], {
     cwd: APP,
+    detached: true,
     stdio: ["ignore", "inherit", "inherit"],
     env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
   });
+  const stop = () => {
+    if (child.pid !== undefined && child.exitCode === null) process.kill(-child.pid, "SIGTERM");
+  };
   const origin = `http://127.0.0.1:${port}`;
   try {
     await ready(origin, child, 90_000);
   } catch (error) {
-    child.kill();
+    stop();
     throw error;
   }
   project.provide("origin", origin);
-  return () => {
-    child.kill();
-  };
+  return stop;
 }
