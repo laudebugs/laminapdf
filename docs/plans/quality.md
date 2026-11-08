@@ -254,6 +254,10 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q1l](../todos/done/Q1l-docs-checks-strict.md) | The docs checks become strict everywhere | S | Q1i, Q1m, Q1j, Q1k, Q1f |
 | [Q1m](../todos/done/Q1m-guides-read-and-edit.md) | Plain-English guides: reading and editing PDFs | M | Q1h |
 
+### Q3: diagrams in the docs
+
+Round Q3 adds diagrams that show how the library works, drawn in the docs' own style and following the reader's theme. Its plan, with the diagrams, the way they are drawn and the seven todos (Q3a–Q3g), is [Docs diagrams](docs-diagrams.md).
+
 ### Q2: code quality and reuse
 
 | Todo | What | Size | Depends on |

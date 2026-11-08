@@ -160,7 +160,8 @@ async function writeApi(out, version) {
   const { Application } = await import("typedoc");
   const target = new URL("api/", out);
   const app = await Application.bootstrapWithPlugins({
-    entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT))],
+    // TypeDoc reads entry points as globs, which take only forward slashes (not Windows' `\`).
+    entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT)).replaceAll("\\", "/")],
     tsconfig: fileURLToPath(new URL("packages/sdk/tsconfig.build.json", ROOT)),
     plugin: ["typedoc-plugin-markdown"],
     out: fileURLToPath(target),
