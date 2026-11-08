@@ -186,6 +186,32 @@ export async function contentFiles() {
 const snippetCache = new Map();
 
 /**
+ * The folders a page may show files from: the ones `Snippet.astro` and `Example.astro` glob (the
+ * TypeScript and Rust examples, and the reading examples' outputs). A twin never reads elsewhere.
+ */
+const SHOWN_FOLDERS = ["packages/sdk/examples/", "crates/laminapdf/examples/", "fixtures/extract/examples/"];
+
+/**
+ * `file` (a path from the repository root, as a page names it) as a URL inside one of
+ * {@link SHOWN_FOLDERS}; fails for anything else: an absolute path, `..`, another folder.
+ *
+ * @param {string} file
+ * @returns {URL}
+ */
+export function shownFileUrl(file) {
+  const safe =
+    file !== "" &&
+    !/^([/\\]|[A-Za-z]:|file:)/.test(file) &&
+    !file.split(/[/\\]/).includes("..") &&
+    SHOWN_FOLDERS.some((folder) => file.startsWith(folder));
+  const url = new URL(file, ROOT);
+  if (!safe || !SHOWN_FOLDERS.some((folder) => url.href.startsWith(new URL(folder, ROOT).href))) {
+    throw new Error(`agent docs: a page shows ${file}, outside the example folders (${SHOWN_FOLDERS.join(", ")})`);
+  }
+  return url;
+}
+
+/**
  * The text of an example file a page shows, read by {@link readSnippets}; fails for any other.
  * The site's twins and the package docs both read snippets through it.
  *
@@ -208,7 +234,7 @@ export async function readSnippets() {
     if (!/\.mdx?$/.test(name)) continue;
     const source = await readFile(new URL(name, CONTENT), "utf8");
     for (const file of shownFiles(source)) {
-      if (!snippetCache.has(file)) snippetCache.set(file, await readFile(new URL(file, ROOT), "utf8"));
+      if (!snippetCache.has(file)) snippetCache.set(file, await readFile(shownFileUrl(file), "utf8"));
     }
   }
 }

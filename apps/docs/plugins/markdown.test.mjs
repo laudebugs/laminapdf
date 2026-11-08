@@ -2,7 +2,7 @@
 // shape (agent-docs.mjs). Run with `node --test` (the package's `test` script).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { llmsTxt, routeOfTwin, twinPath } from "./agent-docs.mjs";
+import { llmsTxt, routeOfTwin, shownFileUrl, twinPath } from "./agent-docs.mjs";
 import {
   codeBlock,
   exampleParts,
@@ -172,4 +172,17 @@ test("a page's own code blocks keep their imports and JSX", () => {
 test("a snippet's file is found whatever the attributes' order", () => {
   const out = mdxToMarkdown('<Snippet title="Hello" file="a.ts" />\n', components);
   assert.match(out, /^`a\.ts`:\n\n```ts\n/);
+});
+
+test("a twin reads only files in the example folders", () => {
+  assert.match(shownFileUrl("packages/sdk/examples/hello.ts").href, /packages\/sdk\/examples\/hello\.ts$/);
+  for (const file of [
+    "",
+    "/etc/passwd",
+    "C:/x.ts",
+    "packages/sdk/examples/../../../.env",
+    "packages/sdk/src/index.ts",
+  ]) {
+    assert.throws(() => shownFileUrl(file), /outside the example folders/, file);
+  }
 });
