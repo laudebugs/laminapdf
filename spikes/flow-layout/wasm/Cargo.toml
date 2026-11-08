@@ -1,0 +1,37 @@
+# WebAssembly probe for the flow-layout spike: each experiment as a wasm32-unknown-unknown cdylib,
+# built with the root workspace's wasm-release profile and measured by scripts/wasm.sh. The inputs
+# come from JavaScript, so the size is code only and Node can time the same module.
+[package]
+name = "flow-layout-wasm"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[features]
+# The baseline: laminapdf with text, one text box saved (what the text module carries).
+baseline = []
+own = ["lamina-flow-layout/own"]
+typst = ["lamina-flow-layout/typst"]
+frames = ["typst", "lamina-flow-layout/frames"]
+markdown = ["dep:pulldown-cmark"]
+template = ["dep:minijinja"]
+
+[dependencies]
+lamina-flow-layout = { path = "..", default-features = false }
+laminapdf = { path = "../../../crates/laminapdf", default-features = false, features = ["text"] }
+pulldown-cmark = { version = "=0.13.0", default-features = false, optional = true }
+minijinja = { version = "=2.12.0", default-features = false, features = ["builtins", "serde"], optional = true }
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
