@@ -5,13 +5,13 @@ import {
   libcFromReport,
   missingPackageMessage,
   type Platform,
-  platformFor,
+  platformsFor,
   unsupportedMessage,
 } from "../src/platform.js";
 
 const PLATFORMS = JSON.parse(readFileSync(new URL("../platforms.json", import.meta.url), "utf8")) as Platform[];
 
-describe("platformFor", () => {
+describe("platformsFor", () => {
   it.each([
     [{ os: "darwin", cpu: "arm64" }, "@laminapdf/cli-darwin-arm64"],
     [{ os: "darwin", cpu: "x64" }, "@laminapdf/cli-darwin-x64"],
@@ -21,8 +21,15 @@ describe("platformFor", () => {
     [{ os: "linux", cpu: "arm64", libc: "musl" }, "@laminapdf/cli-linux-arm64-musl"],
     [{ os: "win32", cpu: "x64" }, "@laminapdf/cli-win32-x64"],
     [{ os: "win32", cpu: "arm64" }, "@laminapdf/cli-win32-arm64"],
-  ] as const)("picks the package for %o", (host, name) => {
-    expect(platformFor(PLATFORMS, host)?.package).toBe(name);
+  ] as const)("picks the package for %o first", (host, name) => {
+    expect(platformsFor(PLATFORMS, host)[0]?.package).toBe(name);
+  });
+
+  it.each([
+    ["glibc", ["@laminapdf/cli-linux-x64-gnu", "@laminapdf/cli-linux-x64-musl"]],
+    ["musl", ["@laminapdf/cli-linux-x64-musl", "@laminapdf/cli-linux-x64-gnu"]],
+  ] as const)("falls back to the other C library's package on %s", (libc, names) => {
+    expect(platformsFor(PLATFORMS, { os: "linux", cpu: "x64", libc }).map((p) => p.package)).toEqual(names);
   });
 
   it.each([
@@ -30,7 +37,7 @@ describe("platformFor", () => {
     { os: "linux", cpu: "ia32", libc: "glibc" },
     { os: "win32", cpu: "ia32" },
   ] as const)("finds none for %o", (host) => {
-    expect(platformFor(PLATFORMS, host)).toBeUndefined();
+    expect(platformsFor(PLATFORMS, host)).toEqual([]);
   });
 });
 
@@ -65,7 +72,7 @@ describe("unsupportedMessage", () => {
 
 describe("missingPackageMessage", () => {
   it("names the package and the install flag that leaves it out", () => {
-    const linux = platformFor(PLATFORMS, { os: "linux", cpu: "x64", libc: "glibc" });
+    const [linux] = platformsFor(PLATFORMS, { os: "linux", cpu: "x64", libc: "glibc" });
     expect(linux).toBeDefined();
     if (linux === undefined) return;
     const message = missingPackageMessage(linux);

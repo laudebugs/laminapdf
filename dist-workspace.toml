@@ -24,12 +24,14 @@ targets = [
 installers = ["homebrew"]
 tap = "laudebugs/homebrew-tap"
 formula = "laminapdf"
+# A tag `laminapdf-cli-v<version>` releases the CLI (dist's per-package tag format).
 hosting = "github"
-# The formula is generated and uploaded; pushing it to the tap is the publish job's, once the
-# owner allows publishing (cli-release.yml).
+# Only so dist doesn't warn that the tap has no publish job: dist writes no CI here, so nothing
+# runs it. The `global` job writes the formula, the release carries it, and the owner pushes it
+# to the tap (cli-release.yml's header).
 publish-jobs = ["homebrew"]
 source-tarball = false
-# A tag `laminapdf-cli-v<version>` releases the CLI (dist's per-package tag format).
+# dist's own pull-request runs; cli-release.yml runs `dist plan` itself.
 pr-run-mode = "skip"
 unix-archive = ".tar.xz"
 windows-archive = ".zip"

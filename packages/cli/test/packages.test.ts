@@ -3,7 +3,7 @@
 // only, worked out here from the target triple itself.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { platformManifest, platforms, wrapperManifest } from "../../../tools/cli-release/generate.ts";
+import { platformManifest, platforms, unpackCommand, wrapperManifest } from "../../../tools/cli-release/generate.ts";
 
 const ROOT = new URL("../../../", import.meta.url);
 
@@ -61,5 +61,19 @@ describe("the wrapper", () => {
   it("installs only on the operating systems and CPUs the platform packages cover", () => {
     expect(new Set(base.os as string[])).toEqual(new Set(platforms().map((p) => p.os)));
     expect(new Set(base.cpu as string[])).toEqual(new Set(platforms().map((p) => p.cpu)));
+  });
+});
+
+describe("unpackCommand", () => {
+  it("sends a Windows zip to unzip on Linux, whose GNU tar reads no zip", () => {
+    expect(unpackCommand("a.zip", "out", "linux")).toEqual(["unzip", ["-q", "a.zip", "-d", "out"]]);
+  });
+
+  it.each(["darwin", "win32"])("leaves a zip to bsdtar on %s", (host) => {
+    expect(unpackCommand("a.zip", "out", host)).toEqual(["tar", ["-xf", "a.zip", "-C", "out"]]);
+  });
+
+  it("unpacks .tar.xz with tar everywhere", () => {
+    expect(unpackCommand("a.tar.xz", "out", "linux")).toEqual(["tar", ["-xf", "a.tar.xz", "-C", "out"]]);
   });
 });

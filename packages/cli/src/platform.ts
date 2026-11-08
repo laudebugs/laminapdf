@@ -29,23 +29,26 @@ export interface Host {
 }
 
 /**
- * The platform package for `host`, if there is one.
+ * The platform packages that can serve `host`, best first.
+ *
+ * On Linux the package for `host.libc` comes first and the other C library's second: the musl
+ * binaries are static, so they run on glibc too, and a glibc machine can still have only the
+ * musl package (a lockfile written on Alpine). Elsewhere there is at most one.
  *
  * @param platforms - `platforms.json`'s entries.
  * @param host - the machine to find a binary for.
- * @returns the entry whose `os`, `cpu` and (on Linux) `libc` match, else `undefined`.
+ * @returns the entries whose `os` and `cpu` match, the one whose `libc` matches first; empty if none.
  */
-export function platformFor(platforms: readonly Platform[], host: Host): Platform | undefined {
-  return platforms.find(
-    (p) => p.os === host.os && p.cpu === host.cpu && (p.libc === undefined || p.libc === host.libc),
-  );
+export function platformsFor(platforms: readonly Platform[], host: Host): Platform[] {
+  const matching = platforms.filter((p) => p.os === host.os && p.cpu === host.cpu);
+  return [...matching].sort((a, b) => Number(b.libc === host.libc) - Number(a.libc === host.libc));
 }
 
 /**
  * The C library a Linux Node runs on, from its diagnostic report: glibc builds report
  * `header.glibcVersionRuntime`, musl builds (Alpine) don't.
  *
- * @param report - `process.report.getReport()`.
+ * @param report - `process.report.getReport()`, the report npm reads to pick the package.
  * @returns `glibc` or `musl`.
  */
 export function libcFromReport(report: unknown): Libc {

@@ -9,10 +9,11 @@ import process from "node:process";
 import {
   binaryName,
   type Host,
+  type Libc,
   libcFromReport,
   missingPackageMessage,
   type Platform,
-  platformFor,
+  platformsFor,
   unsupportedMessage,
 } from "./platform.js";
 
@@ -24,9 +25,22 @@ function fail(message: string): never {
   process.exit(FAILURE);
 }
 
+/** The C library Node runs on, read as npm reads it, without the report's slow network section. */
+function libc(): Libc {
+  // A Node setting since 13.12 that @types/node leaves out.
+  const report: typeof process.report & { excludeNetwork?: boolean | undefined } = process.report;
+  const excludeNetwork = report.excludeNetwork;
+  report.excludeNetwork = true;
+  try {
+    return libcFromReport(report.getReport());
+  } finally {
+    report.excludeNetwork = excludeNetwork;
+  }
+}
+
 function host(): Host {
   if (process.platform !== "linux") return { os: process.platform, cpu: process.arch };
-  return { os: process.platform, cpu: process.arch, libc: libcFromReport(process.report.getReport()) };
+  return { os: process.platform, cpu: process.arch, libc: libc() };
 }
 
 /** The binary's path, if the platform package is installed. */
@@ -43,8 +57,10 @@ function binaryPath(platform: Platform): string | undefined {
 export function main(): void {
   const platforms = JSON.parse(readFileSync(new URL("../platforms.json", import.meta.url), "utf8")) as Platform[];
   const here = host();
-  const platform = platformFor(platforms, here) ?? fail(unsupportedMessage(platforms, here));
-  const binary = binaryPath(platform) ?? fail(missingPackageMessage(platform));
+  const candidates = platformsFor(platforms, here);
+  const [best] = candidates;
+  if (best === undefined) fail(unsupportedMessage(platforms, here));
+  const binary = candidates.map(binaryPath).find((path) => path !== undefined) ?? fail(missingPackageMessage(best));
   const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit" });
   if (result.error !== undefined) fail(`laminapdf: could not run ${binary}: ${result.error.message}`);
   if (result.signal !== null) process.kill(process.pid, result.signal);

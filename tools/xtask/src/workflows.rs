@@ -276,9 +276,9 @@ mod tests {
         assert!(
             has(
                 &publish,
-                "if: ${{ needs.global.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}"
+                "if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}"
             ),
-            "publish must need the tag push and LAMINA_PDF_PUBLISH_CLI"
+            "publish must need the Linux builds, the tag push and LAMINA_PDF_PUBLISH_CLI"
         );
         assert!(
             has(&publish, "environment: release"),

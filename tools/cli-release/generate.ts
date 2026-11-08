@@ -71,11 +71,22 @@ function archiveFor(dir: string, platform: Platform): string | undefined {
   return [`${stem}.tar.xz`, `${stem}.zip`].find((path) => existsSync(path));
 }
 
+/**
+ * The command that unpacks `archive` into `dir` on `host` (a `process.platform`): GNU tar, the
+ * Linux runner's, reads no zip, so a Windows `.zip` goes to unzip there; bsdtar (macOS,
+ * Windows) reads both.
+ */
+export function unpackCommand(archive: string, dir: string, host: string): [string, string[]] {
+  if (archive.endsWith(".zip") && host !== "darwin" && host !== "win32") {
+    return ["unzip", ["-q", archive, "-d", dir]];
+  }
+  return ["tar", ["-xf", archive, "-C", dir]];
+}
+
 function writePlatform(platform: Platform, archive: string, out: string, version: string): void {
   const unpacked = mkdtempSync(join(tmpdir(), "laminapdf-cli-"));
   try {
-    // bsdtar (macOS, Windows) reads zip too; GNU tar reads the .tar.xz archives.
-    execFileSync("tar", ["-xf", archive, "-C", unpacked]);
+    execFileSync(...unpackCommand(archive, unpacked, process.platform));
     const from = join(unpacked, `laminapdf-cli-${platform.target}`);
     const dir = join(out, folderName(platform));
     mkdirSync(join(dir, "bin"), { recursive: true });
