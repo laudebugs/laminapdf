@@ -113,7 +113,7 @@ Web reader on phones (responsive PWA, from Round C) and the base for any native 
 - **Memory caps**: tile bitmaps ≤ 5 MP each on mobile and a total bitmap budget (iOS Safari caps one canvas at ≈ 16.7 MP and all canvases at 224–384 MB).
 - **Targets** ≥ 44 px on touch.
 
-Delivered by [U3a](../todos/ongoing/U3a-responsive-mobile-and-touch.md). Native apps: [U3b](../todos/ready/U3b-mobile-shell-spike.md) compares Tauri 2 mobile with UniFFI and native UI (SwiftUI, Compose) on selection-menu conflicts, Apple Pencil latency, share sheet and Files integration, and access to Vision and ML Kit OCR, then proposes ADR 0025.
+Delivered by [U3a](../todos/done/U3a-responsive-mobile-and-touch.md). Native apps: [U3b](../todos/ready/U3b-mobile-shell-spike.md) compares Tauri 2 mobile with UniFFI and native UI (SwiftUI, Compose) on selection-menu conflicts, Apple Pencil latency, share sheet and Files integration, and access to Vision and ML Kit OCR, then proposes ADR 0025.
 
 ### 5.5 Page appearance and themes (R8)
 
@@ -193,7 +193,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** the responsive phone and tablet layout of the web reader; the `mobile-shell` spike with a recommendation for ADR 0025.
 **Accepted when:** Playwright mobile profiles (iPhone, Pixel, iPad) pass the reader flows with touch; a 1,000-page file scrolls on a real iPhone without a canvas-memory crash; the spike README answers the four criteria with measurements.
-**Todos:** [U3a](../todos/ongoing/U3a-responsive-mobile-and-touch.md), [U3b](../todos/ready/U3b-mobile-shell-spike.md)
+**Todos:** [U3a](../todos/done/U3a-responsive-mobile-and-touch.md), [U3b](../todos/ready/U3b-mobile-shell-spike.md)
 
 ### U4. Trust and reflow
 
@@ -275,8 +275,8 @@ Ticked by the PR that completes them.
 - [ ] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
 
 ### U3. Mobile and touch
-- [ ] Responsive phone and tablet layout: bottom bar, sheets with detents, safe areas
-- [ ] Viewer-owned gestures and mobile bitmap budgets
+- [x] Responsive phone and tablet layout: bottom bar, sheets with detents, safe areas ([U3a](../todos/done/U3a-responsive-mobile-and-touch.md))
+- [x] Viewer-owned gestures and mobile bitmap budgets ([U3a](../todos/done/U3a-responsive-mobile-and-touch.md))
 - [ ] `mobile-shell` spike and a recommendation for ADR 0025
 
 ### U4. Trust and reflow
