@@ -23,6 +23,23 @@
           }
         }
       }
+    },
+    {
+      "includes": ["e2e/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Buffer": "Node-only: use Uint8Array."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

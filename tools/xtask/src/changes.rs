@@ -29,8 +29,29 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         let kind = if is_docs(path) { "docs" } else { "code" };
         println!("  {kind}  {path}");
     }
+    let gallery = touches_gallery(&paths);
     println!("code={code}");
-    crate::util::github_output("code", &code.to_string())
+    println!("gallery={gallery}");
+    crate::util::github_output("code", &code.to_string())?;
+    crate::util::github_output("gallery", &gallery.to_string())
+}
+
+/// What the Paper gallery's screenshots and axe checks depend on (apps/gallery, todo U6f): the
+/// gallery, the packages it draws, and the lockfile that pins their dependencies.
+const GALLERY_INPUTS: [&str; 6] = [
+    "apps/gallery/",
+    "packages/ui/",
+    "packages/tokens/",
+    "packages/icons/",
+    "packages/fonts/",
+    "pnpm-lock.yaml",
+];
+
+/// Whether any of `paths` can change how the gallery looks, so the fast lane runs its tests.
+pub(crate) fn touches_gallery(paths: &[&str]) -> bool {
+    paths
+        .iter()
+        .any(|path| GALLERY_INPUTS.iter().any(|input| path.starts_with(input)))
 }
 
 /// Old path → new path for each file renamed between `merge_base` and the working tree.
@@ -104,7 +125,19 @@ fn pick_base(has_origin_main: bool) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_docs, pick_base, touches_code};
+    use super::{is_docs, pick_base, touches_code, touches_gallery};
+
+    #[test]
+    fn touches_gallery_should_follow_the_ui_packages_and_the_lockfile() {
+        assert!(touches_gallery(&["packages/ui/src/components/button.tsx"]));
+        assert!(touches_gallery(&["packages/tokens/tokens.json", "README.md"]));
+        assert!(touches_gallery(&["pnpm-lock.yaml"]));
+        assert!(!touches_gallery(&[
+            "crates/laminapdf/src/lib.rs",
+            "packages/uikit/x.ts",
+            "docs/README.md"
+        ]));
+    }
 
     /// One example per allowlist pattern.
     const DOCS: [&str; 9] = [
