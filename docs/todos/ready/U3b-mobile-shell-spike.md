@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U3. Mobile and touch](../../plans/ui-ux.md#u3-mobile-and-touch) |
 | Round / milestone | Round U (UI/UX) — after M2; answers architecture open question 4 |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [U3a](../ongoing/U3a-responsive-mobile-and-touch.md) |
 | ADRs | Informs 0025 (mobile shell, proposed by this spike); follows 0001, 0002 (UniFFI later), 0004 |
 | Branch | `spike/u3b-mobile-shell` |
 | PR title | `spike(mobile): compare tauri 2 mobile with uniffi and native ui` |

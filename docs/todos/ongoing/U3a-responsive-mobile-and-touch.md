@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `U3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [UI/UX §6 U3. Mobile and touch](../../plans/ui-ux.md#u3-mobile-and-touch) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4b](../done/C4b-web-app-shell.md), [U1b](../done/U1b-command-registry-and-palette.md), [U1c](../done/U1c-inverted-l-shell-and-modes.md) |
@@ -39,7 +39,7 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 
 **Out of scope** (and which todo covers it)
 
-- Native mobile apps → [U3b](./U3b-mobile-shell-spike.md) and ADR 0025.
+- Native mobile apps → [U3b](../ready/U3b-mobile-shell-spike.md) and ADR 0025.
 - Stylus annotation → E4 rounds (and open question 2 of the plan).
 
 ## Tasks

@@ -268,7 +268,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R17-tablet.dc.html` (prop `penHover` toggles the preview), `R17-tablet-sheet.dc.html`. The outline’s second level under section 2 (“Open repairs by region” p. 3, “Oldest cases by region” p. 4) and the collapsed children of sections 3 and 4 are invented sample content.
 
-**Todos.** [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
+**Todos.** [U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md).
 
 ## R18 Phone: outline, find, more
 
@@ -305,7 +305,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Artboards.** `R18-outline-phone.dc.html` (prop `emptyOutline` shows the empty state), `R18-find-phone.dc.html` (prop `noMatch` shows the no-match state with the help line), `R18-more-phone.dc.html` (page in Sepia, matching the View settings value) (+ `R10-view-settings-phone.dc.html`).
 
-**Todos.** [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
+**Todos.** [U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md).
 
 ## New components
 

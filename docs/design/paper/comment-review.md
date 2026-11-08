@@ -257,7 +257,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
+**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/ongoing/U3a-responsive-mobile-and-touch.md).
 
 ## C09 Tablet stylus
 

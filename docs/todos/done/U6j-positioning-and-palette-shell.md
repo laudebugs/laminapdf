@@ -23,7 +23,7 @@ Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer s
 - Design: F01 (mini toolbar) and F02 (palette) in [screens.md §F](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards).
 - [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) (palette), [§5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) (selection surfaces), [§5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) (sheets, safe areas).
 - [U6e](../done/U6e-overlays-and-sheets.md): the layer stack, z-order tokens and `Dialog` these join; [U6d](../done/U6d-core-components.md) and [U6h](../done/U6h-display-components.md): the density context, `ShortcutChip`, `EmptyState` and the test helpers.
-- Consumers: [U1b](../done/U1b-command-registry-and-palette.md) (palette contents, ranking and argument parsing), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md) (when the mini toolbar shows and what it holds), [U3a](../ready/U3a-responsive-mobile-and-touch.md) (which panels become sheets).
+- Consumers: [U1b](../done/U1b-command-registry-and-palette.md) (palette contents, ranking and argument parsing), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md) (when the mini toolbar shows and what it holds), [U3a](../ongoing/U3a-responsive-mobile-and-touch.md) (which panels become sheets).
 - WCAG 2.2 SC 2.4.11 (focus not obscured); WAI-ARIA APG: combobox with listbox popup, toolbar.
 
 ## Scope
@@ -38,8 +38,8 @@ Finish the overlays. [U6e](../done/U6e-overlays-and-sheets.md) built the layer s
 
 - The layer stack, z-order tokens, `Dialog`, menus, tooltips and the toast region → [U6e](../done/U6e-overlays-and-sheets.md).
 - Palette contents, fuzzy ranking, recents, argument parsing and Cmd/Ctrl+K → [U1b](../done/U1b-command-registry-and-palette.md).
-- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
-- Which panels become sheets on the phone → [U3a](../ready/U3a-responsive-mobile-and-touch.md).
+- When the mini toolbar and the phone action bar appear, their buttons and copy modes → [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md); the phone bottom bar and action bar → [U3a](../ongoing/U3a-responsive-mobile-and-touch.md).
+- Which panels become sheets on the phone → [U3a](../ongoing/U3a-responsive-mobile-and-touch.md).
 - Gallery pages and screenshots → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
 ## Tasks

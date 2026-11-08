@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [trust and proof §T5](../../plans/trust-and-proof.md#t5-long-reading) |
 | Round / milestone | Round T (trust and proof) |
-| Depends on | [C6b](./C6b-links-and-history.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C6b](./C6b-links-and-history.md), [U3a](../ongoing/U3a-responsive-mobile-and-touch.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) §3 (commands), §4 (the surface follows the pointer), §6 (sheets on the phone) and §8 (accessibility); [0009](../../decisions/0009-web-client-architecture.md) (one document worker, its render RPC); [0004](../../decisions/0004-render-backend.md) (bounded tiles, link geometry from Lamina PDF's model, never from the renderer); [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) (page space); [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no request) |
 | Branch | `feat/t5a-link-previews` |
 | PR title | `feat(viewer): preview internal links and citations before jumping` |
@@ -25,7 +25,7 @@ Readers of papers and manuals want to see where a link or a citation goes withou
 - **[C6a](./C6a-thumbnails-outline-page-labels.md):** `resolveDestination`, `goToDestination(dest)` (every fit type, rotated pages), the outline RPC with titles and the current-section rule, page labels.
 - **[C5a](./C5a-text-layer-and-selection.md):** the `pageText(page)` RPC (runs and quads, cached per page in the worker), used here for the crop's width and the preview's text.
 - **[C3a](../done/C3a-viewer-worker-rpc.md) and [C3b](../done/C3b-viewer-virtualiser-and-zoom.md):** `ViewerClient.render(request, { priority, signal })` with `RenderRequest.clip`, the `visible` priority, late bitmaps closed by the worker client (`onDiscard`), and `RenderStats`.
-- **[U3a](./U3a-responsive-mobile-and-touch.md):** the viewer's touch gestures (`touch-action: none`; long-press passes through to text selection). This todo makes a long-press on a link open the preview instead.
+- **[U3a](../ongoing/U3a-responsive-mobile-and-touch.md):** the viewer's touch gestures (`touch-action: none`; long-press passes through to text selection). This todo makes a long-press on a link open the preview instead.
 - **[U6e](../done/U6e-overlays-and-sheets.md):** `Popover`, `Tooltip`, `BottomSheet`, `place.ts` and the `LayerStack` behind Escape, in `packages/ui/src/overlays/`. **[U1b](../done/U1b-command-registry-and-palette.md):** the command registry in `packages/ui/src/commands/`.
 - **Spec:** ISO 32000-2 §12.3.2 (explicit destinations `XYZ`, `Fit`, `FitH`, `FitV`, `FitR`, `FitB`, `FitBH`, `FitBV`; named destinations) and §12.5.6.5 (link annotations); [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation).
 
