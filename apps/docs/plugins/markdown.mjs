@@ -19,7 +19,7 @@ export const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
  * quotes; group 2 is the name (src/components/diagrams/registry.mjs). test/diagrams.test.mjs uses
  * it too, so the pages' check and the twin see the same diagrams.
  */
-export const DIAGRAM = /<Diagram\b[^>]*?\bname=(["'])([^"']+)\1[^>]*?(?:\/>|>\s*<\/Diagram>)/g;
+export const DIAGRAM = /<Diagram\b[^>]*?\sname=(["'])([^"']+)\1[^>]*?(?:\/>|>\s*<\/Diagram>)/g;
 
 /**
  * A diagram as its twin shows it: the caption in italics, then the text description, which says

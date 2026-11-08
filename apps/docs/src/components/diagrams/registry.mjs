@@ -14,8 +14,8 @@ export const DIAGRAMS = {
     text:
       "Opening a PDF gives you a document that holds the file's original bytes, which never change, and an overlay for your edits. " +
       "`doc.transact`, `undo` and `redo` write only to the overlay, and reading the document reads the overlay first. " +
-      "A save then either appends the edits after the original bytes (`incremental`, which leaves those bytes untouched, " +
-      "so signatures over the original stay valid) or writes every byte of a new file (`fullRewrite`).",
+      "A save then either appends the edits after the original bytes (`incremental`) or writes every byte of a new file (`fullRewrite`). " +
+      "An incremental save leaves the original bytes untouched, so signatures over them stay valid.",
   },
 };
 

@@ -43,6 +43,7 @@ test("a diagram is found whatever its attributes, quotes or closing tag", () => 
   const { caption } = diagramText("open-edit-save");
   for (const tag of [
     '<Diagram class="x" name="open-edit-save" />',
+    '<Diagram data-name="nope" name="open-edit-save" />',
     "<Diagram name='open-edit-save'/>",
     '<Diagram name="open-edit-save"></Diagram>',
   ]) {

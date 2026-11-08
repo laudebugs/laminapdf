@@ -59,7 +59,8 @@ A diagram belongs next to prose that explains a flow, a structure or a geometry 
 - **MUST:** give it a caption and a text description in `diagrams/registry.mjs`. The text says everything the picture says: screen readers read it, and so do agents, in the page's Markdown twin.
 - **MUST:** keep the page complete without the picture; the diagram supports a paragraph and never replaces one.
 - **MUST:** label with the page's own words and the API's exact names, four words or fewer, in sentence case.
-- **SHOULD:** put the diagram after the paragraph it illustrates, and never before a page's opening paragraph.
+- **MUST:** never put a diagram before a page's opening paragraph (`pnpm --filter @laminapdf/docs test` checks it).
+- **SHOULD:** put the diagram right after the paragraph it illustrates.
 
 ## Reviewer checklist
 

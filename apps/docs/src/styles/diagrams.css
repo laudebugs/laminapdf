@@ -66,14 +66,15 @@
   fill: var(--paper-text-2);
 }
 
-/* A lane's title is an overline: written in sentence case, shown in capitals. It keeps 14, not
-   the apps' 11 px overline, so it stays above 12 px when the drawing scales down. */
+/* A lane's title is an overline (design language §3: regular weight, muted, capitals, written in
+   sentence case). It keeps 14, not the apps' 11 px overline, so it stays above 12 px when the
+   drawing scales down. */
 .dg .dg-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  fill: var(--paper-text-2);
+  fill: var(--paper-muted);
 }
 
 .dg .dg-focus-label {

@@ -116,6 +116,8 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
     if (server.browser === "webkit") context.skip("WebKit can't emulate forced colours");
     await commands.forcedColors("active");
     onTestFinished(() => commands.forcedColors("none"));
+    // Otherwise a browser that ignored the emulation would pass as the light theme.
+    expect(matchMedia("(forced-colors: active)").matches).toBe(true);
     const svg = shown(mount(html, "light", WIDTHS.desktop));
     const page = getComputedStyle(document.body).backgroundColor;
     for (const text of svg.querySelectorAll("text")) {
