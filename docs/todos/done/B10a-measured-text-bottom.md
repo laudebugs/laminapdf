@@ -36,7 +36,7 @@ Expose an optional bottom position for text runs and text boxes in Rust and Type
 **Out of scope** (and which todo covers it)
 
 - The vertical cursor: decided against for now, so no todo; see the [plan's decisions](../../plans/element-flow.md#decisions-before-implementation).
-- Runnable examples and the docs recipe: [B10c](../ready/B10c-element-flow-recipe.md).
+- Runnable examples and the docs recipe: [B10c](../done/B10c-element-flow-recipe.md).
 - Automatic pagination, tables, floats and transformed ink bounds: no todo yet; they need a separate proposal ([plan](../../plans/element-flow.md#decisions-before-implementation)).
 
 ## Tasks

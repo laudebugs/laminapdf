@@ -10,21 +10,26 @@ import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Re
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
+import flowReport from "../../../../fixtures/text/element-flow-report.json" with { type: "json" };
 import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
 
 // Workers can't read files: the inputs are bundled (wrangler.toml `rules`). Imports must be
 // static, so this lists them again, keyed by the suite's paths; the check below fails the Worker
 // at load when the suite's INPUT_PATHS name one that is missing here.
-const inputs: Inputs = Object.fromEntries(
-  Object.entries({
-    "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
-    "fixtures/fonts/NotoSansArabic-Regular.ttf": notoSansArabic,
-    "fixtures/fonts/NotoSansDevanagari-Regular.ttf": notoSansDevanagari,
-    "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
-    "fixtures/fonts/NotoSansSC-Regular.otf": notoSansSC,
-    "fixtures/images/photo-rgb.jpg": photo,
-  }).map(([path, data]) => [path, new Uint8Array(data)]),
-);
+const inputs: Inputs = {
+  ...Object.fromEntries(
+    Object.entries({
+      "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
+      "fixtures/fonts/NotoSansArabic-Regular.ttf": notoSansArabic,
+      "fixtures/fonts/NotoSansDevanagari-Regular.ttf": notoSansDevanagari,
+      "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
+      "fixtures/fonts/NotoSansSC-Regular.otf": notoSansSC,
+      "fixtures/images/photo-rgb.jpg": photo,
+    }).map(([path, data]) => [path, new Uint8Array(data)]),
+  ),
+  // The element-flow report comes in as a JSON module; the suite reads every input as bytes.
+  "fixtures/text/element-flow-report.json": new TextEncoder().encode(JSON.stringify(flowReport)),
+};
 const missing = missingInputs(inputs, INPUT_PATHS);
 if (missing.length > 0) throw new Error(`test/workerd/worker.ts doesn't bundle ${missing.join(", ")}`);
 

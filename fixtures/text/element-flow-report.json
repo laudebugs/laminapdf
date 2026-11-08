@@ -1,0 +1,6 @@
+{
+  "title": "Third-quarter report",
+  "summary": "Revenue rose twelve per cent over the quarter, led by the new reader and its offline mode.",
+  "notes": "Figures are unaudited. The full tables are in the appendix sent with this report.",
+  "body": "The reader now opens most files in under a second, and pages appear as soon as they are read rather than once the whole file has arrived. Support requests about slow files fell by a third, and the share of readers who come back within a week rose for the third quarter in a row.\n\nOffline mode was the most used new feature. Readers saved an average of four documents each for travel, and almost half of them opened a saved document at least once without a connection. Folders for saved documents, the change readers asked for most, come next quarter.\n\nCosts stayed flat. The move to static hosting removed the last of the upload servers, so documents never leave the reader's device, and the hosting bill fell by a fifth even as visits grew. Most of the remaining cost is the time spent testing each release in three browsers.\n\nNext quarter we will ship form filling, finish the phone layout and publish the first release of the command-line tool. Each of these is already in testing, and none of their dates depends on anything outside the team."
+}
