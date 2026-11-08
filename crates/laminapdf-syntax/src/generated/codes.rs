@@ -206,6 +206,8 @@ pub enum ErrorCode {
     JobFinished,
     /// `document-changed`: the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step.
     DocumentChanged,
+    /// `revision-index-out-of-range`: an earlier revision was asked for by an index past the file's last revision.
+    RevisionIndexOutOfRange,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
     /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
@@ -321,6 +323,7 @@ impl ErrorCode {
         Self::Cancelled,
         Self::JobFinished,
         Self::DocumentChanged,
+        Self::RevisionIndexOutOfRange,
         Self::BuilderFinished,
         Self::Disposed,
         Self::InvalidArgument,
@@ -437,6 +440,7 @@ impl ErrorCode {
             Self::Cancelled => "cancelled",
             Self::JobFinished => "job-finished",
             Self::DocumentChanged => "document-changed",
+            Self::RevisionIndexOutOfRange => "revision-index-out-of-range",
             Self::BuilderFinished => "builder-finished",
             Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
@@ -541,6 +545,7 @@ impl ErrorCode {
             Self::Cancelled => ErrorKind::Cancelled,
             Self::JobFinished => ErrorKind::State,
             Self::DocumentChanged => ErrorKind::State,
+            Self::RevisionIndexOutOfRange => ErrorKind::Usage,
             Self::BuilderFinished => ErrorKind::State,
             Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
@@ -645,6 +650,7 @@ impl ErrorCode {
             Self::Cancelled => "a CancelToken stopped the work; the job is finished and returned no partial result",
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
             Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
+            Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
@@ -749,6 +755,7 @@ impl ErrorCode {
             Self::Cancelled => "nothing to do: this is the outcome the caller asked for; start a new job to try again",
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
+            Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
             Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",
@@ -862,6 +869,12 @@ pub enum WarningCode {
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
     WholeFontRebuilt,
+    /// `covered-text`: a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file.
+    CoveredText,
+    /// `redaction-not-applied`: a page has redaction marks that were never applied, so the text under them is still in the file.
+    RedactionNotApplied,
+    /// `text-in-earlier-revision`: an earlier revision of the file holds text that the latest revision no longer has.
+    TextInEarlierRevision,
 }
 
 impl WarningCode {
@@ -910,6 +923,9 @@ impl WarningCode {
         Self::ExtractNeedsOcr,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
+        Self::CoveredText,
+        Self::RedactionNotApplied,
+        Self::TextInEarlierRevision,
     ];
 
     /// The code with this name, if there is one.
@@ -972,6 +988,9 @@ impl WarningCode {
             Self::ExtractNeedsOcr => "extract-needs-ocr",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
+            Self::CoveredText => "covered-text",
+            Self::RedactionNotApplied => "redaction-not-applied",
+            Self::TextInEarlierRevision => "text-in-earlier-revision",
         }
     }
 
@@ -1022,6 +1041,9 @@ impl WarningCode {
             Self::ExtractNeedsOcr => ErrorKind::Unsupported,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
+            Self::CoveredText => ErrorKind::Security,
+            Self::RedactionNotApplied => ErrorKind::Security,
+            Self::TextInEarlierRevision => ErrorKind::Security,
         }
     }
 
@@ -1072,6 +1094,9 @@ impl WarningCode {
             Self::ExtractNeedsOcr => "a page has no usable text layer: it is an image (with or without an invisible OCR layer), outlined glyphs, or glyphs without Unicode, so its extracted text is empty or unreliable",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
+            Self::CoveredText => "a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file",
+            Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
+            Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
         }
     }
 
@@ -1122,6 +1147,9 @@ impl WarningCode {
             Self::ExtractNeedsOcr => "run OCR or a vision model on this page; the page's textLayer in the JSON says which case it is",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
+            Self::CoveredText => "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
+            Self::RedactionNotApplied => "apply the redactions in a tool that removes what they cover, then save a full rewrite",
+            Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",
         }
     }
 

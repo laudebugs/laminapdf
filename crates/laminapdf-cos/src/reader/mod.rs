@@ -9,6 +9,7 @@ mod objstm;
 mod options;
 mod pages;
 mod repair;
+mod revisions;
 mod warning;
 mod window;
 mod xref;

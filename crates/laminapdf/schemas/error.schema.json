@@ -89,6 +89,7 @@
             "cancelled",
             "job-finished",
             "document-changed",
+            "revision-index-out-of-range",
             "builder-finished",
             "disposed",
             "invalid-argument",
@@ -255,7 +256,10 @@
             "extract-untagged-content",
             "extract-needs-ocr",
             "tounicode-conflict",
-            "whole-font-rebuilt"
+            "whole-font-rebuilt",
+            "covered-text",
+            "redaction-not-applied",
+            "text-in-earlier-revision"
           ]
         },
         "data": {
