@@ -79,7 +79,7 @@ The last two are approximations, and both lean towards keeping text: a false neg
 ### 6. Rules in the core, models as plug-ins
 
 - **The core is rules only.** `laminapdf-extract` is a core crate: bytes in, bytes out, no weights, no network, no clocks, no threads ([ADR 0001](0001-core-language-and-licence.md)).
-- **Models plug in through traits** that [L3c](../todos/ready/L3c-model-plugins.md) defines (`LayoutModel`, `OcrEngine`), implemented in edge crates or packages, never in a core crate.
+- **Models plug in through traits** that [L3c](../todos/ongoing/L3c-model-plugins.md) defines (`LayoutModel`, `OcrEngine`), implemented in edge crates or packages, never in a core crate.
 - **Weights are never in the repository or in a published crate or package.** A plug-in downloads them on first use or takes them from the caller, and pins them by SHA-256.
 - **Licences:** a model is allowed only when its code *and* its weights are permissive (Apache-2.0, MIT, BSD, or a licence the [supply-chain policy](0019-supply-chain-and-licence-hygiene.md) admits). MinerU, Marker and Surya weights, and PyMuPDF are excluded.
 - **Every model used is named** in `generator.models` with its version and weight hash, and `generator.mode` becomes `"rules+models"`, so an output always says how it was made.

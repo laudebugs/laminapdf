@@ -36,7 +36,7 @@ Add ADR 0030 §3–§4's layout rules to `laminapdf-extract`: headings and list 
 **Out of scope** (and which todo covers it)
 
 - Structure-tree order, tagged headings, lists and tables, `clipped` and `low-contrast`: [L3g](./L3g-extract-structure-tree.md).
-- Model plug-ins: [L3c](../ready/L3c-model-plugins.md).
+- Model plug-ins: [L3c](../ongoing/L3c-model-plugins.md).
 
 ## Tasks
 

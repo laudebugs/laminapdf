@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `L3c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principle [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) 7 (rules in core, models as plug-ins) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3b](../done/L3b-extract-tables-and-serialisers.md) |
-| ADRs | Implements 0030's plug-in policy (from [L3a](../done/L3a-lamina-extract-reading-order.md)); follows 0028 (jobs; from [L1a](../done/L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](./E13a-adr-0013-heavy-jobs.md)) |
+| ADRs | Implements 0030's plug-in policy (from [L3a](../done/L3a-lamina-extract-reading-order.md)); follows 0028 (jobs; from [L1a](../done/L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](../ready/E13a-adr-0013-heavy-jobs.md)) |
 | Branch | `feat/l3c-model-plugins` |
 | PR title | `feat(extract): LayoutModel and OcrEngine plug-in traits and an optional ONNX layout crate` |
 | Size | M–L (≈ 500–900 lines; model weights are downloaded, never committed) |
@@ -23,7 +23,7 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - [AI extraction note §B](../../research/libraries/notes/llm-api-and-ai-extraction.md#b-ai-consumption-primitives-the-2026-landscape-algorithms-bboxprovenance-schema-tagged-pdf-and-rule-based-vs-model-based): Heron (RT-DETRv2), `ort` and onnxruntime-web, TableFormer (licence unverified), TATR (MIT per a third-party mirror), PaddleOCR and Tesseract (Apache-2.0, background knowledge), Kreuzberg's packaged layout models.
 - [Report: cancellation and progress belong in lamina's API](../../research/libraries/shareable-libraries.md#cancellation-and-progress-belong-in-laminas-api-not-the-bindings): the core stays synchronous; async hosts (WebCrypto-style, platform OCR) need a request/provide shape.
 - [Research 03 §8.3 scanned PDFs and OCR](../../research/pdf/03-text-and-fonts.md#83-scanned-pdfs-and-ocr), [§8.5 layout analysis](../../research/pdf/03-text-and-fonts.md#85-layout-analysis-and-ml-document-understanding-state-of-the-art-2026).
-- [E13d](./E13d-local-ocr.md) (local OCR on web and desktop) and [full-editor E13](../../plans/full-editor.md#e13-ocr-and-conversion): the editor's OCR engines should implement this PR's `OcrEngine` rather than a second interface.
+- [E13d](../ready/E13d-local-ocr.md) (local OCR on web and desktop) and [full-editor E13](../../plans/full-editor.md#e13-ocr-and-conversion): the editor's OCR engines should implement this PR's `OcrEngine` rather than a second interface.
 - [C2b](../done/C2b-lamina-render-crate.md): models need page images; rendering stays in `laminapdf-render`, never in `laminapdf-extract`.
 
 ## Scope
@@ -46,11 +46,11 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 
 **Out of scope** (and which todo covers it)
 
-- OCR engines themselves on web and desktop: [E13d](./E13d-local-ocr.md) (implements `OcrEngine`); OCR text-layer writing into the PDF: [E13c](./E13c-ocr-text-layer.md).
-- Apple Vision and ML Kit `OcrEngine` implementations: the mobile SDK rounds from [L6b](./L6b-mobile-sdk-plan.md).
+- OCR engines themselves on web and desktop: [E13d](../ready/E13d-local-ocr.md) (implements `OcrEngine`); OCR text-layer writing into the PDF: [E13c](../ready/E13c-ocr-text-layer.md).
+- Apple Vision and ML Kit `OcrEngine` implementations: the mobile SDK rounds from [L6b](../ready/L6b-mobile-sdk-plan.md).
 - onnxruntime-web layout model in the browser: a follow-up todo (record it in the plan); this PR documents the shape only.
 - Table-structure models (TableFormer, TATR), formula and figure-description models, VLM fallbacks: later todos, each after a licence check.
-- Server-side model jobs: ADR 0013 / [E13e](./E13e-server-jobs-infrastructure.md).
+- Server-side model jobs: ADR 0013 / [E13e](../ready/E13e-server-jobs-infrastructure.md).
 
 ## Tasks
 
