@@ -2,6 +2,7 @@
 // into dist/: runner/worker.ts as /run/worker.js, with the WebAssembly it loads (@laminapdf/sdk's
 // text module, @laminapdf/render-hayro's) and the examples' inputs as hashed files under /run/assets/. The worker needs @laminapdf/wasm's dist/, which only `cargo xtask wasm` builds:
 // without it nothing is written, and the pages show their examples without "Edit and run".
+import { execFileSync } from "node:child_process";
 import { rm, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { build } from "vite";
@@ -31,6 +32,11 @@ for (const path of NEEDS) if (!(await exists(path))) missing.push(path);
 if (missing.length > 0) {
   console.log(`docs: no example runner (missing ${missing.join(", ")}; run \`cargo xtask wasm\` first)`);
 } else {
+  // The worker, which the site's typecheck leaves out because it needs these packages built.
+  execFileSync(fileURLToPath(new URL("node_modules/.bin/tsc", DOCS)), ["--noEmit", "-p", "runner/tsconfig.json"], {
+    cwd: DOCS,
+    stdio: "inherit",
+  });
   await build({
     configFile: false,
     root: fileURLToPath(DOCS),

@@ -8,6 +8,11 @@ macro_rules! fixture {
     };
 }
 
+/// Noto Sans Bold: member 1 of the fixture collection `NotoSans-RegularBold.ttc`.
+pub(crate) fn bold() -> Font {
+    Font::from_collection(fixture!("NotoSans-RegularBold.ttc"), 1).unwrap()
+}
+
 /// The fixture font `name` from `fixtures/fonts/`.
 pub(crate) fn font(name: &str) -> Font {
     let bytes: &'static [u8] = match name {

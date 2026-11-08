@@ -11,34 +11,8 @@ import notoSans from "../../../fixtures/fonts/NotoSans-Regular.ttf?url";
 import photo from "../../../fixtures/images/photo-rgb.jpg?url";
 import flowReport from "../../../fixtures/text/element-flow-report.json?url";
 import { FIXED, RUNNABLE, type RunInput } from "./examples.js";
+import type { RunReply, RunRequest } from "./protocol.js";
 import { runExample } from "./run.js";
-
-/** A request: run `source`, the reader's edit of `file`, and draw its pages `width` px wide. */
-export interface RunRequest {
-  readonly id: number;
-  readonly file: string;
-  readonly source: string;
-  readonly width: number;
-}
-
-/** The answer: the PDF and its pages, or the error. */
-export type RunReply =
-  | {
-      readonly id: number;
-      readonly ok: true;
-      readonly bytes: Uint8Array;
-      /** The first `MAX_PAGES` pages' pictures. */
-      readonly pages: ImageBitmap[];
-      /** How many pages the PDF has. */
-      readonly pageCount: number;
-    }
-  | {
-      readonly id: number;
-      readonly ok: false;
-      readonly code: string;
-      readonly message: string;
-      readonly hint?: string;
-    };
 
 /** The most pages a run draws: each is about 4 MB, and an edit can make thousands. */
 const MAX_PAGES = 20;

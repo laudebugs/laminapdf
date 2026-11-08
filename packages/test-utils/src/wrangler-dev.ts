@@ -37,6 +37,9 @@ export function getLocal(url: URL): Promise<Response> {
   });
 }
 
+/** Wrangler exited before it answered. */
+class Exited extends Error {}
+
 /** A port nothing listens on now. */
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -53,7 +56,7 @@ function freePort(): Promise<number> {
 async function ready(origin: string, child: ChildProcess, limitMs: number): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < limitMs) {
-    if (child.exitCode !== null) throw new Error(`wrangler dev exited with ${child.exitCode}`);
+    if (child.exitCode !== null) throw new Exited(`wrangler dev exited with ${child.exitCode}`);
     try {
       if ((await getLocal(new URL(origin))).ok) return;
     } catch {
@@ -70,12 +73,25 @@ export interface WranglerDev {
   stop(): void;
 }
 
+/** How many ports to try: another process can take the free port before Wrangler binds it. */
+const ATTEMPTS = 3;
+
 /**
  * Starts `wrangler dev` in `app`, the folder with the site's wrangler config and its own Wrangler,
- * and waits until it answers.
+ * and waits until it answers. A Wrangler that exits before answering (its port was taken between
+ * `freePort` and its start) is tried again on a new port.
  */
 export async function wranglerDev(app: URL): Promise<WranglerDev> {
-  const port = await freePort();
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await start(app, await freePort());
+    } catch (error) {
+      if (attempt >= ATTEMPTS || !(error instanceof Exited)) throw error;
+    }
+  }
+}
+
+async function start(app: URL, port: number): Promise<WranglerDev> {
   // Wrangler's own binary, in a process group of its own: stopping the group stops the workerd it
   // starts too, which would otherwise outlive the run on a shared runner.
   const wrangler = fileURLToPath(new URL("node_modules/.bin/wrangler", app));

@@ -4,6 +4,8 @@ import { userEvent } from "vitest/browser";
 import type { CommandId } from "../../src/commands/types.ts";
 import {
   DebugMenu,
+  Inspector,
+  LeftRail,
   type MenuEntry,
   OpenDropZone,
   OpenFailure,
@@ -14,6 +16,7 @@ import {
   ReaderTopBar,
   type ReaderTopBarProps,
   RepairDetails,
+  ShellLayout,
   useGatedEntries,
   WholeFileDownload,
 } from "../../src/index.ts";
@@ -307,24 +310,34 @@ describe("useGatedEntries", () => {
 
 describe("ReaderShell", () => {
   it("lays out the slots with the page's landmarks, the canvas taking the space left", async () => {
+    const layout = new ShellLayout();
+    layout.toggleRail();
+    layout.openInspector({ id: "repairs", selection: false });
     const host = renderIn(
       <div style={{ blockSize: "600px" }}>
         <ReaderShell
+          layout={layout}
           topBar={<TopBar reader={await openedController()} />}
-          rail={<nav aria-label="Pages">Pages</nav>}
-          inspector={<aside aria-label="Repair details">Details</aside>}
+          rail={<LeftRail layout={layout} tabs={[{ id: "pages", label: "Pages", panel: "Pages" }]} />}
+          inspector={
+            <Inspector layout={layout} label="Repair details">
+              Details
+            </Inspector>
+          }
           status={<span>0 network requests for this document</span>}
         >
           <div data-testid="viewer" />
         </ReaderShell>
       </div>,
     );
+    // Wait out the inspector's growing animation, where motion is allowed.
+    await new Promise((resolve) => setTimeout(resolve, 250));
     expect(host.querySelector("header")?.className).toBe("paper-top-bar");
     expect(host.querySelector("main [data-testid=viewer]")).not.toBeNull();
     expect(host.querySelector("footer")?.textContent).toBe("0 network requests for this document");
     const canvas = (host.querySelector("main") as HTMLElement).getBoundingClientRect();
-    const rail = (host.querySelector(".paper-reader-rail") as HTMLElement).getBoundingClientRect();
-    const inspector = (host.querySelector(".paper-reader-inspector") as HTMLElement).getBoundingClientRect();
+    const rail = (host.querySelector("nav.paper-left-rail") as HTMLElement).getBoundingClientRect();
+    const inspector = (host.querySelector("aside.paper-inspector") as HTMLElement).getBoundingClientRect();
     expect(rail.width).toBeCloseTo(220, 0);
     expect(inspector.width).toBeCloseTo(288, 0);
     expect(canvas.left).toBeCloseTo(rail.right, 0);

@@ -107,14 +107,22 @@ Every message the reader shows comes from one catalogue. `message(id, values)` f
 
 ## The reader's frame
 
-`ReaderShell` lays out the reader: the top bar across the top, a mode's toolbar under it, then the rail, the canvas and the docked panel side by side, and the status bar along the bottom. Each part is a slot the shell fills, and the canvas is the page's `main` landmark:
+`ReaderShell` lays out the reader: the top bar across the top, a mode's toolbar under it, then the rail, the canvas and the inspector side by side, and the status bar along the bottom. Each part is a slot, and each slot is its own landmark: the top bar is the `banner`, the rail the `navigation`, the canvas the `main`, the inspector the `complementary` and the status bar the `contentinfo`. A `ShellLayout` holds the state the regions share, so the shell, the commands and the status bar read the same one:
 
 ```ts
+// In a component: the layout (the rail's open state, width and tab kept in storage), and the modes with Read.
+const { layout, modes } = useShell(platform.storage);
+
+const context = { platform, reader, viewer, actions: { ...shellActions(layout, modes, { rail: true }), "palette.open": openPalette } };
+
 <CommandsProvider registry={registry} context={context} keys="other">
   <ReaderShell
-    topBar={<ReaderTopBar reader={controller} viewer={viewer} keys="other" sidebarOpen={sidebar} more={{ items, onAction }} />}
-    rail={<PagesPanel />}
-    status={<NetworkIndicator count="0 network requests" />}
+    layout={layout}
+    modes={modes}
+    topBar={<ReaderTopBar reader={controller} viewer={viewer} keys="other" sidebarOpen={railOpen} more={{ items, onAction }} />}
+    rail={<LeftRail layout={layout} tabs={[{ id: "pages", label: "Pages", panel: <PagesPanel /> }]} />}
+    inspector={<Inspector layout={layout} label="Highlight"><HighlightPanel /></Inspector>}
+    status={<><NetworkIndicator count="0 network requests" /><FocusModeItem layout={layout} /></>}
   >
     <div ref={mountViewer} />
   </ReaderShell>
@@ -123,7 +131,14 @@ Every message the reader shows comes from one catalogue. `message(id, values)` f
 </CommandsProvider>
 ```
 
-`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets. Every button runs a command from the registry (next section), so the bar must sit inside a `CommandsProvider`. The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`.
+- **The rail** (`LeftRail`, labelled "Sidebar" on screen) is closed until the user opens it, then reopens on the tab and at the width the user last left it. Its handle resizes it by pointer, or by the arrow keys, Home and End once focused. Below 1024 px wide it is a drawer over the canvas, which a press on the scrim or Escape closes.
+- **The inspector** (`Inspector`) shows either a selection's details or a panel the user opened, such as `RepairDetails`. It opens with `layout.openInspector({ id, selection })` and never covers the canvas: the canvas narrows to make room. A selection's inspector closes when the selection is cleared (`layout.deselect()`) or on Escape. A panel the user opened closes with its own button, or with Escape from inside it. Give the inspector a `label` unless its content is a landmark itself.
+- **Focus mode** (`view.focus-mode`, Ctrl+\ or ⌘\) hides the rail, the mode's toolbar and any panel the user opened, and keeps the status bar. Opening a panel, such as the repair details from the status bar, leaves focus mode. In the status bar, `FocusModeItem` shows that focus mode is on and leaves it when pressed. A selection still opens the inspector, and Escape clears the selection before it leaves focus mode. A find bar or tool toolbar passed as `secondaryToolbar` stays until it is closed. Focus mode lasts the window only.
+- **Modes** register with `ModeRegistry.register({ id, title, icon, toolbar, enter, leave })`. The current mode's `toolbar` fills the slot under the top bar unless `secondaryToolbar` replaces it. Switching calls the old mode's `leave`, then the new mode's `enter`; `leave` clears what only the old mode could select. `shellActions` gives each mode its `mode.<id>` command. `useShell` registers Read alone, so the reader shows no mode switcher until a second mode exists.
+
+`ReaderTopBar` shows the file name, with "Loading pages…" or "Locked" while those apply. Once a document is open, the bar adds the page input and the zoom. The page input takes a page number or a page label, and announces one that doesn't exist. The zoom steps in and out, and its percentage opens a menu of the fit modes and presets. Every button runs a command from the registry (next section), so the bar must sit inside a `CommandsProvider`.
+
+The sidebar toggle and Commands appear once the shell handles `view.toggle-sidebar` and `palette.open`. `shellActions` handles the sidebar only when the shell has rail tabs to show.
 
 The viewer comes in as any object with its store and three calls (`goToPage`, `setZoom`, `rotate`), so `@laminapdf/viewer`'s viewer fits without this package importing it. `PasswordDialog` asks for a password whenever the controller needs one and passes each try to it.
 

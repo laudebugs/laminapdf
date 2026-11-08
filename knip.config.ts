@@ -52,11 +52,10 @@ const config: KnipConfig = {
     ...Object.fromEntries(
       packageDirs(".").map((dir) => [`packages/${dir}`, { entry: entries(dir), project: project(dir) }]),
     ),
-    // Starlight loads the tokens' and fonts' stylesheets by name (astro.config.mjs's `customCss`),
-    // which knip can't see.
-    "apps/docs": { ignoreDependencies: ["@laminapdf/tokens", "@laminapdf/fonts"] },
     // Its tests are named here: knip can't load its Vitest config, which loads Astro's whole config.
     "apps/site": { entry: ["test/**/*.test.ts", "vitest.config.ts"], vitest: false },
+    // The docs' example runner: scripts/build-runner.mjs builds runner/worker.ts by its path.
+    "apps/docs": { entry: ["runner/worker.ts"] },
     // A command, not a library: no `exports`. bin/laminapdf.js runs the built src/launcher.ts.
     "packages/cli": { entry: ["src/launcher.ts"] },
     // Its browser tests' config loads Astro, which knip can't, so its test entries are named here.

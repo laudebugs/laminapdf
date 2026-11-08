@@ -4,7 +4,7 @@
 
 import { javascript } from "@codemirror/lang-javascript";
 import { basicSetup, EditorView } from "codemirror";
-import type { RunReply, RunRequest } from "./worker.js";
+import type { RunReply, RunRequest } from "./protocol.js";
 
 /** The runner's address: a fixed path, so its own headers (public/_headers' `/run/*`) apply. */
 const WORKER = "/run/worker.js";
