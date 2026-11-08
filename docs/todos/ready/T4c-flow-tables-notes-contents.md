@@ -26,7 +26,7 @@ Add the three page features that need more than one pass or more than one region
 - ISO 32000-1 §14.8.4 (the PDF 1.7 standard types: `Table`, `THead`, `TBody`, `TFoot`, `TR`, `TH`, `TD`, `TOC`, `TOCI`, `Note`, `Reference`) and §14.8.5.7 (table attributes: `/Scope`, `/ColSpan`); ISO 32000-2 §12.3.2 (destinations) and §12.3.3 (the outline). The Matterhorn Protocol's checkpoints 15 (tables) and 19 (notes and references; 19-003 and 19-004 ask for a unique `/ID` on each `Note`).
 - `laminapdf-build`'s tagging: `TagKind` (`src/tag/mod.rs`) has 25 kinds and lacks `TOC`, `TOCI`, `Reference`, `THead`, `TBody` and `TFoot`; `Tag::custom` writes a standard type's name without a role map; `TableScope` and `Tag::with_scope` exist. A new `TagKind` also changes `laminapdf-wasm`'s name table (`crates/laminapdf-wasm/src/build_dto.rs`) and `packages/sdk/src/generated/builder-enums.ts`, which `cargo xtask gen boundary` writes.
 - Navigation: `Builder::destination`, `Builder::outline` with `OutlineEntry`, `LinkTarget::Named`, and `StrokeStyle` for rules.
-- Extraction: L3b's ruled tables and [T3c](./T3c-tables-across-pages.md), which joins tables that continue across pages. The three-page table built here is an input T3c can use.
+- Extraction: L3b's ruled tables and [T3c](../ongoing/T3c-tables-across-pages.md), which joins tables that continue across pages. The three-page table built here is an input T3c can use.
 - How repeated header rows are tagged: the copies drawn on later pages are artifacts, so the structure tree holds the header once. The PDF Association's *Tagged PDF Best Practice Guide: Syntax* recommends this; cite its clause in the code comment.
 
 ## Scope
@@ -49,7 +49,7 @@ Add the three page features that need more than one pass or more than one region
 
 - Rows split across pages: a row taller than the page's body fails with `flow-content-too-large` (T4b's code). Row spans, nested tables, endnotes, links from a note back to its marker, an index, and cross-references such as "see page 12": later, as ADR 0032 records.
 - Markdown tables and footnotes: [T4d](./T4d-markdown-documents.md). The JSON form and TypeScript: [T4e](./T4e-json-documents-and-templates.md).
-- Joining tables across pages in extraction: [T3c](./T3c-tables-across-pages.md).
+- Joining tables across pages in extraction: [T3c](../ongoing/T3c-tables-across-pages.md).
 
 ## Tasks
 

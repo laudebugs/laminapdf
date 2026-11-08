@@ -59,7 +59,7 @@ Developers on Hacker News complain that generators change their output under the
 **Out of scope** (and which todo covers it)
 
 - A `laminapdf render` or `laminapdf compare` command → [L4e](../done/L4e-cli-render.md) (render); a compare command is a later todo if readers ask for one.
-- Comparing extracted text or structure trees between versions: a later guide, once [T3a](./T3a-text-layer-status.md)–[T3c](./T3c-tables-across-pages.md) settle the extraction output.
+- Comparing extracted text or structure trees between versions: a later guide, once [T3a](./T3a-text-layer-status.md)–[T3c](../ongoing/T3c-tables-across-pages.md) settle the extraction output.
 - Visual comparison in Rust as an example: the guide names the `laminapdf-render` crate. A Rust example would make `laminapdf_render` a second public import in Rust examples, which needs its own decision.
 - Tagged output by default ([trust and proof §9](../../plans/trust-and-proof.md#9-open-questions), question 1): it would change every reader's bytes once, which the guide's upgrade section covers.
 

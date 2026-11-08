@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T3](../../plans/trust-and-proof.md#t3-extraction-users-can-check) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -57,7 +57,7 @@ When a table runs over a page break, link its two parts, write them as one table
 
 ## Tasks
 
-- [ ] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
+- [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
 - [ ] `model.rs`: `continues: Option<String>` and `continued_by: Option<String>` on `Block` (serde camel case, skipped when `None`; schemars); `page.rs`'s `text_block()` and `table_block()` set them to `None`.
 - [ ] `tables/across.rs`: the conditions above as named constants (`BOTTOM` 0.75, `TOP` 0.25, `SNAP` reused from `lattice.rs`) and small functions (column edges from cells, header rows, the "continued" line), each unit-tested; `link(&mut Extraction)`, called at the end of `job.rs`'s `finish()`.
 - [ ] `output/markdown.rs`: chains in `render()` (the separator between parts, where a page marker goes, pipe or HTML for the whole chain) and in the table writers (a part's rows without the header line, `<table>` and `</table>` only at the chain's ends).
