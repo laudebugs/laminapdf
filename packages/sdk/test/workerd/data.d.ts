@@ -5,8 +5,3 @@ declare module "*.jpg" {
   const data: ArrayBuffer;
   export default data;
 }
-// The element-flow report: a `Data` module (wrangler.toml), so bytes rather than parsed JSON.
-declare module "*.json" {
-  const data: ArrayBuffer;
-  export default data;
-}
