@@ -52,7 +52,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: Tag or commit SHA under test (empty for the dispatched ref's commit)
+        description: Release tag (v<version>) or full commit SHA on main under test (empty for the dispatched ref's commit)
         default: ""
       fuzz-seconds:
         description: Seconds per fuzz target in the nightly suites
@@ -90,13 +90,36 @@ jobs:
       ref: ${{ steps.ref.outputs.ref }}
       nightly: ${{ steps.guard.outputs.nightly }}
     steps:
-      # A tag push tests the tag; a dispatch tests `inputs.ref`, else the dispatched commit.
+      # A tag push tests the tag; a dispatch tests `inputs.ref`, else the dispatched commit. Every
+      # job checks this ref out and runs its code, on main's cache, so a dispatched `ref` must be
+      # code that is already trusted: a release tag (only maintainers and the release bot push
+      # tags), or a full commit SHA on the default branch. Checked through the API, before any
+      # checkout.
       - name: The ref under test
         id: ref
         env:
           INPUT_REF: ${{ inputs.ref }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if [ -n "$INPUT_REF" ]; then
+            if [[ "$INPUT_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+              if ! gh api "repos/$GH_REPO/git/ref/tags/$INPUT_REF" > /dev/null; then
+                echo "::error::$INPUT_REF is not a tag of this repository"
+                exit 1
+              fi
+            elif [[ "$INPUT_REF" =~ ^[0-9a-f]{40}$ ]]; then
+              # `behind` or `identical`: the commit is on the default branch.
+              status=$(gh api "repos/$GH_REPO/compare/$DEFAULT_BRANCH...$INPUT_REF" --jq .status)
+              if [ "$status" != behind ] && [ "$status" != identical ]; then
+                echo "::error::$INPUT_REF is not a commit of $DEFAULT_BRANCH (compare: $status)"
+                exit 1
+              fi
+            else
+              echo "::error::ref must be a release tag (v<version>) or a full commit SHA on $DEFAULT_BRANCH, not '$INPUT_REF'"
+              exit 1
+            fi
             ref=$INPUT_REF
           elif [ "$GITHUB_REF_TYPE" = tag ]; then
             ref=$GITHUB_REF_NAME
