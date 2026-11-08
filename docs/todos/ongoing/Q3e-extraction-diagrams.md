@@ -11,7 +11,7 @@
 | Branch | `feat/q3e-extraction-diagrams` |
 | PR title | `feat(docs): diagrams for how a page becomes Markdown, and its reading order` |
 | Size | S |
-| PR | — |
+| PR | [#341](https://github.com/laudebugs/laminapdf/pull/341) |
 
 ## Goal
 
