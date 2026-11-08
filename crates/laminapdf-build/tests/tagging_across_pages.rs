@@ -144,11 +144,9 @@ fn bare(text: &str) -> String {
 
 /// The sentence draws dotted letters as a body and a dot that stands for no character, and its
 /// diacritics as marks: under PDF/UA-1 the build passes, every glyph has a Unicode value (the dot
-/// the empty one), and the page gives each character back once, letters in order. (Where a
-/// zero-width mark goes is the reader's guess from its position: pdf.js puts every one back on
-/// its letter; Lamina PDF's own extraction moves one damma to the next letter.)
+/// the empty one), and the page gives the sentence back exactly, each mark on its letter.
 #[test]
-fn the_arabic_sentence_reads_back_every_character_once() {
+fn the_arabic_sentence_reads_back_as_written() {
     let doc = reopen(&fixture("golden/tagged-across-pages.pdf"));
     let pages = doc.pages().unwrap();
     let text = laminapdf_text::TextExtractor::new()
@@ -159,14 +157,7 @@ fn the_arabic_sentence_reads_back_every_character_once() {
         .into_iter()
         .filter(|l| l.chars().any(|c| ('\u{600}'..='\u{6FF}').contains(&c)))
         .collect();
-    let is_mark = |c: &char| ('\u{64B}'..='\u{652}').contains(c);
-    let split = |t: &str| {
-        let bare = bare(t);
-        let mut marks: Vec<char> = bare.chars().filter(is_mark).collect();
-        marks.sort_unstable();
-        (bare.chars().filter(|c| !is_mark(c)).collect::<String>(), marks)
-    };
-    assert_eq!((text.unmapped, split(&arabic)), (0, split(ARABIC)));
+    assert_eq!((text.unmapped, bare(&arabic)), (0, bare(ARABIC)));
 }
 
 #[test]

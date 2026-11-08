@@ -7,7 +7,7 @@ use laminapdf_model::{Pt, RectPt};
 use laminapdf_syntax::ObjRef;
 
 use icu_properties::CodePointMapData;
-use icu_properties::props::CanonicalCombiningClass;
+use icu_properties::props::{CanonicalCombiningClass, GeneralCategory};
 
 use super::Glyph;
 use crate::{BidiParagraph, grapheme_boundaries};
@@ -63,6 +63,10 @@ const SPACE_GAP: f64 = 0.25;
 /// The pen jumping back by more than this fraction of the size starts a new run (the next
 /// run of a right-to-left line drawn in logical order, or an overprint).
 const BACK_JUMP: f64 = 0.5;
+
+/// A nonspacing mark whose origin is within this fraction of the size of the next letter's
+/// origin belongs to that letter (see [`by_position`]).
+const MARK_LEAD: f64 = 0.1;
 
 /// A vector `(x, y)` in user space.
 type Vector = (f64, f64);
@@ -212,11 +216,28 @@ fn is_mark(glyph: &Glyph) -> bool {
     unit(glyph.advance).is_none()
 }
 
+/// Whether all of a glyph's text is nonspacing or enclosing marks (general category Mn or Me).
+fn is_nonspacing(glyph: &Glyph) -> bool {
+    let categories = CodePointMapData::<GeneralCategory>::new();
+    !glyph.text.is_empty()
+        && glyph.text.chars().all(|c| {
+            matches!(
+                categories.get(c),
+                GeneralCategory::NonspacingMark | GeneralCategory::EnclosingMark
+            )
+        })
+}
+
 /// A right-to-left run's text in visual order, from the glyphs' positions rather than their
 /// drawing order: each mark goes with the letter whose advance it sits in (else the nearest
 /// letter), and letters are taken left to right along the baseline, with a space where the gap
 /// between two is over a quarter of the size. Producers draw a mark before or after its letter;
-/// only the position says which letter it belongs to.
+/// the position says which letter it belongs to, except at the edge between two letters.
+/// Shaping engines (HarfBuzz) draw a right-to-left cluster in visual order with its marks
+/// first, each at its base's origin moved by the anchor offset, which can put the mark's origin
+/// just inside the letter drawn before it (a damma on a narrow letter in Noto Sans Arabic). So a
+/// nonspacing mark whose origin is within [`MARK_LEAD`] of the size of the next letter's origin
+/// in content order goes with that letter.
 fn by_position(run: &[Glyph]) -> String {
     let direction = run.iter().find_map(|g| unit(g.advance)).unwrap_or((1.0, 0.0));
     let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
@@ -225,10 +246,25 @@ fn by_position(run: &[Glyph]) -> String {
     // only letters. Check for an advancing glyph once per run to avoid a quadratic scan.
     let has_letter = run.iter().any(|l| !is_mark(l));
     let marked = |g: &&Glyph| has_letter && is_mark(g);
-    let letters: Vec<&Glyph> = run.iter().filter(|g| !marked(g)).collect();
+    let mut letters: Vec<&Glyph> = Vec::new();
+    // Each mark with the index the next letter in content order has (or will have) in `letters`.
+    let mut pending: Vec<(&Glyph, usize)> = Vec::new();
+    for glyph in run {
+        if marked(&glyph) {
+            pending.push((glyph, letters.len()));
+        } else {
+            letters.push(glyph);
+        }
+    }
     let mut marks: Vec<Vec<&Glyph>> = vec![Vec::new(); letters.len()];
-    for mark in run.iter().filter(marked) {
+    for (mark, next) in pending {
         let at = start(mark);
+        let leads = || {
+            letters
+                .get(next)
+                .filter(|l| (start(l) - at).abs() <= MARK_LEAD * mark.size.max(l.size) && is_nonspacing(mark))
+                .map(|_| next)
+        };
         let inside = letters.iter().position(|l| {
             let (s, e) = (start(l), along(end_of(l)));
             s.min(e) - 0.01 <= at && at <= s.max(e) + 0.01
@@ -243,7 +279,7 @@ fn by_position(run: &[Glyph]) -> String {
                 })
                 .map(|(i, _)| i)
         };
-        if let Some(slot) = inside.or_else(nearest).and_then(|i| marks.get_mut(i)) {
+        if let Some(slot) = leads().or(inside).or_else(nearest).and_then(|i| marks.get_mut(i)) {
             slot.push(mark);
         }
     }
@@ -252,6 +288,7 @@ fn by_position(run: &[Glyph]) -> String {
         let key = |i: usize| letters.get(i).map_or(0.0, |g| start(g));
         key(a).total_cmp(&key(b))
     });
+    let classes = CodePointMapData::<CanonicalCombiningClass>::new();
     let mut text = String::new();
     let mut previous: Option<&Glyph> = None;
     for i in order {
@@ -266,7 +303,6 @@ fn by_position(run: &[Glyph]) -> String {
         // A letter's marks in canonical order (by combining class, stable), as the text
         // they were shaped from has them: producers draw them in any order.
         let mut on_letter: Vec<&Glyph> = marks.get(i).cloned().unwrap_or_default();
-        let classes = CodePointMapData::<CanonicalCombiningClass>::new();
         on_letter.sort_by_key(|m| m.text.chars().next().map_or(0, |c| classes.get(c).0));
         for mark in on_letter {
             text.push_str(&mark.text);
