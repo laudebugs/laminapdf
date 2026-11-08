@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T4g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T4](../../plans/trust-and-proof.md#t4-pages-that-flow) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [T4a](../done/T4a-adr-0032-layout-engine.md) |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Break a paragraph whose words come in different fonts, sizes and languages: a bold word inside a sentence, a superscript, an Arabic name inside an English line. Today `laminapdf-text`'s `break_lines` takes one size, and its font list is a fallback list, not a set of styles. Flowing paragraphs ([T4b](./T4b-flow-layout-core.md)), Markdown's emphasis and code spans ([T4d](./T4d-markdown-documents.md)) and footnote markers ([T4h](./T4h-flow-notes-contents-outline.md)) all need it. This was part of T4b until [T4a](../done/T4a-adr-0032-layout-engine.md) split T4b to keep each todo under 800 lines.
+Break a paragraph whose words come in different fonts, sizes and languages: a bold word inside a sentence, a superscript, an Arabic name inside an English line. Today `laminapdf-text`'s `break_lines` takes one size, and its font list is a fallback list, not a set of styles. Flowing paragraphs ([T4b](../ready/T4b-flow-layout-core.md)), Markdown's emphasis and code spans ([T4d](../ready/T4d-markdown-documents.md)) and footnote markers ([T4h](../ready/T4h-flow-notes-contents-outline.md)) all need it. This was part of T4b until [T4a](../done/T4a-adr-0032-layout-engine.md) split T4b to keep each todo under 800 lines.
 
 ## Context
 
@@ -34,7 +34,7 @@ Break a paragraph whose words come in different fonts, sizes and languages: a bo
 
 **Out of scope** (and which todo covers it)
 
-- The flow model's `Paragraph` and `TextStyle`, and drawing spans through `Surface`: [T4b](./T4b-flow-layout-core.md).
+- The flow model's `Paragraph` and `TextStyle`, and drawing spans through `Surface`: [T4b](../ready/T4b-flow-layout-core.md).
 - Justification and hyphenation: later, as [ADR 0032 §3](../../decisions/0032-flowing-layout-and-document-inputs.md#3-the-layout-model) records.
 
 ## Tasks
