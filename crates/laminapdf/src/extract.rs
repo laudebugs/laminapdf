@@ -154,7 +154,7 @@ impl ExtractionJob {
     /// model and hand the result to [`ExtractionJob::provide`]; until then a step does nothing.
     #[must_use]
     pub fn request(&self) -> Option<&ModelRequest> {
-        self.job.request()
+        self.job.request().filter(|_| !self.core.is_finished())
     }
 
     /// Hands the job the result of its open [`ExtractionJob::request`].
@@ -163,6 +163,9 @@ impl ExtractionJob {
     /// `model-result-unexpected` when nothing was asked for or `result` is the other model's;
     /// `job-finished` after the job ended.
     pub fn provide(&mut self, result: ModelResult) -> Result<()> {
+        if self.core.is_finished() {
+            return Err(crate::Error::JobFinished);
+        }
         Ok(self.job.provide(result)?)
     }
 }

@@ -332,7 +332,7 @@ fn the_json_should_name_the_models_used() {
 fn extract_should_refuse_a_model_only_the_host_can_run() {
     let options = ExtractOptions::new().with_models(Models::new().with_layout(ModelSlot::Host(info("hosted"))));
     let err = extract(&two_columns(), &options, &CancelToken::new()).unwrap_err();
-    assert_eq!(err.code(), "model-failed");
+    assert_eq!(err.code(), "model-needs-host");
     // A plug-in without a renderer is asked of the host too.
     let options = ExtractOptions::new()
         .with_models(Models::new().with_layout(ModelSlot::Plugin(FakeLayout::new(column_regions()))));
@@ -340,6 +340,59 @@ fn extract_should_refuse_a_model_only_the_host_can_run() {
         extract(&two_columns(), &options, &CancelToken::new())
             .unwrap_err()
             .code(),
-        "model-failed"
+        "model-needs-host"
     );
+}
+
+#[test]
+fn a_job_waiting_on_the_host_should_end_cancelled_once_cancelled() {
+    let doc = two_columns();
+    let options = ExtractOptions::new().with_models(Models::new().with_layout(ModelSlot::Host(info("hosted"))));
+    let mut job = extract_job(&doc, &options).unwrap();
+    assert!(matches!(
+        job.step(&doc, Budget::UNLIMITED).unwrap(),
+        Step::Progress {
+            phase: Phase::Model,
+            ..
+        }
+    ));
+    job.cancel_token().cancel();
+    assert_eq!(job.step(&doc, Budget::UNLIMITED).unwrap_err(), ExtractError::Cancelled);
+}
+
+#[test]
+fn a_model_never_asked_should_not_be_named() {
+    let engine = Arc::new(FakeOcr {
+        words: Vec::new(),
+        calls: AtomicUsize::new(0),
+    });
+    let options = ExtractOptions::new().with_models(
+        Models::new()
+            .with_ocr(ModelSlot::Plugin(engine))
+            .with_renderer(Arc::new(BlankRenderer)),
+    );
+    let out = extract(&two_columns(), &options, &CancelToken::new()).unwrap();
+    assert_eq!(out.models, []);
+}
+
+#[test]
+fn a_region_a_little_tight_should_keep_its_words_whole() {
+    // The left column's region stops 3 pt short of its words' right edge.
+    let model = FakeLayout::new(vec![
+        LayoutRegion::new(RegionLabel::Text, rect(60.0, 80.0, 96.0, 140.0), 0.9),
+        LayoutRegion::new(RegionLabel::Text, rect(104.0, 80.0, 200.0, 140.0), 0.8),
+    ]);
+    let out = extract(&two_columns(), &with_layout(model), &CancelToken::new()).unwrap();
+    assert_eq!(texts(&out), ["LLL1 LLL2 LLL3", "RRR1 RRR2 RRR3"]);
+}
+
+#[test]
+fn a_nan_score_should_read_as_no_confidence() {
+    let model = FakeLayout::new(vec![LayoutRegion::new(
+        RegionLabel::Text,
+        rect(60.0, 80.0, 200.0, 140.0),
+        f64::NAN,
+    )]);
+    let out = extract(&two_columns(), &with_layout(model), &CancelToken::new()).unwrap();
+    assert!(out.blocks.iter().all(|b| b.confidence == 0.0), "{:?}", out.blocks);
 }

@@ -36,7 +36,12 @@ fn raster(name: &str, dpi: u32) -> PageRaster {
     let plan = doc.plan(&req).unwrap();
     let mut pixels = vec![0; plan.byte_len()];
     doc.render(&req, &mut pixels, &CancelToken::new()).unwrap();
-    let page_box = RectPt::new(Pt::new(0.0), Pt::new(0.0), Pt::new(page.width.into()), Pt::new(page.height.into()));
+    let page_box = RectPt::new(
+        Pt::new(0.0),
+        Pt::new(0.0),
+        Pt::new(page.width.into()),
+        Pt::new(page.height.into()),
+    );
     PageRaster::new(plan.tile.width, plan.tile.height, dpi, pixels, page_box).unwrap()
 }
 
@@ -78,8 +83,7 @@ fn iou(a: &RectPt, b: [f64; 4]) -> f64 {
 fn heron_should_find_the_reference_regions() {
     let weights = std::fs::read(env_path("LAMINA_PDF_HERON_MODEL")).unwrap();
     let heron = HeronLayout::new(&weights, env_path("LAMINA_PDF_ONNXRUNTIME")).unwrap();
-    let reference: serde_json::Value =
-        serde_json::from_str(include_str!("reference/heron.json")).unwrap();
+    let reference: serde_json::Value = serde_json::from_str(include_str!("reference/heron.json")).unwrap();
     let dpi = u32::try_from(reference["dpi"].as_u64().unwrap()).unwrap();
     for (name, expected) in reference["pages"].as_object().unwrap() {
         let found = heron.detect(&raster(name, dpi), &CancelToken::new()).unwrap();
@@ -88,13 +92,21 @@ fn heron_should_find_the_reference_regions() {
                 continue;
             }
             let label = region["label"].as_str().unwrap();
-            let b: Vec<f64> = region["bbox"].as_array().unwrap().iter().map(|v| v.as_f64().unwrap()).collect();
+            let b: Vec<f64> = region["bbox"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_f64().unwrap())
+                .collect();
             let best = found
                 .iter()
                 .filter(|r| family(name_of(r.label)) == family(label))
                 .map(|r| iou(&r.bbox, [b[0], b[1], b[2], b[3]]))
                 .fold(0.0, f64::max);
-            assert!(best >= MIN_IOU, "{name}: {label} at {b:?} best IoU {best:.3}; found {found:?}");
+            assert!(
+                best >= MIN_IOU,
+                "{name}: {label} at {b:?} best IoU {best:.3}; found {found:?}"
+            );
         }
     }
 }

@@ -13,7 +13,7 @@ use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
 use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Span};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::plugins::{LayoutRegion, OcrWord, RegionLabel};
-use crate::regions::{inside, kind_for, ocr_pieces, region_of};
+use crate::regions::{inside, kind_for, ocr_pieces, region_near, region_of};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::tagged::{self, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
@@ -182,12 +182,14 @@ fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[LayoutRegio
     for glyph in glyphs {
         let r = quad_box(&glyph.quad);
         // A space glyph belongs to the part it follows.
+        // A space, or a glyph outside every region, stays with the part it follows: only a
+        // glyph that lands in another region starts a new part.
         let region = if glyph.text.trim().is_empty() {
             last_region
         } else {
-            region_of(regions, &r)
+            region_near(regions, &r, size.get() / 2.0).or(last_region)
         };
-        let same_region = parts.is_empty() || region == last_region;
+        let same_region = parts.is_empty() || last_region.is_none() || region == last_region;
         last_region = region;
         match parts.last_mut() {
             Some((words, bbox)) if same_region && r.x0.get() - bbox.x1.get() <= gutter => {
@@ -314,7 +316,10 @@ fn region_lines(pieces: &[Piece], regions: &[LayoutRegion]) -> (Vec<Line>, Vec<O
     }
     let mut groups: std::collections::BTreeMap<Option<usize>, Vec<usize>> = std::collections::BTreeMap::new();
     for (i, piece) in pieces.iter().enumerate() {
-        groups.entry(region_of(regions, &piece.bbox)).or_default().push(i);
+        groups
+            .entry(region_near(regions, &piece.bbox, piece.size.get() / 2.0))
+            .or_default()
+            .push(i);
     }
     let (mut out, mut region) = (Vec::new(), Vec::new());
     for (r, members) in groups {
@@ -556,10 +561,6 @@ fn layout(
             .map(|(t, table)| (Item::Table(t), region_of(regions, &table.bbox))),
     );
     let (mut boxes, mut counts, mut first, mut region) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
-    items.retain(|(item, _)| match item {
-        Item::Text(_) => true,
-        Item::Table(t) => tables.get(*t).is_some(),
-    });
     for (item, r) in &items {
         let (bbox, count, start) = match item {
             Item::Text(d) => (d.bbox, d.lines.len(), flow.first_run(&d.lines, &lines)),
@@ -597,11 +598,17 @@ fn layout(
                 match kind_for(region.label, &block.text) {
                     Ok((kind, text)) => {
                         block.kind = kind;
+                        block.from_model = true;
                         if let Some(text) = text {
                             block.text = text;
                         }
-                        // The model placed it: its score, not the rules' fixed confidence.
-                        block.confidence = region.score.clamp(0.0, 1.0);
+                        // The model placed it: its score, not the rules' fixed confidence, but
+                        // never above what OCR'd words give.
+                        if ocr_read(&block) {
+                            block.confidence = block.confidence.min(unit(region.score));
+                        } else {
+                            block.confidence = unit(region.score);
+                        }
                         out.push(block);
                     }
                     Err(reason) if options.drop.furniture => furniture.push(Dropped {
@@ -629,6 +636,16 @@ fn layout(
         }
     }
     Ok((out, furniture))
+}
+
+/// A score as a confidence: 0 to 1, and 0 for a model's NaN.
+fn unit(score: f64) -> f64 {
+    if score.is_finite() { score.clamp(0.0, 1.0) } else { 0.0 }
+}
+
+/// Whether an OCR engine read the block's text.
+fn ocr_read(block: &Block) -> bool {
+    block.spans.iter().any(|s| s.ocr.is_some())
 }
 
 /// A layout's blocks, its furniture moved into `dropped`.
@@ -729,6 +746,7 @@ fn text_block(
         spans,
         confidence,
         cells: Vec::new(),
+        from_model: false,
     }
 }
 
@@ -749,5 +767,6 @@ fn table_block(id: String, table: &Table, spans: &[Span], info: &ExtractedPage) 
         spans: spans.to_vec(),
         confidence: table.confidence,
         cells: table.cells.clone(),
+        from_model: false,
     }
 }

@@ -38,7 +38,11 @@ pub(crate) fn ocr_pieces(words: &[OcrWord]) -> (Vec<Piece>, Vec<Span>) {
             font: OCR_FONT.to_owned(),
             size,
             flags: Flags::NONE,
-            ocr: Some(word.confidence.clamp(0.0, 1.0)),
+            ocr: Some(if word.confidence.is_finite() {
+                word.confidence.clamp(0.0, 1.0)
+            } else {
+                0.0
+            }),
         });
     }
     (pieces, spans)
@@ -68,11 +72,32 @@ pub(crate) fn region_of(regions: &[LayoutRegion], bbox: &RectPt) -> Option<usize
         .enumerate()
         .filter(|(_, r)| r.bbox.is_finite() && holds(&r.bbox, point))
         .min_by(|(_, a), (_, b)| {
-            b.score
-                .total_cmp(&a.score)
+            let score = |s: f64| if s.is_finite() { s } else { 0.0 };
+            score(b.score)
+                .total_cmp(&score(a.score))
                 .then_with(|| area(&a.bbox).total_cmp(&area(&b.bbox)))
         })
         .map(|(i, _)| i)
+}
+
+/// The region a glyph's box belongs to, allowing its centre `slack` points outside a region's
+/// edge: a model's box drawn a little tight still holds the word's last letters.
+pub(crate) fn region_near(regions: &[LayoutRegion], bbox: &RectPt, slack: f64) -> Option<usize> {
+    region_of(regions, bbox).or_else(|| {
+        let (x, y) = centre(bbox);
+        regions
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.bbox.is_finite())
+            .map(|(i, r)| {
+                let dx = (r.bbox.x0.get() - x).max(x - r.bbox.x1.get()).max(0.0);
+                let dy = (r.bbox.y0.get() - y).max(y - r.bbox.y1.get()).max(0.0);
+                (i, dx.max(dy))
+            })
+            .filter(|&(_, d)| d <= slack)
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
+    })
 }
 
 /// Whether a box's centre lies in `region`.

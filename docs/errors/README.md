@@ -179,6 +179,7 @@ A PR that adds a code adds:
 | --- | --- | --- |
 | [`model-failed`](model-failed.md) | `internal` | a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result |
 | [`model-result-unexpected`](model-result-unexpected.md) | `usage` | a model result was handed to an extraction job that hadn't asked for it, or was the other model's result |
+| [`model-needs-host`](model-needs-host.md) | `usage` | an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer |
 
 ## Façade errors (`laminapdf`)
 

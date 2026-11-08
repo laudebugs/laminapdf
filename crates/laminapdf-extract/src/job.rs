@@ -44,6 +44,8 @@ pub struct ExtractJob {
     pending: Option<Pending>,
     /// The result the job waits for from the host.
     request: Option<ModelRequest>,
+    /// Whether the layout model and the OCR engine gave a result, for `generator.models`.
+    used: (bool, bool),
 }
 
 /// A page whose text is read, waiting for its models' results.
@@ -108,18 +110,17 @@ pub fn extract_job(doc: &Document, options: &ExtractOptions) -> Result<ExtractJo
         tree_pages: (0, 0),
         pending: None,
         request: None,
+        used: (false, false),
     })
 }
-
-/// Why [`extract`] can't use a model whose results only the host can give.
-const HOST_ONLY: &str = "a model's results must come from the host (a host model, or a plug-in without a renderer): step extract_job and provide them";
 
 /// Extracts `doc` in one call, stopped by `cancel` (ADR 0028 F10). Plug-in models run inside
 /// it when [`Models::renderer`](crate::Models::renderer) is set.
 ///
 /// # Errors
-/// As [`extract_job`] and [`ExtractJob::step`]; `model-failed` when a model's results would
-/// have to come from the host, which only [`ExtractJob::provide`] can give.
+/// As [`extract_job`] and [`ExtractJob::step`]; `model-needs-host` when a model's results
+/// would have to come from the host (a host model, or a plug-in without a renderer), which
+/// only [`ExtractJob::provide`] can give.
 pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -> Result<Extraction, ExtractError> {
     let mut job = extract_job(doc, options)?;
     job.cancel = cancel.clone();
@@ -129,16 +130,30 @@ pub fn extract(doc: &Document, options: &ExtractOptions, cancel: &CancelToken) -
         }
         // Nobody here can answer a request: a host's model, or a plug-in with no renderer.
         if job.request.is_some() {
-            return Err(ExtractError::ModelFailed {
-                reason: HOST_ONLY.to_owned(),
-            });
+            return Err(ExtractError::ModelNeedsHost);
         }
     }
 }
 
-/// The models used, as `generator.models` names them.
-fn record_models(out: &mut Extraction, options: &ExtractOptions) {
-    out.models = options.models.infos();
+/// The models that gave a result, layout first, as `generator.models` names them: a model
+/// set but never asked (OCR on a document whose every page has text) isn't listed.
+fn record_models(out: &mut Extraction, options: &ExtractOptions, (layout, ocr): (bool, bool)) {
+    let models = &options.models;
+    out.models = [
+        models
+            .layout
+            .as_ref()
+            .filter(|_| layout)
+            .map(ModelSlot::<dyn crate::LayoutModel>::info),
+        models
+            .ocr
+            .as_ref()
+            .filter(|_| ocr)
+            .map(ModelSlot::<dyn crate::OcrEngine>::info),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
 }
 
 /// A page's painting, seen once: the table rules (when tables are looked for) and the backdrops.
@@ -215,8 +230,14 @@ impl ExtractJob {
             return Err(ExtractError::ModelResultUnexpected);
         };
         match (request, result) {
-            (ModelRequest::Layout { .. }, ModelResult::Layout(regions)) => pending.regions = Some(regions),
-            (ModelRequest::Ocr { .. }, ModelResult::Ocr(words)) => pending.words = Some(words),
+            (ModelRequest::Layout { .. }, ModelResult::Layout(regions)) => {
+                pending.regions = Some(regions);
+                self.used.0 = true;
+            }
+            (ModelRequest::Ocr { .. }, ModelResult::Ocr(words)) => {
+                pending.words = Some(words);
+                self.used.1 = true;
+            }
             _ => return Err(ExtractError::ModelResultUnexpected),
         }
         self.request = None;
@@ -256,6 +277,9 @@ impl ExtractJob {
     }
 
     fn run(&mut self, doc: &Document, budget: Budget) -> Result<Step<Extraction>, ExtractError> {
+        if self.cancel.is_cancelled() {
+            return Err(ExtractError::Cancelled);
+        }
         if self.request.is_some() {
             return Ok(self.progress(Phase::Model));
         }
@@ -318,7 +342,7 @@ impl ExtractJob {
             {
                 out.source.struct_source = StructSource::Tagged;
             }
-            record_models(&mut out, &self.options);
+            record_models(&mut out, &self.options, self.used);
             finish(&mut out, &self.options);
             return Ok(Step::Done(out));
         }
@@ -340,7 +364,8 @@ impl ExtractJob {
         };
         let text = self.extractor.page_with(doc, page, &mut painted)?;
         let edges = painted.rules.map(Collector::finish);
-        let visible = has_visible_text(&text, &painted.backdrops, &self.options);
+        // Only OCR asks, and the test reads the page's runs once more.
+        let visible = self.options.models.ocr.is_none() || has_visible_text(&text, &painted.backdrops, &self.options);
         Ok(Pending {
             index,
             text,

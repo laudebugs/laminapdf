@@ -1,5 +1,6 @@
-//! What an extraction does: [`ExtractOptions`], plain owned data with a `Default` so it crosses
-//! `UniFFI` and WASM as a record (ADR 0028 §1).
+//! What an extraction does: [`ExtractOptions`], owned data with a `Default`. All of it but
+//! [`Models`]' plug-in objects crosses `UniFFI` and WASM as a record (ADR 0028 §1); the
+//! bindings name host models instead, which needs no object across the boundary.
 
 use crate::plugins::Models;
 use crate::tables::TableMode;

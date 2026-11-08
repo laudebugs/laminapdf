@@ -26,8 +26,8 @@
 mod post;
 mod pre;
 
-use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use laminapdf_extract::{LayoutModel, LayoutRegion, ModelError, ModelInfo, PageRaster};
 use laminapdf_syntax::CancelToken;
@@ -84,12 +84,13 @@ impl HeronLayout {
     /// Docling uses.
     pub const DEFAULT_THRESHOLD: f32 = 0.3;
 
-    /// Loads ONNX Runtime from `runtime` (once per process; later calls reuse it) and Heron's
-    /// `weights`.
+    /// Loads ONNX Runtime from `runtime` (once per process; later calls with the same path
+    /// share it) and Heron's `weights`.
     ///
     /// # Errors
     /// [`LoadError::WrongWeights`] for weights other than the pinned file;
-    /// [`LoadError::Runtime`] when the library or the model can't be loaded.
+    /// [`LoadError::Runtime`] when the library or the model can't be loaded, or the process
+    /// already loaded ONNX Runtime from another path.
     pub fn new(weights: &[u8], runtime: impl AsRef<Path>) -> Result<Self, LoadError> {
         let found = hex(&Sha256::digest(weights));
         if found != SHA256 {
@@ -114,19 +115,31 @@ impl HeronLayout {
     }
 }
 
-/// ONNX Runtime allows one environment per process: the first [`HeronLayout::new`] builds it
-/// from its library path, later ones share it (and their path is not loaded again).
+/// ONNX Runtime allows one environment per process: the first [`HeronLayout::new`] that
+/// loads it keeps it, with its library path; a later call with that path shares it, and one
+/// with another path is refused. A failed load keeps nothing, so a retry with the right path
+/// works.
 fn environment(runtime: &Path) -> Result<Environment, LoadError> {
-    static ENVIRONMENT: OnceLock<Result<Environment, String>> = OnceLock::new();
-    ENVIRONMENT
-        .get_or_init(|| {
-            ort::init_from(runtime)
-                .map_err(|e| e.to_string())?
-                .build()
-                .map_err(|e| e.to_string())
-        })
-        .clone()
-        .map_err(LoadError::Runtime)
+    static ENVIRONMENT: Mutex<Option<(PathBuf, Environment)>> = Mutex::new(None);
+    let mut slot = ENVIRONMENT
+        .lock()
+        .map_err(|_| LoadError::Runtime("the environment's lock is poisoned".to_owned()))?;
+    if let Some((path, environment)) = slot.as_ref() {
+        return if path == runtime {
+            Ok(environment.clone())
+        } else {
+            Err(LoadError::Runtime(format!(
+                "ONNX Runtime is already loaded from {}; a process can load it once",
+                path.display()
+            )))
+        };
+    }
+    let environment = ort::init_from(runtime)
+        .map_err(|e| LoadError::Runtime(e.to_string()))?
+        .build()
+        .map_err(|e| LoadError::Runtime(e.to_string()))?;
+    *slot = Some((runtime.to_path_buf(), environment.clone()));
+    Ok(environment)
 }
 
 fn hex(bytes: &[u8]) -> String {

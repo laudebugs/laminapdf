@@ -62,6 +62,11 @@ impl JobCore {
         result
     }
 
+    /// Whether the job has ended: done, failed or cancelled.
+    pub(crate) const fn is_finished(&self) -> bool {
+        self.finished
+    }
+
     pub(crate) fn finish(&mut self) {
         self.finished = true;
     }

@@ -30,6 +30,10 @@ pub enum ExtractError {
         /// The plug-in's message (never document text).
         reason: String,
     },
+    /// [`extract`](crate::extract) was given a model whose results only the host can give: a
+    /// host model, or a plug-in without a renderer.
+    #[error("a model's results must come from the host: step an extraction job and provide them")]
+    ModelNeedsHost,
     /// [`ExtractJob::provide`](crate::ExtractJob::provide) was given a result the job didn't
     /// ask for: none was asked for, or it was the other model's.
     #[error("the job asked for no such model result")]
@@ -61,6 +65,7 @@ impl ExtractError {
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
             Self::ModelFailed { .. } => "model-failed",
             Self::ModelResultUnexpected => "model-result-unexpected",
+            Self::ModelNeedsHost => "model-needs-host",
             Self::Document(e) => e.code(),
         }
     }
@@ -71,7 +76,7 @@ impl ExtractError {
         match self {
             Self::Cancelled => ErrorKind::Cancelled,
             Self::JobFinished => ErrorKind::State,
-            Self::PageIndexOutOfRange { .. } | Self::ModelResultUnexpected => ErrorKind::Usage,
+            Self::PageIndexOutOfRange { .. } | Self::ModelResultUnexpected | Self::ModelNeedsHost => ErrorKind::Usage,
             Self::ModelFailed { .. } => ErrorKind::Internal,
             Self::Document(e) => e.kind(),
         }
@@ -86,7 +91,8 @@ impl ExtractError {
             | Self::JobFinished
             | Self::PageIndexOutOfRange { .. }
             | Self::ModelFailed { .. }
-            | Self::ModelResultUnexpected => Location::NONE,
+            | Self::ModelResultUnexpected
+            | Self::ModelNeedsHost => Location::NONE,
         }
     }
 }
@@ -105,6 +111,7 @@ mod tests {
             ExtractError::PageIndexOutOfRange { index: 3, count: 1 },
             ExtractError::ModelFailed { reason: String::new() },
             ExtractError::ModelResultUnexpected,
+            ExtractError::ModelNeedsHost,
         ];
         assert_kinds_match(own.iter().map(|e| (e.code(), e.kind().as_str())));
     }

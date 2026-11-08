@@ -85,6 +85,7 @@
             "render-backend-unavailable",
             "model-failed",
             "model-result-unexpected",
+            "model-needs-host",
             "cancelled",
             "job-finished",
             "document-changed",

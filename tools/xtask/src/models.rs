@@ -135,6 +135,9 @@ fn problems(manifest: &Manifest) -> Vec<String> {
         if !m.url.starts_with("https://") || !m.url.contains(&m.revision) {
             out.push(at("url must be https and name the pinned revision"));
         }
+        if m.training_data.as_deref().is_some_and(|t| !t.contains("https://")) {
+            out.push(at("training_data must link the data's licence"));
+        }
         if m.file.contains('/')
             || m.file.is_empty()
             || m.bytes == 0
@@ -186,7 +189,7 @@ pub(crate) fn fetch(ws: &Workspace, name: &str) -> Result<PathBuf> {
     };
     let dir = ws.root.join("target/models").join(&model.name).join(&model.sha256);
     let target = dir.join(&model.file);
-    if target.is_file() && fs::metadata(&target)?.len() == model.bytes {
+    if target.is_file() && sha256_hex(&fs::read(&target)?) == model.sha256 {
         step(&format!("models: {name} is cached at {}", target.display()));
         return Ok(target);
     }

@@ -167,6 +167,11 @@ pub struct Block {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Vec::is_empty"))]
     #[cfg_attr(feature = "schema", schemars(default))]
     pub cells: Vec<Cell>,
+    /// A layout model's region gave the block its kind, so the heading and list rules leave
+    /// it alone, as they leave the structure tree's blocks.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    pub(crate) from_model: bool,
 }
 
 /// One cell of a table block.

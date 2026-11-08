@@ -198,6 +198,8 @@ pub enum ErrorCode {
     ModelFailed,
     /// `model-result-unexpected`: a model result was handed to an extraction job that hadn't asked for it, or was the other model's result.
     ModelResultUnexpected,
+    /// `model-needs-host`: an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer.
+    ModelNeedsHost,
     /// `cancelled`: a CancelToken stopped the work; the job is finished and returned no partial result.
     Cancelled,
     /// `job-finished`: a job was stepped after it had finished, failed or been cancelled.
@@ -315,6 +317,7 @@ impl ErrorCode {
         Self::RenderBackendUnavailable,
         Self::ModelFailed,
         Self::ModelResultUnexpected,
+        Self::ModelNeedsHost,
         Self::Cancelled,
         Self::JobFinished,
         Self::DocumentChanged,
@@ -430,6 +433,7 @@ impl ErrorCode {
             Self::RenderBackendUnavailable => "render-backend-unavailable",
             Self::ModelFailed => "model-failed",
             Self::ModelResultUnexpected => "model-result-unexpected",
+            Self::ModelNeedsHost => "model-needs-host",
             Self::Cancelled => "cancelled",
             Self::JobFinished => "job-finished",
             Self::DocumentChanged => "document-changed",
@@ -533,6 +537,7 @@ impl ErrorCode {
             Self::RenderBackendUnavailable => ErrorKind::Io,
             Self::ModelFailed => ErrorKind::Internal,
             Self::ModelResultUnexpected => ErrorKind::Usage,
+            Self::ModelNeedsHost => ErrorKind::Usage,
             Self::Cancelled => ErrorKind::Cancelled,
             Self::JobFinished => ErrorKind::State,
             Self::DocumentChanged => ErrorKind::State,
@@ -636,6 +641,7 @@ impl ErrorCode {
             Self::RenderBackendUnavailable => "the render engine is not available: its library or module could not be loaded",
             Self::ModelFailed => "a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result",
             Self::ModelResultUnexpected => "a model result was handed to an extraction job that hadn't asked for it, or was the other model's result",
+            Self::ModelNeedsHost => "an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer",
             Self::Cancelled => "a CancelToken stopped the work; the job is finished and returned no partial result",
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
             Self::DocumentChanged => "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
@@ -739,6 +745,7 @@ impl ErrorCode {
             Self::RenderBackendUnavailable => "run cargo xtask fetch-pdfium or set LAMINA_PDF_PDFIUM_DIR to the folder holding the PDFium library",
             Self::ModelFailed => "check the plug-in's own logs; extract without the model to get the rules-only result",
             Self::ModelResultUnexpected => "call provide only while request() returns a request, with the result its kind asks for",
+            Self::ModelNeedsHost => "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
             Self::Cancelled => "nothing to do: this is the outcome the caller asked for; start a new job to try again",
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job",
