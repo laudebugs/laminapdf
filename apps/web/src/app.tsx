@@ -1,13 +1,18 @@
 // The reader: @laminapdf/ui's chrome around @laminapdf/viewer's view. The home screen opens a file
 // from Choose a file, a drop anywhere in the window or a paste; the canvas then shows the document,
 // or the failure page when it can't be opened. A repaired file gets the status bar's notice and
-// the repair details panel. #debug adds the backend switch and the first page's timing.
+// the repair details panel, docked as the shell's inspector. Focus mode (Ctrl+\ or the palette) hides
+// the secondary toolbar; the rail arrives with its tabs (thumbnails and the outline). #debug adds the
+// backend switch and the first page's timing.
 
 import {
   type CommandContext,
   CommandRegistry,
   CommandsProvider,
   DebugMenu,
+  FocusModeItem,
+  Inspector,
+  ModeRegistry,
   message,
   OpenDropZone,
   OpenFailure,
@@ -20,7 +25,9 @@ import {
   RepairDetails,
   RepairedNotice,
   registerReaderCommands,
+  ShellLayout,
   StatusBarItem,
+  shellActions,
   useGatedEntries,
   useReaderState,
   useStoreState,
@@ -53,12 +60,24 @@ function useWindowTitle(fileName: string | undefined, title: string | undefined)
   }, [fileName, title]);
 }
 
-/** The registry with the reader's commands, and the context they run in: the sidebar and palette are the shell's. */
+/** The shell's layout (the rail's state kept in `platform`'s storage) and its one mode, Read. */
+function useShell(platform: Platform): { layout: ShellLayout; modes: ModeRegistry } {
+  const [shell] = useState(() => {
+    const layout = new ShellLayout(platform.storage);
+    const modes = new ModeRegistry();
+    modes.register({ id: "read", label: message("command.mode.read"), icon: "reader", leave: () => layout.deselect() });
+    return { layout, modes };
+  });
+  useEffect(() => void shell.layout.load(), [shell]);
+  return shell;
+}
+
+/** The registry with the reader's commands, and the context they run in: focus mode, the modes and the palette are the shell's. */
 function useReaderCommands(
   platform: Platform,
   reader: ReaderController,
   viewer: Viewer | undefined,
-  shell: { readonly toggleSidebar: () => void; readonly openPalette: () => void },
+  shell: { readonly layout: ShellLayout; readonly modes: ModeRegistry; readonly openPalette: () => void },
 ): { registry: CommandRegistry; context: CommandContext } {
   const [registry] = useState(() => {
     const commands = new CommandRegistry();
@@ -70,7 +89,8 @@ function useReaderCommands(
       platform,
       reader,
       ...(viewer === undefined ? {} : { viewer }),
-      actions: { "view.toggle-sidebar": shell.toggleSidebar, "palette.open": shell.openPalette },
+      // No rail tabs yet, so the sidebar command has no handler and stays out of every view.
+      actions: { ...shellActions(shell.layout, shell.modes, { rail: false }), "palette.open": shell.openPalette },
     }),
     [platform, reader, viewer, shell],
   );
@@ -103,12 +123,10 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const state = useReaderState(reader);
   const engineState = useStoreState(engine, (s) => s);
   const { backend, viewer, repairs } = engineState;
-  const [sidebar, setSidebar] = useState(false);
   const [palette, setPalette] = useState(false);
-  const [shell] = useState(() => ({
-    toggleSidebar: () => setSidebar((isOpen) => !isOpen),
-    openPalette: () => setPalette(true),
-  }));
+  const { layout, modes } = useShell(platform);
+  const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
+  const sidebar = useStoreState(layout, (s) => s.rail.open);
   // The repair panel belongs to one file: it starts closed for each.
   const [repairsFor, setRepairsFor] = useState<string | undefined>();
   const more = useGatedEntries<MoreId>([
@@ -121,15 +139,25 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const fileName = open ? state.file.name : undefined;
   useWindowTitle(fileName, engineState.title);
   const repaired = fileName !== undefined && repairs.length > 0;
-  const status = statusItems(engineState, debug, repaired ? () => setRepairsFor(fileName) : undefined);
+  const showRepairs = () => {
+    setRepairsFor(fileName);
+    layout.openInspector({ id: "repairs", selection: false });
+  };
+  const status = statusItems(engineState, debug, repaired ? showRepairs : undefined);
+  // Another file's repairs never show: the panel closes when the file changes.
+  useEffect(() => {
+    if (repairsFor !== fileName) layout.closeInspector();
+  }, [repairsFor, fileName, layout]);
   const inspector =
     repaired && repairsFor === fileName ? (
-      <RepairDetails
-        fileName={fileName}
-        repairs={repairs}
-        onClose={() => setRepairsFor(undefined)}
-        onCopy={() => void platform.copyText(repairsText(repairs))}
-      />
+      <Inspector layout={layout}>
+        <RepairDetails
+          fileName={fileName}
+          repairs={repairs}
+          onClose={() => layout.closeInspector()}
+          onCopy={() => void platform.copyText(repairsText(repairs))}
+        />
+      </Inspector>
     ) : undefined;
   const debugMenu = debug ? (
     <DebugMenu backend={backend} onBackendChange={(next) => void engine.switchBackend(next)} keys={KEYS} />
@@ -137,6 +165,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   return (
     <CommandsProvider registry={commands.registry} context={commands.context} keys={KEYS}>
       <ReaderShell
+        layout={layout}
         topBar={
           <ReaderTopBar
             reader={reader}
@@ -149,7 +178,12 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
           />
         }
         {...(inspector === undefined ? {} : { inspector })}
-        {...(status.length > 0 ? { status } : {})}
+        status={
+          <>
+            {status}
+            <FocusModeItem layout={layout} />
+          </>
+        }
       >
         {state.phase === "empty" ? (
           <OpenDropZone reader={reader} keys={KEYS}>
