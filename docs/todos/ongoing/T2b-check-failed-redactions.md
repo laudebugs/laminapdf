@@ -11,7 +11,7 @@
 | Branch | `feat/t2b-check-failed-redactions` |
 | PR title | `feat(cli): laminapdf check warns about covered text, unapplied redactions and text left in earlier revisions` |
 | Size | L (≈ 400–550 lines of code with unit tests; codes, error pages and fixtures don't count) |
-| PR | — |
+| PR | [#309](https://github.com/laudebugs/laminapdf/pull/309) |
 
 ## Goal
 
