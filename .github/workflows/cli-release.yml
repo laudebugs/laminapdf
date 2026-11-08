@@ -14,7 +14,8 @@
 #                   the same archive and npm checks (npm for glibc; the musl binary is checked to be
 #                   statically linked, so it runs on any Linux, Alpine included, and is run here)
 #   global          the Homebrew formula and sha256.sum over the archives built, and a CycloneDX
-#                   SBOM of the binary's crates (`mcp` feature on)
+#                   SBOM of the binary's crates (`mcp` feature on); on a tag push it fails unless
+#                   the Linux builds ran and passed
 #   publish         only on a `laminapdf-cli-v*` tag push, while the owner's repository variable
 #                   LAMINA_PDF_PUBLISH_CLI is 'true', in the `release` environment: the GitHub
 #                   release with every file `global` collected, and build-provenance attestations
@@ -100,6 +101,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # dist plan reads the workspace through cargo, and the tag step runs `cargo pkgid`.
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: cli-release-plan
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
       - name: The release tag
         id: tag
         env:
@@ -109,8 +117,8 @@ jobs:
           if [ "$REF_TYPE" = tag ]; then
             tag=$REF_NAME
           else
-            # The first `version =` of Cargo.toml is [workspace.package]'s, which laminapdf-cli inherits.
-            tag="laminapdf-cli-v$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+            # `cargo pkgid` ends in `#laminapdf-cli@<version>` (or `#<version>`), whatever Cargo.toml's layout.
+            tag="laminapdf-cli-v$(cargo pkgid -p laminapdf-cli | sed 's/.*[#@]//')"
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
       # Same version as tools/xtask/src/doctor.rs.
@@ -237,7 +245,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # Only what the npm steps below use: @laminapdf/cli's TypeScript and Vitest.
+      - run: pnpm install --frozen-lockfile --filter @laminapdf/cli
       - name: Man pages, completions and third-party notices for the archive
         run: cargo xtask cli-dist
       - name: dist build
@@ -293,6 +302,15 @@ jobs:
     env:
       TAG: ${{ needs.plan.outputs.tag }}
     steps:
+      # A dispatch may build macOS alone while the Linux runner is off; a release may not, since
+      # a version published without its Linux archives and npm packages can't gain them later.
+      - name: A tag push needs the Linux builds
+        if: ${{ github.event_name == 'push' && needs.build-linux.result != 'success' }}
+        env:
+          LINUX: ${{ needs.build-linux.result }}
+        run: |
+          echo "::error::the Linux builds were $LINUX, so this release is not published; start the Linux runner and re-run the workflow"
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -344,8 +362,8 @@ jobs:
   # tests this condition.
   publish:
     name: Publish the GitHub release
-    needs: [plan, global]
-    if: ${{ needs.global.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}
+    needs: [plan, build-linux, global]
+    if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 15
     environment: release
