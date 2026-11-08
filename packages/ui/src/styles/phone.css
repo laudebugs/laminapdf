@@ -1,0 +1,88 @@
+/* The phone shell (design language §6.2): a 56 tall top bar that slides away while the document
+   scrolls down, the bottom bar of equal columns with each icon over its label, both clear of the
+   notch and the home indicator (`env(safe-area-inset-*)`, with `viewport-fit=cover` in the page),
+   and the More sheet's rows at touch height. Nothing scrolls sideways at 320 wide. */
+@layer paper.components {
+  .paper-reader-shell {
+    overflow-x: clip;
+  }
+
+  .paper-top-bar[data-phone] {
+    flex-wrap: nowrap;
+    gap: var(--paper-space-4);
+    min-block-size: var(--paper-phone-top-bar-height);
+    padding-block-start: env(safe-area-inset-top, 0);
+    padding-inline: max(var(--paper-space-6), env(safe-area-inset-left, 0))
+      max(var(--paper-space-6), env(safe-area-inset-right, 0));
+  }
+
+  .paper-top-bar[data-phone] .paper-top-bar-file {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .paper-top-bar[data-hidden] {
+    margin-block-start: calc(-1 * var(--paper-phone-top-bar-height));
+    visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .paper-top-bar[data-phone] {
+      transition:
+        margin-block-start 160ms ease,
+        visibility 0s linear 160ms;
+    }
+
+    .paper-top-bar[data-phone]:not([data-hidden]) {
+      transition-delay: 0s;
+    }
+  }
+
+  .paper-reader-status[data-phone] {
+    padding: 0;
+  }
+
+  .paper-bottom-bar {
+    display: grid;
+    flex: 1 1 auto;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: var(--paper-space-4);
+    min-block-size: var(--paper-phone-bottom-bar-height);
+    padding: var(--paper-space-6) var(--paper-space-8) max(var(--paper-space-8), env(safe-area-inset-bottom, 0));
+    background: var(--paper-ground);
+  }
+
+  .paper-bottom-bar-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--paper-space-2);
+    min-block-size: var(--paper-target-min-touch);
+    border: 0;
+    border-radius: var(--paper-radius-6);
+    background: transparent;
+    color: var(--paper-text-3);
+    font: var(--paper-type-tab-label);
+    cursor: pointer;
+  }
+
+  .paper-bottom-bar-button svg {
+    inline-size: var(--paper-icon-size-touch);
+    block-size: var(--paper-icon-size-touch);
+  }
+
+  .paper-bottom-bar-button[data-pressed] {
+    background: var(--paper-pressed);
+  }
+
+  .paper-bottom-bar-button[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  .paper-sheet-menu .paper-menu-item {
+    min-block-size: var(--paper-target-min-touch);
+  }
+}

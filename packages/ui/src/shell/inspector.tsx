@@ -7,8 +7,11 @@
 // (`RepairDetails` is an `aside`), so the page never nests two complementary landmarks.
 
 import { type KeyboardEvent, type ReactNode, useEffect } from "react";
+import { PHONE_QUERY } from "../breakpoints.js";
+import { message } from "../messages.js";
 import { LayerScope } from "../overlays/layers.js";
-import { useStoreState } from "../state/hooks.js";
+import { BottomSheet } from "../overlays/sheet.js";
+import { useMediaQuery, useStoreState } from "../state/hooks.js";
 import type { ShellLayout } from "./layout.js";
 
 /** Props of `Inspector`. */
@@ -26,8 +29,24 @@ export interface InspectorProps {
 export function Inspector({ layout, label, onDeselect, children }: InspectorProps): ReactNode {
   const content = useStoreState(layout, (s) => s.inspector);
   const focus = useStoreState(layout, (s) => s.focus);
+  const phone = useMediaQuery(PHONE_QUERY);
   useEffect(() => (onDeselect === undefined ? undefined : layout.onDeselect(onDeselect)), [layout, onDeselect]);
   if (content === undefined || (focus && !content.selection)) return null;
+  if (phone) {
+    // A phone has no room beside the page: the inspector is a sheet over its lower half (R18).
+    const close = () => (content.selection ? layout.deselect() : layout.closeInspector());
+    return (
+      <BottomSheet
+        isOpen
+        onOpenChange={(isOpen) => (isOpen ? undefined : close())}
+        title={label ?? message("shell.inspector")}
+        closeLabel={message("shell.inspector.close")}
+        resizeLabel={message("phone.sheet.resize")}
+      >
+        {children}
+      </BottomSheet>
+    );
+  }
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== "Escape" || event.defaultPrevented || content.selection) return;
     event.preventDefault();

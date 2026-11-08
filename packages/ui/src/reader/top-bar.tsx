@@ -2,9 +2,11 @@
 // "Loading pages…" or "Locked" while those apply; the page input, zoom, Commands and More on the
 // right. Without a document the file area shows what the shell gives it (the wordmark, or Back).
 // It reads the reader controller and the viewer; its buttons run registered commands
-// (`view.toggle-sidebar`, `palette.open`), whose handlers are the shell's.
+// (`view.toggle-sidebar`, `palette.open`), whose handlers are the shell's. On a phone (§6.2) it keeps
+// the file name and More, which opens the More sheet; the bottom bar holds the rest, pinch replaces
+// the zoom, and the bar slides away while the document scrolls down and back when it scrolls up.
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button as AriaButton } from "react-aria-components";
 import { useCommand } from "../commands/react.js";
 import { IconButton } from "../components/button.js";
@@ -12,6 +14,7 @@ import { type KeyPlatform, ShortcutChip } from "../components/shortcut-chip.js";
 import { ToggleButton } from "../components/toggle.js";
 import { message } from "../messages.js";
 import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
+import { MoreSheet, usePhone } from "../shell/phone.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 import type { ReaderState } from "../state/reader-machine.js";
 import { LockedPageInput, PageInput } from "./page-input.js";
@@ -45,8 +48,57 @@ export interface ReaderTopBarProps<Id extends string> {
   };
 }
 
+/** A viewer that never scrolls, for a top bar without one. */
+const STILL: ExternalStore<{ readonly scrollTop?: number }> = {
+  getState: () => ({}),
+  subscribe: () => () => undefined,
+};
+
+/** Scrolled this far down past where it last turned, the phone's top bar hides. */
+const HIDE_AFTER = 24;
+
+/** Whether the phone's top bar is out of the way: hidden while `viewer` scrolls down, back on the way up. */
+function useHiddenWhileScrolling(viewer: ViewerControls | undefined, phone: boolean): boolean {
+  const top = useStoreState<{ readonly scrollTop?: number }, number>(viewer ?? STILL, (s) => s.scrollTop ?? 0);
+  const [hidden, setHidden] = useState(false);
+  // Where the scrolling last turned: any move up shows the bar, a move down past HIDE_AFTER hides it.
+  const turn = useRef(top);
+  useEffect(() => {
+    if (!phone) return;
+    const moved = top - turn.current;
+    if (moved < 0 || moved > HIDE_AFTER) {
+      turn.current = top;
+      setHidden(moved > 0);
+    }
+  }, [top, phone]);
+  return phone && hidden && top > 0;
+}
+
+/** The phone's top bar: the file area, and More as a sheet. */
+function PhoneTopBar<Id extends string>(props: ReaderTopBarProps<Id> & { hidden: boolean }): ReactNode {
+  const state = useStoreState(props.reader, (s) => s);
+  const [more, setMore] = useState(false);
+  return (
+    <header className="paper-top-bar" data-phone="" data-hidden={props.hidden || undefined}>
+      <div className="paper-top-bar-file">
+        <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
+      </div>
+      {props.debug}
+      <IconButton icon="more" label={message("reader.more")} onPress={() => setMore(true)} />
+      <MoreSheet isOpen={more} onOpenChange={setMore} more={props.more} keys={props.keys} />
+    </header>
+  );
+}
+
 /** The reader's top bar. */
 export function ReaderTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
+  const phone = usePhone();
+  const hidden = useHiddenWhileScrolling(props.viewer, phone);
+  return phone ? <PhoneTopBar {...props} hidden={hidden} /> : <DesktopTopBar {...props} />;
+}
+
+/** The top bar on a window wider than a phone. */
+function DesktopTopBar<Id extends string>(props: ReaderTopBarProps<Id>): ReactNode {
   const state = useStoreState(props.reader, (s) => s);
   const { viewer, keys, more } = props;
   const sidebar = useCommand("view.toggle-sidebar");

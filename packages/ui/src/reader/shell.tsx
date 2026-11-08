@@ -7,9 +7,10 @@
 // hides the mode's toolbar and keeps the one that replaced it until it is closed (§1).
 
 import type { ReactNode } from "react";
+import { PHONE_QUERY } from "../breakpoints.js";
 import type { ShellLayout } from "../shell/layout.js";
 import type { ModeRegistry, ModesState } from "../shell/modes.js";
-import { type ExternalStore, useStoreState } from "../state/hooks.js";
+import { type ExternalStore, useMediaQuery, useStoreState } from "../state/hooks.js";
 
 /** Props of `ReaderShell`. */
 export interface ReaderShellProps {
@@ -23,6 +24,8 @@ export interface ReaderShellProps {
   inspector?: ReactNode;
   /** The status bar's items. */
   status?: ReactNode;
+  /** The phone's bottom bar (`PhoneBottomBar`), in place of the status bar below the phone breakpoint. */
+  bottomBar?: ReactNode;
   /** The canvas: the viewer, or a page the canvas holds instead (the home, an error). */
   children: ReactNode;
   /** The shell's layout: focus mode hides the mode's toolbar. */
@@ -62,8 +65,11 @@ export function ReaderShell({
   children,
   layout,
   modes,
+  bottomBar,
 }: ReaderShellProps): ReactNode {
   const focus = useFocus(layout);
+  const phone = useMediaQuery(PHONE_QUERY);
+  const foot = phone && bottomBar !== undefined ? bottomBar : status;
   const modeToolbar = useModeToolbar(modes);
   const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
   return (
@@ -78,7 +84,11 @@ export function ReaderShell({
         </main>
         {inspector}
       </div>
-      {status === undefined ? null : <footer className="paper-reader-status">{status}</footer>}
+      {foot === undefined ? null : (
+        <footer className="paper-reader-status" data-phone={(phone && bottomBar !== undefined) || undefined}>
+          {foot}
+        </footer>
+      )}
     </div>
   );
 }

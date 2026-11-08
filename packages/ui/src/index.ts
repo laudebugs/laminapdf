@@ -1,6 +1,7 @@
 // @laminapdf/ui: the Paper components, presentational only (props in, events out). Import
 // `@laminapdf/ui/styles.css` once for their look.
 
+export { PHONE_QUERY } from "./breakpoints.js";
 export {
   choiceArgs,
   pageArgs,
@@ -218,6 +219,13 @@ export {
 } from "./shell/layout.js";
 export { LeftRail, type LeftRailProps, RAIL_DRAWER_QUERY, type RailTab } from "./shell/left-rail.js";
 export { ModeRegistry, type ModesState, type ShellMode } from "./shell/modes.js";
+export {
+  type MoreItems,
+  MoreSheet,
+  PhoneBottomBar,
+  type PhoneBottomBarProps,
+  usePhone,
+} from "./shell/phone.js";
 export { useShell } from "./shell/use-shell.js";
 export { type ExternalStore, useMediaQuery, useReaderState, useStoreState } from "./state/hooks.js";
 export { type OpenedDocument, type Opener, ReaderController } from "./state/reader-controller.js";

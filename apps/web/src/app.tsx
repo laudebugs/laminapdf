@@ -17,6 +17,7 @@ import {
   OpenDropZone,
   OpenFailure,
   PasswordDialog,
+  PhoneBottomBar,
   type Platform,
   type ReaderController,
   ReaderShell,
@@ -153,6 +154,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
     { id: "open", label: message("reader.open.choose") },
     { id: "rotate", label: message("reader.rotate"), icon: "rotate-right" },
   ]);
+  const moreItems = { items: more, onAction: (id: MoreId) => (id === "open" ? reader.close() : viewer?.rotate(90)) };
   const open = state.phase === "open";
   const shown = open ? viewer : undefined;
   const commands = useReaderCommands(platform, reader, shown, shell);
@@ -176,9 +178,10 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
             sidebarOpen={sidebar}
             home={<span className="web-wordmark">{APP_NAME}</span>}
             debug={debugMenu}
-            more={{ items: more, onAction: (id) => (id === "open" ? reader.close() : viewer?.rotate(90)) }}
+            more={moreItems}
           />
         }
+        bottomBar={<PhoneBottomBar layout={layout} rail={false} more={moreItems} keys={KEYS} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={
           <>
