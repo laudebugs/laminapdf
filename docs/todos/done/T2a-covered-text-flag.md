@@ -76,7 +76,7 @@ Fake redaction is one of the trust failures Hacker News users return to after ev
 
   In §7, add that new `reason` values and flag names may appear within `/1`, and that a consumer treats a value it doesn't know as hidden text. In the §9 note, record the thresholds and that strokes, shadings and rotated shapes don't cover yet.
 - [x] **ADR 0023 note.** Under §2: `GraphicsState` also tracks `BM` (as `laminapdf_model::BlendMode`) and whether `SMask` is set (T2a, for the `covered` flag).
-- [ ] **Fixtures and tests** (see Tests). Then run `cargo xtask extract-bench` by hand and record the scores in the PR beside the README's table.
+- [x] **Fixtures and tests** (see Tests). Then run `cargo xtask extract-bench` by hand and record the scores in the PR beside the README's table.
 - [x] **Docs.** `crates/laminapdf-extract/README.md` ("How it reads a page", step 1, and "What it can't do yet"); the hidden-text bullet of `apps/docs/src/content/docs/recipes/extract-markdown.mdx` (plain words, no flag names: "text painted over by a later shape, image or comment"); CLAUDE.md's extraction paragraph (`Flags`: … `covered`).
 
 ## Acceptance criteria
@@ -89,8 +89,8 @@ Fake redaction is one of the trust failures Hacker News users return to after ev
 - [x] `TextExtractor::page` and `page_with` return equal `PageText`s on every corpus file (a test in `crates/laminapdf-text/tests/`), and `Glyph::paints_before` counts as documented.
 - [x] `GraphicsState::blend_mode` and `soft_mask` follow `gs`, `q` and `Q` (unit tests); `fixtures/corpus/pdfjs-operators.json`'s comparison in `crates/laminapdf-content/tests/corpus.rs` passes unchanged.
 - [x] ADR 0030 §4, §7 and §9 and ADR 0023 §2 carry the text above, with the tuned thresholds.
-- [ ] `cargo xtask size` stays within `packages/wasm/size-budgets.json`; the `extract` fuzz target runs (`cargo xtask fuzz extract --time 60`) without a crash.
-- [ ] The PR records `cargo xtask extract-bench`'s scores; none drops by more than 0.5 points against `crates/laminapdf-extract/README.md`'s table.
+- [x] `cargo xtask size` stays within `packages/wasm/size-budgets.json`; the `extract` fuzz target runs (`cargo xtask fuzz extract --time 60`) without a crash.
+- [x] The PR records `cargo xtask extract-bench`'s scores; none drops by more than 0.5 points against `crates/laminapdf-extract/README.md`'s table.
 
 ## As built
 
@@ -132,6 +132,6 @@ None.
 
 - [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
