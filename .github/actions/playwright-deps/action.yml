@@ -1,0 +1,19 @@
+# The system libraries Playwright's browsers need on a hosted Ubuntu runner. A no-op elsewhere:
+# macOS needs none. Run after node-pnpm (it uses @laminapdf/sdk's Playwright).
+name: Playwright's system libraries
+description: Install the Linux packages Playwright's browsers need; nothing on other systems.
+inputs:
+  browsers:
+    description: Space-separated Playwright browser names.
+    required: false
+    default: chromium
+runs:
+  using: composite
+  steps:
+    - if: runner.os == 'Linux'
+      shell: bash
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        # shellcheck disable=SC2086 # one argument per browser
+        pnpm --filter @laminapdf/sdk exec playwright install-deps $BROWSERS

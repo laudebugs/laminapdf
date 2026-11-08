@@ -11,7 +11,7 @@
 #   scaling       release-mode #[ignore]d tests, one retry that only reports flakiness
 #                 (`cargo xtask scaling`)
 #   bench         criterion benchmarks with history on the `bench-data` branch, after every job
-#                 that doesn't depend on them, so they don't share the Mac with those; a regression
+#                 that doesn't depend on them; a regression
 #                 over 10% opens an issue, never fails the run (`cargo xtask bench`)
 #   pdf-runtimes  @laminapdf/sdk's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
 #                 workerd, its timings and WebAssembly memory recorded in the benchmark history
@@ -26,7 +26,7 @@
 #   verapdf       every generated example validated by veraPDF for the profiles its XMP claims
 #                 (PDF/UA-1, PDF/A-2b, 2u, 3b); any violation fails (`cargo xtask verapdf`;
 #                 ADR 0018 tier 10, todo B8b). veraPDF is the pinned Java CLI (doctor.rs), run
-#                 as an external process (ADR 0019), with Homebrew's openjdk@21 on the runner
+#                 as an external process (ADR 0019), with Java 21 from setup-java
 #
 # Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
 # runs them all with short budgets.
@@ -115,10 +115,11 @@ defaults:
     shell: bash
 
 jobs:
-  # PDF suites use clean hosted macOS Arm64 VMs with explicit tool setup.
+  # Hosted Linux x64 VMs with explicit tool setup; pdf-runtimes' WebKit leg and render-diff (its
+  # thresholds were measured on macOS, ADR 0004 §6) stay on macOS Arm64.
   differential:
     name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext)
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -185,7 +186,7 @@ jobs:
 
   fuzz:
     name: Fuzz ${{ matrix.target }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -247,7 +248,7 @@ jobs:
 
   scaling:
     name: Scaling (release, ignored tests)
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
       flaky: ${{ steps.scaling.outputs.flaky }}
@@ -270,7 +271,7 @@ jobs:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
     needs: [differential, fuzz, scaling, links, render-diff, verapdf, forced-failure]
     if: ${{ !cancelled() }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
     # timeout, so a short one wastes less of the night.
     timeout-minutes: 30
@@ -299,7 +300,7 @@ jobs:
       # Compares with the median of the last 5 records on this runner; regression=true when a
       # benchmark is over 10% slower. Never fails the job for a regression.
       - id: bench
-        run: cargo xtask bench --history "$HISTORY" --runner "github-hosted/macos-15-arm64" ${{ env.RECORD == 'true' && '--record' || '' }}
+        run: cargo xtask bench --history "$HISTORY" --runner "github-hosted/ubuntu-24.04-x64" ${{ env.RECORD == 'true' && '--record' || '' }}
       - name: Push the benchmark history
         if: ${{ env.RECORD == 'true' }}
         uses: ./.github/actions/bench-history
@@ -322,11 +323,27 @@ jobs:
   # that fails fails the job (and opens the nightly issue); the timings themselves are recorded,
   # not compared.
   pdf-runtimes:
-    name: "@laminapdf/sdk in every runtime (timings)"
+    name: "@laminapdf/sdk in ${{ matrix.name }} (timings)"
     needs: bench
     if: ${{ !cancelled() }}
-    runs-on: macos-15
+    # WebKit on macOS (closest to Safari); every other runtime on Linux. Each records its timings
+    # under its own runner label; bench-history retries a push the other one beat.
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Node, Chromium, Firefox, Deno, Bun and workerd
+            group: linux
+            runtimes: node chromium firefox deno bun workerd
+            runner: ubuntu-24.04
+            label: github-hosted/ubuntu-24.04-x64
+          - name: WebKit
+            group: webkit
+            runtimes: webkit
+            runner: macos-15
+            label: github-hosted/macos-15-arm64
     permissions:
       contents: write
     env:
@@ -349,6 +366,10 @@ jobs:
       - run: cargo xtask wasm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+      - if: matrix.group == 'linux'
+        uses: ./.github/actions/playwright-deps
+        with:
+          browsers: chromium firefox
       # As in the bench job: the token only reaches the bench-history steps.
       - name: Fetch the benchmark history
         if: ${{ env.RECORD == 'true' }}
@@ -356,12 +377,16 @@ jobs:
         with:
           mode: fetch
           token: ${{ github.token }}
-      - name: Every runtime (recording on main)
+      - name: The runtimes (recording on main)
+        env:
+          RUNTIMES: ${{ matrix.runtimes }}
+          LABEL: ${{ matrix.label }}
         run: |
+          # shellcheck disable=SC2086 # one argument per runtime
           if [ "$RECORD" = true ]; then
-            cargo xtask pdf-runtimes --history "$HISTORY" --runner "github-hosted/macos-15-arm64" --record
+            cargo xtask pdf-runtimes $RUNTIMES --history "$HISTORY" --runner "$LABEL" --record
           else
-            cargo xtask pdf-runtimes
+            cargo xtask pdf-runtimes $RUNTIMES
           fi
       # Also after a failed run: the runtimes that passed were recorded (the action does nothing
       # when no record was added).
@@ -371,18 +396,18 @@ jobs:
         with:
           mode: push
           token: ${{ github.token }}
-          message: "bench(pdf-runtimes): ${{ github.sha }}"
+          message: "bench(pdf-runtimes, ${{ matrix.group }}): ${{ github.sha }}"
       - name: Upload the measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pdf-runtimes
+          name: pdf-runtimes-${{ matrix.group }}
           path: target/xtask/pdf-runtimes/
           if-no-files-found: ignore
 
   links:
     name: External links in the docs
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     outputs:
       flaky: ${{ steps.links.outputs.flaky }}
@@ -469,7 +494,7 @@ jobs:
   # the runner's tool cache ($RUNNER_TOOL_CACHE/lamina-verapdf) during the job.
   verapdf:
     name: veraPDF (PDF/UA-1, PDF/A-2b, 2u, 3b)
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

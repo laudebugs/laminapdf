@@ -8,7 +8,7 @@
 //! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). The macOS
 //! runners' rustup (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so
 //! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
-//! install-action, so each runner keeps its own install-action folder. cli-release.yml publishes
+//! install-action, so its pin lives in one place. cli-release.yml publishes
 //! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
 //! secret, from GitHub-hosted runners only (todo L4d).
 //!
@@ -466,8 +466,7 @@ mod tests {
         assert_eq!(pinned(ACTION, "RUSTUP_VERSION:"), image);
     }
 
-    /// Anywhere else install-action works in `~/.install-action`, which every runner on the Mac
-    /// shares (`.github/actions/install-tools`' comment).
+    /// One pin for install-action, in `.github/actions/install-tools`.
     #[test]
     fn install_action_should_run_only_through_install_tools() {
         let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");
