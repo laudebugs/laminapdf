@@ -4,7 +4,9 @@
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
 //! smoke's figures (`LAMINA_PDF_MEASUREMENT {json}` lines), which this task collects into
 //! `target/xtask/pdf-runtimes/measurements.json` (`measurements-<label>.json` with `--label`)
-//! and a job-summary table against the §4 targets.
+//! and a job-summary table against the §4 targets, and the runtimes whose example suite passed and
+//! failed into `runtimes.json` (`runtimes-<label>.json`; [`RuntimeResults`], which `cargo xtask
+//! proof` reads).
 //! The targets are reported, never asserted. `--history <dir> --runner <label> --record` appends
 //! the figures to the nightly benchmark history (`<dir>/history.jsonl`, the record format of
 //! `cargo xtask bench`).
@@ -17,6 +19,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::util::summary;
@@ -25,6 +28,18 @@ use crate::{program_path, step};
 
 /// Every runtime, in the order a full run takes them.
 const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
+
+/// Where the task writes, relative to the workspace root.
+pub(crate) const OUT_DIR: &str = "target/xtask/pdf-runtimes";
+
+/// `runtimes.json`: which runtimes' example suite passed, byte for byte against the Rust goldens.
+/// A browser's render suites run after its example suite; their failure fails the task but
+/// leaves the runtime under `passed`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct RuntimeResults {
+    pub(crate) passed: Vec<String>,
+    pub(crate) failed: Vec<String>,
+}
 
 /// The prefix of a measurement line (`MEASUREMENT_PREFIX` in packages/sdk/test/suite/examples.ts).
 const PREFIX: &str = "LAMINA_PDF_MEASUREMENT ";
@@ -265,6 +280,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     }
     let mut measurements = Vec::new();
     let mut failed = Vec::new();
+    let mut results = RuntimeResults::default();
     for &runtime in &args.runtimes {
         let result = (|| -> Result<Vec<Measurement>> {
             if matches!(runtime, "chromium" | "firefox" | "webkit") {
@@ -289,25 +305,37 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
             for command in commands(runtime)? {
                 found.extend(parse_measurements(&run_captured(ws, &command)?)?);
             }
-            if matches!(runtime, "chromium" | "firefox" | "webkit") {
-                render_suites(ws, runtime)?;
-            }
             Ok(found)
         })();
         match result {
             Ok(found) if found.is_empty() => {
                 eprintln!("pdf-runtimes: {runtime} printed no measurements");
                 failed.push(runtime);
+                results.failed.push(runtime.to_owned());
             }
-            Ok(found) => measurements.extend(found),
+            Ok(found) => {
+                measurements.extend(found);
+                results.passed.push(runtime.to_owned());
+                if matches!(runtime, "chromium" | "firefox" | "webkit")
+                    && let Err(error) = render_suites(ws, runtime)
+                {
+                    eprintln!("pdf-runtimes: {runtime}'s browser suites failed: {error:#}");
+                    failed.push(runtime);
+                }
+            }
             Err(error) => {
                 eprintln!("pdf-runtimes: {runtime} failed: {error:#}");
                 failed.push(runtime);
+                results.failed.push(runtime.to_owned());
             }
         }
     }
-    let out_dir = ws.root.join("target/xtask/pdf-runtimes");
+    let out_dir = ws.root.join(OUT_DIR);
     fs::create_dir_all(&out_dir)?;
+    fs::write(
+        out_dir.join(results_file(args.label.as_deref())),
+        serde_json::to_string_pretty(&results)? + "\n",
+    )?;
     fs::write(
         out_dir.join(measurements_file(args.label.as_deref())),
         serde_json::to_string_pretty(&measurements.iter().map(Measurement::json).collect::<Vec<_>>())? + "\n",
@@ -338,6 +366,11 @@ fn measurements_file(label: Option<&str>) -> String {
         || "measurements.json".to_owned(),
         |label| format!("measurements-{label}.json"),
     )
+}
+
+/// The results file's name: `runtimes.json`, or `runtimes-<label>.json`.
+pub(crate) fn results_file(label: Option<&str>) -> String {
+    label.map_or_else(|| "runtimes.json".to_owned(), |label| format!("runtimes-{label}.json"))
 }
 
 /// `value` against an upper `target`: a mark when it misses (reported, not a failure).
@@ -493,6 +526,14 @@ mod tests {
     #[test]
     fn no_label_should_keep_the_default_measurements_file() {
         assert_eq!(measurements_file(None), "measurements.json");
+    }
+
+    #[test]
+    fn a_label_should_name_the_results_file_too() {
+        assert_eq!(
+            [results_file(None), results_file(Some("webkit"))],
+            ["runtimes.json", "runtimes-webkit.json"]
+        );
     }
 
     #[test]
