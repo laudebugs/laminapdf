@@ -29,7 +29,26 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 - **`src/main.tsx`** loads the Paper tokens, fonts and component styles, preloads the first paint's font, and renders the app with one platform (`createWebPlatform()`) for the page.
 - **`src/session.ts`** is the engine. As soon as the app loads, it starts the render backend's document worker, so a file chosen in the meantime waits only for what is left. It opens each file through the viewer, collects the file's warnings for the repair panel, and on a backend switch starts a new worker and reopens the file.
 - **`src/app.tsx`** composes the chrome: the home screen's drop zone, the viewer, the failure page, the password dialog, the repaired notice and its details panel, and the debug menu.
-- **`src/document.ts`** holds the pure parts: the window title, the repair list and its copied text. `pnpm --filter @laminapdf/web test` runs their tests in Node.
+- **`src/open/`** reads the address's fragment: `url-fragment.ts` parses and writes it, `navigation.ts` decides what a change of it asks for, and `watch.ts` acts on it when the page loads and on every `hashchange` and `popstate`.
+- **`src/document.ts`** holds the pure parts: the window title, the repair list and its copied text. `pnpm --filter @laminapdf/web test` runs their tests and `src/open/`'s in Node.
+
+## Opening a linked file
+
+A link of the form `https://app.laminapdf.com/#url=<address>&page=<n>` opens the PDF at `<address>`, at page `<n>`. The address sits in the fragment, after `#`, which browsers never send to a server. The reader's document worker then fetches the file straight from its site with HTTP Range requests, so a large file shows its first page after only a small part has arrived.
+
+The address must be encoded as a whole with `encodeURIComponent`: `#url=https%3A%2F%2Fexample.com%2Freport.pdf%3Fv%3D2&page=5` opens `https://example.com/report.pdf?v=2` at page 5. The reader refuses an address pasted without encoding, since its own `&page=` could belong to the address, and it opens only `https://` addresses. When only `page` changes, the reader moves within the open document; Back and Forward never fetch it again. Leaving the document drops `url` from the address without adding a history entry, so a reload shows the home screen.
+
+The file's site must allow other sites to read it, with these response headers:
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Headers: Range, If-Range
+Access-Control-Expose-Headers: Content-Range, Content-Length, ETag
+```
+
+It must not compress the response either. A site that sends no CORS headers gets a page that explains the refusal and links to the file, so you can download it and open it here; the reader never sends a file through a server of ours. A site that ignores `Range` works too: the reader downloads the file whole, up to 256 MiB.
+
+Every request for the file omits cookies and the referrer and skips the browser's HTTP cache. An encrypted file asks for its password, which goes to the document worker once and stays there. JavaScript strings can't be overwritten, so the password stays in the worker's memory until it is collected; it is never kept on the page, and after a worker crash the reader asks again.
 
 ## Headers and hosting
 
@@ -46,6 +65,12 @@ Each reader pull request gets a preview URL in a comment, each merge to `main` d
 ## Tests
 
 `e2e/` runs the app in a real browser against `wrangler dev`, the way production serves it. It first checks the headers and that the build has no inline code. It then opens a local file four ways: the file input, a drop, a paste and `showOpenFilePicker` (Chromium only). It also opens a repaired file and refuses a file that isn't a PDF. Throughout, it fails on any CSP violation and on any request to another origin.
+
+Three more suites use `e2e/remote-host.ts`, a local HTTPS server on another port that plays the file's site. It serves each file with CORS and ranges, with CORS but no ranges, or with neither, and logs every request it receives:
+
+- **`remote.e2e.test.ts`** opens linked files. Page 1 of a 50 MB file appears after the reader reads less than a quarter of it. A site without CORS gets the explanation, and a change of `page` alone never opens the file again. It also checks the link format: an unencoded address and `http://` are both refused.
+- **`encrypted.e2e.test.ts`** opens every encrypted fixture, each revision of the standard security handler from 2 to 6. A file with an empty user password opens at once. Any other asks for its password, rejects a wrong one, and opens with the user or the owner password.
+- **`privacy.e2e.test.ts`** checks what leaves the browser while a local file, a linked file and an encrypted file of each kind open. It records every request of the page and its worker, and fails when a request body carries 32 bytes of the document or when a request to the reader's origin names the linked address. Other failures are a request that isn't a GET, a Referer or cookie reaching the file's site, any cookie at all, another origin, and the password in any request.
 
 ```sh
 pnpm --filter @laminapdf/web build

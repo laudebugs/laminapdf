@@ -82,7 +82,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 ├── packages/render-hayro/   # @laminapdf/render-hayro: lamina_pdf_render_hayro behind RenderBackend
 ├── packages/viewer/     # @laminapdf/viewer: the viewer core (ADR 0009); C3a: ViewerClient (typed RPC over
 │                        #   @laminapdf/sdk/worker's request(), timers, restart), src/worker/ (serve() with the viewer's
-│                        #   methods: openDocument, render → ImageBitmap); C3b: createViewer (src/layout/, view/, canvas/,
+│                        #   methods: openDocument, render → ImageBitmap); C4c: src/source/http-range.ts (HttpRangeByteSource:
+│                        #   a `{ url }` source fetched in the worker, block cache read by the backend, data-pending refills); C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), examples/viewer-demo.html; test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
 │                        #   Playwright scenarios, report.ts against web-app §4, serve.ts gzip server; `pnpm … perf`)
@@ -145,11 +146,14 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   current underline, phone width, axe; run by `cargo xtask pdf-runtimes`); README.md
 ├── apps/web/            # the web reader (C4b; ADRs 0009, 0010, 0011): a Vite 8 single-page app (React Compiler) of @laminapdf/ui's
 │                        #   chrome around @laminapdf/viewer: src/session.ts (the engine: the document worker started at load, opens,
-│                        #   warnings, the #debug backend switch), src/app.tsx, src/document.ts (window title, repair list; Node tests);
+│                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
+│                        #   src/document.ts (window title, repair list; Node tests), src/open/ (C4c: url-fragment.ts parses and
+│                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate);
 │                        #   wrangler.jsonc (lamina-pdf-web at app.laminapdf.com, env.staging lamina-pdf-web-staging at
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
-│                        #   origin), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
+│                        #   origin; remote-host.ts, an HTTPS fixture host with CORS and ranges per path, for remote, encrypted and
+│                        #   privacy suites), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
 │                        #   LAMINA_PDF_SMOKE_URL, Chromium, after e2e/live.ts, run by Node first, waits for the host and names who refused it); deployed by
 │                        #   .github/workflows/web-deploy.yml (C4d: a preview per PR on the Worker lamina-pdf-web-preview, staging
 │                        #   from main, production from web-v* tags on main, rollback on a failed smoke test); README.md, DEPLOY.md
