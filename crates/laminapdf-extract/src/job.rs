@@ -342,7 +342,13 @@ impl ExtractJob {
         let mut out = Vec::new();
         for &index in &self.todo.clone() {
             let page = self.page(&pages, index, count)?;
-            let pending = self.read(doc, &page, index)?;
+            // A page whose content can't be read hides nothing that can be counted; the
+            // others still are.
+            let pending = match self.read(doc, &page, index) {
+                Ok(pending) => pending,
+                Err(e) if unreadable(&e) => continue,
+                Err(e) => return Err(e),
+            };
             out.extend(hidden_runs(index, &pending.text, &pending.input(None), &self.options));
         }
         Ok(out)
@@ -464,4 +470,13 @@ impl ExtractJob {
         }
         pending.raster.as_ref().ok_or(ExtractError::ModelResultUnexpected)
     }
+}
+
+/// Whether `error`, met reading one page, says only that the page is malformed or uses
+/// something unsupported (an unknown filter, say): what a pass over every page skips.
+fn unreadable(error: &ExtractError) -> bool {
+    matches!(
+        error.kind(),
+        laminapdf_syntax::ErrorKind::Input | laminapdf_syntax::ErrorKind::Unsupported
+    )
 }

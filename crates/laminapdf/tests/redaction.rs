@@ -164,10 +164,11 @@ fn only_the_named_fixtures_give_redaction_warnings() {
         let Ok(doc) = Document::open_bytes(std::fs::read(&path).unwrap(), OpenOptions::default()) else {
             continue;
         };
-        // A file whose text can't be read fails the check as it failed `check` before.
-        let Ok(found) = doc.redaction_warnings(&OpenOptions::default(), &CancelToken::new()) else {
-            continue;
-        };
+        // A page whose text can't be read (reportlab.pdf's unknown filter) is skipped, never
+        // the whole check.
+        let found = doc
+            .redaction_warnings(&OpenOptions::default(), &CancelToken::new())
+            .unwrap_or_else(|e| panic!("{name}: {}", e.code()));
         let codes: Vec<&str> = found.iter().map(laminapdf::Warning::code).collect();
         let want = expected
             .iter()

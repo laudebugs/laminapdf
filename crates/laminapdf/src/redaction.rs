@@ -6,7 +6,6 @@
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{Location, OpenOptions};
-use laminapdf_syntax::Object;
 
 use crate::extract::{DropReason, Dropped, ExtractOptions};
 use crate::job::CancelToken;
@@ -92,8 +91,8 @@ fn count<'t>(texts: impl IntoIterator<Item = &'t str>) -> BTreeMap<String, u64> 
     out
 }
 
-/// Every page's text, visible or not, each page's lines joined; the token is checked before
-/// each page.
+/// Every page's text, visible or not, each page's lines joined (empty for a page that can't be
+/// read); the token is checked before each page.
 fn page_words(doc: &Document, cancel: &CancelToken) -> Result<Vec<String>> {
     let model = doc.ops();
     let mut extractor = laminapdf_text::TextExtractor::new();
@@ -102,7 +101,19 @@ fn page_words(doc: &Document, cancel: &CancelToken) -> Result<Vec<String>> {
         if cancel.is_cancelled() {
             return Err(Error::Cancelled);
         }
-        out.push(extractor.page(model, &page)?.lines().join("\n"));
+        // A page that can't be read counts as holding no words, in every revision alike.
+        match extractor.page(model, &page) {
+            Ok(text) => out.push(text.lines().join("\n")),
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    laminapdf_cos::ErrorKind::Input | laminapdf_cos::ErrorKind::Unsupported
+                ) =>
+            {
+                out.push(String::new());
+            }
+            Err(e) => return Err(e.into()),
+        }
     }
     Ok(out)
 }
@@ -232,51 +243,19 @@ impl Document {
                     regions,
                 }),
         );
-        for (page, annotations) in self.redact_annotations(cancel)? {
-            out.push(RedactionWarning::RedactionNotApplied { page, annotations });
+        if cancel.is_cancelled() {
+            return Err(Error::Cancelled);
+        }
+        for (page, annotations) in self.ops().disclosure()?.redactions() {
+            out.push(RedactionWarning::RedactionNotApplied {
+                page: to_u32(page),
+                annotations,
+            });
         }
         for (revision, words, pages) in earlier_revisions(self, options, cancel)? {
             out.push(RedactionWarning::TextInEarlierRevision { revision, words, pages });
         }
         Ok(out.into_iter().map(Warning::Redaction).collect())
-    }
-
-    /// Each page with `Redact` annotations (§12.5.6.23), and how many. `/Annots` entries may
-    /// be references or direct dictionaries, and `/Subtype` may be a reference too.
-    fn redact_annotations(&self, cancel: &CancelToken) -> Result<Vec<(u32, u32)>> {
-        let doc = self.ops();
-        let is_redact = |annot: &Object| -> Result<bool> {
-            let Some(annot) = laminapdf_cos::tolerant(doc.deref(annot))? else {
-                return Ok(false);
-            };
-            let Some(subtype) = annot.as_dict().and_then(|d| d.get("Subtype")) else {
-                return Ok(false);
-            };
-            let subtype = laminapdf_cos::tolerant(doc.deref(subtype))?;
-            Ok(subtype.is_some_and(|s| matches!(&*s, Object::Name(n) if n.as_bytes() == b"Redact")))
-        };
-        let mut out = Vec::new();
-        for (index, page) in doc.pages()?.iter().enumerate() {
-            if cancel.is_cancelled() {
-                return Err(Error::Cancelled);
-            }
-            let Some(annots) = page.cos().dict.get("Annots") else {
-                continue;
-            };
-            let Some(annots) = laminapdf_cos::tolerant(doc.deref(annots))? else {
-                continue;
-            };
-            let mut n = 0u32;
-            for annot in annots.as_array().unwrap_or_default() {
-                if is_redact(annot)? {
-                    n = n.saturating_add(1);
-                }
-            }
-            if n > 0 {
-                out.push((to_u32(index), n));
-            }
-        }
-        Ok(out)
     }
 }
 
