@@ -535,7 +535,7 @@ fn open_pull_request_paths(root: &Path) -> Result<Vec<String>> {
 }
 
 /// Today in UTC, `YYYY-MM-DD`.
-fn today() -> String {
+pub(crate) fn today() -> String {
     let days = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |since| since.as_secs() / 86_400);

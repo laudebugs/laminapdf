@@ -1,0 +1,318 @@
+{
+  "extraction": {
+    "laminapdf": {
+      "baseline": {
+        "passed": 578,
+        "score": 0.8550295857988166,
+        "tests": 676
+      },
+      "candidate": "laminapdf",
+      "dataset": {
+        "attribution": "olmOCR-bench, Allen Institute for AI (Poznanski et al., 2025, arXiv:2502.18443), ODC-BY-1.0",
+        "licence": "ODC-BY-1.0",
+        "name": "olmocr-bench",
+        "revision": "54a96a6fb6a2bd3b297e59869491db4d3625b711",
+        "title": "olmOCR-bench",
+        "url": "https://huggingface.co/datasets/allenai/olmOCR-bench"
+      },
+      "overall": 0.5543911538348612,
+      "overallWithoutBaseline": 0.4541783431802093,
+      "pages": {
+        "crashedOrTimedOut": 0,
+        "extracted": 672,
+        "failed": 13,
+        "panicked": 0
+      },
+      "run": {
+        "commit": "40c417956c98c418dba7e7e1f881a9e7e5db0efd",
+        "date": "2026-11-08",
+        "machine": {
+          "cores": 8,
+          "cpu": "Apple M1 Pro",
+          "loadAverage": 8.66,
+          "memoryBytes": 17179869184,
+          "os": "macOS 27.0.1"
+        },
+        "version": "0.2.0-alpha.3"
+      },
+      "sample": null,
+      "speed": {
+        "medianMillisPerPage": 2.0,
+        "pagesPerSecond": 428.0254777070064,
+        "threads": 1,
+        "totalMillis": 1570
+      },
+      "subsets": [
+        {
+          "measures": "reading order: 884 tests that one passage comes before another, on 231 multi-column pages",
+          "name": "multi_column",
+          "passed": 461,
+          "pdfs": 231,
+          "score": 0.5214932126696833,
+          "tests": 884
+        },
+        {
+          "measures": "tables: 1,020 tests that a cell's neighbours (up, down, left, right, headings) are right, and 2 baseline tests, on 188 pages",
+          "name": "table_tests",
+          "passed": 245,
+          "pdfs": 188,
+          "score": 0.23972602739726023,
+          "tests": 1022
+        },
+        {
+          "measures": "running headers, footers and page numbers left out: 753 tests, and 7 baseline tests, on 266 pages",
+          "name": "headers_footers",
+          "passed": 457,
+          "pdfs": 266,
+          "score": 0.6013157894736842,
+          "tests": 760
+        }
+      ],
+      "tables": "lattice"
+    },
+    "laminapdf-stream": {
+      "baseline": {
+        "passed": 578,
+        "score": 0.8550295857988166,
+        "tests": 676
+      },
+      "candidate": "laminapdf-stream",
+      "dataset": {
+        "attribution": "olmOCR-bench, Allen Institute for AI (Poznanski et al., 2025, arXiv:2502.18443), ODC-BY-1.0",
+        "licence": "ODC-BY-1.0",
+        "name": "olmocr-bench",
+        "revision": "54a96a6fb6a2bd3b297e59869491db4d3625b711",
+        "title": "olmOCR-bench",
+        "url": "https://huggingface.co/datasets/allenai/olmOCR-bench"
+      },
+      "overall": 0.5182217375075182,
+      "overallWithoutBaseline": 0.4059524547437521,
+      "pages": {
+        "crashedOrTimedOut": 0,
+        "extracted": 672,
+        "failed": 13,
+        "panicked": 0
+      },
+      "run": {
+        "commit": "40c417956c98c418dba7e7e1f881a9e7e5db0efd",
+        "date": "2026-11-08",
+        "machine": {
+          "cores": 8,
+          "cpu": "Apple M1 Pro",
+          "loadAverage": 8.44,
+          "memoryBytes": 17179869184,
+          "os": "macOS 27.0.1"
+        },
+        "version": "0.2.0-alpha.3"
+      },
+      "sample": null,
+      "speed": {
+        "medianMillisPerPage": 2.0,
+        "pagesPerSecond": 374.7908533184607,
+        "threads": 1,
+        "totalMillis": 1793
+      },
+      "subsets": [
+        {
+          "measures": "reading order: 884 tests that one passage comes before another, on 231 multi-column pages",
+          "name": "multi_column",
+          "passed": 131,
+          "pdfs": 231,
+          "score": 0.14819004524886878,
+          "tests": 884
+        },
+        {
+          "measures": "tables: 1,020 tests that a cell's neighbours (up, down, left, right, headings) are right, and 2 baseline tests, on 188 pages",
+          "name": "table_tests",
+          "passed": 480,
+          "pdfs": 188,
+          "score": 0.46966731898238745,
+          "tests": 1022
+        },
+        {
+          "measures": "running headers, footers and page numbers left out: 753 tests, and 7 baseline tests, on 266 pages",
+          "name": "headers_footers",
+          "passed": 456,
+          "pdfs": 266,
+          "score": 0.6,
+          "tests": 760
+        }
+      ],
+      "tables": "lattice-and-stream"
+    }
+  },
+  "generation": {
+    "run": {
+      "commit": "40c417956c98c418dba7e7e1f881a9e7e5db0efd",
+      "date": "2026-11-08",
+      "machine": {
+        "cores": 8,
+        "cpu": "Apple M1 Pro",
+        "loadAverage": 8.17,
+        "memoryBytes": 17179869184,
+        "os": "macOS 27.0.1"
+      },
+      "version": "0.2.0-alpha.3"
+    },
+    "runtimes": [
+      {
+        "cases": {
+          "hello": 1.447896,
+          "hello-first": 14.916249999999998,
+          "invoice": 3.557395999999997,
+          "report": 150.98291600000005,
+          "wasm-memory": 4325376.0
+        },
+        "runtime": "bun",
+        "version": "1.4.4"
+      },
+      {
+        "cases": {
+          "hello": 0.699999988079071,
+          "hello-first": 18.299999952316284,
+          "invoice": 3.650000005960465,
+          "report": 214.80000001192093,
+          "sync-rewrite-50mb-longest-task": 262.0,
+          "wasm-memory": 4325376.0,
+          "worker-rewrite-50mb-longest-task": 0.0
+        },
+        "runtime": "chromium",
+        "version": "1.64.1"
+      },
+      {
+        "cases": {
+          "hello": 0.7415209999999988,
+          "hello-first": 23.810417,
+          "invoice": 3.603708499999982,
+          "report": 237.62466600000005,
+          "wasm-memory": 4325376.0
+        },
+        "runtime": "deno",
+        "version": "2.9.6"
+      },
+      {
+        "cases": {
+          "hello": 1.0,
+          "hello-first": 2.0,
+          "invoice": 5.0,
+          "report": 313.0,
+          "wasm-memory": 4325376.0
+        },
+        "runtime": "firefox",
+        "version": "1.64.1"
+      },
+      {
+        "cases": {
+          "hello": 0.7609790000000061,
+          "hello-first": 19.75575000000001,
+          "invoice": 3.5427500000000123,
+          "report": 222.40925000000004,
+          "wasm-memory": 4325376.0
+        },
+        "runtime": "node-24",
+        "version": "24.19.0"
+      },
+      {
+        "cases": {
+          "hello": 2.5,
+          "hello-first": 28.0,
+          "invoice": 4.0,
+          "report": 169.0,
+          "wasm-memory": 4325376.0
+        },
+        "runtime": "webkit",
+        "version": "1.64.1"
+      },
+      {
+        "cases": {
+          "hello": 2.0,
+          "hello-first": 25.0,
+          "invoice": 5.0,
+          "report": 226.0,
+          "wasm-memory": 4325376.0
+        },
+        "runtime": "workerd",
+        "version": "4.152.0"
+      }
+    ],
+    "rust": {
+      "cases": {
+        "invoice": 0.861975,
+        "report": 45.914169
+      },
+      "toolchain": "1.99.1"
+    }
+  },
+  "sizes": {
+    "js": [
+      {
+        "budgetGzip": 20000,
+        "gzip": 19243,
+        "minified": 91610,
+        "name": "@laminapdf/sdk"
+      },
+      {
+        "budgetGzip": 5000,
+        "gzip": 4726,
+        "minified": 11984,
+        "name": "@laminapdf/sdk/worker"
+      },
+      {
+        "budgetGzip": 20000,
+        "gzip": 19177,
+        "minified": 86451,
+        "name": "@laminapdf/sdk/worker/entry"
+      }
+    ],
+    "modules": [
+      {
+        "brotli": 318226,
+        "budgetGzip": 410000,
+        "gzip": 400002,
+        "name": "base",
+        "raw": 1112040
+      },
+      {
+        "brotli": 518978,
+        "budgetGzip": 690000,
+        "gzip": 668117,
+        "name": "extract",
+        "raw": 1953521
+      },
+      {
+        "brotli": 1653584,
+        "budgetGzip": 2243210,
+        "gzip": 2158033,
+        "name": "pdfium",
+        "raw": 4646932
+      },
+      {
+        "brotli": 1392353,
+        "budgetGzip": 1855000,
+        "gzip": 1781692,
+        "name": "render_hayro",
+        "raw": 5333130
+      },
+      {
+        "brotli": 875457,
+        "budgetGzip": 1200000,
+        "gzip": 1153024,
+        "name": "text",
+        "raw": 3533873
+      }
+    ],
+    "run": {
+      "commit": "40c417956c98c418dba7e7e1f881a9e7e5db0efd",
+      "date": "2026-11-08",
+      "machine": {
+        "cores": 8,
+        "cpu": "Apple M1 Pro",
+        "loadAverage": 8.17,
+        "memoryBytes": 17179869184,
+        "os": "macOS 27.0.1"
+      },
+      "version": "0.2.0-alpha.3"
+    }
+  },
+  "version": 1
+}

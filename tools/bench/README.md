@@ -7,7 +7,7 @@
 1. **Fetch.** [`extract-datasets.toml`](extract-datasets.toml) pins each dataset to a revision. Its files go to `target/bench/datasets/` and are never committed. Each is checked against the SHA-256 in the dataset's lock ([`olmocr-bench.lock`](olmocr-bench.lock)).
 2. **Extract.** The `extract-bench` example (`crates/laminapdf/examples/differential/`) writes each PDF's Markdown with the default options, under the runner the differential uses: chunks of files under time limits. A file that fails, panics, crashes or hangs gets an empty Markdown file, so it fails its own tests and nothing else.
 3. **Score.** [`olmocr_score.py`](olmocr_score.py) runs the benchmark's own tests from the pinned `olmocr` package, with the baseline test the benchmark adds for every page, and averages the groups as the benchmark does.
-4. **Report.** The run writes `target/bench/extract/<dataset>/`: the Markdown, each file's outcome and time, the scores per subset and test type, and a Markdown table of them.
+4. **Report.** The run writes `target/bench/extract/<dataset>/`: the Markdown, each file's outcome and time, the scores per subset and test type, and a Markdown table of them. It also writes `<candidate>-results.json`: the scores, the pages by outcome, the summed and median milliseconds, the pages a second on one thread, and the run's version, commit, date and machine. `cargo xtask benchmarks` copies that file into the docs site's [Benchmarks](https://docs.laminapdf.com/reference/benchmarks/) page; run the benchmark on an idle machine first, for both candidates (`laminapdf`, and `laminapdf-stream` with `--tables lattice-and-stream`).
 
 ## Running it
 
