@@ -58,6 +58,7 @@ A PR that adds a code adds:
 | [`extract-struct-tree-ignored`](extract-struct-tree-ignored.md) | `input` | a tagged page's structure tree covered too little of its text, or its order jumped back across columns too often, so the layout gave the reading order |
 | [`extract-untagged-content`](extract-untagged-content.md) | `input` | a page read in structure-tree order has visible text that is neither in the tree nor an artifact; it follows the tree's blocks, in layout order |
 | [`extract-needs-ocr`](extract-needs-ocr.md) | `unsupported` | a page has no usable text layer: it is an image (with or without an invisible OCR layer), outlined glyphs, or glyphs without Unicode, so its extracted text is empty or unreliable |
+| [`extract-column-order-uncertain`](extract-column-order-uncertain.md) | `unsupported` | the layout rules had to guess how a page's columns are read, so its blocks may be in the wrong order; the blocks concerned have a lower confidence |
 
 ## Errors
 

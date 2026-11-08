@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use laminapdf_model::{Pt, RectPt};
 use laminapdf_text::{Glyph, PageText, PageTextRun, Quad, is_right_to_left};
 
-use crate::lines::{GUTTER, SPACE};
+use crate::lines::{GUTTER, NEAR_GUTTER, SPACE};
 use crate::paint::{Cover, intersect};
 use crate::plugins::LayoutRegion;
 use crate::regions::region_near;
@@ -91,9 +91,11 @@ pub(crate) fn quad_box(quad: &Quad) -> RectPt {
 }
 
 /// A run's text and box, cut into the pieces that stay in the text and the stretches covered.
+/// Each kept piece also records where its pen jumped across a gap kept in it that may be a
+/// narrow gutter (wider than `NEAR_GUTTER`, not a gutter): the x where the text after it starts.
 #[derive(Debug, Default)]
 pub(crate) struct Cut {
-    pub(crate) kept: Vec<(String, RectPt)>,
+    pub(crate) kept: Vec<(String, RectPt, Vec<f64>)>,
     pub(crate) covered: Vec<(String, RectPt)>,
 }
 
@@ -105,6 +107,8 @@ struct Part {
     reach: f64,
     /// A covered stretch ended inside it: the next visible glyph joins with one space.
     resumed: bool,
+    /// Where the pen jumped across a gap that may be a narrow gutter.
+    near: Vec<f64>,
 }
 
 /// `run` cut at column gutters, at layout regions and around covered stretches. A run whose
@@ -112,7 +116,7 @@ struct Part {
 /// nothing covered is kept as `laminapdf-text` gave it.
 pub(crate) fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[LayoutRegion], covers: &Covers) -> Cut {
     let whole = || Cut {
-        kept: vec![(run.text.clone(), run.bounds)],
+        kept: vec![(run.text.clone(), run.bounds, Vec::new())],
         covered: Vec::new(),
     };
     let covered_whole = || Cut {
@@ -136,7 +140,12 @@ pub(crate) fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[
     }
     let cut = split(glyphs, &mask, size, regions);
     if cut.kept.len() <= 1 && cut.covered.is_empty() {
-        whole()
+        // One piece: the run as drawn, with the gaps it kept.
+        let near = cut.kept.into_iter().next().map(|(_, _, n)| n).unwrap_or_default();
+        Cut {
+            kept: vec![(run.text.clone(), run.bounds, near)],
+            covered: Vec::new(),
+        }
     } else {
         cut
     }
@@ -151,7 +160,7 @@ fn push_glyph(words: &mut String, gap: f64, space: f64, glyph: &str) {
 }
 
 fn split(glyphs: &[Glyph], mask: &[bool], size: Pt, regions: &[LayoutRegion]) -> Cut {
-    let (gutter, space) = (GUTTER * size.get(), SPACE * size.get());
+    let (gutter, space, near) = (GUTTER * size.get(), SPACE * size.get(), NEAR_GUTTER * size.get());
     let mut kept: Vec<Part> = Vec::new();
     let mut covered: Vec<(String, RectPt)> = Vec::new();
     // The covered stretch being built, and whether the last glyph was in it.
@@ -211,7 +220,11 @@ fn split(glyphs: &[Glyph], mask: &[bool], size: Pt, regions: &[LayoutRegion]) ->
                     part.words.push(' ');
                     part.resumed = false;
                 } else {
-                    push_glyph(&mut part.words, r.x0.get() - part.bbox.x1.get(), space, &glyph.text);
+                    let gap = r.x0.get() - part.bbox.x1.get();
+                    if gap > near && !blank {
+                        part.near.push(r.x0.get());
+                    }
+                    push_glyph(&mut part.words, gap, space, &glyph.text);
                     part.bbox = part.bbox.union(&r);
                     part.reach = part.reach.max(r.x1.get());
                     continue;
@@ -226,13 +239,14 @@ fn split(glyphs: &[Glyph], mask: &[bool], size: Pt, regions: &[LayoutRegion]) ->
                 bbox: r,
                 reach: r.x1.get(),
                 resumed: false,
+                near: Vec::new(),
             }),
         }
     }
     if let Some((words, bbox)) = stretch.take() {
         covered.push((words.trim_end().to_owned(), bbox));
     }
-    let kept = kept.into_iter().map(|p| (p.words, p.bbox));
+    let kept = kept.into_iter().map(|p| (p.words, p.bbox, p.near));
     if covered.is_empty() {
         return Cut {
             kept: kept.collect(),
@@ -242,8 +256,8 @@ fn split(glyphs: &[Glyph], mask: &[bool], size: Pt, regions: &[LayoutRegion]) ->
     // Around a cover, a part's own trailing space would only pad the line.
     Cut {
         kept: kept
-            .map(|(w, b)| (w.trim_end().to_owned(), b))
-            .filter(|(w, _)| !w.is_empty())
+            .map(|(w, b, n)| (w.trim_end().to_owned(), b, n))
+            .filter(|(w, _, _)| !w.is_empty())
             .collect(),
         covered,
     }

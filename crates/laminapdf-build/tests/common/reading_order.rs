@@ -7,7 +7,7 @@
 //! order with the method; `crates/laminapdf/tests/reading_order.rs` scores extraction against
 //! it. `cargo xtask golden --update` rewrites the files through `examples/reading_order.rs`.
 
-use laminapdf_build::{BuildOptions, Builder, Direction, FontHandle, PageSize, TextBoxOptions};
+use laminapdf_build::{Alignment, BuildOptions, Builder, Direction, FontHandle, PageSize, TextBoxOptions};
 use laminapdf_model::{Pt, RectPt, Rotation};
 use serde_json::json;
 
@@ -59,6 +59,8 @@ pub struct Block {
     pub area: (f64, f64, f64, f64),
     pub size: f64,
     pub script: Script,
+    /// Where its lines sit in its box (the start side unless a layout says otherwise).
+    pub align: Alignment,
 }
 
 /// A layout: its pages and blocks in reading order.
@@ -173,6 +175,7 @@ fn block(page: usize, role: Role, seed: usize, count: usize, area: (f64, f64, f6
         area,
         size,
         script: Script::Latin,
+        align: Alignment::Start,
     }
 }
 
@@ -335,6 +338,54 @@ pub fn layouts() -> Vec<Layout> {
                 scripted(Script::Chinese, Paragraph, 92, 70, (56.0, 330.0, 480.0, 200.0), 12.0),
             ],
         },
+        // The hard layouts: each one's order is a guess for the layout rules, which flag it.
+        Layout {
+            name: "pull-quote",
+            pages: 1,
+            rotate: Rotation::None,
+            about: "two columns with a boxed quote over the gutter halfway down, the text beside it narrowed round it: left column, then the quote, then the right column",
+            blocks: vec![
+                block(0, Paragraph, 100, 40, (56.0, 100.0, 230.0, 180.0), 10.0),
+                block(0, Paragraph, 101, 8, (56.0, 300.0, 134.0, 60.0), 10.0),
+                block(0, Paragraph, 102, 40, (56.0, 380.0, 230.0, 180.0), 10.0),
+                block(0, Caption, 103, 8, (200.0, 300.0, 192.0, 60.0), 12.0),
+                block(0, Paragraph, 104, 40, (306.0, 100.0, 230.0, 180.0), 10.0),
+                block(0, Paragraph, 105, 8, (402.0, 300.0, 134.0, 60.0), 10.0),
+                block(0, Paragraph, 106, 40, (306.0, 380.0, 230.0, 180.0), 10.0),
+            ],
+        },
+        Layout {
+            name: "narrow-gutter",
+            pages: 1,
+            rotate: Rotation::None,
+            about: "two columns 7 pt apart, the left one set flush right so every line ends at the gutter: left column, then right",
+            blocks: vec![
+                Block {
+                    align: Alignment::Right,
+                    ..block(0, Paragraph, 110, 70, (56.0, 100.0, 240.0, 300.0), 10.0)
+                },
+                block(0, Paragraph, 111, 70, (303.0, 100.0, 240.0, 300.0), 10.0),
+            ],
+        },
+        Layout {
+            name: "wrapped-grid",
+            pages: 1,
+            rotate: Rotation::None,
+            about: "a caption and an unruled three by three grid with one cell wrapped onto a second line, read row by row",
+            blocks: {
+                let mut blocks = vec![block(0, Caption, 120, 11, (56.0, 56.0, 480.0, 20.0), 11.0)];
+                for row in 0..3 {
+                    for col in 0..3 {
+                        let x = 56.0 + 160.0 * f64::from(col);
+                        let y = 90.0 + 40.0 * f64::from(row);
+                        let seed = 121 + usize::try_from(row * 3 + col).unwrap_or(0);
+                        let count = if (row, col) == (1, 1) { 6 } else { 3 };
+                        blocks.push(block(0, TableCell, seed, count, (x, y, 150.0, 30.0), 10.0));
+                    }
+                }
+                blocks
+            },
+        },
     ]
 }
 
@@ -391,6 +442,7 @@ fn build(layout: &Layout, order: DrawOrder) -> Vec<u8> {
             let area = RectPt::from_xywh(Pt::new(left), Pt::new(top), Pt::new(width), Pt::new(height));
             let options = TextBoxOptions::default()
                 .with_direction(direction)
+                .with_align(block.align)
                 .with_overflow(laminapdf_build::Overflow::Error);
             s.text_box(&block.text, font, Pt::new(block.size), area, &options)
                 .unwrap_or_else(|e| panic!("{} block {:?}: {e}", layout.name, block.role));

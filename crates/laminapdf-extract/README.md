@@ -76,7 +76,13 @@ Once every page is read, three more rules run. The first two need the whole docu
 - **Headings.** The body size is the size that sets the most characters. A block of at most three lines and 200 characters, in a size at least 10% above the body size, is a heading. The larger its size, the higher its level, and sizes within 10% of each other share a level. A bold block of one or two lines at the body size, not ending like a sentence or starting with a list marker, ranks one level below the smallest heading size. There are at most six levels, and a block that starts with a bullet is never a heading.
 - **List items.** A block that starts with a bullet (`•`, `◦`, `▪`, `–`, `*`, `●`, `○`, `■`) or a number (`1.`, `1)`, `(1)`, `a.`, `(a)`, `iv.`) followed by text is a list item when its later lines hang to the right of the marker. A one-line block after a dash or an asterisk is an item only beside another item, so a lone attribution (`– Mark Twain`) stays a paragraph. The block's text leaves the marker out, and its `marker` holds it; plain text writes it back. Consecutive items each further right than the one before go one level deeper; an item further left, or one higher on the page than the last (as at the top of the next column), closes the deeper levels.
 
-On the reading-order corpus in `fixtures/reading-order/`, every file reads in order, including the copies drawn in reverse: one, two and three columns, an academic page, a sidebar, a table, a rotated page, and Arabic, Hebrew and Chinese text.
+On the reading-order corpus in `fixtures/reading-order/`, 22 of the 28 files read in order, including the copies drawn in reverse: one, two and three columns, an academic page, a sidebar, a table, a rotated page, and Arabic, Hebrew and Chinese text. The other 6 are hard layouts the rules get wrong, and each raises `extract-column-order-uncertain`: a quote boxed over the gutter with the columns wrapping round it, two columns 7 pt apart, and an unruled grid with one cell on two lines.
+
+The rules check their own column order on every page they order by layout, and raise `extract-column-order-uncertain` once for the page when a check fires. The warning's `reason` names the first check that fired, and the blocks it covers get a `confidence` of 0.5 instead of 0.75; the order itself stays the same.
+
+- **`narrow-gutter`.** A gap between 0.6 and 1 font size is narrower than the gutter that splits a line, so the line keeps both sides. When at least three lines of a block, and at least half of them, keep such a gap within half a font size of the same place, the block has probably been read across a narrow gutter.
+- **`columns-revisited`.** Within a band, the order leaves a block for one beside it at the same height, then comes back, below the pair, to both columns, each time to a block about as wide as the one above it. A column-first reading never does that; rows forced by a block across the gutter do. A row of authors over the columns, or an equation and its number, doesn't count, nor does a pair of one-line blocks, since a grid of them reads row by row on purpose.
+- **`near-grid`.** A group of at least 4 blocks with gaps both ways, three quarters or more of them one line but not all, reads by columns. The rules cut it by rows as well, at most 8 times a page, and warn when the two orders differ.
 
 ## How it scores on a public benchmark
 
@@ -96,6 +102,15 @@ Three things explain most of the failures:
 - **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR; they stay in these subsets and count against the score, as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
 - **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Dropping page numbers and artifact-marked text lifted the third subset from 37.6 %, before these rules, to 59.6 %; a header or footer that is neither stays in the text.
 - **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
+
+The column-order checks warned 48 of the 228 `multi_column` pages that extracted (Lamina PDF 0.2.0-alpha.3, 2026-11-08). The warned pages pass 48 % of their order tests and the others 54 %. The narrow-gutter pages, where the lines read across both columns, pass 9 %. The near-grid pages pass more than the rest, 64 %: most are unruled tables read column by column, which the benchmark's order tests, made from the prose, rarely check.
+
+| Reason | Pages | Order tests | Passed |
+| --- | ---: | ---: | ---: |
+| `columns-revisited` | 31 | 107 | 49.5 % |
+| `narrow-gutter` | 5 | 23 | 8.7 % |
+| `near-grid` | 12 | 44 | 63.6 % |
+| not warned | 180 | 698 | 54.2 % |
 
 The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
 
@@ -122,7 +137,7 @@ Only models whose code and weights both have permissive licences may be listed; 
 - **Trees that pass the checks but are wrong.** A tree that covers the text and keeps its columns in order is trusted, even where its order is still odd; extract with `ReadingOrder::Layout` to ignore it.
 - **Headings and lists the rules can't see.** A heading set at the body size in a regular face reads as a paragraph, and a numbered heading in bold at the body size (`1. Introduction`) reads as a list item, not a heading. Uppercase letters (`A.`) aren't list markers, so a line that starts with an initial doesn't start a list, and uppercase Roman numerals aren't page numbers.
 - **Headers that change.** A running header that changes from page to page, other than its digits, stays in the text.
-- **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so; a layout model ([Using models](#using-models)) is the answer for those pages.
+- **Hard layouts.** Rules fail on magazines, floating figures and text that wraps around shapes. Paragraphs without extra space between them merge into one block. Every block carries a `confidence` below 1 to say so, and a page whose column order the checks above doubt raises `extract-column-order-uncertain`. A layout model ([Using models](#using-models)) is the answer for those pages. Gutters narrower than 0.6 font sizes look like word spaces, so the checks miss them.
 - **Vertical writing.** Each vertical run is a block of its own, and a page that mixes vertical and horizontal writing raises `extract-reading-order-ambiguous`.
 - **Tables without lines.** Unruled tables need `TableMode::LatticeAndStream`.
 
@@ -132,7 +147,7 @@ Only models whose code and weights both have permissive licences may be listed; 
 
 ## Tests
 
-- `tests/reading_order.rs`: every file of the reading-order corpus reads in order by layout, and content order follows the drawing.
+- `tests/reading_order.rs`: every file of the reading-order corpus but the hard ones reads in order by layout, content order follows the drawing, and each hard file, but no other, raises `extract-column-order-uncertain` with its reason.
 - `tests/extract.rs`: hidden text, hyphenation, a quarter-turned page, `/UserUnit`, determinism, jobs and cancellation, page selection and the blocks limit, on files built with `laminapdf-build`.
 - `tests/regressions.rs`: the `extract` fuzz target's entry point over the corpus and every saved crash input.
 - `tests/tables.rs`: ruled grids, merged cells, a table split across two pages, a page border and field boxes (no table), ambiguous merges, unruled columns, the cell limit, and a table in Markdown.

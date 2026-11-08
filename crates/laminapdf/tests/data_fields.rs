@@ -350,6 +350,11 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             status: "needs-ocr",
         }
         .into(),
+        W::ExtractColumnOrderUncertain {
+            page: 0,
+            reason: "narrow-gutter",
+        }
+        .into(),
         TW::ToUnicodeConflict {
             font: s(),
             gid: 1,
