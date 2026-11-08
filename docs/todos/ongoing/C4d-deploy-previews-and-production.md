@@ -11,7 +11,7 @@
 | Branch | `ci/c4d-web-deploys` |
 | PR title | `ci(web): deploy a preview per pull request, staging from main and production from release tags` |
 | Size | M (200–600 lines of workflow, scripts and docs) |
-| PR | — |
+| PR | [#303](https://github.com/laudebugs/laminapdf/pull/303) |
 
 ## Goal
 
