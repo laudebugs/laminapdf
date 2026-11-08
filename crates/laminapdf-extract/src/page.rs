@@ -182,6 +182,19 @@ pub(crate) struct PageInput<'a> {
     pub(crate) words: &'a [OcrWord],
 }
 
+/// The hidden runs of page `index` (§4's flags), artifacts left out: what [`crate::hidden_text`]
+/// lists.
+pub(crate) fn hidden_runs(
+    index: usize,
+    text: &PageText,
+    painting: &PageInput<'_>,
+    options: &ExtractOptions,
+) -> Vec<Dropped> {
+    let mut dropped = runs(index, text, painting, options).dropped;
+    dropped.retain(|d| d.reason != DropReason::Artifact);
+    dropped
+}
+
 fn runs(index: usize, text: &PageText, painting: &PageInput<'_>, options: &ExtractOptions) -> Runs {
     let (backdrops, regions) = (painting.backdrops, painting.regions);
     let frame = &text.frame;

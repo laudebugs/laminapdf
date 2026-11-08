@@ -106,6 +106,7 @@ export const ERROR_GROUPS: readonly string[] = [
 export const WARNING_GROUPS: readonly string[] = [
   "warnings",
   "textWarnings",
+  "facadeWarnings",
 ];
 
 /** The groups whose codes only `@laminapdf/sdk` raises (not in the Rust enums or the WASM). */

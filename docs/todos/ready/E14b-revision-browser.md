@@ -28,7 +28,7 @@ Expose the revision index built for signature diffing in E10h (`/Prev` chain, by
 **In scope**
 
 - `doc.revisions()` with offsets and changed objects: [T2c](./T2c-reveal-command.md)'s `laminapdf_cos::Document::revision_index()`, bound in `@laminapdf/sdk`
-- `Document::open_revision(n)` read-only: [T2b](./T2b-check-failed-redactions.md)'s façade call, bound in `@laminapdf/sdk`
+- `Document::open_revision(n)` read-only: [T2b](../done/T2b-check-failed-redactions.md)'s façade call, bound in `@laminapdf/sdk`
 - Revisions panel
 
 **Out of scope** (and which todo covers it)

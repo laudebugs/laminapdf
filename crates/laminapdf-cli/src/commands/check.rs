@@ -1,12 +1,12 @@
 //! `laminapdf check`: reads a whole document (every object, every page and every content
-//! stream, within the `Limits`) and reports what a tolerant read had to repair.
+//! stream, within the `Limits`) and reports what a tolerant read had to repair and what a
+//! failed redaction left in the file.
 
 use laminapdf::Diagnostic;
-use laminapdf::extract::TextOptions;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Settings, open, schema_id, warnings, warnings_schema};
+use super::{Settings, open, open_options, schema_id, warnings, warnings_schema};
 use crate::exit::CliError;
 use crate::io::Io;
 
@@ -26,7 +26,9 @@ pub struct CheckArgs {
 pub enum CheckStatus {
     /// Nothing needed repair.
     Ok,
-    /// The document reads, but only after repairs; `warnings` lists them.
+    /// The document reads, but only after repairs, or it holds what a failed redaction left
+    /// behind (covered text, unapplied redaction marks, text kept in an earlier revision);
+    /// `warnings` lists them.
     Warnings,
 }
 
@@ -39,13 +41,14 @@ pub struct CheckReport {
     pub schema: &'static str,
     /// The input as given: a path, or `-`.
     pub input: String,
-    /// `ok`, or `warnings` when a read had to repair something.
+    /// `ok`, or `warnings` when a read had to repair something or found what a failed
+    /// redaction left behind.
     pub status: CheckStatus,
     /// The page count.
     pub pages: u32,
     /// The objects read.
     pub objects: u32,
-    /// The repairs (ADR 0026 warnings).
+    /// The repairs, then what failed redactions left (ADR 0026 warnings).
     #[schemars(schema_with = "warnings_schema")]
     pub warnings: Vec<Diagnostic>,
 }
@@ -60,7 +63,10 @@ fn check_id(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
 }
 
 /// Reads all of `args.input`: every object, every page, and every page's content streams
-/// through text extraction, which interprets them and their fonts.
+/// through extraction's page pass, which interprets them and their fonts, then looks for what a
+/// failed redaction leaves behind (`covered-text`, `redaction-not-applied`,
+/// `text-in-earlier-revision`). Those findings aren't repairs, so `--strict` leaves them
+/// warnings.
 ///
 /// # Errors
 ///
@@ -72,9 +78,10 @@ pub fn check(args: &CheckArgs, settings: &Settings, io: &mut dyn Io) -> Result<C
     let objects = doc.read_every_object()?;
     settings.stop_if_cancelled()?;
     let pages = doc.page_count()?;
-    doc.page_texts(&TextOptions::default())?;
+    let found = doc.redaction_warnings(&open_options(settings), &settings.cancel)?;
     settings.stop_if_cancelled()?;
-    let warnings = warnings(doc);
+    let mut warnings = warnings(doc);
+    warnings.extend(found.iter().map(laminapdf::Warning::diagnostic));
     Ok(CheckReport {
         schema: CheckReport::SCHEMA,
         input: args.input.clone(),

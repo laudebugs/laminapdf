@@ -190,6 +190,15 @@ A PR that adds a code adds:
 | [`cancelled`](cancelled.md) | `cancelled` | a CancelToken stopped the work; the job is finished and returned no partial result |
 | [`job-finished`](job-finished.md) | `state` | a job was stepped after it had finished, failed or been cancelled |
 | [`document-changed`](document-changed.md) | `state` | the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step |
+| [`revision-index-out-of-range`](revision-index-out-of-range.md) | `usage` | an earlier revision was asked for by an index past the file's last revision |
+
+## Façade warnings (`laminapdf`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`covered-text`](covered-text.md) | `security` | a page draws text and then paints a shape, an image or an annotation over it, so the text is hidden but still in the file |
+| [`redaction-not-applied`](redaction-not-applied.md) | `security` | a page has redaction marks that were never applied, so the text under them is still in the file |
+| [`text-in-earlier-revision`](text-in-earlier-revision.md) | `security` | an earlier revision of the file holds text that the latest revision no longer has |
 
 ## Binding errors (`laminapdf-wasm`)
 

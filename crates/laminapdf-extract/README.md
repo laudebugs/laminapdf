@@ -86,6 +86,8 @@ The rules check their own column order on every page they order by layout, and r
 - **`columns-revisited`.** Within a band, the order leaves a block for one beside it at the same height, then comes back, below the pair, to both columns, each time to a block about as wide as the one above it. A column-first reading never does that; rows forced by a block across the gutter do. A row of authors over the columns, or an equation and its number, doesn't count, nor does a pair of one-line blocks, since a grid of them reads row by row on purpose.
 - **`near-grid`.** A group of at least 4 blocks with gaps both ways, three quarters or more of them one line but not all, reads by columns. The rules cut it by rows as well, at most 8 times a page, and warn when the two orders differ.
 
+`hidden_text(doc, options, cancel)` runs the first step alone and returns the hidden runs' `dropped` entries, without lines, blocks or tables: `laminapdf check` counts covered text with it.
+
 ## How it scores on a public benchmark
 
 On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests, three in five of the header and footer tests, and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
