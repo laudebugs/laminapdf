@@ -12,7 +12,7 @@ Conventions on every board in this area:
 - **Rail tabs** follow the cross-area rule: `Pages · Outline`, then contextual tabs. The sample has attachments, so the rail reads `Pages · Outline · Attachments` at 220 px. R02, R05 and R06 show the rail; the other boards collapse it (Sidebar `aria-pressed="false"`) to give the dialog or the page room. While find is open, `Results` is added; with four tabs the rail is 280 px, the selected tab is always visible and tabs beyond the third go into a **More tabs** button. There is no user Bookmarks tab: “Outline” is the PDF’s bookmarks.
 - The status bar counts requests made for the open document: “0 network requests for this document” (“9 network requests for this document · to files.example.org only” for a remote file); app files are listed only in the network panel (R13).
 - Shortcut chips use the Windows/Linux form (`Ctrl K`); macOS shows `⌘K`. The status bar always carries the network indicator.
-- Command ids use the registry’s `area.verb-object` form and the shared namespaces (`file.*`, `view.*`, `nav.*`, `find.*`; [U1b](../../todos/ongoing/U1b-command-registry-and-palette.md)). A command without a listed shortcut has none and shows no chip. Buttons marked “dialog-local” (Cancel, Close, copy buttons inside one dialog) act only inside their dialog and are not registry commands.
+- Command ids use the registry’s `area.verb-object` form and the shared namespaces (`file.*`, `view.*`, `nav.*`, `find.*`; [U1b](../../todos/done/U1b-command-registry-and-palette.md)). A command without a listed shortcut has none and shows no chip. Buttons marked “dialog-local” (Cancel, Close, copy buttons inside one dialog) act only inside their dialog and are not registry commands.
 
 ## R01 Home / open
 

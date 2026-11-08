@@ -16,7 +16,7 @@ Where this area lives in the shell:
 
 **Desktop menu additions for the editor** ([D4b](../../todos/ready/D4b-native-menus.md), [E1d](../../todos/ready/E1d-edit-session-undo-ui.md)), using the design language's labels: File › Save `⌘S`, Save as… `⇧⌘S`, Save a copy… (`file.save-copy`), Save as optimised…, Document properties… (`file.properties`, also in [Desktop shell S03](desktop-shell.md#s03-native-menus)'s File menu), Merge documents…, Split document…; Edit › Undo `⌘Z` and Redo `⇧⌘Z` / `Ctrl Y` with the step in the label (“Undo rotate page 16”), Show history; Help › What lamina can do (`help.capabilities`).
 
-Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos/ongoing/U1b-command-registry-and-palette.md), design language §8.8) and match the [command-id appendix](design-language.md#appendix-command-ids): `pages.*` for every page operation in every mode, `document.*` for merge, split and metadata, `file.*` for saving. Every command is in the palette; only those listed with a shortcut have one. Shortcuts are shown as macOS / Windows and Linux.
+Command ids use the registry’s `namespace.verb-object` form ([U1b](../../todos/done/U1b-command-registry-and-palette.md), design language §8.8) and match the [command-id appendix](design-language.md#appendix-command-ids): `pages.*` for every page operation in every mode, `document.*` for merge, split and metadata, `file.*` for saving. Every command is in the palette; only those listed with a shortcut have one. Shortcuts are shown as macOS / Windows and Linux.
 
 **Signed files, one rule for the whole area** (ADR 0007 §2–§3, design language §7.13):
 

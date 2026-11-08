@@ -22,7 +22,7 @@ Build the layer under the reader chrome in `@laminapdf/ui`. It holds the `Platfo
 - ADR 0009 and ADR 0010 (from [C2a](./C2a-render-adrs.md)).
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — interaction modes in a state machine; view state in an external store; `Platform` flags (`canWriteInPlace`, `canWatchFiles`, `hasNativePrint`, `multiWindow`).
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §4 (state), §6 (`showOpenFilePicker` not Baseline; input + drag-drop fallback).
-- [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — toolbar buttons become command ids in [U1b](../ongoing/U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
+- [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — toolbar buttons become command ids in [U1b](../done/U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
 - [TypeScript guidelines](../../guidelines/typescript.md); [code organization §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction) (packages never import apps).
 
 ## Scope

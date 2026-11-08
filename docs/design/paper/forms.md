@@ -15,7 +15,7 @@ Where forms live in the shell:
 - **Status bar middle slot** holds one fixed note at a time, by priority: constraint or signed-file note, repaired-file notice, history note, then the tool hint. The form hints on these boards (“Interactive form · 27 fields · …”, the design-mode key hint, “Detection ran on this device”) are tool hints and give way to the others.
 - **Signed files** follow one rule (ADR 0007 §3): files with approval signatures only save append-only, so there is no banner, only the signed-file status note. A **conflict** (a certified file where the change isn’t allowed, or a FieldMDP/`/Lock`ed field) is never applied silently: the first such edit opens an alertdialog naming each affected signature (signer, what breaks) with Apply anyway / Cancel (Cancel focused); if applied, the constraint banner stays, naming the signatures, until save or undo, and saving needs no second confirmation. The banner’s Save a copy keeps the original untouched and writes the changes to a new file (“The copy’s signatures won’t be valid.”).
 
-Command ids follow the registry’s `area.verb-object` form ([U1b](../../todos/ongoing/U1b-command-registry-and-palette.md)). Every command is in the palette; only those listed with a shortcut have one.
+Command ids follow the registry’s `area.verb-object` form ([U1b](../../todos/done/U1b-command-registry-and-palette.md)). Every command is in the palette; only those listed with a shortcut have one.
 
 ## P01 Fill & Sign mode
 

@@ -21,7 +21,7 @@ Build the frame of the reader both shells share, in `@laminapdf/ui`: the shell l
 
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [C4a](../done/C4a-ui-chrome-and-platform.md): `Platform`, `PlatformProvider`, `useCapability`, `ReaderController` and its machine, `useStoreState`, the message catalogue and `test/fakes.ts`'s `fakePlatform`.
-- [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](../ready/U1c-inverted-l-shell-and-modes.md) fills; toolbar buttons become command ids in [U1b](../ongoing/U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
+- [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](../ready/U1c-inverted-l-shell-and-modes.md) fills; toolbar buttons become command ids in [U1b](../done/U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §1 (accessible primitives), §7 (a11y, theming via CSS custom properties).
 - [web-app.md §4 functional 1, 8, 10](../../plans/web-app.md#functional) — open affordances, keyboard, error handling.
 - [TypeScript guidelines](../../guidelines/typescript.md); [code organization §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction) (packages never import apps).
