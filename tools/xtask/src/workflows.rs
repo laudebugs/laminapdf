@@ -290,11 +290,33 @@ mod tests {
             !deploy.iter().any(|l| l.contains("node-pnpm") || l.contains("pnpm ")),
             "preview-deploy must not install or run the PR's packages"
         );
+        // A local action loads from the workspace, where a PR job may have left its checkout.
+        assert!(
+            !deploy.iter().any(|l| l.contains("uses: ./")),
+            "preview-deploy must not use a local action"
+        );
         for job in ["preview-build", "preview-smoke"] {
             assert!(
                 !lines_of(WEB_DEPLOY, "jobs", job).iter().any(|l| l.contains("secrets.")),
                 "{job} runs the PR's code and must not see the secrets"
             );
+        }
+    }
+
+    /// A local action loads from the job's workspace, so each of web-deploy.yml's jobs checks out
+    /// before its first one: on a clean runner it would be missing, and on a used one it would be
+    /// whatever an earlier job left there.
+    #[test]
+    fn web_deploy_jobs_should_check_out_before_their_first_local_action() {
+        for (job, lines) in jobs(WEB_DEPLOY) {
+            let first = |want: &str| lines.iter().position(|l| l.contains(want));
+            if let Some(local) = first("uses: ./") {
+                let checkout = first("uses: actions/checkout@");
+                assert!(
+                    checkout.is_some_and(|checkout| checkout < local),
+                    "{job} uses a local action before checking out"
+                );
+            }
         }
     }
 
