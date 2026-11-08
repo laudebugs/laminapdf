@@ -59,7 +59,10 @@ export function sidebar(typeDoc) {
     },
     {
       label: "Production",
-      items: [{ label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" }],
+      items: [
+        { label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" },
+        { label: "Test the PDFs you generate", slug: "guides/test-generated-pdfs" },
+      ],
     },
     {
       label: "Recipes",

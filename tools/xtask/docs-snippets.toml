@@ -3,6 +3,8 @@
 # The TypeScript and Rust examples that show the same task. Each pair must share a name
 # (`links-and-outlines.ts`, `links_and_outlines.rs`) and the first sentence of its header comment.
 # A TypeScript example and a Rust example whose names match must be listed here.
+#
+# `[[test-example]]` (at the end) lists the examples the `test-scaffolding` rule skips.
 
 [[pair]]
 ts = "packages/sdk/examples/hello.ts"
@@ -43,3 +45,18 @@ rust = "crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs"
 [[pair]]
 ts = "packages/sdk/examples/extract-markdown.ts"
 rust = "crates/laminapdf/examples/extract_markdown.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/snapshot-test.ts"
+rust = "crates/laminapdf/examples/snapshot_test.rs"
+
+# Examples whose subject is testing a reader's own PDFs. They fix the file ID and the dates on
+# purpose, so the `test-scaffolding` rule skips them. Keep the list short: each entry needs a reason.
+
+[[test-example]]
+path = "packages/sdk/examples/snapshot-test.ts"
+reason = "shows the options a reader's test passes in place of the clock and a random file ID"
+
+[[test-example]]
+path = "crates/laminapdf/examples/snapshot_test.rs"
+reason = "shows the options a reader's test passes in place of the clock and a random file ID"
