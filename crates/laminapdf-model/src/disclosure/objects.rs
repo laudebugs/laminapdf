@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, Object, Result, tolerant};
 
-use super::{Attachment, AttachmentHolder, Scan, XmpPacket, len, name_of, text_of};
+use super::{EmbeddedFile, EmbeddedFileHolder, Scan, XmpPacket, len, name_of, text_of};
 use crate::document::Document;
 
 impl Scan<'_> {
@@ -40,12 +40,12 @@ impl Scan<'_> {
         for af in associated {
             let Some(items) = self.read(&af)? else { continue };
             for item in items.as_array().unwrap_or_default() {
-                self.hold(item, AttachmentHolder::AssociatedFiles)?;
+                self.hold(item, EmbeddedFileHolder::AssociatedFiles)?;
             }
         }
         if let Some(tree) = self.doc.name_tree("EmbeddedFiles")? {
             for (_, spec) in tree.entries()? {
-                self.hold(&spec, AttachmentHolder::EmbeddedFiles)?;
+                self.hold(&spec, EmbeddedFileHolder::EmbeddedFiles)?;
             }
         }
         if let Some(meta) = catalog.get("Metadata") {
@@ -74,7 +74,7 @@ impl Scan<'_> {
 }
 
 /// The embedded file `dict` describes, when it is a file specification with `/EF`.
-pub(super) fn attachment(doc: &Document, dict: &Dict, object: Option<u32>) -> Result<Option<Attachment>> {
+pub(super) fn attachment(doc: &Document, dict: &Dict, object: Option<u32>) -> Result<Option<EmbeddedFile>> {
     let Some(ef) = dict.get("EF") else {
         return Ok(None);
     };
@@ -110,7 +110,7 @@ pub(super) fn attachment(doc: &Document, dict: &Dict, object: Option<u32>) -> Re
             .and_then(|s| u64::try_from(s).ok())
             .or(Some(len(file.data.len())));
     }
-    Ok(Some(Attachment {
+    Ok(Some(EmbeddedFile {
         name,
         size,
         mime,

@@ -6,7 +6,7 @@
     reason = "tests: a panic is a test failure"
 )]
 
-use laminapdf_model::{ActionKind, AttachmentHolder, Document, Limits, OpenOptions, Owner, Trigger};
+use laminapdf_model::{ActionKind, Document, EmbeddedFileHolder, Limits, OpenOptions, Owner, Trigger};
 use laminapdf_test_fixtures::{classic_with_root, disclosing, fixture, stream_body};
 
 fn open(bytes: Vec<u8>) -> Document {
@@ -29,7 +29,7 @@ fn a_file_built_to_disclose_lists_each_kind() {
         (a.size, a.mime.as_deref(), a.object),
         (Some(12), Some("text/plain"), Some(14))
     );
-    assert_eq!(a.holders, [AttachmentHolder::EmbeddedFiles]);
+    assert_eq!(a.holders, [EmbeddedFileHolder::EmbeddedFiles]);
 
     let open_action = d.actions.iter().find(|x| x.trigger == Trigger::OpenAction).unwrap();
     assert_eq!(open_action.kind, ActionKind::JavaScript);

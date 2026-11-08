@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, Object, Result};
 
-use super::{Annotation, AttachmentHolder, Field, Owner, Scan, Trigger, name_of, text_of};
+use super::{Annotation, EmbeddedFileHolder, FormField, Owner, Scan, Trigger, name_of, text_of};
 
 /// `/F` bits that hide an annotation: Hidden (2) and `NoView` (6), §12.5.3.
 const HIDDEN_FLAGS: i64 = (1 << 1) | (1 << 5);
@@ -44,7 +44,7 @@ impl Scan<'_> {
         if subtype == "FileAttachment"
             && let Some(fs) = dict.get("FS")
         {
-            self.hold(fs, AttachmentHolder::Annotation)?;
+            self.hold(fs, EmbeddedFileHolder::Annotation)?;
         }
         let author = self.text(dict, "T")?;
         let contents = self.text(dict, "Contents")?;
@@ -121,7 +121,7 @@ impl Scan<'_> {
             }
             // A merged field and widget's actions are listed with the annotation.
             if dict.get_name("Subtype") != Some(b"Widget") {
-                self.additional(dict, &Owner::Field(name.clone()))?;
+                self.additional(dict, &Owner::FormField(name.clone()))?;
             }
             let widgets: Vec<&Dict> = if kids.is_empty() {
                 vec![dict]
@@ -135,7 +135,7 @@ impl Scan<'_> {
                 Some(v) => self.read(v)?.as_deref().and_then(value_of),
                 None => None,
             };
-            self.out.fields.push(Field {
+            self.out.fields.push(FormField {
                 name,
                 kind,
                 value,

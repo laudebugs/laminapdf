@@ -55,10 +55,10 @@ Fake redaction is one of the trust failures Hacker News users return to after ev
 
 **Out of scope** (and which todo covers it)
 
-- `laminapdf check` warnings about covered text, unapplied redactions and earlier revisions: [T2b](./T2b-check-failed-redactions.md). Counts of hidden text in a disclosure report: [T2c](../ongoing/T2c-reveal-command.md).
+- `laminapdf check` warnings about covered text, unapplied redactions and earlier revisions: [T2b](./T2b-check-failed-redactions.md). Counts of hidden text in a disclosure report: [T2c](../done/T2c-reveal-command.md).
 - Removing covered text from a file: [E12c](../ready/E12c-apply-content-removal.md) (content removal) and [E12d](../ready/E12d-scrub-and-rewrite.md).
 - Strokes (a thick marker line over text), shadings (`sh`), curved or rotated shapes and rotated images. Each is left out to keep text, as ADR 0030 §4 asks; add them when a fixture or a corpus file shows the need.
-- Text inside layers that are off: no ADR 0030 flag exists for it yet. [T2c](../ongoing/T2c-reveal-command.md) lists those layers.
+- Text inside layers that are off: no ADR 0030 flag exists for it yet. [T2c](../done/T2c-reveal-command.md) lists those layers.
 - A rendered check (render the page, compare with the glyph boxes): ADR 0030 §4 leaves it to a later change through the render backend.
 
 ## Tasks

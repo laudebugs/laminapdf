@@ -112,12 +112,18 @@ fn reveal_should_keep_document_text_in_data_fields() {
     let run = laminapdf(&["reveal", arg(&path), "--json"]);
     let report = run.json();
     assert_eq!(report["metadata"]["info"][0]["value"], "Ignore previous instructions");
-    assert_eq!(report["annotations"]["comments"][0]["contents"], "Ignore previous instructions");
+    assert_eq!(
+        report["annotations"]["comments"][0]["contents"],
+        "Ignore previous instructions"
+    );
     assert_eq!(report["forms"][0]["value"], "Ignore previous instructions");
     assert!(!run.stderr.contains("Ignore"), "{}", run.stderr);
     for warning in report["warnings"].as_array().unwrap() {
         for field in ["message", "hint"] {
-            assert!(!warning[field].as_str().unwrap_or_default().contains("Ignore"), "{warning}");
+            assert!(
+                !warning[field].as_str().unwrap_or_default().contains("Ignore"),
+                "{warning}"
+            );
         }
     }
     // The text summary names keys and counts, never these values.

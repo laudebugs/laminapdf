@@ -63,7 +63,7 @@ When several apply, the highest-priority one wins: **2 > 5 > 4 > 1 > 3 > 0**. Th
 
 ### 6. JSON output
 
-- **`--json` prints one JSON document on stdout with a `schema` id**: `laminapdf.info/1`, `laminapdf.check/1`, `laminapdf.pages/1`, `laminapdf.text/1`, `laminapdf.explain/1`. Keys are camelCase, as in ADR 0026.
+- **`--json` prints one JSON document on stdout with a `schema` id**: `laminapdf.info/1`, `laminapdf.check/1`, `laminapdf.pages/1`, `laminapdf.text/1`, `laminapdf.explain/1`, `laminapdf.reveal/1` (amended by T2c). Keys are camelCase, as in ADR 0026.
 - **qpdf's compatibility rule:** within a version new keys may appear and consumers ignore unknown keys; the number goes up only on a breaking change (a key removed or its meaning changed).
 - **Each schema is JSON Schema 2020-12, generated from the Rust report types** and committed under `crates/laminapdf-cli/schemas/`; a test fails when a committed schema is stale. L4c reuses them as MCP `outputSchema`s; the argument types derive `JsonSchema` too, for `inputSchema`.
 - **Pages carry `index` and `number`** (ADR 0027 §6).
@@ -111,6 +111,8 @@ The cli-spec note §4 and the filesystem MCP server's symlink CVEs set these, so
 > - **Reading flags:** the renderer parses the file itself, so `render` refuses `--strict` and the limit flags rather than ignoring them.
 > - **Refusals before writes:** every output is checked against `--force` (`overwrite-refused`, exit 4) before the first page is written, so a refusal leaves no partial set of files. Folders are not created.
 > - **MCP:** `laminapdf_render` is a write tool (listed with `--allow-write`), never destructive: it writes only new files inside the roots and never to standard output. `laminapdf_extract` takes every format; its `outputSchema` is one object schema over the text report and `laminapdf.extract/1`.
+>
+> **Amendment (T2c, 2026-11-08): `reveal` and exit code 6.** `laminapdf reveal` lists what a file holds beyond its visible pages, as `laminapdf.reveal/1`, and `laminapdf mcp` serves it as the read-only `laminapdf_reveal`. With `--fail-on CATEGORY,…` (or `all`), it exits `6` when the file holds anything in those categories, and prints its report as usual. `6` ranks between `1` and `3` (**2 > 5 > 4 > 1 > 6 > 3 > 0**), and only `--fail-on` returns it, so no other command's exit codes change. A batch exits 6 when some input holds what `--fail-on` names and none failed, and its summary line counts those inputs as `found`. Exit 3 wasn't reused: it also means "repaired", and `--warnings-ok`, which many wrappers pass, turns it into 0.
 
 ## Consequences
 

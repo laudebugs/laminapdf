@@ -33,7 +33,7 @@ pub struct XmpPacket {
 /// What points at an embedded file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
-pub enum AttachmentHolder {
+pub enum EmbeddedFileHolder {
     /// The document's `/EmbeddedFiles` name tree (§7.7.4).
     EmbeddedFiles,
     /// An `/AF` array of associated files (§14.13).
@@ -45,7 +45,7 @@ pub enum AttachmentHolder {
 /// An embedded file: a file specification with an `/EF` entry (§7.11.4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Attachment {
+pub struct EmbeddedFile {
     /// `/UF`, else `/F`, decoded.
     pub name: Option<String>,
     /// `/Params /Size`, else the embedded stream's stored length.
@@ -55,7 +55,7 @@ pub struct Attachment {
     /// The file specification's object (`None` when it is a direct dictionary).
     pub object: Option<u32>,
     /// What points at it; empty when nothing the scan reads does.
-    pub holders: Vec<AttachmentHolder>,
+    pub holders: Vec<EmbeddedFileHolder>,
 }
 
 /// What fires an action.
@@ -88,7 +88,7 @@ pub enum Owner {
         object: Option<u32>,
     },
     /// A form field, by its full name.
-    Field(String),
+    FormField(String),
 }
 
 /// An action reached from a trigger, directly or through `/Next` (§12.6.4).
@@ -136,7 +136,7 @@ impl Annotation {
 /// A terminal form field (§12.7.4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Field {
+pub struct FormField {
     /// The full name, the `/T` of each ancestor joined with `.`.
     pub name: String,
     /// `/FT` (`Tx`, `Btn`, `Ch`, `Sig`), own or inherited.
@@ -162,7 +162,7 @@ pub struct Disclosure {
     /// Pages with a `/Thumb` image (§12.3.4), by object.
     pub thumbnails: Vec<u32>,
     /// Embedded files, indirect ones by object number, then direct ones.
-    pub attachments: Vec<Attachment>,
+    pub attachments: Vec<EmbeddedFile>,
     /// Every action reached from a trigger, once each.
     pub actions: Vec<Action>,
     /// Whether the interactive form holds an XFA form (`/XFA`).
@@ -170,7 +170,7 @@ pub struct Disclosure {
     /// Annotations, page by page.
     pub annotations: Vec<Annotation>,
     /// Terminal form fields, in the form's order.
-    pub fields: Vec<Field>,
+    pub fields: Vec<FormField>,
     /// The names of the optional content groups the default configuration turns off (§8.11.4.3).
     pub layers_off: Vec<String>,
     /// In-use objects nothing reachable from the trailer references, object and
@@ -213,7 +213,7 @@ impl Document {
         scan.pages()?;
         scan.fields(&catalog)?;
         scan.layers(&catalog)?;
-        let mut attachments: Vec<Attachment> = std::mem::take(&mut scan.attachments).into_values().collect();
+        let mut attachments: Vec<EmbeddedFile> = std::mem::take(&mut scan.attachments).into_values().collect();
         attachments.append(&mut scan.direct_attachments);
         for a in &mut attachments {
             a.holders.sort_unstable();
@@ -229,8 +229,8 @@ struct Scan<'d> {
     doc: &'d Document,
     out: Disclosure,
     /// Indirect file specifications with `/EF`, by object.
-    attachments: BTreeMap<u32, Attachment>,
-    direct_attachments: Vec<Attachment>,
+    attachments: BTreeMap<u32, EmbeddedFile>,
+    direct_attachments: Vec<EmbeddedFile>,
     /// Action objects already listed.
     seen_actions: BTreeSet<u32>,
 }
@@ -242,7 +242,7 @@ impl Scan<'_> {
     }
 
     /// Marks the indirect file specification `obj` as held by `holder`, or adds a direct one.
-    fn hold(&mut self, obj: &Object, holder: AttachmentHolder) -> Result<()> {
+    fn hold(&mut self, obj: &Object, holder: EmbeddedFileHolder) -> Result<()> {
         if let Some(r) = obj.as_ref() {
             if let Some(a) = self.attachments.get_mut(&r.num) {
                 a.holders.push(holder);

@@ -10,7 +10,7 @@ use laminapdf_syntax::Object;
 use laminapdf_syntax::text::decode_text_string;
 
 pub use laminapdf_model::{
-    Action, ActionKind, Annotation, Attachment, AttachmentHolder, Disclosure, Field, Owner, Trigger, XmpPacket,
+    Action, ActionKind, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
 };
 
 use crate::extract::{DropReason, Dropped, ExtractOptions};

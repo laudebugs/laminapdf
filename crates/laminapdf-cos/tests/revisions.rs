@@ -91,7 +91,7 @@ fn a_third_revision_that_frees_an_object_lists_it_and_never_object_zero() {
     let revisions = index(bytes);
     assert_eq!(revisions.len(), 3);
     assert_eq!(revisions[2].section, start as u64);
-    assert!(revisions[2].in_use.is_empty());
+    assert_eq!(revisions[2].in_use, [0u32; 0]);
     assert_eq!(revisions[2].freed, [4]);
 }
 
@@ -112,7 +112,7 @@ fn a_linearized_file_indexes_as_one_revision_with_both_sections_objects() {
 fn a_signed_files_index_matches_its_revision_ends() {
     let doc = Document::open(fixture("signed/approval.pdf"), OpenOptions::default()).unwrap();
     let revisions = doc.revision_index().unwrap();
-    assert!(!revisions.is_empty());
+    assert_ne!(revisions.len(), 0);
     assert_eq!(
         revisions.iter().map(|r| r.end).collect::<Vec<_>>(),
         doc.revision_ends().unwrap()
@@ -121,5 +121,5 @@ fn a_signed_files_index_matches_its_revision_ends() {
 
 #[test]
 fn a_repaired_file_has_no_revision_index() {
-    assert!(index(fixture("corpus/hello-broken.pdf")).is_empty());
+    assert_eq!(index(fixture("corpus/hello-broken.pdf")), []);
 }

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [T2c](../ongoing/T2c-reveal-command.md) |
+| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [T2c](../done/T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3g-inspectors` |
 | PR title | `feat(app): document inspectors and COS object browser` |
@@ -28,7 +28,7 @@ Give power users and developers read-only inspection: header/catalog version and
 
 **In scope**
 
-- Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary (from [T2c](./T2c-reveal-command.md)'s `revision_index`)
+- Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary (from [T2c](../done/T2c-reveal-command.md)'s `revision_index`)
 - Inspector panels in `@laminapdf/ui`: Properties → Conformance; Fonts; Colour; Object browser (tree from trailer, jump to ref, hex/text stream views with size caps)
 - Bindings for all of the above in `laminapdf-wasm` / `@laminapdf/sdk`
 

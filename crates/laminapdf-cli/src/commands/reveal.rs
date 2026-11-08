@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use laminapdf::Diagnostic;
-use laminapdf::reveal::{Action, ActionKind, AttachmentHolder, Category, Owner, Reveal, Trigger};
+use laminapdf::reveal::{Action, ActionKind, Category, EmbeddedFileHolder, Owner, Reveal, Trigger};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -435,8 +435,8 @@ fn attachments(r: &Reveal) -> Vec<AttachmentEntry> {
                 .holders
                 .iter()
                 .map(|h| match h {
-                    AttachmentHolder::AssociatedFiles => "associated-files",
-                    AttachmentHolder::Annotation => "annotation",
+                    EmbeddedFileHolder::AssociatedFiles => "associated-files",
+                    EmbeddedFileHolder::Annotation => "annotation",
                     _ => "embedded-files",
                 })
                 .map(str::to_owned)
@@ -474,7 +474,7 @@ fn active_content(actions: &[Action], xfa: bool) -> ActiveContent {
                 let (owner, page) = match &a.owner {
                     Owner::Page(i) => ("page", Some(PageRef::of(*i))),
                     Owner::Annotation { page, .. } => ("annotation", Some(PageRef::of(*page))),
-                    Owner::Field(_) => ("field", None),
+                    Owner::FormField(_) => ("field", None),
                     _ => ("document", None),
                 };
                 ActionEntry {

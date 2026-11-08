@@ -86,4 +86,3 @@ fn every_fixture_reveals_without_error() {
         }
     }
 }
-

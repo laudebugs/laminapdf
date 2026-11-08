@@ -80,7 +80,9 @@ mod structure;
 mod tree;
 
 pub use date::{InvalidDate, PdfDate};
-pub use disclosure::{Action, Annotation, Attachment, AttachmentHolder, Disclosure, Field, Owner, Trigger, XmpPacket};
+pub use disclosure::{
+    Action, Annotation, Disclosure, EmbeddedFile, EmbeddedFileHolder, FormField, Owner, Trigger, XmpPacket,
+};
 pub use document::Document;
 pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
