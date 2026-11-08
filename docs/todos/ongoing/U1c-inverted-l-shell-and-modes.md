@@ -11,7 +11,7 @@
 | Branch | `feat/u1c-inverted-l-shell` |
 | PR title | `feat(ui): add the left rail, inspector, mode switcher and focus mode` |
 | Size | M (300–600 lines incl. tests) |
-| PR | — |
+| PR | [#322](https://github.com/laudebugs/laminapdf/pull/322) |
 
 ## Goal
 
