@@ -71,6 +71,9 @@ fn the_corpus_covers_the_layouts_the_todo_asks_for() {
         "arabic",
         "hebrew-two-columns",
         "chinese",
+        "pull-quote",
+        "narrow-gutter",
+        "wrapped-grid",
     ] {
         assert!(names.contains(&wanted), "missing layout {wanted}");
     }

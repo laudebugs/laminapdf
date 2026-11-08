@@ -1,5 +1,5 @@
 {
-  "mean": 0.7971,
+  "mean": 0.7896,
   "history": [
     {
       "date": "2026-10-30",
@@ -10,6 +10,11 @@
       "date": "2026-10-30",
       "mean": 0.7971,
       "by": "B9e: a separator where the pen jumps back on a line; table-reversed keeps every cell's words (text 0.572 → 1.000), no other file changes"
+    },
+    {
+      "date": "2026-11-08",
+      "mean": 0.7896,
+      "by": "T3b: the corpus grows from 22 files to 28 with three hard layouts (pull-quote, narrow-gutter, wrapped-grid), drawn both ways; the content-order score of the files already there doesn't change, so the mean moves only because the set does"
     }
   ]
 }
