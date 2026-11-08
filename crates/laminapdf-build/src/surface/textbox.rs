@@ -161,6 +161,10 @@ impl TextLayout {
     /// last drawn line; check [`overflow`](Self::overflow) before treating the text as placed.
     #[must_use]
     pub fn bottom(&self) -> Option<Pt> {
-        self.lines.iter().rev().find(|l| !l.content.is_empty()).map(|l| l.rect.y1)
+        self.lines
+            .iter()
+            .rev()
+            .find(|l| !l.content.is_empty())
+            .map(|l| l.rect.y1)
     }
 }
