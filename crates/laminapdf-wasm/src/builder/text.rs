@@ -178,7 +178,8 @@ pub(super) struct TextRunJs {
     /// Its lines (a run breaks only at line breaks in the text).
     pub lines: u32,
     /// Where the next element can start: the bottom of the descent below its last line that
-    /// draws something. Left out when nothing is drawn (empty text, or only spaces and breaks).
+    /// draws something, before the surface's transform. Left out when nothing is drawn (empty
+    /// text, or only white space and control characters); invisible text counts.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub bottom: Option<f64>,
@@ -261,8 +262,9 @@ pub(super) struct TextLayoutJs {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub overflow: Option<u32>,
-    /// Where the next element can start: the bottom of the last drawn line that holds
-    /// something. Left out when no line does (nothing, only blanks, or a box too short).
+    /// Where the next element can start: the bottom of the last drawn line that draws
+    /// something, before the surface's transform. Left out when no line does (nothing, only
+    /// white space and control characters, or a box too short).
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub bottom: Option<f64>,

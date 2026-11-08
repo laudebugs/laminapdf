@@ -39,7 +39,8 @@ describe("a text run's bottom", () => {
   });
 
   it("is left out when nothing is drawn", () => {
-    for (const text of ["", "   ", "\n", "\n\n", " \n \n"]) expect(run(text).bottom, JSON.stringify(text)).toBeUndefined();
+    for (const text of ["", "   ", "\n", "\n\n", " \n \n", "\u00a0", "\u001c"])
+      expect(run(text).bottom, JSON.stringify(text)).toBeUndefined();
   });
 });
 

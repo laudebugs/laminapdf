@@ -178,3 +178,49 @@ fn a_paragraph_placed_below_the_bottom_reads_back_there() {
         next.origin.1
     );
 }
+
+/// Each font the two layout paths take: a standard 14 font (AFM widths) and an embedded one
+/// (shaped through `laminapdf-text`), whose trimming of a line differs.
+fn fonts() -> [fn(&mut Builder) -> FontHandle; 2] {
+    [
+        |b| b.standard_font(Standard14::Helvetica).unwrap(),
+        |b| {
+            b.font(common::text_and_navigation::font("NotoSans-Regular.ttf"))
+                .unwrap()
+        },
+    ]
+}
+
+/// A run's and a box's bottom for `text` in the font `make` registers.
+fn both(make: fn(&mut Builder) -> FontHandle, text: &str) -> (Option<Pt>, Option<Pt>) {
+    let mut builder = Builder::new(BuildOptions::default());
+    let font = make(&mut builder);
+    let mut page = builder.page(PageSize::A4);
+    let s = page.surface();
+    let run = s
+        .text(text, &font, Pt::new(SIZE), PointPt::from_points(72.0, 100.0))
+        .unwrap()
+        .bottom();
+    let area = RectPt::from_xywh(Pt::new(72.0), Pt::new(100.0), Pt::new(300.0), Pt::new(400.0));
+    let boxed = s
+        .text_box(text, &font, Pt::new(SIZE), area, &TextBoxOptions::default())
+        .unwrap()
+        .bottom();
+    (run, boxed)
+}
+
+#[test]
+fn white_space_and_controls_draw_nothing_in_either_layout_path() {
+    for make in fonts() {
+        for text in ["", " ", "\u{a0}", "\u{1c}", "\u{2029}", "\n \u{a0}\n"] {
+            assert_eq!(both(make, text), (None, None), "{text:?}");
+        }
+    }
+}
+
+#[test]
+fn trailing_separators_dont_move_the_bottom_in_either_layout_path() {
+    for make in fonts() {
+        assert_eq!(both(make, "one\n\u{1c}\n\u{a0}"), both(make, "one"));
+    }
+}

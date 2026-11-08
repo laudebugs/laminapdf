@@ -353,16 +353,29 @@ impl TextCommand {
             Pt::new(x + x0),
             Pt::new(self.baseline(0) - self.spec.font.ascent(size)),
             Pt::new(x + x1),
-            Pt::new(self.baseline(last) + self.spec.font.descent(size)),
+            Pt::new(self.descent_edge(last)),
         ))
     }
 
-    /// The bottom of the font's descent below the last line that draws something, before the
-    /// surface's transform; `None` when no line does (empty text, or only spaces and breaks).
-    pub(crate) fn bottom(&self) -> Option<Pt> {
-        let last = self.lines.iter().rposition(|l| !l.content.is_empty())?;
-        Some(Pt::new(self.baseline(last) + self.spec.font.descent(self.spec.size)))
+    /// The bottom of the font's descent below line `i`, page space.
+    fn descent_edge(&self, i: usize) -> f64 {
+        self.baseline(i) + self.spec.font.descent(self.spec.size)
     }
+
+    /// The bottom of the font's descent below the last line that draws something, before the
+    /// surface's transform; `None` when no line does ([`draws`]).
+    pub(crate) fn bottom(&self) -> Option<Pt> {
+        let last = self.lines.iter().rposition(|l| draws(&self.spec.text, &l.content))?;
+        Some(Pt::new(self.descent_edge(last)))
+    }
+}
+
+/// Whether `content` of `text` draws something: a character that isn't white space (a space, a
+/// no-break space, a line or paragraph separator) or a control character. Both layout paths
+/// share this, whatever each trims from a line.
+pub(crate) fn draws(text: &str, content: &Range<usize>) -> bool {
+    text.get(content.clone())
+        .is_some_and(|s| s.chars().any(|c| !c.is_whitespace() && !c.is_control()))
 }
 
 /// A run of text drawn by [`Surface::text`]: change how it is drawn (colour, render mode,
@@ -495,22 +508,28 @@ impl<'s> TextRun<'s> {
 
     /// Where the next element can start below this run: the bottom of the font's descent below
     /// its last line that draws something, before the surface's transform, as `bounds` is.
-    /// `None` when nothing is drawn: empty text, or text of only spaces and line breaks. Blank
-    /// lines after the last drawn one don't count, so the gap a caller adds is never doubled.
+    /// `None` when nothing is drawn: empty text, or text of only white space (spaces, no-break
+    /// spaces, line breaks) and control characters. Blank lines after the last drawn one don't
+    /// count, so the gap a caller adds is never doubled; [`bounds`](Self::bounds) still reaches
+    /// the last line, blank or not. Invisible text (`TextRenderMode::Invisible`) counts: it takes
+    /// its place on the page.
+    ///
+    /// The next paragraph's box can start there, a gap below (a box places its first baseline
+    /// by the font's ascent):
     ///
     /// ```
-    /// use laminapdf_build::{BuildOptions, Builder, PageSize, PointPt, Pt, Standard14};
+    /// use laminapdf_build::{BuildOptions, Builder, PageSize, PointPt, Pt, RectPt, Standard14, TextBoxOptions};
     ///
     /// let mut builder = Builder::new(BuildOptions::default());
     /// let font = builder.standard_font(Standard14::Helvetica)?;
     /// let mut page = builder.page(PageSize::A4);
     /// let mut surface = page.surface();
     /// let size = Pt::new(12.0);
-    /// let heading = surface.text("Results", &font, size, PointPt::from_points(72.0, 96.0))?;
-    /// // The next line's baseline goes a gap below the heading's bottom, plus the font's ascent.
-    /// let top = heading.bottom().map_or(96.0, |bottom| bottom.get() + 6.0);
-    /// surface.text("Revenue rose 12%.", &font, size, PointPt::from_points(72.0, top + 9.0))?;
-    /// assert!(surface.text("  \n", &font, size, PointPt::from_points(72.0, 200.0))?.bottom().is_none());
+    /// let heading = surface.text("Results", &font, Pt::new(18.0), PointPt::from_points(72.0, 96.0))?;
+    /// let top = heading.bottom().map_or(96.0, |bottom| bottom.get() + 8.0);
+    /// let area = RectPt::from_xywh(Pt::new(72.0), Pt::new(top), Pt::new(450.0), Pt::new(600.0));
+    /// surface.text_box("Revenue rose 12% this quarter.", &font, size, area, &TextBoxOptions::default())?;
+    /// assert!(surface.text(" \u{a0}\n", &font, size, PointPt::from_points(72.0, 300.0))?.bottom().is_none());
     /// # Ok::<(), laminapdf_build::Error>(())
     /// ```
     #[must_use]

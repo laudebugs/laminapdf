@@ -145,6 +145,8 @@ pub struct TextLayout {
     /// With [`Overflow::Clip`], the byte offset of the first text that was not drawn because
     /// it didn't fit; `None` when everything fit.
     pub overflow: Option<usize>,
+    /// [`bottom`](Self::bottom), worked out while laying out, when the text is at hand.
+    pub(crate) bottom: Option<Pt>,
 }
 
 impl TextLayout {
@@ -155,16 +157,13 @@ impl TextLayout {
     }
 
     /// Where the next element can start below this text: the bottom of the last drawn line
-    /// that holds something (its `rect.y1`), rather than the bottom of the requested box. `None`
-    /// when no line does: empty text, text of only spaces and line breaks, or a box too short
-    /// for one line. Blank lines after the last drawn one don't count. A clipped box gives its
-    /// last drawn line; check [`overflow`](Self::overflow) before treating the text as placed.
+    /// that draws something (its `rect.y1`), before the surface's transform, rather than the
+    /// bottom of the requested box. `None` when no line does: empty text, text of only white
+    /// space and control characters, or a box too short for one line. Blank lines after the last
+    /// drawn one don't count. A clipped box gives its last drawn line; check
+    /// [`overflow`](Self::overflow) before treating the text as placed.
     #[must_use]
-    pub fn bottom(&self) -> Option<Pt> {
-        self.lines
-            .iter()
-            .rev()
-            .find(|l| !l.content.is_empty())
-            .map(|l| l.rect.y1)
+    pub const fn bottom(&self) -> Option<Pt> {
+        self.bottom
     }
 }
