@@ -181,3 +181,74 @@ fn a_box_without_width_is_invalid_geometry() {
     let (layout, _) = boxed(times, "x", rect(50.0, 50.0, 0.0, 10.0), &TextBoxOptions::default());
     assert_eq!(layout.unwrap_err().code(), "invalid-geometry");
 }
+
+/// Measures `text` in `r`, then draws it on the same page; returns both layouts and the saved
+/// document, and the document with only the drawing.
+fn measured_then_drawn(
+    file: Option<&str>,
+    text: &str,
+    r: RectPt,
+    options: &TextBoxOptions,
+) -> ((TextLayout, TextLayout), (Vec<u8>, Vec<u8>)) {
+    let build = |measure: bool| {
+        let mut b = Builder::new(BuildOptions::default());
+        let f = match file {
+            Some(file) => b.font(text_and_navigation::font(file)).unwrap(),
+            None => times(&mut b),
+        };
+        let mut page = b.page(PageSize::A4);
+        let measured = measure.then(|| {
+            page.surface()
+                .measure_text_box(text, &f, Pt::new(11.0), r, options)
+                .unwrap()
+        });
+        let drawn = page.surface().text_box(text, &f, Pt::new(11.0), r, options).unwrap();
+        page.finish().unwrap();
+        (measured, drawn, save(b.finish().unwrap()))
+    };
+    let (measured, drawn, with) = build(true);
+    let (_, _, without) = build(false);
+    ((measured.unwrap(), drawn), (with, without))
+}
+
+#[test]
+fn measuring_gives_the_layout_drawing_gives_and_draws_nothing() {
+    let centered = TextBoxOptions::default().with_align(Alignment::Center);
+    let clipped = TextBoxOptions::default().with_overflow(Overflow::Clip);
+    let mut cases: Vec<(Option<&str>, &str, RectPt, &TextBoxOptions)> = SCRIPTS
+        .iter()
+        .flat_map(|(file, text)| {
+            [60.0, MULTISCRIPT_BOX_WIDTH, 200.0].map(|w| (Some(*file), *text, rect(50.0, 50.0, w, 700.0), &centered))
+        })
+        .collect();
+    cases.push((None, LATIN_PARAGRAPH, rect(72.0, 72.0, 120.0, 30.0), &clipped));
+    cases.push((
+        Some("NotoSans-Regular.ttf"),
+        LATIN_PARAGRAPH,
+        rect(72.0, 72.0, 90.0, 40.0),
+        &clipped,
+    ));
+    for (file, text, r, options) in cases {
+        let ((measured, drawn), (with, without)) = measured_then_drawn(file, text, r, options);
+        assert_eq!(measured, drawn, "{file:?} in {r:?}");
+        // Not `assert_eq!`: a byte diff of two PDFs is unreadable.
+        assert!(with == without, "{file:?} in {r:?}: measuring changed the page");
+    }
+}
+
+#[test]
+fn measuring_refuses_what_drawing_refuses() {
+    let mut b = Builder::new(BuildOptions::default());
+    let f = times(&mut b);
+    let mut page = b.page(PageSize::A4);
+    let options = TextBoxOptions::default().with_overflow(Overflow::Error);
+    let r = rect(72.0, 72.0, 120.0, 20.0);
+    let measured = page
+        .surface()
+        .measure_text_box(LATIN_PARAGRAPH, &f, Pt::new(11.0), r, &options);
+    let drawn = page.surface().text_box(LATIN_PARAGRAPH, &f, Pt::new(11.0), r, &options);
+    assert_eq!(
+        (measured.unwrap_err().code(), drawn.unwrap_err().code()),
+        ("text-overflow", "text-overflow")
+    );
+}

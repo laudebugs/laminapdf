@@ -40,7 +40,7 @@ use style::{BlendMode, StrokeStyle};
 #[cfg(feature = "text")]
 use text::{FontHandle, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
 #[cfg(feature = "text")]
-use textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
+use textbox::{TextBoxOptions, TextLayout};
 
 /// How a path is painted.
 #[derive(Debug, Clone, PartialEq)]
@@ -541,9 +541,9 @@ impl Surface {
     /// except one holding a single cluster wider than the box on its own, which counts as
     /// overflow.
     ///
-    /// Lines that don't fit the box's height are overflow: with [`Overflow::Clip`] the lines
+    /// Lines that don't fit the box's height are overflow: with [`Overflow::Clip`](crate::Overflow::Clip) the lines
     /// that fit are drawn and [`TextLayout::overflow`] says where the rest starts; with
-    /// [`Overflow::Error`] nothing is drawn.
+    /// [`Overflow::Error`](crate::Overflow::Error) nothing is drawn.
     ///
     /// ```
     /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, TextBoxOptions};
@@ -568,7 +568,7 @@ impl Surface {
     /// # Errors
     /// As [`Surface::text`]; [`Error::InvalidGeometry`] for a rectangle that isn't finite or
     /// has no width, or a line height that isn't finite and positive;
-    /// [`Error::TextOverflow`] with [`Overflow::Error`].
+    /// [`Error::TextOverflow`] with [`Overflow::Error`](crate::Overflow::Error).
     #[cfg(feature = "text")]
     pub fn text_box(
         &mut self,
@@ -578,83 +578,55 @@ impl Surface {
         rect: RectPt,
         options: &TextBoxOptions,
     ) -> Result<TextLayout> {
-        check_size(size)?;
-        if !rect.is_finite() || rect.width().get() <= 0.0 {
-            return Err(Error::InvalidGeometry {
-                what: "a text box must be finite and wider than 0",
-            });
-        }
-        if !(options.line_height.is_finite() && options.line_height > 0.0) {
-            return Err(Error::InvalidGeometry {
-                what: "a line height must be a positive number",
-            });
-        }
-        let size_pt = size.get();
-        let spec = Spec {
-            text: text.to_owned(),
-            font: font.clone(),
-            size: size_pt,
-            align: options.align,
-            direction: options.direction,
-            language: options.language.clone(),
-            features: options.features.clone(),
-            width: Some(rect.width().get()),
-        };
-        let mut lines = lay_out(&spec)?;
-        let leading = options.line_height * size_pt;
-        let first = rect.y0.get() + font.ascent(size_pt);
-        let descent = font.descent(size_pt);
-        let limit = rect.width().get();
-        let fits = |i: usize, line: &text::LaidLine| {
-            #[expect(clippy::cast_precision_loss, reason = "line counts are small")]
-            let bottom = first + i as f64 * leading + descent;
-            // A hair of tolerance for the f32 widths the layout measured with.
-            bottom <= rect.y1.get() + 1e-9 && line.width <= limit + 1e-3
-        };
-        let fit = lines
-            .iter()
-            .enumerate()
-            .position(|(i, l)| !fits(i, l))
-            .unwrap_or(lines.len());
-        let overflow = lines.get(fit).map(|l| l.range.start);
-        if overflow.is_some() && options.overflow == Overflow::Error {
-            return Err(Error::TextOverflow {
-                fits: fit,
-                needed: lines.len(),
-            });
-        }
-        lines.truncate(fit);
-        let x = rect.x0.get();
-        let boxes: Vec<LineBox> = lines
-            .iter()
-            .enumerate()
-            .map(|(i, l)| {
-                #[expect(clippy::cast_precision_loss, reason = "line counts are small")]
-                let baseline = first + i as f64 * leading;
-                LineBox {
-                    range: l.range.clone(),
-                    content: l.content.clone(),
-                    rect: RectPt::new(
-                        Pt::new(x + l.x),
-                        Pt::new(baseline - font.ascent(size_pt)),
-                        Pt::new(x + l.x + l.width),
-                        Pt::new(baseline + descent),
-                    ),
-                    baseline: Pt::new(baseline),
-                }
-            })
-            .collect();
-        let bottom = boxes
-            .iter()
-            .rev()
-            .find(|b| text::draws(&spec.text, &b.content))
-            .map(|b| b.rect.y1);
-        self.push_text(spec, PointPt::new(rect.x0, Pt::new(first)), leading, lines);
-        Ok(TextLayout {
-            lines: boxes,
-            overflow,
-            bottom,
-        })
+        Ok(self.draw_measured(textbox::measure(text, font, size, rect, options)?))
+    }
+
+    /// The [`TextLayout`] [`Surface::text_box`] would draw with the same arguments, without
+    /// drawing it: for deciding where text goes (how tall a paragraph is, whether it fits)
+    /// before drawing anything. The page's content doesn't change.
+    ///
+    /// ```
+    /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, TextBoxOptions};
+    /// use laminapdf_model::{Pt, RectPt};
+    ///
+    /// let mut b = Builder::new(BuildOptions::default());
+    /// let times = b.standard_font(Standard14::TimesRoman)?;
+    /// let mut page = b.page(PageSize::A4);
+    /// let r = RectPt::from_xywh(Pt::new(72.0), Pt::new(72.0), Pt::new(120.0), Pt::new(200.0));
+    /// let text = "The quick brown fox jumps over the lazy dog.";
+    /// let measured = page.surface().measure_text_box(text, &times, Pt::new(12.0), r, &TextBoxOptions::default())?;
+    /// let drawn = page.surface().text_box(text, &times, Pt::new(12.0), r, &TextBoxOptions::default())?;
+    /// assert_eq!(measured, drawn);
+    /// # Ok::<(), laminapdf_build::Error>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Surface::text_box`].
+    #[cfg(feature = "text")]
+    pub fn measure_text_box(
+        &self,
+        text: &str,
+        font: &FontHandle,
+        size: Pt,
+        rect: RectPt,
+        options: &TextBoxOptions,
+    ) -> Result<TextLayout> {
+        Ok(textbox::measure(text, font, size, rect, options)?.layout)
+    }
+
+    /// Draws text measured by [`textbox::measure`] as [`Surface::text_box`] does, without laying
+    /// it out again, and returns its layout.
+    #[cfg(feature = "text")]
+    pub(crate) fn draw_measured(&mut self, measured: textbox::Measured) -> TextLayout {
+        let textbox::Measured {
+            spec,
+            origin,
+            leading,
+            lines,
+            layout,
+        } = measured;
+        self.push_text(spec, origin, leading, lines);
+        layout
     }
 
     /// A link annotation over `rect` (page space, through the current transform as an
