@@ -56,7 +56,12 @@ impl Covers {
 
     /// Whether a paint after the glyph covers it.
     pub(crate) fn covers(&self, glyph: &Glyph) -> bool {
-        let r = quad_box(&glyph.quad);
+        self.covers_box(&quad_box(&glyph.quad), glyph.paints_before)
+    }
+
+    /// Whether a cover painted after `paints_before` paints holds the centre of `r` and at
+    /// least half its area.
+    fn covers_box(&self, r: &RectPt, paints_before: u32) -> bool {
         let (cx, cy) = (
             f64::midpoint(r.x0.get(), r.x1.get()),
             f64::midpoint(r.y0.get(), r.y1.get()),
@@ -68,8 +73,8 @@ impl Covers {
         near.iter().filter_map(|&i| self.covers.get(i)).any(|c| {
             let holds_centre =
                 c.rect.x0.get() <= cx && cx <= c.rect.x1.get() && c.rect.y0.get() <= cy && cy <= c.rect.y1.get();
-            let shared = intersect(&c.rect, &r).map_or(0.0, |o| o.width().get() * o.height().get());
-            c.after >= glyph.paints_before && holds_centre && shared >= COVERED_SHARE * area
+            let shared = intersect(&c.rect, r).map_or(0.0, |o| o.width().get() * o.height().get());
+            c.after >= paints_before && holds_centre && shared >= COVERED_SHARE * area
         })
     }
 }
@@ -234,5 +239,45 @@ fn split(glyphs: &[Glyph], mask: &[bool], size: Pt, regions: &[LayoutRegion]) ->
             .filter(|(w, _)| !w.is_empty())
             .collect(),
         covered,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_model::RectPt;
+
+    use super::Covers;
+    use crate::paint::Cover;
+
+    /// A glyph box 10 × 10 at the origin.
+    fn glyph() -> RectPt {
+        RectPt::from_points(0.0, 0.0, 10.0, 10.0)
+    }
+
+    fn covers(rect: RectPt, after: u32) -> Covers {
+        Covers::new(vec![Cover { rect, after }])
+    }
+
+    #[test]
+    fn a_cover_needs_the_centre_and_half_the_box() {
+        // Half the box, with the centre on its edge: covered.
+        assert!(covers(RectPt::from_points(0.0, 0.0, 5.0, 10.0), 0).covers_box(&glyph(), 0));
+        // The centre, but under half the box.
+        assert!(!covers(RectPt::from_points(4.0, 4.0, 2.0, 2.0), 0).covers_box(&glyph(), 0));
+        // Most of the box, but not the centre.
+        assert!(!covers(RectPt::from_points(-10.0, 0.0, 14.9, 10.0), 0).covers_box(&glyph(), 0));
+    }
+
+    #[test]
+    fn a_cover_painted_before_the_glyph_covers_nothing() {
+        let page = covers(RectPt::from_points(-5.0, -5.0, 20.0, 20.0), 3);
+        assert!(page.covers_box(&glyph(), 3));
+        assert!(!page.covers_box(&glyph(), 4));
+    }
+
+    #[test]
+    fn a_cover_far_from_the_glyph_is_never_tested() {
+        let far = covers(RectPt::from_points(500.0, 500.0, 10.0, 10.0), 0);
+        assert!(!far.covers_box(&glyph(), 0));
     }
 }

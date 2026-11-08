@@ -396,3 +396,66 @@ impl Visitor for Collector<'_> {
         self.forms.pop();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_content::{ColorSpace, GraphicsState};
+    use laminapdf_model::{BlendMode, Pt, RectPt};
+    use laminapdf_syntax::{Dict, Object};
+
+    use super::{intersect, masked_or_optional, opaque};
+
+    fn state(alpha: f64, blend: BlendMode, soft_mask: bool) -> GraphicsState {
+        let mut s = GraphicsState::default();
+        s.fill_alpha = alpha;
+        s.blend_mode = blend;
+        s.soft_mask = soft_mask;
+        s
+    }
+
+    #[test]
+    fn only_full_alpha_without_a_soft_mask_in_normal_is_opaque() {
+        let grey = Some([0.5; 3]);
+        assert!(opaque(&state(1.0, BlendMode::Normal, false), grey));
+        assert!(!opaque(&state(0.99, BlendMode::Normal, false), grey));
+        assert!(!opaque(&state(1.0, BlendMode::Normal, true), grey));
+        assert!(!opaque(&state(1.0, BlendMode::Screen, false), grey));
+    }
+
+    #[test]
+    fn multiply_and_darken_are_opaque_only_near_black() {
+        for blend in [BlendMode::Multiply, BlendMode::Darken] {
+            assert!(opaque(&state(1.0, blend, false), Some([0.1, 0.0, 0.05])));
+            assert!(!opaque(&state(1.0, blend, false), Some([1.0, 1.0, 0.0])));
+            // An image has no fill colour: never opaque in these modes.
+            assert!(!opaque(&state(1.0, blend, false), None));
+        }
+    }
+
+    #[test]
+    fn a_pattern_fill_has_no_colour_so_never_covers_in_multiply() {
+        let mut s = state(1.0, BlendMode::Multiply, false);
+        s.fill.space = ColorSpace::Pattern;
+        assert!(!opaque(&s, s.fill.approx_rgb()));
+    }
+
+    #[test]
+    fn masks_and_optional_content_keep_an_image_from_covering() {
+        let with = |key: &str, value: Object| [(key, value)].into_iter().collect::<Dict>();
+        assert!(masked_or_optional(&with("ImageMask", Object::Bool(true))));
+        assert!(masked_or_optional(&with("IM", Object::Bool(true))));
+        assert!(masked_or_optional(&with("SMask", Object::Null)));
+        assert!(masked_or_optional(&with("Mask", Object::Null)));
+        assert!(masked_or_optional(&with("OC", Object::Null)));
+        assert!(masked_or_optional(&with("SMaskInData", 1.into())));
+        assert!(!masked_or_optional(&with("SMaskInData", 0.into())));
+        assert!(!masked_or_optional(&with("ImageMask", Object::Bool(false))));
+    }
+
+    #[test]
+    fn rectangles_that_only_touch_have_no_intersection() {
+        let r = |x0: f64, x1: f64| RectPt::new(Pt::new(x0), Pt::ZERO, Pt::new(x1), Pt::new(10.0));
+        assert_eq!(intersect(&r(0.0, 10.0), &r(10.0, 20.0)), None);
+        assert_eq!(intersect(&r(0.0, 10.0), &r(5.0, 20.0)), Some(r(5.0, 10.0)));
+    }
+}
