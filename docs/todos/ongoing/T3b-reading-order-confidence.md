@@ -11,7 +11,7 @@
 | Branch | `feat/t3b-column-order-warning` |
 | PR title | `feat(extract): warn when a page's column order is uncertain` |
 | Size | L (≈ 450–650 lines: three checks, the warning, three corpus layouts, the bench split; fixtures and goldens don't count). If it runs long, the bench split (the two bench tasks) can move to its own PR. |
-| PR | — |
+| PR | [#301](https://github.com/laudebugs/laminapdf/pull/301) |
 
 ## Goal
 
