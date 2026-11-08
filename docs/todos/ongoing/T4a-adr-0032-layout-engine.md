@@ -11,7 +11,7 @@
 | Branch | `docs/t4a-adr-0032-layout-engine` |
 | PR title | `docs(adr): 0032 flowing layout and document inputs, with the flow-layout spike` |
 | Size | M (≈ 350–500 lines of ADR and docs; the spike is throwaway code outside the workspaces) |
-| PR | — |
+| PR | [laudebugs/laminapdf#306](https://github.com/laudebugs/laminapdf/pull/306) |
 
 ## Goal
 
