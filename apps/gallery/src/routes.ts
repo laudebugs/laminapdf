@@ -114,7 +114,7 @@ export interface Settings {
 }
 
 /** The settings when the URL leaves them out. */
-export const DEFAULTS: Settings = {
+const DEFAULTS: Settings = {
   route: "",
   theme: "light",
   appearance: "original",
