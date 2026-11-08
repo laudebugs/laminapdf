@@ -88,6 +88,8 @@ ADR 0026 §7 fixes the text form, and this ADR keeps it: `error[wrong-password]:
 - **Hints name flags.** Where the façade's hint names an API (`OpenOptions` for a password, `Limits` for a limit), the CLI gives the flag that answers it instead: `--password-file` or `LAMINA_PDF_PASSWORD`, `--max-stream-decoded`.
 - **No document text in `message` or `hint`** (ADR 0026 §4). Extracted text, titles and other document strings appear only in data fields of a report.
 
+> **Implementation note (T2b, 2026-11-08).** `check` also reports what a failed redaction leaves behind: `covered-text`, `redaction-not-applied` and `text-in-earlier-revision` (`facadeWarnings` in `fixtures/codes.json`). They are findings about the content, not repairs, so `--strict` doesn't turn them into errors; like any warning they make the exit code 3, and `--warnings-ok` makes it 0. Their `data` holds counts and page indices, never the hidden text.
+
 ### 9. MCP defaults, for L4c
 
 The cli-spec note §4 and the filesystem MCP server's symlink CVEs set these, so `laminapdf mcp` is safe without opt-in flags:

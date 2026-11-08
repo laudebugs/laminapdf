@@ -101,6 +101,7 @@ export type ErrorCode =
   | "cancelled"
   | "job-finished"
   | "document-changed"
+  | "revision-index-out-of-range"
   | "builder-finished"
   | "disposed"
   | "invalid-argument"
@@ -172,7 +173,10 @@ export type WarningCode =
   | "extract-needs-ocr"
   | "extract-column-order-uncertain"
   | "tounicode-conflict"
-  | "whole-font-rebuilt";
+  | "whole-font-rebuilt"
+  | "covered-text"
+  | "redaction-not-applied"
+  | "text-in-earlier-revision";
 
 /** The names of the `Limits` (ADR 0003 §3), as `data.limit` of `limit-exceeded`. */
 export type LimitName =
@@ -277,6 +281,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "cancelled",
   "job-finished",
   "document-changed",
+  "revision-index-out-of-range",
   "builder-finished",
   "disposed",
   "invalid-argument",
@@ -350,6 +355,9 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "extract-column-order-uncertain",
   "tounicode-conflict",
   "whole-font-rebuilt",
+  "covered-text",
+  "redaction-not-applied",
+  "text-in-earlier-revision",
 ];
 
 /** The kind of every code. */
@@ -484,6 +492,10 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "cancelled": "cancelled",
   "job-finished": "state",
   "document-changed": "state",
+  "revision-index-out-of-range": "usage",
+  "covered-text": "security",
+  "redaction-not-applied": "security",
+  "text-in-earlier-revision": "security",
   "builder-finished": "state",
   "disposed": "state",
   "invalid-argument": "usage",
@@ -643,6 +655,10 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
+  "revision-index-out-of-range": "ask for an index below the document's revision count",
+  "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
+  "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
+  "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "invalid-argument": "pass the value the type declarations describe; the data field says what was wrong",
@@ -697,6 +713,7 @@ export const ERROR_GROUPS: readonly string[] = [
 export const WARNING_GROUPS: readonly string[] = [
   "warnings",
   "textWarnings",
+  "facadeWarnings",
 ];
 
 /** The groups whose codes only `@laminapdf/sdk` raises (not in the Rust enums or the WASM). */

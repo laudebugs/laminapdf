@@ -30,8 +30,7 @@
 # back to the previous deployment and fails. Tags are never path-filtered, and nothing else
 # deploys production.
 #
-# Fork PRs are skipped, as in docs.yml and site.yml: they must never run on self-hosted runners
-# or see the secrets. Without the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the
+# Fork PRs are skipped, as in docs.yml and site.yml: they must never see the secrets. Without the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the
 # deploy steps skip with a notice and the jobs pass (.github/actions/cloudflare-secrets). Nothing
 # a PR controls is interpolated into a script: values reach `run:` through `env:`. Actions are
 # pinned by full commit SHA with the release in a comment (ADR 0019).
@@ -62,7 +61,7 @@ jobs:
   preview-build:
     name: Reader preview (build)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -73,15 +72,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      # ci.yml's wasm job's build directory: `cargo xtask web build` compiles the same modules with
-      # the same profile, targets and features, so on pull requests each reuses the other's output.
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-wasm
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          # As in ci.yml's wasm job: rust-cache's post step hangs on self-hosted macOS runners.
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - name: Classify the changed paths
         id: changes
         env:
@@ -114,7 +110,7 @@ jobs:
     name: Reader preview (deploy)
     needs: preview-build
     if: ${{ needs.preview-build.outputs.web == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -291,7 +287,7 @@ jobs:
     name: Reader preview (smoke test)
     needs: preview-deploy
     if: ${{ needs.preview-deploy.outputs.url != '' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -309,7 +305,7 @@ jobs:
   staging:
     name: Reader staging
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
@@ -329,16 +325,13 @@ jobs:
           api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           setup: apps/web/DEPLOY.md
-      # ci.yml's wasm job's build directory, as in preview-build; a manual run uses another bucket
-      # (isolate-rust-home) and builds from scratch.
-      - if: steps.secrets.outputs.enabled == 'true'
-        uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-wasm
       - if: steps.secrets.outputs.enabled == 'true'
         uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       # A push deploys when the reader's inputs changed since the commit of the workflow's last
       # successful run on main: that run deployed staging, or found nothing to deploy since the run
       # before it. A cancelled or failed run doesn't count, so the next push makes up for it. A
@@ -396,9 +389,8 @@ jobs:
   production-checks:
     name: Reader production (checks)
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
-    runs-on: [self-hosted, macOS, ARM64]
-    # A tag's run lands in isolate-rust-home's and node-pnpm's `other` bucket, emptied before every
-    # use, so it builds everything from scratch.
+    runs-on: ubuntu-24.04
+    # A tag's run saves no Rust cache (only main does), so it never feeds a later build.
     timeout-minutes: 90
     permissions:
       contents: read
@@ -425,12 +417,12 @@ jobs:
             echo "::error::$TAG is on $GITHUB_SHA, which isn't a commit of main"
             exit 1
           fi
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: ci-wasm
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: false
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}
+          cache-bin: false
       - uses: ./.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
@@ -457,7 +449,7 @@ jobs:
     name: Reader production
     needs: production-checks
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     # The smoke test can wait up to 10 minutes for a new domain (apps/web/e2e/live.ts).
     timeout-minutes: 40
     environment: production

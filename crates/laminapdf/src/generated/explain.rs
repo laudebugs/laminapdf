@@ -4085,6 +4085,149 @@ The decisions and todos behind this code:
 
 - [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §3
 "#,
+        "revision-index-out-of-range" => r"# `revision-index-out-of-range`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+`Document::open_revision` was asked for a revision the file doesn't have.
+
+## Why
+
+Revisions are numbered from 0, the original file, to one less than `Document::revision_count`, the latest revision. A file that was never updated, or one opened by repairing a broken cross-reference table, has one revision.
+
+## How to fix
+
+Ask for an index below `revision_count()`.
+
+## Example
+
+```rust
+let count = doc.revision_count()?; // 2
+doc.open_revision(count, OpenOptions::default())?; // revision-index-out-of-range
+```
+
+## Data fields
+
+- `index`: the index asked for.
+- `count`: how many revisions the file has.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [T2b](../todos/done/T2b-check-failed-redactions.md): `revision_count` and `open_revision`
+",
+        "covered-text" => r#"# `covered-text`
+
+- Type: warning
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+A page draws text and then paints something opaque over it: a filled box, an image or an annotation. A reader sees the box, but the text under it is still in the file, so copying, search and every text extractor still get it.
+
+## Why
+
+Drawing a black box over a name is the most common failed redaction. A PDF keeps every glyph its content draws, whatever is painted over it later, so the box hides the words on screen and in print without removing them. Extraction already leaves such text out of its blocks and lists it under `dropped` as `covered`; this warning says how much of it each page has.
+
+## How to fix
+
+Remove the text itself with a tool that deletes what a redaction covers, then save the file as a full rewrite, so no earlier revision keeps it either. If the box is part of the design and the text under it is meant to be there, you can ignore the warning.
+
+## Example
+
+A page draws "Pay John Smith now." and then a black rectangle over "John Smith". `laminapdf check` reports `covered-text` for page 0 with `chars` 9, and `laminapdf extract` gives `Pay now.`.
+
+## Data fields
+
+- `chars`: how many characters, spaces left out, the page has under covers.
+- `regions`: how many separate covered passages the page has: one per box over a run of words.
+
+The `location` has the page's `pageIndex`. The warning never holds the covered text.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §4: hidden text and the `covered` flag
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning
+"#,
+        "redaction-not-applied" => r#"# `redaction-not-applied`
+
+- Type: warning
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+A page has redaction marks (`Redact` annotations, ISO 32000-2 §12.5.6.23) that were never applied. A mark only records what someone meant to remove; until a tool applies it, the text, images and drawings under it are all still in the file.
+
+## Why
+
+Editors such as Acrobat redact in two steps: you mark what to remove, then you apply the marks. A file saved between the two steps looks redacted in some viewers, which draw the mark's overlay, but nothing has been taken out.
+
+## How to fix
+
+Apply the redactions in a tool that removes what they cover, then save the file as a full rewrite.
+
+## Example
+
+A page with two redaction marks over a name and an account number, saved before "Apply redactions" was chosen. `laminapdf check` reports `redaction-not-applied` for that page with `annotations` 2.
+
+## Data fields
+
+- `annotations`: how many redaction marks the page has.
+
+The `location` has the page's `pageIndex`.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning
+"#,
+        "text-in-earlier-revision" => r#"# `text-in-earlier-revision`
+
+- Type: warning
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+The file was saved with incremental updates, and an earlier revision holds words that the latest revision has nowhere. Anyone can cut the file back to that revision and read them.
+
+## Why
+
+An incremental save appends the changes to the end of the file and keeps everything before them (ISO 32000-2 §7.5.6). Deleting a paragraph and saving that way leaves the paragraph in the bytes of the earlier revision. Signing, filling a form and some editors' plain "Save" all save incrementally.
+
+Not every removed word is a leak: fixing a typo removes the misspelt word too. The warning states that the earlier text is still in the file; whether that matters depends on what was removed.
+
+## How to fix
+
+Save the file as a full rewrite, which keeps only the latest revision. A signed file loses its signatures that way, so sign it again afterwards.
+
+## Example
+
+`fixtures/corpus/hello-incremental.pdf` first draws "Hello, World", and its update replaces that with "Hello, Update". `laminapdf check` reports `text-in-earlier-revision` with `revision` 0, `words` 1 and `pages` `[0]`.
+
+## Data fields
+
+- `revision`: the earlier revision's index, 0 for the original file.
+- `words`: how many words that revision has more often than the latest one (only words of two or more letters or digits count).
+- `pages`: the indices of that revision's pages where those words are.
+
+The warning has no `location`, and it never holds the words themselves.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning and how revisions are compared
+"#,
         "builder-finished" => r#"# `builder-finished`
 
 - Type: error

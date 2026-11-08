@@ -8,9 +8,9 @@
 //! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). The macOS
 //! runners' rustup (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so
 //! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
-//! install-action, so each runner keeps its own install-action folder. cli-release.yml publishes
+//! install-action, so its pin lives in one place. cli-release.yml publishes
 //! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
-//! secret, from self-hosted runners only (todo L4d).
+//! secret, from GitHub-hosted runners only (todo L4d).
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -394,7 +394,7 @@ mod tests {
     }
 
     /// A dispatch builds everything as a dry run, pull requests only plan, and every job runs on
-    /// the self-hosted runners (no GitHub-hosted minutes).
+    /// a GitHub-hosted runner (no workflow uses a self-hosted one).
     #[test]
     fn cli_release_should_plan_on_pull_requests_and_build_on_a_dry_run_dispatch() {
         let dispatch = lines_of(CLI_RELEASE, "on", "workflow_dispatch");
@@ -417,8 +417,8 @@ mod tests {
         for (id, lines) in jobs(CLI_RELEASE) {
             let runs_on = lines.iter().find_map(|l| l.trim().strip_prefix("runs-on: "));
             assert!(
-                runs_on.is_some_and(|r| r.starts_with("[self-hosted, ")),
-                "{id} must run on a self-hosted runner"
+                runs_on.is_some_and(|r| !r.contains("self-hosted")),
+                "{id} must run on a GitHub-hosted runner"
             );
             if id != "plan" {
                 assert!(
@@ -466,8 +466,7 @@ mod tests {
         assert_eq!(pinned(ACTION, "RUSTUP_VERSION:"), image);
     }
 
-    /// Anywhere else install-action works in `~/.install-action`, which every runner on the Mac
-    /// shares (`.github/actions/install-tools`' comment).
+    /// One pin for install-action, in `.github/actions/install-tools`.
     #[test]
     fn install_action_should_run_only_through_install_tools() {
         let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");

@@ -93,3 +93,46 @@ pub fn folder(name: &str) -> PathBuf {
 pub fn arg(path: &Path) -> &str {
     path.to_str().unwrap()
 }
+
+/// A one-page file drawing `text` in Helvetica 12 at (72, 700), then, with `cover`, a black
+/// box over all of it (todo T2b's covered page).
+pub fn page_with_text(text: &str, cover: bool) -> Vec<u8> {
+    let mut content = format!("BT /F1 12 Tf 72 700 Td ({text}) Tj ET");
+    if cover {
+        content.push_str(" 0 g 70 694 400 16 re f");
+    }
+    let stream = laminapdf_test_fixtures::stream_body("", content.as_bytes());
+    let objects: [&[u8]; 5] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        &stream,
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    ];
+    laminapdf_test_fixtures::classic(&objects, "<< /Size 6 /Root 1 0 R >>")
+}
+
+/// `base` with an incremental update (ISO 32000-2 §7.5.6) that replaces object `num` with
+/// `body`, as an editor's plain save does.
+pub fn with_update(base: &[u8], num: u32, body: &[u8]) -> Vec<u8> {
+    let text = String::from_utf8_lossy(base);
+    let prev: usize = text
+        .rsplit("startxref")
+        .next()
+        .and_then(|tail| tail.split_whitespace().next())
+        .and_then(|n| n.parse().ok())
+        .unwrap();
+    let mut out = base.to_vec();
+    let object = out.len();
+    out.extend_from_slice(format!("{num} 0 obj\n").as_bytes());
+    out.extend_from_slice(body);
+    out.extend_from_slice(b"\nendobj\n");
+    let xref = out.len();
+    out.extend_from_slice(
+        format!(
+            "xref\n0 1\n0000000000 65535 f\r\n{num} 1\n{object:010} 00000 n\r\ntrailer\n<< /Size 6 /Root 1 0 R /Prev {prev} >>\nstartxref\n{xref}\n%%EOF\n"
+        )
+        .as_bytes(),
+    );
+    out
+}

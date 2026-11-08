@@ -175,3 +175,17 @@ fn one_input_should_print_as_before() {
         text.stderr
     );
 }
+
+#[test]
+fn a_batch_check_should_report_warnings_for_the_covered_file_only() {
+    let path = folder("batch-covered").join("covered.pdf");
+    std::fs::write(&path, common::page_with_text("Pay John Smith now.", true)).unwrap();
+    let run = laminapdf(&["check", "fixtures/corpus/hello.pdf", arg(&path), "--json"]);
+    assert_eq!(run.code, 3);
+    let statuses: Vec<String> = lines(run.stdout.as_slice())
+        .iter()
+        .filter(|l| l["type"] == "result")
+        .filter_map(|l| l["status"].as_str().map(str::to_owned))
+        .collect();
+    assert_eq!(statuses, ["ok", "warnings"]);
+}

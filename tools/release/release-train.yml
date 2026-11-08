@@ -23,6 +23,15 @@ concurrency:
   group: release-train
   cancel-in-progress: false
 
+env:
+  CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   prepare:
     # workflow_run is privileged: never check out a PR's or another repository's code.
@@ -36,7 +45,7 @@ jobs:
       && (github.event.workflow_run.event == 'schedule'
       || (github.event.workflow_run.event == 'workflow_dispatch'
       && github.event.workflow_run.display_title == 'Nightly (full budgets)')))) }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       # Validate manual input before checking out and executing the selected commit's code.
@@ -70,12 +79,9 @@ jobs:
           ref: ${{ steps.nightly.outputs.sha }}
           persist-credentials: false
           fetch-depth: 0
-      - uses: ./.github/actions/isolate-rust-home
-        with:
-          target-dir: release-train
       - uses: ./.github/actions/host-rust
         with:
-          cache: false
+          cache: true
       - uses: ./.github/actions/node-pnpm
       - name: Prepare the version commit
         id: version

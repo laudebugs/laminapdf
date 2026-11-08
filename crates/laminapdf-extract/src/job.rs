@@ -12,10 +12,10 @@ use laminapdf_text::{PageText, TextExtractor};
 use crate::error::ExtractError;
 use crate::marks::{Drawn, Marks};
 use crate::model::TextLayerStatus;
-use crate::model::{ExtractedSource, Extraction, StructSource};
+use crate::model::{Dropped, ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
-use crate::page::{PageInput, TreeUse};
+use crate::page::{PageInput, TreeUse, hidden_runs};
 use crate::paint::annots;
 use crate::plugins::{LayoutRegion, ModelRequest, ModelResult, ModelSlot, OcrWord, PageRaster};
 use crate::segments::Covers;
@@ -69,6 +69,21 @@ struct Pending {
     words: Option<Vec<OcrWord>>,
     /// The page rendered for the plug-in models, kept while both use it.
     raster: Option<PageRaster>,
+}
+
+impl Pending {
+    /// What the page pass reads besides the text, with the document's structure `tree`.
+    fn input<'a>(&'a self, tree: Option<&'a TaggedIndex>) -> PageInput<'a> {
+        PageInput {
+            edges: self.edges.as_ref(),
+            backdrops: &self.backdrops,
+            covers: &self.covers,
+            drawn: &self.drawn,
+            tree,
+            regions: self.regions.as_deref().unwrap_or_default(),
+            words: self.words.as_deref().unwrap_or_default(),
+        }
+    }
 }
 
 /// Starts an extraction of `doc`: checks the pages asked for, reads whether the document is
@@ -269,12 +284,7 @@ impl ExtractJob {
             let Some(&index) = self.todo.get(self.next) else {
                 break;
             };
-            if self.cancel.is_cancelled() {
-                return Err(ExtractError::Cancelled);
-            }
-            let page = pages
-                .get(index)
-                .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
+            let page = self.page(&pages, index, count)?;
             if self.pending.is_none() {
                 self.pending = Some(self.read(doc, &page, index)?);
             }
@@ -294,15 +304,7 @@ impl ExtractJob {
                 &page,
                 index,
                 &pending.text,
-                &PageInput {
-                    edges: pending.edges.as_ref(),
-                    backdrops: &pending.backdrops,
-                    covers: &pending.covers,
-                    drawn: &pending.drawn,
-                    tree: self.tree.as_ref(),
-                    regions: pending.regions.as_deref().unwrap_or_default(),
-                    words: pending.words.as_deref().unwrap_or_default(),
-                },
+                &pending.input(self.tree.as_ref()),
                 &self.options,
                 &self.cancel,
             )?;
@@ -329,6 +331,37 @@ impl ExtractJob {
             return Ok(Step::Done(out));
         }
         Ok(self.progress(Phase::Extract))
+    }
+
+    /// [`crate::hidden_text`]: each page asked for read as [`ExtractJob::step`] reads it, and
+    /// only its hidden runs kept.
+    pub(crate) fn hidden(&mut self, doc: &Document, cancel: &CancelToken) -> Result<Vec<Dropped>, ExtractError> {
+        self.cancel = cancel.clone();
+        let pages = doc.pages()?;
+        let count = pages.len();
+        let mut out = Vec::new();
+        for &index in &self.todo.clone() {
+            let page = self.page(&pages, index, count)?;
+            let pending = self.read(doc, &page, index)?;
+            out.extend(hidden_runs(index, &pending.text, &pending.input(None), &self.options));
+        }
+        Ok(out)
+    }
+
+    /// Page `index` of `pages` (of `count`), once the token is checked: each page a step reads
+    /// starts here.
+    fn page<'d>(
+        &self,
+        pages: &'d laminapdf_model::Pages<'d>,
+        index: usize,
+        count: usize,
+    ) -> Result<laminapdf_model::Page<'d>, ExtractError> {
+        if self.cancel.is_cancelled() {
+            return Err(ExtractError::Cancelled);
+        }
+        pages
+            .get(index)
+            .ok_or(ExtractError::PageIndexOutOfRange { index, count })
     }
 
     /// Reads page `index`'s text and, in the same walk of its content, its table rules, covers
