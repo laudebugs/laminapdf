@@ -17,7 +17,8 @@
 #   version under the alias pr-<number>, which deploys nothing. Its URL, the commit and the build's
 #   gzip sizes go in one comment on the PR, updated on every push.
 # - `preview-smoke` runs the PR's smoke test (apps/web/e2e/smoke.test.ts) against that URL, with
-#   no secrets.
+#   no secrets. A refused request fails it at once, naming who refused. The jobs that run the smoke
+#   test need the runner label open-network (apps/web/DEPLOY.md, Troubleshooting).
 # Pushes to main (and manual runs on main): `staging` deploys main to
 # https://staging-app.laminapdf.com (wrangler.jsonc's env.staging, the Worker
 # lamina-pdf-web-staging) and runs the smoke test there; main is trusted. A push deploys when the
@@ -291,7 +292,9 @@ jobs:
     name: Reader preview (smoke test)
     needs: preview-deploy
     if: ${{ needs.preview-deploy.outputs.url != '' }}
-    runs-on: [self-hosted, macOS, ARM64]
+    # open-network: runners whose network reaches Cloudflare with no gateway in between (the
+    # smoke test fetches the deployed reader; apps/web/DEPLOY.md, Troubleshooting).
+    runs-on: [self-hosted, macOS, ARM64, open-network]
     timeout-minutes: 20
     permissions:
       contents: read
@@ -309,7 +312,9 @@ jobs:
   staging:
     name: Reader staging
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
-    runs-on: [self-hosted, macOS, ARM64]
+    # open-network: runners whose network reaches Cloudflare with no gateway in between (the
+    # smoke test fetches the deployed reader; apps/web/DEPLOY.md, Troubleshooting).
+    runs-on: [self-hosted, macOS, ARM64, open-network]
     timeout-minutes: 60
     permissions:
       contents: read
@@ -457,7 +462,9 @@ jobs:
     name: Reader production
     needs: production-checks
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
-    runs-on: [self-hosted, macOS, ARM64]
+    # open-network: runners whose network reaches Cloudflare with no gateway in between (the
+    # smoke test fetches the deployed reader; apps/web/DEPLOY.md, Troubleshooting).
+    runs-on: [self-hosted, macOS, ARM64, open-network]
     # The smoke test can wait up to 10 minutes for a new domain (apps/web/e2e/live.ts).
     timeout-minutes: 40
     environment: production
