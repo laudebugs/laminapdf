@@ -11,7 +11,7 @@
 | Branch | `feat/t4g-flow-styled-spans` |
 | PR title | `feat(text): line breaking over styled spans in several fonts and sizes` |
 | Size | M (≈ 350–500 lines of code with unit tests) |
-| PR | — |
+| PR | [#323](https://github.com/laudebugs/laminapdf/pull/323) |
 
 ## Goal
 
