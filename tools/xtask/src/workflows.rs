@@ -5,7 +5,12 @@
 //! depend on it (why: the comment on nightly.yml's `bench` job). site.yml's production job
 //! regenerates the website's roadmap before every build, and runs on every push to main and on
 //! a schedule, so the site follows the board without a refresh PR. docs.yml deploys main's docs to
-//! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4).
+//! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). The macOS
+//! runners' rustup (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so
+//! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
+//! install-action, so each runner keeps its own install-action folder. cli-release.yml publishes
+//! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
+//! secret, from self-hosted runners only (todo L4d).
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -113,6 +118,7 @@ mod tests {
     const NIGHTLY: &str = include_str!("../../../.github/workflows/nightly.yml");
     const SITE: &str = include_str!("../../../.github/workflows/site.yml");
     const DOCS: &str = include_str!("../../../.github/workflows/docs.yml");
+    const CLI_RELEASE: &str = include_str!("../../../.github/workflows/cli-release.yml");
 
     #[test]
     fn fast_gate_should_need_every_ci_job() {
@@ -263,6 +269,73 @@ mod tests {
         );
     }
 
+    /// Publishing the CLI takes all three of the owner's switches: the repository variable, a
+    /// `laminapdf-cli-v*` tag push (never a dispatch or a pull request) and the `release`
+    /// environment. It is the only job with an OIDC token, and the workflow reads no secret.
+    #[test]
+    fn cli_release_should_publish_only_on_a_tag_push_with_the_owners_variable() {
+        let publish = lines_of(CLI_RELEASE, "jobs", "publish");
+        let has = |lines: &[&str], want: &str| lines.iter().any(|l| l.trim() == want);
+        assert!(
+            has(
+                &publish,
+                "if: ${{ needs.global.result == 'success' && needs.build-linux.result == 'success' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/laminapdf-cli-v') && vars.LAMINA_PDF_PUBLISH_CLI == 'true' }}"
+            ),
+            "publish must need the Linux builds, the tag push and LAMINA_PDF_PUBLISH_CLI"
+        );
+        assert!(
+            has(&publish, "environment: release"),
+            "publish must run in the release environment"
+        );
+        let with_oidc: Vec<&str> = jobs(CLI_RELEASE)
+            .into_iter()
+            .filter(|(_, lines)| has(lines, "id-token: write"))
+            .map(|(id, _)| id)
+            .collect();
+        assert_eq!(with_oidc, ["publish"], "only publish may ask for an OIDC token");
+        assert!(!CLI_RELEASE.contains("secrets."), "cli-release.yml must store no token");
+        assert!(
+            has(&lines_of(CLI_RELEASE, "on", "push"), "tags: [\"laminapdf-cli-v*\"]"),
+            "only CLI tags may trigger a push run"
+        );
+    }
+
+    /// A dispatch builds everything as a dry run, pull requests only plan, and every job runs on
+    /// the self-hosted runners (no GitHub-hosted minutes).
+    #[test]
+    fn cli_release_should_plan_on_pull_requests_and_build_on_a_dry_run_dispatch() {
+        let dispatch = lines_of(CLI_RELEASE, "on", "workflow_dispatch");
+        let dry_run = dispatch.iter().position(|l| l.trim() == "dry-run:");
+        assert!(dry_run.is_some(), "the dispatch has no dry-run input");
+        assert!(
+            dispatch
+                .iter()
+                .skip(dry_run.unwrap_or_default())
+                .any(|l| l.trim() == "default: true"),
+            "dry-run must default to true"
+        );
+        let paths = lines_of(CLI_RELEASE, "on", "pull_request");
+        for want in ["- crates/laminapdf-cli/**", "- dist-workspace.toml"] {
+            assert!(
+                paths.iter().any(|l| l.trim() == want),
+                "pull requests don't plan on `{want}`"
+            );
+        }
+        for (id, lines) in jobs(CLI_RELEASE) {
+            let runs_on = lines.iter().find_map(|l| l.trim().strip_prefix("runs-on: "));
+            assert!(
+                runs_on.is_some_and(|r| r.starts_with("[self-hosted, ")),
+                "{id} must run on a self-hosted runner"
+            );
+            if id != "plan" {
+                assert!(
+                    lines.iter().any(|l| l.trim().starts_with("needs: ")),
+                    "{id} must wait for plan"
+                );
+            }
+        }
+    }
+
     #[test]
     fn keys_under_should_stop_at_the_next_top_level_key() {
         let workflow = "name: x\non: # triggers\n  push:\n    branches: [main]\n  # a comment\n  schedule:\n    - cron: \"0 1 * * *\"\npermissions:\n  contents: read\n";
@@ -271,6 +344,60 @@ mod tests {
         assert_eq!(
             lines_of(workflow, "on", "push"),
             ["    branches: [main]", "  # a comment"]
+        );
+    }
+
+    /// The value after `key` on the first line that starts with it, without indentation, a
+    /// trailing ` #` comment or quotes.
+    fn pinned<'a>(file: &'a str, key: &str) -> Option<&'a str> {
+        file.lines()
+            .find_map(|l| l.trim_start().strip_prefix(key))
+            .map(|v| v.split(" #").next().unwrap_or_default().trim().trim_matches('"'))
+    }
+
+    #[test]
+    fn pinned_should_drop_quotes_and_a_trailing_comment() {
+        let file = "env:\n  # V: old\n  V: \"1.2.3\" # why\n";
+        assert_eq!(pinned(file, "V:"), Some("1.2.3"));
+    }
+
+    #[test]
+    fn isolate_rust_home_should_install_the_linux_runner_images_rustup() {
+        const ACTION: &str = include_str!("../../../.github/actions/isolate-rust-home/action.yml");
+        const IMAGE: &str = include_str!("../../../tools/ci-runner/linux/Dockerfile");
+        let image = pinned(IMAGE, "ARG RUSTUP_VERSION=");
+        assert!(
+            image.is_some(),
+            "the Linux runner's Dockerfile has no `ARG RUSTUP_VERSION=`"
+        );
+        assert_eq!(pinned(ACTION, "RUSTUP_VERSION:"), image);
+    }
+
+    /// Anywhere else install-action works in `~/.install-action`, which every runner on the Mac
+    /// shares (`.github/actions/install-tools`' comment).
+    #[test]
+    fn install_action_should_run_only_through_install_tools() {
+        let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");
+        let read = |dir: &str| std::fs::read_dir(github.join(dir)).unwrap().map(|e| e.unwrap().path());
+        let workflows = read("workflows").filter(|p| p.extension().is_some_and(|e| e == "yml" || e == "yaml"));
+        let actions = read("actions")
+            .filter(|p| !p.ends_with("install-tools"))
+            .map(|p| p.join("action.yml"));
+        let mut direct: Vec<String> = Vec::new();
+        for path in workflows.chain(actions) {
+            let text = std::fs::read_to_string(&path).unwrap();
+            for (i, line) in text.lines().enumerate() {
+                if !line.trim_start().starts_with('#') && line.contains("taiki-e/install-action") {
+                    let name = path.strip_prefix(&github).unwrap_or(&path).display();
+                    direct.push(format!(".github/{name}:{}", i + 1));
+                }
+            }
+        }
+        direct.sort();
+        assert_eq!(
+            direct,
+            Vec::<String>::new(),
+            "use ./.github/actions/install-tools instead"
         );
     }
 

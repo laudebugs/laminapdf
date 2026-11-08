@@ -91,7 +91,7 @@ A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(
 - **toolbars and context menus** (buttons reference command ids, so labels, shortcuts and enabled state never drift);
 - the **shortcut help dialog** ([C7a](../todos/ready/C7a-accessibility-and-theming.md)), generated, never hand-written.
 
-Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/Ctrl) and checked for collisions with browser and OS shortcuts by a test. Delivered by [U1b](../todos/ready/U1b-command-registry-and-palette.md).
+Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/Ctrl) and checked for collisions with browser and OS shortcuts by a test. Delivered by [U1b](../todos/done/U1b-command-registry-and-palette.md).
 
 ### 5.3 Selection and copy (R4, R5)
 
@@ -181,7 +181,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens); the command registry and palette; the left rail, inspector, mode switcher and focus mode in `@laminapdf/ui`.
 **Accepted when:** every reader command is in the registry and reachable from the palette, a menu and its shortcut; the help dialog and desktop menus are generated from it; axe reports no serious violations on the shell.
-**Todos:** [U1a](../todos/done/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
+**Todos:** [U1a](../todos/done/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/done/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
 
 ### U2. Reading quality
 
@@ -210,7 +210,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 ### U6. Paper design system
 
 Planned in the [Paper design plan §6](paper-design.md#6-round-u6-paper-in-code): tokens, self-hosted fonts, icons, core components, overlays and a gallery with visual tests.
-**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/done/U6b-self-hosted-fonts.md), [U6c](../todos/done/U6c-icon-set.md), [U6d](../todos/done/U6d-core-components.md), [U6h](../todos/done/U6h-display-components.md), [U6e](../todos/done/U6e-overlays-and-sheets.md), [U6i](../todos/done/U6i-sheets-positioning-and-palette-shell.md), [U6j](../todos/done/U6j-positioning-and-palette-shell.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
+**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/done/U6b-self-hosted-fonts.md), [U6c](../todos/done/U6c-icon-set.md), [U6d](../todos/done/U6d-core-components.md), [U6h](../todos/done/U6h-display-components.md), [U6e](../todos/done/U6e-overlays-and-sheets.md), [U6i](../todos/done/U6i-sheets-positioning-and-palette-shell.md), [U6j](../todos/done/U6j-positioning-and-palette-shell.md), [U6f](../todos/done/U6f-gallery-and-visual-tests.md)
 
 ### Changes to existing todos
 
@@ -264,8 +264,8 @@ Ticked by the PR that completes them.
 
 ### U1. Shell foundations
 - [x] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens): [ADR 0024](../decisions/0024-app-shell-ux.md), with the reader v0.1 command set as its appendix
-- [ ] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test
-- [ ] Command palette (cmdk) with argument parsing, recents and shortcut chips
+- [x] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test ([U1b](../todos/done/U1b-command-registry-and-palette.md))
+- [x] Command palette with argument parsing, recents and shortcut chips ([U1b](../todos/done/U1b-command-registry-and-palette.md): its own ranking rather than cmdk's, so no dependency)
 - [ ] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode
 
 ### U2. Reading quality
@@ -290,4 +290,4 @@ Ticked by the PR that completes them.
 - [ ] Optional (opt-in), content-free usage telemetry
 
 ### U6. Paper design system
-- [ ] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))
+- [x] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))
