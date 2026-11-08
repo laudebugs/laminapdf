@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::ops::Range;
 use std::rc::Rc;
 
+use super::span::{Group, Style};
 use super::{Alignment, LayoutOptions, Line, LineRun};
 use crate::bidi::BidiParagraph;
 use crate::error::Result;
@@ -21,6 +22,12 @@ pub(super) struct Layouter<'a, S> {
     pub(super) options: &'a LayoutOptions,
     pub(super) para: &'a BidiParagraph<'a>,
     pub(super) items: &'a [Item],
+    /// The paragraph's groups of equally styled spans.
+    pub(super) groups: &'a [Group],
+    /// Each item's group: an index into `groups`.
+    pub(super) item_groups: &'a [usize],
+    /// The paragraph's own style, for a paragraph without spans (an empty text).
+    pub(super) default_style: Style,
     /// Every run shaped so far, by (item index, range, level): shaping is deterministic, so
     /// the estimates' runs serve lines that hold an item whole (most short texts), and the
     /// candidates line breaking tries again (backing off, trying a longer line, splitting an
@@ -35,7 +42,7 @@ type ShapeKey = (usize, usize, usize, u8);
 struct Draft {
     range: Range<usize>,
     content: Range<usize>,
-    /// Each run with its font index, level and left edge, in visual order.
+    /// Each run with its item index, level and left edge, in visual order.
     runs: Vec<(Rc<ShapedRun>, usize, u8, f64)>,
     width: f64,
 }
@@ -116,7 +123,7 @@ impl<S: Shaper> Layouter<'_, S> {
             };
             for glyph in &run.glyphs {
                 if let Some(slot) = at.get_mut(glyph.cluster) {
-                    *slot += crate::shape::to_points(i64::from(glyph.x_advance), run.units_per_em, self.options.size);
+                    *slot += crate::shape::to_points(i64::from(glyph.x_advance), run.units_per_em, self.style(i).size);
                 }
             }
         }
@@ -166,11 +173,12 @@ impl<S: Shaper> Layouter<'_, S> {
         }
         let run = match self.fonts.get(item.font) {
             Some(font) => {
+                let style = self.style(i);
                 let options = ShapeOptions {
                     script: Some(item.script),
-                    language: self.options.language.clone(),
+                    language: style.language.clone(),
                     direction: Some(Direction::from_level(level)),
-                    features: self.options.features.clone(),
+                    features: style.features.clone(),
                 };
                 Some(Rc::new(self.shaper.shape_range(font, self.text, range, &options)?))
             }
@@ -195,8 +203,8 @@ impl<S: Shaper> Layouter<'_, S> {
                 let Some(run) = self.shaped(i, item, part, visual.level)? else {
                     continue;
                 };
-                let width = run.width(self.options.size);
-                runs.push((run, item.font, visual.level, x));
+                let width = run.width(self.style(i).size);
+                runs.push((run, i, visual.level, x));
                 x += width;
             }
         }
@@ -228,22 +236,73 @@ impl<S: Shaper> Layouter<'_, S> {
             .get(range.clone())
             .and_then(|t| t.chars().next_back())
             .is_some_and(is_hard_break);
+        let runs: Vec<LineRun> = runs
+            .into_iter()
+            .filter_map(|(run, i, level, x)| {
+                let item = self.items.get(i)?;
+                let group = self.group(i)?;
+                Some(LineRun {
+                    run: Rc::unwrap_or_clone(run),
+                    font: item.font,
+                    level,
+                    x,
+                    spans: group.spans.clone(),
+                    size: group.style.size,
+                    rise: group.style.rise,
+                })
+            })
+            .collect();
+        let (ascent, descent) = self.metrics(&runs, range.start);
         Line {
             range,
             content,
-            runs: runs
-                .into_iter()
-                .map(|(run, font, level, x)| LineRun {
-                    run: Rc::unwrap_or_clone(run),
-                    font,
-                    level,
-                    x,
-                })
-                .collect(),
+            runs,
             width,
             x: offset,
             hard_break,
+            ascent,
+            descent,
         }
+    }
+
+    /// Item `i`'s group.
+    fn group(&self, i: usize) -> Option<&Group> {
+        self.item_groups.get(i).and_then(|&g| self.groups.get(g))
+    }
+
+    /// Item `i`'s style (every item has a group, so the fallback is never used).
+    fn style(&self, i: usize) -> &Style {
+        self.group(i).map_or(&self.default_style, |g| &g.style)
+    }
+
+    /// A line's ascent and descent in points from its baseline: the extremes of its runs'
+    /// fonts at their sizes, moved by their rises. A line with no runs (an empty paragraph, a
+    /// line of only a hard break) takes them from the first font of the span it starts in.
+    fn metrics(&self, runs: &[LineRun], start: usize) -> (f64, f64) {
+        let extent = |font: usize, size: f32, rise: f32| {
+            self.fonts.get(font).map(|f| {
+                let info = f.info();
+                let scale = f64::from(size) / f64::from(info.units_per_em.max(1));
+                (
+                    f64::from(info.ascent) * scale + f64::from(rise),
+                    f64::from(info.descent) * scale + f64::from(rise),
+                )
+            })
+        };
+        let mut extents: Vec<(f64, f64)> = runs.iter().filter_map(|r| extent(r.font, r.size, r.rise)).collect();
+        if extents.is_empty() {
+            let style = self
+                .groups
+                .iter()
+                .find(|g| g.range.contains(&start))
+                .or(self.groups.last())
+                .map_or(&self.default_style, |g| &g.style);
+            let font = style.fonts.first().copied().unwrap_or(0);
+            extents.extend(extent(font, style.size, style.rise));
+        }
+        extents
+            .into_iter()
+            .fold((0.0, 0.0), |(a, d), (ra, rd)| (a.max(ra), d.min(rd)))
     }
 
     /// Splits `range`, too wide for one line, into lines that fit between grapheme clusters

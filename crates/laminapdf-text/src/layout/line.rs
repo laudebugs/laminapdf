@@ -10,12 +10,22 @@ use crate::shape::ShapedRun;
 pub struct LineRun {
     /// The glyphs (clusters are byte offsets into the paragraph's text).
     pub run: ShapedRun,
-    /// The font: an index into the list given to [`break_lines`].
+    /// The font: an index into the list given to [`break_lines`](super::break_lines) or
+    /// [`break_spans`](super::break_spans).
     pub font: usize,
     /// The bidi level the run was shaped at (odd: right to left).
     pub level: u8,
     /// The run's left edge, in points from the line's left edge.
     pub x: f64,
+    /// The spans the run's text comes from: indices into the list given to
+    /// [`break_spans`](super::break_spans) (`0..1` for [`break_lines`](super::break_lines)).
+    /// Consecutive spans of one style are shaped as one run, so a run can hold several.
+    pub spans: Range<usize>,
+    /// The font size the run was shaped and measured at, in points.
+    pub size: f32,
+    /// The run's baseline rise in points ([`Span::rise`](super::Span::rise)): draw it with
+    /// [`pdf_line_run`](crate::pdf_line_run).
+    pub rise: f32,
 }
 
 /// One line of a paragraph.
@@ -37,6 +47,13 @@ pub struct Line {
     /// The line ended at a hard break (a line feed, U+2028, …) rather than for lack of room
     /// or at the end of the text.
     pub hard_break: bool,
+    /// How far the line reaches above its baseline, in points: the highest of its runs'
+    /// font ascents at their sizes, raised by their rises. Set lines at least
+    /// `ascent − descent` apart so mixed sizes never overlap.
+    pub ascent: f64,
+    /// How far it reaches below (negative: below the baseline), as for [`Line::ascent`] with
+    /// the fonts' descents.
+    pub descent: f64,
 }
 
 impl Line {

@@ -2736,6 +2736,35 @@ shaper.shape_range(&font, "héllo", 0..2, &options)?; // byte 2 is inside 'é'
 - `start`, `end`: the range (bytes).
 - `len`: the text's length (bytes).
 "#,
+        "invalid-spans" => r#"# `invalid-spans`
+
+- Type: error
+- Kind: `usage` (the caller passed something invalid)
+
+## What happened
+
+`break_spans` was given styled spans that don't cover the paragraph's text exactly once, in order. There is a gap between two spans, two spans overlap, a span comes before the one it follows, the last span stops before the end of the text or runs past it, or a span starts or ends inside a character.
+
+## Why
+
+Each character's font, size and language come from the span that holds it. A character in no span, or in two, would have no style or two styles, so Lamina PDF refuses the spans rather than guess.
+
+## How to fix
+
+List the spans in the order of the text. Start the first at byte 0, start each span where the one before it ends, and end the last at the text's length. Take span ends from `char_indices` or `str::len`, so that they fall between characters. An empty text needs no spans.
+
+## Example
+
+```rust
+let text = "Hello, world";
+let spans = [Span::new(0..5, 12.0), Span::new(6..12, 12.0)]; // byte 5 is in no span
+break_spans(&shaper, &fonts, text, &spans, &options)?; // invalid-spans
+```
+
+## Data fields
+
+- `at`: the byte offset where the spans stop covering the text.
+"#,
         "unsupported-layout-option" => r"# `unsupported-layout-option`
 
 - Type: error

@@ -126,6 +126,8 @@ pub enum ErrorCode {
     InvalidFeature,
     /// `invalid-text-range`: a byte range was out of bounds or not on character boundaries of the text.
     InvalidTextRange,
+    /// `invalid-spans`: the styled spans given for a paragraph do not cover its text once, in order.
+    InvalidSpans,
     /// `unsupported-layout-option`: a layout option that is not implemented yet was asked for.
     UnsupportedLayoutOption,
     /// `font-mismatch`: a shaped run was given with a font key for a different font than it was shaped with.
@@ -287,6 +289,7 @@ impl ErrorCode {
         Self::WrongDocument,
         Self::InvalidFeature,
         Self::InvalidTextRange,
+        Self::InvalidSpans,
         Self::UnsupportedLayoutOption,
         Self::FontMismatch,
         Self::EncodingFull,
@@ -406,6 +409,7 @@ impl ErrorCode {
             Self::WrongDocument => "wrong-document",
             Self::InvalidFeature => "invalid-feature",
             Self::InvalidTextRange => "invalid-text-range",
+            Self::InvalidSpans => "invalid-spans",
             Self::UnsupportedLayoutOption => "unsupported-layout-option",
             Self::FontMismatch => "font-mismatch",
             Self::EncodingFull => "encoding-full",
@@ -513,6 +517,7 @@ impl ErrorCode {
             Self::WrongDocument => ErrorKind::Usage,
             Self::InvalidFeature => ErrorKind::Usage,
             Self::InvalidTextRange => ErrorKind::Usage,
+            Self::InvalidSpans => ErrorKind::Usage,
             Self::UnsupportedLayoutOption => ErrorKind::Unsupported,
             Self::FontMismatch => ErrorKind::Usage,
             Self::EncodingFull => ErrorKind::Limit,
@@ -620,6 +625,7 @@ impl ErrorCode {
             Self::WrongDocument => "finish_fonts was given a document the registry did not reserve its fonts in",
             Self::InvalidFeature => "an OpenType feature setting did not parse",
             Self::InvalidTextRange => "a byte range was out of bounds or not on character boundaries of the text",
+            Self::InvalidSpans => "the styled spans given for a paragraph do not cover its text once, in order",
             Self::UnsupportedLayoutOption => "a layout option that is not implemented yet was asked for",
             Self::FontMismatch => "a shaped run was given with a font key for a different font than it was shaped with",
             Self::EncodingFull => "a standard 14 font has no free one-byte code left for another glyph",
@@ -727,6 +733,7 @@ impl ErrorCode {
             Self::WrongDocument => "use one FontRegistry per document and finish it with that document",
             Self::InvalidFeature => "write it as liga=0, -liga, smcp or aalt=2 (HarfBuzz syntax without ranges)",
             Self::InvalidTextRange => "take ranges from Lamina PDF's results (line_breaks, itemize, break_lines) and pass the same text",
+            Self::InvalidSpans => "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, on character boundaries",
             Self::UnsupportedLayoutOption => "leave the option at its default; justification comes with a later release",
             Self::FontMismatch => "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
             Self::EncodingFull => "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",

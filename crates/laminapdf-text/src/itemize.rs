@@ -49,43 +49,75 @@ pub struct Item {
 /// primary font, or no font when the list is empty); [`Error::InvalidFont`] when a font's
 /// tables can't be read.
 pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
+    let order: Vec<usize> = (0..fonts.len()).collect();
+    itemize_range(para, fonts, &order, 0..para.text().len())
+}
+
+/// [`itemize`] over `range` of `para`'s text with the fonts `order` picks from `fonts`, in
+/// that order of preference (a styled span's fonts): items name their font by its index in
+/// `fonts`, and none crosses `range`'s ends. Text with nothing to draw names `order`'s first
+/// font (0 when `order` is empty).
+pub(crate) fn itemize_range(
+    para: &BidiParagraph<'_>,
+    fonts: &[Font],
+    order: &[usize],
+    range: Range<usize>,
+) -> Result<Vec<Item>> {
     let text = para.text();
-    let charmaps = fonts
+    let segment = text.get(range.clone()).ok_or(Error::InvalidTextRange {
+        start: range.start,
+        end: range.end,
+        len: text.len(),
+    })?;
+    let charmaps = order
         .iter()
-        .map(|f| f.font_ref().map(|r| r.charmap()))
-        .collect::<Result<Vec<_>>>()?;
-    let covers = |font: usize, cluster: &str| {
-        charmaps.get(font).is_some_and(|map| {
-            cluster
-                .chars()
-                .filter(|&ch| needs_glyph(ch))
-                .all(|ch| map.map(ch).is_some_and(|g| g.to_u32() != 0))
+        .map(|&f| match fonts.get(f) {
+            Some(font) => font.font_ref().map(|r| Some(r.charmap())),
+            None => Ok(None),
         })
+        .collect::<Result<Vec<_>>>()?;
+    // `font` is an index into `fonts`; its charmap is at its place in `order`.
+    let covers = |font: usize, cluster: &str| {
+        order
+            .iter()
+            .position(|&f| f == font)
+            .and_then(|at| charmaps.get(at))
+            .and_then(Option::as_ref)
+            .is_some_and(|map| {
+                cluster
+                    .chars()
+                    .filter(|&ch| needs_glyph(ch))
+                    .all(|ch| map.map(ch).is_some_and(|g| g.to_u32() != 0))
+            })
     };
+    let primary = order.first().copied().unwrap_or(0);
 
     let mut items: Vec<Item> = Vec::new();
     // Whether the last item's script was taken from a real character (else it is still open
     // to the first real script that follows).
     let mut script_known = false;
-    let bounds = grapheme_boundaries(text);
+    let bounds = grapheme_boundaries(segment);
     for pair in bounds.windows(2) {
         let &[start, end] = pair else { continue };
+        let (start, end) = (range.start + start, range.start + end);
         let cluster = text.get(start..end).unwrap_or_default();
         let script = Script::dominant(cluster);
         let level = para.level_at(start).unwrap_or(0);
         let current = items.last().filter(|item| item.level == level).map(|item| item.font);
         let font = if !cluster.chars().any(needs_glyph) {
             // Nothing to draw (a hard break, a ZWJ): it decides nothing.
-            current.unwrap_or(0)
+            current.unwrap_or(primary)
         } else if let Some(f) = current.filter(|&f| script.is_none() && covers(f, cluster)) {
             // Spaces, digits and punctuation stay in the run they are in.
             f
         } else {
             // Every other cluster takes the first font that covers it, so a fallback font
             // never sticks to text the primary font has.
-            (0..fonts.len())
+            order
+                .iter()
+                .copied()
                 .find(|&f| covers(f, cluster))
-                .ok_or_else(|| missing_glyph(fonts, cluster, &covers))?
+                .ok_or_else(|| missing_glyph(fonts.get(primary), cluster, &|c| covers(primary, c)))?
         };
         let joins = items.last().is_some_and(|item| {
             item.level == level
@@ -127,19 +159,16 @@ pub(crate) fn needs_glyph(ch: char) -> bool {
 }
 
 /// [`Error::MissingGlyph`] for the first character of `cluster` the primary font lacks.
-fn missing_glyph(fonts: &[Font], cluster: &str, covers: &impl Fn(usize, &str) -> bool) -> Error {
+fn missing_glyph(primary: Option<&Font>, cluster: &str, covers: &impl Fn(&str) -> bool) -> Error {
     let mut buf = [0u8; 4];
     let ch = cluster
         .chars()
-        .find(|&ch| needs_glyph(ch) && !covers(0, ch.encode_utf8(&mut buf)))
+        .find(|&ch| needs_glyph(ch) && !covers(ch.encode_utf8(&mut buf)))
         .or_else(|| cluster.chars().next())
         .unwrap_or_default();
     Error::MissingGlyph {
         ch,
-        font: fonts
-            .first()
-            .map(|f| f.info().postscript_name.clone())
-            .unwrap_or_default(),
+        font: primary.map(|f| f.info().postscript_name.clone()).unwrap_or_default(),
     }
 }
 

@@ -12,6 +12,7 @@
 
 mod breaker;
 mod line;
+mod span;
 #[cfg(test)]
 mod tests;
 
@@ -25,11 +26,12 @@ use icu_properties::props::BidiClass;
 use crate::bidi::BidiParagraph;
 use crate::error::{Error, Result};
 use crate::font::Font;
-use crate::itemize::itemize;
+use crate::itemize::itemize_range;
 use crate::shape::{Direction, Feature, Shaper};
 
 use breaker::Layouter;
 pub use line::{Line, LineRun};
+pub use span::Span;
 
 /// Where lines sit in the box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -127,17 +129,68 @@ impl LayoutOptions {
 /// ```
 ///
 /// # Errors
-/// As [`itemize`] (a character no font covers) and [`Shaper::shape_range`];
-/// [`Error::UnsupportedLayoutOption`] when [`LayoutOptions::justify`] is set.
+/// As [`break_spans`].
 pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &LayoutOptions) -> Result<Vec<Line>> {
+    break_spans(shaper, fonts, text, &[Span::new(0..text.len())], options)
+}
+
+/// [`break_lines`] over styled spans: words in other fonts, sizes, rises and languages
+/// inside one paragraph (a bold word, a superscript, an Arabic name in an English line).
+/// `spans` cover `text` once, in order; each sets its own [`Span::fonts`] (indices into
+/// `fonts`), size, rise, language and features, defaulting to `options`. Lines break where
+/// the text allows (UAX #14 on the whole text), never because a span ends, so a style change
+/// inside a word is not a break opportunity. Consecutive spans of one style are shaped as one
+/// run, and a line's ascent and descent come from its tallest run.
+///
+/// ```
+/// # fn regular() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
+/// # fn bold() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-RegularBold.ttc")).to_vec() }
+/// use laminapdf_text::{Font, HarfRust, LayoutOptions, Span, break_spans};
+///
+/// let fonts = [Font::from_bytes(regular())?, Font::from_collection(bold(), 1)?];
+/// let text = "A bold word and E = mc2.";
+/// let spans = [
+///     Span::new(0..2),
+///     Span::new(2..6).with_fonts([1, 0]),
+///     Span::new(6..22),
+///     Span::new(22..23).with_size(7.0).with_rise(4.0),
+///     Span::new(23..24),
+/// ];
+/// let lines = break_spans(&HarfRust, &fonts, text, &spans, &LayoutOptions::new(300.0, 12.0))?;
+/// let runs = &lines[0].runs;
+/// assert_eq!(runs[1].font, 1); // "bold" in the bold font
+/// assert_eq!((runs[3].size, runs[3].rise), (7.0, 4.0)); // the raised "2"
+/// # Ok::<(), laminapdf_text::Error>(())
+/// ```
+///
+/// # Errors
+/// [`Error::InvalidSpans`] when `spans` don't cover `text` once, in order;
+/// [`Error::MissingGlyph`] for a character none of its span's fonts covers, and the other
+/// errors of [`itemize`](crate::itemize) and [`Shaper::shape_range`];
+/// [`Error::UnsupportedLayoutOption`] when [`LayoutOptions::justify`] is set.
+pub fn break_spans(
+    shaper: &impl Shaper,
+    fonts: &[Font],
+    text: &str,
+    spans: &[Span],
+    options: &LayoutOptions,
+) -> Result<Vec<Line>> {
     if options.justify {
         return Err(Error::UnsupportedLayoutOption { option: "justify" });
     }
+    span::check(text, spans)?;
     let mut lines = Vec::new();
     for paragraph in paragraphs(text) {
         let ptext = text.get(paragraph.clone()).unwrap_or_default();
         let para = BidiParagraph::new(ptext, options.direction);
-        let items = itemize(&para, fonts)?;
+        let groups = span::groups(spans, &paragraph, options, fonts.len());
+        let mut items = Vec::new();
+        let mut item_groups = Vec::new();
+        for (g, group) in groups.iter().enumerate() {
+            let group_items = itemize_range(&para, fonts, &group.style.fonts, group.range.clone())?;
+            item_groups.extend(std::iter::repeat_n(g, group_items.len()));
+            items.extend(group_items);
+        }
         let layout = Layouter {
             shaper,
             fonts,
@@ -145,6 +198,9 @@ pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &L
             options,
             para: &para,
             items: &items,
+            groups: &groups,
+            item_groups: &item_groups,
+            default_style: span::Style::of(&Span::new(0..0), options, fonts.len()),
             shaped: RefCell::new(BTreeMap::new()),
         };
         for mut line in layout.lines()? {

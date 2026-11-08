@@ -28,6 +28,7 @@ use crate::embed::{FontKey, FontRegistry, milli};
 use crate::error::{Error, Result};
 use crate::font::GlyphId;
 use crate::itemize::needs_glyph;
+use crate::layout::LineRun;
 use crate::shape::{ShapedGlyph, ShapedRun, sub};
 
 /// One element of a `TJ` array.
@@ -229,6 +230,23 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
         pieces,
         advance: milli_to_f64(advance),
     })
+}
+
+/// [`pdf_run`] for a run of a laid-out line ([`break_lines`](crate::break_lines),
+/// [`break_spans`](crate::break_spans)): the run's [`LineRun::rise`] (a superscript's or a
+/// subscript's) is added to every segment's rise, so drawing the segments' `Ts` raises it.
+///
+/// # Errors
+/// As [`pdf_run`].
+pub fn pdf_line_run(run: &LineRun, text: &str, fonts: &mut FontRegistry, key: FontKey) -> Result<PdfRun> {
+    let mut pdf = pdf_run(&run.run, text, fonts, key)?;
+    if run.rise != 0.0 && run.size > 0.0 {
+        let rise = f64::from(run.rise) * 1000.0 / f64::from(run.size);
+        for segment in pdf.pieces.iter_mut().flat_map(|p| p.segments.iter_mut()) {
+            segment.rise += rise;
+        }
+    }
+    Ok(pdf)
 }
 
 /// Checks that `run` was shaped with the font `info` describes and that its glyphs and

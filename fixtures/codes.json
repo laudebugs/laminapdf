@@ -630,6 +630,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "invalid-spans",
+      "kind": "usage",
+      "summary": "the styled spans given for a paragraph do not cover its text once, in order",
+      "hint": "give spans in text order, each starting where the one before ends, from byte 0 to the end of the text, on character boundaries",
+      "since": "0.2.0"
+    },
+    {
       "code": "unsupported-layout-option",
       "kind": "unsupported",
       "summary": "a layout option that is not implemented yet was asked for",

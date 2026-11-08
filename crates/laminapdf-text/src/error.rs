@@ -115,6 +115,14 @@ pub enum Error {
         /// The text's length (bytes).
         len: usize,
     },
+    /// The spans given to [`break_spans`](crate::break_spans) don't cover the text exactly
+    /// once, in order, on character boundaries.
+    #[error("the spans do not cover the text in order at byte {at}")]
+    InvalidSpans {
+        /// The byte offset where the spans stop covering the text: a gap, an overlap, a span
+        /// out of order, past the end or inside a character.
+        at: usize,
+    },
     /// A layout option Lamina PDF does not implement yet (`LayoutOptions::justify`).
     #[error("layout option {option} is not supported yet")]
     UnsupportedLayoutOption {
@@ -174,6 +182,7 @@ impl Error {
         "wrong-document",
         "invalid-feature",
         "invalid-text-range",
+        "invalid-spans",
         "unsupported-layout-option",
         "font-mismatch",
         "encoding-full",
@@ -196,6 +205,7 @@ impl Error {
             Self::Subset { .. } => "subset-failed",
             Self::InvalidFeature { .. } => "invalid-feature",
             Self::InvalidTextRange { .. } => "invalid-text-range",
+            Self::InvalidSpans { .. } => "invalid-spans",
             Self::UnsupportedLayoutOption { .. } => "unsupported-layout-option",
             Self::FontMismatch { .. } => "font-mismatch",
             Self::EncodingFull { .. } => "encoding-full",
@@ -223,6 +233,7 @@ impl Error {
             | Self::UnknownFont { .. }
             | Self::InvalidFeature { .. }
             | Self::InvalidTextRange { .. }
+            | Self::InvalidSpans { .. }
             | Self::FontMismatch { .. } => ErrorKind::Usage,
             Self::Subset { .. } | Self::UnsupportedLayoutOption { .. } | Self::FontNotShapable { .. } => {
                 ErrorKind::Unsupported
@@ -249,6 +260,7 @@ impl Error {
             | Self::Subset { .. }
             | Self::InvalidFeature { .. }
             | Self::InvalidTextRange { .. }
+            | Self::InvalidSpans { .. }
             | Self::UnsupportedLayoutOption { .. }
             | Self::FontMismatch { .. }
             | Self::EncodingFull { .. }
@@ -375,6 +387,7 @@ mod tests {
                 end: 1,
                 len: 0,
             },
+            Error::InvalidSpans { at: 0 },
             Error::UnsupportedLayoutOption { option: "justify" },
             Error::FontMismatch {
                 font: String::new(),
