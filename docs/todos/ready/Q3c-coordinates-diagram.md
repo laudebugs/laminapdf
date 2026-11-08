@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../ongoing/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/q3c-coordinates-diagram` |
 | PR title | `feat(docs): a diagram for page space and PDF user space` |

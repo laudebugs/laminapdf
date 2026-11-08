@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../ongoing/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0004](../../decisions/0004-render-backend.md) |
 | Branch | `feat/q3g-drawing-and-ranges` |
 | PR title | `feat(docs): pages and diagrams for drawing pages and opening large files by ranges` |

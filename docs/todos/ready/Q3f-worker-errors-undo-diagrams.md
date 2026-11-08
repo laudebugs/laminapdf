@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](../ongoing/Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0026](../../decisions/0026-error-and-diagnostic-contract.md) |
 | Branch | `feat/q3f-worker-errors-undo` |
 | PR title | `feat(docs): diagrams for the Web Worker, errors and warnings, and undo` |
