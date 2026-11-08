@@ -1,0 +1,214 @@
+/* The gallery's own layout, from the Paper tokens only. */
+
+html,
+body {
+  margin: 0;
+  background: var(--paper-ground);
+  color: var(--paper-text);
+  font: var(--paper-type-body, 400 14px / 1.45 var(--paper-font-sans));
+}
+
+/* Unlayered, so it wins over the components' `@layer paper.*` rules without !important. */
+[data-motion="reduce"] *,
+[data-motion="reduce"] *::before,
+[data-motion="reduce"] *::after {
+  transition: none;
+  animation: none;
+}
+
+.g-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--paper-space-12);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--paper-space-12) var(--paper-space-16);
+  border-bottom: 1px solid var(--paper-hairline);
+  background: var(--paper-surface);
+}
+
+.g-header h1 {
+  margin: 0;
+  font: var(--paper-type-title);
+}
+
+.g-header a {
+  color: inherit;
+}
+
+.g-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--paper-space-8);
+}
+
+.g-control {
+  display: inline-flex;
+  gap: var(--paper-space-6);
+  align-items: center;
+  color: var(--paper-text-2);
+}
+
+#stage {
+  padding: var(--paper-space-16);
+  background: var(--paper-ground);
+}
+
+#stage h2 {
+  font: var(--paper-type-title);
+  margin: var(--paper-space-16) 0 var(--paper-space-8);
+}
+
+.g-index,
+.g-grid,
+.g-swatches,
+.g-pairs,
+.g-scale {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.g-index {
+  display: grid;
+  gap: var(--paper-space-6);
+}
+
+.g-index a {
+  color: var(--paper-accent);
+}
+
+.g-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--paper-space-12);
+}
+
+.g-cell {
+  display: grid;
+  gap: var(--paper-space-6);
+  align-content: start;
+  min-width: 0;
+  padding: var(--paper-space-12);
+  border: 1px solid var(--paper-hairline);
+  border-radius: var(--paper-radius-6);
+  background: var(--paper-surface);
+}
+
+.g-label,
+.g-note,
+.g-pairs small {
+  color: var(--paper-muted);
+  font-size: 12px;
+}
+
+.g-sample {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.g-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--paper-space-8);
+}
+
+.g-swatches li {
+  display: flex;
+  gap: var(--paper-space-8);
+  align-items: center;
+}
+
+.g-swatch {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 1px solid var(--paper-control-border);
+  border-radius: var(--paper-radius-4);
+}
+
+.g-pairs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--paper-space-6);
+}
+
+.g-pairs li {
+  display: grid;
+  gap: var(--paper-space-2);
+  padding: var(--paper-space-8);
+  border: 1px solid var(--paper-hairline);
+  border-radius: var(--paper-radius-4);
+}
+
+.g-pairs small {
+  color: var(--paper-text);
+}
+
+.g-boundary {
+  border-bottom: 2px solid;
+}
+
+.g-scale {
+  display: grid;
+  gap: var(--paper-space-6);
+}
+
+.g-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--paper-space-16);
+  margin-top: var(--paper-space-16);
+}
+
+.g-scale li {
+  display: flex;
+  gap: var(--paper-space-8);
+  align-items: center;
+}
+
+.g-bar {
+  display: block;
+  height: 8px;
+  background: var(--paper-accent);
+}
+
+.g-box {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--paper-control-border);
+  background: var(--paper-surface);
+}
+
+.g-icons {
+  border-collapse: collapse;
+}
+
+.g-icons th,
+.g-icons td {
+  padding: var(--paper-space-4) var(--paper-space-8);
+  border-bottom: 1px solid var(--paper-hairline);
+  color: var(--paper-text-3);
+  text-align: start;
+}
+
+.g-icons .g-accent {
+  color: var(--paper-accent);
+}
+
+.g-selection {
+  position: relative;
+  min-height: 240px;
+}
+
+.g-selected {
+  background: var(--paper-accent-tint);
+  color: var(--paper-text);
+}
+
+.g-shell {
+  display: grid;
+  gap: var(--paper-space-16);
+  margin-top: var(--paper-space-16);
+}

@@ -46,6 +46,10 @@ catalog:
   # Accessibility checks in browser tests (@laminapdf/icons' gallery). MPL-2.0, dev-only: never
   # shipped (ADR 0019).
   axe-core: 4.14.0
+  # The gallery's screenshot and axe tests (apps/gallery, todo U6f). Dev-only: @playwright/test is
+  # Apache-2.0 and matches `playwright` below; @axe-core/playwright is MPL-2.0 and matches axe-core.
+  "@axe-core/playwright": 4.14.0
+  "@playwright/test": 1.64.1
   bun: 1.4.4
   deno: 2.9.6
   # Maintainability checks in `cargo xtask check ts` (Q2u): import cycles and cross-package
