@@ -49,7 +49,7 @@ export interface ReaderTopBarProps<Id extends string> {
 }
 
 /** A viewer that never scrolls, for a top bar without one. */
-const STILL: ExternalStore<{ readonly scrollTop?: number }> = {
+const STILL: ExternalStore<{ readonly scrollTop?: number; readonly percent?: number }> = {
   getState: () => ({}),
   subscribe: () => () => undefined,
 };
@@ -66,13 +66,21 @@ const SETTLE_MS = 400;
 /** Whether the phone's top bar is out of the way: hidden while `viewer` scrolls down, back on the way up. */
 function useHiddenWhileScrolling(viewer: ViewerControls | undefined, phone: boolean): boolean {
   const top = useStoreState<{ readonly scrollTop?: number }, number>(viewer ?? STILL, (s) => s.scrollTop ?? 0);
+  const percent = useStoreState<{ readonly percent?: number }, number>(viewer ?? STILL, (s) => s.percent ?? 100);
   const [hidden, setHidden] = useState(false);
   // Where the scrolling last turned: any move up shows the bar, a move down past HIDE_AFTER hides it.
   const turn = useRef(top);
   const quietUntil = useRef(0);
   const isHidden = useRef(false);
+  const zoomedTo = useRef(percent);
   useEffect(() => {
     const now = performance.now();
+    // A zoom (a pinch, a double tap) moves the scroll to keep a point still: never a reason to move
+    // the bar, which would shift the page under the fingers.
+    if (percent !== zoomedTo.current) {
+      zoomedTo.current = percent;
+      quietUntil.current = now + SETTLE_MS;
+    }
     if (!phone || now < quietUntil.current) {
       turn.current = top;
       return;
@@ -84,7 +92,7 @@ function useHiddenWhileScrolling(viewer: ViewerControls | undefined, phone: bool
       isHidden.current = moved > 0;
       setHidden(moved > 0);
     }
-  }, [top, phone]);
+  }, [top, percent, phone]);
   return phone && hidden && top > 0;
 }
 

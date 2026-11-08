@@ -5,15 +5,14 @@
 // the point under the fingers within 2 px), never scrolls sideways, and passes axe; the phone shows
 // the bottom bar and the tablet the desktop shell.
 
-import { createRequire } from "node:module";
 import { env } from "node:process";
+import axe from "axe-core";
 import { type Browser, type BrowserType, chromium, devices, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { chooseFile, clean, load, opened, WITHOUT_PICKER } from "./reader.ts";
 
 const BROWSER = env.LAMINA_PDF_E2E_BROWSER ?? "chromium";
 const origin = inject("origin");
-const AXE = createRequire(import.meta.url).resolve("axe-core");
 
 /** One device profile to run: Playwright's, optionally narrowed, and whether it is phone-sized. */
 interface Profile {
@@ -82,10 +81,10 @@ const scrollTo = (page: Page, at: number) =>
     return root.scrollHeight - root.clientHeight - root.scrollTop;
   }, at);
 
-/** The first page's box, in viewport CSS px. */
+/** The first page's box, in viewport CSS px: its shell, since a detail canvas covers only the part in view. */
 const firstPage = (page: Page) =>
   page.evaluate(() => {
-    const r = (document.querySelector(".web-viewer canvas") as HTMLElement).getBoundingClientRect();
+    const r = (document.querySelector(".web-viewer .lamina-page") as HTMLElement).getBoundingClientRect();
     return { left: r.left, top: r.top, width: r.width, height: r.height };
   });
 
@@ -196,7 +195,7 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
     it(`${profile.label}: passes axe`, async () => {
       const watched = await open(true);
       const { page } = watched;
-      await page.addScriptTag({ path: AXE });
+      await page.addScriptTag({ content: axe.source });
       const serious = await page.evaluate(async () => {
         const run = (
           window as unknown as { axe: { run: (n: Node) => Promise<{ violations: { id: string; impact: string }[] }> } }

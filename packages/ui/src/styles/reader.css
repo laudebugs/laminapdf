@@ -140,7 +140,8 @@
   }
 
   .paper-zoom-percent {
-    min-inline-size: var(--paper-zoom-percent-min-width);
+    /* A target in both directions: a short percentage ("98%") is narrower than a touch target. */
+    min-inline-size: max(var(--paper-zoom-percent-min-width), var(--ui-target));
     min-block-size: max(var(--paper-icon-button-size-zoom), var(--ui-target));
     padding-inline: var(--paper-space-4);
     border: var(--paper-border-width) solid transparent;

@@ -191,5 +191,10 @@ describe("the phone's top bar", () => {
       false,
       false,
     ]);
+    // A zoom that scrolls (a pinch keeping its point still) leaves the bar where it is.
+    await settle();
+    state = { ...state, percent: 175 };
+    await scroll(600);
+    expect(hidden()).toBe(false);
   });
 });
