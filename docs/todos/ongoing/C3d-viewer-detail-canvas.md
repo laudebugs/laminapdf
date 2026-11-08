@@ -15,7 +15,7 @@
 
 ## Goal
 
-Keep the page in view sharp at every zoom up to 800 %. Today each page is one canvas the size of the whole page, and every canvas shares the pool's 64 MP cap. A page's pixels grow with the square of the zoom: a Letter page on a 2× screen is 14 MP at 200 %, 55 MP at 400 % and 220 MP at 800 %. So above about 300 % the pool lowers every page's resolution (the visible page gets about 1.92× at 400 %), and Safari's limit of about 16.7 MP per canvas is reached near 230 %. With a backdrop for the whole page, capped in pixels, and a canvas over the part in view at the full pixel ratio, the cost of the sharp pixels depends on the viewport, not the zoom.
+Keep the page in view sharp at every zoom up to 800 %. Today each page is one canvas the size of the whole page, and every canvas shares the pool's 64 MP cap. A page's pixels grow with the square of the zoom: a Letter page on a 2× screen is 14 MP at 200 %, 55 MP at 400 % and 220 MP at 800 %. So above about 300 % the pool lowers every page's resolution (the visible page gets about 1.92× at 400 %), and Safari's limit of about 16.7 MP per canvas is reached near 230 %. A backdrop for the whole page, capped in pixels, and a canvas over the part in view at the full pixel ratio make the cost of the sharp pixels depend on the viewport, not the zoom.
 
 ## Context
 
@@ -29,7 +29,7 @@ Keep the page in view sharp at every zoom up to 800 %. Today each page is one ca
 **In scope**
 
 - Each mounted page keeps one backdrop canvas, at the sharp scale when the page fits a per-page pixel cap, else at the scale that fits it.
-- When the backdrop is below the sharp scale (the cap, or the pool's fit), a page in view gets a detail canvas: the tile-aligned part of the page in view, at the full pixel ratio, placed over the backdrop. The sharp tiles are drawn into it; the backdrop gets its own tiles over the whole page.
+- When the backdrop is below the sharp scale (the cap, or the pool's fit), a page in view gets a detail canvas: the tile-aligned part of the page in view, at the full pixel ratio, placed over the backdrop. The sharp tiles are drawn into it; the backdrop gets the whole page in one render, for what scrolls into view next.
 - Tiles in view take the horizontal scroll into account, not only the vertical one.
 - Detail canvases come from their own pool, so the pixels across both pools stay at today's 64 MP.
 
