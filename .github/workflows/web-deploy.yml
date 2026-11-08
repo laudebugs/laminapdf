@@ -61,7 +61,7 @@ jobs:
   preview-build:
     name: Reader preview (build)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -110,7 +110,7 @@ jobs:
     name: Reader preview (deploy)
     needs: preview-build
     if: ${{ needs.preview-build.outputs.web == 'true' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -287,7 +287,7 @@ jobs:
     name: Reader preview (smoke test)
     needs: preview-deploy
     if: ${{ needs.preview-deploy.outputs.url != '' }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -305,7 +305,7 @@ jobs:
   staging:
     name: Reader staging
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
@@ -389,7 +389,7 @@ jobs:
   production-checks:
     name: Reader production (checks)
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     # A tag's run saves no Rust cache (only main does), so it never feeds a later build.
     timeout-minutes: 90
     permissions:
@@ -449,7 +449,7 @@ jobs:
     name: Reader production
     needs: production-checks
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-v') }}
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     # The smoke test can wait up to 10 minutes for a new domain (apps/web/e2e/live.ts).
     timeout-minutes: 40
     environment: production

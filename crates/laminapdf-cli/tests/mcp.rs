@@ -196,7 +196,7 @@ async fn paths_outside_the_roots_should_be_tool_errors_and_touch_nothing() {
     let before = std::fs::read(&secret).unwrap();
     #[cfg(unix)]
     std::os::unix::fs::symlink(&secret, base.join("root/link.pdf")).unwrap();
-    let mut refused = vec![
+    let refused = vec![
         call(&client, "laminapdf_info", json!({ "input": "../outside/secret.pdf" })).await,
         call(&client, "laminapdf_info", json!({ "input": secret.to_str().unwrap() })).await,
         call(
@@ -212,8 +212,13 @@ async fn paths_outside_the_roots_should_be_tool_errors_and_touch_nothing() {
         )
         .await,
     ];
+    // The symlink case exists only on Unix (it is created above under the same cfg).
     #[cfg(unix)]
-    refused.push(call(&client, "laminapdf_extract", json!({ "input": "link.pdf" })).await);
+    let refused = {
+        let mut refused = refused;
+        refused.push(call(&client, "laminapdf_extract", json!({ "input": "link.pdf" })).await);
+        refused
+    };
     for result in &refused {
         let error = error(result);
         assert_eq!(error["code"], "path-outside-roots", "{error}");

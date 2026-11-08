@@ -141,7 +141,7 @@ fn check_tag(root: &Path, tag: &str) -> Result<()> {
 }
 
 fn display(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root).unwrap_or(path).display().to_string()
+    crate::util::slash_path(path.strip_prefix(root).unwrap_or(path))
 }
 
 /// What a sync would do: the files to rewrite (with their new text) and the problems it can't fix.
