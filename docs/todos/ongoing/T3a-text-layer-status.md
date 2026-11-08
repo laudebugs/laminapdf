@@ -11,7 +11,7 @@
 | Branch | `feat/t3a-text-layer-status` |
 | PR title | `feat(extract): a per-page text-layer status that says which pages need OCR` |
 | Size | L (≈ 500–700 lines: the measures and rules, the warning, tests on built pages, the bench counts; the schema, goldens and generated files don't count) |
-| PR | — |
+| PR | [#297](https://github.com/laudebugs/laminapdf/pull/297) |
 
 ## Goal
 
