@@ -27,7 +27,7 @@ Readers place text with `at: [72, 96]` and need to know where that lands. PDF's 
 
 **In scope**
 
-- Diagram 4: panel one shows the media box with the crop box inside it, page space (origin top-left, y down) and user space (origin bottom-left, y up), the point `[72, 96]` and a text baseline; panel two shows the same page with `/Rotate 90`, page space following the displayed top-left corner, and ADR 0027's worked rectangle.
+- Diagram 4: panel one shows the media box with the crop box inside it, page space (origin top-left, y down) and user space (origin bottom-left, y up), the point `[72, 96]` and a text baseline; panel two shows the same page with `/Rotate 90`, page space following the displayed top-left corner, and ADR 0027's worked rectangle. The page's crop box is its media box, as in ADR 0027's worked example: a smaller crop box would move user space's origin off the sheet and change the example's numbers, which the figure has to match.
 
 **Out of scope** (and which todo covers it)
 

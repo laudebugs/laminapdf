@@ -1,10 +1,12 @@
 ---
 // The arrowheads, defined once per drawing. Their ids start with the drawing's own prefix, so two
-// diagrams (or a diagram's two layouts) on one page never share an id.
+// diagrams (or a diagram's two layouts) on one page never share an id. `ink` adds the head that
+// Arrow's ink tone uses, for a drawing with a PageSheet.
 interface Props {
   prefix: string;
+  ink?: boolean;
 }
-const { prefix } = Astro.props;
+const { prefix, ink = false } = Astro.props;
 ---
 
 <defs>
@@ -14,7 +16,11 @@ const { prefix } = Astro.props;
   <marker id={`${prefix}-head-focus`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
     <path class="dg-head-focus" d="M0 0 L10 5 L0 10 z"></path>
   </marker>
-  <marker id={`${prefix}-head-ink`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-    <path class="dg-head-ink" d="M0 0 L10 5 L0 10 z"></path>
-  </marker>
+  {
+    ink && (
+      <marker id={`${prefix}-head-ink`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path class="dg-head-ink" d="M0 0 L10 5 L0 10 z" />
+      </marker>
+    )
+  }
 </defs>

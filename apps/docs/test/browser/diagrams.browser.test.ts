@@ -89,6 +89,16 @@ function behind(text: SVGTextElement): string {
   return getComputedStyle(document.body).backgroundColor;
 }
 
+/** Every line drawn on a PageSheet has 3:1 against the sheet, not the page around it. */
+function expectSheetLines(svg: SVGSVGElement, where: string): void {
+  for (const shape of svg.querySelectorAll(".dg-page .dg-page-axis, .dg-page .dg-ink-line")) {
+    const sheet = shape.closest(".dg-page")?.querySelector(".dg-sheet");
+    if (sheet === null || sheet === undefined) throw new Error("a page line with no sheet");
+    const ratio = contrast(getComputedStyle(shape).stroke, getComputedStyle(sheet).fill);
+    expect(ratio, `${shape.getAttribute("class")} in ${where}`).toBeGreaterThanOrEqual(3);
+  }
+}
+
 for (const [name, html] of Object.entries(DIAGRAMS)) {
   for (const theme of THEMES) {
     describe(`${name}, ${theme}`, () => {
@@ -99,6 +109,10 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
           const ratio = contrast(getComputedStyle(text).fill, behind(text));
           expect(ratio, `"${text.textContent}" in ${theme}`).toBeGreaterThanOrEqual(4.5);
         }
+      });
+
+      it("gives every line drawn on a page sheet 3:1 against the sheet", () => {
+        expectSheetLines(shown(mount(html, theme, WIDTHS.desktop)), theme);
       });
 
       it("gives every border and arrow 3:1 against the page", () => {
@@ -128,6 +142,7 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
         3,
       );
     }
+    expectSheetLines(svg, "forced colours");
   });
 
   for (const [where, width] of Object.entries(WIDTHS)) {
