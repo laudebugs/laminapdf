@@ -13,12 +13,14 @@ import {
   useState,
 } from "react";
 import { Input } from "react-aria-components";
+import { useCommand } from "../commands/react.js";
 import { message } from "../messages.js";
 import { useStoreState } from "../state/hooks.js";
 import { pageFromInput, type ViewerControls } from "./viewer-controls.js";
 
 /** Props of `PageInput`. */
 export interface PageInputProps {
+  /** The viewer, whose page the field shows: the commands' context's viewer, where `nav.go-to-page` goes. */
   viewer: ViewerControls;
   /** The document's page labels, one per page, when it has any (read by the reader once it shows page labels). */
   labels?: readonly string[];
@@ -32,6 +34,7 @@ interface Problem {
 
 /** The current page as an editable field, and the page count. */
 export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
+  const goToPage = useCommand("nav.go-to-page");
   const current = useStoreState(viewer, (state) => state.currentPage);
   const total = useStoreState(viewer, (state) => state.pageCount);
   const shown = labels?.[current] ?? String(current + 1);
@@ -56,7 +59,7 @@ export function PageInput({ viewer, labels }: PageInputProps): ReactNode {
     const page = pageFromInput(typed, total, labels);
     if (page !== undefined) {
       setProblem(undefined);
-      return viewer.goToPage(page);
+      return goToPage.run(page);
     }
     setProblem((last) => ({
       text: message("reader.page.invalid", { value: typed, total }),

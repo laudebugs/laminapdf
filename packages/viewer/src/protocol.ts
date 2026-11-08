@@ -39,6 +39,8 @@ export interface OpenedDocument {
   /** Whether the file can't be opened without its password, so a restarted worker must ask again. */
   readonly needsPassword: boolean;
   readonly backend: { readonly name: BackendName; readonly version: string };
+  /** The title in the file's metadata, for the window's title; absent when the file has none. */
+  readonly title?: string;
 }
 
 /** A rendered tile on the page: an ImageBitmap transferred from the worker. Close it when done. */

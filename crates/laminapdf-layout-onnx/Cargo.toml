@@ -1,0 +1,35 @@
+[package]
+name = "laminapdf-layout-onnx"
+description = "A LayoutModel for laminapdf-extract (ADR 0030 §6): Docling's Heron layout detector through ONNX Runtime, with weights the app supplies and that are checked against their pinned SHA-256."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+# Not published yet: the first release decides the ONNX Runtime packaging (README).
+publish = false
+readme = "README.md"
+homepage.workspace = true
+documentation.workspace = true
+keywords = ["pdf", "layout", "onnx", "extraction"]
+categories = ["text-processing"]
+
+# Edge: loads ONNX Runtime, a native library, from the file system at run time.
+[package.metadata.laminapdf]
+layer = "edge"
+
+[dependencies]
+laminapdf-extract = { workspace = true }
+laminapdf-model = { workspace = true }
+laminapdf-syntax = { workspace = true }
+ort = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+laminapdf-render = { path = "../laminapdf-render", features = ["hayro"] }
+laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

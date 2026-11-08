@@ -33,12 +33,17 @@ pub(crate) fn check_npm_tarball(ws: &Workspace, tarball: &Path, version: &str) -
     report(&format!("{tarball}: docs/"), &problems)
 }
 
-/// The `laminapdf` crate: `docs/` on disk, and `cargo package --list` naming it.
-pub(crate) fn check_crate(ws: &Workspace, version: &str) -> Result<()> {
+/// The `laminapdf` crate: `docs/` on disk, and `cargo package --list` naming it (with
+/// `--allow-dirty` when the generated docs aren't committed as they are).
+pub(crate) fn check_crate(ws: &Workspace, version: &str, allow_dirty: bool) -> Result<()> {
     let docs = ws.root.join("crates/laminapdf/docs");
     let mut problems = problems(&docs, &codes(ws)?, version, false)?;
+    let mut args = vec!["package", "--list", "-p", "laminapdf"];
+    if allow_dirty {
+        args.push("--allow-dirty");
+    }
     let output = std::process::Command::new(crate::program_path("cargo"))
-        .args(["package", "--list", "--allow-dirty", "-p", "laminapdf"])
+        .args(&args)
         .current_dir(&ws.root)
         .output()
         .context("running `cargo package --list`")?;

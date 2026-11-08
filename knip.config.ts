@@ -65,7 +65,9 @@ const config: KnipConfig = {
       vitest: false,
     },
   },
-  ignore: ["**/src/generated/**"],
+  // Build output is never project code: apps/web imports the built viewer, whose dist/ exists after
+  // `cargo xtask wasm`, and knip would follow the import into it.
+  ignore: ["**/src/generated/**", "**/dist/**"],
   // knip finds pnpm's workspaces itself; the generated package is left out here too.
   ignoreWorkspaces: ["packages/wasm"],
   ignoreDependencies: [

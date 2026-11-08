@@ -1,0 +1,41 @@
+# `model-needs-host`
+
+- Type: error
+- Kind: `usage` (the call itself is wrong)
+
+## What happened
+
+An extraction in one call (`extract`) was given a model whose results only the host can give: a model named as the host's (`ModelSlot::Host`), or a plug-in model with no page renderer to draw the pages it reads.
+
+## Why
+
+A one-call extraction runs to the end without stopping, so it can only use models it can call itself, on pages its renderer draws. A host's model answers through the extraction job, which stops at each page that needs a result.
+
+## How to fix
+
+Step an extraction job and hand it each result: `request()` says which page and resolution it needs, `provide(result)` gives it back. Or give the plug-in model a page renderer, so the extraction calls it between pages.
+
+## Example
+
+```rust
+let mut job = doc.extract_job(&options)?;
+loop {
+    if let laminapdf::Step::Done(extraction) = job.step(&doc, laminapdf::Budget::UNLIMITED)? {
+        break extraction;
+    }
+    if let Some(request) = job.request().cloned() {
+        job.provide(run_my_model(&request))?;
+    }
+}
+```
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §6
+- [L3c](../todos/done/L3c-model-plugins.md)
