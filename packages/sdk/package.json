@@ -77,6 +77,8 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@microsoft/api-extractor": "catalog:",
+    "@laminapdf/render": "workspace:*",
+    "@laminapdf/render-hayro": "workspace:*",
     "@laminapdf/test-utils": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",

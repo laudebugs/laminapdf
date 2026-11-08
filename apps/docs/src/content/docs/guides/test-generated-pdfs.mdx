@@ -1,0 +1,56 @@
+---
+title: Test the PDFs you generate
+description: Compare the PDFs your code makes with reference PDFs you approved, byte for byte, and draw both files' pages to see what changed.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+You'll write a test that fails when a PDF your code makes changes. The test compares the PDF's bytes with a reference PDF you opened and approved. When the bytes differ, a second example draws both files' pages to show where they look different.
+
+## Why the bytes repeat
+
+Lamina PDF never reads a clock or picks a random value while it writes. With the same code, data, options and Lamina PDF version, Rust and every JavaScript runtime write the same bytes. Three values usually come from your app rather than from the content (the file ID, the producer and the creation date), so a test fixes them.
+
+Your own code can vary the bytes too, and a failing test should point there first:
+
+- a date taken from the clock, such as an invoice date or `new Date()` in a footer;
+- records read in a different order, such as rows from a database without `ORDER BY`;
+- a different font file: an update to the font changes the embedded subset.
+
+## Compare with a reference PDF
+
+The example below holds the options a test passes and a function that compares a PDF with its reference. The function answers `same`, `created` or `changed`, and your test runner checks the answer, so it works in Vitest, Jest, `node:test` or `cargo test`:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    <Snippet file="packages/sdk/examples/snapshot-test.ts" />
+  </TabItem>
+  <TabItem label="Rust">
+    <Snippet file="crates/laminapdf/examples/snapshot_test.rs" />
+  </TabItem>
+</Tabs>
+
+On the first run there is no reference yet, so the function writes one, answers `created`, and the test fails. Open that PDF before you commit it: the test only proves that later runs match it, so it has to be right. After that, every run answers `same` until the output changes. A reference you forget to commit fails the test on every other machine too, since a fresh checkout has none.
+
+When the bytes change, the reference stays as it was and the new PDF goes beside it as `<name>.new.pdf`. Open both, and if the change is the one you meant, run the tests again with `update` set, for example from an environment variable such as `UPDATE_REFERENCES=1`. Commit the new reference with the change that caused it.
+
+## See where a changed PDF looks different
+
+Different bytes don't always mean different pages: a reordered dictionary or a new producer changes the file but not how it looks. This example draws each page of both files and counts the pixels that differ:
+
+<Snippet file="packages/sdk/examples/compare-pages.ts" />
+
+Each page gets one of two outcomes. With no differing pixels, the file's structure changed but its pages look the same. With some, the box shows where on the page, in points from the top-left corner. The same renderer draws both files, so its own small differences from other viewers cancel out.
+
+To read the change itself, build with `compress: false` (`with_compress(false)` in Rust). The content streams then stay readable text, and a diff tool shows what moved. In Rust, the `laminapdf-render` crate's `hayro` feature draws pages the same way.
+
+## Upgrade Lamina PDF
+
+Pin the exact Lamina PDF version, so an upgrade happens only when you choose it. A release that changes the bytes written for the same input lists that change first in its changelog. Upgrade in a change of its own, regenerate the references with `update` set, and look at the page comparison before you commit them.
+
+## Keep fonts and edits repeatable
+
+Fonts need the same care. The embedded subset depends on the font file's exact bytes, so keep the font your test uses in your own repository rather than loading it from the system. Edited files repeat too: opening a PDF, applying the same edits and saving writes the same bytes each time.
+
+The [stability policy](/reference/stability/) states the promise these tests rely on: the same input gives the same bytes everywhere.

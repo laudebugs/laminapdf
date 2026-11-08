@@ -34,7 +34,7 @@ Four promises hold across every version, `0.x` and alphas included:
 - **Error and warning codes are never renamed or reused** for another meaning. A retired code stays in the [code reference](/reference/codes/) with the version that retired it, and keeps its page. New codes can appear in any release, so handle a code you don't know.
 - **The error object only grows.** Each error names its schema, `laminapdf.error/1`. Within one schema, a field can be added, but never removed or given another type.
 - **Saved edit logs keep loading.** A log names its format version (`{ v: 1, ops }`, as [Edit a PDF](/guides/edit-a-pdf/#replay-edits-stored-as-json) shows). A new op or optional field keeps the version. A changed or removed one raises it, and every older version still loads.
-- **The same input gives the same bytes everywhere.** With the same input, options and version, Rust and every JavaScript runtime write identical files.
+- **The same input gives the same bytes everywhere.** With the same input, options and version, Rust and every JavaScript runtime write identical files, so you can [test your PDFs against reference PDFs](/guides/test-generated-pdfs/).
 
 ## How the promises are checked
 

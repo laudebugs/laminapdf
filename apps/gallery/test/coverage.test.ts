@@ -15,9 +15,14 @@ const NESTED: Readonly<Record<string, string>> = {
 
 /** Exports that draw nothing themselves, with why. */
 const NOT_DRAWN: Readonly<Record<string, string>> = {
+  CommandError: "the error a command registry throws, not a component",
+  CommandRegistry: "the store of commands that the palette, toolbars and menus read",
+  CommandsProvider: "a context provider",
   DensityProvider: "a context provider: the gallery's density control sets it on every route",
   PlatformProvider: "a context provider",
   ReaderController: "a state controller, which the reader routes drive",
+  RecentCommands: "the palette's list of recent commands, kept in storage",
+  RegistryPalette: "CommandPalette (on the overlays route) filled from a command registry",
   ToastQueue: "the toast region's queue, not a component",
 };
 

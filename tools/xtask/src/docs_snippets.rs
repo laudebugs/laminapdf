@@ -32,12 +32,26 @@ pub(crate) fn is_tool(path: &str) -> bool {
     TOOL_DIRS.iter().any(|dir| path.starts_with(dir))
 }
 
-/// `tools/xtask/docs-snippets.toml`: the TypeScript and Rust examples that show the same task.
+/// `tools/xtask/docs-snippets.toml`: the TypeScript and Rust examples that show the same task,
+/// and the examples whose subject is testing a reader's PDFs.
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
     #[serde(default)]
     pair: Vec<Pair>,
+    #[serde(default, rename = "test-example")]
+    test_example: Vec<TestExample>,
+}
+
+/// An example that shows a reader how to test their own PDFs, so it fixes the file ID and dates on
+/// purpose: the `test-scaffolding` rule skips it.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TestExample {
+    path: String,
+    /// Why the file may fix them; required, so the list stays short and each entry explained.
+    #[expect(dead_code, reason = "read by people, required by the format")]
+    reason: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,7 +99,8 @@ pub(crate) fn run(root: &Path, options: Options) -> Result<()> {
     let mut headers = BTreeMap::new();
     for path in &examples {
         let text = read(path)?;
-        let mut findings = file_findings(path, &text);
+        let test_example = config.test_example.iter().any(|t| &t.path == path);
+        let mut findings = file_findings(path, &text, test_example);
         let listed = example_dir(path).is_some_and(|(dir, rest)| {
             unused_lists
                 .get(dir)
@@ -307,8 +322,9 @@ fn header(path: &str, text: &str) -> Header {
     Header { lines }
 }
 
-/// The rules that read one file: the header, imports, scaffolding and length.
-fn file_findings(path: &str, text: &str) -> Vec<Finding> {
+/// The rules that read one file: the header, imports, scaffolding (unless `test_example`: the
+/// file is listed under `[[test-example]]`) and length.
+fn file_findings(path: &str, text: &str, test_example: bool) -> Vec<Finding> {
     let mut findings = Vec::new();
     let head = header(path, text);
     if head.lines.is_empty() {
@@ -350,8 +366,8 @@ fn file_findings(path: &str, text: &str) -> Vec<Finding> {
             ));
         }
         let scaffolding = [
-            ("a `lamina-ex-…` ID", code.contains("lamina-ex-")),
-            ("a quoted PDF date (`\"D:…\"`)", has_fixed_date(code)),
+            ("a `lamina-ex-…` ID", !test_example && code.contains("lamina-ex-")),
+            ("a quoted PDF date (`\"D:…\"`)", !test_example && has_fixed_date(code)),
         ];
         for (marker, _) in scaffolding.iter().filter(|(_, found)| *found) {
             findings.push(finding(
@@ -543,7 +559,7 @@ mod tests {
     }
 
     fn rules(path: &str, text: &str) -> Vec<&'static str> {
-        file_findings(path, text)
+        file_findings(path, text, false)
             .into_iter()
             .map(|finding| finding.rule)
             .collect()
@@ -647,6 +663,22 @@ mod tests {
     }
 
     #[test]
+    fn a_test_example_may_fix_the_file_id_and_dates() {
+        let text = "// Checks a PDF against its reference.\nconst date = \"D:20260101\";\n";
+        assert_eq!(file_findings("a.ts", text, true), Vec::<Finding>::new());
+    }
+
+    #[test]
+    fn a_test_example_entry_should_need_a_reason() {
+        let parse = |text: &str| toml::from_str::<Config>(text).map(|config| config.test_example.len());
+        assert_eq!(
+            parse("[[test-example]]\npath = \"a.ts\"\nreason = \"tests a reader's PDFs\"\n").ok(),
+            Some(1)
+        );
+        assert!(parse("[[test-example]]\npath = \"a.ts\"\n").is_err());
+    }
+
+    #[test]
     fn a_long_file_should_be_reported() {
         let text = format!("// Shows many lines.\n{}", "x;\n".repeat(MAX_LINES));
         assert_eq!(rules("a.ts", &text), vec!["file-length"]);
@@ -668,6 +700,7 @@ mod tests {
                 ts: "packages/sdk/examples/images-and-vectors.ts".into(),
                 rust: "crates/laminapdf/examples/vectors.rs".into(),
             }],
+            test_example: Vec::new(),
         };
         let examples = vec![
             "packages/sdk/examples/images-and-vectors.ts".to_owned(),
