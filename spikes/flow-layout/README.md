@@ -81,7 +81,7 @@ The report times include A's two passes: A draws every line twice, once to count
 | A table across a page break | a `Table` per page (24 for 10 tables) | one `Table` (10), with `THead` and `TBody` |
 | Running header and footer | `/Artifact` `/Pagination`, no subtype | `/Pagination` with `/Subtype /Header` or `/Footer` and `/Attached` |
 
-Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder leaves a mark that shares a cluster with its letter without a value of its own, and refuses the file. Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
+Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder refuses the file: the font draws some letters as a body and a dot, and the builder maps the dot to the empty value, which its own PDF/UA-1 check counted as none. (T4f found veraPDF accepts the empty value, and the check now does too.) Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
 
 ### Shaping and extraction
 
@@ -120,7 +120,7 @@ Experiment A ran on today's builder. Six gaps shaped its output. [T4f](../../doc
 1. **Elements across pages** (T4f). Tagged elements end with their page, so a paragraph or table split by a page break becomes two elements.
 2. **Measuring without drawing** (T4f). Nothing lays text out without drawing it. The spike measured two lines' height once in a throwaway builder, and table columns couldn't be sized to their content: a cell too narrow clips silently, as the invoice's descriptions did until the spike gave the first column 40 %.
 3. **Artifact subtypes** (T4f). `ArtifactKind::Pagination` writes no `/Subtype` (Header, Footer, Watermark).
-4. **Marks under PDF/UA-1** (T4f). A mark that shares a cluster with its letter gets no Unicode value, so PDF/UA-1 refuses Arabic with diacritics.
+4. **Marks under PDF/UA-1** (T4f). A letter's dot, drawn as a glyph of its own, maps to the empty value, which the builder's PDF/UA-1 check refused.
 5. **Deferred content** (not needed). A finished page can't be reopened, so "Page X of Y" cost a second pass here. Once text can be measured, the flow lays out every page before drawing any, and the footer knows the count.
 6. **A glyph-run API** (not planned). `Surface` draws strings. Only the hybrid needed shaped glyphs drawn as they come, and ADR 0032 rejects the hybrid.
 

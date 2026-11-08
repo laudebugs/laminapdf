@@ -286,8 +286,8 @@ impl Surface {
     /// are ended with it. Inside an artifact, `tag` is part of the artifact.
     ///
     /// A page that uses an element or artifact makes the document tagged (see
-    /// [`BuildOptions::with_tagged`](crate::BuildOptions::with_tagged)). Elements are per page:
-    /// one doesn't continue on the next page.
+    /// [`BuildOptions::with_tagged`](crate::BuildOptions::with_tagged)). The element ends with
+    /// the closure; one that continues on the next page is [`Surface::open_element`]'s.
     ///
     /// ```
     /// use laminapdf_build::{BuildOptions, Builder, PageSize, Standard14, Tag, TagKind};
