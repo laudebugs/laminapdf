@@ -61,22 +61,25 @@ pub(crate) fn run(ws: &Workspace) -> Result<()> {
     if out.exists() {
         fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
     }
-    let manifest_path = ws.root.join(crate::render::MANIFEST).to_string_lossy().into_owned();
-    ws.cargo(&[
-        "build",
-        "--manifest-path",
-        &manifest_path,
-        "--locked",
-        "--release",
-        "--bin",
-        "docs-previews",
-    ])?;
-    let tool = ws.root.join("tools/render/target/release/docs-previews");
-    let output = Command::new(&tool)
+    // `cargo run` finds the binary on every system (a path would miss Windows' `.exe`).
+    let manifest_path = ws.root.join(crate::render::MANIFEST);
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--quiet",
+            "--locked",
+            "--release",
+            "--bin",
+            "docs-previews",
+            "--manifest-path",
+        ])
+        .arg(&manifest_path)
+        .arg("--")
         .arg(ws.root.join(GOLDENS))
         .arg(&out)
+        .current_dir(&ws.root)
         .output()
-        .with_context(|| format!("running {}", tool.display()))?;
+        .context("running tools/render's docs-previews")?;
     if !output.status.success() {
         bail!("docs-previews failed: {}", String::from_utf8_lossy(&output.stderr));
     }

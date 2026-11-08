@@ -60,8 +60,8 @@ const pageCount = (n: number) => (n === 1 ? "1 page" : `${n} pages`);
                   <img
                     src={`/examples/preview/${example.stem}-${index}.png`}
                     alt={`Page ${index + 1} of ${example.stem}.pdf`}
-                    width={page.width / 2}
-                    height={page.height / 2}
+                    width={Math.round(page.width / 2)}
+                    height={Math.round(page.height / 2)}
                     loading="lazy"
                     decoding="async"
                   />

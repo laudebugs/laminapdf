@@ -12,6 +12,60 @@ const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" }
 /** A `<Snippet … file="…" … />`, whatever its attributes' order; group 1 is the file. */
 export const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
 
+/** An `<Example … />` (todo B7d); group 1 is its attributes. */
+export const EXAMPLE = /<Example\b([^>]*?)\/>/g;
+
+/**
+ * What an `<Example>`'s attributes name: its code files (`ts`, `rust`), the PDFs it makes
+ * (`result="hello"` or `result={["a", "b"]}`) and the text file it prints (`output`).
+ *
+ * @param {string} attributes
+ * @returns {{ ts?: string, rust?: string, results: string[], output?: string }}
+ */
+export function exampleParts(attributes) {
+  /** @param {string} name */
+  const value = (name) => new RegExp(`(?:^|\\s)${name}="([^"]+)"`).exec(attributes)?.[1];
+  const list = /(?:^|\s)result=\{\[([^\]]*)\]\}/.exec(attributes)?.[1];
+  const one = value("result");
+  const results = list !== undefined ? [...list.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "") : one ? [one] : [];
+  return { ts: value("ts"), rust: value("rust"), results, output: value("output") };
+}
+
+/**
+ * Every file a page's `<Snippet>`s and `<Example>`s show, for the twins to read before they write.
+ *
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function shownFiles(source) {
+  const files = [...source.matchAll(SNIPPET)].map((m) => m[1] ?? "");
+  for (const [, attributes = ""] of source.matchAll(EXAMPLE)) {
+    const { ts, rust, output } = exampleParts(attributes);
+    for (const file of [ts, rust, output]) if (file !== undefined) files.push(file);
+  }
+  return files;
+}
+
+/**
+ * An `<Example>` as Markdown: each language's code under its name, then the PDFs it makes as
+ * links (the page shows them in a Result tab) or the text it prints.
+ *
+ * @param {string} attributes
+ * @param {(file: string) => string} snippet
+ * @returns {string}
+ */
+function exampleMarkdown(attributes, snippet) {
+  const { ts, rust, results, output } = exampleParts(attributes);
+  const parts = [];
+  if (ts !== undefined) parts.push(`**TypeScript**\n\n${codeBlock(ts, snippet(ts))}`);
+  if (rust !== undefined) parts.push(`**Rust**\n\n${codeBlock(rust, snippet(rust))}`);
+  if (results.length > 0) {
+    parts.push(`**Result:** ${results.map((stem) => `[${stem}.pdf](/examples/pdf/${stem}.pdf)`).join(", ")}`);
+  }
+  if (output !== undefined) parts.push(`**Output**\n\n${codeBlock(output, snippet(output))}`);
+  return parts.join("\n\n");
+}
+
 /**
  * Splits a page into its front matter (simple `key: value` lines, quotes removed) and body.
  *
@@ -141,6 +195,7 @@ export function mdxToMarkdown(body, components) {
     part
       .replace(/^import\s.+?;?\s*$/gm, "")
       .replace(SNIPPET, (_, file) => codeBlock(file, components.snippet(file)))
+      .replace(EXAMPLE, (_, attributes) => exampleMarkdown(attributes, components.snippet))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {

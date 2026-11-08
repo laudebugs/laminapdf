@@ -8,7 +8,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
-import { frontMatter, mdxToMarkdown, rewriteLinks, SNIPPET, twin, twinHref } from "./markdown.mjs";
+import { frontMatter, mdxToMarkdown, rewriteLinks, shownFiles, twin, twinHref } from "./markdown.mjs";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("src/content/docs/", new URL("../", import.meta.url));
@@ -199,7 +199,7 @@ export function snippetText(file) {
 }
 
 /**
- * Reads every file a page's `<Snippet>` names, whatever its attributes' order.
+ * Reads every file a page's `<Snippet>`s and `<Example>`s show, whatever their attributes' order.
  *
  * @returns {Promise<void>}
  */
@@ -207,7 +207,7 @@ export async function readSnippets() {
   for (const name of await readdir(CONTENT, { recursive: true })) {
     if (!/\.mdx?$/.test(name)) continue;
     const source = await readFile(new URL(name, CONTENT), "utf8");
-    for (const [, file = ""] of source.matchAll(SNIPPET)) {
+    for (const file of shownFiles(source)) {
       if (!snippetCache.has(file)) snippetCache.set(file, await readFile(new URL(file, ROOT), "utf8"));
     }
   }
