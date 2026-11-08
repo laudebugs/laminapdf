@@ -20,6 +20,7 @@ mod licenses;
 mod lines;
 mod live;
 mod maintainability;
+mod models;
 mod nightly;
 mod package_docs;
 mod pdf_runtimes;
@@ -354,6 +355,8 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
+        ("models", [cmd]) if cmd == "check" => models::check(&ws.root),
+        ("models", [cmd, name]) if cmd == "fetch" => models::fetch(&ws, name).map(|_| ()),
         ("cli-docs", []) => cli_docs::run(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
@@ -447,6 +450,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
     renames::check(&ws.root)?;
+    models::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;
     version::run(&ws.root, &version::Command::Sync { check: true })?;

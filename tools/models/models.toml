@@ -1,0 +1,30 @@
+# The models Lamina PDF's plug-ins may use (ADR 0030 §6, todo L3c). A model is allowed only
+# when its code and its weights are under licences `cargo xtask models check` admits (the
+# list is `ALLOWED` in tools/xtask/src/models.rs). Weights are never committed: `cargo xtask
+# models fetch <name>` downloads them into target/models/ and checks their SHA-256.
+#
+# Every licence below was read from its source on the date given; re-read it when a model's
+# revision changes.
+
+[[model]]
+name = "docling-layout-heron"
+kind = "layout"
+description = "Docling's Heron document-layout detector (RT-DETRv2), its official ONNX export"
+# The Hugging Face repository's commit, so the file never changes under the pin.
+revision = "40bde044036bb181c130ddf6c51792187268748f"
+url = "https://huggingface.co/docling-project/docling-layout-heron-onnx/resolve/40bde044036bb181c130ddf6c51792187268748f/model.onnx"
+file = "model.onnx"
+bytes = 171220471
+sha256 = "59c81a3a2923042d85034ffc487f8f47e4854117e879aef89b2b9f728fb4922a"
+weights_licence = "Apache-2.0"
+weights_licence_source = "https://huggingface.co/docling-project/docling-layout-heron-onnx"
+code_licence = "MIT AND Apache-2.0"
+code_licence_source = "https://raw.githubusercontent.com/docling-project/docling-ibm-models/HEAD/LICENSE (MIT); https://raw.githubusercontent.com/lyuwenyu/RT-DETR/HEAD/LICENSE (Apache-2.0)"
+training_data = "DocLayNet, CDLA-Permissive-1.0 (https://huggingface.co/datasets/docling-project/DocLayNet)"
+read_on = "2026-11-08"
+
+# Read and refused, with the reason, so nobody adds them without seeing why:
+# - Marker / Surya (datalab-to): Apache-2.0 code, but the weights are under a modified
+#   OpenRAIL-M licence (Marker) and CC-BY-NC-SA-4.0 (surya_layout): not permissive.
+# - MinerU (opendatalab): Apache-2.0 with extra terms (a commercial licence above 100M MAU or
+#   USD 20M a month; attribution for online services): not a plain SPDX licence.
