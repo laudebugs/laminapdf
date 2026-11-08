@@ -1,34 +1,18 @@
-//! The `flow-layout` spike's seeded report (`spikes/flow-layout/src/inputs.rs`) as a flow: its
-//! sections of a heading, four subheadings and five paragraphs each, the Arabic and Devanagari
-//! paragraphs in the first, a running header and a "Page X of Y" footer. The spike's tables are
+//! The `flow-layout` spike's report (`spikes/flow-layout/src/inputs.rs`) as a flow, its words
+//! drawn from the spike's list by the shared test generator: sections of a heading, four
+//! subheadings and five paragraphs each, the Arabic and Devanagari paragraphs in the first, a running header and a "Page X of Y" footer. The spike's tables are
 //! left out until flows have tables (T4c). The façade's flow tests compare it with what Typst
 //! wrote for the spike, and `benches/flowing.rs` times it.
 #![allow(dead_code, reason = "the tests and the bench use different parts")]
 
 use laminapdf::flow::{Flow, FlowBlock, PageRegion, PageTemplate, Paragraph, TextStyle};
 use laminapdf::{BuildOptions, Builder, Font, Metadata, PageSize, Profile};
+use laminapdf_test_fixtures::Rng;
 
 pub(crate) const TITLE: &str = "Quarterly report";
 pub(crate) const ARABIC: &str = "تُظهر هذه الفقرة أن النص العربي يُشكَّل ويُرتَّب من اليمين إلى اليسار، \
                           وأن الحروف تتصل كما ينبغي في كل سطر من الأسطر.";
 pub(crate) const DEVANAGARI: &str = "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण। नमस्ते दुनिया। हिन्दी पाठ का परीक्षण।";
-
-/// `SplitMix64`, as the spike's generator.
-struct Rng(u64);
-
-impl Rng {
-    fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
-        let mut z = self.0;
-        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-        z ^ (z >> 31)
-    }
-
-    fn below(&mut self, n: usize) -> usize {
-        usize::try_from(self.next() % n as u64).unwrap_or(0)
-    }
-}
 
 const WORDS: &[&str] = &[
     "the",
@@ -90,7 +74,7 @@ fn paragraph(rng: &mut Rng) -> String {
 
 /// The report's paragraphs in order, for checking what extraction and the structure tree read.
 pub(crate) fn paragraphs(sections: usize) -> Vec<String> {
-    let mut rng = Rng(0x7461_3431);
+    let mut rng = Rng::new(0x7461_3431);
     let mut out = Vec::new();
     for section in 1..=sections {
         if section == 1 {

@@ -1,5 +1,6 @@
 //! Header and footer fields (ADR 0032 §3): `{page}`, `{pages}`, `{section}` and `{title}` in a
-//! slot's text, `{{` and `}}` for braces. E6d's stamps on existing pages use the same syntax.
+//! slot's text, `{{` and `}}` for braces. Headers and footers stamped on existing pages use the
+//! same syntax.
 
 /// What the fields stand for on one page.
 #[derive(Debug, Clone, Copy)]

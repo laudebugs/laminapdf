@@ -38,6 +38,8 @@ mod measure;
 mod model;
 mod paginate;
 mod template;
+#[cfg(test)]
+mod tests;
 
 use laminapdf_model::PageId;
 

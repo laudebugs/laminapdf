@@ -206,3 +206,33 @@ fn headers_and_footers_carry_their_fields_and_subtypes() {
     let footer: &[u8] = b"/Artifact <<\n  /Type /Pagination\n  /Subtype /Footer\n  /Attached [/Bottom]\n>> BDC";
     assert_eq!((count(header), count(footer)), (2, 2));
 }
+
+#[test]
+fn lists_links_and_languages_get_their_elements() {
+    use laminapdf_build::LinkTarget;
+    use laminapdf_build::flow::{List, ListItem, ListKind};
+    let (bytes, _) = build(|font| {
+        let style = TextStyle::new(font, SIZE);
+        let link = Paragraph::plain("See ", &style)
+            .link("the accounts", &style, LinkTarget::Uri("https://example.com".into()))
+            .text(" and ", &style)
+            .text("bonjour", &style.clone().with_language("fr"));
+        let list = List::new(ListKind::Numbered, &style)
+            .item(ListItem::new(Paragraph::plain("First", &style)))
+            .item(ListItem::new(Paragraph::plain("Second", &style)));
+        Flow::new(template(font, 10.0))
+            .block(FlowBlock::Paragraph(link))
+            .block(FlowBlock::List(list))
+    });
+    let doc = reopen(&bytes);
+    let tree = doc.structure().unwrap().unwrap();
+    let kinds = |kind: &[u8]| tree.elements().into_iter().filter(|e| e.kind == kind).count();
+    assert_eq!(
+        [b"L".as_slice(), b"LI", b"Lbl", b"LBody", b"Link", b"Span"].map(kinds),
+        [1, 2, 2, 2, 1, 1]
+    );
+    let span = tree.elements().into_iter().find(|e| e.kind == b"Span").unwrap();
+    assert_eq!(span.lang.as_deref(), Some("fr"));
+    let lines = texts(&bytes).concat();
+    assert_eq!(lines, ["See the accounts and bonjour", "1. First", "2. Second"]);
+}
