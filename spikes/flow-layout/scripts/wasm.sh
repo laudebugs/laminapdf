@@ -9,7 +9,7 @@ tools="$here/target/tools"
 case "$(uname -m)-$(uname -s)" in
   x86_64-Linux) host=x86_64-linux; sum=2dc9c7813f5375db93d96ead4b78222fcc3e2677bbb832297af4797782a37489 ;;
   aarch64-Linux) host=aarch64-linux; sum=89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d427f299bf8 ;;
-  arm64-Darwin) host=arm64-macos; sum=$(grep -A1 '"arm64-macos"' "$here/../../tools/xtask/src/wasm.rs" | tail -1 | tr -dc 0-9a-f) ;;
+  arm64-Darwin) host=arm64-macos; sum=ad66da82ac13f163e424b1643f16c6dfcccc98b5966296b43e52d3cab04f84a8 ;;
   *) echo "no binaryen pin for this host" >&2; exit 1 ;;
 esac
 opt="$tools/binaryen-version_133/bin/wasm-opt"
@@ -17,7 +17,8 @@ if [ ! -x "$opt" ]; then
   mkdir -p "$tools"
   file="binaryen-version_133-$host.tar.gz"
   curl -fsSL --retry 3 -o "$tools/$file" "https://github.com/WebAssembly/binaryen/releases/download/version_133/$file"
-  echo "$sum  $tools/$file" | sha256sum -c - >/dev/null
+  if command -v sha256sum >/dev/null; then found=$(sha256sum "$tools/$file"); else found=$(shasum -a 256 "$tools/$file"); fi
+  [ "${found%% *}" = "$sum" ] || { echo "$file: SHA-256 ${found%% *}, want $sum" >&2; rm -f "$tools/$file"; exit 1; }
   tar -xzf "$tools/$file" -C "$tools"
 fi
 features="--enable-bulk-memory --enable-mutable-globals --enable-nontrapping-float-to-int --enable-sign-ext --enable-reference-types --enable-multivalue"

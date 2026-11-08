@@ -1,13 +1,16 @@
-// Times the WebAssembly probe in Node: node scripts/node-time.mjs target/wasm/own.wasm
-// Best of 30 runs for the invoice and of 10 for the report; also writes nothing, it only checks
-// the PDF's SHA-256 against the native run's (a determinism check across targets).
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+// Times the WebAssembly probe in Node and compares its output with the native run's:
+//   node scripts/node-time.mjs target/wasm/own.wasm a      (a: experiment A's files, b: B's)
+// Best of 30 runs for the invoice and of 10 for the report. The last PDF of each is compared byte
+// for byte with target/flow-layout/<prefix>-<name>.pdf, which `cargo run --release` writes; the
+// script exits 1 when they differ.
+import { existsSync, readFileSync } from "node:fs";
 
 const root = new URL("../../../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root));
 const { instance } = await WebAssembly.instantiate(readFileSync(process.argv[2]), {});
 const { memory, alloc, input, invoice, report, last } = instance.exports;
+const prefix = process.argv[3];
+let differs = false;
 const inputs = [
   "fixtures/fonts/NotoSans-Regular.ttf",
   "fixtures/fonts/NotoSans-RegularBold.ttc",
@@ -33,8 +36,16 @@ for (const [name, run, n] of [["invoice", invoice, 30], ["report", report, 10]])
     if (i === 0) first = ms;
     best = Math.min(best, ms);
   }
-  const sha = createHash("sha256").update(new Uint8Array(memory.buffer, last(), len)).digest("hex").slice(0, 16);
+  const pdf = new Uint8Array(memory.buffer, last(), len);
+  const nativePath = new URL(`../target/flow-layout/${prefix}-${name}.pdf`, import.meta.url);
+  let same = "no native file";
+  if (prefix && existsSync(nativePath)) {
+    const native = readFileSync(nativePath);
+    same = String(native.length === len && native.every((byte, i) => byte === pdf[i]));
+    differs ||= same === "false";
+  }
   console.log(
-    `${process.argv[2]} ${name}: first ${first.toFixed(1)} ms, best ${best.toFixed(1)} ms, ${len} B, sha256 ${sha}, memory ${(memory.buffer.byteLength / 2 ** 20).toFixed(0)} MiB`,
+    `${process.argv[2]} ${name}: first ${first.toFixed(1)} ms, best ${best.toFixed(1)} ms, ${len} B, same bytes as native: ${same}, memory ${(memory.buffer.byteLength / 2 ** 20).toFixed(0)} MiB`,
   );
 }
+if (differs) process.exit(1);

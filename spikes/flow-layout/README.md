@@ -11,7 +11,7 @@ How should Lamina PDF lay out pages that flow: with an engine of its own over `l
 
 ## Answer in one paragraph
 
-**Build our own engine over `Surface` (route 1), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 63 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 6.9 MB of gzipped WebAssembly to a 0.82 MB module, 147 crates (thread pools among them), an API that broke twice between 0.14 and 0.15, and finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, 200 lines over today's builder, added 17 KB, wrote byte-identical files natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a glyph-run API. Those features are the work T4b and T4c take on.
+**Build our own engine over `Surface` (route 1), and treat Typst as the reference to measure it against.** With its caches warm, Typst embedded lays the report out in 62 ms against about 190 ms for one pass of ours, and it tags better than our builder does today. But it adds 7.4 MB of gzipped WebAssembly to a 0.82 MB module, 147 crates (thread pools among them), an API that broke twice between 0.14 and 0.15, and finished bytes that Lamina PDF can only edit after reopening them. It also draws glyphs that no font has as blank boxes without a warning, and pdf.js reads its Arabic and Devanagari back scrambled. Our own paginator, about 230 lines over today's builder, added 19 KB, wrote the same bytes natively and in WebAssembly, and was read back exactly by pdf.js. What it lacked is a short list of builder features: tagged elements that continue on the next page, a way to measure text without drawing it, artifact subtypes, and a Unicode value for every mark under PDF/UA-1. [T4f](../../docs/todos/ready/T4f-flow-builder-groundwork.md) adds them, before the flow layer itself.
 
 ## Method
 
@@ -46,28 +46,30 @@ One machine: a Linux x86_64 cloud container (Intel Xeon at 2.10 GHz, 4 cores), R
 
 ### Size (WebAssembly, gzip -9)
 
+Every module carries the baseline (it exports it), so the last column is what each addition costs on top of what the text module already has.
+
 | Module | raw | gzip | Added to the baseline |
 | --- | ---: | ---: | ---: |
-| Baseline: `laminapdf` with text, one text box saved | 2,068,438 B | 819,004 B | — |
-| A: own paginator | 2,108,836 B | 836,173 B | **+17 KB** |
-| B: Typst with `typst-pdf` | 19,954,965 B | 7,728,973 B | **+6.9 MB** |
-| C: Typst's layout drawn through `Surface` | 19,879,955 B | 7,751,064 B | +6.9 MB |
-| `pulldown-cmark` 0.13 alone (for T4d) | 179,174 B | 77,604 B | — |
-| `minijinja` 2.12 alone (for T4e) | 420,410 B | 170,230 B | — |
+| Baseline: `laminapdf` with text, one text box saved | 2,068,849 B | 819,371 B | — |
+| A: own paginator | 2,112,165 B | 838,753 B | **+19 KB** |
+| B: Typst with `typst-pdf` | 21,087,442 B | 8,180,745 B | **+7.36 MB** |
+| C: Typst's layout drawn through `Surface` | 19,886,307 B | 7,752,627 B | +6.93 MB |
+| `pulldown-cmark` 0.13 (for T4d) | 2,210,546 B | 879,480 B | +60 KB |
+| `minijinja` 2.12 (for T4e) | 2,405,242 B | 944,292 B | +125 KB |
 
-The text module's budget is 1,130,000 B gzip ([ADR 0016 §6](../../docs/decisions/0016-package-design.md#6-budgets-per-module)). Typst's module splits into 3.8 MB of gzipped code and 3.9 MB of gzipped data. Leaving out `typst-pdf` (C) saves nothing, because the layout engine and what it bundles carry the weight.
+The text module's budget is 1,130,000 B gzip ([ADR 0016 §6](../../docs/decisions/0016-package-design.md#6-budgets-per-module)). Typst's layout engine and what it bundles carry the weight: its PDF writer, the difference between B and C, is about 0.43 MB. A Typst-only build (without the baseline, an earlier run of this probe) split into 3.8 MB of gzipped code and 3.9 MB of gzipped data.
 
 ### Speed
 
 | | Invoice (2 pages) | Report (A: 89 pages, B: 97 pages) |
 | --- | ---: | ---: |
-| A native, both passes, best of 30 / 10 | 6.6 ms | 379 ms |
-| B native, cold (cache evicted), best of 30 / 10 | 10.4 ms | 396 ms |
-| B native, warm cache | 1.4 ms | 63 ms |
-| A in Node 24, first run / best | 85 ms / 10.8 ms | 1,046 ms / 555 ms |
-| B in Node 24, first run / best | 153 ms / 5.4 ms | 1,259 ms / 81 ms |
+| A native, both passes, best of 30 / 10 | 5.6 ms | 375 ms |
+| B native, cold (cache evicted), best of 30 / 10 | 12.2 ms | 386 ms |
+| B native, warm cache | 1.5 ms | 62 ms |
+| A in Node 24, first run / best | 81 ms / 10.7 ms | 878 ms / 619 ms |
+| B in Node 24, first run / best | 130 ms / 4.3 ms | 1,243 ms / 80 ms |
 
-The report times include A's two passes. A also draws every line twice, once to place it and once to fill in "of Y", so one pass costs about half. B's warm figure is what a long-running service would see: Typst memoises across compiles with `comemo`, and its report took 138 MiB of WebAssembly memory against A's 10 MiB. Against [pdf-library §4](../../docs/plans/pdf-library.md#4-requirements)'s 500 ms for a 100-page report, both routes need work in WebAssembly: A by laying out once, B by being warm.
+The report times include A's two passes: A draws every line twice, once to count the pages and once to fill in "of Y", so one pass costs about half. A's first run in Node also tries PDF/UA-1, which the builder refuses for the report (see below). B's warm figure is what a long-running service would see: Typst memoises across compiles with `comemo`, and its report took 138 MiB of WebAssembly memory against A's 10 MiB. Against [pdf-library §4](../../docs/plans/pdf-library.md#4-requirements)'s 500 ms for a 100-page report, both routes need work in WebAssembly: A by laying out once, B by being warm.
 
 ### Tagged output
 
@@ -75,8 +77,8 @@ The report times include A's two passes. A also draws every line twice, once to 
 | --- | --- | --- |
 | veraPDF PDF/UA-1, invoice | passes | passes |
 | veraPDF PDF/UA-1, report | the builder refuses it: `glyph-without-unicode` on an Arabic mark | passes |
-| A paragraph across a page break | two `P` elements (37 splits) | one `P` (41 paragraphs) |
-| A table across a page break | a `Table` per page (23 for 10 tables) | one `Table` (10), with `THead` and `TBody` |
+| A paragraph across a page break | two `P` elements (36 splits) | one `P` (41 paragraphs) |
+| A table across a page break | a `Table` per page (24 for 10 tables) | one `Table` (10), with `THead` and `TBody` |
 | Running header and footer | `/Artifact` `/Pagination`, no subtype | `/Pagination` with `/Subtype /Header` or `/Footer` and `/Attached` |
 
 Both engines mark the header and footer as artifacts, and Lamina PDF's extraction drops them from both. The Arabic sentence has diacritics. With PDF/UA-1 on, Typst writes a Unicode value for every glyph, while our builder gives a mark that shares a cluster with its letter no value of its own and refuses the file. Without PDF/UA-1, Typst's report failed veraPDF's rule 7.21.7 (character codes without Unicode) 14 times.
@@ -94,7 +96,7 @@ Text whose glyphs no font has: our builder fails with `missing-glyph`. Typst com
 
 ### Determinism
 
-Every output was byte-identical across 30 runs, natively. The WebAssembly build wrote the same bytes as the native one (same SHA-256) for A's report and both of B's documents.
+Every output was byte-identical across 30 runs, natively. `scripts/node-time.mjs` compares each WebAssembly output with the native file byte for byte, and all four matched: A's invoice and report, and B's.
 
 ### Object graph
 
@@ -113,15 +115,15 @@ Every output was byte-identical across 30 runs, natively. The WebAssembly build 
 
 ## What our own engine lacked
 
-Experiment A ran on today's builder. These gaps shaped its output, and each one is work for T4b or T4c:
+Experiment A ran on today's builder. Six gaps shaped its output. [T4f](../../docs/todos/ready/T4f-flow-builder-groundwork.md) takes on four of them, and ADR 0032 makes the other two unnecessary:
 
-1. **Elements across pages.** Tagged elements end with their page, so a paragraph or table split by a page break becomes two elements.
-2. **Measuring without drawing.** Nothing lays text out without drawing it. Keep rules have to assume a line height, and table columns can't be sized to their content: a cell too narrow clips silently, as the invoice's descriptions did until the spike gave the first column 40 %.
-3. **Deferred content.** A finished page can't be reopened, so "Page X of Y" costs a second pass.
-4. **Artifact subtypes.** `ArtifactKind::Pagination` writes no `/Subtype` (Header, Footer, Watermark).
-5. **Marks under PDF/UA-1.** A mark that shares a cluster with its letter gets no Unicode value, so PDF/UA-1 refuses Arabic with diacritics.
-6. **A glyph-run API.** `Surface` draws strings; drawing shaped glyphs as they come would serve a hybrid and fallback fonts alike.
+1. **Elements across pages** (T4f). Tagged elements end with their page, so a paragraph or table split by a page break becomes two elements.
+2. **Measuring without drawing** (T4f). Nothing lays text out without drawing it. The spike measured two lines' height once in a throwaway builder, and table columns couldn't be sized to their content: a cell too narrow clips silently, as the invoice's descriptions did until the spike gave the first column 40 %.
+3. **Artifact subtypes** (T4f). `ArtifactKind::Pagination` writes no `/Subtype` (Header, Footer, Watermark).
+4. **Marks under PDF/UA-1** (T4f). A mark that shares a cluster with its letter gets no Unicode value, so PDF/UA-1 refuses Arabic with diacritics.
+5. **Deferred content** (not needed). A finished page can't be reopened, so "Page X of Y" cost a second pass here. Once text can be measured, the flow lays out every page before drawing any, and the footer knows the count.
+6. **A glyph-run API** (not planned). `Surface` draws strings. Only the hybrid needed shaped glyphs drawn as they come, and ADR 0032 rejects the hybrid.
 
 ## Recommendation
 
-Make flowing layout a library goal and build it ourselves over `Surface`, starting with the six gaps above in the builder. Embed Typst neither as the engine nor as a front end: its size alone is six times the text module's whole budget, and it would tie the core to a 0.x API that breaks between minor releases. Keep the Typst comparison as a test: the same documents laid out by both, with Typst's tagging (one element across pages, header and footer subtypes) as the bar to meet.
+Make flowing layout a library goal and build it ourselves over `Surface`, starting with the four builder gaps above. Embed Typst neither as the engine nor as a front end: its size alone is six times the text module's whole budget, and it would tie the core to a 0.x API that breaks between minor releases. Keep the Typst comparison as a test: the same documents laid out by both, with Typst's tagging (one element across pages, header and footer subtypes) as the bar to meet.

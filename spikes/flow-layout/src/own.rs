@@ -69,6 +69,10 @@ fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<
         devanagari: b.font(Font::from_bytes(fonts[3].clone())?)?,
     };
     let mut gaps = Gaps::default();
+    // How much height two body lines take: a text box's first baseline sits one ascent below its
+    // top, so this is more than two line heights. Measured once, in a throwaway builder, because
+    // nothing in the builder measures text without drawing it.
+    let two_lines = two_lines(&fonts[0])?;
     let mut number = 1;
     let mut page = b.page(PAGE);
     furniture(page.surface(), &f, &doc.title, number, total)?;
@@ -90,9 +94,11 @@ fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<
                 // Keep with next: the heading, a gap and two lines of the next block.
                 let next = match doc.blocks.get(i + 1) {
                     Some(Block::Table { .. }) => 2.0 * ROW,
-                    _ => 2.0 * BODY * LEADING,
+                    _ => two_lines,
                 };
-                if y + size * LEADING + GAP + next > BOTTOM {
+                // One line's box (ascent to descent) scales with the size: two lines less a line height.
+                let heading = (two_lines - BODY * LEADING) / BODY * size;
+                if y + heading + GAP + next > BOTTOM {
                     break_page!();
                 }
                 let kind = if *level == 1 { TagKind::H1 } else { TagKind::H2 };
@@ -109,7 +115,7 @@ fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<
                 let mut rest = text.as_str();
                 loop {
                     // No orphan: a paragraph never starts on the last line of a page.
-                    if y + 2.0 * BODY * LEADING > BOTTOM {
+                    if y + two_lines > BOTTOM {
                         break_page!();
                     }
                     let s = page.surface();
@@ -149,6 +155,16 @@ fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<
     }
     page.finish()?;
     Ok((b.finish()?, number, gaps))
+}
+
+/// The height a text box needs for two body lines, from the top of its first line to the
+/// bottom of its second.
+fn two_lines(regular: &[u8]) -> Result<f64> {
+    let mut b = Builder::new(BuildOptions::new());
+    let font = b.font(Font::from_bytes(regular.to_vec())?)?;
+    let mut page = b.page(PAGE);
+    let laid = page.surface().text_box("A\nA", &font, Pt::new(BODY), area(TOP), &TextBoxOptions::new())?;
+    Ok(laid.bottom().map_or(2.0 * BODY * LEADING, |b| b.get() - TOP))
 }
 
 /// The rest of the page's text column, from `y` down to the bottom margin.

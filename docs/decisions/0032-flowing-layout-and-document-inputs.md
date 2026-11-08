@@ -23,9 +23,9 @@ The flow layer is Lamina PDF's own code in `laminapdf-build`. Typst is neither e
 
 | | Own engine (A) | Typst embedded (B) |
 | --- | --- | --- |
-| Added to the text module (WebAssembly, gzip) | +17 KB | +6.9 MB, against a 1.13 MB budget |
+| Added to the text module (WebAssembly, gzip) | +19 KB | +7.36 MB, against a 1.13 MB budget |
 | Crates added to the workspace's graph | 0 | 147, with thread pools (`rayon`) and stack growth (`stacker`, `psm`) |
-| 100-page report, native | about 190 ms per pass | 396 ms cold, 63 ms with a warm cache |
+| 100-page report, native | about 190 ms per pass | 386 ms cold, 62 ms with a warm cache |
 | Pages in the document's overlay (generate, then edit, with undo) | yes | no: finished bytes, edited after reopening; no page import |
 | Glyphs no font has | `missing-glyph` | blank boxes, no warning |
 | pdf.js reads back the Arabic and Devanagari paragraphs | both | neither |
@@ -50,7 +50,7 @@ The hybrid (C) is rejected too. `Surface` draws strings, so Typst's glyphs had t
 - floats: not planned;
 - multiple columns: not planned until a request names it;
 - justification: a later todo (`laminapdf-text` reserves `LayoutOptions::justify`);
-- hyphenation: a later todo with justification ([research 03 §7.5](../research/pdf/03-text-and-fonts.md#76-justification));
+- hyphenation: a later todo with justification ([research 03 §7.5](../research/pdf/03-text-and-fonts.md#75-hyphenation-knuthliang));
 - maths: not planned;
 - HTML and CSS: [E13f](../todos/ready/E13f-office-and-html-to-pdf.md), as a server job.
 
@@ -59,14 +59,14 @@ The hybrid (C) is rejected too. `Surface` draws strings, so Typst's glyphs had t
 Flowing output is tagged by default, and a caller can turn tagging off. This answers [trust and proof §9](../plans/trust-and-proof.md#9-open-questions) question 1 for flowing output; the fixed-position builder keeps its opt-in. The spike's paginator met PDF/UA-1 on the invoice with no extra work, and Typst tags by default too.
 
 - **Mapping:** `P`, `H1`–`H6`, `L`, `LI`, `Lbl`, `LBody`, `Figure` with `/Alt`, `Link`, `Span` with `/Lang` for a span in another language, and `Table` with `THead`, `TBody`, `TFoot`, `TR`, `TH` (`/Scope /Column`) and `TD`.
-- **Elements across pages:** a paragraph, list or table split by a page break stays one element, whose `/K` reaches its content on later pages through marked-content references. The spike's builder made two elements of each of 37 split paragraphs, and 23 `Table` elements for 10 tables.
+- **Elements across pages:** a paragraph, list or table split by a page break stays one element, whose `/K` reaches its content on later pages through marked-content references. The spike's builder made two elements of each of 36 split paragraphs, and 24 `Table` elements for 10 tables.
 - **Artifacts:** running headers and footers are `Pagination` artifacts with `/Subtype /Header` or `/Footer` and `/Attached`, as Typst writes them. Header rows repeated on a later page are `Pagination` artifacts; rules and backgrounds are `Layout` artifacts.
 - **PDF/UA-1:** every glyph has a Unicode value. The spike found the builder refusing Arabic with diacritics (`glyph-without-unicode` on a mark that shares a cluster with its letter), where Typst writes it and veraPDF passes it; the groundwork todo fixes that.
 
 ### 5. Placement
 
 - **The flow layer** is a `flow` module of `laminapdf-build`, not a crate of its own. It shares `Surface`, the font registry and the tagger, and splitting it would expose their internals ([code organisation §11](../guidelines/code-organization.md#11-when-to-split-a-crate-or-package-and-when-not-to)). The façade re-exports it as `laminapdf::flow`.
-- **The Markdown front end** is a `markdown` feature of `laminapdf-build`, over `pulldown-cmark` (MIT): 78 KB gzip on its own in WebAssembly.
+- **The Markdown front end** is a `markdown` feature of `laminapdf-build`, over `pulldown-cmark` (MIT): +60 KB gzip on top of the text module in WebAssembly.
 - **The JSON document format** is the flow model with `serde` derives (the `serde` and `schema` features), so it needs no extra crate.
 - **WebAssembly:** all three go in the text module, which already carries the builder and text. ADR 0016 §6's text-module budget rises from 1,130,000 to 1,280,000 B gzip (§9), an amendment the owner approves with this ADR.
 
@@ -76,7 +76,7 @@ Flowing output is tagged by default, and a caller can turn tagging off. This ans
 
 **JSON documents:** `laminapdf.document/1`, the flow model as JSON (camelCase names, block kinds tagged by `type`), with its JSON Schema committed and versioned under [ADR 0031 §6](0031-cli-and-mcp-contract.md#6-json-output)'s rule. Fonts and images are named in the document and supplied beside it as bytes.
 
-**Templates** are placeholders inside the document JSON: `{ "$data": "/pointer" }` for a value, `{ "$each": "/array", "do": … }` to repeat a block or table row, and `{ "$if": "/pointer", "do": … }`. Pointers are JSON Pointers (RFC 6901). There are no expressions and no code, and a filled template is still a valid document. A text template engine was measured and rejected: MiniJinja adds 170 KB gzip, and text-level templating can write broken JSON that only fails after filling.
+**Templates** are placeholders inside the document JSON: `{ "$data": "/pointer" }` for a value, `{ "$each": "/array", "do": … }` to repeat a block or table row, and `{ "$if": "/pointer", "do": … }`. Pointers are JSON Pointers (RFC 6901). There are no expressions and no code, and a filled template is still a valid document. A text template engine was measured and rejected: MiniJinja adds 125 KB gzip, and text-level templating can write broken JSON that only fails after filling.
 
 **For agents and the declarative layer:** the docs and the MCP tool offer Markdown for prose and `laminapdf.document/1` for data, beside each other. The document tree answers pdf-library §9 question 3: it is the declarative layer, and a JSX layer, if one comes, maps onto it.
 
@@ -85,7 +85,7 @@ Flowing output is tagged by default, and a caller can turn tagging off. This ans
 - **CLI:** `laminapdf build <input.md | doc.json | -> -o OUT`, with `--font ROLE=FILE`, `--data FILE` for templates, `--page-size`, `--profile`, `--lang` and `--title`. `--json` prints `laminapdf.build/1` (output, page count, bytes, tagged, profiles, warnings). This amends [ADR 0031 §2](0031-cli-and-mcp-contract.md#2-grammar), whose `render` already means rasterising pages, and §6.
 - **MCP:** `laminapdf_build`, listed only with `--allow-write`, takes Markdown or a document and its data inline, or a path, and writes inside the roots. This amends [ADR 0031 §9](0031-cli-and-mcp-contract.md#9-mcp-defaults-for-l4c) and answers trust and proof §9 question 2.
 - **TypeScript:** `builder.markdown(text, options)` and `builder.flow(document, { data })`, with the document as typed objects generated from the committed schema, fonts as `Font`s and images as `Image`s by name.
-- **Jobs:** `Builder::flow` runs in one call at first. The spike's report took about 280 ms per pass in Node 24 (555 ms for two). If T4b's 100-page benchmark exceeds §9's budget in WebAssembly, a `FlowJob` stepped by page follows [ADR 0028 §3](0028-facade-rules-jobs-and-cancellation.md#3-jobs).
+- **Jobs:** `Builder::flow` runs in one call at first. The spike's report took about 310 ms per pass in Node 24 (619 ms for two). If T4b's 100-page benchmark exceeds §9's budget in WebAssembly, a `FlowJob` stepped by page follows [ADR 0028 §3](0028-facade-rules-jobs-and-cancellation.md#3-jobs).
 
 ### 8. Fonts
 
@@ -98,8 +98,8 @@ The front ends use the fonts the caller gives, by role (body, bold, italic, bold
 | Two-page invoice, native | ≤ 10 ms | 6.6 ms (two passes) |
 | Two-page invoice, Node 24, best of 30 | ≤ 25 ms | 10.8 ms |
 | 100-page report, native | ≤ 250 ms | about 190 ms per pass |
-| 100-page report, Node 24, best of 10 | ≤ 500 ms ([pdf-library §4](../plans/pdf-library.md#4-requirements)) | about 280 ms per pass |
-| Text module, gzip | 1,280,000 B (from 1,130,000) | baseline 819 KB in the probe; paginator +17 KB, Markdown +78 KB |
+| 100-page report, Node 24, best of 10 | ≤ 500 ms ([pdf-library §4](../plans/pdf-library.md#4-requirements)) | about 310 ms per pass |
+| Text module, gzip | 1,280,000 B (from 1,130,000) | baseline 819 KB in the probe; paginator +19 KB, Markdown +60 KB |
 
 Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benchmark joins the nightly, and the invoice joins `cargo xtask pdf-runtimes`. The text module's budget covers the flow layer, tables, notes, Markdown and templates together. `cargo xtask size` enforces it.
 
@@ -108,8 +108,8 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 | Todo | What |
 | --- | --- |
 | [T4f](../todos/ready/T4f-flow-builder-groundwork.md) | The builder groundwork: measuring text without drawing it, elements that continue on later pages, artifact subtypes, Unicode for marks under PDF/UA-1 |
-| [T4b](../todos/ready/T4b-flow-layout-core.md) | The flow layer: blocks with one style per paragraph, pagination, keep rules, page templates and fields, "Page X of Y", tagging |
-| [T4g](../todos/ready/T4g-flow-styled-spans.md) | Styled spans in one paragraph: fonts, sizes, links, rises and languages mixed on a line |
+| [T4g](../todos/ready/T4g-flow-styled-spans.md) | Styled spans in one paragraph: fonts, sizes, rises and languages mixed on a line |
+| [T4b](../todos/ready/T4b-flow-layout-core.md) | The flow layer over T4f and T4g: paragraphs of styled spans, pagination, keep rules, page templates and fields, "Page X of Y", tagging |
 | [T4c](../todos/ready/T4c-flow-tables-notes-contents.md) | Tables across pages |
 | [T4h](../todos/ready/T4h-flow-notes-contents-outline.md) | Footnotes, a contents page and the outline |
 | [T4d](../todos/ready/T4d-markdown-documents.md) | Markdown in Rust, with an example |
@@ -127,10 +127,10 @@ Times are recorded, not asserted ([ADR 0018](0018-test-strategy.md)): T4b's benc
 
 ## Alternatives considered
 
-- **Typst embedded** (`typst` and `typst-pdf`): rejected for its size (+6.9 MB gzip), its 147 crates with thread pools, its API churn, its finished-bytes output and its silent missing glyphs (§2).
+- **Typst embedded** (`typst` and `typst-pdf`): rejected for its size (+7.36 MB gzip), its 147 crates with thread pools, its API churn, its finished-bytes output and its silent missing glyphs (§2).
 - **Typst's layout drawn through `Surface`** (the hybrid): rejected. It needs a glyph-run API and a tagger of our own, and keeps Typst's size (§2).
 - **krilla used directly:** krilla draws fixed positions and has no flowing layout, so it needs an engine above it, and it only returns finished bytes ([ADR 0005 §6](0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges)).
 - **Taffy with our own pagination:** Taffy (MIT) lays out flexbox and grid boxes on one infinite surface; text measurement, line breaking, pagination and tagging would still be ours. It adds a dependency for the part of the work that is easiest ([research 05 §8.3](../research/pdf/05-creating-pdfs-from-code.md#83-build-versus-wrap-which-existing-work-to-stand-on)).
 - **HTML and CSS through a browser:** a headless browser can't run in the core, a phone or a Worker, and its PDFs are untagged unless asked. It belongs to [E13f](../todos/ready/E13f-office-and-html-to-pdf.md) as an opt-in server job.
 - **Optimal (Knuth–Plass) page breaking:** better page breaks for books, at the cost of layout passes and a harder model. Greedy breaking with keep rules covers the requests the research found.
-- **A text template engine** (MiniJinja, Typst's own language): +170 KB gzip for MiniJinja, and text-level templates can write invalid documents (§6).
+- **A text template engine** (MiniJinja, Typst's own language): +125 KB gzip for MiniJinja, and text-level templates can write invalid documents (§6).

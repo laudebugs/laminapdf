@@ -49,19 +49,19 @@ Decide whether flowing layout becomes a library goal and how Lamina PDF gets it:
 
 **Out of scope** (and which todo covers it)
 
-- The flow layer: [T4b](../ready/T4b-flow-layout-core.md) (paragraphs, keep rules, page templates, page X of Y) and [T4c](../ready/T4c-flow-tables-notes-contents.md) (tables, footnotes, contents pages).
-- The front ends: [T4d](../ready/T4d-markdown-documents.md) (Markdown, `laminapdf build`, the MCP tool, the SDK) and [T4e](../ready/T4e-json-documents-and-templates.md) (JSON documents and templates).
+- The flow layer, as this todo reshaped it: [T4f](../ready/T4f-flow-builder-groundwork.md) (builder groundwork), [T4g](../ready/T4g-flow-styled-spans.md) (styled spans), [T4b](../ready/T4b-flow-layout-core.md) (paragraphs, keep rules, page templates, page X of Y), [T4c](../ready/T4c-flow-tables-notes-contents.md) (tables) and [T4h](../ready/T4h-flow-notes-contents-outline.md) (footnotes, contents pages, the outline).
+- The front ends: [T4d](../ready/T4d-markdown-documents.md) (Markdown in Rust), [T4i](../ready/T4i-build-command-and-bindings.md) (`laminapdf build`, the MCP tool, the TypeScript `markdown` call), [T4e](../ready/T4e-json-documents-and-templates.md) (JSON documents and templates) and [T4j](../ready/T4j-documents-in-typescript.md) (documents in TypeScript).
 - HTML and CSS to PDF: [E13f](../ready/E13f-office-and-html-to-pdf.md).
 - Publishing the timings: [T1c](../ready/T1c-publish-performance-numbers.md).
 
 ## Tasks
 
 - [x] Claim via its work PR; a fresh worktree off `main`. Load `/rust-best-practices` for the spike and `/writing` for the ADR
-- [x] Read the Context items, ADRs 0005 §6, 0016 §4–§7, 0027, 0028 §3 and 0031, and research 03 [§7.5–§7.6](../../research/pdf/03-text-and-fonts.md#76-justification) (hyphenation and justification) and [§9.5](../../research/pdf/03-text-and-fonts.md#95-generating-tagged-pdf-from-code) (generating tagged PDF)
+- [x] Read the Context items, ADRs 0005 §6, 0016 §4–§7, 0027, 0028 §3 and 0031, and research 03 [§7.5](../../research/pdf/03-text-and-fonts.md#75-hyphenation-knuthliang)–[§7.6](../../research/pdf/03-text-and-fonts.md#76-justification) (hyphenation and justification) and [§9.5](../../research/pdf/03-text-and-fonts.md#95-generating-tagged-pdf-from-code) (generating tagged PDF)
 - [x] Check that ADR 0032 is still free; [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) reserves it for this todo
 - [x] Set up `spikes/flow-layout/`: a standalone Cargo project with its own `[workspace]` table and `Cargo.lock`, the root `Cargo.toml`'s `wasm-release` profile copied in, path dependencies on `crates/laminapdf`, `crates/laminapdf-build` and `crates/laminapdf-text`, and `typst` and `typst-pdf` pinned with `=` at the current release (record the version and the date)
 - [x] Inputs in `spikes/flow-layout/inputs/`: an invoice as JSON with 40 line items (so it runs to two pages); a seeded 100-page report with headings, paragraphs, a table that crosses pages, a running header and a "Page X of Y" footer; one Arabic and one Devanagari paragraph; the Noto fonts from `fixtures/fonts/` (OFL 1.1); and the same documents as Typst sources (the invoice reads its JSON with Typst's `json()`)
-- [x] Experiment A, our own engine (`src/own.rs`): a minimal paginator over `laminapdf-build`. It measures paragraphs with `break_lines`, draws them with `Surface::text`, keeps headings with the next block, repeats a table's header row, draws headers and footers once the page count is known, and tags with `Surface::tag` and `Surface::artifact`. Record what the builder lacks (elements across pages, several fonts and sizes in one paragraph, artifact subtypes)
+- [x] Experiment A, our own engine (`src/own.rs`): a minimal paginator over `laminapdf-build`. It flows paragraphs with `Surface::text_box` and its overflow (the builder can't measure without drawing, which the README records), keeps headings with the next block, repeats a table's header row, draws headers and footers in a second pass once the page count is known, and tags with `Surface::tag` and `Surface::artifact`. Record what the builder lacks (elements across pages, several fonts and sizes in one paragraph, artifact subtypes)
 - [x] Experiment B, Typst embedded (`src/typst_pdf.rs`): a `World` with in-memory sources, the Noto fonts and a fixed `today()`; `typst::compile`, then `typst-pdf` with a fixed identifier and timestamp, and tagged output if the release offers it. Open the bytes with `laminapdf::Document::open_bytes`, save an edit incrementally, and try to append the pages to an existing document
 - [x] Experiment C, hybrid (`src/typst_frames.rs`): Typst's laid-out frames drawn through `Surface` (glyph runs through the builder's font registry, shapes, images, links) without `typst-pdf`. Stop at the first page that renders, and record what doesn't map (Typst's tags, gradients, fonts Typst loaded itself)
 - [x] Measure, and write one table per question in the spike README:
@@ -110,7 +110,7 @@ Spike only; no production code. `cargo xtask check docs` checks the links and th
 - **Typst's output is finished bytes.** Option B gives up the overlay: edits happen after reopening, and appending to an open document needs page import with a structure-tree merge, which the krilla-fit spike didn't build. Option C keeps the overlay but has to map every frame item and tag, and may cost as much as option A.
 - **Size.** A Typst build may be larger than any budget the text module can take. The spike measures before anyone argues.
 - **Our own engine is real work.** Keep rules, tables across pages, footnotes and contents pages are where layout engines spend years. T4b and T4c limit the scope to what the evidence asks for, and the ADR names what stays out.
-- **One machine.** The times come from one Mac, as in the other spikes. The ADR states the machine and compares ratios rather than absolutes.
+- **One machine.** The times come from one machine: a Linux x86_64 cloud container, not the Mac the other spikes used. The ADR and the README state it and compare ratios rather than absolutes.
 - **The time box.** The spike answers the listed questions and stops; experiment C stops at the first page that renders.
 - **The owner decides** the route, whether flowing output is tagged by default, whether `laminapdf mcp` gets a generation tool, the default fonts, and any budget increase.
 

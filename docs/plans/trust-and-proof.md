@@ -156,7 +156,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
 - **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2a can start now that L3g is done, and T5 and T6 wait on the rounds they extend.
 - **Parallel todos touch the same files.** T1c, T3a and T3b all edit the extraction benchmark (`crates/laminapdf/examples/differential/extract-bench.rs`, `tools/xtask/src/extract_bench.rs`); T2a and T3a both forward image events through `TextExtractor::page_with`. Each todo says so, and whichever lands second extends the first's code.
-- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raises its budget from 1,130,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +17 KB for a paginator and +78 KB for the Markdown parser.
+- **The WASM text module grows.** [ADR 0032 §9](../decisions/0032-flowing-layout-and-document-inputs.md#9-budgets) raises its budget from 1,130,000 to 1,280,000 B gzip for the flow layer, Markdown and documents together; the spike measured +19 KB for a paginator and +60 KB for the Markdown parser.
 
 ## 9. Open questions
 
