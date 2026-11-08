@@ -10,11 +10,13 @@ export type { Rotation } from "./layout/page-layout.js";
 export type {
   BackendInit,
   BackendName,
+  LoadProgress,
   MethodName,
   Methods,
   OpenedDocument,
   Params,
   Priority,
+  RemoteSource,
   RenderedBitmap,
   Result,
   SourceInit,

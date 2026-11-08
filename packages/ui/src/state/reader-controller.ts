@@ -120,5 +120,8 @@ function asReaderError(error: unknown): ReaderError {
       ? error.code
       : "unknown";
   const text = error instanceof Error ? error.message : String(error);
-  return { code, message: text };
+  const data = typeof error === "object" && error !== null && "data" in error ? error.data : undefined;
+  return typeof data === "object" && data !== null
+    ? { code, message: text, data: data as Readonly<Record<string, unknown>> }
+    : { code, message: text };
 }

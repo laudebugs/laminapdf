@@ -11,6 +11,7 @@ import { createWebPlatform, PlatformProvider } from "@laminapdf/ui";
 import { createRoot } from "react-dom/client";
 import { App } from "./app.tsx";
 import { wantsDebug } from "./document.ts";
+import { watchFragment } from "./open/watch.ts";
 import { Engine } from "./session.ts";
 
 for (const font of FONT_PRELOADS) {
@@ -35,6 +36,8 @@ if (root === null) throw new Error("index.html has no #app");
 // One platform for the page: two would each open the recent-files store and take the launch queue.
 const platform = createWebPlatform();
 const engine = new Engine(platform, "pdfium");
+// `#url=` opens a remote file now and whenever the fragment changes.
+watchFragment(window, engine);
 createRoot(root).render(
   <PlatformProvider platform={platform}>
     <App engine={engine} platform={platform} debug={wantsDebug(location.hash)} />

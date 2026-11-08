@@ -435,6 +435,38 @@
     justify-content: center;
     margin-block-start: var(--paper-space-8);
   }
+
+  /* The remote page's address: wrapped anywhere, so a long one never widens the page. */
+  .paper-failure-address {
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-failure-address strong {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+
+  /* Open the link in a new tab: a link drawn as the primary button, so without a link's underline. */
+  .paper-failure-actions a.paper-button {
+    text-decoration: none;
+  }
+
+  /* "Choose the downloaded file": a button that reads as a link in the sentence. */
+  .paper-failure-link {
+    min-block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+  }
+
+  .paper-failure-link:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
 }
 
 /* The whole-file download (R02): a `raised` card a dialog wide, its title, the reason in muted
