@@ -77,6 +77,7 @@ Node tests for the runner's message handling; a Playwright test in the docs' bro
 - **Download as a data: URL:** Chromium checks a blob: download against the page's CSP, which lists no blob:, and reports a violation though the file arrives.
 - **Buttons with icons:** Run, Reset and Download PDF carry `@laminapdf/icons`' play, reset and download icons, inlined at build time from the icons' SVG files (the package exports only a built `dist/`).
 - **Built only with the WebAssembly:** `scripts/build-runner.mjs` builds the runner before `astro dev` and `astro build` when `packages/wasm/dist/` and the SDK and render packages are built; otherwise the pages show no button. The docs workflow builds only the site, so the deployed docs show the button once `.github/workflows/docs.yml` runs `cargo xtask web docs-runner` (the WebAssembly, the SDK and the hayro packages) before the docs build; the PR gives that change for the owner to commit, since agents can't push workflows.
+- **Limits:** a run stops after 30 seconds (the worker is terminated, and the next run starts a new one) and draws at most 20 pages; the e2e suite checks the stop.
 - **One e2e server:** `@laminapdf/test-utils/wrangler-dev` is `apps/web`'s e2e server and HTTPS helper, now shared by both sites' suites. `cargo xtask pdf-runtimes <browser>` builds the docs and runs theirs after the reader's.
 
 ## Definition of done

@@ -159,7 +159,7 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
 
 ### Implementation note (2026-11-08): the docs' example runner
 
-The docs site's "Edit and run" (todo B7e) runs a reader's edit of an example in a module worker at `/run/worker.js`. The worker needs `'unsafe-eval'` to run that code, so `apps/docs/public/_headers` gives `/run/*` its own CSP: `default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'`, plus the closing `base-uri`, `form-action` and `object-src` of §4. A worker's CSP comes from its own script's response, so every page keeps the docs' headers unchanged, and the worker loads only same-origin files: the SDK, hayro and the examples' inputs. The code it runs is the docs' own example as the reader edited it in their own tab; nothing is sent anywhere. apps/docs/e2e checks both policies in Chromium, Firefox and WebKit.
+The docs site's "Edit and run" (todo B7e) runs a reader's edit of an example in a module worker at `/run/worker.js`. The worker needs `'unsafe-eval'` to run that code, so `apps/docs/public/_headers` gives `/run/*` its own CSP: `default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self'`, plus the closing `base-uri`, `form-action` and `object-src` of §4. A worker's CSP comes from its own script's response, so every page keeps the docs' headers unchanged, and the worker loads only same-origin files: the SDK, hayro and the examples' inputs. The code it runs is one of the docs' own examples, edited in the reader's own tab; nothing is sent anywhere. apps/docs/e2e checks both policies in Chromium, Firefox and WebKit.
 
 ## Consequences
 

@@ -47,6 +47,7 @@ An "Edit and run" button on the Result tab loads, on first press, a small runner
 - **Run:** in a module worker the docs site serves at `/run/worker.js`. A worker's CSP comes from its own script's response, so `_headers` gives `/run/*` a policy of its own with `'unsafe-eval'`, and every page keeps ADR 0011's headers unchanged. The worker loads the docs' own build of `@laminapdf/sdk` and the fonts, images and data the example takes, all from the docs site, and passes the same fixed file ID and date as the SDK's tests, so an unchanged example gives its golden's bytes.
 - **Result:** `@laminapdf/render-hayro` draws each page in the worker, the same renderer as the Result tab's pictures, and the page shows them as canvases in the Result tab. A Download button saves the PDF. An error shows its code and hint, as `LaminaPdfError` gives them.
 - **Reset:** puts the example's file back.
+- **Limits:** a run stops after 30 seconds, so an endless loop can't hang the page, and draws at most 20 pages.
 
 Only the first press loads anything: the editor (CodeMirror), then, on the first run, about 3 MB gzipped (the SDK's text module and hayro). Rust tabs keep the Result pictures, with no button.
 
