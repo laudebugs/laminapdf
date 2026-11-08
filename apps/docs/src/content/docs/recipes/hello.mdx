@@ -3,19 +3,15 @@ title: Hello, world
 description: One A4 page with a line of text in a standard 14 font, the smallest PDF Lamina PDF writes, in TypeScript and Rust.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll make the smallest PDF Lamina PDF writes: one A4 page that says "Hello, world!" in Helvetica. Start from it to check that a new setup works, or as the skeleton of a document of your own.
 
 The function builds the page and returns the PDF's bytes. In TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/hello.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/hello.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/hello.ts" rust="crates/laminapdf/examples/hello.rs" result="hello" />
 
-The result is one page with the line near its top-left corner: [open the reference PDF](/examples/pdf/hello.pdf).
+The result is one page with the line near its top-left corner. The Result tab shows it, with a link to the PDF.
 
 ## How it works
 

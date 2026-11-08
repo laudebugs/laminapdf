@@ -3,19 +3,15 @@ title: Links and outlines
 description: Four A5 pages joined by web, page and named links, with a nested outline, page labels that read i, ii, 1, 2 and the outline shown on open.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll make four A5 pages joined by links to a website and between pages, an outline (the bookmarks panel) and page numbers that read i, ii, 1, 2. Start from it for a manual, a report or any document longer than a page or two.
 
 The function draws the four pages, links them and returns the PDF's bytes. It draws text, so in TypeScript it needs the text module, `init({ text: true })`. Both languages write the same bytes:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/links-and-outlines.ts" /></TabItem>
-  <TabItem label="Rust"><Snippet file="crates/laminapdf/examples/links_and_outlines.rs" /></TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/links-and-outlines.ts" rust="crates/laminapdf/examples/links_and_outlines.rs" result="links_and_outlines" />
 
-The result is four A5 pages with an outline and page labels: [open the reference PDF](/examples/pdf/links_and_outlines.pdf).
+The result is four A5 pages with an outline and page labels. The Result tab shows it, with a link to the PDF.
 
 ## How it works
 

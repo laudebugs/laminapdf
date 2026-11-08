@@ -9,6 +9,7 @@
 import type { ReactNode } from "react";
 import type { ShellLayout } from "../shell/layout.js";
 import type { ModeRegistry, ModesState } from "../shell/modes.js";
+import { usePhone } from "../shell/phone.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 
 /** Props of `ReaderShell`. */
@@ -23,6 +24,8 @@ export interface ReaderShellProps {
   inspector?: ReactNode;
   /** The status bar's items. */
   status?: ReactNode;
+  /** The phone's bottom bar (`PhoneBottomBar`), in place of the status bar below the phone breakpoint. */
+  bottomBar?: ReactNode;
   /** The canvas: the viewer, or a page the canvas holds instead (the home, an error). */
   children: ReactNode;
   /** The shell's layout: focus mode hides the mode's toolbar. */
@@ -62,8 +65,12 @@ export function ReaderShell({
   children,
   layout,
   modes,
+  bottomBar,
 }: ReaderShellProps): ReactNode {
   const focus = useFocus(layout);
+  const phone = usePhone();
+  const phoneBar = phone && bottomBar !== undefined;
+  const foot = phoneBar ? bottomBar : status;
   const modeToolbar = useModeToolbar(modes);
   const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
   return (
@@ -78,7 +85,11 @@ export function ReaderShell({
         </main>
         {inspector}
       </div>
-      {status === undefined ? null : <footer className="paper-reader-status">{status}</footer>}
+      {foot === undefined ? null : (
+        <footer className="paper-reader-status" data-phone={phoneBar || undefined}>
+          {foot}
+        </footer>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ description: Points from the top-left corner of the page as it's displayed, y go
 ---
 
 import Diagram from "../../../components/Diagram.astro";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 Every position you pass Lamina PDF is in [page space](/reference/glossary/#page-space): points measured from the top-left corner of the page, with y going down. It's the way a screen or a sheet of paper reads, so a number means the same thing in every part of the API.
 
@@ -20,7 +20,7 @@ For text, the second number is the baseline, the line the letters sit on. Letter
 
 This app places "Hello, world!" one inch from the top-left corner, with its baseline one text size lower:
 
-<Snippet file="packages/sdk/examples/quick-start/node.ts" />
+<Example ts="packages/sdk/examples/quick-start/node.ts" result="hello" />
 
 ## Pages count from 0
 

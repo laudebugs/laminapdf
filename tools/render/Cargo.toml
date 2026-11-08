@@ -12,7 +12,8 @@ rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/laudebugs/laminapdf"
 publish = false
-# Two binaries: `render-golden` (the default, `cargo xtask render-golden`) and `render-diff`
+# Three binaries: `docs-previews` (`cargo xtask docs-previews`, the docs' Result-tab pictures, todo B7d),
+# `render-golden` (the default, `cargo xtask render-golden`) and `render-diff`
 # (`cargo xtask render-diff`, the nightly hayro-vs-PDFium diff through laminapdf-render, todo X3b).
 default-run = "render-golden"
 

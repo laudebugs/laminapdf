@@ -3,8 +3,7 @@ title: Text and fonts
 description: Draw text in any script with your own fonts or the standard 14, one line at a time or as a paragraph that wraps in a box.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
-import Snippet from "../../../components/Snippet.astro";
+import Example from "../../../components/Example.astro";
 
 You'll draw text on a page: single lines, and paragraphs that wrap to fit a box, in any script and direction. You need this whenever a PDF holds words, from a one-line label to a report in five languages.
 
@@ -25,14 +24,7 @@ A font is embedded once per document, however many `Font` objects name it.
 
 This example draws five scripts (Latin with ligatures, Arabic, Devanagari, Hebrew and Chinese), each in its own embedded font:
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Snippet file="packages/sdk/examples/multilingual.ts" />
-  </TabItem>
-  <TabItem label="Rust">
-    <Snippet file="crates/laminapdf/examples/multilingual.rs" />
-  </TabItem>
-</Tabs>
+<Example ts="packages/sdk/examples/multilingual.ts" rust="crates/laminapdf/examples/multilingual.rs" result="multilingual" />
 
 [See the output](/recipes/multilingual/). Text extracted from it, with pdf.js, pypdf or pdftotext, equals the input strings, ligatures included.
 

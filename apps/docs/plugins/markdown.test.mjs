@@ -1,10 +1,22 @@
 // The MDX-to-Markdown conversion behind the pages' Markdown twins (markdown.mjs) and llms.txt's
 // shape (agent-docs.mjs). Run with `node --test` (the package's `test` script).
 import assert from "node:assert/strict";
+import { symlinkSync, unlinkSync } from "node:fs";
+import { platform } from "node:process";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { diagramText } from "../src/components/diagrams/registry.mjs";
-import { llmsTxt, routeOfTwin, twinPath } from "./agent-docs.mjs";
-import { codeBlock, frontMatter, mdxToMarkdown, rewriteLinks, twin, twinHref } from "./markdown.mjs";
+import { llmsTxt, routeOfTwin, shownFileUrl, twinPath } from "./agent-docs.mjs";
+import {
+  codeBlock,
+  exampleParts,
+  frontMatter,
+  mdxToMarkdown,
+  rewriteLinks,
+  shownFiles,
+  twin,
+  twinHref,
+} from "./markdown.mjs";
 
 const components = {
   snippet: (/** @type {string} */ file) => `// ${file}\nconst a = 1;\n`,
@@ -27,6 +39,35 @@ test("a snippet becomes a fenced block of the file, captioned with its path", ()
     out,
     "`packages/sdk/examples/hello.ts`:\n\n```ts\n// packages/sdk/examples/hello.ts\nconst a = 1;\n```\n",
   );
+});
+
+test("an example becomes its code in each language and a link to each PDF it makes", () => {
+  const out = mdxToMarkdown(
+    '<Example ts="a/hello.ts" rust="a/hello.rs" result="hello" />\n\n<Example ts="a/x.ts" result={["x-2b", "x-2u"]} />\n',
+    components,
+  );
+  assert.equal(
+    out,
+    [
+      "**TypeScript**\n\n`a/hello.ts`:\n\n```ts\n// a/hello.ts\nconst a = 1;\n```",
+      "**Rust**\n\n`a/hello.rs`:\n\n```rust\n// a/hello.rs\nconst a = 1;\n```",
+      "**Result:** [hello.pdf](/examples/pdf/hello.pdf)",
+      "**TypeScript**\n\n`a/x.ts`:\n\n```ts\n// a/x.ts\nconst a = 1;\n```",
+      "**Result:** [x-2b.pdf](/examples/pdf/x-2b.pdf), [x-2u.pdf](/examples/pdf/x-2u.pdf)\n",
+    ].join("\n\n"),
+  );
+});
+
+test("an example's output becomes a block, and its files are read before the twins", () => {
+  const page = '<Example ts="a/e.ts" output="f/invoice.md" />';
+  assert.match(mdxToMarkdown(page, components), /\*\*Output\*\*\n\n`f\/invoice.md`:\n\n```md\n/);
+  assert.deepEqual(shownFiles(`<Snippet file="a/s.ts" />\n${page}`), ["a/s.ts", "a/e.ts", "f/invoice.md"]);
+  assert.deepEqual(exampleParts(' rust="r.rs" result="hello"'), {
+    ts: undefined,
+    rust: "r.rs",
+    results: ["hello"],
+    output: undefined,
+  });
 });
 
 test("a diagram becomes its caption and text description, with no SVG or JSX", () => {
@@ -163,4 +204,30 @@ test("a page's own code blocks keep their imports and JSX", () => {
 test("a snippet's file is found whatever the attributes' order", () => {
   const out = mdxToMarkdown('<Snippet title="Hello" file="a.ts" />\n', components);
   assert.match(out, /^`a\.ts`:\n\n```ts\n/);
+});
+
+test("a twin reads only files in the example folders", () => {
+  assert.match(shownFileUrl("packages/sdk/examples/hello.ts").href, /packages\/sdk\/examples\/hello\.ts$/);
+  for (const file of [
+    "",
+    "/etc/passwd",
+    "packages/sdk/examples/%2e%2e/%2e%2e/../package.json",
+    "packages/sdk/examples/%2e%2e%2f%2e%2e%2fCargo.toml",
+    "C:/x.ts",
+    "packages/sdk/examples/../../../.env",
+    "packages/sdk/src/index.ts",
+  ]) {
+    assert.throws(() => shownFileUrl(file), /outside the example folders/, file);
+  }
+});
+
+// Windows lets only some accounts make symbolic links.
+test("a symbolic link in an example folder can't lead out of it", { skip: platform === "win32" }, () => {
+  const link = new URL("../../../fixtures/extract/examples/link-out-test.md", import.meta.url);
+  symlinkSync(fileURLToPath(new URL("../../../Cargo.toml", import.meta.url)), link);
+  try {
+    assert.throws(() => shownFileUrl("fixtures/extract/examples/link-out-test.md"), /outside the example folders/);
+  } finally {
+    unlinkSync(link);
+  }
 });

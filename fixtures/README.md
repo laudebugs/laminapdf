@@ -194,6 +194,8 @@ The metric (defined in `crates/laminapdf/tests/reading_order.rs`): text is token
 
 ### `extract/`
 
+`examples/invoice.md`: the Markdown the `extract_markdown` example writes for `golden/examples/invoice.pdf`, which the docs' Extract Markdown recipe shows as its output. Written by `crates/laminapdf/tests/examples.rs` with `UPDATE_GOLDEN=1`, checked by it without.
+
 `markdown/<layout>-{ordered,reversed}.md`: `laminapdf-extract`'s Markdown for each reading-order file, with page markers. Written by `crates/laminapdf-extract/tests/output.rs` with `UPDATE_GOLDEN=1`, checked by the same test without it; a change to the rules or the renderer shows up as a diff here.
 
 Not here yet: real-world files with hand-checked order (they need a second annotator), tagged variants (B8a writes the structure tree), vertical CJK (the builder lays out horizontally).
