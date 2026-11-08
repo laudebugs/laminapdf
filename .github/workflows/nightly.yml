@@ -201,7 +201,8 @@ jobs:
       fail-fast: false
       matrix:
         # Exactly harness::FUZZ_TARGETS (tools/xtask/src/workflows.rs checks).
-        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip, extract_text, extract]
+        target:
+          [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip, extract_text, extract]
     env:
       TARGET: ${{ matrix.target }}
     steps:
@@ -705,7 +706,8 @@ jobs:
   # appending to main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, roundtrip, proof, forced-failure]
+    needs:
+      [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, verapdf, roundtrip, proof, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result),
     # nor for a run someone cancelled. A job that hit its timeout-minutes ends `cancelled`, not
     # `failure`, but fails the run all the same: 2026-11-02's Benchmarks job landed on a hung
