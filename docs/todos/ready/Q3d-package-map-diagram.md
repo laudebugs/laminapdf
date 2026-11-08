@@ -8,7 +8,7 @@
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | None |
-| Branch | `docs/q3d-package-map` |
+| Branch | `feat/q3d-package-map` |
 | PR title | `feat(docs): a diagram of the published packages and modules` |
 | Size | S |
 | PR | — |

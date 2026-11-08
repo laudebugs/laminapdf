@@ -8,7 +8,7 @@
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0004](../../decisions/0004-render-backend.md) |
-| Branch | `docs/q3g-drawing-and-ranges` |
+| Branch | `feat/q3g-drawing-and-ranges` |
 | PR title | `feat(docs): pages and diagrams for drawing pages and opening large files by ranges` |
 | Size | M |
 | PR | — |

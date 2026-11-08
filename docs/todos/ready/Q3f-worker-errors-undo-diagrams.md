@@ -8,7 +8,7 @@
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0026](../../decisions/0026-error-and-diagnostic-contract.md) |
-| Branch | `docs/q3f-worker-errors-undo` |
+| Branch | `feat/q3f-worker-errors-undo` |
 | PR title | `feat(docs): diagrams for the Web Worker, errors and warnings, and undo` |
 | Size | M |
 | PR | — |

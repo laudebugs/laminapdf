@@ -8,7 +8,7 @@
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
-| Branch | `docs/q3c-coordinates-diagram` |
+| Branch | `feat/q3c-coordinates-diagram` |
 | PR title | `feat(docs): a diagram for page space and PDF user space` |
 | Size | S |
 | PR | — |

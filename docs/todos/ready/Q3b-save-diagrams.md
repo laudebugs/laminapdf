@@ -8,7 +8,7 @@
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md) (what each mode does) |
-| Branch | `docs/q3b-save-diagrams` |
+| Branch | `feat/q3b-save-diagrams` |
 | PR title | `feat(docs): diagrams for the two save modes and how a save picks one` |
 | Size | S |
 | PR | — |

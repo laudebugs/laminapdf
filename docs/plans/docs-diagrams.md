@@ -12,7 +12,7 @@ The docs site has no images at all. Its pages explain processes in prose: how an
 
 ## 2. Where a diagram helps
 
-A diagram earns its place when the page explains a flow, a structure or a geometry that the reader must hold in mind while reading the next section. Each one below answers a question readers ask, and each sits next to the prose it supports, and none decorates a page. The ranking is by how many readers hit the question and how much prose the picture saves.
+A diagram earns its place when the page explains a flow, a structure or a geometry that the reader must hold in mind while reading the next section. Each one below answers a question readers ask, and each sits next to the prose it supports, and none decorates a page. The ranking is a judgement from reading the pages: how central the question is to using the library, and how much prose the picture saves. No usage data backs it yet; the docs collect none.
 
 | # | Diagram | Page and section | The question it answers | Kind |
 | --- | --- | --- | --- | --- |
@@ -83,7 +83,7 @@ A diagram can go wrong in four ways. A hard-coded colour breaks in one theme, a 
 
 ## 6. Todos
 
-Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks and the first diagram; the others depend only on it and can run in parallel.
+Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks and the first diagram; the others depend only on it and can run in parallel. Start Q3g first after Q3a: its "Drawing a page" diagram answers how rendering works, the question that started this round, and it needs a new page, so it takes longest.
 
 | ID | Delivers | Diagrams (§2) |
 | --- | --- | --- |
