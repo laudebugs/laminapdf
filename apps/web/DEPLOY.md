@@ -16,19 +16,19 @@ Three Workers hold the reader, each at one kind of address:
 | A push to `main`, or a manual run on `main` | `staging` | `staging-app.laminapdf.com` |
 | A tag `web-v<version>` on a commit of `main` | `production-checks`, `production` | `app.laminapdf.com` |
 
-A pull request or a push deploys only when it changes something the reader may be built from. `cargo xtask changes` decides and prints `web=true` or `web=false`. It counts every path except the docs and the parts of the repository the reader can't depend on: the other apps, the tools other than xtask, the spikes, the fuzz workspace and the other workflows (`OUTSIDE_WEB` in `tools/xtask/src/changes.rs`). A root config file or a shared action nobody thought to list still counts. When nothing it counts changed, the job reports success and its summary says why nothing deployed.
+A pull request or a push deploys only when it changes something the reader may be built from. `cargo xtask changes` decides and prints `web=true` or `web=false`. It counts every path except the docs and `OUTSIDE_WEB` in `tools/xtask/src/changes.rs`, the parts of the repository the reader can't depend on. Those are the other apps and workflows, the tools other than xtask, the spikes and the fuzz workspace. A root config file or a shared action nobody thought to list still counts. When nothing it counts changed, the job reports success and its summary says why nothing deployed.
 
-A pull request compares itself with its base branch. A push to `main` compares itself with the commit of the workflow's last successful run on `main`, which deployed staging or found nothing to deploy. So a cancelled or failed staging deploy is made up by the next push, whatever that push changes. A manual run on `main` always deploys staging, and a tag always deploys production.
+A pull request compares itself with its base branch. A push to `main` compares itself with the commit of the workflow's last successful run on `main`, which deployed staging or found nothing to deploy. So the next push makes up for a cancelled or failed staging deploy, whatever that push changes. A manual run on `main` always deploys staging, and a tag always deploys production.
 
 ## How a preview is built and deployed
 
 The preview jobs keep the PR's code away from the Cloudflare secrets:
 
 1. **`preview-build`** has no secrets. It builds the PR with `cargo xtask web build` and uploads `apps/web/dist/` as an artifact.
-2. **`preview-deploy`** has the secrets and never checks out or runs the PR's code. It reads `wrangler.jsonc` and the Wrangler version from the default branch. It works in the runner's temp folder, outside the workspace where a PR's job left its checkout, and runs that exact Wrangler with `npx`, with a fresh npm cache and an empty npm config. It writes the preview Worker's config, then uploads the artifact with `wrangler versions upload --preview-alias pr-<number>`, which deploys nothing. It measures the build's JavaScript and WebAssembly (gzipped, file by file) and posts one comment on the PR with the preview URL, the commit and those sizes, updated on every push.
+2. **`preview-deploy`** has the secrets and never checks out or runs the PR's code. It reads `wrangler.jsonc` and the Wrangler version from the default branch. Everything else happens in the runner's temp folder, away from the workspace where a PR's job left its checkout. There, `npx` runs that exact Wrangler with a fresh npm cache and an empty npm config. The job writes the preview Worker's config, then uploads the artifact with `wrangler versions upload --preview-alias pr-<number>`, which deploys nothing. Last, it measures the build's JavaScript and WebAssembly (gzipped, file by file) and posts one comment on the PR with the preview URL, the commit and those sizes, updated on every push.
 3. **`preview-smoke`** runs the PR's smoke test against the preview URL, with no secrets.
 
-`versions upload` refuses a Worker that doesn't exist yet, so the first preview creates `lamina-pdf-web-preview`: it deploys a placeholder page with no route and no workers.dev address, and turns preview URLs on. Production is untouched until the first `web-v*` tag.
+`versions upload` needs an existing Worker, so the first preview creates `lamina-pdf-web-preview`: it deploys a placeholder page with no route and no workers.dev address, and turns preview URLs on. Production is untouched until the first `web-v*` tag.
 
 Pull requests from forks are skipped, as in the docs and website workflows, because they must never run on the self-hosted runners or see the secrets.
 
@@ -37,11 +37,11 @@ Pull requests from forks are skipped, as in the docs and website workflows, beca
 A `web-v<version>` tag runs two jobs, one after the other:
 
 1. **`production-checks`** fails unless the tag is on a commit of `main`, which takes changes only through pull requests that passed CI. It builds the tag, typechecks the reader and runs its e2e suite in Chromium against `wrangler dev`. Todo C7c adds the release gates to this job: the runtimes, Lighthouse and installability.
-2. **`production`** needs those checks. It deploys the build they passed, in the `production` GitHub environment, then runs the smoke test against `app.laminapdf.com`. If the smoke test doesn't pass, whether it failed, timed out or was cancelled, the job runs `wrangler rollback`, which restores the previous deployment, and fails. The first release has no deployment to go back to, so its rollback fails too, and the release stays up until a fixed tag replaces it.
+2. **`production`** needs those checks. It deploys the build they passed, in the `production` GitHub environment, then runs the smoke test against `app.laminapdf.com`. Whenever the smoke test doesn't pass, the job runs `wrangler rollback`, which restores the previous deployment, and fails; a smoke test that times out or is cancelled counts too. The first release has no deployment to go back to, so its rollback fails too, and the release stays up until a fixed tag replaces it.
 
-A tag's run builds everything from scratch, since its build directories are emptied before every use, so `production-checks` takes longer than a preview.
+`production-checks` takes longer than a preview build. A tag's run builds everything from scratch, because `isolate-rust-home` and `node-pnpm` empty its build directory and package store before every use.
 
-Nothing else deploys production: a push to a branch never does. Production deploys run one at a time, and so do staging deploys; a newer push to a pull request cancels its older preview run.
+Only a `web-v*` tag deploys production. Deploys to one Worker run one at a time, and a newer push to a pull request cancels its older preview run.
 
 ## What the owner needs to do
 
@@ -52,11 +52,11 @@ Nothing else deploys production: a push to a branch never does. Production deplo
 
    Without the secrets, every deploy step skips with a notice and the jobs pass.
 2. **The workflow file.** The agents' GitHub access can't push workflow files, so the owner commits `.github/workflows/web-deploy.yml`.
-3. **DNS.** The first staging deploy creates the Worker `lamina-pdf-web-staging`, the `staging-app` DNS record and its certificate; the first `web-v*` tag does the same for `lamina-pdf-web` and `app`. Each fails if a DNS record with that name already exists, so delete any first.
+3. **DNS.** The first staging deploy creates the Worker `lamina-pdf-web-staging`, the `staging-app` DNS record and its certificate; the first `web-v*` tag does the same for `lamina-pdf-web` and `app`. Either deploy fails if a DNS record with its name already exists, so delete any such record first.
 4. **Zone settings.** A zone setting that injects a script into pages, such as Rocket Loader or Email Address Obfuscation, breaks the reader: the CSP blocks the script, and the smoke test fails on the violation. Keep such settings off for these hosts.
 5. **Optional: production reviewers.** The `production` job runs in the GitHub environment `production`, which GitHub creates on first use. To approve each production deploy by hand, add required reviewers to it (Settings → Environments → production).
 
-Nothing needs creating in the Cloudflare dashboard.
+The workflow creates all three Workers itself, so the Cloudflare dashboard needs no setup.
 
 ## Previews after a pull request closes
 
@@ -82,7 +82,7 @@ To put the previous deployment back, roll back:
 pnpm --filter @laminapdf/web exec wrangler rollback --env="" --message "why"
 ```
 
-`wrangler deployments list --env=""` lists the recent deployments, and `wrangler rollback <version-id>` restores an older one. Rerunning the workflow's `staging` job (Actions → Web reader → Run workflow, on `main`) redeploys staging from `main`.
+`wrangler deployments list --env=""` lists the recent deployments, and `wrangler rollback <version-id>` restores an older one. To redeploy staging from `main`, run the workflow by hand on `main` (Actions → Web reader → Run workflow).
 
 ## Checking a deployed reader
 

@@ -41,7 +41,7 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 
 ## Deploys
 
-`.github/workflows/web-deploy.yml` builds the reader with `cargo xtask web build`. Each reader pull request gets a preview URL in a comment, each merge to `main` deploys https://staging-app.laminapdf.com, and a `web-v*` tag deploys https://app.laminapdf.com. A smoke test checks each deploy once it is live. [DEPLOY.md](DEPLOY.md) covers the setup, the rollbacks and deploying by hand.
+Each reader pull request gets a preview URL in a comment, each merge to `main` deploys https://staging-app.laminapdf.com, and a `web-v*` tag deploys https://app.laminapdf.com. For every one of these deploys, `.github/workflows/web-deploy.yml` builds the reader with `cargo xtask web build`, and a smoke test checks the deploy once it is live. [DEPLOY.md](DEPLOY.md) covers the setup, the rollbacks and deploying by hand.
 
 ## Tests
 
