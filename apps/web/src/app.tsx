@@ -12,7 +12,7 @@ import {
   DebugMenu,
   FocusModeItem,
   Inspector,
-  ModeRegistry,
+  type ModeRegistry,
   message,
   OpenDropZone,
   OpenFailure,
@@ -25,11 +25,12 @@ import {
   RepairDetails,
   RepairedNotice,
   registerReaderCommands,
-  ShellLayout,
+  type ShellLayout,
   StatusBarItem,
   shellActions,
   useGatedEntries,
   useReaderState,
+  useShell,
   useStoreState,
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
@@ -60,18 +61,6 @@ function useWindowTitle(fileName: string | undefined, title: string | undefined)
   }, [fileName, title]);
 }
 
-/** The shell's layout (the rail's state kept in `platform`'s storage) and its one mode, Read. */
-function useShell(platform: Platform): { layout: ShellLayout; modes: ModeRegistry } {
-  const [shell] = useState(() => {
-    const layout = new ShellLayout(platform.storage);
-    const modes = new ModeRegistry();
-    modes.register({ id: "read", label: message("command.mode.read"), icon: "reader", leave: () => layout.deselect() });
-    return { layout, modes };
-  });
-  useEffect(() => void shell.layout.load(), [shell]);
-  return shell;
-}
-
 /** The registry with the reader's commands, and the context they run in: focus mode, the modes and the palette are the shell's. */
 function useReaderCommands(
   platform: Platform,
@@ -84,6 +73,8 @@ function useReaderCommands(
     registerReaderCommands(commands);
     return commands;
   });
+  // A mode registered later gets its `mode.<id>` handler: the context follows the modes.
+  const modes = useStoreState(shell.modes, (s) => s.modes);
   const context = useMemo<CommandContext>(
     () => ({
       platform,
@@ -92,7 +83,7 @@ function useReaderCommands(
       // No rail tabs yet, so the sidebar command has no handler and stays out of every view.
       actions: { ...shellActions(shell.layout, shell.modes, { rail: false }), "palette.open": shell.openPalette },
     }),
-    [platform, reader, viewer, shell],
+    [platform, reader, viewer, shell, modes],
   );
   return { registry, context };
 }
@@ -128,26 +119,23 @@ function useRepairsPanel(
   fileName: string | undefined,
   repairs: EngineState["repairs"],
 ): { inspector: ReactNode; showRepairs: (() => void) | undefined } {
-  const [repairsFor, setRepairsFor] = useState<string | undefined>();
+  const shown = useStoreState(layout, (s) => s.inspector?.id === "repairs");
+  // Another file's repairs never show: a new file closes the panel.
   useEffect(() => {
-    if (repairsFor !== fileName) layout.closeInspector();
-  }, [repairsFor, fileName, layout]);
+    if (fileName !== undefined && layout.getState().inspector?.id === "repairs") layout.closeInspector();
+  }, [fileName, layout]);
   if (fileName === undefined || repairs.length === 0) return { inspector: undefined, showRepairs: undefined };
-  const showRepairs = () => {
-    setRepairsFor(fileName);
-    layout.openInspector({ id: "repairs", selection: false });
-  };
-  const inspector =
-    repairsFor === fileName ? (
-      <Inspector layout={layout}>
-        <RepairDetails
-          fileName={fileName}
-          repairs={repairs}
-          onClose={() => layout.closeInspector()}
-          onCopy={() => void platform.copyText(repairsText(repairs))}
-        />
-      </Inspector>
-    ) : undefined;
+  const showRepairs = () => layout.openInspector({ id: "repairs", selection: false });
+  const inspector = shown ? (
+    <Inspector layout={layout}>
+      <RepairDetails
+        fileName={fileName}
+        repairs={repairs}
+        onClose={() => layout.closeInspector()}
+        onCopy={() => void platform.copyText(repairsText(repairs))}
+      />
+    </Inspector>
+  ) : undefined;
   return { inspector, showRepairs };
 }
 
@@ -158,7 +146,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
   const engineState = useStoreState(engine, (s) => s);
   const { backend, viewer, repairs } = engineState;
   const [palette, setPalette] = useState(false);
-  const { layout, modes } = useShell(platform);
+  const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const more = useGatedEntries<MoreId>([
@@ -179,6 +167,7 @@ export function App({ engine, platform, debug }: { engine: Engine; platform: Pla
     <CommandsProvider registry={commands.registry} context={commands.context} keys={KEYS}>
       <ReaderShell
         layout={layout}
+        modes={modes}
         topBar={
           <ReaderTopBar
             reader={reader}

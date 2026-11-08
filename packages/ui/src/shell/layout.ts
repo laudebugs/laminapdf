@@ -3,26 +3,29 @@
 // the commands and the status bar read one state. The rail's state is kept in the platform's
 // storage between visits; focus mode lasts the window only, as the design says (R16).
 
+import { COMPONENT } from "@laminapdf/tokens";
 import type { PlatformStorage } from "../platform/types.js";
 import type { ExternalStore } from "../state/hooks.js";
 
 /** The rail's narrowest width, in CSS pixels: token `rail-width-min`. */
-export const RAIL_MIN_WIDTH = 196;
-/** The rail's widest width: twice the wide rail (`rail-width-wide`, 280), so a page thumbnail still fits beside the canvas. */
-export const RAIL_MAX_WIDTH = 560;
+export const RAIL_MIN_WIDTH = COMPONENT["rail-width-min"];
+/** The rail's widest width: twice the wide rail (`rail-width-wide`), so a page thumbnail still fits beside the canvas. */
+export const RAIL_MAX_WIDTH = 2 * COMPONENT["rail-width-wide"];
 /** The rail's width before the user resizes it: token `rail-width`. */
-export const RAIL_DEFAULT_WIDTH = 220;
+export const RAIL_DEFAULT_WIDTH = COMPONENT["rail-width"];
 /** How far one arrow key press resizes the rail. */
 export const RAIL_STEP = 16;
 
 /** The storage key of the rail's kept state. */
 const STORAGE_KEY = "shell.rail";
+/** How long the rail's state rests before it is kept, so a drag writes once, not once a frame. */
+const KEEP_AFTER_MS = 250;
 
 /** What the inspector shows: a selection (which closes when it is deselected), or a panel opened on purpose. */
 export interface InspectorContent {
   /** What it is, such as `repairs` or `selection`. */
   readonly id: string;
-  /** True when a selection opened it: deselecting closes it, and it shows in focus mode. */
+  /** True when a selection opened it: deselecting closes it, and it is the one panel focus mode shows. */
   readonly selection: boolean;
 }
 
@@ -62,7 +65,11 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
     inspector: undefined,
   };
   readonly #listeners = new Set<() => void>();
+  readonly #deselected = new Set<() => void>();
   readonly #storage: PlatformStorage | undefined;
+  /** Set once the user changes the rail, so a kept state read later never undoes the change. */
+  #railTouched = false;
+  #keepTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** `storage` keeps the rail's state between visits; without it the rail starts closed each time. */
   constructor(storage?: PlatformStorage) {
@@ -72,7 +79,7 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
   /** Reads the rail's kept state; until it resolves the rail is closed, so a first visit never flashes it open. */
   async load(): Promise<void> {
     const kept = readKept(await this.#storage?.get(STORAGE_KEY).catch(() => undefined));
-    if (kept !== undefined) this.#set({ rail: kept });
+    if (kept !== undefined && !this.#railTouched) this.#set({ rail: kept });
   }
 
   getState(): ShellLayoutState {
@@ -82,6 +89,12 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
   subscribe(listener: () => void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
+  }
+
+  /** Calls `listener` each time `deselect` closes a selection's inspector, so the app clears its own selection too. */
+  onDeselect(listener: () => void): () => void {
+    this.#deselected.add(listener);
+    return () => this.#deselected.delete(listener);
   }
 
   /** Opens or closes the rail. */
@@ -128,15 +141,31 @@ export class ShellLayout implements ExternalStore<ShellLayoutState> {
 
   /** A selection was cleared: closes the inspector if a selection opened it, and leaves a panel opened on purpose. */
   deselect(): void {
-    if (this.#state.inspector?.selection === true) this.#set({ inspector: undefined });
+    if (this.#state.inspector?.selection !== true) return;
+    this.#set({ inspector: undefined });
+    for (const listener of [...this.#deselected]) listener();
+  }
+
+  /**
+   * Escape's step for focus mode: clears a selection first, whichever was opened first, then leaves
+   * focus mode (R16: selection, then focus mode).
+   */
+  escapeFocus(): void {
+    if (this.#state.inspector?.selection === true) this.deselect();
+    else this.leaveFocus();
   }
 
   #setRail(change: Partial<ShellLayoutState["rail"]>): void {
-    const rail = { ...this.#state.rail, ...change };
-    this.#set({ rail });
-    this.#storage?.set(STORAGE_KEY, rail).catch(() => {
-      // Not kept: the rail starts closed on the next visit, which is the default anyway.
-    });
+    this.#railTouched = true;
+    this.#set({ rail: { ...this.#state.rail, ...change } });
+    const storage = this.#storage;
+    if (storage === undefined) return;
+    clearTimeout(this.#keepTimer);
+    this.#keepTimer = setTimeout(() => {
+      storage.set(STORAGE_KEY, this.#state.rail).catch(() => {
+        // Not kept: the rail starts closed on the next visit, which is the default anyway.
+      });
+    }, KEEP_AFTER_MS);
   }
 
   #set(change: Partial<ShellLayoutState>): void {

@@ -20,7 +20,7 @@ import {
   FocusModeItem,
   Inspector,
   LeftRail,
-  ModeRegistry,
+  type ModeRegistry,
   NetworkIndicator,
   OpenDropZone,
   type OpenedDocument,
@@ -35,10 +35,11 @@ import {
   RegistryPalette,
   RepairDetails,
   registerReaderCommands,
-  ShellLayout,
+  type ShellLayout,
   shellActions,
   useGatedEntries,
   useReaderState,
+  useShell,
   useStoreState,
   type ViewerControls,
   type ViewerSlice,
@@ -128,24 +129,12 @@ const RAIL_TABS: readonly RailTab[] = [
   },
 ];
 
-/** The shell's layout and modes for this page: the rail's state kept in `platform`'s storage, Read the one mode. */
-function useDemoShell(platform: Platform): { layout: ShellLayout; modes: ModeRegistry } {
-  const [shell] = useState(() => {
-    const layout = new ShellLayout(platform.storage);
-    const modes = new ModeRegistry();
-    modes.register({ id: "read", label: "Read", icon: "reader", leave: () => layout.deselect() });
-    return { layout, modes };
-  });
-  useEffect(() => void shell.layout.load(), [shell]);
-  return shell;
-}
-
 /** The chrome over `platform`: the reader's shell, its prompt and its pages. */
 export function Demo({ platform, debug = false }: { platform: Platform; debug?: boolean }): ReactNode {
   const [reader] = useState(() => new ReaderController(platform, demoOpener));
   const [viewer] = useState(() => new DemoViewer());
   const [palette, setPalette] = useState(false);
-  const { layout, modes } = useDemoShell(platform);
+  const { layout, modes } = useShell(platform.storage);
   const [shell] = useState(() => ({ layout, modes, openPalette: () => setPalette(true) }));
   const { registry, context } = useDemoCommands(platform, reader, viewer, shell);
   const state = useReaderState(reader);
@@ -160,6 +149,7 @@ export function Demo({ platform, debug = false }: { platform: Platform; debug?: 
     <CommandsProvider registry={registry} context={context} keys="other">
       <ReaderShell
         layout={layout}
+        modes={modes}
         topBar={<DemoTopBar reader={reader} viewer={viewer} sidebar={sidebar} debug={debug} />}
         {...(open ? { rail: <LeftRail layout={layout} tabs={RAIL_TABS} /> } : {})}
         inspector={<DemoInspector platform={platform} layout={layout} damaged={damaged} />}

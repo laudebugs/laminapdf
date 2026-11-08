@@ -7,7 +7,7 @@ import axe from "axe-core";
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Demo } from "../../examples/ui-demo.tsx";
-import { PlatformProvider, RAIL_DEFAULT_WIDTH } from "../../src/index.ts";
+import { ModeRegistry, PlatformProvider, RAIL_DEFAULT_WIDTH, ReaderShell, ShellLayout } from "../../src/index.ts";
 import { fakePlatform } from "../fakes.ts";
 import { cleanup, renderIn } from "./render.tsx";
 
@@ -155,6 +155,47 @@ describe("the shell", () => {
     await userEvent.keyboard("{Escape}");
     await expect.poll(() => document.querySelector("aside")).toBeNull();
     expect(document.querySelector(".paper-reader-shell[data-focus]")).not.toBeNull();
+  });
+
+  it("clears a selection made before focus mode on the first Escape, and leaves focus mode on the second", async () => {
+    await openDemo();
+    await userEvent.click(button("Select the heading"));
+    await expect.poll(() => document.querySelector("aside")).not.toBeNull();
+    await userEvent.keyboard("{Control>}\\{/Control}");
+    await expect.poll(() => document.querySelector(".paper-reader-shell[data-focus]")).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector("aside")).toBeNull();
+    expect(document.querySelector(".paper-reader-shell[data-focus]")).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => document.querySelector(".paper-reader-shell[data-focus]")).toBeNull();
+  });
+
+  it("hides a panel opened on purpose in focus mode, and brings it back after", async () => {
+    await openDemo(pickerFor("damaged.pdf"));
+    await expect.poll(() => document.querySelector("aside")).not.toBeNull();
+    (document.querySelector("main") as HTMLElement).focus();
+    await userEvent.keyboard("{Control>}\\{/Control}");
+    await expect.poll(() => document.querySelector("aside")).toBeNull();
+    await userEvent.click(button("Focus mode"));
+    await expect.poll(() => document.querySelector("aside")).not.toBeNull();
+  });
+
+  it("shows the current mode's toolbar under the top bar, and hides it in focus mode", async () => {
+    const layout = new ShellLayout();
+    const modes = new ModeRegistry();
+    modes.register({
+      id: "comment",
+      title: "Comment",
+      toolbar: () => <div role="toolbar" aria-label="Comment tools" />,
+    });
+    renderIn(
+      <ReaderShell layout={layout} modes={modes} topBar={<header />}>
+        <div />
+      </ReaderShell>,
+    );
+    await expect.poll(() => document.querySelector(".paper-reader-secondary [role=toolbar]")).not.toBeNull();
+    layout.toggleFocus();
+    await expect.poll(() => document.querySelector(".paper-reader-secondary")).toBeNull();
   });
 
   it("shows the rail as a drawer over the canvas below the rail breakpoint, closed by Escape", async () => {

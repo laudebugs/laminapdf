@@ -2,17 +2,20 @@
 // secondary toolbar under it, then the rail, the canvas and the inspector side by side, and the
 // status bar along the bottom. Each is a slot: the app fills the rail with `LeftRail` and the
 // inspector with `Inspector`, which draw their own landmarks and nothing while closed, so the canvas
-// takes their width back. Given the shell's `layout`, focus mode hides the secondary toolbar.
+// takes their width back. Given the shell's `modes`, the secondary toolbar is the current mode's,
+// unless a tool's toolbar or the find bar replaces it (ADR 0024 §2); given its `layout`, focus mode
+// hides the mode's toolbar and keeps the one that replaced it until it is closed (§1).
 
 import type { ReactNode } from "react";
 import type { ShellLayout } from "../shell/layout.js";
+import type { ModeRegistry, ModesState } from "../shell/modes.js";
 import { type ExternalStore, useStoreState } from "../state/hooks.js";
 
 /** Props of `ReaderShell`. */
 export interface ReaderShellProps {
   /** The top bar: a `ReaderTopBar`. */
   topBar: ReactNode;
-  /** The current mode's toolbar, under the top bar. */
+  /** A tool's toolbar or the find bar, under the top bar in place of the mode's own. */
   secondaryToolbar?: ReactNode;
   /** The left rail: pages, outline and the other tabs. */
   rail?: ReactNode;
@@ -22,8 +25,10 @@ export interface ReaderShellProps {
   status?: ReactNode;
   /** The canvas: the viewer, or a page the canvas holds instead (the home, an error). */
   children: ReactNode;
-  /** The shell's layout: focus mode hides the secondary toolbar. */
+  /** The shell's layout: focus mode hides the mode's toolbar. */
   layout?: ShellLayout;
+  /** The modes: the current one's toolbar sits under the top bar. */
+  modes?: ModeRegistry;
 }
 
 /** The shell's layout as a store that never changes, for a shell without one: never in focus mode. */
@@ -37,6 +42,16 @@ function useFocus(layout: ShellLayout | undefined): boolean {
   return useStoreState<{ readonly focus: boolean }, boolean>(layout ?? NO_LAYOUT, (s) => s.focus);
 }
 
+const NO_MODES: ExternalStore<ModesState> = {
+  getState: () => ({ modes: [], current: undefined }),
+  subscribe: () => () => undefined,
+};
+
+/** The current mode's toolbar, or undefined without modes or for a mode without one. */
+function useModeToolbar(modes: ModeRegistry | undefined): (() => ReactNode) | undefined {
+  return useStoreState(modes ?? NO_MODES, (s) => s.modes.find((m) => m.id === s.current)?.toolbar);
+}
+
 /** The reader's layout, filling its container. */
 export function ReaderShell({
   topBar,
@@ -46,14 +61,15 @@ export function ReaderShell({
   status,
   children,
   layout,
+  modes,
 }: ReaderShellProps): ReactNode {
   const focus = useFocus(layout);
+  const modeToolbar = useModeToolbar(modes);
+  const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
   return (
     <div className="paper-reader-shell" data-focus={focus || undefined}>
       {topBar}
-      {secondaryToolbar === undefined || focus ? null : (
-        <div className="paper-reader-secondary">{secondaryToolbar}</div>
-      )}
+      {toolbar === undefined ? null : <div className="paper-reader-secondary">{toolbar}</div>}
       <div className="paper-reader-body">
         {rail}
         {/* The page's single-key shortcuts (Page Down, +, ?) act while focus is in the canvas. */}

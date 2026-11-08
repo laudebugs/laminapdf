@@ -2,12 +2,12 @@
 // one `mode.<id>` per registered mode. The reader's command set declares them delegated, so they
 // stay out of every view until a shell passes these in its `CommandContext.actions`.
 
-import type { CommandId } from "../commands/types.js";
+import type { CommandContext, CommandId } from "../commands/types.js";
 import type { ShellLayout } from "./layout.js";
 import type { ModeRegistry } from "./modes.js";
 
 /** The commands' handlers, by id, for `CommandContext.actions`. */
-export type ShellActions = Readonly<Partial<Record<CommandId, (args: unknown) => void>>>;
+export type ShellActions = NonNullable<CommandContext["actions"]>;
 
 /**
  * `layout`'s and `modes`' handlers. `rail` says whether the shell has rail tabs to show: without

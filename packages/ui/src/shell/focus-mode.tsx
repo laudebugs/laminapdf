@@ -1,7 +1,8 @@
 // Focus mode's status-bar item (design R16): while focus mode is on, a toggle named "Focus mode"
-// with its shortcut, which leaves focus mode when pressed. Focus mode is also a layer, so Escape
-// leaves it once every layer opened on top (a selection, a dialog) has closed. Turning it on or off
-// is announced once, in a polite live region.
+// with its shortcut, which leaves focus mode when pressed. Focus mode is also a layer: Escape closes
+// every layer opened on top (a dialog) first, then clears a selection, then leaves focus mode. The
+// item must be in the status bar for Escape to leave focus mode. Turning it on or off is announced
+// once, in a polite live region.
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ToggleButton } from "react-aria-components";
@@ -42,7 +43,7 @@ export function FocusModeItem({ layout }: { layout: ShellLayout }): ReactNode {
         {said}
       </span>
       {focus ? (
-        <LayerScope dismiss={() => layout.leaveFocus()}>
+        <LayerScope dismiss={() => layout.escapeFocus()}>
           <ToggleButton
             className="paper-status-item"
             aria-label={message("shell.focus.item")}

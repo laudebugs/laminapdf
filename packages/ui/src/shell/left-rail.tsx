@@ -3,15 +3,16 @@
 // the arrow keys on its handle. Below the rail breakpoint (token `breakpoint-rail-open`) it is a drawer
 // over the canvas, with a scrim, closed by Escape like any other layer.
 
-import { type KeyboardEvent, type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { BREAKPOINTS } from "@laminapdf/tokens";
+import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "react";
 import { SegmentedTabs, TabPanel } from "../components/tabs.js";
 import { message } from "../messages.js";
 import { LayerScope } from "../overlays/layers.js";
-import { useStoreState } from "../state/hooks.js";
+import { useMediaQuery, useStoreState } from "../state/hooks.js";
 import { RAIL_MAX_WIDTH, RAIL_MIN_WIDTH, RAIL_STEP, type ShellLayout } from "./layout.js";
 
 /** Below this window width, the rail is a drawer over the canvas: token `breakpoint-rail-open`. */
-export const RAIL_DRAWER_QUERY = "(max-width: 1023.98px)";
+export const RAIL_DRAWER_QUERY = `(width < ${BREAKPOINTS["rail-open"]}px)`;
 
 /** One tab of the rail, and the panel it shows. */
 export interface RailTab {
@@ -26,20 +27,6 @@ export interface LeftRailProps {
   readonly layout: ShellLayout;
   /** The tabs, in order; with none the rail draws nothing. */
   readonly tabs: readonly RailTab[];
-}
-
-/** Whether `query` matches now, kept up to date. */
-export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(() => typeof matchMedia === "function" && matchMedia(query).matches);
-  useEffect(() => {
-    if (typeof matchMedia !== "function") return;
-    const list = matchMedia(query);
-    const update = () => setMatches(list.matches);
-    update();
-    list.addEventListener("change", update);
-    return () => list.removeEventListener("change", update);
-  }, [query]);
-  return matches;
 }
 
 /** +1 when the inline direction runs left to right at `element`, -1 for right to left. */
