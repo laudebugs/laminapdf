@@ -20,17 +20,46 @@ use crate::surface::text::ShapedPiece;
 use crate::tag::{Artifact, ElementId, Tag, TagKind};
 
 /// Draws `pages` into `builder`; returns the pages added.
-pub(crate) fn emit(builder: &mut Builder, flow: &Flow, items: &Items, pages: &[PageOut]) -> Result<Vec<PageId>> {
-    let mut open: BTreeMap<usize, ElementId> = BTreeMap::new();
+pub(crate) fn emit(
+    builder: &mut Builder,
+    flow: &Flow,
+    items: &Items,
+    pages: &[PageOut],
+    first: usize,
+) -> Result<Vec<PageId>> {
     let mut order = Vec::new();
+    let drawn = draw_pages(builder, flow, items, pages, first, &mut order);
+    // Children were opened after their parents: close them first. After a failure every element
+    // still open is closed too, so the builder can finish; one whose page failed is gone already.
+    let mut closed = Ok(());
+    for id in order.into_iter().rev() {
+        let result = builder.close_element(id);
+        if drawn.is_ok() && closed.is_ok() {
+            closed = result;
+        }
+    }
+    let ids = drawn?;
+    closed?;
+    Ok(ids)
+}
+
+fn draw_pages(
+    builder: &mut Builder,
+    flow: &Flow,
+    items: &Items,
+    pages: &[PageOut],
+    first: usize,
+    order: &mut Vec<ElementId>,
+) -> Result<Vec<PageId>> {
+    let mut open: BTreeMap<usize, ElementId> = BTreeMap::new();
     let mut ids = Vec::with_capacity(pages.len());
     for (index, page) in pages.iter().enumerate() {
         let template = flow.template.for_page(index);
         let mut pb = builder.page(template.size);
         let s = pb.surface();
         let fields = Fields {
-            page: index + 1,
-            pages: pages.len(),
+            page: first + index + 1,
+            pages: first + pages.len(),
             section: page.section.as_deref(),
             title: flow.title.as_deref(),
         };
@@ -42,21 +71,17 @@ pub(crate) fn emit(builder: &mut Builder, flow: &Flow, items: &Items, pages: &[P
         for placed in &page.placed {
             let node = node_of(items, placed);
             if node != leaf && !batch.is_empty() {
-                draw_batch(s, flow, items, leaf, &batch, &mut open, &mut order)?;
+                draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
                 batch.clear();
             }
             leaf = node;
             batch.push(placed);
         }
         if !batch.is_empty() {
-            draw_batch(s, flow, items, leaf, &batch, &mut open, &mut order)?;
+            draw_batch(s, flow, items, leaf, &batch, &mut open, order)?;
         }
         furniture(s, flow, index, &fields, false)?;
         ids.push(pb.finish()?);
-    }
-    // Children were opened after their parents: close them first.
-    for id in order.into_iter().rev() {
-        builder.close_element(id)?;
     }
     Ok(ids)
 }
@@ -80,11 +105,11 @@ fn ensure(
     if let Some(id) = open.get(&node) {
         return Ok(*id);
     }
-    let Some(n) = items.nodes.get(node) else {
-        return Ok(s.open_element(Tag::new(TagKind::P)));
-    };
-    let tag = n.tag.clone();
-    let id = match n.parent {
+    let (tag, parent) = items
+        .nodes
+        .get(node)
+        .map_or((Tag::new(TagKind::P), None), |n| (n.tag.clone(), n.parent));
+    let id = match parent {
         Some(parent) => {
             let parent = ensure(s, items, parent, open, order)?;
             s.resume(parent, |s| Ok(s.open_element(tag)))?

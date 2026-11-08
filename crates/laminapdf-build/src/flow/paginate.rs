@@ -53,8 +53,10 @@ pub(crate) fn paginate(
     items: &Items,
     template: &PageTemplate,
     section_level: u8,
+    first_page: usize,
 ) -> Result<(Vec<PageOut>, Vec<Warning>)> {
     let mut pager = Pager {
+        first_page,
         items,
         template,
         section_level,
@@ -89,6 +91,10 @@ pub(crate) fn paginate(
         }
         i += 1;
     }
+    // A final page break or spacer leaves a page with nothing on it: no blank page at the end.
+    while pager.pages.len() > 1 && pager.pages.last().is_some_and(|p| p.placed.is_empty()) {
+        pager.pages.pop();
+    }
     Ok((pager.pages, pager.warnings))
 }
 
@@ -96,6 +102,8 @@ pub(crate) fn paginate(
 type Lines = Rc<Vec<Rc<MLine>>>;
 
 struct Pager<'a> {
+    /// The document's index of the flow's first page, for warnings.
+    first_page: usize,
     items: &'a Items,
     template: &'a PageTemplate,
     section_level: u8,
@@ -148,10 +156,11 @@ impl Pager<'_> {
         if self.fresh {
             return;
         }
-        if self.y + h > self.bottom() {
+        // The space after the block before it, then the spacer's own.
+        if self.y + self.after + h > self.bottom() {
             self.new_page();
         } else {
-            self.y += h;
+            self.y += self.after + h;
             self.after = 0.0;
         }
     }
@@ -187,13 +196,18 @@ impl Pager<'_> {
             _ => None,
         };
         figure.map_or((0.0, 0.0), |f| {
-            let width = f.width.unwrap_or(f64::MAX).min(self.width(i));
+            let frame = self.width(i);
+            let width = f
+                .width
+                .filter(|w| w.is_finite() && *w > 0.0)
+                .map_or(frame, |w| w.min(frame));
             let ratio = f64::from(f.image.height()) / f64::from(f.image.width().max(1));
             (width, width * ratio)
         })
     }
 
-    /// How tall item `i` is whole (`whole`), or its first part on a page: `orphans` lines.
+    /// How tall item `i` is whole (`whole`), or its first part on a page: `orphans` lines, or the
+    /// whole paragraph when it can't split.
     fn demand(&self, i: usize, whole: bool) -> Result<f64> {
         let Some(item) = self.items.entries.get(i) else {
             return Ok(0.0);
@@ -201,10 +215,11 @@ impl Pager<'_> {
         Ok(match item.content {
             Content::Para(_) => {
                 let lines = self.lines(i, 0)?;
-                let n = if whole {
+                // A paragraph too short to split keeping both rules moves whole.
+                let n = if whole || lines.len() < item.orphans + item.widows {
                     lines.len()
                 } else {
-                    item.orphans.min(lines.len())
+                    item.orphans
                 };
                 lines.iter().take(n).map(|l| l.height).sum()
             }
@@ -222,14 +237,11 @@ impl Pager<'_> {
         while self.items.binds(end) {
             end += 1;
         }
-        if end == i {
+        // The chain's last item needs only its first part, unless a `Keep` group holds it.
+        let last_whole = self.items.entries.get(end).is_some_and(|it| it.keep.is_some());
+        if end == i && !last_whole {
             return Ok(i + 1);
         }
-        // The chain's last item needs only its first part, unless the group holds it too.
-        let last_whole = {
-            let (a, b) = (self.items.entries.get(end - 1), self.items.entries.get(end));
-            a.zip(b).is_some_and(|(a, b)| a.keep.is_some() && a.keep == b.keep)
-        };
         let needed = |p: &Self| -> Result<f64> {
             let mut total = 0.0;
             let mut after = 0.0;
@@ -249,7 +261,7 @@ impl Pager<'_> {
         }
         if needed(self)? > self.body_height() {
             #[expect(clippy::cast_possible_truncation, reason = "page counts are small")]
-            let page = self.pages.len().saturating_sub(1) as u32;
+            let page = (self.first_page + self.pages.len()).saturating_sub(1) as u32;
             self.warnings.push(Warning::FlowKeepBroken { page });
         }
         Ok(end + 1)
@@ -325,7 +337,7 @@ impl Pager<'_> {
             if take > 0 {
                 self.y += self.gap(i);
                 let lines_here = rest.get(..take).unwrap_or_default().to_vec();
-                self.draw_lines(i, &lines_here, first);
+                self.draw_lines(i, &lines_here, first)?;
                 first = false;
                 next += take;
             }
@@ -345,8 +357,10 @@ impl Pager<'_> {
         Ok(())
     }
 
-    fn draw_lines(&mut self, i: usize, lines: &[Rc<MLine>], first: bool) {
-        let Some(item) = self.items.entries.get(i) else { return };
+    fn draw_lines(&mut self, i: usize, lines: &[Rc<MLine>], first: bool) -> Result<()> {
+        let Some(item) = self.items.entries.get(i) else {
+            return Ok(());
+        };
         let left = self.page_template().margins.left + item.indent;
         if first {
             if item.heading == Some(self.section_level)
@@ -357,22 +371,12 @@ impl Pager<'_> {
                     page.section.clone_from(&self.section);
                 }
             }
-            if let Some((source, _)) = item.label {
-                let label = self
-                    .items
-                    .sources
-                    .get(source)
-                    .and_then(|s| s.lines(0, f64::from(f32::MAX)).ok());
-                if let (Some(line), Some(first_line)) = (label.and_then(|l| l.into_iter().next()), lines.first()) {
-                    let x = left - line.line.width - 4.0;
-                    let top = self.y + first_line.baseline - line.baseline;
-                    self.push(Placed::Label {
-                        item: i,
-                        line: Rc::new(line),
-                        x,
-                        top,
-                    });
-                }
+            if let Some((source, _)) = item.label
+                && let (Some(line), Some(first_line)) = (self.label(source)?, lines.first())
+            {
+                let x = left - line.line.width - 4.0;
+                let top = self.y + first_line.baseline - line.baseline;
+                self.push(Placed::Label { item: i, line, x, top });
             }
         }
         for line in lines {
@@ -384,6 +388,21 @@ impl Pager<'_> {
             });
             self.y += line.height;
         }
+        Ok(())
+    }
+
+    /// The marker `source` as one line, measured once per flow (an error is the flow's).
+    fn label(&self, source: usize) -> Result<Option<Rc<MLine>>> {
+        let key = (source, 0, u64::MAX);
+        if let Some(lines) = self.measured.borrow().get(&key) {
+            return Ok(lines.first().cloned());
+        }
+        let Some(s) = self.items.sources.get(source) else {
+            return Ok(None);
+        };
+        let lines: Lines = Rc::new(s.lines(0, f64::from(f32::MAX))?.into_iter().map(Rc::new).collect());
+        self.measured.borrow_mut().insert(key, Rc::clone(&lines));
+        Ok(lines.first().cloned())
     }
 
     fn push(&mut self, placed: Placed) {

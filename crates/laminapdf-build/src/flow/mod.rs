@@ -63,16 +63,20 @@ pub struct FlowReport {
 }
 
 impl Builder {
-    /// Lays `flow` out and adds its pages after any already added.
+    /// Lays `flow` out and adds its pages after any already added. `{page}` and `{pages}` count
+    /// the document's pages, those added before the flow included; the first-page template is
+    /// the flow's first page.
     ///
     /// # Errors
     /// [`Error::FlowContentTooLarge`](crate::Error::FlowContentTooLarge) for a line or a
     /// figure taller than a page's body; shaping errors (`missing-glyph`, `font-not-shapable`);
-    /// the errors of finishing a page.
+    /// the errors of finishing a page. Pages drawn before a failure stay in the document, and
+    /// the flow's structure elements are closed.
     pub fn flow(&mut self, flow: &Flow) -> Result<FlowReport> {
         let items = items::Items::new(&flow.blocks);
-        let (pages, warnings) = paginate::paginate(&items, &flow.template, flow.section_level)?;
-        let pages = emit::emit(self, flow, &items, &pages)?;
+        let first = self.page_count();
+        let (pages, warnings) = paginate::paginate(&items, &flow.template, flow.section_level, first)?;
+        let pages = emit::emit(self, flow, &items, &pages, first)?;
         Ok(FlowReport { pages, warnings })
     }
 }

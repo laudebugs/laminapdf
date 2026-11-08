@@ -24,9 +24,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let [regular, bold, arabic, hindi, photo] = paths.as_slice() else {
         return Err("arguments: <regular.ttf> <bold.ttc> <arabic.ttf> <devanagari.ttf> <photo.jpg>".into());
     };
-    let fonts = [regular, bold, arabic, hindi]
-        .map(std::fs::read)
-        .map(Result::unwrap_or_default);
+    let read = |path: &String| std::fs::read(path);
+    let fonts = [read(regular)?, read(bold)?, read(arabic)?, read(hindi)?];
     let pdf = build(BuildOptions::new(), fonts, std::fs::read(photo)?)?;
     std::fs::create_dir_all("target/examples-out")?;
     Ok(std::fs::write("target/examples-out/flowing_report.pdf", pdf)?)

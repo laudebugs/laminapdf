@@ -41,7 +41,7 @@ fn lines(n: usize, style: &TextStyle, para: ParagraphStyle) -> Paragraph {
 
 fn pages(flow: &Flow) -> Result<Vec<PageOut>, Error> {
     let items = Items::new(&flow.blocks);
-    paginate(&items, &flow.template, 1).map(|(pages, _)| pages)
+    paginate(&items, &flow.template, 1, 0).map(|(pages, _)| pages)
 }
 
 /// Each page's lines as (item, first byte).
@@ -141,6 +141,62 @@ fn a_line_taller_than_the_body_fails() {
     let style = TextStyle::new(&font, 40.0);
     let flow = Flow::new(template(&font, 300.0, 1.0)).block(FlowBlock::Paragraph(Paragraph::plain("Tall", &style)));
     assert_eq!(pages(&flow).unwrap_err(), Error::FlowContentTooLarge { what: "line" });
+}
+
+#[test]
+fn a_heading_before_a_paragraph_too_short_to_split_moves_with_it() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    // Room for the heading and two lines of a three-line paragraph, which can't split 2 and 2.
+    let flow = Flow::new(template(&font, 300.0, 10.0))
+        .block(FlowBlock::Paragraph(lines(7, &style, tight())))
+        .block(FlowBlock::Heading(1, lines(1, &style, tight())))
+        .block(FlowBlock::Paragraph(lines(3, &style, tight())));
+    let counts: Vec<usize> = placed(&pages(&flow).unwrap()).iter().map(Vec::len).collect();
+    assert_eq!(counts, [7, 4]);
+}
+
+#[test]
+fn a_keep_group_of_one_paragraph_moves_whole() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    let flow = Flow::new(template(&font, 300.0, 10.0))
+        .block(FlowBlock::Paragraph(lines(6, &style, tight())))
+        .block(FlowBlock::Keep(vec![FlowBlock::Paragraph(lines(6, &style, tight()))]));
+    let counts: Vec<usize> = placed(&pages(&flow).unwrap()).iter().map(Vec::len).collect();
+    assert_eq!(counts, [6, 6]);
+}
+
+#[test]
+fn a_spacer_adds_to_the_space_after_the_block_before_it() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    let spaced = ParagraphStyle::new().with_space(0.0, 6.0);
+    let flow = Flow::new(template(&font, 300.0, 10.0))
+        .block(FlowBlock::Paragraph(lines(1, &style, spaced)))
+        .block(FlowBlock::Spacer(2.0))
+        .block(FlowBlock::Paragraph(lines(1, &style, tight())));
+    let pages = pages(&flow).unwrap();
+    let boxes: Vec<(f64, f64)> = pages[0]
+        .placed
+        .iter()
+        .filter_map(|x| match x {
+            Placed::Line { top, line, .. } => Some((*top, top + line.height)),
+            _ => None,
+        })
+        .collect();
+    // 6 points after the first paragraph, then the spacer's 2.
+    assert!((boxes[1].0 - boxes[0].1 - 8.0).abs() < 1e-9, "{boxes:?}");
+}
+
+#[test]
+fn a_page_break_at_the_end_adds_no_blank_page() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    let flow = Flow::new(template(&font, 300.0, 10.0))
+        .block(FlowBlock::Paragraph(lines(2, &style, tight())))
+        .block(FlowBlock::PageBreak);
+    assert_eq!(pages(&flow).unwrap().len(), 1);
 }
 
 /// One block of a random flow: a paragraph's line count and rules, or a page break.

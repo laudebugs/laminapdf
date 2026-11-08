@@ -236,3 +236,31 @@ fn lists_links_and_languages_get_their_elements() {
     let lines = texts(&bytes).concat();
     assert_eq!(lines, ["See the accounts and bonjour", "1. First", "2. Second"]);
 }
+
+#[test]
+fn a_paragraph_in_another_language_tags_its_element() {
+    let (bytes, _) = build(|font| {
+        let style = TextStyle::new(font, SIZE).with_language("fr");
+        Flow::new(template(font, 10.0)).block(FlowBlock::Paragraph(Paragraph::plain("Bonjour à tous.", &style)))
+    });
+    let tree = reopen(&bytes).structure().unwrap().unwrap();
+    let elements = tree.elements();
+    let p = elements.iter().find(|e| e.kind == b"P").unwrap();
+    assert_eq!(p.lang.as_deref(), Some("fr"));
+    assert!(!elements.iter().any(|e| e.kind == b"Span"));
+}
+
+#[test]
+fn page_fields_count_the_pages_added_before_the_flow() {
+    let mut b = Builder::new(BuildOptions::new());
+    let font = noto(&mut b);
+    b.page(PageSize::A4).finish().unwrap();
+    let style = TextStyle::new(&font, SIZE);
+    let footer = PageRegion::new().with_center("Page {page} of {pages}");
+    let flow = Flow::new(template(&font, 10.0).with_furniture(None, Some(footer), &style))
+        .block(FlowBlock::Paragraph(lines(14, &style)));
+    let report = b.flow(&flow).unwrap();
+    assert_eq!(report.pages.len(), 2);
+    let pages = texts(&save(b.finish().unwrap()));
+    assert_eq!(pages[2].last().map(String::as_str), Some("Page 3 of 3"));
+}

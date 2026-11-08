@@ -31,6 +31,8 @@ pub(crate) struct Source {
     pub(crate) looks: Vec<Look>,
     pub(crate) links: Vec<LinkTarget>,
     pub(crate) style: ParagraphStyle,
+    /// The paragraph's language: its first piece's.
+    pub(crate) lang: Option<String>,
     /// The size of an empty line (the first style's).
     size: f64,
 }
@@ -64,6 +66,7 @@ impl Source {
             looks: Vec::new(),
             links: Vec::new(),
             style: paragraph.style.clone(),
+            lang: None,
             size: 0.0,
         };
         let mut paragraph_lang = None;
@@ -96,6 +99,7 @@ impl Source {
             });
             source.push(text, style, link, paragraph_lang.as_deref());
         }
+        source.lang = paragraph_lang;
         source
     }
 

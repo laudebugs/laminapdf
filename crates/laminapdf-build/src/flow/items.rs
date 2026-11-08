@@ -170,7 +170,12 @@ impl Items {
         label: Option<(usize, usize)>,
         heading: Option<u8>,
     ) {
-        self.sources.push(Source::new(p));
+        let source = Source::new(p);
+        // The paragraph's own language goes on its element; its other languages on spans.
+        if let (Some(lang), Some(n)) = (source.lang.clone(), self.nodes.get_mut(node)) {
+            n.tag = n.tag.clone().with_lang(lang);
+        }
+        self.sources.push(source);
         let mut item = Self::item(Content::Para(self.sources.len() - 1), Some(node), keep, indent);
         let s = &p.style;
         item.space_before = s.space_before;
