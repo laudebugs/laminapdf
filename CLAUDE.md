@@ -146,8 +146,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   staging-app.laminapdf.com; static assets only, SPA fallback), public/_headers (ADR 0011 §4 exactly);
 │                        #   e2e/ (Vitest + Playwright against `wrangler dev`: headers, opening four ways, no CSP violation or other
 │                        #   origin), run by `cargo xtask pdf-runtimes <browser>`; e2e/smoke.test.ts (the deployed reader at
-│                        #   LAMINA_PDF_SMOKE_URL, Chromium); deployed by .github/workflows/web-deploy.yml (C4d: a preview per PR,
-│                        #   staging from main, production from web-v* tags, rollback on a failed smoke test); README.md, DEPLOY.md
+│                        #   LAMINA_PDF_SMOKE_URL, Chromium, after e2e/live.ts waits for the host); deployed by
+│                        #   .github/workflows/web-deploy.yml (C4d: a preview per PR on the Worker lamina-pdf-web-preview, staging
+│                        #   from main, production from web-v* tags on main, rollback on a failed smoke test); README.md, DEPLOY.md
 ├── apps/docs/           # the docs site (Astro + Starlight, ADR 0015) in the Paper look (src/styles/paper.css over @laminapdf/tokens and
 │                        #   @laminapdf/fonts): quick starts, guides, recipes, troubleshooting, TypeDoc
 │                        #   reference for @laminapdf/sdk (generated, gitignored), rustdoc page; code from the tested example
@@ -408,8 +409,8 @@ cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (th
 cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)
 cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
                                       #   code=true unless all are on the docs allowlist; gallery=true when they touch
-                                      #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true when
-                                      #   they touch the reader's inputs (WEB_INPUTS: what web-deploy.yml's previews and staging need)
+                                      #   apps/gallery, packages/{ui,tokens,icons,fonts} or pnpm-lock.yaml; web=true unless all
+                                      #   are docs or outside what the reader is built from (OUTSIDE_WEB: web-deploy.yml's filter)
 cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
 cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
 cargo xtask differential --live [--corpus external|mutants|all] [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample N]

@@ -39,41 +39,6 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     crate::util::github_output("web", &web.to_string())
 }
 
-/// What the reader's build reads (todo C4d): the app, every package and crate it is built from,
-/// the fixtures its tests open, the build tasks, the lockfiles and root manifests, the toolchain
-/// pins and the deploy workflow. A directory ends with `/`; anything else is a root file. The
-/// preview and staging deploys (`.github/workflows/web-deploy.yml`) run only when one of them
-/// changed; the production deploy runs for every `web-v*` tag.
-const WEB_INPUTS: [&str; 14] = [
-    "apps/web/",
-    "packages/",
-    "crates/",
-    "fixtures/",
-    "tools/xtask/",
-    "pnpm-lock.yaml",
-    "Cargo.lock",
-    "Cargo.toml",
-    "package.json",
-    "pnpm-workspace.yaml",
-    "tsconfig.base.json",
-    ".nvmrc",
-    "rust-toolchain.toml",
-    ".github/workflows/web-deploy.yml",
-];
-
-/// Whether any of `paths` can change the reader as deployed.
-pub(crate) fn touches_web(paths: &[&str]) -> bool {
-    paths.iter().any(|path| {
-        WEB_INPUTS.iter().any(|input| {
-            if input.ends_with('/') {
-                path.starts_with(input)
-            } else {
-                path == input
-            }
-        })
-    })
-}
-
 /// What the Paper gallery's screenshots and axe checks depend on (apps/gallery, todo U6f): the
 /// gallery, the packages it draws, the versions pinned for them, and the command that runs its
 /// tests.
@@ -93,6 +58,34 @@ pub(crate) fn touches_gallery(paths: &[&str]) -> bool {
     paths
         .iter()
         .any(|path| GALLERY_INPUTS.iter().any(|input| path.starts_with(input)))
+}
+
+/// Paths the reader can't depend on (todo C4d): the other apps, the tools other than xtask, the
+/// spikes, the fuzz workspace and the other workflows. [`touches_web`] counts every changed path
+/// outside these and outside the docs ([`is_docs`]), so a root config file or a shared action
+/// nobody thought to list redeploys the reader, as [`touches_code`] does for the suites.
+const OUTSIDE_WEB: [&str; 7] = [
+    "apps/docs/",
+    "apps/site/",
+    "apps/gallery/",
+    "spikes/",
+    "fuzz/",
+    "tools/",
+    ".github/workflows/",
+];
+
+/// Paths under [`OUTSIDE_WEB`] that the reader's deploys still depend on: the build tasks and the
+/// deploy workflow.
+const WEB_ANYWAY: [&str; 2] = ["tools/xtask/", ".github/workflows/web-deploy.yml"];
+
+/// Whether any of `paths` can change the reader as deployed. The preview and staging deploys
+/// (`.github/workflows/web-deploy.yml`) run only when one does; the production deploy runs for
+/// every `web-v*` tag.
+pub(crate) fn touches_web(paths: &[&str]) -> bool {
+    paths.iter().any(|path| {
+        let under = |prefix: &&str| path.starts_with(prefix);
+        !is_docs(path) && (WEB_ANYWAY.iter().any(under) || !OUTSIDE_WEB.iter().any(under))
+    })
 }
 
 /// Old path → new path for each file renamed between `merge_base` and the working tree.
@@ -169,7 +162,7 @@ mod tests {
     use super::{is_docs, pick_base, touches_code, touches_gallery, touches_web};
 
     #[test]
-    fn touches_web_should_follow_the_app_its_sources_lockfiles_and_workflow() {
+    fn touches_web_should_follow_the_app_its_sources_build_tasks_and_root_config() {
         for path in [
             "apps/web/src/app.tsx",
             "packages/viewer/src/index.ts",
@@ -178,23 +171,29 @@ mod tests {
             "tools/xtask/src/web.rs",
             "pnpm-lock.yaml",
             "Cargo.lock",
-            "Cargo.toml",
             "package.json",
+            ".npmrc",
+            ".cargo/config.toml",
+            ".github/actions/node-pnpm/action.yml",
             ".github/workflows/web-deploy.yml",
+            "a-new-root-file.toml",
         ] {
             assert!(touches_web(&[path]), "{path}");
         }
     }
 
     #[test]
-    fn touches_web_should_skip_docs_other_apps_and_nested_manifests_outside_its_inputs() {
+    fn touches_web_should_skip_docs_other_apps_other_tools_and_other_workflows() {
         assert!(!touches_web(&[
             "docs/todos/README.md",
+            "README.md",
             "apps/docs/src/content/docs/index.mdx",
             "apps/site/package.json",
+            "apps/gallery/src/main.tsx",
             "tools/render/Cargo.toml",
+            "spikes/pdf-basics/rust/src/lib.rs",
+            "fuzz/fuzz_targets/lex.rs",
             ".github/workflows/docs.yml",
-            "README.md",
         ]));
     }
 

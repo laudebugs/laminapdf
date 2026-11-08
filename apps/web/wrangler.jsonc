@@ -2,9 +2,11 @@
 // request is answered by the asset server and nothing can be uploaded. Unknown paths get
 // index.html (the app's own routes). The headers are public/_headers. Deployed by
 // .github/workflows/web-deploy.yml (todo C4d; apps/web/DEPLOY.md): production at
-// app.laminapdf.com from `web-v*` tags only, staging at staging-app.laminapdf.com ([env.staging]
-// below) from every push to main, and a preview version per pull request on this Worker
-// (`wrangler versions upload --preview-alias pr-<n>`), which doesn't deploy it.
+// app.laminapdf.com from `web-v*` tags only, and staging at staging-app.laminapdf.com
+// (env.staging below) from pushes to main. The per-PR previews live on a third Worker,
+// lamina-pdf-web-preview, which the workflow configures from this file's top-level settings
+// with its own name, no route, no workers.dev address and preview URLs on. Comments here take
+// whole lines: the workflow reads the file as JSON once they are removed.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "lamina-pdf-web",
@@ -12,9 +14,9 @@
   // A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates its DNS record and
   // certificate. The deploy token needs Zone → Workers Routes → Edit on that zone.
   "routes": [{ "pattern": "app.laminapdf.com", "custom_domain": true }],
-  // One address per deploy: no workers.dev copy of production. The per-PR preview URLs stay on.
+  // One address: no workers.dev copy of production, and no preview URL for each production version.
   "workers_dev": false,
-  "preview_urls": true,
+  "preview_urls": false,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
@@ -27,7 +29,6 @@
     "staging": {
       "name": "lamina-pdf-web-staging",
       "routes": [{ "pattern": "staging-app.laminapdf.com", "custom_domain": true }],
-      // No previews here: they stay on the production Worker.
       "workers_dev": false,
       "preview_urls": false,
       "assets": {
