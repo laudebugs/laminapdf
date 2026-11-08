@@ -8,8 +8,9 @@ license.workspace = true
 repository.workspace = true
 publish = true
 readme = "README.md"
-# Release preparation generates docs/ and commits it in the signed release tree. It is listed here
-# so the crate package carries that exact snapshot; the path stays ignored between releases.
+# docs/ is generated (gitignored, so `include` must name it). Release preparation commits it in the
+# release tree, and the version PR brings that snapshot to main; `cargo xtask publish crates`
+# regenerates it, so a stale or missing snapshot is published as freshly generated.
 include = ["src/**", "schemas/**", "examples/**", "tests/**", "benches/**", "docs/**", "README.md"]
 homepage.workspace = true
 documentation.workspace = true

@@ -74,9 +74,19 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     if !dry_run && std::env::var_os("CARGO_REGISTRY_TOKEN").is_none() {
         bail!("CARGO_REGISTRY_TOKEN is not set: the release workflow gets it from crates.io's trusted publishing");
     }
+    clean_for_publish(&ws.root)?;
     let version = crate::version::fixed_group_version(&ws.root)?.version;
-    crate::package_docs::check_crate(ws, &version)?;
-    let mut args = cargo_publish_args(dry_run);
+    // Regenerated on every publish: a release commit holds exactly this output, so it stays clean.
+    crate_docs(&ws.root)?;
+    let allow_dirty = generated_docs_uncommitted(&ws.root)?;
+    if allow_dirty {
+        println!(
+            "package docs: crates/laminapdf/docs/ isn't committed as generated (not a prepared release \
+             commit): publishing the generated docs with --allow-dirty"
+        );
+    }
+    crate::package_docs::check_crate(ws, &version, allow_dirty)?;
+    let mut args = cargo_publish_args(dry_run, allow_dirty);
     if !dry_run {
         // A re-run after a partial publish: leave out what crates.io already has.
         for name in ws.publishable_crates() {
@@ -95,8 +105,57 @@ fn crates(ws: &Workspace, dry_run: bool) -> Result<()> {
     ws.cargo(&args)
 }
 
-fn cargo_publish_args(dry_run: bool) -> Vec<String> {
+/// The generated package docs' folder, the one path `publish crates` may leave uncommitted.
+const PACKAGE_DOCS: &str = "crates/laminapdf/docs";
+
+/// Refuse uncommitted changes before generating the package docs: with `--allow-dirty`, Cargo
+/// would otherwise publish a developer's uncommitted source edits.
+fn clean_for_publish(root: &Path) -> Result<()> {
+    let status = crate::tracked::git(root, &["status", "--porcelain=v1", "--untracked-files=normal"])?;
+    if status.trim().is_empty() {
+        Ok(())
+    } else {
+        bail!("the checkout has uncommitted changes:\n{status}")
+    }
+}
+
+/// Whether the freshly generated package docs differ from the commit (missing, ignored, or
+/// changed), so Cargo needs `--allow-dirty`. A prepared release commit holds them as generated:
+/// no. Any change outside the docs' folder is refused.
+fn generated_docs_uncommitted(root: &Path) -> Result<bool> {
+    let outside = crate::tracked::git(
+        root,
+        &[
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=normal",
+            "--",
+            ".",
+            &format!(":!{PACKAGE_DOCS}"),
+        ],
+    )?;
+    if !outside.trim().is_empty() {
+        bail!("generating the package docs changed files outside {PACKAGE_DOCS}:\n{outside}");
+    }
+    let docs = crate::tracked::git(
+        root,
+        &[
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--ignored",
+            "--",
+            PACKAGE_DOCS,
+        ],
+    )?;
+    Ok(!docs.trim().is_empty())
+}
+
+fn cargo_publish_args(dry_run: bool, allow_dirty: bool) -> Vec<String> {
     let mut args = vec!["publish".to_owned(), "--workspace".to_owned(), "--locked".to_owned()];
+    if allow_dirty {
+        args.push("--allow-dirty".to_owned());
+    }
     if dry_run {
         args.push("--dry-run".to_owned());
     }
@@ -104,8 +163,10 @@ fn cargo_publish_args(dry_run: bool) -> Vec<String> {
 }
 
 /// The `laminapdf` crate's package docs (L5a): the site's pages, the code pages, `AGENTS.md` and
-/// `renames.json` as Markdown and JSON in `crates/laminapdf/docs/` (gitignored), which its
-/// `include` ships. Plain Node, no packages: the API reference is the npm package's only.
+/// `renames.json` as Markdown and JSON in `crates/laminapdf/docs/`, which its `include` ships.
+/// `release prepare` commits them in the release tree; `publish crates` regenerates them. The
+/// script imports `@laminapdf/site-kit`, so the pnpm workspace must be installed. The API
+/// reference is the npm package's only.
 pub(crate) fn crate_docs(root: &Path) -> Result<()> {
     crate::step("package docs: crates/laminapdf/docs/");
     let node = std::process::Command::new(crate::program_path("node"))
@@ -113,8 +174,8 @@ pub(crate) fn crate_docs(root: &Path) -> Result<()> {
         .output();
     if !node.is_ok_and(|out| out.status.success()) {
         bail!(
-            "node is not on PATH: `release prepare` writes the laminapdf crate's docs/ with Node \
-             (release-train.yml must set up Node before preparing the release)"
+            "node is not on PATH: the laminapdf crate's docs/ are generated with Node and the pnpm \
+             workspace (give the job `./.github/actions/node-pnpm`)"
         );
     }
     crate::run(
@@ -345,15 +406,65 @@ mod tests {
     }
 
     #[test]
-    fn cargo_publish_should_require_committed_package_docs() {
+    fn cargo_publish_should_allow_dirty_only_for_uncommitted_package_docs() {
         assert_eq!(
-            cargo_publish_args(false),
+            cargo_publish_args(false, false),
             strings(&["publish", "--workspace", "--locked"])
         );
         assert_eq!(
-            cargo_publish_args(true),
-            strings(&["publish", "--workspace", "--locked", "--dry-run"])
+            cargo_publish_args(true, true),
+            strings(&["publish", "--workspace", "--locked", "--allow-dirty", "--dry-run"])
         );
+    }
+
+    /// A scratch repository with `files` committed and a `.gitignore` listing the docs folder.
+    fn committed(name: &str, files: &[(&str, &str)]) -> crate::tracked::TempTree {
+        let mut all = vec![(".gitignore", "/crates/laminapdf/docs/\n")];
+        all.extend_from_slice(files);
+        let tree = crate::tracked::TempTree::new(name, &all);
+        crate::tracked::git(&tree.0, &["init", "-q"]).unwrap();
+        crate::tracked::git(&tree.0, &["add", "--all", "--force"]).unwrap();
+        crate::tracked::git(
+            &tree.0,
+            &[
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.com",
+                "commit",
+                "-qm",
+                "initial",
+            ],
+        )
+        .unwrap();
+        tree
+    }
+
+    #[test]
+    fn clean_for_publish_should_refuse_uncommitted_sources() {
+        let tree = committed("publish-clean", &[("tracked", "before")]);
+        assert!(clean_for_publish(&tree.0).is_ok());
+        fs::write(tree.0.join("tracked"), "after").unwrap();
+        assert!(clean_for_publish(&tree.0).is_err());
+    }
+
+    #[test]
+    fn generated_docs_should_need_allow_dirty_unless_committed_as_generated() {
+        // A release commit: the regenerated docs equal the committed ones.
+        let release = committed("publish-release", &[("crates/laminapdf/docs/a.md", "a")]);
+        assert!(!generated_docs_uncommitted(&release.0).unwrap());
+        // Changed from the commit (main's stale snapshot): published as generated, dirty.
+        fs::write(release.0.join("crates/laminapdf/docs/a.md"), "b").unwrap();
+        assert!(generated_docs_uncommitted(&release.0).unwrap());
+
+        // Main without a snapshot: generated into the ignored folder.
+        let main = committed("publish-main", &[("src.rs", "x")]);
+        fs::create_dir_all(main.0.join("crates/laminapdf/docs")).unwrap();
+        fs::write(main.0.join("crates/laminapdf/docs/a.md"), "a").unwrap();
+        assert!(generated_docs_uncommitted(&main.0).unwrap());
+        // Anything outside the docs is refused.
+        fs::write(main.0.join("src.rs"), "y").unwrap();
+        assert!(generated_docs_uncommitted(&main.0).is_err());
     }
 
     #[test]

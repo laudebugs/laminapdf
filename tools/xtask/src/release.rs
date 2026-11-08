@@ -205,6 +205,8 @@ fn bump_rule(path: &str) -> Option<BumpRule> {
     let changeset = matches!(segments.as_slice(), [".changeset", name] if Path::new(name).extension().is_some_and(|ext| ext == "md") && *name != "README.md")
         || path == ".changeset/pre.json"
         || path.starts_with(".changeset/pre/");
+    // Free here, but never trusted: `publish crates` regenerates these docs and publishes its
+    // own output, so a hand-edited file there can't reach crates.io.
     let package_docs = path.starts_with("crates/laminapdf/docs/");
     if changelog || changeset || package_docs {
         return Some(BumpRule::Free);

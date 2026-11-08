@@ -102,7 +102,8 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     for part in [
         "actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510",
         "GH_TOKEN: ${{ steps.bot.outputs.token }}",
-        "git/blobs\" --input -",
+        "content: $content}",
+        "git --literal-pathspecs ls-tree HEAD",
         "git/trees\" --input -",
         "git/commits\" --input -",
         ".verification.verified == true and .verification.reason == \"valid\"",
@@ -111,6 +112,10 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     ] {
         assert!(after.contains(part), "missing push safeguard {part}");
     }
+    // Inline content, one tree request: a blob request per file passes GitHub's limit on
+    // content-creating requests. Only binary files take a blob request.
+    assert_eq!(after.matches("git/blobs\" --input -").count(), 1);
+    assert!(after.contains("Binary content can't go inline"));
     let tree = after.find("git/trees\" --input -").unwrap();
     let sign = after.find("git/commits\" --input -").unwrap();
     let verify = after.find(".verification.verified == true").unwrap();
