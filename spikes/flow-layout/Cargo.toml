@@ -27,6 +27,8 @@ frames = ["typst"]
 laminapdf = { path = "../../crates/laminapdf" }
 laminapdf-build = { path = "../../crates/laminapdf-build", features = ["text"] }
 laminapdf-text = { path = "../../crates/laminapdf-text" }
+laminapdf-model = { path = "../../crates/laminapdf-model" }
+laminapdf-cos = { path = "../../crates/laminapdf-cos" }
 # Typst 0.15.1, the current release on 2026-11-08.
 typst = { version = "=0.15.1", optional = true }
 typst-pdf = { version = "=0.15.1", optional = true }

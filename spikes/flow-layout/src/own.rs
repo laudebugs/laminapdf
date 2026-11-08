@@ -6,8 +6,8 @@
 //! reopened and the builder has no content to fill in later.
 
 use laminapdf::{
-    Alignment, ArtifactKind, BuildOptions, Builder, Color, Document, Font, FontHandle, PageSize, Pt,
-    RectPt, StrokeStyle, Surface, TagKind, TextBoxOptions,
+    Alignment, ArtifactKind, BuildOptions, Builder, Color, Document, Font, FontHandle, Metadata, PageSize, Profile,
+    Pt, RectPt, StrokeStyle, Surface, Tag, TableScope, TagKind, TextBoxOptions,
 };
 
 use crate::inputs::{Block, Doc};
@@ -46,19 +46,22 @@ pub struct Gaps {
     pub passes: usize,
 }
 
-/// Lays `doc` out twice (the page count, then the pages) and returns the document.
-pub fn build(doc: &Doc, fonts: &[Vec<u8>]) -> Result<(Document, usize, Gaps)> {
-    let (_, pages, _) = pass(doc, fonts, None)?;
-    let (document, again, mut gaps) = pass(doc, fonts, Some(pages))?;
+/// Lays `doc` out twice (the page count, then the pages) and returns the document; `ua` checks
+/// PDF/UA-1 as the builder writes it.
+pub fn build(doc: &Doc, fonts: &[Vec<u8>], ua: bool) -> Result<(Document, usize, Gaps)> {
+    let (_, pages, _) = pass(doc, fonts, None, ua)?;
+    let (document, again, mut gaps) = pass(doc, fonts, Some(pages), ua)?;
     debug_assert_eq!(pages, again, "the footer's text doesn't move the flow");
     gaps.passes = 2;
     Ok((document, pages, gaps))
 }
 
-fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>) -> Result<(Document, usize, Gaps)> {
-    let options = BuildOptions::new().with_id(*b"lamina-flow-spk!").with_tagged(true);
+fn pass(doc: &Doc, fonts: &[Vec<u8>], total: Option<usize>, ua: bool) -> Result<(Document, usize, Gaps)> {
+    let profile = if ua { Profile::PdfUa1 } else { Profile::None };
+    let options = BuildOptions::new().with_id(*b"lamina-flow-spk!").with_tagged(true).with_profile(profile);
     let mut b = Builder::new(options);
     b.lang("en");
+    b.metadata(Metadata::default().with_title(doc.title.clone()));
     let f = Fonts {
         regular: b.font(Font::from_bytes(fonts[0].clone())?)?,
         bold: b.font(Font::from_collection(fonts[1].clone(), 1)?)?,
@@ -166,7 +169,8 @@ fn table_part(s: &mut Surface, f: &Fonts, header: &[String], rows: &[Vec<String>
             for (c, cell) in cells.iter().enumerate() {
                 let x = MARGIN_X + left(c) + 2.0;
                 let rect = RectPt::from_points(x, y + 2.0, width(c) - 4.0, ROW);
-                s.tag(kind, |s| s.text_box(cell, font, Pt::new(CELL), rect, &TextBoxOptions::new()))?;
+                let tag = if kind == TagKind::TH { Tag::new(kind).with_scope(TableScope::Column) } else { Tag::new(kind) };
+                s.tag(tag, |s| s.text_box(cell, font, Pt::new(CELL), rect, &TextBoxOptions::new()))?;
             }
             Ok(())
         })

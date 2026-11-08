@@ -2,7 +2,7 @@
 //! (through krilla); Lamina PDF then opens the finished bytes, edits them and saves incrementally.
 
 use typst::foundations::{Datetime, Smart};
-use typst_pdf::{PdfOptions, Timestamp};
+use typst_pdf::{PdfOptions, PdfStandard, PdfStandards, Timestamp};
 
 use crate::typst_world::MemoryWorld;
 
@@ -19,7 +19,7 @@ pub struct Output {
 }
 
 /// Compiles `main` (with `files` readable by name) and exports it with a fixed identifier and
-/// date, tagged as Typst does by default.
+/// date, checked against PDF/UA-1 (Typst tags by default).
 pub fn build(world: &MemoryWorld) -> Result<Output, String> {
     let warned = world.compile();
     let warnings = warned.warnings.len();
@@ -27,6 +27,7 @@ pub fn build(world: &MemoryWorld) -> Result<Output, String> {
     let options = PdfOptions {
         ident: Smart::Custom("lamina-flow-spike".to_owned()),
         timestamp: Datetime::from_ymd_hms(2026, 11, 8, 12, 0, 0).map(Timestamp::new_utc),
+        standards: PdfStandards::new(&[PdfStandard::Ua_1]).map_err(|e| format!("{e:?}"))?,
         ..PdfOptions::default()
     };
     let pdf = typst_pdf::pdf(&doc, &options).map_err(|errors| format!("typst-pdf: {errors:?}"))?;

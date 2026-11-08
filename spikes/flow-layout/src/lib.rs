@@ -1,6 +1,7 @@
 //! The flow-layout spike (T4a): the same documents laid out three ways. Throwaway code.
 
 pub mod inputs;
+pub mod probe;
 #[cfg(feature = "own")]
 pub mod own;
 #[cfg(feature = "frames")]

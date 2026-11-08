@@ -29,13 +29,21 @@ fn main() {
     let invoice = inputs::invoice(std::str::from_utf8(&invoice_json).unwrap()).unwrap();
     for (name, doc) in [("invoice", &invoice), ("report", &report)] {
         let runs = if name == "report" { 10 } else { 30 };
+        let ua = match own::build(doc, &fonts, true) {
+            Ok(_) => true,
+            Err(e) => {
+                println!("A {name}: PDF/UA-1 refused: {} {e}; measured without the profile", e.code());
+                false
+            }
+        };
         let save = || {
-            let (mut d, pages, gaps) = own::build(doc, &fonts).unwrap();
+            let (mut d, pages, gaps) = own::build(doc, &fonts, ua).unwrap();
             (d.save(&laminapdf::SaveOptions::default()).unwrap().bytes, pages, gaps)
         };
         let (ms, (pdf, pages, gaps)) = best(runs, save);
         let again = save().0;
         std::fs::write(out.join(format!("a-{name}.pdf")), &pdf).unwrap();
+        println!("  structure: {:?}", lamina_flow_layout::probe::structure(&pdf));
         println!("A {name}: {pages} pages, {} B, {ms:.1} ms (both passes), deterministic {}, {gaps:?}", pdf.len(), again == pdf);
     }
 
@@ -46,6 +54,10 @@ fn main() {
         ("report", MemoryWorld::new(inputs::to_typst(&report), &[], &fonts)),
     ];
     for (name, world) in &worlds {
+        if let Err(e) = typst_pdf::build(world) {
+            println!("B {name}: error {e}");
+            continue;
+        }
         let runs = if *name == "report" { 10 } else { 30 };
         let (cold, b) = best(runs, || {
             comemo::evict(0);
@@ -53,6 +65,7 @@ fn main() {
         });
         let (warm, _) = best(runs, || typst_pdf::build(world).unwrap());
         std::fs::write(out.join(format!("b-{name}.pdf")), &b.pdf).unwrap();
+        println!("  structure: {:?}", lamina_flow_layout::probe::structure(&b.pdf));
         let again = typst_pdf::build(world).unwrap();
         let edit = typst_pdf::edit(&b.pdf);
         println!(

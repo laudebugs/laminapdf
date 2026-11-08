@@ -1209,6 +1209,8 @@ dependencies = [
  "comemo",
  "laminapdf",
  "laminapdf-build",
+ "laminapdf-cos",
+ "laminapdf-model",
  "laminapdf-text",
  "serde_json",
  "typst",
