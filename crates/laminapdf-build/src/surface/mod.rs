@@ -35,8 +35,9 @@ use crate::tag::open::{ElementId, ElementIds};
 use crate::tag::{Artifact, Tag, TagKind};
 use color::Color;
 use image::Image;
+use laminapdf_model::BlendMode;
 use path::{PathBuilder, Segment};
-use style::{BlendMode, StrokeStyle};
+use style::StrokeStyle;
 #[cfg(feature = "text")]
 use text::{FontHandle, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
 #[cfg(feature = "text")]

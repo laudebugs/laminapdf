@@ -5,7 +5,9 @@
 
 use std::fmt::Write as _;
 
-use laminapdf_extract::{BlockKind, ExtractOptions, Extraction, TableDetector, TableMode, extract};
+use laminapdf_extract::{
+    BlockKind, ChunkOptions, ExtractOptions, Extraction, MarkdownOptions, SplitOn, TableDetector, TableMode, extract,
+};
 use laminapdf_model::{Document, OpenOptions};
 use laminapdf_syntax::CancelToken;
 use laminapdf_test_fixtures::{classic, stream_body};
@@ -56,6 +58,11 @@ fn line(out: &mut String, x0: f64, y0: f64, x1: f64, y1: f64) {
 /// A grid ruled at `xs` and `ys` (every line full length), with `cells` (row by row) written
 /// in each cell's top left, the first row in bold.
 fn grid(out: &mut String, xs: &[f64], ys: &[f64], cells: &[&[&str]]) {
+    grid_with(out, xs, ys, cells, true);
+}
+
+/// [`grid`], with the first row in bold only when `bold_first`.
+fn grid_with(out: &mut String, xs: &[f64], ys: &[f64], cells: &[&[&str]], bold_first: bool) {
     let (x0, x1) = (xs[0], xs[xs.len() - 1]);
     let (y0, y1) = (ys[ys.len() - 1], ys[0]);
     for &y in ys {
@@ -66,7 +73,7 @@ fn grid(out: &mut String, xs: &[f64], ys: &[f64], cells: &[&[&str]]) {
     }
     for (r, row) in cells.iter().enumerate() {
         for (c, cell) in row.iter().enumerate() {
-            text(out, cell, xs[c] + 5.0, ys[r] - 14.0, r == 0);
+            text(out, cell, xs[c] + 5.0, ys[r] - 14.0, bold_first && r == 0);
         }
     }
 }
@@ -145,7 +152,7 @@ fn a_missing_inner_rule_merges_cells_into_one_spanning_them() {
 }
 
 #[test]
-fn a_table_split_across_a_page_break_is_two_tables() {
+fn whole_tables_at_the_tops_of_two_pages_stay_apart() {
     let mut first = String::new();
     grid(
         &mut first,
@@ -168,6 +175,218 @@ fn a_table_split_across_a_page_break_is_two_tables() {
         .map(|b| (b.page, b.cells[2].text.as_str()))
         .collect();
     assert_eq!(tables, [(0, "Tea"), (1, "Bread")]);
+    // The first part ends at the top of its page, not its foot: no link.
+    assert!(
+        out.blocks
+            .iter()
+            .all(|b| b.continues.is_none() && b.continued_by.is_none())
+    );
+}
+
+/// Rules at the foot of a page (the bottom one 60 pt above the page's edge) and at its top.
+const FOOT: [f64; 4] = [160.0, 140.0, 120.0, 100.0];
+const TOP: [f64; 4] = [760.0, 740.0, 720.0, 700.0];
+const TOP_TWO_ROWS: [f64; 3] = [760.0, 740.0, 720.0];
+const HEAD: &[&str] = &["Item", "Price"];
+
+/// Page 1 ends with Item / Tea / Cake; `second` draws page 2.
+fn split(second: impl FnOnce(&mut String)) -> Extraction {
+    let mut first = String::new();
+    grid(&mut first, &XS, &FOOT, &[HEAD, &["Tea", "2.50"], &["Cake", "4.00"]]);
+    let mut next = String::new();
+    second(&mut next);
+    run(&pages(&[first, next]), &ExtractOptions::new())
+}
+
+fn tables(out: &Extraction) -> Vec<&laminapdf_extract::Block> {
+    out.blocks
+        .iter()
+        .filter(|b| matches!(b.kind, BlockKind::Table { .. }))
+        .collect()
+}
+
+fn linked(out: &Extraction) -> bool {
+    let parts = tables(out);
+    parts.len() == 2
+        && parts[0].continued_by.as_deref() == Some(parts[1].id.as_str())
+        && parts[1].continues.as_deref() == Some(parts[0].id.as_str())
+}
+
+const JOINED: &str =
+    "| Item | Price |\n| --- | --- |\n| Tea | 2.50 |\n| Cake | 4.00 |\n| Bread | 3.00 |\n| Jam | 1.50 |\n";
+
+#[test]
+fn a_header_repeated_on_the_next_page_joins_the_parts_into_one_table() {
+    let out = split(|c| grid(c, &XS, &TOP, &[HEAD, &["Bread", "3.00"], &["Jam", "1.50"]]));
+    assert!(linked(&out), "{:?}", out.blocks);
+    let repeated: Vec<bool> = tables(&out)[1].cells.iter().map(|c| c.header).collect();
+    assert_eq!(repeated, [true, true, false, false, false, false]);
+    assert_eq!(out.to_markdown(&MarkdownOptions::new()).text, JOINED);
+    assert_eq!(
+        out.to_text().text,
+        "Item\tPrice\nTea\t2.50\nCake\t4.00\nBread\t3.00\nJam\t1.50\n"
+    );
+}
+
+#[test]
+fn rows_without_a_header_on_the_next_page_join() {
+    let out = split(|c| grid_with(c, &XS, &TOP_TWO_ROWS, &[&["Bread", "3.00"], &["Jam", "1.50"]], false));
+    assert!(linked(&out), "{:?}", out.blocks);
+    assert_eq!(out.to_markdown(&MarkdownOptions::new()).text, JOINED);
+}
+
+#[test]
+fn a_continued_line_between_the_parts_still_joins_them() {
+    let out = split(|c| {
+        text(c, "Table 1 (continued)", 50.0, 775.0, false);
+        grid_with(c, &XS, &TOP_TWO_ROWS, &[&["Bread", "3.00"], &["Jam", "1.50"]], false);
+    });
+    assert!(linked(&out), "{:?}", out.blocks);
+    assert_eq!(out.to_markdown(&MarkdownOptions::new()).text, JOINED);
+    assert_eq!(out.to_text().text.matches("\n\n").count(), 0);
+    // The line stays a paragraph in the blocks.
+    assert!(
+        out.blocks
+            .iter()
+            .any(|b| matches!(b.kind, BlockKind::Paragraph) && b.text == "Table 1 (continued)")
+    );
+}
+
+#[test]
+fn parts_that_differ_or_are_apart_stay_two_tables() {
+    let narrower = [50.0, 180.0, 330.0];
+    let cases: [(&str, Extraction); 3] = [
+        (
+            "narrower columns",
+            split(|c| {
+                grid_with(
+                    c,
+                    &narrower,
+                    &TOP_TWO_ROWS,
+                    &[&["Bread", "3.00"], &["Jam", "1.50"]],
+                    false,
+                );
+            }),
+        ),
+        (
+            "another header",
+            split(|c| grid(c, &XS, &TOP, &[&["Name", "Cost"], &["Bread", "3.00"], &["Jam", "1.50"]])),
+        ),
+        ("a paragraph under the first part", {
+            let mut first = String::new();
+            grid(&mut first, &XS, &FOOT, &[HEAD, &["Tea", "2.50"], &["Cake", "4.00"]]);
+            text(&mut first, "Prices include tax.", 50.0, 80.0, false);
+            let mut next = String::new();
+            grid_with(
+                &mut next,
+                &XS,
+                &TOP_TWO_ROWS,
+                &[&["Bread", "3.00"], &["Jam", "1.50"]],
+                false,
+            );
+            run(&pages(&[first, next]), &ExtractOptions::new())
+        }),
+    ];
+    for (case, out) in &cases {
+        assert_eq!(tables(out).len(), 2, "{case}");
+        assert!(
+            out.blocks
+                .iter()
+                .all(|b| b.continues.is_none() && b.continued_by.is_none()),
+            "{case}: {:?}",
+            out.blocks
+        );
+    }
+}
+
+#[test]
+fn a_table_over_three_pages_with_page_numbers_is_one_chain() {
+    let number = |c: &mut String, n: &str| text(c, n, 300.0, 30.0, false);
+    let mut first = String::new();
+    grid(&mut first, &XS, &FOOT, &[HEAD, &["Tea", "2.50"], &["Cake", "4.00"]]);
+    number(&mut first, "1");
+    let mut middle = String::new();
+    grid_with(
+        &mut middle,
+        &XS,
+        &[760.0, 410.0, 60.0],
+        &[&["Bread", "3.00"], &["Jam", "1.50"]],
+        false,
+    );
+    number(&mut middle, "2");
+    let mut last = String::new();
+    grid_with(
+        &mut last,
+        &XS,
+        &TOP_TWO_ROWS,
+        &[&["Milk", "1.20"], &["Eggs", "2.80"]],
+        false,
+    );
+    number(&mut last, "3");
+    let out = run(&pages(&[first, middle, last]), &ExtractOptions::new());
+    let parts = tables(&out);
+    assert_eq!(parts.len(), 3, "{:?}", out.blocks);
+    assert_eq!(parts[0].continued_by.as_deref(), Some(parts[1].id.as_str()));
+    assert_eq!(parts[1].continues.as_deref(), Some(parts[0].id.as_str()));
+    assert_eq!(parts[1].continued_by.as_deref(), Some(parts[2].id.as_str()));
+    assert_eq!(parts[2].continues.as_deref(), Some(parts[1].id.as_str()));
+    assert_eq!(out.to_text().text.matches("\n\n").count(), 0, "{}", out.to_text().text);
+}
+
+#[test]
+fn a_chain_with_a_spanning_cell_is_one_html_table_and_its_page_marker_follows_it() {
+    let mut first = String::new();
+    // The middle vertical rule stops under the first row: the header spans both columns.
+    for &y in &FOOT {
+        line(&mut first, 50.0, y, 350.0, y);
+    }
+    line(&mut first, 50.0, 100.0, 50.0, 160.0);
+    line(&mut first, 350.0, 100.0, 350.0, 160.0);
+    line(&mut first, 200.0, 100.0, 200.0, 140.0);
+    text(&mut first, "Prices", 55.0, 146.0, true);
+    text(&mut first, "Tea", 55.0, 126.0, false);
+    text(&mut first, "2.50", 205.0, 126.0, false);
+    text(&mut first, "Cake", 55.0, 106.0, false);
+    text(&mut first, "4.00", 205.0, 106.0, false);
+    let mut next = String::new();
+    grid_with(
+        &mut next,
+        &XS,
+        &TOP_TWO_ROWS,
+        &[&["Bread", "3.00"], &["Jam", "1.50"]],
+        false,
+    );
+    text(&mut next, "Prices change daily.", 50.0, 600.0, false);
+    let out = run(&pages(&[first, next]), &ExtractOptions::new());
+    assert!(linked(&out), "{:?}", out.blocks);
+    let markdown = out.to_markdown(&MarkdownOptions::new().with_page_markers(true));
+    assert_eq!(markdown.text.matches("<table>").count(), 1, "{}", markdown.text);
+    assert_eq!(markdown.text.matches("</table>").count(), 1, "{}", markdown.text);
+    assert!(
+        markdown
+            .text
+            .contains("<tr><td>Jam</td><td>1.50</td></tr>\n</table>\n\n<!-- page 2 -->\n\nPrices change daily."),
+        "{}",
+        markdown.text
+    );
+    for (i, range) in markdown.ranges.iter().enumerate() {
+        assert_eq!(markdown.slice(*range), markdown.block(i), "block {i}");
+    }
+}
+
+#[test]
+fn chunks_keep_a_chain_whole_whatever_the_split() {
+    let out = split(|c| grid(c, &XS, &TOP, &[HEAD, &["Bread", "3.00"], &["Jam", "1.50"]]));
+    let markdown = out.to_markdown(&MarkdownOptions::new());
+    for options in [
+        ChunkOptions::new().with_split_on(SplitOn::Pages),
+        ChunkOptions::new().with_max_tokens(1).with_overlap(1),
+    ] {
+        let chunks = out.chunks(&markdown, &options);
+        assert_eq!(chunks.len(), 1, "{options:?}: {chunks:?}");
+        assert_eq!(chunks[0].pages, [0, 1]);
+        assert_eq!(markdown.slice(chunks[0].text_range), chunks[0].text);
+    }
 }
 
 #[test]
@@ -253,7 +472,7 @@ fn a_table_is_a_pipe_table_in_markdown_between_its_paragraphs() {
         &[&["Item", "Price"], &["Tea", "2.50"], &["Cake", "4.00"]],
     );
     let out = run(&pages(&[c]), &ExtractOptions::new());
-    let markdown = out.to_markdown(&laminapdf_extract::MarkdownOptions::new()).text;
+    let markdown = out.to_markdown(&MarkdownOptions::new()).text;
     assert_eq!(
         markdown,
         "Prices this week\n\n| Item | Price |\n| --- | --- |\n| Tea | 2.50 |\n| Cake | 4.00 |\n"
@@ -365,8 +584,35 @@ fn each_piece_of_text_is_in_one_place_only() {
         &[&["Item", "Price"], &["Tea", "2.50"], &["Cake", "4.00"]],
     );
     let out = run(&pages(&[c]), &ExtractOptions::new());
-    let markdown = out.to_markdown(&laminapdf_extract::MarkdownOptions::new()).text;
+    let markdown = out.to_markdown(&MarkdownOptions::new()).text;
     for word in ["Before the table", "Item", "Price", "Tea", "2.50", "Cake", "4.00"] {
         assert_eq!(markdown.matches(word).count(), 1, "{word} in {markdown}");
     }
+}
+
+#[test]
+fn a_header_repeated_after_a_part_without_one_still_joins_the_chain() {
+    let mut first = String::new();
+    grid(&mut first, &XS, &FOOT, &[HEAD, &["Tea", "2.50"], &["Cake", "4.00"]]);
+    let mut middle = String::new();
+    grid_with(
+        &mut middle,
+        &XS,
+        &[760.0, 410.0, 60.0],
+        &[&["Bread", "3.00"], &["Jam", "1.50"]],
+        false,
+    );
+    let mut last = String::new();
+    grid(&mut last, &XS, &TOP, &[HEAD, &["Milk", "1.20"], &["Eggs", "2.80"]]);
+    let out = run(&pages(&[first, middle, last]), &ExtractOptions::new());
+    let parts = tables(&out);
+    assert_eq!(parts.len(), 3, "{:?}", out.blocks);
+    assert_eq!(parts[2].continues.as_deref(), Some(parts[1].id.as_str()));
+    assert_eq!(
+        out.to_markdown(&MarkdownOptions::new())
+            .text
+            .matches("| Item |")
+            .count(),
+        1
+    );
 }

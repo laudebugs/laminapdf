@@ -93,7 +93,8 @@ pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result};
 pub use laminapdf_model::{
-    Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt, Rotation,
+    BlendMode, Dash, FillRule, LabelStyle, Matrix, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt,
+    Rotation,
 };
 #[cfg(feature = "text")]
 pub use laminapdf_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14};
@@ -104,7 +105,7 @@ pub use profile::Profile;
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
 pub use surface::path::PathBuilder;
-pub use surface::style::{BlendMode, LineCap, LineJoin, StrokeStyle};
+pub use surface::style::{LineCap, LineJoin, StrokeStyle};
 #[cfg(feature = "text")]
 pub use surface::text::{FontHandle, TextRenderMode, TextRun};
 #[cfg(feature = "text")]

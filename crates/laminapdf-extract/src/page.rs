@@ -5,16 +5,17 @@ use laminapdf_cos::Warning;
 use laminapdf_model::RectPt;
 use laminapdf_model::{Document, Page, Pt};
 use laminapdf_syntax::CancelToken;
-use laminapdf_text::{PageText, PageTextRun, Quad, is_right_to_left};
+use laminapdf_text::PageText;
 
 use crate::blocks::{Draft, blocks};
 use crate::error::ExtractError;
-use crate::lines::{GUTTER, Line, Piece, SPACE, lines, mostly_rtl};
+use crate::lines::{Line, Piece, lines, mostly_rtl};
 use crate::marks::Drawn;
-use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Span, TextLayerStatus};
+use crate::model::{Block, BlockKind, Coordinates, DropReason, Dropped, ExtractedPage, Flags, Span, TextLayerStatus};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::plugins::{LayoutRegion, OcrWord, RegionLabel};
 use crate::regions::{inside, kind_for, ocr_pieces, region_near, region_of};
+use crate::segments::{Covers, segments};
 use crate::tables::{self, Edges, Glyph, Table, TableMode, is_bold};
 use crate::tagged::{self, TaggedIndex, TreeBlocks};
 use crate::text_fix::{decompose_ligatures, join_lines, visible_chars};
@@ -49,11 +50,117 @@ const LAYOUT_CONFIDENCE: f64 = 0.75;
 /// Content order is the drawing order, which is often not the reading order.
 const CONTENT_CONFIDENCE: f64 = 0.5;
 
-/// The page's runs as spans: kept ones (with their pieces) and dropped ones.
+/// A text block whose column order the layout rules had to guess: as sure as content order.
+const UNCERTAIN_CONFIDENCE: f64 = 0.5;
+
+/// A block where this many lines, and at least half its lines, hold narrow-gutter points within
+/// half a font size of one another has probably been read across a gutter narrower than one
+/// font size; loose word spaces line up on a few lines of a long paragraph by chance.
+const NARROW_GUTTER_LINES: usize = 3;
+
+/// Raises `extract-column-order-uncertain` when the page's column order is in doubt, and returns
+/// for each item whether a doubt covers it. Only where the layout rules decided the whole page's
+/// order (`whole_page`: not the text a structure tree left out): not in content order, with a
+/// layout model's regions, or on a page with vertical writing (which
+/// `extract-reading-order-ambiguous` covers).
+fn report_doubts(
+    cx: &PageContext<'_>,
+    items: &[(Item, Option<usize>)],
+    lines: &[Line],
+    doubt: Option<xycut::Doubt>,
+    whole_page: bool,
+    vertical: bool,
+) -> Result<Vec<bool>, ExtractError> {
+    let layout_order = whole_page
+        && cx.options.reading_order != ReadingOrder::ContentStream
+        && cx.painting.regions.is_empty()
+        && !vertical;
+    if !layout_order {
+        return Ok(vec![false; items.len()]);
+    }
+    let (reason, uncertain) = column_doubts(items, lines, doubt);
+    if let Some(reason) = reason {
+        cx.doc.report(Warning::ExtractColumnOrderUncertain {
+            page: u64::try_from(cx.info.index).unwrap_or(u64::MAX),
+            reason,
+        })?;
+    }
+    let mut doubted = vec![false; items.len()];
+    for i in uncertain {
+        if let Some(d) = doubted.get_mut(i) {
+            *d = true;
+        }
+    }
+    Ok(doubted)
+}
+
+/// The page's doubts about its column order: the first reason found (`narrow-gutter`, then
+/// XY-Cut++'s `columns-revisited` or `near-grid`) and every item (index) a doubt covers.
+fn column_doubts(
+    items: &[(Item, Option<usize>)],
+    lines: &[Line],
+    doubt: Option<xycut::Doubt>,
+) -> (Option<&'static str>, Vec<usize>) {
+    let mut uncertain: Vec<usize> = items
+        .iter()
+        .enumerate()
+        .filter(|(_, (item, _))| matches!(item, Item::Text(d) if read_across_gutter(d, lines)))
+        .map(|(i, _)| i)
+        .collect();
+    let mut reason = (!uncertain.is_empty()).then_some("narrow-gutter");
+    if let Some(doubt) = doubt {
+        reason = reason.or(Some(doubt.reason));
+        uncertain.extend(doubt.blocks);
+    }
+    uncertain.sort_unstable();
+    uncertain.dedup();
+    (reason, uncertain)
+}
+
+/// Whether at least [`NARROW_GUTTER_LINES`] of `draft`'s lines, and at least half of them, kept
+/// runs together across a gap that may be a narrow gutter, at points within half a font size of
+/// one another.
+fn read_across_gutter(draft: &Draft, lines: &[Line]) -> bool {
+    let points: Vec<(usize, f64, f64)> = draft
+        .lines
+        .iter()
+        .filter_map(|&l| lines.get(l).map(|line| (l, line)))
+        .flat_map(|(l, line)| line.near_gutters.iter().map(move |&x| (l, x, line.size.get())))
+        .collect();
+    points.iter().any(|&(_, x, size)| {
+        let mut near: Vec<usize> = points
+            .iter()
+            .filter(|&&(_, other, _)| other >= x && other - x <= size / 2.0)
+            .map(|&(l, _, _)| l)
+            .collect();
+        near.sort_unstable();
+        near.dedup();
+        near.len() >= NARROW_GUTTER_LINES.max(draft.lines.len().div_ceil(2))
+    })
+}
+
+/// A dropped entry for `span`'s text, with the span when the options keep spans.
+fn dropped(index: usize, reason: DropReason, bbox: RectPt, span: &Span, options: &ExtractOptions) -> Dropped {
+    Dropped {
+        reason,
+        page: index,
+        bbox,
+        chars: visible_chars(&span.text),
+        spans: if options.drop.keep_spans {
+            vec![span.clone()]
+        } else {
+            Vec::new()
+        },
+    }
+}
+
+/// The page's runs as spans: kept ones (with their pieces) and dropped ones, and the boxes of
+/// the covered text, which never opens a gutter in a line.
 struct Runs {
     pieces: Vec<Piece>,
     spans: Vec<Span>,
     dropped: Vec<Dropped>,
+    covered: Vec<RectPt>,
 }
 
 /// What extraction reads of a page besides its text: what it painted, seen in the same walk of
@@ -63,6 +170,8 @@ pub(crate) struct PageInput<'a> {
     pub(crate) edges: Option<&'a Edges>,
     /// What text can stand on, for the low-contrast flag.
     pub(crate) backdrops: &'a Backdrops,
+    /// What is painted over earlier text, for the covered flag.
+    pub(crate) covers: &'a Covers,
     /// The images and paths drawn, for the text-layer status.
     pub(crate) drawn: &'a Drawn,
     /// The structure tree, when the reading order may come from it.
@@ -73,19 +182,15 @@ pub(crate) struct PageInput<'a> {
     pub(crate) words: &'a [OcrWord],
 }
 
-fn runs(
-    index: usize,
-    text: &PageText,
-    backdrops: &Backdrops,
-    regions: &[LayoutRegion],
-    options: &ExtractOptions,
-) -> Runs {
+fn runs(index: usize, text: &PageText, painting: &PageInput<'_>, options: &ExtractOptions) -> Runs {
+    let (backdrops, regions) = (painting.backdrops, painting.regions);
     let frame = &text.frame;
     let (width, height, unit) = (frame.width(), frame.height(), frame.user_unit());
     let mut out = Runs {
         pieces: Vec::new(),
         spans: Vec::new(),
         dropped: Vec::new(),
+        covered: Vec::new(),
     };
     for run in &text.runs {
         let size = Pt::new(run.font_size * unit);
@@ -106,20 +211,26 @@ fn runs(
         // Artifacts are furniture by the file's own word (ISO 32000-2 §14.8.2.2).
         let artifact = (run.artifact && options.drop.furniture).then_some(DropReason::Artifact);
         if let Some(reason) = span_flags.reasons().first().copied().or(artifact) {
-            out.dropped.push(Dropped {
-                reason,
-                page: index,
-                bbox: run.bounds,
-                chars: visible_chars(&span.text),
-                spans: if options.drop.keep_spans {
-                    vec![span]
-                } else {
-                    Vec::new()
-                },
-            });
+            out.dropped.push(dropped(index, reason, run.bounds, &span, options));
             continue;
         }
-        for (words, bbox) in segments(text, run, size, regions) {
+        let cut = segments(text, run, size, regions, painting.covers);
+        for (words, bbox) in cut.covered {
+            let flags = Flags {
+                covered: true,
+                ..Flags::NONE
+            };
+            let hidden = Span {
+                text: words,
+                bbox,
+                flags,
+                ..span.clone()
+            };
+            out.dropped
+                .push(dropped(index, DropReason::Covered, bbox, &hidden, options));
+            out.covered.push(bbox);
+        }
+        for (words, bbox, near_gutters) in cut.kept {
             let words = if run.actual_text {
                 words
             } else {
@@ -137,6 +248,7 @@ fn runs(
                 vertical: run.vertical,
                 mcid: run.mcid,
                 artifact: run.artifact,
+                near_gutters,
             });
             out.spans.push(Span {
                 text: words,
@@ -146,62 +258,6 @@ fn runs(
         }
     }
     out
-}
-
-/// The smallest rectangle holding a glyph's quad.
-fn quad_box(quad: &Quad) -> RectPt {
-    let (x0, x1) = quad.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
-        (a.min(p.x.get()), b.max(p.x.get()))
-    });
-    let (y0, y1) = quad.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
-        (a.min(p.y.get()), b.max(p.y.get()))
-    });
-    RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
-}
-
-/// A visible run's text and box, split where its pen jumps forward past a column gutter:
-/// `laminapdf-text` keeps such a jump inside one run (as a space), so two columns drawn row
-/// by row in one font would otherwise share every line. Runs whose text is not their glyphs'
-/// in drawing order (`ActualText`, right to left, vertical) stay whole.
-/// A run cut into pieces at column gutters, and where its glyphs pass from one layout region
-/// into another (models see columns that sit closer than a gutter).
-fn segments(text: &PageText, run: &PageTextRun, size: Pt, regions: &[LayoutRegion]) -> Vec<(String, RectPt)> {
-    let whole = || vec![(run.text.clone(), run.bounds)];
-    if run.actual_text || run.vertical || run.text.chars().any(is_right_to_left) {
-        return whole();
-    }
-    let Some(glyphs) = text.glyphs.get(run.glyphs.clone()) else {
-        return whole();
-    };
-    let (gutter, space) = (GUTTER * size.get(), SPACE * size.get());
-    let mut parts: Vec<(String, RectPt)> = Vec::new();
-    let mut last_region = None;
-    for glyph in glyphs {
-        let r = quad_box(&glyph.quad);
-        // A space glyph belongs to the part it follows.
-        // A space, or a glyph outside every region, stays with the part it follows: only a
-        // glyph that lands in another region starts a new part.
-        let region = if glyph.text.trim().is_empty() {
-            last_region
-        } else {
-            region_near(regions, &r, size.get() / 2.0).or(last_region)
-        };
-        let same_region = parts.is_empty() || last_region.is_none() || region == last_region;
-        last_region = region;
-        match parts.last_mut() {
-            Some((words, bbox)) if same_region && r.x0.get() - bbox.x1.get() <= gutter => {
-                let gap = r.x0.get() - bbox.x1.get();
-                if gap > space && !words.ends_with(char::is_whitespace) && !glyph.text.starts_with(char::is_whitespace)
-                {
-                    words.push(' ');
-                }
-                words.push_str(&glyph.text);
-                *bbox = bbox.union(&r);
-            }
-            _ => parts.push((glyph.text.clone(), r)),
-        }
-    }
-    if parts.len() <= 1 { whole() } else { parts }
 }
 
 fn is_vertical(line: &Line, pieces: &[Piece]) -> bool {
@@ -229,7 +285,7 @@ fn order_of(
     rtl: bool,
     options: &ExtractOptions,
     cancel: &CancelToken,
-) -> Result<Vec<usize>, ExtractError> {
+) -> Result<(Vec<usize>, Option<xycut::Doubt>), ExtractError> {
     let cut = |boxes: &[RectPt], lines: &[usize]| {
         xycut::order(boxes, lines, rtl, options.limits.max_xycut_depth, cancel)
             .map_err(|xycut::Cancelled| ExtractError::Cancelled)
@@ -237,10 +293,10 @@ fn order_of(
     if options.reading_order == ReadingOrder::ContentStream {
         let mut order: Vec<usize> = (0..boxes.len()).collect();
         order.sort_by_key(|&i| first.get(i).copied().unwrap_or(usize::MAX));
-        return Ok(order);
+        return Ok((order, None));
     }
     if region.iter().all(Option::is_none) {
-        return cut(boxes, lines);
+        return cut(boxes, lines).map(|o| (o.order, o.doubt));
     }
     // One unit per region with items, and one per item outside every region.
     let mut units: Vec<Vec<usize>> = Vec::new();
@@ -274,7 +330,8 @@ fn order_of(
         .map(|members| members.iter().filter_map(|&i| lines.get(i)).sum())
         .collect();
     let mut order = Vec::with_capacity(boxes.len());
-    for u in cut(&unit_boxes, &unit_lines)? {
+    // A layout model drew the regions, so the rules' doubts about columns don't apply.
+    for u in cut(&unit_boxes, &unit_lines)?.order {
         let Some(members) = units.get_mut(u) else { continue };
         members.sort_by(|&a, &b| {
             let (a, b) = (
@@ -290,7 +347,7 @@ fn order_of(
         });
         order.extend(members.iter().copied());
     }
-    Ok(order)
+    Ok((order, None))
 }
 
 /// `items` taken in `order`.
@@ -305,9 +362,9 @@ fn take_in<T>(items: Vec<T>, order: &[usize]) -> Vec<T> {
 /// The page's lines, built within each layout region (and among the pieces outside every
 /// region), so no line crosses a region's edge; with each line's region. Without regions,
 /// the rules' lines.
-fn region_lines(pieces: &[Piece], regions: &[LayoutRegion]) -> (Vec<Line>, Vec<Option<usize>>) {
+fn region_lines(pieces: &[Piece], regions: &[LayoutRegion], covered: &[RectPt]) -> (Vec<Line>, Vec<Option<usize>>) {
     if regions.is_empty() {
-        let lines = lines(pieces);
+        let lines = lines(pieces, covered);
         let none = vec![None; lines.len()];
         return (lines, none);
     }
@@ -321,7 +378,7 @@ fn region_lines(pieces: &[Piece], regions: &[LayoutRegion]) -> (Vec<Line>, Vec<O
     let (mut out, mut region) = (Vec::new(), Vec::new());
     for (r, members) in groups {
         let sub: Vec<Piece> = members.iter().filter_map(|&i| pieces.get(i).cloned()).collect();
-        for mut line in lines(&sub) {
+        for mut line in lines(&sub, covered) {
             line.pieces = line.pieces.iter().filter_map(|&p| members.get(p).copied()).collect();
             out.push(line);
             region.push(r);
@@ -438,7 +495,8 @@ pub(crate) fn extract_page(
         mut pieces,
         mut spans,
         mut dropped,
-    } = runs(index, text, painting.backdrops, painting.regions, options);
+        covered,
+    } = runs(index, text, painting, options);
     let (ocr, ocr_spans) = ocr_pieces(painting.words);
     pieces.extend(ocr);
     spans.extend(ocr_spans);
@@ -466,6 +524,7 @@ pub(crate) fn extract_page(
         doc,
         info: &info,
         painting,
+        covered: &covered,
         options,
         cancel,
     };
@@ -530,12 +589,15 @@ struct PageContext<'a> {
     doc: &'a Document,
     info: &'a ExtractedPage,
     painting: &'a PageInput<'a>,
+    /// The covered text's boxes, which never split a line ([`lines`]).
+    covered: &'a [RectPt],
     options: &'a ExtractOptions,
     cancel: &'a CancelToken,
 }
 
 /// The layout's blocks of `pieces` (with their `spans`): lines, blocks, tables, XY-Cut++ order.
-/// Their IDs count from `id_from`.
+/// Their IDs count from `id_from`, which is 0 only when the layout reads the whole page (not the
+/// text a structure tree left out), so only then are its column-order doubts reported.
 fn layout(
     cx: &PageContext<'_>,
     pieces: Vec<Piece>,
@@ -551,7 +613,7 @@ fn layout(
     }
     let flow = Flow::split(pieces, spans, &tables);
     let regions = painting.regions;
-    let (lines, line_region) = region_lines(&flow.pieces, regions);
+    let (lines, line_region) = region_lines(&flow.pieces, regions, cx.covered);
     let vertical = lines.iter().filter(|l| is_vertical(l, &flow.pieces)).count();
     if vertical > 0 && vertical < lines.len() {
         doc.report(Warning::ExtractReadingOrderAmbiguous { page: page_number })?;
@@ -585,18 +647,20 @@ fn layout(
         first.push(start);
         region.push(*r);
     }
-    let order = order_of(&boxes, &counts, &first, &region, rtl, options, cancel)?;
-    let items = take_in(items, &order);
+    let (order, doubt) = order_of(&boxes, &counts, &first, &region, rtl, options, cancel)?;
+    let doubted = report_doubts(cx, &items, &lines, doubt, id_from == 0, vertical > 0)?;
+    let items = take_in(items.into_iter().zip(doubted).collect(), &order);
     let confidence = match options.reading_order {
         ReadingOrder::ContentStream => CONTENT_CONFIDENCE,
         ReadingOrder::Auto | ReadingOrder::Tagged | ReadingOrder::Layout => LAYOUT_CONFIDENCE,
     };
     let mut out = Vec::with_capacity(items.len());
     let mut furniture = Vec::new();
-    for (item, r) in items {
+    for ((item, r), doubted) in items {
         let id = format!("p{index}-b{}", out.len() + id_from);
         match item {
             Item::Text(draft) => {
+                let confidence = if doubted { UNCERTAIN_CONFIDENCE } else { confidence };
                 let mut block = text_block(id, &draft, &lines, &flow, info, options, confidence);
                 let Some(region) = r.and_then(|r| regions.get(r)) else {
                     out.push(block);
@@ -753,6 +817,8 @@ fn text_block(
         spans,
         confidence,
         cells: Vec::new(),
+        continues: None,
+        continued_by: None,
         from_model: false,
     }
 }
@@ -774,6 +840,8 @@ fn table_block(id: String, table: &Table, spans: &[Span], info: &ExtractedPage) 
         spans: spans.to_vec(),
         confidence: table.confidence,
         cells: table.cells.clone(),
+        continues: None,
+        continued_by: None,
         from_model: false,
     }
 }

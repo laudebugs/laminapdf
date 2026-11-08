@@ -1,11 +1,15 @@
 //! A page's painting, seen in the same walk of the content as its text: the table rules (when
-//! tables are looked for), what is painted under the text, and the images and paths that tell a
-//! scan or outlined text from a page of text.
+//! tables are looked for) and the covers painted over text ([`crate::paint`]), what is painted
+//! under the text, and the images and paths that tell a scan or outlined text from a page of
+//! text.
 
-use laminapdf_content::{ImageDraw, Matrix, Paint, PathPaint, PathSegment, ShadingPaint, Visitor, transformed_box};
+use laminapdf_content::{
+    FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor, transformed_box,
+};
 use laminapdf_model::{PageFrame, Pt, RectPt, UserSpaceRect};
 
-use crate::tables::{Collector, Edges};
+use crate::paint::{Collector, Cover};
+use crate::tables::Edges;
 use crate::visibility::Backdrops;
 
 /// What a page draws besides its text, as the text-layer status measures it.
@@ -21,7 +25,8 @@ pub(crate) struct Drawn {
 
 /// The visitor [`laminapdf_text::TextExtractor::page_with`] is given.
 pub(crate) struct Marks<'f> {
-    rules: Option<Collector<'f>>,
+    paint: Collector<'f>,
+    tables: bool,
     backdrops: Backdrops,
     frame: PageFrame,
     drawn: Drawn,
@@ -31,16 +36,18 @@ impl<'f> Marks<'f> {
     /// `tables`: whether to collect the table rules.
     pub(crate) fn new(frame: &'f PageFrame, tables: bool) -> Self {
         Self {
-            rules: tables.then(|| Collector::new(frame)),
+            paint: Collector::new(frame, tables),
+            tables,
             backdrops: Backdrops::new(frame),
             frame: *frame,
             drawn: Drawn::default(),
         }
     }
 
-    /// The table rules (when collected), the backdrops and what was drawn.
-    pub(crate) fn finish(self) -> (Option<Edges>, Backdrops, Drawn) {
-        (self.rules.map(Collector::finish), self.backdrops, self.drawn)
+    /// The table rules (when collected), the covers, the backdrops and what was drawn.
+    pub(crate) fn finish(self) -> (Option<Edges>, Vec<Cover>, Backdrops, Drawn) {
+        let (edges, covers) = self.paint.finish();
+        (self.tables.then_some(edges), covers, self.backdrops, self.drawn)
     }
 }
 
@@ -63,25 +70,19 @@ fn image_box(frame: &PageFrame, ctm: &Matrix) -> Option<RectPt> {
 
 impl Visitor for Marks<'_> {
     fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
-        if let Some(rules) = &mut self.rules {
-            rules.path_segment(segment, ctm);
-        }
+        self.paint.path_segment(segment, ctm);
     }
 
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
-        if let Some(rules) = &mut self.rules {
-            rules.paint_path(paint);
-        }
+        self.paint.paint_path(paint);
         self.backdrops.paint_path(paint);
-        if matches!(
-            paint.paint,
-            Paint::Stroke { .. } | Paint::Fill(_) | Paint::FillStroke { .. }
-        ) {
+        if paint.paint.draws() {
             self.drawn.paths += 1;
         }
     }
 
     fn image(&mut self, image: &ImageDraw<'_>) {
+        self.paint.image(image);
         self.backdrops.image(image);
         self.drawn.images += 1;
         if let Some(bbox) = image_box(&self.frame, &image.state.ctm) {
@@ -90,7 +91,24 @@ impl Visitor for Marks<'_> {
     }
 
     fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        self.paint.paint_shading(shading);
         self.backdrops.paint_shading(shading);
+    }
+
+    fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
+        self.paint.begin_marked(marked);
+    }
+
+    fn end_marked(&mut self) {
+        self.paint.end_marked();
+    }
+
+    fn enter_xobject(&mut self, form: &FormXObject<'_>) {
+        self.paint.enter_xobject(form);
+    }
+
+    fn leave_xobject(&mut self, form: &FormXObject<'_>) {
+        self.paint.leave_xobject(form);
     }
 }
 

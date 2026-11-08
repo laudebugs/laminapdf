@@ -302,6 +302,16 @@ pub enum Warning {
         /// The page's text-layer status: `needs-ocr` or `ocr-layer`.
         status: &'static str,
     },
+    /// `extract-column-order-uncertain`: the layout rules had to guess how a page's columns
+    /// are read (a gutter narrower than a font size, a column left and read again, or a grid
+    /// read by columns that a wrapped cell kept from reading by rows). Raised by
+    /// `laminapdf-extract`.
+    ExtractColumnOrderUncertain {
+        /// The page's index.
+        page: u64,
+        /// Which check doubted the order: `narrow-gutter`, `columns-revisited` or `near-grid`.
+        reason: &'static str,
+    },
 }
 
 impl Warning {
@@ -348,6 +358,7 @@ impl Warning {
         "extract-struct-tree-ignored",
         "extract-untagged-content",
         "extract-needs-ocr",
+        "extract-column-order-uncertain",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -395,6 +406,7 @@ impl Warning {
             Self::ExtractStructTreeIgnored { .. } => "extract-struct-tree-ignored",
             Self::ExtractUntaggedContent { .. } => "extract-untagged-content",
             Self::ExtractNeedsOcr { .. } => "extract-needs-ocr",
+            Self::ExtractColumnOrderUncertain { .. } => "extract-column-order-uncertain",
         }
     }
 
@@ -442,7 +454,8 @@ impl Warning {
             | Self::ExtractTableLimit { .. }
             | Self::ExtractStructTreeIgnored { .. }
             | Self::ExtractUntaggedContent { .. }
-            | Self::ExtractNeedsOcr { .. } => None,
+            | Self::ExtractNeedsOcr { .. }
+            | Self::ExtractColumnOrderUncertain { .. } => None,
         }
     }
 
@@ -487,7 +500,8 @@ impl Warning {
             | Self::ExtractUntaggedContent { .. } => ErrorKind::Input,
             Self::ExtractReadingOrderAmbiguous { .. }
             | Self::ExtractTableAmbiguous { .. }
-            | Self::ExtractNeedsOcr { .. } => ErrorKind::Unsupported,
+            | Self::ExtractNeedsOcr { .. }
+            | Self::ExtractColumnOrderUncertain { .. } => ErrorKind::Unsupported,
             Self::ExtractTableLimit { .. } => ErrorKind::Limit,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated | Self::ExtractLimitBlocks { .. } => {
                 ErrorKind::Limit
@@ -524,7 +538,8 @@ impl Warning {
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
             | Self::ExtractUntaggedContent { page, .. }
-            | Self::ExtractNeedsOcr { page, .. } => Some(page),
+            | Self::ExtractNeedsOcr { page, .. }
+            | Self::ExtractColumnOrderUncertain { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
         };
@@ -547,7 +562,8 @@ impl Warning {
             | Self::ExtractTableLimit { page, .. }
             | Self::ExtractStructTreeIgnored { page, .. }
             | Self::ExtractUntaggedContent { page, .. }
-            | Self::ExtractNeedsOcr { page, .. } => Some(page as i128),
+            | Self::ExtractNeedsOcr { page, .. }
+            | Self::ExtractColumnOrderUncertain { page, .. } => Some(page as i128),
             Self::XrefStmIgnored { offset }
             | Self::ContentUnknownOperator { offset, .. }
             | Self::ContentBadOperands { offset, .. }
@@ -705,6 +721,10 @@ mod tests {
                 page: 0,
                 status: "needs-ocr",
             },
+            Warning::ExtractColumnOrderUncertain {
+                page: 0,
+                reason: "narrow-gutter",
+            },
         ];
         for w in &all {
             match w {
@@ -748,7 +768,8 @@ mod tests {
                 | Warning::ExtractTableLimit { .. }
                 | Warning::ExtractStructTreeIgnored { .. }
                 | Warning::ExtractUntaggedContent { .. }
-                | Warning::ExtractNeedsOcr { .. } => {}
+                | Warning::ExtractNeedsOcr { .. }
+                | Warning::ExtractColumnOrderUncertain { .. } => {}
             }
         }
         all

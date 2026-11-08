@@ -401,14 +401,14 @@ fn union(boxes: impl IntoIterator<Item = RectPt>) -> RectPt {
 
 /// The text of `pieces` as a block reads it: its lines, joined.
 fn read(pieces: &[Piece], dehyphenate: bool) -> String {
-    let lines = lines(pieces);
+    let lines = lines(pieces, &[]);
     join_lines(lines.iter().map(|l| l.text.as_str()), dehyphenate)
 }
 
 /// A group's spans in its lines' order.
 fn spans_in_order(items: &[(Role, Piece, Span)]) -> Vec<Span> {
     let pieces: Vec<Piece> = items.iter().map(|(_, p, _)| p.clone()).collect();
-    lines(&pieces)
+    lines(&pieces, &[])
         .iter()
         .flat_map(|l| l.pieces.iter().filter_map(|&i| items.get(i).map(|(_, _, s)| s.clone())))
         .collect()
@@ -512,6 +512,8 @@ impl TaggedIndex {
             spans: spans_in_order(&group.pieces),
             confidence: TREE_CONFIDENCE,
             cells,
+            continues: None,
+            continued_by: None,
             from_model: false,
         })
     }

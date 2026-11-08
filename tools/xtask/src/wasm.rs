@@ -151,6 +151,14 @@ fn named(ws: &Workspace, module: &Module) -> PathBuf {
 
 /// `cargo xtask wasm`: every module into `packages/wasm/dist/`, then the tests that load them.
 pub(crate) fn build(ws: &Workspace) -> Result<()> {
+    modules(ws)?;
+    build_small_memory(ws)?;
+    test(ws)
+}
+
+/// Every shipped module into `packages/wasm/dist/`, without the tests: what the reader's deploys
+/// build from (`cargo xtask web build`, C4d).
+pub(crate) fn modules(ws: &Workspace) -> Result<()> {
     doctor::require(ws, &doctor::wasm_bindgen(ws)?)?;
     let wasm_opt = wasm_opt(ws)?;
     let out = dist(ws);
@@ -161,8 +169,7 @@ pub(crate) fn build(ws: &Workspace) -> Result<()> {
     for module in &MODULES {
         build_module(ws, module, &wasm_opt, &out)?;
     }
-    build_small_memory(ws)?;
-    test(ws)
+    Ok(())
 }
 
 /// The `cargo` arguments that build `krate`'s cdylib: `cargo rustc` for Lamina PDF's own

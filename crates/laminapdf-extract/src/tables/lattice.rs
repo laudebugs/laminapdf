@@ -10,7 +10,7 @@ use crate::model::{Cell, TableDetector};
 
 /// Rules this close (in points) share a coordinate, and a rule may stop this short of a
 /// crossing and still meet it (pdfplumber's `snap_tolerance` and `join_tolerance` defaults).
-const SNAP: f64 = 3.0;
+pub(super) const SNAP: f64 = 3.0;
 
 /// Rules shorter than this (in points) are ticks or underlines, not table rules.
 const MIN_RULE: f64 = 6.0;

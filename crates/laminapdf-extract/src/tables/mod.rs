@@ -2,13 +2,14 @@
 //! text lines up in columns ([`stream`]). No table beats a wrong table, so both refuse anything
 //! that doesn't look like a grid of text: a page border or a form's field boxes give none.
 
+pub(crate) mod across;
 mod edges;
 mod lattice;
 mod stream;
 
 use laminapdf_model::RectPt;
 
-pub(crate) use edges::{Collector, Edges};
+pub(crate) use edges::{AXIS_TOLERANCE, Edges};
 
 use crate::lines::{SPACE, mostly_rtl};
 use crate::model::{Cell, TableDetector};

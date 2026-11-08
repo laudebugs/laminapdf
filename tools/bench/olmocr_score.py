@@ -31,6 +31,7 @@ def score(bench_data, candidate, subsets):
     report = {"subsets": {}, "failures": []}
     for subset, tests in groups.items():
         by_type = defaultdict(lambda: [0, 0])
+        by_pdf = defaultdict(lambda: [0, 0])
         passed_all = 0
         for test in tests:
             stem = os.path.splitext(test.pdf)[0]
@@ -46,8 +47,10 @@ def score(bench_data, candidate, subsets):
                 passed, why = False, f"test raised {type(e).__name__}"
             kind = str(getattr(test.type, "value", test.type))
             by_type[kind][1] += 1
+            by_pdf[test.pdf][1] += 1
             if passed:
                 by_type[kind][0] += 1
+                by_pdf[test.pdf][0] += 1
                 passed_all += 1
             elif len(report["failures"]) < 2000:
                 report["failures"].append({"subset": subset, "id": test.id, "type": kind, "why": why[:300]})
@@ -56,6 +59,7 @@ def score(bench_data, candidate, subsets):
             "passed": passed_all,
             "score": passed_all / len(tests) if tests else 0.0,
             "byType": {k: {"passed": p, "tests": n} for k, (p, n) in sorted(by_type.items())},
+            "byPdf": {k: {"passed": p, "tests": n} for k, (p, n) in sorted(by_pdf.items())},
         }
     scores = [s["score"] for s in report["subsets"].values()]
     report["overall"] = sum(scores) / len(scores) if scores else 0.0

@@ -8,7 +8,7 @@ use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 use crate::error::Result;
 use crate::surface::color::{IccProfile, IccSpace};
 use crate::surface::image::{Image, ImageColor, Samples};
-use crate::surface::style::BlendMode;
+use laminapdf_model::BlendMode;
 
 /// An `ExtGState` the builder writes (§8.4.5).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

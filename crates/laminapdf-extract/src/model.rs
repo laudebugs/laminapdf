@@ -227,11 +227,41 @@ pub struct Block {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Vec::is_empty"))]
     #[cfg_attr(feature = "schema", schemars(default))]
     pub cells: Vec<Cell>,
+    /// For a table that goes on from the page before: the ID of the part it continues.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(feature = "schema", schemars(default))]
+    pub continues: Option<String>,
+    /// For a table that goes on over the page break: the ID of the part on the next page.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
+    #[cfg_attr(feature = "schema", schemars(default))]
+    pub continued_by: Option<String>,
     /// A layout model's region gave the block its kind, so the heading and list rules leave
     /// it alone, as they leave the structure tree's blocks.
     #[cfg_attr(feature = "serde", serde(skip))]
     #[cfg_attr(feature = "schema", schemars(skip))]
     pub(crate) from_model: bool,
+}
+
+impl Block {
+    /// Whether this block is the part of a table that `before`, the block just before it,
+    /// goes on in. A renderer joins the two only then, so a list of blocks with a part cut
+    /// out still renders whole tables.
+    #[must_use]
+    pub fn continues_from(&self, before: &Self) -> bool {
+        self.continues.as_deref() == Some(before.id.as_str())
+    }
+}
+
+/// How many rows at the top of a table are header rows: rows whose every cell is a header.
+pub(crate) fn header_row_count(cells: &[Cell]) -> usize {
+    let mut row = 0;
+    loop {
+        let mut in_row = cells.iter().filter(|c| c.row == row).peekable();
+        if in_row.peek().is_none() || !in_row.all(|c| c.header) {
+            return row;
+        }
+        row += 1;
+    }
 }
 
 /// One cell of a table block.
@@ -369,7 +399,7 @@ pub struct Span {
 #[non_exhaustive]
 #[expect(
     clippy::struct_excessive_bools,
-    reason = "ADR 0030 §4's five independent flags, each serialised by name"
+    reason = "ADR 0030 §4's six independent flags, each serialised by name"
 )]
 pub struct Flags {
     /// Drawn in text rendering mode 3 or 7.
@@ -382,6 +412,9 @@ pub struct Flags {
     pub clipped: bool,
     /// Filled near white with nothing painted under it.
     pub low_contrast: bool,
+    /// Painted over later on the page: by an opaque fill, an opaque image or an annotation's
+    /// appearance.
+    pub covered: bool,
 }
 
 impl Flags {
@@ -392,12 +425,13 @@ impl Flags {
         tiny: false,
         clipped: false,
         low_contrast: false,
+        covered: false,
     };
 
     /// Whether any flag is set.
     #[must_use]
     pub const fn any(self) -> bool {
-        self.invisible || self.off_page || self.tiny || self.clipped || self.low_contrast
+        self.invisible || self.off_page || self.tiny || self.clipped || self.low_contrast || self.covered
     }
 
     /// The flags set, as the reasons a dropped entry names, in a fixed order.
@@ -409,6 +443,7 @@ impl Flags {
             (self.tiny, DropReason::Tiny),
             (self.clipped, DropReason::Clipped),
             (self.low_contrast, DropReason::LowContrast),
+            (self.covered, DropReason::Covered),
         ]
         .into_iter()
         .filter_map(|(set, reason)| set.then_some(reason))
@@ -458,6 +493,8 @@ pub enum DropReason {
     Clipped,
     /// Near white on nothing.
     LowContrast,
+    /// Painted over by a later opaque shape, image or annotation.
+    Covered,
     /// Marked content tagged `Artifact`.
     Artifact,
     /// A line repeated at the top of pages.

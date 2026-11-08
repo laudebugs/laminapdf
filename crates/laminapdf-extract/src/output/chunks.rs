@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use laminapdf_model::RectPt;
 
-use super::{Rendered, TextRange};
+use super::{Join, Rendered, TextRange, joins};
 use crate::model::{BlockKind, Extraction};
 
 /// Where chunks may start.
@@ -125,18 +125,23 @@ pub fn tokens_approx(text: &str) -> usize {
 pub(super) fn split(extraction: &Extraction, markdown: &Rendered, options: &ChunkOptions) -> Vec<Chunk> {
     let blocks = &extraction.blocks;
     let tokens: Vec<usize> = (0..blocks.len()).map(|i| tokens_approx(markdown.block(i))).collect();
+    // A table part that goes on from the block before never starts a chunk, so a table split
+    // over a page break stays in one, even past the budget.
+    let joins = joins(blocks);
+    let continues = |i: usize| joins.get(i).is_some_and(|&j| j != Join::No);
     let mut groups: Vec<(usize, usize)> = Vec::new();
     let mut start = 0;
     let mut used = 0;
     for (i, block) in blocks.iter().enumerate() {
         let cost = tokens.get(i).copied().unwrap_or(0);
         let boundary = i > start
+            && !continues(i)
             && match options.split_on {
                 SplitOn::Headings => matches!(block.kind, BlockKind::Heading { .. }),
                 SplitOn::Pages => blocks.get(i - 1).is_some_and(|prev| prev.page != block.page),
                 SplitOn::Blocks => false,
             };
-        let full = i > start && used + cost > options.max_tokens;
+        let full = i > start && !continues(i) && used + cost > options.max_tokens;
         if boundary || full {
             groups.push((start, i - 1));
             start = i;
@@ -151,6 +156,11 @@ pub(super) fn split(extraction: &Extraction, markdown: &Rendered, options: &Chun
                     }
                     back += t;
                     start -= 1;
+                }
+                // Nor does the overlap start in the middle of a table.
+                while start < i && continues(start) {
+                    back = back.saturating_sub(tokens.get(start).copied().unwrap_or(0));
+                    start += 1;
                 }
                 used = back;
             }

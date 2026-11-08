@@ -24,7 +24,7 @@ Split tables across pages with their header rows repeated, rows kept whole, and 
 - ISO 32000-1 §14.8.4 (the PDF 1.7 standard types: `Table`, `THead`, `TBody`, `TFoot`, `TR`, `TH`, `TD`) and §14.8.5.7 (table attributes: `/Scope`, `/ColSpan`). The Matterhorn Protocol's checkpoint 15 (tables).
 - `laminapdf-build`'s tagging: `TagKind` (`src/tag/mod.rs`) has 25 kinds and lacks `THead`, `TBody` and `TFoot`; `Tag::custom` writes a standard type's name without a role map; `TableScope` and `Tag::with_scope` exist. A new `TagKind` also changes `laminapdf-wasm`'s name table (`crates/laminapdf-wasm/src/build_dto.rs`) and `packages/sdk/src/generated/builder-enums.ts`, which `cargo xtask gen boundary` writes.
 - `StrokeStyle` for rules.
-- Extraction: L3b's ruled tables and [T3c](./T3c-tables-across-pages.md), which joins tables that continue across pages. The three-page table built here is an input T3c can use.
+- Extraction: L3b's ruled tables and [T3c](../done/T3c-tables-across-pages.md), which joins tables that continue across pages. The three-page table built here is an input T3c can use.
 - How repeated header rows are tagged: the copies drawn on later pages are artifacts, so the structure tree holds the header once. The PDF Association's *Tagged PDF Best Practice Guide: Syntax* recommends this; cite its clause in the code comment.
 
 ## Scope
@@ -45,7 +45,7 @@ Split tables across pages with their header rows repeated, rows kept whole, and 
 - Rows split across pages: a row taller than the page's body fails with `flow-content-too-large` (T4b's code). Row spans and nested tables: later.
 - Footnotes, a contents page and the outline: [T4h](./T4h-flow-notes-contents-outline.md).
 - Markdown tables: [T4d](./T4d-markdown-documents.md). The JSON form: [T4e](./T4e-json-documents-and-templates.md); TypeScript: [T4j](./T4j-documents-in-typescript.md).
-- Joining tables across pages in extraction: [T3c](./T3c-tables-across-pages.md).
+- Joining tables across pages in extraction: [T3c](../done/T3c-tables-across-pages.md).
 
 ## Tasks
 

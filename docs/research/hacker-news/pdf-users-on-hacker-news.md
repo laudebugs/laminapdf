@@ -256,7 +256,7 @@ Redaction comments rose from 2.8 to 8.0 per 1,000 editor comments in 2023–26, 
 
 - **Lamina PDF today:** [E12a](../../todos/ready/E12a-redaction-feature-plan.md)–[E12f](../../todos/ready/E12f-leak-tests.md) plan mark and review, removal of text, pixels and paths, a scrub with a full rewrite, sensitive-content search and leak tests.
 - **The gap:** nothing finds a failed redaction in a file someone else made, and nothing stops a user from drawing a box and calling it done.
-- **Work:** [T2a](../../todos/ready/T2a-covered-text-flag.md) teaches extraction to flag text hidden under later shapes and images, and [T2b](../../todos/ready/T2b-check-failed-redactions.md) makes `laminapdf check` warn about covered text, unapplied redaction annotations and text left in earlier revisions. [E4f](../../todos/ready/E4f-annotation-tools-ui.md) gains a notice when a user draws an opaque shape over text, offering the redaction tool instead ([38549034](https://news.ycombinator.com/item?id=38549034)).
+- **Work:** [T2a](../../todos/done/T2a-covered-text-flag.md) teaches extraction to flag text hidden under later shapes and images, and [T2b](../../todos/ready/T2b-check-failed-redactions.md) makes `laminapdf check` warn about covered text, unapplied redaction annotations and text left in earlier revisions. [E4f](../../todos/ready/E4f-annotation-tools-ui.md) gains a notice when a user draws an opaque shape over text, offering the redaction tool instead ([38549034](https://news.ycombinator.com/item?id=38549034)).
 
 ### R3. Finish forms and signatures, and name XFA files plainly
 
@@ -288,7 +288,7 @@ Users once asked whether a tool could get the text at all; they now ask whether 
   - JSON that matches its goldens byte for byte
   - an extraction benchmark, `cargo xtask extract-bench`
 - **The gap:** a pipeline can't tell which pages need OCR, can't see when the column order is a guess, and gets a table split in two at every page break. The benchmark scores sit in a crate README.
-- **Work:** [T3a](../../todos/done/T3a-text-layer-status.md) adds a per-page text-layer status, [T3b](../../todos/ready/T3b-reading-order-confidence.md) a warning when the column order is uncertain, [T3c](../../todos/ready/T3c-tables-across-pages.md) joins tables across pages, and [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes the scores and speed.
+- **Work:** [T3a](../../todos/done/T3a-text-layer-status.md) adds a per-page text-layer status, [T3b](../../todos/done/T3b-reading-order-confidence.md) a warning when the column order is uncertain, [T3c](../../todos/done/T3c-tables-across-pages.md) joins tables across pages, and [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes the scores and speed.
 
 ### R5. Decide for flow layout, then accept Markdown and JSON
 
