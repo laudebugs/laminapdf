@@ -3,9 +3,10 @@
 // pages and save jobs are handles (internal/handle.ts): a page or save job is freed with its
 // document.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
-import type { PageTextJs } from "@laminapdf/wasm/extract";
+import type { PageTextJs, WasmExtractJob } from "@laminapdf/wasm/extract";
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
+import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
 import { type BaseGlue, extractsText, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
@@ -388,6 +389,32 @@ export class Document extends Handle<BaseGlue> {
     return parseExtract(
       options.format,
       this.call(() => extract(options)),
+    );
+  }
+
+  /**
+   * An extraction stepped a page at a time, for models the host runs: each step that needs a
+   * model's result stops with a `request` (the page and resolution to render), answered with
+   * {@link ExtractJob.provide}. {@link extractWithModels} loops one for async models. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.extract}.
+   */
+  extractJob<F extends ExtractFormat>(options: ExtractJobOptions<F>): ExtractJob<F> {
+    this.assertLive();
+    const doc = this.#doc as WasmDocument & { extractJob?: (options: ExtractJobOptions) => WasmExtractJob };
+    if (typeof doc.extractJob !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        "doc.extractJob() needs a document opened while the extract or text module was loaded",
+      );
+    }
+    const extractJob = doc.extractJob.bind(doc);
+    return new ExtractJob(
+      this.call(() => extractJob(options)),
+      options.format,
+      this,
+      this.instance,
     );
   }
 

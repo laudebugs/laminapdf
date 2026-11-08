@@ -10,10 +10,12 @@ import type { Document, PageRef } from "../document.js";
  * - `transact` takes a callback, which can't cross to a worker: use `apply` with ops;
  * - `saveJob` returns a job the caller steps: the remote `save`/`saveWithReport` are stepped
  *   jobs already, cancelled through `signal`;
+ * - `extractJob` returns a job whose model results the caller provides between steps: run the
+ *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
  */
-export type ExcludedDocumentMembers = "transact" | "saveJob" | "ensure" | "free" | typeof Symbol.dispose;
+export type ExcludedDocumentMembers = "transact" | "saveJob" | "extractJob" | "ensure" | "free" | typeof Symbol.dispose;
 
 /**
  * PageRef members with no remote twin: `free` and `Symbol.dispose`, since the worker frees a page
