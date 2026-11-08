@@ -8,6 +8,7 @@ mod changes;
 mod cli_docs;
 mod codegen;
 mod corpus;
+mod design_screens;
 mod docs_links;
 mod docs_prose;
 mod docs_snippets;
@@ -15,6 +16,7 @@ mod doctor;
 mod examples;
 mod examples_lints;
 mod extract_bench;
+mod gallery;
 mod harness;
 mod licenses;
 mod lines;
@@ -241,6 +243,10 @@ tasks:
                     Extractor, after `wasm`) against the newest published version; breaking changes
                     fail unless the changesets give the fixed group a minor bump (pending ones, or
                     those a version PR consumed while its version awaits npm)
+  gallery [--test|--update]
+                    the Paper component gallery (apps/gallery): serve it; --test runs its screenshot,
+                    axe and font tests in the pinned Playwright image (Docker); --update rewrites
+                    apps/gallery/e2e/__screenshots__/ there and lists what changed
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
@@ -380,6 +386,7 @@ fn main() -> Result<()> {
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("semver", args) => semver::run(&ws, args),
+        ("gallery", args) => gallery::run(&ws, gallery::parse_args(args)?),
         ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
@@ -449,6 +456,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;
+    step("design screens: every screen in the Paper inventory has its area heading and design file");
+    design_screens::check(&ws.root)?;
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");

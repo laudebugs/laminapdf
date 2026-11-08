@@ -210,7 +210,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 ### U6. Paper design system
 
 Planned in the [Paper design plan §6](paper-design.md#6-round-u6-paper-in-code): tokens, self-hosted fonts, icons, core components, overlays and a gallery with visual tests.
-**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/done/U6b-self-hosted-fonts.md), [U6c](../todos/done/U6c-icon-set.md), [U6d](../todos/done/U6d-core-components.md), [U6h](../todos/done/U6h-display-components.md), [U6e](../todos/done/U6e-overlays-and-sheets.md), [U6i](../todos/done/U6i-sheets-positioning-and-palette-shell.md), [U6j](../todos/done/U6j-positioning-and-palette-shell.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
+**Todos:** [U6a](../todos/done/U6a-paper-tokens.md), [U6b](../todos/done/U6b-self-hosted-fonts.md), [U6c](../todos/done/U6c-icon-set.md), [U6d](../todos/done/U6d-core-components.md), [U6h](../todos/done/U6h-display-components.md), [U6e](../todos/done/U6e-overlays-and-sheets.md), [U6i](../todos/done/U6i-sheets-positioning-and-palette-shell.md), [U6j](../todos/done/U6j-positioning-and-palette-shell.md), [U6f](../todos/done/U6f-gallery-and-visual-tests.md)
 
 ### Changes to existing todos
 
@@ -290,4 +290,4 @@ Ticked by the PR that completes them.
 - [ ] Optional (opt-in), content-free usage telemetry
 
 ### U6. Paper design system
-- [ ] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))
+- [x] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))

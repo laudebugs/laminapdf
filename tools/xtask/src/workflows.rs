@@ -5,9 +5,12 @@
 //! depend on it (why: the comment on nightly.yml's `bench` job). site.yml's production job
 //! regenerates the website's roadmap before every build, and runs on every push to main and on
 //! a schedule, so the site follows the board without a refresh PR. docs.yml deploys main's docs to
-//! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). cli-release.yml
-//! publishes only on a CLI tag push with the owner's variable, in the `release` environment, with
-//! no stored secret, from self-hosted runners only (todo L4d).
+//! next.docs.laminapdf.com and only a release tag's to docs.laminapdf.com (todo P4). The macOS
+//! runners' rustup (`.github/actions/isolate-rust-home`) is the Linux runner image's version, so
+//! one bump changes both, and no workflow or action but `.github/actions/install-tools` runs
+//! install-action, so each runner keeps its own install-action folder. cli-release.yml publishes
+//! only on a CLI tag push with the owner's variable, in the `release` environment, with no stored
+//! secret, from self-hosted runners only (todo L4d).
 //!
 //! The parsing is line based, not a YAML parser, and assumes the workflows' layout: jobs and
 //! triggers are two-space-indented keys under the top-level `jobs:` and `on:`, and a job lists its
@@ -341,6 +344,60 @@ mod tests {
         assert_eq!(
             lines_of(workflow, "on", "push"),
             ["    branches: [main]", "  # a comment"]
+        );
+    }
+
+    /// The value after `key` on the first line that starts with it, without indentation, a
+    /// trailing ` #` comment or quotes.
+    fn pinned<'a>(file: &'a str, key: &str) -> Option<&'a str> {
+        file.lines()
+            .find_map(|l| l.trim_start().strip_prefix(key))
+            .map(|v| v.split(" #").next().unwrap_or_default().trim().trim_matches('"'))
+    }
+
+    #[test]
+    fn pinned_should_drop_quotes_and_a_trailing_comment() {
+        let file = "env:\n  # V: old\n  V: \"1.2.3\" # why\n";
+        assert_eq!(pinned(file, "V:"), Some("1.2.3"));
+    }
+
+    #[test]
+    fn isolate_rust_home_should_install_the_linux_runner_images_rustup() {
+        const ACTION: &str = include_str!("../../../.github/actions/isolate-rust-home/action.yml");
+        const IMAGE: &str = include_str!("../../../tools/ci-runner/linux/Dockerfile");
+        let image = pinned(IMAGE, "ARG RUSTUP_VERSION=");
+        assert!(
+            image.is_some(),
+            "the Linux runner's Dockerfile has no `ARG RUSTUP_VERSION=`"
+        );
+        assert_eq!(pinned(ACTION, "RUSTUP_VERSION:"), image);
+    }
+
+    /// Anywhere else install-action works in `~/.install-action`, which every runner on the Mac
+    /// shares (`.github/actions/install-tools`' comment).
+    #[test]
+    fn install_action_should_run_only_through_install_tools() {
+        let github = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.github");
+        let read = |dir: &str| std::fs::read_dir(github.join(dir)).unwrap().map(|e| e.unwrap().path());
+        let workflows = read("workflows").filter(|p| p.extension().is_some_and(|e| e == "yml" || e == "yaml"));
+        let actions = read("actions")
+            .filter(|p| !p.ends_with("install-tools"))
+            .map(|p| p.join("action.yml"));
+        let mut direct: Vec<String> = Vec::new();
+        for path in workflows.chain(actions) {
+            let text = std::fs::read_to_string(&path).unwrap();
+            for (i, line) in text.lines().enumerate() {
+                if !line.trim_start().starts_with('#') && line.contains("taiki-e/install-action") {
+                    let name = path.strip_prefix(&github).unwrap_or(&path).display();
+                    direct.push(format!(".github/{name}:{}", i + 1));
+                }
+            }
+        }
+        direct.sort();
+        assert_eq!(
+            direct,
+            Vec::<String>::new(),
+            "use ./.github/actions/install-tools instead"
         );
     }
 
