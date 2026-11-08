@@ -149,7 +149,7 @@ registry.register({
 });
 ```
 
-`registerReaderCommands` adds the reader's 39 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, just as it leaves out a command whose capability the platform never has.
+`registerReaderCommands` adds the reader's 39 commands. Those the reader and the viewer can do run in this package. The rest, such as find, print and the sidebar, are the shell's: it passes a handler for each in the context's `actions`. Until it does, every view leaves the command out, as it leaves out a command whose capability the platform never has.
 
 The shell gives `CommandsProvider` the registry and a `CommandContext`: the platform, the reader, the viewer, the page labels and its handlers. The provider also listens for shortcuts. Keys with Ctrl, Alt or ⌘ work anywhere; single keys such as Page Down or `+` work only while focus is in the canvas, and never in a text field. Views read the registry through two hooks and a component:
 
@@ -169,7 +169,9 @@ Two more parts cover special cases: a whole-file download and debugging. `WholeF
 
 ## Trying the chrome
 
-`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. Ctrl+K opens the command palette; the demo writes keys as on Windows and Linux, so a Mac uses Ctrl+K too. A browser test runs axe on the page in each of these states. A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
+`pnpm --filter @laminapdf/ui demo` serves `examples/ui-demo.html`: the whole chrome over a stand-in viewer, built with the React Compiler as an app would build it. Open any PDF. A name with "locked" asks for the password "lamina", "damaged" opens with repairs, and "broken" can't be opened. Ctrl+K opens the command palette; the demo writes keys as on Windows and Linux, so a Mac uses Ctrl+K too. A browser test runs axe on the page in each of these states.
+
+A Node test runs the compiler over every source file and fails on any function the compiler gives up on, unless that function opts out with `"use no memo"` and says why.
 
 ## Adding a component
 
