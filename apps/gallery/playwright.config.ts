@@ -5,7 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
 // (package.json's `config.playwrightImage`) through `cargo xtask gallery --test`, so screenshots
 // match on every machine. Screenshots are Chromium's only; axe runs in all three engines.
 // Snapshots are never written by a test run: only `cargo xtask gallery --update` passes
-// `--update-snapshots`. A default export because Playwright reads one.
+// `--update-snapshots`. Comparisons are exact (no pixel may differ, by any amount: Playwright's default
+// colour threshold would let a small token change through). A default export because Playwright reads one.
 export default defineConfig({
   testDir: "e2e",
   snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
@@ -19,7 +20,7 @@ export default defineConfig({
     ["html", { outputFolder: `${process.env.GALLERY_RESULTS ?? "test-results"}/report`, open: "never" }],
   ],
   expect: {
-    toHaveScreenshot: { maxDiffPixels: 0, animations: "disabled", caret: "hide", scale: "css" },
+    toHaveScreenshot: { maxDiffPixels: 0, threshold: 0, animations: "disabled", caret: "hide", scale: "css" },
   },
   use: {
     baseURL: "http://127.0.0.1:4174/",
