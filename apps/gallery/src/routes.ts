@@ -64,7 +64,7 @@ export const ROUTES: readonly Route[] = [
     id: "shell-regions",
     title: "Shell regions",
     components: [],
-    renders: ["ReaderShell", "LeftRail", "Inspector", "FocusModeItem"],
+    renders: ["ReaderShell", "LeftRail", "Inspector", "FocusModeItem", "PhoneBottomBar"],
   },
   {
     id: "dialogs",
@@ -73,7 +73,13 @@ export const ROUTES: readonly Route[] = [
     renders: ["Dialog", "PasswordDialog"],
     states: ["default", "form", "wide", "alert", "password"],
   },
-  { id: "sheets", title: "Sheets", components: [], renders: ["BottomSheet"], states: ["medium", "large", "non-modal"] },
+  {
+    id: "sheets",
+    title: "Sheets",
+    components: [],
+    renders: ["BottomSheet", "MoreSheet"],
+    states: ["medium", "large", "non-modal", "more"],
+  },
   {
     id: "menus",
     title: "Menus, popovers and tooltips",
