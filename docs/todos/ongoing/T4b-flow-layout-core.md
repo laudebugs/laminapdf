@@ -11,7 +11,7 @@
 | Branch | `feat/t4b-flow-layout-core` |
 | PR title | `feat(build): flowing layout with keep rules, running headers and footers, and page X of Y` |
 | Size | L (≈ 650–800 lines of code with unit tests; the example and goldens don't count) |
-| PR | — |
+| PR | [#333](https://github.com/laudebugs/laminapdf/pull/333) |
 
 ## Goal
 
