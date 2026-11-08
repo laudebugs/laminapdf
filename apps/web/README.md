@@ -34,14 +34,14 @@ Open a PDF with **Choose a file**, by dropping it anywhere in the window, or by 
 `wrangler.jsonc` serves `dist/` as static assets, answers unknown paths with the app, and has no `main` script. `public/_headers` sets [ADR 0011 §4](../../docs/decisions/0011-cloudflare-topology-and-privacy.md#4-security-headers-appswebpublic_headers-for-)'s headers on every response:
 
 - **A strict Content Security Policy.** Scripts, styles, fonts, workers and WebAssembly come only from the app's own origin, and nothing inline runs. `'wasm-unsafe-eval'` is the one exception, because compiling WebAssembly needs it. React Aria would add one inline style for pressable elements, so `src/main.tsx` claims that style's ID and `src/app.css` carries its rule instead.
-- **Caching.** Vite's files under `/assets/` have hashed names and are cached for a year. HTML keeps the static-assets default, `public, max-age=0, must-revalidate`, so a new release reaches you on the next load. No rule for every path sets `Cache-Control`, because Cloudflare joins a header set by two rules into one value.
+- **Caching.** Vite's files under `/assets/` have hashed names and are cached for a year. HTML keeps the static-assets default, `public, max-age=0, must-revalidate`, so a new release reaches you on the next load. No rule for every path sets `Cache-Control`: Cloudflare would join it with the assets rule's value into one comma-separated header.
 - **One address per page.** `/index.html` redirects to `/`, as Cloudflare's assets server does for every `index.html`.
 
 Deploys (a preview per pull request, staging and production) come with C4d.
 
 ## Tests
 
-`e2e/` runs the app in a real browser against `wrangler dev`, the way production serves it. It checks the headers, the build's lack of inline code, and opening a local file with the file input, a drop, a paste and `showOpenFilePicker` (Chromium), a repaired file and a file that isn't a PDF. During every one of those, it checks that no CSP violation occurs and that nothing is requested from another origin.
+`e2e/` runs the app in a real browser against `wrangler dev`, the way production serves it. It first checks the headers and that the build has no inline code. It then opens a local file four ways: the file input, a drop, a paste and `showOpenFilePicker` (Chromium only). It also opens a repaired file and refuses a file that isn't a PDF. Throughout, it fails on any CSP violation and on any request to another origin.
 
 ```sh
 pnpm --filter @laminapdf/web build
