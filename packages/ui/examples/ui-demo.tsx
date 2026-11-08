@@ -1,12 +1,16 @@
 // The reader chrome on one page, over a stand-in viewer and opener, for trying it by hand
 // (`pnpm --filter @laminapdf/ui demo`) and for the axe check in the browser tests. Open any PDF;
 // a name with "locked" asks for the password "lamina", "damaged" opens with repairs and "broken"
-// can't be opened. `#debug` shows the debug menu.
+// can't be opened. Ctrl+K (⌘K) or Commands opens the palette: try "go to 12" or "zoom 150".
+// `#debug` shows the debug menu.
 
 import "../src/styles/index.css";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  type CommandContext,
+  CommandRegistry,
+  CommandsProvider,
   createWebPlatform,
   type DebugBackend,
   DebugMenu,
@@ -20,7 +24,9 @@ import {
   ReaderController,
   ReaderShell,
   ReaderTopBar,
+  RegistryPalette,
   RepairDetails,
+  registerReaderCommands,
   useGatedEntries,
   useReaderState,
   type ViewerControls,
@@ -57,62 +63,115 @@ async function demoOpener(file: { name: string }, password: string | undefined):
 
 type MoreId = "open" | "rotate" | "save";
 
+/** The registry with the reader's commands, and the context they run in for this demo. */
+function useDemoCommands(
+  platform: Platform,
+  reader: ReaderController,
+  viewer: DemoViewer,
+  shell: { toggleSidebar: () => void; openPalette: () => void },
+): { registry: CommandRegistry; context: CommandContext } {
+  const [registry] = useState(() => {
+    const commands = new CommandRegistry();
+    registerReaderCommands(commands);
+    return commands;
+  });
+  const context = useMemo<CommandContext>(
+    () => ({
+      platform,
+      reader,
+      viewer,
+      actions: {
+        "view.toggle-sidebar": shell.toggleSidebar,
+        "palette.open": shell.openPalette,
+        "file.properties": () => undefined,
+      },
+    }),
+    [platform, reader, viewer, shell.toggleSidebar, shell.openPalette],
+  );
+  return { registry, context };
+}
+
 /** The chrome over `platform`: the reader's shell, its prompt and its pages. */
 export function Demo({ platform, debug = false }: { platform: Platform; debug?: boolean }): ReactNode {
   const [reader] = useState(() => new ReaderController(platform, demoOpener));
   const [viewer] = useState(() => new DemoViewer());
   const [sidebar, setSidebar] = useState(true);
-  const [repairsOpen, setRepairsOpen] = useState(true);
-  const [backend, setBackend] = useState<DebugBackend>("pdfium");
+  const [palette, setPalette] = useState(false);
+  const [shell] = useState(() => ({
+    toggleSidebar: () => setSidebar((open) => !open),
+    openPalette: () => setPalette(true),
+  }));
+  const { registry, context } = useDemoCommands(platform, reader, viewer, shell);
   const state = useReaderState(reader);
+  return (
+    <CommandsProvider registry={registry} context={context} keys="other">
+      <ReaderShell
+        topBar={<DemoTopBar reader={reader} viewer={viewer} sidebar={sidebar} debug={debug} />}
+        {...(state.phase === "open" && sidebar ? { rail: <nav aria-label="Pages">Pages</nav> } : {})}
+        {...demoInspector(
+          platform,
+          state.phase === "open" && state.file.name.includes("damaged") ? state.file.name : undefined,
+        )}
+        status={<NetworkIndicator count="0 network requests for this document" explanation="· Offline-safe" />}
+      >
+        {state.phase === "empty" ? (
+          <OpenDropZone reader={reader} keys="other">
+            <p>Lamina PDF reads PDFs inside this browser tab and has no upload server.</p>
+          </OpenDropZone>
+        ) : null}
+        {state.phase === "error" ? (
+          <OpenFailure error={state.error} onTryAnother={() => reader.close()} onCopy={() => undefined} />
+        ) : null}
+        <PasswordDialog reader={reader} />
+      </ReaderShell>
+      <RegistryPalette isOpen={palette} onOpenChange={setPalette} />
+    </CommandsProvider>
+  );
+}
+
+/** The top bar, with the demo's More menu and, for `#debug`, the debug menu. */
+function DemoTopBar(props: {
+  reader: ReaderController;
+  viewer: DemoViewer;
+  sidebar: boolean;
+  debug: boolean;
+}): ReactNode {
+  const [backend, setBackend] = useState<DebugBackend>("pdfium");
   const more = useGatedEntries<MoreId>([
     { id: "open", label: "Open another file…" },
     { id: "rotate", label: "Rotate clockwise", icon: "rotate-right" },
     { id: "save", label: "Save a copy…", icon: "download", needs: "canSaveAsDialog" },
   ]);
-  const damaged = state.phase === "open" && state.file.name.includes("damaged");
   return (
-    <ReaderShell
-      topBar={
-        <ReaderTopBar
-          reader={reader}
-          viewer={viewer}
-          keys="other"
-          sidebar={{ isOpen: sidebar, onChange: setSidebar }}
-          home={<span className="demo-wordmark">lamina</span>}
-          debug={debug ? <DebugMenu backend={backend} onBackendChange={setBackend} keys="other" /> : undefined}
-          more={{
-            items: more,
-            onAction: (id) => (id === "open" ? reader.close() : id === "rotate" && viewer.rotate()),
-          }}
-        />
-      }
-      {...(state.phase === "open" && sidebar ? { rail: <nav aria-label="Pages">Pages</nav> } : {})}
-      {...(damaged && repairsOpen
-        ? {
-            inspector: (
-              <RepairDetails
-                fileName={state.file.name}
-                repairs={[{ code: "xref-repaired" }, { code: "stream-length-recovered", pages: [3, 4, 9] }]}
-                onClose={() => setRepairsOpen(false)}
-                onCopy={() => void platform.copyText("xref-repaired, stream-length-recovered")}
-              />
-            ),
-          }
-        : {})}
-      status={<NetworkIndicator count="0 network requests for this document" explanation="· Offline-safe" />}
-    >
-      {state.phase === "empty" ? (
-        <OpenDropZone reader={reader} keys="other">
-          <p>Lamina PDF reads PDFs inside this browser tab and has no upload server.</p>
-        </OpenDropZone>
-      ) : null}
-      {state.phase === "error" ? (
-        <OpenFailure error={state.error} onTryAnother={() => reader.close()} onCopy={() => undefined} />
-      ) : null}
-      <PasswordDialog reader={reader} />
-    </ReaderShell>
+    <ReaderTopBar
+      reader={props.reader}
+      viewer={props.viewer}
+      keys="other"
+      sidebarOpen={props.sidebar}
+      home={<span className="demo-wordmark">lamina</span>}
+      debug={props.debug ? <DebugMenu backend={backend} onBackendChange={setBackend} keys="other" /> : undefined}
+      more={{
+        items: more,
+        onAction: (id) => (id === "open" ? props.reader.close() : id === "rotate" && props.viewer.rotate()),
+      }}
+    />
   );
+}
+
+/** The repair details beside a damaged file, until closed. */
+function demoInspector(platform: Platform, damaged: string | undefined): { inspector?: ReactNode } {
+  return damaged === undefined
+    ? {}
+    : {
+        inspector: (
+          <RepairDetails
+            fileName={damaged}
+            repairs={[{ code: "xref-repaired" }, { code: "stream-length-recovered", pages: [3, 4, 9] }]}
+            onClose={() => undefined}
+            onCopy={() => void platform.copyText("xref-repaired, stream-length-recovered")}
+          />
+        ),
+      };
 }
 
 const root = document.getElementById("demo");

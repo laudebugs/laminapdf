@@ -74,8 +74,10 @@ export interface CommandPaletteProps {
   platform: KeyPlatform;
   /** Shown when no row matches: an `EmptyState`. */
   empty?: ReactNode;
-  /** A page that replaces the list, for a command that needs arguments. */
+  /** A page that replaces the list, for a command that needs arguments; the input then takes them. */
   page?: ReactNode;
+  /** Called on Enter in the input while `page` shows: the arguments are typed, run the command. */
+  onPageSubmit?: () => void;
   /** The hints along the bottom: "↑↓ to move · Enter to run". */
   footer?: ReactNode;
 }
@@ -99,6 +101,11 @@ export function CommandPalette(props: CommandPaletteProps): ReactNode {
                   placeholder={placeholder}
                   role="combobox"
                   aria-expanded={props.page === undefined}
+                  onKeyDown={(event) => {
+                    if (props.page === undefined || event.key !== "Enter") return;
+                    event.preventDefault();
+                    props.onPageSubmit?.();
+                  }}
                 />
                 <ShortcutChip keys={ESCAPE} platform={platform} />
               </TextField>
