@@ -21,7 +21,7 @@ const narrow = `${prefix}-narrow`;
   <Box x={0} y={112} w={100} h={60} label="Your PDF" sub="bytes" />
   <Arrow d="M100 142 H116" prefix={wide} head={false} />
   <Arrow d="M116 142 V78 H136" prefix={wide} />
-  <Arrow d="M116 142 V218 H136" prefix={wide} focus />
+  <Arrow d="M116 142 V218 H136" prefix={wide} tone="focus" />
 
   <Lane x={124} y={16} w={596} h={120} title="Drawing" />
   <Box x={140} y={50} w={204} h={56} label="Render request" sub="page, scale, clip, rotation" />
@@ -34,7 +34,7 @@ const narrow = `${prefix}-narrow`;
 
   <Lane x={124} y={156} w={596} h={120} title="Reading" />
   <Box x={140} y={190} w={196} h={56} label="Lamina PDF" sub="its own model" focus />
-  <Arrow d="M336 218 H352" prefix={wide} focus />
+  <Arrow d="M336 218 H352" prefix={wide} tone="focus" />
   <Box x={356} y={190} w={196} h={56} label="Text and links" sub="selection and search" fresh />
 </Svg>
 
@@ -43,7 +43,7 @@ const narrow = `${prefix}-narrow`;
   <Box x={60} y={0} w={200} h={44} label="Your PDF bytes" />
   <Arrow d="M160 44 V60" prefix={narrow} head={false} />
   <Arrow d="M160 60 H78 V84" prefix={narrow} />
-  <Arrow d="M160 60 H242 V84" prefix={narrow} focus />
+  <Arrow d="M160 60 H242 V84" prefix={narrow} tone="focus" />
 
   <Lane x={0} y={88} w={156} h={334} title="Drawing" />
   <Box x={8} y={124} w={140} h={76} label="Render request" sub="page, scale," sub2="clip, rotation" />
@@ -56,6 +56,6 @@ const narrow = `${prefix}-narrow`;
 
   <Lane x={164} y={88} w={156} h={172} title="Reading" />
   <Box x={172} y={124} w={140} h={52} label="Lamina PDF" sub="its own model" focus />
-  <Arrow d="M242 176 V190" prefix={narrow} focus />
+  <Arrow d="M242 176 V190" prefix={narrow} tone="focus" />
   <Box x={172} y={194} w={140} h={52} label="Text and links" sub="selection, search" fresh />
 </Svg>

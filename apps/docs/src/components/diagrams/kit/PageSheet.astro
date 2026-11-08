@@ -1,0 +1,17 @@
+---
+// A page as a viewer shows it: the page's paper with a 1 px edge, and whatever the slot draws on it
+// in the page's ink. The paper and ink are the page-appearance tokens, not the theme's, so the sheet
+// stays a white page in the dark theme too, as it does in the reader.
+interface Props {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+const { x, y, w, h } = Astro.props;
+---
+
+<g class="dg-page">
+  <rect class="dg-sheet" x={x} y={y} width={w} height={h}></rect>
+  <slot />
+</g>

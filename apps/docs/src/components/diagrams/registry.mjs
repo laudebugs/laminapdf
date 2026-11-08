@@ -32,6 +32,17 @@ export const DIAGRAMS = {
       "`doc.ensure` catches the error, fetches those ranges through the source (`httpRangeSource`), supplies them to the document and runs the read again. " +
       "Once the bytes are there, the read returns its result.",
   },
+  "page-space": {
+    caption:
+      "Page space starts at the top-left corner you see; PDF's user space starts at the bottom-left, before rotation.",
+    text:
+      "On an upright US Letter page, 612 by 792 points, page space starts at the top-left corner with y going down, and PDF's user space starts at the bottom-left corner with y going up. " +
+      "The point `[72, 96]` is one inch from the left edge and 96 points from the top, on the baseline of a heading whose box runs from `[72, 72]` to `[272, 100]`. " +
+      "With `/Rotate 90` a viewer shows the same page on its side, 792 by 612 points. " +
+      "Page space still starts at the top-left corner you see, so `[72, 96]` lands in the same place on the screen. " +
+      "User space starts at that corner too, with its x axis going down and its y axis going right. " +
+      "The heading in the file now runs down the right edge, from `[692, 72]` to `[720, 272]` in page space.",
+  },
 };
 
 /**
