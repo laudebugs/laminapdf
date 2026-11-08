@@ -72,6 +72,7 @@ export function sidebar(typeDoc) {
         { label: "An invoice", slug: "recipes/invoice" },
         { label: "Multilingual text", slug: "recipes/multilingual" },
         { label: "Images and vectors", slug: "recipes/images-and-vectors" },
+        { label: "Element flow", slug: "recipes/element-flow" },
         { label: "Links and outlines", slug: "recipes/links-and-outlines" },
         { label: "Generate, then edit", slug: "recipes/generate-then-edit" },
         { label: "Extract text for an LLM", slug: "recipes/extract-markdown" },

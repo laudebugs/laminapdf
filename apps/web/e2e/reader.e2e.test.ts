@@ -9,13 +9,13 @@ import { env } from "node:process";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
 import { type Browser, type BrowserType, chromium, firefox, type Page, webkit } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { getLocal } from "./local-tls.ts";
 import {
   ASSET_CACHE,
   bytes,
   chooseFile,
   clean,
   expectHeaders,
-  get,
   HTML_CACHE,
   type InitScript,
   load as loadPage,
@@ -34,6 +34,11 @@ function asset(pattern: RegExp): string {
   const name = readdirSync(new URL("dist/assets/", APP)).find((file) => pattern.test(file));
   if (name === undefined) throw new Error(`dist/assets/ has no file matching ${pattern}`);
   return `/assets/${name}`;
+}
+
+/** `GET path` from the local server, which has a self-signed certificate (local-tls.ts), without following redirects. */
+function get(server: string, path: string): Promise<Response> {
+  return getLocal(new URL(path, server));
 }
 
 describe("what the server sends", () => {
@@ -89,8 +94,9 @@ describe(`opening local files in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  /** Opens the app at `path` in this run's browser, after `init`. */
-  const load = (path = "/", init?: InitScript): Promise<Watched> => loadPage(browser, origin, path, init);
+  /** Opens the app at `path` in this run's browser, after `init`. The server's certificate is self-signed (local-tls.ts). */
+  const load = (path = "/", init?: InitScript): Promise<Watched> =>
+    loadPage(browser, origin, path, init, { ignoreHTTPSErrors: true });
 
   /** Dispatches `type` on the window carrying a transfer that holds `name` with `data`. */
   async function transfer(page: Page, type: "drop" | "paste", name: string, data: number[], mime: string) {

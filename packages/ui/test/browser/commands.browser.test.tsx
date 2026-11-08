@@ -88,8 +88,13 @@ const INLINE: Partial<Record<CommandId, string>> = {
   "view.accent": "Accent colour plum",
 };
 
+/** Thirty-seven search-and-run cycles in one test: about 17 s in Firefox on a busy runner. */
+const EVERY_COMMAND_MS = 60_000;
+
 describe("RegistryPalette", () => {
-  it("runs every registered command the toolbar and menus can reach, each from its first row", async () => {
+  it("runs every registered command the toolbar and menus can reach, each from its first row", {
+    timeout: EVERY_COMMAND_MS,
+  }, async () => {
     const { app, registry, viewer, reader, calls } = setup();
     renderIn(app);
     const ran: string[] = [];

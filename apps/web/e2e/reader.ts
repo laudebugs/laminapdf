@@ -52,9 +52,19 @@ export interface InitScript {
   readonly arg: number[];
 }
 
-/** Opens the app at `path` on `origin` in a new page of `browser`, after `init`, until its home screen shows. */
-export async function load(browser: Browser, origin: string, path = "/", init?: InitScript): Promise<Watched> {
-  const page = await browser.newPage();
+/**
+ * Opens the app at `path` on `origin` in a new page of `browser`, after `init`, until its home
+ * screen shows. `options` are the page's: the e2e suite's local server needs `ignoreHTTPSErrors`
+ * for its self-signed certificate, while a deployed reader's certificate is checked.
+ */
+export async function load(
+  browser: Browser,
+  origin: string,
+  path = "/",
+  init?: InitScript,
+  options: { ignoreHTTPSErrors?: boolean } = {},
+): Promise<Watched> {
+  const page = await browser.newPage(options);
   const foreign: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
