@@ -155,6 +155,15 @@ pub enum Paint {
     Discarded,
 }
 
+impl Paint {
+    /// Whether anything is painted: a stroke, a fill or both, not [`Paint::None`] or
+    /// [`Paint::Discarded`].
+    #[must_use]
+    pub const fn draws(self) -> bool {
+        matches!(self, Self::Stroke { .. } | Self::Fill(_) | Self::FillStroke { .. })
+    }
+}
+
 /// A path-painting operator.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]

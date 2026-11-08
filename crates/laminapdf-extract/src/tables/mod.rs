@@ -8,7 +8,7 @@ mod stream;
 
 use laminapdf_model::RectPt;
 
-pub(crate) use edges::{Collector, Edges};
+pub(crate) use edges::{AXIS_TOLERANCE, Edges};
 
 use crate::lines::{SPACE, mostly_rtl};
 use crate::model::{Cell, TableDetector};

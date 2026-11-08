@@ -14,7 +14,8 @@ pub use runs::{PageTextRun, is_right_to_left};
 use std::sync::Arc;
 
 use laminapdf_content::{
-    ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, TextAdvance, TextItem, TextShow, Visitor,
+    FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, TextAdvance, TextItem,
+    TextShow, Visitor,
 };
 use laminapdf_cos::{Error, Result, Warning, absent_if_malformed};
 use laminapdf_model::{PageFrame, PointPt, RectPt, UserSpacePoint};
@@ -79,6 +80,11 @@ pub struct Glyph {
     /// mode, §9.3.6). `None` for invisible text, a pattern or a colour space read no other way
     /// (for text both filled and stroked, when either colour is one).
     pub color: Option<[f64; 3]>,
+    /// How many paints the content made before this glyph, Form XObjects included: the
+    /// `paint_path` calls whose [`Paint::draws`](laminapdf_content::Paint::draws) is true and
+    /// the `image` and `paint_shading` calls. Anything painted with a higher count was drawn
+    /// over it.
+    pub paints_before: u32,
 }
 
 /// The text a page shows, in content order.
@@ -198,9 +204,13 @@ impl TextExtractor {
 
     /// [`TextExtractor::page`], also passing the page's painting events
     /// ([`Visitor::path_segment`], [`Visitor::paint_path`], [`Visitor::image`],
-    /// [`Visitor::paint_shading`]) to `paths` in the same walk of the content, so a caller that
-    /// needs the page's lines (table rules) or what is painted under its text doesn't interpret
-    /// the page twice.
+    /// [`Visitor::paint_shading`]), its marked content ([`Visitor::begin_marked`],
+    /// [`Visitor::end_marked`]) and its forms ([`Visitor::enter_xobject`],
+    /// [`Visitor::leave_xobject`]) to `paths` in the same walk of the content, each after the
+    /// extractor's own handling, so a caller that needs the page's lines (table rules) or what
+    /// is painted over or under its text doesn't interpret the page twice. The result equals
+    /// [`TextExtractor::page`]'s: [`Glyph::paints_before`] counts the paints either way, so a
+    /// caller counting the same three calls can order its paints against the glyphs.
     ///
     /// # Errors
     /// As [`TextExtractor::page`].
@@ -229,9 +239,12 @@ impl TextExtractor {
             marked: Vec::new(),
             unmapped: 0,
             error: None,
+            paints: 0,
             paths,
         };
-        laminapdf_content::interpret_page(doc, page, &mut collector)?;
+        // As a trait object, so this and extraction's annotation appearances share one copy of
+        // the interpreter in WebAssembly (each visitor type would build its own).
+        laminapdf_content::interpret_page(doc, page, &mut collector as &mut dyn Visitor)?;
         if let Some(error) = collector.error {
             return Err(error);
         }
@@ -301,6 +314,8 @@ struct Collector<'a, 'p> {
     /// The first error met inside a visitor call (which can't return one); the walk goes on
     /// and [`TextExtractor::page`] returns it.
     error: Option<Error>,
+    /// How many paints came so far ([`Glyph::paints_before`]).
+    paints: u32,
     /// Where path events go besides ([`TextExtractor::page_with`]).
     paths: Option<&'p mut dyn Visitor>,
 }
@@ -391,6 +406,7 @@ impl Collector<'_, '_> {
                             artifact,
                             clip,
                             color,
+                            paints_before: self.paints,
                         });
                         step(advance, &mut tm, &mut total);
                     }
@@ -436,18 +452,23 @@ impl Visitor for Collector<'_, '_> {
     }
 
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
+        if paint.paint.draws() {
+            self.paints = self.paints.saturating_add(1);
+        }
         if let Some(paths) = self.paths.as_deref_mut() {
             paths.paint_path(paint);
         }
     }
 
     fn image(&mut self, image: &ImageDraw<'_>) {
+        self.paints = self.paints.saturating_add(1);
         if let Some(paths) = self.paths.as_deref_mut() {
             paths.image(image);
         }
     }
 
     fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
+        self.paints = self.paints.saturating_add(1);
         if let Some(paths) = self.paths.as_deref_mut() {
             paths.paint_shading(shading);
         }
@@ -480,9 +501,27 @@ impl Visitor for Collector<'_, '_> {
             actual_text,
             artifact: marked.tag.as_bytes() == b"Artifact",
         });
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.begin_marked(marked);
+        }
     }
 
     fn end_marked(&mut self) {
         self.marked.pop();
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.end_marked();
+        }
+    }
+
+    fn enter_xobject(&mut self, form: &FormXObject<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.enter_xobject(form);
+        }
+    }
+
+    fn leave_xobject(&mut self, form: &FormXObject<'_>) {
+        if let Some(paths) = self.paths.as_deref_mut() {
+            paths.leave_xobject(form);
+        }
     }
 }

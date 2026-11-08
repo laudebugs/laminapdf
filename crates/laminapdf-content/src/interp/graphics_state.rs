@@ -2,7 +2,7 @@
 //! `M`, `ri`, `i` and `cm`) are one-line arms in [`Interpreter::execute`].
 
 use laminapdf_cos::{Error, Limit, Object, Result, Warning};
-use laminapdf_model::Dash;
+use laminapdf_model::{BlendMode, Dash};
 
 use super::{Frame, Interpreter, in_content, integer, name, number, offset_u64};
 use crate::lexer::Op;
@@ -12,6 +12,20 @@ use crate::visitor::{GraphicsStateParams, Visitor};
 
 fn dash(array: &[Object], phase: f64) -> Dash {
     Dash::new(array.iter().filter_map(Object::as_f64).collect(), phase)
+}
+
+/// `/BM`: a name, or an array whose first name §11.3.5 defines wins; anything else is
+/// `Normal`.
+fn blend_mode(value: &Object) -> BlendMode {
+    let known = |o: &Object| match o {
+        Object::Name(n) => BlendMode::from_pdf_name(n.as_bytes()),
+        _ => None,
+    };
+    match value {
+        Object::Array(modes) => modes.iter().find_map(known),
+        other => known(other),
+    }
+    .unwrap_or_default()
 }
 
 /// `d`: the dash array and phase.
@@ -47,7 +61,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
     }
 
     /// `gs`: the `ExtGState` subset of ADR 0023 (line style, rendering intent, flatness,
-    /// opacity, font); entries may be indirect.
+    /// opacity, blend mode, whether a soft mask is set, font); entries may be indirect.
     pub(super) fn ext_gstate(&mut self, frame: &mut Frame, op: &Op<'_>, args: &[Object]) -> Result<()> {
         let Some(n) = args.first().and_then(name) else {
             return Ok(());
@@ -69,6 +83,8 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
                 (b"FL", v) if v.as_f64().is_some() => gs.flatness = number(v),
                 (b"CA", v) if v.as_f64().is_some() => gs.stroke_alpha = number(v),
                 (b"ca", v) if v.as_f64().is_some() => gs.fill_alpha = number(v),
+                (b"BM", v) => gs.blend_mode = blend_mode(v),
+                (b"SMask", v) => gs.soft_mask = !matches!(v, Object::Name(n) if n.as_bytes() == b"None"),
                 (b"RI", Object::Name(intent)) => gs.rendering_intent = Some(intent.clone()),
                 (b"D", Object::Array(d)) => set_dash(gs, d.as_slice()),
                 (b"Font", Object::Array(font)) => {
