@@ -13,20 +13,26 @@
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "typecheck": "ASTRO_TELEMETRY_DISABLED=1 LAMINA_PDF_DOCS_TYPEDOC=0 astro sync && tsc --noEmit",
-    "test": "node --test plugins/*.test.mjs scripts/*.test.mjs",
-    "check:api-docs": "node scripts/check-api-docs.mjs"
+    "test": "node --test plugins/*.test.mjs scripts/*.test.mjs test/*.test.mjs",
+    "check:api-docs": "node scripts/check-api-docs.mjs",
+    "test:browser": "vitest run -c vitest.browser.config.ts"
   },
   "devDependencies": {
     "@astrojs/starlight": "0.42.7",
     "@laminapdf/fonts": "workspace:*",
     "@laminapdf/site-kit": "workspace:*",
+    "@laminapdf/test-utils": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "astro": "7.4.2",
     "starlight-links-validator": "0.27.0",
     "starlight-typedoc": "0.23.1",
     "typedoc": "0.28.20",
     "typedoc-plugin-markdown": "4.14.1",
     "typescript": "catalog:typedoc",
+    "vite": "catalog:",
+    "vitest": "catalog:",
     "wrangler": "catalog:"
   }
 }

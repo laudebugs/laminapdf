@@ -96,7 +96,12 @@ export default defineConfig({
       },
       // The Paper design language (docs/design/paper/design-language.md): its tokens, its fonts,
       // then Starlight's colours and fonts mapped onto them.
-      customCss: ["@laminapdf/tokens/tokens.css", "@laminapdf/fonts/fonts.css", "./src/styles/paper.css"],
+      customCss: [
+        "@laminapdf/tokens/tokens.css",
+        "@laminapdf/fonts/fonts.css",
+        "./src/styles/paper.css",
+        "./src/styles/diagrams.css",
+      ],
       plugins: [
         starlightLinksValidator({
           errorOnLocalLinks: true,

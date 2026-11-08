@@ -1,16 +1,33 @@
 // The site's pages as plain Markdown, for agents (todo L5a): every page's MDX source with its
 // components replaced by what they show. `<Snippet file>` becomes a fenced block holding the
-// example file, so a twin needs nothing else to be read; `<Tabs>` become a bold label per tab;
+// example file, so a twin needs nothing else to be read; `<Diagram name>` becomes its caption and
+// text description; `<Tabs>` become a bold label per tab;
 // Starlight asides (`:::note[Title]`) become block quotes; links to the site's pages point at
 // their Markdown twins. Pure functions over strings, tested by markdown.test.mjs.
 
 import { withVersion } from "@laminapdf/site-kit/version";
+import { diagramText } from "../src/components/diagrams/registry.mjs";
 
 /** The fence language of a file the docs show, by extension. */
 const LANGUAGES = { ts: "ts", rs: "rust", toml: "toml", json: "json", md: "md" };
 
 /** A `<Snippet … file="…" … />`, whatever its attributes' order; group 1 is the file. */
 export const SNIPPET = /<Snippet\b[^>]*?\bfile="([^"]+)"[^>]*\/>/g;
+
+/** A `<Diagram name="…" />`; group 1 is the name (src/components/diagrams/registry.mjs). */
+export const DIAGRAM = /<Diagram\s+name="([a-z0-9-]+)"\s*\/>/g;
+
+/**
+ * A diagram as its twin shows it: the caption in italics, then the text description, which says
+ * all the picture says. An unknown name throws, as the page's build does.
+ *
+ * @param {string} name
+ * @returns {string}
+ */
+export function diagramMarkdown(name) {
+  const { caption, text } = diagramText(name);
+  return `*${caption}*\n\n${text}`;
+}
 
 /**
  * Splits a page into its front matter (simple `key: value` lines, quotes removed) and body.
@@ -141,6 +158,7 @@ export function mdxToMarkdown(body, components) {
     part
       .replace(/^import\s.+?;?\s*$/gm, "")
       .replace(SNIPPET, (_, file) => codeBlock(file, components.snippet(file)))
+      .replace(DIAGRAM, (_, name) => diagramMarkdown(name))
       .replace(/<CodeTable\s*\/>/g, () => components.codeTable())
       .replace(/<Changelog\s*\/>/g, () => components.changelog())
       .replace(/<Benchmarks\s+section="([a-z-]+)"\s*\/>/g, (_, section) => {

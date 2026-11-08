@@ -1,0 +1,72 @@
+---
+// "Open, edit, save" (concepts/how-lamina-thinks): the original bytes and the overlay inside a
+// document, the calls that write the overlay, and a save's two results. The overlay is the one
+// element in focus. Caption and text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import Box from "./kit/Box.astro";
+import Label from "./kit/Label.astro";
+import Lane from "./kit/Lane.astro";
+import Markers from "./kit/Markers.astro";
+import Svg from "./kit/Svg.astro";
+
+interface Props {
+  prefix: string;
+  labelledby: string;
+  describedby: string;
+}
+const { prefix, labelledby, describedby } = Astro.props;
+const wide = `${prefix}-wide`;
+const narrow = `${prefix}-narrow`;
+---
+
+<Svg viewBox="0 0 720 332" layout="wide" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={wide} />
+  <Box x={0} y={118} w={120} h={60} label="Your PDF" sub="bytes" />
+  <Arrow d="M120 148 H174" prefix={wide} />
+  <Label x={147} y={138} text="open" kind="mono" anchor="middle" />
+
+  <Lane x={180} y={30} w={250} h={232} title="DOCUMENT" />
+  <Box x={196} y={68} w={218} h={62} label="Original bytes" sub="never change" />
+  <Box x={196} y={156} w={218} h={62} label="Overlay" sub="your edits" focus />
+  <Arrow d="M305 300 V224" prefix={wide} focus />
+  <Label x={305} y={324} text="doc.transact · undo · redo" kind="mono" anchor="middle" />
+
+  <Arrow d="M430 148 H472" prefix={wide} head={false} />
+  <Label x={453} y={138} text="save" kind="mono" anchor="middle" />
+  <Arrow d="M472 148 V89 H498" prefix={wide} />
+  <Arrow d="M472 148 V207 H498" prefix={wide} />
+
+  <Label x={502} y={58} text="incremental" kind="mono" />
+  <Box x={502} y={68} w={126} h={42} label="Original bytes" />
+  <Box x={628} y={68} w={90} h={42} label="+ edits" fresh />
+  <Label x={502} y={132} text="signatures stay valid" kind="sub" />
+
+  <Label x={502} y={176} text="fullRewrite" kind="mono" />
+  <Box x={502} y={186} w={216} h={42} label="A new file" fresh />
+  <Label x={502} y={250} text="every byte rewritten" kind="sub" />
+</Svg>
+
+<Svg viewBox="0 0 320 548" layout="narrow" labelledby={labelledby} describedby={describedby}>
+  <Markers prefix={narrow} />
+  <Box x={60} y={0} w={200} h={44} label="Your PDF bytes" />
+  <Arrow d="M160 44 V84" prefix={narrow} />
+  <Label x={172} y={70} text="open" kind="mono" />
+
+  <Lane x={0} y={88} w={320} h={214} title="DOCUMENT" />
+  <Box x={14} y={124} w={292} h={56} label="Original bytes" sub="never change" />
+  <Box x={14} y={192} w={292} h={56} label="Overlay" sub="your edits" focus />
+  <Arrow d="M160 268 V254" prefix={narrow} focus />
+  <Label x={160} y={288} text="doc.transact · undo · redo" kind="mono" anchor="middle" />
+
+  <Arrow d="M160 302 V340" prefix={narrow} />
+  <Label x={172} y={326} text="save" kind="mono" />
+
+  <Label x={0} y={364} text="incremental" kind="mono" />
+  <Box x={0} y={374} w={200} h={42} label="Original bytes" />
+  <Box x={200} y={374} w={120} h={42} label="+ edits" fresh />
+  <Label x={0} y={436} text="signatures stay valid" kind="sub" />
+
+  <Label x={0} y={470} text="fullRewrite" kind="mono" />
+  <Box x={0} y={480} w={320} h={42} label="A new file" fresh />
+  <Label x={0} y={540} text="every byte rewritten" kind="sub" />
+</Svg>

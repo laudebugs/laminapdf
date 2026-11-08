@@ -1,0 +1,123 @@
+/*
+ * The docs' diagrams (src/components/Diagram.astro and diagrams/): every colour is a --paper-*
+ * token, so a diagram follows the theme switch, the system setting and forced colours with no rule
+ * of its own (the tokens map to system colours there). The rules sit under .dg because the
+ * tokens' own rules are wrapped in :where() and lose to any other selector. Never write a colour
+ * here as hex, rgb() or a name: apps/docs/test/diagrams.test.mjs fails on one.
+ *
+ * Sizes are in the drawing's units. A wide drawing is 720 wide and shown in columns of 40rem and
+ * more, so it never scales below 0.88; its smallest text, 14, stays above 12 px. A narrow drawing
+ * is 320 wide and shown below that, at most 26rem wide.
+ */
+
+.dg {
+  container-type: inline-size;
+  margin-block: 1.5rem;
+}
+
+.dg .dg-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.dg .dg-narrow {
+  display: none;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+@container (max-width: 40rem) {
+  .dg .dg-wide {
+    display: none;
+  }
+
+  .dg .dg-narrow {
+    display: block;
+  }
+}
+
+.dg figcaption {
+  margin-top: 0.75rem;
+  color: var(--paper-muted);
+  font-size: var(--sl-text-sm);
+}
+
+/* Text. */
+.dg text {
+  font-family: var(--paper-font-sans);
+  font-size: 15px;
+  fill: var(--paper-text);
+}
+
+.dg .dg-mono {
+  font-family: var(--paper-font-mono);
+  font-size: 14px;
+}
+
+.dg .dg-sub {
+  font-size: 14px;
+  fill: var(--paper-muted);
+}
+
+/* muted is under 4.5:1 on the accent's tint in the dark theme. */
+.dg .dg-sub-tint {
+  fill: var(--paper-text-2);
+}
+
+.dg .dg-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  fill: var(--paper-text-2);
+}
+
+.dg .dg-focus-label {
+  font-weight: 600;
+  fill: var(--paper-accent-strong);
+}
+
+/* Shapes. */
+.dg .dg-box {
+  fill: var(--paper-surface);
+  stroke: var(--paper-control-border);
+  stroke-width: 1;
+}
+
+.dg .dg-focus {
+  fill: var(--paper-accent-tint);
+  stroke: var(--paper-accent);
+  stroke-width: 2;
+}
+
+.dg .dg-fresh {
+  fill: var(--paper-accent-tint);
+  stroke: var(--paper-accent);
+  stroke-width: 1.5;
+}
+
+.dg .dg-lane {
+  fill: none;
+  stroke: var(--paper-control-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.dg .dg-arrow {
+  fill: none;
+  stroke: var(--paper-text-2);
+  stroke-width: 1.5;
+}
+
+.dg .dg-arrow-focus {
+  stroke: var(--paper-accent);
+}
+
+.dg .dg-head {
+  fill: var(--paper-text-2);
+}
+
+.dg .dg-head-focus {
+  fill: var(--paper-accent);
+}

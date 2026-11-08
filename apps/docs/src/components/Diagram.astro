@@ -1,0 +1,28 @@
+---
+// A diagram on a page: `<Diagram name="open-edit-save" />`. The name finds the caption and the text
+// description in diagrams/registry.mjs and the drawing in diagrams/ (OpenEditSave.astro). The
+// drawing is inline SVG coloured only by the --paper-* tokens (styles/diagrams.css), so it follows
+// the light and dark themes and forced colours. The SVG is an image named by the caption and
+// described by the text, a hidden paragraph that screen readers read once, through aria-describedby; the
+// page's Markdown twin gets the caption and the text instead of the picture (plugins/markdown.mjs).
+import { diagramText, drawingFile } from "./diagrams/registry.mjs";
+
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+const { caption, text } = diagramText(name);
+const drawings = import.meta.glob<{ default: (props: Record<string, string>) => unknown }>("./diagrams/*.astro", {
+  eager: true,
+});
+const Drawing = drawings[`./diagrams/${drawingFile(name)}`]?.default;
+if (Drawing === undefined)
+  throw new Error(`diagram "${name}" has no drawing: add src/components/diagrams/${drawingFile(name)}`);
+const id = `dg-${name}`;
+---
+
+<figure class="dg" data-diagram={name}>
+  <Drawing prefix={id} labelledby={`${id}-caption`} describedby={`${id}-text`} />
+  <figcaption id={`${id}-caption`}>{caption}</figcaption>
+  <p id={`${id}-text`} hidden>{text}</p>
+</figure>
