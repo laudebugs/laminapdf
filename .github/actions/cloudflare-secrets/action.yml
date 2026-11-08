@@ -1,0 +1,36 @@
+# Whether the Cloudflare deploy secrets are set. Without them a deploy job skips its deploy steps
+# with a notice and passes, so the workflow works in a repository that hasn't added them yet.
+# The secrets come in as inputs because a composite action can't read the `secrets` context;
+# GitHub still masks them in the log.
+name: Cloudflare secrets
+description: Output enabled=true when the Cloudflare API token and account ID are set, else a notice and enabled=false.
+inputs:
+  api-token:
+    description: secrets.CLOUDFLARE_API_TOKEN
+    required: true
+  account-id:
+    description: secrets.CLOUDFLARE_ACCOUNT_ID
+    required: true
+  setup:
+    description: Where the setup is documented, for the notice.
+    required: true
+outputs:
+  enabled:
+    description: "\"true\" when both secrets are set."
+    value: ${{ steps.check.outputs.enabled }}
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+        SETUP: ${{ inputs.setup }}
+      run: |
+        if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::notice title=Deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set ($SETUP); until then this job only skips."
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+        fi
