@@ -81,7 +81,7 @@ pub(crate) fn lines(pieces: &[Piece], covered: &[RectPt]) -> Vec<Line> {
     for entry in order {
         let piece = entry.1;
         if piece.vertical {
-            out.push(line(vec![entry]));
+            out.push(line(vec![entry], covered));
             continue;
         }
         let joins = group.first().is_some_and(|(_, anchor)| {
@@ -129,17 +129,18 @@ fn split(mut group: Vec<Entry<'_>>, out: &mut Vec<Line>, covered: &[RectPt]) {
             gap > GUTTER * size && !(lone && gap <= MARKER_GAP * size) && !bridged(prev, next, covered, GUTTER * size)
         });
         if gutter {
-            out.push(line(std::mem::take(&mut part)));
+            out.push(line(std::mem::take(&mut part), covered));
         }
         part.push(entry);
     }
     if !part.is_empty() {
-        out.push(line(part));
+        out.push(line(part, covered));
     }
 }
 
-/// The line of `members` (left to right).
-fn line(mut members: Vec<Entry<'_>>) -> Line {
+/// The line of `members` (left to right). Across a gap where `covered` text sat, the words on
+/// either side join with one space.
+fn line(mut members: Vec<Entry<'_>>, covered: &[RectPt]) -> Line {
     let all: String = members.iter().map(|(_, p)| p.text.as_str()).collect();
     let rtl = mostly_rtl(&all);
     if rtl {
@@ -150,18 +151,31 @@ fn line(mut members: Vec<Entry<'_>>) -> Line {
     let mut bbox: Option<RectPt> = None;
     let mut size = Pt::ZERO;
     for &(_, piece) in &members {
+        let mut joined = false;
         if let Some(prev) = previous {
-            let gap = if rtl {
-                prev.bbox.x0.get() - piece.bbox.x1.get()
-            } else {
-                piece.bbox.x0.get() - prev.bbox.x1.get()
-            };
-            let spaced = text.ends_with(char::is_whitespace) || piece.text.starts_with(char::is_whitespace);
-            if !spaced && gap > SPACE * prev.size.get().max(piece.size.get()) {
+            let (left, right) = if rtl { (piece, prev) } else { (prev, piece) };
+            let em = prev.size.get().max(piece.size.get());
+            if bridged(left, right, covered, GUTTER * em) {
+                let kept = text.trim_end().len();
+                text.truncate(kept);
                 text.push(' ');
+                text.push_str(piece.text.trim_start());
+                joined = true;
+            } else {
+                let gap = if rtl {
+                    prev.bbox.x0.get() - piece.bbox.x1.get()
+                } else {
+                    piece.bbox.x0.get() - prev.bbox.x1.get()
+                };
+                let spaced = text.ends_with(char::is_whitespace) || piece.text.starts_with(char::is_whitespace);
+                if !spaced && gap > SPACE * em {
+                    text.push(' ');
+                }
             }
         }
-        text.push_str(&piece.text);
+        if !joined {
+            text.push_str(&piece.text);
+        }
         bbox = Some(bbox.map_or(piece.bbox, |b| b.union(&piece.bbox)));
         if piece.size > size {
             size = piece.size;

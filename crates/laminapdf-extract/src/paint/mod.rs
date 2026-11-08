@@ -270,10 +270,10 @@ impl<'f> Collector<'f> {
 
     fn image_cover(&self, image: &ImageDraw<'_>) -> Option<RectPt> {
         let masked = match image.source {
-            ImageSource::XObject { stream, .. } => match stream {
-                Object::Stream(s) => masked_or_optional(&s.dict),
-                _ => true,
-            },
+            ImageSource::XObject {
+                stream: Object::Stream(s),
+                ..
+            } => masked_or_optional(&s.dict),
             ImageSource::Inline(inline) => masked_or_optional(&inline.dict),
             _ => true,
         };

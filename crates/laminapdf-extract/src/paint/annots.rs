@@ -1,6 +1,6 @@
 //! The covers of a page's annotations: viewers draw an annotation's normal appearance over the
 //! page (ISO 32000-2 §12.5.5), so its opaque areas cover every glyph under them. Annotations
-//! flagged Hidden or NoView (§12.5.3), popups, those with `/CA` below 1 and those without an
+//! flagged `Hidden` or `NoView` (§12.5.3), popups, those with `/CA` below 1 and those without an
 //! appearance stream are left out. A malformed annotation or appearance is skipped (ADR 0003).
 
 use laminapdf_content::{interpret_content, transformed_box};
@@ -10,9 +10,9 @@ use laminapdf_syntax::{Dict, Object, Stream};
 
 use super::{Collector, Cover};
 
-/// `/F` bit 2: Hidden.
+/// `/F` bit 2: `Hidden`.
 const HIDDEN: i64 = 1 << 1;
-/// `/F` bit 6: NoView.
+/// `/F` bit 6: `NoView`.
 const NO_VIEW: i64 = 1 << 5;
 
 /// The covers of `page`'s annotations, each drawn after the whole page.
@@ -76,10 +76,10 @@ fn appearance(doc: &Document, dict: &Dict) -> Result<Option<Stream>> {
     if flags & (HIDDEN | NO_VIEW) != 0 {
         return Ok(None);
     }
-    if let Some(ca) = dict.get("CA") {
-        if doc.deref(ca)?.as_f64().is_none_or(|ca| ca < 1.0) {
-            return Ok(None);
-        }
+    if let Some(ca) = dict.get("CA")
+        && doc.deref(ca)?.as_f64().is_none_or(|ca| ca < 1.0)
+    {
+        return Ok(None);
     }
     let Some(ap) = dict.get("AP") else {
         return Ok(None);
@@ -132,10 +132,9 @@ fn annotation(doc: &Document, annot: laminapdf_syntax::ObjRef, frame: &PageFrame
     ) else {
         return Ok(Vec::new());
     };
-    let matrix = match numbers(doc, stream.dict.get("Matrix"))?.as_deref() {
-        Some(&[a, b, c, d, e, f]) => Matrix::new([a, b, c, d, e, f]),
-        _ => Matrix::IDENTITY,
-    };
+    let matrix = numbers(doc, stream.dict.get("Matrix"))?
+        .and_then(|m| <[f64; 6]>::try_from(m).ok())
+        .map_or(Matrix::IDENTITY, Matrix::new);
     let Some(outer) = appearance_matrix(&bbox, &matrix, &target) else {
         return Ok(Vec::new());
     };
