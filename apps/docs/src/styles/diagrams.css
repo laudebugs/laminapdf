@@ -195,3 +195,23 @@
 .dg .dg-point-dot {
   fill: var(--paper-page-original-accent);
 }
+
+/* A number on an accent dot, for an order (the reading-order sketch): the page's paper on the
+   page's accent, on a sheet or off it. */
+.dg .dg-order {
+  fill: none;
+  stroke: var(--paper-page-original-accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+.dg .dg-badge-dot {
+  fill: var(--paper-page-original-accent);
+}
+
+.dg .dg-badge,
+.dg .dg-page .dg-badge {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--paper-page-paper);
+}
