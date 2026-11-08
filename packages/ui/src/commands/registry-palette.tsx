@@ -1,4 +1,4 @@
-// The command palette over the registry (ADR 0024 §3, U1b): Cmd/Ctrl+K opens it; it ranks the
+// The command palette over the registry (ADR 0024 §3): Cmd/Ctrl+K opens it; it ranks the
 // commands this shell has by title and keywords, recent ones first, with each row's shortcut and
 // disabled ones showing why; it parses arguments inline (`go to 12`, `zoom 150`), and a command
 // that needs them and got none pushes a page that asks. The shell (`CommandPalette`) draws it.

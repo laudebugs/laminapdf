@@ -280,8 +280,8 @@ cargo xtask check docs-prose [--all-strict] [--warnings] [--json]  # reader-faci
                              #   runs it with --all-strict
 cargo xtask check docs-snippets [--all-strict] [--warnings] [--json]  # the examples and Snippet's glob vs
                              #   docs/guidelines/examples.md (headers, shown on a page or in examples/UNUSED.md, TS/Rust pairs in
-                             #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding, ≤ 100 lines); strict on changed
-                             #   examples, warnings elsewhere (`check docs` runs it with --all-strict); skips examples/differential/ (a tool)
+                             #   tools/xtask/docs-snippets.toml, public imports, no test scaffolding outside its
+                             #   [[test-example]] list, ≤ 100 lines); strict on changed examples, warnings elsewhere (`check docs` runs it with --all-strict); skips examples/differential/ (a tool)
 cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on the changed TS examples (every one with --all-strict,
                              #   as `check ts` runs it)
 cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on Lamina PDF's examples with

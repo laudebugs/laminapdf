@@ -14,8 +14,6 @@
 
 mod common;
 
-use std::fmt::Write as _;
-
 use sha2::{Digest, Sha256};
 
 /// The extractors with facts.
@@ -25,18 +23,11 @@ fn facts() -> serde_json::Value {
     serde_json::from_slice(&laminapdf_test_fixtures::fixture("text/extracted.json")).unwrap()
 }
 
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().fold(String::new(), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    })
-}
-
 #[test]
 fn facts_describe_the_current_goldens() {
     let facts = facts();
     for (name, _, _) in common::samples::GOLDENS {
-        let digest = hex(&Sha256::digest(laminapdf_test_fixtures::fixture(&format!(
+        let digest = laminapdf_test_fixtures::hex(&Sha256::digest(laminapdf_test_fixtures::fixture(&format!(
             "golden/{name}"
         ))));
         assert_eq!(

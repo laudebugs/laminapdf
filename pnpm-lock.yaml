@@ -506,6 +506,12 @@ importers:
       '@arethetypeswrong/cli':
         specifier: 'catalog:'
         version: 0.18.5
+      '@laminapdf/render':
+        specifier: workspace:*
+        version: link:../render
+      '@laminapdf/render-hayro':
+        specifier: workspace:*
+        version: link:../render-hayro
       '@laminapdf/test-utils':
         specifier: workspace:*
         version: link:../test-utils

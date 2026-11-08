@@ -92,6 +92,16 @@ pub fn read_at(data: &[u8], offset: u64, buf: &mut [u8]) -> usize {
     n
 }
 
+/// `bytes` as lowercase hex, two digits each: how the tests print a SHA-256 digest.
+#[must_use]
+pub fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
+}
+
 /// xorshift64*: a deterministic PRNG, so a failure found with a seed is reproducible.
 #[derive(Debug, Clone)]
 pub struct Rng(u64);
