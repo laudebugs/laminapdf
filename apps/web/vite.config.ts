@@ -16,11 +16,14 @@ function websiteIcons(): Plugin {
   return {
     name: "lamina-website-icons",
     configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
+      server.middlewares.use((req, res, next) => {
         const name = WEBSITE_ICONS.find((icon) => req.url === `/${icon}`);
         if (name === undefined) return next();
-        res.setHeader("Content-Type", name.endsWith(".svg") ? "image/svg+xml" : "image/png");
-        res.end(await readFile(from(name)));
+        // A file that can't be read goes to Vite's error handler rather than leaving the request open.
+        readFile(from(name)).then((bytes) => {
+          res.setHeader("Content-Type", name.endsWith(".svg") ? "image/svg+xml" : "image/png");
+          res.end(bytes);
+        }, next);
       });
     },
     async generateBundle() {
