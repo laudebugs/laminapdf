@@ -11,7 +11,7 @@
 | Branch | `feat/t3c-tables-across-pages` |
 | PR title | `feat(extract): join tables that continue across a page break` |
 | Size | M (≈ 300–450 lines: the linking pass, the Markdown, text and chunk changes, tests) |
-| PR | — |
+| PR | [#296](https://github.com/laudebugs/laminapdf/pull/296) |
 
 ## Goal
 
