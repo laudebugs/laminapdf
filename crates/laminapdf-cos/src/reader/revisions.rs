@@ -25,22 +25,27 @@ fn end_of_eof_line(bytes: &[u8], from: usize, to: usize) -> Option<usize> {
     Some(after + line_end(bytes, after))
 }
 
-/// The revisions' ends in a file of `len` bytes whose cross-reference sections sit at
-/// `sections` (newest first, as `/Prev` reaches them), oldest first.
-///
-/// A section starts a revision only when it sits past every older section: a linearized file's
-/// first-page section comes before the section its `/Prev` names (Annex F), so it belongs to the
-/// first revision. Each revision but the newest ends just past the first `%%EOF` line between
-/// its section and the next revision's; one with no such line merges into the next. The newest
-/// ends at the end of the file.
-pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
+/// The offsets of the cross-reference sections that start a revision, oldest first, from
+/// `sections` (newest first, as `/Prev` reaches them). A section starts a revision only when it
+/// sits past every older section: a linearized file's first-page section comes before the
+/// section its `/Prev` names (Annex F), so it belongs to the first revision.
+#[must_use]
+pub fn revision_starts(sections: &[usize]) -> Vec<usize> {
     let mut starts: Vec<usize> = Vec::new();
     for &offset in sections.iter().rev() {
         if starts.last().is_none_or(|&last| offset > last) {
             starts.push(offset);
         }
     }
-    let len = bytes.len();
+    starts
+}
+
+/// The revisions' ends in `bytes`, whose cross-reference sections sit at `sections` (newest
+/// first), oldest first. Each revision but the newest ends just past the first `%%EOF` line
+/// between its section and the next revision's ([`revision_starts`]); one with no such line
+/// merges into the next. The newest ends at the end of the file.
+pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
+    let starts = revision_starts(sections);
     let mut out: Vec<u64> = starts
         .windows(2)
         .filter_map(|pair| match *pair {
@@ -49,7 +54,7 @@ pub(crate) fn ends(bytes: &[u8], sections: &[usize]) -> Vec<u64> {
         })
         .filter_map(|end| u64::try_from(end).ok())
         .collect();
-    out.push(u64::try_from(len).unwrap_or(u64::MAX));
+    out.push(u64::try_from(bytes.len()).unwrap_or(u64::MAX));
     out
 }
 

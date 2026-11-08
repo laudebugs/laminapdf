@@ -154,7 +154,6 @@ struct Opened {
     bytes: u64,
 }
 
-/// Reads `input` through `io` and opens it with `settings`.
 /// The options every command opens its input with: `--strict`, the limits and the password.
 fn open_options(settings: &Settings) -> OpenOptions {
     let options = OpenOptions::default()
@@ -166,6 +165,7 @@ fn open_options(settings: &Settings) -> OpenOptions {
     }
 }
 
+/// Reads `input` through `io` and opens it with `settings`.
 fn open(input: &str, settings: &Settings, io: &mut dyn Io) -> Result<Opened, CliError> {
     let data = io.read(input)?;
     settings.stop_if_cancelled()?;

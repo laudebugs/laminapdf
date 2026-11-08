@@ -71,6 +71,21 @@ struct Pending {
     raster: Option<PageRaster>,
 }
 
+impl Pending {
+    /// What the page pass reads besides the text, with the document's structure `tree`.
+    fn input<'a>(&'a self, tree: Option<&'a TaggedIndex>) -> PageInput<'a> {
+        PageInput {
+            edges: self.edges.as_ref(),
+            backdrops: &self.backdrops,
+            covers: &self.covers,
+            drawn: &self.drawn,
+            tree,
+            regions: self.regions.as_deref().unwrap_or_default(),
+            words: self.words.as_deref().unwrap_or_default(),
+        }
+    }
+}
+
 /// Starts an extraction of `doc`: checks the pages asked for, reads whether the document is
 /// tagged and, when the reading order may come from it, its structure tree; the pages are read
 /// by [`ExtractJob::step`].
@@ -268,12 +283,7 @@ impl ExtractJob {
             let Some(&index) = self.todo.get(self.next) else {
                 break;
             };
-            if self.cancel.is_cancelled() {
-                return Err(ExtractError::Cancelled);
-            }
-            let page = pages
-                .get(index)
-                .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
+            let page = self.page(&pages, index, count)?;
             if self.pending.is_none() {
                 self.pending = Some(self.read(doc, &page, index)?);
             }
@@ -293,15 +303,7 @@ impl ExtractJob {
                 &page,
                 index,
                 &pending.text,
-                &PageInput {
-                    edges: pending.edges.as_ref(),
-                    backdrops: &pending.backdrops,
-                    covers: &pending.covers,
-                    drawn: &pending.drawn,
-                    tree: self.tree.as_ref(),
-                    regions: pending.regions.as_deref().unwrap_or_default(),
-                    words: pending.words.as_deref().unwrap_or_default(),
-                },
+                &pending.input(self.tree.as_ref()),
                 &self.options,
                 &self.cancel,
             )?;
@@ -338,25 +340,27 @@ impl ExtractJob {
         let count = pages.len();
         let mut out = Vec::new();
         for &index in &self.todo.clone() {
-            if self.cancel.is_cancelled() {
-                return Err(ExtractError::Cancelled);
-            }
-            let page = pages
-                .get(index)
-                .ok_or(ExtractError::PageIndexOutOfRange { index, count })?;
+            let page = self.page(&pages, index, count)?;
             let pending = self.read(doc, &page, index)?;
-            let input = PageInput {
-                edges: None,
-                backdrops: &pending.backdrops,
-                covers: &pending.covers,
-                drawn: &pending.drawn,
-                tree: None,
-                regions: &[],
-                words: &[],
-            };
-            out.extend(hidden_runs(index, &pending.text, &input, &self.options));
+            out.extend(hidden_runs(index, &pending.text, &pending.input(None), &self.options));
         }
         Ok(out)
+    }
+
+    /// Page `index` of `pages` (of `count`), once the token is checked: each page a step reads
+    /// starts here.
+    fn page<'d>(
+        &self,
+        pages: &'d laminapdf_model::Pages<'d>,
+        index: usize,
+        count: usize,
+    ) -> Result<laminapdf_model::Page<'d>, ExtractError> {
+        if self.cancel.is_cancelled() {
+            return Err(ExtractError::Cancelled);
+        }
+        pages
+            .get(index)
+            .ok_or(ExtractError::PageIndexOutOfRange { index, count })
     }
 
     /// Reads page `index`'s text and, in the same walk of its content, its table rules, covers

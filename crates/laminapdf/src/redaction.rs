@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use laminapdf_cos::{Location, OpenOptions};
 use laminapdf_syntax::Object;
 
-use crate::extract::{DropReason, Dropped, ExtractOptions, TextOptions};
+use crate::extract::{DropReason, Dropped, ExtractOptions};
 use crate::job::CancelToken;
 use crate::{Document, Error, Result, Warning};
 
@@ -92,33 +92,66 @@ fn count<'t>(texts: impl IntoIterator<Item = &'t str>) -> BTreeMap<String, u64> 
     out
 }
 
-/// Every page's text, visible or not, each page's lines joined.
-fn page_words(doc: &Document) -> Result<Vec<String>> {
-    Ok(doc
-        .page_texts(&TextOptions::default())?
-        .iter()
-        .map(|t| t.lines().join("\n"))
-        .collect())
+/// Every page's text, visible or not, each page's lines joined; the token is checked before
+/// each page.
+fn page_words(doc: &Document, cancel: &CancelToken) -> Result<Vec<String>> {
+    let model = doc.ops();
+    let mut extractor = laminapdf_text::TextExtractor::new();
+    let mut out = Vec::new();
+    for page in model.pages()?.iter() {
+        if cancel.is_cancelled() {
+            return Err(Error::Cancelled);
+        }
+        out.push(extractor.page(model, &page)?.lines().join("\n"));
+    }
+    Ok(out)
 }
 
-/// The words of `earlier` (pages) the latest revision holds less often: how many, and on which
-/// pages of `earlier` they are.
-pub(crate) fn removed(latest: &BTreeMap<String, u64>, earlier: &[String]) -> (u64, Vec<u32>) {
-    let counts = count(earlier.iter().map(String::as_str));
-    let gone: BTreeMap<&str, u64> = counts
-        .iter()
-        .filter_map(|(word, &n)| {
-            let left = latest.get(word).copied().unwrap_or(0);
-            (n > left).then_some((word.as_str(), n - left))
+/// The words of `earlier` (its pages) that `latest` (its pages) holds less often: how many, and
+/// on which of `earlier`'s pages. A page counts when it holds such a word more often than the
+/// latest revision's page of the same index; when pages moved and none does, every page holding
+/// one counts.
+pub(crate) fn removed(latest: &[String], earlier: &[String]) -> (u64, Vec<u32>) {
+    let all = count(latest.iter().map(String::as_str));
+    let gone: BTreeMap<String, u64> = count(earlier.iter().map(String::as_str))
+        .into_iter()
+        .filter_map(|(word, n)| {
+            let left = all.get(&word).copied().unwrap_or(0);
+            (n > left).then(|| (word, n - left))
         })
         .collect();
-    let pages = earlier
+    let lost_on = |i: usize, text: &str| {
+        let here = count([text]);
+        let there = latest.get(i).map(|t| count([t.as_str()])).unwrap_or_default();
+        gone.keys()
+            .any(|w| here.get(w).copied().unwrap_or(0) > there.get(w).copied().unwrap_or(0))
+    };
+    let mut pages: Vec<u32> = earlier
         .iter()
         .enumerate()
-        .filter(|(_, text)| words(text).any(|w| gone.contains_key(w)))
+        .filter(|(i, text)| lost_on(*i, text))
         .map(|(i, _)| to_u32(i))
         .collect();
+    if pages.is_empty() {
+        pages = earlier
+            .iter()
+            .enumerate()
+            .filter(|(_, text)| words(text).any(|w| gone.contains_key(w)))
+            .map(|(i, _)| to_u32(i))
+            .collect();
+    }
     (gone.values().sum(), pages)
+}
+
+/// Whether `error`, met reading an earlier revision, only says that revision is malformed or
+/// uses something unsupported, so it can be skipped. Anything else (a password, a limit, data
+/// not yet fetched, cancellation) stops the check: a revision it couldn't read might hold the
+/// very text a redaction removed.
+const fn skippable(error: &Error) -> bool {
+    matches!(
+        error.kind(),
+        laminapdf_cos::ErrorKind::Input | laminapdf_cos::ErrorKind::Unsupported
+    )
 }
 
 /// Each earlier revision's removed words, newest first, as `(revision, words, pages)`: what
@@ -132,19 +165,21 @@ pub(crate) fn earlier_revisions(
     if revisions < 2 {
         return Ok(Vec::new());
     }
-    let latest = count(page_words(doc)?.iter().map(String::as_str));
+    let latest = page_words(doc, cancel)?;
     let tolerant = options.clone().with_strict(false);
     let mut out = Vec::new();
     for revision in (0..revisions - 1).rev() {
         if cancel.is_cancelled() {
             return Err(Error::Cancelled);
         }
-        // An earlier revision that no longer reads tells nothing; its warnings aren't the file's.
-        let Ok(earlier) = doc.open_revision(revision, tolerant.clone()) else {
-            continue;
-        };
-        let Ok(pages) = page_words(&earlier) else {
-            continue;
+        // Its own warnings aren't the file's: only its words are compared.
+        let pages = match doc
+            .open_revision(revision, tolerant.clone())
+            .and_then(|earlier| page_words(&earlier, cancel))
+        {
+            Ok(pages) => pages,
+            Err(e) if skippable(&e) => continue,
+            Err(e) => return Err(e),
         };
         let (gone, on) = removed(&latest, &pages);
         if gone > 0 {
@@ -155,35 +190,6 @@ pub(crate) fn earlier_revisions(
 }
 
 impl Document {
-    /// How many revisions the file has: 1 for a file never updated, or one whose
-    /// cross-reference table was rebuilt; each incremental update adds one (ISO 32000-2 §7.5.6).
-    ///
-    /// # Errors
-    /// `data-pending` for a source read in windows, which has to be read whole.
-    pub fn revision_count(&self) -> Result<u32> {
-        Ok(to_u32(self.ops().revision_ends()?.len()))
-    }
-
-    /// Revision `index` of the file (0 is the original) opened as a document of its own: the
-    /// prefix of the file that ends with that revision's `%%EOF`. The latest revision is
-    /// `revision_count() - 1`, the file itself.
-    ///
-    /// # Errors
-    /// `revision-index-out-of-range` past the last revision; what [`Document::open_bytes`]
-    /// returns for the prefix.
-    pub fn open_revision(&self, index: u32, options: OpenOptions) -> Result<Self> {
-        let ends = self.ops().revision_ends()?;
-        let count = to_u32(ends.len());
-        let end = usize::try_from(index)
-            .ok()
-            .and_then(|i| ends.get(i))
-            .and_then(|&end| usize::try_from(end).ok())
-            .ok_or(Error::RevisionIndexOutOfRange { index, count })?;
-        let bytes = self.ops().whole_input()?;
-        let prefix = bytes.get(..end).unwrap_or(&bytes).to_vec();
-        Self::open_bytes(prefix, options)
-    }
-
     /// The text a reader can't see, page by page ([ADR 0030] §4): a `dropped` entry per hidden
     /// run, without building blocks, tables or a reading order.
     ///
@@ -235,24 +241,34 @@ impl Document {
         Ok(out.into_iter().map(Warning::Redaction).collect())
     }
 
-    /// Each page with `Redact` annotations (§12.5.6.23), and how many.
+    /// Each page with `Redact` annotations (§12.5.6.23), and how many. `/Annots` entries may
+    /// be references or direct dictionaries, and `/Subtype` may be a reference too.
     fn redact_annotations(&self, cancel: &CancelToken) -> Result<Vec<(u32, u32)>> {
         let doc = self.ops();
+        let is_redact = |annot: &Object| -> Result<bool> {
+            let Some(annot) = laminapdf_cos::tolerant(doc.deref(annot))? else {
+                return Ok(false);
+            };
+            let Some(subtype) = annot.as_dict().and_then(|d| d.get("Subtype")) else {
+                return Ok(false);
+            };
+            let subtype = laminapdf_cos::tolerant(doc.deref(subtype))?;
+            Ok(subtype.is_some_and(|s| matches!(&*s, Object::Name(n) if n.as_bytes() == b"Redact")))
+        };
         let mut out = Vec::new();
         for (index, page) in doc.pages()?.iter().enumerate() {
             if cancel.is_cancelled() {
                 return Err(Error::Cancelled);
             }
+            let Some(annots) = page.cos().dict.get("Annots") else {
+                continue;
+            };
+            let Some(annots) = laminapdf_cos::tolerant(doc.deref(annots))? else {
+                continue;
+            };
             let mut n = 0u32;
-            for annot in laminapdf_cos::tolerant(page.annots())?.unwrap_or_default() {
-                let Some(object) = laminapdf_cos::tolerant(doc.resolve(annot))? else {
-                    continue;
-                };
-                let redact = object
-                    .as_dict()
-                    .and_then(|d| d.get("Subtype"))
-                    .is_some_and(|s| matches!(s, Object::Name(n) if n.as_bytes() == b"Redact"));
-                if redact {
+            for annot in annots.as_array().unwrap_or_default() {
+                if is_redact(annot)? {
                     n = n.saturating_add(1);
                 }
             }
@@ -266,7 +282,7 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-    use super::{RedactionWarning, count, removed, words};
+    use super::{RedactionWarning, removed, words};
     use crate::Warning;
     use crate::test_codes as codes;
 
@@ -318,21 +334,28 @@ mod tests {
 
     #[test]
     fn a_word_the_latest_revision_still_has_isnt_removed() {
-        let latest = count(["Hello, Update"]);
+        let latest = ["Hello, Update".to_owned()];
         let earlier = ["Hello, World".to_owned()];
         assert_eq!(removed(&latest, &earlier), (1, vec![0]));
     }
 
     #[test]
     fn a_word_repeated_less_often_counts_by_how_much() {
-        let latest = count(["the cat"]);
+        let latest = ["intro".to_owned(), "the cat".to_owned()];
         let earlier = ["intro".to_owned(), "the cat the cat the".to_owned()];
-        assert_eq!(removed(&latest, &earlier), (4, vec![0, 1]));
+        assert_eq!(removed(&latest, &earlier), (3, vec![1]));
+    }
+
+    #[test]
+    fn only_the_page_that_lost_a_common_word_is_listed() {
+        let latest = ["the start".to_owned(), "the end".to_owned()];
+        let earlier = ["the start".to_owned(), "the end the secret".to_owned()];
+        assert_eq!(removed(&latest, &earlier), (2, vec![1]));
     }
 
     #[test]
     fn nothing_removed_gives_nothing() {
-        let latest = count(["same words here"]);
+        let latest = ["same words here".to_owned()];
         assert_eq!(removed(&latest, &["same words".to_owned()]), (0, vec![]));
     }
 }

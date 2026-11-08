@@ -30,16 +30,17 @@ fn strict_mode_should_fail_on_the_first_repair() {
     assert!(run.stderr.starts_with("error[strict]: "), "{}", run.stderr);
 }
 
-/// A page whose sentence a black box covers, written to a folder of its own.
-fn covered() -> std::path::PathBuf {
-    let path = common::folder("check-covered").join("covered.pdf");
+/// A page whose sentence a black box covers, written to the folder `name` (one per test:
+/// `folder` empties it, so two tests sharing one would delete each other's file).
+fn covered(name: &str) -> std::path::PathBuf {
+    let path = common::folder(name).join("covered.pdf");
     std::fs::write(&path, common::page_with_text("Pay John Smith now.", true)).unwrap();
     path
 }
 
 #[test]
 fn a_box_over_text_should_warn_covered_text_and_exit_3() {
-    let path = covered();
+    let path = covered("check-covered");
     let run = laminapdf(&["check", common::arg(&path)]);
     assert_eq!(run.code, 3);
     assert!(run.stderr.contains("warning[covered-text]"), "{}", run.stderr);
@@ -61,7 +62,7 @@ fn a_box_over_text_should_warn_covered_text_and_exit_3() {
 
 #[test]
 fn covered_text_should_obey_warnings_ok_but_not_fail_strict_mode() {
-    let path = covered();
+    let path = covered("check-covered-flags");
     assert_eq!(laminapdf(&["check", common::arg(&path), "--warnings-ok"]).code, 0);
     assert_eq!(laminapdf(&["check", common::arg(&path), "--strict"]).code, 3);
 }

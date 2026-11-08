@@ -13,11 +13,13 @@ use crate::job::extract_job;
 use crate::model::Dropped;
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::plugins::Models;
+use crate::tables::TableMode;
 
 /// The text of `doc`'s pages that a reader can't see: a `dropped` entry for each run, or
 /// stretch of a run, that §4's flags leave out (invisible, off the page, tiny, clipped, low
-/// contrast, covered), in page order. Artifacts and page furniture aren't hidden text, so they
-/// aren't listed. `options` picks the pages and keeps the spans; its reading order, tables and
+/// contrast, covered), in page order. Artifacts go through the same flags as the rest, so a box
+/// over an `Artifact`-marked line still shows as covered; they aren't hidden text themselves.
+/// `options` picks the pages and keeps the spans; its reading order, tables, furniture and
 /// models don't apply.
 ///
 /// # Errors
@@ -29,8 +31,11 @@ pub fn hidden_text(
     cancel: &CancelToken,
 ) -> Result<Vec<Dropped>, ExtractError> {
     let mut options = options.clone();
-    // The order and the models don't change which runs are hidden; skip the tree and the models.
+    // The order, tables and models don't change which runs are hidden: skip the tree, the
+    // table rules and the models. Artifacts stay in the pass, so their hidden stretches show.
     options.reading_order = ReadingOrder::Layout;
+    options.tables = TableMode::Off;
+    options.drop.furniture = false;
     options.models = Models::default();
     let mut job = extract_job(doc, &options)?;
     job.hidden(doc, cancel)

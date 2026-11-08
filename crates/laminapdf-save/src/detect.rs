@@ -680,20 +680,13 @@ fn revision(doc: &Document, end: u64) -> Option<usize> {
     revision_of(doc.xref_section_offsets(), end)
 }
 
-/// [`revision`] over the section offsets, newest first.
+/// [`revision`] over the section offsets, newest first: how many revisions
+/// ([`laminapdf_cos::revision_starts`]) start before `end`.
 fn revision_of(offsets: &[usize], end: u64) -> Option<usize> {
-    let mut count = 0usize;
-    let mut older: Option<u64> = None;
-    for &offset in offsets.iter().rev() {
-        let offset = u64::try_from(offset).ok()?;
-        if offset >= end {
-            break;
-        }
-        if older.is_none_or(|o| offset > o) {
-            count += 1;
-        }
-        older = Some(offset);
-    }
+    let count = laminapdf_cos::revision_starts(offsets)
+        .iter()
+        .take_while(|&&start| u64::try_from(start).is_ok_and(|s| s < end))
+        .count();
     (count > 0).then_some(count)
 }
 

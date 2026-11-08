@@ -407,3 +407,13 @@ fn hidden_text_stops_when_cancelled() {
     let got = laminapdf_extract::hidden_text(&doc, &ExtractOptions::new(), &cancel);
     assert!(matches!(got, Err(laminapdf_extract::ExtractError::Cancelled)));
 }
+
+#[test]
+fn hidden_text_finds_a_box_over_an_artifact() {
+    let doc = page(&content(&[b"/Artifact BMC", SENTENCE, b"EMC 0 g", BOX]), "", "", &[]);
+    let hidden = laminapdf_extract::hidden_text(&doc, &ExtractOptions::new(), &CancelToken::new()).unwrap();
+    assert_eq!(
+        hidden.iter().map(|d| (d.reason, d.chars)).collect::<Vec<_>>(),
+        [(DropReason::Covered, 9)]
+    );
+}
