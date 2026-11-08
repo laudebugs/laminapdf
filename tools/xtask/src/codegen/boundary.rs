@@ -66,7 +66,7 @@ const LISTS: [List; 6] = [
     List {
         table: "ARTIFACT_KINDS",
         union: "ArtifactKind",
-        doc: "What kind of artifact (content outside the logical structure).",
+        doc: "What kind of artifact (content outside the logical structure); `header`, `footer` and `watermark` are pagination artifacts that say which.",
     },
     List {
         table: "TABLE_SCOPES",
@@ -115,7 +115,7 @@ fn name_table(source: &str, path: &str, name: &str) -> Result<Vec<String>> {
         .skip(1)
         .map(|item| item.split_once(&entry).map(|(n, _)| n.to_owned()))
         .collect::<Option<_>>()
-        .with_context(|| format!("{path}: {name} has an entry that isn't (\"name\", {ty}::Variant)"))?;
+        .with_context(|| format!("{path}: {name} has an entry that isn't (\"name\", {ty}::…)"))?;
     if names.len() != len {
         bail!("{path}: {name} declares {len} entries and lists {}", names.len());
     }

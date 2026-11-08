@@ -86,13 +86,14 @@ pub struct PageBuilder<'b> {
 
 impl<'b> PageBuilder<'b> {
     pub(crate) fn new(target: Target<'b>, size: PageSize) -> Self {
+        let ids = target.state.element_ids();
         Self {
             target,
             size,
             rotate: Rotation::None,
             user_unit: 1.0,
             boxes: Boxes::default(),
-            surface: Surface::default(),
+            surface: Surface::with_ids(ids),
         }
     }
 
@@ -217,7 +218,7 @@ impl<'b> PageBuilder<'b> {
             state.links.truncate(links);
             state.required = required;
             state.device_cmyk = cmyk;
-            state.tag.rollback(tags);
+            state.tag.rollback(&tags);
         }
         written
     }
@@ -264,8 +265,16 @@ impl<'b> PageBuilder<'b> {
                 fonts: &mut state.fonts,
                 doc: &*self.target.doc,
             },
-            Marking::new(state.tagging, tagged, crop),
+            // The open elements' tags, only for a page that resumes one.
+            Marking::new(state.tagging, tagged, crop).with_resumable(if self.surface.resumes() {
+                state.tag.resumable()
+            } else {
+                Vec::new()
+            }),
         )?;
+        if rendered.marks.resumed_unknown {
+            return Err(Error::TagElementNotOpen);
+        }
         let keys = state.tag.keys(&rendered.marks, self.target.doc)?;
         if let Some(key) = keys.page {
             page.insert("StructParents", key);
@@ -307,6 +316,10 @@ impl<'b> PageBuilder<'b> {
                 page.insert("Tabs", Name::from("S"));
                 state.require((1, 5));
             }
+        }
+        if rendered.marks.pdf_1_7 {
+            // An artifact's `/Subtype` and `/Attached` (Table 363).
+            state.require((1, 7));
         }
         if rendered.marks.elems.iter().any(|e| e.tag.expansion().is_some()) {
             // `/E` is PDF 1.5 (§14.9.5); the rest of the structure 1.3 and `/MarkInfo` 1.4.

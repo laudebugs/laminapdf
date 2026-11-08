@@ -308,6 +308,36 @@
       "showText": 1
     }
   ],
+  "fixtures/golden/tagged-across-pages.pdf": [
+    {
+      "beginMarkedContentProps": 3,
+      "beginText": 4,
+      "endMarkedContent": 3,
+      "endText": 4,
+      "setFont": 4,
+      "setTextMatrix": 4,
+      "showText": 4
+    },
+    {
+      "beginMarkedContentProps": 6,
+      "beginText": 6,
+      "endMarkedContent": 6,
+      "endText": 6,
+      "setFont": 6,
+      "setTextMatrix": 6,
+      "showText": 6
+    },
+    {
+      "beginMarkedContentProps": 7,
+      "beginText": 7,
+      "endMarkedContent": 7,
+      "endText": 7,
+      "setFont": 7,
+      "setTextMatrix": 8,
+      "setTextRise": 78,
+      "showText": 85
+    }
+  ],
   "fixtures/golden/tagged-report.pdf": [
     {
       "beginMarkedContentProps": 23,

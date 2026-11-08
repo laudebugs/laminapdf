@@ -195,6 +195,14 @@ fn pdfa_rules(pdfa: PdfA, inputs: &Inputs<'_>) -> Result<()> {
 /// 31-001), and under PDF/A-2u and PDF/UA-1 every glyph drawn with a Unicode value
 /// (PDF/A-2 §6.2.11.7.2, PDF/UA-1 §7.21.7, Matterhorn 31-027) that isn't U+0000, U+FEFF or
 /// U+FFFE.
+///
+/// The empty value counts. Shaping can draw one character as several glyphs (Noto Sans Arabic
+/// draws the beh as a dotless body and a dot), and the registry maps the glyph that carries no
+/// character of its own to `<>` while another glyph of its cluster carries the cluster's text, so
+/// each character is extracted once. veraPDF 1.30.3 passes such files under PDF/UA-1 and
+/// PDF/A-2u, and pdf.js reads their text back exactly; giving the dot the letter's text too
+/// would make every extractor that ignores `/ActualText`, pdf.js among them, read the letter
+/// twice.
 #[cfg(feature = "text")]
 pub(crate) fn fonts(
     conformance: Conformance,
@@ -226,7 +234,7 @@ pub(crate) fn fonts(
                     cid != 0
                         && text
                             .get(&cid)
-                            .is_none_or(|t| t.is_empty() || t.contains(['\u{0}', '\u{FEFF}', '\u{FFFE}']))
+                            .is_none_or(|t| t.contains(['\u{0}', '\u{FEFF}', '\u{FFFE}']))
                 });
                 if let Some((_, gid)) = missing {
                     return Err(Error::GlyphWithoutUnicode {
@@ -240,4 +248,49 @@ pub(crate) fn fonts(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+#[cfg(feature = "text")]
+mod tests {
+    use laminapdf_text::{EmbedPolicy, Font, FontRegistry, GlyphId};
+
+    use super::*;
+    use crate::Profile;
+
+    const NOTO_SANS: &[u8] = include_bytes!("../../../../fixtures/fonts/NotoSans-Regular.ttf");
+
+    /// A registry whose one font drew glyph 36 standing for `text`.
+    fn registry_with(text: &str) -> (FontRegistry, laminapdf_text::FontKey) {
+        let font = Font::from_bytes(NOTO_SANS.to_vec()).unwrap();
+        let mut registry = FontRegistry::new();
+        let key = registry.add(font, EmbedPolicy::Respect).unwrap();
+        registry.use_glyph(key, GlyphId::new(36), text).unwrap();
+        (registry, key)
+    }
+
+    fn checked(text: &str) -> Result<()> {
+        let (registry, key) = registry_with(text);
+        fonts(Conformance::default().with(Profile::PdfUa1), &registry, &[key])
+    }
+
+    #[test]
+    fn a_glyph_with_text_passes() {
+        assert_eq!(checked("A"), Ok(()));
+    }
+
+    #[test]
+    fn a_glyph_whose_cluster_text_another_glyph_carries_passes() {
+        assert_eq!(checked(""), Ok(()));
+    }
+
+    #[test]
+    fn a_glyph_mapped_to_a_noncharacter_fails() {
+        for text in ["\u{0}", "\u{FEFF}", "\u{FFFE}"] {
+            assert!(
+                matches!(checked(text), Err(Error::GlyphWithoutUnicode { gid: 36, .. })),
+                "{text:?}"
+            );
+        }
+    }
 }

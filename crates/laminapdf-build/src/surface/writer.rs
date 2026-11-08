@@ -108,7 +108,12 @@ impl Writer {
             // Written by `render` itself (they need the fonts or produce annotations).
             #[cfg(feature = "text")]
             Command::Text(_) => {}
-            Command::Link(..) | Command::BeginTag(_) | Command::BeginArtifact(_) | Command::EndMarked => {}
+            Command::Link(..)
+            | Command::BeginTag(_)
+            | Command::OpenElement(..)
+            | Command::Resume(_)
+            | Command::BeginArtifact(_)
+            | Command::EndMarked => {}
             Command::Image(image, r) => {
                 self.marking.mark(&mut self.content, ContentKind::Image);
                 let name = resources.image(image);

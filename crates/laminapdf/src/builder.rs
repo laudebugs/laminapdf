@@ -2,7 +2,8 @@
 
 use laminapdf_build::{Attachment, ViewerPreferences};
 use laminapdf_build::{
-    BuildOptions, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize, TagDiagnostic,
+    BuildOptions, ElementId, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize,
+    TagDiagnostic,
 };
 #[cfg(feature = "text")]
 use laminapdf_build::{EmbedPolicy, Standard14};
@@ -125,6 +126,16 @@ impl Builder {
     #[must_use]
     pub fn tagging_diagnostics(&self) -> Vec<TagDiagnostic> {
         self.0.tagging_diagnostics().to_vec()
+    }
+
+    /// Writes `element`, a structure element opened across pages by
+    /// [`Surface::open_element`](crate::Surface::open_element), once its last page is finished.
+    ///
+    /// # Errors
+    /// `tag-element-not-open` when `element` isn't open (closed already, opened by another
+    /// builder or inside an artifact, or on a page that failed).
+    pub fn close_element(&mut self, element: ElementId) -> Result<()> {
+        Ok(self.0.close_element(element)?)
     }
 
     /// A page of `size`, added by [`PageBuilder::finish`].

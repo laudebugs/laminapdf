@@ -760,6 +760,20 @@
       "since": "0.1.0"
     },
     {
+      "code": "tag-element-not-open",
+      "kind": "usage",
+      "summary": "a structure element resumed or closed isn't open",
+      "hint": "resume and close only elements this builder's pages opened with open_element, and close each once",
+      "since": "0.2.0"
+    },
+    {
+      "code": "tag-element-unclosed",
+      "kind": "usage",
+      "summary": "structure elements opened across pages were never closed",
+      "hint": "close each element from open_element with Builder::close_element once its last page is finished",
+      "since": "0.2.0"
+    },
+    {
       "code": "profile-version-conflict",
       "kind": "usage",
       "summary": "the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7)",
@@ -840,7 +854,7 @@
       "code": "glyph-without-unicode",
       "kind": "usage",
       "summary": "a glyph was drawn without a Unicode value, which PDF/A-2u and PDF/UA-1 forbid",
-      "hint": "use text whose glyphs each stand for characters, or choose PDF/A-2b, which doesn't need Unicode",
+      "hint": "remove NUL characters (U+0000) from the text, or choose PDF/A-2b, which doesn't need Unicode",
       "since": "0.2.0"
     },
     {
