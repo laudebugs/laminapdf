@@ -1,0 +1,49 @@
+---
+title: Benchmarks
+description: How fast Lamina PDF makes PDFs in each runtime, how large its WebAssembly files are, and how well it extracts text on a public benchmark.
+---
+
+import Benchmarks from "../../../components/Benchmarks.astro";
+
+These are Lamina PDF's measured numbers: how long it takes to make a PDF in each runtime, how much your app downloads, and how well it extracts text from a public benchmark of real pages. Each table states the version, the date and the machine it came from, so you can judge how the numbers apply to yours.
+
+## How long a PDF takes to make
+
+Each figure is the time to build a document and save it to bytes, after the WebAssembly module has loaded. Every runtime builds the same three documents and gets the same bytes:
+
+- **First PDF:** the first one-page "Hello" PDF after `init()`, before the runtime has optimised anything.
+- **Hello:** the same PDF afterwards, the median of 20 builds.
+- **One-page invoice:** the [invoice recipe](/recipes/invoice/), a tagged A4 page with an embedded font and a table of items, the median of 20 builds.
+- **100-page report:** the [report recipe](/recipes/report/), with two embedded fonts and a table on every page, the median of 3 builds.
+
+<Benchmarks section="generation" />
+
+The browsers run in Playwright at the version shown, and Cloudflare Workers run in workerd through wrangler. WebAssembly memory is the modules' memory after the reports. It never shrinks, so it is their peak. The JavaScript heap isn't included. The native Rust row is the same invoice and report built by the `laminapdf` crate, the median build that criterion measured.
+
+## How much your app downloads
+
+`@laminapdf/sdk` loads one WebAssembly file for what you use: `base` reads, edits and saves documents and draws shapes and images, `text` adds fonts and text, and `extract` adds text extraction without the fonts. Each file has a size budget, and a change that grows a file past its budget can't be merged until the budget is raised on purpose.
+
+<Benchmarks section="sizes" />
+
+Sizes are in kilobytes of 1,000 bytes, as a server sends them compressed. The JavaScript row is `@laminapdf/sdk`'s own code, minified.
+
+## How well it extracts text
+
+[olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI, checks extracted text with small tests. A test checks that one passage comes before another, that a table cell sits beside its neighbours, or that a page's running header is left out. These figures use the three subsets made of pages with real text, not scans, and the benchmark's own tests score the Markdown that Lamina PDF writes.
+
+<Benchmarks section="extraction" />
+
+Every page in the benchmark is a file of its own, so the time per page includes opening the file. A page with no text, such as a scan, counts against the score, as it would for you. Lamina PDF reads one page at a time on one thread here, without a layout model or OCR.
+
+### With tables found from their columns alone
+
+Most tables in the benchmark have no ruled lines. Extraction finds tables like these when you ask it to look for text lined up in columns too. It finds more tables, but it reads some multi-column pages as tables, which costs those pages their reading order.
+
+<Benchmarks section="extraction-stream" />
+
+## Where these numbers come from
+
+One command runs every measurement on one machine and writes the file this page reads, so no figure here is typed by hand. The numbers are one machine's, taken before a release, and older versions of these docs keep the numbers of their version.
+
+Next: [make your first PDF](/start/first-pdf/) and time it on your own machine.

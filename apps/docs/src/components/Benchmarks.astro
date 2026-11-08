@@ -1,0 +1,78 @@
+---
+// One section of the benchmarks page, read from src/data/benchmarks.json (written by `cargo xtask
+// benchmarks`) through src/lib/benchmarks.ts, which fails the build on a file it doesn't describe.
+// The page's Markdown twin shows the same section through `sectionMarkdown` (plugins/agent-docs.mjs).
+import data from "../data/benchmarks.json";
+import {
+  extractionSummary,
+  extractionTable,
+  generationTable,
+  parseBenchmarks,
+  type Run,
+  runSentence,
+  type Section,
+  sizesTable,
+  type Table,
+} from "../lib/benchmarks";
+
+interface Props {
+  section: Section;
+}
+
+const { section } = Astro.props;
+const b = parseBenchmarks(data);
+let table: Table | undefined;
+let summary: string | undefined;
+let run: Run | undefined;
+if (section === "generation") {
+  table = generationTable(b.generation);
+  run = b.generation.run;
+} else if (section === "sizes") {
+  table = sizesTable(b.sizes);
+  run = b.sizes.run;
+} else {
+  const e = b.extraction[section === "extraction" ? "laminapdf" : "laminapdf-stream"];
+  if (e !== undefined) {
+    table = extractionTable(e);
+    summary = extractionSummary(e);
+    run = e.run;
+  }
+}
+
+/** A cell's text split into plain parts and `code` spans. */
+function parts(cell: string): { code: boolean; text: string }[] {
+  return cell.split("`").map((text, i) => ({ code: i % 2 === 1, text }));
+}
+---
+
+{
+  table === undefined ? (
+    <p>Not measured yet.</p>
+  ) : (
+    <>
+      <table class="benchmarks">
+        <thead>
+          <tr>{table.headers.map((h, i) => <th class={table.numeric[i] ? "num" : undefined}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row) => (
+            <tr>
+              {row.map((cell, i) => (
+                <td class={table.numeric[i] ? "num" : undefined}>
+                  {parts(cell).map((p) => (p.code ? <code>{p.text}</code> : p.text))}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {summary && <p>{summary}</p>}
+      {run && (
+        <p class="benchmarks-run">
+          {parts(runSentence(run)).map((p) => (p.code ? <code>{p.text}</code> : p.text))}
+        </p>
+      )}
+    </>
+  )
+}
+

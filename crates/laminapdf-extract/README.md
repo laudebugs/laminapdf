@@ -88,33 +88,17 @@ The rules check their own column order on every page they order by layout, and r
 
 ## How it scores on a public benchmark
 
-On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests, three in five of the header and footer tests, and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:
-
-| Subset | What it measures | Pages | Tests | Ruled tables (the default) | Also tables without lines |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `multi_column` | one passage before another, on multi-column pages | 231 | 884 | 52.1 % | 14.8 % |
-| `table_tests` | a table cell's neighbours and headings | 188 | 1,022 | 24.1 % | 47.1 % |
-| `headers_footers` | running headers, footers and page numbers left out | 266 | 760 | 59.6 % | 59.3 % |
-| baseline | the page gave text (one test per page, added by the benchmark) | | 676 | 85.7 % | 85.7 % |
-| **Mean, as the benchmark reports it** | | | | **55.4 %** | **51.7 %** |
-| Mean of the three subsets | | | | 45.3 % | 40.4 % |
+The docs site's [Benchmarks](https://docs.laminapdf.com/reference/benchmarks/) page has the scores on [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), by the Allen Institute for AI: each subset's tests and passes, and the pages a second, with the version, date and machine of the run. `cargo xtask benchmarks` copies them from `cargo xtask extract-bench`'s results, so no figure is typed by hand; [`tools/bench/`](../../tools/bench/) says how to rerun them, and why the other datasets weren't used.
 
 Three things explain most of the failures:
 
-- **Pages with no text.** 89 of the 685 pages give no text. Most are scans, which need OCR; they stay in these subsets and count against the score, as they would for any user. The other 13 store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
-- **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Dropping page numbers and artifact-marked text lifted the third subset from 37.6 %, before these rules, to 59.6 %; a header or footer that is neither stays in the text.
-- **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns doubles the table score but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
+- **Pages with no text.** Most are scans, which need OCR; they stay in the benchmark's subsets and count against the score, as they would for any user, and their text-layer status says so. A few others store their content with a filter this crate can't decode yet (ASCII85 or LZW), and one such page stops the whole extraction.
+- **Single-page files.** Each of the benchmark's files is one page, so the running-header rule, which needs three pages, never applies. Page numbers and artifact-marked text are still dropped, which is most of what the header and footer subset passes; a header or footer that is neither stays in the text.
+- **Tables without lines.** Most of the benchmark's tables have no ruling lines, so the default finds few of them. Looking for text in columns finds many more, but reads multi-column pages as tables, which wrecks their reading order. That trade is why it stays off by default.
 
-The column-order checks warned 48 of the 228 `multi_column` pages that extracted (Lamina PDF 0.2.0-alpha.3, 2026-11-08). The warned pages pass 48 % of their order tests and the others 54 %. The narrow-gutter pages, where the lines read across both columns, pass 9 %. The near-grid pages pass more than the rest, 64 %: most are unruled tables read column by column, which the benchmark's order tests, made from the prose, rarely check.
+`extract-bench`'s report also splits the `multi_column` pages by the reason of their `extract-column-order-uncertain` warning, with each group's pass rate on the order tests. The warned pages pass fewer of them than the rest, and the narrow-gutter pages, read straight across both columns, the fewest. The near-grid pages are the exception: most are unruled tables read column by column, which the order tests, made from the prose, rarely check.
 
-| Reason | Pages | Order tests | Passed |
-| --- | ---: | ---: | ---: |
-| `columns-revisited` | 31 | 107 | 49.5 % |
-| `narrow-gutter` | 5 | 23 | 8.7 % |
-| `near-grid` | 12 | 44 | 63.6 % |
-| not warned | 180 | 698 | 54.2 % |
-
-The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these. `cargo xtask extract-bench` reruns this table; [`tools/bench/`](../../tools/bench/) says how, and why the other datasets weren't used.
+The benchmark's published table scores OCR and vision models on all seven subsets, scans and equations included, so its numbers don't compare with these.
 
 ## Using models
 

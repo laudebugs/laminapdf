@@ -5,6 +5,7 @@
 // markdown.mjs, the code pages from docs/errors/, the API reference from TypeDoc's Markdown. The
 // build fails when an HTML page has no twin or a link in `llms.txt` has no file.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { parseBenchmarks, sectionMarkdown } from "../src/lib/benchmarks.ts";
 import { releaseNotes } from "./changelog.mjs";
 import { readerMarkdown, siteHref } from "./error-pages.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, SNIPPET, twin, twinHref } from "./markdown.mjs";
@@ -108,7 +109,7 @@ async function readMaybe(url) {
  * A route's twin, from its source; `undefined` when the route has none.
  *
  * @param {string} route
- * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string }} context
+ * @param {{ version: string, site: string, codes: Map<string, { summary: string }>, table: string, changelog: string, benchmarks: import("../src/lib/benchmarks.ts").Benchmarks }} context
  * @returns {Promise<{ title: string, description?: string | undefined, markdown: string } | undefined>}
  */
 async function twinOf(route, context) {
@@ -134,6 +135,7 @@ async function twinOf(route, context) {
       snippet: snippetText,
       codeTable: () => context.table,
       changelog: () => context.changelog,
+      benchmarks: (section) => sectionMarkdown(context.benchmarks, /** @type {import("../src/lib/benchmarks.ts").Section} */ (section)),
     });
     const title = data.title ?? base;
     return {
@@ -263,7 +265,10 @@ export function agentDocs(groups) {
             .map((e) => [e.code, e]),
         );
         const changelog = releaseNotes(await readFile(new URL("CHANGELOG.md", ROOT), "utf8"));
-        const context = { version, site, codes, table: await codeTable(), changelog };
+        const benchmarks = parseBenchmarks(
+          JSON.parse(await readFile(new URL("apps/docs/src/data/benchmarks.json", ROOT), "utf8")),
+        );
+        const context = { version, site, codes, table: await codeTable(), changelog, benchmarks };
         await readSnippets();
         /** @type {Map<string, { title: string, description?: string | undefined, markdown: string }>} */
         const twins = new Map();
