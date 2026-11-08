@@ -167,15 +167,16 @@ impl Builder {
     /// the document breaks (see `laminapdf_build::Builder::finish`).
     pub fn finish(self) -> Result<Document> {
         // Flows' warnings first, in the order they were raised, then the fonts'.
-        let Self(builder, mut warnings) = self;
+        let Self(builder, flows) = self;
         #[cfg(feature = "text")]
-        let doc = {
+        let (doc, warnings) = {
             let (doc, fonts) = builder.finish_with_warnings()?;
+            let mut warnings = flows;
             warnings.extend(fonts.into_iter().map(crate::Warning::from));
-            doc
+            (doc, warnings)
         };
         #[cfg(not(feature = "text"))]
-        let doc = builder.finish()?;
+        let (doc, warnings) = (builder.finish()?, flows);
         Ok(Document::built(doc, warnings))
     }
 }
