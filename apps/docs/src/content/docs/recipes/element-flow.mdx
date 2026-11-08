@@ -33,22 +33,24 @@ The report treats overflow two ways, and you choose which for each element.
 
 The title, summary and notes must fit on the first page. They're drawn with `overflow: "error"` (`Overflow::Error` in Rust), so text that doesn't fit throws `text-overflow` instead of disappearing. The photo must fit too: when it would cross the bottom margin, the code stops with an error of its own.
 
-The body may run on. Its box reaches the bottom margin and clips what doesn't fit. Then `overflow` holds the offset of the first character it didn't draw: a UTF-16 offset in TypeScript, a byte offset in Rust. The loop starts a new page and draws the rest from the top margin. Test `overflow` with `!== undefined`, because `0` means not even one line fitted. On a new page that would happen again, so the loop stops with an error instead of adding pages for ever.
+The body may run on. Its box reaches the bottom margin and clips what doesn't fit. Then `overflow` holds the offset of the first character it didn't draw: a UTF-16 offset in TypeScript, a byte offset in Rust. The loop starts a new page and draws the rest from the top margin. Test `overflow` with `!== undefined`, because `0` means not even one line fitted. If no line fits even on a fresh page, a line is taller than the page, so the loop stops with an error instead of adding pages for ever.
 
 ## What `bottom` measures
 
 `bottom` is a typographic measurement in points: the descent of the last drawn line's font, below its baseline. A glyph that reaches lower, or a thick stroke around the text, can paint past it.
 
-Like every position, `bottom` is in [page space](/reference/glossary/#page-space), measured from the top of the page. It ignores the surface's transform, so inside `transform` it stays in the coordinates you drew in.
+Like every position, `bottom` is in [page space](/reference/glossary/#page-space), measured from the top of the page. It's measured before the surface's transform, so inside `transform` it stays in the coordinates you drew in.
 
 In TypeScript you pass a box as a tuple, `[x, y, width, height]`. The lines a text box returns describe their `rect` as an object with `x`, `y`, `width` and `height`.
 
-The builder doesn't paginate, float an image beside text, or lay out tables. Each page break here is a decision the code makes, using `overflow`.
+## What stays your job
+
+Page breaks stay your decision: the code here makes each one from `overflow`. The builder doesn't paginate, float an image beside text, or lay out tables.
 
 ## What to change
 
 - **Paragraphs a gap apart:** draw each paragraph in its own text box and start the next one at `bottom` plus the gap, as the summary and notes do.
 - **A line height for the body:** pass `lineHeight` (`with_line_height` in Rust); `bottom` follows it.
-- **Two columns:** keep a `y` per column, and start a column at the top margin when the one beside it fills.
+- **Two columns:** keep a `y` for each column, and when the left column fills, carry on at the top margin of the right one.
 
 Next: [the PDF/UA report](/recipes/pdf-ua-report/), a report that screen readers can follow.
