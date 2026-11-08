@@ -1,7 +1,7 @@
 // Heron's outputs as regions: its 17 labels mapped onto the extraction's, low scores dropped,
 // near-duplicate boxes merged, boxes moved from pixels into page points. A port of
 // crates/laminapdf-layout-onnx/src/post.rs.
-import type { LayoutRegion, RegionLabel } from "@laminapdf/sdk";
+import type { LayoutRegion, RegionLabel } from "./types.js";
 
 /** Heron's labels in its `config.json`'s `id2label` order, as the extraction names them. */
 const LABELS: readonly RegionLabel[] = [

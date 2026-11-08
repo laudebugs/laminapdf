@@ -40,8 +40,5 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "dependencies": {
-    "@laminapdf/sdk": "workspace:*"
   }
 }

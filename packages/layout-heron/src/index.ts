@@ -1,11 +1,13 @@
 // Docling's Heron layout model (RT-DETRv2, its official ONNX export) for @laminapdf/sdk's
 // extractJob, run by the onnxruntime-web module the app passes in. The weights are the app's to
 // fetch (tools/models/models.toml pins them); `HeronLayout.load` refuses any other file.
-import type { LayoutRegion, ModelInfo } from "@laminapdf/sdk";
+
 import { type PageSize, regions } from "./post.js";
 import { chw640, SIDE } from "./pre.js";
+import type { LayoutRegion, ModelInfo } from "./types.js";
 
 export { label } from "./post.js";
+export type { LayoutRegion, ModelInfo, RegionLabel } from "./types.js";
 
 /** The pinned weights' SHA-256, as tools/models/models.toml lists it; {@link HeronLayout.load} checks against this, not {@link HERON}. */
 const PINNED_SHA256 = "59c81a3a2923042d85034ffc487f8f47e4854117e879aef89b2b9f728fb4922a";
