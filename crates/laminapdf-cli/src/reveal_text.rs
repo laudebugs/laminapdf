@@ -133,8 +133,8 @@ fn forms(r: &RevealReport) -> Vec<String> {
     let filled: Vec<String> = r
         .forms
         .iter()
-        .filter(|f| f.value.is_some())
-        .map(|f| one_line(&f.name))
+        .filter(|f| f.filled)
+        .map(|f| one_line(f.name.as_deref().unwrap_or("unnamed")))
         .collect();
     vec![format!(
         "{} filled: {}",
@@ -153,7 +153,7 @@ fn hidden_content(r: &RevealReport) -> Vec<String> {
     out.extend(
         h.layers_off
             .iter()
-            .map(|layer| format!("layer \"{}\" off", one_line(layer))),
+            .map(|layer| format!("layer \"{}\" off", one_line(layer.name.as_deref().unwrap_or("unnamed")))),
     );
     out.extend(h.redactions.iter().map(|red| {
         format!(

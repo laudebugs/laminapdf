@@ -187,6 +187,10 @@
     "FieldEntry": {
       "description": "A form field.",
       "properties": {
+        "filled": {
+          "description": "Whether it has a value, also when `documentText` is false.",
+          "type": "boolean"
+        },
         "hidden": {
           "description": "Whether all its widgets are hidden.",
           "type": "boolean"
@@ -199,8 +203,11 @@
           ]
         },
         "name": {
-          "description": "Its full name: document text.",
-          "type": "string"
+          "description": "Its full name: document text, left out when `documentText` is false.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "value": {
           "description": "Its value: document text.",
@@ -211,7 +218,7 @@
         }
       },
       "required": [
-        "name",
+        "filled",
         "hidden"
       ],
       "type": "object"
@@ -220,9 +227,9 @@
       "description": "`hiddenContent`.",
       "properties": {
         "layersOff": {
-          "description": "The layers off by default: document text.",
+          "description": "The layers off by default.",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/LayerEntry"
           },
           "type": "array"
         },
@@ -328,14 +335,29 @@
           "type": "string"
         },
         "value": {
-          "description": "The value: document text.",
-          "type": "string"
+          "description": "The value: document text, left out when `documentText` is false.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
-        "key",
-        "value"
+        "key"
       ],
+      "type": "object"
+    },
+    "LayerEntry": {
+      "description": "A layer off by default.",
+      "properties": {
+        "name": {
+          "description": "Its name: document text, left out when `documentText` is false.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
       "type": "object"
     },
     "PageRef": {
@@ -590,6 +612,10 @@
       },
       "type": "array"
     },
+    "documentText": {
+      "description": "Whether the report carries the document's own strings: `false` from `laminapdf mcp`,\nwhich reports keys, counts and pages and leaves out Info values, comments, field names\nand values, and file and layer names.",
+      "type": "boolean"
+    },
     "forms": {
       "description": "Terminal form fields.",
       "items": {
@@ -636,6 +662,7 @@
   "required": [
     "schema",
     "input",
+    "documentText",
     "found",
     "history",
     "metadata",

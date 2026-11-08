@@ -30,10 +30,16 @@ pub struct RevealArgs {
     #[arg(long)]
     #[serde(default)]
     pub include_hidden_text: bool,
+    /// Leave the document's own strings out of the report: what `laminapdf mcp` asks for.
+    #[arg(skip)]
+    #[serde(skip)]
+    pub withhold_document_text: bool,
 }
 
 /// `laminapdf_reveal`'s arguments: those of `laminapdf reveal` without `--include-hidden-text`
-/// and `--fail-on`, so hidden text, a prompt-injection channel, never reaches an agent.
+/// and `--fail-on`. The tool withholds the document's own strings (Info values, comments, field
+/// names and values, file and layer names) as well as hidden text: text the document's author
+/// wrote can carry instructions to an agent, so the tool reports keys, counts and pages only.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RevealToolArgs {
@@ -50,6 +56,7 @@ impl From<RevealToolArgs> for RevealArgs {
             input: args.input,
             fields: args.fields,
             include_hidden_text: false,
+            withhold_document_text: true,
         }
     }
 }
@@ -82,6 +89,10 @@ pub struct RevealReport {
     pub schema: &'static str,
     /// The input as given: a path, or `-`.
     pub input: String,
+    /// Whether the report carries the document's own strings: `false` from `laminapdf mcp`,
+    /// which reports keys, counts and pages and leaves out Info values, comments, field names
+    /// and values, and file and layer names.
+    pub document_text: bool,
     /// The categories with findings, in this order: `history`, `metadata`, `attachments`,
     /// `active-content`, `annotations`, `forms`, `hidden-content`.
     pub found: Vec<String>,
@@ -173,8 +184,9 @@ pub struct RevealMetadata {
 pub struct InfoEntry {
     /// The key, as written.
     pub key: String,
-    /// The value: document text.
-    pub value: String,
+    /// The value: document text, left out when `documentText` is false.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 /// The XMP packet.
@@ -265,14 +277,17 @@ pub struct CommentEntry {
 /// A form field.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct FieldEntry {
-    /// Its full name: document text.
-    pub name: String,
+    /// Its full name: document text, left out when `documentText` is false.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// `/FT`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     /// Its value: document text.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
+    /// Whether it has a value, also when `documentText` is false.
+    pub filled: bool,
     /// Whether all its widgets are hidden.
     pub hidden: bool,
 }
@@ -287,10 +302,18 @@ pub struct HiddenContent {
     /// Each hidden run, only with `--include-hidden-text`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub runs: Option<Vec<HiddenRun>>,
-    /// The layers off by default: document text.
-    pub layers_off: Vec<String>,
+    /// The layers off by default.
+    pub layers_off: Vec<LayerEntry>,
     /// Pages with unapplied `Redact` annotations.
     pub redactions: Vec<RedactionEntry>,
+}
+
+/// A layer off by default.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
+pub struct LayerEntry {
+    /// Its name: document text, left out when `documentText` is false.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 /// Hidden characters for one reason.
@@ -338,9 +361,10 @@ pub fn reveal(args: &RevealArgs, settings: &Settings, io: &mut dyn Io) -> Result
     let doc = &opened.doc;
     settings.stop_if_cancelled()?;
     let reveal = doc.reveal(&open_options(settings), &settings.cancel)?;
-    Ok(RevealReport {
+    let mut report = RevealReport {
         schema: RevealReport::SCHEMA,
         input: args.input.clone(),
+        document_text: true,
         found: reveal.found().iter().map(|c| c.as_str().to_owned()).collect(),
         history: history(&reveal),
         metadata: metadata(&reveal),
@@ -352,15 +376,47 @@ pub fn reveal(args: &RevealArgs, settings: &Settings, io: &mut dyn Io) -> Result
             .fields
             .iter()
             .map(|f| FieldEntry {
-                name: f.name.clone(),
+                name: Some(f.name.clone()),
                 kind: f.kind.clone(),
                 value: f.value.clone(),
+                filled: f.value.is_some(),
                 hidden: f.hidden,
             })
             .collect(),
-        hidden_content: hidden_content(&reveal, args.include_hidden_text),
+        hidden_content: hidden_content(&reveal, args.include_hidden_text && !args.withhold_document_text),
         warnings: warnings(doc),
-    })
+    };
+    if args.withhold_document_text {
+        report.withhold_document_text();
+    }
+    Ok(report)
+}
+
+impl RevealReport {
+    /// Leaves out every string the document's author wrote: Info values, attachment names,
+    /// comment authors and text, field names and values, layer names and hidden runs. Keys,
+    /// subtypes, counts, sizes and pages stay.
+    fn withhold_document_text(&mut self) {
+        self.document_text = false;
+        for entry in &mut self.metadata.info {
+            entry.value = None;
+        }
+        for attachment in &mut self.attachments {
+            attachment.name = None;
+        }
+        for comment in &mut self.annotations.comments {
+            comment.author = None;
+            comment.contents = None;
+        }
+        for field in &mut self.forms {
+            field.name = None;
+            field.value = None;
+        }
+        for layer in &mut self.hidden_content.layers_off {
+            layer.name = None;
+        }
+        self.hidden_content.runs = None;
+    }
 }
 
 /// Whether `report` found anything in `categories`.
@@ -408,7 +464,7 @@ fn metadata(r: &Reveal) -> RevealMetadata {
             .iter()
             .map(|(key, value)| InfoEntry {
                 key: key.clone(),
-                value: value.clone(),
+                value: Some(value.clone()),
             })
             .collect(),
         xmp: d.xmp.as_ref().map(|x| Xmp {
@@ -551,7 +607,14 @@ fn hidden_content(r: &Reveal, include_text: bool) -> HiddenContent {
             })
             .collect(),
         runs,
-        layers_off: r.disclosure.layers_off.clone(),
+        layers_off: r
+            .disclosure
+            .layers_off
+            .iter()
+            .map(|name| LayerEntry {
+                name: Some(name.clone()),
+            })
+            .collect(),
         redactions: r
             .disclosure
             .redactions()

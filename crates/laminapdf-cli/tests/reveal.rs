@@ -65,9 +65,10 @@ fn a_file_built_to_disclose_should_list_every_category_and_validate() {
     assert_eq!(report["annotations"]["comments"][0]["contents"], "Fix the totals");
     assert_eq!(
         report["forms"][0],
-        json!({ "name": "name", "kind": "Tx", "value": "Alice", "hidden": false })
+        json!({ "name": "name", "kind": "Tx", "value": "Alice", "filled": true, "hidden": false })
     );
-    assert_eq!(report["hiddenContent"]["layersOff"], json!(["Draft notes"]));
+    assert_eq!(report["hiddenContent"]["layersOff"], json!([{ "name": "Draft notes" }]));
+    assert_eq!(report["documentText"], true);
 }
 
 #[test]

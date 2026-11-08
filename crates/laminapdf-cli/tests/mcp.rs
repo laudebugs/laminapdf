@@ -431,3 +431,29 @@ async fn reveal_should_count_hidden_text_and_never_show_it() {
     .await;
     assert_eq!(error(&refused)["code"], "invalid-command-line");
 }
+
+#[tokio::test]
+async fn reveal_should_withhold_every_string_the_document_wrote() {
+    let base = tree("reveal-withheld");
+    let client = connect(&base, &[]).await;
+    let result = call(&client, "laminapdf_reveal", json!({ "input": "disclosing.pdf" })).await;
+    let report = ok(&result);
+    assert_eq!(report["documentText"], false);
+    assert_eq!(report["found"].as_array().map(Vec::len), Some(7));
+    assert_eq!(
+        report["forms"][0],
+        json!({ "kind": "Tx", "filled": true, "hidden": false })
+    );
+    assert_eq!(report["metadata"]["info"][0], json!({ "key": "Title" }));
+    let everything = format!("{:?}{report}", result.content);
+    for text in [
+        "Alice",
+        "Fix the totals",
+        "Reviewer",
+        "Quarterly report",
+        "notes.txt",
+        "Draft notes",
+    ] {
+        assert!(!everything.contains(text), "{text} reached the agent: {everything}");
+    }
+}
