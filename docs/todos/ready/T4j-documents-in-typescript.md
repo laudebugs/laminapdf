@@ -24,7 +24,7 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 - [T4e](./T4e-json-documents-and-templates.md): `crates/laminapdf-build/schemas/document.schema.json`, `laminapdf::flow::fill`, the `invalid-document`, `template-data-missing` and `template-data-type` errors, and `invoice_from_json.rs` with its golden. [T4i](./T4i-build-command-and-bindings.md): `WasmBuilder.markdown`, `builder.markdown` and the text module's `markdown` feature, which this todo builds beside.
 - The precedent for generated types: `cargo xtask gen boundary` turns `crates/laminapdf-extract/schemas/extract.schema.json` into `packages/sdk/src/generated/extract.ts` (`tools/xtask/src/codegen/boundary.rs` and `schema_ts.rs`, which fails on a schema keyword it doesn't know). See [L3e](../done/L3e-extract-bindings-and-benchmark.md).
 - Unknown keys in a binding record: `unknown-option` ([ADR 0016 §7](../../decisions/0016-package-design.md#7-api-naming-and-shape-at-the-wasm-boundary)) with a `didYouMean`.
-- The runtime suite's `measure()` (`packages/sdk/test/suite/examples.ts`) records timings per runtime. [T1c](./T1c-publish-performance-numbers.md) adds a one-page `invoice` case there, publishes generation timings, and leaves flowing-layout timings and a two-page invoice to this round. A Typst user reports a two-page invoice in under 100 ms ([45697377](https://news.ycombinator.com/item?id=45697377)).
+- The runtime suite's `measure()` (`packages/sdk/test/suite/examples.ts`) records timings per runtime. [T1c](../ongoing/T1c-publish-performance-numbers.md) adds a one-page `invoice` case there, publishes generation timings, and leaves flowing-layout timings and a two-page invoice to this round. A Typst user reports a two-page invoice in under 100 ms ([45697377](https://news.ycombinator.com/item?id=45697377)).
 
 ## Scope
 
@@ -40,7 +40,7 @@ Bring the whole flow layer to `@laminapdf/sdk` as typed objects: `builder.flow(d
 - The format, validation, templates, the CLI and MCP inputs: [T4e](./T4e-json-documents-and-templates.md).
 - A `FlowJob` stepped by page: only if T4b's benchmark exceeds ADR 0032 §9's budget in WebAssembly, in its own todo.
 - A JSX layer over the typed objects (ADR 0032 §6 leaves it for later), and a visual template designer.
-- Publishing the timings: [T1c](./T1c-publish-performance-numbers.md).
+- Publishing the timings: [T1c](../ongoing/T1c-publish-performance-numbers.md).
 
 ## Tasks
 

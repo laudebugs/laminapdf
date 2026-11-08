@@ -32,7 +32,7 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 - The site's rules (`@laminapdf/site-kit`'s `siteChecks`: same-origin loads, no inline styles, a title, a description and a canonical URL, internal links that resolve); the header's links (`packages/site-kit/src/nav.mjs`: [design language §7.39](../../design/paper/design-language.md#739-site-and-product-pages-proposed)'s five) and `pageFiles`, the page list the header uses to show a link only once its page exists.
 - What the licence section states, and where each fact lives: `license = "MIT OR Apache-2.0"` in the root `Cargo.toml`; `deny.toml`'s `[licenses] allow` list, its MPL-2.0 exception for UniFFI (the mobile bindings, ADR 0029) and its `[bans]` on `mupdf` and `mupdf-sys`; ADR 0004's "MuPDF is prohibited"; ADR 0019's checks; the docs page [What Lamina PDF writes and what it borrows](../../../apps/docs/src/content/docs/concepts/dependencies.mdx), which explains the same to developers.
 - [Website plan §4](../../plans/website.md#4-the-website) (the page table) and [trust and proof §9](../../plans/trust-and-proof.md#9-open-questions), question 3: whether the proof lives on the website or in the docs.
-- Pages this one links to rather than repeats: [U5a](./U5a-pricing-and-promises-page.md) (`/pricing/`, whose promises include "the code stays MIT OR Apache-2.0"), [U5b](./U5b-reader-benchmark.md) (`/performance/`, the reader benchmark), [C7c](./C7c-performance-gates-and-launch.md) (`/privacy/`) and [T1c](./T1c-publish-performance-numbers.md) (the docs site's benchmarks page).
+- Pages this one links to rather than repeats: [U5a](./U5a-pricing-and-promises-page.md) (`/pricing/`, whose promises include "the code stays MIT OR Apache-2.0"), [U5b](./U5b-reader-benchmark.md) (`/performance/`, the reader benchmark), [C7c](./C7c-performance-gates-and-launch.md) (`/privacy/`) and [T1c](../ongoing/T1c-publish-performance-numbers.md) (the docs site's benchmarks page).
 - Design: [screens.md](../../design/paper/screens.md) and [account-cloud-product.md](../../design/paper/account-cloud-product.md#h12-website-home) (H12, the website's document sheet on the paper ground).
 
 ## Scope
@@ -66,7 +66,7 @@ On Hacker News, licences decide which PDF library people pick (about 150 comment
 **Out of scope** (and which todo covers it)
 
 - The record itself → [T1a](./T1a-nightly-proof-figures.md).
-- Extraction scores, generation timings and module sizes → [T1c](./T1c-publish-performance-numbers.md), on the docs site; this page links to them.
+- Extraction scores, generation timings and module sizes → [T1c](../ongoing/T1c-publish-performance-numbers.md), on the docs site; this page links to them.
 - The reader benchmark and the speed targets → [U5b](./U5b-reader-benchmark.md) and [U5a](./U5a-pricing-and-promises-page.md); the privacy promises → [C7c](./C7c-performance-gates-and-launch.md).
 - A "How we test" link in the site header: §7.39 fixes five links, so adding one is a design decision (open question below).
 - R9's Arabic, Devanagari and Chinese sample on the home page: not in this todo (see Risks).
