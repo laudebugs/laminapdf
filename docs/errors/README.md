@@ -123,6 +123,7 @@ A PR that adds a code adds:
 | [`wrong-document`](wrong-document.md) | `usage` | finish_fonts was given a document the registry did not reserve its fonts in |
 | [`invalid-feature`](invalid-feature.md) | `usage` | an OpenType feature setting did not parse |
 | [`invalid-text-range`](invalid-text-range.md) | `usage` | a byte range was out of bounds or not on character boundaries of the text |
+| [`invalid-spans`](invalid-spans.md) | `usage` | the styled spans given for a paragraph do not cover its text once, in order |
 | [`unsupported-layout-option`](unsupported-layout-option.md) | `unsupported` | a layout option that is not implemented yet was asked for |
 | [`font-mismatch`](font-mismatch.md) | `usage` | a shaped run was given with a font key for a different font than it was shaped with |
 | [`encoding-full`](encoding-full.md) | `limit` | a standard 14 font has no free one-byte code left for another glyph |
