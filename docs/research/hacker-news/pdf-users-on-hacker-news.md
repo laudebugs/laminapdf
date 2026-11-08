@@ -288,7 +288,7 @@ Users once asked whether a tool could get the text at all; they now ask whether 
   - JSON that matches its goldens byte for byte
   - an extraction benchmark, `cargo xtask extract-bench`
 - **The gap:** a pipeline can't tell which pages need OCR, can't see when the column order is a guess, and gets a table split in two at every page break. The benchmark scores sit in a crate README.
-- **Work:** [T3a](../../todos/ready/T3a-text-layer-status.md) adds a per-page text-layer status, [T3b](../../todos/ready/T3b-reading-order-confidence.md) a warning when the column order is uncertain, [T3c](../../todos/ready/T3c-tables-across-pages.md) joins tables across pages, and [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes the scores and speed.
+- **Work:** [T3a](../../todos/ready/T3a-text-layer-status.md) adds a per-page text-layer status, [T3b](../../todos/ongoing/T3b-reading-order-confidence.md) a warning when the column order is uncertain, [T3c](../../todos/ready/T3c-tables-across-pages.md) joins tables across pages, and [T1c](../../todos/ready/T1c-publish-performance-numbers.md) publishes the scores and speed.
 
 ### R5. Decide for flow layout, then accept Markdown and JSON
 

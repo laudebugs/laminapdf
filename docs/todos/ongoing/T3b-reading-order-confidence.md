@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T3](../../plans/trust-and-proof.md#t3-extraction-users-can-check) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -55,7 +55,7 @@ Mark the pages whose column order the layout rules guessed, with a warning and a
 
 ## Tasks
 
-- [ ] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
+- [x] Claim via the work PR (see Definition of done); a fresh worktree off `main`. Load `/rust-best-practices` and follow [the Rust guidelines](../../guidelines/rust.md); no todo ID goes in a code comment (`cargo xtask check maintainability`'s `todo-id` rule).
 - [ ] `lines.rs` and `page.rs`: `NEAR_GUTTER`; the recorded points on `Line` (and `Piece`); the `narrow-gutter` check over each block's lines (in a new `order_doubt.rs`, or in `page.rs` if it stays short), with unit tests: runs 7 pt apart at 10 pt record a point, a 2.5 pt word space and a 15 pt gutter don't.
 - [ ] `xycut.rs`: the `columns-revisited` check over each band in `order()`, the `near-grid` second cut in `Cutter::cut`, `MAX_ALTERNATIVES`, and the result struct; unit tests beside the existing ones.
 - [ ] `page.rs`: report the warning, and set `UNCERTAIN_CONFIDENCE` on the blocks a doubt covers (`ordered()` passes them on; `text_block()` takes the confidence per block).
