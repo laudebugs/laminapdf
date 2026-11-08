@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `B10c` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Element flow](../../plans/element-flow.md#delivery-steps) |
 | Round / milestone | Round B10 — measured placement helpers |
-| Depends on | [B10a](../done/B10a-measured-text-bottom.md) |
+| Depends on | [B10a](./B10a-measured-text-bottom.md) |
 | ADRs | Follows [0016](../../decisions/0016-package-design.md), [0018](../../decisions/0018-test-strategy.md) and [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/b10c-element-flow-recipe` |
 | PR title | `feat(examples): document and demonstrate element flow` |
 | Size | M (paired examples, recipe and tests) |
-| PR | — |
+| PR | [laudebugs/laminapdf#298](https://github.com/laudebugs/laminapdf/pull/298) |
 
 ## Goal
 
@@ -38,21 +38,21 @@ Publish a tested report recipe that places paragraphs and an image using the mea
 
 ## Tasks
 
-- [ ] Add paired Rust and TypeScript examples using only public APIs and existing example conventions.
-- [ ] Generate a report with short and wrapped paragraphs, an empty optional section, an image, a decoration and an explicit page reset.
-- [ ] Demonstrate clipping detection and an intentional caller decision; do not silently discard overflow or claim automatic pagination.
-- [ ] Add a recipe to the docs source and explicit sidebar; register examples with the existing snippet/test system.
-- [ ] Explain typographic versus painted bounds, point units, pre-transform coordinates, and correct TypeScript rectangle fields.
-- [ ] Record the usefulness comparison described below, tick the plan tasks, and update public API references as needed.
+- [x] Add paired Rust and TypeScript examples using only public APIs and existing example conventions.
+- [x] Generate a report with short and wrapped paragraphs, an empty optional section, an image, a decoration and an explicit page reset.
+- [x] Demonstrate clipping detection and an intentional caller decision; do not silently discard overflow or claim automatic pagination.
+- [x] Add a recipe to the docs source and explicit sidebar; register examples with the existing snippet/test system.
+- [x] Explain typographic versus painted bounds, point units, pre-transform coordinates, and correct TypeScript rectangle fields.
+- [x] Record the usefulness comparison described below, tick the plan tasks, and update public API references as needed.
 
 ## Acceptance criteria
 
-- [ ] Both examples execute and show the same placements within the established numeric tolerance.
-- [ ] Changing a paragraph from one line to several moves following content without changing hand-entered Y coordinates.
-- [ ] Empty content adds no gap; images retain requested spacing; page reset starts at the configured top margin.
-- [ ] Overflow is surfaced explicitly and no example silently treats partial text as complete.
-- [ ] The recipe states that painted bounds, automatic pagination and full flow layout are outside this helper's contract.
-- [ ] Review evidence includes generated PDFs, placement assertions, a rendered page and the before/after authoring comparison.
+- [x] Both examples execute and show the same placements within the established numeric tolerance.
+- [x] Changing a paragraph from one line to several moves following content without changing hand-entered Y coordinates.
+- [x] Empty content adds no gap; images retain requested spacing; page reset starts at the configured top margin.
+- [x] Overflow is surfaced explicitly and no example silently treats partial text as complete.
+- [x] The recipe states that painted bounds, automatic pagination and full flow layout are outside this helper's contract.
+- [x] Review evidence includes generated PDFs, placement assertions, a rendered page and the before/after authoring comparison.
 
 ## Post-merge checks
 
@@ -76,8 +76,8 @@ A recipe can suggest more than the helper does, so it must say plainly that over
 
 ## Definition of done
 
-- [ ] Claim this todo in the work PR's first commit from a fresh worktree: move `ready/` → `ongoing/`, fill **PR**, update links and regenerate the board.
-- [ ] Implement tasks and demonstrate every acceptance criterion with recorded validation evidence.
-- [ ] Follow applicable guidelines and complete code review and writing review; record findings and fixes in commits.
+- [x] Claim this todo in the work PR's first commit from a fresh worktree: move `ready/` → `ongoing/`, fill **PR**, update links and regenerate the board.
+- [x] Implement tasks and demonstrate every acceptance criterion with recorded validation evidence.
+- [x] Follow applicable guidelines and complete code review and writing review; record findings and fixes in commits.
 - [ ] Required CI is green on the final revision.
-- [ ] Before merge, move this file to `done/`, update status and links, tick its plan item and regenerate the board.
+- [x] Before merge, move this file to `done/`, update status and links, tick its plan item and regenerate the board.

@@ -13,6 +13,7 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/golden/examples/*.pdf",
     "../../../../fixtures/fonts/*.{ttf,otf}",
     "../../../../fixtures/images/photo-rgb.jpg",
+    "../../../../fixtures/text/element-flow-report.json",
   ],
   { query: "?url", import: "default", eager: true },
 );

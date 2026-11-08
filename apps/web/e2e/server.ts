@@ -1,10 +1,11 @@
 // The e2e suite's server: `wrangler dev --local` over the built dist/, on a free port, for the whole
-// run. Its address reaches the tests through Vitest's `provide` (inject("origin")).
+// run, over HTTPS (see local-tls.ts for why). Its address reaches the tests through Vitest's `provide` (inject("origin")).
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import type { TestProject } from "vitest/node";
+import { getLocal } from "./local-tls.ts";
 
 const APP = new URL("../", import.meta.url);
 
@@ -32,7 +33,7 @@ async function ready(origin: string, child: ChildProcess, limitMs: number): Prom
   while (Date.now() - start < limitMs) {
     if (child.exitCode !== null) throw new Error(`wrangler dev exited with ${child.exitCode}`);
     try {
-      if ((await fetch(origin)).ok) return;
+      if ((await getLocal(new URL(origin))).ok) return;
     } catch {
       // Not listening yet.
     }
@@ -49,16 +50,20 @@ export default async function setup(project: TestProject): Promise<() => void> {
   // Wrangler's own binary, in a process group of its own: stopping the group stops the workerd it
   // starts too, which would otherwise outlive the run on a shared runner.
   const wrangler = fileURLToPath(new URL("node_modules/.bin/wrangler", APP));
-  const child = spawn(wrangler, ["dev", "--local", "--port", String(port), "--ip", "127.0.0.1"], {
-    cwd: APP,
-    detached: true,
-    stdio: ["ignore", "inherit", "inherit"],
-    env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
-  });
+  const child = spawn(
+    wrangler,
+    ["dev", "--local", "--local-protocol", "https", "--port", String(port), "--ip", "127.0.0.1"],
+    {
+      cwd: APP,
+      detached: true,
+      stdio: ["ignore", "inherit", "inherit"],
+      env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
+    },
+  );
   const stop = () => {
     if (child.pid !== undefined && child.exitCode === null) process.kill(-child.pid, "SIGTERM");
   };
-  const origin = `http://127.0.0.1:${port}`;
+  const origin = `https://127.0.0.1:${port}`;
   try {
     await ready(origin, child, 90_000);
   } catch (error) {
