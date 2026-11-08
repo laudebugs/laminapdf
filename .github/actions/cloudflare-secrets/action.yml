@@ -18,7 +18,7 @@ inputs:
     required: true
 outputs:
   enabled:
-    description: "\"true\" when both secrets are set."
+    description: '"true" when both secrets are set.'
     value: ${{ steps.check.outputs.enabled }}
 runs:
   using: composite
