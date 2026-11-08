@@ -34,7 +34,8 @@ const TYPEDOC = process.env.LAMINA_PDF_DOCS_TYPEDOC !== "0";
 const DOCS_RELEASE = { version: await packageVersion(), release: process.env.LAMINA_PDF_ENV === "production" };
 
 const typeDoc = starlightTypeDoc({
-  entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT))],
+  // TypeDoc reads entry points as globs, which take only forward slashes (not Windows' `\`).
+  entryPoints: [fileURLToPath(new URL("packages/sdk/src/index.ts", ROOT)).replaceAll("\\", "/")],
   tsconfig: fileURLToPath(new URL("packages/sdk/tsconfig.build.json", ROOT)),
   output: "reference/sdk",
   sidebar: { label: "@laminapdf/sdk (TypeDoc)", collapsed: true },
