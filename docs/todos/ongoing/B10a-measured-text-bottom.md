@@ -11,7 +11,7 @@
 | Branch | `feat/b10a-measured-text-bottom` |
 | PR title | `feat(build): expose measured text bottoms` |
 | Size | M (200–400 lines; split bindings if the implementation grows) |
-| PR | — |
+| PR | [laudebugs/laminapdf#294](https://github.com/laudebugs/laminapdf/pull/294) |
 
 ## Goal
 
