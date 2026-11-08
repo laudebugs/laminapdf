@@ -21,6 +21,7 @@ Run OCR on the device: a WASM OCR engine in a worker for small documents on web 
 
 - **Design (Paper):** [X01 Make searchable (OCR)](../../design/paper/convert-compare-produce.md#x01-make-searchable-ocr). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0013
+- [L3c](../done/L3c-model-plugins.md)'s `OcrEngine` trait (`laminapdf-extract`): this todo's engines implement it, so extraction reads scanned pages with them too; a browser or desktop engine answers the extraction job's OCR requests (`request`/`provide`) when it runs asynchronously.
 
 ## Scope
 

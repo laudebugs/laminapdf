@@ -149,6 +149,30 @@
     color: var(--paper-disabled);
   }
 
+  /* A pushed page for a command's arguments: its title, what to type, and why the last try failed. */
+  .paper-palette-page {
+    display: grid;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-16);
+    font: var(--paper-type-body);
+    color: var(--paper-text-2);
+  }
+
+  .paper-palette-page-title {
+    margin: 0;
+    font: var(--paper-type-label);
+    color: var(--paper-text);
+  }
+
+  .paper-palette-page-prompt,
+  .paper-palette-page-error {
+    margin: 0;
+  }
+
+  .paper-palette-page-error {
+    color: var(--paper-danger);
+  }
+
   .paper-palette-footer {
     display: flex;
     flex-wrap: wrap;

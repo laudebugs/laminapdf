@@ -41,7 +41,7 @@ Finish the Paper component library that [U6d](./U6d-core-components.md) starts. 
 
 - The toast region, dialogs, sheets, menus and tooltips → [U6e](../done/U6e-overlays-and-sheets.md).
 - The data behind the status items, the thumbnails' bitmaps and the outline's tree → [U4a](../ready/U4a-network-indicator-and-privacy-proof.md), [C4b](./C4b-web-app-shell.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md).
-- Screenshots of every state → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- Screenshots of every state → [U6f](../done/U6f-gallery-and-visual-tests.md).
 
 ## Tasks
 
@@ -77,7 +77,7 @@ The components' browser tests in `packages/ui`, through U6d's `test/states.ts` a
 ## Risks and open questions
 
 - **Thumbnail images**: the viewer supplies an `ImageBitmap` or a canvas; the component takes a render prop or a child slot, so it never imports the viewer.
-- **Shortcut glyphs**: the key description's shape comes from [U1b](../ready/U1b-command-registry-and-palette.md)'s `Shortcut` type (ADR 0024). Until U1b lands, take a minimal local type that U1b replaces.
+- **Shortcut glyphs**: the key description's shape comes from [U1b](../done/U1b-command-registry-and-palette.md)'s `Shortcut` type (ADR 0024). Until U1b lands, take a minimal local type that U1b replaces.
 
 ## Outcome
 

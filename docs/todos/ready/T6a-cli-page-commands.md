@@ -78,7 +78,7 @@ Developers already script page jobs with pdftk, qpdf and Ghostscript: 433 Hacker
 - `pages rotate` over many inputs: its `<input> <angle>[:<range>]` grammar takes one input; a batch form waits for a request.
 - `optimize` and `--target-size`: [T6b](./T6b-cli-optimize-target-size.md).
 - Recipes of several steps per file: [E14d](./E14d-batch-runner.md). Server batches: [E14e](./E14e-server-batch.md).
-- Release binaries and installers: [L4d](./L4d-cli-distribution.md).
+- Release binaries and installers: [L4d](../done/L4d-cli-distribution.md).
 - An override that invalidates signatures (`--invalidate-signatures`): not here; signed files are refused as `pages rotate` refuses them.
 
 ## Tasks

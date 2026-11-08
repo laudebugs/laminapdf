@@ -47,7 +47,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 
 - Fonts themselves (files, `@font-face`, preload) → [U6b](../done/U6b-self-hosted-fonts.md); this package only names the families.
 - Icons → [U6c](../done/U6c-icon-set.md). Z-order tokens → [U6e](../done/U6e-overlays-and-sheets.md) (added to this package there, with the overlays that use them).
-- Components using the tokens → [U6d](../done/U6d-core-components.md), [U6e](../done/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- Components using the tokens → [U6d](../done/U6d-core-components.md), [U6e](../done/U6e-overlays-and-sheets.md); screenshots of every theme → [U6f](../done/U6f-gallery-and-visual-tests.md).
 - The theme switch UI, `forced-colors` component styles, stored user preference and the settings dialog → [C7a](../ready/C7a-accessibility-and-theming.md).
 - Recolouring page content in the renderers (Sepia, Dark, High contrast) → [U2c](../ready/U2c-page-appearance-modes.md); page-appearance chips in View settings → [C7a](../ready/C7a-accessibility-and-theming.md) / [U2c](../ready/U2c-page-appearance-modes.md).
 - Mockup-only document colours ([§2.5](../../design/paper/design-language.md#25-mockup-only-colours-document-content)) and the drawn macOS `window` colours: not product tokens.
@@ -64,7 +64,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 - [x] `src/index.ts`: named exports only (`THEMES`, `PAGE_APPEARANCES`, `ANNOTATION_COLOURS`, `SPACE`, `RADIUS`, `TYPE`, `BREAKPOINTS`, `MOTION`, `cssVar(name)` returning `var(--paper-…)` typed by `SemanticColour | …`), each with TSDoc.
 - [x] `src/contrast.ts`: WCAG 2.x relative luminance and ratio, alpha compositing over an opaque background; unit-tested against known values (black/white 21:1, `#767676` on white 4.54:1) and a few design-language numbers.
 - [x] `src/contrast.test.ts`: iterates every declared pair in every theme and appearance; fails with a table of failing pairs (token, background, ratio, required).
-- [x] `src/high-contrast.browser.test.ts` (Vitest browser mode, Chromium, Firefox, WebKit): applies `[data-theme="high-contrast"]`, reads computed system colours with `getComputedStyle`, and checks the same pairs; forced-colors rendering itself is screenshot-tested in [U6f](../ready/U6f-gallery-and-visual-tests.md).
+- [x] `src/high-contrast.browser.test.ts` (Vitest browser mode, Chromium, Firefox, WebKit): applies `[data-theme="high-contrast"]`, reads computed system colours with `getComputedStyle`, and checks the same pairs; forced-colors rendering itself is screenshot-tested in [U6f](../done/U6f-gallery-and-visual-tests.md).
 - [x] Tests that annotation colours are identical in every theme and appearance block, that every semantic token exists in every theme (no missing key falls back silently), and that no component token points at a primitive directly when a semantic one exists.
 - [x] Wire `pnpm --filter @laminapdf/tokens generate --check` into the package's `test` script so `cargo xtask check ts` catches stale output; add the generated paths to `.gitattributes`.
 - [x] Apply the owner's answers: approved values get `status: "approved"`; changed values are changed in the JSON, the design language and (noted for the next canvas edit) the canvases; refused values are replaced before merge.
@@ -92,14 +92,14 @@ None.
 ## Docs to update
 
 - [Design language](../../design/paper/design-language.md): the header's **Source of truth** line and the intro to §2–§4 say that values now come from `packages/tokens/tokens.json` (linked) and that the tables are a readable copy; remove the **(proposed)** markers for approved values (or note the approval date); fix any ratio the test computed differently.
-- [Paper design plan §9](../../plans/paper-design.md#9-to-dos): tick "Owner sign-off on proposed values (U6a)"; leave the combined U6 line for [U6f](../ready/U6f-gallery-and-visual-tests.md); update §3 ("Values marked (proposed) … need sign-off in U6a") to say they were signed off.
+- [Paper design plan §9](../../plans/paper-design.md#9-to-dos): tick "Owner sign-off on proposed values (U6a)"; leave the combined U6 line for [U6f](../done/U6f-gallery-and-visual-tests.md); update §3 ("Values marked (proposed) … need sign-off in U6a") to say they were signed off.
 - `packages/tokens/README.md` (new). `CLAUDE.md` repository layout: add `packages/` with `tokens/` (the first package, if no other package has landed yet).
 - `docs/guidelines/typescript.md` only if the package needs a rule exception (for example CSS side effects).
 
 ## Risks and open questions
 
 - **Owner availability gates merge.** Ask on the first day; if some answers take long, land approved values and keep the PR open rather than merging `proposed` ones (the "no proposed status" test makes that explicit).
-- **High contrast** is a mapping to system colours, so its contrast depends on the user's OS palette; we can only test the browsers' defaults in normal mode. The `forced-colors` screenshots in [U6f](../ready/U6f-gallery-and-visual-tests.md) and C7a's manual pass cover the rest. Decide with the owner whether an explicit "High contrast" choice without OS forced colours needs its own fixed palette (recommendation: no; system colours resolve to black/white defaults, which pass).
+- **High contrast** is a mapping to system colours, so its contrast depends on the user's OS palette; we can only test the browsers' defaults in normal mode. The `forced-colors` screenshots in [U6f](../done/U6f-gallery-and-visual-tests.md) and C7a's manual pass cover the rest. Decide with the owner whether an explicit "High contrast" choice without OS forced colours needs its own fixed palette (recommendation: no; system colours resolve to black/white defaults, which pass).
 - **DTCG format version**: the spec changed several times before its first stable version; pin the version you follow in the README and keep the generator tolerant of `$type` inheritance.
 - **Token names in ADR 0024 vs the design language** may differ (e.g. `text-2` vs `text-secondary`); the ADR wins, and the design language is updated in this PR.
 - **The canvases keep literal hex values**; they drift when tokens change. The paper-design plan's §5 rule 3 makes the canvas follow the tokens at its next edit; list changed values in the PR so the canvas owner can update them.

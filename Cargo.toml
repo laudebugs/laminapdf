@@ -81,6 +81,9 @@ png = { version = "0.18.1", default-features = false }
 # tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
 # skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).
 hayro = { version = "=0.8.0" }
+# ONNX Runtime bindings for laminapdf-layout-onnx only (edge, native): no default features, so
+# nothing is downloaded at build time; the app loads ONNX Runtime from a path (load-dynamic).
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["load-dynamic"] }
 # PDFium bindings for laminapdf-render-pdfium (ADR 0004 §3): loaded at runtime, never linked at build
 # time; `thread_safe` serialises every FFI call. MIT OR Apache-2.0 (libloading: ISC).
 pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
@@ -211,6 +214,10 @@ opt-level = 3
 
 [profile.release]
 lto = "thin"
+
+# The `laminapdf` release binaries (cargo-dist, dist-workspace.toml; todo L4d).
+[profile.dist]
+inherits = "release"
 
 # Size-optimised profile for WebAssembly builds (`cargo xtask wasm`); the spike's settings.
 [profile.wasm-release]

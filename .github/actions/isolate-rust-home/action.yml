@@ -4,6 +4,23 @@
 # This points CARGO_HOME and RUSTUP_HOME at the runner's own tool cache instead, so each runner
 # keeps a private, persistent Rust install. GitHub-hosted runners keep their preinstalled one.
 #
+# It also installs rustup into that CARGO_HOME, once per runner, and puts its bin/ first on the
+# PATH, so every later step runs this runner's rustup and cargo. setup-rust-toolchain then skips
+# its own rustup install, and install-action puts the tools in $CARGO_HOME/bin: it does so only
+# when the first `cargo` on the PATH is there (.github/actions/install-tools). Before, rustup was
+# left to setup-rust-toolchain, which installs it only when no `rustup` is on the PATH, and with
+# rustup-init's defaults, which add `. "<CARGO_HOME>/env"` to the user's shell profiles
+# (~/.zshenv, ~/.profile, ~/.bash_profile). So the first runner to install it put its cargo/bin
+# on the PATH of every runner started from a shell afterwards (or configured from one: a
+# runner's .path file keeps the PATH config.sh ran with). Those runners then ran its rustup and
+# its cargo, and install-action, seeing a cargo outside their own CARGO_HOME, fell back to the
+# ~/.install-action that all of them share (ci.yml's Rust job, 2026-11-05). This install passes
+# --no-modify-path and is pinned by version and SHA-256, like the Linux runner image's
+# (tools/ci-runner/linux/Dockerfile; tools/xtask/src/workflows.rs keeps the versions equal).
+# A runner that still starts with another runner's cargo/bin on its PATH gets a warning: delete
+# the `cargo/env` lines from the shell profiles and that entry from the runner's .path file,
+# then restart the runner.
+#
 # With `target-dir`, it also points CARGO_TARGET_DIR at a persistent build directory in that tool
 # cache, so a job reuses the build output of the runner's previous run of the same job instead
 # of compiling from scratch (actions/checkout cleans the workspace's target/, and rust-cache is
@@ -38,7 +55,7 @@
 # cargo's output. Its reports stay in the checkout's target/ (target/xtask/, target/nightly/,
 # target/examples-out/), where the workflows upload them from, fresh for every job.
 name: Isolate the Rust install on self-hosted runners
-description: Use a per-runner CARGO_HOME and RUSTUP_HOME (and optionally CARGO_TARGET_DIR) on self-hosted runners.
+description: Use a per-runner CARGO_HOME with its own rustup, RUSTUP_HOME (and optionally CARGO_TARGET_DIR) on self-hosted runners.
 inputs:
   target-dir:
     description: >-
@@ -51,10 +68,56 @@ runs:
   steps:
     - if: runner.environment == 'self-hosted'
       shell: bash
+      env:
+        # From https://static.rust-lang.org/rustup/archive/<version>/<target>/rustup-init.sha256
+        RUSTUP_VERSION: "1.28.2"
+        RUSTUP_INIT_SHA256_AARCH64_APPLE_DARWIN: 20ef5516c31b1ac2290084199ba77dbbcaa1406c45c1d978ca68558ef5964ef5
       run: |
-        echo "CARGO_HOME=$RUNNER_TOOL_CACHE/cargo" >> "$GITHUB_ENV"
-        echo "RUSTUP_HOME=$RUNNER_TOOL_CACHE/rustup" >> "$GITHUB_ENV"
-        echo "$RUNNER_TOOL_CACHE/cargo/bin" >> "$GITHUB_PATH"
+        set -euo pipefail
+        export CARGO_HOME="$RUNNER_TOOL_CACHE/cargo"
+        export RUSTUP_HOME="$RUNNER_TOOL_CACHE/rustup"
+        own="$CARGO_HOME/bin"
+        echo "CARGO_HOME=$CARGO_HOME" >> "$GITHUB_ENV"
+        echo "RUSTUP_HOME=$RUSTUP_HOME" >> "$GITHUB_ENV"
+        echo "$own" >> "$GITHUB_PATH"
+
+        # Another runner's Rust install on the PATH this runner started with (see above): a
+        # cargo/bin in a tool cache named like this runner's, other than its own.
+        tool_cache=$(basename "$RUNNER_TOOL_CACHE")
+        others=()
+        IFS=: read -r -a dirs <<< "$PATH"
+        for d in "${dirs[@]}"; do
+          if [[ "$d" != "$own" && "$d" == */"$tool_cache"/cargo/bin && -e "$d/cargo" ]]; then
+            others+=("$d")
+          fi
+        done
+        if [ "${#others[@]}" -gt 0 ]; then
+          list=$(printf '%s\n' "${others[@]}" | sort -u | paste -sd ' ' -)
+          echo "::warning::The runner started with another runner's Rust install on its PATH ($list). This job uses its own, $own, which comes first; to remove the other, see .github/actions/isolate-rust-home."
+        fi
+
+        if [ ! -x "$own/rustup" ] || [ ! -x "$own/cargo" ]; then
+          case "$RUNNER_OS/$RUNNER_ARCH" in
+            macOS/ARM64) target=aarch64-apple-darwin sum=$RUSTUP_INIT_SHA256_AARCH64_APPLE_DARWIN ;;
+            *)
+              echo "::error::no pinned rustup-init for $RUNNER_OS $RUNNER_ARCH: add its SHA-256 to .github/actions/isolate-rust-home"
+              exit 1
+              ;;
+          esac
+          echo "Installing rustup $RUSTUP_VERSION into $CARGO_HOME"
+          init="$RUNNER_TEMP/rustup-init"
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSLo "$init" \
+            "https://static.rust-lang.org/rustup/archive/$RUSTUP_VERSION/$target/rustup-init"
+          echo "$sum  $init" | shasum -a 256 -c -
+          chmod +x "$init"
+          # Outside the checkout, so rust-toolchain.toml plays no part. The path check would only
+          # repeat the warning above. rustup-init writes its --profile into settings.toml, so it
+          # gets the one RUSTUP_HOME already has (rustup's own default when there is none).
+          profile=$(sed -n 's/^profile = "\(.*\)"$/\1/p' "$RUSTUP_HOME/settings.toml" 2>/dev/null || true)
+          (cd "$RUNNER_TEMP" && RUSTUP_INIT_SKIP_PATH_CHECK=yes "$init" -y --no-modify-path \
+            --default-toolchain none --profile "${profile:-default}")
+          rm -f "$init"
+        fi
     - if: runner.environment == 'self-hosted' && inputs.target-dir != ''
       shell: bash
       env:

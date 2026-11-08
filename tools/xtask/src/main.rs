@@ -8,6 +8,7 @@ mod changes;
 mod cli_docs;
 mod codegen;
 mod corpus;
+mod design_screens;
 mod docs_links;
 mod docs_prose;
 mod docs_snippets;
@@ -15,11 +16,13 @@ mod doctor;
 mod examples;
 mod examples_lints;
 mod extract_bench;
+mod gallery;
 mod harness;
 mod licenses;
 mod lines;
 mod live;
 mod maintainability;
+mod models;
 mod nightly;
 mod package_docs;
 mod pdf_runtimes;
@@ -185,6 +188,8 @@ tasks:
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
   cli-docs          the laminapdf CLI's man pages and shell completions into target/cli-docs/
+  cli-dist          cli-docs plus the third-party notices (cargo-about) into target/cli-docs/:
+                    the files dist-workspace.toml puts in every release archive
   extract-bench [--subset <name>]… [--sample N] [--tables lattice-and-stream] [--update-lock]
                     score lamina's extraction on the pinned public benchmark of
                     tools/bench/extract-datasets.toml: fetch into target/bench/datasets/ (SHA-256 per
@@ -238,6 +243,10 @@ tasks:
                     Extractor, after `wasm`) against the newest published version; breaking changes
                     fail unless the changesets give the fixed group a minor bump (pending ones, or
                     those a version PR consumed while its version awaits npm)
+  gallery [--test|--update]
+                    the Paper component gallery (apps/gallery): serve it; --test runs its screenshot,
+                    axe and font tests in the pinned Playwright image (Docker); --update rewrites
+                    apps/gallery/e2e/__screenshots__/ there and lists what changed
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
                     wasm + pdf-runtimes, viewer-perf, render-diff, external links)
   changes [--base <rev>]
@@ -354,7 +363,10 @@ fn main() -> Result<()> {
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
+        ("models", [cmd]) if cmd == "check" => models::check(&ws.root),
+        ("models", [cmd, name]) if cmd == "fetch" => models::fetch(&ws, name).map(|_| ()),
         ("cli-docs", []) => cli_docs::run(&ws),
+        ("cli-dist", []) => cli_docs::dist_files(&ws),
         ("extract-bench", args) => extract_bench::run(&ws, &extract_bench::parse_args(args)?),
         ("verapdf", args) => verapdf::run(&ws, verapdf::dir_arg(args)?),
         ("render-golden", []) => render::run(&ws, false),
@@ -374,6 +386,7 @@ fn main() -> Result<()> {
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("semver", args) => semver::run(&ws, args),
+        ("gallery", args) => gallery::run(&ws, gallery::parse_args(args)?),
         ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
@@ -443,10 +456,13 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;
+    step("design screens: every screen in the Paper inventory has its area heading and design file");
+    design_screens::check(&ws.root)?;
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
     step("renames: docs/renames.json against its schema, every deprecation listed, every new name defined");
     renames::check(&ws.root)?;
+    models::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;
     version::run(&ws.root, &version::Command::Sync { check: true })?;

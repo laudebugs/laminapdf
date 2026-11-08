@@ -6,6 +6,7 @@
 
 use super::{Chunk, Rendered, TextRange};
 use crate::model::{Block, Dropped, ExtractedPage, ExtractedSource, Extraction, SCHEMA};
+use crate::plugins::ModelInfo;
 
 /// What the JSON carries besides the extraction.
 #[derive(Debug, Clone, Default)]
@@ -43,12 +44,13 @@ impl JsonOptions {
 /// Who made the extraction (ADR 0030 §1's `generator`).
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub(crate) struct Generator {
+pub(crate) struct Generator<'a> {
     name: &'static str,
     version: &'static str,
-    /// `"rules"`, or `"rules+models"` once model plug-ins exist.
+    /// `"rules"`, or `"rules+models"` when a model plug-in was used.
     mode: &'static str,
-    models: Vec<serde_json::Value>,
+    /// Each model used: name, version, weights' SHA-256 and licence.
+    models: &'a [ModelInfo],
 }
 
 /// A block and where its text sits in the Markdown.
@@ -68,7 +70,7 @@ pub(crate) struct JsonBlock<'a> {
 pub(crate) struct JsonDocument<'a> {
     /// Always `"laminapdf.extract/1"`.
     schema: &'static str,
-    generator: Generator,
+    generator: Generator<'a>,
     source: &'a ExtractedSource,
     pages: &'a [ExtractedPage],
     blocks: Vec<JsonBlock<'a>>,
@@ -87,8 +89,12 @@ pub fn to_json(extraction: &Extraction, markdown: &Rendered, options: &JsonOptio
         generator: Generator {
             name: "laminapdf",
             version: env!("CARGO_PKG_VERSION"),
-            mode: "rules",
-            models: Vec::new(),
+            mode: if extraction.models.is_empty() {
+                "rules"
+            } else {
+                "rules+models"
+            },
+            models: &extraction.models,
         },
         source: &extraction.source,
         pages: &extraction.pages,

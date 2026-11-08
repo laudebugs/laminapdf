@@ -57,6 +57,8 @@ const config: KnipConfig = {
     "apps/docs": { ignoreDependencies: ["@laminapdf/tokens", "@laminapdf/fonts"] },
     // Its tests are named here: knip can't load its Vitest config, which loads Astro's whole config.
     "apps/site": { entry: ["test/**/*.test.ts", "vitest.config.ts"], vitest: false },
+    // A command, not a library: no `exports`. bin/laminapdf.js runs the built src/launcher.ts.
+    "packages/cli": { entry: ["src/launcher.ts"] },
     // Its browser tests' config loads Astro, which knip can't, so its test entries are named here.
     "packages/site-kit": {
       entry: ["test/**/*.test.ts", "test/browser/render.ts", "vitest.config.ts", "vitest.browser.config.ts"],

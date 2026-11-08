@@ -35,7 +35,10 @@ export function ReaderShell({
       {secondaryToolbar === undefined ? null : <div className="paper-reader-secondary">{secondaryToolbar}</div>}
       <div className="paper-reader-body">
         {rail === undefined ? null : <div className="paper-reader-rail">{rail}</div>}
-        <main className="paper-reader-canvas">{children}</main>
+        {/* The page's single-key shortcuts (Page Down, +, ?) act while focus is in the canvas. */}
+        <main className="paper-reader-canvas" data-shortcut-scope="page">
+          {children}
+        </main>
         {inspector === undefined ? null : <div className="paper-reader-inspector">{inspector}</div>}
       </div>
       {status === undefined ? null : <footer className="paper-reader-status">{status}</footer>}

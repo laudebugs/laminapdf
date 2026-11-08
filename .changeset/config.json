@@ -20,7 +20,8 @@
     "@laminapdf/tokens",
     "@laminapdf/fonts",
     "@laminapdf/icons",
-    "@laminapdf/ui"
+    "@laminapdf/ui",
+    "@laminapdf/cli"
   ],
   "privatePackages": {
     "version": true,

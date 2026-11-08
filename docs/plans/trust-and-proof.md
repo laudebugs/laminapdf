@@ -137,7 +137,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 - **The board:** `tools/xtask/src/todos.rs` accepts the letter T, and the website's dashboard names the section (`apps/site/src/data/rounds.ts`).
 - **Editor rules from the research:** [E4f](../todos/ready/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ready/E7f-font-handling-and-styling.md) never substitutes a font silently.
 - **Todos that now build on Round T:**
-  - [L3c](../todos/ready/L3c-model-plugins.md)'s OCR plug-in runs on T3a's `needs-ocr` pages; [E13c](../todos/ready/E13c-ocr-text-layer.md) checks that its layer reads as `ocr-layer`.
+  - [L3c](../todos/done/L3c-model-plugins.md)'s OCR plug-in reads pages with no visible text; T3a switches it to its `needs-ocr` pages; [E13c](../todos/ready/E13c-ocr-text-layer.md) checks that its layer reads as `ocr-layer`.
   - [E3g](../todos/ready/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.
   - [E11d](../todos/ready/E11d-sanitiser.md)'s sanitiser removes what `laminapdf reveal` lists, by its category names, and [E12f](../todos/ready/E12f-leak-tests.md)'s redacted fixtures must pass T2b's checks.
   - [E6d](../todos/ready/E6d-watermarks-headers-footers.md) uses T4b's page-number fields.

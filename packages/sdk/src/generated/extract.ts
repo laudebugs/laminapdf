@@ -118,9 +118,10 @@ export type Flags = DropReason[];
 
 /** Who made the extraction (ADR 0030 §1's `generator`). */
 export type Generator = {
-  /** `"rules"`, or `"rules+models"` once model plug-ins exist. */
+  /** `"rules"`, or `"rules+models"` when a model plug-in was used. */
   mode: string;
-  models: unknown[];
+  /** Each model used: name, version, weights' SHA-256 and licence. */
+  models: ModelInfo[];
   name: string;
   version: string;
 };
@@ -179,6 +180,18 @@ export type JsonBlock = {
   type: "table";
 });
 
+/** Which model made a result, as the output's `generator.models` records it. */
+export type ModelInfo = {
+  /** The SPDX licence of its weights. */
+  licence: string;
+  /** Its name, e.g. `docling-layout-heron`. */
+  name: string;
+  /** The SHA-256 of its weights, in lowercase hex. */
+  sha256: string;
+  /** Its version or revision. */
+  version: string;
+};
+
 /** A chunk's area on one page. */
 export type Region = {
   /** The union of the chunk's blocks' boxes on that page, in page space. */
@@ -197,6 +210,13 @@ export type Span = {
   flags: Flags;
   /** The font's `/BaseFont`. */
   font: string;
+  /**
+   * The OCR engine's confidence, 0 to 1, when an engine read this text from the page image
+   * rather than the file's text layer ([ADR 0030] §6); absent for the text layer's runs.
+   * 
+   * [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
+   */
+  ocr?: number | null;
   /** The glyph size in points. */
   size: number;
   /** The run's text. */
