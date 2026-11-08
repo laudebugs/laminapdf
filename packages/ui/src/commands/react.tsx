@@ -1,7 +1,7 @@
 // React's view of the command registry: a provider that holds the registry, the context commands
 // run in and the platform the keys are written for, and listens for shortcuts; `useCommand` for a
-// toolbar button or menu item; and `useShortcutMap` for the shortcut help (C7a) and the desktop
-// app's native menus (D4b). Every view reads the one registry, so none can drift from another.
+// toolbar button or menu item; and `useShortcutMap` for the shortcut help and the desktop app's
+// native menus. Every view reads the one registry, so none can drift from another.
 
 import {
   createContext,

@@ -1,7 +1,7 @@
 // The commands' argument parsers: a page by number or label, page ranges (`4-8`, `4,6,9-12`),
 // a zoom (`150`, `150%`) and a choice among named values. Each returns the value with a short
 // summary for the palette's row ("Go to page 12"), or an error saying what to type instead. The
-// mini-language stays this small until a mode needs more (U1b's risks).
+// mini-language stays this small until a mode needs more.
 
 import { type MessageId, message } from "../messages.js";
 import { MAX_ZOOM, MIN_ZOOM, pageFromInput, type Zoom } from "../reader/viewer-controls.js";
