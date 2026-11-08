@@ -31,4 +31,4 @@ doc.open_revision(count, OpenOptions::default())?; // revision-index-out-of-rang
 
 The decisions and todos behind this code:
 
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): `revision_count` and `open_revision`
+- [T2b](../todos/done/T2b-check-failed-redactions.md): `revision_count` and `open_revision`

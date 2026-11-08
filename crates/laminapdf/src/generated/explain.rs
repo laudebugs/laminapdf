@@ -4012,7 +4012,7 @@ doc.open_revision(count, OpenOptions::default())?; // revision-index-out-of-rang
 
 The decisions and todos behind this code:
 
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): `revision_count` and `open_revision`
+- [T2b](../todos/done/T2b-check-failed-redactions.md): `revision_count` and `open_revision`
 ",
         "covered-text" => r#"# `covered-text`
 
@@ -4048,7 +4048,7 @@ The decisions and todos behind this code:
 
 - [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §4: hidden text and the `covered` flag
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): the warning
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning
 "#,
         "redaction-not-applied" => r#"# `redaction-not-applied`
 
@@ -4082,7 +4082,7 @@ The `location` has the page's `pageIndex`.
 The decisions and todos behind this code:
 
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): the warning
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning
 "#,
         "text-in-earlier-revision" => r#"# `text-in-earlier-revision`
 
@@ -4120,7 +4120,7 @@ The warning has no `location`, and it never holds the words themselves.
 The decisions and todos behind this code:
 
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): the warning and how revisions are compared
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning and how revisions are compared
 "#,
         "builder-finished" => r#"# `builder-finished`
 

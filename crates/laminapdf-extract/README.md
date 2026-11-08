@@ -78,6 +78,8 @@ Once every page is read, three more rules run. The first two need the whole docu
 
 On the reading-order corpus in `fixtures/reading-order/`, every file reads in order, including the copies drawn in reverse: one, two and three columns, an academic page, a sidebar, a table, a rotated page, and Arabic, Hebrew and Chinese text.
 
+`hidden_text(doc, options, cancel)` runs the first step alone and returns the hidden runs' `dropped` entries, without lines, blocks or tables: `laminapdf check` counts covered text with it.
+
 ## How it scores on a public benchmark
 
 On [olmOCR-bench](https://huggingface.co/datasets/allenai/olmOCR-bench), the rules pass half of the reading-order tests, three in five of the header and footer tests, and a quarter of the table tests. The benchmark's own tests scored Lamina PDF 0.2.0-alpha.2 on 2026-11-05, on the three subsets that aren't made of scans. The data is revision `54a96a6fb6a2` of the dataset, by the Allen Institute for AI, under ODC-BY-1.0:

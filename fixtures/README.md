@@ -244,6 +244,14 @@ python3 -m venv .venv && .venv/bin/pip install pypdf==6.21.3 cryptography==50.0.
 
 `-empty` files have an empty user password and owner password `owner-pw`; `-user` files have user password `user-pw` (R5/R6: `Pässwört-6`), owner password `owner-pw` and some permissions cleared.
 
+### `revisions/`
+
+Files with more than one cross-reference section but one revision, for `Document::revision_ends` and `laminapdf check`'s `text-in-earlier-revision` (T2b).
+
+| File | Source | What it tests |
+| --- | --- | --- |
+| `hello-linearized.pdf` | `qpdf --linearize --deterministic-id corpus/hello.pdf` with qpdf 12.4.2, the version `tools/xtask/src/doctor.rs` pins | A first-page cross-reference section whose `/Prev` names a section later in the file (Annex F): one revision, not two |
+
 ### `errors/`
 
 The error contract of [ADR 0026](../docs/decisions/0026-error-and-diagnostic-contract.md) (L1b).

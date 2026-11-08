@@ -32,4 +32,4 @@ The decisions and todos behind this code:
 
 - [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §4: hidden text and the `covered` flag
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): the warning
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning

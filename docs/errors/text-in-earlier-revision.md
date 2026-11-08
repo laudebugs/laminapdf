@@ -34,4 +34,4 @@ The warning has no `location`, and it never holds the words themselves.
 The decisions and todos behind this code:
 
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
-- [T2b](../todos/ongoing/T2b-check-failed-redactions.md): the warning and how revisions are compared
+- [T2b](../todos/done/T2b-check-failed-redactions.md): the warning and how revisions are compared

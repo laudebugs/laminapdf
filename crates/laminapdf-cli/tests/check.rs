@@ -82,3 +82,30 @@ fn text_an_update_removed_should_warn_text_in_earlier_revision() {
     assert_eq!(codes, ["text-in-earlier-revision"]);
     assert_eq!(report["warnings"][0]["data"]["words"], 1);
 }
+
+#[test]
+fn a_broken_font_should_still_warn_font_invalid() {
+    // A Type 0 font with no descendant font: extraction, which check runs on every page, says so.
+    let stream = laminapdf_test_fixtures::stream_body("", b"BT /F1 12 Tf 72 700 Td <0041> Tj ET");
+    let objects: [&[u8]; 5] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        &stream,
+        b"<< /Type /Font /Subtype /Type0 /BaseFont /X /Encoding /Identity-H >>",
+    ];
+    let path = common::folder("check-font").join("font.pdf");
+    std::fs::write(
+        &path,
+        laminapdf_test_fixtures::classic(&objects, "<< /Size 6 /Root 1 0 R >>"),
+    )
+    .unwrap();
+    let report = laminapdf(&["check", common::arg(&path), "--json"]).json();
+    let codes: Vec<&str> = report["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|w| w["code"].as_str())
+        .collect();
+    assert!(codes.contains(&"font-invalid"), "{codes:?}");
+}
