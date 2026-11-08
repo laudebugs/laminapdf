@@ -28,7 +28,7 @@ Developers on Hacker News complain that generators change their output under the
   - [ADR 0007 §6](../../decisions/0007-save-planner.md#6-sinks-and-determinism): saves are byte-deterministic too, so an edited file saves the same way twice.
   - The docs site's [stability policy](../../../apps/docs/src/content/docs/reference/stability.mdx): a change to the bytes written for the same input and options is a breaking change, and "the same input gives the same bytes everywhere" holds across versions.
 - How Lamina PDF tests its own output, which the guide shows readers how to do for theirs: `crates/laminapdf/tests/examples.rs` and `packages/sdk/test/suite/examples.ts` pass fixed options (`packages/sdk/test/suite/hello-options.ts`'s `exampleOptions`) and compare every example's bytes with its reference PDF in every runtime ([B6c](../done/B6c-runtime-matrix.md)).
-- Drawing pages: `@laminapdf/render-hayro`'s `initHayro` and `@laminapdf/render`'s `bytesSource` give a `RenderDocument` whose `render({ page, scale })` returns straight RGBA pixels ([C2c](../done/C2c-render-packages.md)). In Node the module's bytes come from `@laminapdf/wasm/lamina_pdf_render_hayro.wasm`, as `packages/render-hayro/test/` loads them. Both packages are published. Rust apps have the same in the `laminapdf-render` crate's `hayro` feature. The command-line `laminapdf render` ([L4e](./L4e-cli-render.md)) isn't released yet.
+- Drawing pages: `@laminapdf/render-hayro`'s `initHayro` and `@laminapdf/render`'s `bytesSource` give a `RenderDocument` whose `render({ page, scale })` returns straight RGBA pixels ([C2c](../done/C2c-render-packages.md)). In Node the module's bytes come from `@laminapdf/wasm/lamina_pdf_render_hayro.wasm`, as `packages/render-hayro/test/` loads them. Both packages are published. Rust apps have the same in the `laminapdf-render` crate's `hayro` feature. The command-line `laminapdf render` ([L4e](../done/L4e-cli-render.md)) isn't released yet.
 - The rules the new files must follow:
   - [examples.md](../../guidelines/examples.md): public entry points only, today `@laminapdf/sdk` and `@laminapdf/sdk/worker`; no test scaffolding; ≤ 100 lines; pairs share a name and their first header sentence;
   - [docs-writing.md](../../guidelines/docs-writing.md): an opening of at most 50 words; a sentence before each `<Snippet>`; "reference PDF", never "golden"; no "CI" in reader text.
@@ -58,7 +58,7 @@ Developers on Hacker News complain that generators change their output under the
 
 **Out of scope** (and which todo covers it)
 
-- A `laminapdf render` or `laminapdf compare` command → [L4e](./L4e-cli-render.md) (render); a compare command is a later todo if readers ask for one.
+- A `laminapdf render` or `laminapdf compare` command → [L4e](../done/L4e-cli-render.md) (render); a compare command is a later todo if readers ask for one.
 - Comparing extracted text or structure trees between versions: a later guide, once [T3a](./T3a-text-layer-status.md)–[T3c](./T3c-tables-across-pages.md) settle the extraction output.
 - Visual comparison in Rust as an example: the guide names the `laminapdf-render` crate. A Rust example would make `laminapdf_render` a second public import in Rust examples, which needs its own decision.
 - Tagged output by default ([trust and proof §9](../../plans/trust-and-proof.md#9-open-questions), question 1): it would change every reader's bytes once, which the guide's upgrade section covers.

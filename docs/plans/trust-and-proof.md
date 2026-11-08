@@ -121,14 +121,14 @@ Merge, split and the optimiser are planned in the library (E2, E16) but not in t
 
 ```
  T1a ─► T1b          T1c          T1d                          (start now)
- L3g ─► T2a ─► T2b ─► T2c
+ T2a ─► T2b ─► T2c                                             (T2a starts now; L3g is done)
  T3a    T3b    T3c                                             (start now)
  T4a ─► T4b ─► T4c ─► T4d ─► T4e                               (T4a starts now)
  C6b, U3a ─► T5a;  C6b, C7b ─► T5b
  L4e, E2d ─► T6a ─► T6b ◄─ E16c
 ```
 
-Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top finding. T1b waits on T1a's figures and on the owner's approval of its copy. T2 waits on L3g, which edits the same extraction flags. T5 and T6 follow the reader, CLI and editor rounds they extend.
+Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top finding. T1b waits on T1a's figures and on the owner's approval of its copy. T2a can start too, now that L3g, which edits the same extraction flags, is done. T5 and T6 follow the reader, CLI and editor rounds they extend.
 
 ## 7. Changes to existing todos and plans
 
@@ -150,7 +150,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 - **Published figures can embarrass.** A low share of corpus files opened, or a slow benchmark, would be public. The answer is to publish anyway, with the method and the trend, and fix what the numbers show; hiding them would contradict the round's point. The owner approves the page's copy (T1b).
 - **Covered-text detection can flag honest layouts.** Shading drawn over text, white boxes used for layout, and form widgets can look like a redaction box. T2a tests those cases and T2b words its warnings as "likely"; false positives cost trust too.
 - **ADR 0032 may choose Typst,** whose output is finished bytes (via krilla), not Lamina PDF's object graph ([`krilla-fit` spike](../../spikes/krilla-fit/README.md)). T4b–T4e would then change shape; their files say so.
-- **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2 waits on L3g, and T5 and T6 wait on the rounds they extend.
+- **Round T competes for time with the launch rounds.** T1 and T3 are the parts worth doing early; T2a can start now that L3g is done, and T5 and T6 wait on the rounds they extend.
 - **Parallel todos touch the same files.** T1c, T3a and T3b all edit the extraction benchmark (`crates/laminapdf/examples/differential/extract-bench.rs`, `tools/xtask/src/extract_bench.rs`); T2a and T3a both forward image events through `TextExtractor::page_with`. Each todo says so, and whichever lands second extends the first's code.
 - **The WASM text module is near its size budget.** It has about 5% headroom; the flow layer, Markdown and the document schema will likely need an ADR 0016 §6 budget change or a fourth module (T4a decides).
 

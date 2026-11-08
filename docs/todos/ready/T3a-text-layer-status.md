@@ -65,7 +65,7 @@ Tell a pipeline, page by page, whether the extracted text is the page's text, so
 - Running OCR: [L3c](./L3c-model-plugins.md) (`OcrEngine`) and [E13d](./E13d-local-ocr.md) (local engines); writing an OCR layer into a PDF: [E13c](./E13c-ocr-text-layer.md).
 - Putting an OCR layer's text in the blocks of an `ocr-layer` page: that changes ADR 0030 §4, so it waits for the owner's decision (Risks).
 - Text whose glyphs map to the wrong characters, text that differs from what the page shows, and text under later images: a rendered check through the render backend later (ADR 0030 §4, [ADR 0004](../../decisions/0004-render-backend.md)), and [T2a](./T2a-covered-text-flag.md) for covered text.
-- The clip: image boxes are taken whole until [L3g](./L3g-extract-structure-tree.md) tracks the clip's box.
+- The clip: image boxes are taken whole until [L3g](../done/L3g-extract-structure-tree.md) tracks the clip's box.
 - `laminapdf extract`'s plain-text format (`laminapdf.text/1`) and the `laminapdf_extract` MCP tool, which answers with that format only: neither runs the extraction rules. Giving the MCP tool the extracted document is a later CLI and MCP change.
 - The cut-offs as `doc.extract()` options in TypeScript (Risks).
 

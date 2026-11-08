@@ -29,7 +29,7 @@ When a table runs over a page break, link its two parts, write them as one table
   - `crates/laminapdf-extract/src/output/chunks.rs`: `split()` (boundaries at headings or pages, the budget, the overlap).
 - `crates/laminapdf-extract/tests/tables.rs`: `a_table_split_across_a_page_break_is_two_tables` draws a whole table at the top of each of two pages, and its helpers (`pages()`, `grid()`, `text()`) draw ruled grids by hand.
 - `crates/laminapdf-cli/src/commands/extract.rs`'s `truncate()` (`--max-chars`) keeps whole blocks.
-- [L3g](./L3g-extract-structure-tree.md) adds tagged tables, whose structure tree already says where a table goes on.
+- [L3g](../done/L3g-extract-structure-tree.md) adds tagged tables, whose structure tree already says where a table goes on.
 
 ## Scope
 
@@ -49,7 +49,7 @@ When a table runs over a page break, link its two parts, write them as one table
 
 **Out of scope** (and which todo covers it)
 
-- Tagged tables over pages: the structure tree's `Table` element joins them, [L3g](./L3g-extract-structure-tree.md)'s work.
+- Tagged tables over pages: the structure tree's `Table` element joins them, [L3g](../done/L3g-extract-structure-tree.md)'s work.
 - A caption or footnote between the parts other than a "continued" line, a part that isn't its page's last or first block (a footnote under it, a heading above it), and tables side by side in columns.
 - A table continued in the next column on the same page.
 - Merging the parts into one block in the JSON: a block's box lies on one page (ADR 0027), so the parts stay blocks of their own.
