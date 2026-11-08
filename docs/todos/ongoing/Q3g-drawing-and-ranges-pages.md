@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | [Q3a](../done/Q3a-diagram-kit-and-first-diagram.md) |

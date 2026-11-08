@@ -93,7 +93,7 @@ Each todo ships finished diagrams on live pages. Q3a builds the kit, the checks 
 | [Q3d](../todos/ready/Q3d-package-map-diagram.md) | The packages and modules | 5 |
 | [Q3e](../todos/ready/Q3e-extraction-diagrams.md) | From page to Markdown, and reading order | 6, 7 |
 | [Q3f](../todos/ready/Q3f-worker-errors-undo-diagrams.md) | Web Worker, errors and warnings, transactions | 8, 9, 10 |
-| [Q3g](../todos/ready/Q3g-drawing-and-ranges-pages.md) | Two new pages, each with its diagram | 11, 12 |
+| [Q3g](../todos/ongoing/Q3g-drawing-and-ranges-pages.md) | Two new pages, each with its diagram | 11, 12 |
 
 ## 7. Risks
 
