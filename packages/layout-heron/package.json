@@ -1,0 +1,47 @@
+{
+  "name": "@laminapdf/layout-heron",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Docling's Heron layout model in the browser for @laminapdf/sdk's extractJob: the page resize and box filtering of laminapdf-layout-onnx, run by the onnxruntime-web module the app supplies, with weights checked by SHA-256.",
+  "license": "MIT OR Apache-2.0",
+  "homepage": "https://laminapdf.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laudebugs/laminapdf.git",
+    "directory": "packages/layout-heron"
+  },
+  "keywords": [
+    "pdf",
+    "layout",
+    "onnx",
+    "extraction"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test": "tsc -p tsconfig.build.json && vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@laminapdf/sdk": "workspace:*"
+  }
+}
