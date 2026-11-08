@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T1c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [trust and proof §T1](../../plans/trust-and-proof.md#t1-publish-the-proof) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | None |
@@ -62,24 +62,24 @@ On Hacker News, extraction users ask for benchmarks they can rerun: 163 comments
 
 ## Tasks
 
-- [ ] Claim: the first commit moves this file to `ongoing/`.
-- [ ] `machine.rs` with unit tests over captured `sysctl` and `/proc` text.
-- [ ] `extract_bench.rs`: `*-results.json` and the pages per second in the report; a unit test over a fixture `facts` object (median, sum, pages per second).
-- [ ] The `invoice` case in `measure()`, `history_entries` and the table in `pdf_runtimes.rs`; `invoice_one_page` in `benches/report.rs`.
-- [ ] `benchmarks.rs`: run, read, write; `--no-run`; unit tests over fixture outputs; wire it into `main.rs`.
-- [ ] On the quietest machine available (the owner's Mac when the runners are idle, or another Apple-silicon Mac), run `cargo xtask wasm`, `cargo xtask extract-bench`, then `cargo xtask benchmarks`; commit the first `benchmarks.json`.
-- [ ] `src/lib/benchmarks.ts`, the `Benchmarks` component and its Markdown twin case; the page, drafted with `/writing`; the sidebar entry; the links from the two recipes.
-- [ ] Move the README's table out; check that the docs page and the README say the same about why tests fail.
-- [ ] `/writing-review` on the page.
+- [x] Claim: the first commit moves this file to `ongoing/`.
+- [x] `machine.rs` with unit tests over captured `sysctl` and `/proc` text.
+- [x] `extract_bench.rs`: `*-results.json` and the pages per second in the report; a unit test over a fixture `facts` object (median, sum, pages per second).
+- [x] The `invoice` case in `measure()`, `history_entries` and the table in `pdf_runtimes.rs`; `invoice_one_page` in `benches/report.rs`.
+- [x] `benchmarks.rs`: run, read, write; `--no-run`; unit tests over fixture outputs; wire it into `main.rs`.
+- [x] On the quietest machine available (the owner's Mac when the runners are idle, or another Apple-silicon Mac), run `cargo xtask wasm`, `cargo xtask extract-bench`, then `cargo xtask benchmarks`; commit the first `benchmarks.json`.
+- [x] `src/lib/benchmarks.ts`, the `Benchmarks` component and its Markdown twin case; the page, drafted with `/writing`; the sidebar entry; the links from the two recipes.
+- [x] Move the README's table out; check that the docs page and the README say the same about why tests fail.
+- [x] `/writing-review` on the page.
 
 ## Acceptance criteria
 
-- [ ] Every number on the page comes from `benchmarks.json`. A test of `src/lib/benchmarks.ts` rejects a file with a missing field and accepts the committed one; the built page shows each runtime's invoice and report timings, each module's gzip size and each subset's score.
-- [ ] Each section on the page states its machine, Lamina PDF version, commit (short) and date.
-- [ ] `extract-bench` reports pages per second, and `benchmarks.json` holds it. For the committed run, the pages per second equal the pages extracted divided by the summed seconds (unit test on the arithmetic).
-- [ ] `invoice_one_page` builds the bytes of `fixtures/golden/examples/invoice.pdf`, and every runtime's `invoice` case builds the invoice example; `cargo xtask pdf-runtimes` prints the invoice column.
-- [ ] The page passes `cargo xtask check docs-prose` strict, and its Markdown twin holds the same tables.
-- [ ] No number on the page or in the README is typed by hand.
+- [x] Every number on the page comes from `benchmarks.json`. A test of `src/lib/benchmarks.ts` rejects a file with a missing field and accepts the committed one; the built page shows each runtime's invoice and report timings, each module's gzip size and each subset's score.
+- [x] Each section on the page states its machine, Lamina PDF version, commit (short) and date.
+- [x] `extract-bench` reports pages per second, and `benchmarks.json` holds it. For the committed run, the pages per second equal the pages extracted divided by the summed seconds (unit test on the arithmetic).
+- [x] `invoice_one_page` builds the bytes of `fixtures/golden/examples/invoice.pdf`, and every runtime's `invoice` case builds the invoice example; `cargo xtask pdf-runtimes` prints the invoice column.
+- [x] The page passes `cargo xtask check docs-prose` strict, and its Markdown twin holds the same tables.
+- [x] No number on the page or in the README is typed by hand.
 
 ## Post-merge checks
 
@@ -107,8 +107,8 @@ Unit tests in `machine.rs`, `extract_bench.rs` and `benchmarks.rs` over captured
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

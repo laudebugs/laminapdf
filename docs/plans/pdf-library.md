@@ -71,7 +71,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 | Output validity | qpdf `--check` clean, opens in pdf.js and PDFium, veraPDF-clean under each profile (B8) |
 | Licence | MIT OR Apache-2.0; dependency licences gated by cargo-deny and the npm licence check (ADR 0019) |
 
-The measured numbers against these targets, each with its version, date and machine, are on the docs site's [Benchmarks](https://docs.laminapdf.com/reference/benchmarks/) page, from `apps/docs/src/data/benchmarks.json`, which `cargo xtask benchmarks` writes ([T1c](../todos/ongoing/T1c-publish-performance-numbers.md)).
+The measured numbers against these targets, each with its version, date and machine, are on the docs site's [Benchmarks](https://docs.laminapdf.com/reference/benchmarks/) page, from `apps/docs/src/data/benchmarks.json`, which `cargo xtask benchmarks` writes ([T1c](../todos/done/T1c-publish-performance-numbers.md)).
 
 ## 5. Design summary
 

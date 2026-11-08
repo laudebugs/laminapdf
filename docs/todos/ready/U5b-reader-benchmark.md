@@ -20,7 +20,7 @@ Users quote SumatraPDF-class speed as the bar and complain about Acrobat's cold 
 ## Context
 
 - [Hacker News research R1 and R6](../../research/hacker-news/pdf-users-on-hacker-news.md#r1-prove-correctness-in-public): speed is the most praised reader trait and slowness the second-largest complaint (470 comments together); [T1b](./T1b-how-we-test-page.md)'s "How we test" page should link the benchmark
-- [T1b](./T1b-how-we-test-page.md) publishes the nightly's robustness figures at `/how-we-test/`, and [T1c](../ongoing/T1c-publish-performance-numbers.md) the library's timings, extraction speed and module sizes on the docs site's benchmarks page: `/performance/` links to both rather than repeating them.
+- [T1b](./T1b-how-we-test-page.md) publishes the nightly's robustness figures at `/how-we-test/`, and [T1c](../done/T1c-publish-performance-numbers.md) the library's timings, extraction speed and module sizes on the docs site's benchmarks page: `/performance/` links to both rather than repeating them.
 - **Design (Paper):** [H09 Benchmark page](../../design/paper/account-cloud-product.md#h09-benchmark-page). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — targets; [research gaps](../../research/product/pdf-app-product-and-ux.md#several-primary-sources-were-unreachable-and-the-gaps-matter) — no competitor benchmarks found.
 - [Competitive teardown](../../research/product/notes/competitive-teardown.md) — Acrobat footprint and iPad drawing reports; Sumatra praise.
