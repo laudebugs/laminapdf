@@ -16,7 +16,6 @@ import { copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promi
 import { resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { sectionMarkdown } from "../src/lib/benchmarks.ts";
 import {
   contentFiles,
   packageVersion,
@@ -29,6 +28,7 @@ import { releaseNotes } from "../plugins/changelog.mjs";
 import { readerMarkdown } from "../plugins/error-pages.mjs";
 import { frontMatter, mdxToMarkdown, rewriteLinks, twin } from "../plugins/markdown.mjs";
 import { sidebarRoutes } from "../plugins/sidebar.mjs";
+import { sectionMarkdown } from "../src/lib/benchmarks.ts";
 
 const ROOT = new URL("../../../", import.meta.url);
 const CONTENT = new URL("../src/content/docs/", import.meta.url);
