@@ -42,12 +42,16 @@ ${THEMES.map(([theme, title]) => table(theme, title)).join("\n")}
 </main>`;
 }
 
-/** The gallery's styles: the tokens' colours, type and spacing. */
+/**
+ * The gallery's styles: the tokens' colours, type and spacing. Each section fits its table
+ * (`width: fit-content`): a table wider than its section would paint its last columns over the
+ * page's ground, the other theme's background, and fail contrast (wider fonts, narrow windows).
+ */
 export const GALLERY_CSS = `
 body { margin: 0; background: var(--paper-ground); color: var(--paper-text); font: var(--paper-type-body); }
 main { padding: var(--paper-space-24); }
 h1, h2 { font: var(--paper-type-title); }
-section { background: var(--paper-surface); color: var(--paper-text); padding: var(--paper-space-16); margin-block: var(--paper-space-24); border: var(--paper-border-width) solid var(--paper-hairline); border-radius: var(--paper-radius-6); }
+section { width: fit-content; background: var(--paper-surface); color: var(--paper-text); padding: var(--paper-space-16); margin-block: var(--paper-space-24); border: var(--paper-border-width) solid var(--paper-hairline); border-radius: var(--paper-radius-6); }
 table { border-collapse: collapse; }
 caption { text-align: start; font: var(--paper-type-caption); color: var(--paper-muted); padding-block-end: var(--paper-space-8); }
 th, td { padding: var(--paper-space-6) var(--paper-space-12); text-align: center; color: var(--paper-text-3); }

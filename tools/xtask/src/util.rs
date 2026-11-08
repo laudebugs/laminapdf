@@ -78,6 +78,12 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     })
 }
 
+/// `path` with `/` between its parts on every system, as messages and reports name repository
+/// paths (Windows' `display()` would print `\`).
+pub(crate) fn slash_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
 /// True when `path`'s extension is one of `extensions`, ignoring case.
 pub(crate) fn has_extension(path: &str, extensions: &[&str]) -> bool {
     Path::new(path)
@@ -93,13 +99,23 @@ pub(crate) fn md_cell(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{md_cell, sha256_hex};
+    use std::path::Path;
+
+    use super::{md_cell, sha256_hex, slash_path};
 
     #[test]
     fn sha256_hex_should_match_the_known_digest() {
         assert_eq!(
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn slash_path_should_name_windows_paths_with_forward_slashes() {
+        assert_eq!(
+            slash_path(Path::new("packages\\render\\package.json")),
+            "packages/render/package.json"
         );
     }
 

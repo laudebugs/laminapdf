@@ -101,7 +101,7 @@ fn problems(docs: &Path, codes: &[String], version: &str, api: bool) -> Result<V
     for path in markdown_files(docs)? {
         let text = fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
         if !front_matter_has(&text, &stamp) {
-            let shown = path.strip_prefix(docs).unwrap_or(&path).display().to_string();
+            let shown = crate::util::slash_path(path.strip_prefix(docs).unwrap_or(&path));
             problems.push(format!("{shown}: its front matter lacks `{stamp}`"));
         }
     }
