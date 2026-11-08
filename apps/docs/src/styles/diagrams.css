@@ -12,7 +12,8 @@
 
 .dg {
   container-type: inline-size;
-  margin-block: 1.5rem;
+  /* No inline margin: a figure's default 40 px each side would show the narrow layout in a desktop column. */
+  margin: 1.5rem 0;
 }
 
 .dg .dg-svg {
@@ -124,4 +125,58 @@
 
 .dg .dg-head-focus {
   fill: var(--paper-accent);
+}
+
+/* A page (kit/PageSheet.astro): the page-appearance tokens, so it stays a white page in the dark
+   theme, as in the reader. Everything on it takes the page's ink; the point takes the page's accent,
+   since the theme's accent is too light on white in the dark theme. */
+.dg .dg-sheet {
+  fill: var(--paper-page-paper);
+  stroke: var(--paper-control-border);
+  stroke-width: 1;
+}
+
+.dg .dg-page text {
+  fill: var(--paper-page-ink);
+}
+
+.dg .dg-ink {
+  fill: var(--paper-page-ink);
+}
+
+.dg .dg-ink-line {
+  fill: none;
+  stroke: var(--paper-page-ink);
+  stroke-width: 1;
+}
+
+.dg .dg-page-axis {
+  fill: none;
+  stroke: var(--paper-page-ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.dg .dg-head-ink {
+  fill: var(--paper-page-ink);
+}
+
+.dg .dg-origin {
+  fill: var(--paper-text-2);
+}
+
+/* A position the diagram is about. */
+.dg .dg-point {
+  font-family: var(--paper-font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--paper-accent-strong);
+}
+
+.dg .dg-page .dg-point {
+  fill: var(--paper-page-original-accent);
+}
+
+.dg .dg-point-dot {
+  fill: var(--paper-page-original-accent);
 }

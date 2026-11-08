@@ -1,0 +1,120 @@
+---
+// "Page space and user space" (concepts/pages-and-coordinates): a US Letter page upright and with
+// /Rotate 90. Page space (solid, outside the sheet) starts at the top-left corner you see; the
+// file's user space (dashed, on the sheet) starts at the bottom-left corner before rotation. The
+// accent follows the point [72, 96]; the heading box is ADR 0027's worked example, so its corners
+// are the ADR's numbers. Positions are written in points and scaled here, so the picture can't
+// drift from them. Caption and text description: registry.mjs.
+import Arrow from "./kit/Arrow.astro";
+import type { DrawingProps } from "./kit/drawing.ts";
+import Label from "./kit/Label.astro";
+import Markers from "./kit/Markers.astro";
+import PageSheet from "./kit/PageSheet.astro";
+import Svg from "./kit/Svg.astro";
+
+type Props = DrawingProps;
+const { prefix, labelledby, describedby } = Astro.props;
+
+/** US Letter, in points. */
+const LETTER = { w: 612, h: 792 };
+/** The axes' length, how far they sit from the sheet's edge, and the point's radius, in drawing units. */
+const AXIS = 100;
+const GAP = 12;
+const INSET = 6;
+
+/** A page drawn at (x, y), `s` drawing units to a point; `rotated` is /Rotate 90 (shown on its side). */
+function panel(title: string, x: number, y: number, s: number, rotated: boolean) {
+  const w = (rotated ? LETTER.h : LETTER.w) * s;
+  const h = (rotated ? LETTER.w : LETTER.h) * s;
+  /** A page-space point, in points from the displayed top-left corner, as drawing units. */
+  const at = (px: number, py: number) => [x + px * s, y + py * s] as const;
+  // The heading: ADR 0027's box, and a line of text on the baseline at y = 96 (upright).
+  const [boxX0, boxY0] = rotated ? at(692, 72) : at(72, 72);
+  const [boxX1, boxY1] = rotated ? at(720, 272) : at(272, 100);
+  const [textX0, textY0] = rotated ? at(696, 72) : at(72, 79);
+  const [textX1, textY1] = rotated ? at(713, 240) : at(240, 96);
+  const [pointX, pointY] = at(72, 96);
+  return {
+    title,
+    rotated,
+    x,
+    y,
+    w,
+    h,
+    size: rotated ? "792 × 612 points" : "612 × 792 points",
+    box: { x: boxX0, y: boxY0, w: boxX1 - boxX0, h: boxY1 - boxY0 },
+    text: { x: textX0, y: textY0, w: textX1 - textX0, h: textY1 - textY0 },
+    point: { x: pointX, y: pointY },
+  };
+}
+
+const layouts = [
+  {
+    layout: "wide" as const,
+    viewBox: "0 0 720 424",
+    markers: `${prefix}-wide`,
+    panels: [panel("Upright", 40, 70, 0.4, false), panel("With /Rotate 90", 380, 70, 0.4, true)],
+  },
+  {
+    layout: "narrow" as const,
+    viewBox: "0 0 320 706",
+    markers: `${prefix}-narrow`,
+    panels: [panel("Upright", 30, 70, 0.34, false), panel("With /Rotate 90", 30, 458, 0.34, true)],
+  },
+];
+---
+
+{
+  layouts.map(({ layout, viewBox, markers, panels }) => (
+    <Svg viewBox={viewBox} layout={layout} labelledby={labelledby} describedby={describedby}>
+      <Markers prefix={markers} />
+      {panels.map((p) => (
+        <>
+          <Label x={p.x - GAP} y={p.y - 46} text={p.title} />
+
+          <circle class="dg-origin" cx={p.x} cy={p.y} r="3" />
+          <Label x={p.x - GAP} y={p.y - 22} text="page space (0, 0)" kind="sub" />
+          <Arrow d={`M${p.x} ${p.y - GAP} H${p.x + AXIS}`} prefix={markers} />
+          <Label x={p.x + AXIS + 8} y={p.y - GAP + 5} text="x" />
+          <Arrow d={`M${p.x - GAP} ${p.y} V${p.y + AXIS}`} prefix={markers} />
+          <Label x={p.x - GAP} y={p.y + AXIS + 18} text="y" anchor="middle" />
+
+          <PageSheet x={p.x} y={p.y} w={p.w} h={p.h}>
+            <rect class="dg-ink-line" x={p.box.x} y={p.box.y} width={p.box.w} height={p.box.h} />
+            <rect class="dg-ink" x={p.text.x} y={p.text.y} width={p.text.w} height={p.text.h} />
+            {p.rotated ? (
+              <>
+                <Label x={p.box.x - 8} y={p.box.y + 10} text="[692, 72]" kind="mono" anchor="end" />
+                <Label x={p.box.x + p.box.w} y={p.box.y + p.box.h + 20} text="[720, 272]" kind="mono" anchor="end" />
+                <Arrow d={`M${p.x + INSET} ${p.y + INSET} V${p.y + AXIS}`} prefix={markers} ink />
+                <Label x={p.x + INSET} y={p.y + AXIS + 20} text="x" anchor="middle" />
+                <Arrow d={`M${p.x + INSET} ${p.y + INSET} H${p.x + AXIS}`} prefix={markers} ink />
+                <Label x={p.x + AXIS + 8} y={p.y + INSET + 5} text="y" />
+                <Label x={p.x + INSET + 12} y={p.y + INSET + 20} text="user space (0, 0)" kind="sub" />
+              </>
+            ) : (
+              <>
+                <Arrow d={`M${p.x + INSET} ${p.y + p.h - INSET} H${p.x + AXIS}`} prefix={markers} ink />
+                <Label x={p.x + AXIS + 8} y={p.y + p.h - INSET + 5} text="x" />
+                <Arrow d={`M${p.x + INSET} ${p.y + p.h - INSET} V${p.y + p.h - AXIS}`} prefix={markers} ink />
+                <Label x={p.x + INSET} y={p.y + p.h - AXIS - 10} text="y" anchor="middle" />
+                <Label x={p.x + INSET + 12} y={p.y + p.h - INSET - 14} text="user space (0, 0)" kind="sub" />
+              </>
+            )}
+            <circle class="dg-point-dot" cx={p.point.x} cy={p.point.y} r="4" />
+            {p.rotated ? (
+              <Label x={p.point.x + 10} y={p.point.y + 5} text="[72, 96]" kind="point" />
+            ) : (
+              <>
+                <Label x={p.point.x - 4} y={p.box.y + p.box.h + 20} text="[72, 96]" kind="point" />
+                <Label x={p.box.x + p.box.w + 8} y={p.text.y + p.text.h + 4} text="baseline" kind="sub" />
+              </>
+            )}
+          </PageSheet>
+
+          <Label x={p.x} y={p.y + p.h + 22} text={p.size} kind="sub" />
+        </>
+      ))}
+    </Svg>
+  ))
+}

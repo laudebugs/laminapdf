@@ -104,7 +104,7 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
       it("gives every border and arrow 3:1 against the page", () => {
         const svg = shown(mount(html, theme, WIDTHS.desktop));
         const page = getComputedStyle(document.body).backgroundColor;
-        for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane")) {
+        for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane, .dg-sheet")) {
           const ratio = contrast(getComputedStyle(shape).stroke, page);
           expect(ratio, `${shape.getAttribute("class")} in ${theme}`).toBeGreaterThanOrEqual(3);
         }
@@ -123,7 +123,7 @@ for (const [name, html] of Object.entries(DIAGRAMS)) {
     for (const text of svg.querySelectorAll("text")) {
       expect(contrast(getComputedStyle(text).fill, behind(text)), `"${text.textContent}"`).toBeGreaterThanOrEqual(4.5);
     }
-    for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane")) {
+    for (const shape of svg.querySelectorAll(".dg-box, .dg-focus, .dg-fresh, .dg-arrow, .dg-lane, .dg-sheet")) {
       expect(contrast(getComputedStyle(shape).stroke, page), `${shape.getAttribute("class")}`).toBeGreaterThanOrEqual(
         3,
       );
