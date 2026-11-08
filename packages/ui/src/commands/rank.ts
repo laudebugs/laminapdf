@@ -2,7 +2,7 @@
 // the title it matched (drawn in 600). A title that starts with the query beats one with a word
 // that does, which beats the query anywhere inside, which beats its letters in order. Recent
 // commands come first among equals. Small and dependency-free, so the palette view can change
-// without the ranking changing (U1b's risks).
+// without the ranking changing.
 
 /** How a query matched one text: higher is better, and the matched ranges [start, end). */
 export interface TextMatch {
