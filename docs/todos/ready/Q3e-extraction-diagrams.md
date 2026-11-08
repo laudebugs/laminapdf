@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Docs diagrams §2](../../plans/docs-diagrams.md#2-where-a-diagram-helps) |
 | Round / milestone | Round Q3 (docs diagrams) |
-| Depends on | [Q3a](./Q3a-diagram-kit-and-first-diagram.md) |
+| Depends on | [Q3a](../ongoing/Q3a-diagram-kit-and-first-diagram.md) |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) |
 | Branch | `feat/q3e-extraction-diagrams` |
 | PR title | `feat(docs): diagrams for how a page becomes Markdown, and its reading order` |

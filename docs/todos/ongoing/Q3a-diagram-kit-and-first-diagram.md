@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Docs diagrams §3, §4](../../plans/docs-diagrams.md#3-how-the-diagrams-are-drawn) |
 | Round / milestone | Round Q3 (docs diagrams) |
 | Depends on | None |
