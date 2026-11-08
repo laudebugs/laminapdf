@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T2a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [trust and proof §T2](../../plans/trust-and-proof.md#t2-find-what-files-hide) |
 | Round / milestone | Round T (trust and proof) |
 | Depends on | [L3g](../done/L3g-extract-structure-tree.md) |
@@ -15,13 +15,13 @@
 
 ## Goal
 
-A black box drawn over live text hides it from a reader and from nobody else. Copying, search, screen readers and every extractor still get the text. Lamina PDF's extraction does the same today: ADR 0030 §4 drops invisible, off-page, tiny, clipped and low-contrast text, but text painted over by a later shape or image stays in the blocks. This todo adds a sixth flag, `covered`, for text with an opaque fill, an opaque image or an annotation's appearance painted over it. Covered runs leave the blocks and go to `dropped`, like the other flags. That closes a prompt-injection channel, since an LLM reading the extraction no longer sees text the reader can't. It also gives [T2b](./T2b-check-failed-redactions.md) its fake-redaction check.
+A black box drawn over live text hides it from a reader and from nobody else. Copying, search, screen readers and every extractor still get the text. Lamina PDF's extraction does the same today: ADR 0030 §4 drops invisible, off-page, tiny, clipped and low-contrast text, but text painted over by a later shape or image stays in the blocks. This todo adds a sixth flag, `covered`, for text with an opaque fill, an opaque image or an annotation's appearance painted over it. Covered runs leave the blocks and go to `dropped`, like the other flags. That closes a prompt-injection channel, since an LLM reading the extraction no longer sees text the reader can't. It also gives [T2b](../ready/T2b-check-failed-redactions.md) its fake-redaction check.
 
 Fake redaction is one of the trust failures Hacker News users return to after every leak. About 150 comments discuss redactions that leave the text in place, and the stricter count (black box, copy-paste, underlying text) found 54 of its 75 hits in 2023–26. "PDF redaction fails are everywhere and it's usually because people don't understand that covering text with a black box doesn't actually remove the underlying data" ([46370964](https://news.ycombinator.com/item?id=46370964)). X-ray, a library that finds such boxes, drew 709 points in December 2025 ([46369923](https://news.ycombinator.com/item?id=46369923)) ([report R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file)).
 
 ## Context
 
-- [T3a](./T3a-text-layer-status.md) also forwards image events through `TextExtractor::page_with` and collects image boxes in `crates/laminapdf-extract/src/marks.rs`. Whichever lands second extends the other's code rather than adding a second visitor; T3a names the pages whose text lies under an image covering at least 90% of the page, which this todo keeps in the text as an OCR layer.
+- [T3a](../ready/T3a-text-layer-status.md) also forwards image events through `TextExtractor::page_with` and collects image boxes in `crates/laminapdf-extract/src/marks.rs`. Whichever lands second extends the other's code rather than adding a second visitor; T3a names the pages whose text lies under an image covering at least 90% of the page, which this todo keeps in the text as an OCR layer.
 - [Report R2](../../research/hacker-news/pdf-users-on-hacker-news.md#r2-ship-real-redaction-and-catch-fake-redaction-in-any-file), the [format and security note](../../research/hacker-news/notes/format-and-security.md) (complaint 6, redaction that leaves the text in place; the X-ray thread) and the [editors note](../../research/hacker-news/notes/editors.md) (complaint 7). The [extraction note](../../research/hacker-news/notes/extraction.md) counts prompt injection through extracted text.
 - [ADR 0030 §4](../../decisions/0030-extraction-output-and-model-plugins.md#4-hidden-text-is-never-in-text): the five flags, `dropped` with counts and never text, `DropOptions::keep_spans` for auditors, and the rule that heuristics lean towards keeping text. §7 says what may change within `laminapdf.extract/1`.
 - [L3g](../done/L3g-extract-structure-tree.md), which this builds on: it makes `laminapdf-content` track the clip's bounding box and gives `laminapdf-text`'s runs the clip box and fill colour, and its `low-contrast` test decides when a colour is near white. T2a reuses that colour test for near black and intersects every covering shape with the clip box. L3g may already have moved the drawing collector out of `tables/`; if so, extend it where it is.
@@ -43,7 +43,7 @@ Fake redaction is one of the trust failures Hacker News users return to after ev
 
 - **What covers text.** A glyph is covered when one opaque area painted after it holds its box's centre and at least half its area. The box is the glyph's quad bounding box; both thresholds are starting values, tuned on the fixtures and recorded in ADR 0030. Opaque areas are:
   - **Filled paths** (`f`, `F`, `f*`, `B`, `B*`, `b`, `b*`) made of axis-aligned rectangles, or of subpaths whose sides are all horizontal or vertical (the polygons `edges.rs` already boxes), cut to the clip box.
-  - **Images** (`Do` of an image XObject, or an inline image) whose unit square maps to an axis-aligned rectangle, cut to the clip box. An image with `/ImageMask true`, `/Mask`, `/SMask` or `/SMaskInData` above 0 never covers. Nor does an image that covers at least 90% of the page: that is a scanned page, and the text under it is its OCR layer (FineReader's "text under the page image"). [T3a](./T3a-text-layer-status.md) reports such pages.
+  - **Images** (`Do` of an image XObject, or an inline image) whose unit square maps to an axis-aligned rectangle, cut to the clip box. An image with `/ImageMask true`, `/Mask`, `/SMask` or `/SMaskInData` above 0 never covers. Nor does an image that covers at least 90% of the page: that is a scanned page, and the text under it is its OCR layer (FineReader's "text under the page image"). [T3a](../ready/T3a-text-layer-status.md) reports such pages.
   - **Annotation appearances.** Viewers draw annotations over the page (§12.5.5), so the opaque areas of an annotation's normal appearance cover every glyph under them. Annotations flagged Hidden or NoView, popups, annotations with `/CA` below 1 and annotations without an appearance stream are left out.
 - **What opaque means.** The paint uses constant alpha 1 (`ca`), no soft mask, and the `Normal` or `Compatible` blend mode. `Multiply` or `Darken` with a fill within 0.1 of black also covers, since it turns whatever is under it black: this is the dark highlighter drawn over dark text. A fill in a `Pattern` colour space never covers. Nothing inside optional content covers (a `BDC /OC` sequence, or a form or image with `/OC`), whatever the layer's state. Nothing covers inside a form with a transparency `/Group` drawn while the outer state wasn't opaque.
 - **Paint order.** `laminapdf-text` numbers the drawing operations it sees (`paint_path`, `image`, `paint_shading`) and gives each glyph the count before it (`Glyph::paints_before`, new). The extract collector numbers the same calls in the same way, so a covering area applies only to glyphs drawn before it. Annotations come after every operation on the page.
@@ -55,10 +55,10 @@ Fake redaction is one of the trust failures Hacker News users return to after ev
 
 **Out of scope** (and which todo covers it)
 
-- `laminapdf check` warnings about covered text, unapplied redactions and earlier revisions: [T2b](./T2b-check-failed-redactions.md). Counts of hidden text in a disclosure report: [T2c](./T2c-reveal-command.md).
-- Removing covered text from a file: [E12c](./E12c-apply-content-removal.md) (content removal) and [E12d](./E12d-scrub-and-rewrite.md).
+- `laminapdf check` warnings about covered text, unapplied redactions and earlier revisions: [T2b](../ready/T2b-check-failed-redactions.md). Counts of hidden text in a disclosure report: [T2c](../ready/T2c-reveal-command.md).
+- Removing covered text from a file: [E12c](../ready/E12c-apply-content-removal.md) (content removal) and [E12d](../ready/E12d-scrub-and-rewrite.md).
 - Strokes (a thick marker line over text), shadings (`sh`), curved or rotated shapes and rotated images. Each is left out to keep text, as ADR 0030 §4 asks; add them when a fixture or a corpus file shows the need.
-- Text inside layers that are off: no ADR 0030 flag exists for it yet. [T2c](./T2c-reveal-command.md) lists those layers.
+- Text inside layers that are off: no ADR 0030 flag exists for it yet. [T2c](../ready/T2c-reveal-command.md) lists those layers.
 - A rendered check (render the page, compare with the glyph boxes): ADR 0030 §4 leaves it to a later change through the render backend.
 
 ## Tasks
@@ -111,7 +111,7 @@ None.
 
 ## Risks and open questions
 
-- **Scans with text under the image.** The 90% rule keeps the OCR text of scanned books in the output. It also misses a page-size "withheld" image drawn over a page's real text, which then stays visible to an LLM. Recommendation: keep the rule, which leans towards keeping text as ADR 0030 asks, and let [T3a](./T3a-text-layer-status.md)'s text-layer status name pages whose text lies under a scan. The owner may prefer a separate flag; decide in the PR.
+- **Scans with text under the image.** The 90% rule keeps the OCR text of scanned books in the output. It also misses a page-size "withheld" image drawn over a page's real text, which then stays visible to an LLM. Recommendation: keep the rule, which leans towards keeping text as ADR 0030 asks, and let [T3a](../ready/T3a-text-layer-status.md)'s text-layer status name pages whose text lies under a scan. The owner may prefer a separate flag; decide in the PR.
 - **Glyph boxes are taller than the ink.** Quads run from the font's descent to its ascent, so a box drawn tight around the letters may hold less of the box than the ink. The centre-and-half rule allows for that (a box from the baseline to the cap height holds about 60% of a Helvetica glyph's box); tune it on the fixtures before changing it.
 - **Missed covers.** Strokes, shadings, curved and rotated shapes, and covers in optional content don't count, so some fake redactions stay in the text. Each miss leaves noise in the output, while a false cover would lose real text.
 - **Whole runs.** Right-to-left, vertical and `ActualText` runs are judged as a whole, so a name hidden inside an Arabic sentence stays in the text. Splitting them needs visual-to-logical mapping per glyph; revisit with a fixture.
