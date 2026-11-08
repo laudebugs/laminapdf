@@ -16,8 +16,10 @@
 
 pub use laminapdf_extract::{
     Block, BlockKind, Cell, Chunk, ChunkOptions, Coordinates, DropOptions, DropReason, Dropped, ExtractLimits,
-    ExtractOptions, ExtractedPage, ExtractedSource, Extraction, Flags, MarkdownOptions, ReadingOrder, Region, Rendered,
-    Span, SplitOn, StructRef, StructSource, TableDetector, TableMode, TextRange, chunks_jsonl, tokens_approx,
+    ExtractOptions, ExtractedPage, ExtractedSource, Extraction, Flags, LayoutModel, LayoutRegion, MarkdownOptions,
+    ModelError, ModelInfo, ModelRequest, ModelResult, ModelSlot, Models, OcrEngine, OcrWord, PageRaster, PageRenderer,
+    ReadingOrder, Region, RegionLabel, Rendered, Span, SplitOn, StructRef, StructSource, TableDetector, TableMode,
+    TextRange, chunks_jsonl, tokens_approx,
 };
 pub use laminapdf_text::{Code, Glyph, PageText, PageTextRun, Quad, UserSpaceVector};
 
@@ -145,5 +147,22 @@ impl ExtractionJob {
             self.core.finish();
         }
         self.core.ended(outcome)
+    }
+
+    /// The model result the job waits for, when the host runs the model
+    /// ([`ModelSlot::Host`], or a plug-in with no [`PageRenderer`]): render the page, run the
+    /// model and hand the result to [`ExtractionJob::provide`]; until then a step does nothing.
+    #[must_use]
+    pub fn request(&self) -> Option<&ModelRequest> {
+        self.job.request()
+    }
+
+    /// Hands the job the result of its open [`ExtractionJob::request`].
+    ///
+    /// # Errors
+    /// `model-result-unexpected` when nothing was asked for or `result` is the other model's;
+    /// `job-finished` after the job ended.
+    pub fn provide(&mut self, result: ModelResult) -> Result<()> {
+        Ok(self.job.provide(result)?)
     }
 }
