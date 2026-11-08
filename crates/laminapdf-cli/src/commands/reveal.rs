@@ -38,8 +38,9 @@ pub struct RevealArgs {
 
 /// `laminapdf_reveal`'s arguments: those of `laminapdf reveal` without `--include-hidden-text`
 /// and `--fail-on`. The tool withholds the document's own strings (Info values, comments, field
-/// names and values, file and layer names) as well as hidden text: text the document's author
-/// wrote can carry instructions to an agent, so the tool reports keys, counts and pages only.
+/// names and values, file and layer names) as well as hidden text, and keeps a name the file
+/// chose (an Info key, a subtype, an `/AA` key, an XMP namespace) only when the standard defines
+/// it: text the document's author wrote can carry instructions to an agent.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RevealToolArgs {
@@ -416,8 +417,152 @@ impl RevealReport {
             layer.name = None;
         }
         self.hidden_content.runs = None;
+        self.withhold_document_names();
+    }
+
+    /// Names a file chooses (Info keys, `/AA` keys, subtypes, field types, MIME types, XMP
+    /// namespaces) can carry text too: each stays only when ISO 32000-2 (or, for XMP, a
+    /// common schema) defines it, and becomes `other` otherwise.
+    fn withhold_document_names(&mut self) {
+        for entry in &mut self.metadata.info {
+            entry.key = known(&entry.key, INFO_KEYS);
+        }
+        if let Some(xmp) = &mut self.metadata.xmp {
+            for ns in &mut xmp.namespaces {
+                *ns = known(ns, XMP_NAMESPACES);
+            }
+        }
+        for attachment in &mut self.attachments {
+            attachment.mime = None;
+        }
+        for action in &mut self.active_content.actions {
+            action.kind = known(&action.kind, ACTION_KINDS);
+            if let Some(key) = action.trigger.strip_prefix("additional:") {
+                action.trigger = format!("additional:{}", known(key, AA_KEYS));
+            }
+        }
+        let by_subtype = std::mem::take(&mut self.annotations.by_subtype);
+        for (subtype, n) in by_subtype {
+            let entry = self
+                .annotations
+                .by_subtype
+                .entry(known(&subtype, SUBTYPES))
+                .or_default();
+            *entry = entry.saturating_add(n);
+        }
+        for comment in &mut self.annotations.comments {
+            comment.subtype = known(&comment.subtype, SUBTYPES);
+        }
+        for field in &mut self.forms {
+            field.kind = field.kind.as_deref().map(|k| known(k, FIELD_TYPES));
+        }
     }
 }
+
+/// `name` when `list` holds it, else `other`.
+fn known(name: &str, list: &[&str]) -> String {
+    if list.contains(&name) {
+        name.to_owned()
+    } else {
+        "other".to_owned()
+    }
+}
+
+/// The Info dictionary's keys (§14.3.3).
+const INFO_KEYS: &[&str] = &[
+    "Title",
+    "Author",
+    "Subject",
+    "Keywords",
+    "Creator",
+    "Producer",
+    "CreationDate",
+    "ModDate",
+    "Trapped",
+];
+
+/// Action types (§12.6.4.1).
+const ACTION_KINDS: &[&str] = &[
+    "GoTo",
+    "GoToR",
+    "GoToE",
+    "GoToDp",
+    "Launch",
+    "Thread",
+    "URI",
+    "Sound",
+    "Movie",
+    "Hide",
+    "Named",
+    "SubmitForm",
+    "ResetForm",
+    "ImportData",
+    "SetOCGState",
+    "Rendition",
+    "Trans",
+    "GoTo3DView",
+    "JavaScript",
+    "RichMediaExecute",
+];
+
+/// Additional-actions keys of the catalog, pages, annotations and fields (§12.6.3).
+const AA_KEYS: &[&str] = &[
+    "E", "X", "D", "U", "Fo", "Bl", "PO", "PC", "PV", "PI", "O", "C", "K", "F", "V", "WC", "WS", "DS", "WP", "DP",
+];
+
+/// Annotation subtypes (§12.5.6.1).
+const SUBTYPES: &[&str] = &[
+    "Text",
+    "Link",
+    "FreeText",
+    "Line",
+    "Square",
+    "Circle",
+    "Polygon",
+    "PolyLine",
+    "Highlight",
+    "Underline",
+    "Squiggly",
+    "StrikeOut",
+    "Caret",
+    "Stamp",
+    "Ink",
+    "Popup",
+    "FileAttachment",
+    "Sound",
+    "Movie",
+    "Screen",
+    "Widget",
+    "PrinterMark",
+    "TrapNet",
+    "Watermark",
+    "3D",
+    "Redact",
+    "Projection",
+    "RichMedia",
+];
+
+/// Field types (§12.7.4.1).
+const FIELD_TYPES: &[&str] = &["Btn", "Tx", "Ch", "Sig"];
+
+/// XMP namespaces of the schemas PDF writers commonly use (ISO 16684-1, PDF/A, PDF/UA).
+const XMP_NAMESPACES: &[&str] = &[
+    "adobe:ns:meta/",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "http://purl.org/dc/elements/1.1/",
+    "http://ns.adobe.com/xap/1.0/",
+    "http://ns.adobe.com/xap/1.0/mm/",
+    "http://ns.adobe.com/xap/1.0/rights/",
+    "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#",
+    "http://ns.adobe.com/xap/1.0/sType/ResourceRef#",
+    "http://ns.adobe.com/pdf/1.3/",
+    "http://ns.adobe.com/photoshop/1.0/",
+    "http://www.aiim.org/pdfa/ns/id/",
+    "http://www.aiim.org/pdfa/ns/extension/",
+    "http://www.aiim.org/pdfa/ns/schema#",
+    "http://www.aiim.org/pdfa/ns/property#",
+    "http://www.aiim.org/pdfua/ns/id/",
+];
 
 /// Whether `report` found anything in `categories`.
 #[must_use]

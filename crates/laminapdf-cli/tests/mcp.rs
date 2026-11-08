@@ -445,6 +445,9 @@ async fn reveal_should_withhold_every_string_the_document_wrote() {
         json!({ "kind": "Tx", "filled": true, "hidden": false })
     );
     assert_eq!(report["metadata"]["info"][0], json!({ "key": "Title" }));
+    // A custom Info key is a name the file chose: it reads `other`, and so does a MIME type's absence.
+    assert_eq!(report["metadata"]["info"][2], json!({ "key": "other" }));
+    assert_eq!(report["attachments"][0].get("mime"), None);
     let everything = format!("{:?}{report}", result.content);
     for text in [
         "Alice",
@@ -453,6 +456,8 @@ async fn reveal_should_withhold_every_string_the_document_wrote() {
         "Quarterly report",
         "notes.txt",
         "Draft notes",
+        "SourceModified",
+        "text/plain",
     ] {
         assert!(!everything.contains(text), "{text} reached the agent: {everything}");
     }
