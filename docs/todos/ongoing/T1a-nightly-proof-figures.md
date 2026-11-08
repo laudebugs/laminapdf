@@ -11,7 +11,7 @@
 | Branch | `feat/t1a-nightly-proof-figures` |
 | PR title | `feat(xtask): cargo xtask proof records the nightly's robustness figures` |
 | Size | L (≈ 500–700 lines with tests: a new xtask module, three small report writers, two nightly jobs). If it passes 800, move the three writers and the fuzz-matrix fix into a first PR |
-| PR | — |
+| PR | [#311](https://github.com/laudebugs/laminapdf/pull/311) |
 
 ## Goal
 
