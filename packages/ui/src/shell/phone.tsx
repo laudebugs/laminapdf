@@ -23,7 +23,9 @@ export function usePhone(): boolean {
 
 /** The More items, and what runs one. */
 export interface MoreItems<Id extends string> {
+  /** The entries, gated by capability where they need one (`useGatedEntries`). */
   readonly items: readonly MenuEntry<Id>[];
+  /** Runs the chosen entry. */
   readonly onAction: (id: Id) => void;
 }
 

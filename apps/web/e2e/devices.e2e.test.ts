@@ -66,6 +66,22 @@ async function touches(page: Page, steps: readonly (readonly Finger[])[]): Promi
   }, eventsOf(steps));
 }
 
+/**
+ * Scrolls the viewer to `at` of its range on each axis (0 the start, 0.5 the middle), so a gesture
+ * has room to move the page both ways; returns how far it can still scroll down.
+ */
+const scrollTo = (page: Page, at: number) =>
+  page.evaluate(async (share) => {
+    const root = document.querySelector(".lamina-viewer") as HTMLElement;
+    root.scrollTo({
+      left: (root.scrollWidth - root.clientWidth) * share,
+      top: (root.scrollHeight - root.clientHeight) * share,
+      behavior: "instant",
+    });
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return root.scrollHeight - root.clientHeight - root.scrollTop;
+  }, at);
+
 /** The first page's box, in viewport CSS px. */
 const firstPage = (page: Page) =>
   page.evaluate(() => {
@@ -136,6 +152,7 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       await expect.poll(async () => (await firstPage(page)).width).toBeGreaterThan(before.width * 1.5);
       // A pinch around the middle of the window: the fingers spread from 80 to 140 px apart while
       // both also move 30 px right and down.
+      await scrollTo(page, 0.5);
       const zoomed = await firstPage(page);
       const mid = await page.evaluate(() => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }));
       const share = { x: (mid.x - zoomed.left) / zoomed.width, y: (mid.y - zoomed.top) / zoomed.height };
@@ -166,11 +183,13 @@ describe.skipIf(PROFILES[BROWSER] === undefined)(`phones and tablets in ${BROWSE
       const centre = { id: 1, x: box.left + box.width / 2, y: box.top + box.height / 2 };
       for (const _ of [0, 1]) await touches(page, [[centre], []]);
       await expect.poll(async () => (await firstPage(page)).width).toBeGreaterThan(box.width * 1.5);
+      const room = await scrollTo(page, 0);
       const top = await page.evaluate(() => (document.querySelector(".lamina-viewer") as HTMLElement).scrollTop);
       const drag = [0, 1, 2, 3, 4].map((i) => [{ id: 3, x: 150, y: 500 - i * 60 }]);
       await touches(page, drag);
       const moved = await page.evaluate(() => (document.querySelector(".lamina-viewer") as HTMLElement).scrollTop);
-      expect(moved - top).toBeGreaterThanOrEqual(200);
+      // 240 px of drag, or all the room the page has below, less a pixel for rounding.
+      expect(moved - top).toBeGreaterThanOrEqual(Math.min(200, room - 1));
       await clean(watched);
     });
 
