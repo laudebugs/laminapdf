@@ -113,7 +113,7 @@ Each implementation PR follows the repository's review, changeset and validation
 ## Decisions before implementation
 
 - **Names (decided in B10a):** `TextRun::bottom()` and `TextLayout::bottom()` in Rust, each an `Option<Pt>`; in TypeScript, an optional `bottom` on the text and text-box results, computed in Rust, so the two can't disagree. Trailing blank lines don't count.
-- **The cursor (decided in B10a): not needed yet.** With `bottom`, placing the next element is one line, `bottom === undefined ? y : bottom + gap`, and an empty section already adds no gap. A cursor would add only a running maximum and input checks, which the caller's own code handles as plainly. B10b is deleted; a recipe that shows the need can bring it back as a new todo.
+- **The cursor (decided in B10a): not needed yet.** With `bottom`, placing the next element is one line, `bottom === undefined ? y : bottom + gap`, and an empty section already adds no gap. A cursor would add only a running maximum and input checks: a caller who needs them writes `y = Math.max(y, bottom + gap)` and checks its own gap. B10b is deleted; a recipe that shows the need can bring it back as a new todo.
 - **Feature gating:** none. `bottom` lives on the text results, which exist only with the text feature already.
 - Keep automatic pagination as a separate proposal. It needs a measure-before-draw or resumable layout contract to avoid drawing before deciding that a page is full.
 
