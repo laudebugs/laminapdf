@@ -1,5 +1,5 @@
 //! The graphics values that building and reading share: [`Matrix`] (ISO 32000-2 §8.3.3),
-//! [`FillRule`] (§8.5.3.3) and [`Dash`] (§8.4.3.6). They hold numbers in whatever space they
+//! [`FillRule`] (§8.5.3.3), [`Dash`] (§8.4.3.6) and [`BlendMode`] (§11.3.5). They hold numbers in whatever space they
 //! are used in: page space when building, user space when reading content.
 
 /// An affine transformation `[a b c d e f]` (§8.3.3): a point `(x, y)` maps to
@@ -162,9 +162,102 @@ impl Dash {
     }
 }
 
+/// A blend mode (§11.3.5, Tables 134 and 135).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+#[non_exhaustive]
+pub enum BlendMode {
+    /// `Normal`.
+    #[default]
+    Normal,
+    /// `Multiply`.
+    Multiply,
+    /// `Screen`.
+    Screen,
+    /// `Overlay`.
+    Overlay,
+    /// `Darken`.
+    Darken,
+    /// `Lighten`.
+    Lighten,
+    /// `ColorDodge`.
+    ColorDodge,
+    /// `ColorBurn`.
+    ColorBurn,
+    /// `HardLight`.
+    HardLight,
+    /// `SoftLight`.
+    SoftLight,
+    /// `Difference`.
+    Difference,
+    /// `Exclusion`.
+    Exclusion,
+    /// `Hue`.
+    Hue,
+    /// `Saturation`.
+    Saturation,
+    /// `Color`.
+    Color,
+    /// `Luminosity`.
+    Luminosity,
+}
+
+impl BlendMode {
+    /// Every blend mode, in declaration order.
+    pub const ALL: [Self; 16] = [
+        Self::Normal,
+        Self::Multiply,
+        Self::Screen,
+        Self::Overlay,
+        Self::Darken,
+        Self::Lighten,
+        Self::ColorDodge,
+        Self::ColorBurn,
+        Self::HardLight,
+        Self::SoftLight,
+        Self::Difference,
+        Self::Exclusion,
+        Self::Hue,
+        Self::Saturation,
+        Self::Color,
+        Self::Luminosity,
+    ];
+
+    /// The PDF name (`/BM`).
+    #[must_use]
+    pub const fn pdf_name(self) -> &'static str {
+        match self {
+            Self::Normal => "Normal",
+            Self::Multiply => "Multiply",
+            Self::Screen => "Screen",
+            Self::Overlay => "Overlay",
+            Self::Darken => "Darken",
+            Self::Lighten => "Lighten",
+            Self::ColorDodge => "ColorDodge",
+            Self::ColorBurn => "ColorBurn",
+            Self::HardLight => "HardLight",
+            Self::SoftLight => "SoftLight",
+            Self::Difference => "Difference",
+            Self::Exclusion => "Exclusion",
+            Self::Hue => "Hue",
+            Self::Saturation => "Saturation",
+            Self::Color => "Color",
+            Self::Luminosity => "Luminosity",
+        }
+    }
+    /// The mode a `/BM` name names, `Compatible` read as `Normal` (§11.3.5), or `None` for a
+    /// name §11.3.5 doesn't define.
+    #[must_use]
+    pub fn from_pdf_name(name: &[u8]) -> Option<Self> {
+        if name == b"Compatible" {
+            return Some(Self::Normal);
+        }
+        Self::ALL.into_iter().find(|mode| mode.pdf_name().as_bytes() == name)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{FillRule, Matrix};
+    use super::{BlendMode, FillRule, Matrix};
 
     const SCALE: Matrix = Matrix::scale(2.0, 3.0);
     const SHIFT: Matrix = Matrix::translate(10.0, 20.0);
@@ -230,5 +323,41 @@ mod tests {
             FillRule::EvenOdd => 1,
         };
         assert!(FillRule::ALL.iter().enumerate().all(|(i, v)| index(*v) == i));
+    }
+
+    /// The match is exhaustive, so a new variant fails to build here first: give it the next
+    /// index and add it to `ALL` there, which this test then checks.
+    #[test]
+    fn all_should_list_every_blend_mode_once_in_declaration_order() {
+        let index = |v: BlendMode| match v {
+            BlendMode::Normal => 0,
+            BlendMode::Multiply => 1,
+            BlendMode::Screen => 2,
+            BlendMode::Overlay => 3,
+            BlendMode::Darken => 4,
+            BlendMode::Lighten => 5,
+            BlendMode::ColorDodge => 6,
+            BlendMode::ColorBurn => 7,
+            BlendMode::HardLight => 8,
+            BlendMode::SoftLight => 9,
+            BlendMode::Difference => 10,
+            BlendMode::Exclusion => 11,
+            BlendMode::Hue => 12,
+            BlendMode::Saturation => 13,
+            BlendMode::Color => 14,
+            BlendMode::Luminosity => 15,
+        };
+        assert_eq!(
+            BlendMode::ALL.map(index),
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        );
+    }
+
+    #[test]
+    fn from_pdf_name_should_read_every_mode_and_compatible_as_normal() {
+        let read = BlendMode::ALL.map(|m| BlendMode::from_pdf_name(m.pdf_name().as_bytes()));
+        assert_eq!(read, BlendMode::ALL.map(Some));
+        assert_eq!(BlendMode::from_pdf_name(b"Compatible"), Some(BlendMode::Normal));
+        assert_eq!(BlendMode::from_pdf_name(b"Sparkle"), None);
     }
 }

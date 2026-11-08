@@ -16,7 +16,9 @@ use crate::model::{ExtractedSource, Extraction, StructSource};
 use crate::options::{ExtractOptions, ReadingOrder};
 use crate::page::extract_page;
 use crate::page::{PageInput, TreeUse};
+use crate::paint::annots;
 use crate::plugins::{LayoutRegion, ModelRequest, ModelResult, ModelSlot, OcrWord, PageRaster};
+use crate::segments::Covers;
 use crate::tables::{Edges, TableMode};
 use crate::tagged::TaggedIndex;
 use crate::text_layer::measure;
@@ -57,6 +59,7 @@ struct Pending {
     text: PageText,
     edges: Option<Edges>,
     backdrops: Backdrops,
+    covers: Covers,
     /// The images and paths drawn, for the text-layer status.
     drawn: Drawn,
     /// Whether the page's text layer can be used; OCR reads only pages whose can't
@@ -293,6 +296,7 @@ impl ExtractJob {
                 &PageInput {
                     edges: pending.edges.as_ref(),
                     backdrops: &pending.backdrops,
+                    covers: &pending.covers,
                     drawn: &pending.drawn,
                     tree: self.tree.as_ref(),
                     regions: pending.regions.as_deref().unwrap_or_default(),
@@ -326,8 +330,8 @@ impl ExtractJob {
         Ok(self.progress(Phase::Extract))
     }
 
-    /// Reads page `index`'s text and, in the same walk of its content, its table rules and
-    /// backdrops.
+    /// Reads page `index`'s text and, in the same walk of its content, its table rules, covers
+    /// and backdrops; then the covers of its annotations.
     fn read(
         &mut self,
         doc: &Document,
@@ -337,7 +341,11 @@ impl ExtractJob {
         let frame = page.frame()?;
         let mut marks = Marks::new(&frame, self.options.tables != TableMode::Off);
         let text = self.extractor.page_with(doc, page, &mut marks)?;
-        let (edges, backdrops, drawn) = marks.finish();
+        let (edges, mut covers, backdrops, drawn) = marks.finish();
+        covers.extend(annots::covers(doc, page, &frame, &self.cancel)?);
+        if self.cancel.is_cancelled() {
+            return Err(ExtractError::Cancelled);
+        }
         // OCR reads the pages whose text layer can't be used: none, or an invisible OCR layer
         // that extraction leaves out. A `mixed` page keeps its own text.
         let status = measure(&text, &backdrops, &drawn, &self.options.text_layer).status;
@@ -347,6 +355,7 @@ impl ExtractJob {
             text,
             edges,
             backdrops,
+            covers: Covers::new(covers),
             drawn,
             visible,
             regions: None,
